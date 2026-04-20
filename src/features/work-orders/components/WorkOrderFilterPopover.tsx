@@ -20,11 +20,6 @@ import { cn } from '@/lib/utils';
 import { WorkOrderFilters } from '@/features/work-orders/types/workOrder';
 import type { QuickFilterPreset } from '@/features/work-orders/hooks/useWorkOrderFilters';
 
-interface Team {
-  id: string;
-  name: string;
-}
-
 const quickFilters: { label: string; value: QuickFilterPreset; tooltip: string }[] = [
   { label: 'My Work', value: 'my-work', tooltip: 'Filter to work orders assigned to you' },
   { label: 'Urgent', value: 'urgent', tooltip: 'Filter to high-priority work orders' },
@@ -39,7 +34,6 @@ interface WorkOrderFilterPopoverProps {
   onFilterChange: (key: keyof WorkOrderFilters, value: string) => void;
   onClearFilters: () => void;
   onQuickFilter: (preset: QuickFilterPreset) => void;
-  teams?: Team[];
 }
 
 const WorkOrderFilterPopover: React.FC<WorkOrderFilterPopoverProps> = ({
@@ -49,7 +43,6 @@ const WorkOrderFilterPopover: React.FC<WorkOrderFilterPopoverProps> = ({
   onFilterChange,
   onClearFilters,
   onQuickFilter,
-  teams = [],
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -158,29 +151,6 @@ const WorkOrderFilterPopover: React.FC<WorkOrderFilterPopoverProps> = ({
               </SelectContent>
             </Select>
           </div>
-
-          {/* Team */}
-          {teams.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-muted-foreground">Team</label>
-              <Select
-                value={filters.teamFilter}
-                onValueChange={(v) => onFilterChange('teamFilter', v)}
-              >
-                <SelectTrigger className="h-8 text-sm">
-                  <SelectValue placeholder="All teams" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Teams</SelectItem>
-                  {teams.map((team) => (
-                    <SelectItem key={team.id} value={team.id}>
-                      {team.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
           <Separator />
 

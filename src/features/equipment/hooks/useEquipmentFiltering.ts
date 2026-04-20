@@ -1,6 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useEquipment } from '@/features/equipment/hooks/useEquipment';
-import { useTeams } from '@/features/teams/hooks/useTeamManagement';
 import { usePermissions } from '@/hooks/usePermissions';
 
 export interface EquipmentFilters {
@@ -50,12 +49,14 @@ export const useEquipmentFiltering = (organizationId?: string) => {
   // Get equipment data using explicit organization ID
   const equipmentQuery = useEquipment(organizationId);
   const { data: equipment = [], isLoading } = equipmentQuery;
-  
-  const { data: teams = [] } = useTeams(organizationId);
+
   usePermissions();
 
-  // Extract unique values for filter options
-  // Filter out empty strings to prevent SelectItem crash (Radix UI requires non-empty values)
+  // Extract unique values for filter options.
+  // Team is intentionally NOT in this shape — team scope is owned by the
+  // global TopBar `useSelectedTeam` and mirrored onto `filters.team` by the
+  // page wiring (see `Equipment.tsx`).
+  // Filter out empty strings to prevent SelectItem crash (Radix UI requires non-empty values).
   const filterOptions = useMemo(() => {
     const manufacturers = [...new Set(equipment.map(item => item.manufacturer))]
       .filter(m => m && m.trim() !== '')
@@ -63,13 +64,12 @@ export const useEquipmentFiltering = (organizationId?: string) => {
     const locations = [...new Set(equipment.map(item => item.location))]
       .filter(l => l && l.trim() !== '')
       .sort();
-    
+
     return {
       manufacturers,
       locations,
-      teams: teams.map(team => ({ id: team.id, name: team.name }))
     } as const;
-  }, [equipment, teams]);
+  }, [equipment]);
 
   // Filter and sort equipment
   const filteredAndSortedEquipment = useMemo(() => {

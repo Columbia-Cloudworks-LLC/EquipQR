@@ -13,15 +13,11 @@ import type { EquipmentFilters, SortConfig } from '@/features/equipment/hooks/us
 import type { EquipmentViewMode } from './EquipmentCard';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
 
-interface Team {
-  id: string;
-  name: string;
-}
-
+// Team is intentionally not part of FilterOptions here — the team scope is
+// owned by the global TopBar `useSelectedTeam`.
 interface FilterOptions {
   manufacturers: string[];
   locations: string[];
-  teams: Team[];
 }
 
 interface EquipmentToolbarProps {
@@ -63,11 +59,12 @@ const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
   onImportCsv,
   equipment = [],
 }) => {
+  // `filters.team` is driven by the global TopBar selection and is intentionally
+  // excluded from the page-local active-filter count / chip row.
   const activeFilterCount = [
     filters.status !== 'all',
     filters.manufacturer !== 'all',
     filters.location !== 'all',
-    filters.team !== 'all',
     !!(filters.maintenanceDateFrom || filters.maintenanceDateTo),
     !!(filters.installationDateFrom || filters.installationDateTo),
     filters.warrantyExpiring,
@@ -229,19 +226,6 @@ const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
                 onClick={() => onFilterChange('location', 'all')}
                 className="ml-0.5 hover:text-foreground"
                 aria-label="Clear location filter"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          )}
-
-          {filters.team !== 'all' && (
-            <Badge variant="secondary" className="flex items-center gap-1 text-xs h-5 px-2">
-              {filterOptions.teams.find((t) => t.id === filters.team)?.name ?? filters.team}
-              <button
-                onClick={() => onFilterChange('team', 'all')}
-                className="ml-0.5 hover:text-foreground"
-                aria-label="Clear team filter"
               >
                 <X className="h-3 w-3" />
               </button>

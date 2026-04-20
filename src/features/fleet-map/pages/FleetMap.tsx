@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MapPin, PanelLeftOpen, PanelLeftClose, Forklift } from 'lucide-react';
 import { FleetMapErrorBoundary } from '@/features/fleet-map/components/FleetMapErrorBoundary';
 // IMPORTANT: FleetMap uses useGoogleMapsKey (key/mapId only), NOT
@@ -24,6 +23,8 @@ import type { UnlocatedEquipment } from '@/features/fleet-map/components/Equipme
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useSelectedTeam } from '@/hooks/useSelectedTeam';
+import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 
 const FleetMap: React.FC = () => {
   const {
@@ -35,17 +36,21 @@ const FleetMap: React.FC = () => {
   } = useGoogleMapsKey();
   const { data: teamFleetData, isLoading: teamFleetLoading, error: teamFleetError } = useTeamFleetData();
   const isMobile = useIsMobile();
+  const { selectedTeamId } = useSelectedTeam();
 
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [focusEquipmentId, setFocusEquipmentId] = useState<string | null>(null);
 
-  // Default to "all" teams when data loads
-  useEffect(() => {
-    if (teamFleetData?.teams && teamFleetData.teams.length > 0 && !selectedTeamId) {
-      setSelectedTeamId('all');
-    }
-  }, [teamFleetData, selectedTeamId]);
+  // Translate the global selection into the sentinel the existing service
+  // payload uses: `null` (= "All teams") becomes `'all'`; `UNASSIGNED_TEAM_ID`
+  // is passed through as `'unassigned'` (which `teamFleetService` already
+  // buckets under that key).
+  const fleetTeamKey: string =
+    selectedTeamId === null
+      ? 'all'
+      : selectedTeamId === UNASSIGNED_TEAM_ID
+        ? 'unassigned'
+        : selectedTeamId;
 
   // Open panel by default on desktop once data is available
   useEffect(() => {
@@ -58,12 +63,12 @@ const FleetMap: React.FC = () => {
   // Get equipment locations for selected team
   const equipmentLocations = useMemo(() => {
     if (!teamFleetData) return [];
-    if (selectedTeamId === 'all') {
+    if (fleetTeamKey === 'all') {
       return teamFleetData.teamEquipmentData.flatMap(team => team.equipment);
     }
-    const teamData = teamFleetData.teamEquipmentData.find(team => team.teamId === selectedTeamId);
+    const teamData = teamFleetData.teamEquipmentData.find(team => team.teamId === fleetTeamKey);
     return teamData?.equipment || [];
-  }, [teamFleetData, selectedTeamId]);
+  }, [teamFleetData, fleetTeamKey]);
 
   // Build unlocated equipment list
   const unlocatedEquipment: UnlocatedEquipment[] = useMemo(() => {
@@ -75,7 +80,8 @@ const FleetMap: React.FC = () => {
     return [];
   }, [teamFleetData]);
 
-  // Build team HQ locations for star markers (filtered by selected team)
+  // Build team HQ locations for star markers (filtered by selected team).
+  // The 'unassigned' bucket is filtered out — there is no team HQ for it.
   const teamHQLocations: TeamHQLocation[] = useMemo(() => {
     if (!teamFleetData?.teams) return [];
 
@@ -88,8 +94,12 @@ const FleetMap: React.FC = () => {
       (t) => t.location_lat != null && t.location_lng != null && t.id !== 'unassigned',
     );
 
-    if (selectedTeamId && selectedTeamId !== 'all') {
-      const team = teamsWithHQ.find((t) => t.id === selectedTeamId);
+    if (fleetTeamKey === 'unassigned') {
+      return [];
+    }
+
+    if (fleetTeamKey !== 'all') {
+      const team = teamsWithHQ.find((t) => t.id === fleetTeamKey);
       return team
         ? [{ id: team.id, name: team.name, lat: team.location_lat!, lng: team.location_lng!, formatted_address: formatAddr(team) }]
         : [];
@@ -102,7 +112,7 @@ const FleetMap: React.FC = () => {
       lng: t.location_lng!,
       formatted_address: formatAddr(t),
     }));
-  }, [teamFleetData, selectedTeamId]);
+  }, [teamFleetData, fleetTeamKey]);
 
   const totalEquipmentCount = teamFleetData?.totalEquipmentCount || 0;
   const hasLocationData = teamFleetData?.hasLocationData || false;
@@ -195,9 +205,11 @@ const FleetMap: React.FC = () => {
   }
 
   // ── Main fleet map view ──
+  // Team scope is owned by the global TopBar `useSelectedTeam` — there is no
+  // per-page team selector on this toolbar by design.
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col">
-      {/* Toolbar — left: panel + team filter | right: status summary */}
+      {/* Toolbar — left: panel toggle | right: status summary */}
       <div className="flex items-center px-4 py-2 bg-background border-b shadow-sm z-10 flex-shrink-0">
         {/* Left controls group */}
         <div className="flex items-center gap-2">
@@ -210,33 +222,6 @@ const FleetMap: React.FC = () => {
             {panelOpen ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
             <span className="hidden sm:inline">{panelOpen ? 'Hide Panel' : 'Equipment'}</span>
           </Button>
-
-          {/* Visual separator between panel toggle and team filter */}
-          <div className="hidden sm:block w-px h-5 bg-border/40 mx-0.5" />
-
-          <Select
-            value={selectedTeamId || 'all'}
-            onValueChange={(value) => setSelectedTeamId(value)}
-          >
-            <SelectTrigger className="w-[180px] h-8 text-xs">
-              <SelectValue placeholder="All Teams" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">
-                <span className="flex items-center gap-1.5">All Teams</span>
-              </SelectItem>
-              {(teamFleetData?.teams || []).map((team) => (
-                <SelectItem key={team.id} value={team.id}>
-                  <span className="flex items-center gap-1.5">
-                    {team.name}
-                    {team.hasLocationData && (
-                      <span className="text-[10px] text-muted-foreground">({team.equipmentCount})</span>
-                    )}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
 
         <div className="flex-1" />

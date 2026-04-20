@@ -20,10 +20,6 @@ const defaultFilters: EquipmentFilters = {
 const defaultFilterOptions = {
   manufacturers: ['Toyota', 'Caterpillar'],
   locations: ['Warehouse A', 'Warehouse B'],
-  teams: [
-    { id: 'team-1', name: 'Maintenance Team' },
-    { id: 'team-2', name: 'Operations Team' }
-  ]
 };
 
 describe('MobileEquipmentFilters', () => {
@@ -163,22 +159,24 @@ describe('MobileEquipmentFilters', () => {
 
     it('renders all filter dropdowns in sheet', async () => {
       expect(screen.getByText('Filter Equipment')).toBeInTheDocument();
-      
+
       // Status filter
       const statusLabel = screen.getByText('Status');
       expect(statusLabel).toBeInTheDocument();
-      
+
       // Manufacturer filter
       const manufacturerLabel = screen.getByText('Manufacturer');
       expect(manufacturerLabel).toBeInTheDocument();
-      
+
       // Location filter
       const locationLabel = screen.getByText('Location');
       expect(locationLabel).toBeInTheDocument();
-      
-      // Team filter
-      const teamLabel = screen.getByText('Team');
-      expect(teamLabel).toBeInTheDocument();
+    });
+
+    it('does NOT render a Team filter in the sheet (team scope is owned by the global TopBar)', () => {
+      // The page-local Team <Select> was removed when team scope moved to the
+      // global `useSelectedTeam` selector in the TopBar breadcrumb.
+      expect(screen.queryByText('Team')).not.toBeInTheDocument();
     });
 
     it('renders clear all filters button', () => {
@@ -244,28 +242,32 @@ describe('MobileEquipmentFilters', () => {
       }
     });
 
-    it('shows team name in badge when team filter is active', () => {
+    it('does NOT render a "Team:" active filter badge (team scope is owned by the global TopBar)', () => {
+      // Team is no longer a page-local filter, so even when `filters.team` is
+      // set (driven by global selection) the page must not render a removable
+      // "Team: ..." chip — clearing it from the page would silently change
+      // app-wide state.
       render(
-        <MobileEquipmentFilters 
-          {...defaultProps} 
+        <MobileEquipmentFilters
+          {...defaultProps}
           activeFilterCount={1}
           filters={{ ...defaultFilters, team: 'team-1' }}
         />
       );
-      
-      expect(screen.getByText(/Team: Maintenance Team/i)).toBeInTheDocument();
+
+      expect(screen.queryByText(/^Team:/i)).not.toBeInTheDocument();
     });
   });
 
   describe('Edge Cases', () => {
     it('handles empty filter options', () => {
       render(
-        <MobileEquipmentFilters 
-          {...defaultProps} 
-          filterOptions={{ manufacturers: [], locations: [], teams: [] }} 
+        <MobileEquipmentFilters
+          {...defaultProps}
+          filterOptions={{ manufacturers: [], locations: [] }}
         />
       );
-      
+
       expect(screen.getByPlaceholderText('Search equipment...')).toBeInTheDocument();
     });
 
@@ -283,20 +285,19 @@ describe('MobileEquipmentFilters', () => {
 
     it('handles multiple active filters', () => {
       render(
-        <MobileEquipmentFilters 
-          {...defaultProps} 
-          activeFilterCount={4}
-          filters={{ 
-            ...defaultFilters, 
-            status: 'active', 
+        <MobileEquipmentFilters
+          {...defaultProps}
+          activeFilterCount={3}
+          filters={{
+            ...defaultFilters,
+            status: 'active',
             manufacturer: 'Toyota',
             location: 'Warehouse A',
-            team: 'team-1'
           }}
         />
       );
-      
-      expect(screen.getByText('4')).toBeInTheDocument();
+
+      expect(screen.getByText('3')).toBeInTheDocument();
       expect(screen.getByText(/Status: active/i)).toBeInTheDocument();
       expect(screen.getByText(/Manufacturer: Toyota/i)).toBeInTheDocument();
       expect(screen.getByText(/Location: Warehouse A/i)).toBeInTheDocument();

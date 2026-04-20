@@ -6,6 +6,8 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEquipmentFiltering } from '@/features/equipment/hooks/useEquipmentFiltering';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useSelectedTeam } from '@/hooks/useSelectedTeam';
+import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
@@ -29,6 +31,7 @@ const Equipment = () => {
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const initializedFromUrl = useRef(false);
+  const { selectedTeamId, setSelectedTeamId } = useSelectedTeam();
   
   // Use the new enhanced filtering hook with explicit organization ID
   const {
@@ -93,14 +96,18 @@ const Equipment = () => {
     localStorage.setItem('equipqr:equipment-view-mode', mode);
   }, []);
 
-  // Apply URL parameter filters on initial load
+  // Apply URL parameter filters on initial load.
+  // The `team` parameter writes to the GLOBAL `useSelectedTeam` selection (not
+  // the page-local filter) — the page is now driven by the TopBar selection,
+  // so a deep link like `/dashboard/equipment?team=<uuid>` updates the global
+  // scope and the sync effect below mirrors it onto the page filter.
   useEffect(() => {
     if (initializedFromUrl.current) return;
     let didApply = false;
     const team = searchParams.get('team');
     const status = searchParams.get('status');
     if (team) {
-      updateFilter('team', team);
+      setSelectedTeamId(team);
       didApply = true;
     }
     if (status) {
@@ -122,7 +129,20 @@ const Equipment = () => {
     if (didApply) {
       initializedFromUrl.current = true;
     }
-  }, [searchParams, updateFilter]);
+  }, [searchParams, updateFilter, setSelectedTeamId]);
+
+  // Mirror the global TopBar team selection onto the page-local filter.
+  // `null` (= "All teams") and `UNASSIGNED_TEAM_ID` are translated to the
+  // sentinel values `useEquipmentFiltering` already understands.
+  useEffect(() => {
+    const value =
+      selectedTeamId === null
+        ? 'all'
+        : selectedTeamId === UNASSIGNED_TEAM_ID
+          ? 'unassigned'
+          : selectedTeamId;
+    updateFilter('team', value);
+  }, [selectedTeamId, updateFilter]);
 
   const canCreate = canCreateEquipment();
   const canImport = hasRole(['owner', 'admin']);

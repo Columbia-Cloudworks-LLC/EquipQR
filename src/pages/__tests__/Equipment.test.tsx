@@ -12,6 +12,14 @@ vi.mock('@/hooks/usePermissions', () => ({
   }),
 }));
 
+vi.mock('@/hooks/useSelectedTeam', () => ({
+  useSelectedTeam: () => ({
+    selectedTeamId: null,
+    selectedTeam: null,
+    setSelectedTeamId: vi.fn(),
+  }),
+}));
+
 vi.mock('@/features/teams/hooks/useTeamManagement', () => ({
   useTeams: vi.fn(() => ({ teams: [], managedTeams: [], isLoading: false, error: null, data: [] })),
   useTeam: vi.fn(() => ({ data: null, isLoading: false })),

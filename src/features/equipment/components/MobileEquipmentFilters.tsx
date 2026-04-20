@@ -9,15 +9,11 @@ import { Search, Filter, X } from 'lucide-react';
 import { HorizontalChipRow } from '@/components/layout/HorizontalChipRow';
 import { EquipmentFilters } from '@/features/equipment/hooks/useEquipmentFiltering';
 
-interface Team {
-  id: string;
-  name: string;
-}
-
+// Team is intentionally not part of FilterOptions here — the team scope is
+// owned by the global TopBar `useSelectedTeam`.
 interface FilterOptions {
   manufacturers: string[];
   locations: string[];
-  teams: Team[];
 }
 
 type EquipmentFilterKey = keyof EquipmentFilters;
@@ -50,7 +46,6 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
   const mobileStatusFilterId = 'equipment-status-filter-mobile';
   const mobileManufacturerFilterId = 'equipment-manufacturer-filter-mobile';
   const mobileLocationFilterId = 'equipment-location-filter-mobile';
-  const mobileTeamFilterId = 'equipment-team-filter-mobile';
 
   React.useEffect(() => {
     setIsSheetOpen(showMobileFilters);
@@ -101,7 +96,8 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
             <SheetHeader className="pb-4">
               <SheetTitle>Filter Equipment</SheetTitle>
               <SheetDescription>
-                Filter equipment by status, manufacturer, location, or team.
+                Filter equipment by status, manufacturer, or location. Team scope
+                is set from the breadcrumb at the top of the screen.
               </SheetDescription>
             </SheetHeader>
           </div>
@@ -156,23 +152,6 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
                         {filterOptions.locations.map((location) => (
                           <SelectItem key={location} value={location}>
                             {location}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label htmlFor={mobileTeamFilterId} className="mb-2 block text-sm font-medium">Team</label>
-                    <Select value={filters.team} onValueChange={(value) => onFilterChange('team', value)}>
-                      <SelectTrigger id={mobileTeamFilterId} className="h-12">
-                        <SelectValue placeholder="All Teams" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Teams</SelectItem>
-                        {filterOptions.teams.map((team) => (
-                          <SelectItem key={team.id} value={team.id}>
-                            {team.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -248,16 +227,6 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
                 className="h-3 w-3 cursor-pointer hover:text-foreground"
                 onClick={() => onFilterChange('location', 'all')}
                 aria-label="Clear location filter"
-              />
-            </Badge>
-          )}
-          {filters.team !== 'all' && (
-            <Badge variant="secondary" className="flex shrink-0 items-center gap-1 whitespace-nowrap">
-              Team: {filterOptions.teams.find(t => t.id === filters.team)?.name || filters.team}
-              <X
-                className="h-3 w-3 cursor-pointer hover:text-foreground"
-                onClick={() => onFilterChange('team', 'all')}
-                aria-label="Clear team filter"
               />
             </Badge>
           )}

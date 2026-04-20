@@ -6,7 +6,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { TeamContext, type TeamMembership } from '@/contexts/team-context';
-import { SelectedTeamContext } from '@/contexts/selected-team-context';
+import {
+  SelectedTeamContext,
+  UNASSIGNED_TEAM_ID,
+  type SelectedTeamId,
+} from '@/contexts/selected-team-context';
 import { SimpleOrganizationContext } from '@/contexts/SimpleOrganizationContext';
 import { createMockSimpleOrgValue } from '@/test/utils/mock-provider-values';
 import ContextBreadcrumb from '../ContextBreadcrumb';
@@ -19,8 +23,8 @@ vi.mock('@/hooks/use-mobile', () => ({
 const renderWithTeamContext = (
   options: {
     teamMemberships?: TeamMembership[];
-    selectedTeamId?: string | null;
-    setSelectedTeamId?: (id: string | null) => void;
+    selectedTeamId?: SelectedTeamId;
+    setSelectedTeamId?: (id: SelectedTeamId) => void;
     initialEntries?: string[];
   } = {},
 ) => {
@@ -54,7 +58,9 @@ const renderWithTeamContext = (
                 value={{
                   selectedTeamId,
                   selectedTeam:
-                    teamMemberships.find((m) => m.team_id === selectedTeamId) ?? null,
+                    selectedTeamId && selectedTeamId !== UNASSIGNED_TEAM_ID
+                      ? teamMemberships.find((m) => m.team_id === selectedTeamId) ?? null
+                      : null,
                   setSelectedTeamId,
                 }}
               >
@@ -156,5 +162,39 @@ describe('ContextBreadcrumb', () => {
     await user.click(allItem);
 
     expect(setSelectedTeamId).toHaveBeenCalledWith(null);
+  });
+
+  it('renders an "Unassigned" item that selects the UNASSIGNED_TEAM_ID sentinel', async () => {
+    const user = userEvent.setup();
+    const setSelectedTeamId = vi.fn();
+    renderWithTeamContext({
+      teamMemberships: [
+        { team_id: 't1', team_name: 'Service', role: 'manager', joined_date: '2026-01-01' },
+      ],
+      selectedTeamId: null,
+      setSelectedTeamId,
+      initialEntries: ['/dashboard'],
+    });
+
+    await user.click(screen.getByRole('button', { name: /switch team/i }));
+
+    const unassignedItem = await screen.findByRole('menuitem', { name: /unassigned/i });
+    await user.click(unassignedItem);
+
+    expect(setSelectedTeamId).toHaveBeenCalledWith(UNASSIGNED_TEAM_ID);
+  });
+
+  it('shows "Unassigned" as the trigger label when the unassigned sentinel is current', () => {
+    renderWithTeamContext({
+      teamMemberships: [
+        { team_id: 't1', team_name: 'Service', role: 'manager', joined_date: '2026-01-01' },
+      ],
+      selectedTeamId: UNASSIGNED_TEAM_ID,
+      initialEntries: ['/dashboard'],
+    });
+
+    expect(
+      screen.getByRole('button', { name: /switch team \(current: unassigned\)/i }),
+    ).toBeInTheDocument();
   });
 });

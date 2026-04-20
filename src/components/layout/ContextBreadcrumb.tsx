@@ -21,6 +21,7 @@ import OrganizationSwitcher from '@/features/organization/components/Organizatio
 import { useTeam } from '@/features/teams/hooks/useTeam';
 import { useSelectedTeam } from '@/hooks/useSelectedTeam';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 import { getPageLabel, shouldSuppressLabelOnMobile } from './topBarRouteLabels';
 
 /**
@@ -46,7 +47,9 @@ const ContextBreadcrumb: React.FC = () => {
     isMobile && shouldSuppressLabelOnMobile(location.pathname);
 
   const showTeamSegment = !isMobile && teamMemberships.length > 0;
-  const teamLabel = selectedTeam?.team_name ?? 'All teams';
+  const teamLabel =
+    selectedTeam?.team_name ??
+    (selectedTeamId === UNASSIGNED_TEAM_ID ? 'Unassigned' : 'All teams');
 
   return (
     <Breadcrumb>
@@ -81,6 +84,15 @@ const ContextBreadcrumb: React.FC = () => {
                   >
                     <span>All teams</span>
                     {selectedTeamId === null && (
+                      <Check className="h-4 w-4 text-primary" />
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setSelectedTeamId(UNASSIGNED_TEAM_ID)}
+                    className="text-sm cursor-pointer flex items-center justify-between"
+                  >
+                    <span>Unassigned</span>
+                    {selectedTeamId === UNASSIGNED_TEAM_ID && (
                       <Check className="h-4 w-4 text-primary" />
                     )}
                   </DropdownMenuItem>

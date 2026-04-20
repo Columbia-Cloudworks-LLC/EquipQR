@@ -9,11 +9,6 @@ import WorkOrderSortPopover from './WorkOrderSortPopover';
 import { WorkOrderFilters } from '@/features/work-orders/types/workOrder';
 import type { QuickFilterPreset, SortField, SortDirection } from '@/features/work-orders/hooks/useWorkOrderFilters';
 
-interface Team {
-  id: string;
-  name: string;
-}
-
 interface WorkOrderToolbarProps {
   filters: WorkOrderFilters;
   activeFilterCount: number;
@@ -26,7 +21,6 @@ interface WorkOrderToolbarProps {
   onSortChange: (field: SortField, direction: SortDirection) => void;
   resultCount: number;
   totalCount: number;
-  teams?: Team[];
 }
 
 const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
@@ -41,7 +35,6 @@ const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
   onSortChange,
   resultCount,
   totalCount,
-  teams = [],
 }) => {
   const hasActiveFilters = activeFilterCount > 0 || filters.searchQuery.length > 0;
 
@@ -80,7 +73,6 @@ const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
           onFilterChange={onFilterChange}
           onClearFilters={onClearFilters}
           onQuickFilter={onQuickFilter}
-          teams={teams}
         />
 
         {/* Sort popover */}
@@ -156,19 +148,6 @@ const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
                 onClick={() => onFilterChange('dueDateFilter', 'all')}
                 className="ml-0.5 hover:text-foreground"
                 aria-label="Clear due date filter"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          )}
-
-          {filters.teamFilter !== 'all' && (
-            <Badge variant="secondary" className="flex items-center gap-1 text-xs h-5 px-2">
-              {teams.find((t) => t.id === filters.teamFilter)?.name ?? filters.teamFilter}
-              <button
-                onClick={() => onFilterChange('teamFilter', 'all')}
-                className="ml-0.5 hover:text-foreground"
-                aria-label="Clear team filter"
               >
                 <X className="h-3 w-3" />
               </button>

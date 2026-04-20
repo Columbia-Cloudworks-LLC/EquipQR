@@ -4,7 +4,9 @@ import { useTeam } from '@/features/teams/hooks/useTeam';
 import { logger } from '@/utils/logger';
 import {
   SelectedTeamContext,
+  UNASSIGNED_TEAM_ID,
   type SelectedTeamContextType,
+  type SelectedTeamId,
 } from './selected-team-context';
 
 const STORAGE_KEY_PREFIX = 'equipqr:selectedTeamId:';
@@ -12,7 +14,7 @@ const STORAGE_KEY_PREFIX = 'equipqr:selectedTeamId:';
 const storageKeyFor = (organizationId: string | null) =>
   organizationId ? `${STORAGE_KEY_PREFIX}${organizationId}` : null;
 
-const readStoredTeamId = (organizationId: string | null): string | null => {
+const readStoredTeamId = (organizationId: string | null): SelectedTeamId => {
   const key = storageKeyFor(organizationId);
   if (!key) return null;
   try {
@@ -23,7 +25,7 @@ const readStoredTeamId = (organizationId: string | null): string | null => {
   }
 };
 
-const writeStoredTeamId = (organizationId: string | null, teamId: string | null): void => {
+const writeStoredTeamId = (organizationId: string | null, teamId: SelectedTeamId): void => {
   const key = storageKeyFor(organizationId);
   if (!key) return;
   try {
@@ -43,7 +45,7 @@ export const SelectedTeamProvider: React.FC<{ children: React.ReactNode }> = ({
   const { organizationId } = useOrganization();
   const { teamMemberships, isLoading: teamMembershipsLoading } = useTeam();
 
-  const [selectedTeamId, setSelectedTeamIdState] = useState<string | null>(null);
+  const [selectedTeamId, setSelectedTeamIdState] = useState<SelectedTeamId>(null);
 
   // Re-hydrate when the active organization changes.
   useEffect(() => {
@@ -58,9 +60,14 @@ export const SelectedTeamProvider: React.FC<{ children: React.ReactNode }> = ({
   // loading, `teamMemberships` is `[]`, which would otherwise cause every
   // initial mount and every org switch to clobber a valid persisted selection
   // before the real membership list arrives.
+  //
+  // The `UNASSIGNED_TEAM_ID` sentinel is preserved unconditionally — it does
+  // not correspond to any membership row, so the membership-visibility check
+  // does not apply to it.
   useEffect(() => {
     if (teamMembershipsLoading) return;
     if (!selectedTeamId) return;
+    if (selectedTeamId === UNASSIGNED_TEAM_ID) return;
     const stillVisible = teamMemberships.some((m) => m.team_id === selectedTeamId);
     if (!stillVisible) {
       setSelectedTeamIdState(null);
@@ -69,7 +76,7 @@ export const SelectedTeamProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [selectedTeamId, teamMemberships, teamMembershipsLoading, organizationId]);
 
   const setSelectedTeamId = useCallback(
-    (teamId: string | null) => {
+    (teamId: SelectedTeamId) => {
       setSelectedTeamIdState(teamId);
       writeStoredTeamId(organizationId, teamId);
     },
@@ -78,7 +85,7 @@ export const SelectedTeamProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const selectedTeam = useMemo(
     () =>
-      selectedTeamId
+      selectedTeamId && selectedTeamId !== UNASSIGNED_TEAM_ID
         ? teamMemberships.find((m) => m.team_id === selectedTeamId) ?? null
         : null,
     [selectedTeamId, teamMemberships]

@@ -151,18 +151,21 @@ describe('EquipmentFilters', () => {
       expect(screen.getByText('Active Count: 1')).toBeInTheDocument();
     });
 
-    it('counts team filter when not "all"', async () => {
+    it('does NOT count the team filter — team scope is owned by the global TopBar', async () => {
+      // `filters.team` is driven by the global `useSelectedTeam` selection in
+      // the TopBar breadcrumb and is intentionally excluded from the page-local
+      // active-filter count, so the page badge does not reflect global state.
       const { useIsMobile } = await import('@/hooks/use-mobile');
       vi.mocked(useIsMobile).mockReturnValue(true);
 
       render(
-        <EquipmentFiltersComponent 
-          {...defaultProps} 
+        <EquipmentFiltersComponent
+          {...defaultProps}
           filters={{ ...defaultFilters, team: 'team-1' }}
         />
       );
-      
-      expect(screen.getByText('Active Count: 1')).toBeInTheDocument();
+
+      expect(screen.getByText('Active Count: 0')).toBeInTheDocument();
     });
 
     it('counts maintenance date filters', async () => {
@@ -279,15 +282,17 @@ describe('EquipmentFilters', () => {
   });
 
   describe('Edge Cases', () => {
-    it('handles all filters active', async () => {
+    it('handles all filters active (team excluded — owned by global TopBar)', async () => {
+      // `filters.team` is excluded from the page-local count by design (see the
+      // dedicated test above), so all-five-on yields a count of 5 not 6.
       const { useIsMobile } = await import('@/hooks/use-mobile');
       vi.mocked(useIsMobile).mockReturnValue(true);
 
       render(
-        <EquipmentFiltersComponent 
-          {...defaultProps} 
-          filters={{ 
-            ...defaultFilters, 
+        <EquipmentFiltersComponent
+          {...defaultProps}
+          filters={{
+            ...defaultFilters,
             status: 'active',
             manufacturer: 'Toyota',
             location: 'Warehouse A',
@@ -297,8 +302,8 @@ describe('EquipmentFilters', () => {
           }}
         />
       );
-      
-      expect(screen.getByText('Active Count: 6')).toBeInTheDocument();
+
+      expect(screen.getByText('Active Count: 5')).toBeInTheDocument();
     });
 
     it('handles null and undefined filter values', async () => {

@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SelectedTeamProvider } from '@/contexts/SelectedTeamContext';
+import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 import { useSelectedTeam } from '@/hooks/useSelectedTeam';
 import type { TeamMembership } from '@/contexts/team-context';
 
@@ -26,8 +27,13 @@ vi.mock('@/features/teams/hooks/useTeam', () => ({
 }));
 
 const Probe: React.FC = () => {
-  const { selectedTeamId } = useSelectedTeam();
-  return <div data-testid="selected-team-id">{selectedTeamId ?? 'null'}</div>;
+  const { selectedTeamId, selectedTeam } = useSelectedTeam();
+  return (
+    <>
+      <div data-testid="selected-team-id">{selectedTeamId ?? 'null'}</div>
+      <div data-testid="selected-team-name">{selectedTeam?.team_name ?? 'null'}</div>
+    </>
+  );
 };
 
 const STORAGE_KEY = 'equipqr:selectedTeamId:org-1';
@@ -87,5 +93,39 @@ describe('SelectedTeamProvider', () => {
 
     expect(screen.getByTestId('selected-team-id').textContent).toBe('team-A');
     expect(localStorage.getItem(STORAGE_KEY)).toBe('team-A');
+  });
+
+  it('preserves the UNASSIGNED_TEAM_ID sentinel through the membership-validation effect', () => {
+    // The 'unassigned' sentinel does not correspond to any membership row;
+    // the auto-clear effect must NOT wipe it just because no membership matches.
+    localStorage.setItem(STORAGE_KEY, UNASSIGNED_TEAM_ID);
+    mockTeam.isLoading = false;
+    mockTeam.teamMemberships = [
+      { team_id: 'team-B', team_name: 'B', role: 'technician', joined_date: '2024-01-01' },
+    ];
+
+    render(
+      <SelectedTeamProvider>
+        <Probe />
+      </SelectedTeamProvider>,
+    );
+
+    expect(screen.getByTestId('selected-team-id').textContent).toBe(UNASSIGNED_TEAM_ID);
+    expect(screen.getByTestId('selected-team-name').textContent).toBe('null');
+    expect(localStorage.getItem(STORAGE_KEY)).toBe(UNASSIGNED_TEAM_ID);
+  });
+
+  it('hydrates the UNASSIGNED_TEAM_ID sentinel from localStorage on mount', () => {
+    localStorage.setItem(STORAGE_KEY, UNASSIGNED_TEAM_ID);
+    mockTeam.isLoading = true;
+    mockTeam.teamMemberships = [];
+
+    render(
+      <SelectedTeamProvider>
+        <Probe />
+      </SelectedTeamProvider>,
+    );
+
+    expect(screen.getByTestId('selected-team-id').textContent).toBe(UNASSIGNED_TEAM_ID);
   });
 });

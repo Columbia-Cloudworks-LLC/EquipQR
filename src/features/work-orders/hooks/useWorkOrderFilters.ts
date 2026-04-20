@@ -45,7 +45,12 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
                              (filters.assigneeFilter === 'unassigned' && !order.assigneeId && !order.teamId) ||
                              order.assigneeId === filters.assigneeFilter;
       
-      const matchesTeam = filters.teamFilter === 'all' || order.teamId === filters.teamFilter;
+      const matchesTeam =
+        filters.teamFilter === 'all'
+          ? true
+          : filters.teamFilter === 'unassigned'
+            ? !order.teamId
+            : order.teamId === filters.teamFilter;
       const matchesPriority = filters.priorityFilter === 'all' || order.priority === filters.priorityFilter;
       
       const matchesDueDate = filters.dueDateFilter === 'all' || 
@@ -80,11 +85,12 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
     });
   }, [filteredWorkOrders, sortField, sortDirection]);
 
+  // `filters.teamFilter` is driven by the global TopBar selection and is
+  // intentionally excluded from the page-local active-filter count / chip row.
   const getActiveFilterCount = useCallback(() => {
     let count = 0;
     if (filters.statusFilter !== 'all') count++;
     if (filters.assigneeFilter !== 'all') count++;
-    if (filters.teamFilter !== 'all') count++;
     if (filters.priorityFilter !== 'all') count++;
     if (filters.dueDateFilter !== 'all') count++;
     return count;
