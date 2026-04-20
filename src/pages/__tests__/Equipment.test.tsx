@@ -67,9 +67,10 @@ vi.mock('@/features/equipment/components/EquipmentSortHeader', () => ({
 }));
 
 vi.mock('@/features/equipment/components/EquipmentGrid', () => ({
-  default: ({ onShowQRCode }: { onShowQRCode?: (id: string) => void }) => (
+  default: ({ onShowQRCode, viewMode }: { onShowQRCode?: (id: string) => void; viewMode?: string }) => (
     <div>
       <div>Grid</div>
+      <div data-testid="grid-view-mode">{viewMode ?? 'undefined'}</div>
       <button onClick={() => onShowQRCode?.('1')}>Show QR</button>
     </div>
   ),
@@ -101,6 +102,9 @@ vi.mock('@/contexts/OrganizationContext', () => ({
 describe('Equipment page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset persisted view mode between tests so the localStorage hydration
+    // assertions below start from a known state.
+    window.localStorage.removeItem('equipqr:equipment-view-mode');
   });
 
   it('shows message when no organization is selected', () => {
@@ -204,5 +208,62 @@ describe('Equipment page', () => {
     expect(screen.getByTestId('qr-modal')).toHaveTextContent('Closed');
     fireEvent.click(screen.getByText('Show QR'));
     expect(screen.getByTestId('qr-modal')).toHaveTextContent('QR for Excavator');
+  });
+
+  describe('viewMode localStorage hydration', () => {
+    const setupHookForView = () => {
+      (useOrganization as ReturnType<typeof vi.fn>).mockReturnValue({
+        currentOrganization: { id: 'org-1', name: 'Org 1' },
+      });
+      (useEquipmentFiltering as ReturnType<typeof vi.fn>).mockReturnValue({
+        filters: { search: '', status: 'all' },
+        sortConfig: { field: 'name', direction: 'asc' },
+        showAdvancedFilters: false,
+        filteredAndSortedEquipment: [],
+        paginatedEquipment: [],
+        filterOptions: { manufacturers: [], locations: [], teams: [] },
+        isLoading: false,
+        hasActiveFilters: false,
+        equipment: [],
+        currentPage: 1,
+        pageSize: 10,
+        totalPages: 0,
+        totalFilteredCount: 0,
+        updateFilter: vi.fn(),
+        updateSort: vi.fn(),
+        clearFilters: vi.fn(),
+        applyQuickFilter: vi.fn(),
+        setShowAdvancedFilters: vi.fn(),
+        setCurrentPage: vi.fn(),
+        setPageSize: vi.fn(),
+      });
+    };
+
+    it('defaults to "grid" when nothing is persisted', () => {
+      setupHookForView();
+      render(<Equipment />);
+      expect(screen.getByTestId('grid-view-mode')).toHaveTextContent('grid');
+    });
+
+    it('hydrates "list" from localStorage', () => {
+      window.localStorage.setItem('equipqr:equipment-view-mode', 'list');
+      setupHookForView();
+      render(<Equipment />);
+      expect(screen.getByTestId('grid-view-mode')).toHaveTextContent('list');
+    });
+
+    it('hydrates "table" from localStorage', () => {
+      window.localStorage.setItem('equipqr:equipment-view-mode', 'table');
+      setupHookForView();
+      render(<Equipment />);
+      expect(screen.getByTestId('grid-view-mode')).toHaveTextContent('table');
+    });
+
+    it('falls back to "grid" for an unknown persisted value', () => {
+      window.localStorage.setItem('equipqr:equipment-view-mode', 'garbage');
+      setupHookForView();
+      render(<Equipment />);
+      expect(screen.getByTestId('grid-view-mode')).toHaveTextContent('grid');
+    });
   });
 });

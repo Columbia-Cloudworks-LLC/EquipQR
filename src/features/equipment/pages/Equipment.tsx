@@ -70,7 +70,21 @@ const Equipment = () => {
   const [showImportCsv, setShowImportCsv] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<EquipmentViewMode>(() => {
     const stored = localStorage.getItem('equipqr:equipment-view-mode');
-    return stored === 'list' ? 'list' : 'grid';
+    let initial: EquipmentViewMode;
+    switch (stored) {
+      case 'list':
+        initial = 'list';
+        break;
+      case 'table':
+        initial = 'table';
+        break;
+      default:
+        initial = 'grid';
+    }
+    if (initial === 'table' && isMobile) {
+      return 'list';
+    }
+    return initial;
   });
   const pageSizeSelectId = 'equipment-page-size-select';
 
@@ -206,6 +220,8 @@ const Equipment = () => {
         onClearFilters={clearFilters}
         viewMode={viewMode}
         pmStatuses={pmStatuses}
+        sortConfig={sortConfig}
+        onSortChange={updateSort}
       />
 
       {/* Pagination */}

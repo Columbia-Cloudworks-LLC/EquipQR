@@ -13,6 +13,20 @@ vi.mock('../EquipmentCard', () => ({
   )
 }));
 
+// Mock EquipmentTable so we can verify the table view branch swaps to it without
+// pulling the full DataTable + react-router stack into this suite.
+vi.mock('../EquipmentTable', () => ({
+  default: ({ equipment }: { equipment: Array<{ id: string; name: string }> }) => (
+    <div data-testid="equipment-table">
+      {equipment.map((eq) => (
+        <div key={eq.id} data-testid={`equipment-table-row-${eq.id}`}>
+          {eq.name}
+        </div>
+      ))}
+    </div>
+  ),
+}));
+
 const mockEquipment = [
   {
     id: 'eq-1',
@@ -161,6 +175,30 @@ describe('EquipmentGrid', () => {
       fireEvent.click(qrButtons[0]);
       
       expect(mockOnShowQRCode).toHaveBeenCalledWith('eq-1');
+    });
+  });
+
+  describe('Table view mode', () => {
+    it('renders EquipmentTable when viewMode is "table"', () => {
+      render(<EquipmentGrid {...defaultProps} viewMode="table" />);
+
+      expect(screen.getByTestId('equipment-table')).toBeInTheDocument();
+      expect(screen.getByTestId('equipment-table-row-eq-1')).toBeInTheDocument();
+      expect(screen.getByTestId('equipment-table-row-eq-2')).toBeInTheDocument();
+    });
+
+    it('does not render any card markup when viewMode is "table"', () => {
+      render(<EquipmentGrid {...defaultProps} viewMode="table" />);
+
+      expect(screen.queryByTestId('equipment-card-eq-1')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('equipment-card-eq-2')).not.toBeInTheDocument();
+    });
+
+    it('falls back to the empty state when viewMode is "table" but data is empty', () => {
+      render(<EquipmentGrid {...defaultProps} equipment={[]} viewMode="table" />);
+
+      expect(screen.queryByTestId('equipment-table')).not.toBeInTheDocument();
+      expect(screen.getByText('No equipment yet')).toBeInTheDocument();
     });
   });
 

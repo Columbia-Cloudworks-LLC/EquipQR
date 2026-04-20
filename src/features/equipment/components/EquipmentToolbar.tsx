@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, LayoutGrid, List, X } from 'lucide-react';
+import { Search, LayoutGrid, List, Rows3, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -169,12 +169,24 @@ const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
               <ToggleGroupItem
                 value="list"
                 aria-label="List view"
-                className="h-8 w-8 rounded-l-none data-[state=on]:bg-muted"
+                className="h-8 w-8 rounded-none data-[state=on]:bg-muted"
               >
                 <List className="h-3.5 w-3.5" />
               </ToggleGroupItem>
             </TooltipTrigger>
             <TooltipContent side="bottom">List view</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <ToggleGroupItem
+                value="table"
+                aria-label="Table view"
+                className="h-8 w-8 rounded-l-none data-[state=on]:bg-muted"
+              >
+                <Rows3 className="h-3.5 w-3.5" />
+              </ToggleGroupItem>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Table view</TooltipContent>
           </Tooltip>
         </ToggleGroup>
       </div>
