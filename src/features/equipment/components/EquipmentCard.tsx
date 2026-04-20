@@ -30,7 +30,7 @@ interface Equipment {
   team_name?: string;
 }
 
-export type EquipmentViewMode = 'grid' | 'list';
+export type EquipmentViewMode = 'grid' | 'list' | 'table';
 
 interface EquipmentCardProps {
   equipment: Equipment;
