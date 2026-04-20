@@ -68,8 +68,8 @@
     --status-in-progress-foreground: 0 0% 4%;
     --status-completed: 145 80% 65%;      /* success */
     --status-completed-foreground: 0 0% 4%;
-    --status-cancelled: 240 5% 46%;       /* #71717a — 5.0:1, large-text only */
-    --status-cancelled-foreground: 0 0% 98%;
+    --status-cancelled: 220 9% 65%;       /* #9ca3af — 7.85:1, AAA for normal text */
+    --status-cancelled-foreground: 0 0% 4%;
     --status-overdue: 0 100% 76%;         /* destructive */
     --status-overdue-foreground: 0 0% 4%;
 
@@ -77,7 +77,7 @@
     --equipment-operational: 145 80% 65%; /* success */
     --equipment-maintenance: 42 100% 67%; /* warning */
     --equipment-repair: 0 100% 76%;       /* destructive */
-    --equipment-retired: 240 5% 46%;      /* large-text only */
+    --equipment-retired: 220 9% 65%;      /* #9ca3af — 7.85:1, AAA */
 
     /* Priority Colors */
     --priority-low: 213 100% 68%;         /* info */
@@ -471,7 +471,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    border-radius: calc(var(--radius) - 2px);
+    border-radius: max(calc(var(--radius) - 2px), 0px);
     background: hsl(var(--card));
     z-index: 1;
     pointer-events: none;
@@ -524,7 +524,7 @@
   height: 2.5rem !important;
   padding-left: 2.25rem !important;
   padding-right: 0.75rem !important;
-  border-radius: calc(var(--radius) - 2px) !important;
+  border-radius: max(calc(var(--radius) - 2px), 0px) !important;
   border: 1px solid hsl(var(--input)) !important;
   background-color: hsl(var(--background)) !important;
   color: hsl(var(--foreground)) !important;
