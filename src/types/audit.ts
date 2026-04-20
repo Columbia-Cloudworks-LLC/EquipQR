@@ -159,7 +159,14 @@ export type AuditLogTimePreset =
   | 'last_24h'
   | 'last_7d'
   | 'last_30d'
+  | 'all'
   | 'custom';
+
+/** Default time window when opening /audit-log (matches explorer initial state). */
+export const DEFAULT_AUDIT_TIME_PRESET = 'last_30d' satisfies Exclude<
+  AuditLogTimePreset,
+  'custom'
+>;
 
 /**
  * Severity color for each audit action, mapped to the existing semantic

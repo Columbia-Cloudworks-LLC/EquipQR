@@ -116,6 +116,21 @@ beforeEach(() => {
 });
 
 describe('AuditExplorer', () => {
+  it('uses last_30d as the default time range preset', () => {
+    render(<AuditExplorer organizationId="org-1" />);
+
+    const initialQueryArgs = useOrganizationAuditLogMock.mock.calls.at(0)?.[1] as
+      | { dateFrom?: string; dateTo?: string }
+      | undefined;
+    expect(initialQueryArgs?.dateFrom).toBeTruthy();
+    expect(initialQueryArgs?.dateTo).toBeTruthy();
+    const from = new Date(initialQueryArgs!.dateFrom!);
+    const to = new Date(initialQueryArgs!.dateTo!);
+    const spanDays = (to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000);
+    expect(spanDays).toBeGreaterThanOrEqual(29.5);
+    expect(spanDays).toBeLessThanOrEqual(30.5);
+  });
+
   it('renders histogram, toolbar, list, and detail panel inside resizable panels', () => {
     render(<AuditExplorer organizationId="org-1" />);
 

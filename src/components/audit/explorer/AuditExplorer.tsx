@@ -25,6 +25,7 @@ import AuditLogToolbar from '@/components/audit/AuditLogToolbar';
 import {
   AuditLogFilters,
   AuditLogTimePreset,
+  DEFAULT_AUDIT_TIME_PRESET,
   FormattedAuditEntry,
 } from '@/types/audit';
 import { AuditTimelineHistogram } from './AuditTimelineHistogram';
@@ -33,7 +34,7 @@ import { AuditLogDetailPanel } from './AuditLogDetailPanel';
 
 const PAGE_SIZE = 200;
 
-const PRESET_OFFSET_MS: Record<Exclude<AuditLogTimePreset, 'custom'>, number> = {
+const PRESET_OFFSET_MS: Record<Exclude<AuditLogTimePreset, 'custom' | 'all'>, number> = {
   last_15m: 15 * 60 * 1000,
   last_1h: 60 * 60 * 1000,
   last_24h: 24 * 60 * 60 * 1000,
@@ -46,6 +47,12 @@ function presetToRange(preset: Exclude<AuditLogTimePreset, 'custom'>): {
   dateTo: string;
 } {
   const now = new Date();
+  if (preset === 'all') {
+    return {
+      dateFrom: '1970-01-01T00:00:00.000Z',
+      dateTo: now.toISOString(),
+    };
+  }
   return {
     dateFrom: new Date(now.getTime() - PRESET_OFFSET_MS[preset]).toISOString(),
     dateTo: now.toISOString(),
@@ -60,8 +67,8 @@ export function AuditExplorer({ organizationId }: AuditExplorerProps) {
   const { canManageOrganization } = usePermissions();
   const canExport = canManageOrganization();
 
-  const [preset, setPreset] = useState<AuditLogTimePreset>('last_24h');
-  const [range, setRange] = useState(() => presetToRange('last_24h'));
+  const [preset, setPreset] = useState<AuditLogTimePreset>(DEFAULT_AUDIT_TIME_PRESET);
+  const [range, setRange] = useState(() => presetToRange(DEFAULT_AUDIT_TIME_PRESET));
 
   // Non-time filters (entity type / action / actor / search). Pagination resets
   // whenever any filter or the time range changes.

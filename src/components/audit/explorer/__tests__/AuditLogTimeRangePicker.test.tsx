@@ -2,8 +2,21 @@ import React from 'react';
 import { render, screen, fireEvent } from '@/test/utils/test-utils';
 import { describe, it, expect, vi } from 'vitest';
 import { AuditLogTimeRangePicker } from '../AuditLogTimeRangePicker';
+import { DEFAULT_AUDIT_TIME_PRESET } from '@/types/audit';
 
 describe('AuditLogTimeRangePicker', () => {
+  it('renders the All time preset control alongside rolling-window presets', () => {
+    const onChange = vi.fn();
+    render(
+      <AuditLogTimeRangePicker preset={DEFAULT_AUDIT_TIME_PRESET} onChange={onChange} />
+    );
+
+    const allTime = screen.getByRole('radio', { name: 'All time' });
+    expect(allTime).toBeInTheDocument();
+    fireEvent.click(allTime);
+    expect(onChange).toHaveBeenCalledWith('all');
+  });
+
   it('emits an exclusive upper bound for the custom "To" date on Apply', () => {
     const onChange = vi.fn();
     render(

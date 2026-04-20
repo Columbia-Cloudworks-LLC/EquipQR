@@ -17,12 +17,17 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AuditLogTimePreset } from '@/types/audit';
 
-const PRESET_BUTTONS: Array<{ value: Exclude<AuditLogTimePreset, 'custom'>; label: string }> = [
-  { value: 'last_15m', label: '15m' },
-  { value: 'last_1h', label: '1h' },
-  { value: 'last_24h', label: '24h' },
-  { value: 'last_7d', label: '7d' },
-  { value: 'last_30d', label: '30d' },
+const PRESET_BUTTONS: Array<{
+  value: Exclude<AuditLogTimePreset, 'custom'>;
+  label: string;
+  ariaLabel: string;
+}> = [
+  { value: 'last_15m', label: '15m', ariaLabel: 'Last 15 minutes' },
+  { value: 'last_1h', label: '1h', ariaLabel: 'Last 1 hour' },
+  { value: 'last_24h', label: '24h', ariaLabel: 'Last 24 hours' },
+  { value: 'last_7d', label: '7d', ariaLabel: 'Last 7 days' },
+  { value: 'last_30d', label: '30d', ariaLabel: 'Last 30 days' },
+  { value: 'all', label: 'All', ariaLabel: 'All time' },
 ];
 
 export interface AuditLogTimeRangePickerProps {
@@ -109,7 +114,7 @@ export function AuditLogTimeRangePicker({
             key={btn.value}
             value={btn.value}
             className="h-7 px-2 text-xs"
-            aria-label={`Last ${btn.label}`}
+            aria-label={btn.ariaLabel}
           >
             {btn.label}
           </ToggleGroupItem>

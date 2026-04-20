@@ -10,6 +10,7 @@ import { AuditLogTimeRangePicker } from './explorer/AuditLogTimeRangePicker';
 import {
   AuditLogFilters,
   AuditLogTimePreset,
+  DEFAULT_AUDIT_TIME_PRESET,
   ENTITY_TYPE_LABELS,
   ACTION_LABELS,
 } from '@/types/audit';
@@ -43,6 +44,7 @@ const PRESET_LABELS: Record<AuditLogTimePreset, string> = {
   last_24h: 'Last 24h',
   last_7d: 'Last 7d',
   last_30d: 'Last 30d',
+  all: 'All time',
   custom: 'Custom',
 };
 
@@ -66,7 +68,8 @@ const AuditLogToolbar: React.FC<AuditLogToolbarProps> = ({
     !!filters.action && filters.action !== 'all',
   ].filter(Boolean).length;
 
-  const hasActiveFilters = activeFilterCount > 0 || !!filters.search || timePreset !== 'last_24h';
+  const hasActiveFilters =
+    activeFilterCount > 0 || !!filters.search || timePreset !== DEFAULT_AUDIT_TIME_PRESET;
 
   return (
     <div className="flex flex-col gap-2">
@@ -144,13 +147,13 @@ const AuditLogToolbar: React.FC<AuditLogToolbarProps> = ({
         <div className="flex flex-wrap items-center gap-1.5 px-1">
           <span className="text-xs text-muted-foreground">Active:</span>
 
-          {timePreset !== 'last_24h' && (
+          {timePreset !== DEFAULT_AUDIT_TIME_PRESET && (
             <Badge variant="secondary" className="flex items-center gap-1 text-xs h-5 px-2">
               {`Time: ${PRESET_LABELS[timePreset]}`}
               <button
-                onClick={() => onTimeRangeChange('last_24h')}
+                onClick={() => onTimeRangeChange(DEFAULT_AUDIT_TIME_PRESET)}
                 className="ml-0.5 hover:text-foreground"
-                aria-label="Reset time range to last 24h"
+                aria-label="Reset time range to default"
               >
                 <X className="h-3 w-3" />
               </button>
