@@ -5,7 +5,7 @@
 
 .PARAMETER Force
   After Supabase is up: reset local DB, regenerate TypeScript types, seed equipment images, then ensure Edge + Vite are running.
-  Does not call dev-stop. If Vite or Edge Functions serve is already running, exits with an error — run dev-stop first.
+  Does not call dev-stop. If Vite or Edge Functions serve is already running, exits with an error - run dev-stop first.
 
 .EXAMPLE
   .\dev-start.ps1
@@ -75,6 +75,32 @@ function Test-DevStackAlreadyRunningForForce {
     return $false
 }
 
+# Returns $true only when the Docker daemon's Linux engine actually answers
+# a real container API call. `docker info` is NOT sufficient - when Docker
+# Desktop's engine is wedged it still prints client info and exits 0, while
+# every container/image API request returns "500 Internal Server Error" via
+# the dockerDesktopLinuxEngine pipe. `docker ps` exercises the engine path
+# and exits non-zero when wedged, so we use it as the source of truth and
+# additionally scan stderr for the known wedge signatures.
+function Test-DockerDaemonReady {
+    $oldEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $out = & docker ps -q 2>&1
+        $code = $LASTEXITCODE
+    } catch {
+        return $false
+    } finally {
+        $ErrorActionPreference = $oldEap
+    }
+    if ($code -ne 0) { return $false }
+    $text = ($out | Out-String)
+    if ($text -match '500 Internal Server Error') { return $false }
+    if ($text -match 'error during connect') { return $false }
+    if ($text -match 'Cannot connect to the Docker daemon') { return $false }
+    return $true
+}
+
 Write-Host ""
 Write-Host " ============================================"
 Write-Host "  EquipQR Dev Environment - Startup"
@@ -111,38 +137,38 @@ Write-Host "        npx   OK"
 Write-Host "        docker CLI OK"
 
 Write-Host "        Checking Docker daemon..."
-$dockerOk = $false
-$oldDockerProbeEap = $ErrorActionPreference
-$ErrorActionPreference = 'Continue'
-try {
-    $null = & docker info > $null 2>$null
-    if ($LASTEXITCODE -eq 0) { $dockerOk = $true }
-} catch { }
-finally {
-    $ErrorActionPreference = $oldDockerProbeEap
-}
+$dockerOk = Test-DockerDaemonReady
 
 if (-not $dockerOk) {
-    Write-Host "        Docker daemon is not running. Attempting to start Docker Desktop..."
+    Write-Host "        Docker daemon is not running or is wedged. Attempting to (re)start Docker Desktop..."
+
+    # If Docker Desktop is up but the engine is wedged, killing the host
+    # processes and resetting the docker-desktop WSL distro is the only
+    # reliable recovery - a relaunch alone reuses the broken WSL VM.
+    $hadDesktop = [bool](Get-Process -Name 'Docker Desktop' -ErrorAction SilentlyContinue)
+    if ($hadDesktop) {
+        Write-Host "        Detected existing Docker Desktop process - recycling it."
+        foreach ($name in @('Docker Desktop', 'com.docker.backend', 'com.docker.proxy', 'com.docker.build')) {
+            Get-Process -Name $name -ErrorAction SilentlyContinue | ForEach-Object {
+                try { Stop-Process -Id $_.Id -Force -ErrorAction Stop } catch { }
+            }
+        }
+        Start-Sleep -Seconds 2
+        $oldWslEap = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try { $null = & wsl --terminate docker-desktop 2>&1 } catch { }
+        $ErrorActionPreference = $oldWslEap
+    }
+
     $dd = 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
     if (Test-Path -LiteralPath $dd) {
         Start-Process -FilePath $dd
     }
-    Write-Host "        Waiting for Docker daemon to be ready (up to 120s)..."
-    $timeout = 120
+    Write-Host "        Waiting for Docker daemon to be ready (up to 180s)..."
+    $timeout = 180
     $elapsed = 0
     while ($elapsed -lt $timeout) {
-        $oldDockerProbeEap = $ErrorActionPreference
-        $ErrorActionPreference = 'Continue'
-        try {
-            $null = & docker info > $null 2>$null
-            $probeOk = ($LASTEXITCODE -eq 0)
-        } catch {
-            $probeOk = $false
-        } finally {
-            $ErrorActionPreference = $oldDockerProbeEap
-        }
-        if ($probeOk) {
+        if (Test-DockerDaemonReady) {
             Write-Host "        Docker daemon is ready."
             $dockerOk = $true
             break
@@ -153,7 +179,12 @@ if (-not $dockerOk) {
     }
 }
 if (-not $dockerOk) {
-    Write-Host "        FAIL: Docker Desktop could not be started automatically."
+    Write-Host "        FAIL: Docker Desktop could not be started or is in a wedged state."
+    Write-Host "        Manual recovery:"
+    Write-Host "          1. Quit Docker Desktop from the tray"
+    Write-Host "          2. wsl --shutdown"
+    Write-Host "          3. Relaunch Docker Desktop and wait for the whale icon"
+    Write-Host "          4. Re-run dev-start"
     exit 1
 }
 Write-Host "        All pre-flight checks passed."
@@ -171,16 +202,40 @@ if ($opCli) {
     Write-Host "        Syncing app + edge env from 1Password"
     Write-Host "          App:  $OP_APP_ENV_ID"
     Write-Host "          Edge: $OP_ENV_ID"
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\sync-1password-dev-envs.ps1') `
-        -AppEnvironmentId $OP_APP_ENV_ID -EdgeEnvironmentId $OP_ENV_ID -ApiPort $SUPABASE_API_PORT
-    if ($LASTEXITCODE -ne 0) {
+
+    # Run both helpers IN-PROCESS (no `powershell -NoProfile -File` shell-out)
+    # so they share the same OP_SESSION_* env vars and any 1Password Desktop
+    # App socket session. This collapses what used to be two separate
+    # PowerShell child processes (and two visible 1Password auth handshakes)
+    # into a single auth context. Each script still owns its own exit code,
+    # which we capture via $LASTEXITCODE, and `exit` from inside an &-invoked
+    # script does NOT terminate this parent script (only dot-sourced scripts
+    # would do that).
+    $syncScript = Join-Path $repoRoot 'scripts\sync-1password-dev-envs.ps1'
+    $renderScript = Join-Path $repoRoot 'scripts\render-mcp-config.ps1'
+
+    $oldOpEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & $syncScript -AppEnvironmentId $OP_APP_ENV_ID -EdgeEnvironmentId $OP_ENV_ID -ApiPort $SUPABASE_API_PORT
+        $syncExit = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $oldOpEap
+    }
+    if ($syncExit -ne 0) {
         Write-Host "        WARNING: One or both 1Password env syncs failed. Using existing .env and $DEFAULT_EDGE_ENV_FILE."
     }
 
     Write-Host "        Rendering MCP config from EquipQR Agents vault..."
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\render-mcp-config.ps1')
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "        WARNING: MCP config render failed (exit $LASTEXITCODE). Existing ~/.cursor/mcp.json preserved."
+    $ErrorActionPreference = 'Continue'
+    try {
+        & $renderScript
+        $renderExit = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $oldOpEap
+    }
+    if ($renderExit -ne 0) {
+        Write-Host "        WARNING: MCP config render failed (exit $renderExit). Existing ~/.cursor/mcp.json preserved."
     }
 } else {
     Write-Host "        1Password CLI not found on PATH - using existing .env and $DEFAULT_EDGE_ENV_FILE."
