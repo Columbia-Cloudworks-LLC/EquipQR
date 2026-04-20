@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { useTheme } from 'next-themes';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSettings } from '@/contexts/useSettings';
@@ -8,27 +7,9 @@ import { timezoneOptions } from '@/types/settings';
 
 const PersonalizationSettings = () => {
   const { settings, updateSetting } = useSettings();
-  const { theme, setTheme } = useTheme();
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-      <div className="space-y-2">
-        <Label htmlFor="theme" className="text-sm font-medium">Theme</Label>
-        <Select
-          value={theme}
-          onValueChange={setTheme}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select theme" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="light">Light</SelectItem>
-            <SelectItem value="dark">Dark</SelectItem>
-            <SelectItem value="system">System</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
       <div className="space-y-2">
         <Label htmlFor="timezone" className="text-sm font-medium">Timezone</Label>
         <Select

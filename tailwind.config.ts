@@ -129,8 +129,8 @@ export default {
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
-				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
+				md: 'max(calc(var(--radius) - 2px), 0px)',
+				sm: 'max(calc(var(--radius) - 4px), 0px)'
 			},
 			backgroundImage: {
 				'grid-muted': 'linear-gradient(to right, hsl(var(--muted)) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--muted)) 1px, transparent 1px)',

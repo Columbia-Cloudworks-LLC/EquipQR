@@ -18,79 +18,85 @@
     /* Font families */
     --font-display: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
     --font-body: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* ============================================
+       Mission Control "NASA-punk" dark-only palette
+       Background luminance 0.00288 (#0a0a0a)
+       All foreground / accent tokens chosen to pass
+       WCAG AAA (>= 7:1) for normal text on background.
+       ============================================ */
+    --background: 0 0% 4%;        /* #0a0a0a */
+    --foreground: 0 0% 98%;       /* #fafafa — 19.7:1 */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --card-elevated: 210 40% 98%;
+    --card: 0 0% 7%;              /* #121212 */
+    --card-foreground: 0 0% 98%;
+    --card-elevated: 0 0% 10%;    /* #1a1a1a */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 258 82% 57%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 258 100% 81%;      /* #B79CFF — 8.8:1 */
+    --primary-foreground: 0 0% 4%;
 
-    --secondary: 224 61% 19%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 240 5% 13%;      /* #1f1f23 */
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 44%;
+    --muted: 240 5% 13%;          /* #1f1f23 */
+    --muted-foreground: 240 4% 65%; /* #a1a1aa — 8.0:1 */
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 240 5% 13%;
+    --accent-foreground: 0 0% 98%;
 
-    /* Semantic color accents */
-    --success: 142 76% 36%;
-    --success-foreground: 210 40% 98%;
-    --info: 217 91% 60%;
-    --info-foreground: 210 40% 98%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 222.2 84% 4.9%;
+    /* Semantic color accents (AAA on #0a0a0a) */
+    --success: 145 80% 65%;       /* #5EEDA0 — 13.3:1 */
+    --success-foreground: 0 0% 4%;
+    --info: 213 100% 68%;         /* #5EA8FF — 8.1:1 */
+    --info-foreground: 0 0% 4%;
+    --warning: 42 100% 67%;       /* #FFC857 — 13.0:1 */
+    --warning-foreground: 0 0% 4%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 100% 76%;    /* #FF8585 — 8.4:1 */
+    --destructive-foreground: 0 0% 4%;
 
-    /* Work Order Status Colors - Distinctive and accessible */
-    --status-open: 210 40% 50%;
-    --status-open-foreground: 210 40% 98%;
-    --status-assigned: 217 91% 60%;
-    --status-assigned-foreground: 210 40% 98%;
-    --status-in-progress: 38 92% 50%;
-    --status-in-progress-foreground: 222.2 84% 4.9%;
-    --status-completed: 142 76% 36%;
-    --status-completed-foreground: 210 40% 98%;
-    --status-cancelled: 0 0% 45%;
-    --status-cancelled-foreground: 210 40% 98%;
-    --status-overdue: 0 84.2% 50%;
-    --status-overdue-foreground: 210 40% 98%;
-    
+    /* Work Order Status Colors — mapped onto the AAA accent set */
+    --status-open: 213 100% 68%;          /* info */
+    --status-open-foreground: 0 0% 4%;
+    --status-assigned: 213 100% 68%;      /* info */
+    --status-assigned-foreground: 0 0% 4%;
+    --status-in-progress: 42 100% 67%;    /* warning */
+    --status-in-progress-foreground: 0 0% 4%;
+    --status-completed: 145 80% 65%;      /* success */
+    --status-completed-foreground: 0 0% 4%;
+    --status-cancelled: 220 9% 65%;       /* #9ca3af — 7.85:1, AAA for normal text */
+    --status-cancelled-foreground: 0 0% 4%;
+    --status-overdue: 0 100% 76%;         /* destructive */
+    --status-overdue-foreground: 0 0% 4%;
+
     /* Equipment Status Colors */
-    --equipment-operational: 142 76% 36%;
-    --equipment-maintenance: 38 92% 50%;
-    --equipment-repair: 0 84.2% 60.2%;
-    --equipment-retired: 0 0% 45%;
+    --equipment-operational: 145 80% 65%; /* success */
+    --equipment-maintenance: 42 100% 67%; /* warning */
+    --equipment-repair: 0 100% 76%;       /* destructive */
+    --equipment-retired: 220 9% 65%;      /* #9ca3af — 7.85:1, AAA */
 
     /* Priority Colors */
-    --priority-low: 210 40% 50%;
-    --priority-medium: 38 92% 50%;
-    --priority-high: 25 95% 53%;
-    --priority-critical: 0 84.2% 50%;
+    --priority-low: 213 100% 68%;         /* info */
+    --priority-medium: 42 100% 67%;       /* warning */
+    --priority-high: 25 100% 70%;         /* amber-orange, AAA on #0a0a0a */
+    --priority-critical: 0 100% 76%;      /* destructive */
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 240 4% 16%;         /* #27272a — exact divider from SR */
+    --input: 240 4% 16%;
+    --ring: 258 100% 81%;         /* neon focus ring per #635 contract */
 
-    /* Chart palette - for reports and data viz */
-    --chart-1: 217 91% 50%;
-    --chart-2: 162 63% 41%;
-    --chart-3: 45 93% 58%;
-    --chart-4: 20 90% 63%;
-    --chart-5: 252 57% 68%;
+    /* Chart palette — bright accents tuned for dark grounds */
+    --chart-1: 213 100% 68%;
+    --chart-2: 145 80% 65%;
+    --chart-3: 42 100% 67%;
+    --chart-4: 25 100% 70%;
+    --chart-5: 258 100% 81%;
 
-    --radius: 0.5rem;
+    --radius: 0;
 
     /* Spacing and layout tokens */
     --content-padding: 1.5rem; /* p-6 */
@@ -98,26 +104,26 @@
     --content-padding-xs: 0.75rem; /* p-3 */
     --content-padding-lg: 2rem; /* p-8 */
 
-    /* Shadow tokens - Enhanced elevation system */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    
+    /* Shadow tokens — tuned for dark grounds */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+
     /* Elevation system for mobile-optimized depth */
-    --shadow-elevation-1: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08);
-    --shadow-elevation-2: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-elevation-3: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-elevation-4: 0 20px 25px -5px rgb(0 0 0 / 0.12), 0 8px 10px -6px rgb(0 0 0 / 0.12);
-    
+    --shadow-elevation-1: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+    --shadow-elevation-2: 0 4px 6px -1px rgb(0 0 0 / 0.35), 0 2px 4px -2px rgb(0 0 0 / 0.35);
+    --shadow-elevation-3: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+    --shadow-elevation-4: 0 20px 25px -5px rgb(0 0 0 / 0.45), 0 8px 10px -6px rgb(0 0 0 / 0.45);
+
     /* Colored shadows for brand elements */
-    --shadow-primary: 0 4px 14px -3px hsl(258 82% 57% / 0.25);
-    --shadow-primary-lg: 0 10px 25px -5px hsl(258 82% 57% / 0.3);
-    --shadow-success: 0 4px 14px -3px hsl(142 76% 36% / 0.25);
-    --shadow-warning: 0 4px 14px -3px hsl(38 92% 50% / 0.25);
-    --shadow-destructive: 0 4px 14px -3px hsl(0 84.2% 60.2% / 0.25);
-    
+    --shadow-primary: 0 4px 14px -3px hsl(258 100% 81% / 0.3);
+    --shadow-primary-lg: 0 10px 25px -5px hsl(258 100% 81% / 0.35);
+    --shadow-success: 0 4px 14px -3px hsl(145 80% 65% / 0.3);
+    --shadow-warning: 0 4px 14px -3px hsl(42 100% 67% / 0.3);
+    --shadow-destructive: 0 4px 14px -3px hsl(0 100% 76% / 0.3);
+
     /* Card interaction shadows */
     --shadow-card: var(--shadow-elevation-1);
     --shadow-card-hover: var(--shadow-elevation-2);
@@ -154,7 +160,7 @@
     --line-height-normal: 1.5;
     --line-height-relaxed: 1.625;
     --line-height-loose: 2;
-    
+
     /* Mobile-optimized line heights for body text */
     --line-height-body: 1.7;
 
@@ -178,126 +184,16 @@
     --brand: var(--primary);
     --brand-foreground: var(--primary-foreground);
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 258 82% 57%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 0 0% 7%;        /* #121212 — matches card */
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 258 100% 81%;
+    --sidebar-primary-foreground: 0 0% 4%;
+    --sidebar-accent: 240 5% 13%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 4% 16%;         /* #27272a */
+    --sidebar-ring: 258 100% 81%;
 
-    /* Construction border pattern (light) */
-    --construction-stripe-1: hsl(var(--foreground));
-    --construction-stripe-2: hsl(var(--warning));
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 224 71% 7%;
-    --card-foreground: 210 40% 98%;
-    --card-elevated: 224 58% 10%;
-
-    --popover: 224 71% 7%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 258 82% 67%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 224 61% 29%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    /* Dark mode color accents */
-    --success: 142 69% 58%;
-    --success-foreground: 222.2 84% 4.9%;
-    --info: 217 91% 70%;
-    --info-foreground: 222.2 84% 4.9%;
-    --warning: 38 92% 60%;
-    --warning-foreground: 222.2 84% 4.9%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    /* Dark mode Work Order Status Colors */
-    --status-open: 210 50% 60%;
-    --status-open-foreground: 222.2 84% 4.9%;
-    --status-assigned: 217 91% 70%;
-    --status-assigned-foreground: 222.2 84% 4.9%;
-    --status-in-progress: 38 92% 60%;
-    --status-in-progress-foreground: 222.2 84% 4.9%;
-    --status-completed: 142 69% 58%;
-    --status-completed-foreground: 222.2 84% 4.9%;
-    --status-cancelled: 0 0% 55%;
-    --status-cancelled-foreground: 210 40% 98%;
-    --status-overdue: 0 84.2% 60%;
-    --status-overdue-foreground: 210 40% 98%;
-    
-    /* Dark mode Equipment Status Colors */
-    --equipment-operational: 142 69% 58%;
-    --equipment-maintenance: 38 92% 60%;
-    --equipment-repair: 0 84.2% 60%;
-    --equipment-retired: 0 0% 55%;
-
-    /* Dark mode Priority Colors */
-    --priority-low: 210 50% 60%;
-    --priority-medium: 38 92% 60%;
-    --priority-high: 25 95% 58%;
-    --priority-critical: 0 84.2% 60%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-
-    /* Chart palette - lighter for dark bg visibility */
-    --chart-1: 217 91% 65%;
-    --chart-2: 162 63% 55%;
-    --chart-3: 45 93% 65%;
-    --chart-4: 20 90% 68%;
-    --chart-5: 252 57% 75%;
-
-    /* Dark mode shadows - Enhanced elevation */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
-    
-    /* Dark mode elevation system */
-    --shadow-elevation-1: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
-    --shadow-elevation-2: 0 4px 6px -1px rgb(0 0 0 / 0.35), 0 2px 4px -2px rgb(0 0 0 / 0.35);
-    --shadow-elevation-3: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
-    --shadow-elevation-4: 0 20px 25px -5px rgb(0 0 0 / 0.45), 0 8px 10px -6px rgb(0 0 0 / 0.45);
-    
-    /* Dark mode colored shadows */
-    --shadow-primary: 0 4px 14px -3px hsl(258 82% 67% / 0.3);
-    --shadow-primary-lg: 0 10px 25px -5px hsl(258 82% 67% / 0.35);
-    --shadow-success: 0 4px 14px -3px hsl(142 69% 58% / 0.3);
-    --shadow-warning: 0 4px 14px -3px hsl(38 92% 60% / 0.3);
-    --shadow-destructive: 0 4px 14px -3px hsl(0 62.8% 30.6% / 0.3);
-    
-    /* Card interaction shadows */
-    --shadow-card: var(--shadow-elevation-1);
-    --shadow-card-hover: var(--shadow-elevation-2);
-    --shadow-card-active: var(--shadow-elevation-3);
-
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 258 82% 67%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-
-    /* Construction border pattern (dark) */
+    /* Construction border pattern */
     --construction-stripe-1: hsl(var(--warning));
     --construction-stripe-2: hsl(var(--primary));
   }
@@ -335,6 +231,22 @@
   /* Display font for headings */
   h1, h2, h3, h4, h5, h6 {
     @apply font-display;
+  }
+
+  /* Monospace stack for inline IDs, serials, and code blocks */
+  code, kbd, samp, pre {
+    font-family: var(--font-mono);
+  }
+}
+
+@layer utilities {
+  /* Tabular numerics — opt-in for currency, metrics, and tables.
+     Pairs JetBrains Mono with `tnum` so digits align in columns
+     and `cv11` for the lowercase l/1 disambiguation glyph. */
+  .font-tabular {
+    font-family: var(--font-mono);
+    font-feature-settings: 'tnum' 1, 'cv11' 1;
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -559,7 +471,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    border-radius: calc(var(--radius) - 2px);
+    border-radius: max(calc(var(--radius) - 2px), 0px);
     background: hsl(var(--card));
     z-index: 1;
     pointer-events: none;
@@ -569,18 +481,6 @@
   .border-construction > * {
     position: relative;
     z-index: 2;
-  }
-
-  /* Dark mode variant - uses --construction-stripe-* from .dark */
-  .dark .border-construction::before {
-    background: 
-      repeating-linear-gradient(
-        45deg,
-        var(--construction-stripe-1) 0px,
-        var(--construction-stripe-1) 8px,
-        var(--construction-stripe-2) 8px,
-        var(--construction-stripe-2) 16px
-      );
   }
 }
 
@@ -624,7 +524,7 @@
   height: 2.5rem !important;
   padding-left: 2.25rem !important;
   padding-right: 0.75rem !important;
-  border-radius: calc(var(--radius) - 2px) !important;
+  border-radius: max(calc(var(--radius) - 2px), 0px) !important;
   border: 1px solid hsl(var(--input)) !important;
   background-color: hsl(var(--background)) !important;
   color: hsl(var(--foreground)) !important;
@@ -655,32 +555,47 @@
  *
  * Google's InfoWindow renders with a hardcoded white background and its
  * .gm-style ancestor sets color/font at higher specificity than Tailwind.
- * We override design tokens for both light and dark themes so all Tailwind
- * utility classes inside the popup (text-foreground, badges, etc.) resolve
- * correctly, and in dark mode we also swap the bubble surface itself.
+ * We swap the bubble surface to the dark card token and re-declare the
+ * design-system variables inside the popup so Tailwind utility classes
+ * (text-foreground, badges, etc.) resolve correctly.
  */
 
-/* ── Light mode (default) ──────────────────────────────────────────────── */
-.gm-style .gm-style-iw-d {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 44%;
-  --primary: 258 82% 57%;
-  --primary-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 222.2 84% 4.9%;
-  --info: 217 91% 60%;
-  --info-foreground: 210 40% 98%;
-  --success: 142 76% 36%;
-  --success-foreground: 210 40% 98%;
-  --warning: 38 92% 50%;
-  --warning-foreground: 222.2 84% 4.9%;
+/* Swap bubble background to match the dark card surface */
+.gm-style .gm-style-iw-c {
+  background-color: hsl(var(--card)) !important;
+  box-shadow:
+    0 8px 24px -4px rgb(0 0 0 / 0.65),
+    0 2px 8px -2px rgb(0 0 0 / 0.45) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  /* Remove any white outline/padding that can produce edge artifacts */
+  outline: none !important;
+  overflow: hidden !important;
+}
 
-  /* Suppress the native scrollbar that creates a white strip on the right edge */
+/* Tail triangle — must match bubble background */
+.gm-style .gm-style-iw-tc::after {
+  background: hsl(var(--card)) !important;
+}
+
+/* Override design tokens inside the scrollable content div */
+.gm-style .gm-style-iw-d {
   overflow: hidden !important;
   max-height: none !important;
+  --background: 0 0% 7%;
+  --foreground: 0 0% 98%;
+  --muted: 240 5% 13%;
+  --muted-foreground: 240 4% 65%;
+  --primary: 258 100% 81%;
+  --primary-foreground: 0 0% 4%;
+  --border: 240 4% 16%;
+  --input: 240 4% 16%;
+  --ring: 258 100% 81%;
+  --info: 213 100% 68%;
+  --info-foreground: 0 0% 4%;
+  --success: 145 80% 65%;
+  --success-foreground: 0 0% 4%;
+  --warning: 42 100% 67%;
+  --warning-foreground: 0 0% 4%;
 
   color: hsl(var(--foreground)) !important;
   font-family: var(--font-body) !important;
@@ -690,66 +605,11 @@
   border-color: hsl(var(--border));
 }
 
-/* Close button — visible against the white bubble */
-.gm-style .gm-ui-hover-effect {
-  filter: none !important;
-  opacity: 0.65 !important;
-}
-.gm-style .gm-ui-hover-effect:hover {
-  opacity: 1 !important;
-}
-
-/* ── Dark mode ─────────────────────────────────────────────────────────── */
-
-/* Swap bubble background to match the dark card surface */
-.dark .gm-style .gm-style-iw-c {
-  background-color: hsl(224 71% 7%) !important;
-  box-shadow:
-    0 8px 24px -4px rgb(0 0 0 / 0.65),
-    0 2px 8px -2px rgb(0 0 0 / 0.45) !important;
-  border: 1px solid hsl(217.2 32.6% 17.5%) !important;
-  /* Remove any white outline/padding that can produce edge artifacts */
-  outline: none !important;
-  overflow: hidden !important;
-}
-
-/* Tail triangle — must match bubble background */
-.dark .gm-style .gm-style-iw-tc::after {
-  background: hsl(224 71% 7%) !important;
-}
-
-/* Override design tokens inside the scrollable content div */
-.dark .gm-style .gm-style-iw-d {
-  overflow: hidden !important;
-  max-height: none !important;
-  --background: 224 71% 7%;
-  --foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --primary: 258 82% 67%;
-  --primary-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 212.7 26.8% 83.9%;
-  --info: 217 91% 70%;
-  --info-foreground: 222.2 84% 4.9%;
-  --success: 142 69% 58%;
-  --success-foreground: 222.2 84% 4.9%;
-  --warning: 38 92% 60%;
-  --warning-foreground: 222.2 84% 4.9%;
-
-  color: hsl(210 40% 98%) !important;
-}
-
-.dark .gm-style .gm-style-iw-d * {
-  border-color: hsl(217.2 32.6% 17.5%);
-}
-
 /* Close button — invert to stay visible against dark bubble */
-.dark .gm-style .gm-ui-hover-effect {
+.gm-style .gm-ui-hover-effect {
   filter: invert(1) brightness(0.9) !important;
   opacity: 0.75 !important;
 }
-.dark .gm-style .gm-ui-hover-effect:hover {
+.gm-style .gm-ui-hover-effect:hover {
   opacity: 1 !important;
 }

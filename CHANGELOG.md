@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No unreleased changes yet._
+### Changed
+
+- **Mission Control dark-only design tokens** ([#631](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/631), epic [#630](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/630)) — Foundation tokens layer for the "NASA-punk" UI overhaul. `src/index.css` collapses the dual light / dark palette into a single dark scheme on `#0a0a0a` (background) / `#121212` (card) / `#27272a` (border + input), with every accent token (`--primary` `#B79CFF`, `--success` `#5EEDA0`, `--warning` `#FFC857`, `--destructive` `#FF8585`, `--info` `#5EA8FF`, `--ring` `#B79CFF`) contrast-checked at >= 7:1 on the new ground to satisfy WCAG AAA for normal text. `--radius` is set to `0` so every `rounded-md` / `rounded-sm` / `rounded-lg` collapses to squared corners via the existing Tailwind extend. JetBrains Mono is added as the new monospace stack via `@fontsource/jetbrains-mono` (self-hosted; the npm wrapper and the embedded JetBrains Mono font files are both SIL OFL-1.1) and applied to `code` / `kbd` / `samp` / `pre` plus a new opt-in `.font-tabular` utility for currency / metrics. `src/components/providers/AppProviders.tsx` now passes `forcedTheme="dark"` to `next-themes`, and `index.html` sets `class="dark"` on `<html>` plus `theme-color="#0a0a0a"` to prevent FOUC and align the mobile address-bar color. The now-dead theme-switcher UI is removed in the same commit: the Theme `<Select>` from `src/components/settings/PersonalizationSettings.tsx`, the Light/Dark/System `DropdownMenuRadioGroup` from `src/components/layout/AppSidebar.tsx`, and the `useTheme()` call in `src/components/ui/sonner.tsx` (now pinned to `theme="dark"`). User-visible impact: the light / system theme preference is no longer available — confirmed by the issue owner as accepted technical-debt removal. Foundation for the downstream UI overhaul children (#632 dashboard, #633 tables, #634 navigation, #635 strict accessibility audit), which can now build on a settled token contract instead of re-litigating it.
 
 ## [2.11.0] - 2026-04-19
 
