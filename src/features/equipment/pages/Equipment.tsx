@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ChevronDown, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import type { EquipmentViewMode } from '@/features/equipment/components/EquipmentCard';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -9,6 +9,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useSelectedTeam } from '@/hooks/useSelectedTeam';
 import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
@@ -33,6 +39,7 @@ const Equipment = () => {
   const { canCreateEquipment, hasRole } = usePermissions();
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const initializedFromUrl = useRef(false);
   const { selectedTeamId, setSelectedTeamId } = useSelectedTeam();
   
@@ -197,13 +204,23 @@ const Equipment = () => {
           hideDescriptionOnMobile
           actions={
             canCreate && (
-              <Button 
-                onClick={handleAddEquipment}
-                className="hidden sm:inline-flex"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Equipment
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="hidden sm:inline-flex">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Equipment
+                    <ChevronDown className="ml-1 h-4 w-4" aria-hidden />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={handleAddEquipment}>
+                    Add Single Equipment
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => navigate('/dashboard/equipment/bulk')}>
+                    Bulk Edit (Grid)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )
           }
         />

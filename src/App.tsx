@@ -40,6 +40,7 @@ const TopBar = lazy(() => import('@/components/layout/TopBar'));
 const BottomNav = lazy(() => import('@/components/navigation/BottomNav'));
 const Dashboard = lazy(() => import('@/features/dashboard/pages/Dashboard'));
 const Equipment = lazy(() => import('@/features/equipment/pages/Equipment'));
+const BulkEquipment = lazy(() => import('@/features/equipment/pages/BulkEquipment'));
 const EquipmentDetails = lazy(() => import('@/features/equipment/pages/EquipmentDetails'));
 const WorkOrders = lazy(() => import('@/features/work-orders/pages/WorkOrders'));
 const WorkOrderDetails = lazy(() => import('@/features/work-orders/pages/WorkOrderDetails'));
@@ -220,6 +221,7 @@ function App() {
                               <Routes>
                                 <Route path="/" element={<Dashboard />} />
                                 <Route path="/equipment" element={<Equipment />} />
+                                <Route path="/equipment/bulk" element={<BulkEquipment />} />
                                 <Route path="/equipment/:equipmentId" element={<EquipmentDetails />} />
                                 <Route path="/work-orders" element={<WorkOrders />} />
                                 <Route path="/work-orders/:workOrderId" element={<WorkOrderDetails />} />

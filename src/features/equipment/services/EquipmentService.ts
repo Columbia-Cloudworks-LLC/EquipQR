@@ -317,6 +317,67 @@ export class EquipmentService {
   }
 
   /**
+   * Bulk update equipment rows. Uses partial-tolerant semantics: each row is
+   * updated independently and per-row failures do not block the rest. Returns
+   * separate `succeeded` and `failed` lists so the caller can surface partial-
+   * success UX (e.g., a sonner warning toast with row counts).
+   *
+   * Single-row update path is identical to `update()` — same RLS policy, same
+   * audit-log behavior, no new triggers. Used by the bulk-edit grid (#627).
+   */
+  static async batchUpdate(
+    organizationId: string,
+    updates: Array<{ id: string; data: EquipmentUpdateData }>
+  ): Promise<ApiResponse<{ succeeded: string[]; failed: Array<{ id: string; error: string }> }>> {
+    if (updates.length === 0) {
+      return handleSuccess({ succeeded: [], failed: [] });
+    }
+
+    const results = await Promise.allSettled(
+      updates.map(async ({ id, data }) => {
+        const { data: rows, error } = await supabase
+          .from('equipment')
+          .update(data)
+          .eq('id', id)
+          .eq('organization_id', organizationId)
+          .select('id');
+
+        if (error) {
+          return { id, error: error.message };
+        }
+        if (!rows || rows.length === 0) {
+          // Either the id is wrong or the row belongs to a different org —
+          // RLS hides the difference, so we surface a generic message.
+          return { id, error: 'Equipment not found or access denied' };
+        }
+        return { id, error: null as string | null };
+      })
+    );
+
+    const succeeded: string[] = [];
+    const failed: Array<{ id: string; error: string }> = [];
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      if (result.status === 'fulfilled') {
+        const { id, error } = result.value;
+        if (error) {
+          failed.push({ id, error });
+        } else {
+          succeeded.push(id);
+        }
+      } else {
+        // Unexpected promise rejection (network / runtime). Preserve the
+        // original update payload's id so the caller can map back to the row.
+        const id = updates[i].id;
+        const error = result.reason instanceof Error ? result.reason.message : 'Unknown error';
+        failed.push({ id, error });
+      }
+    }
+
+    return handleSuccess({ succeeded, failed });
+  }
+
+  /**
    * Delete equipment
    */
   static async delete(
