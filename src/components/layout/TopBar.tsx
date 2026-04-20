@@ -13,7 +13,7 @@ const TopBar: React.FC = () => {
 
   return (
     <header
-      className="flex h-14 sm:h-16 shrink-0 items-center gap-2 transition-none group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b sm:border-b-0"
+      className="flex min-h-14 sm:min-h-0 sm:h-16 shrink-0 items-center gap-2 transition-none group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b sm:border-b-0"
     >
       <div className="flex items-center gap-2 px-3 sm:px-4 w-full text-foreground">
         <SidebarTrigger className="-ml-1 flex-shrink-0" />

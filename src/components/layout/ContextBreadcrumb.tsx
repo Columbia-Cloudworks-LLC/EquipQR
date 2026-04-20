@@ -27,14 +27,16 @@ import { getPageLabel, shouldSuppressLabelOnMobile } from './topBarRouteLabels';
 /**
  * Persistent global context breadcrumb rendered in the TopBar left slot.
  *
- * Format: `Org > Team > Section`.
- *
- * - **Org**: opens `OrganizationSwitcher` (topbar variant).
- * - **Team**: only renders when the user belongs to ≥1 team. Hidden on mobile.
- *   Selecting a team updates `useSelectedTeam` (persisted per-org in localStorage).
- * - **Section**: derived from the current route via `getPageLabel`. On mobile,
- *   pages that already render a prominent H1 swap this segment for the brand
- *   mark to avoid duplicating the title.
+ * - **Desktop (≥sm)**: items render inline as `Org > Team > Section` with
+ *   chevron separators between them.
+ * - **Mobile (<sm)**: items stack vertically — Org on top, Team directly
+ *   below it, Section last — with chevron separators hidden because they
+ *   only make sense in a horizontal layout.
+ * - **Team**: only renders when the user belongs to ≥1 team. Selecting a
+ *   team updates `useSelectedTeam` (persisted per-org in localStorage).
+ * - **Section**: derived from the current route via `getPageLabel`. On
+ *   mobile, pages that already render a prominent H1 swap this segment
+ *   for the brand mark to avoid duplicating the title.
  */
 const ContextBreadcrumb: React.FC = () => {
   const location = useLocation();
@@ -46,21 +48,21 @@ const ContextBreadcrumb: React.FC = () => {
   const suppressSectionOnMobile =
     isMobile && shouldSuppressLabelOnMobile(location.pathname);
 
-  const showTeamSegment = !isMobile && teamMemberships.length > 0;
+  const showTeamSegment = teamMemberships.length > 0;
   const teamLabel =
     selectedTeam?.team_name ??
     (selectedTeamId === UNASSIGNED_TEAM_ID ? 'Unassigned' : 'All teams');
 
   return (
     <Breadcrumb>
-      <BreadcrumbList className="flex-nowrap gap-1 sm:gap-1.5">
+      <BreadcrumbList className="flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:flex-nowrap sm:gap-1.5">
         <BreadcrumbItem className="text-foreground">
           <OrganizationSwitcher variant="topbar" />
         </BreadcrumbItem>
 
         {showTeamSegment && (
           <>
-            <BreadcrumbSeparator />
+            <BreadcrumbSeparator className="hidden sm:inline-flex" />
             <BreadcrumbItem>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -117,7 +119,7 @@ const ContextBreadcrumb: React.FC = () => {
 
         {(suppressSectionOnMobile || sectionLabel) && (
           <>
-            <BreadcrumbSeparator />
+            <BreadcrumbSeparator className="hidden sm:inline-flex" />
             <BreadcrumbItem>
               {suppressSectionOnMobile ? (
                 <img

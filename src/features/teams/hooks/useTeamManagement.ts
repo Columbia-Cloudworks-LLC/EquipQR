@@ -7,6 +7,7 @@ import {
 } from '@/features/teams/services/teamService';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAccessSnapshot } from '@/hooks/useAccessSnapshot';
+import { useSession } from '@/hooks/useSession';
 import { useTeam as useTeamContext } from '@/features/teams/hooks/useTeam';
 
 /**
@@ -68,12 +69,16 @@ export const useTeam = (teamId: string | undefined) => {
 export const useTeamMutations = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { refreshSession } = useSession();
 
   const createTeamWithCreatorMutation = useMutation({
     mutationFn: ({ teamData, creatorId }: { teamData: Parameters<typeof TeamRepository.createTeamWithCreator>[0]; creatorId: string }) =>
       TeamRepository.createTeamWithCreator(teamData, creatorId),
-    onSuccess: (_, variables) => {
+    onSuccess: async (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['teams', variables.teamData.organization_id] });
+      // Force-refresh the session so the new team membership (creator becomes manager)
+      // shows up in TopBar/ContextBreadcrumb without requiring logout/login.
+      await refreshSession(true);
     },
     onError: (error: unknown) => {
       toast({

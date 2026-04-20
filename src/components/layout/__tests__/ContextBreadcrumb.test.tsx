@@ -15,9 +15,15 @@ import { SimpleOrganizationContext } from '@/contexts/SimpleOrganizationContext'
 import { createMockSimpleOrgValue } from '@/test/utils/mock-provider-values';
 import ContextBreadcrumb from '../ContextBreadcrumb';
 
-// useIsMobile is mocked to keep the team segment visible across the suite.
+// useIsMobile is mocked through a hoisted ref so individual tests can flip
+// the viewport without re-mocking. Default is desktop (false); the dedicated
+// mobile test sets it to true before rendering.
+const { mockIsMobileRef } = vi.hoisted(() => ({
+  mockIsMobileRef: { current: false },
+}));
+
 vi.mock('@/hooks/use-mobile', () => ({
-  useIsMobile: () => false,
+  useIsMobile: () => mockIsMobileRef.current,
 }));
 
 const renderWithTeamContext = (
@@ -77,6 +83,7 @@ const renderWithTeamContext = (
 describe('ContextBreadcrumb', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockIsMobileRef.current = false;
   });
 
   it('renders the section label resolved from the current route', () => {
@@ -196,5 +203,28 @@ describe('ContextBreadcrumb', () => {
     expect(
       screen.getByRole('button', { name: /switch team \(current: unassigned\)/i }),
     ).toBeInTheDocument();
+  });
+
+  it('keeps the team switcher reachable on mobile and stacks the breadcrumb vertically', () => {
+    mockIsMobileRef.current = true;
+
+    const { container } = renderWithTeamContext({
+      teamMemberships: [
+        { team_id: 't1', team_name: 'Service', role: 'manager', joined_date: '2026-01-01' },
+      ],
+      initialEntries: ['/dashboard'],
+    });
+
+    // The team switcher must still be present on mobile (regression guard for
+    // the bug where !isMobile gated the segment off entirely on phones).
+    expect(
+      screen.getByRole('button', { name: /switch team/i }),
+    ).toBeInTheDocument();
+
+    // The breadcrumb list should stack vertically on mobile so the team row
+    // sits directly below the org row.
+    const list = container.querySelector('ol');
+    expect(list).not.toBeNull();
+    expect(list?.className).toContain('flex-col');
   });
 });
