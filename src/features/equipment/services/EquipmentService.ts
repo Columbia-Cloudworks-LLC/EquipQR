@@ -6,9 +6,14 @@ import { logger } from '@/utils/logger';
 // Use Supabase types for Equipment
 export type Equipment = Tables<'equipment'>;
 
-// Extended equipment type with team info for display purposes
+// Extended equipment type with team info for display purposes.
+// `team` is the raw join shape returned by Supabase; `team_name` is the
+// flattened convenience field every UI consumer reads (EquipmentCard,
+// EquipmentTable). The service layer is responsible for populating
+// `team_name` from `team.name` so consumers never have to do the lookup.
 export interface EquipmentWithTeam extends Equipment {
   team?: { id: string; name: string } | null;
+  team_name?: string;
 }
 
 export interface EquipmentFilters extends FilterParams {
@@ -152,7 +157,12 @@ export class EquipmentService {
         return handleError(error);
       }
 
-      return handleSuccess((data || []) as EquipmentWithTeam[]);
+      const flattened = (data || []).map(row => ({
+        ...row,
+        team_name: (row.team as { name?: string } | null | undefined)?.name ?? undefined,
+      })) as EquipmentWithTeam[];
+
+      return handleSuccess(flattened);
     } catch (error) {
       return handleError(error);
     }
@@ -182,7 +192,12 @@ export class EquipmentService {
         return handleError(new Error('Equipment not found'));
       }
 
-      return handleSuccess(data as EquipmentWithTeam);
+      const flattened: EquipmentWithTeam = {
+        ...(data as EquipmentWithTeam),
+        team_name: (data.team as { name?: string } | null | undefined)?.name ?? undefined,
+      };
+
+      return handleSuccess(flattened);
     } catch (error) {
       return handleError(error);
     }
@@ -522,7 +537,14 @@ export class EquipmentService {
         return handleError(error);
       }
 
-      return handleSuccess(data || []);
+      // Note: this query aliases the join as `teams` (not `team`); flatten
+      // the same way so the convenience field is consistent.
+      const flattened = (data || []).map(row => ({
+        ...row,
+        team_name: (row.teams as { name?: string } | null | undefined)?.name ?? undefined,
+      }));
+
+      return handleSuccess(flattened);
     } catch (error) {
       return handleError(error);
     }
