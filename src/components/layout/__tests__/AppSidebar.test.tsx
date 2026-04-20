@@ -15,10 +15,6 @@ vi.mock('@/lib/flags', async () => {
   };
 });
 
-vi.mock('@/features/tickets/context/BugReportContext', () => ({
-  useBugReport: () => ({ openBugReport: vi.fn() }),
-}));
-
 vi.mock('@/components/ui/sidebar-context', async () => {
   const actual = await vi.importActual<typeof import('@/components/ui/sidebar-context')>(
     '@/components/ui/sidebar-context',
@@ -36,19 +32,6 @@ vi.mock('@/components/ui/sidebar-context', async () => {
     }),
   };
 });
-
-vi.mock('@/contexts/useUser', () => ({
-  useUser: () => ({
-    currentUser: {
-      id: 'test-user',
-      name: 'Test User',
-      email: 'test@example.com',
-    },
-    isLoading: false,
-    error: null,
-    refreshUser: vi.fn(),
-  }),
-}));
 
 describe('AppSidebar', () => {
   it('renders the four operational group labels for an admin', () => {
@@ -86,5 +69,16 @@ describe('AppSidebar', () => {
     expect(
       screen.queryByRole('button', { name: /switch organization/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('does not mount the user profile menu inside the sidebar (now lives in TopBar)', () => {
+    renderAsPersona(<AppSidebar />, 'admin');
+
+    // The profile dropdown trigger is no longer rendered in the sidebar.
+    expect(
+      screen.queryByRole('button', { name: /user menu/i }),
+    ).not.toBeInTheDocument();
+    // And neither is its in-menu Sign out item.
+    expect(screen.queryByText(/sign out/i)).not.toBeInTheDocument();
   });
 });

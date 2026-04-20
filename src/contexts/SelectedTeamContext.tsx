@@ -41,7 +41,7 @@ export const SelectedTeamProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { organizationId } = useOrganization();
-  const { teamMemberships } = useTeam();
+  const { teamMemberships, isLoading: teamMembershipsLoading } = useTeam();
 
   const [selectedTeamId, setSelectedTeamIdState] = useState<string | null>(null);
 
@@ -53,14 +53,20 @@ export const SelectedTeamProvider: React.FC<{ children: React.ReactNode }> = ({
   // Auto-clear when the selected team is no longer in the user's memberships
   // for the active organization (e.g. removed from the team, or org switched
   // and the team isn't visible in the new org).
+  //
+  // CRITICAL: gate this on `teamMembershipsLoading`. While the session is still
+  // loading, `teamMemberships` is `[]`, which would otherwise cause every
+  // initial mount and every org switch to clobber a valid persisted selection
+  // before the real membership list arrives.
   useEffect(() => {
+    if (teamMembershipsLoading) return;
     if (!selectedTeamId) return;
     const stillVisible = teamMemberships.some((m) => m.team_id === selectedTeamId);
     if (!stillVisible) {
       setSelectedTeamIdState(null);
       writeStoredTeamId(organizationId, null);
     }
-  }, [selectedTeamId, teamMemberships, organizationId]);
+  }, [selectedTeamId, teamMemberships, teamMembershipsLoading, organizationId]);
 
   const setSelectedTeamId = useCallback(
     (teamId: string | null) => {

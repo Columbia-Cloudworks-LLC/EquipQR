@@ -6,6 +6,7 @@ import NotificationBell from '@/components/notifications/NotificationBell';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import ContextBreadcrumb from './ContextBreadcrumb';
 import QuickBooksStatusIndicator from './QuickBooksStatusIndicator';
+import UserProfileMenu from './UserProfileMenu';
 
 const TopBar: React.FC = () => {
   const { organizationId } = useOrganization();
@@ -22,12 +23,11 @@ const TopBar: React.FC = () => {
           <ContextBreadcrumb />
         </div>
 
-        {organizationId && (
-          <div className="flex items-center gap-1 sm:gap-2">
-            <QuickBooksStatusIndicator organizationId={organizationId} />
-            <NotificationBell organizationId={organizationId} />
-          </div>
-        )}
+        <div className="flex items-center gap-1 sm:gap-2">
+          {organizationId && <NotificationBell organizationId={organizationId} />}
+          {organizationId && <QuickBooksStatusIndicator organizationId={organizationId} />}
+          <UserProfileMenu />
+        </div>
       </div>
     </header>
   );

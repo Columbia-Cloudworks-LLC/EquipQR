@@ -3,7 +3,6 @@ import React from 'react';
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -13,13 +12,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Home,
   Forklift,
@@ -27,18 +19,12 @@ import {
   Users,
   Map,
   Building,
-  Settings,
   FileText,
-  ChevronUp,
-  LogOut,
-  User,
-  HelpCircle,
   ClipboardCheck,
   Warehouse,
   Search,
   Layers,
   History,
-  Bug,
   ShieldCheck,
   Plug,
 } from "lucide-react";
@@ -46,13 +32,10 @@ import type { LucideIcon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { isLightColor } from "@/lib/utils";
-import { useAuth } from "@/hooks/useAuth";
-import { useUser } from "@/contexts/useUser";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "@/components/ui/sidebar-context";
 import Logo from "@/components/ui/Logo";
-import { useBugReport } from "@/features/tickets/context/BugReportContext";
 import { DSR_COCKPIT_ENABLED } from "@/lib/flags";
 
 interface NavigationItem {
@@ -107,16 +90,9 @@ const navigationGroups: NavigationGroup[] = [
 
 const AppSidebar = () => {
   const location = useLocation();
-  const { signOut } = useAuth();
-  const { currentUser } = useUser();
   const { currentOrganization } = useOrganization();
   const isMobile = useIsMobile();
   const { setOpenMobile } = useSidebar();
-  const { openBugReport } = useBugReport();
-
-  const handleSignOut = async () => {
-    await signOut();
-  };
 
   const handleNavClick = () => {
     if (isMobile) {
@@ -225,84 +201,6 @@ const AppSidebar = () => {
             </React.Fragment>
           ))}
         </SidebarContent>
-
-        <SidebarFooter className="p-2 sm:p-3">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <DropdownMenu modal={!isMobile}>
-                <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton
-                    size="lg"
-                    className={cn(
-                      "transition-colors touch-manipulation",
-                      textColorClass,
-                      hasCustomBranding ? '' : 'data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground',
-                      hasCustomBranding && isLightBrand ? 'data-[state=open]:bg-foreground/10' : '',
-                      hasCustomBranding && !isLightBrand ? 'data-[state=open]:bg-background/20' : ''
-                    )}
-                  >
-                    <div className={cn(
-                      "flex aspect-square size-6 sm:size-8 items-center justify-center rounded-lg",
-                      hasCustomBranding
-                        ? 'bg-brand-foreground/20 text-brand-foreground'
-                        : 'bg-sidebar-primary text-sidebar-primary-foreground'
-                    )}>
-                      <User className="size-3 sm:size-4" />
-                    </div>
-                    <div className="grid flex-1 text-left text-xs sm:text-sm leading-tight min-w-0">
-                      <span className="truncate font-semibold">
-                        {currentUser?.name || 'User'}
-                      </span>
-                      <span className={cn(
-                        "truncate text-xs",
-                        hasCustomBranding ? mutedTextColorClass : 'text-muted-foreground'
-                      )}>
-                        {currentUser?.email || ''}
-                      </span>
-                    </div>
-                    <ChevronUp className="ml-auto size-3 sm:size-4" />
-                  </SidebarMenuButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-                  side="bottom"
-                  align="end"
-                  sideOffset={4}
-                >
-                  <DropdownMenuItem asChild>
-                    <Link to="/dashboard/settings" onClick={handleNavClick} className="text-sm cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Settings
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/dashboard/support" onClick={handleNavClick} className="text-sm cursor-pointer">
-                      <HelpCircle className="mr-2 h-4 w-4" />
-                      Support
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => {
-                      handleNavClick();
-                      openBugReport();
-                    }}
-                    className="text-sm cursor-pointer"
-                  >
-                    <Bug className="mr-2 h-4 w-4" />
-                    Report an Issue
-                    <span className="ml-auto text-xs text-muted-foreground">
-                      Ctrl+Shift+B
-                    </span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleSignOut} className="text-sm">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
       </div>
     </Sidebar>
   );
