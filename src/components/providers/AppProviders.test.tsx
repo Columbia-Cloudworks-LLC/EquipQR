@@ -122,8 +122,7 @@ describe('AppProviders', () => {
       expect(ThemeProvider).toHaveBeenCalledWith(
         expect.objectContaining({
           attribute: 'class',
-          defaultTheme: 'system',
-          enableSystem: true,
+          forcedTheme: 'dark',
           children: expect.anything()
         }),
         expect.anything()
