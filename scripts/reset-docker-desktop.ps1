@@ -7,7 +7,7 @@
 .DESCRIPTION
   Docker Desktop on Windows can land in a "half-restart" state where the GUI is
   running but the Linux engine pipe (`\\.\pipe\dockerDesktopLinuxEngine`) is
-  dead — every `docker info` succeeds (it returns client-only data and exits 0)
+  dead - every `docker info` succeeds (it returns client-only data and exits 0)
   while every container/image API call hangs or returns "500 Internal Server
   Error". This script forces a clean recovery:
 
@@ -15,13 +15,13 @@
      com.docker.proxy, com.docker.build, docker-agent, docker-sandbox, hung
      `docker` CLI children).
   2. Terminate the `docker-desktop` and `docker-desktop-data` WSL distros only
-     (the user's own distros — e.g. Ubuntu — stay running).
+     (the user's own distros, e.g. Ubuntu, stay running).
   3. Best-effort start of the `com.docker.service` Windows service. This call
      requires Administrator and silently skips when not elevated; Docker Desktop
      GUI starts the service itself in that case.
   4. Re-launch Docker Desktop.
   5. Poll the daemon with a per-call hard timeout (default 8s) up to a wall-clock
-     budget (default 180s) using `docker ps -q` — the same readiness probe used
+     budget (default 180s) using `docker ps -q` - the same readiness probe used
      by `dev-start.ps1`'s `Test-DockerDaemonReady`. `docker info` is intentionally
      NOT used because it lies in the wedge state.
 
@@ -29,11 +29,11 @@
   Wall-clock budget to wait for the daemon to come back. Default 180s.
 
 .PARAMETER PerCallTimeoutSeconds
-  Per `docker ps -q` invocation hard timeout — protects against the hung pipe
+  Per `docker ps -q` invocation hard timeout - protects against the hung pipe
   blocking the script forever. Default 8s.
 
 .PARAMETER SkipKill
-  Skip step 1 (process kill) — useful when chaining with another recovery.
+  Skip step 1 (process kill) - useful when chaining with another recovery.
 
 .OUTPUTS
   Exit code 0 when the daemon answers `docker ps -q` cleanly within the budget,
@@ -109,7 +109,7 @@ if (-not $SkipKill) {
                 Stop-Process -Id $_.Id -Force -ErrorAction Stop
                 Write-Step "  killed $name (pid $($_.Id))"
             } catch {
-                # Permission denied or already exited — fine to ignore.
+                # Permission denied or already exited - fine to ignore.
             }
         }
     }
@@ -153,7 +153,7 @@ if ($dd) {
     Write-Step "  launched: $dd"
 } else {
     Write-Step '  WARNING: Docker Desktop.exe not found - daemon will not come back without manual launch'
-    return 1
+    exit 1
 }
 
 Write-Step "Waiting for daemon to be ready (up to ${TimeoutSeconds}s, ${PerCallTimeoutSeconds}s per probe)..."
