@@ -300,15 +300,6 @@ export interface HistoryTabProps {
 }
 
 /**
- * Props for the AuditLogTable component
- */
-export interface AuditLogTableProps {
-  organizationId: string;
-  filters?: AuditLogFilters;
-  onFilterChange?: (filters: AuditLogFilters) => void;
-}
-
-/**
  * Props for the ChangesDiff component
  */
 export interface ChangesDiffProps {

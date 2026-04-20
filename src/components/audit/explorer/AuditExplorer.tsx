@@ -28,7 +28,6 @@ import {
   FormattedAuditEntry,
 } from '@/types/audit';
 import { AuditTimelineHistogram } from './AuditTimelineHistogram';
-import { AuditLogTimeRangePicker } from './AuditLogTimeRangePicker';
 import { AuditLogList } from './AuditLogList';
 import { AuditLogDetailPanel } from './AuditLogDetailPanel';
 
@@ -99,7 +98,10 @@ export function AuditExplorer({ organizationId }: AuditExplorerProps) {
     filters: otherFilters,
   });
 
-  const entries = listQuery.data?.data ?? [];
+  const entries = useMemo(
+    () => listQuery.data?.data ?? [],
+    [listQuery.data]
+  );
   const totalCount = listQuery.data?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -151,9 +153,15 @@ export function AuditExplorer({ organizationId }: AuditExplorerProps) {
   };
 
   const handleFilterChange = (next: AuditLogFilters) => {
-    // Strip the dateFrom / dateTo back out — those are governed by the picker.
-    const { dateFrom: _df, dateTo: _dt, ...rest } = next;
-    setOtherFilters(rest);
+    // The time range is owned by the picker, not the filter popover, so we
+    // intentionally drop dateFrom / dateTo when reading filter changes back.
+    setOtherFilters({
+      entityType: next.entityType,
+      action: next.action,
+      actorId: next.actorId,
+      entityId: next.entityId,
+      search: next.search,
+    });
     setPage(1);
     setSelectedEntry(null);
   };
@@ -205,27 +213,6 @@ export function AuditExplorer({ organizationId }: AuditExplorerProps) {
       className="flex flex-col gap-3 min-h-[640px]"
       data-testid="audit-explorer"
     >
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <AuditLogTimeRangePicker
-          preset={preset}
-          isoFrom={preset === 'custom' ? range.dateFrom : undefined}
-          isoTo={preset === 'custom' ? range.dateTo : undefined}
-          onChange={handlePresetChange}
-        />
-        <span className="text-xs text-muted-foreground tabular-nums" aria-live="polite">
-          {totalCount.toLocaleString()} {totalCount === 1 ? 'entry' : 'entries'}
-        </span>
-      </div>
-
-      <div className="rounded-md border bg-card">
-        <AuditTimelineHistogram
-          data={timelineQuery.data ?? []}
-          bucket={bucket}
-          isLoading={timelineQuery.isLoading}
-          onBucketClick={handleBucketClick}
-        />
-      </div>
-
       <AuditLogToolbar
         filters={filtersForQuery}
         onFilterChange={handleFilterChange}
@@ -236,7 +223,20 @@ export function AuditExplorer({ organizationId }: AuditExplorerProps) {
         exportProgressLabel={exportProgressLabel}
         canExport={canExport}
         resultCount={totalCount}
+        timePreset={preset}
+        timeFromIso={preset === 'custom' ? range.dateFrom : undefined}
+        timeToIso={preset === 'custom' ? range.dateTo : undefined}
+        onTimeRangeChange={handlePresetChange}
       />
+
+      <div className="rounded-md border bg-card">
+        <AuditTimelineHistogram
+          data={timelineQuery.data ?? []}
+          bucket={bucket}
+          isLoading={timelineQuery.isLoading}
+          onBucketClick={handleBucketClick}
+        />
+      </div>
 
       <div className="rounded-md border overflow-hidden bg-card">
         <ResizablePanelGroup

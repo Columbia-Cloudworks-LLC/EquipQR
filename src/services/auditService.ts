@@ -61,6 +61,26 @@ function handleSuccess<T>(data: T): ServiceResponse<T> {
   };
 }
 
+/**
+ * Normalize the dateTo filter into an exclusive upper bound for `created_at`.
+ *
+ * The legacy popover emitted YYYY-MM-DD strings and expected the entire end
+ * date to be included (so we add one day to make the bound exclusive).
+ *
+ * The new audit explorer's time-range picker emits full ISO timestamps to
+ * preserve sub-day boundaries when the user clicks a histogram bucket; in
+ * that case the value is already the exact exclusive upper bound and must
+ * not be inflated.
+ */
+function normalizeAuditDateTo(dateTo: string): string {
+  if (dateTo.includes('T')) {
+    return dateTo;
+  }
+  const endDate = new Date(dateTo);
+  endDate.setDate(endDate.getDate() + 1);
+  return endDate.toISOString();
+}
+
 function applyAuditFilters<T>(query: T, filters?: AuditLogFilters): T {
   let filteredQuery = query as T & {
     eq: (column: string, value: string) => T;
@@ -86,9 +106,7 @@ function applyAuditFilters<T>(query: T, filters?: AuditLogFilters): T {
   }
 
   if (filters?.dateTo) {
-    const endDate = new Date(filters.dateTo);
-    endDate.setDate(endDate.getDate() + 1);
-    filteredQuery = filteredQuery.lt('created_at', endDate.toISOString());
+    filteredQuery = filteredQuery.lt('created_at', normalizeAuditDateTo(filters.dateTo));
   }
 
   if (filters?.search) {
@@ -262,10 +280,7 @@ export const auditService = {
       }
       
       if (filters?.dateTo) {
-        // Add one day to include the entire end date
-        const endDate = new Date(filters.dateTo);
-        endDate.setDate(endDate.getDate() + 1);
-        query = query.lt('created_at', endDate.toISOString());
+        query = query.lt('created_at', normalizeAuditDateTo(filters.dateTo));
       }
       
       if (filters?.search) {
@@ -579,9 +594,7 @@ export const auditService = {
       }
       
       if (dateTo) {
-        const endDate = new Date(dateTo);
-        endDate.setDate(endDate.getDate() + 1);
-        query = query.lt('created_at', endDate.toISOString());
+        query = query.lt('created_at', normalizeAuditDateTo(dateTo));
       }
       
       const { data, error } = await query;

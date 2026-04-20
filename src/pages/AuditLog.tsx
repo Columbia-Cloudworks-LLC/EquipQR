@@ -1,28 +1,30 @@
 /**
  * Audit Log Page
- * 
- * Displays organization-wide audit trail for regulatory compliance
- * and accountability tracking. Includes filtering, search, and CSV export.
+ *
+ * Displays organization-wide audit trail for regulatory compliance and
+ * accountability tracking via the Logflare-style explorer (issue #641):
+ * timeline histogram on top, dense severity-tagged list below, persistent
+ * detail panel on the right. CSV / JSON export and the entity-history
+ * timeline on detail pages are unchanged.
  */
 
 import React from 'react';
 import { History, Shield, AlertCircle } from 'lucide-react';
 import Page from '@/components/layout/Page';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { AuditLogTable } from '@/components/audit';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAuditStats } from '@/hooks/useAuditLog';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ENTITY_TYPE_LABELS, AUDIT_ENTITY_TYPES } from '@/types/audit';
+import { AuditExplorer } from '@/components/audit/explorer';
 
 /**
  * Stats cards showing audit summary
  */
 function AuditStatsCards({ organizationId }: { organizationId: string }) {
   const { data: stats, isLoading } = useAuditStats(organizationId);
-  
+
   if (isLoading) {
     return (
       <div className="grid gap-4 md:grid-cols-4">
@@ -39,14 +41,14 @@ function AuditStatsCards({ organizationId }: { organizationId: string }) {
       </div>
     );
   }
-  
+
   if (!stats) return null;
-  
+
   // Calculate totals for each action
   const createdCount = stats.byAction?.INSERT || 0;
   const updatedCount = stats.byAction?.UPDATE || 0;
   const deletedCount = stats.byAction?.DELETE || 0;
-  
+
   return (
     <div className="grid gap-4 md:grid-cols-4">
       <Card>
@@ -59,7 +61,7 @@ function AuditStatsCards({ organizationId }: { organizationId: string }) {
           <div className="text-2xl font-bold">{stats.totalEntries.toLocaleString()}</div>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -70,7 +72,7 @@ function AuditStatsCards({ organizationId }: { organizationId: string }) {
           <div className="text-2xl font-bold text-success">{createdCount.toLocaleString()}</div>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -81,7 +83,7 @@ function AuditStatsCards({ organizationId }: { organizationId: string }) {
           <div className="text-2xl font-bold text-info">{updatedCount.toLocaleString()}</div>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -97,46 +99,11 @@ function AuditStatsCards({ organizationId }: { organizationId: string }) {
 }
 
 /**
- * Top contributors list
- */
-function TopContributors({ organizationId }: { organizationId: string }) {
-  const { data: stats, isLoading } = useAuditStats(organizationId);
-  
-  if (isLoading || !stats?.topActors?.length) return null;
-  
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Top Contributors</CardTitle>
-        <CardDescription>Users with the most activity</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          {stats.topActors.map((actor, index) => (
-            <div key={actor.name} className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-muted-foreground">
-                  {index + 1}.
-                </span>
-                <span className="text-sm">{actor.name}</span>
-              </div>
-              <span className="text-sm text-muted-foreground">
-                {actor.count} actions
-              </span>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-/**
  * Audit Log Page Component
  */
 function AuditLog() {
   const { currentOrganization } = useOrganization();
-  
+
   if (!currentOrganization) {
     return (
       <Page maxWidth="7xl" padding="responsive">
@@ -150,9 +117,9 @@ function AuditLog() {
       </Page>
     );
   }
-  
+
   return (
-    <Page maxWidth="7xl" padding="responsive">
+    <Page maxWidth="full" padding="responsive">
       <div className="space-y-5">
         {/* Header */}
         <div className="flex items-center gap-2">
@@ -181,50 +148,11 @@ function AuditLog() {
         {/* Stats */}
         <AuditStatsCards organizationId={currentOrganization.id} />
 
-        {/* Main content grid */}
-        <div className="grid gap-6 lg:grid-cols-4">
-          {/* Main audit table — no Card wrapper, toolbar provides visual grouping */}
-          <div className="lg:col-span-3">
-            <AuditLogTable organizationId={currentOrganization.id} />
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-4">
-            <TopContributors organizationId={currentOrganization.id} />
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">What's Tracked</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <ul className="space-y-1.5 text-sm text-muted-foreground">
-                  {Object.values(AUDIT_ENTITY_TYPES).map((type) => (
-                    <li key={type} className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                      {ENTITY_TYPE_LABELS[type]}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Data Retention</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <p className="text-xs text-muted-foreground">
-                  Audit records are retained indefinitely to meet regulatory requirements.
-                  Exports include the full matching history for the selected filters.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        {/* Logflare-style explorer */}
+        <AuditExplorer organizationId={currentOrganization.id} />
       </div>
     </Page>
   );
 }
 
 export default AuditLog;
-
