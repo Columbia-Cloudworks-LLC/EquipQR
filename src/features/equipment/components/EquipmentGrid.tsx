@@ -5,6 +5,7 @@ import EquipmentEmptyState from './EquipmentEmptyState';
 import EquipmentTable from './EquipmentTable';
 import type { EquipmentViewMode } from './EquipmentCard';
 import type { EquipmentPMStatus } from '@/features/equipment/hooks/useEquipmentPMStatus';
+import type { SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
 
 interface Equipment {
   id: string;
@@ -30,6 +31,8 @@ interface EquipmentGridProps {
   onClearFilters?: () => void;
   viewMode?: EquipmentViewMode;
   pmStatuses?: Map<string, EquipmentPMStatus>;
+  sortConfig?: SortConfig;
+  onSortChange?: (field: string, direction?: 'asc' | 'desc') => void;
 }
 
 const EquipmentGrid: React.FC<EquipmentGridProps> = ({
@@ -43,6 +46,8 @@ const EquipmentGrid: React.FC<EquipmentGridProps> = ({
   onClearFilters,
   viewMode = 'grid',
   pmStatuses,
+  sortConfig,
+  onSortChange,
 }) => {
   if (equipment.length === 0) {
     return (
@@ -63,6 +68,8 @@ const EquipmentGrid: React.FC<EquipmentGridProps> = ({
         equipment={equipment}
         onShowQRCode={onShowQRCode}
         pmStatuses={pmStatuses}
+        sortConfig={sortConfig}
+        onSortChange={onSortChange}
       />
     );
   }

@@ -148,15 +148,17 @@ export function DataTable<T extends Record<string, unknown>>({
   // the scroller so the header can pin against it; otherwise we use the existing
   // bordered card layout that ships with the underlying <Table />.
   const scrollerClass = stickyHeader
-    ? 'relative w-full overflow-auto rounded-lg border'
+    ? 'relative w-full overflow-auto rounded-sm border'
     : 'border rounded-lg';
 
   const scrollerStyle = stickyHeader ? { maxHeight: maxBodyHeight } : undefined;
 
+  const tableWithWrapper = !stickyHeader;
+
   if (isLoading) {
     return (
       <div className={cn(scrollerClass, className)} style={scrollerStyle}>
-        <Table>
+        <Table withWrapper={tableWithWrapper}>
           <TableHeader className={stickyHeaderClass || undefined}>
             <TableRow>
               {columns.map((column, index) => (
@@ -200,7 +202,7 @@ export function DataTable<T extends Record<string, unknown>>({
   return (
     <div className={cn('space-y-4', className)}>
       <div className={scrollerClass} style={scrollerStyle}>
-        <Table>
+        <Table withWrapper={tableWithWrapper}>
           <TableHeader className={stickyHeaderClass || undefined}>
             <TableRow>
               {columns.map((column, index) => {

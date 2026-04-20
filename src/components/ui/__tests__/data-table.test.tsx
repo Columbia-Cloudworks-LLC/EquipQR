@@ -65,6 +65,26 @@ describe('DataTable', () => {
       expect(thead).not.toBeNull();
       expect(thead!.className).not.toContain('sticky');
     });
+
+    it('keeps exactly one overflow-auto scroller so the sticky header pins to the intended ancestor', () => {
+      const { container } = render(
+        <DataTable
+          data={sampleData}
+          columns={sampleColumns}
+          stickyHeader
+          maxBodyHeight="200px"
+        />,
+      );
+      expect(container.querySelectorAll('.overflow-auto').length).toBe(1);
+    });
+
+    it('uses subtle rounding on the sticky scroller container', () => {
+      const { container } = render(
+        <DataTable data={sampleData} columns={sampleColumns} stickyHeader />,
+      );
+      const stickyScroller = container.querySelector('.overflow-auto');
+      expect(stickyScroller?.className).toContain('rounded-sm');
+    });
   });
 
   describe('freezeFirstColumn', () => {

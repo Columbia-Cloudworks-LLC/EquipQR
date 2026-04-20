@@ -220,6 +220,8 @@ const Equipment = () => {
         onClearFilters={clearFilters}
         viewMode={viewMode}
         pmStatuses={pmStatuses}
+        sortConfig={sortConfig}
+        onSortChange={updateSort}
       />
 
       {/* Pagination */}

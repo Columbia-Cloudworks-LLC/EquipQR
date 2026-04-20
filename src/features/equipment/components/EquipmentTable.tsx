@@ -7,6 +7,7 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { DotStatus } from '@/components/ui/dot-status';
 import { safeFormatDate } from '@/features/equipment/utils/equipmentHelpers';
 import type { EquipmentPMStatus } from '@/features/equipment/hooks/useEquipmentPMStatus';
+import type { SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
 
 interface EquipmentRow {
   id: string;
@@ -26,6 +27,8 @@ export interface EquipmentTableProps {
   equipment: EquipmentRow[];
   onShowQRCode: (id: string) => void;
   pmStatuses?: Map<string, EquipmentPMStatus>;
+  sortConfig?: SortConfig;
+  onSortChange?: (field: string, direction?: 'asc' | 'desc') => void;
 }
 
 /**
@@ -33,10 +36,15 @@ export interface EquipmentTableProps {
  *
  * Consumes the upgraded shared `DataTable` with compact density, sticky header,
  * frozen first column, and monospace ID/serial/date columns. Status renders as
- * a compact `DotStatus`. Action buttons keep the 44x44 invisible tap-target so
- * the row text can stay tight (~36px) without losing accessibility.
+ * a compact `DotStatus` (sighted tooltip via `title`; label in `.sr-only`).
+ * Name navigation and QR actions keep a 44px minimum tap target.
  */
-const EquipmentTable: React.FC<EquipmentTableProps> = ({ equipment, onShowQRCode }) => {
+const EquipmentTable: React.FC<EquipmentTableProps> = ({
+  equipment,
+  onShowQRCode,
+  sortConfig,
+  onSortChange,
+}) => {
   const navigate = useNavigate();
 
   const columns = useMemo<Column<EquipmentRow>[]>(() => [
@@ -48,7 +56,7 @@ const EquipmentTable: React.FC<EquipmentTableProps> = ({ equipment, onShowQRCode
       render: (_value, item) => (
         <button
           type="button"
-          className="text-left underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline focus-visible:ring-1 focus-visible:ring-ring rounded-sm font-medium"
+          className="flex min-h-11 w-full items-center justify-start text-left underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline focus-visible:ring-1 focus-visible:ring-ring rounded-sm font-medium"
           onClick={() => navigate(`/dashboard/equipment/${item.id}`)}
         >
           {item.name}
@@ -59,7 +67,7 @@ const EquipmentTable: React.FC<EquipmentTableProps> = ({ equipment, onShowQRCode
       key: 'status',
       title: 'Status',
       width: '140px',
-      render: (_value, item) => <DotStatus status={item.status} showLabel />,
+      render: (_value, item) => <DotStatus status={item.status} />,
     },
     {
       key: 'manufacturer',
@@ -114,6 +122,17 @@ const EquipmentTable: React.FC<EquipmentTableProps> = ({ equipment, onShowQRCode
     },
   ], [navigate, onShowQRCode]);
 
+  const sorting =
+    sortConfig && onSortChange
+      ? {
+          sortBy: sortConfig.field,
+          sortOrder: sortConfig.direction,
+          onSortChange: (sortBy: string, sortOrder: 'asc' | 'desc') => {
+            onSortChange(sortBy, sortOrder);
+          },
+        }
+      : undefined;
+
   return (
     <DataTable<EquipmentRow>
       data={equipment}
@@ -123,6 +142,7 @@ const EquipmentTable: React.FC<EquipmentTableProps> = ({ equipment, onShowQRCode
       freezeFirstColumn
       maxBodyHeight="calc(100vh - 16rem)"
       emptyMessage="No equipment matches your filters."
+      sorting={sorting}
     />
   );
 };

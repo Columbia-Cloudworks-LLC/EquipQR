@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@/test/utils/test-utils';
+import { render, screen, fireEvent, within } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import EquipmentTable from '../EquipmentTable';
@@ -51,18 +51,41 @@ describe('EquipmentTable', () => {
     expect(screen.getByText('SN67890')).toBeInTheDocument();
   });
 
-  it('renders DotStatus indicators with visible labels', () => {
+  it('renders compact DotStatus with labels only for assistive tech', () => {
     render(<EquipmentTable equipment={mockEquipment} onShowQRCode={onShowQRCode} />);
-    expect(screen.getByText('Active')).toBeInTheDocument();
-    expect(screen.getByText('Under Maintenance')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toHaveClass('sr-only');
+    expect(screen.getByText('Under Maintenance')).toHaveClass('sr-only');
   });
 
   it('renders the Name column as a sortable header button', () => {
-    render(<EquipmentTable equipment={mockEquipment} onShowQRCode={onShowQRCode} />);
+    const onSortChange = vi.fn();
+    render(
+      <EquipmentTable
+        equipment={mockEquipment}
+        onShowQRCode={onShowQRCode}
+        sortConfig={{ field: 'name', direction: 'asc' }}
+        onSortChange={onSortChange}
+      />,
+    );
     const headers = screen.getAllByRole('columnheader');
     const nameHeader = headers[0];
     expect(nameHeader.textContent).toMatch(/name/i);
     expect(nameHeader.querySelector('button')).not.toBeNull();
+  });
+
+  it('calls onSortChange when the Name header sort control is used', () => {
+    const onSortChange = vi.fn();
+    render(
+      <EquipmentTable
+        equipment={mockEquipment}
+        onShowQRCode={onShowQRCode}
+        sortConfig={{ field: 'name', direction: 'asc' }}
+        onSortChange={onSortChange}
+      />,
+    );
+    const nameHeader = screen.getAllByRole('columnheader')[0];
+    fireEvent.click(within(nameHeader).getByRole('button'));
+    expect(onSortChange).toHaveBeenCalledWith('name', 'desc');
   });
 
   it('freezes the first column with sticky left-0', () => {
@@ -94,6 +117,13 @@ describe('EquipmentTable', () => {
     const qrButton = screen.getByRole('button', { name: /show qr code for forklift a1/i });
     expect(qrButton.className).toContain('min-h-11');
     expect(qrButton.className).toContain('min-w-11');
+  });
+
+  it('gives the Name navigation control a minimum 44px row height', () => {
+    render(<EquipmentTable equipment={mockEquipment} onShowQRCode={onShowQRCode} />);
+    const nameBtn = screen.getByRole('button', { name: 'Forklift A1' });
+    expect(nameBtn.className).toContain('min-h-11');
+    expect(nameBtn.className).toContain('w-full');
   });
 
   it('calls onShowQRCode when the QR action button is clicked', () => {
