@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import Equipment from '@/features/equipment/pages/Equipment';
 import { render } from '@/test/utils/test-utils';
@@ -177,7 +178,7 @@ describe('Equipment page', () => {
     expect(screen.getByText('Loading Equipment...')).toBeInTheDocument();
   });
 
-  it('renders counts and opens form and QR modal', () => {
+  it('renders counts and opens form and QR modal', async () => {
     (useOrganization as ReturnType<typeof vi.fn>).mockReturnValue({ currentOrganization: { id: 'org-1', name: 'Org 1' } });
 
     (useEquipmentFiltering as ReturnType<typeof vi.fn>).mockReturnValue({
@@ -208,8 +209,15 @@ describe('Equipment page', () => {
     // Sort header is mobile-only; pagination reflects filtered vs total equipment counts
     expect(screen.getByText(/showing 1 to 2 of 2 results/i)).toBeInTheDocument();
 
-    // Open form
-    fireEvent.click(screen.getByText('Add Equipment'));
+    // Open form: dropdown trigger first, then "Add Single Equipment" menu item.
+    // The desktop "Add Equipment" button is now a DropdownMenu split-action (#627),
+    // so opening the single-item form takes two clicks. userEvent (rather than
+    // fireEvent) is required here because Radix's DropdownMenuTrigger reads
+    // pointerdown + click together, which fireEvent.click alone does not satisfy
+    // in jsdom.
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /Add Equipment/i }));
+    await user.click(await screen.findByRole('menuitem', { name: /Add Single Equipment/i }));
     expect(screen.getByTestId('equipment-form')).toHaveTextContent('Form Open');
 
     // Open QR modal
