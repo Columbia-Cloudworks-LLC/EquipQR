@@ -14,6 +14,7 @@
 [CmdletBinding()]
 param(
     [switch]$Force,
+    [switch]$ResetDocker,
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$Rest = @()
 )
@@ -26,6 +27,8 @@ $unknown = [System.Collections.Generic.List[string]]::new()
 foreach ($r in $Rest) {
     if ($r -match '^(?i)(/Force|--force)$') {
         $Force = $true
+    } elseif ($r -match '^(?i)(/ResetDocker|--reset-docker)$') {
+        $ResetDocker = $true
     } else {
         [void]$unknown.Add($r)
     }
@@ -34,7 +37,7 @@ $Rest = @($unknown)
 
 if ($Rest.Count -gt 0) {
     Write-Host "FAIL: Unknown argument(s): $($Rest -join ', ')"
-    Write-Host 'Usage: .\dev-start.ps1 [-Force]'
+    Write-Host 'Usage: .\dev-start.ps1 [-Force] [-ResetDocker]'
     exit 2
 }
 
@@ -82,23 +85,62 @@ function Test-DevStackAlreadyRunningForForce {
 # the dockerDesktopLinuxEngine pipe. `docker ps` exercises the engine path
 # and exits non-zero when wedged, so we use it as the source of truth and
 # additionally scan stderr for the known wedge signatures.
+#
+# We invoke `docker ps -q` inside a background job with a hard per-call
+# timeout. Without this, a half-dead pipe can block the CLI for ~30s per
+# probe, multiplying every readiness loop iteration into a stall and making
+# the script appear to hang itself.
 function Test-DockerDaemonReady {
-    $oldEap = $ErrorActionPreference
+    param([int]$PerCallTimeoutSeconds = 8)
+
+    $job = Start-Job -ScriptBlock {
+        $out = & docker ps -q 2>&1
+        [pscustomobject]@{
+            ExitCode = $LASTEXITCODE
+            Output   = ($out | Out-String)
+        }
+    }
+
+    if (-not (Wait-Job -Job $job -Timeout $PerCallTimeoutSeconds)) {
+        Stop-Job  -Job $job -ErrorAction SilentlyContinue
+        Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+        return $false
+    }
+
+    $result = Receive-Job -Job $job
+    Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+
+    if ($null -eq $result) { return $false }
+    if ($result.ExitCode -ne 0) { return $false }
+    if ($result.Output -match '500 Internal Server Error') { return $false }
+    if ($result.Output -match 'error during connect') { return $false }
+    if ($result.Output -match 'Cannot connect to the Docker daemon') { return $false }
+    return $true
+}
+
+# Run the reusable surgical recovery script and return $true when the daemon
+# answers `docker ps -q` cleanly within the budget. Centralizing the recovery
+# in scripts\reset-docker-desktop.ps1 lets the user invoke the same flow
+# manually (`scripts\reset-docker-desktop.ps1`) when the dev stack is already
+# running and only Docker is wedged.
+function Invoke-DockerRecovery {
+    param([int]$TimeoutSeconds = 180)
+
+    $resetScript = Join-Path $repoRoot 'scripts\reset-docker-desktop.ps1'
+    if (-not (Test-Path -LiteralPath $resetScript)) {
+        Write-Host "        FAIL: reset-docker-desktop.ps1 not found at $resetScript"
+        return $false
+    }
+
+    $oldRecEap = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
-        $out = & docker ps -q 2>&1
-        $code = $LASTEXITCODE
-    } catch {
-        return $false
+        & $resetScript -TimeoutSeconds $TimeoutSeconds
+        $resetExit = $LASTEXITCODE
     } finally {
-        $ErrorActionPreference = $oldEap
+        $ErrorActionPreference = $oldRecEap
     }
-    if ($code -ne 0) { return $false }
-    $text = ($out | Out-String)
-    if ($text -match '500 Internal Server Error') { return $false }
-    if ($text -match 'error during connect') { return $false }
-    if ($text -match 'Cannot connect to the Docker daemon') { return $false }
-    return $true
+    return ($resetExit -eq 0)
 }
 
 Write-Host ""
@@ -137,53 +179,34 @@ Write-Host "        npx   OK"
 Write-Host "        docker CLI OK"
 
 Write-Host "        Checking Docker daemon..."
-$dockerOk = Test-DockerDaemonReady
+if ($ResetDocker) {
+    Write-Host "        -ResetDocker requested - forcing surgical recovery before probing the daemon."
+    $dockerOk = Invoke-DockerRecovery -TimeoutSeconds 180
+} else {
+    $dockerOk = Test-DockerDaemonReady
+}
 
 if (-not $dockerOk) {
-    Write-Host "        Docker daemon is not running or is wedged. Attempting to (re)start Docker Desktop..."
+    Write-Host "        Docker daemon is not running or is wedged. Running surgical recovery..."
+    $dockerOk = Invoke-DockerRecovery -TimeoutSeconds 180
 
-    # If Docker Desktop is up but the engine is wedged, killing the host
-    # processes and resetting the docker-desktop WSL distro is the only
-    # reliable recovery - a relaunch alone reuses the broken WSL VM.
-    $hadDesktop = [bool](Get-Process -Name 'Docker Desktop' -ErrorAction SilentlyContinue)
-    if ($hadDesktop) {
-        Write-Host "        Detected existing Docker Desktop process - recycling it."
-        foreach ($name in @('Docker Desktop', 'com.docker.backend', 'com.docker.proxy', 'com.docker.build')) {
-            Get-Process -Name $name -ErrorAction SilentlyContinue | ForEach-Object {
-                try { Stop-Process -Id $_.Id -Force -ErrorAction Stop } catch { }
-            }
-        }
-        Start-Sleep -Seconds 2
-        $oldWslEap = $ErrorActionPreference
-        $ErrorActionPreference = 'Continue'
-        try { $null = & wsl --terminate docker-desktop 2>&1 } catch { }
-        $ErrorActionPreference = $oldWslEap
-    }
-
-    $dd = 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
-    if (Test-Path -LiteralPath $dd) {
-        Start-Process -FilePath $dd
-    }
-    Write-Host "        Waiting for Docker daemon to be ready (up to 180s)..."
-    $timeout = 180
-    $elapsed = 0
-    while ($elapsed -lt $timeout) {
-        if (Test-DockerDaemonReady) {
-            Write-Host "        Docker daemon is ready."
-            $dockerOk = $true
-            break
-        }
-        Start-Sleep -Seconds 3
-        $elapsed += 3
-        Write-Host "        Waiting... ${elapsed}s"
+    if (-not $dockerOk) {
+        # Second-attempt escalation. The first pass occasionally races with a
+        # Docker Desktop that is still mid-initialization from a Windows boot;
+        # waiting a few seconds and re-running the full recovery typically
+        # clears that without escalating to `wsl --shutdown` (which would also
+        # kill the user's other WSL distros).
+        Write-Host "        First recovery pass did not bring the daemon back. Sleeping 5s and retrying once..."
+        Start-Sleep -Seconds 5
+        $dockerOk = Invoke-DockerRecovery -TimeoutSeconds 180
     }
 }
 if (-not $dockerOk) {
     Write-Host "        FAIL: Docker Desktop could not be started or is in a wedged state."
-    Write-Host "        Manual recovery:"
-    Write-Host "          1. Quit Docker Desktop from the tray"
-    Write-Host "          2. wsl --shutdown"
-    Write-Host "          3. Relaunch Docker Desktop and wait for the whale icon"
+    Write-Host "        Manual recovery (use only when the surgical reset twice in a row failed):"
+    Write-Host "          1. Quit Docker Desktop from the tray (right-click whale > Quit)"
+    Write-Host "          2. PowerShell (Admin): wsl --shutdown"
+    Write-Host "          3. Relaunch Docker Desktop and wait for the steady whale icon"
     Write-Host "          4. Re-run dev-start"
     exit 1
 }
