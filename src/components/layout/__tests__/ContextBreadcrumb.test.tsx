@@ -227,4 +227,21 @@ describe('ContextBreadcrumb', () => {
     expect(list).not.toBeNull();
     expect(list?.className).toContain('flex-col');
   });
+
+  it('omits the brand-icon row on mobile H1 routes (logo lives in the sidebar trigger slot now)', () => {
+    mockIsMobileRef.current = true;
+
+    // /dashboard is a ROUTES_WITH_PAGE_H1 entry, so the section row used to
+    // render the EquipQR brand icon as a third stacked row. After the fix,
+    // the row should be omitted entirely — the page H1 already shows the
+    // title and the logo lives in the sidebar-trigger slot.
+    renderWithTeamContext({
+      teamMemberships: [
+        { team_id: 't1', team_name: 'Service', role: 'manager', joined_date: '2026-01-01' },
+      ],
+      initialEntries: ['/dashboard'],
+    });
+
+    expect(screen.queryByAltText('EquipQR')).not.toBeInTheDocument();
+  });
 });

@@ -35,8 +35,10 @@ import { getPageLabel, shouldSuppressLabelOnMobile } from './topBarRouteLabels';
  * - **Team**: only renders when the user belongs to ≥1 team. Selecting a
  *   team updates `useSelectedTeam` (persisted per-org in localStorage).
  * - **Section**: derived from the current route via `getPageLabel`. On
- *   mobile, pages that already render a prominent H1 swap this segment
- *   for the brand mark to avoid duplicating the title.
+ *   mobile, pages that already render a prominent H1 omit this row
+ *   entirely (the EquipQR brand mark lives in the TopBar's sidebar-trigger
+ *   slot on mobile, so we don't need to duplicate the title or repeat the
+ *   logo here).
  */
 const ContextBreadcrumb: React.FC = () => {
   const location = useLocation();
@@ -117,22 +119,13 @@ const ContextBreadcrumb: React.FC = () => {
           </>
         )}
 
-        {(suppressSectionOnMobile || sectionLabel) && (
+        {!suppressSectionOnMobile && sectionLabel && (
           <>
             <BreadcrumbSeparator className="hidden sm:inline-flex" />
             <BreadcrumbItem>
-              {suppressSectionOnMobile ? (
-                <img
-                  src="/icons/EquipQR-Icon-Purple-Small.png"
-                  alt="EquipQR"
-                  className="h-5 w-5 rounded-sm opacity-90"
-                  aria-hidden="true"
-                />
-              ) : (
-                <BreadcrumbPage className="text-sm sm:text-base font-medium truncate max-w-[12rem] sm:max-w-none">
-                  {sectionLabel}
-                </BreadcrumbPage>
-              )}
+              <BreadcrumbPage className="text-sm sm:text-base font-medium truncate max-w-[12rem] sm:max-w-none">
+                {sectionLabel}
+              </BreadcrumbPage>
             </BreadcrumbItem>
           </>
         )}
