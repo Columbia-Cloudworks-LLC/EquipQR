@@ -24,6 +24,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import AuditLogToolbar from '@/components/audit/AuditLogToolbar';
 import {
   AuditLogFilters,
+  AuditLogTimelineBucket,
   AuditLogTimePreset,
   DEFAULT_AUDIT_TIME_PRESET,
   FormattedAuditEntry,
@@ -34,13 +35,55 @@ import { AuditLogDetailPanel } from './AuditLogDetailPanel';
 
 const PAGE_SIZE = 200;
 
-const PRESET_OFFSET_MS: Record<Exclude<AuditLogTimePreset, 'custom' | 'all'>, number> = {
-  last_15m: 15 * 60 * 1000,
-  last_1h: 60 * 60 * 1000,
-  last_24h: 24 * 60 * 60 * 1000,
-  last_7d: 7 * 24 * 60 * 60 * 1000,
-  last_30d: 30 * 24 * 60 * 60 * 1000,
+/**
+ * Bucket size in milliseconds. Mirrors `date_trunc(p_bucket, ...)` semantics
+ * in the get_audit_log_timeline RPC and matches BUCKET_MS in
+ * AuditTimelineHistogram so dense bar grids align with the SQL output.
+ */
+const BUCKET_MS: Record<AuditLogTimelineBucket, number> = {
+  minute: 60 * 1000,
+  hour: 60 * 60 * 1000,
+  day: 24 * 60 * 60 * 1000,
 };
+
+/**
+ * Bar count + bucket size for each rolling-window preset. Drives both the
+ * range that gets queried and the number of bars the histogram renders, so
+ * `last_30d` lands at exactly 30 day bars (today + 29 prior), `last_24h` at
+ * 24 hour bars, `last_7d` at 7 day bars, etc.
+ */
+const PRESET_CONFIG: Record<
+  Exclude<AuditLogTimePreset, 'custom' | 'all'>,
+  { count: number; bucket: AuditLogTimelineBucket }
+> = {
+  last_15m: { count: 15, bucket: 'minute' },
+  last_1h: { count: 60, bucket: 'minute' },
+  last_24h: { count: 24, bucket: 'hour' },
+  last_7d: { count: 7, bucket: 'day' },
+  last_30d: { count: 30, bucket: 'day' },
+};
+
+/**
+ * Truncate a timestamp to the start of its UTC bucket — matches PostgreSQL
+ * `date_trunc(p_bucket, timestamptz)` running in the default UTC session
+ * timezone. Local-time helpers from date-fns would skew bucket boundaries
+ * for non-UTC clients, so we pin the math to UTC here.
+ */
+function startOfBucketUtc(bucket: AuditLogTimelineBucket, when: Date): Date {
+  const d = new Date(when.getTime());
+  switch (bucket) {
+    case 'minute':
+      d.setUTCSeconds(0, 0);
+      break;
+    case 'hour':
+      d.setUTCMinutes(0, 0, 0);
+      break;
+    case 'day':
+      d.setUTCHours(0, 0, 0, 0);
+      break;
+  }
+  return d;
+}
 
 function presetToRange(preset: Exclude<AuditLogTimePreset, 'custom'>): {
   dateFrom: string;
@@ -53,9 +96,18 @@ function presetToRange(preset: Exclude<AuditLogTimePreset, 'custom'>): {
       dateTo: now.toISOString(),
     };
   }
+  const { count, bucket } = PRESET_CONFIG[preset];
+  const span = BUCKET_MS[bucket];
+  // Anchor at the start of the current bucket so every preset produces
+  // exactly `count` bars, with the trailing bar covering the in-progress
+  // bucket. dateTo is exclusive (end of current bucket) so the SQL filter
+  // `created_at < dateTo` includes everything in the current bucket.
+  const startOfCurrent = startOfBucketUtc(bucket, now).getTime();
+  const dateFromMs = startOfCurrent - (count - 1) * span;
+  const dateToMs = startOfCurrent + span;
   return {
-    dateFrom: new Date(now.getTime() - PRESET_OFFSET_MS[preset]).toISOString(),
-    dateTo: now.toISOString(),
+    dateFrom: new Date(dateFromMs).toISOString(),
+    dateTo: new Date(dateToMs).toISOString(),
   };
 }
 
@@ -240,6 +292,8 @@ export function AuditExplorer({ organizationId }: AuditExplorerProps) {
         <AuditTimelineHistogram
           data={timelineQuery.data ?? []}
           bucket={bucket}
+          dateFrom={range.dateFrom}
+          dateTo={range.dateTo}
           isLoading={timelineQuery.isLoading}
           onBucketClick={handleBucketClick}
         />
