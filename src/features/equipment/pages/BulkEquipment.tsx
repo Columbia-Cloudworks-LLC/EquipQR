@@ -69,12 +69,14 @@ const BulkEquipment: React.FC = () => {
 
   // Bulk edit is a desktop-only surface (#627 AC#1). Mobile users that hit
   // /dashboard/equipment/bulk directly (deep link, browser back, mistaken
-  // dropdown menu nav, etc.) are redirected to the single-item flow with
-  // `?create=true` so the existing `EquipmentForm` modal auto-opens via the
-  // initializedFromUrl effect in `Equipment.tsx`. Placed below the hook calls
-  // so React sees a stable hook order on every render.
+  // dropdown menu nav, etc.) are redirected to the equipment list — bulk is
+  // an edit-only surface, so we do NOT pass `?create=true` here (that would
+  // auto-open the creation modal via the initializedFromUrl effect in
+  // `Equipment.tsx`, which is the wrong intent for someone who landed on the
+  // bulk-edit URL). Placed below the hook calls so React sees a stable hook
+  // order on every render.
   if (isMobile) {
-    return <Navigate to="/dashboard/equipment?create=true" replace />;
+    return <Navigate to="/dashboard/equipment" replace />;
   }
 
   if (!currentOrganization) {

@@ -197,33 +197,64 @@ export const useBulkEditEquipment = (
         throw new Error(result.error ?? 'Bulk update failed');
       }
 
+      const submittedById = new Map(
+        validUpdates.map((u) => [u.id, u.data as Record<string, unknown>])
+      );
+
       return {
         succeeded: result.data.succeeded,
         failed: [...validationFailures, ...result.data.failed],
         attempted: dirtyRows.size,
+        submittedById,
       };
     },
     onSuccess: (summary) => {
-      const { succeeded, failed, attempted } = summary;
+      const { succeeded, failed, attempted, submittedById } = summary;
       if (failed.length === 0) {
         toast.success(`Updated ${succeeded.length} equipment`);
-        // Drop only the rows that committed successfully; preserve any edits the
-        // user made to other cells while the mutation was in flight (the grid
-        // stays interactive during isPending) and any rows still pending retry.
-        setDirtyRows((prev) => {
-          const next = new Map(prev);
-          for (const id of succeeded) next.delete(id);
-          return next;
-        });
       } else if (succeeded.length === 0) {
         toast.error(`Failed to update ${failed.length} of ${attempted} equipment`);
       } else {
         toast.warning(
           `Updated ${succeeded.length} of ${attempted}; ${failed.length} failed`
         );
+      }
+
+      if (succeeded.length > 0) {
+        // Drop only the field-level edits that were actually committed.
+        // The grid stays interactive during isPending (only Save/Discard are
+        // disabled), so the user can edit additional cells — including new
+        // fields on a row that's currently being committed — while the
+        // mutation is in flight. Removing the entire row entry would silently
+        // discard those concurrent edits. Instead, for each succeeded row,
+        // strip only the specific fields whose current dirty value still
+        // matches what was submitted; any field the user has since edited
+        // (or any new field added after submission) stays dirty for the next
+        // commit.
         setDirtyRows((prev) => {
           const next = new Map(prev);
-          for (const id of succeeded) next.delete(id);
+          for (const id of succeeded) {
+            const submitted = submittedById.get(id);
+            const current = next.get(id) as Record<string, unknown> | undefined;
+            if (!submitted || !current) {
+              next.delete(id);
+              continue;
+            }
+            const remaining: Record<string, unknown> = { ...current };
+            for (const [field, submittedValue] of Object.entries(submitted)) {
+              if (
+                field in remaining &&
+                Object.is(remaining[field], submittedValue)
+              ) {
+                delete remaining[field];
+              }
+            }
+            if (Object.keys(remaining).length === 0) {
+              next.delete(id);
+            } else {
+              next.set(id, remaining as EquipmentRowDelta);
+            }
+          }
           return next;
         });
       }
