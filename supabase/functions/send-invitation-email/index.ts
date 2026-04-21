@@ -176,11 +176,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     const organizationLogo = isValidOrgShape(rawOrg) ? rawOrg.logo : undefined;
 
     // Construct the invitation URL using production URL if available
-    const baseUrl =
-      Deno.env.get("PRODUCTION_URL") ||
-      `${Deno.env
-        .get("SUPABASE_URL")
-        ?.replace(".supabase.co", "")}.lovableproject.com`;
+    const baseUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
     const invitationUrl = `${baseUrl}/invitation/${invitation.invitation_token}`;
 
     // Construct absolute URLs for logos
