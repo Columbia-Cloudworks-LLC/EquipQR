@@ -8,6 +8,9 @@
     },
     "firecrawl": {
       "enabled": true
+    },
+    "vercel": {
+      "enabled": true
     }
   }
 }
