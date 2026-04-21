@@ -168,7 +168,6 @@ When rotating keys or deploying a new environment, verify secrets in **both** da
 | `VITE_GOOGLE_PICKER_API_KEY` | Google Picker browser API key (referrer-restricted) |
 | `VITE_GOOGLE_PICKER_APP_ID` | Google Cloud project number for Picker |
 | `VITE_ENABLE_QUICKBOOKS` | Feature flag: QuickBooks integration |
-| `VITE_ENABLE_GEOLOCATION_HIERARCHY` | Feature flag: geolocation hierarchy |
 
 #### Supabase Edge Function Secrets (runtime, set in Supabase Dashboard)
 
