@@ -181,7 +181,14 @@ export const useBulkEditEquipment = (
             .join('; ');
           validationFailures.push({ id, error: message || 'Invalid value' });
         } else {
-          validUpdates.push({ id, data: delta as EquipmentUpdateData });
+          // Use `parsed.data` (not the raw `delta`) so zod's allow-list strips
+          // any unknown keys that snuck into the cell-edit payload before they
+          // reach Supabase. With the partial schema this is defense-in-depth:
+          // `setCellValue` is typed against `EquipmentRecord`, but the edit
+          // grid evolves independently of the wire schema and we want the
+          // validation layer to be the single source of truth on what fields
+          // are allowed in a row update.
+          validUpdates.push({ id, data: parsed.data as EquipmentUpdateData });
         }
       }
 
