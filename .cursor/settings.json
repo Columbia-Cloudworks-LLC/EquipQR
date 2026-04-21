@@ -5,6 +5,9 @@
     },
     "continual-learning": {
       "enabled": true
+    },
+    "firecrawl": {
+      "enabled": true
     }
   }
 }
