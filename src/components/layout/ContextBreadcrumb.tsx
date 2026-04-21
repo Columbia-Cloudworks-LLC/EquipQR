@@ -35,8 +35,10 @@ import { getPageLabel, shouldSuppressLabelOnMobile } from './topBarRouteLabels';
  * - **Mobile (<sm)**: items stack vertically — Org on top, Team directly
  *   below it, Section last — with chevron separators hidden because they
  *   only make sense in a horizontal layout.
- * - **Team**: only renders when the user belongs to ≥1 team. Selecting a
- *   team updates `useSelectedTeam` (persisted per-org in localStorage).
+ * - **Team**: renders when the user belongs to ≥1 team, or when the user can
+ *   create teams (so admins/owners with zero memberships can still reach
+ *   quick-create). Selecting a team updates `useSelectedTeam` (persisted
+ *   per-org in localStorage).
  * - **Section**: derived from the current route via `getPageLabel`. On
  *   mobile, pages that already render a prominent H1 omit this row
  *   entirely (the EquipQR brand mark lives in the TopBar's sidebar-trigger
@@ -161,7 +163,7 @@ const ContextBreadcrumb: React.FC = () => {
         </BreadcrumbList>
       </Breadcrumb>
 
-      {canCreateTeams && currentOrganization?.id && (
+      {showCreateTeamDialog && currentOrganization?.id && (
         <CreateTeamDialog
           open={showCreateTeamDialog}
           onClose={() => setShowCreateTeamDialog(false)}
