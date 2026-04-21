@@ -250,6 +250,63 @@ describe('useBulkEditEquipment', () => {
       expect(result.current.dirtyCount).toBe(0);
     });
 
+    it('on full success, preserves edits made to other rows while the mutation was in flight', async () => {
+      // Simulate a slow batchUpdate so we can interleave a cell edit during isPending.
+      // Regression: the full-success branch previously did `setDirtyRows(new Map())`,
+      // an absolute replacement that silently dropped any concurrent edits because
+      // the grid stays interactive (only Save/Discard are disabled) during pending.
+      let resolveBatch!: () => void;
+      const batchInvoked = new Promise<void>((markInvoked) => {
+        mockBatchUpdate.mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              resolveBatch = () =>
+                resolve({
+                  success: true,
+                  data: { succeeded: ['eq-1'], failed: [] },
+                  error: null,
+                });
+              markInvoked();
+            })
+        );
+      });
+
+      const rows = [mockRow('eq-1'), mockRow('eq-2')];
+      const { result } = renderHook(() => useBulkEditEquipment(rows), {
+        wrapper: createWrapper(),
+      });
+
+      act(() => {
+        result.current.setCellValue('eq-1', 'location', 'Site B');
+      });
+
+      let commitPromise!: Promise<void>;
+      act(() => {
+        commitPromise = result.current.commit();
+        commitPromise.catch(() => {
+          // swallow; assertions below cover the success path
+        });
+      });
+
+      // Wait for the mutation to actually start before injecting the concurrent edit.
+      await batchInvoked;
+
+      act(() => {
+        result.current.setCellValue('eq-2', 'manufacturer', 'Komatsu');
+      });
+
+      await act(async () => {
+        resolveBatch();
+        await commitPromise;
+      });
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith('Updated 1 equipment');
+      });
+      expect(result.current.dirtyRows.has('eq-1')).toBe(false);
+      expect(result.current.dirtyRows.get('eq-2')).toEqual({ manufacturer: 'Komatsu' });
+    });
+
     it('on partial failure, surfaces sonner.warning and keeps failed rows dirty', async () => {
       mockBatchUpdate.mockResolvedValueOnce({
         success: true,

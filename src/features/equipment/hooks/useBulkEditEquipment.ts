@@ -207,9 +207,14 @@ export const useBulkEditEquipment = (
       const { succeeded, failed, attempted } = summary;
       if (failed.length === 0) {
         toast.success(`Updated ${succeeded.length} equipment`);
-        // Drop only the rows that committed successfully; preserve any failures
-        // so the user can retry. (When everything succeeded, this clears all.)
-        setDirtyRows(new Map());
+        // Drop only the rows that committed successfully; preserve any edits the
+        // user made to other cells while the mutation was in flight (the grid
+        // stays interactive during isPending) and any rows still pending retry.
+        setDirtyRows((prev) => {
+          const next = new Map(prev);
+          for (const id of succeeded) next.delete(id);
+          return next;
+        });
       } else if (succeeded.length === 0) {
         toast.error(`Failed to update ${failed.length} of ${attempted} equipment`);
       } else {
