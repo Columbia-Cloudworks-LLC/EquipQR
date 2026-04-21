@@ -1,0 +1,1 @@
+This folder is for research documents and ideas that are in progress. The documents in this folder are not yet definitive for the project.

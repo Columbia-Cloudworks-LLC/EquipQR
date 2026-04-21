@@ -1,0 +1,197 @@
+# AI Model Research
+
+**Author**: Nicholas King
+
+This is a list of models available in Cursor as of 2026-04-21.
+
+The goal is to compile a quantitative set of documents that can be used by a model-selector skill. The model selector should be smart enough to actually min-max development cost with development speed by explicitly directing the Cursor user not only what prompt to provide to a followup agent verbatim, but precisely which model and settings to use for the model to get the most out of their subscription.
+
+---------------------------------------
+BASIC MODEL LIST
+---------------------------------------
+Auto (model is chosen by Cursor, cheapest price)
+Premium (model is chosen by Cursor, priced depending on whatever model Cursor chooses)
+Opus 4.7
+GPT-5.4
+Gemini 3.1 Pro
+Composer 2
+Composer 1.5
+Codex 5.3
+Sonnet 4.6
+Opus 4.6
+Opus 4.5
+GPT-5.2
+GPT-5.4 Mini
+GPT-5.4 Nano
+Haiku 4.5
+Codex 5.3 Spark
+Grok 4.20
+Sonnet 4.5
+Codex 5.2
+Codex 5.1 Max
+GPT-5.1
+Gemini 3 Flash
+Codex 5.1 Mini
+Sonnet 4
+GPT-5 Mini
+Gemini 2.5 Flash
+Kimi K2.5
+
+---------------------------------------
+DETAILED MODEL LIST
+---------------------------------------
+Auto – (no reasoning levels), (no thinking toggle), (no Max mode) 
+Premium – (no reasoning levels), (no thinking toggle), Max mode: on/off 
+Composer 2 – adaptive reasoning (auto), Thinking always-on (no toggle), (no Max mode) Fast mode: on/off
+Composer 1.5 – adaptive reasoning (auto), Thinking always-on (no toggle), (no Max mode) 
+Composer 1 – adaptive reasoning (auto), Thinking always-on (no toggle), (no Max mode) 
+Opus 4.7 – effort: low, medium, high, xhigh, max; Thinking: on/off; Max mode: on/off (context/max distinction) 
+Opus 4.6 – effort: low, medium, high, max; Thinking: on/off; Max mode: on/off 
+Opus 4.5 – effort: low, medium, high, max; Thinking: on/off; Max mode: on/off 
+Sonnet 4.6 – effort: low, medium, high, max; Thinking: on/off; Max mode: on/off 
+Sonnet 4.5 – effort: low, medium, high, max; Thinking: on/off; Max mode: on/off 
+Sonnet 4 – effort: low, medium, high; Thinking: on/off; Max mode: on/off 
+Haiku 4.5 – effort: low, medium, high; Thinking: on/off; Max mode: off (no separate max-context tier in Cursor) 
+GPT-5.4 – reasoning effort: low, medium, high, xhigh; Fast variants for medium/high/xhigh; no separate thinking toggle; Max mode: off 
+GPT-5.4 Mini – reasoning effort: low, medium, high, xhigh; no thinking toggle; Max mode: off 
+GPT-5.4 Nano – reasoning effort: low, medium, high, xhigh; no thinking toggle; Max mode: off 
+GPT-5.2 – reasoning effort: low, medium, high, xhigh; Fast variants for all four levels; no thinking toggle; Max mode: off 
+GPT-5.1 – reasoning effort: none, low, medium, high (Cursor usually exposes low/medium/high); no thinking toggle; Max mode: off 
+GPT-5.1 Mini (Codex Mini) – fixed medium reasoning; no explicit effort dial; no thinking toggle; Max mode: off 
+GPT-5 Mini – fixed medium reasoning; no explicit effort dial; no thinking toggle; Max mode: off 
+Codex 5.3 – reasoning effort: low, medium, high, xhigh; no thinking toggle; Max mode: off [youtube](https://www.youtube.com/watch?v=oAJMtessB4I)
+Codex 5.3 Spark – speed-optimized (no explicit reasoning effort levels exposed in Cursor); no thinking toggle; Max mode: off 
+Codex 5.2 – reasoning effort: low, medium, high, xhigh; Fast variant for xhigh; no thinking toggle; Max mode: off 
+Codex 5.1 Max – reasoning effort: medium, high, xhigh (within the “Max” long-context model); no separate thinking toggle; Max mode: inherent to model (long-context) 
+Gemini 3.1 Pro – Thinking levels: low, medium, high (cannot fully disable thinking); reasoning integrated into thinking; Max mode: on/off (1M context) 
+Gemini 3 Flash – Thinking levels: minimal, low, medium, high (minimal ≈ non-thinking); reasoning integrated; Max mode: off 
+Gemini 2.5 Flash – Thinking: on/off; reasoning integrated into thinking; Max mode: on/off (1M context on) 
+Grok 4.20 – reasoning: on/off (reasoning vs non-reasoning variants via thinking_budget); no multi-level effort exposed in Cursor; Max mode: on/off (2M context)
+Kimi K2.5 – Thinking: on/off (separate non-thinking and thinking variants); no multi-level effort; Max mode: off 
+
+
+---------------------------------------
+PERPLEXITY RESEARCH PROMPT (List of Models)
+---------------------------------------
+Research the following AI models:
+
+[LIST_OF_MODELS]
+
+For every model provided in the list, provide answers to the following questions so they can be accurately compared:
+
+**Lifecycle & Basic Information**
+* When was each specific model version officially released?
+* Are there published deprecation dates or end-of-life warnings for any of these model versions?
+* Are these strictly API-only models, or are the weights open for any of them?
+
+**Context Window & Pricing**
+* What is the absolute maximum input token limit for a single request for each model?
+* What is the absolute maximum output token limit for a single response for each model?
+* What is the standard cost per 1 million input tokens for each model?
+* What is the standard cost per 1 million output tokens for each model?
+* Which of these models offer discounted pricing for cached input tokens, and what is that specific cost?
+
+**Technical Integration & Capabilities**
+* Which of these models natively support tool calling and function calling?
+* Which of these models support a strict JSON output mode or structured outputs?
+* Which of these models support system-level prompt caching?
+* What native modalities does each model support (e.g., text-only, vision, audio, document parsing)?
+* What specific development or operational tasks is each model known to excel at, particularly in comparison to the others on this list?
+* What specific tasks or reasoning types is each model known to struggle with, particularly in comparison to the others on this list?
+
+**Performance Metrics**
+* What is the generally observed Time to First Token (TTFT) for each model?
+* What is the generally observed generation speed (Tokens Per Second) for each model?
+* How does each model rank currently on major benchmarks like the LMSYS Chatbot Arena or HumanEval, and how do they compare to each other?
+
+**Behavior & Enterprise Compliance**
+* How strictly does each model adhere to complex system prompts during long context interactions?
+* What are the known or common refusal triggers for each model, particularly regarding code generation, automation, or technical queries?
+* Do the providers' standard API agreements for these specific models state that they will use customer API data to train future models?
+
+
+
+---------------------------------------
+PERPLEXITY RESEARCH PROMPT (per model)
+---------------------------------------
+
+Research the AI model: [MODEL_NAME]
+and provide answers to the following questions:
+
+**Lifecycle & Basic Information**
+* When was this specific model version officially released?
+* Is there a published deprecation date or end-of-life warning for this model version?
+* Is this an API-only model, or are the weights open?
+
+**Context Window & Pricing**
+* What is the absolute maximum input token limit for a single request?
+* What is the absolute maximum output token limit for a single response?
+* What is the standard cost per 1 million input tokens?
+* What is the standard cost per 1 million output tokens?
+* Does this model offer discounted pricing for cached input tokens, and if so, what is that cost?
+
+**Technical Integration & Capabilities**
+* Does this model natively support tool calling and function calling?
+* Does this model support a strict JSON output mode or structured outputs?
+* Does this model support system-level prompt caching?
+* What native modalities does this model support (e.g., text-only, vision, audio, document parsing)?
+* What specific development or operational tasks is this model known to excel at compared to its current enterprise peers?
+* What specific tasks or reasoning types is this model known to struggle with compared to its current enterprise peers?
+
+**Performance Metrics**
+* What is the generally observed Time to First Token (TTFT) for this model?
+* What is the generally observed generation speed (Tokens Per Second) for this model?
+* How does this model rank currently on major benchmarks like the LMSYS Chatbot Arena or HumanEval?
+
+**Behavior & Enterprise Compliance**
+* How strictly does this model adhere to complex system prompts during long context interactions?
+* What are the known or common refusal triggers for this model, particularly regarding code generation or technical queries?
+* Does the provider's standard API agreement state that they will use customer API data to train future models?
+
+
+
+---------------------------------------
+FULL MODEL BREAKDOWN
+---------------------------------------
+Questions to research for each model:
+	- When was the model released?
+		- How many days ago from today was that? (Bigger = Older = Presumably Worse)
+	- What did the developer community actually have to say about the quality of the model?
+	- What specific things is the model great at?
+		- In comparison to what?
+	- What specific things is the model terrible at?
+		- In comparison to what?
+	- What are the limitations of this model?
+		- What is the context window size?
+		- What is the cost-per-token of this model? (As of today's date)
+
+
+---------------------------------------
+REFINE SKILLS PROMPT
+---------------------------------------
+We are refactoring our agent framework to min-max token usage, eliminate codebase drift, and improve development efficiency. We are moving away from brute-forcing tasks with the most expensive model.
+
+Core Directives
+
+1. Update Agent Skills & Subagents
+
+User-Facing Skills: Refactor all skills that produce terminal output to the user. They must now generate and recommend contextual follow-up actions for the agents.
+
+Planning Subagents: Update all skills and subagents responsible for creating execution plans to [Insert missing instruction here - e.g., "also append validation follow-ups to their plans"].
+
+Skill Focus: Prioritize stability by restricting current development to DevOps and ITIL-focused skills.
+
+2. Implement Dynamic Model Routing
+
+Deprecate the hardcoded use of the single most expensive model across the board.
+
+Implement a routing logic that selects the appropriate model based on the specific skill being executed and the execution environment (Cloud vs. Local Workstation).
+
+3. Establish a Single Source of Truth (SSOT) for Models
+
+Take the attached model research and ingest it into the repository as a centralized configuration file or documentation standard.
+
+Refactor all existing skills to reference this central repository for model parameters and capabilities rather than holding their own local definitions.
+
+Reference Data
+[Insert your model research here]
