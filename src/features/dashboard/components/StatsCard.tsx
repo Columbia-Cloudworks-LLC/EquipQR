@@ -56,6 +56,7 @@ interface StatsCardProps {
   sublabel?: string;
   to?: string;
   trend?: TrendData;
+  trendNote?: string;
   /** Optional 7-point sparkline data array for micro-chart visualization */
   sparkline?: number[];
   variant?: 'default' | 'warning' | 'danger';
@@ -121,6 +122,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   sublabel,
   to,
   trend,
+  trendNote,
   sparkline,
   variant = 'default',
   loading = false,
@@ -190,6 +192,9 @@ export const StatsCard: React.FC<StatsCardProps> = ({
                 {trend.direction === 'flat' && <Minus className="h-3 w-3" aria-hidden />}
                 {trend.delta}% this week
               </div>
+            )}
+            {trendNote && (
+              <div className="mt-1.5 text-xs text-muted-foreground">{trendNote}</div>
             )}
             {hasSparkline && (
               <SparklineChart
