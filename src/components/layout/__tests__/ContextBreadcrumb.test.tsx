@@ -18,12 +18,36 @@ import ContextBreadcrumb from '../ContextBreadcrumb';
 // useIsMobile is mocked through a hoisted ref so individual tests can flip
 // the viewport without re-mocking. Default is desktop (false); the dedicated
 // mobile test sets it to true before rendering.
-const { mockIsMobileRef } = vi.hoisted(() => ({
+const { mockIsMobileRef, mockCanCreateTeamRef } = vi.hoisted(() => ({
   mockIsMobileRef: { current: false },
+  mockCanCreateTeamRef: { current: false },
 }));
 
 vi.mock('@/hooks/use-mobile', () => ({
   useIsMobile: () => mockIsMobileRef.current,
+}));
+
+// usePermissions is mocked so we can flip canCreateTeam without wiring a
+// SessionProvider + AuthProvider into every render.
+vi.mock('@/hooks/usePermissions', () => ({
+  usePermissions: () => ({
+    canCreateTeam: () => mockCanCreateTeamRef.current,
+  }),
+}));
+
+// CreateTeamDialog is mocked so we don't pull in Google Maps loader, customer
+// queries, or the team mutation hook chain in this lightweight breadcrumb
+// test. The mock just renders a sentinel element when open=true so we can
+// assert the dialog opens.
+vi.mock('@/features/teams/components/CreateTeamDialog', () => ({
+  default: ({ open, onClose }: { open: boolean; onClose: () => void }) =>
+    open ? (
+      <div data-testid="create-team-dialog">
+        <button type="button" onClick={onClose}>
+          close
+        </button>
+      </div>
+    ) : null,
 }));
 
 const renderWithTeamContext = (
@@ -84,6 +108,7 @@ describe('ContextBreadcrumb', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsMobileRef.current = false;
+    mockCanCreateTeamRef.current = false;
   });
 
   it('renders the section label resolved from the current route', () => {
@@ -243,5 +268,83 @@ describe('ContextBreadcrumb', () => {
     });
 
     expect(screen.queryByAltText('EquipQR')).not.toBeInTheDocument();
+  });
+
+  describe('quick-create team button', () => {
+    it('does NOT render the create-team button when the user lacks permission', async () => {
+      const user = userEvent.setup();
+      mockCanCreateTeamRef.current = false;
+
+      renderWithTeamContext({
+        teamMemberships: [
+          { team_id: 't1', team_name: 'Service', role: 'manager', joined_date: '2026-01-01' },
+        ],
+        initialEntries: ['/dashboard'],
+      });
+
+      await user.click(screen.getByRole('button', { name: /switch team/i }));
+
+      expect(
+        screen.queryByRole('button', { name: /create new team/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders the create-team button in the dropdown header for org admins/owners', async () => {
+      const user = userEvent.setup();
+      mockCanCreateTeamRef.current = true;
+
+      renderWithTeamContext({
+        teamMemberships: [
+          { team_id: 't1', team_name: 'Service', role: 'manager', joined_date: '2026-01-01' },
+        ],
+        initialEntries: ['/dashboard'],
+      });
+
+      await user.click(screen.getByRole('button', { name: /switch team/i }));
+
+      const createButton = await screen.findByRole('button', { name: /create new team/i });
+      expect(createButton).toBeInTheDocument();
+      // Sanity check that the green/success token classes are applied so the
+      // button visually pops as the design intent ("green + button").
+      expect(createButton.className).toContain('bg-success');
+    });
+
+    it('opens the CreateTeamDialog when the green + button is clicked', async () => {
+      const user = userEvent.setup();
+      mockCanCreateTeamRef.current = true;
+
+      renderWithTeamContext({
+        teamMemberships: [
+          { team_id: 't1', team_name: 'Service', role: 'manager', joined_date: '2026-01-01' },
+        ],
+        initialEntries: ['/dashboard'],
+      });
+
+      await user.click(screen.getByRole('button', { name: /switch team/i }));
+      const createButton = await screen.findByRole('button', { name: /create new team/i });
+      await user.click(createButton);
+
+      expect(await screen.findByTestId('create-team-dialog')).toBeInTheDocument();
+    });
+
+    it('exposes the team segment for org admins even when they have zero memberships', async () => {
+      const user = userEvent.setup();
+      mockCanCreateTeamRef.current = true;
+
+      renderWithTeamContext({
+        teamMemberships: [],
+        initialEntries: ['/dashboard'],
+      });
+
+      // The trigger should still render so an org admin who hasn't joined any
+      // team can reach the quick-create flow from the topbar.
+      const trigger = screen.getByRole('button', { name: /switch team/i });
+      expect(trigger).toBeInTheDocument();
+
+      await user.click(trigger);
+      expect(
+        await screen.findByRole('button', { name: /create new team/i }),
+      ).toBeInTheDocument();
+    });
   });
 });
