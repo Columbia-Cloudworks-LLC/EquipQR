@@ -235,7 +235,6 @@ if ($opCli) {
     # script does NOT terminate this parent script (only dot-sourced scripts
     # would do that).
     $syncScript = Join-Path $repoRoot 'scripts\sync-1password-dev-envs.ps1'
-    $renderScript = Join-Path $repoRoot 'scripts\render-mcp-config.ps1'
 
     $oldOpEap = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
@@ -249,17 +248,6 @@ if ($opCli) {
         Write-Host "        WARNING: One or both 1Password env syncs failed. Using existing .env and $DEFAULT_EDGE_ENV_FILE."
     }
 
-    Write-Host "        Rendering MCP config from EquipQR Agents vault..."
-    $ErrorActionPreference = 'Continue'
-    try {
-        & $renderScript
-        $renderExit = $LASTEXITCODE
-    } finally {
-        $ErrorActionPreference = $oldOpEap
-    }
-    if ($renderExit -ne 0) {
-        Write-Host "        WARNING: MCP config render failed (exit $renderExit). Existing ~/.cursor/mcp.json preserved."
-    }
 } else {
     Write-Host "        1Password CLI not found on PATH - using existing .env and $DEFAULT_EDGE_ENV_FILE."
 }

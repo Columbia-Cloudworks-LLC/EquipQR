@@ -84,6 +84,7 @@ EquipQR uses external services. For exact environment variables and where theyâ€
     ```powershell
     op --version
     .\dev-start.bat                    # full stack (Supabase + functions + Vite)
+    .\dev-setup-cursor-mcp.bat         # optional: refresh Cursor MCP config
     ```
 
     Manual fallback:
