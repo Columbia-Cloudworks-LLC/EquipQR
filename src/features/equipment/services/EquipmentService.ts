@@ -398,7 +398,6 @@ export class EquipmentService {
       // throwing synchronously, malformed inputs that escape Promise.allSettled)
       // so callers always receive a normalized `ApiResponse` matching the rest
       // of this service — no caller has to handle a different failure shape.
-      logger.error('Error in batchUpdate equipment:', error);
       return handleError(error);
     }
   }
