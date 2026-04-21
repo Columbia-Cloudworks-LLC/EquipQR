@@ -1,9 +1,9 @@
 {
   "plugins": {
-    "1password": {
+    "supabase": {
       "enabled": true
     },
-    "supabase": {
+    "continual-learning": {
       "enabled": true
     }
   }
