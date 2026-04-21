@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Check, ChevronsUpDown, Users as UsersIcon } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus, Users as UsersIcon } from 'lucide-react';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -18,9 +18,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import OrganizationSwitcher from '@/features/organization/components/OrganizationSwitcher';
+import CreateTeamDialog from '@/features/teams/components/CreateTeamDialog';
 import { useTeam } from '@/features/teams/hooks/useTeam';
 import { useSelectedTeam } from '@/hooks/useSelectedTeam';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 import { getPageLabel, shouldSuppressLabelOnMobile } from './topBarRouteLabels';
 
@@ -45,92 +48,127 @@ const ContextBreadcrumb: React.FC = () => {
   const isMobile = useIsMobile();
   const { teamMemberships } = useTeam();
   const { selectedTeamId, selectedTeam, setSelectedTeamId } = useSelectedTeam();
+  const { currentOrganization } = useOrganization();
+  const { canCreateTeam } = usePermissions();
+  const [showCreateTeamDialog, setShowCreateTeamDialog] = useState(false);
 
   const sectionLabel = getPageLabel(location.pathname);
   const suppressSectionOnMobile =
     isMobile && shouldSuppressLabelOnMobile(location.pathname);
 
-  const showTeamSegment = teamMemberships.length > 0;
+  const canCreateTeams = canCreateTeam();
+  // Render the team switcher whenever the user has team memberships OR has
+  // permission to create teams. This lets org admins/owners with zero teams
+  // still reach the topbar quick-create flow (the green + button below).
+  const showTeamSegment = teamMemberships.length > 0 || canCreateTeams;
   const teamLabel =
     selectedTeam?.team_name ??
     (selectedTeamId === UNASSIGNED_TEAM_ID ? 'Unassigned' : 'All teams');
 
   return (
-    <Breadcrumb>
-      <BreadcrumbList className="flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:flex-nowrap sm:gap-1.5">
-        <BreadcrumbItem className="text-foreground">
-          <OrganizationSwitcher variant="topbar" />
-        </BreadcrumbItem>
+    <>
+      <Breadcrumb>
+        <BreadcrumbList className="flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:flex-nowrap sm:gap-1.5">
+          <BreadcrumbItem className="text-foreground">
+            <OrganizationSwitcher variant="topbar" />
+          </BreadcrumbItem>
 
-        {showTeamSegment && (
-          <>
-            <BreadcrumbSeparator className="hidden sm:inline-flex" />
-            <BreadcrumbItem>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`Switch team (current: ${teamLabel})`}
-                    className="inline-flex items-center gap-1 h-8 px-2 max-w-[10rem] text-muted-foreground hover:text-foreground"
-                  >
-                    <UsersIcon className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
-                    <span className="text-sm truncate">{teamLabel}</span>
-                    <ChevronsUpDown className="h-3.5 w-3.5 opacity-50 flex-shrink-0" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" side="bottom" className="w-56">
-                  <DropdownMenuLabel className="text-xs">Switch team</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => setSelectedTeamId(null)}
-                    className="text-sm cursor-pointer flex items-center justify-between"
-                  >
-                    <span>All teams</span>
-                    {selectedTeamId === null && (
-                      <Check className="h-4 w-4 text-primary" />
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setSelectedTeamId(UNASSIGNED_TEAM_ID)}
-                    className="text-sm cursor-pointer flex items-center justify-between"
-                  >
-                    <span>Unassigned</span>
-                    {selectedTeamId === UNASSIGNED_TEAM_ID && (
-                      <Check className="h-4 w-4 text-primary" />
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  {teamMemberships.map((m) => (
+          {showTeamSegment && (
+            <>
+              <BreadcrumbSeparator className="hidden sm:inline-flex" />
+              <BreadcrumbItem>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`Switch team (current: ${teamLabel})`}
+                      className="inline-flex items-center gap-1 h-8 px-2 max-w-[10rem] text-muted-foreground hover:text-foreground"
+                    >
+                      <UsersIcon className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
+                      <span className="text-sm truncate">{teamLabel}</span>
+                      <ChevronsUpDown className="h-3.5 w-3.5 opacity-50 flex-shrink-0" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" side="bottom" className="w-56">
+                    <DropdownMenuLabel className="text-xs flex items-center justify-between gap-2 pr-1">
+                      <span>Switch team</span>
+                      {canCreateTeams && (
+                        <Button
+                          type="button"
+                          size="icon"
+                          aria-label="Create new team"
+                          title="Create new team"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            setShowCreateTeamDialog(true);
+                          }}
+                          className="h-6 w-6 rounded-md bg-success text-success-foreground hover:bg-success/90 focus-visible:ring-success"
+                        >
+                          <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                        </Button>
+                      )}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      key={m.team_id}
-                      onClick={() => setSelectedTeamId(m.team_id)}
+                      onClick={() => setSelectedTeamId(null)}
                       className="text-sm cursor-pointer flex items-center justify-between"
                     >
-                      <span className="truncate">{m.team_name}</span>
-                      {selectedTeamId === m.team_id && (
-                        <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                      <span>All teams</span>
+                      {selectedTeamId === null && (
+                        <Check className="h-4 w-4 text-primary" />
                       )}
                     </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </BreadcrumbItem>
-          </>
-        )}
+                    <DropdownMenuItem
+                      onClick={() => setSelectedTeamId(UNASSIGNED_TEAM_ID)}
+                      className="text-sm cursor-pointer flex items-center justify-between"
+                    >
+                      <span>Unassigned</span>
+                      {selectedTeamId === UNASSIGNED_TEAM_ID && (
+                        <Check className="h-4 w-4 text-primary" />
+                      )}
+                    </DropdownMenuItem>
+                    {teamMemberships.length > 0 && <DropdownMenuSeparator />}
+                    {teamMemberships.map((m) => (
+                      <DropdownMenuItem
+                        key={m.team_id}
+                        onClick={() => setSelectedTeamId(m.team_id)}
+                        className="text-sm cursor-pointer flex items-center justify-between"
+                      >
+                        <span className="truncate">{m.team_name}</span>
+                        {selectedTeamId === m.team_id && (
+                          <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </BreadcrumbItem>
+            </>
+          )}
 
-        {!suppressSectionOnMobile && sectionLabel && (
-          <>
-            <BreadcrumbSeparator className="hidden sm:inline-flex" />
-            <BreadcrumbItem>
-              <BreadcrumbPage className="text-sm sm:text-base font-medium truncate max-w-[12rem] sm:max-w-none">
-                {sectionLabel}
-              </BreadcrumbPage>
-            </BreadcrumbItem>
-          </>
-        )}
-      </BreadcrumbList>
-    </Breadcrumb>
+          {!suppressSectionOnMobile && sectionLabel && (
+            <>
+              <BreadcrumbSeparator className="hidden sm:inline-flex" />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="text-sm sm:text-base font-medium truncate max-w-[12rem] sm:max-w-none">
+                  {sectionLabel}
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          )}
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      {canCreateTeams && currentOrganization?.id && (
+        <CreateTeamDialog
+          open={showCreateTeamDialog}
+          onClose={() => setShowCreateTeamDialog(false)}
+          organizationId={currentOrganization.id}
+        />
+      )}
+    </>
   );
 };
 
