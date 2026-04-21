@@ -79,26 +79,24 @@ SELECT matches(
   'p_days is clamped between 2 and 90'
 );
 
--- 8. Function references both equipment.team_id and work_orders.equipment_id
---    (team-scoping contract).
+-- 8. Function derives scope from server-side role/team checks.
 SELECT matches(
   (SELECT pg_get_functiondef(oid)::text
      FROM pg_proc
      WHERE proname = 'get_dashboard_trends'
        AND pronamespace = 'public'::regnamespace),
-  'e\.team_id = ANY\(p_team_ids\)',
-  'get_dashboard_trends team-scopes equipment by e.team_id'
+  'is_org_admin\(auth\.uid\(\), p_org_id\)',
+  'get_dashboard_trends checks org admin scope server-side'
 );
 
--- 9. Function uses created_date and completed_date (not created_at / completed_at)
---    for work_orders (schema correctness guard).
+-- 9. Function uses team_members table for non-admin scoping.
 SELECT matches(
   (SELECT pg_get_functiondef(oid)::text
      FROM pg_proc
      WHERE proname = 'get_dashboard_trends'
        AND pronamespace = 'public'::regnamespace),
-  'w\.created_date::date',
-  'get_dashboard_trends uses work_orders.created_date'
+  'FROM public\.team_members tm',
+  'get_dashboard_trends derives team access from team_members'
 );
 
 SELECT * FROM finish();

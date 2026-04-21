@@ -21,20 +21,42 @@ interface DashboardStatsGridProps {
   trends?: DashboardTrends | null;
 }
 
+type CardTrendProps = {
+  sparkline: number[] | undefined;
+  trend:
+    | {
+        direction: 'up' | 'down' | 'flat';
+        delta: number;
+      }
+    | undefined;
+  trendNote: string | undefined;
+};
+
 /**
  * Convert a service-layer StatTrend into the shape StatsCard props expect.
- * Returns `undefined` for the trend chip when delta is null so the UI renders
- * only the sparkline (empty-state acceptance criterion for issue #589).
+ * Handles polarity overrides so chips stay semantically correct for metrics
+ * where lower values are preferable (e.g. overdue work, needs attention).
  */
-function toCardProps(trend: StatTrend | undefined) {
-  if (!trend) return { sparkline: undefined, trend: undefined };
+function toCardProps(
+  trend: StatTrend | undefined,
+  options?: { invertDirection?: boolean }
+): CardTrendProps {
+  if (!trend) return { sparkline: undefined, trend: undefined, trendNote: undefined };
+
   const hasSeries = trend.sparkline.length > 1;
+  const hasDelta = trend.delta !== null && trend.delta !== undefined;
+  const invertDirection = options?.invertDirection === true;
+  const direction =
+    invertDirection && trend.direction !== 'flat'
+      ? trend.direction === 'up'
+        ? 'down'
+        : 'up'
+      : trend.direction;
+
   return {
     sparkline: hasSeries ? trend.sparkline : undefined,
-    trend:
-      trend.delta === null || trend.delta === undefined
-        ? undefined
-        : { direction: trend.direction, delta: Math.abs(trend.delta) },
+    trend: hasDelta ? { direction, delta: Math.abs(trend.delta) } : undefined,
+    trendNote: hasSeries && hasDelta ? undefined : 'Insufficient history',
   };
 }
 
@@ -54,9 +76,9 @@ export const DashboardStatsGrid: React.FC<DashboardStatsGridProps> = ({
   const totalWorkOrders = stats?.totalWorkOrders ?? 0;
 
   const teProps = toCardProps(trends?.totalEquipment);
-  const owProps = toCardProps(trends?.overdueWorkOrders);
+  const owProps = toCardProps(trends?.overdueWorkOrders, { invertDirection: true });
   const twoProps = toCardProps(trends?.totalWorkOrders);
-  const naProps = toCardProps(trends?.needsAttention);
+  const naProps = toCardProps(trends?.needsAttention, { invertDirection: true });
 
   return (
     <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
@@ -70,6 +92,7 @@ export const DashboardStatsGrid: React.FC<DashboardStatsGridProps> = ({
         loading={isLoading}
         sparkline={teProps.sparkline}
         trend={teProps.trend}
+        trendNote={teProps.trendNote}
       />
 
       <StatsCard
@@ -83,6 +106,7 @@ export const DashboardStatsGrid: React.FC<DashboardStatsGridProps> = ({
         loading={isLoading}
         sparkline={owProps.sparkline}
         trend={owProps.trend}
+        trendNote={owProps.trendNote}
       />
 
       <StatsCard
@@ -95,19 +119,21 @@ export const DashboardStatsGrid: React.FC<DashboardStatsGridProps> = ({
         loading={isLoading}
         sparkline={twoProps.sparkline}
         trend={twoProps.trend}
+        trendNote={twoProps.trendNote}
       />
 
       <StatsCard
         icon={<Wrench className="h-4 w-4" />}
         label="Needs attention"
         value={needsAttentionCount}
-        sublabel="Maintenance, inactive, or PM interval overdue"
+        sublabel="Maintenance or inactive"
         to={isLoading ? undefined : "/dashboard/equipment?status=out_of_service"}
         ariaDescription="View equipment that needs attention"
         variant={needsAttentionCount > 0 ? 'warning' : 'default'}
         loading={isLoading}
         sparkline={naProps.sparkline}
         trend={naProps.trend}
+        trendNote={naProps.trendNote}
       />
     </div>
   );

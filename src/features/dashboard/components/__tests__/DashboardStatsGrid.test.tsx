@@ -84,7 +84,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.getByText('35 active')).toBeInTheDocument();
       expect(screen.getByText('15 active')).toBeInTheDocument();
       expect(screen.getByText('Past due — open list to reprioritize')).toBeInTheDocument();
-      expect(screen.getByText('Maintenance, inactive, or PM interval overdue')).toBeInTheDocument();
+      expect(screen.getByText('Maintenance or inactive')).toBeInTheDocument();
     });
 
     it('renders links when not loading', () => {
@@ -278,7 +278,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.getByText('20% this week')).toBeInTheDocument();
     });
 
-    it('suppresses the trend chip when delta is null (empty-state AC)', () => {
+    it('shows explicit insufficient-history copy when delta is null', () => {
       render(
         <MemoryRouter>
           <DashboardStatsGrid
@@ -292,6 +292,7 @@ describe('DashboardStatsGrid', () => {
 
       // needsAttention has delta=null — should render no percentage copy for 0%.
       expect(screen.queryByText('0% this week')).not.toBeInTheDocument();
+      expect(screen.getByText('Insufficient history')).toBeInTheDocument();
     });
 
     it('renders without trends prop (backward compatibility)', () => {
