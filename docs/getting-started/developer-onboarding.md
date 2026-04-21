@@ -66,6 +66,9 @@ op --version
 
 # Start the full local stack (prompts for 1Password auth early)
 .\dev-start.bat
+
+# Optional: refresh Cursor MCP config only (restart Cursor afterwards)
+.\dev-setup-cursor-mcp.bat
 ```
 
 If you do not have 1Password access, use the manual fallback:
