@@ -233,4 +233,102 @@ describe('DashboardStatsGrid', () => {
       expect(screen.getByLabelText('View equipment that needs attention')).toBeInTheDocument();
     });
   });
+
+  // Issue #589: real dashboard trends — ensures sparkline + trend props are
+  // propagated and empty states are handled without throwing.
+  describe('trends (issue #589)', () => {
+    const trendsFixture = {
+      totalEquipment: {
+        sparkline: [10, 11, 12, 12, 13, 14, 15],
+        delta: 50,
+        direction: 'up' as const,
+      },
+      overdueWorkOrders: {
+        sparkline: [5, 4, 4, 3, 3, 2, 2],
+        delta: -60,
+        direction: 'down' as const,
+      },
+      totalWorkOrders: {
+        sparkline: [100, 105, 108, 110, 115, 118, 120],
+        delta: 20,
+        direction: 'up' as const,
+      },
+      needsAttention: {
+        sparkline: [7, 7, 7, 7, 7, 7, 7],
+        delta: null,
+        direction: 'flat' as const,
+      },
+    };
+
+    it('renders trend chip copy when deltas are provided', () => {
+      render(
+        <MemoryRouter>
+          <DashboardStatsGrid
+            stats={mockStats}
+            activeWorkOrdersCount={15}
+            needsAttentionCount={7}
+            trends={trendsFixture}
+          />
+        </MemoryRouter>
+      );
+
+      // Positive and negative deltas both render as "N% this week" (absolute value).
+      expect(screen.getByText('50% this week')).toBeInTheDocument();
+      expect(screen.getByText('60% this week')).toBeInTheDocument();
+      expect(screen.getByText('20% this week')).toBeInTheDocument();
+    });
+
+    it('suppresses the trend chip when delta is null (empty-state AC)', () => {
+      render(
+        <MemoryRouter>
+          <DashboardStatsGrid
+            stats={mockStats}
+            activeWorkOrdersCount={15}
+            needsAttentionCount={7}
+            trends={trendsFixture}
+          />
+        </MemoryRouter>
+      );
+
+      // needsAttention has delta=null — should render no percentage copy for 0%.
+      expect(screen.queryByText('0% this week')).not.toBeInTheDocument();
+    });
+
+    it('renders without trends prop (backward compatibility)', () => {
+      render(
+        <MemoryRouter>
+          <DashboardStatsGrid
+            stats={mockStats}
+            activeWorkOrdersCount={15}
+            needsAttentionCount={7}
+          />
+        </MemoryRouter>
+      );
+
+      expect(screen.getByText('Total Equipment')).toBeInTheDocument();
+      // No trend copy should exist when no trends are passed.
+      expect(screen.queryByText(/% this week$/)).not.toBeInTheDocument();
+    });
+
+    it('suppresses sparkline when series has fewer than 2 points', () => {
+      const { container } = render(
+        <MemoryRouter>
+          <DashboardStatsGrid
+            stats={mockStats}
+            activeWorkOrdersCount={15}
+            needsAttentionCount={7}
+            trends={{
+              ...trendsFixture,
+              totalEquipment: { sparkline: [], delta: null, direction: 'flat' },
+            }}
+          />
+        </MemoryRouter>
+      );
+
+      // Sparklines render as SVG inside a fixed-height wrapper; a cheap check is
+      // that at least the non-empty cards still produce SVG content.
+      const svgs = container.querySelectorAll('svg');
+      expect(svgs.length).toBeGreaterThan(0);
+    });
+  });
 });

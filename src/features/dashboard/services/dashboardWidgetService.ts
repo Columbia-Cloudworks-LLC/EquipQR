@@ -116,3 +116,97 @@ export async function fetchCostTrendData(organizationId: string): Promise<CostRo
     createdAt: row.created_at,
   }));
 }
+
+// ─── Dashboard Trends (issue #589) ──────────────────────────────────────────
+
+export type TrendDirection = 'up' | 'down' | 'flat';
+
+export interface StatTrend {
+  /** Per-day values ordered oldest -> newest, length = requested days. */
+  sparkline: number[];
+  /** Integer percent change vs prior equal window, or null when prior = 0. */
+  delta: number | null;
+  direction: TrendDirection;
+}
+
+export interface DashboardTrends {
+  totalEquipment: StatTrend;
+  overdueWorkOrders: StatTrend;
+  totalWorkOrders: StatTrend;
+  needsAttention: StatTrend;
+}
+
+const emptyTrend = (days: number): StatTrend => ({
+  sparkline: Array.from({ length: days }, () => 0),
+  delta: null,
+  direction: 'flat',
+});
+
+const emptyTrends = (days: number): DashboardTrends => ({
+  totalEquipment: emptyTrend(days),
+  overdueWorkOrders: emptyTrend(days),
+  totalWorkOrders: emptyTrend(days),
+  needsAttention: emptyTrend(days),
+});
+
+/**
+ * Fetch real historical trend data for the four dashboard KPIs via the
+ * `get_dashboard_trends` RPC. Scoping parameters mirror
+ * getTeamBasedDashboardStats (`userTeamIds`, `isManager`) so trend data
+ * matches the point-in-time values shown on the same cards.
+ */
+export async function fetchDashboardTrends(
+  organizationId: string,
+  userTeamIds: string[],
+  isManager: boolean,
+  days = 7
+): Promise<DashboardTrends> {
+  const { data, error } = await supabase.rpc('get_dashboard_trends', {
+    p_org_id: organizationId,
+    p_team_ids: userTeamIds,
+    p_is_manager: isManager,
+    p_days: days,
+  });
+
+  if (error) throw error;
+
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return emptyTrends(days);
+
+  const toTrend = (
+    series: number[] | null | undefined,
+    delta: number | null | undefined,
+    direction: string | null | undefined
+  ): StatTrend => ({
+    sparkline: Array.isArray(series) ? series.map((v) => Number(v) || 0) : [],
+    delta: typeof delta === 'number' ? delta : null,
+    direction:
+      direction === 'up' || direction === 'down' || direction === 'flat'
+        ? direction
+        : 'flat',
+  });
+
+  return {
+    totalEquipment: toTrend(
+      row.total_equipment_series,
+      row.total_equipment_delta,
+      row.total_equipment_direction
+    ),
+    overdueWorkOrders: toTrend(
+      row.overdue_work_series,
+      row.overdue_work_delta,
+      row.overdue_work_direction
+    ),
+    totalWorkOrders: toTrend(
+      row.total_work_orders_series,
+      row.total_work_orders_delta,
+      row.total_work_orders_direction
+    ),
+    needsAttention: toTrend(
+      row.needs_attention_series,
+      row.needs_attention_delta,
+      row.needs_attention_direction
+    ),
+  };
+}
+
