@@ -40,6 +40,14 @@ jobs:
 
       - name: Export schema from preview project
         run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::warning::PREVIEW_DATABASE_URL is not configured. Skipping schema export."
+            exit 0
+          fi
+          if [[ ! "$DATABASE_URL" =~ ^postgres(ql)?:// ]]; then
+            echo "::warning::PREVIEW_DATABASE_URL is not a valid Postgres URI. Skipping schema export."
+            exit 0
+          fi
           echo "Exporting schema from preview Supabase project..."
           supabase db dump --db-url "$DATABASE_URL" \
             --schema public,storage,auth \
