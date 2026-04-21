@@ -45,8 +45,9 @@ $tempPath = Join-Path $env:TEMP ("supabase-types-{0}.ts" -f ([System.Guid]::NewG
 
 try {
     # Merge stderr into stdout so we capture banners/errors uniformly.
-    # Use cmd /c so npx resolves correctly on Windows.
-    cmd /c "npx supabase gen types typescript --local 2>&1" | Out-File -FilePath $tempPath -Encoding utf8
+    # Invoke npx.cmd directly (& operator) instead of `cmd /c` so we don't
+    # spawn an extra cmd.exe console window on Windows GUI parents.
+    & npx.cmd supabase gen types typescript --local 2>&1 | Out-File -FilePath $tempPath -Encoding utf8
 
     if (-not (Test-Path -LiteralPath $tempPath) -or (Get-Item -LiteralPath $tempPath).Length -eq 0) {
         Write-Host "ERROR: supabase gen types produced no output. Leaving $typesPath untouched."
@@ -72,15 +73,18 @@ try {
     $endIdx = $endMatch.Index + $endMatch.Length
     $cleanContent = $rawContent.Substring($startIdx, $endIdx - $startIdx).TrimEnd() + "`n"
 
-    # Atomic-ish write with explicit UTF-8 + BOM to match the pre-existing
-    # file encoding. Using the .NET API avoids the Windows PowerShell 5.1
-    # vs PowerShell 7+ encoding-default differences in Set-Content/Out-File.
-    $utf8Bom = [System.Text.UTF8Encoding]::new($true)
-    [System.IO.File]::WriteAllText((Resolve-Path -LiteralPath ".").Path + "\$typesPath", $cleanContent, $utf8Bom)
+    # Atomic-ish write with explicit UTF-8 (no BOM) to match the canonical
+    # encoding of the pre-existing file. Using the .NET API avoids the
+    # Windows PowerShell 5.1 vs PowerShell 7+ encoding-default differences
+    # in Set-Content/Out-File. (We previously wrote a BOM here, but the
+    # committed types.ts has no BOM — verified via raw byte read.)
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText((Resolve-Path -LiteralPath ".").Path + "\$typesPath", $cleanContent, $utf8NoBom)
 
     # Capture prettier output so we can surface failures instead of silently
-    # printing "validated" when formatting actually broke.
-    $prettierOutput = cmd /c "npx prettier --write $typesPath 2>&1"
+    # printing "validated" when formatting actually broke. Direct .cmd invocation
+    # avoids spawning a visible cmd.exe console window.
+    $prettierOutput = & npx.cmd prettier --write $typesPath 2>&1
     $prettierExit = $LASTEXITCODE
     if ($prettierExit -ne 0) {
         $combined = if ($prettierOutput) { ($prettierOutput -join "`n") } else { '<no output>' }

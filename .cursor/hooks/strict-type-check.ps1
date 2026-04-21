@@ -34,7 +34,9 @@ if ($anyMatches) {
 
 # ── Check 2: Run tsc --noEmit and surface errors for this file ──────────
 Write-Host "Type-checking $filePath..."
-$tscOutput = cmd /c "npx tsc --noEmit --pretty false 2>&1" | Out-String
+# Invoke npx.cmd directly (& operator) instead of `cmd /c` so we don't spawn
+# an extra cmd.exe console window on Windows GUI parents.
+$tscOutput = (& npx.cmd tsc --noEmit --pretty false 2>&1) | Out-String
 $tscExitCode = $LASTEXITCODE
 
 if ($tscExitCode -ne 0) {

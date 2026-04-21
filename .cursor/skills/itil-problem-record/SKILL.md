@@ -11,7 +11,7 @@ This repository treats ITIL roles as follows:
 
 | ITIL artifact | EquipQR equivalent |
 |---|---|
-| Incident Record | A GitHub Issue |
+| Incident Record | A GitHub Issue — preferably one already documented via [`itil-incident-record`](../itil-incident-record/SKILL.md) (production-verified reproduction + cross-system evidence). Raw reporter-only issues are accepted but the Problem Record is more rigorous when an Incident Record already exists. |
 | Problem Record | The output of **this** skill — root cause + reproduction posted on the issue and in chat |
 | Change Record | The output of [`itil-change-record`](../itil-change-record/SKILL.md) — the implementation plan, in Plan mode, awaiting user approval |
 | Change Implementation | What runs after the user approves the Change Record ("clicks build") |
@@ -481,6 +481,8 @@ Treat the user's response strictly: only `close` is approval to perform the clos
 
 ## Progressive disclosure
 
+- For the prior ITIL step (production-verified reproduction with screenshot + cross-system evidence on the GitHub issue), follow [itil-incident-record](../itil-incident-record/SKILL.md). That skill is what turns a raw reporter description into an Incident Record this skill can build on.
 - For local stack, env files, and MCP integrations used during reproduction, follow [toolbelt](../toolbelt/SKILL.md).
 - For the next ITIL step (the implementation plan), follow [itil-change-record](../itil-change-record/SKILL.md).
+- For feature / enhancement / vendor-cost issues (non-bug), use [itil-service-request](../itil-service-request/SKILL.md) instead — that skill evaluates feasibility, dollar cost, and market viability before a Change Record is drafted.
 - For non-issue, ad-hoc planning that has no Incident Record, [itil-change-record](../itil-change-record/SKILL.md) can still be invoked directly with a brief Business Justification in lieu of a Problem Record reference.

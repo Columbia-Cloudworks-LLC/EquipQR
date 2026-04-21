@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Filter, Building, MapPin, Users, X } from 'lucide-react';
+import { Filter, Building, MapPin, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -18,15 +18,12 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { EquipmentFilters } from '@/features/equipment/hooks/useEquipmentFiltering';
 
-interface Team {
-  id: string;
-  name: string;
-}
-
+// Team is intentionally not part of FilterOptions here — the team scope is
+// owned by the global TopBar `useSelectedTeam`. The popover only exposes
+// page-local filters (status / manufacturer / location / quick filters).
 interface FilterOptions {
   manufacturers: string[];
   locations: string[];
-  teams: Team[];
 }
 
 const quickFilters = [
@@ -142,28 +139,6 @@ const EquipmentFilterPopover: React.FC<EquipmentFilterPopoverProps> = ({
                 {filterOptions.locations.map((l) => (
                   <SelectItem key={l} value={l}>
                     {l}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Team */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-muted-foreground">Team</label>
-            <Select
-              value={filters.team}
-              onValueChange={(value) => onFilterChange('team', value)}
-            >
-              <SelectTrigger className="h-8 text-sm" aria-label="Filter by team">
-                <Users className="h-3.5 w-3.5 mr-1.5 text-muted-foreground shrink-0" />
-                <SelectValue placeholder="All teams" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Teams</SelectItem>
-                {filterOptions.teams.map((team) => (
-                  <SelectItem key={team.id} value={team.id}>
-                    {team.name}
                   </SelectItem>
                 ))}
               </SelectContent>

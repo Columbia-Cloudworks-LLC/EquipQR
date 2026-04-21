@@ -168,6 +168,18 @@ if (-not (Test-Path -LiteralPath $mcpJsonPath)) {
         'X-MCP-Readonly' = 'true'
     }
 
+    # Write-tier probes (per issue #644 / AI Administrator). github-write omits
+    # X-MCP-Readonly so the entry can mutate GitHub state. gcloud-write reuses the
+    # viewer SA JSON for bootstrap auth and impersonates the editor SA via the
+    # CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT env var (set in mcp.template.json),
+    # so this probe only verifies the npx launch path - the impersonation contract
+    # is exercised by User Verification step 6 (gcloud auth list under the MCP).
+    Test-HttpMcp -Server 'github-write' -Url 'https://api.githubcopilot.com/mcp/' -Headers @{
+        'Authorization' = 'Bearer op://tgo2m6qbct5otqeqirjocn3joa/github-write/credential'
+    }
+
+    Test-StdioMcp -Server 'gcloud-write' -Command 'npx.cmd'
+
     # Datadog MCP intentionally skipped (cost reduction). To re-enable, uncomment this
     # block and restore the entry in scripts/mcp.template.json.
     # Test-HttpMcp -Server 'datadog' -Url 'https://mcp.us5.datadoghq.com/api/unstable/mcp-server/mcp?toolsets=core' -Headers @{

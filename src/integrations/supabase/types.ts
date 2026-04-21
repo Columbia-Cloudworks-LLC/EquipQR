@@ -4127,6 +4127,23 @@ export type Database = {
           actor_name: string
         }[]
       }
+      get_audit_log_timeline: {
+        Args: {
+          p_action?: string
+          p_actor_id?: string
+          p_bucket: string
+          p_date_from: string
+          p_date_to: string
+          p_entity_type?: string
+          p_organization_id: string
+          p_search?: string
+        }
+        Returns: {
+          action: string
+          bucket: string
+          count: number
+        }[]
+      }
       get_compatible_parts_for_equipment: {
         Args: { p_equipment_ids: string[]; p_organization_id: string }
         Returns: {

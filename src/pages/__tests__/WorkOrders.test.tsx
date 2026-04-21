@@ -74,6 +74,14 @@ vi.mock('@/features/teams/hooks/useTeamManagement', () => ({
   }))
 }));
 
+vi.mock('@/hooks/useSelectedTeam', () => ({
+  useSelectedTeam: () => ({
+    selectedTeamId: null,
+    selectedTeam: null,
+    setSelectedTeamId: vi.fn(),
+  }),
+}));
+
 vi.mock('@/hooks/useWorkOrderData', () => ({
   useUpdateWorkOrderStatus: vi.fn(() => ({
     mutateAsync: vi.fn(),

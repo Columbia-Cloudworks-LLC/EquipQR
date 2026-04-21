@@ -9,7 +9,8 @@ if ($filePath -match "src[\\/].*\.(ts|tsx)$") {
     # Avoid infinite loops by ignoring test files themselves
     if ($filePath -notmatch "\.(test|spec)\.") {
         Write-Host "Running related tests for $filePath..."
-        cmd /c "npx vitest related `"$filePath`" --run"
+        # Invoke npx.cmd directly so we don't spawn an extra cmd.exe console.
+        & npx.cmd vitest related "$filePath" --run
     }
 }
 

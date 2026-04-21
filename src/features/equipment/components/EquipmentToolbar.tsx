@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, LayoutGrid, List, X } from 'lucide-react';
+import { Search, LayoutGrid, List, Rows3, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,15 +13,11 @@ import type { EquipmentFilters, SortConfig } from '@/features/equipment/hooks/us
 import type { EquipmentViewMode } from './EquipmentCard';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
 
-interface Team {
-  id: string;
-  name: string;
-}
-
+// Team is intentionally not part of FilterOptions here — the team scope is
+// owned by the global TopBar `useSelectedTeam`.
 interface FilterOptions {
   manufacturers: string[];
   locations: string[];
-  teams: Team[];
 }
 
 interface EquipmentToolbarProps {
@@ -42,6 +38,13 @@ interface EquipmentToolbarProps {
   canExport?: boolean;
   onImportCsv?: () => void;
   equipment?: EquipmentRecord[];
+  /**
+   * Optional view-mode-specific control rendered between sort and view-mode
+   * toggle. Currently used by the table view to mount the column picker.
+   * Decoupled via `ReactNode` so the toolbar doesn't depend on equipment-
+   * specific picker components.
+   */
+  columnPicker?: React.ReactNode;
 }
 
 const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
@@ -62,12 +65,14 @@ const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
   canExport = false,
   onImportCsv,
   equipment = [],
+  columnPicker,
 }) => {
+  // `filters.team` is driven by the global TopBar selection and is intentionally
+  // excluded from the page-local active-filter count / chip row.
   const activeFilterCount = [
     filters.status !== 'all',
     filters.manufacturer !== 'all',
     filters.location !== 'all',
-    filters.team !== 'all',
     !!(filters.maintenanceDateFrom || filters.maintenanceDateTo),
     !!(filters.installationDateFrom || filters.installationDateTo),
     filters.warrantyExpiring,
@@ -116,6 +121,9 @@ const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
           sortConfig={sortConfig}
           onSortChange={onSortChange}
         />
+
+        {/* View-mode-specific control (e.g. column picker for the table view) */}
+        {columnPicker}
 
         {/* Actions menu (import/export) */}
         {(canImport || canExport) && (
@@ -169,12 +177,24 @@ const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
               <ToggleGroupItem
                 value="list"
                 aria-label="List view"
-                className="h-8 w-8 rounded-l-none data-[state=on]:bg-muted"
+                className="h-8 w-8 rounded-none data-[state=on]:bg-muted"
               >
                 <List className="h-3.5 w-3.5" />
               </ToggleGroupItem>
             </TooltipTrigger>
             <TooltipContent side="bottom">List view</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <ToggleGroupItem
+                value="table"
+                aria-label="Table view"
+                className="h-8 w-8 rounded-l-none data-[state=on]:bg-muted"
+              >
+                <Rows3 className="h-3.5 w-3.5" />
+              </ToggleGroupItem>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Table view</TooltipContent>
           </Tooltip>
         </ToggleGroup>
       </div>
@@ -217,19 +237,6 @@ const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
                 onClick={() => onFilterChange('location', 'all')}
                 className="ml-0.5 hover:text-foreground"
                 aria-label="Clear location filter"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          )}
-
-          {filters.team !== 'all' && (
-            <Badge variant="secondary" className="flex items-center gap-1 text-xs h-5 px-2">
-              {filterOptions.teams.find((t) => t.id === filters.team)?.name ?? filters.team}
-              <button
-                onClick={() => onFilterChange('team', 'all')}
-                className="ml-0.5 hover:text-foreground"
-                aria-label="Clear team filter"
               >
                 <X className="h-3 w-3" />
               </button>

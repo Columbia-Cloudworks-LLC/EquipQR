@@ -8,8 +8,9 @@ import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOr
 import { useWorkOrderAcceptance } from '@/features/work-orders/hooks/useWorkOrderAcceptance';
 import { useBatchAssignUnassignedWorkOrders } from '@/features/work-orders/hooks/useBatchAssignUnassignedWorkOrders';
 import { useWorkOrderFilters } from '@/features/work-orders/hooks/useWorkOrderFilters';
-import { useTeams } from '@/features/teams/hooks/useTeamManagement';
 import { useUser } from '@/contexts/useUser';
+import { useSelectedTeam } from '@/hooks/useSelectedTeam';
+import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 import { WorkOrderAcceptanceModalState, WorkOrderData } from '@/features/work-orders/types/workOrder';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -43,13 +44,13 @@ const WorkOrders = () => {
   const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
   const initializedFromUrl = useRef(false);
+  const { selectedTeamId, setSelectedTeamId } = useSelectedTeam();
 
   // Use team-based access control
   const { userTeamIds, isManager, isLoading: teamAccessLoading } = useTeamBasedAccess();
   
   // Use team-based work orders hook with proper admin flag
   const { data: allWorkOrders = [], isLoading: workOrdersLoading } = useTeamBasedWorkOrders();
-  const { data: teams = [] } = useTeams(currentOrganization?.id);
   
   const updateStatusMutation = useUpdateWorkOrderStatus();
   const acceptanceMutation = useWorkOrderAcceptance();
@@ -79,6 +80,10 @@ const WorkOrders = () => {
   } = useWorkOrderFilters(mergedWorkOrders, currentUser?.id);
 
   // Apply URL parameter filters on initial load.
+  // The `team` parameter writes to the GLOBAL `useSelectedTeam` selection (not
+  // the page-local filter) — the page is now driven by the TopBar selection,
+  // so a deep link like `/dashboard/work-orders?team=<uuid>` updates the
+  // global scope and the sync effect below mirrors it onto the page filter.
   // updateFilter and toggleQuickFilter are stable (useCallback in useWorkOrderFilters).
   useEffect(() => {
     if (initializedFromUrl.current) return;
@@ -89,7 +94,7 @@ const WorkOrders = () => {
     let didApply = false;
 
     if (team) {
-      updateFilter('teamFilter', team);
+      setSelectedTeamId(team);
       didApply = true;
     }
     if (date === 'overdue') {
@@ -117,7 +122,20 @@ const WorkOrders = () => {
     if (didApply) {
       initializedFromUrl.current = true;
     }
-  }, [searchParams, toggleQuickFilter, updateFilter, updateSort]);
+  }, [searchParams, toggleQuickFilter, updateFilter, updateSort, setSelectedTeamId]);
+
+  // Mirror the global TopBar team selection onto the page-local filter.
+  // `null` (= "All teams") and `UNASSIGNED_TEAM_ID` are translated to the
+  // sentinel values `useWorkOrderFilters` understands.
+  useEffect(() => {
+    const value =
+      selectedTeamId === null
+        ? 'all'
+        : selectedTeamId === UNASSIGNED_TEAM_ID
+          ? 'unassigned'
+          : selectedTeamId;
+    updateFilter('teamFilter', value);
+  }, [selectedTeamId, updateFilter]);
 
   useEffect(() => {
     const defaultSortParam = 'created:desc';
@@ -278,7 +296,6 @@ const WorkOrders = () => {
             onFilterChange={updateFilter}
             onClearFilters={clearAllFilters}
             onQuickFilter={handleQuickFilter}
-            teams={teams}
             sortField={sortField}
             sortDirection={sortDirection}
             onSortChange={updateSort}

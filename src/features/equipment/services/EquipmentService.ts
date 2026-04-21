@@ -6,9 +6,14 @@ import { logger } from '@/utils/logger';
 // Use Supabase types for Equipment
 export type Equipment = Tables<'equipment'>;
 
-// Extended equipment type with team info for display purposes
+// Extended equipment type with team info for display purposes.
+// `team` is the raw join shape returned by Supabase; `team_name` is the
+// flattened convenience field every UI consumer reads (EquipmentCard,
+// EquipmentTable). The service layer is responsible for populating
+// `team_name` from `team.name` so consumers never have to do the lookup.
 export interface EquipmentWithTeam extends Equipment {
   team?: { id: string; name: string } | null;
+  team_name?: string;
 }
 
 export interface EquipmentFilters extends FilterParams {
@@ -71,6 +76,14 @@ function handleSuccess<T>(data: T): ApiResponse<T> {
     success: true
   };
 }
+
+/**
+ * Maximum number of concurrent per-row Supabase updates issued by
+ * `EquipmentService.batchUpdate`. Bulk saves chunk into batches of this size
+ * and run sequentially across chunks to avoid rate limiting and network
+ * saturation on large bulk-edit payloads (#627).
+ */
+const BATCH_UPDATE_CONCURRENCY = 10;
 
 /**
  * Equipment Service using static methods pattern
@@ -152,7 +165,12 @@ export class EquipmentService {
         return handleError(error);
       }
 
-      return handleSuccess((data || []) as EquipmentWithTeam[]);
+      const flattened = (data || []).map(row => ({
+        ...row,
+        team_name: (row.team as { name?: string } | null | undefined)?.name ?? undefined,
+      })) as EquipmentWithTeam[];
+
+      return handleSuccess(flattened);
     } catch (error) {
       return handleError(error);
     }
@@ -182,7 +200,12 @@ export class EquipmentService {
         return handleError(new Error('Equipment not found'));
       }
 
-      return handleSuccess(data as EquipmentWithTeam);
+      const flattened: EquipmentWithTeam = {
+        ...(data as EquipmentWithTeam),
+        team_name: (data.team as { name?: string } | null | undefined)?.name ?? undefined,
+      };
+
+      return handleSuccess(flattened);
     } catch (error) {
       return handleError(error);
     }
@@ -297,6 +320,84 @@ export class EquipmentService {
 
       return handleSuccess(updated);
     } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /**
+   * Bulk update equipment rows. Uses partial-tolerant semantics: each row is
+   * updated independently and per-row failures do not block the rest. Returns
+   * separate `succeeded` and `failed` lists so the caller can surface partial-
+   * success UX (e.g., a sonner warning toast with row counts).
+   *
+   * Single-row update path is identical to `update()` — same RLS policy, same
+   * audit-log behavior, no new triggers. Used by the bulk-edit grid (#627).
+   *
+   * Concurrency is capped at `BATCH_UPDATE_CONCURRENCY` to avoid network
+   * saturation and per-tenant rate limiting on large bulk saves; chunks run
+   * sequentially while rows within a chunk run in parallel via
+   * `Promise.allSettled`.
+   */
+  static async batchUpdate(
+    organizationId: string,
+    updates: Array<{ id: string; data: EquipmentUpdateData }>
+  ): Promise<ApiResponse<{ succeeded: string[]; failed: Array<{ id: string; error: string }> }>> {
+    try {
+      if (updates.length === 0) {
+        return handleSuccess({ succeeded: [], failed: [] });
+      }
+
+      const succeeded: string[] = [];
+      const failed: Array<{ id: string; error: string }> = [];
+
+      for (let chunkStart = 0; chunkStart < updates.length; chunkStart += BATCH_UPDATE_CONCURRENCY) {
+        const chunk = updates.slice(chunkStart, chunkStart + BATCH_UPDATE_CONCURRENCY);
+        const results = await Promise.allSettled(
+          chunk.map(async ({ id, data }) => {
+            const { data: rows, error } = await supabase
+              .from('equipment')
+              .update(data)
+              .eq('id', id)
+              .eq('organization_id', organizationId)
+              .select('id');
+
+            if (error) {
+              return { id, error: error.message };
+            }
+            if (!rows || rows.length === 0) {
+              // Either the id is wrong or the row belongs to a different org —
+              // RLS hides the difference, so we surface a generic message.
+              return { id, error: 'Equipment not found or access denied' };
+            }
+            return { id, error: null as string | null };
+          })
+        );
+
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
+          if (result.status === 'fulfilled') {
+            const { id, error } = result.value;
+            if (error) {
+              failed.push({ id, error });
+            } else {
+              succeeded.push(id);
+            }
+          } else {
+            // Unexpected promise rejection (network / runtime). Preserve the
+            // original update payload's id so the caller can map back to the row.
+            const id = chunk[i].id;
+            const error = result.reason instanceof Error ? result.reason.message : 'Unknown error';
+            failed.push({ id, error });
+          }
+        }
+      }
+
+      return handleSuccess({ succeeded, failed });
+    } catch (error) {
+      // Outer catch handles unexpected runtime errors (e.g. `supabase.from()`
+      // throwing synchronously, malformed inputs that escape Promise.allSettled)
+      // so callers always receive a normalized `ApiResponse` matching the rest
+      // of this service — no caller has to handle a different failure shape.
       return handleError(error);
     }
   }
@@ -522,7 +623,14 @@ export class EquipmentService {
         return handleError(error);
       }
 
-      return handleSuccess(data || []);
+      // Note: this query aliases the join as `teams` (not `team`); flatten
+      // the same way so the convenience field is consistent.
+      const flattened = (data || []).map(row => ({
+        ...row,
+        team_name: (row.teams as { name?: string } | null | undefined)?.name ?? undefined,
+      }));
+
+      return handleSuccess(flattened);
     } catch (error) {
       return handleError(error);
     }

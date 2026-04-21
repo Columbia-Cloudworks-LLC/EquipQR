@@ -5,7 +5,7 @@
 
 .PARAMETER Force
   After Supabase is up: reset local DB, regenerate TypeScript types, seed equipment images, then ensure Edge + Vite are running.
-  Does not call dev-stop. If Vite or Edge Functions serve is already running, exits with an error — run dev-stop first.
+  Does not call dev-stop. If Vite or Edge Functions serve is already running, exits with an error - run dev-stop first.
 
 .EXAMPLE
   .\dev-start.ps1
@@ -14,6 +14,7 @@
 [CmdletBinding()]
 param(
     [switch]$Force,
+    [switch]$ResetDocker,
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$Rest = @()
 )
@@ -26,6 +27,8 @@ $unknown = [System.Collections.Generic.List[string]]::new()
 foreach ($r in $Rest) {
     if ($r -match '^(?i)(/Force|--force)$') {
         $Force = $true
+    } elseif ($r -match '^(?i)(/ResetDocker|--reset-docker)$') {
+        $ResetDocker = $true
     } else {
         [void]$unknown.Add($r)
     }
@@ -34,7 +37,7 @@ $Rest = @($unknown)
 
 if ($Rest.Count -gt 0) {
     Write-Host "FAIL: Unknown argument(s): $($Rest -join ', ')"
-    Write-Host 'Usage: .\dev-start.ps1 [-Force]'
+    Write-Host 'Usage: .\dev-start.ps1 [-Force] [-ResetDocker]'
     exit 2
 }
 
@@ -75,6 +78,71 @@ function Test-DevStackAlreadyRunningForForce {
     return $false
 }
 
+# Returns $true only when the Docker daemon's Linux engine actually answers
+# a real container API call. `docker info` is NOT sufficient - when Docker
+# Desktop's engine is wedged it still prints client info and exits 0, while
+# every container/image API request returns "500 Internal Server Error" via
+# the dockerDesktopLinuxEngine pipe. `docker ps` exercises the engine path
+# and exits non-zero when wedged, so we use it as the source of truth and
+# additionally scan stderr for the known wedge signatures.
+#
+# We invoke `docker ps -q` inside a background job with a hard per-call
+# timeout. Without this, a half-dead pipe can block the CLI for ~30s per
+# probe, multiplying every readiness loop iteration into a stall and making
+# the script appear to hang itself.
+function Test-DockerDaemonReady {
+    param([int]$PerCallTimeoutSeconds = 8)
+
+    $job = Start-Job -ScriptBlock {
+        $out = & docker ps -q 2>&1
+        [pscustomobject]@{
+            ExitCode = $LASTEXITCODE
+            Output   = ($out | Out-String)
+        }
+    }
+
+    if (-not (Wait-Job -Job $job -Timeout $PerCallTimeoutSeconds)) {
+        Stop-Job  -Job $job -ErrorAction SilentlyContinue
+        Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+        return $false
+    }
+
+    $result = Receive-Job -Job $job
+    Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+
+    if ($null -eq $result) { return $false }
+    if ($result.ExitCode -ne 0) { return $false }
+    if ($result.Output -match '500 Internal Server Error') { return $false }
+    if ($result.Output -match 'error during connect') { return $false }
+    if ($result.Output -match 'Cannot connect to the Docker daemon') { return $false }
+    return $true
+}
+
+# Run the reusable surgical recovery script and return $true when the daemon
+# answers `docker ps -q` cleanly within the budget. Centralizing the recovery
+# in scripts\reset-docker-desktop.ps1 lets the user invoke the same flow
+# manually (`scripts\reset-docker-desktop.ps1`) when the dev stack is already
+# running and only Docker is wedged.
+function Invoke-DockerRecovery {
+    param([int]$TimeoutSeconds = 180)
+
+    $resetScript = Join-Path $repoRoot 'scripts\reset-docker-desktop.ps1'
+    if (-not (Test-Path -LiteralPath $resetScript)) {
+        Write-Host "        FAIL: reset-docker-desktop.ps1 not found at $resetScript"
+        return $false
+    }
+
+    $oldRecEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & $resetScript -TimeoutSeconds $TimeoutSeconds
+        $resetExit = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $oldRecEap
+    }
+    return ($resetExit -eq 0)
+}
+
 Write-Host ""
 Write-Host " ============================================"
 Write-Host "  EquipQR Dev Environment - Startup"
@@ -111,49 +179,35 @@ Write-Host "        npx   OK"
 Write-Host "        docker CLI OK"
 
 Write-Host "        Checking Docker daemon..."
-$dockerOk = $false
-$oldDockerProbeEap = $ErrorActionPreference
-$ErrorActionPreference = 'Continue'
-try {
-    $null = & docker info > $null 2>$null
-    if ($LASTEXITCODE -eq 0) { $dockerOk = $true }
-} catch { }
-finally {
-    $ErrorActionPreference = $oldDockerProbeEap
+if ($ResetDocker) {
+    Write-Host "        -ResetDocker requested - forcing surgical recovery before probing the daemon."
+    $dockerOk = Invoke-DockerRecovery -TimeoutSeconds 180
+} else {
+    $dockerOk = Test-DockerDaemonReady
 }
 
 if (-not $dockerOk) {
-    Write-Host "        Docker daemon is not running. Attempting to start Docker Desktop..."
-    $dd = 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
-    if (Test-Path -LiteralPath $dd) {
-        Start-Process -FilePath $dd
-    }
-    Write-Host "        Waiting for Docker daemon to be ready (up to 120s)..."
-    $timeout = 120
-    $elapsed = 0
-    while ($elapsed -lt $timeout) {
-        $oldDockerProbeEap = $ErrorActionPreference
-        $ErrorActionPreference = 'Continue'
-        try {
-            $null = & docker info > $null 2>$null
-            $probeOk = ($LASTEXITCODE -eq 0)
-        } catch {
-            $probeOk = $false
-        } finally {
-            $ErrorActionPreference = $oldDockerProbeEap
-        }
-        if ($probeOk) {
-            Write-Host "        Docker daemon is ready."
-            $dockerOk = $true
-            break
-        }
-        Start-Sleep -Seconds 3
-        $elapsed += 3
-        Write-Host "        Waiting... ${elapsed}s"
+    Write-Host "        Docker daemon is not running or is wedged. Running surgical recovery..."
+    $dockerOk = Invoke-DockerRecovery -TimeoutSeconds 180
+
+    if (-not $dockerOk) {
+        # Second-attempt escalation. The first pass occasionally races with a
+        # Docker Desktop that is still mid-initialization from a Windows boot;
+        # waiting a few seconds and re-running the full recovery typically
+        # clears that without escalating to `wsl --shutdown` (which would also
+        # kill the user's other WSL distros).
+        Write-Host "        First recovery pass did not bring the daemon back. Sleeping 5s and retrying once..."
+        Start-Sleep -Seconds 5
+        $dockerOk = Invoke-DockerRecovery -TimeoutSeconds 180
     }
 }
 if (-not $dockerOk) {
-    Write-Host "        FAIL: Docker Desktop could not be started automatically."
+    Write-Host "        FAIL: Docker Desktop could not be started or is in a wedged state."
+    Write-Host "        Manual recovery (use only when the surgical reset twice in a row failed):"
+    Write-Host "          1. Quit Docker Desktop from the tray (right-click whale > Quit)"
+    Write-Host "          2. PowerShell (Admin): wsl --shutdown"
+    Write-Host "          3. Relaunch Docker Desktop and wait for the steady whale icon"
+    Write-Host "          4. Re-run dev-start"
     exit 1
 }
 Write-Host "        All pre-flight checks passed."
@@ -171,16 +225,40 @@ if ($opCli) {
     Write-Host "        Syncing app + edge env from 1Password"
     Write-Host "          App:  $OP_APP_ENV_ID"
     Write-Host "          Edge: $OP_ENV_ID"
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\sync-1password-dev-envs.ps1') `
-        -AppEnvironmentId $OP_APP_ENV_ID -EdgeEnvironmentId $OP_ENV_ID -ApiPort $SUPABASE_API_PORT
-    if ($LASTEXITCODE -ne 0) {
+
+    # Run both helpers IN-PROCESS (no `powershell -NoProfile -File` shell-out)
+    # so they share the same OP_SESSION_* env vars and any 1Password Desktop
+    # App socket session. This collapses what used to be two separate
+    # PowerShell child processes (and two visible 1Password auth handshakes)
+    # into a single auth context. Each script still owns its own exit code,
+    # which we capture via $LASTEXITCODE, and `exit` from inside an &-invoked
+    # script does NOT terminate this parent script (only dot-sourced scripts
+    # would do that).
+    $syncScript = Join-Path $repoRoot 'scripts\sync-1password-dev-envs.ps1'
+    $renderScript = Join-Path $repoRoot 'scripts\render-mcp-config.ps1'
+
+    $oldOpEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & $syncScript -AppEnvironmentId $OP_APP_ENV_ID -EdgeEnvironmentId $OP_ENV_ID -ApiPort $SUPABASE_API_PORT
+        $syncExit = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $oldOpEap
+    }
+    if ($syncExit -ne 0) {
         Write-Host "        WARNING: One or both 1Password env syncs failed. Using existing .env and $DEFAULT_EDGE_ENV_FILE."
     }
 
     Write-Host "        Rendering MCP config from EquipQR Agents vault..."
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\render-mcp-config.ps1')
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "        WARNING: MCP config render failed (exit $LASTEXITCODE). Existing ~/.cursor/mcp.json preserved."
+    $ErrorActionPreference = 'Continue'
+    try {
+        & $renderScript
+        $renderExit = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $oldOpEap
+    }
+    if ($renderExit -ne 0) {
+        Write-Host "        WARNING: MCP config render failed (exit $renderExit). Existing ~/.cursor/mcp.json preserved."
     }
 } else {
     Write-Host "        1Password CLI not found on PATH - using existing .env and $DEFAULT_EDGE_ENV_FILE."
@@ -374,21 +452,59 @@ if (-not $Force) {
     Write-Host ' [6/10] Type generation - skipped (use -Force to regenerate types).'
 } else {
     Write-Host " [6/10] Regenerating Supabase TypeScript types..."
+    # Why this is more involved than `Set-Content $cliOutput`:
+    # The Supabase CLI (~v2.77 on Windows) interleaves status text with the
+    # generated TypeScript on the same streams it uses for the module body.
+    # Observed prefixes on stdout: "Connecting to db <port>". Observed
+    # suffixes on stderr: the version-bump banner ("A new version of Supabase
+    # CLI is available..."). The previous step used `2>&1` to merge streams
+    # and then dumped the whole blob into types.ts, which left the file
+    # uncompilable. We now (a) divert stderr to a side file so it doesn't
+    # contaminate the capture, (b) slice the captured stdout to just the
+    # range between the first `export type ` and the last `} as const`
+    # (the same defense .cursor/hooks/sync-types.ps1 uses), and (c) write
+    # UTF-8 without BOM to match the canonical encoding of the existing file.
     $typesPath = Join-Path $repoRoot 'src\integrations\supabase\types.ts'
     $tmpPath = "$typesPath.tmp"
-    Remove-Item -LiteralPath $tmpPath -ErrorAction SilentlyContinue
+    $errPath = "$typesPath.err"
+    Remove-Item -LiteralPath $tmpPath, $errPath -ErrorAction SilentlyContinue
     $oldEap = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
-    $genOut = & npx supabase gen types typescript --local 2>&1
+    $genOut = & npx supabase gen types typescript --local 2> $errPath
     $genExit = $LASTEXITCODE
     $ErrorActionPreference = $oldEap
     if ($genExit -ne 0) {
-        Remove-Item -LiteralPath $tmpPath -ErrorAction SilentlyContinue
-        Write-Host "        FAIL: Type generation failed."
+        Write-Host "        FAIL: Type generation failed (exit $genExit)."
+        if (Test-Path -LiteralPath $errPath) {
+            Get-Content -LiteralPath $errPath -ErrorAction SilentlyContinue |
+                ForEach-Object { Write-Host "          $_" }
+        }
+        Remove-Item -LiteralPath $tmpPath, $errPath -ErrorAction SilentlyContinue
         exit 1
     }
-    $genOut | Set-Content -LiteralPath $tmpPath -Encoding utf8
+    $rawContent = if ($genOut) { ($genOut -join "`n") } else { '' }
+    $startMatch = [regex]::Match($rawContent, '(?m)^export type ')
+    $endMatches = [regex]::Matches($rawContent, '(?m)^} as const\s*$')
+    if (-not $startMatch.Success -or $endMatches.Count -eq 0) {
+        Write-Host "        FAIL: Generated output did not contain expected TypeScript markers."
+        $excerpt = if ($rawContent.Length -gt 500) { $rawContent.Substring(0, 500) } else { $rawContent }
+        Write-Host "          stdout (first 500 chars): $excerpt"
+        if (Test-Path -LiteralPath $errPath) {
+            Write-Host "          captured stderr:"
+            Get-Content -LiteralPath $errPath -TotalCount 20 -ErrorAction SilentlyContinue |
+                ForEach-Object { Write-Host "            $_" }
+        }
+        Remove-Item -LiteralPath $tmpPath, $errPath -ErrorAction SilentlyContinue
+        exit 1
+    }
+    $endMatch = $endMatches[$endMatches.Count - 1]
+    $startIdx = $startMatch.Index
+    $endIdx = $endMatch.Index + $endMatch.Length
+    $cleanContent = $rawContent.Substring($startIdx, $endIdx - $startIdx).TrimEnd() + "`n"
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText($tmpPath, $cleanContent, $utf8NoBom)
     Move-Item -LiteralPath $tmpPath -Destination $typesPath -Force
+    Remove-Item -LiteralPath $errPath -ErrorAction SilentlyContinue
     Write-Host "        Types regenerated successfully."
 }
 

@@ -86,6 +86,10 @@ export const equipmentFormSchema = z.object({
   last_known_location: locationSchema,
   team_id: z.string().optional(),
   default_pm_template_id: z.string().optional(),
+  // Mirrors `quickEquipmentSchema.working_hours` — required for partial-update
+  // validation in the bulk-edit grid (#627) so hour edits can't bypass the
+  // non-negative constraint by routing through `equipmentFormSchema.partial()`.
+  working_hours: z.number().min(0, "Working hours cannot be negative").optional().nullable(),
   assigned_location_street: z.string().optional(),
   assigned_location_city: z.string().optional(),
   assigned_location_state: z.string().optional(),

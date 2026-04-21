@@ -1,0 +1,48 @@
+# EquipQR — Qodo Merge per-repo configuration
+#
+# Reference: https://docs.qodo.ai/code-review/get-started/configuration-overview/configuration-and-command-reference
+# Modeled on Codium-ai/se-qodo-merge-configs and trimmed to typeorm/typeorm's lean shape.
+#
+# Override at runtime via the wiki page .pr_agent.toml — wiki-page edits take
+# effect immediately without a repository commit.
+
+[github_app]
+pr_commands = [
+    "/agentic_describe",
+    "/agentic_review",
+]
+handle_push_trigger = true
+push_commands = [
+    "/agentic_review",
+]
+
+[review_agent]
+comments_location_policy = "both"
+inline_comments_severity_threshold = 3
+issues_user_guidelines = ""
+compliance_user_guidelines = ""
+
+[review_agent_ux]
+finding_overflow_count = "all"
+expand_description = true
+expand_code = false
+expand_relevance = false
+expand_evidence = false
+expand_prompt = false
+resolved_overflow_count = "none"
+
+[auto_best_practices]
+enable_auto_best_practices = true
+utilize_auto_best_practices = true
+max_patterns = 5
+extra_instructions = ""
+
+[best_practices]
+organization_name = "Columbia Cloudworks"
+
+[checks]
+enable_auto_checks_feedback = true
+excluded_checks_list = []
+persistent_comment = true
+
+[config]

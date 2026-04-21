@@ -76,6 +76,12 @@ vi.mock('@/contexts/TeamContext', () => ({
   TeamProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="team-provider">{children}</div>
 }));
 
+vi.mock('@/contexts/SelectedTeamContext', () => ({
+  SelectedTeamProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="selected-team-provider">{children}</div>
+  )
+}));
+
 vi.mock('@/contexts/SimpleOrganizationProvider', () => ({
   SimpleOrganizationProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="simple-organization-provider">{children}</div>
