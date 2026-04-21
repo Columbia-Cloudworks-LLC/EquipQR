@@ -2,7 +2,6 @@ import { defineConfig, PluginOption } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import fs from "fs";
-import { componentTagger } from "lovable-tagger";
 
 // HTTP request logger plugin for dev server
 function httpLogger(): PluginOption {
@@ -38,16 +37,16 @@ export default defineConfig(({ mode }) => ({
     headers: {
       "Content-Security-Policy": [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://hcaptcha.com https://*.hcaptcha.com https://cdn.gpteng.co https://js.sentry-cdn.com https://maps.googleapis.com https://apis.google.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com",
-        "style-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com https://cdn.gpteng.co https://*.googleapis.com https://*.gstatic.com",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://hcaptcha.com https://*.hcaptcha.com https://js.sentry-cdn.com https://maps.googleapis.com https://apis.google.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com",
+        "style-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com https://*.googleapis.com https://*.gstatic.com",
         "frame-src 'self' https://hcaptcha.com https://*.hcaptcha.com https://accounts.google.com https://docs.google.com https://drive.google.com",
         // `data:` is required because Google Maps' vector basemap worker
         // (shared-label-worker.js) loads inline label sprite assets via
         // fetch('data:image/png;base64,...'). Without it the map renders
         // but labels degrade and the console floods with CSP violations.
-        "connect-src 'self' data: https://hcaptcha.com https://*.hcaptcha.com https://lovable-api.com https://*.sentry.io https://*.supabase.co https://*.equipqr.app https://*.vercel.app https://maps.googleapis.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com wss://*.supabase.co wss://*.equipqr.app wss://*.vercel.app wss://localhost:* ws://localhost:* ws://127.0.0.1:* http://localhost:* http://127.0.0.1:*",
+        "connect-src 'self' data: https://hcaptcha.com https://*.hcaptcha.com https://*.sentry.io https://*.supabase.co https://*.equipqr.app https://*.vercel.app https://maps.googleapis.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com wss://*.supabase.co wss://*.equipqr.app wss://*.vercel.app wss://localhost:* ws://localhost:* ws://127.0.0.1:* http://localhost:* http://127.0.0.1:*",
         "img-src 'self' data: blob: https: http://localhost:* http://127.0.0.1:* https://*.googleapis.com https://*.gstatic.com",
-        "font-src 'self' data: https://cdn.gpteng.co https://fonts.gstatic.com https://fonts.googleapis.com",
+        "font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com",
         "worker-src 'self' blob:"
       ].join("; ")
     }
@@ -55,7 +54,6 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     mode === 'development' && httpLogger(),
     react(),
-    mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
