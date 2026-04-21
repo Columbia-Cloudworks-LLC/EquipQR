@@ -131,6 +131,11 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: str
       queryClient.invalidateQueries({ queryKey: ['workOrders', currentOrganization?.id] });
       queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', currentOrganization?.id] });
       queryClient.invalidateQueries({ queryKey: ['team-based-work-orders', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['team-based-recent-work-orders', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['team-based-dashboard-stats', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-trends', currentOrganization?.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-cost-trend', currentOrganization?.id] });
+      // Keep legacy key invalidation until all dashboard consumers are migrated.
       queryClient.invalidateQueries({ queryKey: ['dashboardStats', currentOrganization?.id] });
 
       if (result.workOrder) {
