@@ -38,8 +38,16 @@ export interface BulkEditableCellProps {
   formatDisplay?: (value: string | number | null) => string;
   /** Called when the user commits an edit. */
   onChange: (value: string | number | null) => void;
-  /** Called when the user single-clicks the cell — toggles the row selection. */
+  /** Toggle the row's selection. Triggered by the keyboard Space gesture on a
+   *  focused static cell. Single-click selection is now handled at the
+   *  `<TableRow>` level (so empty-area clicks also select), but the cell still
+   *  needs its own handle for keyboard-only users. */
   onSelectRow: (id: string) => void;
+  /** Cancel a pending row-level single-click selection toggle. Invoked when
+   *  the user double-clicks the cell so the deferred row toggle is dropped
+   *  before the editor mounts. Passed from `BulkEquipmentGrid` which owns the
+   *  click-vs-doubleclick debounce timer. */
+  onCancelPendingSelect?: () => void;
 }
 
 const EMPTY_DISPLAY = '—';
@@ -79,33 +87,17 @@ export const BulkEditableCell: React.FC<BulkEditableCellProps> = ({
   formatDisplay,
   onChange,
   onSelectRow,
+  onCancelPendingSelect,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState<string>(() => stringifyForInput(value));
   const inputRef = useRef<HTMLInputElement>(null);
-  // Debounce timer used to disambiguate a true single-click (toggles row
-  // selection) from the first click of a double-click (mounts the editor).
-  // Without this, the two `click` events that precede `dblclick` would toggle
-  // the selection twice and either leave it unchanged or, worse, deselect a
-  // row the user still wants in the bulk-apply set.
-  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Keep the editor's local string in sync when the displayed value changes
     // externally (e.g., after a successful commit clears the dirty delta).
     setEditValue(stringifyForInput(value));
   }, [value]);
-
-  // Cancel any pending single-click toggle on unmount so we never call
-  // onSelectRow against a stale rowId after the parent re-renders the grid.
-  useEffect(() => {
-    return () => {
-      if (clickTimerRef.current) {
-        clearTimeout(clickTimerRef.current);
-        clickTimerRef.current = null;
-      }
-    };
-  }, []);
 
   const enterEdit = () => {
     setEditValue(stringifyForInput(value));
@@ -147,32 +139,25 @@ export const BulkEditableCell: React.FC<BulkEditableCellProps> = ({
   };
 
   const handleStaticKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
+    // Keyboard parity with the mouse gestures: Enter mounts the editor,
+    // Space toggles the row's bulk-apply selection. Pairs with the row-level
+    // `<TableRow onClick>` selection handling so non-mouse users have a real
+    // path to add/remove rows from the selection set.
+    if (e.key === 'Enter') {
       e.preventDefault();
       enterEdit();
-    }
-  };
-
-  const handleStaticClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // `e.detail` is 1 for a true single-click and increments for each
-    // subsequent click in a multi-click sequence. Skip clicks that are part of
-    // a double/triple click (`detail > 1`); the pending single-click below is
-    // cancelled by `handleStaticDoubleClick` when the browser dispatches
-    // `dblclick`. Note: synthetic events from React Testing Library default to
-    // `detail: 0`, so we treat 0 the same as 1 — the bail-out is for `> 1`.
-    if (e.detail > 1) return;
-    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
-    clickTimerRef.current = setTimeout(() => {
+    } else if (e.key === ' ') {
+      e.preventDefault();
       onSelectRow(rowId);
-      clickTimerRef.current = null;
-    }, 250);
+    }
   };
 
   const handleStaticDoubleClick = () => {
-    if (clickTimerRef.current) {
-      clearTimeout(clickTimerRef.current);
-      clickTimerRef.current = null;
-    }
+    // Double-click cancels the row-level pending single-click toggle so the
+    // selection set isn't mutated when the user really wanted to enter edit.
+    // The row debounce timer lives on the parent (`BulkEquipmentGrid`) so it
+    // can be shared with the empty-area click target on the row.
+    onCancelPendingSelect?.();
     enterEdit();
   };
 
@@ -203,6 +188,7 @@ export const BulkEditableCell: React.FC<BulkEditableCellProps> = ({
           <SelectTrigger
             aria-label={`Edit ${field}`}
             className={cn('h-8', dirty && 'border-l-2 border-l-primary')}
+            onClick={stopBubbling}
           >
             <SelectValue />
           </SelectTrigger>
@@ -226,6 +212,7 @@ export const BulkEditableCell: React.FC<BulkEditableCellProps> = ({
         onChange={(e) => setEditValue(e.target.value)}
         onKeyDown={handleKeyDown}
         onBlur={commitText}
+        onClick={stopBubbling}
         aria-label={`Edit ${field}`}
         className={cn(
           'h-8',
@@ -241,8 +228,7 @@ export const BulkEditableCell: React.FC<BulkEditableCellProps> = ({
     <div
       role="button"
       tabIndex={0}
-      aria-label={`${field}: ${displayText}. Single-click to select row, double-click to edit.`}
-      onClick={handleStaticClick}
+      aria-label={`${field}: ${displayText}. Single-click row to select, double-click to edit.`}
       onDoubleClick={handleStaticDoubleClick}
       onKeyDown={handleStaticKeyDown}
       className={cn(
@@ -273,4 +259,11 @@ export const BulkEditableCell: React.FC<BulkEditableCellProps> = ({
 function stringifyForInput(value: string | number | null): string {
   if (value === null || value === undefined) return '';
   return String(value);
+}
+
+// Stop click events inside an active editor from bubbling to the row's
+// `onClick` selection handler — without this, every click inside the Input or
+// Select trigger while editing would also schedule a row-selection toggle.
+function stopBubbling(e: React.MouseEvent): void {
+  e.stopPropagation();
 }

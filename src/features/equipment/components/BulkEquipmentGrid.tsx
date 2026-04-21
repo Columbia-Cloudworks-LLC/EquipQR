@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   flexRender,
@@ -106,6 +106,53 @@ export const BulkEquipmentGrid: React.FC<BulkEquipmentGridProps> = ({
 }) => {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
   const [pendingApply, setPendingApply] = useState<PendingApply | null>(null);
+  // Single shared debounce timer for the row-level click-to-select gesture.
+  // The first click of a double-click sequence schedules the toggle; the
+  // dblclick handler on `BulkEditableCell` calls `cancelPendingSelection` to
+  // drop the toggle before the editor mounts. Lifted to the grid (rather than
+  // per-cell) so it covers BOTH cell clicks and dead-zone row clicks (Team
+  // text, padding, etc.) — fixes the "single-click selects only inside cells"
+  // contradiction reported by Copilot.
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSelectIdRef = useRef<string | null>(null);
+
+  const cancelPendingSelection = useCallback(() => {
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+    }
+    pendingSelectIdRef.current = null;
+  }, []);
+
+  // Cancel any pending toggle on unmount so we never call `onToggleSelected`
+  // against a stale rowId after navigation away from the bulk-edit page.
+  useEffect(() => {
+    return () => {
+      if (clickTimerRef.current) {
+        clearTimeout(clickTimerRef.current);
+        clickTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleRowClick = useCallback(
+    (rowId: string, e: React.MouseEvent<HTMLTableRowElement>) => {
+      // `e.detail` is 1 for a real single-click and increments through a
+      // multi-click sequence. Skip detail > 1 — the dblclick handler on the
+      // cell will cancel the still-pending detail=1 toggle. RTL synthetic
+      // events default to detail=0, so 0 is treated like 1.
+      if (e.detail > 1) return;
+      cancelPendingSelection();
+      pendingSelectIdRef.current = rowId;
+      clickTimerRef.current = setTimeout(() => {
+        const id = pendingSelectIdRef.current;
+        clickTimerRef.current = null;
+        pendingSelectIdRef.current = null;
+        if (id) onToggleSelected(id);
+      }, 250);
+    },
+    [cancelPendingSelection, onToggleSelected]
+  );
 
   /** Returns the merged value (dirty delta wins over the original row value). */
   const getDisplayValue = useCallback(
@@ -161,6 +208,7 @@ export const BulkEquipmentGrid: React.FC<BulkEquipmentGridProps> = ({
           initialValue={(row.original[key] as string | null) ?? null}
           onChange={(next) => handleCellChange(row.original.id, key, next as EquipmentRecord[typeof key])}
           onSelectRow={onToggleSelected}
+          onCancelPendingSelect={cancelPendingSelection}
           {...extra}
         />
       ),
@@ -233,6 +281,7 @@ export const BulkEquipmentGrid: React.FC<BulkEquipmentGridProps> = ({
               handleCellChange(row.original.id, 'status', next as EquipmentRecord['status'])
             }
             onSelectRow={onToggleSelected}
+            onCancelPendingSelect={cancelPendingSelection}
           />
         ),
         enableSorting: true,
@@ -258,6 +307,7 @@ export const BulkEquipmentGrid: React.FC<BulkEquipmentGridProps> = ({
               handleCellChange(row.original.id, 'working_hours', (next as number | null))
             }
             onSelectRow={onToggleSelected}
+            onCancelPendingSelect={cancelPendingSelection}
           />
         ),
         enableSorting: true,
@@ -293,6 +343,7 @@ export const BulkEquipmentGrid: React.FC<BulkEquipmentGridProps> = ({
     onClearSelection,
     getDisplayValue,
     handleCellChange,
+    cancelPendingSelection,
   ]);
 
   const table = useReactTable({
@@ -350,7 +401,8 @@ export const BulkEquipmentGrid: React.FC<BulkEquipmentGridProps> = ({
                   <TableRow
                     key={row.id}
                     data-state={isSelected ? 'selected' : undefined}
-                    className={cn(isRowDirty && 'bg-primary/5')}
+                    className={cn('cursor-pointer', isRowDirty && 'bg-primary/5')}
+                    onClick={(e) => handleRowClick(row.original.id, e)}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className="py-1.5">

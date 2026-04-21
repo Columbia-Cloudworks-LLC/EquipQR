@@ -342,56 +342,65 @@ export class EquipmentService {
     organizationId: string,
     updates: Array<{ id: string; data: EquipmentUpdateData }>
   ): Promise<ApiResponse<{ succeeded: string[]; failed: Array<{ id: string; error: string }> }>> {
-    if (updates.length === 0) {
-      return handleSuccess({ succeeded: [], failed: [] });
-    }
+    try {
+      if (updates.length === 0) {
+        return handleSuccess({ succeeded: [], failed: [] });
+      }
 
-    const succeeded: string[] = [];
-    const failed: Array<{ id: string; error: string }> = [];
+      const succeeded: string[] = [];
+      const failed: Array<{ id: string; error: string }> = [];
 
-    for (let chunkStart = 0; chunkStart < updates.length; chunkStart += BATCH_UPDATE_CONCURRENCY) {
-      const chunk = updates.slice(chunkStart, chunkStart + BATCH_UPDATE_CONCURRENCY);
-      const results = await Promise.allSettled(
-        chunk.map(async ({ id, data }) => {
-          const { data: rows, error } = await supabase
-            .from('equipment')
-            .update(data)
-            .eq('id', id)
-            .eq('organization_id', organizationId)
-            .select('id');
+      for (let chunkStart = 0; chunkStart < updates.length; chunkStart += BATCH_UPDATE_CONCURRENCY) {
+        const chunk = updates.slice(chunkStart, chunkStart + BATCH_UPDATE_CONCURRENCY);
+        const results = await Promise.allSettled(
+          chunk.map(async ({ id, data }) => {
+            const { data: rows, error } = await supabase
+              .from('equipment')
+              .update(data)
+              .eq('id', id)
+              .eq('organization_id', organizationId)
+              .select('id');
 
-          if (error) {
-            return { id, error: error.message };
-          }
-          if (!rows || rows.length === 0) {
-            // Either the id is wrong or the row belongs to a different org —
-            // RLS hides the difference, so we surface a generic message.
-            return { id, error: 'Equipment not found or access denied' };
-          }
-          return { id, error: null as string | null };
-        })
-      );
+            if (error) {
+              return { id, error: error.message };
+            }
+            if (!rows || rows.length === 0) {
+              // Either the id is wrong or the row belongs to a different org —
+              // RLS hides the difference, so we surface a generic message.
+              return { id, error: 'Equipment not found or access denied' };
+            }
+            return { id, error: null as string | null };
+          })
+        );
 
-      for (let i = 0; i < results.length; i++) {
-        const result = results[i];
-        if (result.status === 'fulfilled') {
-          const { id, error } = result.value;
-          if (error) {
-            failed.push({ id, error });
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
+          if (result.status === 'fulfilled') {
+            const { id, error } = result.value;
+            if (error) {
+              failed.push({ id, error });
+            } else {
+              succeeded.push(id);
+            }
           } else {
-            succeeded.push(id);
+            // Unexpected promise rejection (network / runtime). Preserve the
+            // original update payload's id so the caller can map back to the row.
+            const id = chunk[i].id;
+            const error = result.reason instanceof Error ? result.reason.message : 'Unknown error';
+            failed.push({ id, error });
           }
-        } else {
-          // Unexpected promise rejection (network / runtime). Preserve the
-          // original update payload's id so the caller can map back to the row.
-          const id = chunk[i].id;
-          const error = result.reason instanceof Error ? result.reason.message : 'Unknown error';
-          failed.push({ id, error });
         }
       }
-    }
 
-    return handleSuccess({ succeeded, failed });
+      return handleSuccess({ succeeded, failed });
+    } catch (error) {
+      // Outer catch handles unexpected runtime errors (e.g. `supabase.from()`
+      // throwing synchronously, malformed inputs that escape Promise.allSettled)
+      // so callers always receive a normalized `ApiResponse` matching the rest
+      // of this service — no caller has to handle a different failure shape.
+      logger.error('Error in batchUpdate equipment:', error);
+      return handleError(error);
+    }
   }
 
   /**

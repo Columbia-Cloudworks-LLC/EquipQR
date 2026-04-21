@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 
 import { BulkEditableCell } from '../BulkEditableCell';
 
@@ -11,16 +11,12 @@ const baseProps = {
   initialValue: 'Caterpillar',
   onChange: vi.fn(),
   onSelectRow: vi.fn(),
+  onCancelPendingSelect: vi.fn(),
 };
 
 describe('BulkEditableCell', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers({ shouldAdvanceTime: false });
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
   });
 
   describe('static state', () => {
@@ -88,32 +84,23 @@ describe('BulkEditableCell', () => {
   });
 
   describe('selection vs edit interactions', () => {
-    it('single-click invokes onSelectRow with the rowId after the dblclick debounce window, does NOT enter edit', () => {
+    it('single-click on the static cell does NOT directly toggle selection (row-level handler owns selection now)', () => {
+      // Row-level selection is handled by `<TableRow onClick>` in
+      // `BulkEquipmentGrid`. The cell only forwards click events via natural
+      // bubbling — verify the cell itself does not also fire onSelectRow,
+      // which would double-toggle.
       render(<BulkEditableCell {...baseProps} />);
       const trigger = screen.getByRole('button', { name: /manufacturer: Caterpillar/i });
       fireEvent.click(trigger);
-      // Selection toggle is debounced for 250ms so a follow-up dblclick can cancel it.
       expect(baseProps.onSelectRow).not.toHaveBeenCalled();
-      act(() => {
-        vi.advanceTimersByTime(250);
-      });
-      expect(baseProps.onSelectRow).toHaveBeenCalledWith('eq-1');
-      // Static cell still rendered; no Input mounted.
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     });
 
-    it('double-click cancels the pending single-click toggle and mounts the editor (regression: row selection must NOT flip when entering edit)', () => {
+    it('double-click cancels the row-level pending selection toggle and mounts the editor (regression: row selection must NOT flip when entering edit)', () => {
       render(<BulkEditableCell {...baseProps} />);
       const trigger = screen.getByRole('button', { name: /manufacturer: Caterpillar/i });
-      // Simulate the real DOM sequence: click(detail=1), click(detail=2), dblclick.
-      fireEvent.click(trigger, { detail: 1 });
-      fireEvent.click(trigger, { detail: 2 });
       fireEvent.doubleClick(trigger);
-      // Advance past the debounce window to confirm the toggle was cancelled.
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
-      expect(baseProps.onSelectRow).not.toHaveBeenCalled();
+      expect(baseProps.onCancelPendingSelect).toHaveBeenCalledTimes(1);
       expect(screen.getByRole('textbox', { name: /edit manufacturer/i })).toBeInTheDocument();
     });
 
@@ -131,6 +118,19 @@ describe('BulkEditableCell', () => {
       const trigger = screen.getByRole('button', { name: /manufacturer: Caterpillar/i });
       fireEvent.keyDown(trigger, { key: 'Enter' });
       expect(screen.getByRole('textbox', { name: /edit manufacturer/i })).toBeInTheDocument();
+    });
+
+    it('Space key on the focused static cell toggles the row selection (keyboard parity with row-level click)', () => {
+      // Keyboard-only path for selection — without this, sighted+keyboard users
+      // would have no way to add/remove rows from the bulk-apply set, since
+      // the row click handler is mouse-only. Pairs with row-level onClick in
+      // BulkEquipmentGrid.
+      render(<BulkEditableCell {...baseProps} />);
+      const trigger = screen.getByRole('button', { name: /manufacturer: Caterpillar/i });
+      fireEvent.keyDown(trigger, { key: ' ' });
+      expect(baseProps.onSelectRow).toHaveBeenCalledWith('eq-1');
+      // Edit must NOT be mounted by Space; that gesture is reserved for selection.
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     });
   });
 
