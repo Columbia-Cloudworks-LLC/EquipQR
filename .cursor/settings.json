@@ -11,6 +11,9 @@
     },
     "vercel": {
       "enabled": true
+    },
+    "resend": {
+      "enabled": true
     }
   }
 }
