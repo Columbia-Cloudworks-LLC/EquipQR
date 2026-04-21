@@ -5,6 +5,18 @@
     },
     "continual-learning": {
       "enabled": true
+    },
+    "firecrawl": {
+      "enabled": true
+    },
+    "vercel": {
+      "enabled": true
+    },
+    "resend": {
+      "enabled": true
+    },
+    "context7-plugin": {
+      "enabled": true
     }
   }
 }
