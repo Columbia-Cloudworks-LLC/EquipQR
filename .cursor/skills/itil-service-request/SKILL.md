@@ -278,6 +278,10 @@ End with a final subsection "I. Vendor-side actions that this Service Request do
 - **Return to reporter** — request is too vague to scope; list the exact clarifications needed.
 - **Decline** — request is infeasible against the current stack or market viability is too weak to justify the cost. Explain succinctly.]
 
+## Recommended Execution Model (for the upcoming Change Record)
+
+[Embed verbatim the standardized **Recommended Execution Model** block produced by the [model-recommender](../model-recommender/SKILL.md) skill, sized for the implementation work the Change Record will plan (not for the research work this Service Request performed). Load `model-recommender` after authoring **Recommended Next Step** and pass the inferred work shape from **Scope** + **External Dependencies** (greenfield vs. extending existing integration, new vendor SDK + auth flow vs. pure in-app feature, schema/RLS impact, capability requirements like vision or audio). Skip this section ONLY when **Recommended Next Step** is **Return to reporter** or **Decline** — no Change Record will follow, so no model is needed.]
+
 ## Authorization to Proceed
 
 Status: **Awaiting user approval to draft the Change Record (or to take the recommended alternative action above).**
@@ -339,10 +343,12 @@ Treat the user's response strictly: only an explicit button selection moves to t
 - **Examples**: 2–4 real, citable products. Open-source first. License noted for OSS. Skip only when the request is trivially small AND you note that explicitly.
 - **Vendor-side Setup Procedures**: Mandatory whenever the request implies any 3rd-party dashboard action (see Step 6c trigger list). Each subsection must lead with a status line ("Confirmed exists." / "Confirmed exists in the EquipQR setup but currently <state>." / "Could not confirm — feature may not exist in the form the issue assumes."), include the live source URL + date pulled, use real UI labels in numbered steps, surface vendor-specific gotchas inline, end with a verification step, and cross-link cost-implication subsections back to **Potential Costs**. Always include a final "actions this Service Request does NOT trigger" subsection when pre-existing vendor resources might be misread as needing re-creation.
 - **Recommended Next Step**: Pick exactly one of the four options. No "it depends" — make the call so the user has something to react to. When **Vendor-side Setup Procedures** has subsections, cross-reference them by letter (e.g. "see **Section G**") in the conditions list so the user can act on the next step without scrolling.
+- **Recommended Execution Model (for the upcoming Change Record)**: Mandatory whenever **Recommended Next Step** is **Proceed to Change Record** or **Proceed to Change Record with conditions** (i.e. a Change Record will follow). Load the [model-recommender](../model-recommender/SKILL.md) skill and pass the work shape inferred from **Scope** + **External Dependencies**. Embed the standardized block verbatim. This pre-stages the recommendation so the subsequent `itil-change-record` invocation can lift it directly into the Change Record's own **Recommended Execution Model** section. Skip ONLY when **Recommended Next Step** is **Return to reporter** or **Decline** — no implementation will follow, so no model is needed.
 
 ## Progressive disclosure
 
 - For research tools (`firecrawl`, `plugin-context7-plugin-context7`, `gh`) and how to call them in EquipQR, follow [toolbelt](../toolbelt/SKILL.md).
 - For the prior ITIL step on bug issues (reproducing and root-causing), follow [itil-problem-record](../itil-problem-record/SKILL.md).
 - For the next ITIL step (the implementation plan), follow [itil-change-record](../itil-change-record/SKILL.md).
+- For the **Recommended Execution Model (for the upcoming Change Record)** section's model + Cursor tier choice, follow [model-recommender](../model-recommender/SKILL.md). It reads the EquipQR model research at `docs/ops/ci-cd-workshop/AI Model Comparison Report  28 Models Across 6 Families (April 2026).md` and emits the standardized block this Service Request embeds verbatim.
 - For the EquipQR stack constraints that drive the Step 5 feasibility judgment, follow [tech-stack](../../rules/tech-stack.mdc).

@@ -179,13 +179,16 @@ Trigger conditions: clean tree, `origin/preview` has no commits ahead of local, 
 
 # PHASE 2 — MODEL SELECTION
 
-Map the identified scenario to a model tier. Be conservative — prefer Auto unless complexity genuinely requires more.
+Load the [model-recommender](../model-recommender/SKILL.md) skill. Pass it:
 
-| Tier        | When to choose                                                                                                  | Example scenarios                                                                                          |
-| ----------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **Auto**    | Routine, well-isolated, low-blast-radius. Single file or a small handful. No architectural decisions.           | Safe npm patch bumps, typo fixes in draft PRs, `good first issue` bugs, clean-tree pull, lockfile repair, single-component `gcloud components` updates. |
-| **Premium** | Multi-file logic changes, system-level reasoning, moderate risk, anything touching auth/RLS/billing/migrations. | CI/CD pipeline rescue, infra drift correction, complex bug triage, bricked local recovery, **global CLI bumps that cross multiple minor versions** (e.g. Supabase CLI 2.39 → 2.90 — likely contains migration-format or auth changes). |
-| **MAX**     | Massive log analysis, sprawling refactors, deep multi-file trace correlation, full-repo audits.                 | Whole-repo security audit, cross-cutting refactor spanning dozens of files, deep CI failure trace.         |
+- The identified scenario name from Phase 1 (e.g. "CI/CD Rescue on `preview`", "Infrastructure Drift", "Routine Dependency Bump", "Bricked Local Workstation").
+- The concrete artifacts you discovered (failing run ID, packages with old → new versions, schema/RLS touchpoints, file paths, context size — anything the recommender needs to choose the right work-shape row).
+
+`model-recommender` reads `docs/ops/ci-cd-workshop/AI Model Comparison Report  28 Models Across 6 Families (April 2026).md`, applies its work-shape decision matrix, and emits a standardized **Recommended Execution Model** block (Primary model, Fallback, Avoid, Rationale, Constraints surfaced, Reference).
+
+Embed that block verbatim in Phase 4 → **Execution Configuration**. Do not paraphrase, do not summarize, do not drop fields. When **Constraints surfaced** is non-empty (deprecated model, training-policy concern, preview-tier flag), lead the embedded block with a `> ⚠ Note:` callout so the user sees the flag at a glance.
+
+`model-recommender` is the single source of truth for the specific model choice **and** the Cursor billing tier (Auto / Premium / MAX). The previous Phase 2 tier table has been retired — its scenario-to-tier heuristics now live inside the recommender's matrix and are checked against the live model report at every invocation, so the recommendation tracks deprecations (Sonnet 4 / Opus 4 / Gemini 2.5 Flash retiring June 2026), pricing changes, and new releases automatically.
 
 # PHASE 3 — ITIL SKILL MAPPING
 
@@ -253,8 +256,8 @@ Output your final answer using **EXACTLY** this markdown structure. No conversat
 
 ### Execution Configuration
 
-- **Model Recommendation:** [Auto | Premium | MAX]
-- **Justification:** [One sentence explaining the model choice]
+[Embed the standardized **Recommended Execution Model** block from [model-recommender](../model-recommender/SKILL.md) here, verbatim, exactly as Phase 2 produced it. Use the recommender's `## Recommended Execution Model` heading or downgrade it to `#### Recommended Execution Model` to fit Phase 4's heading hierarchy — but keep all six fields (Primary, Fallback, Avoid, Rationale, Constraints surfaced, Reference). Lead with `> ⚠ Note:` if **Constraints surfaced** is non-empty. Do NOT collapse the recommendation into a single `Model Recommendation:` bullet — that loses the fallback, the avoid list, and the constraints flag.]
+
 - **Required ITIL Skill:** [Relative path to `.cursor/skills/.../SKILL.md` or `None`]
 - **Docs-Researcher Recommendation:** [`Yes — query: "<exact question>"` | `No — <one-clause reason>`]
 
@@ -426,6 +429,7 @@ If 6b flagged a tool not listed in A.1–A.8 (rare), do NOT improvise an install
 
 ## Related
 
+- `.cursor/skills/model-recommender/SKILL.md` — work-shape → specific model + Cursor tier mapping; reads `docs/ops/ci-cd-workshop/AI Model Comparison Report  28 Models Across 6 Families (April 2026).md` and emits the standardized **Recommended Execution Model** block that Phase 4 → Execution Configuration embeds.
 - `.cursor/skills/itil-problem-record/SKILL.md` — root-cause investigation for bugs / regressions / CI failures.
 - `.cursor/skills/itil-change-record/SKILL.md` — Plan-mode change record for any code change requiring authorization.
 - `.cursor/skills/itil-incident-record/SKILL.md` — live-site bug reproduction and evidence capture.

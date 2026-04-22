@@ -40,6 +40,7 @@ Pencil Progress
 - [ ] 4) Draft data model and API contracts
 - [ ] 5) Outline file structure and boilerplate
 - [ ] 6) Record risks, dependencies, and open questions
+- [ ] 7) Recommend the execution model for the implementation phase
 ```
 
 ### 1) Confirm feature scope and success criteria
@@ -71,6 +72,10 @@ List the files, modules, or directories that should exist and what responsibilit
 
 Call out blockers, assumptions, sequencing concerns, and decisions that still need human approval.
 
+### 7) Recommend the execution model for the implementation phase
+
+Load the [model-recommender](../model-recommender/SKILL.md) skill, pass the work shape inferred from the **File Plan / Boilerplate Map** and **Risks and Open Questions** (file count, schema/RLS touches, capability requirements like vision or audio, expected context size), and embed the resulting standardized block verbatim as item 7 of the Output Contract. This tells whoever takes the spec into implementation which specific model and Cursor tier the work warrants — the spec is incomplete without it.
+
 ## Output Contract
 
 1. **Feature Summary**
@@ -79,6 +84,7 @@ Call out blockers, assumptions, sequencing concerns, and decisions that still ne
 4. **File Plan / Boilerplate Map**
 5. **Risks and Open Questions**
 6. **Ready-for-Implementation Recommendation**
+7. **Recommended Execution Model** — standardized block emitted by [model-recommender](../model-recommender/SKILL.md), embedded verbatim. When the recommendation surfaces a constraint (deprecated model, training-policy concern, preview-tier flag), lead this item with a `> ⚠ Note:` callout above the block.
 
 ## Guardrails
 
@@ -86,3 +92,4 @@ Call out blockers, assumptions, sequencing concerns, and decisions that still ne
 - Do not hide unknowns; list them explicitly.
 - Do not invent new architecture if an existing project pattern already fits.
 - Do not skip validation, permissions, or tenant-scoping requirements when they apply.
+- Do not omit the **Recommended Execution Model** item — load [model-recommender](../model-recommender/SKILL.md) and embed its block verbatim, even when the spec is small. A spec without a model recommendation is incomplete.

@@ -346,6 +346,10 @@ If **Preview** or **Production** — record:
 
 If reproduction status is **Already resolved in current code**: state that no code change is required, name the fix commit `<sha>` and the version that contains it, and recommend closing the issue. The detailed close text goes in the Closure Recommendation section below.]
 
+## Recommended Execution Model (for the upcoming Change Record)
+
+[Embed verbatim the standardized **Recommended Execution Model** block produced by the [model-recommender](../model-recommender/SKILL.md) skill, sized for the implementation work the Change Record will plan (not for the diagnostic work this Problem Record performed). Load `model-recommender` after authoring **Recommended Resolution Direction** and pass the inferred work shape (single-file null guard? multi-file refactor? schema migration?) so the next-step `itil-change-record` invocation has the recommendation ready to paste in. Skip this section ONLY when **Reproduction status** is **Already resolved in current code** — no Change Record will follow, so no model is needed.]
+
 ## Closure Recommendation (only when status is "Already resolved in current code")
 
 - **Fix commit:** `<sha>` — `<one-line summary>` — landed `<YYYY-MM-DD>`.
@@ -478,11 +482,13 @@ Treat the user's response strictly: only `close` is approval to perform the clos
 - **Evidence** must point at concrete artifacts (file:line, quoted error text, test output) — not "I noticed that…".
 - **Root Cause** must be traced to code or config. If unknown, write "Underlying cause not yet identifiable; see Recommended Resolution Direction for investigation paths."
 - **Recommended Resolution Direction** must be a *direction*, not a plan — preserve Plan-mode's job.
+- **Recommended Execution Model (for the upcoming Change Record)**: Mandatory whenever the Problem Record's reproduction status is **Reproduced** / **Could not reproduce** / **Not applicable** (i.e. a Change Record will follow). Load the [model-recommender](../model-recommender/SKILL.md) skill and pass the work shape inferred from **Recommended Resolution Direction**. Embed the standardized block verbatim. This pre-stages the recommendation so the subsequent `itil-change-record` invocation can lift it directly into the Change Record's own **Recommended Execution Model** section. Skip ONLY when reproduction status is **Already resolved in current code** — closure does not need a model recommendation.
 
 ## Progressive disclosure
 
 - For the prior ITIL step (production-verified reproduction with screenshot + cross-system evidence on the GitHub issue), follow [itil-incident-record](../itil-incident-record/SKILL.md). That skill is what turns a raw reporter description into an Incident Record this skill can build on.
 - For local stack, env files, and MCP integrations used during reproduction, follow [toolbelt](../toolbelt/SKILL.md).
 - For the next ITIL step (the implementation plan), follow [itil-change-record](../itil-change-record/SKILL.md).
+- For the **Recommended Execution Model (for the upcoming Change Record)** section's model + Cursor tier choice, follow [model-recommender](../model-recommender/SKILL.md). It reads the EquipQR model research at `docs/ops/ci-cd-workshop/AI Model Comparison Report  28 Models Across 6 Families (April 2026).md` and emits the standardized block this Problem Record embeds verbatim.
 - For feature / enhancement / vendor-cost issues (non-bug), use [itil-service-request](../itil-service-request/SKILL.md) instead — that skill evaluates feasibility, dollar cost, and market viability before a Change Record is drafted.
 - For non-issue, ad-hoc planning that has no Incident Record, [itil-change-record](../itil-change-record/SKILL.md) can still be invoked directly with a brief Business Justification in lieu of a Problem Record reference.

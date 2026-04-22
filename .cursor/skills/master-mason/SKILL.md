@@ -53,7 +53,8 @@ Master Mason Progress
 - [ ] 3) Run each selected lens against the target
 - [ ] 4) Record per-lens findings with confidence
 - [ ] 5) Produce cross-lens synthesis and priority order
-- [ ] 6) Report next step (questions, hand-off skill, or stand-down)
+- [ ] 6) Recommend the execution model for the highest-priority hand-off
+- [ ] 7) Report next step (questions, hand-off skill, or stand-down)
 ```
 
 ### 1) Confirm target
@@ -213,7 +214,13 @@ Hand-off targets:
 - `raise` — when the audit is the last gate before promoting to `main`
 - `developer fix` — everything else
 
-### 6) Report next step
+### 6) Recommend the execution model for the highest-priority hand-off
+
+Load the [model-recommender](../model-recommender/SKILL.md) skill and pass the work shape implied by the P0/P1 row of the priority table (e.g. plumb finding → security audit / RLS analysis shape; gauge finding → multi-file refactor shape; chisel finding → routine single-file fix shape). Embed the resulting standardized block verbatim as item 6 of the Output Contract. When the audit produced findings across multiple high-stakes lenses (e.g. P0 plumb AND P0 gauge), pick the higher-tier model that satisfies both — do not emit two recommendations.
+
+Skip this step ONLY when no actionable lenses triggered (the synthesis is `no actionable lenses triggered` or `The stone is square.`) — there is no follow-on work to recommend a model for.
+
+### 7) Report next step
 
 End with:
 
@@ -228,7 +235,8 @@ End with:
 3. **Per-Lens Findings** (one block per selected lens)
 4. **Cross-Lens Synthesis** (priority table)
 5. **Hand-off Recommendation**
-6. **Open Questions** (only if intent was ambiguous)
+6. **Recommended Execution Model** — standardized block emitted by [model-recommender](../model-recommender/SKILL.md), sized for the highest-priority hand-off. Embedded verbatim. Skip only when the synthesis is `no actionable lenses triggered` or `The stone is square.`. When the recommendation surfaces a constraint (deprecated model, training-policy concern, preview-tier flag), lead this item with a `> ⚠ Note:` callout above the block.
+7. **Open Questions** (only if intent was ambiguous)
 
 ## Guardrails
 
@@ -239,3 +247,4 @@ End with:
 - Do not collapse distinct lens findings into a vague "needs refactor."
 - Do not duplicate work that belongs to `common-gavel`, `pencil`, `trestle`, or `raise`. Hand off instead.
 - Do not output the full lens registry in the response — only the lenses you actually ran.
+- Do not omit the **Recommended Execution Model** Output Contract item when the synthesis has any actionable findings — load [model-recommender](../model-recommender/SKILL.md) and embed its block verbatim. The executing developer needs to know which model to use for the highest-priority hand-off; an audit without that guidance leaves the developer guessing.
