@@ -2,6 +2,7 @@ import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cn } from "@/lib/utils"
 import { buttonVariants, type ButtonVariantProps } from "./button-variants"
+import { MC_FOCUS_VISIBLE_RING } from "./mission-control-focus"
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
@@ -17,7 +18,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <Comp
         className={cn(
           buttonVariants({ variant, size, className }),
-          "focus-visible:ring-[3px] focus-visible:ring-ring",
+          MC_FOCUS_VISIBLE_RING,
           isPrimaryAction && "min-h-[44px] min-w-[44px]"
         )}
         ref={ref}
