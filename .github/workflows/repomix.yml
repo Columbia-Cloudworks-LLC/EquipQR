@@ -25,9 +25,10 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      # Install dependencies so repomix can resolve local imports
+      # Install runtime dependencies only; repomix reads source files and
+      # doesn't require test/build-only devDependencies.
       - name: Install Dependencies
-        run: npm ci
+        run: npm ci --omit=dev --prefer-offline --no-audit
 
       # Run repomix directly via npx (uses repomix.config.json automatically)
       - name: Pack with Repomix
