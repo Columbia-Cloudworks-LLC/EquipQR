@@ -39,19 +39,36 @@ jobs:
           version: 2.72.8
 
       - name: Export schema from preview project
+        id: export-schema
         run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::warning::PREVIEW_DATABASE_URL is not configured. Skipping schema export."
+            echo "exported=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ ! "$DATABASE_URL" =~ ^postgres(ql)?:// ]]; then
+            echo "::warning::PREVIEW_DATABASE_URL is not a valid Postgres URI. Skipping schema export."
+            echo "exported=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           echo "Exporting schema from preview Supabase project..."
           supabase db dump --db-url "$DATABASE_URL" \
             --schema public,storage,auth \
             > supabase/schema.sql
+          echo "exported=true" >> "$GITHUB_OUTPUT"
           echo "Schema exported to supabase/schema.sql"
         env:
           DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
 
       - name: Commit schema if changed
+        if: steps.export-schema.outputs.exported == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ ! -f supabase/schema.sql ]; then
+            echo "::notice::No schema.sql generated; skipping commit."
+            exit 0
+          fi
           git add supabase/schema.sql
           if git diff --cached --quiet; then
             echo "No schema changes detected"
