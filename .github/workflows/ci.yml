@@ -15,8 +15,11 @@ permissions:
   checks: write
 
 env:
-  NODE_VERSION: 20.x
-  CACHE_VERSION: v1
+  # Node 24 is the current Active LTS (Oct 2025 → Oct 2027). Node 20 reached EOL
+  # in April 2026 and must not be used. See:
+  # https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+  NODE_VERSION: 24.x
+  CACHE_VERSION: v2
 
 jobs:
   lint-and-typecheck:
@@ -26,16 +29,16 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
         
     - name: Cache dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: |
           ~/.npm
@@ -119,21 +122,23 @@ jobs:
     
     strategy:
       matrix:
-        # Node 18.x dropped: bin-links@6.0.0 requires node ^20.17.0 || >=22.9.0
-        node-version: [20.x, 22.x]
+        # Node 20.x dropped: reached EOL in April 2026.
+        # Node 22 = Maintenance LTS (until April 2027), Node 24 = Active LTS (until Oct 2027).
+        # bin-links@6.0.0 requires node ^20.17.0 || >=22.9.0
+        node-version: [22.x, 24.x]
         
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       
     - name: Setup Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
         
     - name: Cache dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: |
           ~/.npm
@@ -189,18 +194,19 @@ jobs:
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
-      if: matrix.node-version == '20.x'
+      uses: codecov/codecov-action@v6
+      if: matrix.node-version == '24.x'
       with:
-        file: ./coverage/lcov.info
+        # codecov-action@v6 renamed `file:` → `files:` (comma-separated allowed).
+        files: ./coverage/lcov.info
         flags: unittests
         name: codecov-umbrella
         fail_ci_if_error: false
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload coverage artifacts for PR report
-      uses: actions/upload-artifact@v4
-      if: matrix.node-version == '20.x' && github.event_name == 'pull_request'
+      uses: actions/upload-artifact@v7
+      if: matrix.node-version == '24.x' && github.event_name == 'pull_request'
       with:
         name: coverage-report
         path: |
@@ -220,10 +226,10 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Download coverage artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: coverage-report
         path: coverage
@@ -244,16 +250,16 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
         
     - name: Cache dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: |
           ~/.npm
@@ -279,13 +285,13 @@ jobs:
       continue-on-error: true
       
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@v4
       with:
         languages: javascript
         queries: security-and-quality
         
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@v4
       with:
         category: "/language:javascript"
 
@@ -297,16 +303,16 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
         
     - name: Cache dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: |
           ~/.npm
@@ -370,7 +376,7 @@ jobs:
         install_with_retry || (rm -f package-lock.json && npm install --package-lock-only --no-audit && install_with_retry)
 
     - name: Cache build output
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: dist
         key: ${{ runner.os }}-build-${{ github.sha }}
@@ -443,7 +449,7 @@ jobs:
       timeout-minutes: 5
       
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: build-files
         path: dist/
@@ -457,16 +463,16 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
         
     - name: Cache dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: |
           ~/.npm
@@ -514,7 +520,7 @@ jobs:
         npm ci --prefer-offline --no-audit || (rm -f package-lock.json && npm install --package-lock-only --no-audit && npm ci --prefer-offline --no-audit)
 
     - name: Restore build cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: dist
         key: ${{ runner.os }}-build-${{ github.sha }}

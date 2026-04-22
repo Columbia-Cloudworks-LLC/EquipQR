@@ -7,9 +7,6 @@ on:
     branches: [ main, preview ]
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   pack:
     name: Pack Repository
@@ -19,13 +16,13 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
-      # Use Node 20 (LTS) to match your project config
+      # Node 24 = current Active LTS (Oct 2025 → Oct 2027). Node 20 is EOL.
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       # Install runtime dependencies only; repomix reads source files and
@@ -38,7 +35,7 @@ jobs:
         run: npx --yes repomix
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: repomix-EquipQR.xml
           path: repomix-EquipQR.xml
