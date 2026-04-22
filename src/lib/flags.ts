@@ -6,15 +6,6 @@
  */
 
 /**
- * Controls whether billing and payment features are enabled.
- * When disabled, all users have access to all features regardless of subscription status.
- * 
- * Set via environment variable: BILLING_DISABLED
- * Defaults to true (disabled) unless explicitly set to false in production.
- */
-export const BILLING_DISABLED = import.meta.env.BILLING_DISABLED === 'true' || import.meta.env.BILLING_DISABLED !== 'false';
-
-/**
  * Controls whether QuickBooks Online integration is enabled.
  * When disabled, all QuickBooks-related UI and functionality is hidden.
  * 
@@ -80,10 +71,6 @@ export const DSR_COCKPIT_ENABLED = import.meta.env.VITE_ENABLE_DSR_COCKPIT === '
  * Feature flag accessor utility
  */
 export const FeatureFlags = {
-  billing: {
-    disabled: BILLING_DISABLED,
-    enabled: !BILLING_DISABLED
-  },
   quickbooks: {
     enabled: QUICKBOOKS_ENABLED,
     disabled: !QUICKBOOKS_ENABLED,
@@ -109,22 +96,6 @@ export const FeatureFlags = {
     disabled: !DSR_COCKPIT_ENABLED
   }
 } as const;
-
-/**
- * Check if billing is enabled
- * @returns true if billing features should be active
- */
-export function isBillingEnabled(): boolean {
-  return !BILLING_DISABLED;
-}
-
-/**
- * Check if billing is disabled
- * @returns true if billing is disabled
- */
-export function isBillingDisabled(): boolean {
-  return BILLING_DISABLED;
-}
 
 /**
  * Check if QuickBooks integration is enabled

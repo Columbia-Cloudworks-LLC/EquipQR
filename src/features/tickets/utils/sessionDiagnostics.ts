@@ -112,7 +112,8 @@ export function collectSessionDiagnostics(
     organizationPlan: orgContext?.currentOrganization?.plan ?? null,
     userRole: orgContext?.currentOrganization?.userRole ?? null,
     featureFlags: {
-      billingEnabled: FeatureFlags.billing.enabled,
+      // Billing feature gating has been removed; keep telemetry key for compatibility.
+      billingEnabled: true,
       quickbooksEnabled: FeatureFlags.quickbooks.enabled,
     },
     recentErrors: getRecentErrors().slice(-5),

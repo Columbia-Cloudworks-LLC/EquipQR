@@ -1,26 +1,17 @@
-import { describe, it, expect } from 'vitest';
-import { BILLING_DISABLED, FeatureFlags, isBillingEnabled, isBillingDisabled } from './flags';
+import { describe, expect, it } from 'vitest';
+import { FeatureFlags, QUICKBOOKS_ENABLED, isQuickBooksDisabled, isQuickBooksEnabled } from './flags';
 
 describe('flags', () => {
-
-  it('should have FeatureFlags.billing.disabled matching BILLING_DISABLED', () => {
-    expect(FeatureFlags.billing.disabled).toBe(BILLING_DISABLED);
-    expect(FeatureFlags.billing.enabled).toBe(!BILLING_DISABLED);
+  it('should have FeatureFlags.quickbooks.enabled matching QUICKBOOKS_ENABLED', () => {
+    expect(FeatureFlags.quickbooks.enabled).toBe(QUICKBOOKS_ENABLED);
+    expect(FeatureFlags.quickbooks.disabled).toBe(!QUICKBOOKS_ENABLED);
   });
 
-  it('should have isBillingEnabled return opposite of BILLING_DISABLED', () => {
-    expect(isBillingEnabled()).toBe(!BILLING_DISABLED);
+  it('should have isQuickBooksEnabled return QUICKBOOKS_ENABLED', () => {
+    expect(isQuickBooksEnabled()).toBe(QUICKBOOKS_ENABLED);
   });
 
-  it('should have isBillingDisabled return BILLING_DISABLED', () => {
-    expect(isBillingDisabled()).toBe(BILLING_DISABLED);
-  });
-
-  it('should have BILLING_DISABLED correctly calculated from env', () => {
-    // Test the logic: BILLING_DISABLED should be true if env var is 'true' or not 'false'
-    // Since we can't easily mock import.meta.env at runtime, we test the current behavior
-    // This tests the actual logic that's used
-    const currentValue = BILLING_DISABLED;
-    expect(typeof currentValue).toBe('boolean');
+  it('should have isQuickBooksDisabled return opposite of QUICKBOOKS_ENABLED', () => {
+    expect(isQuickBooksDisabled()).toBe(!QUICKBOOKS_ENABLED);
   });
 });
