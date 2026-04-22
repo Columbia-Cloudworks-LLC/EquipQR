@@ -226,7 +226,7 @@ export function DataTable<T extends Record<string, unknown>>({
                       <button
                         type="button"
                         className={cn(
-                          'flex w-full items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+                          'flex w-full items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2',
                           alignClass === 'text-right' && 'justify-end',
                           alignClass === 'text-center' && 'justify-center',
                           !alignClass && 'text-left',
