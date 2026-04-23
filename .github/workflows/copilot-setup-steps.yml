@@ -20,6 +20,8 @@ jobs:
   copilot-setup-steps:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
 
     permissions:
       contents: read
@@ -47,5 +49,3 @@ jobs:
       - name: Bootstrap secrets from 1Password
         if: ${{ env.OP_SERVICE_ACCOUNT_TOKEN != '' }}
         run: bash scripts/agent-bootstrap.sh
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
