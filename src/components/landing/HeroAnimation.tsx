@@ -70,9 +70,16 @@ export default function HeroAnimation() {
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [opacity, setOpacity] = useState(1);
 
-  // Cycle seed — re-randomizes dot positions and chosen card set per loop.
-  // Read at render time, so any state change after cycleRef increment picks it up.
+  // Cycle seed — re-randomizes dot positions per loop. Read at render time so
+  // any state change after cycleRef increment picks it up.
   const cycleSeed = cycleRef.current;
+
+  // National cycles happen when cycleRef.current % 3 === 0, so cycleSeed for
+  // national cycles is always 0, 3, 6, 9... — using `cycleSeed % 3` to pick
+  // a card set always lands on index 0. Derive a separate national-cycle index
+  // (0, 1, 2, 3, ...) by integer-dividing by 3 so each national instance gets
+  // a distinct rotation seed.
+  const nationalSeed = Math.floor(cycleSeed / 3);
 
   // --- Dots (state cycle): rejection-sampled inside the state polygon ---
   // Computed in HeroAnimation so the chosen dot is guaranteed to match a
@@ -235,6 +242,7 @@ export default function HeroAnimation() {
                 {phase === 'national' && (
                   <NationalMapPhase
                     cycleSeed={cycleSeed}
+                    nationalSeed={nationalSeed}
                     onComplete={handleNationalComplete}
                   />
                 )}

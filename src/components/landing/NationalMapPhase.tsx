@@ -6,8 +6,13 @@ import { strToSeed } from './dotPositions';
 import { FEATURE_CARD_SETS } from './featureCardsData';
 
 interface NationalMapPhaseProps {
-  /** Mixed into RNG seed so dot positions and chosen feature card vary per cycle. */
+  /** Mixed into the dot-position RNG so dots vary per loop iteration. */
   cycleSeed: number;
+  /** Counts national cycles only (0, 1, 2, 3, ...) — used to rotate the
+   *  feature-card set so consecutive national visits show different sets.
+   *  Distinct from cycleSeed because national cycles only fire every 3rd loop,
+   *  meaning cycleSeed is always 0/3/6/9… and `cycleSeed % 3` always picks set 0. */
+  nationalSeed: number;
   onComplete: () => void;
 }
 
@@ -38,7 +43,11 @@ function seededRng(seed: number) {
  * in the room below it (no map resize). This gives enough time to read one
  * sentence per cycle instead of trying to digest two cards at once.
  */
-export default function NationalMapPhase({ cycleSeed, onComplete }: NationalMapPhaseProps) {
+export default function NationalMapPhase({
+  cycleSeed,
+  nationalSeed,
+  onComplete,
+}: NationalMapPhaseProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapWrapperRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -47,8 +56,8 @@ export default function NationalMapPhase({ cycleSeed, onComplete }: NationalMapP
   const [subPhase, setSubPhase] = useState<'intro' | 'feature'>('intro');
 
   const cardSet = useMemo(
-    () => FEATURE_CARD_SETS[Math.abs(cycleSeed) % FEATURE_CARD_SETS.length],
-    [cycleSeed],
+    () => FEATURE_CARD_SETS[Math.abs(nationalSeed) % FEATURE_CARD_SETS.length],
+    [nationalSeed],
   );
 
   const nationalDots = useMemo(() => {
