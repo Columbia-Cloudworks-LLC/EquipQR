@@ -49,16 +49,6 @@ export const MFA_ENABLED = import.meta.env.VITE_ENABLE_MFA === 'true';
 export const OFFLINE_QUEUE_ENABLED = import.meta.env.VITE_ENABLE_OFFLINE_QUEUE === 'true';
 
 /**
- * Controls whether PM interval tracking is enabled.
- * When enabled, PM templates can define maintenance intervals (days or working hours)
- * and equipment is flagged when overdue for preventive maintenance.
- *
- * Set via environment variable: VITE_ENABLE_PM_INTERVALS
- * Defaults to true (enabled) unless explicitly set to 'false'.
- */
-export const PM_INTERVALS_ENABLED = import.meta.env.VITE_ENABLE_PM_INTERVALS !== 'false';
-
-/**
  * Controls whether the DSR cockpit workspace is enabled.
  * When enabled, org admins/owners can access the compliance cockpit route.
  *
@@ -86,10 +76,6 @@ export const FeatureFlags = {
   offlineQueue: {
     enabled: OFFLINE_QUEUE_ENABLED,
     disabled: !OFFLINE_QUEUE_ENABLED
-  },
-  pmIntervals: {
-    enabled: PM_INTERVALS_ENABLED,
-    disabled: !PM_INTERVALS_ENABLED
   },
   dsrCockpit: {
     enabled: DSR_COCKPIT_ENABLED,
@@ -135,14 +121,6 @@ export function isMFAEnabled(): boolean {
  */
 export function isOfflineQueueEnabled(): boolean {
   return OFFLINE_QUEUE_ENABLED;
-}
-
-/**
- * Check if PM interval tracking is enabled
- * @returns true if PM interval features should be active
- */
-export function isPMIntervalsEnabled(): boolean {
-  return PM_INTERVALS_ENABLED;
 }
 
 /**

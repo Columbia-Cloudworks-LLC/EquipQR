@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/lib/queryKeys';
-import { PM_INTERVALS_ENABLED } from '@/lib/flags';
 
 export interface EquipmentPMStatus {
   equipment_id: string;
@@ -35,7 +34,7 @@ export function useEquipmentPMStatus(equipmentId: string | undefined) {
   return useQuery({
     queryKey: queryKeys.pmStatus.byEquipment(equipmentId ?? ''),
     queryFn: () => fetchEquipmentPMStatus(equipmentId!),
-    enabled: !!equipmentId && PM_INTERVALS_ENABLED,
+    enabled: !!equipmentId,
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -44,7 +43,7 @@ export function useOrgEquipmentPMStatuses(organizationId: string | undefined) {
   return useQuery({
     queryKey: queryKeys.pmStatus.byOrg(organizationId ?? ''),
     queryFn: () => fetchOrgEquipmentPMStatuses(organizationId!),
-    enabled: !!organizationId && PM_INTERVALS_ENABLED,
+    enabled: !!organizationId,
     staleTime: 5 * 60 * 1000,
   });
 }

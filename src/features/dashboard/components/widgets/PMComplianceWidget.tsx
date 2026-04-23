@@ -8,7 +8,6 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentByStatus, usePMCompliance } from '@/features/dashboard/hooks/useDashboardWidgets';
 import { useOrgEquipmentPMStatuses } from '@/features/equipment/hooks/useEquipmentPMStatus';
 import { getPMComplianceLevel } from '@/features/equipment/hooks/useEquipmentPMStatus';
-import { PM_INTERVALS_ENABLED } from '@/lib/flags';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useNavigate } from 'react-router-dom';
 
@@ -191,7 +190,7 @@ const PMComplianceWidget: React.FC = () => {
           />
         )}
 
-        {PM_INTERVALS_ENABLED && intervalSummary && intervalSummary.total > 0 && (
+        {intervalSummary && intervalSummary.total > 0 && (
           <div className="mt-3 border-t pt-3 space-y-1.5">
             <div className="mb-2 flex items-center gap-1.5">
               <p className="text-xs font-medium text-muted-foreground">Interval Tracking ({intervalSummary.total} equipment)</p>
