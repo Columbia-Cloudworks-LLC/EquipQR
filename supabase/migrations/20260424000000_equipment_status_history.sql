@@ -1,0 +1,54 @@
+-- ============================================================================
+-- Migration: equipment_status_history — per-row status-change log
+--
+-- Closes: #664  feat(dashboard): needs_attention sparkline should reflect
+--              historical equipment status, not current status
+-- Deferred from: PR #662 Copilot review (L115 of
+--   20260421180000_add_dashboard_trends_rpc.sql)
+--
+-- Problem
+-- -------
+-- get_dashboard_trends currently derives needs_attention_series by looking at
+-- each equipment row's *current* status and back-projecting it to its
+-- created_at date:
+--
+--   count(*) FILTER (WHERE e.status IN ('maintenance', 'inactive'))
+--   GROUP BY e.created_day
+--
+-- This means an item that is "active" today will never appear in a historical
+-- needs-attention bar even if it spent months in 'maintenance', and conversely
+-- an item currently in 'maintenance' inflates every prior bar it appears in.
+--
+-- Root cause: no per-row status-change history exists.
+--
+-- Fix plan
+-- --------
+-- 1. Create public.equipment_status_history — one row per status transition,
+--    recorded via a BEFORE/AFTER trigger on public.equipment.
+-- 2. Backfill: insert one synthetic "created" row for each existing equipment
+--    row using its current status and created_at as the first known transition.
+-- 3. Update get_dashboard_trends: replace the current-status heuristic with a
+--    point-in-time reconstruction that joins equipment_status_history to derive
+--    status-on-day-d per row, then aggregates needs_attention correctly.
+-- 4. Add RLS policy so authenticated users can SELECT history for equipment
+--    they can already see (same team/org membership rules as equipment).
+--
+-- Schema
+-- ------
+--   equipment_status_history (
+--     id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+--     equipment_id uuid NOT NULL REFERENCES public.equipment(id) ON DELETE CASCADE,
+--     old_status  text,                   -- NULL on first/create row
+--     new_status  text NOT NULL,
+--     changed_at  timestamptz NOT NULL DEFAULT now(),
+--     changed_by  uuid REFERENCES auth.users(id)
+--   )
+--
+-- Index: (equipment_id, changed_at) for the point-in-time lookups in the RPC.
+--
+-- TODO: implement the above plan — this file is the tracking stub.
+-- ============================================================================
+
+-- Placeholder — implementation pending.
+-- Remove this comment and implement the schema + trigger + RPC update.
+SELECT 1;
