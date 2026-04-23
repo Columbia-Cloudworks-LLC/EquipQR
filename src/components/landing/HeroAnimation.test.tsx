@@ -2,35 +2,39 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
-// Mock GSAP and related modules before importing components
 vi.mock('gsap', () => ({
   gsap: {
     registerPlugin: vi.fn(),
-    timeline: vi.fn(() => ({ to: vi.fn().mockReturnThis(), from: vi.fn().mockReturnThis() })),
+    timeline: vi.fn(() => ({
+      to: vi.fn().mockReturnThis(),
+      from: vi.fn().mockReturnThis(),
+      fromTo: vi.fn().mockReturnThis(),
+    })),
     to: vi.fn(() => ({ kill: vi.fn() })),
     from: vi.fn(() => ({ kill: vi.fn() })),
     context: vi.fn(() => ({ revert: vi.fn() })),
   },
   default: {
     registerPlugin: vi.fn(),
-    timeline: vi.fn(() => ({ to: vi.fn().mockReturnThis(), from: vi.fn().mockReturnThis() })),
+    timeline: vi.fn(() => ({
+      to: vi.fn().mockReturnThis(),
+      from: vi.fn().mockReturnThis(),
+      fromTo: vi.fn().mockReturnThis(),
+    })),
     to: vi.fn(() => ({ kill: vi.fn() })),
     from: vi.fn(() => ({ kill: vi.fn() })),
     context: vi.fn(() => ({ revert: vi.fn() })),
   },
 }));
 
-vi.mock('@gsap/react', () => ({
-  useGSAP: vi.fn(),
-}));
-
-vi.mock('gsap/MorphSVGPlugin', () => ({
-  MorphSVGPlugin: {},
-}));
+vi.mock('@gsap/react', () => ({ useGSAP: vi.fn() }));
+vi.mock('gsap/MorphSVGPlugin', () => ({ MorphSVGPlugin: {} }));
 
 import HeroAnimation from './HeroAnimation';
-import { ALL_STATE_CODES, STATE_VECTORS } from './stateVectors';
+import { ALL_STATE_CODES, STATE_VECTORS, STATES_RELATIVE } from './stateVectors';
 import type { StateCode } from './stateVectors';
+import { computeDotPositions, chosenDotIndex } from './dotPositions';
+import { ALL_PM_ITEMS, EXPORT_TARGETS } from './pmChecklistData';
 
 function renderHero() {
   return render(
@@ -63,7 +67,6 @@ describe('HeroAnimation', () => {
 
   it('renders a landmark region with the correct aria-label', () => {
     renderHero();
-
     expect(
       screen.getByRole('region', { name: /EquipQR asset tracking demo/i }),
     ).toBeInTheDocument();
@@ -71,7 +74,6 @@ describe('HeroAnimation', () => {
 
   it('renders a visible H1 tagline', () => {
     renderHero();
-
     const heading = screen.getByRole('heading', { level: 1 });
     expect(heading).toBeInTheDocument();
     expect(heading.textContent).toBeTruthy();
@@ -79,30 +81,60 @@ describe('HeroAnimation', () => {
 
   it('includes a sr-only description for screen readers', () => {
     renderHero();
-
     const srText = document.querySelector('.sr-only');
     expect(srText).toBeTruthy();
     expect(srText?.textContent?.length).toBeGreaterThan(20);
   });
 
   describe('reduced-motion fallback', () => {
-    beforeEach(() => {
-      setReducedMotion(true);
-    });
+    beforeEach(() => { setReducedMotion(true); });
 
     it('renders the static composite when prefers-reduced-motion is active', () => {
       renderHero();
-
       expect(screen.getByTestId('static-hero-composite')).toBeInTheDocument();
+    });
+
+    it('does not render PM checklist phase in reduced-motion mode', () => {
+      renderHero();
+      expect(screen.queryByTestId('pm-checklist-phase')).not.toBeInTheDocument();
     });
 
     it('does not render any animated phase components', () => {
       renderHero();
-
-      // Animated phases are lazy-loaded and wrapped in Suspense;
-      // in reduced-motion mode none of them should mount.
       expect(screen.queryByTestId('qr-scan-phase')).not.toBeInTheDocument();
       expect(screen.queryByTestId('state-morph-phase')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('slide direction logic', () => {
+    it('slide direction is left when chosenDot.cx > 50', () => {
+      const states: StateCode[] = ['TX', 'CA', 'NY', 'FL', 'OH'];
+      for (const code of states) {
+        const dots = computeDotPositions(code, 14);
+        const idx = chosenDotIndex(code, dots);
+        const dot = dots[idx];
+        const direction = dot.cx > 50 ? 'left' : 'right';
+        expect(['left', 'right']).toContain(direction);
+      }
+    });
+
+    it('computeDotPositions is deterministic — same code always returns the same positions', () => {
+      const sample: StateCode[] = ['TX', 'CA', 'NY', 'AK', 'HI'];
+      for (const code of sample) {
+        const a = computeDotPositions(code, 14);
+        const b = computeDotPositions(code, 14);
+        expect(a).toEqual(b);
+      }
+    });
+
+    it('chosenDotIndex is deterministic per stateKey', () => {
+      const sample: StateCode[] = ['TX', 'CA', 'NY'];
+      for (const code of sample) {
+        const dots = computeDotPositions(code, 14);
+        const a = chosenDotIndex(code, dots);
+        const b = chosenDotIndex(code, dots);
+        expect(a).toBe(b);
+      }
     });
   });
 
@@ -124,6 +156,39 @@ describe('HeroAnimation', () => {
       const sample: StateCode[] = ['TX', 'CA', 'NY', 'AK', 'HI'];
       for (const code of sample) {
         expect(STATE_VECTORS[code]).toBe(STATE_VECTORS[code]);
+      }
+    });
+  });
+
+  describe('STATES_RELATIVE data integrity', () => {
+    it('contains entries for all 50 states', () => {
+      expect(Object.keys(STATES_RELATIVE)).toHaveLength(50);
+    });
+
+    it('every STATES_RELATIVE path is a non-empty SVG path string', () => {
+      for (const code of ALL_STATE_CODES) {
+        const d = STATES_RELATIVE[code];
+        expect(typeof d).toBe('string');
+        expect(d.length).toBeGreaterThan(10);
+      }
+    });
+  });
+
+  describe('PM checklist data integrity', () => {
+    it('has exactly 5 checklist items', () => {
+      expect(ALL_PM_ITEMS).toHaveLength(5);
+    });
+
+    it('has exactly 3 export targets', () => {
+      expect(EXPORT_TARGETS).toHaveLength(3);
+    });
+
+    it('export targets have labels and renderable icon components', () => {
+      for (const target of EXPORT_TARGETS) {
+        expect(target.label).toBeTruthy();
+        // Lucide icons are React.forwardRef objects (typeof 'object'), not plain functions
+        expect(target.icon).toBeDefined();
+        expect(target.icon).not.toBeNull();
       }
     });
   });

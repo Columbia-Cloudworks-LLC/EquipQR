@@ -3,6 +3,7 @@ import { useGSAP } from '@gsap/react';
 import { gsap } from 'gsap';
 import type { StateCode } from './stateVectors';
 import { STATE_VECTORS } from './stateVectors';
+import { computeDotPositions } from './dotPositions';
 
 interface AssetDotsPhaseProps {
   stateKey: StateCode;
@@ -12,24 +13,6 @@ interface AssetDotsPhaseProps {
 const VIEWBOX = 100;
 const DEFAULT_DOT_COUNT = 14;
 
-/**
- * Simple linear-congruential generator for deterministic, seedable pseudorandom
- * numbers. Seeds on the stateKey so dot positions are stable per-state and
- * don't shift between renders or loop iterations.
- */
-function seededRng(seed: number) {
-  let s = seed;
-  return () => {
-    s = (s * 1664525 + 1013904223) & 0xffffffff;
-    return (s >>> 0) / 0xffffffff;
-  };
-}
-
-/** Convert a string to a numeric seed (sum of char codes). */
-function strToSeed(str: string): number {
-  return str.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-}
-
 export default function AssetDotsPhase({
   stateKey,
   dotCount = DEFAULT_DOT_COUNT,
@@ -37,14 +20,10 @@ export default function AssetDotsPhase({
   const containerRef = useRef<SVGSVGElement>(null);
   const clipId = `state-clip-${stateKey}`;
 
-  const dots = useMemo(() => {
-    const rng = seededRng(strToSeed(stateKey));
-    return Array.from({ length: dotCount }, (_, i) => ({
-      id: i,
-      cx: rng() * VIEWBOX,
-      cy: rng() * VIEWBOX,
-    }));
-  }, [stateKey, dotCount]);
+  const dots = useMemo(
+    () => computeDotPositions(stateKey, dotCount),
+    [stateKey, dotCount],
+  );
 
   useGSAP(
     () => {
