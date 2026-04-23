@@ -311,22 +311,30 @@ BEGIN
       e.event_day,
       SUM(e.delta)::integer AS net_delta
     FROM (
+      -- A work order becomes overdue on its due_day (or the start of our window,
+      -- whichever is later). Completed/cancelled WOs are included only when they
+      -- have a completed_date that bounds the overdue period. WOs with
+      -- status IN ('completed','cancelled') AND completed_date IS NULL are
+      -- excluded — COALESCE would default to v_today, making them appear
+      -- perpetually overdue.
       SELECT
         GREATEST(w.due_day, v_prior_start) AS event_day,
         1 AS delta
       FROM accessible_wo w
       WHERE w.due_day IS NOT NULL
-        AND w.status NOT IN ('completed', 'cancelled')
+        AND (w.status NOT IN ('completed', 'cancelled') OR w.completed_day IS NOT NULL)
         AND COALESCE(w.completed_day - 1, v_today) >= GREATEST(w.due_day, v_prior_start)
 
       UNION ALL
 
+      -- The overdue period ends the day after the last overdue day
+      -- (completed_day - 1, or today if still open).
       SELECT
         LEAST(COALESCE(w.completed_day - 1, v_today), v_today) + 1 AS event_day,
         -1 AS delta
       FROM accessible_wo w
       WHERE w.due_day IS NOT NULL
-        AND w.status NOT IN ('completed', 'cancelled')
+        AND (w.status NOT IN ('completed', 'cancelled') OR w.completed_day IS NOT NULL)
         AND COALESCE(w.completed_day - 1, v_today) >= GREATEST(w.due_day, v_prior_start)
         AND LEAST(COALESCE(w.completed_day - 1, v_today), v_today) + 1 <= v_today
     ) e
@@ -442,8 +450,12 @@ COMMENT ON FUNCTION public.get_dashboard_trends(uuid, integer) IS
   'needs_attention is derived from equipment_status_history (point-in-time) '
   'so historical sparkline bars reflect actual status on each day rather than '
   'back-projecting current status. '
+  'The overdue_events CTE relies on due_day/completed_day bounds so that '
+  'completed WOs that were historically overdue are counted correctly (fix #665). '
+  'WOs with status IN (completed, cancelled) AND completed_date IS NULL are '
+  'excluded to avoid treating them as perpetually overdue. '
   'Team scope and admin status derived ENTIRELY server-side from auth.uid(). '
-  'Tenant isolation enforced by public.is_org_member(). See issues #589, #664.';
+  'Tenant isolation enforced by public.is_org_member(). See issues #589, #664, #665.';
 
 REVOKE ALL  ON FUNCTION public.get_dashboard_trends(uuid, integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_dashboard_trends(uuid, integer) TO authenticated;
