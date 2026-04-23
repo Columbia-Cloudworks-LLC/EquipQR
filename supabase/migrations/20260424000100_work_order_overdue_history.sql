@@ -1,0 +1,62 @@
+-- ============================================================================
+-- Migration: work_order_overdue_history — accurate historical overdue series
+--
+-- Closes: #665  fix(dashboard): overdue_work sparkline excludes completed WOs
+--              that were historically overdue
+-- Deferred from: PR #662 Copilot review (L164 of
+--   20260421180000_add_dashboard_trends_rpc.sql)
+--
+-- Problem
+-- -------
+-- get_dashboard_trends computes overdue_work_series via an event-based CTE
+-- (overdue_events) that uses due_date + completed_date as approximate bounds.
+-- However, it still filters:
+--
+--   AND w.status NOT IN ('completed', 'cancelled')
+--
+-- This means any work order that is NOW completed or cancelled is excluded from
+-- the overdue tally entirely — even if it was genuinely overdue for weeks before
+-- being closed. The sparkline undercounts historical overdue load.
+--
+-- The partially-fixed approach in 20260423120001 improved accuracy by using
+-- completed_date as the "stop being overdue" event, but the current-status
+-- filter still suppresses completed WOs that were overdue within the window.
+--
+-- Root cause
+-- ----------
+-- Without a work_order_status_history table, the only completion timestamp
+-- available is completed_date. The overdue_events CTE can use that field to
+-- bound the overdue period (work was overdue from due_date until completed_date
+-- or today), but the AND w.status NOT IN (...) filter cancels the effect for
+-- completed rows.
+--
+-- Fix plan
+-- --------
+-- Option A (preferred — no new table):
+--   Remove the `AND w.status NOT IN ('completed', 'cancelled')` filter from
+--   overdue_events entirely, and instead rely solely on the event-sourced
+--   bounds (due_day vs completed_day/today). A row is overdue on day D if:
+--     due_day <= D AND (completed_day IS NULL OR completed_day > D)
+--   This correctly shows completed WOs as overdue during their overdue window
+--   without needing a history table.
+--
+-- Option B (heavier — status history):
+--   Create public.work_order_status_history (same pattern as #664's
+--   equipment_status_history) and reconstruct exact overdue periods per row.
+--
+-- Recommendation: Option A. The existing columns (due_date, completed_date)
+-- already encode the boundary events. The status filter is over-conservative.
+--
+-- SQL change (Option A):
+--   In overdue_events inner UNION, replace:
+--     AND w.status NOT IN ('completed', 'cancelled')
+--   with no status filter, relying entirely on due_day/completed_day bounds.
+--
+-- RPC change also needs to update get_dashboard_trends accordingly.
+--
+-- TODO: implement Option A — remove the status filter from overdue_events.
+-- ============================================================================
+
+-- Placeholder — implementation pending.
+-- Remove this comment and implement the fix described above.
+SELECT 1;
