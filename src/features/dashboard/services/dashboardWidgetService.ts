@@ -149,24 +149,21 @@ const emptyTrends = (days: number): DashboardTrends => ({
   needsAttention: emptyTrend(days),
 });
 
-/**
- * Fetch real historical trend data for the four dashboard KPIs via the
- * `get_dashboard_trends` RPC. Scoping parameters mirror
- * getTeamBasedDashboardStats (`userTeamIds`, `isManager`) so trend data
- * matches the point-in-time values shown on the same cards.
- */
+  /**
+   * Fetch real historical trend data for the four dashboard KPIs via the
+   * `get_dashboard_trends` RPC. Team scope and admin status are derived
+   * entirely server-side from auth.uid() — no auth params are passed by the
+   * caller (the RPC's SECURITY DEFINER contract prohibits caller-supplied
+   * auth parameters).
+   */
 export async function fetchDashboardTrends(
-  organizationId: string,
-  userTeamIds: string[],
-  isManager: boolean,
-  days = 7
-): Promise<DashboardTrends> {
-  const { data, error } = await supabase.rpc('get_dashboard_trends', {
-    p_org_id: organizationId,
-    p_team_ids: userTeamIds,
-    p_is_manager: isManager,
-    p_days: days,
-  });
+    organizationId: string,
+    days = 7
+  ): Promise<DashboardTrends> {
+    const { data, error } = await supabase.rpc('get_dashboard_trends', {
+      p_org_id: organizationId,
+      p_days: days,
+    });
 
   if (error) throw error;
 

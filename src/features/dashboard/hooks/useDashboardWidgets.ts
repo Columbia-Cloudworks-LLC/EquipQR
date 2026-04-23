@@ -135,25 +135,21 @@ export function useCostTrend(organizationId: string | undefined) {
  * visually noisy.
  */
 export function useDashboardTrends(
-  organizationId: string | undefined,
-  userTeamIds: string[],
-  isManager: boolean,
-  enabled: boolean = true,
-  days: number = 7
-) {
-  return useQuery({
-    queryKey: [
-      'dashboard-trends',
-      organizationId,
-      userTeamIds,
-      isManager,
-      days,
-    ],
-    queryFn: async (): Promise<DashboardTrends | null> => {
-      if (!organizationId) return null;
-      return fetchDashboardTrends(organizationId, userTeamIds, isManager, days);
-    },
-    enabled: !!organizationId && enabled,
+    organizationId: string | undefined,
+    enabled: boolean = true,
+    days: number = 7
+  ) {
+    return useQuery({
+      queryKey: [
+        'dashboard-trends',
+        organizationId,
+        days,
+      ],
+      queryFn: async (): Promise<DashboardTrends | null> => {
+        if (!organizationId) return null;
+        return fetchDashboardTrends(organizationId, days);
+      },
+      enabled: !!organizationId && enabled,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   });
