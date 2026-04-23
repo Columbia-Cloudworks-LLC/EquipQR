@@ -24,7 +24,11 @@ interface EquipQRIconProps extends React.SVGProps<SVGSVGElement> {
  */
 const EquipQRIcon = React.forwardRef<SVGSVGElement, EquipQRIconProps>(
   ({ title = 'EquipQR', className, ...props }, ref) => {
-    const titleId = title ? 'equipqr-icon-title' : undefined;
+    // Generate a per-instance id so multiple EquipQRIcon renders on the same
+    // page (e.g. <Logo /> in the header AND a hero composite) don't collide
+    // on the same `<title>` id and break aria-labelledby for screen readers.
+    const reactId = React.useId();
+    const titleId = title ? `equipqr-icon-title-${reactId}` : undefined;
     return (
       <svg
         ref={ref}

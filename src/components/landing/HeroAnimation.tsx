@@ -61,7 +61,8 @@ function StaticHeroComposite() {
 export default function HeroAnimation() {
   const prefersReducedMotion = usePrefersReducedMotion();
 
-  // Cycle counter — every 3rd cycle (1-indexed) is the national map cycle.
+  // Counts COMPLETED cycles (incremented at the end of each cycle).
+  // The cycle currently in progress is `cycleRef.current + 1` (1-indexed).
   const cycleRef = useRef(0);
 
   const [phase, setPhase] = useState<AnimPhase>('qr');
@@ -74,12 +75,12 @@ export default function HeroAnimation() {
   // any state change after cycleRef increment picks it up.
   const cycleSeed = cycleRef.current;
 
-  // National cycles happen when cycleRef.current % 3 === 0, so cycleSeed for
-  // national cycles is always 0, 3, 6, 9... — using `cycleSeed % 3` to pick
-  // a card set always lands on index 0. Derive a separate national-cycle index
-  // (0, 1, 2, 3, ...) by integer-dividing by 3 so each national instance gets
-  // a distinct rotation seed.
-  const nationalSeed = Math.floor(cycleSeed / 3);
+  // Every 3rd cycle (1-indexed: cycles 3, 6, 9, …) is national. `nationalSeed`
+  // counts national instances (0 for the first national cycle, 1 for the next, …)
+  // so each national render picks a distinct feature-card set. Negative values
+  // during state cycles are harmless: NationalMapPhase only mounts during
+  // national cycles, and it uses `Math.abs(nationalSeed) % len` defensively.
+  const nationalSeed = Math.floor((cycleSeed + 1) / 3) - 1;
 
   // --- Dots (state cycle): rejection-sampled inside the state polygon ---
   // Computed in HeroAnimation so the chosen dot is guaranteed to match a
@@ -122,7 +123,10 @@ export default function HeroAnimation() {
   // --- Phase transition handlers ---
 
   const handleQRComplete = useCallback(() => {
-    setPhase(cycleRef.current % 3 === 0 ? 'national' : 'morph');
+    // cycleRef counts COMPLETED cycles, so the cycle now starting is
+    // (cycleRef.current + 1). We want cycles 3, 6, 9, … to be national.
+    const currentCycle1Indexed = cycleRef.current + 1;
+    setPhase(currentCycle1Indexed % 3 === 0 ? 'national' : 'morph');
   }, []);
 
   const handleMorphComplete = useCallback(() => {
@@ -180,6 +184,21 @@ export default function HeroAnimation() {
     }
     return () => { if (holdTimerRef.current) clearTimeout(holdTimerRef.current); };
   }, [phase, handleDotsReady]);
+
+  // Defensive unmount guarantee: clear any pending fade/restart timer on the
+  // ref regardless of which phase we were in. The phase-scoped effects above
+  // already clean up, but those callbacks (handleNationalComplete,
+  // handleChecklistComplete) write to holdTimerRef from outside an effect,
+  // so we keep an explicit unmount-only cleanup here in case the user
+  // navigates away mid-fade.
+  useEffect(() => {
+    return () => {
+      if (holdTimerRef.current) {
+        clearTimeout(holdTimerRef.current);
+        holdTimerRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <section

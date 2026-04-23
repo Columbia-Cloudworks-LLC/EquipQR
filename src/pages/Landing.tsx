@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect } from 'react';
+import React, { Suspense, lazy, useEffect, useRef } from 'react';
 import LandingHeader from '@/components/landing/LandingHeader';
 import HeroAnimation from '@/components/landing/HeroAnimation';
 import LandingFooter from '@/components/landing/LandingFooter';
@@ -24,6 +24,12 @@ function BelowFoldFallback() {
 
 const Landing: React.FC = () => {
   const prefersReducedMotion = usePrefersReducedMotion();
+  // Snapshot reduced-motion preference in a ref so the hash-scroll effect
+  // reads the current value without depending on it. This keeps the effect
+  // a one-shot mount handler — toggling the OS accessibility setting must
+  // not re-scroll the page back to the hash target.
+  const prefersReducedMotionRef = useRef(prefersReducedMotion);
+  prefersReducedMotionRef.current = prefersReducedMotion;
 
   useEffect(() => {
     const rawHash = window.location.hash;
@@ -42,8 +48,10 @@ const Landing: React.FC = () => {
     const target = document.getElementById(decodedId);
     if (!target) return;
 
-    target.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth' });
-  }, [prefersReducedMotion]);
+    target.scrollIntoView({
+      behavior: prefersReducedMotionRef.current ? 'auto' : 'smooth',
+    });
+  }, []);
 
   return (
     <>

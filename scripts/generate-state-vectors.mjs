@@ -98,18 +98,6 @@ function normalizePath(dStr) {
   });
 }
 
-function normalizePathShared(dStr, minX, minY, scale) {
-  const nums = extractNums(dStr);
-  if (nums.length < 2) return dStr;
-  const numRe = /-?[0-9]*\.?[0-9]+(?:e[-+]?[0-9]+)?/gi;
-  let idx = 0;
-  return dStr.replace(numRe, () => {
-    const n = nums[idx]; const isX = idx % 2 === 0; idx++;
-    const v = isX ? (n - minX) * scale : (n - minY) * scale;
-    return Math.round(v * 100) / 100;
-  });
-}
-
 const pathGen = geoPath(geoIdentity().reflectY(false));
 const results = {};
 const tooFewPoints = [];

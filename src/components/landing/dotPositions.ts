@@ -3,7 +3,12 @@ import type { StateCode } from './stateVectors';
 
 const VIEWBOX = 100;
 
-function seededRng(seed: number): () => number {
+/**
+ * Linear congruential PRNG. Same constants as Numerical Recipes' `ranqd1`.
+ * Exported so other animation modules (e.g. NationalMapPhase) reuse the
+ * exact same sequence rather than redefining the function.
+ */
+export function seededRng(seed: number): () => number {
   let s = seed;
   return () => {
     s = (s * 1664525 + 1013904223) & 0xffffffff;

@@ -2,7 +2,7 @@ import { useRef, useMemo, useState, useEffect } from 'react';
 import { useGSAP } from '@gsap/react';
 import { gsap } from 'gsap';
 import { STATES_RELATIVE, ALL_STATE_CODES } from './stateVectors';
-import { strToSeed } from './dotPositions';
+import { seededRng, strToSeed } from './dotPositions';
 import { FEATURE_CARD_SETS } from './featureCardsData';
 
 interface NationalMapPhaseProps {
@@ -22,14 +22,6 @@ const SVG_HEIGHT = 589;
 const NATIONAL_DOT_COUNT = 30;
 const INTRO_HOLD_MS = 600;
 const FEATURE_DISPLAY_MS = 4500;
-
-function seededRng(seed: number) {
-  let s = seed;
-  return () => {
-    s = (s * 1664525 + 1013904223) & 0xffffffff;
-    return (s >>> 0) / 0xffffffff;
-  };
-}
 
 /**
  * Every-3rd-cycle national map view.
