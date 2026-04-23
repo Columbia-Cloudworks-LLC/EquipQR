@@ -29,7 +29,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { SaveStatus } from '@/components/ui/SaveStatus';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useBrowserStorage } from '@/hooks/useBrowserStorage';
-import { PM_INTERVALS_ENABLED } from '@/lib/flags';
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { useCreatePMTemplate, useUpdatePMTemplate } from '@/features/pm-templates/hooks/usePMTemplates';
 import { PMTemplateCompatibilityRulesEditor } from '@/features/pm-templates/components/PMTemplateCompatibilityRulesEditor';
@@ -849,78 +848,76 @@ export const ChecklistTemplateEditor: React.FC<ChecklistTemplateEditorProps> = (
               rows={2}
             />
           </div>
-          {PM_INTERVALS_ENABLED && (
-            <div className="space-y-3 rounded-md border p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="intervalToggle" className="text-sm font-medium">Maintenance Interval</Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Flag equipment as needing attention when this interval is exceeded since the last completed PM.
-                  </p>
-                </div>
-                <Switch
-                  id="intervalToggle"
-                  checked={intervalEnabled}
-                  onCheckedChange={(checked) => {
-                    setIntervalEnabled(checked);
-                    if (!checked) setIntervalValue(null);
-                    setHasUnsavedChanges(true);
-                    triggerAutoSave('selection');
-                  }}
-                />
+          <div className="space-y-3 rounded-md border p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="intervalToggle" className="text-sm font-medium">Maintenance Interval</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Flag equipment as needing attention when this interval is exceeded since the last completed PM.
+                </p>
               </div>
-              {intervalEnabled && (
-                <div className="space-y-2">
-                  <div className="flex flex-wrap items-end gap-4">
-                    <div className="flex-1 max-w-[200px]">
-                      <Label htmlFor="intervalValue" className="text-xs">Every</Label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          id="intervalValue"
-                          type="number"
-                          min={1}
-                          value={intervalValue ?? ''}
-                          onChange={(e) => {
-                            const val = e.target.value ? parseInt(e.target.value, 10) : null;
-                            setIntervalValue(val);
-                            setIntervalError(null);
-                            setHasUnsavedChanges(true);
-                            triggerAutoSave('text');
-                          }}
-                          placeholder="e.g. 90"
-                          className={intervalError ? 'border-destructive' : ''}
-                        />
-                        <span className="text-sm text-muted-foreground whitespace-nowrap">
-                          {intervalType === 'hours' ? 'Working Hours' : 'Calendar Days'}
-                        </span>
-                      </div>
-                      {intervalError && (
-                        <p className="text-xs text-destructive mt-1">{intervalError}</p>
-                      )}
-                    </div>
-                    <RadioGroup
-                      value={intervalType}
-                      onValueChange={(val) => {
-                        setIntervalType(val as 'days' | 'hours');
-                        setHasUnsavedChanges(true);
-                        triggerAutoSave('selection');
-                      }}
-                      className="flex gap-4 pb-1"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <RadioGroupItem value="days" id="interval-days" />
-                        <Label htmlFor="interval-days" className="text-sm font-normal cursor-pointer">Calendar Days</Label>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <RadioGroupItem value="hours" id="interval-hours" />
-                        <Label htmlFor="interval-hours" className="text-sm font-normal cursor-pointer">Working Hours</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-                </div>
-              )}
+              <Switch
+                id="intervalToggle"
+                checked={intervalEnabled}
+                onCheckedChange={(checked) => {
+                  setIntervalEnabled(checked);
+                  if (!checked) setIntervalValue(null);
+                  setHasUnsavedChanges(true);
+                  triggerAutoSave('selection');
+                }}
+              />
             </div>
-          )}
+            {intervalEnabled && (
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-end gap-4">
+                  <div className="flex-1 max-w-[200px]">
+                    <Label htmlFor="intervalValue" className="text-xs">Every</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="intervalValue"
+                        type="number"
+                        min={1}
+                        value={intervalValue ?? ''}
+                        onChange={(e) => {
+                          const val = e.target.value ? parseInt(e.target.value, 10) : null;
+                          setIntervalValue(val);
+                          setIntervalError(null);
+                          setHasUnsavedChanges(true);
+                          triggerAutoSave('text');
+                        }}
+                        placeholder="e.g. 90"
+                        className={intervalError ? 'border-destructive' : ''}
+                      />
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">
+                        {intervalType === 'hours' ? 'Working Hours' : 'Calendar Days'}
+                      </span>
+                    </div>
+                    {intervalError && (
+                      <p className="text-xs text-destructive mt-1">{intervalError}</p>
+                    )}
+                  </div>
+                  <RadioGroup
+                    value={intervalType}
+                    onValueChange={(val) => {
+                      setIntervalType(val as 'days' | 'hours');
+                      setHasUnsavedChanges(true);
+                      triggerAutoSave('selection');
+                    }}
+                    className="flex gap-4 pb-1"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <RadioGroupItem value="days" id="interval-days" />
+                      <Label htmlFor="interval-days" className="text-sm font-normal cursor-pointer">Calendar Days</Label>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <RadioGroupItem value="hours" id="interval-hours" />
+                      <Label htmlFor="interval-hours" className="text-sm font-normal cursor-pointer">Working Hours</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+            )}
+          </div>
           {template && (
             <div className="flex items-center gap-2">
               {!template.organization_id && (
