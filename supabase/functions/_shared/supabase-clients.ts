@@ -348,6 +348,178 @@ function isErrorMessageSafe(error: string): boolean {
 }
 
 /**
+ * Map allowlisted error inputs to canonical static messages.
+ *
+ * SECURITY NOTE:
+ * - This function must never return untrusted input directly.
+ * - Every returned value is a string literal chosen from this table.
+ * - Dynamic allowlist patterns are intentionally collapsed to canonical
+ *   messages to keep response bodies free of attacker-controlled substrings.
+ */
+function normalizeAllowlistedErrorMessage(error: string): string {
+  switch (error) {
+    case "No authorization header provided":
+      return "No authorization header provided";
+    case "Invalid authorization header format":
+      return "Invalid authorization header format";
+    case "Invalid or expired token":
+      return "Invalid or expired token";
+    case "Authentication failed":
+      return "Authentication failed";
+    case "Token has expired":
+      return "Token has expired";
+    case "Invalid token format":
+      return "Invalid token format";
+    case "User session not found for provided token":
+      return "User session not found for provided token";
+    case "User not found for provided token":
+      return "User not found for provided token";
+    case "Unauthorized: Empty token":
+      return "Unauthorized: Empty token";
+    case "User email not available":
+      return "User email not available";
+    case "Forbidden":
+      return "Forbidden";
+    case "Google Workspace is not connected":
+      return "Google Workspace is not connected";
+    case "Not found":
+      return "Not found";
+    case "Bad request":
+      return "Bad request";
+    case "Unauthorized":
+      return "Unauthorized";
+    case "Conflict":
+      return "Conflict";
+    case "Gone":
+      return "Gone";
+    case "Method not allowed":
+      return "Method not allowed";
+    case "Invalid JSON body":
+      return "Invalid JSON body";
+    case "Invitation not found":
+      return "Invitation not found";
+    case "An unexpected error occurred":
+      return "An unexpected error occurred";
+    case "An internal error occurred":
+      return "An internal error occurred";
+    case "Internal server error":
+      return "Internal server error";
+    case "Invalid price selected":
+      return "Invalid price selected";
+    case "Google Workspace OAuth is not configured":
+      return "Google Workspace OAuth is not configured";
+    case "Failed to send push notification":
+      return "Failed to send push notification";
+    case "Failed to fetch push subscriptions":
+      return "Failed to fetch push subscriptions";
+    case "Missing required fields: user_id, title, body":
+      return "Missing required fields: user_id, title, body";
+    case "Failed to create GitHub issue":
+      return "Failed to create GitHub issue";
+    case "Failed to create ticket record":
+      return "Failed to create ticket record";
+    case "title and description are required":
+      return "title and description are required";
+    case "Not a user-reported issue":
+      return "Not a user-reported issue";
+    case "No issue in payload":
+      return "No issue in payload";
+    case "No matching ticket found":
+      return "No matching ticket found";
+    case "No comment in payload":
+      return "No comment in payload";
+    case "Place not found":
+      return "Place not found";
+    case "CAPTCHA verification is required":
+      return "CAPTCHA verification is required";
+    case "CAPTCHA verification failed":
+      return "CAPTCHA verification failed";
+    case "A valid email address is required":
+      return "A valid email address is required";
+    case "Name is required":
+      return "Name is required";
+    case "Invalid action":
+      return "Invalid action";
+    case "Invalid notice action":
+      return "Invalid notice action";
+    case "Invalid verification method":
+      return "Invalid verification method";
+    case "Request is not in a verifiable state":
+      return "Request is not in a verifiable state";
+    case "Request is already closed":
+      return "Request is already closed";
+    case "Required checklist steps are incomplete":
+      return "Required checklist steps are incomplete";
+    case "Denial reason is required":
+      return "Denial reason is required";
+    case "Extension reason is required":
+      return "Extension reason is required";
+    case "Request must be verified before processing":
+      return "Request must be verified before processing";
+    case "Request must be in processing state":
+      return "Request must be in processing state";
+    case "Fulfillment step summary is required":
+      return "Fulfillment step summary is required";
+    case "Request must be in processing state to complete":
+      return "Request must be in processing state to complete";
+    case "Note text is required":
+      return "Note text is required";
+    case "Export retry limit reached":
+      return "Export retry limit reached";
+    case "organizationId is required":
+      return "organizationId is required";
+    case "expected_updated_at is required":
+      return "expected_updated_at is required";
+    case "Missing required field: dsrRequestId":
+      return "Missing required field: dsrRequestId";
+    default:
+      break;
+  }
+
+  if (
+    /^Only organization (owners|admins|administrators) can /.test(error) ||
+    /^Forbidden: /.test(error) ||
+    /^You are not a member of /.test(error)
+  ) {
+    return "Forbidden";
+  }
+
+  if (/^Missing required field/.test(error)) {
+    return "Missing required field";
+  }
+
+  if (/^Unsupported format/.test(error)) {
+    return "Unsupported format";
+  }
+
+  if (/^Rate limit exceeded/.test(error)) {
+    return "Rate limit exceeded";
+  }
+
+  if (/^Invalid OAuth redirect (base URL )?configuration$/.test(error)) {
+    return "Invalid OAuth redirect configuration";
+  }
+
+  if (/^File too large\./.test(error)) {
+    return "File too large.";
+  }
+
+  if (/^Stripe price .+ not found/.test(error)) {
+    return "Invalid price selected";
+  }
+
+  if (/^Invalid request body: /.test(error)) {
+    return "Invalid request body";
+  }
+
+  if (/^Failed to /.test(error)) {
+    return GENERIC_ERROR_MESSAGE;
+  }
+
+  return GENERIC_ERROR_MESSAGE;
+}
+
+/**
  * Create a JSON error response with CORS headers.
  *
  * Security (CWE-209 mitigation): only known-safe message strings (matching
@@ -397,13 +569,10 @@ export function createErrorResponse(
     // see the secret name, so force the generic message.
     safeMessage = GENERIC_ERROR_MESSAGE;
   } else if (isErrorMessageSafe(error)) {
-    // `error` is now narrowed to `string`. Defense-in-depth: bound the
-    // exposed message to MAX_ERROR_MESSAGE_LENGTH even though the
-    // allowlist already rejects messages over that length. Some allowlist
-    // patterns are prefix matches (e.g. /^Failed to (verify|...)/) and
-    // could in theory let through a longer string with debug-tail content;
-    // .slice produces a bounded substring derived from a fixed cap.
-    safeMessage = error.slice(0, MAX_ERROR_MESSAGE_LENGTH);
+    // Use canonical literals only (no direct reflection of the incoming
+    // string), so response JSON never contains attacker-controlled
+    // substrings even for allowlisted patterns.
+    safeMessage = normalizeAllowlistedErrorMessage(error);
   } else {
     // Log the original (unsafe) string server-side for debugging.
     console.error("[createErrorResponse] Unsafe error message blocked:", error);
