@@ -191,26 +191,15 @@ if (missingFromSvg.length > 0) {
 }
 process.stdout.write(`  us.svg: parsed ${Object.keys(usPaths).length} state paths\n`);
 
-// Compute shared bounding box across all us.svg state paths
-const allUsXs = [], allUsYs = [];
-for (const d of Object.values(usPaths)) {
-  const nums = extractNums(d);
-  for (let i = 0; i + 1 < nums.length; i += 2) {
-    allUsXs.push(nums[i]); allUsYs.push(nums[i + 1]);
-  }
-}
-const usMinX = Math.min(...allUsXs), usMaxX = Math.max(...allUsXs);
-const usMinY = Math.min(...allUsYs), usMaxY = Math.max(...allUsYs);
-const usScale = VIEWBOX / (Math.max(usMaxX - usMinX, usMaxY - usMinY) || 1);
-
-process.stdout.write(
-  `  us.svg bbox: x ${usMinX.toFixed(1)}–${usMaxX.toFixed(1)}, y ${usMinY.toFixed(1)}–${usMaxY.toFixed(1)}, scale=${usScale.toFixed(4)}\n`,
-);
-
+// IMPORTANT: us.svg uses relative SVG path commands (lowercase m, l, c, etc.).
+// Applying the normalizePathShared() transform to relative coordinates would treat
+// relative offsets as absolute positions, completely corrupting the paths (diagonal
+// lines instead of state shapes). Store the raw d strings unchanged and use the
+// original viewBox ("0 0 1000 589") when rendering in NationalMapPhase.
 const statesRelative = {};
 for (const abbr of FIFTY_STATE_CODES) {
   if (usPaths[abbr]) {
-    statesRelative[abbr] = normalizePathShared(usPaths[abbr], usMinX, usMinY, usScale);
+    statesRelative[abbr] = usPaths[abbr]; // raw path — do NOT normalize
   }
 }
 
@@ -263,7 +252,7 @@ const totalRelativeChars = Object.values(statesRelative).reduce((s, d) => s + d.
 process.stdout.write(
   `Generated ${outPath}\n` +
   `  STATE_VECTORS: ${Object.keys(results).length} states, avg ${avgLen} chars\n` +
-  `  STATES_RELATIVE: ${Object.keys(statesRelative).length} states, ${totalRelativeChars} chars total\n`,
+  `  STATES_RELATIVE: ${Object.keys(statesRelative).length} states, ${totalRelativeChars} chars total (raw, viewBox 0 0 1000 589)\n`,
 );
 
 const LONG_PATH = 5000;

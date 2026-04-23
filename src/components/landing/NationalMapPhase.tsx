@@ -9,7 +9,10 @@ interface NationalMapPhaseProps {
   onComplete: () => void;
 }
 
-const VIEWBOX = 100;
+// us.svg uses viewBox "0 0 1000 589" with raw (relative) path commands.
+// All STATES_RELATIVE paths must be rendered inside this same viewBox.
+const SVG_WIDTH = 1000;
+const SVG_HEIGHT = 589;
 const NATIONAL_DOT_COUNT = 30;
 const HOLD_DURATION = 4;
 
@@ -40,12 +43,15 @@ export default function NationalMapPhase({ onComplete }: NationalMapPhaseProps) 
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
+  // Dots use the us.svg coordinate space (1000×589).
+  // Keep dots away from edges where Alaska/Hawaii insets sit.
   const nationalDots = useMemo(() => {
     const rng = seededRng(strToSeed('national_map_dots'));
     return Array.from({ length: NATIONAL_DOT_COUNT }, (_, i) => ({
       id: i,
-      cx: 5 + rng() * 90,
-      cy: 5 + rng() * 90,
+      // Roughly the contiguous-48 region in 1000×589 space
+      cx: 150 + rng() * 700,
+      cy: 30 + rng() * 420,
     }));
   }, []);
 
@@ -127,7 +133,7 @@ export default function NationalMapPhase({ onComplete }: NationalMapPhaseProps) 
     >
       <svg
         ref={svgRef}
-        viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`}
+        viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
         width="100%"
         height="100%"
         aria-hidden="true"

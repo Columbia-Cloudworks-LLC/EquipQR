@@ -36,7 +36,8 @@ import { ALL_PM_ITEMS, EXPORT_TARGETS } from './pmChecklistData';
 
 const defaultProps = {
   slideDirection: 'left' as const,
-  chosenDot: { cx: 60, cy: 50 },
+  dotStageX: 24,   // (60/100) * 40 for slideDirection='left'
+  dotStageY: 50,
   exportSeed: 0,
   onComplete: vi.fn(),
 };
@@ -119,7 +120,7 @@ describe('PMChecklistPhase', () => {
   });
 
   it('renders with slideDirection right without crashing', () => {
-    renderChecklist({ slideDirection: 'right', chosenDot: { cx: 30, cy: 50 } });
+    renderChecklist({ slideDirection: 'right', dotStageX: 72, dotStageY: 50 });
     expect(screen.getByTestId('pm-checklist-phase')).toBeInTheDocument();
   });
 });

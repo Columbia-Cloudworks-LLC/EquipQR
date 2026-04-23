@@ -69,8 +69,6 @@ export default function HeroAnimation() {
   const prevStateRef = useRef<StateCode>(stateKey);
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [opacity, setOpacity] = useState(1);
-  // Map slides to one side during Phase 5; 0 = centred, ±30% = slid
-  const [slidePercent, setSlidePercent] = useState(0);
 
   // Determine cycle type from the counter (used in handleQRComplete via cycleRef.current % 3)
   // Note: derived at render time from cycleRef — only used inside callbacks via closure.
@@ -81,6 +79,16 @@ export default function HeroAnimation() {
   const chosenDot = dots[chosenIdx] ?? { cx: 50, cy: 50 };
   const slideDirection = chosenDot.cx > 50 ? 'left' : 'right';
   const exportSeed = useMemo(() => strToSeed(stateKey + '_export'), [stateKey]);
+
+  // The map shrinks to 40% of the stage during Phase 5.
+  // The dot (in 0-100 SVG viewBox within that 40%-wide container) maps to
+  // these percentages of the full stage — passed to PMChecklistPhase so it can
+  // draw the connector line starting exactly at the dot.
+  const MAP_WIDTH_PCT = 40;
+  const dotStageX = slideDirection === 'left'
+    ? (chosenDot.cx / 100) * MAP_WIDTH_PCT          // dot in left 40%
+    : (100 - MAP_WIDTH_PCT) + (chosenDot.cx / 100) * MAP_WIDTH_PCT; // dot in right 40%
+  const dotStageY = chosenDot.cy; // Y is unaffected by horizontal slide
 
   // --- Phase transition handlers ---
 
@@ -115,7 +123,6 @@ export default function HeroAnimation() {
   const handleChecklistComplete = useCallback(() => {
     // Phase 5 complete → fade out → restart cycle
     setOpacity(0);
-    setSlidePercent(0);
     holdTimerRef.current = setTimeout(() => {
       cycleRef.current += 1;
       const next = pickNextState(prevStateRef.current);
@@ -126,21 +133,16 @@ export default function HeroAnimation() {
     }, 400);
   }, []);
 
-  // Animate the map slide for Phase 5a
+  // Phase 5a: wait one frame so the CSS width transition kicks in, then
+  // advance to 'phase5-checklist' after the 600ms transition completes.
   useEffect(() => {
     if (phase === 'phase5-slide') {
-      // Slide map 30% in the opposite direction of the chosen dot
-      const target = slideDirection === 'left' ? -30 : 30;
       holdTimerRef.current = setTimeout(() => {
-        setSlidePercent(target);
-        // Advance to checklist after CSS transition completes (0.6s)
-        holdTimerRef.current = setTimeout(() => {
-          setPhase('phase5-checklist');
-        }, 650);
-      }, 50);
+        setPhase('phase5-checklist');
+      }, 680);
     }
     return () => { if (holdTimerRef.current) clearTimeout(holdTimerRef.current); };
-  }, [phase, slideDirection]);
+  }, [phase]);
 
   // Trigger the hold timer for state-cycle dots phase
   useEffect(() => {
@@ -179,13 +181,20 @@ export default function HeroAnimation() {
             className="relative w-full h-full transition-opacity duration-300"
             style={{ opacity }}
           >
-            {/* Map + dots wrapper — slides during Phase 5 */}
+            {/*
+              Map container. During Phase 5 it shrinks to 40% width on the
+              appropriate side, revealing room for the checklist panel.
+              CSS transition on `width` creates the "slide" effect — no
+              translateX needed, which avoids the percentage-of-self confusion.
+            */}
             <div
-              className="absolute inset-0"
+              className="absolute top-0 bottom-0"
               style={{
-                transform: `translateX(${slidePercent}%)`,
-                transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                width: slidePercent !== 0 ? '40%' : '100%',
+                [slideDirection === 'left' ? 'left' : 'right']: 0,
+                width: (phase === 'phase5-slide' || phase === 'phase5-checklist')
+                  ? `${MAP_WIDTH_PCT}%`
+                  : '100%',
+                transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
               }}
             >
               <Suspense fallback={<StaticHeroComposite />}>
@@ -207,12 +216,14 @@ export default function HeroAnimation() {
               </Suspense>
             </div>
 
-            {/* Phase 5 checklist overlay — mounts beside the slid map */}
+            {/* Phase 5 checklist overlay — full-stage absolute, so the connector
+                line SVG can start at the dot's stage position and end at the panel */}
             {phase === 'phase5-checklist' && (
               <Suspense fallback={null}>
                 <PMChecklistPhase
                   slideDirection={slideDirection}
-                  chosenDot={chosenDot}
+                  dotStageX={dotStageX}
+                  dotStageY={dotStageY}
                   exportSeed={exportSeed}
                   onComplete={handleChecklistComplete}
                 />

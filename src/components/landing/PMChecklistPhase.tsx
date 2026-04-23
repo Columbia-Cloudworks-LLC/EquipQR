@@ -8,44 +8,45 @@ import {
   EXPORT_TARGETS,
 } from './pmChecklistData';
 
-export interface DotCoord {
-  cx: number;
-  cy: number;
-}
-
 interface PMChecklistPhaseProps {
-  /** 'left'  = map slid left, checklist appears on the right side
-   *  'right' = map slid right, checklist appears on the left side */
+  /** 'left' = map is on the left 40%, checklist on the right 60%
+   *  'right' = map is on the right 40%, checklist on the left 60% */
   slideDirection: 'left' | 'right';
-  /** The chosen dot's position in the 100×100 viewBox coordinate space. */
-  chosenDot: DotCoord;
-  /** Seeded deterministically so the same stateKey always picks the same export target. */
+  /**
+   * The chosen dot's X position as a percentage of the FULL stage width
+   * (already accounting for the 40% map width). Range: 0–100.
+   * Computed by HeroAnimation as: (dot.cx / 100) * 40  (if slideDir='left')
+   *                             or: 60 + (dot.cx / 100) * 40  (if slideDir='right')
+   */
+  dotStageX: number;
+  /** The chosen dot's Y position as a percentage of the full stage height. Range: 0–100. */
+  dotStageY: number;
   exportSeed: number;
-  /** Called when the full Phase 5 sequence (fade-out included) is complete. */
   onComplete: () => void;
 }
 
-const ITEM_CHECK_INTERVAL = 0.25; // seconds between each checkmark
+const ITEM_CHECK_INTERVAL = 0.25; // seconds between checkmarks
+// Gap (% of stage) between map edge and checklist box left/right edge
+const PANEL_INSET = 2;
 
 /**
  * Phase 5: work-order sequence overlay.
  *
- * Mounts as an absolutely-positioned overlay on top of the animation stage.
- * Renders entirely with HTML / Tailwind — no SVG — so the checklist text
- * is crisp at any viewport size and accessible to screen readers.
+ * Rendered as an absolute inset-0 overlay on the full animation stage.
+ * The connector line SVG spans the entire stage so it can start exactly
+ * at the chosen dot's position and extend toward the checklist panel.
  *
  * Sequence:
- *   5a: The stage slides (handled by parent via CSS transform)
- *   5b: A horizontal line SVG grows from the chosen dot's edge toward the checklist
- *   5c: The checklist box expands vertically from height-0
- *   5d: Items check off sequentially (0.25s stagger)
- *   5e: "Export to …" button fades in
- *   5f: Button pulses (simulated press), then the whole panel fades out
- *   → onComplete fires
+ *   5b: Line grows from dot outward toward the checklist panel
+ *   5c: Checklist box expands vertically, centered on the dot's Y
+ *   5d: Items check off sequentially (0.25 s stagger)
+ *   5e: Export button fades in
+ *   5f: Button press → overlay fades out → onComplete
  */
 export default function PMChecklistPhase({
   slideDirection,
-  chosenDot,
+  dotStageX,
+  dotStageY,
   exportSeed,
   onComplete,
 }: PMChecklistPhaseProps) {
@@ -62,9 +63,7 @@ export default function PMChecklistPhase({
     [exportSeed],
   );
 
-  // Trigger sequential checkmarks after the component mounts (GSAP handles the
-  // prior animations; the checks are driven by setTimeout for simplicity since
-  // React state is the source of truth for the check marks).
+  // Sequential checkmarks driven by setTimeout (React state, not GSAP).
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
 
@@ -72,13 +71,11 @@ export default function PMChecklistPhase({
       timers.push(
         setTimeout(
           () => setCheckedItems(prev => new Set([...prev, item.id])),
-          // Offset 1.3s for the line + box expand animations, then stagger
-          (1300 + i * ITEM_CHECK_INTERVAL * 1000),
+          1300 + i * ITEM_CHECK_INTERVAL * 1000,
         ),
       );
     });
 
-    // Show export button after all checks
     timers.push(
       setTimeout(
         () => setShowButton(true),
@@ -93,16 +90,16 @@ export default function PMChecklistPhase({
     () => {
       const tl = gsap.timeline();
 
-      // 5b: horizontal line grows from dot edge to panel edge
-      const x1 = slideDirection === 'left' ? '0%' : '100%';
-      const x2 = slideDirection === 'left' ? '100%' : '0%';
+      // 5b: line grows FROM the dot TOWARD the checklist panel.
+      // x1 stays at the dot; x2 animates to the far edge of the stage.
+      const farEdge = slideDirection === 'left' ? '98%' : '2%';
       tl.fromTo(
         lineRef.current,
-        { attr: { x1, x2: x1 } },
-        { attr: { x2 }, duration: 0.5, ease: 'power2.out' },
+        { attr: { x2: `${dotStageX}%` } },
+        { attr: { x2: farEdge }, duration: 0.5, ease: 'power2.out' },
       );
 
-      // 5c: checklist box expands vertically
+      // 5c: checklist box expands from height-0
       tl.fromTo(
         boxRef.current,
         { height: 0, opacity: 0 },
@@ -110,32 +107,37 @@ export default function PMChecklistPhase({
         '-=0.1',
       );
 
-      // After all checks + button visible → button press simulation → fade out
-      const totalCheckTime =
+      // 5f: button press + full fade-out after all checks + button visible
+      const totalCheckDelay =
         (1300 + ALL_PM_ITEMS.length * ITEM_CHECK_INTERVAL * 1000 + 300 + 600) / 1000;
 
-      tl.to(
-        btnRef.current,
-        {
-          scale: 0.94,
-          duration: 0.12,
-          ease: 'power1.in',
-          delay: totalCheckTime,
-        },
-      );
+      tl.to(btnRef.current, {
+        scale: 0.94,
+        duration: 0.12,
+        ease: 'power1.in',
+        delay: totalCheckDelay,
+      });
       tl.to(btnRef.current, { scale: 1, duration: 0.12, ease: 'power1.out' });
-
-      // 5f: fade out the entire overlay
-      tl.to(
-        containerRef.current,
-        { opacity: 0, duration: 0.4, ease: 'power1.in', onComplete },
-        '+=0.2',
-      );
+      tl.to(containerRef.current, {
+        opacity: 0,
+        duration: 0.4,
+        ease: 'power1.in',
+        onComplete,
+      }, '+=0.2');
     },
-    { scope: containerRef, dependencies: [slideDirection, onComplete] },
+    { scope: containerRef, dependencies: [slideDirection, dotStageX, onComplete] },
   );
 
-  const isRight = slideDirection === 'left';
+  // Checklist panel occupies the non-map 60% of the stage.
+  // For 'left' (map on left 40%): panel spans 42%→98% of stage width.
+  // For 'right' (map on right 40%): panel spans 2%→58% of stage width.
+  const MAP_WIDTH = 40;
+  const panelLeft = slideDirection === 'left'
+    ? `${MAP_WIDTH + PANEL_INSET}%`
+    : `${PANEL_INSET}%`;
+  const panelRight = slideDirection === 'left'
+    ? `${PANEL_INSET}%`
+    : `${MAP_WIDTH + PANEL_INSET}%`;
 
   return (
     <div
@@ -143,17 +145,19 @@ export default function PMChecklistPhase({
       className="absolute inset-0 pointer-events-none"
       data-testid="pm-checklist-phase"
     >
-      {/* Connector line SVG */}
+      {/* Full-stage SVG carries the connector line.
+          Line x1 stays fixed at the dot; x2 is animated outward by GSAP. */}
       <svg
-        className="absolute inset-0 w-full h-full overflow-visible"
+        className="absolute inset-0 w-full h-full"
         aria-hidden="true"
+        overflow="visible"
       >
         <line
           ref={lineRef}
-          x1={isRight ? '40%' : '60%'}
-          y1={`${chosenDot.cy}%`}
-          x2={isRight ? '40%' : '60%'}
-          y2={`${chosenDot.cy}%`}
+          x1={`${dotStageX}%`}
+          y1={`${dotStageY}%`}
+          x2={`${dotStageX}%`}
+          y2={`${dotStageY}%`}
           stroke="hsl(var(--primary))"
           strokeWidth={1.5}
           strokeDasharray="4 3"
@@ -161,9 +165,16 @@ export default function PMChecklistPhase({
         />
       </svg>
 
-      {/* Checklist panel */}
+      {/* Checklist panel — positioned in the non-map region.
+          Vertically centered on the dot's Y so the connector aligns perfectly. */}
       <div
-        className={`absolute top-[20%] w-[52%] ${isRight ? 'left-[46%]' : 'right-[46%]'}`}
+        className="absolute"
+        style={{
+          left: panelLeft,
+          right: panelRight,
+          top: `${dotStageY}%`,
+          transform: 'translateY(-50%)',
+        }}
       >
         <div
           ref={boxRef}
@@ -196,11 +207,7 @@ export default function PMChecklistPhase({
                       ].join(' ')}
                     >
                       {isChecked && (
-                        <Check
-                          className="w-3 h-3 text-background"
-                          strokeWidth={3}
-                          aria-hidden
-                        />
+                        <Check className="w-3 h-3 text-background" strokeWidth={3} aria-hidden />
                       )}
                     </div>
                     <span className="text-[7.5px] leading-tight text-foreground/80">
@@ -216,7 +223,7 @@ export default function PMChecklistPhase({
             <button
               ref={btnRef}
               type="button"
-              className="mt-1.5 w-full flex items-center justify-center gap-1 rounded-md bg-primary px-2 py-1 text-[7.5px] font-semibold text-primary-foreground transition-opacity pointer-events-none"
+              className="mt-1.5 w-full flex items-center justify-center gap-1 rounded-md bg-primary px-2 py-1 text-[7.5px] font-semibold text-primary-foreground pointer-events-none"
               data-testid="export-button"
             >
               <exportTarget.icon className="w-2.5 h-2.5" aria-hidden />
