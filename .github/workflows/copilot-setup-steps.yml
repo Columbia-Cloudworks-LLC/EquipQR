@@ -20,8 +20,6 @@ jobs:
   copilot-setup-steps:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
 
     permissions:
       contents: read
@@ -46,6 +44,19 @@ jobs:
       # supabase/functions/.env from the EquipQR Agents vault, and writes the
       # GCP viewer SA JSON used by the gcloud MCP.
       # The step is skipped gracefully when the token is absent (fork PRs, etc.)
+      # Probe writes a non-sensitive boolean flag so the bootstrap if: guard can
+      # use env context (secrets context is not resolvable in step if: by the
+      # linter, though it is valid at runtime).
+      - name: Probe OP token availability
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+        run: |
+          if [ -n "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]; then
+            echo "HAS_OP_TOKEN=true" >> "$GITHUB_ENV"
+          fi
+
       - name: Bootstrap secrets from 1Password
-        if: ${{ env.OP_SERVICE_ACCOUNT_TOKEN != '' }}
+        if: env.HAS_OP_TOKEN == 'true'
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
         run: bash scripts/agent-bootstrap.sh
