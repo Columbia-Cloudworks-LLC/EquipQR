@@ -175,8 +175,13 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     
     const organizationLogo = isValidOrgShape(rawOrg) ? rawOrg.logo : undefined;
 
-    // Construct the invitation URL using production URL if available
-    const baseUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
+    // PUBLIC_SITE_URL is the env-specific origin (set per-environment so preview
+    // and staging invites link back to the correct host, not production).
+    // PRODUCTION_URL is the legacy fallback; final hardcode covers missing config.
+    const baseUrl =
+      Deno.env.get("PUBLIC_SITE_URL") ??
+      Deno.env.get("PRODUCTION_URL") ??
+      "https://equipqr.app";
     const invitationUrl = `${baseUrl}/invitation/${invitation.invitation_token}`;
 
     // Construct absolute URLs for logos

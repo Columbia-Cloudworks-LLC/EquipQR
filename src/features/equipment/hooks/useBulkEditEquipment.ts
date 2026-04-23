@@ -118,7 +118,7 @@ export const useBulkEditEquipment = (
             }
           }
         } else {
-          next.set(id, { ...existing, [field]: value } as EquipmentRowDelta);
+          next.set(id, { ...existing, [field]: normalize(value) } as EquipmentRowDelta);
         }
         return next;
       });
