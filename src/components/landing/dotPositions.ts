@@ -1,8 +1,8 @@
+import { STATE_VECTORS } from './stateVectors';
 import type { StateCode } from './stateVectors';
 
 const VIEWBOX = 100;
 
-/** Simple linear-congruential PRNG seeded by a number. */
 function seededRng(seed: number): () => number {
   let s = seed;
   return () => {
@@ -11,7 +11,6 @@ function seededRng(seed: number): () => number {
   };
 }
 
-/** Convert a string to a numeric seed (sum of char codes). */
 export function strToSeed(str: string): number {
   return str.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
 }
@@ -23,10 +22,42 @@ export interface DotPosition {
 }
 
 /**
- * Compute deterministic dot positions for a given state key.
- * Same stateKey + dotCount always returns the same positions — stable across
- * renders and shareable between AssetDotsPhase and HeroAnimation for choosing
- * which dot to highlight in Phase 5.
+ * Parse an SVG path string (M/L/Z commands only) into a flat polygon vertex list.
+ * STATE_VECTORS paths are produced by d3-geo and contain only M/L/Z, so the
+ * "every two numbers = (x, y) pair" assumption is safe.
+ */
+function parsePolygon(dStr: string): Array<[number, number]> {
+  const points: Array<[number, number]> = [];
+  const numRe = /-?[0-9]*\.?[0-9]+(?:e[-+]?[0-9]+)?/gi;
+  const nums = (dStr.match(numRe) || []).map(Number);
+  for (let i = 0; i + 1 < nums.length; i += 2) {
+    points.push([nums[i], nums[i + 1]]);
+  }
+  return points;
+}
+
+/**
+ * Standard ray-casting point-in-polygon test.
+ * Returns true if (x, y) lies inside the polygon's outer ring.
+ */
+function pointInPolygon(point: [number, number], polygon: Array<[number, number]>): boolean {
+  const [x, y] = point;
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [xi, yi] = polygon[i];
+    const [xj, yj] = polygon[j];
+    const denom = yj - yi || 1e-9;
+    const intersect = ((yi > y) !== (yj > y)) &&
+                      (x < ((xj - xi) * (y - yi)) / denom + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * DEPRECATED for new code — use computeDotPositionsInState instead.
+ * Original deterministic positions (no polygon constraint).
+ * Kept exported for back-compat with existing tests.
  */
 export function computeDotPositions(stateKey: StateCode, dotCount: number): DotPosition[] {
   const rng = seededRng(strToSeed(stateKey));
@@ -38,16 +69,52 @@ export function computeDotPositions(stateKey: StateCode, dotCount: number): DotP
 }
 
 /**
- * Deterministically pick one dot from the list based on the stateKey.
- * Same stateKey always picks the same dot — the one that will be highlighted
- * in Phase 5 for the work-order sequence.
+ * Compute dot positions GUARANTEED to fall inside the state's polygon, using
+ * rejection sampling against the parsed STATE_VECTORS path.
  *
- * The pick avoids dots that are very near the edges of the canvas (< 10 or > 90)
- * so the horizontal Phase-5 line always has room to extend.
+ * cycleSeed is mixed into the RNG seed so positions randomize per animation cycle
+ * (same stateKey + same cycleSeed → same dots; different cycleSeed → different dots).
  */
-export function chosenDotIndex(stateKey: StateCode, dots: DotPosition[]): number {
-  const midrange = dots.filter(d => d.cx > 10 && d.cx < 90 && d.cy > 10 && d.cy < 90);
-  const pool = midrange.length > 0 ? midrange : dots;
-  const seed = strToSeed(stateKey + '_pick');
-  return pool[Math.floor((seed % pool.length + pool.length) % pool.length)].id;
+export function computeDotPositionsInState(
+  stateKey: StateCode,
+  dotCount: number,
+  cycleSeed: number = 0,
+): DotPosition[] {
+  const polygon = parsePolygon(STATE_VECTORS[stateKey]);
+  const rng = seededRng(strToSeed(stateKey) + cycleSeed * 7919); // 7919 is prime
+
+  const dots: DotPosition[] = [];
+  const maxAttempts = dotCount * 50;
+  let attempts = 0;
+
+  while (dots.length < dotCount && attempts < maxAttempts) {
+    const cx = rng() * VIEWBOX;
+    const cy = rng() * VIEWBOX;
+    if (pointInPolygon([cx, cy], polygon)) {
+      dots.push({ id: dots.length, cx, cy });
+    }
+    attempts++;
+  }
+
+  // Fallback: if rejection sampling somehow under-fills, pad with centre points.
+  while (dots.length < dotCount) {
+    dots.push({ id: dots.length, cx: 50, cy: 50 });
+  }
+
+  return dots;
+}
+
+/**
+ * Pick a "chosen" dot from the list. With rejection sampling, all dots in the
+ * list are inside the state, so any pick is visible. cycleSeed varies the choice
+ * per cycle so the highlighted dot doesn't always sit on the same spot.
+ */
+export function chosenDotIndex(
+  stateKey: StateCode,
+  dots: DotPosition[],
+  cycleSeed: number = 0,
+): number {
+  if (dots.length === 0) return 0;
+  const seed = strToSeed(stateKey + '_pick') + cycleSeed * 13;
+  return ((seed % dots.length) + dots.length) % dots.length;
 }

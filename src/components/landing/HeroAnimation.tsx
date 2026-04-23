@@ -3,7 +3,7 @@ import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion';
 import { STATE_VECTORS, ALL_STATE_CODES } from './stateVectors';
 import type { StateCode } from './stateVectors';
 import AssetDotsPhase from './AssetDotsPhase';
-import { computeDotPositions, chosenDotIndex, strToSeed } from './dotPositions';
+import { computeDotPositionsInState, chosenDotIndex, strToSeed } from './dotPositions';
 
 // Animation phases are dynamically imported so the reduced-motion path
 // never pays the GSAP / MorphSVG bundle cost.
@@ -70,15 +70,27 @@ export default function HeroAnimation() {
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [opacity, setOpacity] = useState(1);
 
-  // Determine cycle type from the counter (used in handleQRComplete via cycleRef.current % 3)
-  // Note: derived at render time from cycleRef — only used inside callbacks via closure.
+  // Cycle seed — re-randomizes dot positions and chosen card set per loop.
+  // Read at render time, so any state change after cycleRef increment picks it up.
+  const cycleSeed = cycleRef.current;
 
-  // --- Chosen dot for Phase 5 (deterministic per stateKey) ---
-  const dots = useMemo(() => computeDotPositions(stateKey, 14), [stateKey]);
-  const chosenIdx = useMemo(() => chosenDotIndex(stateKey, dots), [stateKey, dots]);
+  // --- Dots (state cycle): rejection-sampled inside the state polygon ---
+  // Computed in HeroAnimation so the chosen dot is guaranteed to match a
+  // visible dot in AssetDotsPhase (same rejection-sampling result).
+  const dots = useMemo(
+    () => computeDotPositionsInState(stateKey, 14, cycleSeed),
+    [stateKey, cycleSeed],
+  );
+  const chosenIdx = useMemo(
+    () => chosenDotIndex(stateKey, dots, cycleSeed),
+    [stateKey, dots, cycleSeed],
+  );
   const chosenDot = dots[chosenIdx] ?? { cx: 50, cy: 50 };
   const slideDirection = chosenDot.cx > 50 ? 'left' : 'right';
-  const exportSeed = useMemo(() => strToSeed(stateKey + '_export'), [stateKey]);
+  const exportSeed = useMemo(
+    () => strToSeed(stateKey + '_export') + cycleSeed * 17,
+    [stateKey, cycleSeed],
+  );
 
   // The map takes 50% of the stage width during Phase 5. The stage is 1:1 square,
   // so the map container is 50% wide × 100% tall.
@@ -218,10 +230,13 @@ export default function HeroAnimation() {
                   />
                 )}
                 {(phase === 'dots' || phase === 'phase5-slide' || phase === 'phase5-checklist') && (
-                  <AssetDotsPhase stateKey={stateKey} />
+                  <AssetDotsPhase stateKey={stateKey} dots={dots} />
                 )}
                 {phase === 'national' && (
-                  <NationalMapPhase onComplete={handleNationalComplete} />
+                  <NationalMapPhase
+                    cycleSeed={cycleSeed}
+                    onComplete={handleNationalComplete}
+                  />
                 )}
               </Suspense>
             </div>

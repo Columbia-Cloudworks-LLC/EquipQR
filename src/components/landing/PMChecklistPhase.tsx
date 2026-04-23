@@ -112,8 +112,11 @@ export default function PMChecklistPhase({
       });
       tl.to(btnRef.current, { scale: 1, duration: 0.12, ease: 'power1.out' });
 
-      // 5f cont: fade out entire overlay
-      tl.to(containerRef.current, {
+      // 5f cont: fade out entire overlay.
+      // Include lineRef explicitly so the connector line fades on the same
+      // timeline as the box — relying solely on the container's CSS opacity
+      // sometimes left the SVG line visible during the parent's stage fade.
+      tl.to([containerRef.current, lineRef.current], {
         opacity: 0,
         duration: 0.4,
         ease: 'power1.in',

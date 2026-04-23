@@ -1,36 +1,30 @@
-import { useRef, useMemo } from 'react';
+import { useRef } from 'react';
 import { useGSAP } from '@gsap/react';
 import { gsap } from 'gsap';
 import type { StateCode } from './stateVectors';
 import { STATE_VECTORS } from './stateVectors';
-import { computeDotPositions } from './dotPositions';
+import type { DotPosition } from './dotPositions';
 
 interface AssetDotsPhaseProps {
   stateKey: StateCode;
-  dotCount?: number;
+  /** Dots are computed by the parent (HeroAnimation) via rejection sampling
+   *  so positions are guaranteed inside the state polygon and the parent's
+   *  chosen-dot pick lines up with a visible dot. */
+  dots: DotPosition[];
 }
 
 const VIEWBOX = 100;
-const DEFAULT_DOT_COUNT = 14;
 
-export default function AssetDotsPhase({
-  stateKey,
-  dotCount = DEFAULT_DOT_COUNT,
-}: AssetDotsPhaseProps) {
+export default function AssetDotsPhase({ stateKey, dots }: AssetDotsPhaseProps) {
   const containerRef = useRef<SVGSVGElement>(null);
   const clipId = `state-clip-${stateKey}`;
-
-  const dots = useMemo(
-    () => computeDotPositions(stateKey, dotCount),
-    [stateKey, dotCount],
-  );
 
   useGSAP(
     () => {
       const circles = containerRef.current?.querySelectorAll('circle');
       if (!circles?.length) return;
 
-      // Staggered entrance: dots scatter in from r=0 opacity=0
+      // Staggered entrance
       gsap.from(circles, {
         r: 0,
         opacity: 0,
@@ -50,7 +44,7 @@ export default function AssetDotsPhase({
         transformOrigin: 'center center',
       });
     },
-    { scope: containerRef, dependencies: [stateKey, dotCount] },
+    { scope: containerRef, dependencies: [stateKey, dots] },
   );
 
   return (
@@ -78,7 +72,8 @@ export default function AssetDotsPhase({
         opacity={0.6}
       />
 
-      {/* Asset dots clipped to state shape — none appear outside the border */}
+      {/* Dots — clip-path is a belt-and-braces guard since rejection sampling
+          already keeps them inside the polygon. */}
       <g clipPath={`url(#${clipId})`}>
         {dots.map((dot) => (
           <circle
