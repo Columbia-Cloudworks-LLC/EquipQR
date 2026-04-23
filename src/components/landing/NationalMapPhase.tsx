@@ -3,10 +3,10 @@ import { useGSAP } from '@gsap/react';
 import { gsap } from 'gsap';
 import { STATES_RELATIVE, ALL_STATE_CODES } from './stateVectors';
 import { strToSeed } from './dotPositions';
-import { FEATURE_CARD_SETS } from './featureCardsData';
+import { FEATURE_CARDS } from './featureCardsData';
 
 interface NationalMapPhaseProps {
-  /** Mixed into RNG seed so dot positions and chosen card set vary per cycle. */
+  /** Mixed into RNG seed so dot positions and chosen feature card vary per cycle. */
   cycleSeed: number;
   onComplete: () => void;
 }
@@ -15,8 +15,8 @@ interface NationalMapPhaseProps {
 const SVG_WIDTH = 1000;
 const SVG_HEIGHT = 589;
 const NATIONAL_DOT_COUNT = 30;
-const INTRO_HOLD_MS = 1000;
-const FEATURES_DISPLAY_MS = 3500;
+const INTRO_HOLD_MS = 800;
+const FEATURE_DISPLAY_MS = 4000;
 
 function seededRng(seed: number) {
   let s = seed;
@@ -29,34 +29,33 @@ function seededRng(seed: number) {
 /**
  * Every-3rd-cycle national map view.
  *
- * Sub-phases (internal):
- *   intro    — full-stage US map: scaleX expand + state borders fade in + dots scatter
- *   features — map shrinks to 50% on the left, two feature cards slide in on the right
- *   (then fires onComplete to let the orchestrator fade out)
+ * Sub-phases:
+ *   intro   — line expands to full US map, borders fade in, dots scatter
+ *   feature — a single feature card slides in below the map (map stays full size)
+ *   then fires onComplete to let the orchestrator fade out and restart
  *
- * Dots are randomized per cycle and clipped to the US territory (union of all
- * STATES_RELATIVE paths) so none appear in the ocean or beyond the borders.
+ * The US map renders in the top portion of the stage; the feature card sits
+ * in the room below it (no map resize). This gives enough time to read one
+ * sentence per cycle instead of trying to digest two cards at once.
  */
 export default function NationalMapPhase({ cycleSeed, onComplete }: NationalMapPhaseProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapWrapperRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  const cardsRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
-  const [subPhase, setSubPhase] = useState<'intro' | 'features'>('intro');
+  const [subPhase, setSubPhase] = useState<'intro' | 'feature'>('intro');
 
-  const cardSet = useMemo(
-    () => FEATURE_CARD_SETS[Math.abs(cycleSeed) % FEATURE_CARD_SETS.length],
+  const featureCard = useMemo(
+    () => FEATURE_CARDS[Math.abs(cycleSeed) % FEATURE_CARDS.length],
     [cycleSeed],
   );
 
-  // Random dots per cycle. Generate generously inside the contiguous-48 bbox;
-  // any stragglers outside the US territory are clipped invisibly by clipPath.
   const nationalDots = useMemo(() => {
     const rng = seededRng(strToSeed('national_map_dots') + cycleSeed * 31);
     return Array.from({ length: NATIONAL_DOT_COUNT }, (_, i) => ({
       id: i,
-      cx: 90 + rng() * 820,    // generous span; clipPath trims anything off-territory
+      cx: 90 + rng() * 820,
       cy: 30 + rng() * 470,
     }));
   }, [cycleSeed]);
@@ -64,17 +63,14 @@ export default function NationalMapPhase({ cycleSeed, onComplete }: NationalMapP
   // Sub-phase scheduler
   useEffect(() => {
     if (subPhase === 'intro') {
-      // GSAP intro takes ~3.5s; INTRO_HOLD_MS extra hold so user sees full map
-      const t = setTimeout(() => setSubPhase('features'), 3500 + INTRO_HOLD_MS);
-      return () => clearTimeout(t);
-    } else {
-      // Features displayed for FEATURES_DISPLAY_MS, then complete
-      const t = setTimeout(onComplete, FEATURES_DISPLAY_MS);
+      const t = setTimeout(() => setSubPhase('feature'), 3500 + INTRO_HOLD_MS);
       return () => clearTimeout(t);
     }
+    const t = setTimeout(onComplete, FEATURE_DISPLAY_MS);
+    return () => clearTimeout(t);
   }, [subPhase, onComplete]);
 
-  // Intro animation (runs once on mount)
+  // Intro animation
   useGSAP(
     () => {
       const tl = gsap.timeline();
@@ -124,21 +120,14 @@ export default function NationalMapPhase({ cycleSeed, onComplete }: NationalMapP
     { scope: containerRef, dependencies: [cycleSeed] },
   );
 
-  // Slide cards in when subPhase becomes 'features'
+  // Slide the feature card up when subPhase becomes 'feature'
   useGSAP(
     () => {
-      if (subPhase !== 'features' || !cardsRef.current) return;
+      if (subPhase !== 'feature' || !cardRef.current) return;
       gsap.fromTo(
-        cardsRef.current.querySelectorAll('[data-feature-card]'),
-        { opacity: 0, x: 20 },
-        {
-          opacity: 1,
-          x: 0,
-          duration: 0.5,
-          stagger: 0.15,
-          ease: 'power2.out',
-          delay: 0.3, // wait for map to finish shrinking
-        },
+        cardRef.current,
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' },
       );
     },
     { scope: containerRef, dependencies: [subPhase] },
@@ -147,17 +136,18 @@ export default function NationalMapPhase({ cycleSeed, onComplete }: NationalMapP
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full"
+      className="relative w-full h-full flex flex-col"
       data-testid="national-map-phase"
     >
-      {/* Map wrapper: full-width during intro, shrinks to 50% during features */}
+      {/* Map fills the top portion of the stage at full width */}
       <div
         ref={mapWrapperRef}
-        className="absolute top-0 left-0 bottom-0"
+        className="w-full"
         style={{
           transformOrigin: '50% 50%',
-          width: subPhase === 'features' ? '50%' : '100%',
-          transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+          // SVG is 1000×589 (≈1.7:1) inside a square stage; with width=100%
+          // and aspectRatio preserved it occupies ~59% of stage height.
+          flex: '0 0 auto',
         }}
       >
         <svg
@@ -168,7 +158,6 @@ export default function NationalMapPhase({ cycleSeed, onComplete }: NationalMapP
           aria-hidden="true"
         >
           <defs>
-            {/* Union of all 50 state paths — clips dots to US territory only */}
             <clipPath id="us-territory-clip">
               {ALL_STATE_CODES.map((code) => (
                 <path key={`clip-${code}`} d={STATES_RELATIVE[code]} />
@@ -176,7 +165,6 @@ export default function NationalMapPhase({ cycleSeed, onComplete }: NationalMapP
             </clipPath>
           </defs>
 
-          {/* Filled state silhouettes — the solid US shape */}
           {ALL_STATE_CODES.map((code) => (
             <path
               key={`fill-${code}`}
@@ -186,7 +174,6 @@ export default function NationalMapPhase({ cycleSeed, onComplete }: NationalMapP
             />
           ))}
 
-          {/* State borders — staggered fade-in on top of the silhouette */}
           {ALL_STATE_CODES.map((code) => (
             <path
               key={`border-${code}`}
@@ -200,7 +187,6 @@ export default function NationalMapPhase({ cycleSeed, onComplete }: NationalMapP
             />
           ))}
 
-          {/* Asset dots — clipped to US territory */}
           <g clipPath="url(#us-territory-clip)">
             {nationalDots.map((dot) => (
               <circle
@@ -217,35 +203,32 @@ export default function NationalMapPhase({ cycleSeed, onComplete }: NationalMapP
         </svg>
       </div>
 
-      {/* Feature cards — mount only during 'features' sub-phase */}
-      {subPhase === 'features' && (
-        <div
-          ref={cardsRef}
-          className="absolute top-0 right-0 bottom-0 w-[48%] flex flex-col justify-center gap-2 px-1.5"
-          data-testid="national-feature-cards"
-        >
-          {cardSet.cards.map((card) => (
-            <div
-              key={card.title}
-              data-feature-card
-              className="rounded-lg border border-primary/30 bg-background/92 backdrop-blur-sm p-2 text-left"
-              style={{ opacity: 0 }}
-            >
-              <div className="flex items-start gap-2">
-                <card.icon className="w-3.5 h-3.5 text-primary flex-shrink-0 mt-0.5" aria-hidden />
-                <div className="min-w-0">
-                  <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-primary mb-0.5">
-                    {card.title}
-                  </p>
-                  <p className="text-[7.5px] leading-tight text-foreground/80">
-                    {card.description}
-                  </p>
-                </div>
+      {/* Single feature card centred in the room below the map */}
+      <div className="flex-1 flex items-center justify-center px-4 pb-2 min-h-0">
+        {subPhase === 'feature' && (
+          <div
+            ref={cardRef}
+            className="w-full max-w-xs rounded-lg border border-primary/30 bg-background/92 backdrop-blur-sm px-3 py-2 text-left"
+            style={{ opacity: 0 }}
+            data-testid="national-feature-card"
+          >
+            <div className="flex items-start gap-2">
+              <featureCard.icon
+                className="w-4 h-4 text-primary flex-shrink-0 mt-0.5"
+                aria-hidden
+              />
+              <div className="min-w-0">
+                <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-primary mb-0.5">
+                  {featureCard.title}
+                </p>
+                <p className="text-xs leading-snug text-foreground/85">
+                  {featureCard.description}
+                </p>
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
