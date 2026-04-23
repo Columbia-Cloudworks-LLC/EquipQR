@@ -33,7 +33,7 @@ vi.mock('gsap/MorphSVGPlugin', () => ({ MorphSVGPlugin: {} }));
 import HeroAnimation from './HeroAnimation';
 import { ALL_STATE_CODES, STATE_VECTORS, STATES_RELATIVE } from './stateVectors';
 import type { StateCode } from './stateVectors';
-import { computeDotPositions, chosenDotIndex } from './dotPositions';
+import { computeDotPositionsInState, chosenDotIndex } from './dotPositions';
 import { ALL_PM_ITEMS, EXPORT_TARGETS } from './pmChecklistData';
 
 function renderHero() {
@@ -106,33 +106,36 @@ describe('HeroAnimation', () => {
     });
   });
 
-  describe('slide direction logic', () => {
-    it('slide direction is left when chosenDot.cx > 50', () => {
-      const states: StateCode[] = ['TX', 'CA', 'NY', 'FL', 'OH'];
-      for (const code of states) {
-        const dots = computeDotPositions(code, 14);
-        const idx = chosenDotIndex(code, dots);
-        const dot = dots[idx];
-        const direction = dot.cx > 50 ? 'left' : 'right';
-        expect(['left', 'right']).toContain(direction);
-      }
-    });
-
-    it('computeDotPositions is deterministic — same code always returns the same positions', () => {
+  describe('state-cycle dot logic', () => {
+    it('computeDotPositionsInState is deterministic for the same state/cycle', () => {
       const sample: StateCode[] = ['TX', 'CA', 'NY', 'AK', 'HI'];
       for (const code of sample) {
-        const a = computeDotPositions(code, 14);
-        const b = computeDotPositions(code, 14);
+        const a = computeDotPositionsInState(code, 14, 0);
+        const b = computeDotPositionsInState(code, 14, 0);
         expect(a).toEqual(b);
       }
     });
 
-    it('chosenDotIndex is deterministic per stateKey', () => {
+    it('computeDotPositionsInState keeps all generated dots inside the stage', () => {
+      const sample: StateCode[] = ['TX', 'CA', 'NY', 'FL', 'OH'];
+      for (const code of sample) {
+        const dots = computeDotPositionsInState(code, 14, 1);
+        expect(dots).toHaveLength(14);
+        for (const dot of dots) {
+          expect(dot.cx).toBeGreaterThanOrEqual(0);
+          expect(dot.cx).toBeLessThan(100);
+          expect(dot.cy).toBeGreaterThanOrEqual(0);
+          expect(dot.cy).toBeLessThan(100);
+        }
+      }
+    });
+
+    it('chosenDotIndex is deterministic for production dot generation', () => {
       const sample: StateCode[] = ['TX', 'CA', 'NY'];
       for (const code of sample) {
-        const dots = computeDotPositions(code, 14);
-        const a = chosenDotIndex(code, dots);
-        const b = chosenDotIndex(code, dots);
+        const dots = computeDotPositionsInState(code, 14, 2);
+        const a = chosenDotIndex(code, dots, 2);
+        const b = chosenDotIndex(code, dots, 2);
         expect(a).toBe(b);
       }
     });
