@@ -171,13 +171,16 @@ BEGIN
       SUM(e.delta)::integer AS net_delta
     FROM (
       -- A work order becomes overdue on its due_day (or the start of our window,
-      -- whichever is later). Status filter intentionally omitted: completed/cancelled
-      -- WOs that were overdue within the window must still appear in the series.
+      -- whichever is later). Completed WOs are included: completed_date bounds the
+      -- overdue period correctly. Cancelled WOs without a completed_date are excluded
+      -- because COALESCE would default to v_today, making them appear perpetually
+      -- overdue (workOrderService.ts only sets completed_date on 'completed' transitions).
       SELECT
         GREATEST(w.due_day, v_prior_start) AS event_day,
         1 AS delta
       FROM accessible_wo w
       WHERE w.due_day IS NOT NULL
+        AND (w.status != 'cancelled' OR w.completed_day IS NOT NULL)
         AND COALESCE(w.completed_day - 1, v_today) >= GREATEST(w.due_day, v_prior_start)
 
       UNION ALL
@@ -189,6 +192,7 @@ BEGIN
         -1 AS delta
       FROM accessible_wo w
       WHERE w.due_day IS NOT NULL
+        AND (w.status != 'cancelled' OR w.completed_day IS NOT NULL)
         AND COALESCE(w.completed_day - 1, v_today) >= GREATEST(w.due_day, v_prior_start)
         AND LEAST(COALESCE(w.completed_day - 1, v_today), v_today) + 1 <= v_today
     ) e
@@ -296,9 +300,11 @@ COMMENT ON FUNCTION public.get_dashboard_trends(uuid, integer) IS
   'Team scope and admin status are derived ENTIRELY server-side from auth.uid() '
   'and org/team membership — no caller-supplied auth parameters are accepted. '
   'Sparklines include baseline offsets so series start from actual org totals. '
-  'The overdue_events CTE relies solely on due_day/completed_day bounds so that '
-  'completed and cancelled WOs that were historically overdue are counted correctly '
-  '(fix for issue #665). Tenant isolation enforced by public.is_org_member() check.';
+  'The overdue_events CTE relies on due_day/completed_day bounds so that '
+  'completed WOs that were historically overdue are counted correctly (fix for '
+  'issue #665). Cancelled WOs without a completed_date are excluded to avoid '
+  'treating them as perpetually overdue. Tenant isolation enforced by '
+  'public.is_org_member() check.';
 
 REVOKE ALL ON FUNCTION public.get_dashboard_trends(uuid, integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_dashboard_trends(uuid, integer) TO authenticated;
