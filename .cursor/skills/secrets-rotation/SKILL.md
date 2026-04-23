@@ -102,6 +102,65 @@ op service-account revoke <old-sa-uuid>
 7. Rename `op-svc-equipqr-agents-temp` back to `op-svc-equipqr-agents` (use the 1Password web UI — CLI rename is not currently supported).
 8. Update the personal-vault item `op-svc-equipqr-agents — token` notes: bump `Last rotated:` and `Next rotation due:` dates.
 
+## Cross-platform secret rotation (rotate `<NAME>` across all four platforms)
+
+Use when a secret is consumed by **more than one** of the four runtime platforms — GitHub Actions, Vercel, Supabase Edge Functions, GCP Secret Manager — and rotating it requires updating every place the value lives, in a consistent order, without the app breaking mid-rotation. This is the "AI Administrator" rotation pattern from issue [#644](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/644) and is the workflow the user invokes when prompting Cursor with `"rotate <NAME> across all four platforms"`.
+
+### When to use this recipe vs. the per-vendor procedures above
+
+- **Per-vendor procedure (above)** — when the secret lives in only one place (e.g. a GitHub-only PAT used solely by `github-prod` in MCP).
+- **This cross-platform recipe** — when the secret is a vendor-shared key like `STRIPE_SECRET_KEY`, `RESEND_API_KEY`, `GOOGLE_MAPS_API_KEY`, `HCAPTCHA_SECRET`, `OPENAI_API_KEY`, etc. that the app reads from `.env` in build (Vercel), runtime (Supabase edge functions), CI (GitHub Actions secrets), and possibly a server-to-server flow (GCP Secret Manager).
+
+### Canonical order — never skip a step, never re-order
+
+1. **Mint the new value at the source vendor.** Use the vendor's UI / API to generate a fresh key. Note the value somewhere ephemeral (clipboard or temp shell variable; never a file). Do NOT revoke the old value yet — the old value must keep working until step 8.
+
+2. **Update the 1Password vault item.** Open the corresponding item in `EquipQR Agents` vault (UUID `tgo2m6qbct5otqeqirjocn3joa`), update the `credential` (or `api_key` / `app_key`) field with the new value. Update the item Notes to reflect today's rotation date and the next-due date (90 or 180 days per the cadence table at the top of this skill).
+
+3. **Propagate to GitHub Actions secrets.** From the repo root:
+   ```powershell
+   $newValue = op read 'op://tgo2m6qbct5otqeqirjocn3joa/<item>/credential'
+   gh secret set <SECRET_NAME> --repo Columbia-Cloudworks-LLC/EquipQR --body $newValue
+   ```
+   Verify with `gh secret list --repo Columbia-Cloudworks-LLC/EquipQR | Select-String <SECRET_NAME>` (the `Updated` column should show today).
+
+4. **Propagate to Vercel env vars (preview + production).** Until [`scripts/sync-vercel-from-1password.ps1`](../../../scripts/sync-vercel-from-1password.ps1) (Phase 6) lands, do this manually for each environment:
+   ```powershell
+   $newValue = op read 'op://tgo2m6qbct5otqeqirjocn3joa/<item>/credential'
+   vercel env rm <ENV_NAME> production --yes
+   $newValue | vercel env add <ENV_NAME> production
+   vercel env rm <ENV_NAME> preview --yes
+   $newValue | vercel env add <ENV_NAME> preview
+   ```
+   The remove-then-add pattern is required because `vercel env add` errors when the variable already exists. Trigger a fresh production deployment (`vercel --prod`) so the new value is baked in; preview gets the value on the next preview deploy automatically.
+
+5. **Propagate to Supabase edge function secrets.** Until [`scripts/sync-supabase-secrets-from-1password.ps1`](../../../scripts/sync-supabase-secrets-from-1password.ps1) (Phase 6) lands, do this for each project (production: `ymxkzronkhwxzcdcbnwq`; preview: `olsdirkvvfegvclbpgrg`):
+   ```powershell
+   $newValue = op read 'op://tgo2m6qbct5otqeqirjocn3joa/<item>/credential'
+   supabase secrets set <SECRET_NAME>="$newValue" --project-ref ymxkzronkhwxzcdcbnwq
+   supabase secrets set <SECRET_NAME>="$newValue" --project-ref olsdirkvvfegvclbpgrg
+   ```
+   Edge functions pick up the new value on their next cold start (typically within a few minutes); restart any always-warm functions explicitly via the Supabase dashboard if immediate cutover is required.
+
+6. **Propagate to GCP Secret Manager (only if the secret is consumed by a GCP-side service — Cloud Run, Cloud Functions, Workflows, etc.).** From the repo root, using the `gcloud-write` MCP entry or impersonation flag explicitly:
+   ```powershell
+   $newValue = op read 'op://tgo2m6qbct5otqeqirjocn3joa/<item>/credential'
+   $newValue | gcloud secrets versions add <secret-name> --data-file=- --impersonate-service-account=equipqr-cursor-agent-editor-pr@equipqr-prod.iam.gserviceaccount.com
+   ```
+   Verify with `gcloud secrets versions list <secret-name> --impersonate-service-account=equipqr-cursor-agent-editor-pr@equipqr-prod.iam.gserviceaccount.com` — the new version should appear at the top with `STATE: ENABLED` and `CREATED: <today>`. If the secret is consumed by a Cloud Run service that mounts a specific version (not `:latest`), update the service's secret-mount config to point at the new version.
+
+7. **Run `.\scripts\op-mcp-doctor.ps1`** to confirm every MCP that consumes the rotated value still authenticates green. The new value should be reachable via every relevant MCP entry. If anything red, **STOP** — investigate before revoking the old value at the vendor (step 8). The old value is your safety net during this verification window.
+
+8. **Revoke the old value at the source vendor — only after 24 hours of green doctor runs and at least one healthy production deploy.** This is the irreversible step; do not rush it. The 24-hour cushion catches consumers you forgot about (cron jobs, scheduled workflows, dormant edge functions). Update the vendor-side token name to reflect today's rotation date (e.g. `equipqr-agent-readonly-2026-04` becomes `equipqr-agent-readonly-2026-07`).
+
+### Per-vendor rotation procedures cited from elsewhere
+
+The four steps above don't replace the per-vendor minting procedures — they sequence them. For the actual click-by-click vendor-side steps, see:
+
+- **GitHub fine-grained PAT minting** — see Service Request #644 [Section C](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/644#issuecomment-4283556330) (re-validated 2026-04-20 against `https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens`).
+- **GCP service-account JSON key creation** — see Service Request #644 [Section D](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/644#issuecomment-4283556330) (re-validated 2026-04-20 against `https://cloud.google.com/iam/docs/keys-create-delete`). Note: under the AGENTS.md line 25 hybrid impersonation pattern, the `gcp-editor` JSON key is vestigial; rotation is rarely needed.
+- **Datadog API / Application keys** — see Service Request #644 [Section B](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/644#issuecomment-4283556330) for the OTR-mode caveat (Application Keys created after Aug 2025 are visible only at creation; lost values cannot be recovered, only re-minted).
+
 ## Compromise / leak response
 
 If you suspect any vendor token has leaked:

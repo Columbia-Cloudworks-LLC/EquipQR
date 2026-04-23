@@ -52,15 +52,17 @@ const Dashboard = () => {
     const pmOverdueCount = pmStatuses?.filter((s) => s.is_overdue).length ?? 0;
     const needsAttentionCount =
       (dashboardStats?.maintenanceEquipment ?? 0) +
-      (dashboardStats?.inactiveEquipment ?? 0) +
-      pmOverdueCount;
-    if (overdueCount === 0 && needsAttentionCount === 0) return null;
+      (dashboardStats?.inactiveEquipment ?? 0);
+    if (overdueCount === 0 && needsAttentionCount === 0 && pmOverdueCount === 0) return null;
     const parts: string[] = [];
     if (overdueCount > 0) parts.push(`${overdueCount} overdue work order${overdueCount === 1 ? '' : 's'}`);
     if (needsAttentionCount > 0) {
       parts.push(
-        `${needsAttentionCount} equipment need${needsAttentionCount === 1 ? 's' : ''} attention (maintenance, inactive, or PM overdue)`
+        `${needsAttentionCount} equipment need${needsAttentionCount === 1 ? 's' : ''} attention (maintenance or inactive)`
       );
+    }
+    if (pmOverdueCount > 0) {
+      parts.push(`${pmOverdueCount} PM${pmOverdueCount === 1 ? '' : 's'} overdue`);
     }
     return parts.join(' · ');
   }, [dashboardStats, pmStatuses]);

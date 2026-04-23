@@ -27,10 +27,11 @@ interface Equipment {
   image_url?: string;
   default_pm_template_id?: string | null;
   working_hours?: number | null;
+  // Populated by EquipmentService from the `team:team_id(id, name)` join.
   team_name?: string;
 }
 
-export type EquipmentViewMode = 'grid' | 'list';
+export type EquipmentViewMode = 'grid' | 'list' | 'table';
 
 interface EquipmentCardProps {
   equipment: Equipment;

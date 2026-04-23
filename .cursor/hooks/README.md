@@ -26,3 +26,20 @@ These hooks use PowerShell syntax and are designed for Windows development envir
 ## Configuration
 
 Hooks are configured in `.cursor/hooks.json`. The current configuration uses PowerShell commands that are Windows-specific.
+
+### Windows: keeping hook windows hidden
+
+Cursor (a GUI process) spawns hook child processes without `CREATE_NO_WINDOW`,
+so console-subsystem children can briefly flash a window that steals focus.
+To keep hooks invisible, follow these conventions in `hooks.json` and any
+script you add:
+
+1. **PowerShell launcher** — always use:
+   `powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File ...`
+   The `-WindowStyle Hidden` flag suppresses the console window even if one is allocated.
+2. **Python launcher** — use `pythonw` (the windowless interpreter) instead of `python`.
+   Cursor pipes stdin/stdout, so `pythonw` reads/writes them correctly.
+3. **Inside .ps1 scripts** — never wrap subprocesses in `cmd /c "npx ..."` or
+   `cmd /c "git ..."`. Invoke executables directly with the call operator:
+   `& npx.cmd vitest related $filePath --run` or `& git status --porcelain=v1`.
+   This avoids spawning a transient `cmd.exe` console window.

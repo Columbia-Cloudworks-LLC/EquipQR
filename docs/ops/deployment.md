@@ -98,13 +98,9 @@ export const config = {
 
 ## Hosting Platforms
 
-### Lovable Hosting (Recommended)
-EquipQR™ is optimized for Lovable's hosting platform:
-
-1. **Click Publish**: Use the publish button in Lovable interface
-2. **Custom Domain**: Configure custom domain in project settings
-3. **SSL Certificate**: Automatic SSL certificate provisioning
-4. **CDN**: Global content delivery network included
+EquipQR™ is hosted on Vercel. The `main` branch promotes to `equipqr.app`,
+and the `preview` branch promotes to `preview.equipqr.app`. SSL, CDN, and
+custom domain routing are managed in the Vercel dashboard.
 
 ### Vercel Deployment
 ```bash
@@ -168,7 +164,6 @@ When rotating keys or deploying a new environment, verify secrets in **both** da
 | `VITE_GOOGLE_PICKER_API_KEY` | Google Picker browser API key (referrer-restricted) |
 | `VITE_GOOGLE_PICKER_APP_ID` | Google Cloud project number for Picker |
 | `VITE_ENABLE_QUICKBOOKS` | Feature flag: QuickBooks integration |
-| `VITE_ENABLE_GEOLOCATION_HIERARCHY` | Feature flag: geolocation hierarchy |
 
 #### Supabase Edge Function Secrets (runtime, set in Supabase Dashboard)
 
@@ -219,6 +214,8 @@ EquipQR uses these scopes for Google Workspace features:
 | `https://www.googleapis.com/auth/drive.file` | Save PDFs and create Google Docs artifacts in Drive | `src/services/google-workspace/auth.ts` |
 | `https://www.googleapis.com/auth/drive.readonly` | Picker browsing/selection in browser UI | `src/services/google-workspace/auth.ts` |
 | `https://www.googleapis.com/auth/documents` | Format Google Docs executive packets via `batchUpdate` | `src/services/google-workspace/auth.ts` |
+
+> **Workspace OAuth audit logs**: Failures in the Workspace OAuth flow (consent, token exchange, Admin SDK directory reads) are captured by the Workspace tenant, not the `equipqr-prod` Cloud project. To make those logs queryable via Cloud Logging at the org tier, see [`docs/ops/observability.md`](observability.md) — it documents the Admin Console toggle, the org-level `gcloud logging read` queries, and the IAM grants required for agent-driven verification.
 
 > **Common mistake**: Setting a secret in Vercel when it should be in Supabase (or vice versa). The `GOOGLE_MAPS_BROWSER_KEY` is a frequent offender — it is served by a Supabase Edge Function at runtime, not baked into the Vercel build.
 
@@ -745,7 +742,7 @@ Ensure all deployments use HTTPS:
 ### Supabase Integration (Recommended)
 EquipQR™ is designed to work with Supabase for backend functionality:
 
-1. **Connect Supabase**: Use Lovable's native Supabase integration
+1. **Connect Supabase**: Configure project credentials via Vercel environment variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`)
 2. **Database Setup**: Create tables for equipment, work orders, teams
 3. **Authentication**: Configure Supabase Auth for user management
 4. **Real-time Updates**: Enable real-time subscriptions for live data

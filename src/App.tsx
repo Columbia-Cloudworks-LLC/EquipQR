@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useParams, useLocation } from 'react-router-do
 import { Suspense, lazy, type ReactNode } from 'react';
 import { AppProviders } from '@/components/providers/AppProviders';
 import { TeamProvider } from '@/contexts/TeamContext';
+import { SelectedTeamProvider } from '@/contexts/SelectedTeamContext';
 import { SimpleOrganizationProvider } from '@/contexts/SimpleOrganizationProvider'; // Fixed import path
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -39,6 +40,7 @@ const TopBar = lazy(() => import('@/components/layout/TopBar'));
 const BottomNav = lazy(() => import('@/components/navigation/BottomNav'));
 const Dashboard = lazy(() => import('@/features/dashboard/pages/Dashboard'));
 const Equipment = lazy(() => import('@/features/equipment/pages/Equipment'));
+const BulkEquipment = lazy(() => import('@/features/equipment/pages/BulkEquipment'));
 const EquipmentDetails = lazy(() => import('@/features/equipment/pages/EquipmentDetails'));
 const WorkOrders = lazy(() => import('@/features/work-orders/pages/WorkOrders'));
 const WorkOrderDetails = lazy(() => import('@/features/work-orders/pages/WorkOrderDetails'));
@@ -186,6 +188,7 @@ function App() {
                   <WorkspaceOnboardingGuard>
                     <OptionalOfflineQueueProvider>
                     <TeamProvider>
+                      <SelectedTeamProvider>
                       <SidebarProvider>
                       <BugReportProvider>
                       <div className="flex min-h-screen w-full">
@@ -218,6 +221,7 @@ function App() {
                               <Routes>
                                 <Route path="/" element={<Dashboard />} />
                                 <Route path="/equipment" element={<Equipment />} />
+                                <Route path="/equipment/bulk" element={<BulkEquipment />} />
                                 <Route path="/equipment/:equipmentId" element={<EquipmentDetails />} />
                                 <Route path="/work-orders" element={<WorkOrders />} />
                                 <Route path="/work-orders/:workOrderId" element={<WorkOrderDetails />} />
@@ -262,6 +266,7 @@ function App() {
                       </div>
                       </BugReportProvider>
                       </SidebarProvider>
+                      </SelectedTeamProvider>
                     </TeamProvider>
                     </OptionalOfflineQueueProvider>
                   </WorkspaceOnboardingGuard>

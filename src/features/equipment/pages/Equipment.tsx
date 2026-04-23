@@ -1,12 +1,20 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ChevronDown, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import type { EquipmentViewMode } from '@/features/equipment/components/EquipmentCard';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEquipmentFiltering } from '@/features/equipment/hooks/useEquipmentFiltering';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useSelectedTeam } from '@/hooks/useSelectedTeam';
+import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
@@ -20,6 +28,9 @@ import EquipmentSortHeader from '@/features/equipment/components/EquipmentSortHe
 import EquipmentGrid from '@/features/equipment/components/EquipmentGrid';
 import EquipmentLoadingState from '@/features/equipment/components/EquipmentLoadingState';
 import ImportCsvWizard from '@/features/equipment/components/ImportCsvWizard';
+import EquipmentColumnPicker from '@/features/equipment/components/EquipmentColumnPicker';
+import { EQUIPMENT_TABLE_COLUMN_META } from '@/features/equipment/components/EquipmentTable';
+import { useEquipmentTableColumns } from '@/features/equipment/hooks/useEquipmentTableColumns';
 import { useOfflineMergedEquipment } from '@/features/equipment/hooks/useOfflineMergedEquipment';
 import { useOrgEquipmentPMStatuses } from '@/features/equipment/hooks/useEquipmentPMStatus';
 
@@ -28,7 +39,9 @@ const Equipment = () => {
   const { canCreateEquipment, hasRole } = usePermissions();
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const initializedFromUrl = useRef(false);
+  const { selectedTeamId, setSelectedTeamId } = useSelectedTeam();
   
   // Use the new enhanced filtering hook with explicit organization ID
   const {
@@ -55,6 +68,14 @@ const Equipment = () => {
   // Merge server equipment with pending offline queue items
   const mergedEquipment = useOfflineMergedEquipment(paginatedEquipment);
 
+  // Per-org column visibility for the dense table view (issue #633).
+  const {
+    visibleColumns,
+    toggleColumn,
+    resetToDefaults: resetColumnVisibility,
+    hasOverrides: hasColumnOverrides,
+  } = useEquipmentTableColumns(currentOrganization?.id);
+
   // PM interval status for all equipment (gated by feature flag internally)
   const { data: pmStatusList } = useOrgEquipmentPMStatuses(currentOrganization?.id);
   const pmStatuses = React.useMemo(() => {
@@ -70,7 +91,21 @@ const Equipment = () => {
   const [showImportCsv, setShowImportCsv] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<EquipmentViewMode>(() => {
     const stored = localStorage.getItem('equipqr:equipment-view-mode');
-    return stored === 'list' ? 'list' : 'grid';
+    let initial: EquipmentViewMode;
+    switch (stored) {
+      case 'list':
+        initial = 'list';
+        break;
+      case 'table':
+        initial = 'table';
+        break;
+      default:
+        initial = 'grid';
+    }
+    if (initial === 'table' && isMobile) {
+      return 'list';
+    }
+    return initial;
   });
   const pageSizeSelectId = 'equipment-page-size-select';
 
@@ -79,14 +114,21 @@ const Equipment = () => {
     localStorage.setItem('equipqr:equipment-view-mode', mode);
   }, []);
 
-  // Apply URL parameter filters on initial load
+  // Apply URL parameter filters on initial load.
+  // The `team` parameter writes to the GLOBAL `useSelectedTeam` selection (not
+  // the page-local filter) — the page is now driven by the TopBar selection,
+  // so a deep link like `/dashboard/equipment?team=<uuid>` updates the global
+  // scope and the sync effect below mirrors it onto the page filter.
   useEffect(() => {
     if (initializedFromUrl.current) return;
     let didApply = false;
     const team = searchParams.get('team');
     const status = searchParams.get('status');
     if (team) {
-      updateFilter('team', team);
+      // 'all' in a deep link means "clear the team filter" (global scope = null).
+      // 'unassigned' is already the UNASSIGNED_TEAM_ID sentinel value.
+      // Any other value is treated as a team UUID.
+      setSelectedTeamId(team === 'all' ? null : team);
       didApply = true;
     }
     if (status) {
@@ -108,7 +150,20 @@ const Equipment = () => {
     if (didApply) {
       initializedFromUrl.current = true;
     }
-  }, [searchParams, updateFilter]);
+  }, [searchParams, updateFilter, setSelectedTeamId]);
+
+  // Mirror the global TopBar team selection onto the page-local filter.
+  // `null` (= "All teams") and `UNASSIGNED_TEAM_ID` are translated to the
+  // sentinel values `useEquipmentFiltering` already understands.
+  useEffect(() => {
+    const value =
+      selectedTeamId === null
+        ? 'all'
+        : selectedTeamId === UNASSIGNED_TEAM_ID
+          ? 'unassigned'
+          : selectedTeamId;
+    updateFilter('team', value);
+  }, [selectedTeamId, updateFilter]);
 
   const canCreate = canCreateEquipment();
   const canImport = hasRole(['owner', 'admin']);
@@ -152,13 +207,23 @@ const Equipment = () => {
           hideDescriptionOnMobile
           actions={
             canCreate && (
-              <Button 
-                onClick={handleAddEquipment}
-                className="hidden sm:inline-flex"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Equipment
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="hidden sm:inline-flex">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Equipment
+                    <ChevronDown className="ml-1 h-4 w-4" aria-hidden />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={handleAddEquipment}>
+                    Add Single Equipment
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => navigate('/dashboard/equipment/bulk')}>
+                    Bulk Edit (Grid)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )
           }
         />
@@ -181,6 +246,17 @@ const Equipment = () => {
         canExport={canExport}
         onImportCsv={() => setShowImportCsv(true)}
         equipment={equipment}
+        columnPicker={
+          viewMode === 'table' ? (
+            <EquipmentColumnPicker
+              allColumns={EQUIPMENT_TABLE_COLUMN_META}
+              visibleColumns={visibleColumns}
+              onToggle={toggleColumn}
+              onReset={resetColumnVisibility}
+              hasOverrides={hasColumnOverrides}
+            />
+          ) : undefined
+        }
       />
 
       {/* Mobile-only: sort + view mode below the filter bar */}
@@ -206,6 +282,9 @@ const Equipment = () => {
         onClearFilters={clearFilters}
         viewMode={viewMode}
         pmStatuses={pmStatuses}
+        sortConfig={sortConfig}
+        onSortChange={updateSort}
+        visibleColumns={visibleColumns}
       />
 
       {/* Pagination */}

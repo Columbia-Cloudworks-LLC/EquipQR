@@ -2,18 +2,32 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-const Table = React.forwardRef<
-  HTMLTableElement,
-  React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
-    <table
-      ref={ref}
-      className={cn("w-full caption-bottom text-sm", className)}
-      {...props}
-    />
-  </div>
-))
+export type TableProps = React.HTMLAttributes<HTMLTableElement> & {
+  /**
+   * When false, render the `<table>` without the default `overflow-auto` wrapper.
+   * Use when a parent owns vertical scrolling (e.g. `DataTable` with `stickyHeader`).
+   */
+  withWrapper?: boolean;
+};
+
+const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  ({ className, withWrapper = true, ...props }, ref) =>
+    withWrapper ? (
+      <div className="relative w-full overflow-auto">
+        <table
+          ref={ref}
+          className={cn("w-full caption-bottom text-sm", className)}
+          {...props}
+        />
+      </div>
+    ) : (
+      <table
+        ref={ref}
+        className={cn("w-full caption-bottom text-sm", className)}
+        {...props}
+      />
+    ),
+);
 Table.displayName = "Table"
 
 const TableHeader = React.forwardRef<

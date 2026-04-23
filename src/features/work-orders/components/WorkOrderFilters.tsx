@@ -11,11 +11,6 @@ import { WorkOrderFilters as FiltersType } from '@/features/work-orders/types/wo
 import type { QuickFilterPreset, SortField, SortDirection } from '@/features/work-orders/hooks/useWorkOrderFilters';
 import WorkOrderToolbar from './WorkOrderToolbar';
 
-interface Team {
-  id: string;
-  name: string;
-}
-
 interface WorkOrderFiltersProps {
   filters: FiltersType;
   activeFilterCount: number;
@@ -25,7 +20,6 @@ interface WorkOrderFiltersProps {
   onFilterChange: (key: keyof FiltersType, value: string) => void;
   onClearFilters: () => void;
   onQuickFilter: (preset: QuickFilterPreset) => void;
-  teams?: Team[];
   sortField: SortField;
   sortDirection: SortDirection;
   onSortChange: (field: SortField, direction: SortDirection) => void;
@@ -42,7 +36,6 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
   onFilterChange,
   onClearFilters,
   onQuickFilter,
-  teams = [],
   sortField,
   sortDirection,
   onSortChange,
@@ -55,7 +48,6 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
   const mobileAssigneeFilterId = 'work-order-assignee-filter-mobile';
   const mobilePriorityFilterId = 'work-order-priority-filter-mobile';
   const mobileDueDateFilterId = 'work-order-due-date-filter-mobile';
-  const mobileTeamFilterId = 'work-order-team-filter-mobile';
 
   if (isMobile) {
     return (
@@ -118,7 +110,8 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
               <SheetHeader className="pb-4">
                 <SheetTitle>Filter Work Orders</SheetTitle>
                 <SheetDescription>
-                  Use the options below to filter work orders by status, assignee, priority, due date, and team.
+                  Filter work orders by status, assignee, priority, or due date. Team
+                  scope is set from the breadcrumb at the top of the screen.
                 </SheetDescription>
               </SheetHeader>
               
@@ -187,23 +180,6 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                           <SelectItem value="overdue">Overdue</SelectItem>
                           <SelectItem value="today">Due Today</SelectItem>
                           <SelectItem value="this_week">This Week</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <label htmlFor={mobileTeamFilterId} className="text-sm font-medium mb-2 block">Team</label>
-                      <Select value={filters.teamFilter} onValueChange={(value) => onFilterChange('teamFilter', value)}>
-                        <SelectTrigger id={mobileTeamFilterId} className="h-12">
-                          <SelectValue placeholder="All Teams" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Teams</SelectItem>
-                          {teams.map((team) => (
-                            <SelectItem key={team.id} value={team.id}>
-                              {team.name}
-                            </SelectItem>
-                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -286,24 +262,6 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                 </button>
               </Badge>
             )}
-            {filters.teamFilter !== 'all' && (
-              <Badge variant="secondary" className="flex max-w-full items-center gap-1">
-                <span
-                  className="truncate"
-                  title={`Team: ${teams.find(t => t.id === filters.teamFilter)?.name || filters.teamFilter}`}
-                >
-                  Team: {teams.find(t => t.id === filters.teamFilter)?.name || filters.teamFilter}
-                </span>
-                <button
-                  type="button"
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
-                  onClick={() => onFilterChange('teamFilter', 'all')}
-                  aria-label="Clear team filter"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            )}
             <Button
               variant="ghost"
               size="sm"
@@ -331,7 +289,6 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
       onSortChange={onSortChange}
       resultCount={resultCount}
       totalCount={totalCount}
-      teams={teams}
     />
   );
 };

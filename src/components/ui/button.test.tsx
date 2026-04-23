@@ -19,4 +19,25 @@ describe('Button', () => {
     await user.click(screen.getByRole('button'));
     expect(handleClick).toHaveBeenCalledOnce();
   });
+
+  it('applies minimum 44×44px touch target to default (primary) variant', () => {
+    render(<Button>Create Work Order</Button>);
+    const el = screen.getByRole('button', { name: /create work order/i });
+    expect(el).toHaveClass('min-h-[44px]');
+    expect(el).toHaveClass('min-w-[44px]');
+  });
+
+  it('does not expand touch target for non-primary variants', () => {
+    render(
+      <Button variant="outline">Cancel</Button>
+    );
+    const el = screen.getByRole('button', { name: /cancel/i });
+    expect(el).not.toHaveClass('min-h-[44px]');
+  });
+
+  it('uses a thick focus-visible ring for keyboard users (mission-control contrast)', () => {
+    render(<Button type="button">Save</Button>);
+    const el = screen.getByRole('button', { name: /save/i });
+    expect(el).toHaveClass('focus-visible:ring-[3px]');
+  });
 });

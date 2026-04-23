@@ -6,7 +6,6 @@ import { CheckCircle, Clock, AlertTriangle, Calendar, Timer } from 'lucide-react
 import { useQuery } from '@tanstack/react-query';
 import { getLatestCompletedPM } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { useEquipmentPMStatus, getPMComplianceLevel } from '@/features/equipment/hooks/useEquipmentPMStatus';
-import { PM_INTERVALS_ENABLED } from '@/lib/flags';
 
 interface EquipmentPMInfoProps {
   equipmentId: string;
@@ -125,7 +124,7 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
         <div className="flex items-center flex-wrap gap-2">
           <Badge className={config.badgeClass}>{config.label}</Badge>
 
-          {PM_INTERVALS_ENABLED && pmStatus && (
+          {pmStatus && (
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Timer className="h-3 w-3" />
               Every {pmStatus.interval_value} {pmStatus.interval_type === 'hours' ? 'hrs' : 'days'}
@@ -133,13 +132,13 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
             </span>
           )}
 
-          {PM_INTERVALS_ENABLED && pmStatus?.is_overdue && pmStatus.days_overdue != null && (
+          {pmStatus?.is_overdue && pmStatus.days_overdue != null && (
             <span className="text-xs text-destructive font-medium">
               {pmStatus.days_overdue} days overdue
             </span>
           )}
 
-          {PM_INTERVALS_ENABLED && pmStatus?.is_overdue && pmStatus.hours_overdue != null && (
+          {pmStatus?.is_overdue && pmStatus.hours_overdue != null && (
             <span className="text-xs text-destructive font-medium">
               {Math.round(pmStatus.hours_overdue)} hrs overdue
             </span>

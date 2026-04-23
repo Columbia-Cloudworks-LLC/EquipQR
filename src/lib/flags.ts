@@ -6,15 +6,6 @@
  */
 
 /**
- * Controls whether billing and payment features are enabled.
- * When disabled, all users have access to all features regardless of subscription status.
- * 
- * Set via environment variable: BILLING_DISABLED
- * Defaults to true (disabled) unless explicitly set to false in production.
- */
-export const BILLING_DISABLED = import.meta.env.BILLING_DISABLED === 'true' || import.meta.env.BILLING_DISABLED !== 'false';
-
-/**
  * Controls whether QuickBooks Online integration is enabled.
  * When disabled, all QuickBooks-related UI and functionality is hidden.
  * 
@@ -34,15 +25,6 @@ export const QUICKBOOKS_ENABLED = import.meta.env.VITE_ENABLE_QUICKBOOKS === 'tr
  * by the ENABLE_QB_PDF_ATTACHMENT environment variable in the Supabase edge function.
  */
 export const QB_PDF_ATTACHMENT_ENABLED = import.meta.env.VITE_ENABLE_QB_PDF_ATTACHMENT === 'true';
-
-/**
- * Controls whether the enhanced geolocation hierarchy features are enabled.
- * Includes: team location override, structured address fields, location history, and privacy controls.
- * 
- * Set via environment variable: VITE_ENABLE_GEOLOCATION_HIERARCHY
- * Defaults to false (disabled) unless explicitly set to 'true'.
- */
-export const GEOLOCATION_HIERARCHY_ENABLED = import.meta.env.VITE_ENABLE_GEOLOCATION_HIERARCHY === 'true';
 
 /**
  * Controls whether Multi-Factor Authentication (MFA) features are enabled.
@@ -67,16 +49,6 @@ export const MFA_ENABLED = import.meta.env.VITE_ENABLE_MFA === 'true';
 export const OFFLINE_QUEUE_ENABLED = import.meta.env.VITE_ENABLE_OFFLINE_QUEUE === 'true';
 
 /**
- * Controls whether PM interval tracking is enabled.
- * When enabled, PM templates can define maintenance intervals (days or working hours)
- * and equipment is flagged when overdue for preventive maintenance.
- *
- * Set via environment variable: VITE_ENABLE_PM_INTERVALS
- * Defaults to true (enabled) unless explicitly set to 'false'.
- */
-export const PM_INTERVALS_ENABLED = import.meta.env.VITE_ENABLE_PM_INTERVALS !== 'false';
-
-/**
  * Controls whether the DSR cockpit workspace is enabled.
  * When enabled, org admins/owners can access the compliance cockpit route.
  *
@@ -89,10 +61,6 @@ export const DSR_COCKPIT_ENABLED = import.meta.env.VITE_ENABLE_DSR_COCKPIT === '
  * Feature flag accessor utility
  */
 export const FeatureFlags = {
-  billing: {
-    disabled: BILLING_DISABLED,
-    enabled: !BILLING_DISABLED
-  },
   quickbooks: {
     enabled: QUICKBOOKS_ENABLED,
     disabled: !QUICKBOOKS_ENABLED,
@@ -100,10 +68,6 @@ export const FeatureFlags = {
       enabled: QB_PDF_ATTACHMENT_ENABLED,
       disabled: !QB_PDF_ATTACHMENT_ENABLED
     }
-  },
-  geolocation: {
-    enabled: GEOLOCATION_HIERARCHY_ENABLED,
-    disabled: !GEOLOCATION_HIERARCHY_ENABLED
   },
   mfa: {
     enabled: MFA_ENABLED,
@@ -113,31 +77,11 @@ export const FeatureFlags = {
     enabled: OFFLINE_QUEUE_ENABLED,
     disabled: !OFFLINE_QUEUE_ENABLED
   },
-  pmIntervals: {
-    enabled: PM_INTERVALS_ENABLED,
-    disabled: !PM_INTERVALS_ENABLED
-  },
   dsrCockpit: {
     enabled: DSR_COCKPIT_ENABLED,
     disabled: !DSR_COCKPIT_ENABLED
   }
 } as const;
-
-/**
- * Check if billing is enabled
- * @returns true if billing features should be active
- */
-export function isBillingEnabled(): boolean {
-  return !BILLING_DISABLED;
-}
-
-/**
- * Check if billing is disabled
- * @returns true if billing is disabled
- */
-export function isBillingDisabled(): boolean {
-  return BILLING_DISABLED;
-}
 
 /**
  * Check if QuickBooks integration is enabled
@@ -164,14 +108,6 @@ export function isQBPDFAttachmentEnabled(): boolean {
 }
 
 /**
- * Check if geolocation hierarchy is enabled
- * @returns true if geolocation hierarchy features should be active
- */
-export function isGeolocationHierarchyEnabled(): boolean {
-  return GEOLOCATION_HIERARCHY_ENABLED;
-}
-
-/**
  * Check if MFA is enabled
  * @returns true if MFA features should be active
  */
@@ -185,14 +121,6 @@ export function isMFAEnabled(): boolean {
  */
 export function isOfflineQueueEnabled(): boolean {
   return OFFLINE_QUEUE_ENABLED;
-}
-
-/**
- * Check if PM interval tracking is enabled
- * @returns true if PM interval features should be active
- */
-export function isPMIntervalsEnabled(): boolean {
-  return PM_INTERVALS_ENABLED;
 }
 
 /**

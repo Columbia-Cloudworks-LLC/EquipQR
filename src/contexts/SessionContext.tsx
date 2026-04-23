@@ -46,7 +46,7 @@ interface SessionContextType {
   hasTeamAccess: (teamId: string) => boolean;
   canManageTeam: (teamId: string) => boolean;
   getUserTeamIds: () => string[];
-  refreshSession: () => Promise<void>;
+  refreshSession: (force?: boolean) => Promise<void>;
   clearSession: () => void;
 }
 

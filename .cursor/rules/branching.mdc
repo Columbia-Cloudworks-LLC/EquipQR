@@ -31,7 +31,11 @@ There is **no `dev` branch** despite what older sections of `CONTRIBUTING.md` su
 7. **Release flow** (only on explicit user request like `/raise`, "release", "promote"):
    - Open PR `preview → main`.
    - After merge to `main`, do not auto-promote production; the human flips the production gate in Vercel.
-8. **Trivial commits to `preview`** (CHANGELOG.md-only updates, `docs/`-only edits, comment-only fixes that touch zero runtime code) **may be direct-pushed** with admin bypass instead of opening a one-line PR — solo-dev velocity wins for non-runtime changes. Use `git push origin preview` (which silently bypasses the required-checks rule for repo admins) and proceed without opening a PR. Anything that touches `src/`, `supabase/migrations/`, `supabase/functions/`, `package.json`/`package-lock.json`, or any runtime file must still go through a PR with green CI, regardless of how small the change looks.
+8. **Worktree gates the workflow tempo.** The user's standing instruction is binary based on where the agent is running:
+   - **Main worktree (`C:\Users\viral\EquipQR`) on `preview` → direct push is the default.** Commit and `git push origin preview` (admin bypass on required checks is the user's intentional setup). Do **not** open a PR, do **not** wait for CI, and do **not** prompt for confirmation before pushing — the user has authorized the push by authorizing the change. Skipping this fast path on every micro-edit burns the user's time and tokens; that is the explicit complaint that produced this rule.
+   - **Linked worktrees (paths under `~/.cursor/worktrees/EquipQR/`) → formal flow.** Branch off `origin/preview`, push the feature branch, open a PR with `gh pr create --base preview`, and let CI / review run. Placing the agent into a linked worktree IS the opt-in to the slower flow; do not collapse it back into a direct push.
+   - **`main` stays protected regardless.** Never direct-push to `main`. `main` only updates via a merged `preview → main` PR (the `/raise` flow) or an explicit hotfix, per rules 6 and 7.
+   - This policy supersedes any older "trivial commits only" / "runtime files need a PR" carve-out — runtime risk on `preview` is acceptable to the user because `preview` is a non-production environment that the user actively monitors.
 
 ## Why this exists
 

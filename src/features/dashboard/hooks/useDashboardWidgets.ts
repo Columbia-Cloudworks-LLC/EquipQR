@@ -3,6 +3,8 @@ import {
   fetchPMComplianceData,
   fetchEquipmentByStatus,
   fetchCostTrendData,
+  fetchDashboardTrends,
+  type DashboardTrends,
 } from '@/features/dashboard/services/dashboardWidgetService';
 
 /**
@@ -118,5 +120,37 @@ export function useCostTrend(organizationId: string | undefined) {
     },
     enabled: !!organizationId,
     staleTime: 60 * 1000,
+  });
+}
+
+// ─── Dashboard Trends (issue #589) ──────────────────────────────────────────
+
+/**
+ * Real historical data for the four DashboardStatsGrid KPIs. Fed directly into
+ * StatsCard `sparkline` and `trend` props. Team-scoped via the same pattern as
+ * useTeamBasedDashboardStats so trend context matches the current-value chip.
+ *
+ * staleTime is intentionally higher than the point-in-time stats (5 min vs 30s)
+ * because historical trends don't move often and sparkline re-renders are
+ * visually noisy.
+ */
+export function useDashboardTrends(
+    organizationId: string | undefined,
+    enabled: boolean = true,
+    days: number = 7
+  ) {
+    return useQuery({
+      queryKey: [
+        'dashboard-trends',
+        organizationId,
+        days,
+      ],
+      queryFn: async (): Promise<DashboardTrends | null> => {
+        if (!organizationId) return null;
+        return fetchDashboardTrends(organizationId, days);
+      },
+      enabled: !!organizationId && enabled,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 }

@@ -4127,6 +4127,23 @@ export type Database = {
           actor_name: string
         }[]
       }
+      get_audit_log_timeline: {
+        Args: {
+          p_action?: string
+          p_actor_id?: string
+          p_bucket: string
+          p_date_from: string
+          p_date_to: string
+          p_entity_type?: string
+          p_organization_id: string
+          p_search?: string
+        }
+        Returns: {
+          action: string
+          bucket: string
+          count: number
+        }[]
+      }
       get_compatible_parts_for_equipment: {
         Args: { p_equipment_ids: string[]; p_organization_id: string }
         Returns: {
@@ -4174,6 +4191,26 @@ export type Database = {
         }[]
       }
       get_current_user_id: { Args: never; Returns: string }
+        get_dashboard_trends: {
+          Args: {
+            p_days?: number
+            p_org_id: string
+          }
+        Returns: {
+          needs_attention_delta: number
+          needs_attention_direction: string
+          needs_attention_series: number[]
+          overdue_work_delta: number
+          overdue_work_direction: string
+          overdue_work_series: number[]
+          total_equipment_delta: number
+          total_equipment_direction: string
+          total_equipment_series: number[]
+          total_work_orders_delta: number
+          total_work_orders_direction: string
+          total_work_orders_series: number[]
+        }[]
+      }
       get_equipment_for_inventory_item_rules: {
         Args: { p_item_id: string; p_organization_id: string }
         Returns: {

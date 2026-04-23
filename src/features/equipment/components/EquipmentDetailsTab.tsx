@@ -26,7 +26,6 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { usePMTemplates } from "@/features/pm-templates/hooks/usePMTemplates";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEquipmentPMStatus, getPMComplianceLevel } from "@/features/equipment/hooks/useEquipmentPMStatus";
-import { PM_INTERVALS_ENABLED } from "@/lib/flags";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { logger } from '@/utils/logger';
@@ -462,7 +461,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
   return (
     <div className="space-y-6">
       {/* Mobile PM Status Banner */}
-      {isMobile && PM_INTERVALS_ENABLED && pmStatus && (
+      {isMobile && pmStatus && (
         <div
           className={`rounded-lg border-l-4 p-3 ${
             pmCompliance === 'overdue'

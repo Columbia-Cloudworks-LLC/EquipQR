@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowUpDown, LayoutGrid, List } from 'lucide-react';
+import { ArrowUpDown, LayoutGrid, List, Rows3 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -117,13 +117,24 @@ const EquipmentSortHeader: React.FC<EquipmentSortHeaderProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={cn('h-8 w-8 rounded-l-none', viewMode === 'list' && 'bg-muted')}
+                  className={cn('h-8 w-8 rounded-none', viewMode === 'list' && 'bg-muted')}
                   onClick={() => onViewModeChange('list')}
                   aria-label="List view"
                   aria-checked={viewMode === 'list'}
                   role="radio"
                 >
                   <List className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn('h-8 w-8 rounded-l-none', viewMode === 'table' && 'bg-muted')}
+                  onClick={() => onViewModeChange('table')}
+                  aria-label="Table view"
+                  aria-checked={viewMode === 'table'}
+                  role="radio"
+                >
+                  <Rows3 className="h-3.5 w-3.5" />
                 </Button>
               </div>
             )}

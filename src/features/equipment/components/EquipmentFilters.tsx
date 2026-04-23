@@ -6,15 +6,11 @@ import { EquipmentFilters as EquipmentFiltersType, SortConfig } from '@/features
 import type { EquipmentViewMode } from './EquipmentCard';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
 
-interface Team {
-  id: string;
-  name: string;
-}
-
+// Team is intentionally not part of FilterOptions here — the team scope is
+// owned by the global TopBar `useSelectedTeam`, not by the page filters.
 interface FilterOptions {
   manufacturers: string[];
   locations: string[];
-  teams: Team[];
 }
 
 interface EquipmentFiltersProps {
@@ -35,6 +31,12 @@ interface EquipmentFiltersProps {
   canExport?: boolean;
   onImportCsv?: () => void;
   equipment?: EquipmentRecord[];
+  /**
+   * Desktop-only view-mode-specific control. Mobile branch ignores this prop
+   * because the table view auto-falls-back to list mode on mobile (see
+   * `Equipment.tsx`).
+   */
+  columnPicker?: React.ReactNode;
 }
 
 export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
@@ -55,16 +57,18 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
   canExport,
   onImportCsv,
   equipment,
+  columnPicker,
 }) => {
   const isMobile = useIsMobile();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
+  // `filters.team` is driven by the global TopBar selection and is intentionally
+  // excluded from the page-local active-filter count.
   const getActiveFilterCount = () => {
     let count = 0;
     if (filters.status !== 'all') count++;
     if (filters.manufacturer !== 'all') count++;
     if (filters.location !== 'all') count++;
-    if (filters.team !== 'all') count++;
     if (filters.maintenanceDateFrom || filters.maintenanceDateTo) count++;
     if (filters.installationDateFrom || filters.installationDateTo) count++;
     if (filters.warrantyExpiring) count++;
@@ -109,6 +113,7 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
       canExport={canExport}
       onImportCsv={onImportCsv}
       equipment={equipment}
+      columnPicker={columnPicker}
     />
   );
 };
