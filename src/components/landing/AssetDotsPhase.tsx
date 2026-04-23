@@ -4,6 +4,7 @@ import { gsap } from 'gsap';
 import type { StateCode } from './stateVectors';
 import { STATE_VECTORS } from './stateVectors';
 import type { DotPosition } from './dotPositions';
+import { strToSeed } from './dotPositions';
 
 interface AssetDotsPhaseProps {
   stateKey: StateCode;
@@ -15,26 +16,62 @@ interface AssetDotsPhaseProps {
 
 const VIEWBOX = 100;
 
+// Equipment vectors served from /public/icons. The space in the crane variant's
+// filename must be percent-encoded for safe use as an SVG image href.
+const EQUIPMENT_ICONS = [
+  '/icons/barrier-svgrepo-com.svg',
+  '/icons/bulldozer-svgrepo-com.svg',
+  '/icons/concrete-mixer-concrete-svgrepo-com.svg',
+  '/icons/cone-svgrepo-com.svg',
+  '/icons/crane-svgrepo-com%20(1).svg',
+  '/icons/crane-svgrepo-com.svg',
+  '/icons/driller-maintenance-svgrepo-com.svg',
+  '/icons/excavator-svgrepo-com.svg',
+  '/icons/forklift-svgrepo-com.svg',
+  '/icons/tractor-svgrepo-com.svg',
+  '/icons/trolley-wheelbarrow-svgrepo-com.svg',
+  '/icons/truck-pickup-svgrepo-com.svg',
+] as const;
+
+// Icon size in viewBox units. Slightly larger than the former dot diameter (5)
+// so the silhouettes are legible at the animation stage's small rendered size.
+const ICON_SIZE = 9;
+
+/**
+ * Deterministic icon assignment. Stable for a given (stateKey, slot) pair so
+ * the same equipment appears in the same map position across re-renders, but
+ * naturally varies when the stateKey changes — different states show different
+ * equipment mixes. No RNG needed: integer arithmetic is sufficient.
+ */
+function iconForDot(stateKey: StateCode, dotId: number): string {
+  const seed = strToSeed(stateKey) + dotId * 7919; // 7919 is prime
+  return EQUIPMENT_ICONS[((seed % EQUIPMENT_ICONS.length) + EQUIPMENT_ICONS.length) % EQUIPMENT_ICONS.length];
+}
+
 export default function AssetDotsPhase({ stateKey, dots }: AssetDotsPhaseProps) {
   const containerRef = useRef<SVGSVGElement>(null);
-  const clipId = `state-clip-${stateKey}`;
 
   useGSAP(
     () => {
-      const circles = containerRef.current?.querySelectorAll('circle');
-      if (!circles?.length) return;
+      const icons = containerRef.current?.querySelectorAll('image.asset-icon');
+      if (!icons?.length) return;
 
-      // Staggered entrance
-      gsap.from(circles, {
-        r: 0,
+      // Sequence entrance → pulse in a timeline so the pulse never starts until
+      // every icon has finished its entrance. Running both as independent tweens
+      // caused the pulse to capture a mid-entrance scale as its yoyo floor,
+      // making icons periodically collapse toward zero.
+      const tl = gsap.timeline();
+
+      tl.from(icons, {
+        scale: 0,
         opacity: 0,
         stagger: 0.06,
         duration: 0.4,
         ease: 'back.out(1.7)',
+        transformOrigin: 'center center',
       });
 
-      // Perpetual breathing pulse
-      gsap.to(circles, {
+      tl.to(icons, {
         scale: 1.3,
         repeat: -1,
         yoyo: true,
@@ -55,13 +92,10 @@ export default function AssetDotsPhase({ stateKey, dots }: AssetDotsPhaseProps) 
       height="100%"
       aria-hidden="true"
     >
-      <defs>
-        <clipPath id={clipId}>
-          <path d={STATE_VECTORS[stateKey]} />
-        </clipPath>
-      </defs>
-
-      {/* State outline */}
+      {/* State outline — painted first so icons composite on top of it.
+          No clip-path is needed: rejection sampling already guarantees every
+          icon center is inside the polygon, and removing the clip lets each
+          icon render fully rather than being masked at the border edge. */}
       <path
         d={STATE_VECTORS[stateKey]}
         fill="none"
@@ -72,17 +106,17 @@ export default function AssetDotsPhase({ stateKey, dots }: AssetDotsPhaseProps) 
         opacity={0.6}
       />
 
-      {/* Dots — clip-path is a belt-and-braces guard since rejection sampling
-          already keeps them inside the polygon. */}
-      <g clipPath={`url(#${clipId})`}>
+      {/* Equipment icons — painted after the outline so they sit on top of it. */}
+      <g>
         {dots.map((dot) => (
-          <circle
+          <image
             key={dot.id}
-            cx={dot.cx}
-            cy={dot.cy}
-            r={2.5}
-            fill="hsl(var(--primary))"
-            opacity={0.9}
+            className="asset-icon"
+            href={iconForDot(stateKey, dot.id)}
+            x={dot.cx - ICON_SIZE / 2}
+            y={dot.cy - ICON_SIZE / 2}
+            width={ICON_SIZE}
+            height={ICON_SIZE}
           />
         ))}
       </g>

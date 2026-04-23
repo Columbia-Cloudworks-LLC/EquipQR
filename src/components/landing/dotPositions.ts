@@ -79,24 +79,38 @@ export function computeDotPositions(stateKey: StateCode, dotCount: number): DotP
  *
  * cycleSeed is mixed into the RNG seed so positions randomize per animation cycle
  * (same stateKey + same cycleSeed → same dots; different cycleSeed → different dots).
+ *
+ * minDist (optional, default 0) enforces a minimum center-to-center distance
+ * between accepted positions — set this to roughly the rendered icon size to
+ * prevent icons from overlapping each other.
  */
 export function computeDotPositionsInState(
   stateKey: StateCode,
   dotCount: number,
   cycleSeed: number = 0,
+  minDist: number = 0,
 ): DotPosition[] {
   const polygon = parsePolygon(STATE_VECTORS[stateKey]);
   const rng = seededRng(strToSeed(stateKey) + cycleSeed * 7919); // 7919 is prime
 
   const dots: DotPosition[] = [];
-  const maxAttempts = dotCount * 50;
+  // More attempts needed when minDist is set — spacing rejection shrinks the
+  // acceptance rate significantly for dense placements.
+  const maxAttempts = dotCount * (minDist > 0 ? 400 : 50);
   let attempts = 0;
 
   while (dots.length < dotCount && attempts < maxAttempts) {
     const cx = rng() * VIEWBOX;
     const cy = rng() * VIEWBOX;
     if (pointInPolygon([cx, cy], polygon)) {
-      dots.push({ id: dots.length, cx, cy });
+      const tooClose = minDist > 0 && dots.some((d) => {
+        const dx = d.cx - cx;
+        const dy = d.cy - cy;
+        return dx * dx + dy * dy < minDist * minDist;
+      });
+      if (!tooClose) {
+        dots.push({ id: dots.length, cx, cy });
+      }
     }
     attempts++;
   }

@@ -87,8 +87,11 @@ export default function HeroAnimation() {
   // --- Dots (state cycle): rejection-sampled inside the state polygon ---
   // Computed in HeroAnimation so the chosen dot is guaranteed to match a
   // visible dot in AssetDotsPhase (same rejection-sampling result).
+  // ICON_SIZE in AssetDotsPhase is 9 viewBox units; minDist=12 adds a small gap
+  // between icons so they never visually overlap at the rendered stage size.
+  // Dot count is 10 — easier to pack non-overlapping icons in small states.
   const dots = useMemo(
-    () => computeDotPositionsInState(stateKey, 14, cycleSeed),
+    () => computeDotPositionsInState(stateKey, 10, cycleSeed, 12),
     [stateKey, cycleSeed],
   );
   const chosenIdx = useMemo(
