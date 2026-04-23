@@ -175,7 +175,7 @@ export async function fetchDashboardTrends(
     delta: number | null | undefined,
     direction: string | null | undefined
   ): StatTrend => ({
-    sparkline: Array.isArray(series) ? series.map((v) => Number(v) || 0) : [],
+    sparkline: Array.isArray(series) ? series.map((v) => Number(v) || 0) : Array.from({ length: days }, () => 0),
     delta: typeof delta === 'number' ? delta : null,
     direction:
       direction === 'up' || direction === 'down' || direction === 'flat'

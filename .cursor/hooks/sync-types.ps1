@@ -19,7 +19,7 @@
 # any unexpected terminating error is caught and logged so it cannot abort
 # Cursor's edit pipeline.
 
-# Defensive stdin parsing — match the pattern used in guard-migrations.ps1
+# Defensive stdin parsing - match the pattern used in guard-migrations.ps1
 # so the hook tolerates payload changes or non-JSON input.
 $filePath = $null
 try {

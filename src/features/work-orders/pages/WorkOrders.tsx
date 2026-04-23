@@ -94,7 +94,10 @@ const WorkOrders = () => {
     let didApply = false;
 
     if (team) {
-      setSelectedTeamId(team);
+      // 'all' in a deep link means "clear the team filter" (global scope = null).
+      // 'unassigned' is already the UNASSIGNED_TEAM_ID sentinel value.
+      // Any other value is treated as a team UUID.
+      setSelectedTeamId(team === 'all' ? null : team);
       didApply = true;
     }
     if (date === 'overdue') {
