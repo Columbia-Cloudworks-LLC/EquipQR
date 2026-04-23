@@ -83,6 +83,7 @@ Audit each point against the branch diff and repository sources of truth.
 3. **README point**: confirm `README.md` still matches behavior/setup introduced by this branch.
 4. **Rough edges point**: check for unresolved rough edges in PR scope (dead/stale code, TODO/FIXME/HACK markers, naming/control-flow polish opportunities, stale docs). Apply `common-gavel` and the `master-mason` chisel lens as the rubric; do not mutate code unless requested.
 5. **Trestle point**: confirm branch changes align with `PROJECT_ROADMAP.md` and active design intent (trestle-board alignment).
+6. **Migration-promote point**: run `git diff origin/main...HEAD -- supabase/migrations/`. If any migration files are present in the diff, collect them and mark this point `pass` only when the PR body includes an explicit manual post-promote checklist (Supabase MCP `apply_migration`, production project `ymxkzronkhwxzcdcbnwq`) listing each migration file and a one-line description from the SQL header when available. This point is informational and does not block `/raise`, but the checklist is mandatory whenever migrations are in scope.
 
 Mark each point as:
 
@@ -117,6 +118,14 @@ When raise is allowed, produce:
 - README: pass
 - Rough edges: pass
 - Trestle alignment: pass
+
+## Production Migration Promote Checklist
+- None (no `supabase/migrations/*` files changed in this branch)
+  <!-- OR, when migrations are present:
+  - After this PR merges to main, manually apply to production via Supabase MCP `apply_migration` (project `ymxkzronkhwxzcdcbnwq`):
+    - `YYYYMMDDHHMMSS_name.sql` — one-line purpose
+    - `YYYYMMDDHHMMSS_name.sql` — one-line purpose
+  -->
 
 ## Test Plan
 - [x] npm run lint
@@ -159,3 +168,4 @@ Return the PR URL in output.
 - Do open the PR automatically for standard `/raise` once all gates pass (unless `--audit-only` was used).
 - Do not fabricate changelog/version rationale.
 - Do not treat roadmap speculation as trestle alignment evidence.
+- Do not omit the production migration promote checklist when `supabase/migrations/*` files are in scope.
