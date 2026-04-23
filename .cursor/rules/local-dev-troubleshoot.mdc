@@ -100,6 +100,51 @@ Already added to `vite.config.ts` and `vercel.json` (commit `b42326b0`).
 If you re-tighten CSP for any reason, do not remove `data:` from `connect-src`
 without a plan to disable Maps vector basemaps.
 
+## 6. `dev-start.bat` step 4 fails with WSAEACCES on a Supabase port
+
+**Signature**
+
+- `npx supabase start` exits non-zero with: `failed to start docker container "supabase_db_*": ports are not available: ... bind: An attempt was made to access a socket in a way forbidden by its access permissions.` (Win32 `WSAEACCES`)
+- `Get-NetTCPConnection -LocalPort 54322 -State Listen` returns nothing (no Windows process is listening)
+- `docker ps -a` shows no Supabase containers (container layer is clean)
+- `netsh int ipv4 show excludedportrange protocol=tcp` shows a non-`*`-flagged range that includes the failing port (e.g. `54278  54377` traps 54321-54328)
+
+**Root cause**
+
+Supabase uses fixed ports 54321 (API), 54322 (Postgres), 54323 (Studio), 54324 (Inbucket), 54327 (Analytics), 54328 (Pooler). All of these fall **inside** Windows' default ephemeral port range (49152-65535). WinNAT and Hyper-V dynamically reserve 100-port chunks within that range for outbound NAT mappings (Hyper-V VMs, WSL2 distros, VPN clients), and one of those chunks can land on top of the Supabase ports.
+
+**This is not a Docker leak.** The reservation is held by the Windows TCP/IP stack itself. Killing Docker Desktop, terminating WSL distros, running `docker network prune`, restarting `vmcompute`, etc., will not release it because Docker doesn't own it. Verified empirically: `dev-stop.bat -Force` (which kills Docker Desktop entirely and terminates the docker-desktop WSL distro) leaves the reservation intact.
+
+**Fix**
+
+One-time admin command, persistent across reboots:
+
+```powershell
+.\scripts\reserve-supabase-ports.ps1
+```
+
+The helper auto-elevates via UAC. It briefly stops WinNAT (~2s), registers a persistent administered exclusion for ports 54321-54328 via `netsh int ipv4 add excludedportrange ... store=persistent`, then restarts WinNAT. After running once, ports 54321-54328 are permanently registered as administered exclusions; the Windows kernel will never auto-allocate them again (across reboots, Docker restarts, WSL2 churn, Windows updates).
+
+If the helper script is unavailable, run manually in an Admin PowerShell:
+
+```powershell
+net stop winnat
+netsh int ipv4 add excludedportrange protocol=tcp startport=54321 numberofports=8 store=persistent
+net start winnat
+```
+
+Verify: `netsh int ipv4 show excludedportrange protocol=tcp` should show `54321  54328  *` (the asterisk = administered).
+
+**Why the WinNAT stop/start dance**
+
+Windows refuses to add an "administered" exclusion that overlaps an active OS-allocated dynamic reservation. The error is misleading — `ERROR_SHARING_VIOLATION` ("the process cannot access the file because it is being used by another process") — it has nothing to do with file access. Stopping WinNAT releases all dynamic reservations; the persistent exclusion can then be added without overlap; restarting WinNAT will respect the new exclusion forever.
+
+**Why `dev-start.ps1` and `dev-stop.ps1` only diagnose, never auto-fix**
+
+The fix requires Administrator and modifies kernel-level networking config. Auto-elevating from inside `dev-start` would (a) prompt UAC mid-flow at a confusing point and (b) couple the per-session dev script to a one-time-per-machine setup task. Both scripts detect the trap (parse `excludedportrange` for non-`*`-flagged ranges that overlap 54321-54328) and print the exact fix command + helper script path. The fix is one-shot per machine.
+
+**Reference:** discovered during Apr 2026 v3.0.0 deployment incident; commit TBD.
+
 ## General rule
 
 **Local reproduction is required before claiming a fix.** If `dev-start.bat`
