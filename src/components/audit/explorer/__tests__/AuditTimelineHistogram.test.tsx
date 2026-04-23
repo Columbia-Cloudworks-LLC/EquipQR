@@ -193,13 +193,13 @@ describe('AuditTimelineHistogram', () => {
 
 describe('aggregateByBucket', () => {
   it('produces 24 hour buckets across a 24-hour range', () => {
-    const dateFrom = '2026-04-19T13:00:00.000Z';
+    const dateFrom = '2026-04-19T14:00:00.000Z';
     // dateTo is the exclusive upper bound (start of the first bucket NOT included),
     // matching AuditExplorer.presetToRange() which sets dateToMs = startOfCurrent + span.
     const dateTo = '2026-04-20T14:00:00.000Z';
     const rows = aggregateByBucket([], 'hour', dateFrom, dateTo);
     expect(rows).toHaveLength(24);
-    expect(rows[0].bucket).toBe('2026-04-19T13:00:00.000Z');
+    expect(rows[0].bucket).toBe('2026-04-19T14:00:00.000Z');
     expect(rows.at(-1)?.bucket).toBe('2026-04-20T13:00:00.000Z');
   });
 
