@@ -105,10 +105,13 @@ export function aggregateByBucket(
     const fromMs = startOfBucketUtc(bucket, new Date(dateFrom)).getTime();
     const toMs = startOfBucketUtc(bucket, new Date(dateTo)).getTime();
     const span = BUCKET_MS[bucket];
-    if (Number.isFinite(fromMs) && Number.isFinite(toMs) && toMs >= fromMs) {
-      const expectedCount = Math.floor((toMs - fromMs) / span) + 1;
+    if (Number.isFinite(fromMs) && Number.isFinite(toMs) && toMs > fromMs) {
+      // dateTo is an exclusive upper bound (created_at < dateTo in the RPC),
+      // so toMs marks the start of the first bucket NOT included. Bucket count
+      // is the integer number of spans that fit, with no +1 offset.
+      const expectedCount = Math.floor((toMs - fromMs) / span);
       if (expectedCount > 0 && expectedCount <= MAX_DENSE_BUCKETS) {
-        for (let ms = fromMs; ms <= toMs; ms += span) {
+        for (let ms = fromMs; ms < toMs; ms += span) {
           const when = new Date(ms);
           const iso = when.toISOString();
           map.set(iso, makeBlankRow(iso, when, bucket));

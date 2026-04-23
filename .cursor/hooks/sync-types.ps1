@@ -77,7 +77,7 @@ try {
     # encoding of the pre-existing file. Using the .NET API avoids the
     # Windows PowerShell 5.1 vs PowerShell 7+ encoding-default differences
     # in Set-Content/Out-File. (We previously wrote a BOM here, but the
-    # committed types.ts has no BOM — verified via raw byte read.)
+    # committed types.ts has no BOM - verified via raw byte read.)
     $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
     [System.IO.File]::WriteAllText((Resolve-Path -LiteralPath ".").Path + "\$typesPath", $cleanContent, $utf8NoBom)
 
