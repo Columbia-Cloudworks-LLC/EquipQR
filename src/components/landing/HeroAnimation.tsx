@@ -80,15 +80,25 @@ export default function HeroAnimation() {
   const slideDirection = chosenDot.cx > 50 ? 'left' : 'right';
   const exportSeed = useMemo(() => strToSeed(stateKey + '_export'), [stateKey]);
 
-  // The map shrinks to 40% of the stage during Phase 5.
-  // The dot (in 0-100 SVG viewBox within that 40%-wide container) maps to
-  // these percentages of the full stage — passed to PMChecklistPhase so it can
-  // draw the connector line starting exactly at the dot.
-  const MAP_WIDTH_PCT = 40;
+  // The map takes 50% of the stage width during Phase 5. The stage is 1:1 square,
+  // so the map container is 50% wide × 100% tall.
+  //
+  // AssetDotsPhase uses a square viewBox (100×100) with default preserveAspectRatio
+  // ("xMidYMid meet"). In the 50%-wide container, the SVG scales to fill the width
+  // and is letterboxed vertically:
+  //   svgRenderedHeight = MAP_WIDTH_PCT% of stage (matches the rendered width)
+  //   svgTopOffset      = (100% - MAP_WIDTH_PCT%) / 2  (blank space above/below)
+  //
+  // So a dot at (cx, cy) in the 0-100 viewBox sits at:
+  //   dotStageX = (cx / 100) × MAP_WIDTH_PCT           (left-anchored)
+  //   dotStageY = svgTopOffset + (cy / 100) × MAP_WIDTH_PCT
+  const MAP_WIDTH_PCT = 50;
+  const svgTopOffsetPct = (100 - MAP_WIDTH_PCT) / 2; // = 25 for 50%
+
   const dotStageX = slideDirection === 'left'
-    ? (chosenDot.cx / 100) * MAP_WIDTH_PCT          // dot in left 40%
-    : (100 - MAP_WIDTH_PCT) + (chosenDot.cx / 100) * MAP_WIDTH_PCT; // dot in right 40%
-  const dotStageY = chosenDot.cy; // Y is unaffected by horizontal slide
+    ? (chosenDot.cx / 100) * MAP_WIDTH_PCT
+    : (100 - MAP_WIDTH_PCT) + (chosenDot.cx / 100) * MAP_WIDTH_PCT;
+  const dotStageY = svgTopOffsetPct + (chosenDot.cy / 100) * MAP_WIDTH_PCT;
 
   // --- Phase transition handlers ---
 

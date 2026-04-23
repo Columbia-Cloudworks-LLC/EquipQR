@@ -86,28 +86,36 @@ describe('PMChecklistPhase', () => {
     }
   });
 
-  it('shows the export button after all check timers fire', async () => {
+  it('export button is visible immediately (before any checks)', () => {
     renderChecklist({ exportSeed: 0 });
-
-    // Advance past all check timers + button reveal delay
-    await act(async () => {
-      vi.advanceTimersByTime(3000);
-    });
-
+    // Button is always rendered — no timer needed
     const btn = screen.getByTestId('export-button');
     expect(btn).toBeInTheDocument();
   });
 
-  it('export button label matches one of the three EXPORT_TARGETS', async () => {
+  it('export button label matches one of the three EXPORT_TARGETS', () => {
     renderChecklist({ exportSeed: 1 });
+    const btn = screen.getByTestId('export-button');
+    const validLabels = EXPORT_TARGETS.map(t => t.label);
+    expect(validLabels.some(label => btn.textContent?.includes(label.replace('Export to ', '')))).toBe(true);
+  });
+
+  it('export button is dimmed before last item checked', () => {
+    renderChecklist({ exportSeed: 0 });
+    const btn = screen.getByTestId('export-button');
+    expect(btn.className).toContain('opacity-60');
+  });
+
+  it('export button becomes active after all check timers fire', async () => {
+    renderChecklist({ exportSeed: 0 });
 
     await act(async () => {
       vi.advanceTimersByTime(3000);
     });
 
     const btn = screen.getByTestId('export-button');
-    const validLabels = EXPORT_TARGETS.map(t => t.label);
-    expect(validLabels.some(label => btn.textContent?.includes(label.replace('Export to ', '')))).toBe(true);
+    // After all items checked, opacity-60 should be gone
+    expect(btn.className).not.toContain('opacity-60');
   });
 
   it('each exportSeed value maps to a deterministic export target', () => {
