@@ -1,35 +1,78 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import AboutSection from './AboutSection';
-import HeroSection from './HeroSection';
+import HeroAnimation from './HeroAnimation';
 import HowItWorksSection from './HowItWorksSection';
 import LandingFooter from './LandingFooter';
 import SocialProofSection from './SocialProofSection';
 import WhyDifferentSection from './WhyDifferentSection';
+
+// Mock GSAP modules so the animation components render without errors in jsdom
+vi.mock('gsap', () => ({
+  gsap: {
+    registerPlugin: vi.fn(),
+    timeline: vi.fn(() => ({ to: vi.fn().mockReturnThis(), from: vi.fn().mockReturnThis() })),
+    to: vi.fn(() => ({ kill: vi.fn() })),
+    from: vi.fn(() => ({ kill: vi.fn() })),
+    context: vi.fn(() => ({ revert: vi.fn() })),
+  },
+  default: {
+    registerPlugin: vi.fn(),
+    timeline: vi.fn(() => ({ to: vi.fn().mockReturnThis(), from: vi.fn().mockReturnThis() })),
+    to: vi.fn(() => ({ kill: vi.fn() })),
+    from: vi.fn(() => ({ kill: vi.fn() })),
+    context: vi.fn(() => ({ revert: vi.fn() })),
+  },
+}));
+
+vi.mock('@gsap/react', () => ({
+  useGSAP: vi.fn(),
+}));
+
+vi.mock('gsap/MorphSVGPlugin', () => ({
+  MorphSVGPlugin: {},
+}));
 
 function renderWithRouter(ui: React.ReactNode) {
   return render(<MemoryRouter>{ui}</MemoryRouter>);
 }
 
 describe('Landing mobile UX pass', () => {
-  it('shows the hero preview as an accessible carousel with slide pickers', () => {
-    renderWithRouter(<HeroSection />);
+  it('renders the hero as a section with the correct aria-label', () => {
+    renderWithRouter(<HeroAnimation />);
 
-    const carousel = screen.getByRole('region', { name: /equipqr product preview/i });
-
-    expect(within(carousel).getAllByRole('button', { name: /show slide/i })).toHaveLength(3);
-    expect(within(carousel).getByRole('button', { name: /next slide/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', { name: /EquipQR asset tracking demo/i }),
+    ).toBeInTheDocument();
   });
 
-  it('gives the secondary hero CTA a full-height touch target', () => {
-    renderWithRouter(<HeroSection />);
+  it('renders the hero tagline as an H1 heading', () => {
+    renderWithRouter(<HeroAnimation />);
 
-    const secondaryCta = screen.getByRole('link', {
-      name: /jump to customer proof and testimonials/i,
+    expect(
+      screen.getByRole('heading', { level: 1 }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the reduced-motion static composite when prefers-reduced-motion is enabled', () => {
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('prefers-reduced-motion'),
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
     });
 
-    expect(secondaryCta).toHaveClass('min-h-11');
+    renderWithRouter(<HeroAnimation />);
+
+    expect(screen.getByTestId('static-hero-composite')).toBeInTheDocument();
   });
 
   it('renders why-different bullet titles as headings for faster scanning', () => {
