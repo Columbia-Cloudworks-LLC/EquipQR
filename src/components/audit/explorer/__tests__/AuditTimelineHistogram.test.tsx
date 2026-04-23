@@ -193,14 +193,16 @@ describe('AuditTimelineHistogram', () => {
 
 describe('aggregateByBucket', () => {
   it('produces 24 hour buckets across a 24-hour range', () => {
-    const dateFrom = '2026-04-19T14:00:00.000Z';
-    // dateTo is the exclusive upper bound (start of the first bucket NOT included),
-    // matching AuditExplorer.presetToRange() which sets dateToMs = startOfCurrent + span.
-    const dateTo = '2026-04-20T14:00:00.000Z';
+    const dateFrom = '2026-04-19T13:00:00.000Z';
+    // dateTo is the exclusive upper bound — the first bucket NOT rendered.
+    // Mirrors AuditExplorer.presetToRange(): dateToMs = startOfCurrent + span.
+    // With dateFrom=13:00 and dateTo=13:00 next day, ms < toMs generates
+    // 24 bars: Apr 19 13:00 (hour 0) through Apr 20 12:00 (hour 23).
+    const dateTo = '2026-04-20T13:00:00.000Z';
     const rows = aggregateByBucket([], 'hour', dateFrom, dateTo);
     expect(rows).toHaveLength(24);
-    expect(rows[0].bucket).toBe('2026-04-19T14:00:00.000Z');
-    expect(rows.at(-1)?.bucket).toBe('2026-04-20T13:00:00.000Z');
+    expect(rows[0].bucket).toBe('2026-04-19T13:00:00.000Z');
+    expect(rows.at(-1)?.bucket).toBe('2026-04-20T12:00:00.000Z');
   });
 
   it('merges PostgREST `+00:00` ISO formats into the same bucket key', () => {

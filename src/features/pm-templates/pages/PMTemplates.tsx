@@ -11,7 +11,6 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, Copy, Edit, Trash2, Wrench, Users, Shield, Globe, Lock, Settings2, Timer, Calendar, Search, ExternalLink } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { PM_INTERVALS_ENABLED } from '@/lib/flags';
 import { TemplateAssignmentDialog } from '@/features/pm-templates/components/TemplateAssignmentDialog';
 import { PMTemplateRulesDialog } from '@/features/pm-templates/components/PMTemplateRulesDialog';
 import { ChecklistTemplateEditor } from '@/features/organization/components/ChecklistTemplateEditor';
@@ -94,7 +93,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
                 Protected
               </Badge>
             )}
-            {PM_INTERVALS_ENABLED && template.interval_value && template.interval_type && (
+            {template.interval_value && template.interval_type && (
               <Badge variant="outline" className="text-xs">
                 {template.interval_type === 'hours' ? (
                   <Timer className="w-3 h-3 mr-1" />
