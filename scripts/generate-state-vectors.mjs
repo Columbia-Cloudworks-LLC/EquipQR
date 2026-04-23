@@ -2,9 +2,15 @@
 /**
  * Generates src/components/landing/stateVectors.ts from us-atlas TopoJSON.
  *
- * Uses states-albers-10m.json (pre-projected, 975×610 canvas) with topojson-simplify
- * to keep path strings short for smooth MorphSVG morphs. Each state is then
- * normalized into a 100×100 viewBox.
+ * Uses states-albers-10m.json (pre-projected, 975×610 canvas).
+ * The "10m" suffix means the topology is already simplified to 1:10,000,000
+ * scale — no further simplification pass is applied. An extra topojson-simplify
+ * pass (e.g. threshold 0.02) over-reduces states with near-straight borders
+ * (Wyoming, Colorado, Utah) and small states (RI, DE) to 3–5 vertices,
+ * producing triangles / pentagons instead of recognisable state outlines.
+ *
+ * Each state path is normalised into a 100×100 viewBox for consistent
+ * MorphSVG morphing between the vertical-line origin and each state shape.
  *
  * Run manually with:   npm run generate:state-vectors
  * Re-run when us-atlas publishes a new boundary edition.
@@ -16,10 +22,8 @@ import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// All dynamic imports resolved at top level
-const { geoPath, geoIdentity, geoArea } = await import('d3-geo');
+const { geoPath, geoIdentity } = await import('d3-geo');
 const { feature } = await import('topojson-client');
-const { presimplify, simplify } = await import('topojson-simplify');
 
 const VIEWBOX = 100;
 
@@ -29,9 +33,8 @@ const topologyPath = path.join(
 );
 const topology = JSON.parse(fs.readFileSync(topologyPath, 'utf8'));
 
-// Aggressively simplify: threshold of 0.02 gives clean outlines at animation size
-const simplified = simplify(presimplify(topology), 0.02);
-const statesGeo = feature(simplified, simplified.objects.states);
+// Use the topology as-is — it is already at 1:10M simplification.
+const statesGeo = feature(topology, topology.objects.states);
 
 // FIPS → abbreviation (50 states only; DC=11 and territories skipped intentionally)
 const FIPS_TO_ABBR = {
@@ -48,8 +51,24 @@ const FIPS_TO_ABBR = {
 };
 
 /**
+ * 2-D shoelace area of a single polygon ring (array of [x,y] pairs).
+ * Uses pixel-space coordinates — correct for Albers-projected data.
+ * (geoArea would be wrong here because it expects spherical lat/lon.)
+ */
+function ring2DArea(ring) {
+  let area = 0;
+  const n = ring.length;
+  for (let i = 0; i < n; i++) {
+    const [x1, y1] = ring[i];
+    const [x2, y2] = ring[(i + 1) % n];
+    area += x1 * y2 - x2 * y1;
+  }
+  return Math.abs(area / 2);
+}
+
+/**
  * For MultiPolygon features (Hawaii, Michigan, etc.), keep only the
- * largest-area polygon — produces a single clean outline for morphing.
+ * largest-area polygon to produce a single clean outline for morphing.
  */
 function largestPolygon(feat) {
   if (feat.geometry.type === 'Polygon') return feat;
@@ -57,11 +76,8 @@ function largestPolygon(feat) {
   let maxArea = -Infinity;
   let best = polys[0];
   for (const poly of polys) {
-    const area = geoArea({
-      type: 'Feature',
-      geometry: { type: 'Polygon', coordinates: poly },
-      properties: {},
-    });
+    // poly[0] is the outer ring; remaining entries are holes
+    const area = ring2DArea(poly[0]);
     if (area > maxArea) { maxArea = area; best = poly; }
   }
   return { ...feat, geometry: { type: 'Polygon', coordinates: best } };
@@ -69,8 +85,10 @@ function largestPolygon(feat) {
 
 /**
  * Re-scale an SVG path d-string so its bounding box maps onto [0,VIEWBOX]×[0,VIEWBOX].
- * Works by collecting all numeric tokens, computing the bbox, then replacing each
- * token with its normalized value (alternating x/y).
+ *
+ * d3-geo with geoIdentity produces only M/L/Z commands for polygon data — each
+ * number strictly alternates between an X and a Y coordinate — so the
+ * even-index-X / odd-index-Y approach is safe here.
  */
 function normalizePath(dStr) {
   const numRe = /-?[0-9]*\.?[0-9]+(?:e[-+]?[0-9]+)?/gi;
@@ -79,7 +97,7 @@ function normalizePath(dStr) {
 
   const xs = [];
   const ys = [];
-  for (let i = 0; i < nums.length - 1; i += 2) {
+  for (let i = 0; i + 1 < nums.length; i += 2) {
     xs.push(nums[i]);
     ys.push(nums[i + 1]);
   }
@@ -102,6 +120,7 @@ function normalizePath(dStr) {
 
 const pathGen = geoPath(geoIdentity().reflectY(false));
 const results = {};
+const tooFewPoints = [];
 
 for (const stateFeature of statesGeo.features) {
   const fips = String(stateFeature.id).padStart(2, '0');
@@ -115,12 +134,28 @@ for (const stateFeature of statesGeo.features) {
     continue;
   }
 
-  results[abbr] = normalizePath(rawD);
+  const normalized = normalizePath(rawD);
+
+  // Sanity-check: count path commands. A recognisable state should have ≥ 12
+  // coordinate pairs. Fewer usually means over-simplification crept in.
+  const commandCount = (normalized.match(/[ML]/gi) || []).length;
+  if (commandCount < 12) {
+    tooFewPoints.push({ abbr, commandCount });
+  }
+
+  results[abbr] = normalized;
 }
 
 if (Object.keys(results).length !== 50) {
   process.stderr.write(
     `WARNING: expected 50 states, got ${Object.keys(results).length}\n`,
+  );
+}
+
+if (tooFewPoints.length > 0) {
+  process.stderr.write(
+    `WARNING: the following states have fewer than 12 path commands (may render as simple shapes):\n` +
+    tooFewPoints.map(s => `  ${s.abbr}: ${s.commandCount} commands`).join('\n') + '\n',
   );
 }
 
@@ -140,7 +175,7 @@ const usAtlasPkg = JSON.parse(
 const lines = [
   `// AUTO-GENERATED by scripts/generate-state-vectors.mjs — do not edit by hand.`,
   `// Re-run with: npm run generate:state-vectors`,
-  `// Source: us-atlas@${usAtlasPkg.version}`,
+  `// Source: us-atlas@${usAtlasPkg.version} (states-albers-10m.json, no secondary simplification)`,
   ``,
   `export type StateCode = ${stateCodeUnion};`,
   ``,
@@ -163,9 +198,9 @@ process.stdout.write(
   `  ${Object.keys(results).length} states, avg d-length: ${avgLen} chars\n`,
 );
 
-const WARN_THRESHOLD = 1500;
+const LONG_PATH = 5000;
 for (const [abbr, d] of Object.entries(results)) {
-  if (d.length > WARN_THRESHOLD) {
-    process.stdout.write(`  INFO: ${abbr} d-length = ${d.length}\n`);
+  if (d.length > LONG_PATH) {
+    process.stdout.write(`  NOTE: ${abbr} d-length = ${d.length} (complex border — MorphSVG will be slower)\n`);
   }
 }
