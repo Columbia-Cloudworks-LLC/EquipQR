@@ -3,7 +3,7 @@ import { useGSAP } from '@gsap/react';
 import { gsap } from 'gsap';
 import { STATES_RELATIVE, ALL_STATE_CODES } from './stateVectors';
 import { strToSeed } from './dotPositions';
-import { FEATURE_CARDS } from './featureCardsData';
+import { FEATURE_CARD_SETS } from './featureCardsData';
 
 interface NationalMapPhaseProps {
   /** Mixed into RNG seed so dot positions and chosen feature card vary per cycle. */
@@ -15,8 +15,8 @@ interface NationalMapPhaseProps {
 const SVG_WIDTH = 1000;
 const SVG_HEIGHT = 589;
 const NATIONAL_DOT_COUNT = 30;
-const INTRO_HOLD_MS = 800;
-const FEATURE_DISPLAY_MS = 4000;
+const INTRO_HOLD_MS = 600;
+const FEATURE_DISPLAY_MS = 4500;
 
 function seededRng(seed: number) {
   let s = seed;
@@ -42,12 +42,12 @@ export default function NationalMapPhase({ cycleSeed, onComplete }: NationalMapP
   const containerRef = useRef<HTMLDivElement>(null);
   const mapWrapperRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
+  const cardsRef = useRef<HTMLDivElement>(null);
 
   const [subPhase, setSubPhase] = useState<'intro' | 'feature'>('intro');
 
-  const featureCard = useMemo(
-    () => FEATURE_CARDS[Math.abs(cycleSeed) % FEATURE_CARDS.length],
+  const cardSet = useMemo(
+    () => FEATURE_CARD_SETS[Math.abs(cycleSeed) % FEATURE_CARD_SETS.length],
     [cycleSeed],
   );
 
@@ -120,14 +120,21 @@ export default function NationalMapPhase({ cycleSeed, onComplete }: NationalMapP
     { scope: containerRef, dependencies: [cycleSeed] },
   );
 
-  // Slide the feature card up when subPhase becomes 'feature'
+  // Stagger the three feature cards in when subPhase becomes 'feature'
   useGSAP(
     () => {
-      if (subPhase !== 'feature' || !cardRef.current) return;
+      if (subPhase !== 'feature' || !cardsRef.current) return;
+      const cards = cardsRef.current.querySelectorAll('[data-feature-card]');
       gsap.fromTo(
-        cardRef.current,
-        { opacity: 0, y: 12 },
-        { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' },
+        cards,
+        { opacity: 0, y: 14 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.5,
+          stagger: 0.12,
+          ease: 'power2.out',
+        },
       );
     },
     { scope: containerRef, dependencies: [subPhase] },
@@ -203,29 +210,37 @@ export default function NationalMapPhase({ cycleSeed, onComplete }: NationalMapP
         </svg>
       </div>
 
-      {/* Single feature card centred in the room below the map */}
-      <div className="flex-1 flex items-center justify-center px-4 pb-2 min-h-0">
+      {/* Three stacked feature cards centred in the room below the map */}
+      <div className="flex-1 flex items-center justify-center px-3 pb-2 min-h-0">
         {subPhase === 'feature' && (
           <div
-            ref={cardRef}
-            className="w-full max-w-xs rounded-lg border border-primary/30 bg-background/92 backdrop-blur-sm px-3 py-2 text-left"
-            style={{ opacity: 0 }}
-            data-testid="national-feature-card"
+            ref={cardsRef}
+            className="w-full max-w-sm flex flex-col gap-1.5"
+            data-testid="national-feature-cards"
           >
-            <div className="flex items-start gap-2">
-              <featureCard.icon
-                className="w-4 h-4 text-primary flex-shrink-0 mt-0.5"
-                aria-hidden
-              />
-              <div className="min-w-0">
-                <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-primary mb-0.5">
-                  {featureCard.title}
-                </p>
-                <p className="text-xs leading-snug text-foreground/85">
-                  {featureCard.description}
-                </p>
+            {cardSet.cards.map((card) => (
+              <div
+                key={card.title}
+                data-feature-card
+                className="rounded-md border border-primary/30 bg-background/92 backdrop-blur-sm px-2.5 py-1.5 text-left"
+                style={{ opacity: 0 }}
+              >
+                <div className="flex items-start gap-2">
+                  <card.icon
+                    className="w-3.5 h-3.5 text-primary flex-shrink-0 mt-0.5"
+                    aria-hidden
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-primary mb-0.5">
+                      {card.title}
+                    </p>
+                    <p className="text-[10px] leading-snug text-foreground/85">
+                      {card.description}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         )}
       </div>
