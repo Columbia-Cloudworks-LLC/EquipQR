@@ -741,6 +741,55 @@ export type Database = {
           },
         ]
       }
+      equipment_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          equipment_id: string
+          id: string
+          new_status: string
+          old_status: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          equipment_id: string
+          id?: string
+          new_status: string
+          old_status?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          equipment_id?: string
+          id?: string
+          new_status?: string
+          old_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "equipment_status_history_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment_working_hours_history: {
         Row: {
           created_at: string
@@ -4191,11 +4240,8 @@ export type Database = {
         }[]
       }
       get_current_user_id: { Args: never; Returns: string }
-        get_dashboard_trends: {
-          Args: {
-            p_days?: number
-            p_org_id: string
-          }
+      get_dashboard_trends: {
+        Args: { p_days?: number; p_org_id: string }
         Returns: {
           needs_attention_delta: number
           needs_attention_direction: string
