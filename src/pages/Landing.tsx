@@ -1,7 +1,8 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import LandingHeader from '@/components/landing/LandingHeader';
-import HeroSection from '@/components/landing/HeroSection';
+import HeroAnimation from '@/components/landing/HeroAnimation';
 import LandingFooter from '@/components/landing/LandingFooter';
+import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion';
 
 const WhyDifferentSection = lazy(() => import('@/components/landing/WhyDifferentSection'));
 const HowItWorksSection = lazy(() => import('@/components/landing/HowItWorksSection'));
@@ -22,6 +23,8 @@ function BelowFoldFallback() {
 }
 
 const Landing: React.FC = () => {
+  const prefersReducedMotion = usePrefersReducedMotion();
+
   useEffect(() => {
     const rawHash = window.location.hash;
     if (!rawHash) return;
@@ -39,16 +42,15 @@ const Landing: React.FC = () => {
     const target = document.getElementById(decodedId);
     if (!target) return;
 
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     target.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth' });
-  }, []);
+  }, [prefersReducedMotion]);
 
   return (
     <>
       <div className="min-h-screen bg-background">
         <LandingHeader />
         <main id="main-content">
-          <HeroSection />
+          <HeroAnimation />
           <Suspense fallback={<BelowFoldFallback />}>
             <WhyDifferentSection />
             <HowItWorksSection />

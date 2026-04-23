@@ -1,19 +1,10 @@
 import type { HTMLAttributes } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion';
 
 interface LandingRevealProps extends HTMLAttributes<HTMLDivElement> {
   delayMs?: number;
-}
-
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
-
-function getPrefersReducedMotion() {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-    return false;
-  }
-
-  return window.matchMedia(REDUCED_MOTION_QUERY).matches;
 }
 
 const LandingReveal = ({
@@ -24,35 +15,14 @@ const LandingReveal = ({
   ...props
 }: LandingRevealProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(() => getPrefersReducedMotion());
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => getPrefersReducedMotion());
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const [isVisible, setIsVisible] = useState(prefersReducedMotion);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-      return;
-    }
-
-    const mediaQuery = window.matchMedia(REDUCED_MOTION_QUERY);
-    const handleChange = (event: MediaQueryListEvent) => {
-      setPrefersReducedMotion(event.matches);
-      if (event.matches) {
-        setIsVisible(true);
-      }
-    };
-
-    setPrefersReducedMotion(mediaQuery.matches);
-    if (mediaQuery.matches) {
+    if (prefersReducedMotion) {
       setIsVisible(true);
     }
-
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
-    }
-
-    mediaQuery.addListener(handleChange);
-    return () => mediaQuery.removeListener(handleChange);
-  }, []);
+  }, [prefersReducedMotion]);
 
   useEffect(() => {
     if (prefersReducedMotion) {
