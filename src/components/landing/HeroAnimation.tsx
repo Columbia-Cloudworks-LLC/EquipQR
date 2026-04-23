@@ -2,13 +2,15 @@ import { useState, useRef, useCallback, useEffect, lazy, Suspense, useMemo } fro
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion';
 import { STATE_VECTORS, ALL_STATE_CODES } from './stateVectors';
 import type { StateCode } from './stateVectors';
-import AssetDotsPhase from './AssetDotsPhase';
 import { computeDotPositionsInState, chosenDotIndex, strToSeed } from './dotPositions';
 
 // Animation phases are dynamically imported so the reduced-motion path
-// never pays the GSAP / MorphSVG bundle cost.
+// never pays the GSAP / MorphSVG bundle cost. AssetDotsPhase MUST stay lazy
+// alongside the others — it imports gsap/@gsap/react at module scope, so a
+// static import would pull GSAP into the landing chunk for every visitor.
 const QRScanPhase = lazy(() => import('./QRScanPhase'));
 const StateMorphPhase = lazy(() => import('./StateMorphPhase'));
+const AssetDotsPhase = lazy(() => import('./AssetDotsPhase'));
 const NationalMapPhase = lazy(() => import('./NationalMapPhase'));
 const PMChecklistPhase = lazy(() => import('./PMChecklistPhase'));
 
