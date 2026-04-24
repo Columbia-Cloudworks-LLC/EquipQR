@@ -238,7 +238,6 @@ if ($administeredCount -ge $supabasePorts.Count) {
     Write-Host "          net start winnat"
     Write-Host ""
     Write-Host "        After running once, this WARNING will never appear again."
-    $stopFail = $true
 }
 
 # --- Docker Desktop (optional) ---
