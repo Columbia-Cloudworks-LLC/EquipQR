@@ -4,3 +4,7 @@
 --
 -- This stub file exists only to satisfy Supabase CLI migration version
 -- tracking; it intentionally performs no schema changes.
+--
+-- Keep an explicit no-op SQL statement so migration parsers do not treat this
+-- file as empty and skip its version during remote/local reconciliation.
+SELECT 1;
