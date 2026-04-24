@@ -65,7 +65,9 @@ describe('SmartLanding', () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it('shows nothing while auth is loading', () => {
+  it('renders the landing page while auth is loading (issue #671 regression guard)', () => {
+    // Previously returned null while isLoading=true, causing a 13–60+s black screen.
+    // The marketing hero must render unconditionally regardless of auth state.
     mockUseAuth.mockReturnValue({
       user: null,
       isLoading: true,
@@ -77,7 +79,7 @@ describe('SmartLanding', () => {
       </HelmetProvider>
     );
 
-    expect(container.firstChild).toBeNull();
+    expect(container.firstChild).not.toBeNull();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 });

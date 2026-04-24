@@ -37,6 +37,19 @@ if ($Rest.Count -gt 0) {
     exit 2
 }
 
+# dev-stop is normally a user-context operation. Running it from an
+# Administrator shell is allowed (and sometimes useful for forcibly clearing
+# wedged Docker Desktop state with -Force), but it is not the expected path
+# and can mask permission issues developers will hit later. Warn but
+# continue. dev-start.ps1 hard-fails on Admin context for the same reasons.
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if ($isAdmin) {
+    Write-Host "WARNING: dev-stop is running from an Administrator shell."
+    Write-Host '         OK if you are intentionally clearing wedged state with -Force.'
+    Write-Host '         Otherwise, prefer a normal (non-elevated) shell.'
+    Write-Host ''
+}
+
 $stopFail = $false
 
 Write-Host ""
@@ -134,10 +147,20 @@ if ($supaIds) {
     }
 }
 
+# Prune orphan Docker networks. Networks left behind by an unclean teardown
+# can keep port-mapping references alive, which in turn keeps the Hyper-V
+# host-side port reservation registered with vmcompute. `docker network
+# prune` only removes networks not currently in use by any container, so
+# this cannot interfere with anything that is intentionally up.
+$oldPruneEap = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+$null = & docker network prune -f 2>&1
+$ErrorActionPreference = $oldPruneEap
+
 # --- Port sweep (full stack) ---
 Write-Host ""
 Write-Host " [Ports] Cleaning up orphan listeners..."
-$ports = @(8080, 54321, 54322, 54323, 54324, 54325, 54326, 54327, 58220, 58221, 58222, 58223, 58224, 58225, 58226, 58227)
+$ports = @(8080, 54321, 54322, 54323, 54324, 54325, 54326, 54327, 54328, 58220, 58221, 58222, 58223, 58224, 58225, 58226, 58227)
 $portFail = $false
 foreach ($port in $ports) {
     $pids = @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue |
@@ -154,6 +177,68 @@ foreach ($port in $ports) {
 }
 Write-Host "        Port sweep complete."
 if ($portFail) { $stopFail = $true }
+
+# --- Hyper-V / WinNAT port reservation check (diagnostic only) ---
+# The port sweep above can only see Windows-side processes. The Windows
+# kernel itself can also reserve port chunks within the ephemeral range
+# (49152-65535) via WinNAT or Hyper-V, and Supabase's ports 54321-54328
+# fall inside that range. When the dynamic allocator traps one of those
+# ports, no `Get-NetTCPConnection` and no `docker ps` will reveal it --
+# only `netsh int ipv4 show excludedportrange` does, and that range has
+# no owning user-space process to kill.
+#
+# Crucially, this is NOT a Docker leak. Restarting Docker Desktop, killing
+# the docker-desktop WSL distro, and pruning networks all leave it intact
+# because the reservation belongs to the Windows TCP/IP stack itself. The
+# only fix is a one-time Admin `netsh add excludedportrange ... store=
+# persistent` registered for the Supabase port band, after which the
+# kernel will skip those ports forever (across reboots). That fix lives
+# in scripts\reserve-supabase-ports.ps1 -- so dev-stop only diagnoses and
+# tells the user how to fix it.
+Write-Host ""
+Write-Host " [Hyper-V] Checking for trapped Supabase ports..."
+$supabasePorts = @(54321, 54322, 54323, 54324, 54327, 54328)
+$trappedDetail = @()
+$administeredCount = 0
+$rawExcl = (netsh int ipv4 show excludedportrange protocol=tcp 2>&1) -join "`n"
+foreach ($p in $supabasePorts) {
+    foreach ($line in ($rawExcl -split "`r?`n")) {
+        if ($line -match '^\s*(\d+)\s+(\d+)\s*(\*?)\s*$') {
+            $startPort = [int]$matches[1]
+            $endPort = [int]$matches[2]
+            $isAdministered = ($matches[3] -eq '*')
+            if ($p -ge $startPort -and $p -le $endPort) {
+                if ($isAdministered) {
+                    $administeredCount++
+                } else {
+                    $trappedDetail += "$p (in WinNAT-allocated range $startPort-$endPort)"
+                }
+                break
+            }
+        }
+    }
+}
+if ($administeredCount -ge $supabasePorts.Count) {
+    Write-Host "        OK: Supabase ports are protected by an administered exclusion (one-time fix is in place)."
+} elseif ($trappedDetail.Count -eq 0) {
+    Write-Host "        OK: no Supabase ports currently trapped by WinNAT."
+} else {
+    Write-Host "        WARNING: Supabase port(s) trapped by Windows' ephemeral port allocator:"
+    $trappedDetail | ForEach-Object { Write-Host "          $_" }
+    Write-Host ""
+    Write-Host "        This is an OS-level reservation conflict, NOT a Docker leak."
+    Write-Host "        Stopping/restarting Docker, terminating WSL, and pruning networks will not help."
+    Write-Host ""
+    Write-Host "        ONE-TIME FIX (persistent across reboots, run once per machine):"
+    Write-Host "          .\scripts\reserve-supabase-ports.ps1     (auto-elevates)"
+    Write-Host ""
+    Write-Host "        Or manually in an Admin PowerShell:"
+    Write-Host "          net stop winnat"
+    Write-Host "          netsh int ipv4 add excludedportrange protocol=tcp startport=54321 numberofports=8 store=persistent"
+    Write-Host "          net start winnat"
+    Write-Host ""
+    Write-Host "        After running once, this WARNING will never appear again."
+}
 
 # --- Docker Desktop (optional) ---
 if ($Force) {

@@ -9,6 +9,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAccessSnapshot } from '@/hooks/useAccessSnapshot';
 import { useSession } from '@/hooks/useSession';
 import { useTeam as useTeamContext } from '@/features/teams/hooks/useTeam';
+import { logger } from '@/utils/logger';
 
 /**
  * Primary hook for the Teams list — repository-backed with access-snapshot filtering.
@@ -76,9 +77,25 @@ export const useTeamMutations = () => {
       TeamRepository.createTeamWithCreator(teamData, creatorId),
     onSuccess: async (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['teams', variables.teamData.organization_id] });
-      // Force-refresh the session so the new team membership (creator becomes manager)
-      // shows up in TopBar/ContextBreadcrumb without requiring logout/login.
-      await refreshSession(true);
+      // Force-refresh the session so the new team membership (creator becomes
+      // manager) shows up in TopBar/ContextBreadcrumb without requiring
+      // logout/login. Guard the refresh: a transient session-refresh error
+      // would otherwise reject onSuccess and flip the (already-successful)
+      // team-create mutation into onError, surfacing a misleading toast even
+      // though the team was created and persisted.
+      //
+      // logger.error (not logger.warn) is deliberate: logger.warn is gated on
+      // import.meta.env.DEV in src/utils/logger.ts and is a no-op in
+      // production, which would silently swallow this failure. logger.error
+      // runs unconditionally so production telemetry / Better Stack capture
+      // it, while still NOT flipping the mutation into onError or surfacing
+      // a destructive toast (the team was created successfully; the only
+      // user-visible degradation is a stale TopBar until next reload).
+      try {
+        await refreshSession(true);
+      } catch (refreshError) {
+        logger.error('Team created but session refresh failed; UI may need a manual reload to reflect new membership', refreshError);
+      }
     },
     onError: (error: unknown) => {
       toast({

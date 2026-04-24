@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-04-23
+
+### Fixed
+
+- **Public landing page rendered black screen for 13–60+s when auth refresh failed** ([#671](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/671)) — `SmartLanding`'s `if (isLoading) return null;` block was gating the public marketing page on `AuthProvider.isLoading`. When `supabase-js`'s GoTrueClient retried a stale `/auth/v1/token` refresh — failing with `TypeError: Failed to fetch` up to 14 times over an exponential-backoff sequence — the viewport was completely black until the retry budget exhausted (~13s on desktop, 60+s on mobile). The fix renders the v3 hero unconditionally for all cases except the confirmed `!isLoading && user` branch (where the redirect to `/dashboard` fires via the existing `useEffect`). Adds Vitest regression tests pinning the new contract.
+
 ## [3.0.0] - 2026-04-23
 
 ### Added

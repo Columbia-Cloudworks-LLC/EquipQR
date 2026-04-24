@@ -220,4 +220,50 @@ describe('aggregateByBucket', () => {
     expect(rows[0].UPDATE).toBe(2);
     expect(rows[0].total).toBe(5);
   });
+
+  // Regression: bucket boundaries are pinned to UTC via setUTC* setters to
+  // mirror PostgreSQL `date_trunc(p_bucket, timestamptz)`. The label was
+  // originally formatted with date-fns `format()`, which renders in the
+  // client's local timezone — so a UTC midnight bucket would render as the
+  // prior day in PT and the bucket key (UTC) would diverge from the rendered
+  // label. Anchor the labels to UTC instead so click-to-narrow stays honest
+  // for non-UTC users.
+  it('formats day-bucket labels in UTC regardless of client timezone', () => {
+    // With a UTC midnight bucket, the local-time formatter would render
+    // "Apr 19" for any client west of UTC. The UTC formatter must always
+    // render "Apr 20".
+    const rows = aggregateByBucket(
+      [],
+      'day',
+      '2026-04-20T00:00:00.000Z',
+      '2026-04-21T00:00:00.000Z'
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].bucket).toBe('2026-04-20T00:00:00.000Z');
+    expect(rows[0].bucketLabel).toBe('Apr 20');
+  });
+
+  it('formats hour-bucket labels in UTC regardless of client timezone', () => {
+    const rows = aggregateByBucket(
+      [],
+      'hour',
+      '2026-04-20T00:00:00.000Z',
+      '2026-04-20T01:00:00.000Z'
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].bucket).toBe('2026-04-20T00:00:00.000Z');
+    expect(rows[0].bucketLabel).toBe('Apr 20 00:00');
+  });
+
+  it('formats minute-bucket labels in UTC regardless of client timezone', () => {
+    const rows = aggregateByBucket(
+      [],
+      'minute',
+      '2026-04-20T00:00:00.000Z',
+      '2026-04-20T00:01:00.000Z'
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].bucket).toBe('2026-04-20T00:00:00.000Z');
+    expect(rows[0].bucketLabel).toBe('00:00');
+  });
 });

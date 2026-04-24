@@ -41,6 +41,30 @@ if ($Rest.Count -gt 0) {
     exit 2
 }
 
+# dev-start is designed for user context. Running as Administrator is a
+# common-but-subtle source of bugs that hide in development and explode in
+# production:
+#   - 1Password CLI sessions belong to the launching user account; an Admin
+#     `op signin` cannot be re-used by a user-context process and vice versa.
+#   - Files written into WSL distros from an Admin process can end up
+#     owned by root, which then breaks user-context tools that try to
+#     read or modify them.
+#   - Docker named-volume ACLs inherit from the launching context.
+# This guard does NOT prevent Supabase port-reservation conflicts -- those
+# are an OS-level issue resolved by `scripts\reserve-supabase-ports.ps1`,
+# not by privilege level.
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if ($isAdmin) {
+    Write-Host "FAIL: dev-start.bat must NOT be run from an Administrator shell."
+    Write-Host '       Reasons: 1Password session ownership, WSL file ownership, Docker volume ACLs.'
+    Write-Host '       Open a normal (non-elevated) PowerShell or cmd and re-run dev-start.bat.'
+    Write-Host ''
+    Write-Host '       If you hit a port-reservation issue (WSAEACCES on 54321-54328),'
+    Write-Host '       that is a separate one-time admin fix:'
+    Write-Host '         scripts\reserve-supabase-ports.ps1   (auto-elevates)'
+    exit 1
+}
+
 $SUPABASE_API_PORT = '54321'
 $DEFAULT_EDGE_ENV_FILE = Join-Path $repoRoot 'supabase\functions\.env'
 $DEFAULT_OP_ENVIRONMENT_ID = 'f4rdrusaoxvzwngz2jxs7vy7ye'
@@ -353,6 +377,65 @@ if ($needStart) {
     $startExit = $LASTEXITCODE
     $ErrorActionPreference = $oldStartEap
     if ($startExit -ne 0) {
+        # Diagnose the failure mode before retrying. There are two classes:
+        #
+        # (A) Supabase port trapped in Windows' ephemeral port range. The
+        #     OS itself (WinNAT / Hyper-V / WSL2 NAT) has reserved a
+        #     100-port chunk that includes one of 54321-54328. This is NOT
+        #     a Docker leak -- `docker ps` is empty and no Windows process
+        #     is listening -- and it CANNOT be fixed by user-context recovery
+        #     (cleaning containers, restarting Docker Desktop, terminating
+        #     WSL distros). The only fix is a one-time persistent
+        #     administered exclusion, registered via Admin `netsh`. Once
+        #     done, it survives reboots forever.
+        #
+        # (B) Anything else (stuck CLI state, mid-air container, half-dead
+        #     supabase_db, etc.). The existing supabase-stop + container-rm
+        #     sweep is the right recovery.
+        #
+        # We probe (A) first because the user-action it requires is
+        # different and more important to surface clearly.
+        $supabasePorts = @(54321, 54322, 54323, 54324, 54327, 54328)
+        $trappedDetail = @()
+        $rawExcl = (netsh int ipv4 show excludedportrange protocol=tcp 2>&1) -join "`n"
+        foreach ($p in $supabasePorts) {
+            foreach ($line in ($rawExcl -split "`r?`n")) {
+                if ($line -match '^\s*(\d+)\s+(\d+)\s*(\*?)\s*$') {
+                    $startPort = [int]$matches[1]
+                    $endPort = [int]$matches[2]
+                    $isAdministered = ($matches[3] -eq '*')
+                    if ($p -ge $startPort -and $p -le $endPort -and -not $isAdministered) {
+                        $trappedDetail += "$p (in WinNAT-allocated range $startPort-$endPort)"
+                        break
+                    }
+                }
+            }
+        }
+
+        if ($trappedDetail.Count -gt 0) {
+            Write-Host ""
+            Write-Host "        FAIL: Supabase port(s) trapped by Windows' ephemeral port allocator:"
+            $trappedDetail | ForEach-Object { Write-Host "          $_" }
+            Write-Host ""
+            Write-Host "        ROOT CAUSE: Supabase uses ports 54321-54328, which fall inside"
+            Write-Host "        Windows' default ephemeral port range (49152-65535). WinNAT or"
+            Write-Host "        Hyper-V can reserve a 100-port chunk that overlaps these ports."
+            Write-Host "        This is NOT a Docker problem and CANNOT be fixed by restarting"
+            Write-Host "        Docker, terminating WSL, or any user-context recovery."
+            Write-Host ""
+            Write-Host "        ONE-TIME FIX (persistent across reboots, run once per machine):"
+            Write-Host "          .\scripts\reserve-supabase-ports.ps1     (auto-elevates)"
+            Write-Host ""
+            Write-Host "        Or manually in an Admin PowerShell:"
+            Write-Host "          net stop winnat"
+            Write-Host "          netsh int ipv4 add excludedportrange protocol=tcp startport=54321 numberofports=8 store=persistent"
+            Write-Host "          net start winnat"
+            Write-Host ""
+            Write-Host "        Then re-run dev-start.bat from your normal (non-elevated) shell."
+            exit 1
+        }
+
+        # Path (B): not a port-trap. Existing cleanup-and-retry logic.
         Write-Host ""
         Write-Host "        First attempt failed. Running full cleanup and retrying..."
         $ErrorActionPreference = 'Continue'
@@ -373,7 +456,7 @@ if ($needStart) {
         if ($retryExit -ne 0) {
             Write-Host ""
             Write-Host "        FAIL: supabase start failed after retry."
-            Write-Host "        Try: dev-stop.bat then dev-start.bat, or check port $SUPABASE_API_PORT"
+            Write-Host "        Try: dev-stop.bat then dev-start.bat, or check ports 54321-54328"
             exit 1
         }
     }
