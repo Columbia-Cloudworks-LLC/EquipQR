@@ -50,7 +50,7 @@ if ($Rest.Count -gt 0) {
 #     owned by root, which then breaks user-context tools that try to
 #     read or modify them.
 #   - Docker named-volume ACLs inherit from the launching context.
-# This guard does NOT prevent Supabase port-reservation conflicts — those
+# This guard does NOT prevent Supabase port-reservation conflicts -- those
 # are an OS-level issue resolved by `scripts\reserve-supabase-ports.ps1`,
 # not by privilege level.
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -382,8 +382,8 @@ if ($needStart) {
         # (A) Supabase port trapped in Windows' ephemeral port range. The
         #     OS itself (WinNAT / Hyper-V / WSL2 NAT) has reserved a
         #     100-port chunk that includes one of 54321-54328. This is NOT
-        #     a Docker leak — `docker ps` is empty and no Windows process
-        #     is listening — and it CANNOT be fixed by user-context recovery
+        #     a Docker leak -- `docker ps` is empty and no Windows process
+        #     is listening -- and it CANNOT be fixed by user-context recovery
         #     (cleaning containers, restarting Docker Desktop, terminating
         #     WSL distros). The only fix is a one-time persistent
         #     administered exclusion, registered via Admin `netsh`. Once

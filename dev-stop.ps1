@@ -160,7 +160,7 @@ $ErrorActionPreference = $oldPruneEap
 # --- Port sweep (full stack) ---
 Write-Host ""
 Write-Host " [Ports] Cleaning up orphan listeners..."
-$ports = @(8080, 54321, 54322, 54323, 54324, 54325, 54326, 54327, 58220, 58221, 58222, 58223, 58224, 58225, 58226, 58227)
+$ports = @(8080, 54321, 54322, 54323, 54324, 54325, 54326, 54327, 54328, 58220, 58221, 58222, 58223, 58224, 58225, 58226, 58227)
 $portFail = $false
 foreach ($port in $ports) {
     $pids = @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue |
@@ -183,7 +183,7 @@ if ($portFail) { $stopFail = $true }
 # kernel itself can also reserve port chunks within the ephemeral range
 # (49152-65535) via WinNAT or Hyper-V, and Supabase's ports 54321-54328
 # fall inside that range. When the dynamic allocator traps one of those
-# ports, no `Get-NetTCPConnection` and no `docker ps` will reveal it —
+# ports, no `Get-NetTCPConnection` and no `docker ps` will reveal it --
 # only `netsh int ipv4 show excludedportrange` does, and that range has
 # no owning user-space process to kill.
 #
@@ -193,7 +193,7 @@ if ($portFail) { $stopFail = $true }
 # only fix is a one-time Admin `netsh add excludedportrange ... store=
 # persistent` registered for the Supabase port band, after which the
 # kernel will skip those ports forever (across reboots). That fix lives
-# in scripts\reserve-supabase-ports.ps1 — so dev-stop only diagnoses and
+# in scripts\reserve-supabase-ports.ps1 -- so dev-stop only diagnoses and
 # tells the user how to fix it.
 Write-Host ""
 Write-Host " [Hyper-V] Checking for trapped Supabase ports..."

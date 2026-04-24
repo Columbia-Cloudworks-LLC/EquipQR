@@ -46,18 +46,47 @@ function Test-IsAdmin {
     return ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+# Returns a string describing the administered exclusion(s) that cover the
+# Supabase port band 54321-54328 if (and only if) every port in that band
+# is covered by at least one administered range, or $null otherwise.
+#
+# Why per-port coverage instead of single-range coverage:
+#   On machines that have previously had ad-hoc `netsh add excludedportrange`
+#   calls (e.g. a developer who added 54321-54324 once and 54325-54328 later,
+#   or who has unrelated administered exclusions that happen to clip into the
+#   Supabase band), the band can be fully protected by multiple smaller
+#   administered ranges. The earlier single-range check would miss that and
+#   try to add an overlapping persistent exclusion, which `netsh` rejects
+#   with ERROR_SHARING_VIOLATION even though the band is already protected.
 function Find-CoveringAdministeredExclusion {
     $rawExcl = (netsh int ipv4 show excludedportrange protocol=tcp 2>&1) -join "`n"
+    $adminRanges = @()
     foreach ($line in ($rawExcl -split "`r?`n")) {
         if ($line -match '^\s*(\d+)\s+(\d+)\s*\*\s*$') {
-            $startPort = [int]$matches[1]
-            $endPort = [int]$matches[2]
-            if ($startPort -le 54321 -and $endPort -ge 54328) {
-                return "$startPort-$endPort"
+            $adminRanges += [pscustomobject]@{
+                Start = [int]$matches[1]
+                End   = [int]$matches[2]
             }
         }
     }
-    return $null
+
+    if ($adminRanges.Count -eq 0) { return $null }
+
+    $supabasePorts = 54321..54328
+    $coveringRanges = @{}
+    foreach ($p in $supabasePorts) {
+        $covered = $false
+        foreach ($r in $adminRanges) {
+            if ($p -ge $r.Start -and $p -le $r.End) {
+                $coveringRanges["$($r.Start)-$($r.End)"] = $true
+                $covered = $true
+                break
+            }
+        }
+        if (-not $covered) { return $null }
+    }
+
+    return ($coveringRanges.Keys | Sort-Object) -join ', '
 }
 
 if (-not (Test-IsAdmin)) {
