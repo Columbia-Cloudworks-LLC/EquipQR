@@ -39,7 +39,7 @@
         "X-MCP-Toolsets": "repos,issues,pull_requests,actions,code_security"
       }
     },
-    "_comment_datadog": "Datadog MCP intentionally disabled to reduce costs. To re-enable: restore the 'datadog' entry below (see git history of this file), update the URL site (mcp.{site}.datadoghq.com), confirm the API key value (NOT the key UUID) is in op://tgo2m6qbct5otqeqirjocn3joa/datadog-prod/api_key, run scripts/render-mcp-config.ps1.",
+    "_comment_datadog": "Datadog MCP intentionally disabled to reduce costs. To re-enable: restore the 'datadog' entry below (see git history of this file), update the URL site (mcp.{site}.datadoghq.com), confirm the API key value (NOT the key UUID) is in the 'datadog-prod' item (api_key field) of the EquipQR Agents 1Password vault (UUID tgo2m6qbct5otqeqirjocn3joa), then run scripts/render-mcp-config.ps1. Avoid restating the secret-reference URI scheme inline here; op-inject would otherwise consume the rest of this comment as a vault path and abort the render.",
     "gcloud": {
       "type": "stdio",
       "command": "npx.cmd",

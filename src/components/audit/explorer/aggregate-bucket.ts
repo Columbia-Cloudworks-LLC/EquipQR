@@ -11,18 +11,37 @@
  * `react-refresh/only-export-components` clean.
  */
 
-import { format as formatDate } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import {
   AuditAction,
   AuditLogTimelineBucket,
   AuditLogTimelineRow,
 } from '@/types/audit';
 
+/**
+ * Bucket label patterns are formatted in UTC (see {@link formatBucketLabel})
+ * so they line up with the UTC bucket boundaries set by `startOfBucketUtc` and
+ * the `date_trunc(p_bucket, timestamptz)` running in PostgreSQL's UTC session
+ * timezone. Formatting in local time would shift labels for non-UTC clients
+ * — e.g. a UTC midnight bucket would render as the prior day in PT — and
+ * decouple the rendered label from the bucket key used for click-to-narrow.
+ */
 export const BUCKET_LABEL_FORMAT: Record<AuditLogTimelineBucket, string> = {
   minute: 'HH:mm',
   hour: 'MMM d HH:mm',
   day: 'MMM d',
 };
+
+/**
+ * Format a bucket boundary timestamp into the chart's x-axis label, pinned
+ * to UTC so the label matches the UTC-aligned bucket key.
+ */
+export function formatBucketLabel(
+  when: Date,
+  bucket: AuditLogTimelineBucket
+): string {
+  return formatInTimeZone(when, 'UTC', BUCKET_LABEL_FORMAT[bucket]);
+}
 
 export const BUCKET_MS: Record<AuditLogTimelineBucket, number> = {
   minute: 60 * 1000,
@@ -80,7 +99,7 @@ function makeBlankRow(
 ): ChartRow {
   return {
     bucket: bucketIso,
-    bucketLabel: formatDate(when, BUCKET_LABEL_FORMAT[bucket]),
+    bucketLabel: formatBucketLabel(when, bucket),
     total: 0,
     INSERT: 0,
     UPDATE: 0,
