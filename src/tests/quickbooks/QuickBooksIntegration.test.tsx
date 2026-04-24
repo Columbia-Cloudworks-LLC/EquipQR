@@ -13,7 +13,6 @@ import { MemoryRouter } from 'react-router-dom';
 // Mock the feature flags
 vi.mock('@/lib/flags', () => ({
   isQuickBooksEnabled: vi.fn(() => true),
-  isQuickBooksDisabled: vi.fn(() => false),
   QUICKBOOKS_ENABLED: true,
 }));
 

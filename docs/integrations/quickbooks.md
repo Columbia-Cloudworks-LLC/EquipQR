@@ -268,18 +268,10 @@ if (isQuickBooksEnabled()) {
 }
 ```
 
-**PDF Attachments** (`VITE_ENABLE_QB_PDF_ATTACHMENT`):
-```typescript
-import { isQBPDFAttachmentEnabled } from '@/lib/flags';
-
-if (isQBPDFAttachmentEnabled()) {
-  // PDF attachment feature is enabled
-}
-```
-
-**Note**: The PDF attachment feature requires both:
-- Client-side flag: `VITE_ENABLE_QB_PDF_ATTACHMENT=true` (for UI purposes)
-- Server-side flag: `ENABLE_QB_PDF_ATTACHMENT=true` (in Supabase Edge Function secrets)
+**PDF Attachments** (`ENABLE_QB_PDF_ATTACHMENT`):
+- Controlled server-side in the `quickbooks-export-invoice` edge function.
+- Set `ENABLE_QB_PDF_ATTACHMENT=true` in Supabase Edge Function secrets to attach PDFs to exported invoices.
+- No client-side feature flag is required.
 
 ## API Reference
 
