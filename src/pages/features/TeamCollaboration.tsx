@@ -10,6 +10,7 @@ import {
 import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
+import { landingImage } from '@/lib/landingImage';
 
 const TeamCollaborationFeature = () => {
   return (
@@ -219,7 +220,7 @@ const TeamCollaborationFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
-                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/team-list.png"
+                    src={landingImage('team-list.png')}
                     alt="Teams list showing all teams with member counts and roles"
                     className="w-full h-auto"
                     loading="lazy"
@@ -234,7 +235,7 @@ const TeamCollaborationFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
-                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/team-detail.png"
+                    src={landingImage('team-detail.png')}
                     alt="Team detail page showing role assignments for team members"
                     className="w-full h-auto"
                     loading="lazy"

@@ -7,6 +7,7 @@ import {
   History,
   Settings2,
 } from 'lucide-react';
+import { landingImage } from '@/lib/landingImage';
 
 export interface Capability {
   name: string;
@@ -127,14 +128,14 @@ export const steps: Step[] = [
 
 export const screenshots: Screenshot[] = [
   {
-    imageUrl: 'https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/inventory-list.png',
+    imageUrl: landingImage('inventory-list.png'),
     imageAlt: 'Inventory list view showing parts with stock levels, SKUs, and low stock indicators',
     title: 'Inventory List View',
     description:
       'Browse all inventory items with part numbers, descriptions, current stock levels, and low-stock indicators. Filter, sort, and search to find what you need quickly.',
   },
   {
-    imageUrl: 'https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/inventory-detail.png',
+    imageUrl: landingImage('inventory-detail.png'),
     imageAlt: 'Inventory item detail page showing stock information and transaction history',
     title: 'Item Detail & Transaction History',
     description:

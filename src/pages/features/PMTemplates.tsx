@@ -6,6 +6,7 @@ import type { LucideIcon } from 'lucide-react';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
+import { landingImage } from '@/lib/landingImage';
 
 interface BuiltInTemplate {
   name: string;
@@ -312,7 +313,7 @@ const PMTemplatesFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img 
-                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/pm-templates-list.png" 
+                    src={landingImage('pm-templates-list.png')} 
                     alt="PM Templates List showing 6 global templates including Forklift, Excavator, and Scissor Lift" 
                     className="w-full h-auto"
                     loading="lazy"
@@ -328,7 +329,7 @@ const PMTemplatesFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img 
-                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/pm-template-detail.png" 
+                    src={landingImage('pm-template-detail.png')} 
                     alt="Forklift PM template detail view showing 12 sections and 103 checklist items" 
                     className="w-full h-auto"
                     loading="lazy"

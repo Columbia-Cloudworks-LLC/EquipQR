@@ -11,6 +11,7 @@ import {
 import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
+import { landingImage } from '@/lib/landingImage';
 
 const MobileFirstDesignFeature = () => {
   return (
@@ -221,7 +222,7 @@ const MobileFirstDesignFeature = () => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <div className="rounded-lg overflow-hidden border border-border">
                     <img
-                      src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/mobile-work-order-1.png"
+                      src={landingImage('mobile-work-order-1.png')}
                       alt="Mobile work order view"
                       className="w-full h-auto"
                       loading="lazy"
@@ -229,7 +230,7 @@ const MobileFirstDesignFeature = () => {
                   </div>
                   <div className="rounded-lg overflow-hidden border border-border">
                     <img
-                      src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/mobile-work-order-status.png"
+                      src={landingImage('mobile-work-order-status.png')}
                       alt="Mobile work order status update"
                       className="w-full h-auto"
                       loading="lazy"
@@ -237,7 +238,7 @@ const MobileFirstDesignFeature = () => {
                   </div>
                   <div className="rounded-lg overflow-hidden border border-border">
                     <img
-                      src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/mobile-work-order-PM-checklist.png"
+                      src={landingImage('mobile-work-order-PM-checklist.png')}
                       alt="Mobile PM checklist view"
                       className="w-full h-auto"
                       loading="lazy"
@@ -245,7 +246,7 @@ const MobileFirstDesignFeature = () => {
                   </div>
                   <div className="rounded-lg overflow-hidden border border-border">
                     <img
-                      src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/mobile-work-order-PM-checklist-input.png"
+                      src={landingImage('mobile-work-order-PM-checklist-input.png')}
                       alt="Mobile PM checklist input"
                       className="w-full h-auto"
                       loading="lazy"
