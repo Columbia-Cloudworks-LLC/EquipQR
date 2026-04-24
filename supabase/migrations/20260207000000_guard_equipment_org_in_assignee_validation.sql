@@ -1,3 +1,12 @@
+-- Placeholder migration to preserve remote migration history.
+-- This version was previously applied on the linked Supabase project and later
+-- consolidated into an earlier migration file.
+--
+-- Keeping this timestamped file prevents:
+-- "Remote migration versions not found in local migrations directory"
+--
+-- Safe no-op for local resets and preview reconciliation.
+SELECT 1;
 -- CONSOLIDATED: This migration's logic was folded into
 -- 20260201000000_allow_org_admin_assignee_when_equipment_has_no_team.sql
 -- so the cross-tenant guard is never absent between migration versions.
