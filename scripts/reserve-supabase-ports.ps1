@@ -23,7 +23,7 @@
   Why the netsh call needs `net stop winnat` first:
     Windows refuses to add an "administered" excluded range that overlaps
     an active OS-allocated dynamic reservation. The error it returns
-    (ERROR_SHARING_VIOLATION) is misleading — it has nothing to do with
+    (ERROR_SHARING_VIOLATION) is misleading -- it has nothing to do with
     file access. Briefly stopping WinNAT releases all dynamic
     reservations; we add the persistent exclusion in the clear window;
     then restart WinNAT and it will respect the new exclusion forever.
@@ -31,7 +31,7 @@
 .NOTES
   - Requires Administrator. Will self-elevate if not already elevated.
   - Briefly stops/starts WinNAT (~2s window). This drops all Hyper-V/WSL2
-    NAT mappings for that window — VPN clients (e.g. Mullvad) may need to
+    NAT mappings for that window -- VPN clients (e.g. Mullvad) may need to
     reconnect, in-flight SSH sessions through WSL2 will drop. Best run
     when Docker Desktop is stopped (`dev-stop.bat -Force` first).
   - This script is idempotent: if the exclusion already covers
@@ -64,10 +64,15 @@ if (-not (Test-IsAdmin)) {
     Write-Host "Re-launching with Administrator privileges (a UAC prompt will appear)..."
     $scriptPath = $PSCommandPath
     if (-not $scriptPath) { $scriptPath = $MyInvocation.MyCommand.Path }
-    Start-Process -FilePath 'powershell.exe' `
-        -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$scriptPath`"" `
-        -Verb RunAs -Wait
-    exit $LASTEXITCODE
+    try {
+        $proc = Start-Process -FilePath 'powershell.exe' `
+            -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$scriptPath`"" `
+            -Verb RunAs -Wait -PassThru
+        exit $proc.ExitCode
+    } catch {
+        Write-Host "FAIL: Elevation was cancelled or failed: $($_.Exception.Message)"
+        exit 1
+    }
 }
 
 Write-Host ""
