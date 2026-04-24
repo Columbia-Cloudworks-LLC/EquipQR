@@ -119,7 +119,29 @@ $addExit = $LASTEXITCODE
 
 Write-Host "        Restarting WinNAT..."
 $null = & net start winnat 2>&1
-if ($hnsStopped) { $null = & net start hns 2>&1 }
+$winnatStartExit = $LASTEXITCODE
+$hnsStartExit = 0
+if ($hnsStopped) {
+    $null = & net start hns 2>&1
+    $hnsStartExit = $LASTEXITCODE
+}
+
+if (($winnatStartExit -ne 0) -or ($hnsStopped -and $hnsStartExit -ne 0)) {
+    if ($winnatStartExit -ne 0) {
+        Write-Host "        FAIL: could not restart WinNAT (exit $winnatStartExit)."
+    }
+    if ($hnsStopped -and $hnsStartExit -ne 0) {
+        Write-Host "        FAIL: could not restart HNS (exit $hnsStartExit)."
+    }
+    Write-Host "        NAT services did not come back up. Please restart the failed service(s) manually"
+    Write-Host "        (for example: 'net start winnat' and/or 'net start hns') before continuing."
+    if ($Host.Name -eq 'ConsoleHost') {
+        Write-Host ""
+        Write-Host "        Press any key to close..."
+        $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+    }
+    exit 1
+}
 
 if ($addExit -ne 0) {
     Write-Host "        FAIL: netsh add excludedportrange returned exit $addExit."
