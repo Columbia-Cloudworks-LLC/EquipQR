@@ -5,6 +5,10 @@ description: Rotate API tokens, service-account keys, and the 1Password Service 
 
 # EquipQR Secrets Rotation
 
+## Cursor workflow commit policy
+
+If a workflow reaches an authorized commit step, include unrelated incremental Cursor workflow updates when they are limited to agent operating guidance or tooling configuration: `AGENTS.md`, `.cursor/skills/`, `.cursor/rules/`, `.cursor/hooks/`, Cursor MCP/template configuration, subagent guidance, or similar workflow files. Do not treat those edits as scope drift just because they were produced irregularly while another task was running. Still inspect the diff for secrets, destructive rewrites, broad unrelated content, or behavior changes outside Cursor workflow. This policy does not allow read-only skills to edit, commit, or push on their own.
+
 ## Architecture recap
 
 EquipQR uses 1Password as the single source of truth for all agent-consumed secrets. The `op-svc-equipqr-agents` service account has read-only access to the `EquipQR Agents` vault (UUID `tgo2m6qbct5otqeqirjocn3joa` — scripts use the UUID for speed and to avoid space-in-name parsing issues). Its token (`OP_SERVICE_ACCOUNT_TOKEN`) is planted in:

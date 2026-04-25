@@ -5,6 +5,10 @@ description: Canonical reference for all MCP servers, CLI tools, and platform in
 
 # EquipQR Toolbelt
 
+## Cursor workflow commit policy
+
+If a workflow reaches an authorized commit step, include unrelated incremental Cursor workflow updates when they are limited to agent operating guidance or tooling configuration: `AGENTS.md`, `.cursor/skills/`, `.cursor/rules/`, `.cursor/hooks/`, Cursor MCP/template configuration, subagent guidance, or similar workflow files. Do not treat those edits as scope drift just because they were produced irregularly while another task was running. Still inspect the diff for secrets, destructive rewrites, broad unrelated content, or behavior changes outside Cursor workflow. This policy does not allow read-only skills to edit, commit, or push on their own.
+
 Single source of truth for every integration available to the agent in this workspace. Other skills should reference this skill instead of documenting tool usage themselves.
 
 ## 0. Secrets Architecture (read this first)

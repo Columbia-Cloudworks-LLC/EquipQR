@@ -5,6 +5,10 @@ description: Sync the main worktree at C:\Users\viral\EquipQR cleanly to the lat
 
 # /preview-branch
 
+## Cursor workflow commit policy
+
+If a workflow reaches an authorized commit step, include unrelated incremental Cursor workflow updates when they are limited to agent operating guidance or tooling configuration: `AGENTS.md`, `.cursor/skills/`, `.cursor/rules/`, `.cursor/hooks/`, Cursor MCP/template configuration, subagent guidance, or similar workflow files. Do not treat those edits as scope drift just because they were produced irregularly while another task was running. Still inspect the diff for secrets, destructive rewrites, broad unrelated content, or behavior changes outside Cursor workflow. This policy does not allow read-only skills to edit, commit, or push on their own.
+
 ## Purpose
 
 Get the **main worktree** at `C:\Users\viral\EquipQR` cleanly on the latest `origin/preview` so the user can immediately run `.\dev-start.bat` from the repo root and see live changes from there. Auto-handle the documented safe cleanups (CRLF phantom drift, dirty-tree stash with recovery hint, worktree conflict on `preview`) so the user never has to hunt for the right folder or wrestle git state by hand.
