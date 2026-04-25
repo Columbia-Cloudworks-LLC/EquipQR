@@ -1,13 +1,17 @@
 /**
  * Supabase Client Utilities for Edge Functions
- * 
+ *
  * This module provides standardized client creation patterns:
  * - User-scoped clients (RLS enforced via JWT)
  * - Admin clients (service role, bypasses RLS - use sparingly)
  * - User extraction and validation
  */
 
-import { createClient, SupabaseClient, User } from "npm:@supabase/supabase-js@2.45.0";
+import {
+  createClient,
+  SupabaseClient,
+  User,
+} from "npm:@supabase/supabase-js@2.45.0";
 import { corsHeaders, getCorsHeaders } from "./cors.ts";
 import { SAFE_ERROR_PATTERNS } from "./error-message-allowlist.ts";
 import { MissingSecretError, requireSecret } from "./require-secret.ts";
@@ -55,17 +59,17 @@ function resolveCorsHeaders(opts?: ResponseOptions): Record<string, string> {
  */
 const MAX_ERROR_MESSAGE_LENGTH = 200;
 
-/** 
+/**
  * Minimum safe error message length for messages that are NOT explicitly allowlisted.
  * Messages shorter than this (that do not match SAFE_ERROR_PATTERNS) are likely
  * system error codes or stack trace fragments that could leak debug information.
- * 
+ *
  * Examples of unsafe short messages that would be blocked when not allowlisted:
  * - 'err', 'bad' - vague codes that may come from internal systems
  * - 'E_FAIL', 'EPERM' - system error codes
  * - 'null', 'undefined' - JavaScript runtime errors converted to strings
  * - Stack trace line numbers like '42' or 'L123'
- * 
+ *
  * Known-safe short messages like 'Gone' or 'Not found' are explicitly allowlisted
  * in SAFE_ERROR_PATTERNS and therefore bypass this minimum-length check.
  */
@@ -91,13 +95,13 @@ export interface AuthError {
 
 /**
  * Create a user-scoped Supabase client that enforces RLS.
- * 
+ *
  * Uses SUPABASE_ANON_KEY and forwards the user's Authorization header.
  * All queries will be subject to RLS policies as that user.
- * 
+ *
  * @param req - The incoming request (to extract Authorization header)
  * @returns SupabaseClient configured for the user's session
- * 
+ *
  * @example
  * const supabase = createUserSupabaseClient(req);
  * const { data } = await supabase.from('equipment').select('*');
@@ -109,8 +113,12 @@ export function createUserSupabaseClient(req: Request): SupabaseClient {
   // MISSING_REQUIRED_SECRET structured log line. The thrown
   // MissingSecretError propagates to the caller, which (when wrapped
   // in withCorrelationId) returns the generic 500 with correlation_id.
-  const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: SUPABASE_CLIENTS_FUNCTION_TAG });
-  const supabaseAnonKey = requireSecret("SUPABASE_ANON_KEY", { functionName: SUPABASE_CLIENTS_FUNCTION_TAG });
+  const supabaseUrl = requireSecret("SUPABASE_URL", {
+    functionName: SUPABASE_CLIENTS_FUNCTION_TAG,
+  });
+  const supabaseAnonKey = requireSecret("SUPABASE_ANON_KEY", {
+    functionName: SUPABASE_CLIENTS_FUNCTION_TAG,
+  });
 
   const authHeader = req.headers.get("Authorization") ?? "";
 
@@ -127,16 +135,16 @@ export function createUserSupabaseClient(req: Request): SupabaseClient {
 
 /**
  * Create an admin Supabase client that bypasses RLS.
- * 
- * Uses SUPABASE_SERVICE_ROLE_KEY. 
- * 
+ *
+ * Uses SUPABASE_SERVICE_ROLE_KEY.
+ *
  * WARNING: Only use for true system operations:
  * - Webhooks (Stripe, etc.) where there's no user context
  * - Cron jobs / background tasks
  * - Super-admin operations (after verifying super-admin access)
- * 
+ *
  * DO NOT use for user-facing operations where RLS should apply.
- * 
+ *
  * @returns SupabaseClient with service role privileges
  */
 export function createAdminSupabaseClient(): SupabaseClient {
@@ -145,8 +153,12 @@ export function createAdminSupabaseClient(): SupabaseClient {
   // MISSING_REQUIRED_SECRET structured log line. Critical for ops
   // visibility: the service role key powering admin/webhook/cron paths
   // missing was previously a silent generic Error.
-  const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: SUPABASE_CLIENTS_FUNCTION_TAG });
-  const supabaseServiceKey = requireSecret("SUPABASE_SERVICE_ROLE_KEY", { functionName: SUPABASE_CLIENTS_FUNCTION_TAG });
+  const supabaseUrl = requireSecret("SUPABASE_URL", {
+    functionName: SUPABASE_CLIENTS_FUNCTION_TAG,
+  });
+  const supabaseServiceKey = requireSecret("SUPABASE_SERVICE_ROLE_KEY", {
+    functionName: SUPABASE_CLIENTS_FUNCTION_TAG,
+  });
 
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
@@ -162,11 +174,11 @@ export function createAdminSupabaseClient(): SupabaseClient {
 
 /**
  * Extract and validate the user from the request's Authorization header.
- * 
+ *
  * @param req - The incoming request
  * @param supabaseClient - A Supabase client (user-scoped or admin)
  * @returns AuthResult with user and token, or AuthError
- * 
+ *
  * @example
  * const supabase = createUserSupabaseClient(req);
  * const auth = await requireUser(req, supabase);
@@ -177,7 +189,7 @@ export function createAdminSupabaseClient(): SupabaseClient {
  */
 export async function requireUser(
   req: Request,
-  supabaseClient: SupabaseClient
+  supabaseClient: SupabaseClient,
 ): Promise<AuthResult | AuthError> {
   const authHeader = req.headers.get("Authorization");
 
@@ -206,7 +218,9 @@ export async function requireUser(
   }
 
   // Validate token with Supabase Auth
-  const { data: { user }, error } = await supabaseClient.auth.getUser(credentials);
+  const { data: { user }, error } = await supabaseClient.auth.getUser(
+    credentials,
+  );
 
   if (error || !user) {
     // Provide user-friendly error messages based on the error type
@@ -244,7 +258,7 @@ export async function requireUser(
 
 /**
  * Verify the user is a member of the specified organization.
- * 
+ *
  * @param supabaseClient - A Supabase client (should be user-scoped for RLS)
  * @param userId - The user's ID
  * @param organizationId - The organization ID to check
@@ -253,7 +267,7 @@ export async function requireUser(
 export async function verifyOrgMembership(
   supabaseClient: SupabaseClient,
   userId: string,
-  organizationId: string
+  organizationId: string,
 ): Promise<{ isMember: boolean; role?: string }> {
   const { data, error } = await supabaseClient
     .from("organization_members")
@@ -272,7 +286,7 @@ export async function verifyOrgMembership(
 
 /**
  * Verify the user has admin or owner role in the specified organization.
- * 
+ *
  * @param supabaseClient - A Supabase client
  * @param userId - The user's ID
  * @param organizationId - The organization ID to check
@@ -281,7 +295,7 @@ export async function verifyOrgMembership(
 export async function verifyOrgAdmin(
   supabaseClient: SupabaseClient,
   userId: string,
-  organizationId: string
+  organizationId: string,
 ): Promise<boolean> {
   const { data, error } = await supabaseClient
     .from("organization_members")
@@ -302,17 +316,18 @@ export async function verifyOrgAdmin(
 /**
  * MAINTENANCE NOTE: The error message allowlist has been moved to a separate
  * configuration file: `error-message-allowlist.ts`
- * 
+ *
  * When adding new user-facing error messages to Edge Functions:
  * 1. Add a matching pattern to SAFE_ERROR_PATTERNS in error-message-allowlist.ts
- * 2. Ensure the pattern is specific enough to not accidentally match debug info
- * 3. Prefer explicit full-message patterns over broad prefixes when possible
- * 4. Test by calling createErrorResponse with your new message and verifying
+ * 2. Add a canonical literal mapping in normalizeAllowlistedErrorMessage below
+ * 3. Ensure the pattern is specific enough to not accidentally match debug info
+ * 4. Prefer explicit full-message patterns over broad prefixes when possible
+ * 5. Test by calling createErrorResponse with your new message and verifying
  *    it's not replaced with the generic error
- * 
+ *
  * To validate error messages during development, check the console for
  * "[createErrorResponse] Unsafe error message blocked:" warnings.
- * 
+ *
  * Use the `isErrorAllowlisted()` helper function from error-message-allowlist.ts
  * in tests to validate that commonly returned errors are covered.
  */
@@ -398,6 +413,8 @@ function normalizeAllowlistedErrorMessage(error: string): string {
       return "Invalid JSON body";
     case "Invitation not found":
       return "Invitation not found";
+    case "Invalid base64 content. The file data may be corrupted or incorrectly encoded.":
+      return "Invalid base64 content. The file data may be corrupted or incorrectly encoded.";
     case "An unexpected error occurred":
       return "An unexpected error occurred";
     case "An internal error occurred":
@@ -408,6 +425,8 @@ function normalizeAllowlistedErrorMessage(error: string): string {
       return "Invalid price selected";
     case "Google Workspace OAuth is not configured":
       return "Google Workspace OAuth is not configured";
+    case "Failed to refresh Google access token":
+      return "Failed to refresh Google access token";
     case "Failed to send push notification":
       return "Failed to send push notification";
     case "Failed to fetch push subscriptions":
@@ -420,6 +439,8 @@ function normalizeAllowlistedErrorMessage(error: string): string {
       return "Failed to create ticket record";
     case "title and description are required":
       return "title and description are required";
+    case "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.":
+      return "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.";
     case "Not a user-reported issue":
       return "Not a user-reported issue";
     case "No issue in payload":
@@ -430,6 +451,8 @@ function normalizeAllowlistedErrorMessage(error: string): string {
       return "No comment in payload";
     case "Place not found":
       return "Place not found";
+    case "Invalid action. Use 'autocomplete' or 'details'.":
+      return "Invalid action. Use 'autocomplete' or 'details'.";
     case "CAPTCHA verification is required":
       return "CAPTCHA verification is required";
     case "CAPTCHA verification failed":
@@ -438,6 +461,12 @@ function normalizeAllowlistedErrorMessage(error: string): string {
       return "A valid email address is required";
     case "Name is required":
       return "Name is required";
+    case "Invalid request type":
+      return "Invalid request type";
+    case "Failed to submit privacy request":
+      return "Failed to submit privacy request";
+    case "A similar request was already submitted recently. Please wait before submitting again":
+      return "A similar request was already submitted recently. Please wait before submitting again";
     case "Invalid action":
       return "Invalid action";
     case "Invalid notice action":
@@ -466,12 +495,20 @@ function normalizeAllowlistedErrorMessage(error: string): string {
       return "Note text is required";
     case "Export retry limit reached":
       return "Export retry limit reached";
+    case "scanned_value is required":
+      return "scanned_value is required";
+    case "organizationId and input are required":
+      return "organizationId and input are required";
     case "organizationId is required":
       return "organizationId is required";
     case "expected_updated_at is required":
       return "expected_updated_at is required";
     case "Missing required field: dsrRequestId":
       return "Missing required field: dsrRequestId";
+    case "Fulfillment engine only handles deletion requests":
+      return "Fulfillment engine only handles deletion requests";
+    case "Fulfillment succeeded but completion update failed":
+      return "Fulfillment succeeded but completion update failed";
     default:
       break;
   }
@@ -484,12 +521,54 @@ function normalizeAllowlistedErrorMessage(error: string): string {
     return "Forbidden";
   }
 
+  if (/^Google Workspace is not connected/.test(error)) {
+    return "Google Workspace is not connected";
+  }
+
   if (/^Missing required field/.test(error)) {
     return "Missing required field";
   }
 
+  if (
+    /^(organizationId|equipmentId|workOrderId|userId|quantity|Quantity|scanned_value|input|name|email|title|description|status) (is|are) required$/
+      .test(error)
+  ) {
+    return "Required field is missing";
+  }
+
+  if (
+    /^(organizationId|equipmentId|workOrderId|userId|quantity|Quantity|scanned_value|input|name|email|title|description|status) and (organizationId|equipmentId|workOrderId|userId|quantity|Quantity|scanned_value|input|name|email|title|description|status) are required$/
+      .test(error)
+  ) {
+    return "Required fields are missing";
+  }
+
   if (/^Unsupported format/.test(error)) {
     return "Unsupported format";
+  }
+
+  if (/^Title must be between \d+ and \d+ characters$/.test(error)) {
+    return "Title must be between allowed length limits";
+  }
+
+  if (/^Description must be between \d+ and \d+ characters$/.test(error)) {
+    return "Description must be between allowed length limits";
+  }
+
+  if (
+    /^Rate limit exceeded\. You can submit up to \d+ reports per hour$/.test(
+      error,
+    )
+  ) {
+    return "Rate limit exceeded. Please try again later";
+  }
+
+  if (
+    /^Rate limit exceeded\. Maximum \d+ privacy requests per \d+ hours$/.test(
+      error,
+    )
+  ) {
+    return "Rate limit exceeded. Please try again later";
   }
 
   if (/^Rate limit exceeded/.test(error)) {
@@ -508,12 +587,78 @@ function normalizeAllowlistedErrorMessage(error: string): string {
     return "Invalid price selected";
   }
 
+  if (/^Google Workspace encryption is not properly configured/.test(error)) {
+    return "Google Workspace encryption is not properly configured. Please contact your administrator.";
+  }
+
+  if (
+    /^Failed to decrypt stored credentials\. The stored token may be corrupted/
+      .test(error)
+  ) {
+    return "Failed to decrypt stored credentials. The stored token may be corrupted.";
+  }
+
+  if (
+    /^Your Google Workspace connection has expired or been revoked\./.test(
+      error,
+    )
+  ) {
+    return "Your Google Workspace connection has expired or been revoked. Please reconnect Google Workspace in Organization Settings.";
+  }
+
+  if (
+    /^Insufficient permissions\. Please reconnect Google Workspace/.test(error)
+  ) {
+    return "Insufficient permissions. Please reconnect Google Workspace to grant the required permissions.";
+  }
+
+  if (/^Failed to decrypt stored Google Workspace credentials\./.test(error)) {
+    return "Failed to decrypt stored Google Workspace credentials. Please reconnect Google Workspace to generate new credentials.";
+  }
+
   if (/^Invalid request body: /.test(error)) {
     return "Invalid request body";
   }
 
+  if (/^Failed to fetch Google Workspace users/.test(error)) {
+    return "Failed to fetch Google Workspace users";
+  }
+
+  if (/^Failed to store directory users$/.test(error)) {
+    return "Failed to store directory users";
+  }
+
+  if (/^Failed to send invitation email$/.test(error)) {
+    return "Failed to send invitation email";
+  }
+
+  if (/^Failed to (fetch queue|fetch case details)$/.test(error)) {
+    return "Failed to fetch privacy request data";
+  }
+
+  if (/^Failed to (request export|retry export|resend notice)$/.test(error)) {
+    return "Failed to manage privacy request export";
+  }
+
+  if (
+    /^Failed to (verify|deny|extend|start processing|complete|manage privacy) request$/
+      .test(error)
+  ) {
+    return "Failed to manage privacy request";
+  }
+
+  if (
+    /^Failed to (record fulfillment step|extend deadline|add note)$/.test(error)
+  ) {
+    return "Failed to update privacy request";
+  }
+
+  if (/^Failed to execute deletion fulfillment$/.test(error)) {
+    return "Failed to execute deletion fulfillment";
+  }
+
   if (/^Failed to /.test(error)) {
-    return GENERIC_ERROR_MESSAGE;
+    return "Operation failed";
   }
 
   return GENERIC_ERROR_MESSAGE;
@@ -544,10 +689,12 @@ function normalizeAllowlistedErrorMessage(error: string): string {
  *      message themselves — making the data flow explicit at the call
  *      site where the developer can decide whether the message is safe.
  *
- * **MAINTENANCE — adding new user-facing error messages**: update
- * SAFE_ERROR_PATTERNS in `error-message-allowlist.ts` AND verify with
- * `isErrorAllowlisted()` in tests. Otherwise the message will be replaced
- * with the generic constant.
+ * **MAINTENANCE — adding new user-facing error messages**: update both
+ * SAFE_ERROR_PATTERNS in `error-message-allowlist.ts` and
+ * normalizeAllowlistedErrorMessage above, then verify with
+ * `isErrorAllowlisted()` and `createErrorResponse()` tests. Otherwise the
+ * message may be replaced with the generic constant or a broader canonical
+ * message.
  *
  * @param error - A string literal (validated against allowlist) or a
  *                MissingSecretError (forces generic message).
@@ -588,8 +735,11 @@ export function createErrorResponse(
     responseBody,
     {
       status,
-      headers: { ...resolveCorsHeaders(opts), "Content-Type": "application/json" },
-    }
+      headers: {
+        ...resolveCorsHeaders(opts),
+        "Content-Type": "application/json",
+      },
+    },
   );
 }
 
@@ -609,8 +759,11 @@ export function createJsonResponse<T>(
     JSON.stringify(data),
     {
       status,
-      headers: { ...resolveCorsHeaders(opts), "Content-Type": "application/json" },
-    }
+      headers: {
+        ...resolveCorsHeaders(opts),
+        "Content-Type": "application/json",
+      },
+    },
   );
 }
 
@@ -627,7 +780,9 @@ export function handleCorsPreflightIfNeeded(
   opts?: { useValidatedOrigin?: boolean },
 ): Response | null {
   if (req.method === "OPTIONS") {
-    const headers = opts?.useValidatedOrigin ? getCorsHeaders(req) : corsHeaders;
+    const headers = opts?.useValidatedOrigin
+      ? getCorsHeaders(req)
+      : corsHeaders;
     return new Response(null, { headers });
   }
   return null;
@@ -679,7 +834,9 @@ const CORRELATION_ID_PATTERN = /^[A-Za-z0-9._:-]+$/;
  */
 function sanitizeInboundCorrelationId(value: string | null): string | null {
   if (value === null) return null;
-  if (value.length === 0 || value.length > CORRELATION_ID_MAX_LENGTH) return null;
+  if (value.length === 0 || value.length > CORRELATION_ID_MAX_LENGTH) {
+    return null;
+  }
   if (!CORRELATION_ID_PATTERN.test(value)) return null;
   return value;
 }
@@ -717,8 +874,8 @@ export function withCorrelationId(
     // Precedence: X-Correlation-Id > X-Request-Id > new UUID.
     const correlationId =
       sanitizeInboundCorrelationId(req.headers.get(CORRELATION_HEADER)) ??
-      sanitizeInboundCorrelationId(req.headers.get(REQUEST_ID_HEADER)) ??
-      crypto.randomUUID();
+        sanitizeInboundCorrelationId(req.headers.get(REQUEST_ID_HEADER)) ??
+        crypto.randomUUID();
 
     const ctx: RequestContext = { correlationId };
 
@@ -773,7 +930,9 @@ async function decorateResponseWithCorrelationId(
   const headers = new Headers(response.headers);
   headers.set(CORRELATION_HEADER, correlationId);
 
-  const isJson = (headers.get("Content-Type") ?? "").includes("application/json");
+  const isJson = (headers.get("Content-Type") ?? "").includes(
+    "application/json",
+  );
   const isError = response.status >= 400;
 
   if (!(isJson && isError)) {
