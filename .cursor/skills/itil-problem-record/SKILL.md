@@ -187,7 +187,7 @@ For each key relevant to the failing flow:
    - hCaptcha allowed domains.
    - Google Cloud API key referrer / IP restrictions.
    - Webhook signing secrets and registered endpoints.
-   - Map IDs and feature-flag pairs that span client + server (e.g. `VITE_ENABLE_QB_PDF_ATTACHMENT` ↔ `ENABLE_QB_PDF_ATTACHMENT`).
+   - Map IDs and feature flags that must be mirrored across client/server surfaces.
 4. **Never** paste full secrets into chat or into the Problem Record. Always reference by name and first-N-chars only (e.g. `RESEND_API_KEY=re_AbCd...`). See [security-supabase](../../rules/security-supabase.mdc).
 5. After the user confirms each value and location, return to Step 3a (re-probe) and then attempt Step 3d.
 
