@@ -1,23 +1,24 @@
 /**
  * Error Message Allowlist Configuration
- * 
+ *
  * This file contains the allowlist of safe error message patterns that can be
  * exposed to clients. Only messages matching these patterns are considered safe
  * for client exposure, preventing information disclosure (CWE-209).
- * 
+ *
  * MAINTENANCE NOTE: When adding new user-facing error messages to Edge Functions:
  * 1. Add a matching pattern to SAFE_ERROR_PATTERNS
- * 2. Ensure the pattern is specific enough to not accidentally match debug info
- * 3. Prefer explicit full-message patterns over broad prefixes when possible
- * 4. Test by calling createErrorResponse with your new message and verifying
+ * 2. Add the corresponding canonical mapping in supabase-clients.ts
+ * 3. Ensure the pattern is specific enough to not accidentally match debug info
+ * 4. Prefer explicit full-message patterns over broad prefixes when possible
+ * 5. Test by calling createErrorResponse with your new message and verifying
  *    it's not replaced with the generic error
- * 
+ *
  * To validate error messages during development, check the console for
  * "[createErrorResponse] Unsafe error message blocked:" warnings.
- * 
+ *
  * SECURITY MAINTENANCE: If you modify SAFE_ERROR_PATTERNS, also update the
- * MAINTENANCE NOTE in createErrorResponse's docstring so documentation stays
- * in sync with this implementation.
+ * canonical mapping and the MAINTENANCE NOTE in createErrorResponse's docstring
+ * so documentation stays in sync with this implementation.
  */
 
 /**
@@ -26,26 +27,26 @@
  * in error messages while allowing common validation fields.
  */
 export const ALLOWED_VALIDATION_FIELDS = [
-  'organizationId',
-  'equipmentId',
-  'workOrderId',
-  'userId',
-  'quantity',
-  'Quantity',  // Case-sensitive variant used in some validation messages
-  'scanned_value',  // Used in barcode/QR scanning validation
-  'input',  // Generic input validation field
-  'name',
-  'email',
-  'title',
-  'description',
-  'status',
+  "organizationId",
+  "equipmentId",
+  "workOrderId",
+  "userId",
+  "quantity",
+  "Quantity", // Case-sensitive variant used in some validation messages
+  "scanned_value", // Used in barcode/QR scanning validation
+  "input", // Generic input validation field
+  "name",
+  "email",
+  "title",
+  "description",
+  "status",
 ] as const;
 
 /**
  * Pre-computed joined string of allowed validation fields for regex construction.
  * This avoids repeated array joins during error message validation.
  */
-const ALLOWED_FIELDS_PATTERN = ALLOWED_VALIDATION_FIELDS.join('|');
+const ALLOWED_FIELDS_PATTERN = ALLOWED_VALIDATION_FIELDS.join("|");
 
 /**
  * Allowlist of safe error message prefixes/patterns.
@@ -70,14 +71,14 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   /^Forbidden$/,
   /^You are not a member of /,
   /^Google Workspace is not connected/,
-  
+
   // Common short HTTP-style error messages (added to allowlist instead of length check)
   /^Not found$/,
   /^Bad request$/,
   /^Unauthorized$/,
   /^Conflict$/,
   /^Gone$/,
-  
+
   // Validation errors
   /^Method not allowed$/,
   /^Invalid JSON body$/,
@@ -87,28 +88,30 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   new RegExp(`^(${ALLOWED_FIELDS_PATTERN}) (is|are) required$`),
   // Multi-field validation errors (e.g., "organizationId and equipmentId are required")
   // Uses pre-computed ALLOWED_FIELDS_PATTERN to avoid repeated array joins
-  new RegExp(`^(${ALLOWED_FIELDS_PATTERN}) and (${ALLOWED_FIELDS_PATTERN}) are required$`),
+  new RegExp(
+    `^(${ALLOWED_FIELDS_PATTERN}) and (${ALLOWED_FIELDS_PATTERN}) are required$`,
+  ),
   /^Unsupported format/,
   /^Rate limit exceeded/,
   /^Invitation not found$/,
-  
+
   // OAuth configuration errors
   /^Invalid OAuth redirect (base URL )?configuration$/,
-  
+
   // File upload errors
   /^File too large\./,
   /^Invalid base64 content\. The file data may be corrupted or incorrectly encoded\.$/,
-  
+
   // Safe operational messages
   /^Failed to (verify|fetch|store|decrypt|send)/,
   /^An unexpected error occurred$/,
   /^An internal error occurred$/,
   /^Internal server error$/,
-  
+
   // Stripe-related safe messages
   /^Invalid price selected$/,
   /^Stripe price .+ not found/,
-  
+
   // Google Workspace configuration errors
   /^Google Workspace encryption is not properly configured/,
   /^Failed to decrypt stored credentials\. The stored token may be corrupted/,
@@ -117,7 +120,7 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   /^Google Workspace OAuth is not configured$/,
   /^Failed to refresh Google access token$/,
   /^Failed to decrypt stored Google Workspace credentials\./,
-  
+
   // Push notification errors
   /^Failed to send push notification$/,
   /^Failed to fetch push subscriptions$/,
@@ -185,7 +188,7 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
 /**
  * Validates that a commonly used error message is covered by the allowlist.
  * Use this in tests to ensure new error messages are properly allowlisted.
- * 
+ *
  * @param errorMessage - The error message to validate
  * @returns true if the message matches an allowlisted pattern, false otherwise
  */
