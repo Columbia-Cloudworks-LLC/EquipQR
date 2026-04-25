@@ -14,7 +14,7 @@ const productionMigrations = [
   { version: '20250902123800', name: 'performance_optimization' },
   { version: '20250902124500', name: 'complete_performance_fix' },
   { version: '20250903190521', name: 'fix_organization_members_security' },
-  { version: '20251021', name: 'part_picker' },
+  { version: '20251021000000', name: 'part_picker' },
   { version: '20251024125429', name: 'fix_invitation_update_policy' },
   { version: '20251025063611', name: 'fix_invitation_unauthenticated_access' },
   { version: '20251025065141', name: 'prevent_duplicate_org_names_on_invite' },
