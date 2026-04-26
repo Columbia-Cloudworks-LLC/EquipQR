@@ -34,7 +34,14 @@ export type {
  */
 export interface WorkOrderFilters extends FilterParams, WorkOrderServiceFilters {}
 
-// Optimized select query string with all joins
+// Optimized select query string with all joins.
+//
+// `status`, `default_pm_template_id`, and `customer_id` are intentionally
+// included in the embedded equipment block so the work-order detail page can
+// stop issuing a second `useEquipmentById` round-trip just to read those
+// three fields. The added columns are tiny (uuid + enum), so the per-row
+// payload cost on the work-order list query stays negligible while every WO
+// detail open on Slow 4G saves a full equipment row fetch.
 const WORK_ORDER_SELECT = `
   *,
   assignee:profiles!work_orders_assignee_id_fkey (
@@ -47,10 +54,14 @@ const WORK_ORDER_SELECT = `
     manufacturer,
     model,
     serial_number,
+    status,
     working_hours,
     image_url,
     team_id,
     location,
+    customer_id,
+    default_pm_template_id,
+    custom_attributes,
     use_team_location,
     last_known_location,
     assigned_location_lat,
@@ -83,16 +94,20 @@ const WORK_ORDER_SELECT = `
  */
 function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
   const assignee = wo.assignee as { id?: string; name?: string } | null;
-  const equipment = wo.equipment as { 
-    id?: string; 
-    name?: string; 
+  const equipment = wo.equipment as {
+    id?: string;
+    name?: string;
     manufacturer?: string;
     model?: string;
     serial_number?: string;
+    status?: string;
     working_hours?: number | null;
     image_url?: string | null;
     team_id?: string;
     location?: string;
+    customer_id?: string | null;
+    default_pm_template_id?: string | null;
+    custom_attributes?: Record<string, unknown> | null;
     use_team_location?: boolean;
     last_known_location?: { latitude?: number; longitude?: number } | null;
     assigned_location_lat?: number | null;
@@ -204,6 +219,35 @@ function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
       location_lat: equipment.teams.location_lat,
       location_lng: equipment.teams.location_lng,
     } : null,
+    // Embedded equipment record so the work-order detail page can drop the
+    // duplicate `useEquipmentById` round-trip — every field consumers read
+    // (id/name/status/team_id/location/last_known_location/customer_id/
+    // default_pm_template_id) is now part of `WORK_ORDER_SELECT`.
+    equipment: equipment?.id
+      ? {
+          id: equipment.id,
+          name: equipment.name ?? '',
+          manufacturer: equipment.manufacturer ?? '',
+          model: equipment.model ?? '',
+          serial_number: equipment.serial_number ?? '',
+          status: (equipment.status ?? 'active') as 'active' | 'maintenance' | 'inactive',
+          working_hours: equipment.working_hours ?? null,
+          image_url: equipment.image_url ?? null,
+          team_id: equipment.team_id ?? null,
+          location: equipment.location ?? null,
+          customer_id: equipment.customer_id ?? null,
+          default_pm_template_id: equipment.default_pm_template_id ?? null,
+          custom_attributes: equipment.custom_attributes ?? null,
+          use_team_location: equipment.use_team_location ?? null,
+          last_known_location: equipment.last_known_location ?? null,
+          assigned_location_lat: equipment.assigned_location_lat ?? null,
+          assigned_location_lng: equipment.assigned_location_lng ?? null,
+          assigned_location_street: equipment.assigned_location_street ?? null,
+          assigned_location_city: equipment.assigned_location_city ?? null,
+          assigned_location_state: equipment.assigned_location_state ?? null,
+          assigned_location_country: equipment.assigned_location_country ?? null,
+        }
+      : null,
   };
 }
 
