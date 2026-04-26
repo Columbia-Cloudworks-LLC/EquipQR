@@ -218,8 +218,13 @@ const EquipmentDetails = () => {
     setIsWorkingHoursModalOpen(false);
   };
 
-  // Check if current user is admin/owner
-  const isAdmin = currentOrganization.userRole === 'owner' || currentOrganization.userRole === 'admin';
+  // Check if current user is admin/owner.
+  // Use optional chaining because `currentOrganization` may be null during
+  // initial load or organization switching — the `if (!currentOrganization)`
+  // guard below executes AFTER this line, and the project runs with
+  // `strictNullChecks: false` so the compiler will not catch a direct access.
+  const isAdmin =
+    currentOrganization?.userRole === 'owner' || currentOrganization?.userRole === 'admin';
 
   if (!currentOrganization) {
     return (
