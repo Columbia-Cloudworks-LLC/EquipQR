@@ -46,6 +46,7 @@ vi.mock('@/hooks/useMFA', () => ({
 vi.mock('@/pages/Dashboard', () => ({ default: () => <div data-testid="dashboard-page">Dashboard</div> }));
 vi.mock('@/features/equipment/pages/Equipment', () => ({ default: () => <div data-testid="equipment-page">Equipment</div> }));
 vi.mock('@/features/equipment/pages/EquipmentDetails', () => ({ default: () => <div data-testid="equipment-details-page">Equipment Details</div> }));
+vi.mock('@/features/equipment/pages/EquipmentQRScan', () => ({ default: () => <div data-testid="equipment-qr-scan-page">Equipment QR Scan</div> }));
 vi.mock('@/pages/WorkOrders', () => ({ default: () => <div data-testid="work-orders-page">Work Orders</div> }));
 vi.mock('@/pages/WorkOrderDetails', () => ({ default: () => <div data-testid="work-order-details-page">Work Order Details</div> }));
 vi.mock('@/features/teams/pages/Teams', () => ({ default: () => <div data-testid="teams-page">Teams</div> }));
@@ -235,6 +236,12 @@ describe('App', () => {
     expect(screen.getByTestId('navigate-to')).toHaveTextContent(
       'Navigating to /dashboard/equipment/test-equipment'
     );
+  });
+
+  it('renders lean equipment QR scan route outside the dashboard shell', async () => {
+    renderApp(['/qr/equipment/test-equipment']);
+    expect(await screen.findByTestId('equipment-qr-scan-page')).toBeInTheDocument();
+    expect(screen.queryByTestId('top-bar')).not.toBeInTheDocument();
   });
 
   it('redirects work-orders to work-orders list', () => {

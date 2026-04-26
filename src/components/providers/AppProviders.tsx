@@ -27,6 +27,29 @@ interface AppProvidersProps {
 }
 
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
+  const isQrEntry = typeof window !== 'undefined' && window.location.pathname.startsWith('/qr/');
+
+  if (isQrEntry) {
+    return (
+      <HelmetProvider>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider attribute="class" forcedTheme="dark">
+            <AuthProvider>
+              <Router
+                future={{
+                  v7_startTransition: true,
+                  v7_relativeSplatPath: true,
+                }}
+              >
+                {children}
+              </Router>
+            </AuthProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </HelmetProvider>
+    );
+  }
+
   return (
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
