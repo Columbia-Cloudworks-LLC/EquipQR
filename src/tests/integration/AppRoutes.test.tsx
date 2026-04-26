@@ -67,7 +67,6 @@ vi.mock('@/lib/flags', async (importOriginal) => {
   return {
     ...actual,
     OFFLINE_QUEUE_ENABLED: false,
-    DSR_COCKPIT_ENABLED: true,
   };
 });
 
@@ -250,7 +249,7 @@ describe('App', () => {
     expect(await screen.findByTestId('top-bar')).toBeInTheDocument();
   });
 
-  it('renders DSR cockpit route when feature is enabled', async () => {
+  it('renders DSR cockpit route for dashboard users', async () => {
     renderApp(['/dashboard/dsr']);
     expect(await screen.findByTestId('dsr-cockpit-page')).toBeInTheDocument();
   });

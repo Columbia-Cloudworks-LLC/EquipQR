@@ -36,14 +36,12 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "@/components/ui/sidebar-context";
 import Logo from "@/components/ui/Logo";
-import { DSR_COCKPIT_ENABLED } from "@/lib/flags";
 
 interface NavigationItem {
   title: string;
   url: string;
   icon: LucideIcon;
   adminOnly?: boolean;
-  featureEnabled?: boolean;
 }
 
 interface NavigationGroup {
@@ -83,7 +81,7 @@ const navigationGroups: NavigationGroup[] = [
     label: "Audit",
     items: [
       { title: "Audit Log", url: "/dashboard/audit-log", icon: History, adminOnly: true },
-      { title: "DSR Cockpit", url: "/dashboard/dsr", icon: ShieldCheck, adminOnly: true, featureEnabled: DSR_COCKPIT_ENABLED },
+      { title: "DSR Cockpit", url: "/dashboard/dsr", icon: ShieldCheck, adminOnly: true },
     ],
   },
 ];
@@ -162,7 +160,6 @@ const AppSidebar = () => {
       label: group.label,
       items: group.items.filter((item) => {
         if (item.adminOnly && !isAdmin) return false;
-        if (item.featureEnabled === false) return false;
         return true;
       }),
     }))
