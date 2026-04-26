@@ -12,6 +12,8 @@ import type { Database } from '@/integrations/supabase/types';
 
 type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 
+const PRODUCTION_URL = 'https://equipqr.app';
+
 interface OrganizationRelation {
   id: string;
   name: string;
@@ -294,18 +296,23 @@ const EquipmentQRScan = () => {
   }
 
   const { equipment, organization } = payload;
+  const currentYear = new Date().getFullYear();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col px-4 py-5 sm:py-8">
         <div className="mb-5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <a
+            href={PRODUCTION_URL}
+            className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            aria-label="Open EquipQR production site"
+          >
             <EquipQRIcon className="h-9 w-9" title="" />
             <div>
               <p className="text-sm font-semibold">EquipQR</p>
               <p className="text-xs text-muted-foreground">Scanned equipment</p>
             </div>
-          </div>
+          </a>
           <Badge variant="outline" className={getStatusClasses(equipment.status)}>
             {getStatusLabel(equipment.status)}
           </Badge>
@@ -385,6 +392,11 @@ const EquipmentQRScan = () => {
             </Button>
           </CardContent>
         </Card>
+
+        <footer className="mt-5 text-center text-[11px] leading-relaxed text-muted-foreground">
+          <p>© {currentYear} Columbia Cloudworks LLC. All rights reserved.</p>
+          <p>EquipQR™ is a trademark of Columbia Cloudworks LLC.</p>
+        </footer>
       </main>
     </div>
   );
