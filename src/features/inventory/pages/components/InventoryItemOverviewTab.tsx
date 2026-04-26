@@ -184,6 +184,8 @@ const InventoryItemOverviewTab: React.FC<InventoryItemOverviewTabProps> = ({
                 src={item.image_url}
                 alt={item.name}
                 className="max-w-full h-auto rounded-md"
+                loading="lazy"
+                decoding="async"
               />
               <p className="text-xs text-muted-foreground mt-2">Legacy image (URL-based)</p>
             </div>

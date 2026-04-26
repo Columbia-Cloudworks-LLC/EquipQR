@@ -331,6 +331,7 @@ const EquipmentDetails = () => {
                     src={equipment.image_url}
                     alt={equipment.name}
                     className="w-full h-64 object-cover rounded-lg"
+                    decoding="async"
                   />
                 ) : (
                   <div className="w-full h-64 bg-muted rounded-lg flex items-center justify-center">

@@ -173,9 +173,11 @@ export const useCompatibleEquipmentForItem = (
   itemId: string | undefined,
   options?: {
     staleTime?: number;
+    enabled?: boolean;
   }
 ) => {
   const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
+  const enabled = options?.enabled ?? true;
 
   return useQuery({
     queryKey: ['compatible-equipment', organizationId, itemId],
@@ -183,7 +185,7 @@ export const useCompatibleEquipmentForItem = (
       if (!organizationId || !itemId) return [];
       return await getCompatibleEquipmentForItem(organizationId, itemId);
     },
-    enabled: !!organizationId && !!itemId,
+    enabled: enabled && !!organizationId && !!itemId,
     staleTime
   });
 };
@@ -515,9 +517,11 @@ export const useCompatibilityRulesForItem = (
   itemId: string | undefined,
   options?: {
     staleTime?: number;
+    enabled?: boolean;
   }
 ) => {
   const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
+  const enabled = options?.enabled ?? true;
 
   return useQuery({
     queryKey: ['compatibility-rules', organizationId, itemId],
@@ -525,7 +529,7 @@ export const useCompatibilityRulesForItem = (
       if (!organizationId || !itemId) return [];
       return await getCompatibilityRulesForItem(organizationId, itemId);
     },
-    enabled: !!organizationId && !!itemId,
+    enabled: enabled && !!organizationId && !!itemId,
     staleTime
   });
 };
@@ -541,9 +545,11 @@ export const useEquipmentMatchingItemRules = (
   itemId: string | undefined,
   options?: {
     staleTime?: number;
+    enabled?: boolean;
   }
 ) => {
   const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
+  const enabled = options?.enabled ?? true;
 
   return useQuery({
     queryKey: ['equipment-matching-rules', organizationId, itemId],
@@ -551,7 +557,7 @@ export const useEquipmentMatchingItemRules = (
       if (!organizationId || !itemId) return [];
       return await getEquipmentMatchingItemRules(organizationId, itemId);
     },
-    enabled: !!organizationId && !!itemId,
+    enabled: enabled && !!organizationId && !!itemId,
     staleTime
   });
 };
