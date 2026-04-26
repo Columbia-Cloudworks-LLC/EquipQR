@@ -4371,6 +4371,14 @@ export type Database = {
           work_order_title: string
         }[]
       }
+      latest_scans_for_equipment_ids: {
+        Args: { p_equipment_ids: string[]; p_organization_id: string }
+        Returns: {
+          equipment_id: string
+          location: string
+          scanned_at: string
+        }[]
+      }
       get_matching_pm_templates: {
         Args: { p_equipment_id: string; p_organization_id: string }
         Returns: {

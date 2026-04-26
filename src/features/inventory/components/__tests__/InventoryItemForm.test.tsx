@@ -46,6 +46,7 @@ vi.mock('@/features/inventory/hooks/useAlternateGroups', () => ({
 // Mock equipment hooks (used both directly in the form and inside the editor)
 vi.mock('@/features/equipment/hooks/useEquipment', () => ({
   useEquipment: vi.fn(() => ({ data: [] })),
+  useEquipmentSummaries: vi.fn(() => ({ data: [] })),
   useEquipmentManufacturersAndModels: vi.fn(() => ({
     data: [
       { manufacturer: 'Caterpillar', models: ['D6T', 'D8T', '320'] },

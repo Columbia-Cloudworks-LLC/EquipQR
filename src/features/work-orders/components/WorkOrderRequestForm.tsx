@@ -21,7 +21,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
-import { useEquipment, useEquipmentById } from '@/features/equipment/hooks/useEquipment';
+import { useEquipmentSummaries, useEquipmentById } from '@/features/equipment/hooks/useEquipment';
 import { useCreateWorkOrder, CreateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderCreation';
 
 const requestFormSchema = z.object({
@@ -49,9 +49,15 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
   const { currentOrganization } = useOrganization();
   const createWorkOrderMutation = useCreateWorkOrder();
   
-  const { data: allEquipment = [] } = useEquipment(currentOrganization?.id);
+  // Use the lightweight summaries projection — the dropdown only needs
+  // id/name/manufacturer/model/location to render. The pre-selected equipment
+  // (when entering from an equipment QR) still fetches the full row so the
+  // detail card can show working_hours, location-hierarchy fields, etc.
+  const { data: allEquipment = [] } = useEquipmentSummaries(currentOrganization?.id, {
+    enabled: open,
+  });
   const { data: preSelectedEquipment } = useEquipmentById(
-    currentOrganization?.id, 
+    currentOrganization?.id,
     equipmentId
   );
 

@@ -98,6 +98,8 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
                           src={equipment.image_url}
                           alt={equipment.name}
                           className="w-full h-48 object-cover"
+                          loading="lazy"
+                          decoding="async"
                         />
                       ) : (
                         <div className="w-full h-48 bg-muted flex items-center justify-center">

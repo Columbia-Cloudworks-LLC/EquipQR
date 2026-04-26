@@ -30,8 +30,11 @@ export const useTeamBasedDashboardStats = (organizationId?: string) => {
       return getTeamBasedDashboardStats(organizationId, userTeamIds, isManager);
     },
     enabled: !!organizationId && !teamsLoading,
-    staleTime: 30 * 1000, // 30 seconds
-    refetchOnWindowFocus: true,
+    // Stale time bumped from 30s to 2 min and window-focus refetch disabled.
+    // Field technicians on Slow 4G frequently background and resume the app;
+    // every focus event used to trigger a full dashboard refetch.
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
     refetchOnMount: true,
   });
 };
@@ -51,8 +54,8 @@ export const useTeamBasedEquipment = (organizationId?: string) => {
       return result.success && result.data ? result.data : [];
     },
     enabled: !!organizationId && !teamsLoading,
-    staleTime: 30 * 1000, // 30 seconds
-    refetchOnWindowFocus: true,
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
     refetchOnMount: true,
   });
 };
@@ -71,8 +74,8 @@ export const useTeamBasedRecentWorkOrders = (organizationId?: string) => {
       return getTeamBasedWorkOrders(organizationId, userTeamIds, isManager, {});
     },
     enabled: !!organizationId && !teamsLoading,
-    staleTime: 30 * 1000, // 30 seconds
-    refetchOnWindowFocus: true,
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
     refetchOnMount: true,
   });
 };
@@ -91,8 +94,8 @@ export const useTeamFleetEfficiency = (organizationId?: string) => {
       return getFleetEfficiency(organizationId, userTeamIds, isManager);
     },
     enabled: !!organizationId && !teamsLoading,
-    staleTime: 30 * 1000,
-    refetchOnWindowFocus: true,
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
     refetchOnMount: true,
   });
 };

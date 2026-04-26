@@ -1,19 +1,26 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, History, Link2, Plus, Minus, QrCode, Search, Check, X, Settings2, CheckCircle2, AlertCircle, RefreshCw, Layers, Cpu, LinkIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useInventoryItem, useInventoryTransactions, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useUnlinkItemFromEquipment, useCompatibleEquipmentForItem, useBulkLinkEquipmentToItem, useCompatibilityRulesForItem, useBulkSetCompatibilityRules, useEquipmentMatchingItemRules } from '@/features/inventory/hooks/useInventory';
+import { useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
 import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
 import {
   useAlternateGroups,
   useCreateAlternateGroup,
   useAddInventoryItemToGroup,
 } from '@/features/inventory/hooks/useAlternateGroups';
-import { CompatibilityRulesEditor } from '@/features/inventory/components/CompatibilityRulesEditor';
+// Lazy-mount the rules editor only when the dialog is opened. The editor pulls
+// in the full equipment manufacturers/models query (and its own sub-queries),
+// none of which are needed unless the user is actively editing rules.
+const CompatibilityRulesEditor = lazy(() =>
+  import('@/features/inventory/components/CompatibilityRulesEditor').then((m) => ({
+    default: m.CompatibilityRulesEditor,
+  })),
+);
 import type { PartCompatibilityRuleFormData, ModelMatchType, VerificationStatus, AlternatePartResult } from '@/features/inventory/types/inventory';
 import { getAlternatesForInventoryItem } from '@/features/inventory/services/partAlternatesService';
-import { useEquipment } from '@/features/equipment/hooks/useEquipment';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -105,10 +112,19 @@ const InventoryItemDetail = () => {
   );
   const transactions = transactionsData?.transactions ?? [];
   
-  const { data: allEquipment = [] } = useEquipment(currentOrganization?.id);
-  
-  // Fetch all alternate groups for adding this item to existing groups
-  const { data: allGroups = [] } = useAlternateGroups(currentOrganization?.id);
+  // Equipment list is only needed when the "Add Equipment Compatibility"
+  // dialog is open. Use the lightweight summaries projection so the dropdown
+  // load stays fast on Slow 4G and avoid even the request until the dialog
+  // is visible.
+  const { data: allEquipment = [] } = useEquipmentSummaries(currentOrganization?.id, {
+    enabled: showAddEquipmentDialog,
+  });
+
+  // Alternate groups list is only used inside the "Add to Existing Group"
+  // dialog. Defer until the user opens it.
+  const { data: allGroups = [] } = useAlternateGroups(currentOrganization?.id, {
+    enabled: showAddToGroupDialog,
+  });
   const { data: compatibleEquipment = [] } = useCompatibleEquipmentForItem(
     currentOrganization?.id,
     itemId
@@ -1341,11 +1357,15 @@ const InventoryItemDetail = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <CompatibilityRulesEditor
-                rules={editingRules}
-                onChange={setEditingRules}
-                disabled={bulkSetRulesMutation.isPending}
-              />
+              {showEditRules && (
+                <Suspense fallback={<Skeleton className="h-32 w-full" />}>
+                  <CompatibilityRulesEditor
+                    rules={editingRules}
+                    onChange={setEditingRules}
+                    disabled={bulkSetRulesMutation.isPending}
+                  />
+                </Suspense>
+              )}
               <div className="flex justify-end gap-2 pt-4">
                 <Button
                   variant="outline"

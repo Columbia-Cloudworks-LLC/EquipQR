@@ -171,6 +171,8 @@ const TeamDetails = () => {
                 src={team.image_url}
                 alt={team.name}
                 className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl object-cover"
+                loading="lazy"
+                decoding="async"
               />
             ) : (
               <div className="p-2 rounded-xl bg-primary/10">

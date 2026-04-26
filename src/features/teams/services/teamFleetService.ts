@@ -149,39 +149,57 @@ export const getTeamEquipmentWithLocations = async (
       return [];
     }
 
-    // Process equipment to find location data
+    // Process equipment to find location data.
+    //
+    // Slow 4G perf note: previously this loop issued ONE `scans` query per
+    // equipment row that lacked coordinates (O(n) network round-trips on the
+    // critical fleet map render). The new flow runs a single tenant-scoped RPC
+    // that returns at most one latest scan row per candidate equipment id.
     const teamEquipmentMap = new Map<string, TeamEquipmentData>();
+
+    // Helper to format address components.
+    const formatAddress = (parts: {
+      street?: string | null;
+      city?: string | null;
+      state?: string | null;
+      country?: string | null;
+    }): string | undefined => {
+      const components = [parts.street, parts.city, parts.state, parts.country].filter(Boolean);
+      return components.length > 0 ? components.join(', ') : undefined;
+    };
+
+    // First pass: resolve coords from team override / manual assignment /
+    // legacy text-location for every row, and collect ids that still need a
+    // scan lookup. Defer all rendering to the second pass so we can attach
+    // scan-source coords once the batched query returns.
+    type ResolvedRow = {
+      item: (typeof equipment)[number];
+      teamId: string;
+      teamName: string;
+      coords: { lat: number; lng: number } | null;
+      source: 'equipment' | 'geocoded' | 'scan' | 'team';
+      formatted_address?: string;
+      location_updated_at?: string;
+    };
+
+    const resolved: ResolvedRow[] = [];
+    const scanCandidates: string[] = [];
 
     for (const item of equipment) {
       const teamId = item.team_id || 'unassigned';
       const teamName = item.teams?.name || 'Unassigned';
-      
+
       if (!teamEquipmentMap.has(teamId)) {
         teamEquipmentMap.set(teamId, {
           teamId,
           teamName,
           equipment: [],
           equipmentCount: 0,
-          locatedCount: 0
+          locatedCount: 0,
         });
       }
+      teamEquipmentMap.get(teamId)!.equipmentCount++;
 
-      const teamData = teamEquipmentMap.get(teamId)!;
-      teamData.equipmentCount++;
-
-      // Helper function to format address components
-      const formatAddress = (parts: {
-        street?: string | null;
-        city?: string | null;
-        state?: string | null;
-        country?: string | null;
-      }): string | undefined => {
-        const components = [parts.street, parts.city, parts.state, parts.country]
-          .filter(Boolean);
-        return components.length > 0 ? components.join(', ') : undefined;
-      };
-
-      // Check for location data using 3-tier hierarchy
       let coords: { lat: number; lng: number } | null = null;
       let source: 'equipment' | 'geocoded' | 'scan' | 'team' = 'equipment';
       let formatted_address: string | undefined;
@@ -196,10 +214,7 @@ export const getTeamEquipmentWithLocations = async (
         team.location_lat != null &&
         team.location_lng != null
       ) {
-        coords = {
-          lat: team.location_lat,
-          lng: team.location_lng
-        };
+        coords = { lat: team.location_lat, lng: team.location_lng };
         source = 'team';
         formatted_address = formatAddress({
           street: team.location_address,
@@ -212,10 +227,7 @@ export const getTeamEquipmentWithLocations = async (
 
       // 2. Manual Assignment: If equipment has assigned location coordinates
       if (!coords && item.assigned_location_lat != null && item.assigned_location_lng != null) {
-        coords = {
-          lat: item.assigned_location_lat,
-          lng: item.assigned_location_lng
-        };
+        coords = { lat: item.assigned_location_lat, lng: item.assigned_location_lng };
         source = 'equipment';
         formatted_address = formatAddress({
           street: item.assigned_location_street,
@@ -235,26 +247,59 @@ export const getTeamEquipmentWithLocations = async (
         }
       }
 
-      // 4. Last Scan: Check for latest scan with geo-tag
+      // 4. Last Scan fallback — defer to batched query below.
       if (!coords) {
-        try {
-          const { data: scans, error: scansError } = await supabase
-            .from('scans')
-            .select('location, scanned_at')
-            .eq('equipment_id', item.id)
-            .not('location', 'is', null)
-            .order('scanned_at', { ascending: false })
-            .limit(1);
+        scanCandidates.push(item.id);
+      }
 
-          if (!scansError && scans && scans.length > 0 && scans[0].location) {
-            coords = parseLatLng(scans[0].location);
-            if (coords) {
-              source = 'scan';
-              location_updated_at = scans[0].scanned_at;
-            }
+      resolved.push({ item, teamId, teamName, coords, source, formatted_address, location_updated_at });
+    }
+
+    // Single bounded scan lookup for everything that fell through to "last scan".
+    const latestScanByEquipmentId = new Map<string, { location: string; scanned_at: string }>();
+    if (scanCandidates.length > 0) {
+      try {
+        const { data: scans, error: scansError } = await supabase
+          .rpc('latest_scans_for_equipment_ids', {
+            p_organization_id: organizationId,
+            p_equipment_ids: scanCandidates,
+          });
+
+        if (scansError) {
+          logger.error('Failed to batch-fetch scan locations', scansError);
+        } else {
+          for (const scan of scans || []) {
+            if (!scan.location) continue;
+            latestScanByEquipmentId.set(scan.equipment_id, {
+              location: scan.location,
+              scanned_at: scan.scanned_at,
+            });
           }
-        } catch (error) {
-          logger.warn(`Failed to fetch scans for equipment ${item.id}`, error);
+        }
+      } catch (error) {
+        logger.error('Unexpected error in batched scan fetch', error);
+      }
+    }
+
+    // Second pass: assemble the final per-team output, attaching scan-source
+    // coords for any item that still lacks them.
+    for (const row of resolved) {
+      const { item, teamId, teamName } = row;
+      const teamData = teamEquipmentMap.get(teamId)!;
+      let coords = row.coords;
+      let source = row.source;
+      const formatted_address = row.formatted_address;
+      let location_updated_at = row.location_updated_at;
+
+      if (!coords) {
+        const latest = latestScanByEquipmentId.get(item.id);
+        if (latest?.location) {
+          const parsed = parseLatLng(latest.location);
+          if (parsed) {
+            coords = parsed;
+            source = 'scan';
+            location_updated_at = latest.scanned_at;
+          }
         }
       }
 

@@ -47,6 +47,48 @@ export type WorkOrderRow = Tables<'work_orders'>;
  * - assigneeName, teamName, equipmentName
  * - equipmentTeamId, equipmentTeamName, createdByName
  */
+/**
+ * Subset of the equipment row exposed on `WorkOrder.equipment` via the
+ * embedded join in `WORK_ORDER_SELECT`. Mirrors `Tables<'equipment'>` for the
+ * fields work-order detail consumers actually read, so they don't have to fan
+ * out a second `useEquipmentById` round-trip just to display them on Slow 4G.
+ */
+export interface WorkOrderEmbeddedEquipment {
+  id: string;
+  name: string;
+  manufacturer: string;
+  model: string;
+  serial_number: string;
+  status: 'active' | 'maintenance' | 'inactive';
+  working_hours: number | null;
+  image_url: string | null;
+  team_id: string | null;
+  location: string | null;
+  customer_id: string | null;
+  default_pm_template_id: string | null;
+  custom_attributes: Record<string, unknown> | null;
+  use_team_location: boolean | null;
+  last_known_location: { latitude?: number; longitude?: number; name?: string } | null;
+  assigned_location_lat: number | null;
+  assigned_location_lng: number | null;
+  assigned_location_street: string | null;
+  assigned_location_city: string | null;
+  assigned_location_state: string | null;
+  assigned_location_country: string | null;
+  team: {
+    id: string;
+    name: string;
+    description?: string;
+    override_equipment_location?: boolean;
+    location_lat?: number | null;
+    location_lng?: number | null;
+    location_address?: string | null;
+    location_city?: string | null;
+    location_state?: string | null;
+    location_country?: string | null;
+  } | null;
+}
+
 export interface WorkOrder extends WorkOrderRow {
   // Computed fields from joins (camelCase for React conventions)
   assigneeName?: string;
@@ -76,6 +118,8 @@ export interface WorkOrder extends WorkOrderRow {
     location_lat?: number | null;
     location_lng?: number | null;
   } | null;
+  /** Embedded equipment record from the work-order join. */
+  equipment?: WorkOrderEmbeddedEquipment | null;
 }
 
 /**

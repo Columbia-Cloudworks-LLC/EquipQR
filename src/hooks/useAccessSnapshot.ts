@@ -21,7 +21,7 @@ export interface AccessSnapshot {
   profiles: AccessSnapshotProfile[];
 }
 
-export const useAccessSnapshot = () => {
+export const useAccessSnapshot = (options: { enabled?: boolean } = {}) => {
   const { user } = useAuth();
 
   return useQuery({
@@ -48,7 +48,7 @@ export const useAccessSnapshot = () => {
         };
       }
     },
-    enabled: !!user,
+    enabled: options.enabled !== false && !!user,
     retry: false, // Disable retries to prevent infinite loops
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes

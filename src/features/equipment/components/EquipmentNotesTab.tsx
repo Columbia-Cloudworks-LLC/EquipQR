@@ -8,7 +8,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { supabase } from '@/integrations/supabase/client';
 import { equipment as equipmentQueryKeys } from '@/lib/queryKeys';
 import {
   createEquipmentNoteWithImages,
@@ -28,10 +27,18 @@ import { logger } from '@/utils/logger';
 
 interface EquipmentNotesTabProps {
   equipmentId: string;
+  /**
+   * Current display image URL for the equipment. Passed from
+   * `EquipmentDetails` so this tab does not issue a duplicate
+   * `select image_url from equipment` query — the parent already has the
+   * full row cached via `useEquipmentById`.
+   */
+  currentDisplayImage?: string | null;
 }
 
 const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
-  equipmentId
+  equipmentId,
+  currentDisplayImage,
 }) => {
   const { user } = useAuth();
   const { currentOrganization } = useOrganization();
@@ -55,21 +62,6 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   const { data: images = [] } = useQuery({
     queryKey: equipmentQueryKeys.images(equipmentId),
     queryFn: () => getEquipmentImages(equipmentId),
-    enabled: !!equipmentId
-  });
-
-  // Get current display image from equipment
-  const { data: equipment } = useQuery({
-    queryKey: ['equipment', equipmentId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('equipment')
-        .select('image_url')
-        .eq('id', equipmentId)
-        .single();
-      if (error) throw error;
-      return data;
-    },
     enabled: !!equipmentId
   });
 
@@ -145,8 +137,14 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   const setDisplayImageMutation = useMutation({
     mutationFn: (imageUrl: string) => updateEquipmentDisplayImage(equipmentId, imageUrl),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] });
-      queryClient.invalidateQueries({ queryKey: ['equipment-list'] });
+      // Invalidate the canonical equipment cache root so both the by-id query
+      // (`['equipment', orgId, equipmentId]`) and the lightweight summaries
+      // query pick up the new display image.
+      if (currentOrganization?.id) {
+        queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization.id] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      }
     }
   });
 
@@ -369,7 +367,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
               onSetDisplayImage={setDisplayImageMutation.mutateAsync}
               canDelete={canDeleteImage}
               canSetDisplayImage={true}
-              currentDisplayImage={equipment?.image_url}
+              currentDisplayImage={currentDisplayImage ?? undefined}
               title=""
               emptyMessage="No images uploaded yet."
             />
