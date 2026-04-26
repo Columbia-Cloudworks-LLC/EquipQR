@@ -10,13 +10,14 @@ import { toast } from 'sonner';
 export type { PMTemplateSummary };
 
 // Query hook for fetching PM templates
-export const usePMTemplates = () => {
+export const usePMTemplates = (options: { enabled?: boolean } = {}) => {
   const { currentOrganization } = useOrganization();
+  const enabled = options.enabled ?? true;
 
   return useQuery({
     queryKey: queryKeys.pmTemplates.list(currentOrganization?.id || ''),
     queryFn: () => pmChecklistTemplatesService.listTemplates(currentOrganization?.id || ''),
-    enabled: !!currentOrganization?.id,
+    enabled: enabled && !!currentOrganization?.id,
     staleTime: 30 * 60 * 1000, // 30 minutes — templates change rarely, keep for offline
     gcTime: 60 * 60 * 1000,    // 1 hour
     select: (data: PMTemplate[]): PMTemplateSummary[] => {

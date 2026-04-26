@@ -10,7 +10,8 @@ import ClickableAddress from '@/components/ui/ClickableAddress';
 import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useEquipmentById, useEquipmentWorkOrders } from '@/features/equipment/hooks/useEquipment';
+import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
+import type { EquipmentTeamSummary } from '@/features/equipment/services/EquipmentService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
@@ -30,8 +31,6 @@ import QRCodeDisplay from '@/features/equipment/components/QRCodeDisplay';
 import { DeleteEquipmentDialog } from '@/features/equipment/components/DeleteEquipmentDialog';
 import { WorkingHoursTimelineModal } from '@/features/equipment/components/WorkingHoursTimelineModal';
 import { useCreateScan } from '@/features/equipment/hooks/useEquipment';
-import { useOrganizationMembers } from '@/features/organization/hooks/useOrganizationMembers';
-import { useTeams } from '@/features/teams/hooks/useTeamManagement';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,6 +44,7 @@ const EquipmentDetails = () => {
   const { data: equipment, isLoading: equipmentLoading } = useEquipmentById(currentOrganization?.id || '', equipmentId);
   const createScanMutation = useCreateScan(currentOrganization?.id || '');
   const isMobile = useIsMobile();
+  const isQRScan = searchParams.get('qr') === 'true';
   
   const [activeTab, setActiveTab] = useState('details');
   const [isWorkOrderFormOpen, setIsWorkOrderFormOpen] = useState(false);
@@ -66,15 +66,12 @@ const EquipmentDetails = () => {
         .single();
       return data as { limit_sensitive_pi?: boolean } | null;
     },
-    enabled: !!user,
+    enabled: !!user && isQRScan && currentOrganization?.scanLocationCollectionEnabled !== false,
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: organizationMembers } = useOrganizationMembers(currentOrganization?.id || '');
-  const { data: teams = [] } = useTeams(currentOrganization?.id);
-  const { isLoaded: isMapsLoaded } = useGoogleMapsLoader();
-  const { data: workOrders = [] } = useEquipmentWorkOrders(currentOrganization?.id, equipmentId, { staleTime: 5 * 60 * 1000 });
-  const openWorkOrderCount = workOrders.filter((wo: { status?: string }) => wo.status !== 'completed' && wo.status !== 'cancelled').length;
+  const assignedTeam = (equipment?.team ?? null) as EquipmentTeamSummary | null;
+  const { isLoaded: isMapsLoaded } = useGoogleMapsLoader({ enabled: !isQRScan });
 
   const isLoading = orgLoading || equipmentLoading;
 
@@ -94,6 +91,9 @@ const EquipmentDetails = () => {
         try {
           await createScanMutation.mutateAsync({
             equipmentId,
+            userId: user?.id,
+            validateEquipment: false,
+            includeProfile: false,
             notes: 'QR code scan'
           });
           toast.success('Equipment scanned successfully!');
@@ -113,6 +113,9 @@ const EquipmentDetails = () => {
             try {
               await createScanMutation.mutateAsync({
                 equipmentId,
+                userId: user?.id,
+                validateEquipment: false,
+                includeProfile: false,
                 location,
                 notes: 'QR code scan with location'
               });
@@ -127,6 +130,9 @@ const EquipmentDetails = () => {
               // Log scan without location
               await createScanMutation.mutateAsync({
                 equipmentId,
+                userId: user?.id,
+                validateEquipment: false,
+                includeProfile: false,
                 notes: 'QR code scan (location denied)'
               });
               toast.success('Equipment scanned successfully!');
@@ -146,6 +152,9 @@ const EquipmentDetails = () => {
           // Log scan without location support
           await createScanMutation.mutateAsync({
             equipmentId,
+            userId: user?.id,
+            validateEquipment: false,
+            includeProfile: false,
             notes: 'QR code scan (no location support)'
           });
           toast.success('Equipment scanned successfully!');
@@ -158,12 +167,10 @@ const EquipmentDetails = () => {
       console.error('Unexpected error during scan logging:', error);
       toast.error('Failed to log scan');
     }
-  }, [equipmentId, currentOrganization, scanLogged, createScanMutation, userPrivacyPrefs]);
+  }, [equipmentId, currentOrganization, scanLogged, createScanMutation, userPrivacyPrefs, user?.id]);
 
   // Detect if this page was accessed via QR code scan
   useEffect(() => {
-    const isQRScan = searchParams.get('qr') === 'true';
-    
     if (isQRScan && equipment && equipmentId && currentOrganization && !scanLogged) {
       // Show success message for QR scan
       toast.success('QR Code scanned successfully!', {
@@ -212,8 +219,7 @@ const EquipmentDetails = () => {
   };
 
   // Check if current user is admin/owner
-  const currentUserMember = organizationMembers?.find(member => member.id === user?.id);
-  const isAdmin = currentUserMember?.role === 'owner' || currentUserMember?.role === 'admin';
+  const isAdmin = currentOrganization.userRole === 'owner' || currentOrganization.userRole === 'admin';
 
   if (!currentOrganization) {
     return (
@@ -344,9 +350,7 @@ const EquipmentDetails = () => {
               </CardHeader>
               <CardContent className="space-y-2">
                 {(() => {
-                  const team = equipment.team_id
-                    ? teams.find((t) => t.id === equipment.team_id)
-                    : undefined;
+                  const team = assignedTeam ?? undefined;
 
                   if (!team) {
                     return (
@@ -404,9 +408,7 @@ const EquipmentDetails = () => {
               <CardContent className="p-0 px-6 pb-4 space-y-2">
                 {(() => {
                   // Resolve effective location using shared 3-tier hierarchy
-                  const team = equipment.team_id
-                    ? teams.find((t) => t.id === equipment.team_id)
-                    : undefined;
+                  const team = assignedTeam ?? undefined;
 
                   // Parse last_known_location (Json) for scan fallback
                   let lastScan: { lat: number; lng: number } | undefined;
@@ -491,9 +493,11 @@ const EquipmentDetails = () => {
                   if (hasCoords && !isMapsLoaded) {
                     return (
                       <div className="h-[180px] rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
-                        <div className="text-center">
-                          <MapPin className="h-6 w-6 text-muted-foreground/50 mx-auto animate-pulse" />
-                          <p className="text-xs text-muted-foreground mt-1">Loading map...</p>
+                        <div className="text-center px-4">
+                          <MapPin className="h-6 w-6 text-muted-foreground/50 mx-auto" />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {effectiveAddr || 'Location coordinates available'}
+                          </p>
                         </div>
                       </div>
                     );
@@ -540,15 +544,15 @@ const EquipmentDetails = () => {
       <ResponsiveEquipmentTabs 
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        counts={{ 'work-orders': openWorkOrderCount }}
       >
         <TabsContent value="details">
-          <EquipmentDetailsTab equipment={equipment} />
+          <EquipmentDetailsTab equipment={equipment} assignedTeam={assignedTeam} />
         </TabsContent>
 
         <TabsContent value="notes">
-          <EquipmentNotesTab 
+          <EquipmentNotesTab
             equipmentId={equipment.id}
+            currentDisplayImage={equipment.image_url}
           />
         </TabsContent>
 

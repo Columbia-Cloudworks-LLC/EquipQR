@@ -21,7 +21,7 @@ import GooglePlacesAutocomplete, { type PlaceLocationData } from "@/components/u
 import { useGoogleMapsLoader } from "@/hooks/useGoogleMapsLoader";
 import { useUpdateEquipment } from "@/features/equipment/hooks/useEquipment";
 import { useUnifiedPermissions } from "@/hooks/useUnifiedPermissions";
-import { useTeams } from "@/features/teams/hooks/useTeamManagement";
+import type { EquipmentTeamSummary } from "@/features/equipment/services/EquipmentService";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { usePMTemplates } from "@/features/pm-templates/hooks/usePMTemplates";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -41,13 +41,14 @@ type Equipment = Tables<'equipment'>;
 
 interface EquipmentDetailsTabProps {
   equipment: Equipment;
+  assignedTeam?: EquipmentTeamSummary | null;
 }
 
 // ── Consolidated Location Field ──────────────────────────────────────
 
 interface EquipmentLocationFieldProps {
   equipment: Equipment;
-  teams: Array<{ id: string; name: string; location_address?: string; location_city?: string; location_state?: string; location_country?: string; location_lat?: number; location_lng?: number; override_equipment_location?: boolean }>;
+  teams: Array<EquipmentTeamSummary>;
   canEdit: boolean;
   isEditing: boolean;
   isSaving: boolean;
@@ -304,17 +305,21 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
 
 // ── Main Component ───────────────────────────────────────────────────
 
-const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) => {
+const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment, assignedTeam }) => {
   const [showQRCode, setShowQRCode] = useState(false);
   const [showWorkingHoursModal, setShowWorkingHoursModal] = useState(false);
   const [isEditingLocation, setIsEditingLocation] = useState(false);
   const [isSavingLocation, setIsSavingLocation] = useState(false);
   const [showAllBasicInfo, setShowAllBasicInfo] = useState(false);
-  const { isLoaded: isMapsLoaded } = useGoogleMapsLoader();
+  const { isLoaded: isMapsLoaded } = useGoogleMapsLoader({ enabled: isEditingLocation });
   const permissions = useUnifiedPermissions();
   const { currentOrganization } = useOrganization();
-  const { data: teams = [] } = useTeams(currentOrganization?.id);
-  const { data: pmTemplates = [] } = usePMTemplates();
+  const teams = assignedTeam ? [assignedTeam] : [];
+  const equipmentPermissions = permissions.equipment.getPermissions(equipment.team_id || undefined);
+  const canEdit = equipmentPermissions.canEdit;
+  const { data: pmTemplates = [] } = usePMTemplates({
+    enabled: canEdit || !!equipment.default_pm_template_id,
+  });
   const updateEquipmentMutation = useUpdateEquipment(currentOrganization?.id || '');
   const isMobile = useIsMobile();
   const { data: pmStatus } = useEquipmentPMStatus(equipment.id);
@@ -331,10 +336,6 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment }) 
   const warrantyExpirationFieldId = `equipment-warranty-expiration-${equipment.id}`;
   const maintenanceDateFieldId = `equipment-maintenance-date-${equipment.id}`;
   const notesFieldId = `equipment-notes-${equipment.id}`;
-
-  // Check if user can edit equipment
-  const equipmentPermissions = permissions.equipment.getPermissions(equipment.team_id || undefined);
-  const canEdit = equipmentPermissions.canEdit;
 
   const handleFieldUpdate = async (field: keyof Equipment, value: string) => {
     try {

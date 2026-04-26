@@ -13,7 +13,10 @@ export interface EquipmentOrganizationInfo {
 /**
  * Fetches equipment organization information without requiring current organization context
  */
-export const getEquipmentOrganization = async (equipmentId: string): Promise<EquipmentOrganizationInfo | null> => {
+export const getEquipmentOrganization = async (
+  equipmentId: string,
+  userId?: string
+): Promise<EquipmentOrganizationInfo | null> => {
   try {
     logger.info('🔍 Fetching equipment organization for:', equipmentId);
     
@@ -42,8 +45,8 @@ export const getEquipmentOrganization = async (equipmentId: string): Promise<Equ
     }
 
     // Check if current user has access to this organization
-    const claims = await getAuthClaims();
-    if (!claims) {
+    const currentUserId = userId ?? (await getAuthClaims())?.sub;
+    if (!currentUserId) {
       logger.info('❌ No authenticated user');
       return null;
     }
@@ -52,7 +55,7 @@ export const getEquipmentOrganization = async (equipmentId: string): Promise<Equ
       .from('organization_members')
       .select('role, status')
       .eq('organization_id', equipment.organization_id)
-      .eq('user_id', claims.sub)
+      .eq('user_id', currentUserId)
       .eq('status', 'active')
       .maybeSingle();
 
@@ -80,12 +83,18 @@ export const getEquipmentOrganization = async (equipmentId: string): Promise<Equ
 /**
  * Checks if user has access to multiple organizations
  */
-export const checkUserHasMultipleOrganizations = async (): Promise<boolean> => {
+export const checkUserHasMultipleOrganizations = async (userId?: string): Promise<boolean> => {
   try {
-    const { data: memberships, error } = await supabase
+    let query = supabase
       .from('organization_members')
       .select('organization_id')
       .eq('status', 'active');
+
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+
+    const { data: memberships, error } = await query;
 
     if (error) {
       logger.error('❌ Error checking user organizations:', error);
