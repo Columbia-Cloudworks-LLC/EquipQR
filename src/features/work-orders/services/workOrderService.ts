@@ -246,6 +246,20 @@ function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
           assigned_location_city: equipment.assigned_location_city ?? null,
           assigned_location_state: equipment.assigned_location_state ?? null,
           assigned_location_country: equipment.assigned_location_country ?? null,
+          team: equipment.teams?.id
+            ? {
+                id: equipment.teams.id,
+                name: equipment.teams.name ?? '',
+                description: equipment.teams.description || undefined,
+                override_equipment_location: equipment.teams.override_equipment_location,
+                location_lat: equipment.teams.location_lat,
+                location_lng: equipment.teams.location_lng,
+                location_address: equipment.teams.location_address,
+                location_city: equipment.teams.location_city,
+                location_state: equipment.teams.location_state,
+                location_country: equipment.teams.location_country,
+              }
+            : null,
         }
       : null,
   };
