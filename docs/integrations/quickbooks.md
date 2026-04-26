@@ -255,9 +255,9 @@ npm test -- --grep quickbooks
 3. Set `QUICKBOOKS_SANDBOX=true` in edge function secrets
 4. Use `ngrok` or similar for local OAuth callback testing
 
-### Feature Flags
+### Feature Flag
 
-The integration is controlled by feature flags:
+The integration is controlled by a client-side feature flag:
 
 **QuickBooks Integration** (`VITE_ENABLE_QUICKBOOKS`):
 ```typescript
@@ -268,18 +268,8 @@ if (isQuickBooksEnabled()) {
 }
 ```
 
-**PDF Attachments** (`VITE_ENABLE_QB_PDF_ATTACHMENT`):
-```typescript
-import { isQBPDFAttachmentEnabled } from '@/lib/flags';
-
-if (isQBPDFAttachmentEnabled()) {
-  // PDF attachment feature is enabled
-}
-```
-
-**Note**: The PDF attachment feature requires both:
-- Client-side flag: `VITE_ENABLE_QB_PDF_ATTACHMENT=true` (for UI purposes)
-- Server-side flag: `ENABLE_QB_PDF_ATTACHMENT=true` (in Supabase Edge Function secrets)
+PDF attachments are controlled only by the server-side `ENABLE_QB_PDF_ATTACHMENT`
+Edge Function secret.
 
 ## API Reference
 
