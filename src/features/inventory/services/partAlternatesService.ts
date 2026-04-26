@@ -1,6 +1,6 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
-import { getAuthUserIdFromClaims } from '@/lib/authClaims';
+import { getAuthUserIdFromClaims, requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import type { 
   AlternatePartResult, 
   MakeModelCompatiblePart,
@@ -216,7 +216,7 @@ export const createAlternateGroup = async (
   }
 ): Promise<PartAlternateGroup> => {
   try {
-    const userId = await getAuthUserIdFromClaims();
+    const userId = await requireAuthUserIdFromClaims();
 
     const { data: group, error } = await supabase
       .from('part_alternate_groups')
@@ -555,7 +555,7 @@ export const createPartIdentifier = async (
   }
 ): Promise<PartIdentifier> => {
   try {
-    const userId = await getAuthUserIdFromClaims();
+    const userId = await requireAuthUserIdFromClaims();
 
     const { data: identifier, error } = await supabase
       .from('part_identifiers')
