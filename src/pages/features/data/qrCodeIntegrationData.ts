@@ -1,4 +1,5 @@
 import { ScanLine, Smartphone, Tags } from 'lucide-react';
+import { landingImage } from '@/lib/landingImage';
 import type { Benefit, Step, Screenshot } from './inventoryManagementData';
 
 export const benefits: Benefit[] = [
@@ -63,28 +64,28 @@ export const steps: Step[] = [
 
 export const screenshots: Screenshot[] = [
   {
-    imageUrl: 'https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/equipment-qr-codes.png',
+    imageUrl: landingImage('equipment-qr-codes.png'),
     imageAlt: 'EquipQR Equipment QR Code modal showing scannable QR code with equipment URL and download options',
     title: 'Equipment QR Codes',
     description:
       'Each piece of equipment gets its own unique QR code. Technicians scan the code with any smartphone camera to instantly access equipment details, maintenance history, and active work orders—no app download required.',
   },
   {
-    imageUrl: 'https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/generate-and-print-qr-labels.png',
+    imageUrl: landingImage('generate-and-print-qr-labels.png'),
     imageAlt: 'EquipQR QR Code generation modal with download and print options',
     title: 'Generate & Print Labels',
     description:
       'Generate QR codes from equipment or inventory detail views. Download in PNG format, print at standard sizes, apply to assets, and start scanning. Labels work with any QR reader or the app scanner.',
   },
   {
-    imageUrl: 'https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/qr-quick-access-from-equipment-list.png',
+    imageUrl: landingImage('qr-quick-access-from-equipment-list.png'),
     imageAlt: 'EquipQR Equipment list showing QR code buttons on each equipment card',
     title: 'Quick Access from Equipment List',
     description:
       'Every equipment card includes a QR code button for instant access. View, download, or print QR codes directly from your equipment list without navigating to individual detail pages.',
   },
   {
-    imageUrl: 'https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/equipment-details-at-a-glance.png',
+    imageUrl: landingImage('equipment-details-at-a-glance.png'),
     imageAlt: 'EquipQR Equipment detail page with QR code button and full equipment information',
     title: 'Equipment Details at a Glance',
     description:

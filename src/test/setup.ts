@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import '@testing-library/jest-dom';
-import { afterAll, afterEach, beforeAll, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import { createMockSupabaseClient } from './utils/mock-supabase';
 
@@ -35,6 +35,15 @@ globalThis.vi = vi;
 // test behavior consistent across different execution environments.
 const TEST_APP_VERSION = 'test-harness-v0.0.0-test';
 vi.stubGlobal('__APP_VERSION__', TEST_APP_VERSION);
+
+// Feature data modules may build public asset URLs during import. Keep tests
+// independent from local .env files while production builds still fail fast.
+const TEST_SUPABASE_URL = 'https://test-project.supabase.test';
+vi.stubEnv('VITE_SUPABASE_URL', TEST_SUPABASE_URL);
+
+beforeEach(() => {
+  vi.stubEnv('VITE_SUPABASE_URL', TEST_SUPABASE_URL);
+});
 
 // Cleanup after each test case
 afterEach(() => {
