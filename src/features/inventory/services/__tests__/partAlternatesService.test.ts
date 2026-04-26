@@ -22,7 +22,8 @@ vi.mock('@/integrations/supabase/client', () => ({
       delete: mockDelete
     })),
     auth: {
-      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } })
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }),
+      getClaims: vi.fn().mockResolvedValue({ data: { claims: { sub: 'user-1' } }, error: null })
     }
   }
 }));
