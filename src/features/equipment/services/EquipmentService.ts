@@ -2,6 +2,7 @@ import { ApiResponse, PaginationParams, FilterParams } from '@/services/base/Bas
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
+import { getAuthClaims } from '@/lib/authClaims';
 
 // Use Supabase types for Equipment
 export type Equipment = Tables<'equipment'>;
@@ -663,8 +664,8 @@ export class EquipmentService {
   ): Promise<ApiResponse<EquipmentScan>> {
     try {
       // Get authenticated user
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
+      const claims = await getAuthClaims();
+      if (!claims) {
         return handleError(new Error('User not authenticated'));
       }
 
@@ -679,7 +680,7 @@ export class EquipmentService {
         .from('scans')
         .insert({
           equipment_id: equipmentId,
-          scanned_by: userData.user.id,
+          scanned_by: claims.sub,
           location: location || null,
           notes: notes || null
         })
@@ -695,7 +696,7 @@ export class EquipmentService {
       const { data: profile } = await supabase
         .from('profiles')
         .select('id, name')
-        .eq('id', userData.user.id)
+        .eq('id', claims.sub)
         .single();
 
       const scan: EquipmentScan = {
@@ -721,8 +722,8 @@ export class EquipmentService {
   ): Promise<ApiResponse<EquipmentNote>> {
     try {
       // Get authenticated user
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
+      const claims = await getAuthClaims();
+      if (!claims) {
         return handleError(new Error('User not authenticated'));
       }
 
@@ -743,7 +744,7 @@ export class EquipmentService {
         .insert({
           equipment_id: equipmentId,
           content: content.trim(),
-          author_id: userData.user.id,
+          author_id: claims.sub,
           is_private: isPrivate
         })
         .select()
@@ -758,7 +759,7 @@ export class EquipmentService {
       const { data: profile } = await supabase
         .from('profiles')
         .select('id, name')
-        .eq('id', userData.user.id)
+        .eq('id', claims.sub)
         .single();
 
       const note: EquipmentNote = {

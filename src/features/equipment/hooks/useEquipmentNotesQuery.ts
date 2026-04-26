@@ -15,6 +15,7 @@ import {
   getRecentOrganizationNotes 
 } from '@/features/equipment/services/equipmentNotesService';
 import { supabase } from '@/integrations/supabase/client';
+import { getAuthUserIdFromClaims } from '@/lib/authClaims';
 
 /**
  * Hook for fetching equipment notes
@@ -69,7 +70,7 @@ export const useCreateEquipmentNoteBasic = () => {
         .from('equipment_notes')
         .insert([{
           ...noteData,
-          author_id: (await supabase.auth.getUser()).data.user?.id
+          author_id: await getAuthUserIdFromClaims()
         }])
         .select()
         .single();
