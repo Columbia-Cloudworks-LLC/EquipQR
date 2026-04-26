@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { AlertCircle, ArrowRight, Clock, Forklift, Loader2, MapPin, QrCode } from 'lucide-react';
+import { AlertCircle, ArrowRight, Clock, Forklift, Loader2, MapPin } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import EquipQRIcon from '@/components/ui/EquipQRIcon';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { Database } from '@/integrations/supabase/types';
@@ -299,9 +300,7 @@ const EquipmentQRScan = () => {
       <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col px-4 py-5 sm:py-8">
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground">
-              <QrCode className="h-5 w-5" />
-            </div>
+            <EquipQRIcon className="h-9 w-9" title="" />
             <div>
               <p className="text-sm font-semibold">EquipQR</p>
               <p className="text-xs text-muted-foreground">Scanned equipment</p>
