@@ -2,6 +2,7 @@ import { logger } from '@/utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
 import { Tables, Database, Json } from '@/integrations/supabase/types';
+import { getAuthClaims } from '@/lib/authClaims';
 
 export type PreventativeMaintenance = Tables<'preventative_maintenance'>;
 
@@ -3643,8 +3644,8 @@ export const defaultSkidSteerChecklist: PMChecklistItem[] = [
 // Create a new PM record
 export const createPM = async (data: CreatePMData): Promise<PreventativeMaintenance | null> => {
   try {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
+    const claims = await getAuthClaims();
+    if (!claims) {
       logger.error('User not authenticated');
       return null;
     }
@@ -3655,7 +3656,7 @@ export const createPM = async (data: CreatePMData): Promise<PreventativeMaintena
         work_order_id: data.workOrderId,
         equipment_id: data.equipmentId,
         organization_id: data.organizationId,
-        created_by: userData.user.id,
+        created_by: claims.sub,
         checklist_data: data.checklistData as unknown as Json,
         notes: data.notes,
         template_id: data.templateId,
@@ -3827,8 +3828,8 @@ export const createPMsForEquipment = async (
   templateId?: string
 ): Promise<PreventativeMaintenance[]> => {
   try {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
+    const claims = await getAuthClaims();
+    if (!claims) {
       logger.error('User not authenticated');
       return [];
     }
@@ -3838,7 +3839,7 @@ export const createPMsForEquipment = async (
       work_order_id: workOrderId,
       equipment_id: equipmentId,
       organization_id: organizationId,
-      created_by: userData.user.id,
+      created_by: claims.sub,
       checklist_data: checklistData as unknown as Json,
       notes,
       template_id: templateId,
@@ -3866,8 +3867,8 @@ export const createPMsForEquipment = async (
 // Update PM record
 export const updatePM = async (pmId: string, data: UpdatePMData): Promise<PreventativeMaintenance | null> => {
   try {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
+    const claims = await getAuthClaims();
+    if (!claims) {
       logger.error('User not authenticated');
       return null;
     }
@@ -3890,7 +3891,7 @@ export const updatePM = async (pmId: string, data: UpdatePMData): Promise<Preven
       
       if (data.status === 'completed') {
         updateData.completed_at = new Date().toISOString();
-        updateData.completed_by = userData.user.id;
+        updateData.completed_by = claims.sub;
       }
     }
 

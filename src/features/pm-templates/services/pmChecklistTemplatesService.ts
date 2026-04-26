@@ -3,6 +3,7 @@ import { Database } from '@/integrations/supabase/types';
 import { PMChecklistItem } from './preventativeMaintenanceService';
 import { nanoid } from 'nanoid';
 import { safeJsonParse } from '@/lib/safeJsonParse';
+import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 
 type PMTemplateInsert = Database['public']['Tables']['pm_checklist_templates']['Insert'];
 type PMTemplateUpdate = Database['public']['Tables']['pm_checklist_templates']['Update'];
@@ -195,6 +196,8 @@ export const pmChecklistTemplatesService = {
 
   // Clone a template to a different organization with new name
   async cloneTemplate(sourceId: string, targetOrgId: string, newName?: string): Promise<PMTemplate> {
+    const userId = await requireAuthUserIdFromClaims();
+
     // First, get the source template
     const sourceTemplate = await this.getTemplate(sourceId);
     if (!sourceTemplate) {
@@ -221,8 +224,8 @@ export const pmChecklistTemplatesService = {
       description: sourceTemplate.description || null,
       template_data: clonedData,
       is_protected: false, // Cloned templates are never protected
-      created_by: (await supabase.auth.getUser()).data.user?.id || '',
-      updated_by: (await supabase.auth.getUser()).data.user?.id || ''
+      created_by: userId,
+      updated_by: userId
     };
 
     const { data, error } = await supabase
