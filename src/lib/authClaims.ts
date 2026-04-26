@@ -38,11 +38,6 @@ export async function requireAuthClaims(message = 'User not authenticated'): Pro
   return claims;
 }
 
-export async function getAuthUserIdFromClaims(): Promise<string | null> {
-  const claims = await getAuthClaims();
-  return claims?.sub ?? null;
-}
-
 export async function requireAuthUserIdFromClaims(message = 'User not authenticated'): Promise<string> {
   const claims = await requireAuthClaims(message);
   return claims.sub;
