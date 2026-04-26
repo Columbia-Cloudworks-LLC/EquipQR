@@ -788,14 +788,13 @@ export class EquipmentService {
     location?: string,
     notes?: string,
     options: {
-      userId?: string;
       validateEquipment?: boolean;
       includeProfile?: boolean;
     } = {}
   ): Promise<ApiResponse<EquipmentScan>> {
     try {
-      // Get authenticated user
-      const userId = options.userId ?? (await getAuthClaims())?.sub;
+      // Always derive user identity server-side; never trust caller-provided identity.
+      const userId = (await getAuthClaims())?.sub;
       if (!userId) {
         return handleError(new Error('User not authenticated'));
       }

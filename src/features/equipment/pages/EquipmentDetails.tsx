@@ -66,7 +66,7 @@ const EquipmentDetails = () => {
         .single();
       return data as { limit_sensitive_pi?: boolean } | null;
     },
-    enabled: !!user && isQRScan && currentOrganization?.scanLocationCollectionEnabled !== false,
+    enabled: !!user && isQRScan,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -91,7 +91,6 @@ const EquipmentDetails = () => {
         try {
           await createScanMutation.mutateAsync({
             equipmentId,
-            userId: user?.id,
             validateEquipment: false,
             includeProfile: false,
             notes: 'QR code scan'
@@ -113,7 +112,6 @@ const EquipmentDetails = () => {
             try {
               await createScanMutation.mutateAsync({
                 equipmentId,
-                userId: user?.id,
                 validateEquipment: false,
                 includeProfile: false,
                 location,
@@ -130,7 +128,6 @@ const EquipmentDetails = () => {
               // Log scan without location
               await createScanMutation.mutateAsync({
                 equipmentId,
-                userId: user?.id,
                 validateEquipment: false,
                 includeProfile: false,
                 notes: 'QR code scan (location denied)'
@@ -152,7 +149,6 @@ const EquipmentDetails = () => {
           // Log scan without location support
           await createScanMutation.mutateAsync({
             equipmentId,
-            userId: user?.id,
             validateEquipment: false,
             includeProfile: false,
             notes: 'QR code scan (no location support)'
@@ -167,7 +163,7 @@ const EquipmentDetails = () => {
       console.error('Unexpected error during scan logging:', error);
       toast.error('Failed to log scan');
     }
-  }, [equipmentId, currentOrganization, scanLogged, createScanMutation, userPrivacyPrefs, user?.id]);
+  }, [equipmentId, currentOrganization, scanLogged, createScanMutation, userPrivacyPrefs]);
 
   // Detect if this page was accessed via QR code scan
   useEffect(() => {
