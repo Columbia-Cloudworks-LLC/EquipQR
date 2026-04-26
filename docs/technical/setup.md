@@ -89,7 +89,6 @@ VITE_SUPER_ADMIN_ORG_ID=your-org-id
 
 # Feature flags
 VITE_ENABLE_QUICKBOOKS=false
-VITE_ENABLE_QB_PDF_ATTACHMENT=false
 
 # Google Maps (for equipment location features)
 VITE_GOOGLE_MAPS_API_KEY=your-maps-key
