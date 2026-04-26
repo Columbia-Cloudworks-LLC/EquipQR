@@ -92,7 +92,11 @@ export const useQRRedirectWithOrgSwitch = ({
     const currentOrg = getCurrentOrganization();
 
     if (!currentOrg || currentOrg.id !== orgInfo.organizationId) {
-      const hasMultipleOrgs = await checkUserHasMultipleOrganizations(user?.id);
+      if (!user?.id) {
+        return { isLoading: false, needsAuth: true, targetPath: '/auth', ...infoField };
+      }
+
+      const hasMultipleOrgs = await checkUserHasMultipleOrganizations(user.id);
       
       if (hasMultipleOrgs) {
         return { isLoading: false, needsOrgSwitch: true, targetPath, ...infoField };

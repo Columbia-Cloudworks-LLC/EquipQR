@@ -153,9 +153,8 @@ export const getTeamEquipmentWithLocations = async (
     //
     // Slow 4G perf note: previously this loop issued ONE `scans` query per
     // equipment row that lacked coordinates (O(n) network round-trips on the
-    // critical fleet map render). The new flow runs a single batched
-    // `scans` query for every candidate equipment id and groups the rows
-    // client-side, taking the most recent scan per equipment.
+    // critical fleet map render). The new flow runs a single tenant-scoped RPC
+    // that returns at most one latest scan row per candidate equipment id.
     const teamEquipmentMap = new Map<string, TeamEquipmentData>();
 
     // Helper to format address components.
@@ -256,31 +255,25 @@ export const getTeamEquipmentWithLocations = async (
       resolved.push({ item, teamId, teamName, coords, source, formatted_address, location_updated_at });
     }
 
-    // Single batched scan query for everything that fell through to "last scan".
-    // We retrieve all scan rows for the candidate equipment ids in one round
-    // trip and pick the most recent location per equipment client-side.
+    // Single bounded scan lookup for everything that fell through to "last scan".
     const latestScanByEquipmentId = new Map<string, { location: string; scanned_at: string }>();
     if (scanCandidates.length > 0) {
       try {
         const { data: scans, error: scansError } = await supabase
-          .from('scans')
-          .select('equipment_id, location, scanned_at')
-          .in('equipment_id', scanCandidates)
-          .not('location', 'is', null)
-          .order('scanned_at', { ascending: false });
+          .rpc('latest_scans_for_equipment_ids', {
+            p_organization_id: organizationId,
+            p_equipment_ids: scanCandidates,
+          });
 
         if (scansError) {
           logger.error('Failed to batch-fetch scan locations', scansError);
         } else {
           for (const scan of scans || []) {
             if (!scan.location) continue;
-            // Rows arrive newest-first; first occurrence per equipment wins.
-            if (!latestScanByEquipmentId.has(scan.equipment_id)) {
-              latestScanByEquipmentId.set(scan.equipment_id, {
-                location: scan.location,
-                scanned_at: scan.scanned_at,
-              });
-            }
+            latestScanByEquipmentId.set(scan.equipment_id, {
+              location: scan.location,
+              scanned_at: scan.scanned_at,
+            });
           }
         }
       } catch (error) {

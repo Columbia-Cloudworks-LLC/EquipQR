@@ -23,6 +23,7 @@ import { useUpdateEquipment } from "@/features/equipment/hooks/useEquipment";
 import { useUnifiedPermissions } from "@/hooks/useUnifiedPermissions";
 import type { EquipmentTeamSummary } from "@/features/equipment/services/EquipmentService";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useTeams } from "@/features/teams/hooks/useTeamManagement";
 import { usePMTemplates } from "@/features/pm-templates/hooks/usePMTemplates";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEquipmentPMStatus, getPMComplianceLevel } from "@/features/equipment/hooks/useEquipmentPMStatus";
@@ -314,7 +315,13 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment, as
   const { isLoaded: isMapsLoaded } = useGoogleMapsLoader({ enabled: isEditingLocation });
   const permissions = useUnifiedPermissions();
   const { currentOrganization } = useOrganization();
-  const teams = assignedTeam ? [assignedTeam] : [];
+  const canAssignTeams = permissions.organization?.canManageMembers ?? false;
+  const { data: fetchedTeams = [] } = useTeams(currentOrganization?.id, { enabled: canAssignTeams });
+  const teams: EquipmentTeamSummary[] = fetchedTeams.length > 0
+    ? fetchedTeams
+    : assignedTeam
+      ? [assignedTeam]
+      : [];
   const equipmentPermissions = permissions.equipment.getPermissions(equipment.team_id || undefined);
   const canEdit = equipmentPermissions.canEdit;
   const { data: pmTemplates = [] } = usePMTemplates({
@@ -444,9 +451,6 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment, as
     const team = teams.find(t => t.id === equipment.team_id);
     return team?.name || 'Unknown Team';
   };
-
-  // Can assign teams (only admins/owners)
-  const canAssignTeams = permissions.organization?.canManageMembers ?? false;
 
   // Debug logging
   if (process.env.NODE_ENV === 'development') {

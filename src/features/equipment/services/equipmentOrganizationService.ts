@@ -83,18 +83,13 @@ export const getEquipmentOrganization = async (
 /**
  * Checks if user has access to multiple organizations
  */
-export const checkUserHasMultipleOrganizations = async (userId?: string): Promise<boolean> => {
+export const checkUserHasMultipleOrganizations = async (userId: string): Promise<boolean> => {
   try {
-    let query = supabase
+    const { data: memberships, error } = await supabase
       .from('organization_members')
       .select('organization_id')
+      .eq('user_id', userId)
       .eq('status', 'active');
-
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
-
-    const { data: memberships, error } = await query;
 
     if (error) {
       logger.error('❌ Error checking user organizations:', error);

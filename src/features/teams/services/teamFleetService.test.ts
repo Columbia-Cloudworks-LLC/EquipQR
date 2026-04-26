@@ -3,7 +3,8 @@ import { getTeamFleetData, getTeamEquipmentWithLocations } from './teamFleetServ
 // Mock the supabase client
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: vi.fn()
+    from: vi.fn(),
+    rpc: vi.fn()
   }
 }));
 
@@ -26,6 +27,7 @@ const { parseLatLng: mockParseLatLng } = await import('@/utils/geoUtils');
 describe('teamFleetService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (supabase.rpc as Mock).mockResolvedValue({ data: [], error: null });
   });
 
   describe('getTeamEquipmentWithLocations', () => {
@@ -176,8 +178,8 @@ describe('teamFleetService', () => {
         is: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
       };
 
-      // The batched scan query chains `.in(...).not(...).order(...)` and
-      // resolves at the end (no per-item `.limit(1)` anymore).
+      (supabase.rpc as Mock).mockResolvedValue({ data: mockScans, error: null });
+
       const mockScansQuery = {
         select: vi.fn().mockReturnThis(),
         in: vi.fn().mockReturnThis(),
@@ -203,6 +205,10 @@ describe('teamFleetService', () => {
       expect(result[0].equipment[0].source).toBe('scan');
       expect(result[0].equipment[0].lat).toBe(30);
       expect(result[0].equipment[0].lng).toBe(40);
+      expect(supabase.rpc).toHaveBeenCalledWith('latest_scans_for_equipment_ids', {
+        p_organization_id: 'org-1',
+        p_equipment_ids: ['eq-1'],
+      });
     });
   });
 
