@@ -154,6 +154,7 @@ describe('teamFleetService', () => {
 
       const mockScans = [
         {
+          equipment_id: 'eq-1',
           location: '30, 40',
           scanned_at: '2024-01-02T00:00:00Z'
         }
@@ -175,12 +176,13 @@ describe('teamFleetService', () => {
         is: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
       };
 
+      // The batched scan query chains `.in(...).not(...).order(...)` and
+      // resolves at the end (no per-item `.limit(1)` anymore).
       const mockScansQuery = {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
+        in: vi.fn().mockReturnThis(),
         not: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({ data: mockScans, error: null })
+        order: vi.fn().mockResolvedValue({ data: mockScans, error: null }),
       };
 
       (supabase.from as Mock).mockImplementation((table: string) => {
