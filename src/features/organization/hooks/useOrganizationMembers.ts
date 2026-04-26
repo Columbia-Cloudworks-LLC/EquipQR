@@ -8,6 +8,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getAuthClaims } from '@/lib/authClaims';
 import { useMemo } from 'react';
 import type { Database } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
@@ -182,13 +183,13 @@ export const useRemoveMember = (organizationId: string) => {
 
   return useMutation<RemovalResult, Error, string, MutateContext>({
     mutationFn: async (memberId) => {
-      const { data: currentUser } = await supabase.auth.getUser();
-      if (!currentUser.user) throw new Error('User not authenticated');
+      const claims = await getAuthClaims();
+      if (!claims) throw new Error('User not authenticated');
 
       const { data, error } = await supabase.rpc<RemovalResult>('remove_organization_member_safely', {
         user_uuid: memberId,
         org_id: organizationId,
-        removed_by: currentUser.user.id
+        removed_by: claims.sub
       });
 
       if (error) throw error;
