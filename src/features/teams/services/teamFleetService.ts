@@ -295,7 +295,7 @@ export const getTeamEquipmentWithLocations = async (
       const teamData = teamEquipmentMap.get(teamId)!;
       let coords = row.coords;
       let source = row.source;
-      let formatted_address = row.formatted_address;
+      const formatted_address = row.formatted_address;
       let location_updated_at = row.location_updated_at;
 
       if (!coords) {
