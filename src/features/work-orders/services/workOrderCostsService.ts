@@ -1,5 +1,6 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import type { 
   WorkOrderCost, 
   CreateWorkOrderCostData, 
@@ -78,14 +79,13 @@ export const getWorkOrderCosts = async (
 // Create a new cost item
 export const createWorkOrderCost = async (costData: CreateWorkOrderCostData): Promise<WorkOrderCost> => {
   try {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) throw new Error('User not authenticated');
+    const userId = await requireAuthUserIdFromClaims();
 
     const { data, error } = await supabase
       .from('work_order_costs')
       .insert({
         ...costData,
-        created_by: userData.user.id
+        created_by: userId
       })
       .select()
       .single();
@@ -96,7 +96,7 @@ export const createWorkOrderCost = async (costData: CreateWorkOrderCostData): Pr
     const { data: profile } = await supabase
       .from('profiles')
       .select('name')
-      .eq('id', userData.user.id)
+      .eq('id', userId)
       .single();
 
     return {

@@ -15,6 +15,10 @@ interface GoogleMapsKeyResponse {
   details?: string;
 }
 
+interface UseGoogleMapsKeyOptions {
+  enabled?: boolean;
+}
+
 interface UseGoogleMapsKeyResult {
   googleMapsKey: string;
   /** Cloud-managed Map ID; `null` until loaded or if not configured server-side. */
@@ -24,13 +28,15 @@ interface UseGoogleMapsKeyResult {
   retry: () => void;
 }
 
-export const useGoogleMapsKey = (): UseGoogleMapsKeyResult => {
+export const useGoogleMapsKey = (options: UseGoogleMapsKeyOptions = {}): UseGoogleMapsKeyResult => {
+  const enabled = options.enabled ?? true;
   const [googleMapsKey, setGoogleMapsKey] = useState<string>('');
   const [mapId, setMapId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
 
   const fetchGoogleMapsKey = async () => {
+    if (!enabled) return;
     setIsLoading(true);
     setError(null);
     
@@ -87,8 +93,12 @@ export const useGoogleMapsKey = (): UseGoogleMapsKeyResult => {
   };
 
   useEffect(() => {
+    if (!enabled) {
+      setIsLoading(false);
+      return;
+    }
     fetchGoogleMapsKey();
-  }, []);
+  }, [enabled]);
 
   return {
     googleMapsKey,

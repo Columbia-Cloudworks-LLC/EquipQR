@@ -36,7 +36,7 @@ import {
 import { Search, Forklift, Check, X, ChevronDown, ChevronRight, Layers } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useCreateInventoryItem, useUpdateInventoryItem } from '@/features/inventory/hooks/useInventory';
-import { useEquipment } from '@/features/equipment/hooks/useEquipment';
+import { useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
 import {
   useAlternateGroups,
   useCreateAlternateGroup,
@@ -84,8 +84,16 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
   const createAlternateGroupMutation = useCreateAlternateGroup();
   const addToGroupMutation = useAddInventoryItemToGroup();
 
-  const { data: allEquipment = [] } = useEquipment(currentOrganization?.id);
-  const { data: alternateGroups = [] } = useAlternateGroups(currentOrganization?.id);
+  // Use the lightweight summaries projection — the form only needs
+  // id/name/manufacturer/model/serial for the equipment compatibility list.
+  // Both queries are gated on `open` so they don't fire while the form is
+  // closed (the dialog tree mounts unconditionally in some parents).
+  const { data: allEquipment = [] } = useEquipmentSummaries(currentOrganization?.id, {
+    enabled: open,
+  });
+  const { data: alternateGroups = [] } = useAlternateGroups(currentOrganization?.id, {
+    enabled: open,
+  });
 
   const form = useForm<InventoryItemFormData>({
     resolver: zodResolver(inventoryItemFormSchema),

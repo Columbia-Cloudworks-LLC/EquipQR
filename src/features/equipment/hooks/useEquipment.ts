@@ -1,10 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { EquipmentService, EquipmentFilters, EquipmentCreateData, EquipmentUpdateData } from '@/features/equipment/services/EquipmentService';
+import { EquipmentService, EquipmentFilters, EquipmentCreateData, EquipmentUpdateData, EquipmentSummary } from '@/features/equipment/services/EquipmentService';
 import { PaginationParams } from '@/services/base/BaseService';
 import { useBackgroundSync } from '@/hooks/useCacheInvalidation';
 import { performanceMonitor } from '@/utils/performanceMonitoring';
 import { useAppToast } from '@/hooks/useAppToast';
+
+/**
+ * Stable references for the empty default arguments used by `useEquipment`.
+ * Re-using a single instance keeps `useMemo` / effect deps that downstream
+ * components key off the equipment query stable, even though TanStack Query
+ * already structurally hashes the query key.
+ */
+const EMPTY_EQUIPMENT_FILTERS: EquipmentFilters = Object.freeze({}) as EquipmentFilters;
+const EMPTY_EQUIPMENT_PAGINATION: PaginationParams = Object.freeze({}) as PaginationParams;
 
 /**
  * Unified hook for equipment data fetching
@@ -12,8 +21,8 @@ import { useAppToast } from '@/hooks/useAppToast';
  */
 export const useEquipment = (
   organizationId?: string,
-  filters: EquipmentFilters = {},
-  pagination: PaginationParams = {},
+  filters: EquipmentFilters = EMPTY_EQUIPMENT_FILTERS,
+  pagination: PaginationParams = EMPTY_EQUIPMENT_PAGINATION,
   options?: {
     enableBackgroundSync?: boolean;
     staleTime?: number;
@@ -47,6 +56,51 @@ export const useEquipment = (
   }, [organizationId, enableSync, subscribeToOrganization]);
 
   return query;
+};
+
+/**
+ * Lightweight per-org equipment summaries for selector / dropdown / offline-merge use cases.
+ *
+ * Use this instead of `useEquipment` whenever the caller only needs the
+ * fields exposed by `EquipmentSummary` (id/name/manufacturer/model/serial/
+ * status/team/location/image/working_hours/last_maintenance/last_known_location).
+ * On Slow 4G the payload is meaningfully smaller than `select('*')` and the
+ * page renders sooner.
+ *
+ * The query key is intentionally distinct from `useEquipment`'s list key —
+ * mutations that touch an individual equipment row should invalidate
+ * `['equipment', organizationId]` (see `useUpdateEquipment` below) and
+ * `setQueryData` callers should target the by-id key, not the summary list.
+ */
+export const useEquipmentSummaries = (
+  organizationId?: string,
+  options?: {
+    userTeamIds?: string[];
+    isOrgAdmin?: boolean;
+    staleTime?: number;
+    enabled?: boolean;
+  }
+) => {
+  const staleTime = options?.staleTime ?? 5 * 60 * 1000;
+  const enabled = options?.enabled ?? true;
+
+  return useQuery<EquipmentSummary[]>({
+    queryKey: ['equipment', organizationId, 'summaries', options?.userTeamIds, options?.isOrgAdmin],
+    queryFn: async () => {
+      if (!organizationId) return [];
+      const result = await EquipmentService.getSummaries(organizationId, {
+        userTeamIds: options?.userTeamIds,
+        isOrgAdmin: options?.isOrgAdmin,
+      });
+      if (result.success && result.data) {
+        return result.data;
+      }
+      throw new Error(result.error || 'Failed to fetch equipment summaries');
+    },
+    enabled: enabled && !!organizationId,
+    staleTime,
+    gcTime: staleTime * 2,
+  });
 };
 
 /**
@@ -288,13 +342,16 @@ export const useCreateScan = (organizationId: string | undefined) => {
   const { toast } = useAppToast();
 
   return useMutation({
-    mutationFn: async ({ equipmentId, location, notes }: { 
+    mutationFn: async ({ equipmentId, location, notes, includeProfile }: {
       equipmentId: string; 
       location?: string; 
-      notes?: string 
+      notes?: string;
+      includeProfile?: boolean;
     }) => {
       if (!organizationId) throw new Error('Organization ID required');
-      const result = await EquipmentService.createScan(organizationId, equipmentId, location, notes);
+      const result = await EquipmentService.createScan(organizationId, equipmentId, location, notes, {
+        includeProfile,
+      });
       if (result.success && result.data) {
         return result.data;
       }
@@ -430,24 +487,25 @@ export const useEquipmentManufacturersAndModels = (
     queryKey: ['equipment-manufacturers-models', organizationId],
     queryFn: async (): Promise<ManufacturerWithModels[]> => {
       if (!organizationId) return [];
-      
-      // Get all equipment with just manufacturer and model fields
-      const result = await EquipmentService.getAll(organizationId, {}, {});
+
+      // Use the lightweight summaries projection rather than `select('*')` —
+      // we only need manufacturer/model strings here, not the full equipment row.
+      const result = await EquipmentService.getSummaries(organizationId);
       if (!result.success || !result.data) {
         return [];
       }
 
       // Group by manufacturer and collect unique models
       const manufacturerMap = new Map<string, Set<string>>();
-      
+
       for (const equip of result.data) {
         if (!equip.manufacturer) continue;
-        
+
         const mfr = equip.manufacturer.trim();
         if (!manufacturerMap.has(mfr)) {
           manufacturerMap.set(mfr, new Set());
         }
-        
+
         if (equip.model) {
           manufacturerMap.get(mfr)!.add(equip.model.trim());
         }

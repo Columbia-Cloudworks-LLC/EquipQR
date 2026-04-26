@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { getAuthClaims } from '@/lib/authClaims';
 import { logger } from '@/utils/logger';
 
 export interface WorkOrderOrganizationInfo {
@@ -13,8 +14,8 @@ export const getWorkOrderOrganization = async (
   workOrderId: string
 ): Promise<WorkOrderOrganizationInfo | null> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const claims = await getAuthClaims();
+    if (!claims) {
       return null;
     }
 
@@ -45,7 +46,7 @@ export const getWorkOrderOrganization = async (
       .from('organization_members')
       .select('role, status')
       .eq('organization_id', organization.id)
-      .eq('user_id', user.id)
+      .eq('user_id', claims.sub)
       .eq('status', 'active')
       .single();
 

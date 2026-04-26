@@ -6,20 +6,29 @@ import { usePMByWorkOrderAndEquipment } from '@/features/pm-templates/hooks/useP
 import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
 import type { Tables } from '@/integrations/supabase/types';
 
+/**
+ * Pull together the data the work-order detail page needs.
+ *
+ * `equipment` is sourced from a dedicated `useEquipmentById` query so that
+ * equipment mutations (status changes, name edits, location updates) that
+ * invalidate `['equipment', orgId, equipmentId]` propagate to this view
+ * immediately. The embedded join on the work-order is used as the initial
+ * value while `useEquipmentById` is loading.
+ */
 export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId?: string) => {
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
 
-  // Use work order hook for data
   const { data: workOrder, isLoading: workOrderLoading } = useWorkOrderById(
-    currentOrganization?.id || '', 
+    currentOrganization?.id || '',
     workOrderId || ''
   );
-  
-  const { data: equipment } = useEquipmentById(
-    currentOrganization?.id, 
+
+  const { data: freshEquipment } = useEquipmentById(
+    currentOrganization?.id,
     workOrder?.equipment_id
   );
+  const equipment = freshEquipment ?? workOrder?.equipment ?? undefined;
 
   // Fetch PM data for specific equipment if work order has PM enabled
   const { data: pmData, isLoading: pmLoading, isError: pmError } = usePMByWorkOrderAndEquipment(
@@ -33,7 +42,7 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
   const createdByCurrentUser = workOrder?.created_by === user?.id;
   const formMode = workOrder ? permissionLevels.getFormMode(workOrder as Tables<'work_orders'>, createdByCurrentUser) : 'viewer';
   const isWorkOrderLocked = workOrder?.status === 'completed' || workOrder?.status === 'cancelled';
-  
+
   // Calculate permissions
   const canAddCosts = permissionLevels.isManager || permissionLevels.isTechnician;
   const canEditCosts = permissionLevels.isManager;
@@ -63,4 +72,3 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
     currentOrganization
   };
 };
-

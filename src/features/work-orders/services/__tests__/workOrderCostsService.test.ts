@@ -17,7 +17,8 @@ vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: vi.fn(),
     auth: {
-      getUser: vi.fn()
+      getUser: vi.fn(),
+      getClaims: vi.fn()
     }
   }
 }));
@@ -179,8 +180,9 @@ describe('workOrderCostsService', () => {
         updated_at: '2024-01-10'
       };
 
-      (supabase.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValue({
-        data: { user: { id: 'user-1' } }
+      (supabase.auth.getClaims as ReturnType<typeof vi.fn>).mockResolvedValue({
+        data: { claims: { sub: 'user-1' } },
+        error: null
       });
 
       const mockInsertQuery = {
@@ -206,8 +208,9 @@ describe('workOrderCostsService', () => {
     });
 
     it('should throw error when user is not authenticated', async () => {
-      (supabase.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValue({
-        data: { user: null }
+      (supabase.auth.getClaims as ReturnType<typeof vi.fn>).mockResolvedValue({
+        data: { claims: null },
+        error: null
       });
 
       const costData = {
@@ -221,8 +224,9 @@ describe('workOrderCostsService', () => {
     });
 
     it('should throw error on database failure', async () => {
-      (supabase.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValue({
-        data: { user: { id: 'user-1' } }
+      (supabase.auth.getClaims as ReturnType<typeof vi.fn>).mockResolvedValue({
+        data: { claims: { sub: 'user-1' } },
+        error: null
       });
 
       const mockInsertQuery = {

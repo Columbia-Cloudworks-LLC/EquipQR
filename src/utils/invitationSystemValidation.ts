@@ -1,6 +1,7 @@
 // Validation utilities for the invitation system after RLS policy fixes
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { getAuthClaims } from '@/lib/authClaims';
 
 export interface ValidationResult {
   success: boolean;
@@ -32,11 +33,11 @@ export const validateInvitationSystem = async (): Promise<ValidationResult[]> =>
 
       // Test 2: Check if invitation security functions work
       logger.info('Testing invitation security functions');
-      const { data: userData } = await supabase.auth.getUser();
+      const claims = await getAuthClaims();
       
-      if (userData.user) {
+      if (claims) {
         const { data: isAdmin, error: adminError } = await supabase.rpc('check_admin_permission_safe', {
-          user_uuid: userData.user.id,
+          user_uuid: claims.sub,
           org_id: orgId
         });
 
@@ -49,7 +50,7 @@ export const validateInvitationSystem = async (): Promise<ValidationResult[]> =>
         // Test 3: Check if invitation fetching works with new function
         logger.info('Testing invitation fetching');
         const { data: invitations, error: invitationError } = await supabase.rpc('get_user_invitations_safe', {
-          user_uuid: userData.user.id,
+          user_uuid: claims.sub,
           org_id: orgId
         });
 

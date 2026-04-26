@@ -1,5 +1,6 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { getAuthClaims } from '@/lib/authClaims';
 
 export interface EquipmentOrganizationInfo {
   equipmentId: string;
@@ -12,7 +13,10 @@ export interface EquipmentOrganizationInfo {
 /**
  * Fetches equipment organization information without requiring current organization context
  */
-export const getEquipmentOrganization = async (equipmentId: string): Promise<EquipmentOrganizationInfo | null> => {
+export const getEquipmentOrganization = async (
+  equipmentId: string,
+  userId?: string
+): Promise<EquipmentOrganizationInfo | null> => {
   try {
     logger.info('🔍 Fetching equipment organization for:', equipmentId);
     
@@ -41,8 +45,8 @@ export const getEquipmentOrganization = async (equipmentId: string): Promise<Equ
     }
 
     // Check if current user has access to this organization
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const currentUserId = userId ?? (await getAuthClaims())?.sub;
+    if (!currentUserId) {
       logger.info('❌ No authenticated user');
       return null;
     }
@@ -51,7 +55,7 @@ export const getEquipmentOrganization = async (equipmentId: string): Promise<Equ
       .from('organization_members')
       .select('role, status')
       .eq('organization_id', equipment.organization_id)
-      .eq('user_id', user.id)
+      .eq('user_id', currentUserId)
       .eq('status', 'active')
       .maybeSingle();
 
@@ -79,11 +83,12 @@ export const getEquipmentOrganization = async (equipmentId: string): Promise<Equ
 /**
  * Checks if user has access to multiple organizations
  */
-export const checkUserHasMultipleOrganizations = async (): Promise<boolean> => {
+export const checkUserHasMultipleOrganizations = async (userId: string): Promise<boolean> => {
   try {
     const { data: memberships, error } = await supabase
       .from('organization_members')
       .select('organization_id')
+      .eq('user_id', userId)
       .eq('status', 'active');
 
     if (error) {

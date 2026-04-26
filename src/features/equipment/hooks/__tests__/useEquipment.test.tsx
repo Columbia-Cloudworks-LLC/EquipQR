@@ -23,6 +23,7 @@ import { equipment, organizations, teams } from '@/test/fixtures/entities';
 vi.mock('@/features/equipment/services/EquipmentService', () => ({
   EquipmentService: {
     getAll: vi.fn(),
+    getSummaries: vi.fn(),
     getById: vi.fn(),
     getNotesByEquipmentId: vi.fn(),
     getScansByEquipmentId: vi.fn(),
@@ -387,9 +388,11 @@ describe('useEquipment', () => {
 
   describe('useEquipmentManufacturersAndModels', () => {
     beforeEach(() => {
-      vi.mocked(EquipmentService.getAll).mockResolvedValue({
+      // The hook now reads from the lightweight summaries endpoint instead of
+      // `getAll`. The summary projection includes manufacturer/model directly.
+      vi.mocked(EquipmentService.getSummaries).mockResolvedValue({
         success: true,
-        data: Object.values(equipment)
+        data: Object.values(equipment) as unknown as Awaited<ReturnType<typeof EquipmentService.getSummaries>>['data']
       });
     });
 
@@ -423,7 +426,7 @@ describe('useEquipment', () => {
     });
 
     it('returns empty array on error', async () => {
-      vi.mocked(EquipmentService.getAll).mockResolvedValueOnce({
+      vi.mocked(EquipmentService.getSummaries).mockResolvedValueOnce({
         success: false,
         error: 'Failed to fetch'
       });
@@ -447,9 +450,9 @@ describe('useEquipment', () => {
         { ...equipment.crane, manufacturer: 'Apple', model: 'A-Model' }
       ];
 
-      vi.mocked(EquipmentService.getAll).mockResolvedValueOnce({
+      vi.mocked(EquipmentService.getSummaries).mockResolvedValueOnce({
         success: true,
-        data: mixedEquipment
+        data: mixedEquipment as unknown as Awaited<ReturnType<typeof EquipmentService.getSummaries>>['data']
       });
 
       const { result } = renderHook(
@@ -476,9 +479,9 @@ describe('useEquipment', () => {
         { ...equipment.forklift2, manufacturer: 'Toyota', model: 'Model1' }
       ];
 
-      vi.mocked(EquipmentService.getAll).mockResolvedValueOnce({
+      vi.mocked(EquipmentService.getSummaries).mockResolvedValueOnce({
         success: true,
-        data: equipmentWithoutManufacturer
+        data: equipmentWithoutManufacturer as unknown as Awaited<ReturnType<typeof EquipmentService.getSummaries>>['data']
       });
 
       const { result } = renderHook(

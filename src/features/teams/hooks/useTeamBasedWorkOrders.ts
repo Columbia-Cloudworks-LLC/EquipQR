@@ -21,8 +21,12 @@ export const useTeamBasedWorkOrders = (filters: TeamBasedWorkOrderFilters = {}) 
       return getTeamBasedWorkOrders(currentOrganization.id, userTeamIds, isManager, filters);
     },
     enabled: !!currentOrganization?.id && !teamsLoading,
-    staleTime: 30 * 1000, // 30 seconds
-    refetchOnWindowFocus: true,
+    // Bumped from 30s to 1 min and removed forced window-focus refetch.
+    // Work-order lists update via mutation invalidation already; the
+    // aggressive focus refetch was hurting Slow 4G field users every time
+    // they switched tabs or backgrounded the app.
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
     refetchOnMount: true,
   });
 };

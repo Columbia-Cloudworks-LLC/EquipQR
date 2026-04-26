@@ -1,6 +1,7 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { validateStorageQuota } from '@/utils/storageQuota';
+import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import type { EquipmentNote, EquipmentNoteImage } from '@/features/equipment/types/equipmentNotes';
 
 // Re-export types for backward compatibility
@@ -59,8 +60,7 @@ export const createEquipmentNoteWithImages = async (
   organizationId: string,
   machineHours?: number | null,
 ): Promise<EquipmentNote> => {
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) throw new Error('User not authenticated');
+  const userId = await requireAuthUserIdFromClaims();
 
   if (!organizationId) {
     throw new Error('organizationId is required to create an equipment note');
@@ -86,7 +86,7 @@ export const createEquipmentNoteWithImages = async (
     .from('equipment_notes')
     .insert({
       equipment_id: equipmentId,
-      author_id: userData.user.id,
+      author_id: userId,
       content,
       hours_worked: Number(hoursWorked) || 0,
       is_private: isPrivate || false,
@@ -103,7 +103,7 @@ export const createEquipmentNoteWithImages = async (
     try {
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
-      const fileName = `${userData.user.id}/${equipmentId}/${note.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${userId}/${equipmentId}/${note.id}/${Date.now()}.${fileExt}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('equipment-note-images')
@@ -128,7 +128,7 @@ export const createEquipmentNoteWithImages = async (
           file_url: publicUrl,
           file_size: file.size,
           mime_type: file.type,
-          uploaded_by: userData.user.id
+          uploaded_by: userId
         })
         .select()
         .single();
@@ -203,8 +203,7 @@ export const uploadEquipmentNoteImage = async (
   file: File,
   description?: string
 ) => {
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) throw new Error('User not authenticated');
+  const userId = await requireAuthUserIdFromClaims();
 
   // Get note details for file path
   const { data: note } = await supabase
@@ -217,7 +216,7 @@ export const uploadEquipmentNoteImage = async (
 
   // Upload file to storage
   const fileExt = file.name.split('.').pop();
-  const fileName = `${userData.user.id}/${note.equipment_id}/${noteId}/${Date.now()}.${fileExt}`;
+  const fileName = `${userId}/${note.equipment_id}/${noteId}/${Date.now()}.${fileExt}`;
   
   const { data: uploadData, error: uploadError } = await supabase.storage
     .from('equipment-note-images')
@@ -240,7 +239,7 @@ export const uploadEquipmentNoteImage = async (
       file_size: file.size,
       mime_type: file.type,
       description,
-      uploaded_by: userData.user.id
+      uploaded_by: userId
     })
     .select()
     .single();
@@ -284,8 +283,7 @@ export const getEquipmentImages = async (equipmentId: string) => {
 
 // Delete an image
 export const deleteEquipmentNoteImage = async (imageId: string): Promise<void> => {
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) throw new Error('User not authenticated');
+  const userId = await requireAuthUserIdFromClaims();
 
   // Get image details first
   const { data: image, error: fetchError } = await supabase
@@ -298,7 +296,7 @@ export const deleteEquipmentNoteImage = async (imageId: string): Promise<void> =
   if (!image) throw new Error('Image not found');
 
   // Check if user can delete (must be uploader or admin)
-  if (image.uploaded_by !== userData.user.id) {
+  if (image.uploaded_by !== userId) {
     throw new Error('Not authorized to delete this image');
   }
 

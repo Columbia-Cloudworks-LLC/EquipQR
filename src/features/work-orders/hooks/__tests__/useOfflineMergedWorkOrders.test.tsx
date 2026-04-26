@@ -50,7 +50,11 @@ const mockEquipmentData = [
 ];
 
 vi.mock('@/features/equipment/hooks/useEquipment', () => ({
+  // The hook now consumes the lightweight summaries projection. The test
+  // fixture's shape (id/name/team) is a strict subset of `EquipmentSummary`,
+  // so the same mock data drives both names.
   useEquipment: () => ({ data: mockEquipmentData }),
+  useEquipmentSummaries: () => ({ data: mockEquipmentData }),
 }));
 
 vi.mock('sonner', () => ({

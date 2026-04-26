@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { validateStorageQuota } from '@/utils/storageQuota';
 import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
+import { getAuthClaims } from '@/lib/authClaims';
 
 // Import and re-export unified types from the single source of truth
 import {
@@ -33,7 +34,14 @@ export type {
  */
 export interface WorkOrderFilters extends FilterParams, WorkOrderServiceFilters {}
 
-// Optimized select query string with all joins
+// Optimized select query string with all joins.
+//
+// `status`, `default_pm_template_id`, and `customer_id` are intentionally
+// included in the embedded equipment block so the work-order detail page can
+// stop issuing a second `useEquipmentById` round-trip just to read those
+// three fields. The added columns are tiny (uuid + enum), so the per-row
+// payload cost on the work-order list query stays negligible while every WO
+// detail open on Slow 4G saves a full equipment row fetch.
 const WORK_ORDER_SELECT = `
   *,
   assignee:profiles!work_orders_assignee_id_fkey (
@@ -42,14 +50,19 @@ const WORK_ORDER_SELECT = `
   ),
   equipment:equipment!work_orders_equipment_id_fkey (
     id,
+    organization_id,
     name,
     manufacturer,
     model,
     serial_number,
+    status,
     working_hours,
     image_url,
     team_id,
     location,
+    customer_id,
+    default_pm_template_id,
+    custom_attributes,
     use_team_location,
     last_known_location,
     assigned_location_lat,
@@ -77,21 +90,28 @@ const WORK_ORDER_SELECT = `
   )
 `;
 
+const WORK_ORDER_LIST_SELECT = WORK_ORDER_SELECT.replace(/^ *custom_attributes,\r?\n/m, '');
+
 /**
  * Maps raw Supabase row to WorkOrder with computed fields
  */
 function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
   const assignee = wo.assignee as { id?: string; name?: string } | null;
-  const equipment = wo.equipment as { 
-    id?: string; 
-    name?: string; 
-    manufacturer?: string;
-    model?: string;
-    serial_number?: string;
+  const equipment = wo.equipment as {
+    id?: string;
+    organization_id?: string;
+    name?: string;
+    manufacturer?: string | null;
+    model?: string | null;
+    serial_number?: string | null;
+    status?: string;
     working_hours?: number | null;
     image_url?: string | null;
     team_id?: string;
     location?: string;
+    customer_id?: string | null;
+    default_pm_template_id?: string | null;
+    custom_attributes?: Record<string, unknown> | null;
     use_team_location?: boolean;
     last_known_location?: { latitude?: number; longitude?: number } | null;
     assigned_location_lat?: number | null;
@@ -203,6 +223,50 @@ function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
       location_lat: equipment.teams.location_lat,
       location_lng: equipment.teams.location_lng,
     } : null,
+    // Embedded equipment record so the work-order detail page can drop the
+    // duplicate `useEquipmentById` round-trip — every field consumers read
+    // (id/name/status/team_id/location/last_known_location/customer_id/
+    // default_pm_template_id) is now part of `WORK_ORDER_SELECT`.
+    equipment: equipment?.id
+      ? {
+          id: equipment.id,
+          organization_id: equipment.organization_id ?? (wo.organization_id as string),
+          name: equipment.name ?? '',
+          manufacturer: equipment.manufacturer ?? null,
+          model: equipment.model ?? null,
+          serial_number: equipment.serial_number ?? null,
+          status: (equipment.status ?? 'active') as 'active' | 'maintenance' | 'inactive',
+          working_hours: equipment.working_hours ?? null,
+          image_url: equipment.image_url ?? null,
+          team_id: equipment.team_id ?? null,
+          location: equipment.location ?? null,
+          customer_id: equipment.customer_id ?? null,
+          default_pm_template_id: equipment.default_pm_template_id ?? null,
+          custom_attributes: equipment.custom_attributes ?? null,
+          use_team_location: equipment.use_team_location ?? null,
+          last_known_location: equipment.last_known_location ?? null,
+          assigned_location_lat: equipment.assigned_location_lat ?? null,
+          assigned_location_lng: equipment.assigned_location_lng ?? null,
+          assigned_location_street: equipment.assigned_location_street ?? null,
+          assigned_location_city: equipment.assigned_location_city ?? null,
+          assigned_location_state: equipment.assigned_location_state ?? null,
+          assigned_location_country: equipment.assigned_location_country ?? null,
+          team: equipment.teams?.id
+            ? {
+                id: equipment.teams.id,
+                name: equipment.teams.name ?? '',
+                description: equipment.teams.description || undefined,
+                override_equipment_location: equipment.teams.override_equipment_location,
+                location_lat: equipment.teams.location_lat,
+                location_lng: equipment.teams.location_lng,
+                location_address: equipment.teams.location_address,
+                location_city: equipment.teams.location_city,
+                location_state: equipment.teams.location_state,
+                location_country: equipment.teams.location_country,
+              }
+            : null,
+        }
+      : null,
   };
 }
 
@@ -218,7 +282,7 @@ export class WorkOrderService extends BaseService {
     try {
       let query = supabase
         .from('work_orders')
-        .select(WORK_ORDER_SELECT)
+        .select(WORK_ORDER_LIST_SELECT)
         .eq('organization_id', this.organizationId);
 
       // Apply team-based access control filtering
@@ -799,8 +863,8 @@ export class WorkOrderService extends BaseService {
     noteData: WorkOrderNoteCreateData
   ): Promise<ApiResponse<WorkOrderNote>> {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
+      const claims = await getAuthClaims();
+      if (!claims) {
         return this.handleError(new Error('User not authenticated'));
       }
 
@@ -820,7 +884,7 @@ export class WorkOrderService extends BaseService {
         .from('work_order_notes')
         .insert({
           work_order_id: workOrderId,
-          author_id: userData.user.id,
+          author_id: claims.sub,
           content: noteData.content,
           hours_worked: noteData.hours_worked || 0,
           is_private: noteData.is_private || false
@@ -837,7 +901,7 @@ export class WorkOrderService extends BaseService {
       const { data: profile } = await supabase
         .from('profiles')
         .select('id, name')
-        .eq('id', userData.user.id)
+        .eq('id', claims.sub)
         .single();
 
       return this.handleSuccess({
@@ -859,8 +923,8 @@ export class WorkOrderService extends BaseService {
     images: File[]
   ): Promise<ApiResponse<WorkOrderNote>> {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
+      const claims = await getAuthClaims();
+      if (!claims) {
         return this.handleError(new Error('User not authenticated'));
       }
 
@@ -881,7 +945,7 @@ export class WorkOrderService extends BaseService {
       for (const file of images) {
         try {
           const fileExt = file.name.split('.').pop();
-          const fileName = `${userData.user.id}/${workOrderId}/${note.id}/${Date.now()}.${fileExt}`;
+          const fileName = `${claims.sub}/${workOrderId}/${note.id}/${Date.now()}.${fileExt}`;
           
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('work-order-images')
@@ -905,7 +969,7 @@ export class WorkOrderService extends BaseService {
               file_url: publicUrl,
               file_size: file.size,
               mime_type: file.type,
-              uploaded_by: userData.user.id,
+              uploaded_by: claims.sub,
               description: `Attached to note: ${note.id}`
             })
             .select()
@@ -1000,8 +1064,8 @@ export class WorkOrderService extends BaseService {
     description?: string
   ): Promise<ApiResponse<WorkOrderImage>> {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
+      const claims = await getAuthClaims();
+      if (!claims) {
         return this.handleError(new Error('User not authenticated'));
       }
 
@@ -1022,7 +1086,7 @@ export class WorkOrderService extends BaseService {
 
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
-      const fileName = `${userData.user.id}/${workOrderId}/${Date.now()}.${fileExt}`;
+      const fileName = `${claims.sub}/${workOrderId}/${Date.now()}.${fileExt}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('work-order-images')
@@ -1043,7 +1107,7 @@ export class WorkOrderService extends BaseService {
         .from('work_order_images')
         .insert({
           work_order_id: workOrderId,
-          uploaded_by: userData.user.id,
+          uploaded_by: claims.sub,
           file_name: file.name,
           file_url: publicUrl,
           file_size: file.size,
@@ -1062,7 +1126,7 @@ export class WorkOrderService extends BaseService {
       const { data: profile } = await supabase
         .from('profiles')
         .select('id, name')
-        .eq('id', userData.user.id)
+        .eq('id', claims.sub)
         .single();
 
       return this.handleSuccess({
@@ -1079,8 +1143,8 @@ export class WorkOrderService extends BaseService {
    */
   async deleteImage(imageId: string): Promise<ApiResponse<boolean>> {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
+      const claims = await getAuthClaims();
+      if (!claims) {
         return this.handleError(new Error('User not authenticated'));
       }
 
@@ -1107,7 +1171,7 @@ export class WorkOrderService extends BaseService {
       }
 
       // Check if user can delete (must be uploader or have admin permissions)
-      if (image.uploaded_by !== userData.user.id) {
+      if (image.uploaded_by !== claims.sub) {
         return this.handleError(new Error('Not authorized to delete this image'));
       }
 
