@@ -90,7 +90,7 @@ const WORK_ORDER_SELECT = `
   )
 `;
 
-const WORK_ORDER_LIST_SELECT = WORK_ORDER_SELECT.replace(/\s+custom_attributes,\n/, '\n');
+const WORK_ORDER_LIST_SELECT = WORK_ORDER_SELECT.replace(/^ *custom_attributes,\r?\n/m, '');
 
 /**
  * Maps raw Supabase row to WorkOrder with computed fields
