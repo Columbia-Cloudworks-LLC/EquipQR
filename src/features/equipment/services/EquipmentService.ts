@@ -798,8 +798,15 @@ export class EquipmentService {
         return handleError(new Error('User not authenticated'));
       }
 
-      const equipmentResult = await EquipmentService.getById(organizationId, equipmentId);
-      if (!equipmentResult.success || !equipmentResult.data) {
+      // Narrow existence check — avoids a full select('*') + team join just to validate
+      // that the equipment belongs to this org. RLS still enforces tenancy at the DB layer.
+      const { data: equip, error: equipError } = await supabase
+        .from('equipment')
+        .select('id')
+        .eq('id', equipmentId)
+        .eq('organization_id', organizationId)
+        .single();
+      if (equipError || !equip) {
         return handleError(new Error('Equipment not found or access denied'));
       }
 

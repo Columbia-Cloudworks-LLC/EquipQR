@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,26 +15,45 @@ import type { EquipmentTeamSummary } from '@/features/equipment/services/Equipme
 import { useIsMobile } from '@/hooks/use-mobile';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
+// Eager: critical for first-paint on the default Details tab
 import EquipmentDetailsTab from '@/features/equipment/components/EquipmentDetailsTab';
-import EquipmentNotesTab from '@/features/equipment/components/EquipmentNotesTab';
-import EquipmentWorkOrdersTab from '@/features/equipment/components/EquipmentWorkOrdersTab';
-import EquipmentPartsTab from '@/features/equipment/components/EquipmentPartsTab';
-import EquipmentImagesTab from '@/features/equipment/components/EquipmentImagesTab';
-import EquipmentScansTab from '@/features/equipment/components/EquipmentScansTab';
-import { HistoryTab } from '@/components/audit';
-
 import MobileEquipmentHeader from '@/features/equipment/components/MobileEquipmentHeader';
 import MobileEquipmentActionBar from '@/features/equipment/components/MobileEquipmentActionBar';
 import ResponsiveEquipmentTabs from '@/features/equipment/components/ResponsiveEquipmentTabs';
-import WorkOrderForm from '@/features/work-orders/components/WorkOrderForm';
-import QRCodeDisplay from '@/features/equipment/components/QRCodeDisplay';
-import { DeleteEquipmentDialog } from '@/features/equipment/components/DeleteEquipmentDialog';
-import { WorkingHoursTimelineModal } from '@/features/equipment/components/WorkingHoursTimelineModal';
+
+// Lazy: secondary tabs — deferred until the user selects each tab
+const EquipmentNotesTab = lazy(() => import('@/features/equipment/components/EquipmentNotesTab'));
+const EquipmentWorkOrdersTab = lazy(() => import('@/features/equipment/components/EquipmentWorkOrdersTab'));
+const EquipmentPartsTab = lazy(() => import('@/features/equipment/components/EquipmentPartsTab'));
+const EquipmentImagesTab = lazy(() => import('@/features/equipment/components/EquipmentImagesTab'));
+const EquipmentScansTab = lazy(() => import('@/features/equipment/components/EquipmentScansTab'));
+const HistoryTab = lazy(() =>
+  import('@/components/audit').then(m => ({ default: m.HistoryTab }))
+);
+
+// Lazy: modals/forms — deferred until opened
+const WorkOrderForm = lazy(() => import('@/features/work-orders/components/WorkOrderForm'));
+const QRCodeDisplay = lazy(() => import('@/features/equipment/components/QRCodeDisplay'));
+const DeleteEquipmentDialog = lazy(() =>
+  import('@/features/equipment/components/DeleteEquipmentDialog').then(m => ({ default: m.DeleteEquipmentDialog }))
+);
+const WorkingHoursTimelineModal = lazy(() =>
+  import('@/features/equipment/components/WorkingHoursTimelineModal').then(m => ({ default: m.WorkingHoursTimelineModal }))
+);
 import { useCreateScan } from '@/features/equipment/hooks/useEquipment';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+/** Skeleton shown while a lazy tab chunk downloads on first selection. */
+const TabContentSkeleton = () => (
+  <div className="space-y-4 mt-2" role="status" aria-label="Loading tab content">
+    {[0, 1, 2].map(i => (
+      <div key={i} className="h-24 w-full animate-pulse rounded-lg bg-muted" />
+    ))}
+  </div>
+);
 
 const EquipmentDetails = () => {
   const { equipmentId } = useParams<{ equipmentId: string }>();
@@ -549,58 +568,84 @@ const EquipmentDetails = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
       >
+        {/* Details tab is always eager — it is the default first-paint surface */}
         <TabsContent value="details">
           <EquipmentDetailsTab equipment={equipment} assignedTeam={assignedTeam} />
         </TabsContent>
 
+        {/* Secondary tabs: lazy-loaded and only mounted when the tab is active.
+            TanStack Query staleTime handles re-use of cached data on re-selection. */}
         <TabsContent value="notes">
-          <EquipmentNotesTab
-            equipmentId={equipment.id}
-            currentDisplayImage={equipment.image_url}
-          />
+          {activeTab === 'notes' && (
+            <Suspense fallback={<TabContentSkeleton />}>
+              <EquipmentNotesTab
+                equipmentId={equipment.id}
+                currentDisplayImage={equipment.image_url}
+              />
+            </Suspense>
+          )}
         </TabsContent>
 
         <TabsContent value="work-orders">
-          <EquipmentWorkOrdersTab 
-            equipmentId={equipment.id} 
-            organizationId={currentOrganization.id}
-            onCreateWorkOrder={handleCreateWorkOrder}
-            equipmentManufacturer={equipment.manufacturer}
-            equipmentModel={equipment.model}
-            equipmentSerialNumber={equipment.serial_number}
-          />
+          {activeTab === 'work-orders' && (
+            <Suspense fallback={<TabContentSkeleton />}>
+              <EquipmentWorkOrdersTab 
+                equipmentId={equipment.id} 
+                organizationId={currentOrganization.id}
+                onCreateWorkOrder={handleCreateWorkOrder}
+                equipmentManufacturer={equipment.manufacturer}
+                equipmentModel={equipment.model}
+                equipmentSerialNumber={equipment.serial_number}
+              />
+            </Suspense>
+          )}
         </TabsContent>
 
         <TabsContent value="parts">
-          <EquipmentPartsTab 
-            equipmentId={equipment.id} 
-            organizationId={currentOrganization.id}
-          />
+          {activeTab === 'parts' && (
+            <Suspense fallback={<TabContentSkeleton />}>
+              <EquipmentPartsTab 
+                equipmentId={equipment.id} 
+                organizationId={currentOrganization.id}
+              />
+            </Suspense>
+          )}
         </TabsContent>
 
         <TabsContent value="images">
-          <EquipmentImagesTab 
-            equipmentId={equipment.id} 
-            organizationId={currentOrganization.id}
-            equipmentTeamId={equipment.team_id || undefined}
-            currentDisplayImage={equipment.image_url || undefined}
-          />
+          {activeTab === 'images' && (
+            <Suspense fallback={<TabContentSkeleton />}>
+              <EquipmentImagesTab 
+                equipmentId={equipment.id} 
+                organizationId={currentOrganization.id}
+                equipmentTeamId={equipment.team_id || undefined}
+                currentDisplayImage={equipment.image_url || undefined}
+              />
+            </Suspense>
+          )}
         </TabsContent>
 
-
         <TabsContent value="scans">
-          <EquipmentScansTab 
-            equipmentId={equipment.id} 
-            organizationId={currentOrganization.id}
-          />
+          {activeTab === 'scans' && (
+            <Suspense fallback={<TabContentSkeleton />}>
+              <EquipmentScansTab 
+                equipmentId={equipment.id} 
+                organizationId={currentOrganization.id}
+              />
+            </Suspense>
+          )}
         </TabsContent>
 
         <TabsContent value="history">
-          <HistoryTab 
-            entityType="equipment"
-            entityId={equipment.id} 
-            organizationId={currentOrganization.id}
-          />
+          {activeTab === 'history' && (
+            <Suspense fallback={<TabContentSkeleton />}>
+              <HistoryTab 
+                entityType="equipment"
+                entityId={equipment.id} 
+                organizationId={currentOrganization.id}
+              />
+            </Suspense>
+          )}
         </TabsContent>
       </ResponsiveEquipmentTabs>
 
@@ -630,40 +675,51 @@ const EquipmentDetails = () => {
         </div>
       )}
 
-      {/* Work Order Form */}
-      <WorkOrderForm
-        open={isWorkOrderFormOpen}
-        onClose={handleCloseWorkOrderForm}
-        equipmentId={equipmentId}
-      />
-
-      {/* QR Code Display */}
-      <QRCodeDisplay
-        open={isQRCodeOpen}
-        onClose={handleCloseQRCode}
-        equipmentId={equipment.id}
-        equipmentName={equipment.name}
-      />
-
-      {/* Delete Equipment Dialog */}
-      {isAdmin && (
-        <DeleteEquipmentDialog
-          open={isDeleteDialogOpen}
-          onOpenChange={setIsDeleteDialogOpen}
-          equipmentId={equipment.id}
-          equipmentName={equipment.name}
-          orgId={currentOrganization.id}
-          onSuccess={handleDeleteSuccess}
-        />
+      {/* Modals: lazy-loaded, mounted only when open to avoid eager chunk download */}
+      {isWorkOrderFormOpen && (
+        <Suspense fallback={null}>
+          <WorkOrderForm
+            open={isWorkOrderFormOpen}
+            onClose={handleCloseWorkOrderForm}
+            equipmentId={equipmentId}
+          />
+        </Suspense>
       )}
 
-      {/* Working Hours Timeline Modal */}
-      <WorkingHoursTimelineModal
-        open={isWorkingHoursModalOpen}
-        onClose={handleCloseWorkingHours}
-        equipmentId={equipment.id}
-        equipmentName={equipment.name}
-      />
+      {isQRCodeOpen && (
+        <Suspense fallback={null}>
+          <QRCodeDisplay
+            open={isQRCodeOpen}
+            onClose={handleCloseQRCode}
+            equipmentId={equipment.id}
+            equipmentName={equipment.name}
+          />
+        </Suspense>
+      )}
+
+      {isAdmin && isDeleteDialogOpen && (
+        <Suspense fallback={null}>
+          <DeleteEquipmentDialog
+            open={isDeleteDialogOpen}
+            onOpenChange={setIsDeleteDialogOpen}
+            equipmentId={equipment.id}
+            equipmentName={equipment.name}
+            orgId={currentOrganization.id}
+            onSuccess={handleDeleteSuccess}
+          />
+        </Suspense>
+      )}
+
+      {isWorkingHoursModalOpen && (
+        <Suspense fallback={null}>
+          <WorkingHoursTimelineModal
+            open={isWorkingHoursModalOpen}
+            onClose={handleCloseWorkingHours}
+            equipmentId={equipment.id}
+            equipmentName={equipment.name}
+          />
+        </Suspense>
+      )}
       </div>
     </Page>
   );
