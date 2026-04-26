@@ -1,6 +1,7 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
+import { getAuthClaims } from '@/lib/authClaims';
 
 // Use native Supabase types directly
 export type Equipment = Tables<'equipment'>;
@@ -433,8 +434,8 @@ export const createScan = async (
   notes?: string
 ): Promise<Scan | null> => {
   try {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
+    const claims = await getAuthClaims();
+    if (!claims) {
       logger.error('User not authenticated');
       return null;
     }
@@ -443,7 +444,7 @@ export const createScan = async (
       .from('scans')
       .insert({
         equipment_id: equipmentId,
-        scanned_by: userData.user.id,
+        scanned_by: claims.sub,
         location: location || null,
         notes: notes || null
       })
@@ -459,7 +460,7 @@ export const createScan = async (
     const { data: profile } = await supabase
       .from('profiles')
       .select('id, name')
-      .eq('id', userData.user.id)
+      .eq('id', claims.sub)
       .single();
 
     return {
@@ -540,8 +541,8 @@ export const createWorkOrder = async (
   workOrderData: Omit<WorkOrder, 'id' | 'created_date' | 'updated_at' | 'organization_id' | 'assigneeName' | 'teamName' | 'completed_date' | 'created_by'>
 ): Promise<WorkOrder | null> => {
   try {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
+    const claims = await getAuthClaims();
+    if (!claims) {
       logger.error('User not authenticated');
       return null;
     }
@@ -550,7 +551,7 @@ export const createWorkOrder = async (
       .from('work_orders')
       .insert({
         organization_id: organizationId,
-        created_by: userData.user.id,
+        created_by: claims.sub,
         ...workOrderData
       })
       .select()
@@ -585,8 +586,8 @@ export const createNote = async (
   isPrivate: boolean = false
 ): Promise<Note | null> => {
   try {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
+    const claims = await getAuthClaims();
+    if (!claims) {
       logger.error('User not authenticated');
       return null;
     }
@@ -596,7 +597,7 @@ export const createNote = async (
       .insert({
         equipment_id: equipmentId,
         content,
-        author_id: userData.user.id,
+        author_id: claims.sub,
         is_private: isPrivate
       })
       .select()
@@ -611,7 +612,7 @@ export const createNote = async (
     const { data: profile } = await supabase
       .from('profiles')
       .select('id, name')
-      .eq('id', userData.user.id)
+      .eq('id', claims.sub)
       .single();
 
     return {
