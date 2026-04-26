@@ -37,15 +37,6 @@ export const MFA_ENABLED = import.meta.env.VITE_ENABLE_MFA === 'true';
 export const OFFLINE_QUEUE_ENABLED = import.meta.env.VITE_ENABLE_OFFLINE_QUEUE === 'true';
 
 /**
- * Controls whether the DSR cockpit workspace is enabled.
- * When enabled, org admins/owners can access the compliance cockpit route.
- *
- * Set via environment variable: VITE_ENABLE_DSR_COCKPIT
- * Defaults to false (disabled) unless explicitly set to 'true'.
- */
-export const DSR_COCKPIT_ENABLED = import.meta.env.VITE_ENABLE_DSR_COCKPIT === 'true';
-
-/**
  * Feature flag accessor utility
  */
 export const FeatureFlags = {
@@ -60,10 +51,6 @@ export const FeatureFlags = {
   offlineQueue: {
     enabled: OFFLINE_QUEUE_ENABLED,
     disabled: !OFFLINE_QUEUE_ENABLED
-  },
-  dsrCockpit: {
-    enabled: DSR_COCKPIT_ENABLED,
-    disabled: !DSR_COCKPIT_ENABLED
   }
 } as const;
 
@@ -99,10 +86,3 @@ export function isOfflineQueueEnabled(): boolean {
   return OFFLINE_QUEUE_ENABLED;
 }
 
-/**
- * Check if DSR cockpit is enabled
- * @returns true if cockpit features should be active
- */
-export function isDSRCockpitEnabled(): boolean {
-  return DSR_COCKPIT_ENABLED;
-}
