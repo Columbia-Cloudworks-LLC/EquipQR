@@ -23,6 +23,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { getAuthClaims, requireAuthClaims } from '@/lib/authClaims';
 
 // VAPID public key from environment
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
@@ -90,8 +91,8 @@ export function usePushNotifications() {
   const { data: existingSubscription, isLoading: isLoadingSubscription } = useQuery({
     queryKey: ['push-subscription'],
     queryFn: async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return null;
+      const claims = await getAuthClaims();
+      if (!claims) return null;
 
       // Check if service worker is registered before accessing ready
       const registrations = await navigator.serviceWorker.getRegistrations();
@@ -108,7 +109,7 @@ export function usePushNotifications() {
       const { data, error } = await supabase
         .from('push_subscriptions')
         .select('id, endpoint')
-        .eq('user_id', userData.user.id)
+        .eq('user_id', claims.sub)
         .eq('endpoint', subscription.endpoint)
         .maybeSingle();
 
@@ -183,10 +184,7 @@ export function usePushNotifications() {
       }
 
       // Get user
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        throw new Error('You must be logged in to enable push notifications');
-      }
+      const claims = await requireAuthClaims('You must be logged in to enable push notifications');
 
       // Request notification permission
       const permission = await Notification.requestPermission();
@@ -219,7 +217,7 @@ export function usePushNotifications() {
       const { error } = await supabase
         .from('push_subscriptions')
         .upsert({
-          user_id: userData.user.id,
+          user_id: claims.sub,
           endpoint: subscription.endpoint,
           p256dh: arrayBufferToBase64(p256dhKey),
           auth: arrayBufferToBase64(authKey),
@@ -251,10 +249,7 @@ export function usePushNotifications() {
   // Unsubscribe mutation
   const unsubscribeMutation = useMutation({
     mutationFn: async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        throw new Error('You must be logged in');
-      }
+      const claims = await requireAuthClaims('You must be logged in');
 
       // Check if service worker is registered before accessing ready
       const registrations = await navigator.serviceWorker.getRegistrations();
@@ -273,7 +268,7 @@ export function usePushNotifications() {
         await supabase
           .from('push_subscriptions')
           .delete()
-          .eq('user_id', userData.user.id)
+          .eq('user_id', claims.sub)
           .eq('endpoint', subscription.endpoint);
 
         // Unsubscribe from push

@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { getAuthClaims } from '@/lib/authClaims';
 
 export interface NotificationSetting {
   id: string;
@@ -30,11 +31,11 @@ export const useUserTeamsForNotifications = () => {
   return useQuery({
     queryKey: ['user-teams-notifications'],
     queryFn: async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return [];
+      const claims = await getAuthClaims();
+      if (!claims) return [];
 
       const { data, error } = await supabase.rpc('get_user_teams_for_notifications', {
-        user_uuid: userData.user.id
+        user_uuid: claims.sub
       });
 
       if (error) throw error;
@@ -48,13 +49,13 @@ export const useNotificationSettings = () => {
   return useQuery({
     queryKey: ['notification-settings'],
     queryFn: async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return [];
+      const claims = await getAuthClaims();
+      if (!claims) return [];
 
       const { data, error } = await supabase
         .from('notification_settings')
         .select('*')
-        .eq('user_id', userData.user.id);
+        .eq('user_id', claims.sub);
 
       if (error) throw error;
       return data as NotificationSetting[];
@@ -78,13 +79,13 @@ export const useUpdateNotificationSettings = () => {
       enabled: boolean;
       statuses: string[];
     }) => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('User not authenticated');
+      const claims = await getAuthClaims();
+      if (!claims) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
         .from('notification_settings')
         .upsert({
-          user_id: userData.user.id,
+          user_id: claims.sub,
           organization_id: organizationId,
           team_id: teamId,
           enabled,
@@ -115,15 +116,15 @@ export const useRealTimeNotifications = (organizationId: string) => {
   return useQuery({
     queryKey: ['notifications', organizationId],
     queryFn: async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return [];
+      const claims = await getAuthClaims();
+      if (!claims) return [];
 
       // Fetch org-specific notifications
       const { data: orgNotifications, error: orgError } = await supabase
         .from('notifications')
         .select('*')
         .eq('organization_id', organizationId)
-        .eq('user_id', userData.user.id)
+        .eq('user_id', claims.sub)
         .eq('is_global', false)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -134,7 +135,7 @@ export const useRealTimeNotifications = (organizationId: string) => {
       const { data: globalNotifications, error: globalError } = await supabase
         .from('notifications')
         .select('*')
-        .eq('user_id', userData.user.id)
+        .eq('user_id', claims.sub)
         .eq('is_global', true)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -186,10 +187,10 @@ export const useNotificationSubscription = (organizationId: string) => {
     const setupSubscription = async () => {
       try {
         // Get current user
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user || !isMounted) return;
+        const claims = await getAuthClaims();
+        if (!claims || !isMounted) return;
 
-        const userId = userData.user.id;
+        const userId = claims.sub;
         userIdRef.current = userId;
 
         // Clean up any existing channel for this user
@@ -269,13 +270,13 @@ export const useMarkAllNotificationsAsRead = () => {
 
   return useMutation({
     mutationFn: async (organizationId: string) => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('User not authenticated');
+      const claims = await getAuthClaims();
+      if (!claims) throw new Error('User not authenticated');
 
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
-        .eq('user_id', userData.user.id)
+        .eq('user_id', claims.sub)
         .eq('organization_id', organizationId)
         .eq('read', false);
 
