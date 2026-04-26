@@ -1,5 +1,6 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { getAuthClaims } from '@/lib/authClaims';
 
 export interface EquipmentOrganizationInfo {
   equipmentId: string;
@@ -41,8 +42,8 @@ export const getEquipmentOrganization = async (equipmentId: string): Promise<Equ
     }
 
     // Check if current user has access to this organization
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const claims = await getAuthClaims();
+    if (!claims) {
       logger.info('❌ No authenticated user');
       return null;
     }
@@ -51,7 +52,7 @@ export const getEquipmentOrganization = async (equipmentId: string): Promise<Equ
       .from('organization_members')
       .select('role, status')
       .eq('organization_id', equipment.organization_id)
-      .eq('user_id', user.id)
+      .eq('user_id', claims.sub)
       .eq('status', 'active')
       .maybeSingle();
 
