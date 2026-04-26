@@ -44,9 +44,9 @@ export interface EquipmentSummary {
   id: string;
   organization_id: string;
   name: string;
-  manufacturer: string;
-  model: string;
-  serial_number: string;
+  manufacturer: string | null;
+  model: string | null;
+  serial_number: string | null;
   status: Equipment['status'];
   team_id: string | null;
   location: string | null;
