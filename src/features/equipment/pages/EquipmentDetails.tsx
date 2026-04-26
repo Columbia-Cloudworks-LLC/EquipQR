@@ -71,7 +71,7 @@ const EquipmentDetails = () => {
   });
 
   const assignedTeam = (equipment?.team ?? null) as EquipmentTeamSummary | null;
-  const { isLoaded: isMapsLoaded } = useGoogleMapsLoader({ enabled: !isQRScan });
+  const { isLoaded: isMapsLoaded } = useGoogleMapsLoader({ enabled: true });
 
   const isLoading = orgLoading || equipmentLoading;
 
