@@ -19,7 +19,7 @@ const LANDING_PAGE_IMAGES_BUCKET_PATH = '/storage/v1/object/public/landing-page-
  *
  * @example
  * landingImage('work-orders-list.png');
- * // => 'https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/work-orders-list.png'
+ * // => '<VITE_SUPABASE_URL>/storage/v1/object/public/landing-page-images/work-orders-list.png'
  */
 export function landingImage(filename: string): string {
   const rawSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
