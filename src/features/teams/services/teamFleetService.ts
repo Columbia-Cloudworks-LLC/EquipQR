@@ -270,7 +270,7 @@ export const getTeamEquipmentWithLocations = async (
           .order('scanned_at', { ascending: false });
 
         if (scansError) {
-          logger.warn('Failed to batch-fetch scan locations', scansError);
+          logger.error('Failed to batch-fetch scan locations', scansError);
         } else {
           for (const scan of scans || []) {
             if (!scan.location) continue;
@@ -284,7 +284,7 @@ export const getTeamEquipmentWithLocations = async (
           }
         }
       } catch (error) {
-        logger.warn('Unexpected error in batched scan fetch', error);
+        logger.error('Unexpected error in batched scan fetch', error);
       }
     }
 
