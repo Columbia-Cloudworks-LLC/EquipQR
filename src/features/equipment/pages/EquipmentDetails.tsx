@@ -55,7 +55,11 @@ const EquipmentDetails = () => {
 
   const { user } = useAuth();
 
-  const { data: userPrivacyPrefs, isLoading: privacyPrefsLoading } = useQuery({
+  // isPending (not isLoading) correctly blocks logScan during the brief window
+  // where the query just became enabled but hasn't started fetching yet.
+  // isLoading = isPending && isFetching, so it is false when enabled:false → enabled:true
+  // transitions, creating a race where logScan fires before prefs are known.
+  const { data: userPrivacyPrefs, isPending: privacyPrefsLoading } = useQuery({
     queryKey: ['profile-privacy', user?.id],
     queryFn: async () => {
       if (!user) return null;
