@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { validateStorageQuota } from '@/utils/storageQuota';
 import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
+import { getAuthClaims } from '@/lib/authClaims';
 
 // Import and re-export unified types from the single source of truth
 import {
@@ -799,8 +800,8 @@ export class WorkOrderService extends BaseService {
     noteData: WorkOrderNoteCreateData
   ): Promise<ApiResponse<WorkOrderNote>> {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
+      const claims = await getAuthClaims();
+      if (!claims) {
         return this.handleError(new Error('User not authenticated'));
       }
 
@@ -820,7 +821,7 @@ export class WorkOrderService extends BaseService {
         .from('work_order_notes')
         .insert({
           work_order_id: workOrderId,
-          author_id: userData.user.id,
+          author_id: claims.sub,
           content: noteData.content,
           hours_worked: noteData.hours_worked || 0,
           is_private: noteData.is_private || false
@@ -837,7 +838,7 @@ export class WorkOrderService extends BaseService {
       const { data: profile } = await supabase
         .from('profiles')
         .select('id, name')
-        .eq('id', userData.user.id)
+        .eq('id', claims.sub)
         .single();
 
       return this.handleSuccess({
@@ -859,8 +860,8 @@ export class WorkOrderService extends BaseService {
     images: File[]
   ): Promise<ApiResponse<WorkOrderNote>> {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
+      const claims = await getAuthClaims();
+      if (!claims) {
         return this.handleError(new Error('User not authenticated'));
       }
 
@@ -881,7 +882,7 @@ export class WorkOrderService extends BaseService {
       for (const file of images) {
         try {
           const fileExt = file.name.split('.').pop();
-          const fileName = `${userData.user.id}/${workOrderId}/${note.id}/${Date.now()}.${fileExt}`;
+          const fileName = `${claims.sub}/${workOrderId}/${note.id}/${Date.now()}.${fileExt}`;
           
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('work-order-images')
@@ -905,7 +906,7 @@ export class WorkOrderService extends BaseService {
               file_url: publicUrl,
               file_size: file.size,
               mime_type: file.type,
-              uploaded_by: userData.user.id,
+              uploaded_by: claims.sub,
               description: `Attached to note: ${note.id}`
             })
             .select()
@@ -1000,8 +1001,8 @@ export class WorkOrderService extends BaseService {
     description?: string
   ): Promise<ApiResponse<WorkOrderImage>> {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
+      const claims = await getAuthClaims();
+      if (!claims) {
         return this.handleError(new Error('User not authenticated'));
       }
 
@@ -1022,7 +1023,7 @@ export class WorkOrderService extends BaseService {
 
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
-      const fileName = `${userData.user.id}/${workOrderId}/${Date.now()}.${fileExt}`;
+      const fileName = `${claims.sub}/${workOrderId}/${Date.now()}.${fileExt}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('work-order-images')
@@ -1043,7 +1044,7 @@ export class WorkOrderService extends BaseService {
         .from('work_order_images')
         .insert({
           work_order_id: workOrderId,
-          uploaded_by: userData.user.id,
+          uploaded_by: claims.sub,
           file_name: file.name,
           file_url: publicUrl,
           file_size: file.size,
@@ -1062,7 +1063,7 @@ export class WorkOrderService extends BaseService {
       const { data: profile } = await supabase
         .from('profiles')
         .select('id, name')
-        .eq('id', userData.user.id)
+        .eq('id', claims.sub)
         .single();
 
       return this.handleSuccess({
@@ -1079,8 +1080,8 @@ export class WorkOrderService extends BaseService {
    */
   async deleteImage(imageId: string): Promise<ApiResponse<boolean>> {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
+      const claims = await getAuthClaims();
+      if (!claims) {
         return this.handleError(new Error('User not authenticated'));
       }
 
@@ -1107,7 +1108,7 @@ export class WorkOrderService extends BaseService {
       }
 
       // Check if user can delete (must be uploader or have admin permissions)
-      if (image.uploaded_by !== userData.user.id) {
+      if (image.uploaded_by !== claims.sub) {
         return this.handleError(new Error('Not authorized to delete this image'));
       }
 
