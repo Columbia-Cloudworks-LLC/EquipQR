@@ -342,16 +342,14 @@ export const useCreateScan = (organizationId: string | undefined) => {
   const { toast } = useAppToast();
 
   return useMutation({
-    mutationFn: async ({ equipmentId, location, notes, validateEquipment, includeProfile }: { 
+    mutationFn: async ({ equipmentId, location, notes, includeProfile }: {
       equipmentId: string; 
       location?: string; 
       notes?: string;
-      validateEquipment?: boolean;
       includeProfile?: boolean;
     }) => {
       if (!organizationId) throw new Error('Organization ID required');
       const result = await EquipmentService.createScan(organizationId, equipmentId, location, notes, {
-        validateEquipment,
         includeProfile,
       });
       if (result.success && result.data) {

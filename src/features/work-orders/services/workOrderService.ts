@@ -50,6 +50,7 @@ const WORK_ORDER_SELECT = `
   ),
   equipment:equipment!work_orders_equipment_id_fkey (
     id,
+    organization_id,
     name,
     manufacturer,
     model,
@@ -89,6 +90,8 @@ const WORK_ORDER_SELECT = `
   )
 `;
 
+const WORK_ORDER_LIST_SELECT = WORK_ORDER_SELECT.replace(/\s+custom_attributes,\n/, '\n');
+
 /**
  * Maps raw Supabase row to WorkOrder with computed fields
  */
@@ -96,10 +99,11 @@ function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
   const assignee = wo.assignee as { id?: string; name?: string } | null;
   const equipment = wo.equipment as {
     id?: string;
+    organization_id?: string;
     name?: string;
-    manufacturer?: string;
-    model?: string;
-    serial_number?: string;
+    manufacturer?: string | null;
+    model?: string | null;
+    serial_number?: string | null;
     status?: string;
     working_hours?: number | null;
     image_url?: string | null;
@@ -226,10 +230,11 @@ function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
     equipment: equipment?.id
       ? {
           id: equipment.id,
+          organization_id: equipment.organization_id ?? (wo.organization_id as string),
           name: equipment.name ?? '',
-          manufacturer: equipment.manufacturer ?? '',
-          model: equipment.model ?? '',
-          serial_number: equipment.serial_number ?? '',
+          manufacturer: equipment.manufacturer ?? null,
+          model: equipment.model ?? null,
+          serial_number: equipment.serial_number ?? null,
           status: (equipment.status ?? 'active') as 'active' | 'maintenance' | 'inactive',
           working_hours: equipment.working_hours ?? null,
           image_url: equipment.image_url ?? null,
@@ -277,7 +282,7 @@ export class WorkOrderService extends BaseService {
     try {
       let query = supabase
         .from('work_orders')
-        .select(WORK_ORDER_SELECT)
+        .select(WORK_ORDER_LIST_SELECT)
         .eq('organization_id', this.organizationId);
 
       // Apply team-based access control filtering

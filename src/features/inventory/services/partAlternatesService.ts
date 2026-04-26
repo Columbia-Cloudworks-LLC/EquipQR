@@ -1,6 +1,6 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
-import { getAuthUserIdFromClaims, requireAuthUserIdFromClaims } from '@/lib/authClaims';
+import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import type { 
   AlternatePartResult, 
   MakeModelCompatiblePart,
@@ -391,7 +391,7 @@ export const updateAlternateGroup = async (
   }>
 ): Promise<PartAlternateGroup> => {
   try {
-    const userId = data.status === 'verified' ? await getAuthUserIdFromClaims() : null;
+    const userId = data.status === 'verified' ? await requireAuthUserIdFromClaims() : null;
     const updateData: Record<string, unknown> = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.description !== undefined) updateData.description = data.description || null;

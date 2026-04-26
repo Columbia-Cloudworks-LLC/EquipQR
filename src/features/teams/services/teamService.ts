@@ -370,6 +370,7 @@ export const getTeamMembersOptimized = async (teamId: string): Promise<TeamMembe
  * members without filtering the full array.
  */
 export const getTeamMembersByTeamIdsOptimized = async (
+  organizationId: string,
   teamIds: string[],
 ): Promise<Map<string, TeamMember[]>> => {
   const result = new Map<string, TeamMember[]>();
@@ -383,8 +384,12 @@ export const getTeamMembersByTeamIdsOptimized = async (
         profiles!team_members_user_id_fkey (
           name,
           email
+        ),
+        teams!inner (
+          organization_id
         )
       `)
+      .eq('teams.organization_id', organizationId)
       .in('team_id', teamIds)
       .order('joined_date', { ascending: true });
 

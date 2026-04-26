@@ -788,7 +788,6 @@ export class EquipmentService {
     location?: string,
     notes?: string,
     options: {
-      validateEquipment?: boolean;
       includeProfile?: boolean;
     } = {}
   ): Promise<ApiResponse<EquipmentScan>> {
@@ -799,13 +798,9 @@ export class EquipmentService {
         return handleError(new Error('User not authenticated'));
       }
 
-      if (options.validateEquipment !== false) {
-        // Verify equipment belongs to this organization when the caller has not
-        // already loaded the record through an org-scoped equipment query.
-        const equipmentResult = await EquipmentService.getById(organizationId, equipmentId);
-        if (!equipmentResult.success || !equipmentResult.data) {
-          return handleError(new Error('Equipment not found or access denied'));
-        }
+      const equipmentResult = await EquipmentService.getById(organizationId, equipmentId);
+      if (!equipmentResult.success || !equipmentResult.data) {
+        return handleError(new Error('Equipment not found or access denied'));
       }
 
       // Create the scan

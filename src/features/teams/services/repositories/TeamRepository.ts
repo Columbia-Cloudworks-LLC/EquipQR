@@ -40,7 +40,7 @@ export class TeamRepository {
     // `getTeamMembersOptimized` calls. Cuts the team-list page from N+1
     // round-trips to 2 on Slow 4G.
     const teamIds = optimizedTeams.map((team) => team.id);
-    const membersByTeamId = await getTeamMembersByTeamIdsOptimized(teamIds);
+    const membersByTeamId = await getTeamMembersByTeamIdsOptimized(orgId, teamIds);
 
     return optimizedTeams.map((team) => {
       const members = membersByTeamId.get(team.id) ?? [];

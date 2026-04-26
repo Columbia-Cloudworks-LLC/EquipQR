@@ -215,15 +215,11 @@ export const useAddInventoryItemToGroup = () => {
         queryKey: ['alternate-group', variables.organizationId, variables.groupId],
       });
       // Invalidate alternates queries since group membership changed.
-      // Scope to the current org so unrelated org caches the user is also
-      // logged into are not blown away (cheap correctness fix flagged in the
-      // perf audit; the previous prefix-only invalidation matched every
-      // org/item).
       queryClient.invalidateQueries({
-        queryKey: ['inventory-item-alternates', variables.organizationId],
+        queryKey: ['inventory-item-alternates'],
       });
       queryClient.invalidateQueries({
-        queryKey: ['part-alternates', variables.organizationId],
+        queryKey: ['part-alternates'],
       });
       toast({
         title: 'Item added to group',
@@ -284,7 +280,7 @@ export const useAddPartIdentifierToGroup = () => {
         queryKey: ['alternate-group', variables.organizationId, variables.groupId],
       });
       queryClient.invalidateQueries({
-        queryKey: ['part-alternates', variables.organizationId],
+        queryKey: ['part-alternates'],
       });
       toast({
         title: 'Part number added',
@@ -323,10 +319,10 @@ export const useRemoveGroupMember = () => {
         queryKey: ['alternate-group', variables.organizationId, variables.groupId],
       });
       queryClient.invalidateQueries({
-        queryKey: ['inventory-item-alternates', variables.organizationId],
+        queryKey: ['inventory-item-alternates'],
       });
       queryClient.invalidateQueries({
-        queryKey: ['part-alternates', variables.organizationId],
+        queryKey: ['part-alternates'],
       });
       toast({
         title: 'Member removed',

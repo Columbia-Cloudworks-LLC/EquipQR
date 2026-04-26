@@ -55,10 +55,11 @@ export type WorkOrderRow = Tables<'work_orders'>;
  */
 export interface WorkOrderEmbeddedEquipment {
   id: string;
+  organization_id: string;
   name: string;
-  manufacturer: string;
-  model: string;
-  serial_number: string;
+  manufacturer: string | null;
+  model: string | null;
+  serial_number: string | null;
   status: 'active' | 'maintenance' | 'inactive';
   working_hours: number | null;
   image_url: string | null;

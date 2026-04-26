@@ -91,7 +91,6 @@ const EquipmentDetails = () => {
         try {
           await createScanMutation.mutateAsync({
             equipmentId,
-            validateEquipment: false,
             includeProfile: false,
             notes: 'QR code scan'
           });
@@ -112,7 +111,6 @@ const EquipmentDetails = () => {
             try {
               await createScanMutation.mutateAsync({
                 equipmentId,
-                validateEquipment: false,
                 includeProfile: false,
                 location,
                 notes: 'QR code scan with location'
@@ -128,7 +126,6 @@ const EquipmentDetails = () => {
               // Log scan without location
               await createScanMutation.mutateAsync({
                 equipmentId,
-                validateEquipment: false,
                 includeProfile: false,
                 notes: 'QR code scan (location denied)'
               });
@@ -149,7 +146,6 @@ const EquipmentDetails = () => {
           // Log scan without location support
           await createScanMutation.mutateAsync({
             equipmentId,
-            validateEquipment: false,
             includeProfile: false,
             notes: 'QR code scan (no location support)'
           });
@@ -178,7 +174,7 @@ const EquipmentDetails = () => {
       
       logScan();
     }
-  }, [equipment, equipmentId, currentOrganization, searchParams, scanLogged, logScan, privacyPrefsLoading]);
+  }, [equipment, equipmentId, currentOrganization, isQRScan, scanLogged, logScan, privacyPrefsLoading]);
 
   const handleCreateWorkOrder = () => {
     setIsWorkOrderFormOpen(true);
