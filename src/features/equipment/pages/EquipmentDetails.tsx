@@ -55,7 +55,7 @@ const EquipmentDetails = () => {
 
   const { user } = useAuth();
 
-  const { data: userPrivacyPrefs } = useQuery({
+  const { data: userPrivacyPrefs, isLoading: privacyPrefsLoading } = useQuery({
     queryKey: ['profile-privacy', user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -171,7 +171,9 @@ const EquipmentDetails = () => {
 
   // Detect if this page was accessed via QR code scan
   useEffect(() => {
-    if (isQRScan && equipment && equipmentId && currentOrganization && !scanLogged) {
+    // Wait for privacy prefs to finish loading before calling logScan so that
+    // the opt-out preference is known before geolocation is requested.
+    if (isQRScan && equipment && equipmentId && currentOrganization && !scanLogged && !privacyPrefsLoading) {
       // Show success message for QR scan
       toast.success('QR Code scanned successfully!', {
         description: `Viewing ${equipment.name} in ${currentOrganization.name}`,
@@ -180,7 +182,7 @@ const EquipmentDetails = () => {
       
       logScan();
     }
-  }, [equipment, equipmentId, currentOrganization, searchParams, scanLogged, logScan]);
+  }, [equipment, equipmentId, currentOrganization, searchParams, scanLogged, logScan, privacyPrefsLoading]);
 
   const handleCreateWorkOrder = () => {
     setIsWorkOrderFormOpen(true);
