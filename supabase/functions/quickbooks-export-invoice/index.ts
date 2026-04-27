@@ -1,6 +1,5 @@
 // Using Deno.serve (built-in)
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
-import { PDFDocument, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   QBO_API_BASE,
@@ -44,9 +43,6 @@ const getClientIpAddress = (req: Request): string | null => {
 
 // QuickBooks API endpoints and environment imported from _shared/quickbooks-config.ts
 // QBO_API_BASE, QBO_ENVIRONMENT, QBO_TOKEN_URL, withMinorVersion
-
-// Feature flag for PDF attachments
-const ENABLE_PDF_ATTACHMENT = Deno.env.get("ENABLE_QB_PDF_ATTACHMENT") === "true";
 
 interface QuickBooksCredential {
   id: string;
@@ -116,15 +112,6 @@ interface WorkOrderStatusEvent {
   new_status: string;
   changed_at: string;
   reason: string | null;
-}
-
-interface WorkOrderImage {
-  id: string;
-  file_name: string;
-  file_url: string;
-  description: string | null;
-  note_id: string | null;
-  created_at: string;
 }
 
 interface TeamCustomerMapping {
@@ -636,383 +623,6 @@ async function buildInvoiceLines(
   return lines;
 }
 
-/**
- * Generate a PDF for the work order with public information only
- */
-async function generateWorkOrderPDF(
-  workOrder: WorkOrderData,
-  publicNotes: WorkOrderNote[],
-  publicImages: WorkOrderImage[],
-  supabaseClient: any
-): Promise<Uint8Array> {
-  try {
-    logStep("Generating work order PDF");
-
-    const pdfDoc = await PDFDocument.create();
-    let currentPage = pdfDoc.addPage([612, 792]); // US Letter size
-    const { width, height } = currentPage.getSize();
-    
-    const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    
-    let yPosition = height - 50;
-    const margin = 50;
-    const lineHeight = 14;
-    const fontSize = 11;
-    const titleFontSize = 16;
-    const maxWidth = width - (margin * 2);
-
-    // Helper to add text with word wrapping
-    const addText = (text: string, size: number = fontSize, bold: boolean = false, x: number = margin) => {
-      const font = bold ? helveticaBoldFont : helveticaFont;
-      
-      // Check if we need a new page
-      if (yPosition < 50) {
-        currentPage = pdfDoc.addPage([612, 792]);
-        yPosition = height - 50;
-      }
-      
-      let page = currentPage; // Use local reference for current page
-
-      // Split by newlines first
-      const paragraphs = text.split('\n');
-      
-      for (const paragraph of paragraphs) {
-        if (paragraph.trim() === '') {
-          yPosition -= lineHeight;
-          continue;
-        }
-
-        // Simple word wrapping for long lines
-        const words = paragraph.split(' ');
-        let currentLine = '';
-        
-        for (const word of words) {
-          const testLine = currentLine ? `${currentLine} ${word}` : word;
-          const textWidth = font.widthOfTextAtSize(testLine, size);
-          
-          if (textWidth > maxWidth && currentLine) {
-            // Check for new page before drawing
-            if (yPosition < 50) {
-              currentPage = pdfDoc.addPage([612, 792]);
-              page = currentPage;
-              yPosition = height - 50;
-            }
-            
-            // Draw current line and start new line
-            page.drawText(currentLine, {
-              x,
-              y: yPosition,
-              size,
-              font,
-            });
-            yPosition -= lineHeight;
-            
-            // Check for new page after drawing
-            if (yPosition < 50) {
-              currentPage = pdfDoc.addPage([612, 792]);
-              page = currentPage;
-              yPosition = height - 50;
-            }
-            
-            currentLine = word;
-          } else {
-            currentLine = testLine;
-          }
-        }
-        
-        // Draw remaining line
-        if (currentLine) {
-          // Check for new page before drawing
-          if (yPosition < 50) {
-            currentPage = pdfDoc.addPage([612, 792]);
-            page = currentPage;
-            yPosition = height - 50;
-          }
-          
-          page.drawText(currentLine, {
-            x,
-            y: yPosition,
-            size,
-            font,
-          });
-          yPosition -= lineHeight;
-          
-          // Check for new page after drawing
-          if (yPosition < 50) {
-            currentPage = pdfDoc.addPage([612, 792]);
-            page = currentPage;
-            yPosition = height - 50;
-          }
-        }
-      }
-    };
-
-    // Title
-    addText('WORK ORDER DETAILS', titleFontSize, true);
-    yPosition -= 5;
-
-    // Work Order Information
-    addText(`Title: ${workOrder.title}`, fontSize, true);
-    addText(`Status: ${workOrder.status}`, fontSize);
-    addText(`Priority: ${workOrder.priority}`, fontSize);
-    
-    if (workOrder.equipment) {
-      addText(`Equipment: ${workOrder.equipment.name}`, fontSize);
-      addText(`Model: ${workOrder.equipment.manufacturer} ${workOrder.equipment.model}`, fontSize);
-      if (workOrder.equipment.serial_number) {
-        addText(`Serial Number: ${workOrder.equipment.serial_number}`, fontSize);
-      }
-    }
-
-    if (workOrder.equipment?.team?.name) {
-      addText(`Customer: ${workOrder.equipment.team.name}`, fontSize);
-    }
-
-    addText(`Created: ${new Date(workOrder.created_date).toLocaleDateString('en-US')}`, fontSize);
-    if (workOrder.completed_date) {
-      addText(`Completed: ${new Date(workOrder.completed_date).toLocaleDateString('en-US')}`, fontSize);
-    }
-
-    yPosition -= 5;
-
-    // Description
-    if (workOrder.description) {
-      addText('Description:', fontSize, true);
-      addText(workOrder.description, fontSize);
-      yPosition -= 5;
-    }
-
-    // Public Notes (customer-facing: date only, no author attribution)
-    if (publicNotes.length > 0) {
-      addText('Notes:', fontSize, true);
-      publicNotes.forEach(note => {
-        const noteDate = new Date(note.created_at).toLocaleDateString('en-US');
-        addText(`- ${note.content} (${noteDate})`, fontSize);
-      });
-      yPosition -= 5;
-    }
-
-    // Public Images (just list them, embedding would require image processing)
-    if (publicImages.length > 0) {
-      addText('Images:', fontSize, true);
-      publicImages.forEach(image => {
-        const imageText = image.description 
-          ? `${image.file_name}: ${image.description}`
-          : image.file_name;
-        addText(`- ${imageText}`, fontSize);
-      });
-    }
-
-    // Footer on last page
-    const lastPage = pdfDoc.getPages()[pdfDoc.getPageCount() - 1];
-    lastPage.drawText(`Generated on ${new Date().toLocaleString()}`, {
-      x: margin,
-      y: 30,
-      size: 9,
-      font: helveticaFont,
-    });
-
-    const pdfBytes = await pdfDoc.save();
-    logStep("PDF generated successfully", { size: pdfBytes.length });
-    return pdfBytes;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR generating PDF", { error: errorMessage });
-    console.error("PDF generation error:", error);
-    throw new Error(`Failed to generate PDF: ${errorMessage}`);
-  }
-}
-
-/**
- * Get existing attachments for an invoice
- */
-async function getInvoiceAttachments(
-  accessToken: string,
-  realmId: string,
-  invoiceId: string
-): Promise<Array<{ Id: string; FileName?: string }>> {
-  try {
-    const queryUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(`SELECT * FROM Attachable WHERE AttachableRef.EntityRef.type = 'Invoice' AND AttachableRef.EntityRef.value = '${invoiceId}'`)}`);
-    
-    const response = await fetch(queryUrl, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "Accept": "application/json",
-      },
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data.QueryResponse?.Attachable) {
-        return data.QueryResponse.Attachable;
-      }
-    }
-    return [];
-  } catch (error) {
-    logStep("Error fetching attachments", { error: error instanceof Error ? error.message : String(error) });
-    return [];
-  }
-}
-
-/**
- * Delete an attachment
- */
-async function deleteAttachment(
-  accessToken: string,
-  realmId: string,
-  attachmentId: string,
-  syncToken: string
-): Promise<void> {
-  try {
-    const deleteUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/attachable?operation=delete`);
-    
-    const response = await fetch(deleteUrl, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        Id: attachmentId,
-        SyncToken: syncToken,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to delete attachment: ${errorText}`);
-    }
-  } catch (error) {
-    logStep("Error deleting attachment", { error: error instanceof Error ? error.message : String(error) });
-    throw error;
-  }
-}
-
-/**
- * Result of PDF attachment operation
- */
-interface PdfAttachmentResult {
-  success: boolean;
-  attachmentId?: string;
-  intuitTid?: string | null;
-  error?: string;
-}
-
-/**
- * Upload PDF as attachment to QuickBooks invoice using multipart/form-data
- * 
- * QuickBooks requires file uploads to use the /upload endpoint with multipart/form-data.
- * The JSON-based /attachable endpoint doesn't support FileData for actual file content.
- */
-async function attachPDFToInvoice(
-  accessToken: string,
-  realmId: string,
-  invoiceId: string,
-  pdfBytes: Uint8Array,
-  fileName: string
-): Promise<PdfAttachmentResult> {
-  try {
-    logStep("Uploading PDF attachment via multipart upload", { invoiceId, fileName, size: pdfBytes.length });
-
-    // Build the metadata JSON for the attachment
-    const metadata = {
-      FileName: fileName,
-      ContentType: "application/pdf",
-      AttachableRef: [
-        {
-          EntityRef: {
-            type: "Invoice",
-            value: invoiceId,
-          },
-        },
-      ],
-      IncludeOnSend: true,
-    };
-
-    const metadataJson = JSON.stringify(metadata);
-
-    // Use FormData to build a proper multipart/form-data request with raw binary.
-    // Previous implementation sent base64-encoded text with Content-Transfer-Encoding
-    // headers (an email MIME concept), which QuickBooks does not interpret — the PDF
-    // content was stored as corrupt base64 text rather than actual binary PDF data.
-    const formData = new FormData();
-    formData.append(
-      'file_metadata_01',
-      new Blob([metadataJson], { type: 'application/json' }),
-      'metadata.json'
-    );
-    formData.append(
-      'file_content_01',
-      new Blob([pdfBytes], { type: 'application/pdf' }),
-      fileName
-    );
-
-    // Use the /upload endpoint which properly handles file uploads
-    const uploadUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/upload`);
-    
-    const response = await fetch(uploadUrl, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "Accept": "application/json",
-        // Note: Do NOT set Content-Type manually — fetch() auto-sets it with
-        // the correct multipart boundary when using FormData as the body.
-      },
-      body: formData,
-    });
-
-    const intuitTid = getIntuitTid(response);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      logStep("Attachment upload failed", { error: errorText, intuit_tid: intuitTid, status: response.status });
-      return {
-        success: false,
-        intuitTid,
-        error: `Upload failed (${response.status}): ${errorText.substring(0, 200)}`,
-      };
-    }
-
-    const result = await response.json();
-    const attachmentId = result.AttachableResponse?.[0]?.Attachable?.Id;
-    
-    // Validate that QuickBooks actually returned an attachment ID.
-    // Previously, success was declared solely on HTTP 200 status, but QBO can
-    // return 200 with an unexpected response structure (e.g., empty AttachableResponse)
-    // resulting in a "successful" upload with no actual attachment.
-    if (!attachmentId) {
-      logStep("Attachment upload returned 200 but no attachment ID in response", {
-        intuit_tid: intuitTid,
-        response_body: JSON.stringify(result).substring(0, 500),
-      });
-      return {
-        success: false,
-        intuitTid,
-        error: 'Upload returned 200 but no attachment ID in response',
-      };
-    }
-
-    logStep("PDF attachment uploaded successfully", { attachmentId, intuit_tid: intuitTid });
-    
-    return {
-      success: true,
-      attachmentId,
-      intuitTid,
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR uploading PDF attachment", { error: errorMessage });
-    console.error("Attachment upload error:", error);
-    return {
-      success: false,
-      error: errorMessage,
-    };
-  }
-}
-
 Deno.serve(withCorrelationId(async (req, ctx) => {
   const corsHeaders = getCorsHeaders(req);
 
@@ -1289,42 +899,6 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       .eq('work_orders.organization_id', workOrder.organization_id)
       .order('changed_at', { ascending: true });
 
-    // Load work order images (for PDF generation)
-    // We need note IDs to filter images, so fetch notes with IDs
-    const { data: notesWithIds } = await supabaseClient
-      .from('work_order_notes')
-      .select('id, is_private, work_orders!inner(organization_id)')
-      .eq('work_order_id', work_order_id)
-      .eq('work_orders.organization_id', workOrder.organization_id);
-
-    const privateNoteIds = new Set(
-      (notesWithIds || [])
-        .filter(note => note.is_private)
-        .map(note => note.id)
-    );
-
-    const { data: allImages } = await supabaseClient
-      .from('work_order_images')
-      .select('id, file_name, file_url, description, note_id, created_at, work_orders!inner(organization_id)')
-      .eq('work_order_id', work_order_id)
-      .eq('work_orders.organization_id', workOrder.organization_id)
-      .order('created_at', { ascending: true });
-
-    // Filter to only public images (not associated with private notes)
-    const publicImages: WorkOrderImage[] = (allImages || [])
-      .filter(img => {
-        // Include image if it's not associated with a note, or if the note is public
-        return !img.note_id || !privateNoteIds.has(img.note_id);
-      })
-      .map(img => ({
-        id: img.id,
-        file_name: img.file_name,
-        file_url: img.file_url,
-        description: img.description,
-        note_id: img.note_id,
-        created_at: img.created_at,
-      }));
-
     // Get valid access token
     const accessToken = await refreshTokenIfNeeded(
       credentials,
@@ -1371,11 +945,6 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     let invoiceNumber: string | undefined;
     let isUpdate = false;
     let intuitTid: string | null = null;
-    let pdfAttachmentStatus: 'success' | 'failed' | 'skipped' | 'disabled' = ENABLE_PDF_ATTACHMENT ? 'skipped' : 'disabled';
-    let pdfAttachmentError: string | null = null;
-    let pdfAttachmentIntuitTid: string | null = null;
-
-    logStep("PDF attachment feature", { enabled: ENABLE_PDF_ATTACHMENT, environment: QBO_ENVIRONMENT });
 
     // Create log entry (pending)
     const { data: logEntry } = await supabaseClient
@@ -1487,93 +1056,6 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
           });
         }
 
-        // Handle PDF attachment if enabled
-        if (ENABLE_PDF_ATTACHMENT) {
-          try {
-            // Get public notes only
-            const publicNotes = (notes || []).filter(note => !note.is_private);
-            
-            // Generate PDF
-            const pdfBytes = await generateWorkOrderPDF(
-              workOrder as WorkOrderData,
-              publicNotes,
-              publicImages,
-              supabaseClient
-            );
-
-            // Remove existing PDF attachments for this invoice
-            const existingAttachments = await getInvoiceAttachments(
-              accessToken,
-              credentials.realm_id,
-              invoiceId
-            );
-
-            // Find and remove existing PDF attachments
-            for (const attachment of existingAttachments) {
-              if (attachment.FileName?.endsWith('.pdf') || attachment.FileName?.includes('Work-Order')) {
-                try {
-                  // Get attachment details to get SyncToken
-                  const getAttachUrl = `${QBO_API_BASE}/v3/company/${credentials.realm_id}/attachable/${attachment.Id}`;
-                  const getAttachResponse = await fetch(getAttachUrl, {
-                    method: "GET",
-                    headers: {
-                      "Authorization": `Bearer ${accessToken}`,
-                      "Accept": "application/json",
-                    },
-                  });
-
-                  if (getAttachResponse.ok) {
-                    const attachData = await getAttachResponse.json();
-                    if (attachData.Attachable?.SyncToken) {
-                      await deleteAttachment(
-                        accessToken,
-                        credentials.realm_id,
-                        attachment.Id,
-                        attachData.Attachable.SyncToken
-                      );
-                      logStep("Removed existing PDF attachment", { attachmentId: attachment.Id });
-                    }
-                  }
-                } catch (deleteError) {
-                  logStep("Warning: Could not delete existing attachment", { 
-                    error: deleteError instanceof Error ? deleteError.message : String(deleteError) 
-                  });
-                  // Continue even if deletion fails
-                }
-              }
-            }
-
-            // Upload new PDF attachment
-            const pdfFileName = `Work-Order-${workOrder.title.replace(/[^a-z0-9]/gi, '-')}-${invoiceNumber || 'Draft'}.pdf`;
-            const attachResult = await attachPDFToInvoice(
-              accessToken,
-              credentials.realm_id,
-              invoiceId,
-              pdfBytes,
-              pdfFileName
-            );
-
-            // Track attachment result
-            if (attachResult.success) {
-              pdfAttachmentStatus = 'success';
-              pdfAttachmentIntuitTid = attachResult.intuitTid || null;
-            } else {
-              pdfAttachmentStatus = 'failed';
-              pdfAttachmentError = attachResult.error || 'Unknown error';
-              pdfAttachmentIntuitTid = attachResult.intuitTid || null;
-              logStep("PDF attachment failed (invoice still updated)", { error: pdfAttachmentError });
-            }
-          } catch (pdfError) {
-            // Log error but don't fail the entire export
-            const errorMessage = pdfError instanceof Error ? pdfError.message : String(pdfError);
-            pdfAttachmentStatus = 'failed';
-            pdfAttachmentError = errorMessage;
-            logStep("ERROR: PDF attachment failed (invoice still updated)", { error: errorMessage });
-            console.error("PDF attachment error:", pdfError);
-            // Continue - invoice export succeeded even if PDF attachment failed
-          }
-        }
-
       } else {
         // Create new invoice
         // Generate invoice number from work order ID
@@ -1655,50 +1137,6 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
           });
         }
 
-        // Handle PDF attachment if enabled
-        if (ENABLE_PDF_ATTACHMENT) {
-          try {
-            // Get public notes only
-            const publicNotes = (notes || []).filter(note => !note.is_private);
-            
-            // Generate PDF
-            const pdfBytes = await generateWorkOrderPDF(
-              workOrder as WorkOrderData,
-              publicNotes,
-              publicImages,
-              supabaseClient
-            );
-
-            // Upload PDF attachment
-            const pdfFileName = `Work-Order-${workOrder.title.replace(/[^a-z0-9]/gi, '-')}-${invoiceNumber}.pdf`;
-            const attachResult = await attachPDFToInvoice(
-              accessToken,
-              credentials.realm_id,
-              invoiceId,
-              pdfBytes,
-              pdfFileName
-            );
-
-            // Track attachment result
-            if (attachResult.success) {
-              pdfAttachmentStatus = 'success';
-              pdfAttachmentIntuitTid = attachResult.intuitTid || null;
-            } else {
-              pdfAttachmentStatus = 'failed';
-              pdfAttachmentError = attachResult.error || 'Unknown error';
-              pdfAttachmentIntuitTid = attachResult.intuitTid || null;
-              logStep("PDF attachment failed (invoice still created)", { error: pdfAttachmentError });
-            }
-          } catch (pdfError) {
-            // Log error but don't fail the entire export
-            const errorMessage = pdfError instanceof Error ? pdfError.message : String(pdfError);
-            pdfAttachmentStatus = 'failed';
-            pdfAttachmentError = errorMessage;
-            logStep("ERROR: PDF attachment failed (invoice still created)", { error: errorMessage });
-            console.error("PDF attachment error:", pdfError);
-            // Continue - invoice export succeeded even if PDF attachment failed
-          }
-        }
       }
 
       // Update log entry with success (including all tracking fields)
@@ -1712,9 +1150,6 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
             status: 'success',
             exported_at: new Date().toISOString(),
             intuit_tid: intuitTid,
-            pdf_attachment_status: pdfAttachmentStatus,
-            pdf_attachment_error: pdfAttachmentError,
-            pdf_attachment_intuit_tid: pdfAttachmentIntuitTid,
           })
           .eq('id', logEntry.id);
       }
@@ -1724,7 +1159,6 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
         invoiceNumber, 
         isUpdate, 
         intuit_tid: intuitTid,
-        pdfAttachmentStatus,
         environment: QBO_ENVIRONMENT
       });
 
@@ -1734,7 +1168,6 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
         invoice_number: invoiceNumber,
         is_update: isUpdate,
         environment: QBO_ENVIRONMENT,
-        pdf_attached: pdfAttachmentStatus === 'success',
         message: isUpdate 
           ? `Invoice ${invoiceNumber} updated successfully` 
           : `Invoice ${invoiceNumber} created successfully`
@@ -1754,9 +1187,6 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
             error_message: errorMessage.substring(0, 1000),
             intuit_tid: intuitTid,
             quickbooks_environment: QBO_ENVIRONMENT,
-            pdf_attachment_status: pdfAttachmentStatus,
-            pdf_attachment_error: pdfAttachmentError,
-            pdf_attachment_intuit_tid: pdfAttachmentIntuitTid,
           })
           .eq('id', logEntry.id);
       }
