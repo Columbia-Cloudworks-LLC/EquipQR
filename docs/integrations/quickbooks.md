@@ -40,7 +40,6 @@ Configure these secrets in Supabase Dashboard → Edge Functions → Secrets:
 | `INTUIT_CLIENT_SECRET` | Your Intuit app's Client Secret |
 | `QB_OAUTH_REDIRECT_BASE_URL` | **CRITICAL**: Must match `VITE_QB_OAUTH_REDIRECT_BASE_URL` (see below) |
 | `QUICKBOOKS_SANDBOX` | Set to `"true"` for sandbox, `"false"` for production |
-| `ENABLE_QB_PDF_ATTACHMENT` | Set to `"true"` to enable PDF attachments on exported invoices (default: `"false"`) |
 
 **⚠️ Important: OAuth Redirect URL Configuration**
 
@@ -127,7 +126,6 @@ Exported invoices include:
 - **Description**: Work order details, equipment info, and public notes
 - **Private Note**: Work order ID, dates, private notes, and cost breakdown
 - **Customer Memo**: Work order title
-- **PDF Attachment** (optional): When `ENABLE_QB_PDF_ATTACHMENT` is enabled, a PDF containing public work order information is automatically attached to the invoice
 
 #### Service Item Selection
 
@@ -135,29 +133,6 @@ When exporting, the system will use a QuickBooks service item in this priority:
 1. An existing item named "EquipQR Services"
 2. Any active Service-type item in your QuickBooks account
 3. Auto-create an "EquipQR Services" item (requires an Income account to exist)
-
-#### PDF Attachments
-
-When PDF attachments are enabled (`ENABLE_QB_PDF_ATTACHMENT=true`), the system will:
-
-1. **Generate a PDF** containing:
-   - Work order title, status, and priority
-   - Equipment information (name, model, serial number)
-   - Customer/team name
-   - Work order description
-   - **Public notes only** (private notes are excluded from the PDF)
-   - List of public images (image names and descriptions)
-
-2. **Attach the PDF** to the QuickBooks invoice using the Attachable API
-   - The PDF is set to `IncludeOnSend: true`, so it will be included when the invoice is sent to the customer
-   - For updated invoices, any existing PDF attachments are automatically removed and replaced with the new version
-
-3. **Privacy Protection**:
-   - Only public notes and images are included in the PDF
-   - Private notes and cost details remain in the invoice's `PrivateNote` field only
-   - Images associated with private notes are excluded from the PDF
-
-**Note**: PDF generation and attachment failures are logged but do not prevent the invoice from being created or updated. The invoice export will succeed even if PDF attachment fails.
 
 ## Architecture
 
@@ -228,12 +203,6 @@ When PDF attachments are enabled (`ENABLE_QB_PDF_ATTACHMENT=true`), the system w
 - Ensure your QuickBooks account has at least one Income account (required for item creation)
 - Check that EquipQR has permission to create items in your QuickBooks company
 
-**"PDF attachment failed"**
-- Check that `ENABLE_QB_PDF_ATTACHMENT` is set correctly in Supabase Edge Function secrets
-- Review edge function logs for PDF generation errors
-- Verify that the work order has public notes or images to include in the PDF
-- Note: Invoice export will still succeed even if PDF attachment fails
-
 ### API Rate Limits
 
 QuickBooks API has rate limits. If you encounter throttling:
@@ -267,9 +236,6 @@ if (isQuickBooksEnabled()) {
   // Show QuickBooks features
 }
 ```
-
-PDF attachments are controlled only by the server-side `ENABLE_QB_PDF_ATTACHMENT`
-Edge Function secret.
 
 ## API Reference
 
