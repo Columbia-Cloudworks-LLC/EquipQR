@@ -154,8 +154,8 @@ sync_app_vite_mirrors() {
         source_key="${mapping%%:*}"
         target_key="${mapping##*:}"
         value="$(env_file_value "$target_path" "$source_key")"
-        remove_env_key "$target_path" "$target_key"
         if [[ -n "$value" ]]; then
+            remove_env_key "$target_path" "$target_key"
             printf '%s=%s\n' "$target_key" "$value" >> "$target_path"
             set_count=$((set_count + 1))
         fi
