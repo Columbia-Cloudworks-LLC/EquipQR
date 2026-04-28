@@ -71,6 +71,40 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Terminate a spawned npm/Vite child. On non-Windows the process was spawned
+ * detached so the session leader is the process group; use negative PID.
+ * Ignores ESRCH (already exited) and EPERM races so cleanup cannot fail the verifier.
+ */
+function terminateChild(child, signal) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  if (process.platform === 'win32') {
+    try {
+      child.kill(signal);
+    } catch (err) {
+      if (err && err.code === 'ESRCH') return;
+      throw err;
+    }
+    return;
+  }
+  if (!child.pid) return;
+  try {
+    process.kill(-child.pid, signal);
+  } catch (err) {
+    if (err && (err.code === 'ESRCH' || err.code === 'EPERM')) return;
+    throw err;
+  }
+}
+
+/** Prefer the latest response that created a session; else the last captured response. */
+function pickRecordedAuthResponse(responses) {
+  if (responses.length === 0) return undefined;
+  for (let i = responses.length - 1; i >= 0; i--) {
+    if (responses[i].hasSession) return responses[i];
+  }
+  return responses[responses.length - 1];
+}
+
 async function waitForHttpOk(url, timeoutMs) {
   const startedAt = Date.now();
   let lastError;
@@ -126,7 +160,7 @@ async function startVite({ port, viteEnv }) {
   try {
     await waitForHttpOk(baseUrl, STARTUP_TIMEOUT_MS);
   } catch (error) {
-    child.kill('SIGTERM');
+    terminateChild(child, 'SIGTERM');
     throw new Error(
       [
         error instanceof Error ? error.message : String(error),
@@ -139,21 +173,12 @@ async function startVite({ port, viteEnv }) {
   return {
     baseUrl,
     stop: async () => {
-      if (child.exitCode !== null || child.signalCode !== null) return;
-      if (process.platform === 'win32') {
-        child.kill('SIGTERM');
-      } else {
-        process.kill(-child.pid, 'SIGTERM');
-      }
+      terminateChild(child, 'SIGTERM');
       await Promise.race([
         new Promise((resolve) => child.once('exit', resolve)),
         delay(3000).then(() => {
           if (child.exitCode === null && child.signalCode === null) {
-            if (process.platform === 'win32') {
-              child.kill('SIGKILL');
-            } else {
-              process.kill(-child.pid, 'SIGKILL');
-            }
+            terminateChild(child, 'SIGKILL');
           }
         })
       ]);
@@ -246,7 +271,8 @@ async function runSignupAndLoginProbe({ baseUrl, supabaseHost }) {
     console.log(`previewAccess.authPage.status=${response ? response.status() : '[missing]'}`);
 
     const hcaptchaCount = await page
-      .locator('[data-hcaptcha-widget-id], iframe[src*="hcaptcha"], text=/captcha/i')
+      .locator('[data-hcaptcha-widget-id], iframe[src*="hcaptcha"]')
+      .or(page.getByText(/captcha/i))
       .count()
       .catch(() => 0);
     console.log(`previewAccess.hcaptcha.present=${hcaptchaCount > 0 ? '[yes]' : '[no]'}`);
@@ -281,7 +307,7 @@ async function runSignupAndLoginProbe({ baseUrl, supabaseHost }) {
       .innerText({ timeout: 2000 })
       .catch(() => '');
 
-    const signup = signupResponses[0];
+    const signup = pickRecordedAuthResponse(signupResponses);
     console.log(`previewAccess.signup.generatedEmail=[not-printed]`);
     console.log(`previewAccess.signup.supabaseRequests=${signupResponses.length}`);
     if (signup) {
@@ -350,7 +376,7 @@ async function runSignupAndLoginProbe({ baseUrl, supabaseHost }) {
       .innerText({ timeout: 2000 })
       .catch(() => '');
 
-    const login = loginResponses[0];
+    const login = pickRecordedAuthResponse(loginResponses);
     console.log(`previewAccess.login.generatedEmail=[not-printed]`);
     console.log(`previewAccess.login.supabaseRequests=${loginResponses.length}`);
     if (login) {
