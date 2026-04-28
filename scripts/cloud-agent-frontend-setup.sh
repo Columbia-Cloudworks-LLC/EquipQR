@@ -85,10 +85,14 @@ if [[ ! -f "$ENV_FILE" ]]; then
         # Secrets may arrive after the install hook's bootstrap window.
         # Retry bootstrap now that the token is confirmed present.
         warn ".env not found; OP_SERVICE_ACCOUNT_TOKEN is now set — retrying agent-bootstrap..."
-        if bash "${REPO_ROOT}/scripts/agent-bootstrap.sh"; then
-            ok "agent-bootstrap retry succeeded"
+        if [[ -f "${REPO_ROOT}/scripts/agent-bootstrap.sh" ]]; then
+            if bash "${REPO_ROOT}/scripts/agent-bootstrap.sh"; then
+                ok "agent-bootstrap retry succeeded"
+            else
+                warn "agent-bootstrap retry failed; will check env file below"
+            fi
         else
-            warn "agent-bootstrap retry failed; will check env file below"
+            warn "agent-bootstrap.sh not found; skipping retry"
         fi
     fi
 
