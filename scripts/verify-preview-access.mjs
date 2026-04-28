@@ -357,13 +357,14 @@ async function runSignupAndLoginProbe({ baseUrl, supabaseHost, supabaseAnonKey }
       console.log(`previewAccess.signup.supabaseUser=${signup.hasUser ? '[created-or-returned]' : '[not-created]'}`);
       console.log(`previewAccess.signup.supabaseSession=${signup.hasSession ? '[created]' : '[not-created]'}`);
       if (signup.status >= 400) {
-        console.log(`previewAccess.signup.supabaseErrorCode=${signup.errorCode}`);
-        console.log(`previewAccess.signup.supabaseErrorMessage=${signup.errorMessage}`);
+        const redactOpts = { signupEmail, signupPassword, supabaseAnonKey };
+        console.log(`previewAccess.signup.supabaseErrorCode=${redactConsoleErrorText(signup.errorCode ?? '', redactOpts).text}`);
+        console.log(`previewAccess.signup.supabaseErrorMessage=${redactConsoleErrorText(signup.errorMessage ?? '', redactOpts).text}`);
       }
     }
     console.log(`previewAccess.signup.localStorageSession=${localStorageSession ? '[present]' : '[missing]'}`);
     console.log(`previewAccess.signup.authenticatedRoute=${authenticatedRoute ? '[yes]' : '[no]'}`);
-    console.log(`previewAccess.signup.visibleAlert=${visibleAlert ? visibleAlert.replace(/\s+/g, ' ').trim() : '[none]'}`);
+    console.log(`previewAccess.signup.visibleAlert=${visibleAlert ? redactConsoleErrorText(visibleAlert.replace(/\s+/g, ' ').trim(), { signupEmail, signupPassword, supabaseAnonKey }).text : '[none]'}`);
     console.log(`previewAccess.consoleErrors.count=${consoleErrors.length}`);
     console.log(
       `previewAccess.consoleErrors.redactedReplacements=${consoleErrorsRedactedReplacements}`
@@ -429,13 +430,14 @@ async function runSignupAndLoginProbe({ baseUrl, supabaseHost, supabaseAnonKey }
       console.log(`previewAccess.login.supabaseUser=${login.hasUser ? '[returned]' : '[not-returned]'}`);
       console.log(`previewAccess.login.supabaseSession=${login.hasSession ? '[created]' : '[not-created]'}`);
       if (login.status >= 400) {
-        console.log(`previewAccess.login.supabaseErrorCode=${login.errorCode}`);
-        console.log(`previewAccess.login.supabaseErrorMessage=${login.errorMessage}`);
+        const redactOpts = { signupEmail, signupPassword, supabaseAnonKey };
+        console.log(`previewAccess.login.supabaseErrorCode=${redactConsoleErrorText(login.errorCode ?? '', redactOpts).text}`);
+        console.log(`previewAccess.login.supabaseErrorMessage=${redactConsoleErrorText(login.errorMessage ?? '', redactOpts).text}`);
       }
     }
     console.log(`previewAccess.login.localStorageSession=${loginLocalStorageSession ? '[present]' : '[missing]'}`);
     console.log(`previewAccess.login.authenticatedRoute=${loginAuthenticatedRoute ? '[yes]' : '[no]'}`);
-    console.log(`previewAccess.login.visibleAlert=${loginVisibleAlert ? loginVisibleAlert.replace(/\s+/g, ' ').trim() : '[none]'}`);
+    console.log(`previewAccess.login.visibleAlert=${loginVisibleAlert ? redactConsoleErrorText(loginVisibleAlert.replace(/\s+/g, ' ').trim(), { signupEmail, signupPassword, supabaseAnonKey }).text : '[none]'}`);
 
     if (!login) {
       throw new Error('No Supabase password login request was observed.');
