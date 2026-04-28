@@ -1,5 +1,5 @@
 {
   "agentCanUpdateSnapshot": true,
-  "install": "bash scripts/agent-bootstrap.sh && npm ci",
+  "install": "bash scripts/cloud-agent-frontend-setup.sh",
   "start": "npm run dev"
 }
