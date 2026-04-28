@@ -105,6 +105,47 @@ function pickRecordedAuthResponse(responses) {
   return responses[responses.length - 1];
 }
 
+/**
+ * Redact secrets and auth artifacts from browser console strings so CI/agent logs stay safe.
+ * Literal secrets are replaced longest-first to avoid partial leaks.
+ */
+function redactConsoleErrorText(text, { signupEmail, signupPassword, supabaseAnonKey }) {
+  let out = text;
+  let redactedCount = 0;
+
+  const literals = [
+    [signupEmail, '[redacted-email]'],
+    [signupPassword, '[redacted-password]'],
+    [supabaseAnonKey, '[redacted-anon-key]']
+  ].filter(([s]) => typeof s === 'string' && s.length > 0);
+
+  literals.sort((a, b) => b[0].length - a[0].length);
+
+  for (const [secret, placeholder] of literals) {
+    let pos = 0;
+    while ((pos = out.indexOf(secret, pos)) !== -1) {
+      out = `${out.slice(0, pos)}${placeholder}${out.slice(pos + secret.length)}`;
+      redactedCount++;
+      pos += placeholder.length;
+    }
+  }
+
+  const jwtLike =
+    /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;
+  out = out.replace(jwtLike, () => {
+    redactedCount++;
+    return '[redacted-jwt]';
+  });
+
+  const sbAuthTokenLike = /sb-[A-Za-z0-9_-]+-auth-token\b/g;
+  out = out.replace(sbAuthTokenLike, () => {
+    redactedCount++;
+    return '[redacted-sb-auth-key]';
+  });
+
+  return { text: out, redactedCount };
+}
+
 async function waitForHttpOk(url, timeoutMs) {
   const startedAt = Date.now();
   let lastError;
@@ -208,6 +249,7 @@ async function runSignupAndLoginProbe({ baseUrl, supabaseHost, supabaseAnonKey }
   const signupResponses = [];
   const loginResponses = [];
   const consoleErrors = [];
+  let consoleErrorsRedactedReplacements = 0;
 
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
@@ -252,15 +294,14 @@ async function runSignupAndLoginProbe({ baseUrl, supabaseHost, supabaseAnonKey }
 
   page.on('console', (message) => {
     if (message.type() !== 'error') return;
-    const text = message.text();
-    if (
-      text.includes(signupEmail) ||
-      text.includes(signupPassword) ||
-      text.includes(supabaseAnonKey)
-    ) {
-      return;
-    }
-    consoleErrors.push(text.slice(0, 240));
+    const raw = message.text();
+    const { text: redacted, redactedCount } = redactConsoleErrorText(raw, {
+      signupEmail,
+      signupPassword,
+      supabaseAnonKey
+    });
+    consoleErrorsRedactedReplacements += redactedCount;
+    consoleErrors.push(redacted.slice(0, 240));
   });
 
   try {
@@ -324,6 +365,9 @@ async function runSignupAndLoginProbe({ baseUrl, supabaseHost, supabaseAnonKey }
     console.log(`previewAccess.signup.authenticatedRoute=${authenticatedRoute ? '[yes]' : '[no]'}`);
     console.log(`previewAccess.signup.visibleAlert=${visibleAlert ? visibleAlert.replace(/\s+/g, ' ').trim() : '[none]'}`);
     console.log(`previewAccess.consoleErrors.count=${consoleErrors.length}`);
+    console.log(
+      `previewAccess.consoleErrors.redactedReplacements=${consoleErrorsRedactedReplacements}`
+    );
     for (const [index, text] of consoleErrors.slice(0, 3).entries()) {
       console.log(`previewAccess.consoleErrors.${index + 1}=${text}`);
     }
