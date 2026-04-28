@@ -112,6 +112,113 @@ log "[3/5] Rendering .env files from EquipQR Agents vault..."
 
 OP_VAULT='tgo2m6qbct5otqeqirjocn3joa'  # EquipQR Agents
 
+env_file_value() {
+    local file_path="$1"
+    local key="$2"
+
+    grep -E "^${key}=" "$file_path" | tail -n1 | cut -d'=' -f2- || true
+}
+
+remove_env_key() {
+    local file_path="$1"
+    local key="$2"
+    local tmp_path
+
+    tmp_path="$(mktemp)"
+    grep -v -E "^${key}=" "$file_path" > "$tmp_path" || true
+    mv "$tmp_path" "$file_path"
+}
+
+sync_app_vite_mirrors() {
+    local target_path="$1"
+    local set_count=0
+    local source_key
+    local target_key
+    local value
+
+    local mappings=(
+        "SUPABASE_URL:VITE_SUPABASE_URL"
+        "SUPABASE_ANON_KEY:VITE_SUPABASE_ANON_KEY"
+        "PRODUCTION_URL:VITE_PRODUCTION_URL"
+        "INTUIT_CLIENT_ID:VITE_INTUIT_CLIENT_ID"
+        "QB_OAUTH_REDIRECT_BASE_URL:VITE_QB_OAUTH_REDIRECT_BASE_URL"
+        "ENABLE_DEVTOOLS:VITE_ENABLE_DEVTOOLS"
+        "ENABLE_QUICKBOOKS:VITE_ENABLE_QUICKBOOKS"
+        "VAPID_PUBLIC_KEY:VITE_VAPID_PUBLIC_KEY"
+        "GOOGLE_PICKER_API_KEY:VITE_GOOGLE_PICKER_API_KEY"
+        "GOOGLE_PICKER_APP_ID:VITE_GOOGLE_PICKER_APP_ID"
+        "GOOGLE_PICKER_CLIENT_ID:VITE_GOOGLE_PICKER_CLIENT_ID"
+    )
+
+    for mapping in "${mappings[@]}"; do
+        source_key="${mapping%%:*}"
+        target_key="${mapping##*:}"
+        value="$(env_file_value "$target_path" "$source_key")"
+        if [[ -n "$value" ]]; then
+            remove_env_key "$target_path" "$target_key"
+            printf '%s=%s\n' "$target_key" "$value" >> "$target_path"
+            set_count=$((set_count + 1))
+        fi
+    done
+
+    ok "Mirrored ${set_count}/${#mappings[@]} VITE_* keys from canonical app keys"
+}
+
+render_section_item() {
+    local item_name="$1"
+    local target_path="$2"
+    local section_label="$3"
+    local item_json
+    local target_tmp
+
+    item_json="$(mktemp)"
+    target_tmp="$(mktemp)"
+
+    if ! op item get "$item_name" --vault "$OP_VAULT" --format json > "$item_json" 2>/dev/null; then
+        rm -f "$item_json" "$target_tmp"
+        warn "1Password item '${item_name}' not found in EquipQR Agents vault."
+        warn "  Skipping ${target_path}."
+        return 1
+    fi
+
+    if ! SECTION_LABEL="$section_label" node -e '
+const fs = require("fs");
+const item = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+const sectionLabel = process.env.SECTION_LABEL;
+const lines = [];
+
+for (const field of item.fields || []) {
+  if (!field.section || field.section.label !== sectionLabel) continue;
+  if (!field.label || !/^[A-Z][A-Z0-9_]*$/.test(field.label)) continue;
+  if (field.value === undefined || field.value === null || field.value === "") continue;
+  lines.push(`${field.label}=${String(field.value).replace(/\r?\n/g, "\\n")}`);
+}
+
+process.stdout.write(lines.join("\n"));
+if (lines.length > 0) process.stdout.write("\n");
+' "$item_json" > "$target_tmp"; then
+        rm -f "$item_json" "$target_tmp"
+        warn "Could not parse fields from '${item_name}' section '${section_label}'."
+        return 1
+    fi
+
+    if [[ ! -s "$target_tmp" ]]; then
+        rm -f "$item_json" "$target_tmp"
+        warn "Item '${item_name}' has no populated env fields in section '${section_label}'."
+        return 1
+    fi
+
+    mkdir -p "$(dirname "$target_path")"
+    mv "$target_tmp" "$target_path"
+    chmod 600 "$target_path"
+    rm -f "$item_json"
+
+    local lines
+    lines="$(grep -cE '^[A-Z][A-Z0-9_]*=' "$target_path" || echo 0)"
+    ok "Rendered ${target_path} from '${item_name}' section '${section_label}' (${lines} env keys)"
+    return 0
+}
+
 render_dotenv_item() {
     local item_name="$1"
     local target_path="$2"
@@ -139,8 +246,19 @@ render_dotenv_item() {
     fi
 }
 
-render_dotenv_item 'app-env-local-dev'  "${REPO_ROOT}/.env"
-render_dotenv_item 'edge-env-local-dev' "${REPO_ROOT}/supabase/functions/.env"
+if render_section_item 'app-env-local-dev' "${REPO_ROOT}/.env" '.env'; then
+    sync_app_vite_mirrors "${REPO_ROOT}/.env"
+elif render_dotenv_item 'app-env-local-dev' "${REPO_ROOT}/.env"; then
+    sync_app_vite_mirrors "${REPO_ROOT}/.env"
+else
+    warn "App .env was not rendered. Frontend setup requires VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY from another source."
+fi
+
+if ! render_section_item 'edge-env-local-dev' "${REPO_ROOT}/supabase/functions/.env" './supabase/functions/.env'; then
+    if ! render_dotenv_item 'edge-env-local-dev' "${REPO_ROOT}/supabase/functions/.env"; then
+        warn "Edge Function .env was not rendered."
+    fi
+fi
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 4. Render GCP service-account JSON for gcloud MCP
@@ -149,22 +267,29 @@ log "[4/5] Rendering GCP SA JSON for gcloud MCP..."
 
 GCP_KEY_DIR="${HOME}/.config/gcloud"
 GCP_KEY_PATH="${GCP_KEY_DIR}/equipqr-agent-viewer.json"
+GCP_ITEM_NAME=""
 
-if op item get 'gcp-viewer' --vault "$OP_VAULT" --format json >/dev/null 2>&1; then
+if op item get 'gcp-read' --vault "$OP_VAULT" --format json >/dev/null 2>&1; then
+    GCP_ITEM_NAME="gcp-read"
+elif op item get 'gcp-viewer' --vault "$OP_VAULT" --format json >/dev/null 2>&1; then
+    GCP_ITEM_NAME="gcp-viewer"
+fi
+
+if [[ -n "$GCP_ITEM_NAME" ]]; then
     mkdir -p "$GCP_KEY_DIR"
-    if op read "op://${OP_VAULT}/gcp-viewer/credential" > "$GCP_KEY_PATH" 2>/dev/null; then
+    if op read "op://${OP_VAULT}/${GCP_ITEM_NAME}/credential" > "$GCP_KEY_PATH" 2>/dev/null; then
         chmod 600 "$GCP_KEY_PATH"
         if python3 -c "import json,sys; json.load(open('$GCP_KEY_PATH'))" 2>/dev/null \
             || node -e "JSON.parse(require('fs').readFileSync('$GCP_KEY_PATH','utf8'))" 2>/dev/null; then
-            ok "GCP SA JSON written and validated: ${GCP_KEY_PATH}"
+            ok "GCP SA JSON written from '${GCP_ITEM_NAME}' and validated: ${GCP_KEY_PATH}"
         else
-            warn "GCP SA JSON written but not valid JSON. Re-paste the JSON into the gcp-viewer/credential field."
+            warn "GCP SA JSON written but not valid JSON. Re-paste the JSON into the ${GCP_ITEM_NAME}/credential field."
         fi
     else
-        warn "op read of gcp-viewer/credential failed. SA JSON not written."
+        warn "op read of ${GCP_ITEM_NAME}/credential failed. SA JSON not written."
     fi
 else
-    warn "1Password item 'gcp-viewer' not found in EquipQR Agents vault. gcloud MCP will fail until Phase 1.5 is complete."
+    warn "Neither 1Password item 'gcp-read' nor legacy item 'gcp-viewer' was found in EquipQR Agents vault. gcloud MCP will fail until the viewer service-account JSON is present."
 fi
 
 # ──────────────────────────────────────────────────────────────────────────────
