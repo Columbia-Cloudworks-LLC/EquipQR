@@ -52,7 +52,10 @@ else
 fi
 
 log "[3/6] Installing Node dependencies (npm ci)..."
-npm ci --no-audit --no-fund
+# --loglevel=error suppresses deprecation warnings from transitive deps
+# (whatwg-encoding, node-domexception, glob) that are not fixable at this
+# layer — they live inside supabase CLI and vitest coverage tooling.
+npm ci --no-audit --no-fund --loglevel=error
 ok "npm ci completed"
 
 log "[4/6] Verifying Vite prerequisites..."
@@ -78,9 +81,22 @@ if [[ ! -f "$ENV_FILE" ]]; then
         } > "$ENV_FILE"
         chmod 600 "$ENV_FILE" || true
         ok "Created .env from injected environment variables"
-    else
+    elif [[ -n "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]]; then
+        # Secrets may arrive after the install hook's bootstrap window.
+        # Retry bootstrap now that the token is confirmed present.
+        warn ".env not found; OP_SERVICE_ACCOUNT_TOKEN is now set — retrying agent-bootstrap..."
+        if bash "${REPO_ROOT}/scripts/agent-bootstrap.sh"; then
+            ok "agent-bootstrap retry succeeded"
+        else
+            warn "agent-bootstrap retry failed; will check env file below"
+        fi
+    fi
+
+    if [[ ! -f "$ENV_FILE" ]]; then
         fail ".env not found and fallback env vars are unavailable."
         fail "Required: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY."
+        fail "Ensure OP_SERVICE_ACCOUNT_TOKEN is set in Cursor Cloud Agent secrets at:"
+        fail "  https://cursor.com/dashboard/cloud-agents → Secrets tab"
         exit 1
     fi
 fi
