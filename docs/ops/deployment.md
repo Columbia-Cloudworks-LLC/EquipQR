@@ -96,6 +96,35 @@ export const config = {
 };
 ```
 
+### Cloud Agent Preview Access Verification
+
+Cloud Agents can verify browser access without relying on local Supabase or
+Docker. The check starts local Vite, maps the Cloud Agent `SUPABASE_URL` and
+`SUPABASE_ANON_KEY` secrets into the client-visible `VITE_*` variables in the
+child process only, registers a generated test account, and confirms the app
+reaches `/dashboard`.
+
+Required Cloud Agent environment secrets:
+
+| Variable | Purpose |
+|---|---|
+| `SUPABASE_URL` | Preview Supabase project URL. Host-only values are normalized to HTTPS by the script. |
+| `SUPABASE_ANON_KEY` | Preview Supabase anonymous/public key. |
+
+The script also reports whether `PREVIEW_LOGIN_EMAIL` and
+`PREVIEW_LOGIN_PASSWORD` are present, but signup verification uses a generated
+test account so it does not depend on those credentials being valid.
+
+Run:
+
+```bash
+npm run verify:preview-access
+```
+
+The script intentionally prints only status markers such as `[set]`, `[yes]`,
+`[created]`, and HTTP status codes. It must not print email addresses,
+passwords, Supabase keys, or session tokens.
+
 ## Hosting Platforms
 
 EquipQR™ is hosted on Vercel. The `main` branch promotes to `equipqr.app`,
