@@ -116,6 +116,12 @@ The script also reports whether `PREVIEW_LOGIN_EMAIL` and
 `PREVIEW_LOGIN_PASSWORD` are present, but the verification uses a generated test
 account so it does not depend on those credentials being valid.
 
+**Prerequisite:** Playwright must have downloaded the Chromium browser binary (Cloud Agent runners without it exit with a missing-binary error). After `npm ci`, install Chromium once:
+
+```bash
+npx playwright install chromium
+```
+
 Run:
 
 ```bash

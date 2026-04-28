@@ -201,7 +201,7 @@ async function verifyBrowserInstalled() {
   }
 }
 
-async function runSignupAndLoginProbe({ baseUrl, supabaseHost }) {
+async function runSignupAndLoginProbe({ baseUrl, supabaseHost, supabaseAnonKey }) {
   const runId = `${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
   const signupEmail = `cloud-agent-${runId}@example.com`;
   const signupPassword = `${crypto.randomBytes(18).toString('base64url')}A1!`;
@@ -256,7 +256,7 @@ async function runSignupAndLoginProbe({ baseUrl, supabaseHost }) {
     if (
       text.includes(signupEmail) ||
       text.includes(signupPassword) ||
-      text.includes(process.env.SUPABASE_ANON_KEY || '')
+      text.includes(supabaseAnonKey)
     ) {
       return;
     }
@@ -412,6 +412,10 @@ async function main() {
   requireEnv();
 
   const supabaseUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL);
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY.trim();
+  if (!supabaseAnonKey) {
+    throw new Error('SUPABASE_ANON_KEY is empty or whitespace-only.');
+  }
   const supabaseHost = new URL(supabaseUrl).host;
 
   await verifyBrowserInstalled();
@@ -420,7 +424,7 @@ async function main() {
   const viteEnv = {
     ...process.env,
     VITE_SUPABASE_URL: supabaseUrl,
-    VITE_SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
+    VITE_SUPABASE_ANON_KEY: supabaseAnonKey,
     // Preview's signup flow should not require hCaptcha in local dev verification.
     VITE_HCAPTCHA_SITEKEY: ''
   };
@@ -429,7 +433,11 @@ async function main() {
   try {
     server = await startVite({ port, viteEnv });
     console.log(`previewAccess.localVite.url=${server.baseUrl}`);
-    await runSignupAndLoginProbe({ baseUrl: server.baseUrl, supabaseHost });
+    await runSignupAndLoginProbe({
+      baseUrl: server.baseUrl,
+      supabaseHost,
+      supabaseAnonKey
+    });
     console.log('previewAccess.result=[ok]');
   } finally {
     if (server) {
