@@ -22,8 +22,12 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import type { WorkOrder, WorkOrderPriority } from '@/features/work-orders/types/workOrder';
 import {
-  createQRWorkOrder,
+  canRunQRAction,
   type QRActionEquipment,
+  type QRActionPermissionContext,
+} from '@/features/equipment/services/equipmentQRPermissions';
+import {
+  createQRWorkOrder,
 } from '@/features/equipment/services/equipmentQRActionService';
 import { logger } from '@/utils/logger';
 
@@ -31,7 +35,7 @@ interface QRWorkOrderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   equipment: QRActionEquipment;
-  userId: string;
+  permissionContext: QRActionPermissionContext | null;
   mode: 'pm' | 'generic';
   onCreated: (workOrder: WorkOrder) => void;
 }
@@ -42,7 +46,7 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
   open,
   onOpenChange,
   equipment,
-  userId,
+  permissionContext,
   mode,
   onCreated,
 }) => {
@@ -69,11 +73,19 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
       return;
     }
 
+    const action = isPM ? 'pm-work-order' : 'generic-work-order';
+    if (
+      !permissionContext ||
+      !canRunQRAction(action, permissionContext, equipment.teamId)
+    ) {
+      setError('Permission changed. Re-open this action to continue.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const workOrder = await createQRWorkOrder({
         equipment,
-        userId,
         title: title.trim(),
         description: description.trim(),
         priority,

@@ -3,7 +3,7 @@ import {
   canRunQRAction,
   type QRActionPermissionContext,
   type QRActionType,
-} from '@/features/equipment/services/equipmentQRActionService';
+} from '@/features/equipment/services/equipmentQRPermissions';
 
 const TEAM_ID = 'team-1';
 

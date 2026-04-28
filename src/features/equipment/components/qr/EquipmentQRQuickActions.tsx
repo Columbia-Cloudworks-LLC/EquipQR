@@ -6,11 +6,11 @@ import type {
   QRActionEquipment,
   QRActionPermissionContext,
   QRActionType,
-} from '@/features/equipment/services/equipmentQRActionService';
+} from '@/features/equipment/services/equipmentQRPermissions';
 import {
   canRunQRAction,
   fetchQRActionTeamMemberships,
-} from '@/features/equipment/services/equipmentQRActionService';
+} from '@/features/equipment/services/equipmentQRPermissions';
 
 const QRWorkOrderDialog = lazy(() => import('@/features/equipment/components/qr/QRWorkOrderDialog'));
 const QRUpdateHoursDialog = lazy(() => import('@/features/equipment/components/qr/QRWorkingHoursDialog'));
@@ -43,6 +43,7 @@ export default function EquipmentQRQuickActions({
   userDisplayName,
 }: EquipmentQRQuickActionsProps) {
   const [dialog, setDialog] = useState<DialogState>(null);
+  const [activePermissionContext, setActivePermissionContext] = useState<QRActionPermissionContext | null>(null);
   const [permissionMessage, setPermissionMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [checkingAction, setCheckingAction] = useState<QRActionType | null>(null);
@@ -79,6 +80,7 @@ export default function EquipmentQRQuickActions({
         return;
       }
 
+      setActivePermissionContext(nextPermissionContext);
       setDialog(nextDialog);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to check permissions for this action.';
@@ -164,11 +166,17 @@ export default function EquipmentQRQuickActions({
             <QRWorkOrderDialog
               open
               equipment={equipment}
-              userId={userId}
+              permissionContext={activePermissionContext}
               mode={dialog.attachPM ? 'pm' : 'generic'}
-              onOpenChange={(open) => { if (!open) setDialog(null); }}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setDialog(null);
+                  setActivePermissionContext(null);
+                }
+              }}
               onCreated={(workOrder) => {
                 setDialog(null);
+                setActivePermissionContext(null);
                 setSuccessMessage(`Work order "${workOrder.title}" was created.`);
               }}
             />
@@ -177,9 +185,16 @@ export default function EquipmentQRQuickActions({
             <QRUpdateHoursDialog
               open
               equipment={equipment}
-              onOpenChange={(open) => { if (!open) setDialog(null); }}
+              permissionContext={activePermissionContext}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setDialog(null);
+                  setActivePermissionContext(null);
+                }
+              }}
               onSuccess={(newHours) => {
                 setDialog(null);
+                setActivePermissionContext(null);
                 setSuccessMessage(`Working hours updated to ${newHours} hours.`);
               }}
             />
@@ -187,13 +202,19 @@ export default function EquipmentQRQuickActions({
           {dialog.type === 'note' && (
             <QRNoteImageDialog
               open
-              onClose={() => setDialog(null)}
+              onClose={() => {
+                setDialog(null);
+                setActivePermissionContext(null);
+              }}
               equipmentId={equipment.id}
               equipmentName={equipment.name}
               organizationId={equipment.organizationId}
+              equipmentTeamId={equipment.teamId}
+              permissionContext={activePermissionContext}
               userDisplayName={userDisplayName}
               onSuccess={(message) => {
                 setDialog(null);
+                setActivePermissionContext(null);
                 setSuccessMessage(message);
               }}
               onError={setPermissionMessage}

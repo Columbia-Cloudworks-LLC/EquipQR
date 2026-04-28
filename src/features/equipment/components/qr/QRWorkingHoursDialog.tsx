@@ -12,13 +12,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { updateQRWorkingHours, type QRActionEquipment } from '@/features/equipment/services/equipmentQRActionService';
+import {
+  canRunQRAction,
+  type QRActionEquipment,
+  type QRActionPermissionContext,
+} from '@/features/equipment/services/equipmentQRPermissions';
+import { updateQRWorkingHours } from '@/features/equipment/services/equipmentQRActionService';
 import { logger } from '@/utils/logger';
 
 interface QRWorkingHoursDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   equipment: QRActionEquipment;
+  permissionContext: QRActionPermissionContext | null;
   onSuccess: (newHours: number) => void;
 }
 
@@ -26,6 +32,7 @@ const QRWorkingHoursDialog: React.FC<QRWorkingHoursDialogProps> = ({
   open,
   onOpenChange,
   equipment,
+  permissionContext,
   onSuccess,
 }) => {
   const [newHours, setNewHours] = useState(
@@ -42,6 +49,14 @@ const QRWorkingHoursDialog: React.FC<QRWorkingHoursDialogProps> = ({
     const parsedHours = Number(newHours);
     if (!Number.isFinite(parsedHours) || parsedHours < 0) {
       setError('Enter a valid non-negative hour value.');
+      return;
+    }
+
+    if (
+      !permissionContext ||
+      !canRunQRAction('update-hours', permissionContext, equipment.teamId)
+    ) {
+      setError('Permission changed. Re-open this action to continue.');
       return;
     }
 
@@ -64,7 +79,7 @@ const QRWorkingHoursDialog: React.FC<QRWorkingHoursDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={isSubmitting ? undefined : onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Update Hours</DialogTitle>

@@ -7,35 +7,12 @@ import {
 import { createPM, type PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { WorkOrderService } from '@/features/work-orders/services/workOrderService';
 import type { WorkOrder, WorkOrderPriority } from '@/features/work-orders/types/workOrder';
-
-export type QRActionType = 'pm-work-order' | 'generic-work-order' | 'update-hours' | 'note-image';
-export type QRUserRole = 'owner' | 'admin' | 'member' | string;
-export type QRTeamRole = 'manager' | 'technician' | 'requestor' | 'viewer' | string;
-
-export interface QRActionTeamMembership {
-  teamId: string;
-  role: QRTeamRole;
-}
-
-export interface QRActionPermissionContext {
-  userId: string;
-  organizationId: string;
-  userRole: QRUserRole;
-  teamMemberships: QRActionTeamMembership[];
-}
-
-export interface QRActionEquipment {
-  id: string;
-  name: string;
-  organizationId: string;
-  teamId: string | null;
-  workingHours: number | null;
-  defaultPmTemplateId: string | null;
-}
+import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
+import type { QRActionEquipment } from '@/features/equipment/services/equipmentQRPermissions';
+import { logger } from '@/utils/logger';
 
 export interface CreateQRWorkOrderInput {
   equipment: QRActionEquipment;
-  userId: string;
   title: string;
   description: string;
   priority: WorkOrderPriority;
@@ -43,64 +20,7 @@ export interface CreateQRWorkOrderInput {
   attachPM: boolean;
 }
 
-function isOrgAdmin(userRole: QRUserRole): boolean {
-  return userRole === 'owner' || userRole === 'admin';
-}
-
-function isActiveOrgMember(userRole: QRUserRole): boolean {
-  return isOrgAdmin(userRole) || userRole === 'member';
-}
-
-function getMembershipForTeam(
-  teamMemberships: QRActionTeamMembership[],
-  teamId: string | null | undefined
-): QRActionTeamMembership | null {
-  if (!teamId) return null;
-  return teamMemberships.find(membership => membership.teamId === teamId) ?? null;
-}
-
-export function canRunQRAction(
-  action: QRActionType,
-  context: QRActionPermissionContext,
-  equipmentTeamId: string | null | undefined
-): boolean {
-  if (!isActiveOrgMember(context.userRole)) return false;
-  if (isOrgAdmin(context.userRole)) return true;
-
-  const teamMembership = getMembershipForTeam(context.teamMemberships, equipmentTeamId);
-
-  if (action === 'update-hours') {
-    return teamMembership?.role === 'manager';
-  }
-
-  if (!equipmentTeamId) return true;
-  return !!teamMembership;
-}
-
-export async function fetchQRActionTeamMemberships(
-  userId: string,
-  organizationId: string,
-  userRole: QRUserRole,
-  equipmentTeamId: string | null | undefined
-): Promise<QRActionTeamMembership[]> {
-  if (!equipmentTeamId || isOrgAdmin(userRole)) {
-    return [];
-  }
-
-  const { data, error } = await supabase.rpc('get_user_team_memberships', {
-    user_uuid: userId,
-    org_id: organizationId,
-  });
-
-  if (error) throw new Error(error.message);
-
-  return (data ?? []).map(membership => ({
-    teamId: membership.team_id,
-    role: membership.role,
-  }));
-}
-
-async function getPMTemplateData(templateId: string): Promise<{
+async function getPMTemplateData(templateId: string, organizationId: string): Promise<{
   checklistData: PMChecklistItem[];
   notes: string;
 }> {
@@ -108,6 +28,7 @@ async function getPMTemplateData(templateId: string): Promise<{
     .from('pm_checklist_templates')
     .select('template_data, description')
     .eq('id', templateId)
+    .or(`organization_id.eq.${organizationId},organization_id.is.null`)
     .maybeSingle();
 
   if (error) throw new Error(error.message);
@@ -120,6 +41,7 @@ async function getPMTemplateData(templateId: string): Promise<{
 }
 
 export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<WorkOrder> {
+  const createdBy = await requireAuthUserIdFromClaims();
   const service = new WorkOrderService(input.equipment.organizationId);
   const result = await service.create({
     title: input.title,
@@ -129,7 +51,7 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
     status: 'submitted',
     team_id: input.equipment.teamId ?? undefined,
     due_date: input.dueDate || undefined,
-    created_by: input.userId,
+    created_by: createdBy,
     has_pm: input.attachPM,
   });
 
@@ -138,22 +60,39 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
   }
 
   if (input.attachPM) {
+    let pmError: unknown;
+
     if (!input.equipment.defaultPmTemplateId) {
-      throw new Error('This equipment does not have a default PM template assigned.');
+      pmError = new Error('This equipment does not have a default PM template assigned.');
+    } else {
+      try {
+        const template = await getPMTemplateData(
+          input.equipment.defaultPmTemplateId,
+          input.equipment.organizationId
+        );
+        const pm = await createPM({
+          workOrderId: result.data.id,
+          equipmentId: input.equipment.id,
+          organizationId: input.equipment.organizationId,
+          checklistData: template.checklistData,
+          notes: template.notes,
+          templateId: input.equipment.defaultPmTemplateId,
+        });
+        if (!pm) {
+          pmError = new Error('PM initialization failed.');
+        }
+      } catch (error) {
+        pmError = error;
+      }
     }
 
-    const template = await getPMTemplateData(input.equipment.defaultPmTemplateId);
-    const pm = await createPM({
-      workOrderId: result.data.id,
-      equipmentId: input.equipment.id,
-      organizationId: input.equipment.organizationId,
-      checklistData: template.checklistData,
-      notes: template.notes,
-      templateId: input.equipment.defaultPmTemplateId,
-    });
-
-    if (!pm) {
-      throw new Error('Work order created, but PM initialization failed.');
+    if (pmError !== undefined) {
+      try {
+        await service.delete(result.data.id);
+      } catch (rollbackError) {
+        logger.error('Failed to rollback work order after PM initialization failure', rollbackError);
+      }
+      throw pmError instanceof Error ? pmError : new Error('PM initialization failed.');
     }
   }
 

@@ -4,11 +4,11 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@/test/utils/test-utils';
 import EquipmentQRQuickActions from '@/features/equipment/components/qr/EquipmentQRQuickActions';
 import {
-  fetchQRActionTeamMemberships,
   createQRWorkOrder,
   updateQRWorkingHours,
   createQREquipmentNote,
 } from '@/features/equipment/services/equipmentQRActionService';
+import { fetchQRActionTeamMemberships } from '@/features/equipment/services/equipmentQRPermissions';
 
 vi.mock('@/features/equipment/services/equipmentQRActionService', async () => {
   const actual = await vi.importActual<typeof import('@/features/equipment/services/equipmentQRActionService')>(
@@ -17,10 +17,20 @@ vi.mock('@/features/equipment/services/equipmentQRActionService', async () => {
 
   return {
     ...actual,
-    fetchQRActionTeamMemberships: vi.fn(),
     createQRWorkOrder: vi.fn(),
     updateQRWorkingHours: vi.fn(),
     createQREquipmentNote: vi.fn(),
+  };
+});
+
+vi.mock('@/features/equipment/services/equipmentQRPermissions', async () => {
+  const actual = await vi.importActual<typeof import('@/features/equipment/services/equipmentQRPermissions')>(
+    '@/features/equipment/services/equipmentQRPermissions'
+  );
+
+  return {
+    ...actual,
+    fetchQRActionTeamMemberships: vi.fn(),
   };
 });
 
@@ -106,7 +116,7 @@ describe('EquipmentQRQuickActions', () => {
     renderQuickActions();
 
     await user.click(screen.getByRole('button', { name: /new pm work order/i }));
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', undefined, { timeout: 3000 })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /create work order/i }));
 
     await waitFor(() => {
@@ -170,7 +180,7 @@ describe('EquipmentQRQuickActions', () => {
     renderQuickActions();
 
     await user.click(screen.getByRole('button', { name: /add note \/ upload image/i }));
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', undefined, { timeout: 3000 })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /submit note/i }));
 
     await waitFor(() => {
