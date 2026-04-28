@@ -3,7 +3,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import net from 'node:net';
-import { spawn } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
 import { chromium } from '@playwright/test';
 
 const ENV_KEYS_TO_REPORT = [
@@ -75,15 +75,17 @@ function delay(ms) {
  * Terminate a spawned npm/Vite child. On non-Windows the process was spawned
  * detached so the session leader is the process group; use negative PID.
  * Ignores ESRCH (already exited) and EPERM races so cleanup cannot fail the verifier.
+ * On Windows, `child.kill()` often stops only the npm.cmd wrapper; match test-runner.mjs
+ * and terminate the full process tree so Vite/node cannot leak.
  */
 function terminateChild(child, signal) {
   if (child.exitCode !== null || child.signalCode !== null) return;
   if (process.platform === 'win32') {
+    if (!child.pid) return;
     try {
-      child.kill(signal);
-    } catch (err) {
-      if (err && err.code === 'ESRCH') return;
-      throw err;
+      execSync(`taskkill /pid ${child.pid} /T /F`, { stdio: 'ignore' });
+    } catch {
+      // Tree may already be gone (same role as ESRCH on Unix).
     }
     return;
   }
@@ -130,8 +132,8 @@ function redactConsoleErrorText(text, { signupEmail, signupPassword, supabaseAno
     }
   }
 
-  const jwtLike =
-    /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;
+  // No \\b anchors: base64url JWT segments can end with "-" which \\w does not treat as a boundary.
+  const jwtLike = /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g;
   out = out.replace(jwtLike, () => {
     redactedCount++;
     return '[redacted-jwt]';
