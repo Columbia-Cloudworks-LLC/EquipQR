@@ -17,6 +17,7 @@ const REQUIRED_ENV_KEYS = ['SUPABASE_URL', 'SUPABASE_ANON_KEY'];
 const HOST = '127.0.0.1';
 const STARTUP_TIMEOUT_MS = 30_000;
 const SIGNUP_TIMEOUT_MS = 20_000;
+const LOGIN_TIMEOUT_MS = 20_000;
 
 function marker(value) {
   return value ? '[set]' : '[missing]';
@@ -175,11 +176,12 @@ async function verifyBrowserInstalled() {
   }
 }
 
-async function runSignupProbe({ baseUrl, supabaseHost }) {
+async function runSignupAndLoginProbe({ baseUrl, supabaseHost }) {
   const runId = `${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
   const signupEmail = `cloud-agent-${runId}@example.com`;
   const signupPassword = `${crypto.randomBytes(18).toString('base64url')}A1!`;
   const signupResponses = [];
+  const loginResponses = [];
   const consoleErrors = [];
 
   const browser = await chromium.launch({ headless: true });
@@ -188,19 +190,36 @@ async function runSignupProbe({ baseUrl, supabaseHost }) {
   page.on('response', async (response) => {
     try {
       const url = new URL(response.url());
-      if (url.host !== supabaseHost || !url.pathname.includes('/auth/v1/signup')) {
+      if (url.host !== supabaseHost) {
         return;
       }
 
-      const body = await response.json().catch(() => ({}));
-      signupResponses.push({
-        hostMatchesEnv: true,
-        status: response.status(),
-        hasSession: Boolean(body?.session || body?.access_token),
-        hasUser: Boolean(body?.user || body?.id),
-        errorCode: body?.code || body?.error_code || body?.error || '[missing]',
-        errorMessage: body?.msg || body?.message || body?.error_description || '[missing]'
-      });
+      if (url.pathname.includes('/auth/v1/signup')) {
+        const body = await response.json().catch(() => ({}));
+        signupResponses.push({
+          hostMatchesEnv: true,
+          status: response.status(),
+          hasSession: Boolean(body?.session || body?.access_token),
+          hasUser: Boolean(body?.user || body?.id),
+          errorCode: body?.code || body?.error_code || body?.error || '[missing]',
+          errorMessage: body?.msg || body?.message || body?.error_description || '[missing]'
+        });
+      }
+
+      if (
+        url.pathname.includes('/auth/v1/token') &&
+        url.searchParams.get('grant_type') === 'password'
+      ) {
+        const body = await response.json().catch(() => ({}));
+        loginResponses.push({
+          hostMatchesEnv: true,
+          status: response.status(),
+          hasSession: Boolean(body?.session || body?.access_token),
+          hasUser: Boolean(body?.user || body?.id),
+          errorCode: body?.code || body?.error_code || body?.error || '[missing]',
+          errorMessage: body?.msg || body?.message || body?.error_description || '[missing]'
+        });
+      }
     } catch {
       // Ignore non-URL responses and opaque bodies; the final assertions cover missing signup calls.
     }
@@ -292,6 +311,71 @@ async function runSignupProbe({ baseUrl, supabaseHost }) {
     if (!signup.hasSession || !localStorageSession || !authenticatedRoute) {
       throw new Error('Signup completed without a usable authenticated dashboard session.');
     }
+
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+
+    const loginPageResponse = await page.goto(`${baseUrl}/auth?tab=signin`, {
+      waitUntil: 'domcontentloaded',
+      timeout: STARTUP_TIMEOUT_MS
+    });
+    console.log(`previewAccess.login.authPage.status=${loginPageResponse ? loginPageResponse.status() : '[missing]'}`);
+
+    await page.locator('#signin-email').fill(signupEmail);
+    await page.locator('#signin-password').fill(signupPassword);
+
+    const loginSubmit = page.getByRole('button', { name: /^Sign In$/i });
+    const loginSubmitEnabled = await loginSubmit.isEnabled();
+    console.log(`previewAccess.login.submitEnabled=${loginSubmitEnabled ? '[yes]' : '[no]'}`);
+    if (!loginSubmitEnabled) {
+      throw new Error('Login submit button is disabled.');
+    }
+
+    await loginSubmit.click();
+    await page.waitForURL(/\/dashboard(\/|$|\?)/, { timeout: LOGIN_TIMEOUT_MS }).catch(() => {});
+    await page.waitForTimeout(1000);
+
+    const loginCurrentPath = new URL(page.url()).pathname;
+    const loginAuthenticatedRoute = loginCurrentPath.startsWith('/dashboard');
+    const loginLocalStorageSession = await page.evaluate(() =>
+      Object.keys(localStorage).some(
+        (key) => key.startsWith('sb-') && key.endsWith('-auth-token')
+      )
+    );
+    const loginVisibleAlert = await page
+      .locator('[role="alert"], #signin-auth-error')
+      .first()
+      .innerText({ timeout: 2000 })
+      .catch(() => '');
+
+    const login = loginResponses[0];
+    console.log(`previewAccess.login.generatedEmail=[not-printed]`);
+    console.log(`previewAccess.login.supabaseRequests=${loginResponses.length}`);
+    if (login) {
+      console.log(`previewAccess.login.supabaseHostMatchesEnv=${login.hostMatchesEnv ? '[yes]' : '[no]'}`);
+      console.log(`previewAccess.login.supabaseStatus=${login.status}`);
+      console.log(`previewAccess.login.supabaseUser=${login.hasUser ? '[returned]' : '[not-returned]'}`);
+      console.log(`previewAccess.login.supabaseSession=${login.hasSession ? '[created]' : '[not-created]'}`);
+      if (login.status >= 400) {
+        console.log(`previewAccess.login.supabaseErrorCode=${login.errorCode}`);
+        console.log(`previewAccess.login.supabaseErrorMessage=${login.errorMessage}`);
+      }
+    }
+    console.log(`previewAccess.login.localStorageSession=${loginLocalStorageSession ? '[present]' : '[missing]'}`);
+    console.log(`previewAccess.login.authenticatedRoute=${loginAuthenticatedRoute ? '[yes]' : '[no]'}`);
+    console.log(`previewAccess.login.visibleAlert=${loginVisibleAlert ? loginVisibleAlert.replace(/\s+/g, ' ').trim() : '[none]'}`);
+
+    if (!login) {
+      throw new Error('No Supabase password login request was observed.');
+    }
+    if (login.status >= 400) {
+      throw new Error(`Supabase password login failed with status ${login.status}.`);
+    }
+    if (!login.hasSession || !loginLocalStorageSession || !loginAuthenticatedRoute) {
+      throw new Error('Login completed without a usable authenticated dashboard session.');
+    }
   } finally {
     await browser.close();
   }
@@ -319,7 +403,7 @@ async function main() {
   try {
     server = await startVite({ port, viteEnv });
     console.log(`previewAccess.localVite.url=${server.baseUrl}`);
-    await runSignupProbe({ baseUrl: server.baseUrl, supabaseHost });
+    await runSignupAndLoginProbe({ baseUrl: server.baseUrl, supabaseHost });
     console.log('previewAccess.result=[ok]');
   } finally {
     if (server) {
