@@ -149,7 +149,6 @@ export type QuickBooksExportInvoiceResponse =
       invoice_number: string;
       is_update: boolean;
       environment: QuickBooksEnvironment;
-      pdf_attached: boolean;
       message?: string;
     }
   | {
@@ -166,7 +165,6 @@ export interface InvoiceExportResult {
   invoiceNumber?: string;
   isUpdate?: boolean;
   environment?: QuickBooksEnvironment;
-  pdfAttached?: boolean;
   error?: string;
 }
 

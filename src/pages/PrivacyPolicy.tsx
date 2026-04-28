@@ -468,8 +468,7 @@ export default function PrivacyPolicy() {
               </li>
               <li>
                 <strong>Data sent to QuickBooks:</strong> OAuth authorization requests, work order
-                cost and labor data for invoice creation, customer search queries, and optionally
-                PDF attachments of work orders.
+                cost and labor data for invoice creation, and customer search queries.
               </li>
               <li>
                 <strong>Data received from QuickBooks:</strong> OAuth tokens (access and refresh),

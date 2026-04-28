@@ -164,7 +164,6 @@ const FAQSection: React.FC = () => {
                   <li><strong>Description:</strong> Work order details, equipment information, and public notes</li>
                   <li><strong>Private note:</strong> Internal details like work order ID, dates, and cost breakdown</li>
                   <li><strong>Customer memo:</strong> Work order title for customer reference</li>
-                  <li><strong>PDF attachment:</strong> Summary document with work order details (if enabled)</li>
                 </ul>
                 <p className="text-sm text-muted-foreground mt-2">
                   Invoices are created as <strong>drafts</strong> in QuickBooks, allowing you to review and edit before sending to customers.
