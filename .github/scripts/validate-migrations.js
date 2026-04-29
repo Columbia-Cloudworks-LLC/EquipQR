@@ -63,7 +63,7 @@ const createTableRegex =
  * Branches: IF EXISTS col | col (quoted or word).
  */
 const dropColumnRegex =
-  /ALTER\s+TABLE\s+[\w".]+\s+DROP\s+COLUMN\s+(?:IF\s+EXISTS\s+(?:"([^"]+)"|(\w+))|(?:"([^"]+)"|(\w+)))/gi;
+  /ALTER\s+TABLE(?:\s+IF\s+EXISTS)?\s+[\w".]+\s+DROP\s+COLUMN\s+(?:IF\s+EXISTS\s+(?:"([^"]+)"|(\w+))|(?:"([^"]+)"|(\w+)))/gi;
 
 /*
  * Additional DROP COLUMN clauses within the same ALTER TABLE statement (multi-column form).
