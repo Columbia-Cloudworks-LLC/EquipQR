@@ -31,7 +31,7 @@ function isOrgAdmin(userRole: Role): boolean {
 
 /** Active org members may use QR quick actions; org viewers are excluded. */
 function isActiveOrgMember(userRole: Role): boolean {
-  return isOrgAdmin(userRole) || userRole === 'member';
+  return isOrgAdmin(userRole) || userRole === 'member' || (userRole as string) === 'manager';
 }
 
 function getMembershipForTeam(

@@ -66,6 +66,11 @@ const QRNoteImageDialog: React.FC<QRNoteImageDialogProps> = ({
           : `${userDisplayName} uploaded ${data.images.length} images.`;
     }
 
+    if (!finalContent) {
+      setError('Please add a note or attach at least one image.');
+      return;
+    }
+
     if (
       !permissionContext ||
       !canRunQRAction('note-image', permissionContext, equipmentTeamId)
