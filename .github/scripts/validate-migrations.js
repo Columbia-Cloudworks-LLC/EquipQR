@@ -66,13 +66,15 @@ for (const filePath of changedFiles) {
   }
 
   const content = fs.readFileSync(filePath, 'utf8');
-  const upperContent = content.toUpperCase();
-  const lines = content.split('\n');
 
   // ── 2. DROP COLUMN SAFETY CHECK ─────────────────────────────────────────
-  const dropColumnRegex = /ALTER\s+TABLE\s+[\w".]+\s+DROP\s+COLUMN\s+(\w+)/gi;
+  const dropColumnRegex = /ALTER\s+TABLE\s+[\w".]+\s+DROP\s+COLUMN\s+(?:IF\s+EXISTS\s+)?(\w+)/gi;
   let dropMatch;
   while ((dropMatch = dropColumnRegex.exec(content)) !== null) {
+    // Skip statements inside SQL comment lines
+    const lineStart = content.lastIndexOf('\n', dropMatch.index - 1) + 1;
+    if (content.slice(lineStart, dropMatch.index).trimStart().startsWith('--')) continue;
+
     const columnName = dropMatch[1];
     const precedingContent = content.slice(0, dropMatch.index);
 
@@ -106,7 +108,7 @@ for (const filePath of changedFiles) {
       'i'
     );
     const policyRegex = new RegExp(
-      `CREATE\\s+POLICY\\s+[\\w"]+\\s+ON\\s+(?:public\\s*\\.\\s*)?"?${rawTableName}"?`,
+      `CREATE\\s+POLICY\\s+(?:[\\w]+|"[^"]+")\\s+ON\\s+(?:public\\s*\\.\\s*)?"?${rawTableName}"?`,
       'i'
     );
 
