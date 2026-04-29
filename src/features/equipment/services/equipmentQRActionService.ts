@@ -87,9 +87,13 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
     }
 
     if (pmError !== undefined) {
-      const deleteResult = await service.delete(result.data.id);
-      if (!deleteResult.success) {
-        logger.error('Failed to rollback work order after PM initialization failure', deleteResult.error);
+      try {
+        const deleteResult = await service.delete(result.data.id);
+        if (!deleteResult.success) {
+          logger.error('Failed to rollback work order after PM initialization failure', deleteResult.error);
+        }
+      } catch (deleteError) {
+        logger.error('Exception during rollback of work order after PM initialization failure', deleteError);
       }
       throw pmError instanceof Error ? pmError : new Error('PM initialization failed.');
     }
