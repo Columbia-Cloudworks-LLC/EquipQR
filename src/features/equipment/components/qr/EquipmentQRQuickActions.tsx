@@ -7,6 +7,7 @@ import type {
   QRActionPermissionContext,
   QRActionType,
 } from '@/features/equipment/services/equipmentQRPermissions';
+import type { Role } from '@/types/permissions';
 import {
   canRunQRAction,
   fetchQRActionTeamMemberships,
@@ -19,7 +20,7 @@ const QRNoteImageDialog = lazy(() => import('@/features/equipment/components/qr/
 
 interface EquipmentQRQuickActionsProps {
   equipment: QRActionEquipment;
-  userRole: string;
+  userRole: Role;
   userDisplayName: string;
 }
 
@@ -220,7 +221,6 @@ export default function EquipmentQRQuickActions({
                 setActivePermissionContext(null);
                 setSuccessMessage(message);
               }}
-              onError={setPermissionMessage}
             />
           )}
         </Suspense>

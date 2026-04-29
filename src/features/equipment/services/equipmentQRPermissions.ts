@@ -1,19 +1,18 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Role, TeamRole } from '@/types/permissions';
 import { getAuthClaims } from '@/lib/authClaims';
 
 export type QRActionType = 'pm-work-order' | 'generic-work-order' | 'update-hours' | 'note-image';
-export type QRUserRole = 'owner' | 'admin' | 'member' | string;
-export type QRTeamRole = 'manager' | 'technician' | 'requestor' | 'viewer' | string;
 
 export interface QRActionTeamMembership {
   teamId: string;
-  role: QRTeamRole;
+  role: TeamRole;
 }
 
 export interface QRActionPermissionContext {
   userId: string;
   organizationId: string;
-  userRole: QRUserRole;
+  userRole: Role;
   teamMemberships: QRActionTeamMembership[];
 }
 
@@ -26,12 +25,13 @@ export interface QRActionEquipment {
   defaultPmTemplateId: string | null;
 }
 
-function isOrgAdmin(userRole: QRUserRole): boolean {
+function isOrgAdmin(userRole: Role): boolean {
   return userRole === 'owner' || userRole === 'admin';
 }
 
-function isActiveOrgMember(userRole: QRUserRole): boolean {
-  return isOrgAdmin(userRole) || userRole === 'member';
+/** Active org members may use QR quick actions; org viewers are excluded. */
+function isActiveOrgMember(userRole: Role): boolean {
+  return isOrgAdmin(userRole) || userRole === 'member' || userRole === 'manager';
 }
 
 function getMembershipForTeam(
@@ -62,7 +62,7 @@ export function canRunQRAction(
 
 export async function fetchQRActionTeamMemberships(
   organizationId: string,
-  userRole: QRUserRole,
+  userRole: Role,
   equipmentTeamId: string | null | undefined
 ): Promise<QRActionTeamMembership[]> {
   if (!equipmentTeamId || isOrgAdmin(userRole)) {

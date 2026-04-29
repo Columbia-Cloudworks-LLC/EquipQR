@@ -9,6 +9,7 @@ import EquipQRIcon from '@/components/ui/EquipQRIcon';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { Database } from '@/integrations/supabase/types';
+import type { Role } from '@/types/permissions';
 
 type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 
@@ -410,7 +411,7 @@ const EquipmentQRScan = () => {
                     workingHours: equipment.workingHours,
                     defaultPmTemplateId: equipment.defaultPmTemplateId,
                   }}
-                  userRole={payload.userRole}
+                  userRole={payload.userRole as Role}
                   userDisplayName={
                     (user?.user_metadata?.name as string | undefined) || user?.email?.split('@')[0] || 'User'
                   }

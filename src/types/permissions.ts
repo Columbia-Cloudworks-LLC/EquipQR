@@ -1,5 +1,5 @@
-export type Role = 'owner' | 'admin' | 'member' | 'viewer';
-export type TeamRole = 'manager' | 'technician';
+export type Role = 'owner' | 'admin' | 'manager' | 'member' | 'viewer';
+export type TeamRole = 'manager' | 'technician' | 'requestor' | 'viewer';
 
 export interface UserContext {
   userId: string;

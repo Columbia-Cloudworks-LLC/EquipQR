@@ -19,7 +19,6 @@ interface QRNoteImageDialogProps {
   permissionContext: QRActionPermissionContext | null;
   userDisplayName: string;
   onSuccess: (message: string) => void;
-  onError: (message: string) => void;
 }
 
 const QRNoteImageDialog: React.FC<QRNoteImageDialogProps> = ({
@@ -32,7 +31,6 @@ const QRNoteImageDialog: React.FC<QRNoteImageDialogProps> = ({
   permissionContext,
   userDisplayName,
   onSuccess,
-  onError,
 }) => {
   const [noteContent, setNoteContent] = useState('');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
