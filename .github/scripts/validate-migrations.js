@@ -100,6 +100,10 @@ for (const filePath of changedFiles) {
   const skipSchemas = /^(auth|storage|extensions|pgbouncer|realtime|supabase_functions)$/i;
 
   while ((createMatch = createTableRegex.exec(content)) !== null) {
+    // Skip statements inside SQL comment lines
+    const createLineStart = content.lastIndexOf('\n', createMatch.index - 1) + 1;
+    if (content.slice(createLineStart, createMatch.index).trimStart().startsWith('--')) continue;
+
     const rawTableName = createMatch[1].replace(/"/g, '');
     if (skipSchemas.test(rawTableName)) continue;
 
