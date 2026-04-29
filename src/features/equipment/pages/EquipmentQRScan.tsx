@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AlertCircle, ArrowRight, Clock, Forklift, Loader2, MapPin } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -9,10 +9,12 @@ import EquipQRIcon from '@/components/ui/EquipQRIcon';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { Database } from '@/integrations/supabase/types';
+import type { Role } from '@/types/permissions';
 
 type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 
 const PRODUCTION_URL = 'https://equipqr.app';
+const EquipmentQRQuickActions = lazy(() => import('@/features/equipment/components/qr/EquipmentQRQuickActions'));
 
 interface OrganizationRelation {
   id: string;
@@ -36,6 +38,7 @@ interface EquipmentQRRow {
   location: string | null;
   working_hours: number | null;
   image_url: string | null;
+  default_pm_template_id: string | null;
   team: TeamRelation | TeamRelation[] | null;
   organizations: OrganizationRelation | OrganizationRelation[];
 }
@@ -51,6 +54,7 @@ interface EquipmentQRPayload {
     location: string | null;
     workingHours: number | null;
     imageUrl: string | null;
+    defaultPmTemplateId: string | null;
     team: TeamRelation | null;
   };
   organization: OrganizationRelation;
@@ -98,6 +102,7 @@ async function fetchEquipmentQRPayload(
       location,
       working_hours,
       image_url,
+      default_pm_template_id,
       team:team_id(id, name),
       organizations!inner(id, name, scan_location_collection_enabled)
     `)
@@ -133,6 +138,7 @@ async function fetchEquipmentQRPayload(
       location: row.location,
       workingHours: row.working_hours,
       imageUrl: row.image_url,
+      defaultPmTemplateId: row.default_pm_template_id,
       team: firstRelation(row.team),
     },
     organization,
@@ -173,6 +179,7 @@ const EquipmentQRScan = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scanStatus, setScanStatus] = useState<ScanStatus>('idle');
+  const [showQuickActions, setShowQuickActions] = useState(false);
   const scanStartedRef = useRef(false);
 
   useEffect(() => {
@@ -252,6 +259,13 @@ const EquipmentQRScan = () => {
       .then(() => setScanStatus('logged'))
       .catch(() => setScanStatus('failed'));
   }, [payload, user]);
+
+  useEffect(() => {
+    if (!payload) return;
+
+    const frameId = window.requestAnimationFrame(() => setShowQuickActions(true));
+    return () => window.cancelAnimationFrame(frameId);
+  }, [payload]);
 
   const openDashboardRecord = useCallback(async () => {
     if (!payload) return;
@@ -382,9 +396,33 @@ const EquipmentQRScan = () => {
                     : 'Recording scan...'}
               </p>
               <p className="mt-1 text-muted-foreground">
-                You can continue to the full dashboard record for work orders, notes, images, parts, scans, and history.
+                Use quick actions below for field updates, or continue to the full dashboard record for parts, scans, and history.
               </p>
             </div>
+
+            {showQuickActions && (
+              <Suspense fallback={<div className="h-32 rounded-lg border bg-muted/30" aria-hidden="true" />}>
+                <EquipmentQRQuickActions
+                  equipment={{
+                    id: equipment.id,
+                    name: equipment.name,
+                    organizationId: payload.organization.id,
+                    teamId: equipment.team?.id ?? null,
+                    workingHours: equipment.workingHours,
+                    defaultPmTemplateId: equipment.defaultPmTemplateId,
+                  }}
+                  userRole={payload.userRole as Role}
+                  userDisplayName={
+                    (user?.user_metadata?.name as string | undefined) || user?.email?.split('@')[0] || 'User'
+                  }
+                  onWorkingHoursUpdated={(newHours) =>
+                    setPayload((prev) =>
+                      prev ? { ...prev, equipment: { ...prev.equipment, workingHours: newHours } } : prev
+                    )
+                  }
+                />
+              </Suspense>
+            )}
 
             <Button className="w-full" size="lg" onClick={openDashboardRecord}>
               Open Full Dashboard Record
