@@ -70,12 +70,6 @@ for (const filePath of changedFiles) {
   const lines = content.split('\n');
 
   // ── 2. DROP COLUMN SAFETY CHECK ─────────────────────────────────────────
-  //
-  // Bare DROP COLUMN is destructive. We require one of:
-  //   a) A preceding ALTER TABLE ... RENAME COLUMN (backup pattern)
-  //   b) A DEFAULT value being set before the drop on the same table/column
-  //   c) A comment -- safe-drop or -- intentional-drop acknowledging the risk
-  //
   const dropColumnRegex = /ALTER\s+TABLE\s+[\w".]+\s+DROP\s+COLUMN\s+(\w+)/gi;
   let dropMatch;
   while ((dropMatch = dropColumnRegex.exec(content)) !== null) {
@@ -99,21 +93,12 @@ for (const filePath of changedFiles) {
   }
 
   // ── 3. NEW TABLES REQUIRE RLS ────────────────────────────────────────────
-  //
-  // If the migration creates a new table, verify it also:
-  //   a) Enables RLS:          ALTER TABLE <name> ENABLE ROW LEVEL SECURITY
-  //   b) Creates at least one policy:  CREATE POLICY ... ON <name>
-  //
-  // We only flag tables in the public schema (default) and skip auth.* / storage.*
-  //
   const createTableRegex = /CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+(?:public\s*\.\s*)?("?[a-z_][a-z0-9_]*"?)/gi;
   let createMatch;
   const skipSchemas = /^(auth|storage|extensions|pgbouncer|realtime|supabase_functions)/i;
 
   while ((createMatch = createTableRegex.exec(content)) !== null) {
     const rawTableName = createMatch[1].replace(/"/g, '');
-
-    // Skip internal schemas if accidentally matched
     if (skipSchemas.test(rawTableName)) continue;
 
     const rlsEnabledRegex = new RegExp(
@@ -125,7 +110,6 @@ for (const filePath of changedFiles) {
       'i'
     );
 
-    // Also check entire migrations folder for this table's RLS (in case it was set in an earlier migration)
     const allMigrationsDir = path.join('supabase', 'migrations');
     let hasGlobalRLS = false;
     let hasGlobalPolicy = false;
@@ -141,7 +125,6 @@ for (const filePath of changedFiles) {
         if (policyRegex.test(mc)) hasGlobalPolicy = true;
       }
     } catch (_) {
-      // fallback: only check current file
       if (rlsEnabledRegex.test(content)) hasGlobalRLS = true;
       if (policyRegex.test(content)) hasGlobalPolicy = true;
     }
