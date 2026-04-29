@@ -97,6 +97,7 @@ const QRNoteImageDialog: React.FC<QRNoteImageDialogProps> = ({
       if (isMountedRef.current) {
         setError(submitError instanceof Error ? submitError.message : 'Unable to add note.');
       }
+      throw submitError;
     } finally {
       if (isMountedRef.current) {
         setIsSubmitting(false);
