@@ -50,9 +50,13 @@ console.log(`\n🔍 Validating ${changedFiles.length} migration file(s)...\n`);
 const errors = [];
 const warnings = [];
 
-/* CREATE TABLE … — schema optional; supports public.foo and "public"."foo". */
+/*
+ * CREATE TABLE — captures optional schema prefix and table name in separate groups.
+ * Groups [1]/[2] = schema (quoted/unquoted), [3]/[4] = table name (quoted/unquoted).
+ * Non-public schemas are skipped during processing to avoid false positives.
+ */
 const createTableRegex =
-  /CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+(?:(?:"public"|public)\s*\.\s*)?(?:"([^"]+)"|([a-z_][a-z0-9_]*))/gi;
+  /CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+(?:(?:"([^"]+)"|([a-z_][a-z0-9_]*))\s*\.\s*)?(?:"([^"]+)"|([a-z_][a-z0-9_]*))/gi;
 
 /*
  * DROP COLUMN — must not use a single optional IF EXISTS before (\w+) or "IF" is captured as the column name.
@@ -60,6 +64,13 @@ const createTableRegex =
  */
 const dropColumnRegex =
   /ALTER\s+TABLE\s+[\w".]+\s+DROP\s+COLUMN\s+(?:IF\s+EXISTS\s+(?:"([^"]+)"|(\w+))|(?:"([^"]+)"|(\w+)))/gi;
+
+/*
+ * Additional DROP COLUMN clauses within the same ALTER TABLE statement (multi-column form).
+ * Matches ", DROP COLUMN [IF EXISTS] col" that follow the first DROP COLUMN already caught above.
+ */
+const additionalDropColumnRegex =
+  /,\s*DROP\s+COLUMN\s+(?:IF\s+EXISTS\s+(?:"([^"]+)"|(\w+))|(?:"([^"]+)"|(\w+)))/gi;
 
 for (const filePath of changedFiles) {
   const fileName = path.basename(filePath);
@@ -106,21 +117,19 @@ for (const filePath of changedFiles) {
   const content = fs.readFileSync(filePath, 'utf8');
 
   // ── 2. DROP COLUMN SAFETY CHECK ─────────────────────────────────────────
-  let dropMatch;
-  dropColumnRegex.lastIndex = 0;
-  while ((dropMatch = dropColumnRegex.exec(content)) !== null) {
-    if (isLineSqlComment(content, dropMatch.index)) continue;
-
-    const columnName =
-      dropMatch[1] || dropMatch[2] || dropMatch[3] || dropMatch[4];
-    const precedingContent = content.slice(0, dropMatch.index);
-
+  /**
+   * Helper: validate a single DROP COLUMN occurrence.
+   * `matchIndex` is the position in `content` where the DROP keyword starts
+   * (used for comment-proximity checks and preceding-rename lookups).
+   */
+  function checkDropColumn(columnName, matchIndex) {
+    const precedingContent = content.slice(0, matchIndex);
     const hasRename = new RegExp(
       `RENAME\\s+COLUMN\\s+${escapeRegExp(columnName)}`,
       'i',
     ).test(precedingContent);
     const hasSafeComment = /--\s*(safe.?drop|intentional.?drop|acknowledged)/i.test(
-      content.slice(Math.max(0, dropMatch.index - 200), dropMatch.index + 200),
+      content.slice(Math.max(0, matchIndex - 200), matchIndex + 200),
     );
 
     if (!hasRename && !hasSafeComment) {
@@ -134,13 +143,48 @@ for (const filePath of changedFiles) {
     }
   }
 
+  let dropMatch;
+  dropColumnRegex.lastIndex = 0;
+  while ((dropMatch = dropColumnRegex.exec(content)) !== null) {
+    if (isLineSqlComment(content, dropMatch.index)) continue;
+
+    const columnName =
+      dropMatch[1] || dropMatch[2] || dropMatch[3] || dropMatch[4];
+    checkDropColumn(columnName, dropMatch.index);
+
+    // Check any additional ", DROP COLUMN ..." clauses in the same statement.
+    // Scan forward from end of this match until the statement terminator (;).
+    const stmtEnd = content.indexOf(';', dropMatch.index);
+    const tail =
+      stmtEnd === -1
+        ? content.slice(dropMatch.index + dropMatch[0].length)
+        : content.slice(dropMatch.index + dropMatch[0].length, stmtEnd + 1);
+
+    additionalDropColumnRegex.lastIndex = 0;
+    let extraMatch;
+    while ((extraMatch = additionalDropColumnRegex.exec(tail)) !== null) {
+      const extraColumn =
+        extraMatch[1] || extraMatch[2] || extraMatch[3] || extraMatch[4];
+      // Compute absolute position of this extra DROP COLUMN in `content`.
+      const absoluteIndex =
+        dropMatch.index + dropMatch[0].length + extraMatch.index;
+      if (isLineSqlComment(content, absoluteIndex)) continue;
+      checkDropColumn(extraColumn, absoluteIndex);
+    }
+  }
+
   // ── 3. NEW TABLES REQUIRE RLS ────────────────────────────────────────────
   let createMatch;
   createTableRegex.lastIndex = 0;
   while ((createMatch = createTableRegex.exec(content)) !== null) {
     if (isLineSqlComment(content, createMatch.index)) continue;
 
-    const rawTableName = (createMatch[1] || createMatch[2] || '').replace(/"/g, '');
+    // Groups [1]/[2] are the schema; [3]/[4] are the table name.
+    const schemaName = (createMatch[1] || createMatch[2] || '').toLowerCase();
+    // If a non-public schema is present, skip RLS validation for this table.
+    if (schemaName && schemaName !== 'public') continue;
+
+    const rawTableName = (createMatch[3] || createMatch[4] || '').replace(/"/g, '');
     if (!rawTableName) continue;
     if (RESERVED_SCHEMA_TABLE_NAMES.has(rawTableName.toLowerCase())) continue;
 
