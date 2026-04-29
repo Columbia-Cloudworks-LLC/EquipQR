@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -35,14 +35,6 @@ const QRNoteImageDialog: React.FC<QRNoteImageDialogProps> = ({
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
 
   const resetAndClose = useCallback(() => {
     setNoteContent('');
@@ -92,14 +84,9 @@ const QRNoteImageDialog: React.FC<QRNoteImageDialogProps> = ({
       onSuccess('Note added to equipment.');
       resetAndClose();
     } catch (submitError) {
-      if (isMountedRef.current) {
-        setError(submitError instanceof Error ? submitError.message : 'Unable to add note.');
-      }
-      throw submitError;
+      setError(submitError instanceof Error ? submitError.message : 'Unable to add note.');
     } finally {
-      if (isMountedRef.current) {
-        setIsSubmitting(false);
-      }
+      setIsSubmitting(false);
     }
   };
 
