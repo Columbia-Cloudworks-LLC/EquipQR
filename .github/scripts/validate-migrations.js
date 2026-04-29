@@ -174,6 +174,23 @@ for (const filePath of changedFiles) {
   }
 
   // ── 3. NEW TABLES REQUIRE RLS ────────────────────────────────────────────
+  // Build a cache of all migration file contents once per changed file so
+  // the inner RLS scan loop does not re-read the same files for every
+  // CREATE TABLE statement found in this migration.
+  const allMigrationsDir = path.join('supabase', 'migrations');
+  let migFileContentsCache = null;
+  try {
+    const allMigFiles = fs
+      .readdirSync(allMigrationsDir)
+      .filter((f) => f.endsWith('.sql'))
+      .sort();
+    migFileContentsCache = allMigFiles.map((mf) =>
+      fs.readFileSync(path.join(allMigrationsDir, mf), 'utf8'),
+    );
+  } catch (_) {
+    // Fall back to searching only the current file's content below.
+  }
+
   let createMatch;
   createTableRegex.lastIndex = 0;
   while ((createMatch = createTableRegex.exec(content)) !== null) {
@@ -198,24 +215,18 @@ for (const filePath of changedFiles) {
       'i',
     );
 
-    const allMigrationsDir = path.join('supabase', 'migrations');
     let hasGlobalRLS = false;
     let hasGlobalPolicy = false;
 
-    try {
-      const allMigFiles = fs
-        .readdirSync(allMigrationsDir)
-        .filter((f) => f.endsWith('.sql'))
-        .sort();
-
-      for (const mf of allMigFiles) {
-        const mc = fs.readFileSync(path.join(allMigrationsDir, mf), 'utf8');
+    if (migFileContentsCache !== null) {
+      for (const mc of migFileContentsCache) {
         rlsEnabledRegex.lastIndex = 0;
         policyRegex.lastIndex = 0;
-        if (rlsEnabledRegex.test(mc)) hasGlobalRLS = true;
-        if (policyRegex.test(mc)) hasGlobalPolicy = true;
+        if (!hasGlobalRLS && rlsEnabledRegex.test(mc)) hasGlobalRLS = true;
+        if (!hasGlobalPolicy && policyRegex.test(mc)) hasGlobalPolicy = true;
+        if (hasGlobalRLS && hasGlobalPolicy) break;
       }
-    } catch (_) {
+    } else {
       rlsEnabledRegex.lastIndex = 0;
       policyRegex.lastIndex = 0;
       if (rlsEnabledRegex.test(content)) hasGlobalRLS = true;
