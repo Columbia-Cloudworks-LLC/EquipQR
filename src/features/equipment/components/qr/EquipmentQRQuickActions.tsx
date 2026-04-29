@@ -13,6 +13,7 @@ import {
   fetchQRActionTeamMemberships,
 } from '@/features/equipment/services/equipmentQRPermissions';
 import { getAuthClaims } from '@/lib/authClaims';
+import { logger } from '@/utils/logger';
 
 const QRWorkOrderDialog = lazy(() => import('@/features/equipment/components/qr/QRWorkOrderDialog'));
 const QRUpdateHoursDialog = lazy(() => import('@/features/equipment/components/qr/QRWorkingHoursDialog'));
@@ -22,6 +23,7 @@ interface EquipmentQRQuickActionsProps {
   equipment: QRActionEquipment;
   userRole: Role;
   userDisplayName: string;
+  onWorkingHoursUpdated?: (newHours: number) => void;
 }
 
 type DialogState =
@@ -41,6 +43,7 @@ export default function EquipmentQRQuickActions({
   equipment,
   userRole,
   userDisplayName,
+  onWorkingHoursUpdated,
 }: EquipmentQRQuickActionsProps) {
   const [dialog, setDialog] = useState<DialogState>(null);
   const [activePermissionContext, setActivePermissionContext] = useState<QRActionPermissionContext | null>(null);
@@ -87,6 +90,7 @@ export default function EquipmentQRQuickActions({
       setActivePermissionContext(nextPermissionContext);
       setDialog(nextDialog);
     } catch (error) {
+      logger.error('QR quick action permission check failed', error);
       const message = error instanceof Error ? error.message : 'Unable to check permissions for this action.';
       setPermissionMessage(message);
     } finally {
@@ -200,6 +204,7 @@ export default function EquipmentQRQuickActions({
                 setDialog(null);
                 setActivePermissionContext(null);
                 setSuccessMessage(`Working hours updated to ${newHours} hours.`);
+                onWorkingHoursUpdated?.(newHours);
               }}
             />
           )}
