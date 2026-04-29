@@ -43,10 +43,10 @@ function getMembershipForTeam(
 }
 
 /** Team roles that may create work orders from the QR scan flow (excludes read-only viewer). */
-const QR_WORK_ORDER_TEAM_ROLES: readonly TeamRole[] = ['manager', 'technician', 'requestor'];
+const QR_WORK_ORDER_TEAM_ROLES: readonly TeamRole[] = ['owner', 'manager', 'technician', 'requestor'];
 
 /** Team roles that may add notes or images from the QR scan flow (field documentation). */
-const QR_NOTE_IMAGE_TEAM_ROLES: readonly TeamRole[] = ['manager', 'technician'];
+const QR_NOTE_IMAGE_TEAM_ROLES: readonly TeamRole[] = ['owner', 'manager', 'technician'];
 
 function teamRoleCanCreateQrWorkOrder(role: TeamRole | undefined): boolean {
   return role !== undefined && QR_WORK_ORDER_TEAM_ROLES.includes(role);
@@ -67,7 +67,7 @@ export function canRunQRAction(
   const teamMembership = getMembershipForTeam(context.teamMemberships, equipmentTeamId);
 
   if (action === 'update-hours') {
-    return teamMembership?.role === 'manager';
+    return teamMembership?.role === 'owner' || teamMembership?.role === 'manager';
   }
 
   if (!equipmentTeamId) return true;
