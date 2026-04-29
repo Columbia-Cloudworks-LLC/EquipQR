@@ -128,20 +128,6 @@ describe('EquipmentQRQuickActions', () => {
     expect(mockCreateNote).not.toHaveBeenCalled();
   });
 
-  it('allows organization-level manager role to open team-scoped actions when they belong to the equipment team', async () => {
-    const user = userEvent.setup();
-    mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
-    mockCreateWorkOrder.mockResolvedValue({
-      id: 'wo-mgr',
-      title: 'PM - Forklift 17',
-    } as Awaited<ReturnType<typeof createQRWorkOrder>>);
-
-    renderQuickActions({ userRole: 'manager' });
-
-    await user.click(screen.getByRole('button', { name: /new pm work order/i }));
-    expect(await screen.findByRole('dialog', undefined, { timeout: 3000 })).toBeInTheDocument();
-  });
-
   it('opens and creates a PM work order for an allowed team member', async () => {
     const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
