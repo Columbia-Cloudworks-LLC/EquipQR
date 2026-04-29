@@ -13,11 +13,10 @@ import {
 import { WorkOrderData } from '@/features/work-orders/types/workOrder';
 
 export const useUnifiedPermissions = () => {
-  const { getCurrentOrganization, getUserTeamIds, hasTeamAccess, canManageTeam } = useSession();
+  const { getCurrentOrganization, hasTeamAccess, canManageTeam, sessionData } = useSession();
   const { user } = useAuth();
 
   const currentOrganization = getCurrentOrganization();
-  const userTeamIds = getUserTeamIds();
 
   // Create user context
   const userContext: UserContext | null = useMemo(() => {
@@ -27,12 +26,12 @@ export const useUnifiedPermissions = () => {
       userId: user.id,
       organizationId: currentOrganization.id,
       userRole: currentOrganization.userRole as Role,
-      teamMemberships: userTeamIds.map(teamId => ({
-        teamId,
-        role: canManageTeam(teamId) ? 'manager' : 'technician'
+      teamMemberships: (sessionData?.teamMemberships ?? []).map(tm => ({
+        teamId: tm.teamId,
+        role: tm.role
       }))
     };
-  }, [currentOrganization, user, userTeamIds, canManageTeam]);
+  }, [currentOrganization, user, sessionData]);
 
   // Helper functions
   const hasPermission = useCallback((permission: string, entityContext?: { teamId?: string; assigneeId?: string; status?: string; createdBy?: string }): boolean => {

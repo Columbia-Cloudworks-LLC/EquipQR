@@ -34,6 +34,16 @@ const createUserContext = (personaKey: keyof typeof personas): UserContext => {
   };
 };
 
+const createMemberContextWithTeamRole = (teamRole: TeamRole): UserContext => ({
+  userId: `member-${teamRole}-id`,
+  organizationId: 'org-acme',
+  userRole: 'member',
+  teamMemberships: [{
+    teamId: teams.maintenance.id,
+    role: teamRole
+  }]
+});
+
 describe('PermissionEngine', () => {
   let engine: PermissionEngine;
 
@@ -165,6 +175,18 @@ describe('PermissionEngine', () => {
         const context = createUserContext('technician');
         expect(engine.hasPermission('workorder.view', context)).toBe(true);
       });
+
+      it('allows requestor team members to view team work orders', () => {
+        const context = createMemberContextWithTeamRole('requestor');
+        const entityContext = { teamId: teams.maintenance.id };
+        expect(engine.hasPermission('workorder.view', context, entityContext)).toBe(true);
+      });
+
+      it('allows viewer team members to view team work orders', () => {
+        const context = createMemberContextWithTeamRole('viewer');
+        const entityContext = { teamId: teams.maintenance.id };
+        expect(engine.hasPermission('workorder.view', context, entityContext)).toBe(true);
+      });
     });
 
     describe('workorder.edit', () => {
@@ -258,6 +280,18 @@ describe('PermissionEngine', () => {
         const entityContext = { teamId: teams.maintenance.id };
         expect(engine.hasPermission('workorder.changestatus', context, entityContext)).toBe(false);
       });
+
+      it('denies requestor team members from changing status', () => {
+        const context = createMemberContextWithTeamRole('requestor');
+        const entityContext = { teamId: teams.maintenance.id };
+        expect(engine.hasPermission('workorder.changestatus', context, entityContext)).toBe(false);
+      });
+
+      it('denies viewer team members from changing status', () => {
+        const context = createMemberContextWithTeamRole('viewer');
+        const entityContext = { teamId: teams.maintenance.id };
+        expect(engine.hasPermission('workorder.changestatus', context, entityContext)).toBe(false);
+      });
     });
   });
 
@@ -283,6 +317,18 @@ describe('PermissionEngine', () => {
         const context = createUserContext('readOnlyMember');
         const entityContext = { teamId: teams.maintenance.id };
         expect(engine.hasPermission('team.view', context, entityContext)).toBe(false);
+      });
+
+      it('allows requestor team members to view their team', () => {
+        const context = createMemberContextWithTeamRole('requestor');
+        const entityContext = { teamId: teams.maintenance.id };
+        expect(engine.hasPermission('team.view', context, entityContext)).toBe(true);
+      });
+
+      it('allows viewer team members to view their team', () => {
+        const context = createMemberContextWithTeamRole('viewer');
+        const entityContext = { teamId: teams.maintenance.id };
+        expect(engine.hasPermission('team.view', context, entityContext)).toBe(true);
       });
     });
 
