@@ -22,6 +22,7 @@ interface EquipmentQRQuickActionsProps {
   equipment: QRActionEquipment;
   userRole: Role;
   userDisplayName: string;
+  onWorkingHoursUpdated?: (newHours: number) => void;
 }
 
 type DialogState =
@@ -41,6 +42,7 @@ export default function EquipmentQRQuickActions({
   equipment,
   userRole,
   userDisplayName,
+  onWorkingHoursUpdated,
 }: EquipmentQRQuickActionsProps) {
   const [dialog, setDialog] = useState<DialogState>(null);
   const [activePermissionContext, setActivePermissionContext] = useState<QRActionPermissionContext | null>(null);
@@ -200,6 +202,7 @@ export default function EquipmentQRQuickActions({
                 setDialog(null);
                 setActivePermissionContext(null);
                 setSuccessMessage(`Working hours updated to ${newHours} hours.`);
+                onWorkingHoursUpdated?.(newHours);
               }}
             />
           )}

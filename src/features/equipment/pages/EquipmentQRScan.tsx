@@ -415,6 +415,11 @@ const EquipmentQRScan = () => {
                   userDisplayName={
                     (user?.user_metadata?.name as string | undefined) || user?.email?.split('@')[0] || 'User'
                   }
+                  onWorkingHoursUpdated={(newHours) =>
+                    setPayload((prev) =>
+                      prev ? { ...prev, equipment: { ...prev.equipment, workingHours: newHours } } : prev
+                    )
+                  }
                 />
               </Suspense>
             )}
