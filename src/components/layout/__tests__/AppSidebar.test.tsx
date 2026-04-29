@@ -7,14 +7,6 @@ vi.mock('@/hooks/use-mobile', () => ({
   useIsMobile: () => false,
 }));
 
-vi.mock('@/lib/flags', async () => {
-  const actual = await vi.importActual<typeof import('@/lib/flags')>('@/lib/flags');
-  return {
-    ...actual,
-    DSR_COCKPIT_ENABLED: false,
-  };
-});
-
 vi.mock('@/components/ui/sidebar-context', async () => {
   const actual = await vi.importActual<typeof import('@/components/ui/sidebar-context')>(
     '@/components/ui/sidebar-context',
@@ -48,6 +40,7 @@ describe('AppSidebar', () => {
 
     expect(screen.getByRole('link', { name: /pm templates/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /audit log/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /dsr cockpit/i })).toBeInTheDocument();
   });
 
   it('hides admin-only items for a non-admin (technician)', () => {
@@ -57,7 +50,7 @@ describe('AppSidebar', () => {
     expect(screen.queryByRole('link', { name: /audit log/i })).not.toBeInTheDocument();
   });
 
-  it('drops the Audit group entirely when all its items are filtered out for non-admins (DSR off)', () => {
+  it('drops the Audit group entirely when all its items are filtered out for non-admins', () => {
     renderAsPersona(<AppSidebar />, 'technician');
 
     expect(screen.queryByText('Audit')).not.toBeInTheDocument();

@@ -57,6 +57,13 @@ vi.mock('@/features/equipment/hooks/useEquipment', () => ({
       { id: 'eq-1', name: 'Bulldozer 1', manufacturer: 'Caterpillar', model: 'D6T' }
     ]
   })),
+  // Same fixture works for the lightweight summaries projection — fields used
+  // by the inventory item detail dialogs are a subset of the full row.
+  useEquipmentSummaries: vi.fn(() => ({
+    data: [
+      { id: 'eq-1', name: 'Bulldozer 1', manufacturer: 'Caterpillar', model: 'D6T' }
+    ]
+  })),
   useEquipmentManufacturersAndModels: vi.fn(() => ({
     data: [
       { manufacturer: 'Caterpillar', models: ['D6T', 'D8T'] }

@@ -13,13 +13,14 @@ import IdleSessionTimeoutGuard from '@/components/auth/IdleSessionTimeoutGuard';
 import { BugReportProvider } from '@/features/tickets/context/BugReportContext';
 import { OfflineQueueProvider } from '@/contexts/OfflineQueueContext';
 import { PendingSyncBanner } from '@/features/offline-queue/components/PendingSyncBanner';
-import { DSR_COCKPIT_ENABLED, OFFLINE_QUEUE_ENABLED } from '@/lib/flags';
+import { OFFLINE_QUEUE_ENABLED } from '@/lib/flags';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 
-// Critical components loaded eagerly to prevent loading issues for unauthenticated users
-import Auth from '@/pages/Auth';
+// Critical public landing loaded eagerly; auth is lazy so QR scans do not pay
+// for SignIn/SignUp/MFA form code unless authentication is actually required.
 import SmartLanding from '@/components/landing/SmartLanding';
 import LegalFooter from '@/components/layout/LegalFooter';
+const Auth = lazy(() => import('@/pages/Auth'));
 const DebugAuth = import.meta.env.DEV ? lazy(() => import('@/pages/DebugAuth')) : null;
 const RepairShops = lazy(() => import('@/pages/solutions/RepairShops'));
 const PMTemplatesFeature = lazy(() => import('@/pages/features/PMTemplates'));
@@ -48,7 +49,7 @@ const Teams = lazy(() => import('@/features/teams/pages/Teams'));
 const TeamDetails = lazy(() => import('@/features/teams/pages/TeamDetails'));
 const FleetMap = lazy(() => import('@/features/fleet-map/pages/FleetMap'));
 const Organization = lazy(() => import('@/features/organization/pages/Organization'));
-const QRRedirect = lazy(() => import('@/pages/QRRedirect'));
+const EquipmentQRScan = lazy(() => import('@/features/equipment/pages/EquipmentQRScan'));
 const InventoryQRRedirect = lazy(() => import('@/pages/InventoryQRRedirect'));
 const WorkOrderQRRedirect = lazy(() => import('@/pages/WorkOrderQRRedirect'));
 const LegacyEquipmentQRRedirect = lazy(() => import('@/pages/LegacyEquipmentQRRedirect'));
@@ -124,7 +125,7 @@ function App() {
         {/* Public routes - no suspense needed, loaded eagerly */}
         <Route path="/" element={<SmartLanding />} />
         <Route path="/landing" element={<LandingCanonicalRedirect />} />
-        <Route path="/auth" element={<Auth />} />
+        <Route path="/auth" element={<Suspense fallback={<div>Loading...</div>}><Auth /></Suspense>} />
         {import.meta.env.DEV && DebugAuth && (
           <Route path="/debug-auth" element={<Suspense fallback={<div>Loading...</div>}><DebugAuth /></Suspense>} />
         )}
@@ -145,7 +146,7 @@ function App() {
         <Route path="/support" element={<Suspense fallback={<div>Loading...</div>}><Support /></Suspense>} />
         <Route path="/invitation/:token" element={<Suspense fallback={<div>Loading...</div>}><InvitationAccept /></Suspense>} />
         <Route path="/qr/inventory/:itemId" element={<Suspense fallback={<div>Loading...</div>}><InventoryQRRedirect /></Suspense>} />
-        <Route path="/qr/equipment/:equipmentId" element={<Suspense fallback={<div>Loading...</div>}><QRRedirect /></Suspense>} />
+        <Route path="/qr/equipment/:equipmentId" element={<Suspense fallback={<div>Loading...</div>}><EquipmentQRScan /></Suspense>} />
         <Route path="/qr/work-order/:workOrderId" element={<Suspense fallback={<div>Loading...</div>}><WorkOrderQRRedirect /></Suspense>} />
         {/* Legacy QR route: must remain after the more specific /qr/* routes so they are matched first.
            React Router v6 prioritises static segments, but this ordering is documented to prevent
@@ -245,12 +246,8 @@ function App() {
                                 <Route path="/alternate-groups/:groupId" element={<AlternateGroupDetail />} />
                                 <Route path="/support" element={<DashboardSupport />} />
                                 <Route path="/audit-log" element={<AuditLog />} />
-                                {DSR_COCKPIT_ENABLED && (
-                                  <>
-                                    <Route path="/dsr" element={<DSRCockpitPage />} />
-                                    <Route path="/dsr/:requestId" element={<DSRCasePage />} />
-                                  </>
-                                )}
+                                <Route path="/dsr" element={<DSRCockpitPage />} />
+                                <Route path="/dsr/:requestId" element={<DSRCasePage />} />
                                 {/* Billing debug routes removed */}
                                 {/* {import.meta.env.DEV && <Route path="/debug/billing" element={<DebugBilling />} />} */}
                                 {/* {import.meta.env.DEV && <Route path="/debug/exemptions-admin" element={<BillingExemptionsAdmin />} />} */}

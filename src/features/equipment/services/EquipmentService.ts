@@ -2,6 +2,7 @@ import { ApiResponse, PaginationParams, FilterParams } from '@/services/base/Bas
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
+import { getAuthClaims } from '@/lib/authClaims';
 
 // Use Supabase types for Equipment
 export type Equipment = Tables<'equipment'>;
@@ -11,7 +12,55 @@ export type Equipment = Tables<'equipment'>;
 // flattened convenience field every UI consumer reads (EquipmentCard,
 // EquipmentTable). The service layer is responsible for populating
 // `team_name` from `team.name` so consumers never have to do the lookup.
+export interface EquipmentTeamSummary {
+  id: string;
+  name: string;
+  description?: string | null;
+  location_address?: string | null;
+  location_city?: string | null;
+  location_state?: string | null;
+  location_country?: string | null;
+  location_lat?: number | null;
+  location_lng?: number | null;
+  override_equipment_location?: boolean | null;
+}
+
 export interface EquipmentWithTeam extends Equipment {
+  team?: EquipmentTeamSummary | null;
+  team_name?: string;
+}
+
+/**
+ * Lightweight equipment row for selector / offline-merge / dropdown use cases.
+ *
+ * `EquipmentService.getSummaries` returns this projection. It MUST stay narrow
+ * (no large JSON or text columns) so it can be loaded over Slow 4G connections
+ * without paying the cost of `select('*')` for every equipment row in the org.
+ *
+ * Consumers that need the full row should use `useEquipmentById` for the
+ * specific record they care about — it shares the same `equipment` cache root.
+ */
+export interface EquipmentSummary {
+  id: string;
+  organization_id: string;
+  name: string;
+  manufacturer: string | null;
+  model: string | null;
+  serial_number: string | null;
+  status: Equipment['status'];
+  team_id: string | null;
+  location: string | null;
+  image_url: string | null;
+  working_hours: number | null;
+  last_maintenance: string | null;
+  /**
+   * Subset of the `last_known_location` JSON column. The DB column stores
+   * arbitrary JSON (it's used by both scan-location and reverse-geocode
+   * payloads), but selectors only ever read `.name`. Narrowing here keeps
+   * downstream consumers honest without losing flexibility — anything that
+   * needs lat/lng must use `useEquipmentById` to get the full row.
+   */
+  last_known_location: { name?: string } | null;
   team?: { id: string; name: string } | null;
   team_name?: string;
 }
@@ -177,6 +226,70 @@ export class EquipmentService {
   }
 
   /**
+   * Lightweight per-org equipment summaries for selectors, offline merge, and
+   * dropdown / autocomplete use cases. Projects only the columns those surfaces
+   * need so the payload stays small on Slow 4G — this is the difference between
+   * a 50 KB and a 500 KB response on large fleets.
+   *
+   * The shape is intentionally a superset of `EquipmentSelectorItem` so the
+   * existing work-order equipment selector and inventory item selectors can
+   * consume it directly.
+   */
+  static async getSummaries(
+    organizationId: string,
+    options: { userTeamIds?: string[]; isOrgAdmin?: boolean } = {}
+  ): Promise<ApiResponse<EquipmentSummary[]>> {
+    try {
+      let query = supabase
+        .from('equipment')
+        .select(
+          'id, organization_id, name, manufacturer, model, serial_number, status, team_id, location, image_url, working_hours, last_maintenance, last_known_location, team:team_id(id, name)'
+        )
+        .eq('organization_id', organizationId)
+        .order('name', { ascending: true });
+
+      if (options.userTeamIds !== undefined && !options.isOrgAdmin) {
+        if (options.userTeamIds.length === 0) {
+          return handleSuccess([]);
+        }
+        query = query.in('team_id', options.userTeamIds);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        logger.error('Error fetching equipment summaries:', error);
+        return handleError(error);
+      }
+
+      const flattened: EquipmentSummary[] = (data || []).map(row => ({
+        id: row.id,
+        organization_id: row.organization_id,
+        name: row.name,
+        manufacturer: row.manufacturer,
+        model: row.model,
+        serial_number: row.serial_number,
+        status: row.status,
+        team_id: row.team_id,
+        location: row.location ?? null,
+        image_url: row.image_url ?? null,
+        working_hours: row.working_hours ?? null,
+        last_maintenance: row.last_maintenance ?? null,
+        last_known_location:
+          row.last_known_location && typeof row.last_known_location === 'object' && !Array.isArray(row.last_known_location)
+            ? (row.last_known_location as { name?: string })
+            : null,
+        team: row.team as { id: string; name: string } | null,
+        team_name: (row.team as { name?: string } | null | undefined)?.name ?? undefined,
+      }));
+
+      return handleSuccess(flattened);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /**
    * Get equipment by ID with organization validation
    */
   static async getById(
@@ -186,7 +299,21 @@ export class EquipmentService {
     try {
       const { data, error } = await supabase
         .from('equipment')
-        .select('*, team:team_id(id, name)')
+        .select(`
+          *,
+          team:team_id(
+            id,
+            name,
+            description,
+            location_address,
+            location_city,
+            location_state,
+            location_country,
+            location_lat,
+            location_lng,
+            override_equipment_location
+          )
+        `)
         .eq('id', id)
         .eq('organization_id', organizationId)
         .single();
@@ -659,18 +786,27 @@ export class EquipmentService {
     organizationId: string,
     equipmentId: string,
     location?: string,
-    notes?: string
+    notes?: string,
+    options: {
+      includeProfile?: boolean;
+    } = {}
   ): Promise<ApiResponse<EquipmentScan>> {
     try {
-      // Get authenticated user
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
+      // Always derive user identity server-side; never trust caller-provided identity.
+      const userId = (await getAuthClaims())?.sub;
+      if (!userId) {
         return handleError(new Error('User not authenticated'));
       }
 
-      // Verify equipment belongs to this organization
-      const equipmentResult = await EquipmentService.getById(organizationId, equipmentId);
-      if (!equipmentResult.success || !equipmentResult.data) {
+      // Narrow existence check — avoids a full select('*') + team join just to validate
+      // that the equipment belongs to this org. RLS still enforces tenancy at the DB layer.
+      const { data: equip, error: equipError } = await supabase
+        .from('equipment')
+        .select('id')
+        .eq('id', equipmentId)
+        .eq('organization_id', organizationId)
+        .single();
+      if (equipError || !equip) {
         return handleError(new Error('Equipment not found or access denied'));
       }
 
@@ -679,7 +815,7 @@ export class EquipmentService {
         .from('scans')
         .insert({
           equipment_id: equipmentId,
-          scanned_by: userData.user.id,
+          scanned_by: userId,
           location: location || null,
           notes: notes || null
         })
@@ -691,11 +827,14 @@ export class EquipmentService {
         return handleError(error);
       }
 
-      // Get scanner profile name
+      if (options.includeProfile === false) {
+        return handleSuccess(data);
+      }
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('id, name')
-        .eq('id', userData.user.id)
+        .eq('id', userId)
         .single();
 
       const scan: EquipmentScan = {
@@ -721,8 +860,8 @@ export class EquipmentService {
   ): Promise<ApiResponse<EquipmentNote>> {
     try {
       // Get authenticated user
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
+      const claims = await getAuthClaims();
+      if (!claims) {
         return handleError(new Error('User not authenticated'));
       }
 
@@ -743,7 +882,7 @@ export class EquipmentService {
         .insert({
           equipment_id: equipmentId,
           content: content.trim(),
-          author_id: userData.user.id,
+          author_id: claims.sub,
           is_private: isPrivate
         })
         .select()
@@ -758,7 +897,7 @@ export class EquipmentService {
       const { data: profile } = await supabase
         .from('profiles')
         .select('id, name')
-        .eq('id', userData.user.id)
+        .eq('id', claims.sub)
         .single();
 
       const note: EquipmentNote = {

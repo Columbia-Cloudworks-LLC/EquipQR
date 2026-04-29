@@ -1,5 +1,6 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import type { 
   AlternatePartResult, 
   MakeModelCompatiblePart,
@@ -215,6 +216,8 @@ export const createAlternateGroup = async (
   }
 ): Promise<PartAlternateGroup> => {
   try {
+    const userId = await requireAuthUserIdFromClaims();
+
     const { data: group, error } = await supabase
       .from('part_alternate_groups')
       .insert({
@@ -224,7 +227,7 @@ export const createAlternateGroup = async (
         status: data.status || 'unverified',
         notes: data.notes || null,
         evidence_url: data.evidence_url || null,
-        created_by: (await supabase.auth.getUser()).data.user?.id
+        created_by: userId
       })
       .select()
       .single();
@@ -388,6 +391,7 @@ export const updateAlternateGroup = async (
   }>
 ): Promise<PartAlternateGroup> => {
   try {
+    const userId = data.status === 'verified' ? await requireAuthUserIdFromClaims() : null;
     const updateData: Record<string, unknown> = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.description !== undefined) updateData.description = data.description || null;
@@ -395,7 +399,7 @@ export const updateAlternateGroup = async (
       updateData.status = data.status;
       // If marking as verified, set verified_by and verified_at
       if (data.status === 'verified') {
-        updateData.verified_by = (await supabase.auth.getUser()).data.user?.id;
+        updateData.verified_by = userId;
         updateData.verified_at = new Date().toISOString();
       }
     }
@@ -551,6 +555,8 @@ export const createPartIdentifier = async (
   }
 ): Promise<PartIdentifier> => {
   try {
+    const userId = await requireAuthUserIdFromClaims();
+
     const { data: identifier, error } = await supabase
       .from('part_identifiers')
       .insert({
@@ -561,7 +567,7 @@ export const createPartIdentifier = async (
         manufacturer: data.manufacturer || null,
         inventory_item_id: data.inventory_item_id || null,
         notes: data.notes || null,
-        created_by: (await supabase.auth.getUser()).data.user?.id
+        created_by: userId
       })
       .select()
       .single();

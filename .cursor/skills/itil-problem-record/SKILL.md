@@ -5,6 +5,10 @@ description: Mandates an ITIL-style Problem Record for exactly ONE GitHub issue 
 
 # ITIL Problem Record (EquipQR)
 
+## Cursor workflow commit policy
+
+If a workflow reaches an authorized commit step, include unrelated incremental Cursor workflow updates when they are limited to agent operating guidance or tooling configuration: `AGENTS.md`, `.cursor/skills/`, `.cursor/rules/`, `.cursor/hooks/`, Cursor MCP/template configuration, subagent guidance, or similar workflow files. Do not treat those edits as scope drift just because they were produced irregularly while another task was running. Still inspect the diff for secrets, destructive rewrites, broad unrelated content, or behavior changes outside Cursor workflow. This policy does not allow read-only skills to edit, commit, or push on their own.
+
 ## How this fits the ITIL flow
 
 This repository treats ITIL roles as follows:
@@ -187,7 +191,7 @@ For each key relevant to the failing flow:
    - hCaptcha allowed domains.
    - Google Cloud API key referrer / IP restrictions.
    - Webhook signing secrets and registered endpoints.
-   - Map IDs and feature-flag pairs that span client + server (e.g. `VITE_ENABLE_QB_PDF_ATTACHMENT` ↔ `ENABLE_QB_PDF_ATTACHMENT`).
+   - Map IDs and feature flags that must be mirrored across client/server surfaces.
 4. **Never** paste full secrets into chat or into the Problem Record. Always reference by name and first-N-chars only (e.g. `RESEND_API_KEY=re_AbCd...`). See [security-supabase](../../rules/security-supabase.mdc).
 5. After the user confirms each value and location, return to Step 3a (re-probe) and then attempt Step 3d.
 

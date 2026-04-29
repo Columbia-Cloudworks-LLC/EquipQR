@@ -41,10 +41,12 @@ const PartCard: React.FC<PartCardProps> = ({ part, onClick, isMobile }) => {
           isMobile ? "h-12 w-12" : "h-16 w-16"
         )}>
           {part.image_url ? (
-            <img 
-              src={part.image_url} 
+            <img
+              src={part.image_url}
               alt={part.name}
               className="h-full w-full object-cover"
+              loading="lazy"
+              decoding="async"
             />
           ) : (
             <Package className={cn("text-muted-foreground", isMobile ? "h-6 w-6" : "h-8 w-8")} />

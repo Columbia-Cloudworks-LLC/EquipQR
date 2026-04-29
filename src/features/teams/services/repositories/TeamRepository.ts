@@ -1,10 +1,11 @@
-import { 
-  getOrganizationTeamsOptimized, 
-  getTeamMembersOptimized, 
+import {
+  getOrganizationTeamsOptimized,
+  getTeamMembersOptimized,
+  getTeamMembersByTeamIdsOptimized,
   getTeamByIdOptimized,
   isTeamManagerOptimized,
-  addTeamMember, 
-  updateTeamMemberRole, 
+  addTeamMember,
+  updateTeamMemberRole,
   createTeamWithCreator as createTeamWithCreatorService,
   deleteTeam as deleteTeamService,
   updateTeam as updateTeamService
@@ -32,33 +33,35 @@ export class TeamRepository {
    */
   static async getTeamsByOrg(orgId: string): Promise<TeamWithMembers[]> {
     const optimizedTeams = await getOrganizationTeamsOptimized(orgId);
-    
-    // For each team, get basic member data for previews
-    const teamsWithMembers = await Promise.all(
-      optimizedTeams.map(async (team) => {
-        const members = await getTeamMembersOptimized(team.id);
-        // Convert OptimizedTeamMember to expected format
-        const formattedMembers = members.map(member => ({
-          id: member.id,
-          team_id: member.team_id,
-          user_id: member.user_id,
-          role: member.role as TeamMemberRole,
-          joined_date: member.joined_date,
-          profiles: {
-            name: member.user_name || 'Unknown User',
-            email: member.user_email || 'No email'
-          }
-        }));
-        
-        return {
-          ...team,
-          members: formattedMembers,
-          member_count: team.member_count
-        };
-      })
-    );
-    
-    return teamsWithMembers;
+
+    if (optimizedTeams.length === 0) return [];
+
+    // Single batched member query keyed by team_id, instead of N parallel
+    // `getTeamMembersOptimized` calls. Cuts the team-list page from N+1
+    // round-trips to 2 on Slow 4G.
+    const teamIds = optimizedTeams.map((team) => team.id);
+    const membersByTeamId = await getTeamMembersByTeamIdsOptimized(orgId, teamIds);
+
+    return optimizedTeams.map((team) => {
+      const members = membersByTeamId.get(team.id) ?? [];
+      const formattedMembers = members.map((member) => ({
+        id: member.id,
+        team_id: member.team_id,
+        user_id: member.user_id,
+        role: member.role as TeamMemberRole,
+        joined_date: member.joined_date,
+        profiles: {
+          name: member.user_name || 'Unknown User',
+          email: member.user_email || 'No email',
+        },
+      }));
+
+      return {
+        ...team,
+        members: formattedMembers,
+        member_count: team.member_count,
+      };
+    });
   }
 
   /**

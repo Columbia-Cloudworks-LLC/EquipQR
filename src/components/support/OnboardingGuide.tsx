@@ -503,7 +503,6 @@ const OnboardingGuide: React.FC = () => {
                       <li><strong>Line item:</strong> Total cost as a single service line</li>
                       <li><strong>Description:</strong> Work order details, equipment info, and public notes</li>
                       <li><strong>Private note:</strong> Internal details like dates and cost breakdown</li>
-                      <li><strong>PDF attachment:</strong> Work order summary document (if enabled)</li>
                     </ul>
                   </div>
                   <div className="rounded-md border border-info/30 bg-info/10 p-3 text-sm mt-4">

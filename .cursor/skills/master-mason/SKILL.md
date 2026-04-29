@@ -5,6 +5,10 @@ description: Use to audit conversation history, an attached plan file, a diff, o
 
 # Master Mason
 
+## Cursor workflow commit policy
+
+If a workflow reaches an authorized commit step, include unrelated incremental Cursor workflow updates when they are limited to agent operating guidance or tooling configuration: `AGENTS.md`, `.cursor/skills/`, `.cursor/rules/`, `.cursor/hooks/`, Cursor MCP/template configuration, subagent guidance, or similar workflow files. Do not treat those edits as scope drift just because they were produced irregularly while another task was running. Still inspect the diff for secrets, destructive rewrites, broad unrelated content, or behavior changes outside Cursor workflow. This policy does not allow read-only skills to edit, commit, or push on their own.
+
 ## Symbolism
 
 The master mason is entrusted with every working tool of the craft and chooses the right one — or several together — for the work at hand. The chisel finishes; the compasses bound; the gauge measures; the level equalizes; the plumb stands true; the square aligns; the trowel cements.

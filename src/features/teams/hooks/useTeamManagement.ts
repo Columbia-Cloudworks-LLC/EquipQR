@@ -16,14 +16,20 @@ import { logger } from '@/utils/logger';
  * Replaces the legacy raw-Supabase useTeams from useTeams.ts.
  * Accepts an optional organizationId; if omitted, uses context.
  */
-export const useTeams = (organizationId?: string | undefined) => {
+export const useTeams = (
+  organizationId?: string | undefined,
+  options: { enabled?: boolean } = {}
+) => {
   const { currentOrganization } = useOrganization();
   const { teamMemberships } = useTeamContext();
-  const { data: accessSnapshot, isLoading: isAccessLoading } = useAccessSnapshot();
 
   const orgId = organizationId ?? currentOrganization?.id;
   const role = currentOrganization?.userRole;
   const isElevated = role === 'owner' || role === 'admin';
+  const queryEnabled = options.enabled !== false;
+  const { data: accessSnapshot, isLoading: isAccessLoading } = useAccessSnapshot({
+    enabled: queryEnabled && !isElevated,
+  });
 
   const query = useQuery({
     queryKey: ['teams', orgId],
@@ -38,7 +44,7 @@ export const useTeams = (organizationId?: string | undefined) => {
 
       return allTeams;
     },
-    enabled: !!orgId && !isAccessLoading,
+    enabled: queryEnabled && !!orgId && (isElevated || !isAccessLoading),
     staleTime: 1000 * 60 * 2,
   });
 

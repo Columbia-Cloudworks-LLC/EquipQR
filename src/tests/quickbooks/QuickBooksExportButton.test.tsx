@@ -374,9 +374,6 @@ describe('QuickBooksExportButton Component', () => {
             created_at: '2024-01-01T09:00:00.000Z',
             updated_at: '2024-01-01T10:00:00.000Z',
             intuit_tid: 'tid-123',
-            pdf_attachment_status: 'success',
-            pdf_attachment_error: null,
-            pdf_attachment_intuit_tid: 'tid-pdf-456',
           },
         ],
       });
@@ -415,9 +412,6 @@ describe('QuickBooksExportButton Component', () => {
             created_at: '2024-01-01T09:00:00.000Z',
             updated_at: '2024-01-01T10:00:00.000Z',
             intuit_tid: 'tid-123',
-            pdf_attachment_status: 'failed',
-            pdf_attachment_error: 'PDF failed',
-            pdf_attachment_intuit_tid: 'tid-pdf-456',
           },
         ],
       });
@@ -441,9 +435,8 @@ describe('QuickBooksExportButton Component', () => {
       await waitFor(() => {
         expect(screen.getByText(/Last export/i)).toBeInTheDocument();
         expect(screen.getAllByText(/Error/i).length).toBeGreaterThan(0);
-        expect(screen.getByText(/PDF attachment/i)).toBeInTheDocument();
         expect(screen.getByText(/Open in QuickBooks/i)).toBeInTheDocument();
-        expect(screen.getAllByRole('button', { name: /Copy/i })).toHaveLength(2);
+        expect(screen.getAllByRole('button', { name: /Copy/i })).toHaveLength(1);
       });
     });
 
@@ -464,9 +457,6 @@ describe('QuickBooksExportButton Component', () => {
             created_at: '2024-01-02T09:00:00.000Z',
             updated_at: '2024-01-02T09:00:00.000Z',
             intuit_tid: null,
-            pdf_attachment_status: 'disabled',
-            pdf_attachment_error: null,
-            pdf_attachment_intuit_tid: null,
           },
         ],
       });

@@ -23,7 +23,7 @@ import WorkOrderAcceptanceModal from '@/features/work-orders/components/WorkOrde
 import { AutoAssignmentBanner } from '@/features/work-orders/components/AutoAssignmentBanner';
 import { WorkOrderFilters } from '@/features/work-orders/components/WorkOrderFilters';
 import { WorkOrdersList } from '@/features/work-orders/components/WorkOrdersList';
-import { useEquipment } from '@/features/equipment/hooks/useEquipment';
+import { useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
 import { useOfflineMergedWorkOrders } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -58,7 +58,12 @@ const WorkOrders = () => {
 
   // Pre-warm caches so the Create Work Order dialog works offline.
   // Equipment selector and PM template selector both need warm caches.
-  useEquipment(currentOrganization?.id);
+  // We use the lightweight summaries projection here — the selector only needs
+  // id/name/manufacturer/model/serial/team/working_hours, NOT the full row.
+  // The full row is fetched on-demand by `useEquipmentById` when a specific
+  // work order is opened. This keeps the work-orders list initial payload
+  // small on Slow 4G for large fleets.
+  useEquipmentSummaries(currentOrganization?.id);
   usePMTemplates();
 
   // Merge server work orders with any pending offline queue items

@@ -48,6 +48,10 @@ describe('AppProviders', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...window.location, pathname: '/' },
+    });
     const module = await import('./AppProviders');
     AppProviders = module.AppProviders;
   });
@@ -71,7 +75,35 @@ describe('AppProviders', () => {
       expect(screen.getByTestId('test-child')).toBeInTheDocument();
     });
 
+    it('uses the lightweight provider chain for QR entry routes', async () => {
+      vi.resetModules();
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: { ...window.location, pathname: '/qr/equipment/test-equipment' },
+      });
+      expect(window.location.pathname).toBe('/qr/equipment/test-equipment');
+      const module = await import('./AppProviders');
+      const QRAppProviders = module.AppProviders;
+
+      render(
+        <QRAppProviders>
+          <div data-testid="test-child">Test Content</div>
+        </QRAppProviders>
+      );
+
+      expect(screen.getByTestId('query-client-provider')).toBeInTheDocument();
+      expect(screen.getByTestId('theme-provider')).toBeInTheDocument();
+      expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
+      expect(screen.getByTestId('router')).toBeInTheDocument();
+      expect(screen.getByTestId('test-child')).toBeInTheDocument();
+      expect(screen.queryByTestId('user-provider')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('session-provider')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('toaster')).not.toBeInTheDocument();
+    });
+
     it('passes children through the provider chain', () => {
+      window.history.pushState({}, '', '/');
+
       render(
         <AppProviders>
           <div data-testid="nested-child">

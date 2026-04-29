@@ -359,6 +359,74 @@ export const getTeamMembersOptimized = async (teamId: string): Promise<TeamMembe
 };
 
 /**
+ * Batch-fetch members for many teams in a single round-trip.
+ *
+ * The repository previously called `getTeamMembersOptimized` once per team
+ * via `Promise.all`, which produced N parallel HTTPS requests on Slow 4G.
+ * This helper folds the same data into one PostgREST query and groups it
+ * client-side, keyed by `team_id`.
+ *
+ * Returns a `Map<teamId, TeamMember[]>` so callers can look up each team's
+ * members without filtering the full array.
+ */
+export const getTeamMembersByTeamIdsOptimized = async (
+  organizationId: string,
+  teamIds: string[],
+): Promise<Map<string, TeamMember[]>> => {
+  const result = new Map<string, TeamMember[]>();
+  if (teamIds.length === 0) return result;
+
+  try {
+    const { data, error } = await supabase
+      .from('team_members')
+      .select(`
+        *,
+        profiles!team_members_user_id_fkey (
+          name,
+          email
+        ),
+        teams!inner (
+          organization_id
+        )
+      `)
+      .eq('teams.organization_id', organizationId)
+      .in('team_id', teamIds)
+      .order('joined_date', { ascending: true });
+
+    if (error) throw error;
+
+    for (const member of data || []) {
+      const teamId = member.team_id as string;
+      const list = result.get(teamId);
+      const mapped: TeamMember = {
+        id: member.id,
+        user_id: member.user_id,
+        team_id: teamId,
+        role: member.role,
+        joined_date: member.joined_date,
+        user_name: member.profiles?.name,
+        user_email: member.profiles?.email,
+      };
+      if (list) {
+        list.push(mapped);
+      } else {
+        result.set(teamId, [mapped]);
+      }
+    }
+
+    // Ensure every requested team appears in the map even when it has no members.
+    for (const teamId of teamIds) {
+      if (!result.has(teamId)) result.set(teamId, []);
+    }
+
+    return result;
+  } catch (error) {
+    logger.error('Error fetching batched team members:', error);
+    return result;
+  }
+};
+
+/**
  * Get teams by organization with member counts and customer data using optimized query
  */
 export const getOrganizationTeamsOptimized = async (organizationId: string): Promise<Team[]> => {

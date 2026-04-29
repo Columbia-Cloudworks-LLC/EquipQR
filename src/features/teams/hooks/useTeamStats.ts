@@ -58,21 +58,24 @@ export function useTeamStats(
   
   const results = useQueries({
     queries: [
-      // Equipment stats query
+      // Equipment stats query.
+      // Stale time bumped from 30s to 2 min: technicians on Slow 4G should
+      // not pay for a refetch every time they backgrounded the app for a
+      // few seconds; team stats do not change that fast.
       {
         queryKey: teamStatsKeys.equipment(organizationId || '', teamId || ''),
         queryFn: () => getTeamEquipmentStats(organizationId!, teamId!),
         enabled,
-        staleTime: 30 * 1000, // 30 seconds
-        refetchOnWindowFocus: true,
+        staleTime: 2 * 60 * 1000,
+        refetchOnWindowFocus: false,
       },
       // Work order stats query
       {
         queryKey: teamStatsKeys.workOrders(organizationId || '', teamId || ''),
         queryFn: () => getTeamWorkOrderStats(organizationId!, teamId!),
         enabled,
-        staleTime: 30 * 1000, // 30 seconds
-        refetchOnWindowFocus: true,
+        staleTime: 2 * 60 * 1000,
+        refetchOnWindowFocus: false,
       },
       // Recent equipment query
       {

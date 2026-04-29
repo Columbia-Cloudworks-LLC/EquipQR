@@ -11,6 +11,7 @@ import {
 import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
+import { landingImage } from '@/lib/landingImage';
 
 const CustomerCRMFeature = () => {
   return (
@@ -220,7 +221,7 @@ const CustomerCRMFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
-                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/customer-crm-list.png"
+                    src={landingImage('customer-crm-list.png')}
                     alt="Customer list showing each customer with location, contact details, and linked equipment count"
                     className="w-full h-auto"
                     loading="lazy"
@@ -235,7 +236,7 @@ const CustomerCRMFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
-                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/customer-crm-detail.png"
+                    src={landingImage('customer-crm-detail.png')}
                     alt="Equipment detail page showing customer assignment and service history"
                     className="w-full h-auto"
                     loading="lazy"

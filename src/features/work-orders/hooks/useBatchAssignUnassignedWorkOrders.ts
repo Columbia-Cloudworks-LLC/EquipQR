@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getAuthClaims } from '@/lib/authClaims';
 
 export const useBatchAssignUnassignedWorkOrders = () => {
   const queryClient = useQueryClient();
@@ -8,8 +9,8 @@ export const useBatchAssignUnassignedWorkOrders = () => {
   return useMutation({
     mutationFn: async (organizationId: string) => {
       // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
+      const claims = await getAuthClaims();
+      if (!claims) {
         throw new Error('User not authenticated');
       }
 
@@ -41,7 +42,7 @@ export const useBatchAssignUnassignedWorkOrders = () => {
         const { error: updateError } = await supabase
           .from('work_orders')
           .update({
-            assignee_id: user.id,
+            assignee_id: claims.sub,
             status: 'assigned',
             acceptance_date: new Date().toISOString()
           })

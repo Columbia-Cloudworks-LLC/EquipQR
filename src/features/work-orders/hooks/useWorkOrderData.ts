@@ -8,6 +8,7 @@ import {
 } from '@/features/work-orders/services/workOrderService';
 import { workOrderKeys } from '@/features/work-orders/hooks/useWorkOrders';
 import { workOrders as workOrderQueryKeys, notifications as notificationQueryKeys } from '@/lib/queryKeys';
+import { getAuthClaims } from '@/lib/authClaims';
 
 // Re-export types from WorkOrderService for backward compatibility
 export type { WorkOrderNote, WorkOrderImage };
@@ -203,15 +204,15 @@ export const useNotifications = (organizationId: string) => {
   return useQuery({
     queryKey: notificationQueryKeys.byOrg(organizationId),
     queryFn: async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return [];
+      const claims = await getAuthClaims();
+      if (!claims) return [];
 
       // Fetch org-specific notifications
       const { data: orgNotifications, error: orgError } = await supabase
         .from('notifications')
         .select('*')
         .eq('organization_id', organizationId)
-        .eq('user_id', userData.user.id)
+        .eq('user_id', claims.sub)
         .eq('is_global', false)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -222,7 +223,7 @@ export const useNotifications = (organizationId: string) => {
       const { data: globalNotifications, error: globalError } = await supabase
         .from('notifications')
         .select('*')
-        .eq('user_id', userData.user.id)
+        .eq('user_id', claims.sub)
         .eq('is_global', true)
         .order('created_at', { ascending: false })
         .limit(25);
