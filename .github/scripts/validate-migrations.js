@@ -95,20 +95,20 @@ for (const filePath of changedFiles) {
   }
 
   // ── 3. NEW TABLES REQUIRE RLS ────────────────────────────────────────────
-  const createTableRegex = /CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+(?:public\s*\.\s*)?("?[a-z_][a-z0-9_]*"?)/gi;
+  const createTableRegex = /CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+(?:"?public"?\s*\.\s*)?("?[a-z_][a-z0-9_]*"?)/gi;
   let createMatch;
-  const skipSchemas = /^(auth|storage|extensions|pgbouncer|realtime|supabase_functions)/i;
+  const skipSchemas = /^(auth|storage|extensions|pgbouncer|realtime|supabase_functions)$/i;
 
   while ((createMatch = createTableRegex.exec(content)) !== null) {
     const rawTableName = createMatch[1].replace(/"/g, '');
     if (skipSchemas.test(rawTableName)) continue;
 
     const rlsEnabledRegex = new RegExp(
-      `ALTER\\s+TABLE\\s+(?:public\\s*\\.\\s*)?"?${rawTableName}"?\\s+ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY`,
+      `ALTER\\s+TABLE\\s+(?:"?public"?\\s*\\.\\s*)?"?${rawTableName}"?\\s+ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY`,
       'i'
     );
     const policyRegex = new RegExp(
-      `CREATE\\s+POLICY\\s+(?:[\\w]+|"[^"]+")\\s+ON\\s+(?:public\\s*\\.\\s*)?"?${rawTableName}"?`,
+      `CREATE\\s+POLICY\\s+(?:[\\w]+|"[^"]+")\\s+ON\\s+(?:"?public"?\\s*\\.\\s*)?"?${rawTableName}"?`,
       'i'
     );
 
