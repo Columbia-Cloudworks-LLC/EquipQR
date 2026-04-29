@@ -64,13 +64,16 @@ export function canRunQRAction(
   if (!isActiveOrgMember(context.userRole)) return false;
   if (isOrgAdmin(context.userRole)) return true;
 
+  // update-hours requires team owner/manager regardless of team assignment;
+  // unteamed equipment has no team role, so plain org members are denied.
+  if (action === 'update-hours') {
+    const teamMembership = getMembershipForTeam(context.teamMemberships, equipmentTeamId);
+    return teamMembership?.role === 'owner' || teamMembership?.role === 'manager';
+  }
+
   if (!equipmentTeamId) return true;
 
   const teamMembership = getMembershipForTeam(context.teamMemberships, equipmentTeamId);
-
-  if (action === 'update-hours') {
-    return teamMembership?.role === 'owner' || teamMembership?.role === 'manager';
-  }
 
   if (!teamMembership) return false;
 

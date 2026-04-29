@@ -7,7 +7,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import InlineNoteComposer from '@/components/common/InlineNoteComposer';
 import { createQREquipmentNote } from '@/features/equipment/services/equipmentQRActionService';
 import { canRunQRAction, type QRActionPermissionContext } from '@/features/equipment/services/equipmentQRPermissions';
-import { logger } from '@/utils/logger';
 
 interface QRNoteImageDialogProps {
   open: boolean;
@@ -93,7 +92,6 @@ const QRNoteImageDialog: React.FC<QRNoteImageDialogProps> = ({
       onSuccess('Note added to equipment.');
       resetAndClose();
     } catch (submitError) {
-      logger.error('Failed to add QR equipment note', submitError);
       if (isMountedRef.current) {
         setError(submitError instanceof Error ? submitError.message : 'Unable to add note.');
       }
