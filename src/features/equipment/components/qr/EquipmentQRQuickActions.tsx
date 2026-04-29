@@ -172,6 +172,7 @@ export default function EquipmentQRQuickActions({
         <Suspense fallback={null}>
           {dialog.type === 'work-order' && (
             <QRWorkOrderDialog
+              key={dialog.attachPM ? 'pm' : 'generic'}
               open
               equipment={equipment}
               permissionContext={activePermissionContext}
