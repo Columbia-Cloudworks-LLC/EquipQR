@@ -57,4 +57,26 @@ describe('equipment QR action permissions', () => {
       expect(canRunQRAction(action, unrelatedTeamContext, TEAM_ID)).toBe(false);
     }
   });
+
+  it('denies team viewers for mutation QR actions (work orders and notes)', () => {
+    const viewerContext = context({
+      teamMemberships: [{ teamId: TEAM_ID, role: 'viewer' }],
+    });
+
+    expect(canRunQRAction('pm-work-order', viewerContext, TEAM_ID)).toBe(false);
+    expect(canRunQRAction('generic-work-order', viewerContext, TEAM_ID)).toBe(false);
+    expect(canRunQRAction('note-image', viewerContext, TEAM_ID)).toBe(false);
+    expect(canRunQRAction('update-hours', viewerContext, TEAM_ID)).toBe(false);
+  });
+
+  it('allows team requestors to create work orders but not add QR notes or update hours', () => {
+    const requestorContext = context({
+      teamMemberships: [{ teamId: TEAM_ID, role: 'requestor' }],
+    });
+
+    expect(canRunQRAction('pm-work-order', requestorContext, TEAM_ID)).toBe(true);
+    expect(canRunQRAction('generic-work-order', requestorContext, TEAM_ID)).toBe(true);
+    expect(canRunQRAction('note-image', requestorContext, TEAM_ID)).toBe(false);
+    expect(canRunQRAction('update-hours', requestorContext, TEAM_ID)).toBe(false);
+  });
 });

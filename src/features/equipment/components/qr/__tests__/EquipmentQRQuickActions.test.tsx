@@ -88,6 +88,24 @@ describe('EquipmentQRQuickActions', () => {
     vi.clearAllMocks();
   });
 
+  it('denies work order and note actions when the user is only a team viewer', async () => {
+    const user = userEvent.setup();
+    mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'viewer' }]);
+    renderQuickActions();
+
+    await user.click(screen.getByRole('button', { name: /new pm work order/i }));
+    expect(await screen.findByText(/need work order access/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /create generic work order/i }));
+    expect(await screen.findByText(/need work order access/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /add note \/ upload image/i }));
+    expect(await screen.findByText(/need equipment note access/i)).toBeInTheDocument();
+
+    expect(mockCreateWorkOrder).not.toHaveBeenCalled();
+    expect(mockCreateNote).not.toHaveBeenCalled();
+  });
+
   it('shows inline permission denied for every action when a team-scoped user lacks team access', async () => {
     const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([]);

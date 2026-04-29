@@ -27,6 +27,13 @@ This document defines the comprehensive role-based access control (RBAC) system 
 - **Capabilities**: View equipment, create work orders, participate in teams
 - **Limitations**: Cannot manage organization settings or other members
 
+#### 4. Manager (Organization-level)
+- **Scope**: Organization-wide
+- **Description**: Operational role with broader access than a standard member in application permission checks
+- **Capabilities**: Same family as Member for day-to-day operations unless restricted elsewhere in code; treated as an active participant (not read-only)
+- **Limitations**: Does not imply team-level **Manager** on every team — team capabilities still come from **Team-Level Roles** on each team
+- **Note**: This is distinct from **Team Manager** under Team-Level Roles below. The TypeScript `Role` type includes `manager` at organization scope so UI and services can distinguish this tier consistently.
+
 ### Team-Level Roles
 
 #### 1. Manager

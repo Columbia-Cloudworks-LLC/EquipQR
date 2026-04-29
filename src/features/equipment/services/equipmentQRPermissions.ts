@@ -42,6 +42,20 @@ function getMembershipForTeam(
   return teamMemberships.find(membership => membership.teamId === teamId) ?? null;
 }
 
+/** Team roles that may create work orders from the QR scan flow (excludes read-only viewer). */
+const QR_WORK_ORDER_TEAM_ROLES: readonly TeamRole[] = ['manager', 'technician', 'requestor'];
+
+/** Team roles that may add notes or images from the QR scan flow (field documentation). */
+const QR_NOTE_IMAGE_TEAM_ROLES: readonly TeamRole[] = ['manager', 'technician'];
+
+function teamRoleCanCreateQrWorkOrder(role: TeamRole | undefined): boolean {
+  return role !== undefined && QR_WORK_ORDER_TEAM_ROLES.includes(role);
+}
+
+function teamRoleCanAddQrNoteImage(role: TeamRole | undefined): boolean {
+  return role !== undefined && QR_NOTE_IMAGE_TEAM_ROLES.includes(role);
+}
+
 export function canRunQRAction(
   action: QRActionType,
   context: QRActionPermissionContext,
@@ -57,7 +71,18 @@ export function canRunQRAction(
   }
 
   if (!equipmentTeamId) return true;
-  return !!teamMembership;
+
+  if (!teamMembership) return false;
+
+  if (action === 'pm-work-order' || action === 'generic-work-order') {
+    return teamRoleCanCreateQrWorkOrder(teamMembership.role);
+  }
+
+  if (action === 'note-image') {
+    return teamRoleCanAddQrNoteImage(teamMembership.role);
+  }
+
+  return false;
 }
 
 export async function fetchQRActionTeamMemberships(
