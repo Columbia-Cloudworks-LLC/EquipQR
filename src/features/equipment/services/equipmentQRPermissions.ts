@@ -64,13 +64,13 @@ export function canRunQRAction(
   if (!isActiveOrgMember(context.userRole)) return false;
   if (isOrgAdmin(context.userRole)) return true;
 
+  if (!equipmentTeamId) return true;
+
   const teamMembership = getMembershipForTeam(context.teamMemberships, equipmentTeamId);
 
   if (action === 'update-hours') {
     return teamMembership?.role === 'owner' || teamMembership?.role === 'manager';
   }
-
-  if (!equipmentTeamId) return true;
 
   if (!teamMembership) return false;
 
