@@ -410,7 +410,6 @@ const EquipmentQRScan = () => {
                     workingHours: equipment.workingHours,
                     defaultPmTemplateId: equipment.defaultPmTemplateId,
                   }}
-                  userId={user?.id ?? ''}
                   userRole={payload.userRole}
                   userDisplayName={
                     (user?.user_metadata?.name as string | undefined) || user?.email?.split('@')[0] || 'User'

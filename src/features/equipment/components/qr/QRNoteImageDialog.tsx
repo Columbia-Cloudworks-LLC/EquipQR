@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -35,6 +37,7 @@ const QRNoteImageDialog: React.FC<QRNoteImageDialogProps> = ({
   const [noteContent, setNoteContent] = useState('');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -47,6 +50,7 @@ const QRNoteImageDialog: React.FC<QRNoteImageDialogProps> = ({
   const resetAndClose = useCallback(() => {
     setNoteContent('');
     setAttachedImages([]);
+    setError(null);
     onClose();
   }, [onClose]);
 
@@ -68,10 +72,11 @@ const QRNoteImageDialog: React.FC<QRNoteImageDialogProps> = ({
       !permissionContext ||
       !canRunQRAction('note-image', permissionContext, equipmentTeamId)
     ) {
-      onError('Permission changed. Re-open this action to continue.');
+      setError('Permission changed. Re-open this action to continue.');
       return;
     }
 
+    setError(null);
     setIsSubmitting(true);
     try {
       await createQREquipmentNote({
@@ -84,9 +89,11 @@ const QRNoteImageDialog: React.FC<QRNoteImageDialogProps> = ({
       });
       onSuccess('Note added to equipment.');
       resetAndClose();
-    } catch (error) {
-      logger.error('Failed to add QR equipment note', error);
-      onError(error instanceof Error ? error.message : 'Unable to add note.');
+    } catch (submitError) {
+      logger.error('Failed to add QR equipment note', submitError);
+      if (isMountedRef.current) {
+        setError(submitError instanceof Error ? submitError.message : 'Unable to add note.');
+      }
     } finally {
       if (isMountedRef.current) {
         setIsSubmitting(false);
@@ -106,6 +113,13 @@ const QRNoteImageDialog: React.FC<QRNoteImageDialogProps> = ({
             Attach field notes or images directly to {equipmentName}.
           </DialogDescription>
         </DialogHeader>
+
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
         <Card>
           <CardContent standalone>

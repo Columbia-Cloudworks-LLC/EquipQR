@@ -34,6 +34,12 @@ vi.mock('@/features/equipment/services/equipmentQRPermissions', async () => {
   };
 });
 
+vi.mock('@/lib/authClaims', () => ({
+  getAuthClaims: vi.fn().mockResolvedValue({ sub: 'user-1' }),
+  requireAuthClaims: vi.fn().mockResolvedValue({ sub: 'user-1' }),
+  requireAuthUserIdFromClaims: vi.fn().mockResolvedValue('user-1'),
+}));
+
 vi.mock('@/components/common/InlineNoteComposer', () => ({
   default: ({
     onSubmit,
@@ -70,7 +76,6 @@ function renderQuickActions(overrides?: Partial<React.ComponentProps<typeof Equi
   return render(
     <EquipmentQRQuickActions
       equipment={baseEquipment}
-      userId="user-1"
       userRole="member"
       userDisplayName="Tech User"
       {...overrides}

@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { getAuthClaims } from '@/lib/authClaims';
 
 export type QRActionType = 'pm-work-order' | 'generic-work-order' | 'update-hours' | 'note-image';
 export type QRUserRole = 'owner' | 'admin' | 'member' | string;
@@ -60,7 +61,6 @@ export function canRunQRAction(
 }
 
 export async function fetchQRActionTeamMemberships(
-  userId: string,
   organizationId: string,
   userRole: QRUserRole,
   equipmentTeamId: string | null | undefined
@@ -69,8 +69,13 @@ export async function fetchQRActionTeamMemberships(
     return [];
   }
 
+  const claims = await getAuthClaims();
+  if (!claims?.sub) {
+    throw new Error('User not authenticated');
+  }
+
   const { data, error } = await supabase.rpc('get_user_team_memberships', {
-    user_uuid: userId,
+    user_uuid: claims.sub,
     org_id: organizationId,
   });
 

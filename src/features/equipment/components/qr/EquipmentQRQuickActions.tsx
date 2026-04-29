@@ -11,6 +11,7 @@ import {
   canRunQRAction,
   fetchQRActionTeamMemberships,
 } from '@/features/equipment/services/equipmentQRPermissions';
+import { getAuthClaims } from '@/lib/authClaims';
 
 const QRWorkOrderDialog = lazy(() => import('@/features/equipment/components/qr/QRWorkOrderDialog'));
 const QRUpdateHoursDialog = lazy(() => import('@/features/equipment/components/qr/QRWorkingHoursDialog'));
@@ -18,7 +19,6 @@ const QRNoteImageDialog = lazy(() => import('@/features/equipment/components/qr/
 
 interface EquipmentQRQuickActionsProps {
   equipment: QRActionEquipment;
-  userId: string;
   userRole: string;
   userDisplayName: string;
 }
@@ -38,7 +38,6 @@ const ACTION_DENIED_COPY: Record<QRActionType, string> = {
 
 export default function EquipmentQRQuickActions({
   equipment,
-  userId,
   userRole,
   userDisplayName,
 }: EquipmentQRQuickActionsProps) {
@@ -54,14 +53,18 @@ export default function EquipmentQRQuickActions({
     setSuccessMessage(null);
 
     try {
+      const claims = await getAuthClaims();
+      if (!claims?.sub) {
+        setPermissionMessage('User not authenticated.');
+        return;
+      }
       const permissionContext: QRActionPermissionContext = {
-        userId,
+        userId: claims.sub,
         organizationId: equipment.organizationId,
         userRole,
         teamMemberships: [],
       };
       const teamMemberships = await fetchQRActionTeamMemberships(
-        userId,
         equipment.organizationId,
         userRole,
         equipment.teamId
