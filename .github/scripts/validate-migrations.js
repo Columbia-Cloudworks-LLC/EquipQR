@@ -51,26 +51,51 @@ const errors = [];
 const warnings = [];
 
 /*
- * CREATE TABLE — captures optional schema prefix and table name in separate groups.
- * Groups [1]/[2] = schema (quoted/unquoted), [3]/[4] = table name (quoted/unquoted).
- * Non-public schemas are skipped during processing to avoid false positives.
+ * CREATE TABLE — optional schema.table; groups [1]/[2] = schema, [3]/[4] = table.
+ * Skip RLS enforcement when schema is present and not `public`.
  */
 const createTableRegex =
   /CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+(?:(?:"([^"]+)"|([a-z_][a-z0-9_]*))\s*\.\s*)?(?:"([^"]+)"|([a-z_][a-z0-9_]*))/gi;
 
 /*
- * DROP COLUMN — must not use a single optional IF EXISTS before (\w+) or "IF" is captured as the column name.
- * Branches: IF EXISTS col | col (quoted or word).
+ * DROP COLUMN — supports ALTER TABLE IF EXISTS, quoted/schema-qualified table ids,
+ * IF EXISTS on the column, and chained ", DROP COLUMN …" in one statement.
  */
-const dropColumnRegex =
-  /ALTER\s+TABLE(?:\s+IF\s+EXISTS)?\s+[\w".]+\s+DROP\s+COLUMN\s+(?:IF\s+EXISTS\s+(?:"([^"]+)"|(\w+))|(?:"([^"]+)"|(\w+)))/gi;
+const dropColumnLeadRegex =
+  /ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:(?:"[^"]+"|[a-zA-Z_]\w*)\s*\.\s*)?(?:"[^"]+"|[a-zA-Z_]\w*)\s+DROP\s+COLUMN\s+(?:IF\s+EXISTS\s+(?:"([^"]+)"|(\w+))|(?:"([^"]+)"|(\w+)))/gi;
 
-/*
- * Additional DROP COLUMN clauses within the same ALTER TABLE statement (multi-column form).
- * Matches ", DROP COLUMN [IF EXISTS] col" that follow the first DROP COLUMN already caught above.
- */
-const additionalDropColumnRegex =
+const dropColumnChainRegex =
   /,\s*DROP\s+COLUMN\s+(?:IF\s+EXISTS\s+(?:"([^"]+)"|(\w+))|(?:"([^"]+)"|(\w+)))/gi;
+
+/** Pre-read all migration bodies once for RLS scans (single build for all changed files). */
+let migFileContentsCache = null;
+try {
+  const allMigrationsDir = path.join('supabase', 'migrations');
+  const files = fs.readdirSync(allMigrationsDir).filter((f) => f.endsWith('.sql')).sort();
+  migFileContentsCache = files.map((mf) =>
+    fs.readFileSync(path.join(allMigrationsDir, mf), 'utf8'),
+  );
+} catch (_) {
+  migFileContentsCache = null;
+}
+
+function collectDropColumnMatches(content) {
+  const matches = [];
+
+  dropColumnLeadRegex.lastIndex = 0;
+  let m;
+  while ((m = dropColumnLeadRegex.exec(content)) !== null) {
+    matches.push({ index: m.index, groups: m });
+  }
+
+  dropColumnChainRegex.lastIndex = 0;
+  while ((m = dropColumnChainRegex.exec(content)) !== null) {
+    matches.push({ index: m.index, groups: m });
+  }
+
+  matches.sort((a, b) => a.index - b.index);
+  return matches;
+}
 
 for (const filePath of changedFiles) {
   const fileName = path.basename(filePath);
@@ -118,12 +143,14 @@ for (const filePath of changedFiles) {
 
   // ── 2. DROP COLUMN SAFETY CHECK ─────────────────────────────────────────
   /**
-   * Helper: validate a single DROP COLUMN occurrence.
-   * `matchIndex` is the position in `content` where the DROP keyword starts
-   * (used for comment-proximity checks and preceding-rename lookups).
+   * Validate a single DROP COLUMN occurrence.
+   * `matchIndex` is where the match starts (for comment checks and rename lookahead).
    */
   function checkDropColumn(columnName, matchIndex) {
+    if (isLineSqlComment(content, matchIndex)) return;
+
     const precedingContent = content.slice(0, matchIndex);
+
     const hasRename = new RegExp(
       `RENAME\\s+COLUMN\\s+${escapeRegExp(columnName)}`,
       'i',
@@ -143,66 +170,28 @@ for (const filePath of changedFiles) {
     }
   }
 
-  let dropMatch;
-  dropColumnRegex.lastIndex = 0;
-  while ((dropMatch = dropColumnRegex.exec(content)) !== null) {
-    if (isLineSqlComment(content, dropMatch.index)) continue;
-
+  const dropMatches = collectDropColumnMatches(content);
+  for (const { index: dropIdx, groups: dropMatch } of dropMatches) {
     const columnName =
       dropMatch[1] || dropMatch[2] || dropMatch[3] || dropMatch[4];
-    checkDropColumn(columnName, dropMatch.index);
-
-    // Check any additional ", DROP COLUMN ..." clauses in the same statement.
-    // Scan forward from end of this match until the statement terminator (;).
-    const stmtEnd = content.indexOf(';', dropMatch.index);
-    const tail =
-      stmtEnd === -1
-        ? content.slice(dropMatch.index + dropMatch[0].length)
-        : content.slice(dropMatch.index + dropMatch[0].length, stmtEnd + 1);
-
-    additionalDropColumnRegex.lastIndex = 0;
-    let extraMatch;
-    while ((extraMatch = additionalDropColumnRegex.exec(tail)) !== null) {
-      const extraColumn =
-        extraMatch[1] || extraMatch[2] || extraMatch[3] || extraMatch[4];
-      // Compute absolute position of this extra DROP COLUMN in `content`.
-      const absoluteIndex =
-        dropMatch.index + dropMatch[0].length + extraMatch.index;
-      if (isLineSqlComment(content, absoluteIndex)) continue;
-      checkDropColumn(extraColumn, absoluteIndex);
-    }
+    checkDropColumn(columnName, dropIdx);
   }
 
   // ── 3. NEW TABLES REQUIRE RLS ────────────────────────────────────────────
-  // Build a cache of all migration file contents once per changed file so
-  // the inner RLS scan loop does not re-read the same files for every
-  // CREATE TABLE statement found in this migration.
-  const allMigrationsDir = path.join('supabase', 'migrations');
-  let migFileContentsCache = null;
-  try {
-    const allMigFiles = fs
-      .readdirSync(allMigrationsDir)
-      .filter((f) => f.endsWith('.sql'))
-      .sort();
-    migFileContentsCache = allMigFiles.map((mf) =>
-      fs.readFileSync(path.join(allMigrationsDir, mf), 'utf8'),
-    );
-  } catch (_) {
-    // Fall back to searching only the current file's content below.
-  }
-
   let createMatch;
   createTableRegex.lastIndex = 0;
   while ((createMatch = createTableRegex.exec(content)) !== null) {
     if (isLineSqlComment(content, createMatch.index)) continue;
 
-    // Groups [1]/[2] are the schema; [3]/[4] are the table name.
-    const schemaName = (createMatch[1] || createMatch[2] || '').toLowerCase();
-    // If a non-public schema is present, skip RLS validation for this table.
-    if (schemaName && schemaName !== 'public') continue;
-
+    const schemaName = (createMatch[1] || createMatch[2] || '').replace(/"/g, '');
     const rawTableName = (createMatch[3] || createMatch[4] || '').replace(/"/g, '');
     if (!rawTableName) continue;
+    if (schemaName && schemaName.toLowerCase() !== 'public') {
+      console.log(
+        `  ⏭️  Skipping RLS check for ${schemaName}.${rawTableName} (non-public schema)`,
+      );
+      continue;
+    }
     if (RESERVED_SCHEMA_TABLE_NAMES.has(rawTableName.toLowerCase())) continue;
 
     const escaped = escapeRegExp(rawTableName);
