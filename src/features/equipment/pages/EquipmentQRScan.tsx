@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import EquipQRIcon from '@/components/ui/EquipQRIcon';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import { saveOrganizationPreference } from '@/utils/sessionPersistence';
 import type { Database } from '@/integrations/supabase/types';
 import type { Role } from '@/types/permissions';
@@ -176,13 +177,13 @@ async function userLimitsSensitivePi(userId: string): Promise<boolean> {
 
 async function insertScan(
   equipmentId: string,
-  userId: string,
   location: string | null,
   notes: string
 ): Promise<void> {
+  const scannedBy = await requireAuthUserIdFromClaims();
   const { error } = await supabase.from('scans').insert({
     equipment_id: equipmentId,
-    scanned_by: userId,
+    scanned_by: scannedBy,
     location,
     notes,
   });
@@ -240,7 +241,7 @@ const EquipmentQRScan = () => {
     setScanStatus('logging');
 
     const logWithoutLocation = (notes: string) =>
-      insertScan(payload.equipment.id, user.id, null, notes);
+      insertScan(payload.equipment.id, null, notes);
 
     const logScan = async () => {
       const orgAllowsLocation = payload.organization.scan_location_collection_enabled;
@@ -255,7 +256,7 @@ const EquipmentQRScan = () => {
         navigator.geolocation.getCurrentPosition(
           position => {
             const location = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
-            insertScan(payload.equipment.id, user.id, location, 'QR code scan with location')
+            insertScan(payload.equipment.id, location, 'QR code scan with location')
               .then(resolve)
               .catch(reject);
           },
