@@ -196,7 +196,7 @@ for (const filePath of changedFiles) {
 
     const escaped = escapeRegExp(rawTableName);
     const rlsEnabledRegex = new RegExp(
-      `ALTER\\s+TABLE\\s+(?:(?:"public"|public)\\s*\\.\\s*)?(?:"${escaped}"|${escaped})\\s+ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY`,
+      `ALTER\\s+TABLE\\s+(?:IF\\s+EXISTS\\s+)?(?:(?:"public"|public)\\s*\\.\\s*)?(?:"${escaped}"|${escaped})\\s+ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY`,
       'i',
     );
     const policyRegex = new RegExp(
