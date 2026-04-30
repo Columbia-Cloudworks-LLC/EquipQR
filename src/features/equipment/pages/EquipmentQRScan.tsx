@@ -44,6 +44,11 @@ interface EquipmentQRRow {
   organizations: OrganizationRelation | OrganizationRelation[];
 }
 
+interface OrganizationMembershipRow {
+  organization_id: string;
+  role: string;
+}
+
 interface EquipmentQRPayload {
   equipment: {
     id: string;
@@ -90,6 +95,22 @@ async function fetchEquipmentQRPayload(
   equipmentId: string,
   userId: string
 ): Promise<EquipmentQRPayload> {
+  const { data: memberships, error: membershipError } = await supabase
+    .from('organization_members')
+    .select('organization_id, role')
+    .eq('user_id', userId)
+    .eq('status', 'active');
+
+  if (membershipError) throw new Error(membershipError.message);
+  if (!memberships || memberships.length === 0) {
+    throw new Error('You do not have access to this equipment');
+  }
+
+  const membershipByOrganizationId = new Map(
+    (memberships as OrganizationMembershipRow[]).map((membership) => [membership.organization_id, membership.role])
+  );
+  const scopedOrganizationIds = [...membershipByOrganizationId.keys()];
+
   const { data, error } = await supabase
     .from('equipment')
     .select(`
@@ -107,6 +128,7 @@ async function fetchEquipmentQRPayload(
       team:team_id(id, name),
       organizations!inner(id, name, scan_location_collection_enabled)
     `)
+    .in('organization_id', scopedOrganizationIds)
     .eq('id', equipmentId)
     .maybeSingle();
 
@@ -117,16 +139,8 @@ async function fetchEquipmentQRPayload(
   const organization = firstRelation(row.organizations);
   if (!organization) throw new Error('Equipment organization not found');
 
-  const { data: membership, error: membershipError } = await supabase
-    .from('organization_members')
-    .select('role')
-    .eq('organization_id', organization.id)
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .maybeSingle();
-
-  if (membershipError) throw new Error(membershipError.message);
-  if (!membership) throw new Error('You do not have access to this equipment');
+  const scopedRole = membershipByOrganizationId.get(row.organization_id);
+  if (!scopedRole) throw new Error('You do not have access to this equipment');
 
   return {
     equipment: {
@@ -143,7 +157,7 @@ async function fetchEquipmentQRPayload(
       team: firstRelation(row.team),
     },
     organization,
-    userRole: membership.role,
+    userRole: scopedRole,
   };
 }
 

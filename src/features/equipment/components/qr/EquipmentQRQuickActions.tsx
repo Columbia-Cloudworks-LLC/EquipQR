@@ -1,6 +1,5 @@
 import React, { lazy, Suspense, useState } from 'react';
 import { AlertCircle, Camera, Clock, Loader2, Plus, Wrench } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import type {
@@ -130,10 +129,13 @@ export default function EquipmentQRQuickActions({
           <AlertDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <span>{successMessage.message}</span>
             {successMessage.workOrderId && (
-              <Button asChild variant="outline" size="sm" className="w-fit">
-                <Link to={`/dashboard/work-orders/${successMessage.workOrderId}`}>
-                  Open work order
-                </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-fit"
+                onClick={() => window.location.assign(`/dashboard/work-orders/${successMessage.workOrderId}`)}
+              >
+                Open work order
               </Button>
             )}
           </AlertDescription>

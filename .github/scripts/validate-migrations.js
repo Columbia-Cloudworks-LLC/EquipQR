@@ -34,6 +34,83 @@ function escapeRegExp(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/**
+ * Replace SQL comments with whitespace (preserving newlines and string literals)
+ * so downstream regex scans keep stable indices without counting commented SQL.
+ */
+function stripSqlCommentsPreserveLength(content) {
+  let result = '';
+  let i = 0;
+  let inSingleQuote = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  while (i < content.length) {
+    const char = content[i];
+    const nextChar = content[i + 1];
+
+    if (inLineComment) {
+      if (char === '\n') {
+        inLineComment = false;
+        result += '\n';
+      } else {
+        result += ' ';
+      }
+      i++;
+      continue;
+    }
+
+    if (inBlockComment) {
+      if (char === '*' && nextChar === '/') {
+        result += '  ';
+        i += 2;
+        inBlockComment = false;
+      } else {
+        result += char === '\n' ? '\n' : ' ';
+        i++;
+      }
+      continue;
+    }
+
+    if (inSingleQuote) {
+      result += char;
+      if (char === "'" && nextChar === "'") {
+        result += nextChar;
+        i += 2;
+        continue;
+      }
+      if (char === "'") {
+        inSingleQuote = false;
+      }
+      i++;
+      continue;
+    }
+
+    if (char === '-' && nextChar === '-') {
+      inLineComment = true;
+      result += '  ';
+      i += 2;
+      continue;
+    }
+
+    if (char === '/' && nextChar === '*') {
+      inBlockComment = true;
+      result += '  ';
+      i += 2;
+      continue;
+    }
+
+    if (char === "'") {
+      inSingleQuote = true;
+    }
+
+    result += char;
+    i++;
+  }
+
+  return result;
+}
+
 /** True if the line containing `index` starts with `--` (SQL line comment). */
 function isLineSqlComment(content, index) {
   const lineStart = content.lastIndexOf('\n', index - 1) + 1;
@@ -87,6 +164,31 @@ function findStatementEndSemicolon(content, start) {
   return content.length - 1;
 }
 
+function normalizeTableIdentifier(identifier) {
+  if (!identifier) return null;
+  const parts = identifier
+    .split('.')
+    .map((part) => part.trim().replace(/^"|"$/g, '').toLowerCase())
+    .filter(Boolean);
+  return parts.length > 0 ? parts.join('.') : null;
+}
+
+function parseAlterTableIdentifier(statement) {
+  const match = statement.match(
+    /ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?((?:(?:"[^"]+"|[a-zA-Z_]\w*)\s*\.\s*)?(?:"[^"]+"|[a-zA-Z_]\w*))/i,
+  );
+  return normalizeTableIdentifier(match?.[1] ?? null);
+}
+
+function tableIdentifiersMatch(left, right) {
+  if (!left || !right) return false;
+  if (left === right) return true;
+
+  const leftTable = left.split('.').at(-1);
+  const rightTable = right.split('.').at(-1);
+  return Boolean(leftTable && rightTable && leftTable === rightTable);
+}
+
 if (changedFiles.length === 0) {
   console.log('✅ No migration files changed. Skipping validation.');
   process.exit(0);
@@ -119,9 +221,10 @@ let migFileContentsCache = null;
 try {
   const allMigrationsDir = path.join('supabase', 'migrations');
   const files = fs.readdirSync(allMigrationsDir).filter((f) => f.endsWith('.sql')).sort();
-  migFileContentsCache = files.map((mf) =>
-    fs.readFileSync(path.join(allMigrationsDir, mf), 'utf8'),
-  );
+  migFileContentsCache = files.map((mf) => {
+    const rawContent = fs.readFileSync(path.join(allMigrationsDir, mf), 'utf8');
+    return stripSqlCommentsPreserveLength(rawContent);
+  });
 } catch (_) {
   migFileContentsCache = null;
 }
@@ -187,6 +290,7 @@ for (const filePath of changedFiles) {
   }
 
   const content = fs.readFileSync(filePath, 'utf8');
+  const analysisContent = stripSqlCommentsPreserveLength(content);
 
   // ── 2. DROP COLUMN SAFETY CHECK ─────────────────────────────────────────
   /**
@@ -194,24 +298,40 @@ for (const filePath of changedFiles) {
    * `matchIndex` is where the match starts (for comment checks and rename lookahead).
    */
   function checkDropColumn(columnName, matchIndex) {
-    if (isLineSqlComment(content, matchIndex)) return;
+    if (!columnName) return;
 
-    const precedingContent = content.slice(0, matchIndex);
+    const alterStart = findLastAlterTableBefore(analysisContent, matchIndex + 1);
+    if (alterStart < 0) return;
 
-    const hasRename = new RegExp(
-      `RENAME\\s+COLUMN\\s+${escapeRegExp(columnName)}`,
+    const semi = findStatementEndSemicolon(analysisContent, alterStart);
+    const alterStatement = analysisContent.slice(alterStart, semi + 1);
+    const currentTable = parseAlterTableIdentifier(alterStatement);
+    const renameRegex = new RegExp(
+      `RENAME\\s+COLUMN\\s+(?:"${escapeRegExp(columnName)}"|${escapeRegExp(columnName)})\\b`,
       'i',
-    ).test(precedingContent);
+    );
+    const hasRenameInSameStatement = renameRegex.test(alterStatement);
 
-    const alterStart = findLastAlterTableBefore(content, matchIndex + 1);
+    let hasRenameInPreviousStatement = false;
+    const previousAlterStart = findLastAlterTableBefore(analysisContent, alterStart);
+    if (previousAlterStart >= 0) {
+      const previousSemi = findStatementEndSemicolon(analysisContent, previousAlterStart);
+      const previousStatement = analysisContent.slice(previousAlterStart, previousSemi + 1);
+      const previousTable = parseAlterTableIdentifier(previousStatement);
+      hasRenameInPreviousStatement =
+        tableIdentifiersMatch(currentTable, previousTable) && renameRegex.test(previousStatement);
+    }
+
+    const hasRename = hasRenameInSameStatement || hasRenameInPreviousStatement;
+
     let safeCommentSlice;
     if (alterStart >= 0) {
-      const semi = findStatementEndSemicolon(content, alterStart);
+      const rawSemi = findStatementEndSemicolon(content, alterStart);
       // Include the line immediately before ALTER TABLE so that a suppression
       // comment placed on the preceding line (the documented pattern) is detected.
       const precedingNewline = content.lastIndexOf('\n', alterStart - 1);
       const sliceStart = precedingNewline >= 0 ? precedingNewline + 1 : 0;
-      safeCommentSlice = content.slice(sliceStart, semi + 1);
+      safeCommentSlice = content.slice(sliceStart, rawSemi + 1);
     } else {
       safeCommentSlice = content.slice(Math.max(0, matchIndex - 200), matchIndex + 200);
     }
@@ -230,7 +350,7 @@ for (const filePath of changedFiles) {
     }
   }
 
-  const dropMatches = collectDropColumnMatches(content);
+  const dropMatches = collectDropColumnMatches(analysisContent);
   for (const { index: dropIdx, groups: dropMatch } of dropMatches) {
     const columnName =
       dropMatch[1] || dropMatch[2] || dropMatch[3] || dropMatch[4];
@@ -278,8 +398,8 @@ for (const filePath of changedFiles) {
     } else {
       rlsEnabledRegex.lastIndex = 0;
       policyRegex.lastIndex = 0;
-      if (rlsEnabledRegex.test(content)) hasGlobalRLS = true;
-      if (policyRegex.test(content)) hasGlobalPolicy = true;
+      if (rlsEnabledRegex.test(analysisContent)) hasGlobalRLS = true;
+      if (policyRegex.test(analysisContent)) hasGlobalPolicy = true;
     }
 
     if (!hasGlobalRLS) {
