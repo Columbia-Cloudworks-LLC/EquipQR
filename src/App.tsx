@@ -15,6 +15,7 @@ import { OfflineQueueProvider } from '@/contexts/OfflineQueueContext';
 import { PendingSyncBanner } from '@/features/offline-queue/components/PendingSyncBanner';
 import { OFFLINE_QUEUE_ENABLED } from '@/lib/flags';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+import QrPageLoadingShell from '@/features/equipment/components/qr/QrPageLoadingShell';
 
 // Critical public landing loaded eagerly; auth is lazy so QR scans do not pay
 // for SignIn/SignUp/MFA form code unless authentication is actually required.
@@ -111,6 +112,8 @@ const LandingCanonicalRedirect = () => {
   return <Navigate to={{ pathname: '/', search, hash }} replace />;
 };
 
+const qrRouteFallback = <QrPageLoadingShell />;
+
 function App() {
   return (
     <AppProviders>
@@ -145,13 +148,13 @@ function App() {
         <Route path="/features/mobile-first-design" element={<Suspense fallback={<div>Loading...</div>}><MobileFirstDesignFeature /></Suspense>} />
         <Route path="/support" element={<Suspense fallback={<div>Loading...</div>}><Support /></Suspense>} />
         <Route path="/invitation/:token" element={<Suspense fallback={<div>Loading...</div>}><InvitationAccept /></Suspense>} />
-        <Route path="/qr/inventory/:itemId" element={<Suspense fallback={<div>Loading...</div>}><InventoryQRRedirect /></Suspense>} />
-        <Route path="/qr/equipment/:equipmentId" element={<Suspense fallback={<div>Loading...</div>}><EquipmentQRScan /></Suspense>} />
-        <Route path="/qr/work-order/:workOrderId" element={<Suspense fallback={<div>Loading...</div>}><WorkOrderQRRedirect /></Suspense>} />
+        <Route path="/qr/inventory/:itemId" element={<Suspense fallback={qrRouteFallback}><InventoryQRRedirect /></Suspense>} />
+        <Route path="/qr/equipment/:equipmentId" element={<Suspense fallback={qrRouteFallback}><EquipmentQRScan /></Suspense>} />
+        <Route path="/qr/work-order/:workOrderId" element={<Suspense fallback={qrRouteFallback}><WorkOrderQRRedirect /></Suspense>} />
         {/* Legacy QR route: must remain after the more specific /qr/* routes so they are matched first.
            React Router v6 prioritises static segments, but this ordering is documented to prevent
            accidental reordering. */}
-        <Route path="/qr/:equipmentId" element={<Suspense fallback={<div>Loading...</div>}><LegacyEquipmentQRRedirect /></Suspense>} />
+        <Route path="/qr/:equipmentId" element={<Suspense fallback={qrRouteFallback}><LegacyEquipmentQRRedirect /></Suspense>} />
         <Route path="/terms-of-service" element={<Suspense fallback={<div>Loading...</div>}><TermsOfService /></Suspense>} />
         <Route path="/privacy-policy" element={<Suspense fallback={<div>Loading...</div>}><PrivacyPolicy /></Suspense>} />
         <Route path="/privacy-request" element={<Suspense fallback={<div>Loading...</div>}><PrivacyRequest /></Suspense>} />

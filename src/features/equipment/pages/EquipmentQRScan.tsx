@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { AlertCircle, ArrowRight, Clock, Forklift, Loader2, MapPin } from 'lucide-react';
+import { AlertCircle, ArrowRight, Clock, Forklift, MapPin } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { Database } from '@/integrations/supabase/types';
 import type { Role } from '@/types/permissions';
+import QrPageLoadingShell from '@/features/equipment/components/qr/QrPageLoadingShell';
 
 type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 
@@ -273,16 +274,7 @@ const EquipmentQRScan = () => {
   }, [payload]);
 
   if (authLoading || isLoading) {
-    return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6 text-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-            <p className="text-sm text-muted-foreground">Loading scanned equipment...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <QrPageLoadingShell />;
   }
 
   if (error || !payload) {

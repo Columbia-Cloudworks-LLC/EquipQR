@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, useState } from 'react';
 import { AlertCircle, Camera, Clock, Loader2, Plus, Wrench } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import type {
@@ -32,6 +33,10 @@ type DialogState =
   | { type: 'note' }
   | null;
 
+type SuccessMessage =
+  | { message: string; workOrderId?: string }
+  | null;
+
 const ACTION_DENIED_COPY: Record<QRActionType, string> = {
   'pm-work-order': 'You need work order access for this equipment team to create a PM work order from the scan page.',
   'generic-work-order': 'You need work order access for this equipment team to create a work order from the scan page.',
@@ -48,7 +53,7 @@ export default function EquipmentQRQuickActions({
   const [dialog, setDialog] = useState<DialogState>(null);
   const [activePermissionContext, setActivePermissionContext] = useState<QRActionPermissionContext | null>(null);
   const [permissionMessage, setPermissionMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<SuccessMessage>(null);
   const [checkingAction, setCheckingAction] = useState<QRActionType | null>(null);
 
   const openAction = async (action: QRActionType, nextDialog: DialogState) => {
@@ -122,7 +127,16 @@ export default function EquipmentQRQuickActions({
       {successMessage && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{successMessage}</AlertDescription>
+          <AlertDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span>{successMessage.message}</span>
+            {successMessage.workOrderId && (
+              <Button asChild variant="outline" size="sm" className="w-fit">
+                <Link to={`/dashboard/work-orders/${successMessage.workOrderId}`}>
+                  Open work order
+                </Link>
+              </Button>
+            )}
+          </AlertDescription>
         </Alert>
       )}
 
@@ -186,7 +200,10 @@ export default function EquipmentQRQuickActions({
               onCreated={(workOrder) => {
                 setDialog(null);
                 setActivePermissionContext(null);
-                setSuccessMessage(`Work order "${workOrder.title}" was created.`);
+                setSuccessMessage({
+                  message: `Work order "${workOrder.title}" was created.`,
+                  workOrderId: workOrder.id,
+                });
               }}
             />
           )}
@@ -204,7 +221,9 @@ export default function EquipmentQRQuickActions({
               onSuccess={(newHours) => {
                 setDialog(null);
                 setActivePermissionContext(null);
-                setSuccessMessage(`Working hours updated to ${newHours} hours.`);
+                setSuccessMessage({
+                  message: `Working hours updated to ${newHours} hours.`,
+                });
                 onWorkingHoursUpdated?.(newHours);
               }}
             />
@@ -225,7 +244,7 @@ export default function EquipmentQRQuickActions({
               onSuccess={(message) => {
                 setDialog(null);
                 setActivePermissionContext(null);
-                setSuccessMessage(message);
+                setSuccessMessage({ message });
               }}
             />
           )}

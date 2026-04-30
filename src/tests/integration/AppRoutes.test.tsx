@@ -240,6 +240,7 @@ describe('App', () => {
 
   it('renders lean equipment QR scan route outside the dashboard shell', async () => {
     renderApp(['/qr/equipment/test-equipment']);
+    expect(screen.getByText(/loading scanned equipment/i)).toBeInTheDocument();
     expect(await screen.findByTestId('equipment-qr-scan-page')).toBeInTheDocument();
     expect(screen.queryByTestId('top-bar')).not.toBeInTheDocument();
   });

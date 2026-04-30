@@ -148,6 +148,8 @@ describe('EquipmentQRQuickActions', () => {
       );
     });
     expect(await screen.findByText(/work order "preventative maintenance - forklift 17" was created/i)).toBeInTheDocument();
+    const openWorkOrderLink = screen.getByRole('link', { name: /open work order/i });
+    expect(openWorkOrderLink).toHaveAttribute('href', '/dashboard/work-orders/wo-1');
   });
 
   it('opens and creates a generic work order for an allowed team member', async () => {
@@ -169,6 +171,9 @@ describe('EquipmentQRQuickActions', () => {
         expect.objectContaining({ attachPM: false, equipment: baseEquipment })
       );
     });
+    expect(await screen.findByText(/work order "work order - forklift 17" was created/i)).toBeInTheDocument();
+    const openWorkOrderLink = screen.getByRole('link', { name: /open work order/i });
+    expect(openWorkOrderLink).toHaveAttribute('href', '/dashboard/work-orders/wo-2');
   });
 
   it('updates hours for an allowed team manager', async () => {
