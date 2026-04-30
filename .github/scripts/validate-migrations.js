@@ -40,6 +40,53 @@ function isLineSqlComment(content, index) {
   return content.slice(lineStart, index).trimStart().startsWith('--');
 }
 
+/**
+ * Last start index of a case-insensitive `ALTER TABLE` before `beforeIndex`, skipping `--` line comments.
+ */
+function findLastAlterTableBefore(content, beforeIndex) {
+  const lower = content.toLowerCase();
+  const needle = 'alter table';
+  let last = -1;
+  let pos = 0;
+  while (pos < beforeIndex) {
+    const idx = lower.indexOf(needle, pos);
+    if (idx === -1 || idx >= beforeIndex) break;
+    if (!isLineSqlComment(content, idx)) {
+      last = idx;
+    }
+    pos = idx + 1;
+  }
+  return last;
+}
+
+/**
+ * Index of the first `;` statement terminator at or after `start`, ignoring `--` lines and simple single-quoted literals.
+ */
+function findStatementEndSemicolon(content, start) {
+  let i = start;
+  let inSingle = false;
+  while (i < content.length) {
+    if (!inSingle && content.startsWith('--', i)) {
+      const nl = content.indexOf('\n', i);
+      i = nl === -1 ? content.length : nl + 1;
+      continue;
+    }
+    const c = content[i];
+    if (c === "'") {
+      if (inSingle && content[i + 1] === "'") {
+        i += 2;
+        continue;
+      }
+      inSingle = !inSingle;
+      i++;
+      continue;
+    }
+    if (!inSingle && c === ';') return i;
+    i++;
+  }
+  return content.length - 1;
+}
+
 if (changedFiles.length === 0) {
   console.log('✅ No migration files changed. Skipping validation.');
   process.exit(0);
@@ -155,8 +202,17 @@ for (const filePath of changedFiles) {
       `RENAME\\s+COLUMN\\s+${escapeRegExp(columnName)}`,
       'i',
     ).test(precedingContent);
+
+    const alterStart = findLastAlterTableBefore(content, matchIndex + 1);
+    let safeCommentSlice;
+    if (alterStart >= 0) {
+      const semi = findStatementEndSemicolon(content, alterStart);
+      safeCommentSlice = content.slice(alterStart, semi + 1);
+    } else {
+      safeCommentSlice = content.slice(Math.max(0, matchIndex - 200), matchIndex + 200);
+    }
     const hasSafeComment = /--\s*(safe.?drop|intentional.?drop|acknowledged)/i.test(
-      content.slice(Math.max(0, matchIndex - 200), matchIndex + 200),
+      safeCommentSlice,
     );
 
     if (!hasRename && !hasSafeComment) {
