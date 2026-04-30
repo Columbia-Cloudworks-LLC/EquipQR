@@ -284,7 +284,7 @@ const EquipmentQRScan = () => {
 
   const openDashboardRecord = useCallback(async () => {
     if (!payload) return;
-    window.location.assign(`/dashboard/equipment/${payload.equipment.id}?qr=true`);
+    window.location.assign(`/dashboard/equipment/${payload.equipment.id}`);
   }, [payload]);
 
   if (authLoading || isLoading) {
