@@ -324,17 +324,12 @@ for (const filePath of changedFiles) {
 
     const hasRename = hasRenameInSameStatement || hasRenameInPreviousStatement;
 
-    let safeCommentSlice;
-    if (alterStart >= 0) {
-      const rawSemi = findStatementEndSemicolon(content, alterStart);
-      // Include the line immediately before ALTER TABLE so that a suppression
-      // comment placed on the preceding line (the documented pattern) is detected.
-      const precedingNewline = content.lastIndexOf('\n', alterStart - 1);
-      const sliceStart = precedingNewline >= 0 ? precedingNewline + 1 : 0;
-      safeCommentSlice = content.slice(sliceStart, rawSemi + 1);
-    } else {
-      safeCommentSlice = content.slice(Math.max(0, matchIndex - 200), matchIndex + 200);
-    }
+    const rawSemi = findStatementEndSemicolon(content, alterStart);
+    // Include the line immediately before ALTER TABLE so that a suppression
+    // comment placed on the preceding line (the documented pattern) is detected.
+    const precedingNewline = content.lastIndexOf('\n', alterStart - 1);
+    const sliceStart = precedingNewline >= 0 ? precedingNewline + 1 : 0;
+    const safeCommentSlice = content.slice(sliceStart, rawSemi + 1);
     const hasSafeComment = /--\s*(safe.?drop|intentional.?drop|acknowledged)/i.test(
       safeCommentSlice,
     );
