@@ -13,9 +13,26 @@ vi.mock('next-themes', () => ({
   ThemeProvider: vi.fn(({ children }: { children: React.ReactNode }) => <div data-testid="theme-provider">{children}</div>)
 }));
 
-vi.mock('@/contexts/AuthContext', () => ({
-  AuthProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="auth-provider">{children}</div>
-}));
+vi.mock('@/contexts/AuthContext', () => {
+  const AuthContext = React.createContext(undefined);
+  const authValue = {
+    user: null,
+    session: null,
+    isLoading: false,
+    signUp: vi.fn(async () => ({ error: null })),
+    signIn: vi.fn(async () => ({ error: null })),
+    signInWithGoogle: vi.fn(async () => ({ error: null })),
+    signOut: vi.fn(async () => {}),
+  };
+  return {
+    AuthContext,
+    AuthProvider: ({ children }: { children: React.ReactNode }) => (
+      <AuthContext.Provider value={authValue}>
+        <div data-testid="auth-provider">{children}</div>
+      </AuthContext.Provider>
+    ),
+  };
+});
 
 vi.mock('@/contexts/UserContext', () => ({
   UserProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="user-provider">{children}</div>

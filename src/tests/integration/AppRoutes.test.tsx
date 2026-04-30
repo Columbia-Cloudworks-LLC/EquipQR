@@ -1,3 +1,4 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -71,12 +72,14 @@ vi.mock('@/lib/flags', async (importOriginal) => {
   };
 });
 
-// Mock contexts
+// Mock contexts (named exports must match real modules for Vitest hoisted mocks)
 vi.mock('@/contexts/TeamContext', () => ({
+  TeamContext: React.createContext(undefined),
   TeamProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="team-provider">{children}</div>
 }));
 
 vi.mock('@/contexts/SelectedTeamContext', () => ({
+  SelectedTeamContext: React.createContext(undefined),
   SelectedTeamProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="selected-team-provider">{children}</div>
   )
@@ -88,11 +91,8 @@ vi.mock('@/contexts/SimpleOrganizationProvider', () => ({
   )
 }));
 
-vi.mock('@/contexts/OfflineQueueContext', () => ({
-  OfflineQueueProvider: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="offline-queue-provider">{children}</div>
-  ),
-  useOfflineQueue: () => ({
+vi.mock('@/contexts/OfflineQueueContext', () => {
+  const queueValue = () => ({
     queuedItems: [],
     pendingCount: 0,
     failedCount: 0,
@@ -103,8 +103,15 @@ vi.mock('@/contexts/OfflineQueueContext', () => ({
     removeItem: vi.fn(),
     clearQueue: vi.fn(),
     retryFailed: vi.fn(),
-  }),
-}));
+  });
+  return {
+    OfflineQueueProvider: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="offline-queue-provider">{children}</div>
+    ),
+    useOfflineQueue: queueValue,
+    useOfflineQueueOptional: queueValue,
+  };
+});
 
 vi.mock('@/features/offline-queue/components/PendingSyncBanner', () => ({
   PendingSyncBanner: () => <div data-testid="pending-sync-banner" />
