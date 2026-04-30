@@ -57,18 +57,24 @@ export const useOrganizationInvitations = (organizationId: string) => {
         const inviterNameMap: Record<string, string> = {};
         const inviterIdMap: Record<string, string> = {};
         if (invitations.length > 0) {
-          const { data: invitationRows } = await supabase
+          const { data: invitationRows, error: invitationRowsError } = await supabase
             .from('organization_invitations')
             .select('id, invited_by')
             .in('id', invitations.map(i => i.id))
             .eq('organization_id', organizationId);
 
-          if (invitationRows && invitationRows.length > 0) {
+          if (invitationRowsError) {
+            logger.error('Error fetching invitation inviter ids', invitationRowsError);
+          } else if (invitationRows && invitationRows.length > 0) {
             const uniqueInviterIds = [...new Set(invitationRows.map(r => r.invited_by).filter(Boolean))];
-            const { data: profileRows } = await supabase
+            const { data: profileRows, error: profileRowsError } = await supabase
               .from('profiles')
               .select('id, name')
               .in('id', uniqueInviterIds);
+
+            if (profileRowsError) {
+              logger.error('Error fetching inviter profiles', profileRowsError);
+            }
 
             const profileMap: Record<string, string> = {};
             for (const p of profileRows || []) {
@@ -77,7 +83,9 @@ export const useOrganizationInvitations = (organizationId: string) => {
 
             for (const row of invitationRows) {
               inviterIdMap[row.id] = row.invited_by;
-              inviterNameMap[row.id] = profileMap[row.invited_by] || 'Unknown';
+              inviterNameMap[row.id] = profileRowsError
+                ? 'Unknown'
+                : (profileMap[row.invited_by] || 'Unknown');
             }
           }
         }
@@ -101,7 +109,7 @@ export const useOrganizationInvitations = (organizationId: string) => {
           role: invitation.role as 'admin' | 'member',
           status: invitation.status as 'pending' | 'accepted' | 'declined' | 'expired',
           message: invitation.message || undefined,
-          invitedBy: inviterIdMap[invitation.id] || claims.sub,
+          invitedBy: inviterIdMap[invitation.id] ?? '',
           createdAt: invitation.created_at,
           expiresAt: invitation.expires_at,
           acceptedAt: invitation.accepted_at || undefined,

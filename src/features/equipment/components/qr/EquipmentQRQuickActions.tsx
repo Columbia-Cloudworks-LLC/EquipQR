@@ -131,7 +131,12 @@ export default function EquipmentQRQuickActions({
             <span>{successMessage.message}</span>
             {successMessage.workOrderId && (
               <Button asChild variant="outline" size="sm" className="w-fit">
-                <Link to={`/dashboard/work-orders/${successMessage.workOrderId}`}>Open work order</Link>
+                <Link
+                  to={`/dashboard/work-orders/${successMessage.workOrderId}`}
+                  reloadDocument
+                >
+                  Open work order
+                </Link>
               </Button>
             )}
           </AlertDescription>

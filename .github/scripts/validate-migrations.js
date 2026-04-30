@@ -353,11 +353,11 @@ for (const filePath of changedFiles) {
   }
 
   // ── 3. NEW TABLES REQUIRE RLS ────────────────────────────────────────────
+  // Use comment-stripped SQL so CREATE TABLE inside `--` or `/* */` comments cannot
+  // satisfy or spoof this check (matches RLS / DROP COLUMN analysis behavior).
   let createMatch;
   createTableRegex.lastIndex = 0;
-  while ((createMatch = createTableRegex.exec(content)) !== null) {
-    if (isLineSqlComment(content, createMatch.index)) continue;
-
+  while ((createMatch = createTableRegex.exec(analysisContent)) !== null) {
     const schemaName = (createMatch[1] || createMatch[2] || '').replace(/"/g, '');
     const rawTableName = (createMatch[3] || createMatch[4] || '').replace(/"/g, '');
     if (!rawTableName) continue;

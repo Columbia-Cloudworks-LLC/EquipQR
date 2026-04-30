@@ -380,7 +380,11 @@ export const getTeamMembersByTeamIdsOptimized = async (
     const { data, error } = await supabase
       .from('team_members')
       .select(`
-        *,
+        id,
+        user_id,
+        team_id,
+        role,
+        joined_date,
         profiles!team_members_user_id_fkey (
           name,
           email

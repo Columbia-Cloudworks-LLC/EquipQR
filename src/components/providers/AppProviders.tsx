@@ -34,16 +34,19 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
       <HelmetProvider>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider attribute="class" forcedTheme="dark">
-            <AuthProvider>
-              <Router
-                future={{
-                  v7_startTransition: true,
-                  v7_relativeSplatPath: true,
-                }}
-              >
-                {children}
-              </Router>
-            </AuthProvider>
+            <TooltipProvider>
+              <AuthProvider>
+                <Router
+                  future={{
+                    v7_startTransition: true,
+                    v7_relativeSplatPath: true,
+                  }}
+                >
+                  {children}
+                </Router>
+              </AuthProvider>
+            </TooltipProvider>
+            <Toaster />
           </ThemeProvider>
         </QueryClientProvider>
       </HelmetProvider>
