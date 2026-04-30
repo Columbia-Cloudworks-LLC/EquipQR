@@ -207,7 +207,11 @@ for (const filePath of changedFiles) {
     let safeCommentSlice;
     if (alterStart >= 0) {
       const semi = findStatementEndSemicolon(content, alterStart);
-      safeCommentSlice = content.slice(alterStart, semi + 1);
+      // Include the line immediately before ALTER TABLE so that a suppression
+      // comment placed on the preceding line (the documented pattern) is detected.
+      const precedingNewline = content.lastIndexOf('\n', alterStart - 1);
+      const sliceStart = precedingNewline >= 0 ? precedingNewline + 1 : 0;
+      safeCommentSlice = content.slice(sliceStart, semi + 1);
     } else {
       safeCommentSlice = content.slice(Math.max(0, matchIndex - 200), matchIndex + 200);
     }
