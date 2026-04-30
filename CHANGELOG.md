@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Removed the stale `VITE_ENABLE_MFA` feature flag now that MFA is fully launched and mandatory for Owner/Admin roles. MFA enrollment, verification, settings, and enforcement paths remain active without environment gating.
+
 ## [3.1.0] - 2026-04-29
 
 ### Added

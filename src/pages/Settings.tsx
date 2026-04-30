@@ -14,7 +14,6 @@ import { SessionStatus } from '@/components/session/SessionStatus';
 import NotificationSettings from '@/components/settings/NotificationSettings';
 import MFASettings from '@/components/settings/MFASettings';
 import { SettingsNav } from '@/components/settings/SettingsNav';
-import { isMFAEnabled } from '@/lib/flags';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -183,7 +182,7 @@ const SettingsContent = () => {
                 </p>
               </div>
               <div className="md:col-span-2 space-y-4">
-                {isMFAEnabled() ? <MFASettings /> : null}
+                <MFASettings />
                 <SessionStatus />
                 <SecurityStatus />
               </div>

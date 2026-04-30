@@ -14,4 +14,8 @@ describe('flags', () => {
   it('should have isQuickBooksDisabled return opposite of QUICKBOOKS_ENABLED', () => {
     expect(isQuickBooksDisabled()).toBe(!QUICKBOOKS_ENABLED);
   });
+
+  it('should not expose retired MFA rollout flag wiring', () => {
+    expect('mfa' in FeatureFlags).toBe(false);
+  });
 });

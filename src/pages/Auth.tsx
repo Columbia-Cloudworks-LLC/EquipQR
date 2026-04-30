@@ -9,7 +9,6 @@ import { Separator } from '@/components/ui/separator';
 import { Loader2, QrCode } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMFA } from '@/hooks/useMFA';
-import { isMFAEnabled } from '@/lib/flags';
 import { isSafeRedirectPath, getSafeRedirectPath } from '@/utils/redirectValidation';
 import Logo from '@/components/ui/Logo';
 import SignUpForm from '@/components/auth/SignUpForm';
@@ -46,9 +45,9 @@ const Auth = () => {
   // This replaces usePendingRedirectHandler to avoid race conditions with duplicate effects
   useEffect(() => {
     if (user && !authLoading) {
-      // If MFA is enabled and user needs verification (e.g., after Google OAuth),
-      // show the MFA verification screen instead of redirecting
-      if (isMFAEnabled() && needsVerification && !showMFAVerification) {
+      // If MFA verification is needed (e.g., after Google OAuth), show the
+      // verification screen instead of redirecting.
+      if (needsVerification && !showMFAVerification) {
         setShowMFAVerification(true);
         return;
       }

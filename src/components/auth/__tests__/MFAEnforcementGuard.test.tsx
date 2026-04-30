@@ -37,11 +37,6 @@ vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganizationSafe: () => mockOrgContext,
 }));
 
-let mockMFAEnabled = true;
-vi.mock('@/lib/flags', () => ({
-  isMFAEnabled: () => mockMFAEnabled,
-}));
-
 // Mock useAppToast for MFAEnrollment
 vi.mock('@/hooks/useAppToast', () => ({
   useAppToast: () => ({
@@ -57,7 +52,6 @@ describe('MFAEnforcementGuard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    mockMFAEnabled = true;
     mockMFAState = {
       isEnrolled: false,
       isVerified: false,
@@ -82,18 +76,6 @@ describe('MFAEnforcementGuard', () => {
   afterEach(() => {
     cleanup();
     vi.useRealTimers();
-  });
-
-  it('passes through when MFA feature flag is disabled', () => {
-    mockMFAEnabled = false;
-
-    render(
-      <MFAEnforcementGuard>
-        <div>Protected Content</div>
-      </MFAEnforcementGuard>
-    );
-
-    expect(screen.getByText('Protected Content')).toBeInTheDocument();
   });
 
   it('passes through for member role', () => {

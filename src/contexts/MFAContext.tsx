@@ -3,7 +3,6 @@ import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { Factor, AuthenticatorAssuranceLevels } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { isMFAEnabled } from '@/lib/flags';
 import { logger } from '@/utils/logger';
 
 interface EnrollTOTPResult {
@@ -42,43 +41,7 @@ export interface MFAContextType {
 // eslint-disable-next-line react-refresh/only-export-components
 export const MFAContext = createContext<MFAContextType | undefined>(undefined);
 
-/**
- * No-op MFA context value used when MFA feature flag is disabled.
- * All methods are safe no-ops that return empty/null values.
- */
-const DISABLED_MFA_CONTEXT: MFAContextType = {
-  factors: [],
-  currentLevel: null,
-  nextLevel: null,
-  isEnrolled: false,
-  isVerified: false,
-  needsVerification: false,
-  isLoading: false,
-  enrollTOTP: async () => null,
-  verifyTOTP: async () => ({ error: new Error('MFA is not enabled') }),
-  unenrollFactor: async () => ({ error: new Error('MFA is not enabled') }),
-  challengeAndVerify: async () => ({ error: new Error('MFA is not enabled') }),
-  refreshMFAStatus: async () => { /* no-op */ },
-};
-
 export const MFAProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // When MFA is disabled, provide a static no-op context
-  if (!isMFAEnabled()) {
-    return (
-      <MFAContext.Provider value={DISABLED_MFA_CONTEXT}>
-        {children}
-      </MFAContext.Provider>
-    );
-  }
-
-  return <MFAProviderInner>{children}</MFAProviderInner>;
-};
-
-/**
- * Inner MFA provider that actually manages state. Only rendered when MFA is enabled.
- * Separated to avoid calling hooks conditionally.
- */
-const MFAProviderInner: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [factors, setFactors] = useState<Factor[]>([]);
   const [currentLevel, setCurrentLevel] = useState<AuthenticatorAssuranceLevels | null>(null);

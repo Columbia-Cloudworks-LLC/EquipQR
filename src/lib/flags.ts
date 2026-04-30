@@ -15,15 +15,6 @@
 export const QUICKBOOKS_ENABLED = import.meta.env.VITE_ENABLE_QUICKBOOKS === 'true';
 
 /**
- * Controls whether Multi-Factor Authentication (MFA) features are enabled.
- * When enabled, TOTP-based MFA is available for all users and mandatory for admin/owner roles.
- * 
- * Set via environment variable: VITE_ENABLE_MFA
- * Defaults to false (disabled) unless explicitly set to 'true'.
- */
-export const MFA_ENABLED = import.meta.env.VITE_ENABLE_MFA === 'true';
-
-/**
  * Controls whether the offline queue / offline-mode feature is enabled.
  * When enabled, mutations are queued locally when the device is offline and
  * replayed automatically on reconnect (OfflineQueueProvider + PendingSyncBanner).
@@ -43,10 +34,6 @@ export const FeatureFlags = {
   quickbooks: {
     enabled: QUICKBOOKS_ENABLED,
     disabled: !QUICKBOOKS_ENABLED
-  },
-  mfa: {
-    enabled: MFA_ENABLED,
-    disabled: !MFA_ENABLED
   },
   offlineQueue: {
     enabled: OFFLINE_QUEUE_ENABLED,
@@ -68,14 +55,6 @@ export function isQuickBooksEnabled(): boolean {
  */
 export function isQuickBooksDisabled(): boolean {
   return !QUICKBOOKS_ENABLED;
-}
-
-/**
- * Check if MFA is enabled
- * @returns true if MFA features should be active
- */
-export function isMFAEnabled(): boolean {
-  return MFA_ENABLED;
 }
 
 /**

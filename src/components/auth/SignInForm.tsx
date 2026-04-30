@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { isMFAEnabled } from '@/lib/flags';
 import DevQuickLogin from './DevQuickLogin';
 
 interface SignInFormProps {
@@ -72,7 +71,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoadin
       }
 
       // Check if MFA verification is needed after successful sign-in
-      if (isMFAEnabled() && onMFARequired) {
+      if (onMFARequired) {
         try {
           const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
           if (data && data.nextLevel === 'aal2' && data.currentLevel === 'aal1') {

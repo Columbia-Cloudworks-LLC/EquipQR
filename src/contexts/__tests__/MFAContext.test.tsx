@@ -15,11 +15,6 @@ vi.mock('@/hooks/useAuth', () => ({
   }),
 }));
 
-// Mock isMFAEnabled to return true for these tests
-vi.mock('@/lib/flags', () => ({
-  isMFAEnabled: () => true,
-}));
-
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <MFAProvider>{children}</MFAProvider>
 );

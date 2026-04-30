@@ -1,7 +1,6 @@
 import React, { useCallback } from 'react';
 import { useMFA } from '@/hooks/useMFA';
 import { useSimpleOrganizationSafe } from '@/hooks/useSimpleOrganization';
-import { isMFAEnabled } from '@/lib/flags';
 import { Loader2 } from 'lucide-react';
 import MFAEnrollment from './MFAEnrollment';
 import MFAVerification from './MFAVerification';
@@ -20,7 +19,6 @@ interface MFAEnforcementGuardProps {
  * (needs org role context).
  *
  * Behavior:
- * - If MFA feature flag is disabled → render children
  * - If user's org role is not owner/admin → render children
  * - If admin/owner and MFA not enrolled → show forced enrollment
  * - If admin/owner and MFA enrolled but session is AAL1 → show verification
@@ -29,11 +27,6 @@ interface MFAEnforcementGuardProps {
 const MFAEnforcementGuard: React.FC<MFAEnforcementGuardProps> = ({ children }) => {
   const { isEnrolled, isVerified, isLoading: mfaLoading, refreshMFAStatus } = useMFA();
   const orgContext = useSimpleOrganizationSafe();
-
-  // When MFA is disabled via feature flag, pass through
-  if (!isMFAEnabled()) {
-    return <>{children}</>;
-  }
 
   const currentOrganization = orgContext?.currentOrganization;
   const orgLoading = orgContext?.isLoading ?? false;
