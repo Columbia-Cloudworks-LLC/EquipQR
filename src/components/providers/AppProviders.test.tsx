@@ -98,7 +98,8 @@ describe('AppProviders', () => {
       expect(screen.getByTestId('test-child')).toBeInTheDocument();
       expect(screen.queryByTestId('user-provider')).not.toBeInTheDocument();
       expect(screen.queryByTestId('session-provider')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('toaster')).not.toBeInTheDocument();
+      // QR entry still mounts Toaster + TooltipProvider so scan dialogs can toast without SPA-navigating to the full dashboard shell.
+      expect(screen.getByTestId('toaster')).toBeInTheDocument();
     });
 
     it('passes children through the provider chain', () => {
