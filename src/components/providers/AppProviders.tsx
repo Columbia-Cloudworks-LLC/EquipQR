@@ -36,7 +36,9 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
         <QueryClientProvider client={queryClient}>
           <ThemeProvider attribute="class" forcedTheme="dark">
             <TooltipProvider>
-              <AuthProvider>{children}</AuthProvider>
+              <AuthProvider>
+                <SessionProvider>{children}</SessionProvider>
+              </AuthProvider>
             </TooltipProvider>
             <Toaster />
           </ThemeProvider>

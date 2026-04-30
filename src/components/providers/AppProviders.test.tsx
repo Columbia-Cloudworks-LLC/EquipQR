@@ -100,9 +100,9 @@ describe('AppProviders', () => {
       expect(screen.getByTestId('query-client-provider')).toBeInTheDocument();
       expect(screen.getByTestId('theme-provider')).toBeInTheDocument();
       expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
+      expect(screen.getByTestId('session-provider')).toBeInTheDocument();
       expect(screen.getByTestId('test-child')).toBeInTheDocument();
       expect(screen.queryByTestId('user-provider')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('session-provider')).not.toBeInTheDocument();
       expect(screen.getByTestId('toaster')).toBeInTheDocument();
     });
 

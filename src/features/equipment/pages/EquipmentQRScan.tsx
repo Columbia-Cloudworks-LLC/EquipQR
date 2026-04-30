@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import EquipQRIcon from '@/components/ui/EquipQRIcon';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { saveOrganizationPreference } from '@/utils/sessionPersistence';
 import type { Database } from '@/integrations/supabase/types';
 import type { Role } from '@/types/permissions';
 import QrPageLoadingShell from '@/features/equipment/components/qr/QrPageLoadingShell';
@@ -15,6 +16,8 @@ import QrPageLoadingShell from '@/features/equipment/components/qr/QrPageLoading
 type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 
 const PRODUCTION_URL = 'https://equipqr.app';
+/** Matches SimpleOrganizationProvider — ensures dashboard loads the scanned org after full-document navigation. */
+const DASHBOARD_CURRENT_ORG_STORAGE_KEY = 'equipqr_current_organization';
 const EquipmentQRQuickActions = lazy(() => import('@/features/equipment/components/qr/EquipmentQRQuickActions'));
 
 interface OrganizationRelation {
@@ -284,6 +287,12 @@ const EquipmentQRScan = () => {
 
   const openDashboardRecord = useCallback(async () => {
     if (!payload) return;
+    saveOrganizationPreference(payload.organization.id);
+    try {
+      localStorage.setItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY, payload.organization.id);
+    } catch {
+      // ignore storage failures (private mode, quota)
+    }
     window.location.assign(`/dashboard/equipment/${payload.equipment.id}`);
   }, [payload]);
 

@@ -86,6 +86,28 @@ function stripSqlCommentsPreserveLength(content) {
       continue;
     }
 
+    // Dollar-quoted string: $$...$$  or  $tag$...$tag$
+    // Blank out the block (preserve newlines) so tokens inside function bodies do not
+    // trigger false-positive RLS / DROP COLUMN checks.
+    if (char === '$') {
+      let j = i + 1;
+      while (j < content.length && /[A-Za-z0-9_]/.test(content[j])) {
+        j++;
+      }
+      if (j < content.length && content[j] === '$') {
+        const dollarTag = content.slice(i, j + 1);
+        const closeIdx = content.indexOf(dollarTag, j + 1);
+        if (closeIdx !== -1) {
+          const endIdx = closeIdx + dollarTag.length;
+          for (let k = i; k < endIdx; k++) {
+            result += content[k] === '\n' ? '\n' : ' ';
+          }
+          i = endIdx;
+          continue;
+        }
+      }
+    }
+
     if (char === '-' && nextChar === '-') {
       inLineComment = true;
       result += '  ';
