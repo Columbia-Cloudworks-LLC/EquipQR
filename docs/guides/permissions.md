@@ -90,7 +90,7 @@ This document defines the comprehensive role-based access control (RBAC) system 
 | View Teams | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Assign Work Orders | ✅ | ✅ | ❌ | ✅** | ❌ | ❌ | ❌ |
 
-**Only for teams where user has Manager role
+**Only for teams where user has Manager role**
 
 ### Equipment Management
 
