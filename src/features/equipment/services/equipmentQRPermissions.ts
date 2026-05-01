@@ -196,7 +196,8 @@ export async function fetchEquipmentQRPayload(
   };
 }
 
-export async function userLimitsSensitivePi(userId: string): Promise<boolean> {
+export async function userLimitsSensitivePi(): Promise<boolean> {
+  const userId = await requireAuthUserIdFromClaims();
   const { data, error } = await supabase
     .from('profiles')
     .select('limit_sensitive_pi')

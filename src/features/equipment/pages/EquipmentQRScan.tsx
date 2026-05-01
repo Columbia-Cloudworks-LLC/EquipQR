@@ -63,7 +63,7 @@ const EquipmentQRScan = () => {
     const orgParam = orgId ? `&org=${orgId}` : '';
     sessionStorage.setItem('pendingRedirect', `/qr/equipment/${equipmentId}?qr=true${orgParam}`);
     window.location.replace('/auth?tab=signin');
-  }, [authLoading, equipmentId, user]);
+  }, [authLoading, equipmentId, orgId, user]);
 
   useEffect(() => {
     if (authLoading || !user || !equipmentId) return;
@@ -88,7 +88,7 @@ const EquipmentQRScan = () => {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, equipmentId, user]);
+  }, [authLoading, equipmentId, orgId, user]);
 
   useEffect(() => {
     if (!payload || !user || scanStartedRef.current) return;
@@ -101,7 +101,7 @@ const EquipmentQRScan = () => {
 
     const logScan = async () => {
       const orgAllowsLocation = payload.organization.scan_location_collection_enabled;
-      const userLimitedPi = await userLimitsSensitivePi(user.id);
+      const userLimitedPi = await userLimitsSensitivePi();
 
       if (!orgAllowsLocation || userLimitedPi || !('geolocation' in navigator)) {
         await logWithoutLocation('QR code scan');
