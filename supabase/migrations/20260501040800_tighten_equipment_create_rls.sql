@@ -47,13 +47,24 @@ DROP POLICY IF EXISTS "equipment_member_update" ON "public"."equipment";
 CREATE POLICY "equipment_member_update" ON "public"."equipment"
   FOR UPDATE USING ("public"."is_org_member"((select "auth"."uid"()), "organization_id"));
 
--- 4) Recreate the DELETE half of the dropped policy. Application code already
---    gates DELETE behind owner/admin via `equipment_admin_access` (FOR ALL),
---    so this policy is a defense-in-depth duplicate that mirrors the
---    pre-#650 behavior; future Change Records may tighten or remove it.
+-- 4) Remove the broad member DELETE policy that was in `equipment_member_access`
+--    (FOR ALL). Org admins/owners are already covered by `equipment_admin_access`
+--    (FOR ALL). A separate scoped policy `equipment_team_manager_delete` is
+--    created below to allow team managers to delete equipment on their team,
+--    matching the `equipment.delete` rule in PermissionEngine.ts.
+--    The old broad `equipment_member_delete` is dropped; it is NOT recreated.
 DROP POLICY IF EXISTS "equipment_member_delete" ON "public"."equipment";
-CREATE POLICY "equipment_member_delete" ON "public"."equipment"
-  FOR DELETE USING ("public"."is_org_member"((select "auth"."uid"()), "organization_id"));
+DROP POLICY IF EXISTS "equipment_team_manager_delete" ON "public"."equipment";
+CREATE POLICY "equipment_team_manager_delete" ON "public"."equipment"
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1
+      FROM "public"."team_members" tm
+      WHERE tm.user_id = (select "auth"."uid"())
+        AND tm.team_id = team_id
+        AND tm.role = 'manager'::"public"."team_member_role"
+    )
+  );
 
 -- 5) Add the tightened INSERT policy. Owners and admins can create equipment
 --    org-wide (no team_id required). Active org members can only insert when
