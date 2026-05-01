@@ -219,43 +219,35 @@ const MobileFirstDesignFeature = () => {
 
             <div className="max-w-5xl mx-auto space-y-12">
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div className="rounded-lg overflow-hidden border border-border">
                     <img
-                      src={landingImage('mobile-work-order-1.png')}
-                      alt="Mobile work order view"
+                      src={landingImage('mobile-work-orders-2026-04.png')}
+                      alt="Mobile work orders list showing scan-created and in-progress work orders"
                       className="w-full h-auto"
                       loading="lazy"
                     />
                   </div>
                   <div className="rounded-lg overflow-hidden border border-border">
                     <img
-                      src={landingImage('mobile-work-order-status.png')}
-                      alt="Mobile work order status update"
+                      src={landingImage('mobile-work-order-detail-2026-04.png')}
+                      alt="Mobile work order detail showing equipment, location, team, and PM checklist status"
                       className="w-full h-auto"
                       loading="lazy"
                     />
                   </div>
                   <div className="rounded-lg overflow-hidden border border-border">
                     <img
-                      src={landingImage('mobile-work-order-PM-checklist.png')}
-                      alt="Mobile PM checklist view"
-                      className="w-full h-auto"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="rounded-lg overflow-hidden border border-border">
-                    <img
-                      src={landingImage('mobile-work-order-PM-checklist-input.png')}
-                      alt="Mobile PM checklist input"
+                      src={landingImage('mobile-pm-checklist-2026-04.png')}
+                      alt="Mobile PM checklist with completed sections for excavator preventative maintenance"
                       className="w-full h-auto"
                       loading="lazy"
                     />
                   </div>
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Mobile Work Order & PM Checklist</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Mobile Work Orders & PM Checklists</h3>
                 <p className="text-muted-foreground">
-                  View and complete work orders on a phone. PM checklists are easy to work through with touch-friendly controls. Add notes, mark items OK or flag issues, and sync when back online.
+                  View and complete work orders on any phone. PM checklists are easy to work through with large touch-friendly controls. See work order status, equipment details, team assignment, and checklist progress — all on one screen.
                 </p>
               </div>
             </div>

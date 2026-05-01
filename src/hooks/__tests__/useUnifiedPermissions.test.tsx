@@ -138,6 +138,11 @@ const setupPersonaMocks = (personaKey: keyof typeof personas) => {
         const isManager = persona.teamMemberships.some(
           tm => tm.teamId === teamId && tm.role === 'manager'
         );
+        // #650: managers and technicians on the assigned team can create
+        // equipment for that team.
+        const canCreateForTeam = persona.teamMemberships.some(
+          tm => tm.teamId === teamId && (tm.role === 'manager' || tm.role === 'technician')
+        );
 
         if (permission.startsWith('workorder.')) {
           if (permission === 'workorder.view') return hasTeamAccess || isAssigned;
@@ -149,6 +154,7 @@ const setupPersonaMocks = (personaKey: keyof typeof personas) => {
         if (permission.startsWith('equipment.')) {
           if (permission === 'equipment.view') return hasTeamAccess;
           if (permission === 'equipment.edit') return isManager;
+          if (permission === 'equipment.create') return canCreateForTeam;
         }
 
         if (permission.startsWith('team.')) {
@@ -341,12 +347,45 @@ describe('useUnifiedPermissions', () => {
         setupPersonaMocks('technician');
       });
 
-      it('cannot create equipment', () => {
+      it('cannot create equipment org-wide', () => {
         const { result } = renderHook(() => useUnifiedPermissions(), {
           wrapper: createWrapper()
         });
 
         expect(result.current.equipment.canCreateAny).toBe(false);
+      });
+
+      // #650: technicians can create equipment for teams they belong to.
+      it('can create equipment for their own team', () => {
+        const { result } = renderHook(() => useUnifiedPermissions(), {
+          wrapper: createWrapper()
+        });
+
+        expect(result.current.equipment.canCreateForTeam(teams.maintenance.id)).toBe(true);
+      });
+
+      it('cannot create equipment for a different team', () => {
+        const { result } = renderHook(() => useUnifiedPermissions(), {
+          wrapper: createWrapper()
+        });
+
+        expect(result.current.equipment.canCreateForTeam(teams.field.id)).toBe(false);
+      });
+
+      it('canCreateForAnyTeam is true (technician on at least one team)', () => {
+        const { result } = renderHook(() => useUnifiedPermissions(), {
+          wrapper: createWrapper()
+        });
+
+        expect(result.current.equipment.canCreateForAnyTeam).toBe(true);
+      });
+
+      it('getPermissions(teamId).canCreate is true for own team', () => {
+        const { result } = renderHook(() => useUnifiedPermissions(), {
+          wrapper: createWrapper()
+        });
+
+        expect(result.current.equipment.getPermissions(teams.maintenance.id).canCreate).toBe(true);
       });
 
       it('can view team equipment', () => {
@@ -365,6 +404,76 @@ describe('useUnifiedPermissions', () => {
 
         const permissions = result.current.equipment.getPermissions(teams.maintenance.id);
         expect(permissions.canEdit).toBe(false);
+      });
+    });
+
+    // #650: read-only members (no team membership) and viewers must not be
+    // able to create equipment for any team.
+    describe('as a Read-Only Member without team memberships', () => {
+      beforeEach(() => {
+        setupPersonaMocks('readOnlyMember');
+      });
+
+      it('cannot create equipment org-wide', () => {
+        const { result } = renderHook(() => useUnifiedPermissions(), {
+          wrapper: createWrapper()
+        });
+
+        expect(result.current.equipment.canCreateAny).toBe(false);
+      });
+
+      it('canCreateForAnyTeam is false', () => {
+        const { result } = renderHook(() => useUnifiedPermissions(), {
+          wrapper: createWrapper()
+        });
+
+        expect(result.current.equipment.canCreateForAnyTeam).toBe(false);
+      });
+
+      it('cannot create equipment for any specific team', () => {
+        const { result } = renderHook(() => useUnifiedPermissions(), {
+          wrapper: createWrapper()
+        });
+
+        expect(result.current.equipment.canCreateForTeam(teams.maintenance.id)).toBe(false);
+      });
+    });
+
+    describe('as a Team Manager', () => {
+      beforeEach(() => {
+        setupPersonaMocks('teamManager');
+      });
+
+      it('cannot create equipment org-wide', () => {
+        const { result } = renderHook(() => useUnifiedPermissions(), {
+          wrapper: createWrapper()
+        });
+
+        expect(result.current.equipment.canCreateAny).toBe(false);
+      });
+
+      it('can create equipment for their own team', () => {
+        const { result } = renderHook(() => useUnifiedPermissions(), {
+          wrapper: createWrapper()
+        });
+
+        expect(result.current.equipment.canCreateForTeam(teams.maintenance.id)).toBe(true);
+      });
+
+      it('cannot create equipment for a team they do not belong to', () => {
+        const { result } = renderHook(() => useUnifiedPermissions(), {
+          wrapper: createWrapper()
+        });
+
+        expect(result.current.equipment.canCreateForTeam(teams.field.id)).toBe(false);
+      });
+
+      it('canCreateForAnyTeam is true', () => {
+        const { result } = renderHook(() => useUnifiedPermissions(), {
+          wrapper: createWrapper()
+        });
+
+        expect(result.current.equipment.canCreateForAnyTeam).toBe(true);
       });
     });
   });

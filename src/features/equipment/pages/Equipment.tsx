@@ -36,7 +36,7 @@ import { useOrgEquipmentPMStatuses } from '@/features/equipment/hooks/useEquipme
 
 const Equipment = () => {
   const { currentOrganization } = useOrganization();
-  const { canCreateEquipment, hasRole } = usePermissions();
+  const { canCreateEquipment, canCreateEquipmentForAnyTeam, hasRole } = usePermissions();
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -165,7 +165,11 @@ const Equipment = () => {
     updateFilter('team', value);
   }, [selectedTeamId, updateFilter]);
 
-  const canCreate = canCreateEquipment();
+  // Show "Add Equipment" / "Bulk Edit" when the user can create org-wide
+  // OR for at least one team they belong to. Owners/admins clear via
+  // canCreateEquipment(); team managers/technicians clear via the per-team
+  // gate exposed by canCreateEquipmentForAnyTeam().
+  const canCreate = canCreateEquipment() || canCreateEquipmentForAnyTeam();
   const canImport = hasRole(['owner', 'admin']);
   const canExport = hasRole(['owner', 'admin', 'member']);
 
@@ -398,6 +402,7 @@ const Equipment = () => {
         open={!!showQRCode}
         onClose={() => setShowQRCode(null)}
         equipmentName={equipment.find(eq => eq.id === showQRCode)?.name}
+        organizationId={currentOrganization?.id}
       />
 
       {/* CSV Import Wizard */}

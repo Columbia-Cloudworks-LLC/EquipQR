@@ -151,6 +151,82 @@ describe('PermissionEngine', () => {
         expect(engine.hasPermission('equipment.edit', context, entityContext)).toBe(false);
       });
     });
+
+    // Issue #650 — Equipment create permission rules. Owners/admins can
+    // create equipment org-wide (no team context); team managers and
+    // technicians can create only for teams where they hold that role.
+    // Other team roles (requestor, viewer) and members without team roles
+    // are denied. Mirrors the `team_members_create_equipment` RLS policy.
+    describe('equipment.create', () => {
+      it('allows owner to create equipment without a team context', () => {
+        const context = createUserContext('owner');
+        expect(engine.hasPermission('equipment.create', context)).toBe(true);
+      });
+
+      it('allows admin to create equipment without a team context', () => {
+        const context = createUserContext('admin');
+        expect(engine.hasPermission('equipment.create', context)).toBe(true);
+      });
+
+      it('allows owner to create equipment for any team', () => {
+        const context = createUserContext('owner');
+        const entityContext = { teamId: teams.field.id };
+        expect(engine.hasPermission('equipment.create', context, entityContext)).toBe(true);
+      });
+
+      it('allows team manager to create equipment for their own team', () => {
+        const context = createUserContext('teamManager');
+        const entityContext = { teamId: teams.maintenance.id };
+        expect(engine.hasPermission('equipment.create', context, entityContext)).toBe(true);
+      });
+
+      it('denies team manager from creating equipment for another team', () => {
+        const context = createUserContext('teamManager');
+        const entityContext = { teamId: teams.field.id };
+        expect(engine.hasPermission('equipment.create', context, entityContext)).toBe(false);
+      });
+
+      it('allows team technician to create equipment for their own team', () => {
+        const context = createUserContext('technician');
+        const entityContext = { teamId: teams.maintenance.id };
+        expect(engine.hasPermission('equipment.create', context, entityContext)).toBe(true);
+      });
+
+      it('denies team technician from creating equipment without a team context', () => {
+        const context = createUserContext('technician');
+        expect(engine.hasPermission('equipment.create', context)).toBe(false);
+      });
+
+      it('denies team technician from creating equipment for another team', () => {
+        const context = createUserContext('technician');
+        const entityContext = { teamId: teams.field.id };
+        expect(engine.hasPermission('equipment.create', context, entityContext)).toBe(false);
+      });
+
+      it('denies requestor team role from creating equipment for that team', () => {
+        const context = createMemberContextWithTeamRole('requestor');
+        const entityContext = { teamId: teams.maintenance.id };
+        expect(engine.hasPermission('equipment.create', context, entityContext)).toBe(false);
+      });
+
+      it('denies viewer team role from creating equipment for that team', () => {
+        const context = createMemberContextWithTeamRole('viewer');
+        const entityContext = { teamId: teams.maintenance.id };
+        expect(engine.hasPermission('equipment.create', context, entityContext)).toBe(false);
+      });
+
+      it('denies read-only member without team membership', () => {
+        const context = createUserContext('readOnlyMember');
+        const entityContext = { teamId: teams.maintenance.id };
+        expect(engine.hasPermission('equipment.create', context, entityContext)).toBe(false);
+      });
+
+      it('denies viewer org persona without team membership', () => {
+        const context = createUserContext('viewer');
+        const entityContext = { teamId: teams.maintenance.id };
+        expect(engine.hasPermission('equipment.create', context, entityContext)).toBe(false);
+      });
+    });
   });
 
   describe('Work Order Permissions', () => {

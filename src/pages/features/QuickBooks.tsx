@@ -11,6 +11,7 @@ import {
 import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
+import { landingImage } from '@/lib/landingImage';
 
 const QuickBooksFeature = () => {
   return (
@@ -199,6 +200,52 @@ const QuickBooksFeature = () => {
                     </p>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Screenshots Section */}
+        <section className="py-24 bg-muted/30">
+          <div className="container px-4 mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+                See QuickBooks Integration in Action
+              </h2>
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+                Here&apos;s what the QuickBooks connection and work order export looks like in the EquipQR™ app.
+              </p>
+            </div>
+
+            <div className="max-w-5xl mx-auto space-y-12">
+              <div className="bg-muted/50 rounded-xl p-8 border border-border">
+                <div className="rounded-lg overflow-hidden mb-4 border border-border">
+                  <img
+                    src={landingImage('quickbooks-settings-2026-04.png')}
+                    alt="Organization Settings showing QuickBooks Online connected, Google Workspace connected, and QR scan location toggle"
+                    className="w-full h-auto"
+                    loading="lazy"
+                  />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">QuickBooks Connected in Organization Settings</h3>
+                <p className="text-muted-foreground">
+                  Connect QuickBooks Online from Organization Settings → Integrations. The connection status badge confirms the OAuth link is active and tokens refresh automatically. No re-authentication needed unless you manually disconnect.
+                </p>
+              </div>
+
+              <div className="bg-muted/50 rounded-xl p-8 border border-border">
+                <div className="rounded-lg overflow-hidden mb-4 border border-border">
+                  <img
+                    src={landingImage('work-order-detail-2026-04.png')}
+                    alt="Completed work order detail page showing equipment information, PM checklist status, and assignment"
+                    className="w-full h-auto"
+                    loading="lazy"
+                  />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Export Completed Work Orders in One Click</h3>
+                <p className="text-muted-foreground">
+                  Once a work order is marked Completed, use the Export to QuickBooks action from the work order detail page. The draft invoice is created in your QuickBooks company, linked to the customer mapped to that equipment&apos;s team.
+                </p>
               </div>
             </div>
           </div>

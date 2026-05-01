@@ -221,8 +221,8 @@ const CustomerCRMFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
-                    src={landingImage('customer-crm-list.png')}
-                    alt="Customer list showing each customer with location, contact details, and linked equipment count"
+                    src={landingImage('equipment-list-2026-04.png')}
+                    alt="Equipment list view showing all tracked assets — each piece of equipment can be linked to a customer"
                     className="w-full h-auto"
                     loading="lazy"
                   />
@@ -236,15 +236,15 @@ const CustomerCRMFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
-                    src={landingImage('customer-crm-detail.png')}
-                    alt="Equipment detail page showing customer assignment and service history"
+                    src={landingImage('team-detail-2026-04.png')}
+                    alt="Service team detail page showing team members and the equipment they are responsible for"
                     className="w-full h-auto"
                     loading="lazy"
                   />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Equipment Detail & Service History</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Service Teams & Customer Equipment</h3>
                 <p className="text-muted-foreground">
-                  On each equipment record, see the owning customer and full service history: work orders, PM completions, and notes. Use this for warranty support, client reporting, and audits.
+                  Assign service teams to customer equipment so the right technicians receive work orders. Each team member sees only the assets they are responsible for, keeping customer data organized and access controlled.
                 </p>
               </div>
             </div>

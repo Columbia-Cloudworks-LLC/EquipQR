@@ -693,6 +693,7 @@ const EquipmentDetails = () => {
             onClose={handleCloseQRCode}
             equipmentId={equipment.id}
             equipmentName={equipment.name}
+            organizationId={currentOrganization?.id}
           />
         </Suspense>
       )}

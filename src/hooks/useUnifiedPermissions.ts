@@ -66,27 +66,41 @@ export const useUnifiedPermissions = () => {
   const equipment = {
     getPermissions: (equipmentTeamId?: string): EntityPermissions => {
       const entityContext = equipmentTeamId ? { teamId: equipmentTeamId } : undefined;
-      
+
       return {
         canView: hasPermission('equipment.view', entityContext),
-        canCreate: hasRole(['owner', 'admin']),
+        canCreate: hasPermission('equipment.create', entityContext),
         canEdit: hasPermission('equipment.edit', entityContext),
-        canDelete: hasRole(['owner', 'admin']),
+        canDelete: hasPermission('equipment.delete', entityContext),
         canAddNotes: hasPermission('equipment.view', entityContext),
         canAddImages: hasPermission('equipment.view', entityContext)
       };
     },
     canViewAll: hasRole(['owner', 'admin', 'member']),
+    /**
+     * Org-wide create gate. True for owners/admins only; team-scoped users
+     * must use `canCreateForTeam(teamId)` or `canCreateForAnyTeam` instead.
+     */
     canCreateAny: hasRole(['owner', 'admin']),
     /**
      * Check if user can create equipment for a specific team.
-     * Admins/owners can create for any team; members can only create for their own teams.
-     * Used for inline equipment creation during work order creation.
+     * Owners/admins pass org-wide; team managers and technicians pass for
+     * teams where they hold that role. Other team roles (requestor, viewer)
+     * and members without team roles are denied. Mirrors the
+     * `team_members_create_equipment` RLS policy.
      */
     canCreateForTeam: (teamId: string): boolean => {
-      if (hasRole(['owner', 'admin'])) return true;
-      return hasTeamAccess(teamId);
-    }
+      return hasPermission('equipment.create', { teamId });
+    },
+    /**
+     * True when the user can create equipment for at least one team in the
+     * current organization. Owners/admins pass without team context; team
+     * managers and technicians pass when they hold either role on any team.
+     * Used to gate page-level "Add Equipment" affordances when no specific
+     * team is in scope.
+     */
+    canCreateForAnyTeam: hasRole(['owner', 'admin'])
+      || (userContext?.teamMemberships ?? []).some(tm => tm.role === 'manager' || tm.role === 'technician')
   };
 
   // Work order permissions

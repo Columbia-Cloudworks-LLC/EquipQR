@@ -37,14 +37,10 @@ export const getTeamBasedWorkOrders = async (
   filters: TeamBasedWorkOrderFilters = {}
 ): Promise<TeamBasedWorkOrder[]> => {
   try {
-    // First, get the equipment IDs that this user can access
-    const result = await EquipmentService.getAccessibleEquipmentIds(organizationId, userTeamIds, isOrgAdmin);
-    const accessibleEquipmentIds = result.success && result.data ? result.data : [];
-    
-    if (accessibleEquipmentIds.length === 0) {
-      return [];
-    }
-
+    // Org admins can see all work orders in the org — scoping by organization_id
+    // alone is sufficient and avoids the large equipment-ID IN() clause that
+    // inflates request URLs on orgs with many assets.
+    // Non-admins still need to resolve accessible equipment IDs for team gating.
     let query = supabase
       .from('work_orders')
       .select(`
@@ -98,7 +94,22 @@ export const getTeamBasedWorkOrders = async (
         )
       `)
       .eq('organization_id', organizationId)
-      .in('equipment_id', accessibleEquipmentIds);
+      // Exclude work orders without equipment. The previous implementation
+      // always applied .in('equipment_id', accessibleEquipmentIds) which
+      // implicitly excluded null equipment_id rows; preserving that behaviour
+      // here ensures org-admin queries are consistent with non-admin queries.
+      .not('equipment_id', 'is', null);
+
+    if (!isOrgAdmin) {
+      const result = await EquipmentService.getAccessibleEquipmentIds(organizationId, userTeamIds, isOrgAdmin);
+      const accessibleEquipmentIds = result.success && result.data ? result.data : [];
+
+      if (accessibleEquipmentIds.length === 0) {
+        return [];
+      }
+
+      query = query.in('equipment_id', accessibleEquipmentIds);
+    }
 
     // Apply additional filters
     if (filters.status && filters.status !== 'all') {

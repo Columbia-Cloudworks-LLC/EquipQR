@@ -128,17 +128,17 @@ export const steps: Step[] = [
 
 export const screenshots: Screenshot[] = [
   {
-    imageUrl: landingImage('inventory-list.png'),
+    imageUrl: landingImage('inventory-list-2026-04.png'),
     imageAlt: 'Inventory list view showing parts with stock levels, SKUs, and low stock indicators',
     title: 'Inventory List View',
     description:
       'Browse all inventory items with part numbers, descriptions, current stock levels, and low-stock indicators. Filter, sort, and search to find what you need quickly.',
   },
   {
-    imageUrl: landingImage('inventory-detail.png'),
-    imageAlt: 'Inventory item detail page showing stock information and transaction history',
-    title: 'Item Detail & Transaction History',
+    imageUrl: landingImage('inventory-item-detail-2026-04.png'),
+    imageAlt: 'Inventory item detail page showing stock quantity, threshold, unit cost, and transaction history tabs',
+    title: 'Item Detail & Stock Information',
     description:
-      'Open any item to see full details, compatibility rules, linked equipment, and a complete transaction history. Add receipts, issues, and adjustments from one place.',
+      'Open any item to see full details: quantity on hand, low stock threshold, unit cost, compatibility rules, and a complete transaction history. Adjust stock and add receipts from one place.',
   },
 ];

@@ -221,7 +221,7 @@ const WorkOrderManagementFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
-                    src={landingImage('work-orders-list.png')}
+                    src={landingImage('work-orders-list-2026-04.png')}
                     alt="Work orders list with filters by status, priority, and assignee"
                     className="w-full h-auto"
                     loading="lazy"
@@ -236,7 +236,7 @@ const WorkOrderManagementFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
-                    src={landingImage('work-order-details.png')}
+                    src={landingImage('work-order-detail-2026-04.png')}
                     alt="Work order detail page with equipment info, assignee, and PM checklist"
                     className="w-full h-auto"
                     loading="lazy"

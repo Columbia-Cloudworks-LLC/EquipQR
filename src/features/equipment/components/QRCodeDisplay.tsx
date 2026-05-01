@@ -13,16 +13,19 @@ interface QRCodeDisplayProps {
   onClose: () => void;
   equipmentId: string;
   equipmentName?: string;
+  /** When provided the generated QR URL includes `?org=<id>` so the scan
+   *  landing page can perform a single-org lookup instead of a cross-org scan. */
+  organizationId?: string;
 }
 
-const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentId, equipmentName }) => {
+const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ open, onClose, equipmentId, equipmentName, organizationId }) => {
   const [qrCodeDataUrl, setQrCodeDataUrl] = React.useState<string>('');
   const [copied, setCopied] = React.useState(false);
   const [selectedFormat, setSelectedFormat] = React.useState<'png' | 'jpg'>('png');
   const formatSelectId = 'qr-code-download-format';
   const isMobile = useIsMobile();
 
-  const qrCodeUrl = qrFullUrl(equipmentQRPath(equipmentId));
+  const qrCodeUrl = qrFullUrl(equipmentQRPath(equipmentId, organizationId));
 
   const generateQRCode = React.useCallback(async () => {
     try {

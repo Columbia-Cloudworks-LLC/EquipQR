@@ -59,6 +59,8 @@ vi.mock('@/hooks/usePermissions', () => ({
     canManageEquipment: vi.fn(() => false),
     canViewEquipment: vi.fn(() => true),
     canCreateEquipment: vi.fn(() => false),
+    canCreateEquipmentForTeam: vi.fn(() => false),
+    canCreateEquipmentForAnyTeam: vi.fn(() => false),
     canUpdateEquipmentStatus: vi.fn(() => false),
     canManageWorkOrder: vi.fn(() => false),
     canViewWorkOrder: vi.fn(() => true),
@@ -74,7 +76,18 @@ vi.mock('@/hooks/usePermissions', () => ({
   }))
 }));
 
-const TestWrapper = ({ defaultValues, isAdmin = false }: { defaultValues?: Partial<EquipmentFormData>; isAdmin?: boolean }) => {
+interface TestWrapperProps {
+  defaultValues?: Partial<EquipmentFormData>;
+  isAdmin?: boolean;
+  /**
+   * Set of team IDs the non-admin persona can create equipment for.
+   * Defaults to ['team-1'] so the existing non-admin tests still see at
+   * least one creatable team without changing per-test setup.
+   */
+  creatableTeamIds?: ReadonlyArray<string>;
+}
+
+const TestWrapper = ({ defaultValues, isAdmin = false, creatableTeamIds = ['team-1'] }: TestWrapperProps) => {
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentFormSchema),
     defaultValues: {
@@ -97,6 +110,10 @@ const TestWrapper = ({ defaultValues, isAdmin = false }: { defaultValues?: Parti
     canManageEquipment: vi.fn(() => isAdmin),
     canViewEquipment: vi.fn(() => true),
     canCreateEquipment: vi.fn(() => isAdmin),
+    canCreateEquipmentForTeam: vi.fn((teamId: string) =>
+      isAdmin || creatableTeamIds.includes(teamId)
+    ),
+    canCreateEquipmentForAnyTeam: vi.fn(() => isAdmin || creatableTeamIds.length > 0),
     canUpdateEquipmentStatus: vi.fn(() => isAdmin),
     canManageWorkOrder: vi.fn(() => isAdmin),
     canViewWorkOrder: vi.fn(() => true),
@@ -166,6 +183,8 @@ describe('TeamSelectionSection', () => {
       canManageEquipment: vi.fn(() => false),
       canViewEquipment: vi.fn(() => true),
       canCreateEquipment: vi.fn(() => false),
+      canCreateEquipmentForTeam: vi.fn((teamId: string) => teamId === 'team-1'),
+      canCreateEquipmentForAnyTeam: vi.fn(() => true),
       canUpdateEquipmentStatus: vi.fn(() => false),
       canManageWorkOrder: vi.fn(() => false),
       canViewWorkOrder: vi.fn(() => true),
@@ -238,8 +257,21 @@ describe('TeamSelectionSection', () => {
 
     it('shows helper text for non-admins', () => {
       render(<TestWrapper isAdmin={false} />);
-      
-      expect(screen.getByText(/You can only assign equipment to teams you manage/)).toBeInTheDocument();
+
+      expect(
+        screen.getByText(/You can only assign equipment to teams where you are a manager or technician/)
+      ).toBeInTheDocument();
+    });
+
+    // #650: when a non-admin user has no manager/technician membership on
+    // any team, surface the explicit "no eligible teams" message rather
+    // than the standard helper text.
+    it('shows no-eligible-teams message for non-admins with zero creatable teams', () => {
+      render(<TestWrapper isAdmin={false} creatableTeamIds={[]} />);
+
+      expect(
+        screen.getByText(/You must be a team manager or technician on at least one team to create equipment/)
+      ).toBeInTheDocument();
     });
   });
 

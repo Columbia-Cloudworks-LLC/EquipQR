@@ -43,7 +43,27 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     queryFn: async (): Promise<SimpleOrganization[]> => {
       if (!user) return [];
 
-      // Fetching organizations for user
+      // Fast path: SessionProvider already fetched organization_members +
+      // organizations during auth. Reuse that data and skip both round-trips;
+      // only the single-row personal_organizations query is still needed to
+      // compute the isPersonal flag (SessionOrganization does not carry it).
+      const sessionOrgs = sessionContext.sessionData?.organizations;
+      if (sessionOrgs && sessionOrgs.length > 0) {
+        const { data: personalOrgData } = await supabase
+          .from('personal_organizations')
+          .select('organization_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        const personalOrgId = personalOrgData?.organization_id || null;
+
+        return sessionOrgs.map(org => ({
+          ...org,
+          isPersonal: org.id === personalOrgId,
+        }));
+      }
+
+      // Fallback: session context not yet resolved — do the full fetch so the
+      // UI never blocks on a session timing race.
 
       // Get user's organization memberships
       const { data: membershipData, error: membershipError } = await supabase
@@ -58,7 +78,6 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
       }
 
       if (!membershipData || membershipData.length === 0) {
-        // No organization memberships found
         return [];
       }
 
@@ -104,7 +123,6 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
         };
       });
 
-      // Organizations fetched successfully
       return orgs;
     },
     enabled: !!user,

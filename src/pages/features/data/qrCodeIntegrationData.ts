@@ -64,31 +64,17 @@ export const steps: Step[] = [
 
 export const screenshots: Screenshot[] = [
   {
-    imageUrl: landingImage('equipment-qr-codes.png'),
+    imageUrl: landingImage('equipment-qr-code-modal-2026-04.png'),
     imageAlt: 'EquipQR Equipment QR Code modal showing scannable QR code with equipment URL and download options',
     title: 'Equipment QR Codes',
     description:
       'Each piece of equipment gets its own unique QR code. Technicians scan the code with any smartphone camera to instantly access equipment details, maintenance history, and active work orders—no app download required.',
   },
   {
-    imageUrl: landingImage('generate-and-print-qr-labels.png'),
-    imageAlt: 'EquipQR QR Code generation modal with download and print options',
-    title: 'Generate & Print Labels',
-    description:
-      'Generate QR codes from equipment or inventory detail views. Download in PNG format, print at standard sizes, apply to assets, and start scanning. Labels work with any QR reader or the app scanner.',
-  },
-  {
-    imageUrl: landingImage('qr-quick-access-from-equipment-list.png'),
-    imageAlt: 'EquipQR Equipment list showing QR code buttons on each equipment card',
+    imageUrl: landingImage('equipment-list-2026-04.png'),
+    imageAlt: 'EquipQR Equipment list showing QR code buttons on each equipment card with team assignments and last maintenance dates',
     title: 'Quick Access from Equipment List',
     description:
       'Every equipment card includes a QR code button for instant access. View, download, or print QR codes directly from your equipment list without navigating to individual detail pages.',
-  },
-  {
-    imageUrl: landingImage('equipment-details-at-a-glance.png'),
-    imageAlt: 'EquipQR Equipment detail page with QR code button and full equipment information',
-    title: 'Equipment Details at a Glance',
-    description:
-      'When technicians scan a QR code, they land directly on the equipment detail page with all relevant information: specs, maintenance history, work orders, and custom attributes—no searching required.',
   },
 ];

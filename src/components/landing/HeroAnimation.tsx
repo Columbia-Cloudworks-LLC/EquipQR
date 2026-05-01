@@ -1,4 +1,7 @@
 import { useState, useRef, useCallback, useEffect, lazy, Suspense, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { ArrowRight } from 'lucide-react';
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion';
 import { STATE_VECTORS, ALL_STATE_CODES } from './stateVectors';
 import type { StateCode } from './stateVectors';
@@ -222,11 +225,24 @@ export default function HeroAnimation() {
         </h1>
       </div>
 
-      {/* Animation stage */}
-      <div
-        className="relative w-full max-w-sm px-4 overflow-hidden"
-        style={{ aspectRatio: '1 / 1', minHeight: 320 }}
-      >
+        {/* CTA row directly under headline */}
+        <div className="flex flex-col items-center gap-3 mb-8 px-4">
+          <Button asChild size="lg" className="text-base px-7 py-5">
+            <Link to="/auth?tab=signup">
+              Get Started Free
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            No credit card. First scan in 20 minutes.
+          </p>
+        </div>
+
+        {/* Animation stage */}
+        <div
+          className="relative w-full max-w-sm px-4 overflow-hidden"
+          style={{ aspectRatio: '1 / 1', minHeight: 320 }}
+        >
         {prefersReducedMotion ? (
           <StaticHeroComposite />
         ) : (

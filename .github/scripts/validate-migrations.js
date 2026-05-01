@@ -11,6 +11,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { execFileSync } from 'child_process';
 
 const NAMING_REGEX = /^\d{14}_[a-z0-9_]+\.sql$/;
 
@@ -29,6 +30,68 @@ const changedFiles = changedFilesEnv
   .split('\n')
   .map((f) => f.trim())
   .filter((f) => f.endsWith('.sql') && f.startsWith('supabase/migrations/'));
+
+function resolveRefIfExists(refName) {
+  if (!refName) return null;
+  try {
+    const resolved = execFileSync('git', ['rev-parse', '--verify', refName], {
+      stdio: ['ignore', 'pipe', 'ignore'],
+      encoding: 'utf8',
+    }).trim();
+    return resolved || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Determine the best-available base commit for "is this migration new?" checks.
+ *
+ * Priority:
+ *  1) PR base merge-base (origin/<GITHUB_BASE_REF> or <GITHUB_BASE_REF>)
+ *  2) Push "before" SHA (GITHUB_EVENT_BEFORE) when available
+ *  3) HEAD^ as a local fallback
+ */
+function resolveComparisonBaseCommit() {
+  const baseRef = process.env.GITHUB_BASE_REF?.trim();
+  if (baseRef) {
+    const candidateRef =
+      resolveRefIfExists(`origin/${baseRef}`) ||
+      resolveRefIfExists(baseRef);
+
+    if (candidateRef) {
+      try {
+        const mergeBase = execFileSync('git', ['merge-base', 'HEAD', candidateRef], {
+          stdio: ['ignore', 'pipe', 'ignore'],
+          encoding: 'utf8',
+        }).trim();
+        if (mergeBase) return mergeBase;
+      } catch {
+        // fall through to other strategies
+      }
+    }
+  }
+
+  const beforeSha = process.env.GITHUB_EVENT_BEFORE?.trim();
+  if (beforeSha && /^[0-9a-f]{40}$/i.test(beforeSha)) {
+    const resolvedBefore = resolveRefIfExists(beforeSha);
+    if (resolvedBefore) return resolvedBefore;
+  }
+
+  return resolveRefIfExists('HEAD^');
+}
+
+function fileExistsAtCommit(commitSha, filePath) {
+  if (!commitSha) return false;
+  try {
+    execFileSync('git', ['cat-file', '-e', `${commitSha}:${filePath}`], {
+      stdio: ['ignore', 'ignore', 'ignore'],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function escapeRegExp(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -220,6 +283,12 @@ console.log(`\n🔍 Validating ${changedFiles.length} migration file(s)...\n`);
 
 const errors = [];
 const warnings = [];
+const comparisonBaseCommit = resolveComparisonBaseCommit();
+if (comparisonBaseCommit) {
+  console.log(`ℹ️  Migration baseline commit: ${comparisonBaseCommit}`);
+} else {
+  console.log('ℹ️  No baseline commit resolved; defaulting to content checks for changed files.');
+}
 
 /*
  * CREATE TABLE — optional schema.table; groups [1]/[2] = schema, [3]/[4] = table.
@@ -313,6 +382,20 @@ for (const filePath of changedFiles) {
 
   const content = fs.readFileSync(filePath, 'utf8');
   const analysisContent = stripSqlCommentsPreserveLength(content);
+
+  const migrationIsNew = comparisonBaseCommit
+    ? !fileExistsAtCommit(comparisonBaseCommit, filePath)
+    : true;
+
+  if (!migrationIsNew) {
+    warnings.push(
+      `[IMMUTABLE] "${fileName}" already exists at baseline commit ${comparisonBaseCommit.slice(0, 12)} and was modified in-place.\n` +
+        `  Applied migrations are immutable in Supabase. Content checks (DROP COLUMN / RLS) were skipped to avoid false conflicts on historical files.\n` +
+        `  Prefer a new timestamped migration for follow-up changes.`,
+    );
+    console.log('  ⚠️  Existing migration detected in baseline; skipping content checks (DROP COLUMN / RLS).');
+    continue;
+  }
 
   // ── 2. DROP COLUMN SAFETY CHECK ─────────────────────────────────────────
   /**

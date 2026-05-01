@@ -23,6 +23,7 @@ import { PendingSyncBanner } from '@/features/offline-queue/components/PendingSy
 import { OFFLINE_QUEUE_ENABLED } from '@/lib/flags';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import QrPageLoadingShell from '@/features/equipment/components/qr/QrPageLoadingShell';
+import { PageSkeleton } from '@/components/ui/PageSkeleton';
 
 // Critical public landing loaded eagerly; auth is lazy so QR scans do not pay
 // for SignIn/SignUp/MFA form code unless authentication is actually required.
@@ -227,14 +228,7 @@ function App() {
                           </Suspense>
                           {OFFLINE_QUEUE_ENABLED && <PendingSyncBanner />}
                           <main id="main-content" className="flex-1 overflow-auto min-w-0 pb-16 md:pb-0">
-                            <Suspense fallback={
-                              <div className="flex items-center justify-center h-64" role="status" aria-label="Loading page content">
-                                <div className="text-center">
-                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" aria-hidden="true"></div>
-                                  <p className="text-muted-foreground">Loading...</p>
-                                </div>
-                              </div>
-                            }>
+                            <Suspense fallback={<PageSkeleton />}>
                               <Routes>
                                 <Route path="/" element={<Dashboard />} />
                                 <Route path="/equipment" element={<Equipment />} />

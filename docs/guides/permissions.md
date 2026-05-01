@@ -90,21 +90,23 @@ This document defines the comprehensive role-based access control (RBAC) system 
 | View Teams | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Assign Work Orders | ✅ | ✅ | ❌ | ✅** | ❌ | ❌ | ❌ |
 
-**Only for teams where user has Manager role
+**Only for teams where user has Manager role**
 
 ### Equipment Management
 
 | Action | Owner | Admin | Member | Manager | Technician | Requestor | Viewer |
 |--------|-------|-------|--------|---------|------------|-----------|--------|
-| Create Equipment | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Update Equipment | ✅ | ✅ | ❌ | ✅ | ✅*** | ❌ | ❌ |
+| Create Equipment | ✅ | ✅ | ❌ | ✅† | ✅† | ❌ | ❌ |
+| Update Equipment | ✅ | ✅ | ❌ | ✅ | ✅‡ | ❌ | ❌ |
 | Delete Equipment | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
 | View Equipment | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Generate QR Codes | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
 | Scan QR Codes | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Update Custom Attributes | ✅ | ✅ | ❌ | ✅ | ✅*** | ❌ | ❌ |
+| Update Custom Attributes | ✅ | ✅ | ❌ | ✅ | ✅‡ | ❌ | ❌ |
 
-***Limited to status updates and maintenance records
+† Org-wide for owners/admins; team-scoped (manager or technician role on the assigned team) for team members. Equipment created without a team assignment is restricted to owners/admins (issue #650).
+
+‡ Limited to status updates and maintenance records
 
 ### Work Order Management
 

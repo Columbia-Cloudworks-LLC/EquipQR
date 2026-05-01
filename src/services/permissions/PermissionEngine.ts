@@ -6,6 +6,11 @@ type TeamMembership = UserContext['teamMemberships'][number];
 
 const TEAM_VIEW_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician', 'requestor', 'viewer', 'owner']);
 const TEAM_OPERATION_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician', 'owner']);
+// Mirrors the `team_members_create_equipment` RLS policy which only permits
+// 'manager' and 'technician'.  The legacy 'owner' team role is intentionally
+// excluded here to match the database policy; org owners/admins have their own
+// higher-priority rule ('equipment-create-admin') that grants org-wide create.
+const TEAM_EQUIPMENT_CREATE_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician']);
 
 export class PermissionEngine {
   private rules: Map<string, PermissionRule<EntityContext>[]> = new Map();
@@ -69,6 +74,49 @@ export class PermissionEngine {
       check: (context, entityContext) => {
         if (!entityContext?.teamId) return false;
         return context.teamMemberships.some(tm => 
+          tm.teamId === entityContext.teamId && tm.role === 'manager'
+        );
+      },
+      priority: 90
+    });
+
+    // Equipment creation rules. Owners/admins can create org-wide (no team
+    // context required). Team managers and technicians can create only for
+    // teams where they hold that role; other team roles (requestor, viewer)
+    // and members without team roles are denied. Mirrors the docs matrix and
+    // the corresponding `team_members_create_equipment` RLS policy.
+    this.addRule('equipment.create', {
+      name: 'equipment-create-admin',
+      check: (context) => ['owner', 'admin'].includes(context.userRole),
+      priority: 100
+    });
+
+    this.addRule('equipment.create', {
+      name: 'equipment-create-team-role',
+      check: (context, entityContext) => {
+        return this.hasTeamMembershipWithRole(
+          context.teamMemberships,
+          entityContext?.teamId,
+          TEAM_EQUIPMENT_CREATE_ROLES
+        );
+      },
+      priority: 80
+    });
+
+    // Equipment delete rules. Mirrors the `equipment_team_manager_delete` RLS
+    // policy: org owners/admins can delete any equipment; team managers can
+    // delete equipment assigned to their team.
+    this.addRule('equipment.delete', {
+      name: 'equipment-delete-admin',
+      check: (context) => ['owner', 'admin'].includes(context.userRole),
+      priority: 100
+    });
+
+    this.addRule('equipment.delete', {
+      name: 'equipment-delete-team-manager',
+      check: (context, entityContext) => {
+        if (!entityContext?.teamId) return false;
+        return context.teamMemberships.some(tm =>
           tm.teamId === entityContext.teamId && tm.role === 'manager'
         );
       },

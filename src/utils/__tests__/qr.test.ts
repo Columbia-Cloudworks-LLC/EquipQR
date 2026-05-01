@@ -8,8 +8,16 @@ vi.mock('qrcode', () => ({
 }));
 
 describe('QR path builders', () => {
-  it('builds equipment QR path', () => {
+  it('builds equipment QR path without org', () => {
     expect(equipmentQRPath('eq-123')).toBe('/qr/equipment/eq-123');
+  });
+
+  it('builds equipment QR path with org ID', () => {
+    expect(equipmentQRPath('eq-123', 'org-abc')).toBe('/qr/equipment/eq-123?org=org-abc');
+  });
+
+  it('percent-encodes the org ID in the equipment QR path', () => {
+    expect(equipmentQRPath('eq-123', 'org abc')).toBe('/qr/equipment/eq-123?org=org%20abc');
   });
 
   it('builds inventory QR path', () => {
