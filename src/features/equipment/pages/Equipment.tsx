@@ -402,6 +402,7 @@ const Equipment = () => {
         open={!!showQRCode}
         onClose={() => setShowQRCode(null)}
         equipmentName={equipment.find(eq => eq.id === showQRCode)?.name}
+        organizationId={currentOrganization?.id}
       />
 
       {/* CSV Import Wizard */}

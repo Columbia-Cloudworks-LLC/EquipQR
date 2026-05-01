@@ -7,8 +7,18 @@
 
 // ── Route path builders (relative, no origin) ──
 
-export function equipmentQRPath(equipmentId: string): string {
-  return `/qr/equipment/${equipmentId}`;
+/**
+ * Build the relative path for an equipment QR code.
+ *
+ * When `orgId` is provided the path includes a `?org=` query parameter so the
+ * QR scan landing page (`EquipmentQRScan`) can perform a single-org lookup
+ * rather than a cross-org membership scan.  Callers that do not know the org
+ * at generation time (e.g. PDF generators) may omit it; the landing page falls
+ * back to a multi-org lookup for backward compatibility.
+ */
+export function equipmentQRPath(equipmentId: string, orgId?: string): string {
+  const base = `/qr/equipment/${equipmentId}`;
+  return orgId ? `${base}?org=${encodeURIComponent(orgId)}` : base;
 }
 
 export function inventoryQRPath(itemId: string): string {

@@ -46,6 +46,7 @@ describe('MFAEnrollment', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     mockEnrollTOTP.mockResolvedValue({
       qrCode: 'data:image/svg+xml;base64,testqrcode',
       secret: 'JBSWY3DPEHPK3PXP',
@@ -53,15 +54,16 @@ describe('MFAEnrollment', () => {
     });
   });
 
+  afterEach(() => {
+    vi.clearAllTimers();
+    cleanup();
+    vi.useRealTimers();
+  });
+
   it('shows loading state initially', () => {
     render(<MFAEnrollment onComplete={mockOnComplete} />);
 
     expect(screen.getByText('Setting up authenticator...')).toBeInTheDocument();
-  });
-
-  afterEach(() => {
-    cleanup();
-    vi.useRealTimers();
   });
 
   it('shows QR code after enrollment initialization', async () => {
@@ -91,7 +93,7 @@ describe('MFAEnrollment', () => {
   });
 
   it('transitions to verify step when clicking "I\'ve Scanned the Code"', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
     render(<MFAEnrollment onComplete={mockOnComplete} />);
 
     await waitFor(() => {

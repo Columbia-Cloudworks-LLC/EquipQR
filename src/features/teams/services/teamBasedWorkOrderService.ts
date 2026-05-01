@@ -93,7 +93,12 @@ export const getTeamBasedWorkOrders = async (
           name
         )
       `)
-      .eq('organization_id', organizationId);
+      .eq('organization_id', organizationId)
+      // Exclude work orders without equipment. The previous implementation
+      // always applied .in('equipment_id', accessibleEquipmentIds) which
+      // implicitly excluded null equipment_id rows; preserving that behaviour
+      // here ensures org-admin queries are consistent with non-admin queries.
+      .not('equipment_id', 'is', null);
 
     if (!isOrgAdmin) {
       const result = await EquipmentService.getAccessibleEquipmentIds(organizationId, userTeamIds, isOrgAdmin);

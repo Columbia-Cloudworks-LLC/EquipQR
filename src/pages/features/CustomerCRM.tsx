@@ -237,14 +237,14 @@ const CustomerCRMFeature = () => {
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
                     src={landingImage('team-detail-2026-04.png')}
-                    alt="Team detail page showing member roles and equipment assignments for a service team"
+                    alt="Service team detail page showing team members and the equipment they are responsible for"
                     className="w-full h-auto"
                     loading="lazy"
                   />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Equipment Detail & Service History</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Service Teams & Customer Equipment</h3>
                 <p className="text-muted-foreground">
-                  On each equipment record, see the owning customer and full service history: work orders, PM completions, and notes. Use this for warranty support, client reporting, and audits.
+                  Assign service teams to customer equipment so the right technicians receive work orders. Each team member sees only the assets they are responsible for, keeping customer data organized and access controlled.
                 </p>
               </div>
             </div>

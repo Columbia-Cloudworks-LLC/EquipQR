@@ -6,7 +6,11 @@ type TeamMembership = UserContext['teamMemberships'][number];
 
 const TEAM_VIEW_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician', 'requestor', 'viewer', 'owner']);
 const TEAM_OPERATION_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician', 'owner']);
-const TEAM_EQUIPMENT_CREATE_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician', 'owner']);
+// Mirrors the `team_members_create_equipment` RLS policy which only permits
+// 'manager' and 'technician'.  The legacy 'owner' team role is intentionally
+// excluded here to match the database policy; org owners/admins have their own
+// higher-priority rule ('equipment-create-admin') that grants org-wide create.
+const TEAM_EQUIPMENT_CREATE_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician']);
 
 export class PermissionEngine {
   private rules: Map<string, PermissionRule<EntityContext>[]> = new Map();

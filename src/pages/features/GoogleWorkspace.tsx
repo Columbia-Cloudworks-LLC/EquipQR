@@ -236,15 +236,15 @@ const GoogleWorkspaceFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
-                    src={landingImage('google-workspace-settings-2026-04.png')}
-                    alt="Google Workspace settings panel showing connected domain, directory sync status, and member import controls"
+                    src={landingImage('team-detail-2026-04.png')}
+                    alt="Team member list showing Google Workspace members imported into EquipQR with assigned roles"
                     className="w-full h-auto"
                     loading="lazy"
                   />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Import from Google Workspace</h3>
                 <p className="text-muted-foreground">
-                  Select users from your synced directory to add as organization members. Choose roles, then confirm. Pending users appear in the members list until they sign in with Google.
+                  Select users from your synced directory to add as organization members. Choose roles, then confirm. Imported members appear in the team roster and can sign in immediately with their Google account.
                 </p>
               </div>
             </div>

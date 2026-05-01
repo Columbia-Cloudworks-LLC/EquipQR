@@ -96,17 +96,17 @@ This document defines the comprehensive role-based access control (RBAC) system 
 
 | Action | Owner | Admin | Member | Manager | Technician | Requestor | Viewer |
 |--------|-------|-------|--------|---------|------------|-----------|--------|
-| Create Equipment | ✅ | ✅ | ❌ | ✅** | ✅** | ❌ | ❌ |
-| Update Equipment | ✅ | ✅ | ❌ | ✅ | ✅*** | ❌ | ❌ |
+| Create Equipment | ✅ | ✅ | ❌ | ✅† | ✅† | ❌ | ❌ |
+| Update Equipment | ✅ | ✅ | ❌ | ✅ | ✅‡ | ❌ | ❌ |
 | Delete Equipment | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
 | View Equipment | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Generate QR Codes | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
 | Scan QR Codes | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Update Custom Attributes | ✅ | ✅ | ❌ | ✅ | ✅*** | ❌ | ❌ |
+| Update Custom Attributes | ✅ | ✅ | ❌ | ✅ | ✅‡ | ❌ | ❌ |
 
-**Owners and admins can create equipment for any team org-wide; team managers and technicians can only create equipment for teams where they hold that role (issue #650). Equipment created without a team is restricted to owners/admins.**
+† Org-wide for owners/admins; team-scoped (manager or technician role on the assigned team) for team members. Equipment created without a team assignment is restricted to owners/admins (issue #650).
 
-***Limited to status updates and maintenance records***
+‡ Limited to status updates and maintenance records
 
 ### Work Order Management
 

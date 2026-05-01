@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { AlertCircle, ArrowRight, Clock, Forklift, MapPin } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +46,8 @@ function getStatusLabel(status: EquipmentStatus): string {
 
 const EquipmentQRScan = () => {
   const { equipmentId } = useParams<{ equipmentId: string }>();
+  const [searchParams] = useSearchParams();
+  const orgId = searchParams.get('org') ?? undefined;
   const { user, isLoading: authLoading } = useAuth();
   const [payload, setPayload] = useState<EquipmentQRPayload | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,7 +60,8 @@ const EquipmentQRScan = () => {
     if (authLoading) return;
     if (user || !equipmentId) return;
 
-    sessionStorage.setItem('pendingRedirect', `/qr/equipment/${equipmentId}?qr=true`);
+    const orgParam = orgId ? `&org=${orgId}` : '';
+    sessionStorage.setItem('pendingRedirect', `/qr/equipment/${equipmentId}?qr=true${orgParam}`);
     window.location.replace('/auth?tab=signin');
   }, [authLoading, equipmentId, user]);
 
@@ -69,7 +72,7 @@ const EquipmentQRScan = () => {
     setIsLoading(true);
     setError(null);
 
-    fetchEquipmentQRPayload(equipmentId, user.id)
+    fetchEquipmentQRPayload(equipmentId, orgId)
       .then(result => {
         if (!cancelled) setPayload(result);
       })

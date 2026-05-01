@@ -60,10 +60,90 @@ function firstRelation<T>(value: T | T[] | null | undefined): T | null {
   return value ?? null;
 }
 
+const EQUIPMENT_QR_SELECT = `
+  id,
+  organization_id,
+  name,
+  manufacturer,
+  model,
+  serial_number,
+  status,
+  location,
+  working_hours,
+  image_url,
+  default_pm_template_id,
+  team:team_id(id, name),
+  organizations!inner(id, name, scan_location_collection_enabled)
+`;
+
+/**
+ * Fetch the equipment payload for a QR scan landing page.
+ *
+ * The caller's identity is always derived from the authenticated JWT claims —
+ * the `userId` parameter has been intentionally removed to prevent a caller
+ * from supplying a different user's ID (RLS on `organization_members` allows
+ * any org-member to read other members' rows, so a spoofed ID could yield a
+ * `userRole` that does not belong to the current user).
+ *
+ * When `organizationId` is provided (preferred — QR URLs generated with
+ * `equipmentQRPath(id, orgId)` include it as a query param) the lookup is
+ * single-org scoped, matching EquipQR's tenant-isolation requirement.
+ * When omitted (legacy QR links without `?org=`) a multi-org fallback queries
+ * all organizations the authenticated user belongs to.
+ */
 export async function fetchEquipmentQRPayload(
   equipmentId: string,
-  userId: string
+  organizationId?: string
 ): Promise<EquipmentQRPayload> {
+  const userId = await requireAuthUserIdFromClaims();
+
+  if (organizationId) {
+    // Preferred path: single-org scoped lookup.
+    const { data: membership, error: membershipError } = await supabase
+      .from('organization_members')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('organization_id', organizationId)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (membershipError) throw new Error(membershipError.message);
+    if (!membership) throw new Error('You do not have access to this equipment');
+
+    const { data, error } = await supabase
+      .from('equipment')
+      .select(EQUIPMENT_QR_SELECT)
+      .eq('organization_id', organizationId)
+      .eq('id', equipmentId)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error('Equipment not found');
+
+    const row = data as unknown as EquipmentQRRow;
+    const organization = firstRelation(row.organizations);
+    if (!organization) throw new Error('Equipment organization not found');
+
+    return {
+      equipment: {
+        id: row.id,
+        name: row.name,
+        manufacturer: row.manufacturer,
+        model: row.model,
+        serialNumber: row.serial_number,
+        status: row.status,
+        location: row.location,
+        workingHours: row.working_hours,
+        imageUrl: row.image_url,
+        defaultPmTemplateId: row.default_pm_template_id,
+        team: firstRelation(row.team),
+      },
+      organization,
+      userRole: membership.role,
+    };
+  }
+
+  // Legacy fallback for QR links that predate the `?org=` parameter.
   const { data: memberships, error: membershipError } = await supabase
     .from('organization_members')
     .select('organization_id, role')
@@ -82,21 +162,7 @@ export async function fetchEquipmentQRPayload(
 
   const { data, error } = await supabase
     .from('equipment')
-    .select(`
-      id,
-      organization_id,
-      name,
-      manufacturer,
-      model,
-      serial_number,
-      status,
-      location,
-      working_hours,
-      image_url,
-      default_pm_template_id,
-      team:team_id(id, name),
-      organizations!inner(id, name, scan_location_collection_enabled)
-    `)
+    .select(EQUIPMENT_QR_SELECT)
     .in('organization_id', scopedOrganizationIds)
     .eq('id', equipmentId)
     .maybeSingle();
@@ -131,13 +197,17 @@ export async function fetchEquipmentQRPayload(
 }
 
 export async function userLimitsSensitivePi(userId: string): Promise<boolean> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
     .select('limit_sensitive_pi')
     .eq('id', userId)
     .maybeSingle();
 
-  return data?.limit_sensitive_pi === true;
+  // Fail closed: if the query errors or the profile row is absent, treat the
+  // user as limiting sensitive PI so the QR scan flow does not attempt
+  // geolocation logging when the privacy preference is unknown.
+  if (error || data === null || data === undefined) return true;
+  return data.limit_sensitive_pi === true;
 }
 
 export async function insertScan(
