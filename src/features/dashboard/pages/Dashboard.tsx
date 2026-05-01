@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Settings2, RotateCcw, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamBasedDashboardAccess, useTeamBasedDashboardStats } from '@/features/teams/hooks/useTeamBasedDashboard';
@@ -96,6 +96,18 @@ const Dashboard = () => {
   );
 
   const isLoading = orgLoading || accessLoading || layoutLoading;
+
+  // Prefetch the three highest-traffic route chunks 1.5 s after mount so they
+  // are cached before the user taps a nav item. The delay lets initial data
+  // requests take priority over chunk downloads on a constrained link.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void import('@/features/equipment/pages/Equipment');
+      void import('@/features/work-orders/pages/WorkOrders');
+      void import('@/features/inventory/pages/InventoryList');
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (!currentOrganization) {
     return (

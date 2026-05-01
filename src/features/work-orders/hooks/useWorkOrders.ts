@@ -44,8 +44,8 @@ export const workOrderKeys = {
 // Cache Configuration
 // ============================================
 
-const DEFAULT_STALE_TIME = 30 * 1000; // 30 seconds
-const EXTENDED_STALE_TIME = 60 * 1000; // 1 minute for less frequently changing data
+const DEFAULT_STALE_TIME = 2 * 60 * 1000; // 2 minutes — prevents refetch on every SPA navigation
+const EXTENDED_STALE_TIME = 5 * 60 * 1000; // 5 minutes for overdue/due-today lists
 
 // ============================================
 // Main Hook
