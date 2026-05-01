@@ -271,6 +271,13 @@ const TeamCollaborationFeature = () => {
                     </div>
                   </div>
                   <div className="flex gap-3">
+                    <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-info text-xs font-bold text-info-foreground">R</span>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Requestor</p>
+                      <p className="text-xs text-muted-foreground">Designed for trusted customers. A Requestor can scan a machine's QR code to submit a work order request directly — no phone call required.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
                     <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground">V</span>
                     <div>
                       <p className="text-sm font-semibold text-foreground">Viewer</p>
