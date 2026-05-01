@@ -371,9 +371,18 @@ if ($statusExit -eq 0) {
 
 if ($needStart) {
     Write-Host "        Starting Supabase (this may take a few minutes on first run)..."
+    # Exclude logflare (Logflare analytics) and vector (its log shipper) on
+    # Windows hosts. Vector requires Docker to be exposed on tcp://localhost:2375
+    # (the Docker SDK over an unauthenticated TCP socket). Without that,
+    # vector restart-loops every ~10 seconds and the CLI emits the
+    # "Analytics on Windows requires Docker daemon exposed on tcp://localhost:2375"
+    # warning on every start. Enabling the unauthenticated TCP socket just
+    # to silence the warning is a security regression for local dev. Local
+    # development does not need centralized log shipping; logs remain
+    # readable via `docker logs <container>` for any individual service.
     $oldStartEap = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
-    & npx supabase start
+    & npx supabase start -x logflare -x vector
     $startExit = $LASTEXITCODE
     $ErrorActionPreference = $oldStartEap
     if ($startExit -ne 0) {
@@ -450,13 +459,33 @@ if ($needStart) {
         }
         Write-Host "        Retrying supabase start..."
         $ErrorActionPreference = 'Continue'
-        & npx supabase start
+        & npx supabase start -x logflare -x vector
         $retryExit = $LASTEXITCODE
         $ErrorActionPreference = $oldStartEap
         if ($retryExit -ne 0) {
             Write-Host ""
             Write-Host "        FAIL: supabase start failed after retry."
-            Write-Host "        Try: dev-stop.bat then dev-start.bat, or check ports 54321-54328"
+            Write-Host ""
+            Write-Host "        Common causes (most likely first):"
+            Write-Host "          1. Storage container reports 'Migration <name> not found' or"
+            Write-Host "             logs container 'unhealthy'. This is local Storage volume"
+            Write-Host "             drift after a Supabase CLI / service-image upgrade."
+            Write-Host "             Recovery (removes ONLY local Supabase data for the linked"
+            Write-Host "             project ref - not unrelated Docker volumes):"
+            Write-Host "                dev-stop.bat"
+            Write-Host "                docker volume rm supabase_db_<project-ref>"
+            Write-Host "                docker volume rm supabase_storage_<project-ref>"
+            Write-Host "                docker volume rm supabase_edge_runtime_<project-ref>"
+            Write-Host "                Remove-Item supabase\.temp\storage-version,supabase\.temp\storage-migration -ErrorAction SilentlyContinue"
+            Write-Host "                dev-start.bat -Force"
+            Write-Host "          2. Pinned Supabase CLI is older than the linked project's"
+            Write-Host "             service images. Check: npx supabase --version vs the"
+            Write-Host "             'different service versions' warning earlier in this log."
+            Write-Host "             Bump the devDependency: npm install --save-dev supabase@latest"
+            Write-Host "          3. Trapped Windows ephemeral port (54321-54328). Already"
+            Write-Host "             diagnosed above when applicable."
+            Write-Host "          4. Run 'dev-stop.bat' then 'dev-start.bat' once more in case"
+            Write-Host "             of a transient Docker race."
             exit 1
         }
     }
