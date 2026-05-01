@@ -329,7 +329,7 @@ const TeamCollaborationFeature = () => {
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Role-Based Team Access</h3>
                 <p className="text-muted-foreground">
-                  Assign each team member a role — Manager, Technician, or Viewer. Managers oversee the team and handle work order flow; Technicians perform and log work; Viewers get read-only access. Every action is attributed by role so you always know who did what.
+                  Assign each team member a role — Manager, Technician, Requestor, or Viewer. Managers oversee the team and handle work order flow; Technicians perform and log work; Requestors submit work order requests directly; Viewers get read-only access. Every action is attributed by role so you always know who did what.
                 </p>
               </div>
             </div>

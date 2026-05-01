@@ -25,7 +25,7 @@ CREATE POLICY "equipment_team_manager_delete" ON "public"."equipment"
       SELECT 1
       FROM "public"."team_members" tm
       WHERE tm.user_id = (select "auth"."uid"())
-        AND tm.team_id = team_id
+        AND tm.team_id = "equipment"."team_id"
         AND tm.role = 'manager'::"public"."team_member_role"
     )
   );
