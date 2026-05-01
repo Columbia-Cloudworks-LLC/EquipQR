@@ -11,21 +11,22 @@ import {
 import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
+import { landingImage } from '@/lib/landingImage';
 
 const FleetVisualizationFeature = () => {
   return (
     <>
       <PageSEO
         title="Fleet Visualization"
-        description="Interactive maps showing equipment locations, status, and maintenance routes. Optimize operations with geographic insights."
+        description="Interactive map showing equipment last confirmed locations, status, and PM clusters. Plan maintenance routes and see your fleet at a glance."
         path="/features/fleet-visualization"
-        keywords="fleet visualization, equipment maps, fleet tracking, GPS fleet management, equipment location tracking, fleet mapping"
+        keywords="fleet visualization, equipment map, fleet location tracking, equipment location, fleet mapping, location-aware maintenance planning"
       />
       <FeaturePageLayout>
       <FeatureHero
         icon={Map}
         title="Fleet Visualization"
-        description="Interactive maps showing equipment locations, status, and maintenance routes. Optimize operations with geographic insights."
+        description="Interactive map showing each machine's last confirmed location, status, and open work. Plan maintenance routes and dispatch technicians where they're needed most."
         ctaText="Start Using Fleet Map Free"
       />
 
@@ -37,7 +38,7 @@ const FleetVisualizationFeature = () => {
                 Why Use Fleet Visualization?
               </h2>
               <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-                See where your equipment is, how it’s used, and where maintenance is due—all on a map. Make smarter dispatch and routing decisions.
+                See where your equipment was last confirmed, what's due for PM, and where open work orders are clustered — all on a map. No GPS hardware required.
               </p>
             </div>
 
@@ -47,19 +48,19 @@ const FleetVisualizationFeature = () => {
                   <div className="mb-4">
                     <MapPin className="h-10 w-10 text-success" />
                   </div>
-                  <CardTitle className="text-2xl">Real-Time Tracking</CardTitle>
+                  <CardTitle className="text-2xl">Last Confirmed Location</CardTitle>
                   <CardDescription className="text-base">
-                    Know where assets are
+                    Know where assets were last seen
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">
-                    Plot equipment on an interactive map using stored locations. Filter by team, status, or equipment type. Click a marker to open details, work orders, and PM status.
+                    Plot equipment on an interactive map using the last confirmed location stored on each record — entered as an address, site name, or coordinates. Filter by team, status, or equipment type.
                   </p>
                   <ul className="mt-4 space-y-2">
                     <li className="text-sm text-muted-foreground flex items-center">
                       <span className="w-1.5 h-1.5 bg-success rounded-full mr-2 flex-shrink-0" />
-                      Location-based view
+                      No GPS hardware required
                     </li>
                     <li className="text-sm text-muted-foreground flex items-center">
                       <span className="w-1.5 h-1.5 bg-success rounded-full mr-2 flex-shrink-0" />
@@ -67,7 +68,7 @@ const FleetVisualizationFeature = () => {
                     </li>
                     <li className="text-sm text-muted-foreground flex items-center">
                       <span className="w-1.5 h-1.5 bg-success rounded-full mr-2 flex-shrink-0" />
-                      Quick access to details
+                      Click markers for full details
                     </li>
                   </ul>
                 </CardContent>
@@ -78,14 +79,14 @@ const FleetVisualizationFeature = () => {
                   <div className="mb-4">
                     <Route className="h-10 w-10 text-info" />
                   </div>
-                  <CardTitle className="text-2xl">Route Optimization</CardTitle>
+                  <CardTitle className="text-2xl">Location-Aware Planning</CardTitle>
                   <CardDescription className="text-base">
-                    Plan maintenance routes
+                    Plan routes from real location data
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">
-                    Use the map to see clusters of equipment due for PM or with open work orders. Plan technician routes and prioritize by location to minimize drive time and maximize completed work.
+                    Use the map to see clusters of equipment due for PM or with open work orders. Group by location to plan technician dispatch and reduce unnecessary travel between sites.
                   </p>
                   <ul className="mt-4 space-y-2">
                     <li className="text-sm text-muted-foreground flex items-center">
@@ -94,11 +95,11 @@ const FleetVisualizationFeature = () => {
                     </li>
                     <li className="text-sm text-muted-foreground flex items-center">
                       <span className="w-1.5 h-1.5 bg-info rounded-full mr-2 flex-shrink-0" />
-                      Dispatch planning
+                      Dispatch by area
                     </li>
                     <li className="text-sm text-muted-foreground flex items-center">
                       <span className="w-1.5 h-1.5 bg-info rounded-full mr-2 flex-shrink-0" />
-                      Geographic context
+                      Geographic context for scheduling
                     </li>
                   </ul>
                 </CardContent>
@@ -159,7 +160,7 @@ const FleetVisualizationFeature = () => {
                   <div>
                     <h3 className="text-xl font-semibold text-foreground mb-2">Set Equipment Locations</h3>
                     <p className="text-muted-foreground">
-                      Store location data for equipment—address, site, or coordinates. Locations can be updated when assets move so the map stays current.
+                      Set the last confirmed location for each piece of equipment — address, job site, or coordinates. Update it when assets move so the map reflects where they were last seen.
                     </p>
                   </div>
                 </div>
@@ -199,6 +200,36 @@ const FleetVisualizationFeature = () => {
                     </p>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Screenshot Section */}
+        <section className="py-24 bg-muted/30">
+          <div className="container px-4 mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+                See the Fleet Map in Action
+              </h2>
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+                Every piece of equipment with a stored location appears as a marker. No GPS hardware required — just the address or site name you already have on the record.
+              </p>
+            </div>
+            <div className="max-w-5xl mx-auto">
+              <div className="bg-muted/50 rounded-xl p-8 border border-border">
+                <div className="rounded-lg overflow-hidden mb-4 border border-border">
+                  <img
+                    src={landingImage('fleet-map-2026-04.png')}
+                    alt="Fleet map showing equipment markers across the United States with location panel and filter controls"
+                    className="w-full h-auto"
+                    loading="lazy"
+                  />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Equipment at Their Last Confirmed Locations</h3>
+                <p className="text-muted-foreground">
+                  The fleet map plots all equipment that has a stored location — address, site name, or coordinates. The side panel lists each machine with its team, location, and quick-access links. Filter by team or status to focus your view.
+                </p>
               </div>
             </div>
           </div>

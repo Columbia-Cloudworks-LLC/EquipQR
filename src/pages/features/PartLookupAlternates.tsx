@@ -16,6 +16,7 @@ import type { LucideIcon } from 'lucide-react';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
+import { landingImage } from '@/lib/landingImage';
 
 interface Capability {
   name: string;
@@ -268,6 +269,36 @@ const PartLookupAlternatesFeature = () => {
                     </p>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Screenshots Section */}
+        <section className="py-24">
+          <div className="container px-4 mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+                See Part Lookup in Action
+              </h2>
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+                Search by part number, OEM number, or description. Results show inventory stock, alternates, and cost at a glance.
+              </p>
+            </div>
+            <div className="max-w-5xl mx-auto">
+              <div className="bg-muted/50 rounded-xl p-8 border border-border">
+                <div className="rounded-lg overflow-hidden mb-4 border border-border">
+                  <img
+                    src={landingImage('part-lookup-2026-04.png')}
+                    alt="Part Lookup page with search by part number tab and example search suggestions"
+                    className="w-full h-auto"
+                    loading="lazy"
+                  />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Search by Part Number or Make/Model</h3>
+                <p className="text-muted-foreground">
+                  Enter any OEM, aftermarket, or internal part number and see matching inventory, alternate groups, and cross-references side by side. Switch to the Make/Model tab to filter by equipment type.
+                </p>
               </div>
             </div>
           </div>

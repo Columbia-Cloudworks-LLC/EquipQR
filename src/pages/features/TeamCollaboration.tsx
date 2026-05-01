@@ -204,6 +204,85 @@ const TeamCollaborationFeature = () => {
           </div>
         </section>
 
+        {/* Roles & Permissions Matrix */}
+        <section className="py-24">
+          <div className="container px-4 mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+                Roles &amp; Permissions
+              </h2>
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+                EquipQR uses a two-tier role system: organization-level roles that govern your whole account,
+                and team-level roles that control access within each team.
+              </p>
+            </div>
+
+            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Org roles */}
+              <div className="rounded-xl border border-border bg-card p-6">
+                <h3 className="text-lg font-bold text-foreground mb-1">Organization Roles</h3>
+                <p className="text-sm text-muted-foreground mb-5">
+                  Set once per member when they join your organization.
+                </p>
+                <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">O</span>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Owner</p>
+                      <p className="text-xs text-muted-foreground">Full account control. Manages billing, integrations, and all organization settings. Can promote or remove any member.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-info text-xs font-bold text-info-foreground">A</span>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Admin</p>
+                      <p className="text-xs text-muted-foreground">Manages members, teams, and equipment organization-wide. Cannot change billing or owner-level settings.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground">M</span>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Member</p>
+                      <p className="text-xs text-muted-foreground">Works within the teams they belong to. Sees only the equipment and work orders assigned to their teams.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Team roles */}
+              <div className="rounded-xl border border-border bg-card p-6">
+                <h3 className="text-lg font-bold text-foreground mb-1">Team Roles</h3>
+                <p className="text-sm text-muted-foreground mb-5">
+                  Assigned independently per team, giving fine-grained control within each crew.
+                </p>
+                <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success text-xs font-bold text-success-foreground">M</span>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Manager</p>
+                      <p className="text-xs text-muted-foreground">Manages team members, equipment assignments, and QuickBooks customer mappings. Can create and close work orders.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-warning text-xs font-bold text-warning-foreground">T</span>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Technician</p>
+                      <p className="text-xs text-muted-foreground">Creates and updates work orders, completes PM checklists, and logs scan activity for their team's equipment.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground">V</span>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Viewer</p>
+                      <p className="text-xs text-muted-foreground">Read-only access to team equipment and work orders. Useful for customers, inspectors, or stakeholders who need visibility without edit rights.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Screenshots Section */}
         <section className="py-24 bg-muted/30">
           <div className="container px-4 mx-auto">
@@ -220,7 +299,7 @@ const TeamCollaborationFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
-                    src={landingImage('team-list.png')}
+                    src={landingImage('teams-list-2026-04.png')}
                     alt="Teams list showing all teams with member counts and roles"
                     className="w-full h-auto"
                     loading="lazy"
@@ -235,7 +314,7 @@ const TeamCollaborationFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
-                    src={landingImage('team-detail.png')}
+                    src={landingImage('team-detail-2026-04.png')}
                     alt="Team detail page showing role assignments for team members"
                     className="w-full h-auto"
                     loading="lazy"
@@ -243,7 +322,7 @@ const TeamCollaborationFeature = () => {
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">Role-Based Team Access</h3>
                 <p className="text-muted-foreground">
-                  Assign specific roles to each team member—manager, technician, requestor, or viewer. Managers oversee the team, technicians perform work, requestors submit work orders, and viewers have read-only access. Fine-grained permissions ensure everyone has exactly the access they need.
+                  Assign each team member a role — Manager, Technician, or Viewer. Managers oversee the team and handle work order flow; Technicians perform and log work; Viewers get read-only access. Every action is attributed by role so you always know who did what.
                 </p>
               </div>
             </div>

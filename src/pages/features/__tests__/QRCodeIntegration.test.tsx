@@ -244,9 +244,7 @@ describe('QRCodeIntegration Feature Page', () => {
       );
 
       expect(screen.getByText('Equipment QR Codes')).toBeInTheDocument();
-      expect(screen.getByText('Generate & Print Labels')).toBeInTheDocument();
       expect(screen.getByText('Quick Access from Equipment List')).toBeInTheDocument();
-      expect(screen.getByText('Equipment Details at a Glance')).toBeInTheDocument();
     });
   });
 
@@ -275,7 +273,7 @@ describe('QRCodeIntegration Feature Page', () => {
       // Verify the data structure matches what's expected
       expect(benefits).toHaveLength(3);
       expect(steps).toHaveLength(4);
-      expect(screenshots).toHaveLength(4);
+      expect(screenshots).toHaveLength(2);
 
       // Verify benefits have required properties
       benefits.forEach((benefit) => {

@@ -313,7 +313,7 @@ const PMTemplatesFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img 
-                    src={landingImage('pm-templates-list.png')} 
+                    src={landingImage('pm-templates-list-2026-04.png')} 
                     alt="PM Templates List showing 6 global templates including Forklift, Excavator, and Scissor Lift" 
                     className="w-full h-auto"
                     loading="lazy"
@@ -329,7 +329,7 @@ const PMTemplatesFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img 
-                    src={landingImage('pm-template-detail.png')} 
+                    src={landingImage('pm-templates-list-2026-04.png')} 
                     alt="Forklift PM template detail view showing 12 sections and 103 checklist items" 
                     className="w-full h-auto"
                     loading="lazy"

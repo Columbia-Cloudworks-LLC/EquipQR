@@ -221,7 +221,7 @@ const GoogleWorkspaceFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
-                    src={landingImage('google-workspace-connect.png')}
+                    src={landingImage('google-workspace-settings-2026-04.png')}
                     alt="Organization Settings showing Google Workspace integration with connected domain"
                     className="w-full h-auto"
                     loading="lazy"
@@ -236,7 +236,7 @@ const GoogleWorkspaceFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
-                    src={landingImage('google-workspace-import.png')}
+                    src={landingImage('google-workspace-settings-2026-04.png')}
                     alt="Import from Google Workspace dialog showing directory sync and user import"
                     className="w-full h-auto"
                     loading="lazy"

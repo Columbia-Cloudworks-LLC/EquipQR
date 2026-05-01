@@ -1,6 +1,4 @@
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   QrCode,
   Building2,
@@ -8,179 +6,196 @@ import {
   ClipboardList,
   Users,
   Map,
-  Smartphone,
   UserCircle,
   FileCheck,
   Warehouse,
   Search,
-  ArrowRight
+  Smartphone,
+  Shield,
+  ArrowRight,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import LandingReveal from './LandingReveal';
 
-interface Feature {
+interface PillarFeature {
   icon: LucideIcon;
   title: string;
   description: string;
-  benefits: string[];
-  statusBadge?: string;
-  link?: string;
+  link: string;
 }
 
-const features: Feature[] = [
+interface Pillar {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  accentClass: string;
+  dotClass: string;
+  features: PillarFeature[];
+}
+
+const pillars: Pillar[] = [
   {
-    icon: QrCode,
-    title: 'QR Code Integration',
-    description: 'Instantly access equipment details, work orders, and maintenance history with QR code scanning. Generate labels and streamline field operations.',
-    benefits: ['Instant equipment access', 'Automated tracking', 'Mobile-optimized scanning'],
-    link: '/features/qr-code-integration'
+    id: 'field',
+    title: 'Field Operations',
+    subtitle: 'Technicians scan, inspect, document, and close work faster',
+    description:
+      'Give your crew everything they need at the machine — scan to pull history, create work orders, complete PM checklists, and capture photos from their phone.',
+    accentClass: 'text-primary',
+    dotClass: 'bg-primary',
+    features: [
+      {
+        icon: QrCode,
+        title: 'QR Code Integration',
+        description: 'Scan any machine to instantly pull its full service history and start a work order.',
+        link: '/features/qr-code-integration',
+      },
+      {
+        icon: Smartphone,
+        title: 'Mobile-First Design',
+        description: 'Touch-optimized for phones and tablets. Works offline in the field.',
+        link: '/features/mobile-first-design',
+      },
+      {
+        icon: ClipboardList,
+        title: 'Work Order Management',
+        description: 'Create, assign, track, and close work orders with clear statuses and due dates.',
+        link: '/features/work-order-management',
+      },
+      {
+        icon: FileCheck,
+        title: 'PM Templates',
+        description: 'Built-in checklists for forklifts, excavators, scissor lifts, trailers, and more.',
+        link: '/features/pm-templates',
+      },
+    ],
   },
   {
-    icon: Building2,
-    title: 'Google Workspace',
-    description: 'Connect your Google Workspace to import users from your directory. Sync members, assign roles, and let users sign in with Google for seamless access.',
-    benefits: ['Directory sync', 'Import members', 'Google sign-in'],
-    link: '/features/google-workspace'
+    id: 'backoffice',
+    title: 'Back Office',
+    subtitle: 'Owners reduce double entry, billing delays, and parts chaos',
+    description:
+      'Connect your accounting, organize your customers, track your parts, and eliminate manual re-entry between your field work and your books.',
+    accentClass: 'text-success',
+    dotClass: 'bg-success',
+    features: [
+      {
+        icon: Receipt,
+        title: 'QuickBooks',
+        description: 'Export completed work orders as QuickBooks draft invoices in one click.',
+        link: '/features/quickbooks',
+      },
+      {
+        icon: UserCircle,
+        title: 'Customer CRM',
+        description: 'Link equipment to customers. Permanent service history per client asset.',
+        link: '/features/customer-crm',
+      },
+      {
+        icon: Warehouse,
+        title: 'Inventory Management',
+        description: 'Track parts and supplies with stock levels, low-stock alerts, and audit history.',
+        link: '/features/inventory',
+      },
+      {
+        icon: Search,
+        title: 'Part Lookup & Alternates',
+        description: 'Find parts fast. Discover approved substitutes when preferred stock runs out.',
+        link: '/features/part-lookup-alternates',
+      },
+    ],
   },
   {
-    icon: Receipt,
-    title: 'QuickBooks',
-    description: 'Connect QuickBooks Online and export completed work orders as draft invoices. Map teams to customers and streamline billing from EquipQR™.',
-    benefits: ['Export to invoices', 'Team–customer mapping', 'OAuth connect'],
-    link: '/features/quickbooks'
+    id: 'control',
+    title: 'Control & Trust',
+    subtitle: 'Managers govern access, see work, and prove who did what',
+    description:
+      "Role-based access, audit-ready scan logs, Google Workspace single sign-on, and a fleet map to see every machine's last confirmed location.",
+    accentClass: 'text-info',
+    dotClass: 'bg-info',
+    features: [
+      {
+        icon: Users,
+        title: 'Team Collaboration',
+        description: 'Org and team roles control who sees what. Every action is attributed.',
+        link: '/features/team-collaboration',
+      },
+      {
+        icon: Building2,
+        title: 'Google Workspace',
+        description: 'Import users from your directory. Sign in with existing Google accounts.',
+        link: '/features/google-workspace',
+      },
+      {
+        icon: Map,
+        title: 'Fleet Visualization',
+        description: "See every machine's last confirmed location on an interactive map.",
+        link: '/features/fleet-visualization',
+      },
+      {
+        icon: Shield,
+        title: 'Enterprise Security',
+        description: 'Row-level security enforces tenant isolation. Every scan logged with name and time.',
+        link: '/security',
+      },
+    ],
   },
-  {
-    icon: ClipboardList,
-    title: 'Work Order Management',
-    description: 'Create, assign, and track work orders with intelligent workflows. Monitor progress and ensure nothing falls through the cracks.',
-    benefits: ['Smart assignment rules', 'Progress tracking', 'Due date management'],
-    link: '/features/work-order-management'
-  },
-  {
-    icon: Users,
-    title: 'Team Collaboration',
-    description: 'Organize teams across multiple organizations with role-based access control. Track performance and distribute workload efficiently.',
-    benefits: ['Cross-organizational teams', 'Role-based permissions', 'Workload balancing'],
-    link: '/features/team-collaboration'
-  },
-  {
-    icon: Map,
-    title: 'Fleet Visualization',
-    description: 'Interactive maps showing equipment locations, status, and maintenance routes. Optimize operations with geographic insights.',
-    benefits: ['Real-time tracking', 'Route optimization', 'Geographic analytics'],
-    link: '/features/fleet-visualization'
-  },
-  {
-    icon: UserCircle,
-    title: 'Customer CRM',
-    description: 'Link equipment to specific customers. Maintain a permanent service history for every client asset.',
-    benefits: ['Customer profiles', 'Service history tracking', 'Equipment ownership'],
-    link: '/features/customer-crm'
-  },
-  {
-    icon: FileCheck,
-    title: 'PM Templates',
-    description: 'Use built-in checklists for Excavators, Forklifts, and Trailers, or build your own custom templates.',
-    benefits: ['Pre-built templates', 'Custom checklists', 'Standardized maintenance'],
-    link: '/features/pm-templates'
-  },
-  {
-    icon: Warehouse,
-    title: 'Inventory Management',
-    description: 'Track parts and supplies with real-time stock levels, low stock alerts, and transaction history. Link inventory to equipment for compatibility tracking.',
-    benefits: ['Stock level tracking', 'Low stock alerts', 'Transaction history', 'Equipment compatibility'],
-    link: '/features/inventory'
-  },
-  {
-    icon: Search,
-    title: 'Part Lookup & Alternates',
-    description: 'Quickly find parts by part number and discover interchangeable alternatives. Search inventory, external catalogs, and alternate part groups.',
-    benefits: ['Fast part number search', 'Alternate part discovery', 'Stock availability', 'Cost comparison'],
-    link: '/features/part-lookup-alternates'
-  },
-  {
-    icon: Smartphone,
-    title: 'Mobile-First Design',
-    description: 'Native mobile experience for field technicians. Work offline and sync when connected. Optimized for all devices.',
-    benefits: ['Offline capability', 'Touch-optimized UI', 'Cross-platform'],
-    link: '/features/mobile-first-design'
-  }
 ];
 
 const FeaturesSection = ({ id }: { id?: string }) => {
   return (
-    <section id={id} className="scroll-mt-20 py-24 bg-background">
+    <section id={id} className="scroll-mt-20 py-20 bg-background">
       <div className="container px-4 mx-auto">
-        <div className="text-center mb-16">
+        <div className="text-center mb-14">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Every Tool Your Crew Needs, On Every Machine
+            Everything Your Shop Needs, Organized Around How Work Actually Flows
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            From the QR code on the machine to the invoice in QuickBooks &mdash; one platform your whole team actually uses.
+            From the QR code on the machine to the invoice in QuickBooks &mdash; one platform your whole team
+            actually uses.
           </p>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature, index) => {
-            const getIconColor = (index: number) => {
-              const colors = ['text-primary', 'text-info', 'text-success', 'text-warning'];
-              return colors[index % colors.length];
-            };
-            
-            const cardContent = (
-              <Card className={`relative border-border bg-card/50 backdrop-blur-sm hover:bg-card transition-colors h-full flex flex-col ${feature.link ? 'cursor-pointer hover:border-primary/50' : ''}`}>
-                {feature.statusBadge && (
-                  <Badge 
-                    variant="outline" 
-                    className="absolute top-4 right-4 text-muted-foreground/70 border-muted-foreground/30 bg-background/80 backdrop-blur-sm z-10"
-                  >
-                    {feature.statusBadge}
-                  </Badge>
-                )}
-                <CardHeader className="pb-4 flex-shrink-0">
-                  <div className="mb-4 flex items-center justify-between">
-                    <feature.icon className={`h-8 w-8 ${getIconColor(index)}`} />
-                    {feature.link && !feature.statusBadge && (
-                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </div>
-                  <CardTitle className="text-xl">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col flex-grow pb-6">
-                  <div className="flex-grow min-h-[4rem] mb-4">
-                    <CardDescription className="text-sm">
-                      {feature.description}
-                    </CardDescription>
-                  </div>
-                  <ul className="space-y-2 flex-shrink-0">
-                    {feature.benefits.map((benefit, i) => (
-                      <li key={i} className="text-sm text-muted-foreground flex items-center">
-                        <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 flex-shrink-0"></span>
-                        {benefit}
-                      </li>
-                    ))}
-                  </ul>
-                  {feature.link && (
-                    <div className="mt-4 pt-3 border-t border-border flex-shrink-0">
-                      <p className="text-sm text-primary font-medium flex items-center">
-                        Learn more
-                        <ArrowRight className="h-3 w-3 ml-1" />
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-            
-            if (feature.link) {
-              return (
-                <Link key={feature.title} to={feature.link} className="block">
-                  {cardContent}
-                </Link>
-              );
-            }
-            
-            return <div key={feature.title}>{cardContent}</div>;
-          })}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          {pillars.map((pillar, pillarIndex) => (
+            <LandingReveal key={pillar.id} delayMs={pillarIndex * 80}>
+              <div className="flex flex-col h-full rounded-2xl border border-border bg-card/60 shadow-sm overflow-hidden">
+                {/* Pillar header */}
+                <div className="px-6 pt-8 pb-6 border-b border-border/60">
+                  <h3 className={`text-xl font-bold mb-1 ${pillar.accentClass}`}>{pillar.title}</h3>
+                  <p className="text-sm font-medium text-foreground mb-3">{pillar.subtitle}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{pillar.description}</p>
+                </div>
+
+                {/* Feature list */}
+                <ul className="flex flex-col flex-grow px-6 py-5 space-y-4" role="list">
+                  {pillar.features.map((feature) => (
+                    <li key={feature.title} className="list-none">
+                      <Link
+                        to={feature.link}
+                        className="group flex items-start gap-3 rounded-xl p-3 -mx-3 hover:bg-muted/60 transition-colors"
+                      >
+                        <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background/80`}>
+                          <feature.icon className={`h-4 w-4 ${pillar.accentClass}`} aria-hidden />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="flex items-center gap-1.5">
+                            <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                              {feature.title}
+                            </span>
+                            <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden />
+                          </span>
+                          <span className="mt-0.5 block text-xs text-muted-foreground leading-relaxed">
+                            {feature.description}
+                          </span>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </LandingReveal>
+          ))}
         </div>
       </div>
     </section>
