@@ -93,7 +93,8 @@ export const getTeamBasedWorkOrders = async (
           name
         )
       `)
-      .eq('organization_id', organizationId);
+      .eq('organization_id', organizationId)
+      .not('equipment_id', 'is', null);
 
     if (!isOrgAdmin) {
       const result = await EquipmentService.getAccessibleEquipmentIds(organizationId, userTeamIds, isOrgAdmin);
