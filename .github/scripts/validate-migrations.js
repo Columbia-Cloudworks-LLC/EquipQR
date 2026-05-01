@@ -11,7 +11,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 
 const NAMING_REGEX = /^\d{14}_[a-z0-9_]+\.sql$/;
 
@@ -34,7 +34,7 @@ const changedFiles = changedFilesEnv
 function resolveRefIfExists(refName) {
   if (!refName) return null;
   try {
-    const resolved = execSync(`git rev-parse --verify "${refName}"`, {
+    const resolved = execFileSync('git', ['rev-parse', '--verify', refName], {
       stdio: ['ignore', 'pipe', 'ignore'],
       encoding: 'utf8',
     }).trim();
@@ -61,7 +61,7 @@ function resolveComparisonBaseCommit() {
 
     if (candidateRef) {
       try {
-        const mergeBase = execSync(`git merge-base HEAD "${candidateRef}"`, {
+        const mergeBase = execFileSync('git', ['merge-base', 'HEAD', candidateRef], {
           stdio: ['ignore', 'pipe', 'ignore'],
           encoding: 'utf8',
         }).trim();
@@ -84,7 +84,7 @@ function resolveComparisonBaseCommit() {
 function fileExistsAtCommit(commitSha, filePath) {
   if (!commitSha) return false;
   try {
-    execSync(`git cat-file -e "${commitSha}:${filePath}"`, {
+    execFileSync('git', ['cat-file', '-e', `${commitSha}:${filePath}`], {
       stdio: ['ignore', 'ignore', 'ignore'],
     });
     return true;
