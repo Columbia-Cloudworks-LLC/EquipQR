@@ -71,7 +71,7 @@ export const useUnifiedPermissions = () => {
         canView: hasPermission('equipment.view', entityContext),
         canCreate: hasPermission('equipment.create', entityContext),
         canEdit: hasPermission('equipment.edit', entityContext),
-        canDelete: hasRole(['owner', 'admin']),
+        canDelete: hasPermission('equipment.delete', entityContext),
         canAddNotes: hasPermission('equipment.view', entityContext),
         canAddImages: hasPermission('equipment.view', entityContext)
       };

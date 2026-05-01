@@ -222,7 +222,7 @@ const CustomerCRMFeature = () => {
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
                     src={landingImage('equipment-list-2026-04.png')}
-                    alt="Customer list showing each customer with location, contact details, and linked equipment count"
+                    alt="Equipment list view showing all tracked assets — each piece of equipment can be linked to a customer"
                     className="w-full h-auto"
                     loading="lazy"
                   />
@@ -237,7 +237,7 @@ const CustomerCRMFeature = () => {
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
                     src={landingImage('team-detail-2026-04.png')}
-                    alt="Equipment detail page showing customer assignment and service history"
+                    alt="Team detail page showing member roles and equipment assignments for a service team"
                     className="w-full h-auto"
                     loading="lazy"
                   />

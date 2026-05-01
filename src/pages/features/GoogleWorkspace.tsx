@@ -237,7 +237,7 @@ const GoogleWorkspaceFeature = () => {
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
                     src={landingImage('google-workspace-settings-2026-04.png')}
-                    alt="Import from Google Workspace dialog showing directory sync and user import"
+                    alt="Google Workspace settings panel showing connected domain, directory sync status, and member import controls"
                     className="w-full h-auto"
                     loading="lazy"
                   />

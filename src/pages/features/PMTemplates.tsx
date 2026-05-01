@@ -329,7 +329,7 @@ const PMTemplatesFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img 
-                    src={landingImage('pm-templates-list-2026-04.png')} 
+                    src={landingImage('pm-templates-detail-2026-04.png')} 
                     alt="Forklift PM template detail view showing 12 sections and 103 checklist items" 
                     className="w-full h-auto"
                     loading="lazy"

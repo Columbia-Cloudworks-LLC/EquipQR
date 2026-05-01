@@ -99,6 +99,26 @@ export class PermissionEngine {
       priority: 80
     });
 
+    // Equipment delete rules. Mirrors the `equipment_team_manager_delete` RLS
+    // policy: org owners/admins can delete any equipment; team managers can
+    // delete equipment assigned to their team.
+    this.addRule('equipment.delete', {
+      name: 'equipment-delete-admin',
+      check: (context) => ['owner', 'admin'].includes(context.userRole),
+      priority: 100
+    });
+
+    this.addRule('equipment.delete', {
+      name: 'equipment-delete-team-manager',
+      check: (context, entityContext) => {
+        if (!entityContext?.teamId) return false;
+        return context.teamMemberships.some(tm =>
+          tm.teamId === entityContext.teamId && tm.role === 'manager'
+        );
+      },
+      priority: 90
+    });
+
     // Work order rules
     this.addRule('workorder.view', {
       name: 'workorder-view-members',
