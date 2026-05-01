@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import EquipQRIcon from '@/components/ui/EquipQRIcon';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
+import { saveOrganizationPreference } from '@/utils/sessionPersistence';
 import type { Database } from '@/integrations/supabase/types';
 import type { Role } from '@/types/permissions';
 import QrPageLoadingShell from '@/features/equipment/components/qr/QrPageLoadingShell';
@@ -15,6 +17,8 @@ import QrPageLoadingShell from '@/features/equipment/components/qr/QrPageLoading
 type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 
 const PRODUCTION_URL = 'https://equipqr.app';
+/** Matches SimpleOrganizationProvider — ensures dashboard loads the scanned org after full-document navigation. */
+const DASHBOARD_CURRENT_ORG_STORAGE_KEY = 'equipqr_current_organization';
 const EquipmentQRQuickActions = lazy(() => import('@/features/equipment/components/qr/EquipmentQRQuickActions'));
 
 interface OrganizationRelation {
@@ -42,6 +46,11 @@ interface EquipmentQRRow {
   default_pm_template_id: string | null;
   team: TeamRelation | TeamRelation[] | null;
   organizations: OrganizationRelation | OrganizationRelation[];
+}
+
+interface OrganizationMembershipRow {
+  organization_id: string;
+  role: string;
 }
 
 interface EquipmentQRPayload {
@@ -90,6 +99,22 @@ async function fetchEquipmentQRPayload(
   equipmentId: string,
   userId: string
 ): Promise<EquipmentQRPayload> {
+  const { data: memberships, error: membershipError } = await supabase
+    .from('organization_members')
+    .select('organization_id, role')
+    .eq('user_id', userId)
+    .eq('status', 'active');
+
+  if (membershipError) throw new Error(membershipError.message);
+  if (!memberships || memberships.length === 0) {
+    throw new Error('You do not have access to this equipment');
+  }
+
+  const membershipByOrganizationId = new Map(
+    (memberships as OrganizationMembershipRow[]).map((membership) => [membership.organization_id, membership.role])
+  );
+  const scopedOrganizationIds = [...membershipByOrganizationId.keys()];
+
   const { data, error } = await supabase
     .from('equipment')
     .select(`
@@ -107,6 +132,7 @@ async function fetchEquipmentQRPayload(
       team:team_id(id, name),
       organizations!inner(id, name, scan_location_collection_enabled)
     `)
+    .in('organization_id', scopedOrganizationIds)
     .eq('id', equipmentId)
     .maybeSingle();
 
@@ -117,16 +143,8 @@ async function fetchEquipmentQRPayload(
   const organization = firstRelation(row.organizations);
   if (!organization) throw new Error('Equipment organization not found');
 
-  const { data: membership, error: membershipError } = await supabase
-    .from('organization_members')
-    .select('role')
-    .eq('organization_id', organization.id)
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .maybeSingle();
-
-  if (membershipError) throw new Error(membershipError.message);
-  if (!membership) throw new Error('You do not have access to this equipment');
+  const scopedRole = membershipByOrganizationId.get(row.organization_id);
+  if (!scopedRole) throw new Error('You do not have access to this equipment');
 
   return {
     equipment: {
@@ -143,7 +161,7 @@ async function fetchEquipmentQRPayload(
       team: firstRelation(row.team),
     },
     organization,
-    userRole: membership.role,
+    userRole: scopedRole,
   };
 }
 
@@ -159,13 +177,13 @@ async function userLimitsSensitivePi(userId: string): Promise<boolean> {
 
 async function insertScan(
   equipmentId: string,
-  userId: string,
   location: string | null,
   notes: string
 ): Promise<void> {
+  const scannedBy = await requireAuthUserIdFromClaims();
   const { error } = await supabase.from('scans').insert({
     equipment_id: equipmentId,
-    scanned_by: userId,
+    scanned_by: scannedBy,
     location,
     notes,
   });
@@ -223,7 +241,7 @@ const EquipmentQRScan = () => {
     setScanStatus('logging');
 
     const logWithoutLocation = (notes: string) =>
-      insertScan(payload.equipment.id, user.id, null, notes);
+      insertScan(payload.equipment.id, null, notes);
 
     const logScan = async () => {
       const orgAllowsLocation = payload.organization.scan_location_collection_enabled;
@@ -238,7 +256,7 @@ const EquipmentQRScan = () => {
         navigator.geolocation.getCurrentPosition(
           position => {
             const location = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
-            insertScan(payload.equipment.id, user.id, location, 'QR code scan with location')
+            insertScan(payload.equipment.id, location, 'QR code scan with location')
               .then(resolve)
               .catch(reject);
           },
@@ -270,7 +288,13 @@ const EquipmentQRScan = () => {
 
   const openDashboardRecord = useCallback(async () => {
     if (!payload) return;
-    window.location.assign(`/dashboard/equipment/${payload.equipment.id}?qr=true`);
+    saveOrganizationPreference(payload.organization.id);
+    try {
+      localStorage.setItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY, payload.organization.id);
+    } catch {
+      // ignore storage failures (private mode, quota)
+    }
+    window.location.assign(`/dashboard/equipment/${payload.equipment.id}`);
   }, [payload]);
 
   if (authLoading || isLoading) {

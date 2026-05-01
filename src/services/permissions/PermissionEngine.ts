@@ -1,11 +1,11 @@
 import { logger } from '@/utils/logger';
-import { UserContext, PermissionRule, PermissionCache } from '@/types/permissions';
+import { UserContext, PermissionRule, PermissionCache, TeamRole } from '@/types/permissions';
 
 type EntityContext = { teamId?: string; assigneeId?: string; [key: string]: unknown };
 type TeamMembership = UserContext['teamMemberships'][number];
 
-const TEAM_VIEW_ROLES = new Set<string>(['manager', 'technician', 'requestor', 'viewer', 'owner']);
-const TEAM_OPERATION_ROLES = new Set<string>(['manager', 'technician', 'owner']);
+const TEAM_VIEW_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician', 'requestor', 'viewer', 'owner']);
+const TEAM_OPERATION_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician', 'owner']);
 
 export class PermissionEngine {
   private rules: Map<string, PermissionRule<EntityContext>[]> = new Map();
@@ -19,7 +19,7 @@ export class PermissionEngine {
   private hasTeamMembershipWithRole(
     memberships: TeamMembership[],
     teamId: string | undefined,
-    allowedRoles: Set<string>
+    allowedRoles: ReadonlySet<TeamRole>
   ): boolean {
     if (!teamId) return false;
     return memberships.some(tm => tm.teamId === teamId && allowedRoles.has(tm.role));

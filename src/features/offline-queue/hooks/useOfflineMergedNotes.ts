@@ -89,5 +89,5 @@ export function useOfflineMergedNotes<T extends { id: string }>(
 
     // Offline notes first (newest at top)
     return [...offlineNotes, ...serverNotes];
-  }, [offlineCtx?.queuedItems, serverNotes, entityType, entityId, user, offlineCtx]);
+  }, [serverNotes, entityType, entityId, user, offlineCtx]);
 }

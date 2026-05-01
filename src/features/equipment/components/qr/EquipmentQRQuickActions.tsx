@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useState } from 'react';
-import { AlertCircle, Camera, Clock, Loader2, Plus, Wrench } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { AlertCircle, Camera, Clock, Loader2, Plus, Wrench } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import type {
@@ -131,7 +131,10 @@ export default function EquipmentQRQuickActions({
             <span>{successMessage.message}</span>
             {successMessage.workOrderId && (
               <Button asChild variant="outline" size="sm" className="w-fit">
-                <Link to={`/dashboard/work-orders/${successMessage.workOrderId}`}>
+                <Link
+                  to={`/dashboard/work-orders/${successMessage.workOrderId}`}
+                  reloadDocument
+                >
                   Open work order
                 </Link>
               </Button>

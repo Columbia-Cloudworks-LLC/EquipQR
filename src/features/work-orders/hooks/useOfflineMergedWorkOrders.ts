@@ -110,5 +110,5 @@ export function useOfflineMergedWorkOrders(
 
     // Offline items first (most recent queue items at top), then server data
     return [...offlineWorkOrders, ...serverWorkOrders];
-  }, [offlineCtx?.queuedItems, serverWorkOrders, allEquipment, user, offlineCtx]);
+  }, [serverWorkOrders, allEquipment, user, offlineCtx]);
 }

@@ -234,6 +234,7 @@ export const OfflineQueueProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useOfflineQueue = (): OfflineQueueContextValue => {
   const ctx = useContext(OfflineQueueContext);
   if (!ctx) {
@@ -246,6 +247,7 @@ export const useOfflineQueue = (): OfflineQueueContextValue => {
  * Returns the offline queue context if available, or null if the provider
  * is not mounted. Safe for use in hooks that may run outside the dashboard.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export const useOfflineQueueOptional = (): OfflineQueueContextValue | null => {
   return useContext(OfflineQueueContext);
 };

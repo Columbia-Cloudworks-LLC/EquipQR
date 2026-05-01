@@ -1,24 +1,46 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import type { AppProviders as AppProvidersComponent } from './AppProviders';
+
+const ROUTER_FUTURE = {
+  v7_startTransition: true,
+  v7_relativeSplatPath: true,
+} as const;
+
+function renderWithRouter(ui: React.ReactElement, initialPath = '/') {
+  return render(
+    <MemoryRouter initialEntries={[initialPath]} future={ROUTER_FUTURE}>
+      {ui}
+    </MemoryRouter>,
+  );
+}
 
 // Mock all the provider components
 vi.mock('@tanstack/react-query', () => ({
   QueryClient: vi.fn().mockImplementation(() => ({})),
-  QueryClientProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="query-client-provider">{children}</div>
+  QueryClientProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="query-client-provider">{children}</div>
+  ),
 }));
 
 vi.mock('next-themes', () => ({
-  ThemeProvider: vi.fn(({ children }: { children: React.ReactNode }) => <div data-testid="theme-provider">{children}</div>)
+  ThemeProvider: vi.fn(({ children }: { children: React.ReactNode }) => (
+    <div data-testid="theme-provider">{children}</div>
+  )),
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({
-  AuthProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="auth-provider">{children}</div>
+  AuthProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="auth-provider">{children}</div>
+  ),
 }));
 
 vi.mock('@/contexts/UserContext', () => ({
-  UserProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="user-provider">{children}</div>
+  UserProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="user-provider">{children}</div>
+  ),
 }));
 
 vi.mock('@/contexts/SessionContext', async () => {
@@ -26,20 +48,14 @@ vi.mock('@/contexts/SessionContext', async () => {
   return {
     ...actual,
     SessionContext: React.createContext(undefined),
-    SessionProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="session-provider">{children}</div>
-  };
-});
-
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    BrowserRouter: vi.fn(({ children }: { children: React.ReactNode }) => <div data-testid="router">{children}</div>)
+    SessionProvider: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="session-provider">{children}</div>
+    ),
   };
 });
 
 vi.mock('@/components/ui/toaster', () => ({
-  Toaster: () => <div data-testid="toaster" />
+  Toaster: () => <div data-testid="toaster" />,
 }));
 
 describe('AppProviders', () => {
@@ -48,68 +64,55 @@ describe('AppProviders', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: { ...window.location, pathname: '/' },
-    });
     const module = await import('./AppProviders');
     AppProviders = module.AppProviders;
   });
 
   describe('Provider Hierarchy', () => {
     it('renders all providers in correct order', () => {
-      render(
+      renderWithRouter(
         <AppProviders>
           <div data-testid="test-child">Test Content</div>
-        </AppProviders>
+        </AppProviders>,
       );
 
-      // Check that all providers are rendered
       expect(screen.getByTestId('query-client-provider')).toBeInTheDocument();
       expect(screen.getByTestId('theme-provider')).toBeInTheDocument();
       expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
       expect(screen.getByTestId('user-provider')).toBeInTheDocument();
       expect(screen.getByTestId('session-provider')).toBeInTheDocument();
-      expect(screen.getByTestId('router')).toBeInTheDocument();
       expect(screen.getByTestId('toaster')).toBeInTheDocument();
       expect(screen.getByTestId('test-child')).toBeInTheDocument();
     });
 
     it('uses the lightweight provider chain for QR entry routes', async () => {
       vi.resetModules();
-      Object.defineProperty(window, 'location', {
-        configurable: true,
-        value: { ...window.location, pathname: '/qr/equipment/test-equipment' },
-      });
-      expect(window.location.pathname).toBe('/qr/equipment/test-equipment');
       const module = await import('./AppProviders');
       const QRAppProviders = module.AppProviders;
 
-      render(
+      renderWithRouter(
         <QRAppProviders>
           <div data-testid="test-child">Test Content</div>
-        </QRAppProviders>
+        </QRAppProviders>,
+        '/qr/equipment/test-equipment',
       );
 
       expect(screen.getByTestId('query-client-provider')).toBeInTheDocument();
       expect(screen.getByTestId('theme-provider')).toBeInTheDocument();
       expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
-      expect(screen.getByTestId('router')).toBeInTheDocument();
+      expect(screen.getByTestId('session-provider')).toBeInTheDocument();
       expect(screen.getByTestId('test-child')).toBeInTheDocument();
       expect(screen.queryByTestId('user-provider')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('session-provider')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('toaster')).not.toBeInTheDocument();
+      expect(screen.getByTestId('toaster')).toBeInTheDocument();
     });
 
     it('passes children through the provider chain', () => {
-      window.history.pushState({}, '', '/');
-
-      render(
+      renderWithRouter(
         <AppProviders>
           <div data-testid="nested-child">
             <span>Nested Content</span>
           </div>
-        </AppProviders>
+        </AppProviders>,
       );
 
       expect(screen.getByTestId('nested-child')).toBeInTheDocument();
@@ -120,11 +123,11 @@ describe('AppProviders', () => {
   describe('QueryClient Configuration', () => {
     it('creates QueryClient with correct configuration', async () => {
       const { QueryClient } = await import('@tanstack/react-query');
-      
-      render(
+
+      renderWithRouter(
         <AppProviders>
           <div>Test</div>
-        </AppProviders>
+        </AppProviders>,
       );
 
       expect(QueryClient).toHaveBeenCalledWith({
@@ -144,44 +147,30 @@ describe('AppProviders', () => {
   describe('ThemeProvider Configuration', () => {
     it('configures ThemeProvider with correct attributes', async () => {
       const { ThemeProvider } = await import('next-themes');
-      
-      render(
+
+      renderWithRouter(
         <AppProviders>
           <div>Test</div>
-        </AppProviders>
+        </AppProviders>,
       );
 
       expect(ThemeProvider).toHaveBeenCalledWith(
         expect.objectContaining({
           attribute: 'class',
           forcedTheme: 'dark',
-          children: expect.anything()
+          children: expect.anything(),
         }),
-        expect.anything()
+        expect.anything(),
       );
-    });
-  });
-
-  describe('Router Integration', () => {
-    it('includes BrowserRouter for routing', async () => {
-      const { BrowserRouter } = await import('react-router-dom');
-      
-      render(
-        <AppProviders>
-          <div>Test</div>
-        </AppProviders>
-      );
-
-      expect(BrowserRouter).toHaveBeenCalled();
     });
   });
 
   describe('Toaster Integration', () => {
     it('includes Toaster component', () => {
-      render(
+      renderWithRouter(
         <AppProviders>
           <div>Test</div>
-        </AppProviders>
+        </AppProviders>,
       );
 
       expect(screen.getByTestId('toaster')).toBeInTheDocument();
@@ -191,26 +180,26 @@ describe('AppProviders', () => {
   describe('Component Structure', () => {
     it('renders without crashing', () => {
       expect(() => {
-        render(
+        renderWithRouter(
           <AppProviders>
             <div>Test</div>
-          </AppProviders>
+          </AppProviders>,
         );
       }).not.toThrow();
     });
 
     it('handles empty children', () => {
       expect(() => {
-        render(<AppProviders>{null}</AppProviders>);
+        renderWithRouter(<AppProviders>{null}</AppProviders>);
       }).not.toThrow();
     });
 
     it('handles multiple children', () => {
-      render(
+      renderWithRouter(
         <AppProviders>
           <div data-testid="child-1">Child 1</div>
           <div data-testid="child-2">Child 2</div>
-        </AppProviders>
+        </AppProviders>,
       );
 
       expect(screen.getByTestId('child-1')).toBeInTheDocument();
@@ -220,14 +209,12 @@ describe('AppProviders', () => {
 
   describe('Provider Dependencies', () => {
     it('maintains proper provider nesting order', () => {
-      render(
+      renderWithRouter(
         <AppProviders>
           <div data-testid="content">Content</div>
-        </AppProviders>
+        </AppProviders>,
       );
 
-      // The structure should be:
-      // QueryClientProvider > ThemeProvider > AuthProvider > UserProvider > SessionProvider > Router > Content + Toaster
       const content = screen.getByTestId('content');
       expect(content).toBeInTheDocument();
     });
@@ -236,28 +223,25 @@ describe('AppProviders', () => {
   describe('Props Interface', () => {
     it('accepts children prop correctly', () => {
       const TestComponent = () => <div data-testid="test-component">Test</div>;
-      
-      render(
+
+      renderWithRouter(
         <AppProviders>
           <TestComponent />
-        </AppProviders>
+        </AppProviders>,
       );
 
       expect(screen.getByTestId('test-component')).toBeInTheDocument();
     });
 
     it('handles React.ReactNode children type', () => {
-      render(
+      renderWithRouter(
         <AppProviders>
-          {/* String child */}
           Some text content
-          {/* Element child */}
           <div data-testid="element-child">Element</div>
-          {/* Fragment child */}
           <>
             <span data-testid="fragment-child">Fragment</span>
           </>
-        </AppProviders>
+        </AppProviders>,
       );
 
       expect(screen.getByText('Some text content')).toBeInTheDocument();

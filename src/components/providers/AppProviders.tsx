@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
 import { HelmetProvider } from 'react-helmet-async';
@@ -27,23 +27,20 @@ interface AppProvidersProps {
 }
 
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
-  const isQrEntry = typeof window !== 'undefined' && window.location.pathname.startsWith('/qr/');
+  const { pathname } = useLocation();
+  const isQrEntry = pathname.startsWith('/qr/');
 
   if (isQrEntry) {
     return (
       <HelmetProvider>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider attribute="class" forcedTheme="dark">
-            <AuthProvider>
-              <Router
-                future={{
-                  v7_startTransition: true,
-                  v7_relativeSplatPath: true,
-                }}
-              >
-                {children}
-              </Router>
-            </AuthProvider>
+            <TooltipProvider>
+              <AuthProvider>
+                <SessionProvider>{children}</SessionProvider>
+              </AuthProvider>
+            </TooltipProvider>
+            <Toaster />
           </ThemeProvider>
         </QueryClientProvider>
       </HelmetProvider>
@@ -58,16 +55,7 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
             <AuthProvider>
               <MFAProvider>
               <UserProvider>
-                <SessionProvider>
-                  <Router
-                    future={{
-                      v7_startTransition: true,
-                      v7_relativeSplatPath: true,
-                    }}
-                  >
-                    {children}
-                  </Router>
-                </SessionProvider>
+                <SessionProvider>{children}</SessionProvider>
               </UserProvider>
               </MFAProvider>
             </AuthProvider>
