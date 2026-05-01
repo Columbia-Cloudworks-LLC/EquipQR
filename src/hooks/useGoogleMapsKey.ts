@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -35,7 +35,7 @@ export const useGoogleMapsKey = (options: UseGoogleMapsKeyOptions = {}): UseGoog
   const [isLoading, setIsLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchGoogleMapsKey = async () => {
+  const fetchGoogleMapsKey = useCallback(async () => {
     if (!enabled) return;
     setIsLoading(true);
     setError(null);
@@ -90,7 +90,7 @@ export const useGoogleMapsKey = (options: UseGoogleMapsKeyOptions = {}): UseGoog
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [enabled]);
 
   useEffect(() => {
     if (!enabled) {
@@ -98,7 +98,7 @@ export const useGoogleMapsKey = (options: UseGoogleMapsKeyOptions = {}): UseGoog
       return;
     }
     fetchGoogleMapsKey();
-  }, [enabled]);
+  }, [enabled, fetchGoogleMapsKey]);
 
   return {
     googleMapsKey,

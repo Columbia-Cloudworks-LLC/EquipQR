@@ -2,13 +2,13 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { User, Palette, Bell, Shield, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export interface SettingsSection {
+interface SettingsSection {
   id: string;
   label: string;
   icon: React.ReactNode;
 }
 
-export const SETTINGS_SECTIONS: SettingsSection[] = [
+const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'profile', label: 'Profile', icon: <User className="h-4 w-4" /> },
   { id: 'personalization', label: 'Personalization', icon: <Palette className="h-4 w-4" /> },
   { id: 'notifications', label: 'Notifications', icon: <Bell className="h-4 w-4" /> },
