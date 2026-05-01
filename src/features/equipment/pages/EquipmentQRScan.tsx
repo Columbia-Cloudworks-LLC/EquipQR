@@ -6,13 +6,17 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import EquipQRIcon from '@/components/ui/EquipQRIcon';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import { saveOrganizationPreference } from '@/utils/sessionPersistence';
 import type { Database } from '@/integrations/supabase/types';
 import type { Role } from '@/types/permissions';
 import QrPageLoadingShell from '@/features/equipment/components/qr/QrPageLoadingShell';
+import {
+  fetchEquipmentQRPayload,
+  userLimitsSensitivePi,
+  insertScan,
+  type EquipmentQRPayload,
+} from '@/features/equipment/services/equipmentQRPermissions';
 
 type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 
@@ -21,62 +25,7 @@ const PRODUCTION_URL = 'https://equipqr.app';
 const DASHBOARD_CURRENT_ORG_STORAGE_KEY = 'equipqr_current_organization';
 const EquipmentQRQuickActions = lazy(() => import('@/features/equipment/components/qr/EquipmentQRQuickActions'));
 
-interface OrganizationRelation {
-  id: string;
-  name: string;
-  scan_location_collection_enabled: boolean;
-}
-
-interface TeamRelation {
-  id: string;
-  name: string;
-}
-
-interface EquipmentQRRow {
-  id: string;
-  organization_id: string;
-  name: string;
-  manufacturer: string;
-  model: string;
-  serial_number: string;
-  status: EquipmentStatus;
-  location: string | null;
-  working_hours: number | null;
-  image_url: string | null;
-  default_pm_template_id: string | null;
-  team: TeamRelation | TeamRelation[] | null;
-  organizations: OrganizationRelation | OrganizationRelation[];
-}
-
-interface OrganizationMembershipRow {
-  organization_id: string;
-  role: string;
-}
-
-interface EquipmentQRPayload {
-  equipment: {
-    id: string;
-    name: string;
-    manufacturer: string;
-    model: string;
-    serialNumber: string;
-    status: EquipmentStatus;
-    location: string | null;
-    workingHours: number | null;
-    imageUrl: string | null;
-    defaultPmTemplateId: string | null;
-    team: TeamRelation | null;
-  };
-  organization: OrganizationRelation;
-  userRole: string;
-}
-
 type ScanStatus = 'idle' | 'logging' | 'logged' | 'failed';
-
-function firstRelation<T>(value: T | T[] | null | undefined): T | null {
-  if (Array.isArray(value)) return value[0] ?? null;
-  return value ?? null;
-}
 
 function getStatusClasses(status: EquipmentStatus): string {
   switch (status) {
@@ -93,102 +42,6 @@ function getStatusClasses(status: EquipmentStatus): string {
 
 function getStatusLabel(status: EquipmentStatus): string {
   return status.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
-}
-
-async function fetchEquipmentQRPayload(
-  equipmentId: string,
-  userId: string
-): Promise<EquipmentQRPayload> {
-  const { data: memberships, error: membershipError } = await supabase
-    .from('organization_members')
-    .select('organization_id, role')
-    .eq('user_id', userId)
-    .eq('status', 'active');
-
-  if (membershipError) throw new Error(membershipError.message);
-  if (!memberships || memberships.length === 0) {
-    throw new Error('You do not have access to this equipment');
-  }
-
-  const membershipByOrganizationId = new Map(
-    (memberships as OrganizationMembershipRow[]).map((membership) => [membership.organization_id, membership.role])
-  );
-  const scopedOrganizationIds = [...membershipByOrganizationId.keys()];
-
-  const { data, error } = await supabase
-    .from('equipment')
-    .select(`
-      id,
-      organization_id,
-      name,
-      manufacturer,
-      model,
-      serial_number,
-      status,
-      location,
-      working_hours,
-      image_url,
-      default_pm_template_id,
-      team:team_id(id, name),
-      organizations!inner(id, name, scan_location_collection_enabled)
-    `)
-    .in('organization_id', scopedOrganizationIds)
-    .eq('id', equipmentId)
-    .maybeSingle();
-
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error('Equipment not found');
-
-  const row = data as unknown as EquipmentQRRow;
-  const organization = firstRelation(row.organizations);
-  if (!organization) throw new Error('Equipment organization not found');
-
-  const scopedRole = membershipByOrganizationId.get(row.organization_id);
-  if (!scopedRole) throw new Error('You do not have access to this equipment');
-
-  return {
-    equipment: {
-      id: row.id,
-      name: row.name,
-      manufacturer: row.manufacturer,
-      model: row.model,
-      serialNumber: row.serial_number,
-      status: row.status,
-      location: row.location,
-      workingHours: row.working_hours,
-      imageUrl: row.image_url,
-      defaultPmTemplateId: row.default_pm_template_id,
-      team: firstRelation(row.team),
-    },
-    organization,
-    userRole: scopedRole,
-  };
-}
-
-async function userLimitsSensitivePi(userId: string): Promise<boolean> {
-  const { data } = await supabase
-    .from('profiles')
-    .select('limit_sensitive_pi')
-    .eq('id', userId)
-    .maybeSingle();
-
-  return data?.limit_sensitive_pi === true;
-}
-
-async function insertScan(
-  equipmentId: string,
-  location: string | null,
-  notes: string
-): Promise<void> {
-  const scannedBy = await requireAuthUserIdFromClaims();
-  const { error } = await supabase.from('scans').insert({
-    equipment_id: equipmentId,
-    scanned_by: scannedBy,
-    location,
-    notes,
-  });
-
-  if (error) throw new Error(error.message);
 }
 
 const EquipmentQRScan = () => {
