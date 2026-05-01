@@ -349,8 +349,12 @@ for (const filePath of changedFiles) {
     const rawSemi = findStatementEndSemicolon(content, alterStart);
     // Include the line immediately before ALTER TABLE so that a suppression
     // comment placed on the preceding line (the documented pattern) is detected.
-    const precedingNewline = content.lastIndexOf('\n', alterStart - 1);
-    const sliceStart = precedingNewline >= 0 ? precedingNewline + 1 : 0;
+    const alterLineStart = content.lastIndexOf('\n', alterStart - 1) + 1;
+    let sliceStart = 0;
+    if (alterLineStart > 0) {
+      const prevNewline = content.lastIndexOf('\n', alterLineStart - 2);
+      sliceStart = prevNewline >= 0 ? prevNewline + 1 : 0;
+    }
     const safeCommentSlice = content.slice(sliceStart, rawSemi + 1);
     const hasSafeComment = /--\s*(safe.?drop|intentional.?drop|acknowledged)/i.test(
       safeCommentSlice,

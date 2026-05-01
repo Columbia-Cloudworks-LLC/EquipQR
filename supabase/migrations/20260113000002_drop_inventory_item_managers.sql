@@ -21,6 +21,7 @@ DROP TABLE IF EXISTS public.inventory_item_managers;
 -- PART 3: Remove default_inventory_manager_id from organizations table
 -- ============================================================================
 
+-- intentional-drop: column tied to removed per-item managers; superseded by parts_managers
 ALTER TABLE public.organizations 
   DROP COLUMN IF EXISTS default_inventory_manager_id;
 
