@@ -104,26 +104,28 @@ export const createEquipmentValidationSchema = (context?: EquipmentValidationCon
   return equipmentFormSchema.refine((data) => {
     // If no context provided, skip team validation (for backward compatibility)
     if (!context) return true;
-    
+
     // Org admins and owners can create equipment without team assignment
     if (context.isOrgAdmin || context.userRole === 'owner') {
       return true;
     }
-    
-    // Non-admin users must assign equipment to a team they manage
+
+    // Non-admin users must assign equipment to a team where they hold a
+    // create-capable role (manager or technician) — issue #650. The
+    // historical 'admin' team role is kept for backward compatibility with
+    // any seeded fixture data, but no team currently issues that role.
     if (!data.team_id) {
       return false;
     }
-    
-    // Validate user can manage the assigned team
-    const canManageTeam = context.teamMemberships.some(
-      membership => membership.teamId === data.team_id && 
-      (membership.role === 'manager' || membership.role === 'admin')
+
+    const canCreateForTeam = context.teamMemberships.some(
+      membership => membership.teamId === data.team_id &&
+        (membership.role === 'manager' || membership.role === 'technician' || membership.role === 'admin')
     );
-    
-    return canManageTeam;
+
+    return canCreateForTeam;
   }, {
-    message: "You must assign equipment to a team you manage",
+    message: "You must assign equipment to a team where you can create equipment (manager or technician)",
     path: ["team_id"]
   });
 };

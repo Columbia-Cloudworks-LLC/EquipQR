@@ -96,13 +96,15 @@ This document defines the comprehensive role-based access control (RBAC) system 
 
 | Action | Owner | Admin | Member | Manager | Technician | Requestor | Viewer |
 |--------|-------|-------|--------|---------|------------|-----------|--------|
-| Create Equipment | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Create Equipment | ✅ | ✅ | ❌ | ✅** | ✅** | ❌ | ❌ |
 | Update Equipment | ✅ | ✅ | ❌ | ✅ | ✅*** | ❌ | ❌ |
 | Delete Equipment | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
 | View Equipment | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Generate QR Codes | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
 | Scan QR Codes | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Update Custom Attributes | ✅ | ✅ | ❌ | ✅ | ✅*** | ❌ | ❌ |
+
+**Owners and admins can create equipment for any team org-wide; team managers and technicians can only create equipment for teams where they hold that role (issue #650). Equipment created without a team is restricted to owners/admins.
 
 ***Limited to status updates and maintenance records
 

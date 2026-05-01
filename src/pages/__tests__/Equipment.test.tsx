@@ -7,8 +7,10 @@ import { render } from '@/test/utils/test-utils';
 
 
 vi.mock('@/hooks/usePermissions', () => ({
-  usePermissions: () => ({ 
+  usePermissions: () => ({
     canCreateEquipment: () => true,
+    canCreateEquipmentForTeam: vi.fn(() => true),
+    canCreateEquipmentForAnyTeam: () => true,
     hasRole: vi.fn(() => true)
   }),
 }));

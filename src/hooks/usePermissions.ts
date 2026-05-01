@@ -13,7 +13,26 @@ export const usePermissions = () => {
     canCreateTeam: () => permissions.teams.canCreateAny,
     canManageEquipment: (equipmentTeamId?: string) => permissions.equipment.getPermissions(equipmentTeamId).canEdit,
     canViewEquipment: (equipmentTeamId?: string) => permissions.equipment.getPermissions(equipmentTeamId).canView,
+    /**
+     * Org-wide equipment-create gate. True only for owners/admins; preserved
+     * as the no-argument compatibility surface so inventory pages and other
+     * call sites that intentionally gate on org-wide create rights are not
+     * silently broadened. Team managers and technicians should call
+     * `canCreateEquipmentForTeam(teamId)` or `canCreateEquipmentForAnyTeam()`.
+     */
     canCreateEquipment: () => permissions.equipment.canCreateAny,
+    /**
+     * Team-aware equipment-create gate. True for org owners/admins on every
+     * team and for team managers/technicians on teams where they hold that
+     * role. Mirrors the `team_members_create_equipment` RLS policy.
+     */
+    canCreateEquipmentForTeam: (teamId: string) => permissions.equipment.canCreateForTeam(teamId),
+    /**
+     * True when the user can create equipment for at least one team. Used to
+     * gate page-level "Add Equipment" affordances on `/dashboard/equipment`
+     * where no specific team is in scope yet.
+     */
+    canCreateEquipmentForAnyTeam: () => permissions.equipment.canCreateForAnyTeam,
     canUpdateEquipmentStatus: (equipmentTeamId?: string) => permissions.equipment.getPermissions(equipmentTeamId).canEdit,
     canManageWorkOrder: (workOrder?: WorkOrderData) => permissions.workOrders.getPermissions(workOrder).canEdit,
     canViewWorkOrder: (workOrder?: WorkOrderData) => permissions.workOrders.getPermissions(workOrder).canView,

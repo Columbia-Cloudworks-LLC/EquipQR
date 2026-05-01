@@ -112,7 +112,7 @@ describe('equipment types', () => {
       if (!result.success) {
         const teamIdError = result.error.issues.find(issue => issue.path.includes('team_id'));
         expect(teamIdError).toBeDefined();
-        expect(teamIdError?.message).toContain('You must assign equipment to a team you manage');
+        expect(teamIdError?.message).toContain('manager or technician');
       }
     });
 
@@ -136,28 +136,48 @@ describe('equipment types', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should reject team assignment if user does not manage the team', () => {
+    it('should reject team assignment if user has no create-capable role on the team', () => {
       const context: EquipmentValidationContext = {
         userRole: 'member',
         isOrgAdmin: false,
         teamMemberships: [
-          { teamId: 'team-123', role: 'member' }, // Not a manager/admin
+          { teamId: 'team-123', role: 'member' }, // Not a manager/technician/admin
         ],
       };
-      
+
       const schema = createEquipmentValidationSchema(context);
       const dataWithUnmanagedTeam = {
         ...validEquipmentData,
         team_id: 'team-123',
       };
-      
+
       const result = schema.safeParse(dataWithUnmanagedTeam);
       expect(result.success).toBe(false);
       if (!result.success) {
         const teamIdError = result.error.issues.find(issue => issue.path.includes('team_id'));
         expect(teamIdError).toBeDefined();
-        expect(teamIdError?.message).toContain('You must assign equipment to a team you manage');
+        expect(teamIdError?.message).toContain('manager or technician');
       }
+    });
+
+    // #650: technicians on the team can now create equipment for it.
+    it('should allow team assignment if user is a technician on the team', () => {
+      const context: EquipmentValidationContext = {
+        userRole: 'member',
+        isOrgAdmin: false,
+        teamMemberships: [
+          { teamId: 'team-123', role: 'technician' },
+        ],
+      };
+
+      const schema = createEquipmentValidationSchema(context);
+      const dataWithTechnicianTeam = {
+        ...validEquipmentData,
+        team_id: 'team-123',
+      };
+
+      const result = schema.safeParse(dataWithTechnicianTeam);
+      expect(result.success).toBe(true);
     });
 
     it('should allow admin role in team membership', () => {

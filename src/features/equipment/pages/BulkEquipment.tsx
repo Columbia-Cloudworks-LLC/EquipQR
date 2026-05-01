@@ -43,7 +43,7 @@ const BackToEquipmentButton: React.FC = () => (
 
 const BulkEquipment: React.FC = () => {
   const { currentOrganization } = useOrganization();
-  const { canCreateEquipment } = usePermissions();
+  const { canCreateEquipment, canCreateEquipmentForAnyTeam } = usePermissions();
   const isOnline = useOnlineStatus();
   const isMobile = useIsMobile();
 
@@ -91,17 +91,18 @@ const BulkEquipment: React.FC = () => {
     );
   }
 
-  // Gate by `canCreateEquipment()` per the Service Request — bulk editing is
-  // a power-user surface scoped to roles that can already create equipment
-  // org-wide (owner / admin / member). Per-row edit gating still applies at
-  // commit time because each row write goes through the same RLS-protected
-  // `equipment.update` path used by the single-item form.
-  if (!canCreateEquipment()) {
+  // Gate by the same matrix as the "Add Equipment" affordance on
+  // `/dashboard/equipment` (issue #650): owners/admins org-wide, plus team
+  // managers/technicians who can create equipment for at least one of their
+  // teams. Per-row edit writes are still RLS-gated through the same
+  // `equipment.update` path used by the single-item form, so opening the
+  // grid does not bypass row-level permissions.
+  if (!canCreateEquipment() && !canCreateEquipmentForAnyTeam()) {
     return (
       <Page maxWidth="full" padding="responsive">
         <PageHeader
           title="Bulk Edit Equipment"
-          description="Bulk equipment editing is restricted to roles that can create equipment org-wide. Contact an organization administrator if you need access."
+          description="Bulk equipment editing is restricted to roles that can create equipment. Contact an organization administrator or a team manager if you need access."
           actions={<BackToEquipmentButton />}
         />
       </Page>

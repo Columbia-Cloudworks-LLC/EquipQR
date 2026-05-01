@@ -6,6 +6,7 @@ type TeamMembership = UserContext['teamMemberships'][number];
 
 const TEAM_VIEW_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician', 'requestor', 'viewer', 'owner']);
 const TEAM_OPERATION_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician', 'owner']);
+const TEAM_EQUIPMENT_CREATE_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician', 'owner']);
 
 export class PermissionEngine {
   private rules: Map<string, PermissionRule<EntityContext>[]> = new Map();
@@ -73,6 +74,29 @@ export class PermissionEngine {
         );
       },
       priority: 90
+    });
+
+    // Equipment creation rules. Owners/admins can create org-wide (no team
+    // context required). Team managers and technicians can create only for
+    // teams where they hold that role; other team roles (requestor, viewer)
+    // and members without team roles are denied. Mirrors the docs matrix and
+    // the corresponding `team_members_create_equipment` RLS policy.
+    this.addRule('equipment.create', {
+      name: 'equipment-create-admin',
+      check: (context) => ['owner', 'admin'].includes(context.userRole),
+      priority: 100
+    });
+
+    this.addRule('equipment.create', {
+      name: 'equipment-create-team-role',
+      check: (context, entityContext) => {
+        return this.hasTeamMembershipWithRole(
+          context.teamMemberships,
+          entityContext?.teamId,
+          TEAM_EQUIPMENT_CREATE_ROLES
+        );
+      },
+      priority: 80
     });
 
     // Work order rules

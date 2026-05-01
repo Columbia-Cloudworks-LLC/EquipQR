@@ -12,12 +12,17 @@ interface TeamSelectionSectionProps {
 }
 
 const TeamSelectionSection: React.FC<TeamSelectionSectionProps> = ({ form }) => {
-  const { teams, managedTeams, isLoading } = useTeams();
-  const { hasRole } = usePermissions();
+  const { teams, isLoading } = useTeams();
+  const { hasRole, canCreateEquipmentForTeam } = usePermissions();
   const isAdmin = hasRole(['owner', 'admin']);
-  
-  // Determine which teams to show based on user role
-  const availableTeams = isAdmin ? teams : managedTeams;
+
+  // Owners/admins see every team in the org; team managers and technicians
+  // see only the teams where they hold a create-capable role (issue #650).
+  // The per-team gate mirrors the equipment.create permission rule and the
+  // `team_members_create_equipment` RLS policy.
+  const availableTeams = isAdmin
+    ? teams
+    : teams.filter(team => canCreateEquipmentForTeam(team.id));
   
   if (isLoading) {
     return (
@@ -73,14 +78,14 @@ const TeamSelectionSection: React.FC<TeamSelectionSectionProps> = ({ form }) => 
                   ))}
                 </SelectContent>
               </Select>
-              {!isAdmin && managedTeams.length === 0 && (
+              {!isAdmin && availableTeams.length === 0 && (
                 <p className="text-sm text-muted-foreground">
-                  You must be a team manager to create equipment.
+                  You must be a team manager or technician on at least one team to create equipment.
                 </p>
               )}
-              {!isAdmin && (
+              {!isAdmin && availableTeams.length > 0 && (
                 <p className="text-sm text-muted-foreground">
-                  You can only assign equipment to teams you manage.
+                  You can only assign equipment to teams where you are a manager or technician.
                 </p>
               )}
               <FormMessage />

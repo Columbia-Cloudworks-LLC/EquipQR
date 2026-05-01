@@ -84,6 +84,13 @@ vi.mock('@/services/permissions/PermissionEngine', () => ({
       if (permission === 'equipment.edit') {
         return ['admin', 'owner'].includes(role);
       }
+      if (permission === 'equipment.create') {
+        // #650: org admins/owners create org-wide; team-scoped users would
+        // require team membership lookup which the mock context here does
+        // not carry, so admins/owners pass and member-with-team scenarios
+        // are exercised in the UnifiedPermissions test suite.
+        return ['admin', 'owner'].includes(role);
+      }
       
       // Team permissions
       if (permission === 'team.view') {
@@ -407,8 +414,63 @@ describe('usePermissions', () => {
       mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
 
       const { result } = renderHook(() => usePermissions());
-      
+
       expect(result.current.canCreateEquipment()).toBe(true);
+    });
+
+    // #650: the no-argument compatibility gate must remain owner/admin-only
+    // so call sites that intentionally check org-wide create rights are not
+    // silently broadened.
+    it('should return false for member role (no team context)', () => {
+      updateSessionMockForRole('member');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('member'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+
+      expect(result.current.canCreateEquipment()).toBe(false);
+    });
+  });
+
+  describe('canCreateEquipmentForTeam (#650)', () => {
+    it('returns true for admin role on any team', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+
+      expect(result.current.canCreateEquipmentForTeam('team-1')).toBe(true);
+    });
+
+    it('returns false for member role with no manager/technician membership', () => {
+      updateSessionMockForRole('member');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('member'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+
+      expect(result.current.canCreateEquipmentForTeam('team-1')).toBe(false);
+    });
+  });
+
+  describe('canCreateEquipmentForAnyTeam (#650)', () => {
+    it('returns true for admin role', () => {
+      updateSessionMockForRole('admin');
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(createTestOrganization('admin'))
+      );
+      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
+
+      const { result } = renderHook(() => usePermissions());
+
+      expect(result.current.canCreateEquipmentForAnyTeam()).toBe(true);
     });
   });
 
