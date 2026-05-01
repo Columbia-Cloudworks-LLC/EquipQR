@@ -5,6 +5,10 @@ description: Use when the user has a high-level feature idea and needs a technic
 
 # Pencil
 
+## Cursor workflow commit policy
+
+If a workflow reaches an authorized commit step, include unrelated incremental Cursor workflow updates when they are limited to agent operating guidance or tooling configuration: `AGENTS.md`, `.cursor/skills/`, `.cursor/rules/`, `.cursor/hooks/`, Cursor MCP/template configuration, subagent guidance, or similar workflow files. Do not treat those edits as scope drift just because they were produced irregularly while another task was running. Still inspect the diff for secrets, destructive rewrites, broad unrelated content, or behavior changes outside Cursor workflow. This policy does not allow read-only skills to edit, commit, or push on their own.
+
 ## Symbolism
 
 The pencil records the design so the work can be squared later.

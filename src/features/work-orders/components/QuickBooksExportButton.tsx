@@ -294,37 +294,6 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
             </div>
 
             <div className="space-y-2">
-              <div className="text-sm font-medium">PDF attachment</div>
-              {latestLog?.pdf_attachment_status ? (
-                <div className="space-y-1 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="outline"
-                      className={getStatusBadgeClass(
-                        latestLog.pdf_attachment_status === 'success'
-                          ? 'success'
-                          : latestLog.pdf_attachment_status === 'failed'
-                          ? 'error'
-                          : undefined
-                      )}
-                    >
-                      {latestLog.pdf_attachment_status === 'disabled'
-                        ? 'Disabled'
-                        : latestLog.pdf_attachment_status}
-                    </Badge>
-                    {latestLog.pdf_attachment_status === 'failed' && latestLog.pdf_attachment_error ? (
-                      <span className="text-xs text-muted-foreground">
-                        {latestLog.pdf_attachment_error}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-sm text-muted-foreground">Not applicable</div>
-              )}
-            </div>
-
-            <div className="space-y-2">
               <div className="text-sm font-medium">Troubleshooting</div>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <div className="flex items-center justify-between gap-2">
@@ -334,21 +303,6 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
                       variant="ghost"
                       size="sm"
                       onClick={() => handleCopy('Intuit trace ID', latestLog.intuit_tid)}
-                    >
-                      <Copy className="h-4 w-4" />
-                      Copy
-                    </Button>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Not available</span>
-                  )}
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span>PDF trace ID</span>
-                  {latestLog?.pdf_attachment_intuit_tid ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleCopy('PDF trace ID', latestLog.pdf_attachment_intuit_tid)}
                     >
                       <Copy className="h-4 w-4" />
                       Copy

@@ -2,6 +2,7 @@ import { logger } from '@/utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
 import { validateStorageQuota } from '@/utils/storageQuota';
+import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 
 export interface WorkOrderNote {
   id: string;
@@ -42,8 +43,7 @@ export const createWorkOrderNoteWithImages = async (
   organizationId?: string,
   machineHours?: number | null,
 ): Promise<WorkOrderNote> => {
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) throw new Error('User not authenticated');
+  const userId = await requireAuthUserIdFromClaims();
 
   // Get organization_id if not provided
   let orgId = organizationId;
@@ -66,7 +66,7 @@ export const createWorkOrderNoteWithImages = async (
     .from('work_order_notes')
     .insert({
       work_order_id: workOrderId,
-      author_id: userData.user.id,
+      author_id: userId,
       content,
       hours_worked: hoursWorked,
       is_private: isPrivate,
@@ -83,7 +83,7 @@ export const createWorkOrderNoteWithImages = async (
     try {
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
-      const fileName = `${userData.user.id}/${workOrderId}/${note.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${userId}/${workOrderId}/${note.id}/${Date.now()}.${fileExt}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('work-order-images')
@@ -109,7 +109,7 @@ export const createWorkOrderNoteWithImages = async (
           file_url: publicUrl,
           file_size: file.size,
           mime_type: file.type,
-          uploaded_by: userData.user.id,
+          uploaded_by: userId,
           description: `Attached to note: ${note.id}`
         })
         .select()
@@ -275,8 +275,7 @@ export const getWorkOrderImages = async (workOrderId: string) => {
 
 // Delete an image
 export const deleteWorkOrderImage = async (imageId: string): Promise<void> => {
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) throw new Error('User not authenticated');
+  const userId = await requireAuthUserIdFromClaims();
 
   // Get image details first
   const { data: image, error: fetchError } = await supabase
@@ -289,7 +288,7 @@ export const deleteWorkOrderImage = async (imageId: string): Promise<void> => {
   if (!image) throw new Error('Image not found');
 
   // Check if user can delete (must be uploader)
-  if (image.uploaded_by !== userData.user.id) {
+  if (image.uploaded_by !== userId) {
     throw new Error('Not authorized to delete this image');
   }
 

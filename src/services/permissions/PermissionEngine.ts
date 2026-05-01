@@ -1,7 +1,11 @@
 import { logger } from '@/utils/logger';
-import { UserContext, PermissionRule, PermissionCache } from '@/types/permissions';
+import { UserContext, PermissionRule, PermissionCache, TeamRole } from '@/types/permissions';
 
 type EntityContext = { teamId?: string; assigneeId?: string; [key: string]: unknown };
+type TeamMembership = UserContext['teamMemberships'][number];
+
+const TEAM_VIEW_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician', 'requestor', 'viewer', 'owner']);
+const TEAM_OPERATION_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician', 'owner']);
 
 export class PermissionEngine {
   private rules: Map<string, PermissionRule<EntityContext>[]> = new Map();
@@ -10,6 +14,15 @@ export class PermissionEngine {
 
   constructor() {
     this.initializeRules();
+  }
+
+  private hasTeamMembershipWithRole(
+    memberships: TeamMembership[],
+    teamId: string | undefined,
+    allowedRoles: ReadonlySet<TeamRole>
+  ): boolean {
+    if (!teamId) return false;
+    return memberships.some(tm => tm.teamId === teamId && allowedRoles.has(tm.role));
   }
 
   private initializeRules() {
@@ -36,8 +49,11 @@ export class PermissionEngine {
     this.addRule('equipment.view', {
       name: 'equipment-view-team',
       check: (context, entityContext) => {
-        if (!entityContext?.teamId) return false;
-        return context.teamMemberships.some(tm => tm.teamId === entityContext.teamId);
+        return this.hasTeamMembershipWithRole(
+          context.teamMemberships,
+          entityContext?.teamId,
+          TEAM_VIEW_ROLES
+        );
       },
       priority: 60
     });
@@ -69,8 +85,11 @@ export class PermissionEngine {
     this.addRule('workorder.view', {
       name: 'workorder-view-team',
       check: (context, entityContext) => {
-        if (!entityContext?.teamId) return false;
-        return context.teamMemberships.some(tm => tm.teamId === entityContext.teamId);
+        return this.hasTeamMembershipWithRole(
+          context.teamMemberships,
+          entityContext?.teamId,
+          TEAM_VIEW_ROLES
+        );
       },
       priority: 60
     });
@@ -118,8 +137,11 @@ export class PermissionEngine {
     this.addRule('workorder.changestatus', {
       name: 'workorder-status-team-member',
       check: (context, entityContext) => {
-        if (!entityContext?.teamId) return false;
-        return context.teamMemberships.some(tm => tm.teamId === entityContext.teamId);
+        return this.hasTeamMembershipWithRole(
+          context.teamMemberships,
+          entityContext?.teamId,
+          TEAM_OPERATION_ROLES
+        );
       },
       priority: 70
     });
@@ -142,8 +164,11 @@ export class PermissionEngine {
     this.addRule('team.view', {
       name: 'team-view-member',
       check: (context, entityContext) => {
-        if (!entityContext?.teamId) return false;
-        return context.teamMemberships.some(tm => tm.teamId === entityContext.teamId);
+        return this.hasTeamMembershipWithRole(
+          context.teamMemberships,
+          entityContext?.teamId,
+          TEAM_VIEW_ROLES
+        );
       },
       priority: 50
     });

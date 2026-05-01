@@ -11,6 +11,7 @@ import {
 import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
+import { landingImage } from '@/lib/landingImage';
 
 const GoogleWorkspaceFeature = () => {
   return (
@@ -220,7 +221,7 @@ const GoogleWorkspaceFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
-                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/google-workspace-connect.png"
+                    src={landingImage('google-workspace-connect.png')}
                     alt="Organization Settings showing Google Workspace integration with connected domain"
                     className="w-full h-auto"
                     loading="lazy"
@@ -235,7 +236,7 @@ const GoogleWorkspaceFeature = () => {
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img
-                    src="https://supabase.equipqr.app/storage/v1/object/public/landing-page-images/google-workspace-import.png"
+                    src={landingImage('google-workspace-import.png')}
                     alt="Import from Google Workspace dialog showing directory sync and user import"
                     className="w-full h-auto"
                     loading="lazy"

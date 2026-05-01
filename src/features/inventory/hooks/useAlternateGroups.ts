@@ -28,9 +28,10 @@ const DEFAULT_STALE_TIME = 5 * 60 * 1000; // 5 minutes
  */
 export const useAlternateGroups = (
   organizationId: string | undefined,
-  options?: { staleTime?: number }
+  options?: { staleTime?: number; enabled?: boolean }
 ) => {
   const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
+  const enabled = options?.enabled ?? true;
 
   return useQuery({
     queryKey: ['alternate-groups', organizationId],
@@ -38,7 +39,7 @@ export const useAlternateGroups = (
       if (!organizationId) return [];
       return await getAlternateGroups(organizationId);
     },
-    enabled: !!organizationId,
+    enabled: enabled && !!organizationId,
     staleTime,
   });
 };
@@ -213,7 +214,7 @@ export const useAddInventoryItemToGroup = () => {
       queryClient.invalidateQueries({
         queryKey: ['alternate-group', variables.organizationId, variables.groupId],
       });
-      // Invalidate alternates queries since group membership changed
+      // Invalidate alternates queries since group membership changed.
       queryClient.invalidateQueries({
         queryKey: ['inventory-item-alternates'],
       });

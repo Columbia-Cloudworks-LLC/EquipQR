@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { getAuthClaims } from '@/lib/authClaims';
 
 export interface OrganizationInvitation {
   id: string;
@@ -33,15 +34,15 @@ export const useOrganizationInvitations = (organizationId: string) => {
     queryFn: async (): Promise<OrganizationInvitation[]> => {
       if (!organizationId) return [];
 
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('User not authenticated');
+      const claims = await getAuthClaims();
+      if (!claims) throw new Error('User not authenticated');
 
       const startTime = performance.now();
       
       try {
         // Use the atomic function that eliminates circular dependencies
         const { data: invitationsData, error } = await supabase.rpc('get_invitations_atomic', {
-          user_uuid: userData.user.id,
+          user_uuid: claims.sub,
           org_id: organizationId
         });
 
@@ -50,14 +51,45 @@ export const useOrganizationInvitations = (organizationId: string) => {
           throw error;
         }
 
-        // Get inviter name
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('name')
-          .eq('id', userData.user.id)
-          .single();
-        
-        const inviterName = profileData?.name || 'You';
+        const invitations = invitationsData || [];
+
+        // Fetch actual invited_by for each invitation from the table, then resolve names
+        const inviterNameMap: Record<string, string> = {};
+        const inviterIdMap: Record<string, string> = {};
+        if (invitations.length > 0) {
+          const { data: invitationRows, error: invitationRowsError } = await supabase
+            .from('organization_invitations')
+            .select('id, invited_by')
+            .in('id', invitations.map(i => i.id))
+            .eq('organization_id', organizationId);
+
+          if (invitationRowsError) {
+            logger.error('Error fetching invitation inviter ids', invitationRowsError);
+          } else if (invitationRows && invitationRows.length > 0) {
+            const uniqueInviterIds = [...new Set(invitationRows.map(r => r.invited_by).filter(Boolean))];
+            const { data: profileRows, error: profileRowsError } = await supabase
+              .from('profiles')
+              .select('id, name')
+              .in('id', uniqueInviterIds);
+
+            if (profileRowsError) {
+              logger.error('Error fetching inviter profiles', profileRowsError);
+            }
+
+            const profileMap: Record<string, string> = {};
+            for (const p of profileRows || []) {
+              profileMap[p.id] = p.name || 'Unknown';
+            }
+
+            for (const row of invitationRows) {
+              inviterIdMap[row.id] = row.invited_by;
+              inviterNameMap[row.id] = profileRowsError
+                ? 'Unknown'
+                : (profileMap[row.invited_by] || 'Unknown');
+            }
+          }
+        }
+
         const executionTime = performance.now() - startTime;
 
         // Log performance
@@ -71,17 +103,17 @@ export const useOrganizationInvitations = (organizationId: string) => {
           // Silently fail - performance logging is non-critical
         }
 
-        return (invitationsData || []).map(invitation => ({
+        return invitations.map(invitation => ({
           id: invitation.id,
           email: invitation.email,
           role: invitation.role as 'admin' | 'member',
           status: invitation.status as 'pending' | 'accepted' | 'declined' | 'expired',
           message: invitation.message || undefined,
-          invitedBy: userData.user.id,
+          invitedBy: inviterIdMap[invitation.id] ?? '',
           createdAt: invitation.created_at,
           expiresAt: invitation.expires_at,
           acceptedAt: invitation.accepted_at || undefined,
-          inviterName: inviterName,
+          inviterName: inviterNameMap[invitation.id] || 'Unknown',
           slot_reserved: invitation.slot_reserved || false,
           slot_purchase_id: invitation.slot_purchase_id || undefined,
           declined_at: invitation.declined_at || undefined,
@@ -121,8 +153,8 @@ export const useCreateInvitation = (organizationId: string) => {
     mutationFn: async (requestData: CreateInvitationData) => {
       if (!organizationId) throw new Error('No organization ID provided');
 
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('User not authenticated');
+      const claims = await getAuthClaims();
+      if (!claims) throw new Error('User not authenticated');
 
       const startTime = performance.now();
       
@@ -140,7 +172,7 @@ export const useCreateInvitation = (organizationId: string) => {
           p_email: requestData.email.toLowerCase().trim(),
           p_role: requestData.role,
           p_message: requestData.message || null,
-          p_invited_by: userData.user.id
+          p_invited_by: claims.sub
         });
 
         if (error) {
@@ -210,7 +242,7 @@ export const useCreateInvitation = (organizationId: string) => {
           try {
             // Get profile and organization data for email
             const [profileResult, organizationResult] = await Promise.all([
-              supabase.from('profiles').select('name').eq('id', userData.user.id).single(),
+              supabase.from('profiles').select('name').eq('id', claims.sub).single(),
               supabase.from('organizations').select('name').eq('id', organizationId).single()
             ]);
 
@@ -294,12 +326,12 @@ export const useResendInvitation = (organizationId: string) => {
 
   return useMutation({
     mutationFn: async (invitationId: string) => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('User not authenticated');
+      const claims = await getAuthClaims();
+      if (!claims) throw new Error('User not authenticated');
 
       // Check if user can manage this invitation using atomic function
       const { data: canManage } = await supabase.rpc('can_manage_invitation_atomic', {
-        user_uuid: userData.user.id,
+        user_uuid: claims.sub,
         invitation_id: invitationId
       });
 
@@ -338,12 +370,12 @@ export const useCancelInvitation = (organizationId: string) => {
 
   return useMutation({
     mutationFn: async (invitationId: string) => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('User not authenticated');
+      const claims = await getAuthClaims();
+      if (!claims) throw new Error('User not authenticated');
 
       // Check if user can manage this invitation using atomic function
       const { data: canManage } = await supabase.rpc('can_manage_invitation_atomic', {
-        user_uuid: userData.user.id,
+        user_uuid: claims.sub,
         invitation_id: invitationId
       });
 

@@ -35,6 +35,16 @@ Remove-Item ".git/COMMIT_MSG"
 - **Do not use** `&&` to chain commands — use `;` or separate calls instead, since `&&` requires PowerShell 7+.
 - **Do not use** `$(...)` bash-style command substitution in git arguments.
 
+## PR thread replies (PowerShell + gh)
+
+- **Use the pull-review-comments create endpoint with JSON input** for in-thread replies:
+```powershell
+$payload = '{"body":"Fixed — ...","in_reply_to":1234567890}'
+$payload | gh api repos/{owner}/{repo}/pulls/{pr_number}/comments --method POST --input -
+```
+- **Treat immediate `404` replies after push as non-fatal**: this commonly means the conversation auto-resolved/outdated before the reply posted.
+- **Still post the top-level PR summary comment** even when one or more thread replies race and 404.
+
 ## Worktree gotchas (Windows)
 
 - **`gh pr merge --delete-branch` fails when the PR head branch is checked out in a worktree.** The remote merge still succeeds, but the local-branch deletion errors out with `cannot delete branch '<name>' used by worktree at '<path>'`. After the failure, verify the merge succeeded with `gh pr view <num> --json state,mergedAt` and clean up the local branch manually after pruning the worktree.

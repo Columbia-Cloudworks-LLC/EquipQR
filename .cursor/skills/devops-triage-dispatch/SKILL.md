@@ -5,6 +5,10 @@ description: Read-only DevOps triage-and-dispatch for EquipQR. Use proactively a
 
 # DevOps Triage Dispatch
 
+## Cursor workflow commit policy
+
+If a workflow reaches an authorized commit step, include unrelated incremental Cursor workflow updates when they are limited to agent operating guidance or tooling configuration: `AGENTS.md`, `.cursor/skills/`, `.cursor/rules/`, `.cursor/hooks/`, Cursor MCP/template configuration, subagent guidance, or similar workflow files. Do not treat those edits as scope drift just because they were produced irregularly while another task was running. Still inspect the diff for secrets, destructive rewrites, broad unrelated content, or behavior changes outside Cursor workflow. This policy does not allow read-only skills to edit, commit, or push on their own.
+
 ## Purpose
 
 A **read-only DevOps triage-and-dispatch workflow** for the EquipQR repository. The skill's sole purpose is to assess the local environment, repository health, and issue backlog to identify the **single highest-priority task**, then hand it off to a separate execution agent via a precise copy-paste prompt.

@@ -105,5 +105,5 @@ export function useOfflineMergedEquipment(
 
     // Offline items first, then server data
     return [...offlineEquipment, ...serverEquipment];
-  }, [offlineCtx?.queuedItems, serverEquipment, offlineCtx]);
+  }, [serverEquipment, offlineCtx]);
 }

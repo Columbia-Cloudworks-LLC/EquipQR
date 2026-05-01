@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAppToast } from '@/hooks/useAppToast';
 import { logger } from '@/utils/logger';
+import { getAuthClaims } from '@/lib/authClaims';
 
 export interface GoogleWorkspaceMemberClaim {
   id: string;
@@ -36,8 +37,8 @@ export const useGoogleWorkspaceMemberClaims = (organizationId: string) => {
     queryFn: async (): Promise<GoogleWorkspaceMemberClaim[]> => {
       if (!organizationId) return [];
 
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('User not authenticated');
+      const claims = await getAuthClaims();
+      if (!claims) throw new Error('User not authenticated');
 
       // Fetch pending claims (status = 'selected', source = 'google_workspace')
       const { data, error } = await supabase
@@ -117,8 +118,8 @@ export const useRevokeGoogleWorkspaceMemberClaim = (organizationId: string) => {
 
   return useMutation({
     mutationFn: async (claimId: string) => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('User not authenticated');
+      const claims = await getAuthClaims();
+      if (!claims) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
         .from('organization_member_claims')

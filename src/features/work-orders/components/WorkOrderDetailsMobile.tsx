@@ -312,6 +312,8 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
                       src={equipment.image_url}
                       alt={equipment.name}
                       className="w-full h-40 object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     <div className="w-full h-40 bg-muted flex items-center justify-center">

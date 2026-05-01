@@ -7,6 +7,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 
 export type StorageBucket =
   | 'organization-logos'
@@ -183,11 +184,7 @@ export function extractStoragePath(
  * Get the current authenticated user ID, or throw.
  */
 export async function requireAuthUserId(): Promise<string> {
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) {
-    throw new Error('User not authenticated');
-  }
-  return userData.user.id;
+  return requireAuthUserIdFromClaims();
 }
 
 /**

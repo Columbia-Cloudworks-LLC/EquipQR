@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-04-29
+
+### Added
+
+- **Permission-aware quick actions on equipment QR scan pages** ([#695](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/695)) — `/qr/equipment/:equipmentId` now renders the scanned equipment card first, then mounts a lean quick-action island for New PM Work Order, Create Generic Work Order, Update Hours, and Add Note / Upload Image. Each action performs a narrow click-time permission check and shows inline denial copy on the QR page instead of navigating away; action dialogs lazy-load only after selection and reuse existing work-order, PM, working-hours, and equipment-note service paths so audit/history, storage quota checks, and RLS remain authoritative.
+
 ## [3.0.1] - 2026-04-23
 
 ### Fixed

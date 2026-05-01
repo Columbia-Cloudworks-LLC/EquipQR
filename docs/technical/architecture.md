@@ -71,6 +71,8 @@ EquipQR™ is a modern, cloud-native fleet equipment management platform built w
 
 **Authentication & Authorization**
 - **Supabase Auth (GoTrue)**: JWT-based authentication
+- **Local Claims Verification**: Client identity-only checks use `supabase.auth.getClaims()`
+  against asymmetric JWT signing keys to avoid unnecessary Auth server round-trips
 - **Multi-tenant Architecture**: Organization-based data isolation
 - **Role-Based Access Control (RBAC)**: Granular permissions system
 - **Session Management**: Automatic token refresh and persistence
@@ -321,7 +323,22 @@ const useRealtimeEquipment = (organizationId: string) => {
    ├── localStorage (access token)
    ├── sessionStorage (temporary data)
    └── Secure cookie (refresh token)
+
+4. Client Identity Checks
+   ├── Default: supabase.auth.getClaims()
+   ├── User UUID: claims.sub
+   ├── Email / metadata: claims.email, claims.app_metadata, claims.user_metadata
+   └── getUser() reserved for intentional server-authoritative freshness checks
 ```
+
+Client-side service and hook code should use the shared auth-claims helper for
+identity-only checks. EquipQR's Supabase project uses asymmetric JWT signing
+(ES256), so `getClaims()` can verify the cached access token locally from JWKS
+instead of making the Auth `/user` network call used by `getUser()`. This is
+important for offline-capable write paths: use `claims.sub` anywhere a caller
+only needs the current user UUID for `created_by`, `author_id`, ownership, or
+RPC parameters. Keep `getUser()` only when a flow intentionally requires
+server-authoritative freshness, and add a callsite comment explaining why.
 
 #### Authorization Layers
 

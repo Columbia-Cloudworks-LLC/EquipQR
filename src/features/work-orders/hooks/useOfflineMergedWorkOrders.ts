@@ -9,7 +9,7 @@ import { useMemo } from 'react';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useEquipment } from '@/features/equipment/hooks/useEquipment';
+import { useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import type { OfflineQueueCreateItem } from '@/services/offlineQueueService';
 
@@ -36,7 +36,7 @@ export function useOfflineMergedWorkOrders(
   const offlineCtx = useOfflineQueueOptional();
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
-  const { data: allEquipment = [] } = useEquipment(currentOrganization?.id);
+  const { data: allEquipment = [] } = useEquipmentSummaries(currentOrganization?.id);
 
   return useMemo(() => {
     if (!offlineCtx) return serverWorkOrders;
@@ -61,9 +61,7 @@ export function useOfflineMergedWorkOrders(
       const equipmentSerialNumber = equipment?.serial_number ?? undefined;
       const equipmentWorkingHours = equipment?.working_hours ?? null;
       const equipmentImageUrl = equipment?.image_url ?? null;
-      const equipmentTeamName = equipment && 'team' in equipment
-        ? (equipment as { team?: { name: string } | null }).team?.name
-        : undefined;
+      const equipmentTeamName = equipment?.team?.name;
 
       return {
         // Database row fields (snake_case) — provide sensible defaults
@@ -112,5 +110,5 @@ export function useOfflineMergedWorkOrders(
 
     // Offline items first (most recent queue items at top), then server data
     return [...offlineWorkOrders, ...serverWorkOrders];
-  }, [offlineCtx?.queuedItems, serverWorkOrders, allEquipment, user, offlineCtx]);
+  }, [serverWorkOrders, allEquipment, user, offlineCtx]);
 }

@@ -67,6 +67,39 @@ function Write-EnvFile {
     )
 }
 
+function Sync-AppViteMirrors {
+    param([System.Collections.Specialized.OrderedDictionary]$Result)
+
+    $mirrorMap = [ordered]@{
+        "SUPABASE_URL"             = "VITE_SUPABASE_URL"
+        "SUPABASE_ANON_KEY"        = "VITE_SUPABASE_ANON_KEY"
+        "PRODUCTION_URL"           = "VITE_PRODUCTION_URL"
+        "INTUIT_CLIENT_ID"         = "VITE_INTUIT_CLIENT_ID"
+        "QB_OAUTH_REDIRECT_BASE_URL" = "VITE_QB_OAUTH_REDIRECT_BASE_URL"
+        "ENABLE_DEVTOOLS"          = "VITE_ENABLE_DEVTOOLS"
+        "ENABLE_QUICKBOOKS"        = "VITE_ENABLE_QUICKBOOKS"
+        "VAPID_PUBLIC_KEY"         = "VITE_VAPID_PUBLIC_KEY"
+        "GOOGLE_PICKER_API_KEY"    = "VITE_GOOGLE_PICKER_API_KEY"
+        "GOOGLE_PICKER_APP_ID"     = "VITE_GOOGLE_PICKER_APP_ID"
+        "GOOGLE_PICKER_CLIENT_ID"  = "VITE_GOOGLE_PICKER_CLIENT_ID"
+        "GOOGLE_WORKSPACE_CLIENT_ID" = "VITE_GOOGLE_WORKSPACE_CLIENT_ID"
+    }
+
+    $setCount = 0
+    foreach ($sourceKey in $mirrorMap.Keys) {
+        $targetKey = $mirrorMap[$sourceKey]
+        if ($Result.Contains($targetKey)) {
+            $Result.Remove($targetKey) | Out-Null
+        }
+        if ($Result.Contains($sourceKey)) {
+            $Result[$targetKey] = $Result[$sourceKey]
+            $setCount++
+        }
+    }
+
+    return @{ SetCount = $setCount; Total = $mirrorMap.Count }
+}
+
 $anyFailure = $false
 
 if ($doApp) {
@@ -83,8 +116,10 @@ if ($doApp) {
         }
         $opLines = $read.Raw -split '\r?\n'
         Add-EnvLines -Result $result -Lines $opLines -Overwrite $true
+        $mirrorStats = Sync-AppViteMirrors -Result $result
         Write-EnvFile -Path $targetPath -Result $result
         Write-Host "       Synced $($result.Keys.Count) keys from 1Password into .env"
+        Write-Host "       Mirrored $($mirrorStats.SetCount)/$($mirrorStats.Total) VITE_* keys from canonical app keys."
     }
 }
 

@@ -193,13 +193,14 @@ export interface UseGoogleMapsLoaderResult {
   retry: () => void;
 }
 
-export const useGoogleMapsLoader = (): UseGoogleMapsLoaderResult => {
+export const useGoogleMapsLoader = (options: { enabled?: boolean } = {}): UseGoogleMapsLoaderResult => {
+  const enabled = options.enabled ?? true;
   const {
     googleMapsKey,
     mapId,
     isLoading: isKeyLoading,
     error: keyError,
-  } = useGoogleMapsKey();
+  } = useGoogleMapsKey({ enabled });
 
   const [isLoaded, setIsLoaded] = useState(globalIsLoaded);
   const [loadError, setLoadError] = useState<Error | undefined>(globalLoadError);
@@ -220,20 +221,22 @@ export const useGoogleMapsLoader = (): UseGoogleMapsLoaderResult => {
 
   // Trigger script loading once we have a key and it isn't already loaded
   useEffect(() => {
+    if (!enabled) return;
     if (!googleMapsKey || globalIsLoaded || globalLoadPromise) return;
     loadGoogleMapsScript(googleMapsKey).catch(() => {
       // Error is captured in globalLoadError and will be synced via listener
     });
-  }, [googleMapsKey]);
+  }, [enabled, googleMapsKey]);
 
   // Explicit retry: reset everything and re-trigger
   const retry = useCallback(() => {
+    if (!enabled) return;
     if (!googleMapsKey) return;
     resetGlobalState();
     loadGoogleMapsScript(googleMapsKey).catch(() => {
       // Error is captured in globalLoadError and will be synced via listener
     });
-  }, [googleMapsKey]);
+  }, [enabled, googleMapsKey]);
 
   return {
     isLoaded: isLoaded && !!googleMapsKey,

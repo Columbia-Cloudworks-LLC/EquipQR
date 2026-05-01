@@ -332,9 +332,9 @@ describe('useOrganizationMembers', () => {
         teams_transferred: 2
       };
 
-      // Mock authenticated user
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser },
+      // Mock authenticated user claims
+      vi.mocked(supabase.auth.getClaims).mockResolvedValue({
+        data: { claims: { sub: mockUser.id } },
         error: null
       });
 
@@ -392,9 +392,9 @@ describe('useOrganizationMembers', () => {
         error: 'Cannot remove the last owner'
       };
 
-      // Mock authenticated user
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser },
+      // Mock authenticated user claims
+      vi.mocked(supabase.auth.getClaims).mockResolvedValue({
+        data: { claims: { sub: mockUser.id } },
         error: null
       });
 
@@ -432,9 +432,9 @@ describe('useOrganizationMembers', () => {
     });
 
     it('should handle authentication error', async () => {
-      // Mock no authenticated user
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: null },
+      // Mock no authenticated user claims
+      vi.mocked(supabase.auth.getClaims).mockResolvedValue({
+        data: { claims: null },
         error: null
       });
 

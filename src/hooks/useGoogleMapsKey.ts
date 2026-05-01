@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -15,6 +15,10 @@ interface GoogleMapsKeyResponse {
   details?: string;
 }
 
+interface UseGoogleMapsKeyOptions {
+  enabled?: boolean;
+}
+
 interface UseGoogleMapsKeyResult {
   googleMapsKey: string;
   /** Cloud-managed Map ID; `null` until loaded or if not configured server-side. */
@@ -24,13 +28,15 @@ interface UseGoogleMapsKeyResult {
   retry: () => void;
 }
 
-export const useGoogleMapsKey = (): UseGoogleMapsKeyResult => {
+export const useGoogleMapsKey = (options: UseGoogleMapsKeyOptions = {}): UseGoogleMapsKeyResult => {
+  const enabled = options.enabled ?? true;
   const [googleMapsKey, setGoogleMapsKey] = useState<string>('');
   const [mapId, setMapId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchGoogleMapsKey = async () => {
+  const fetchGoogleMapsKey = useCallback(async () => {
+    if (!enabled) return;
     setIsLoading(true);
     setError(null);
     
@@ -84,11 +90,15 @@ export const useGoogleMapsKey = (): UseGoogleMapsKeyResult => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [enabled]);
 
   useEffect(() => {
+    if (!enabled) {
+      setIsLoading(false);
+      return;
+    }
     fetchGoogleMapsKey();
-  }, []);
+  }, [enabled, fetchGoogleMapsKey]);
 
   return {
     googleMapsKey,

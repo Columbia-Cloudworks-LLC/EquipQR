@@ -92,7 +92,11 @@ export const useQRRedirectWithOrgSwitch = ({
     const currentOrg = getCurrentOrganization();
 
     if (!currentOrg || currentOrg.id !== orgInfo.organizationId) {
-      const hasMultipleOrgs = await checkUserHasMultipleOrganizations();
+      if (!user?.id) {
+        return { isLoading: false, needsAuth: true, targetPath: '/auth', ...infoField };
+      }
+
+      const hasMultipleOrgs = await checkUserHasMultipleOrganizations(user.id);
       
       if (hasMultipleOrgs) {
         return { isLoading: false, needsOrgSwitch: true, targetPath, ...infoField };
@@ -103,7 +107,7 @@ export const useQRRedirectWithOrgSwitch = ({
     }
 
     return { isLoading: false, canProceed: true, targetPath, ...infoField };
-  }, [getCurrentOrganization, refreshSession]);
+  }, [getCurrentOrganization, refreshSession, user?.id]);
 
   const checkInventoryItemOrganization = useCallback(async () => {
     if (!inventoryItemId || !user) return;
@@ -138,7 +142,7 @@ export const useQRRedirectWithOrgSwitch = ({
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      const equipmentInfo = await getEquipmentOrganization(equipmentId);
+      const equipmentInfo = await getEquipmentOrganization(equipmentId, user.id);
       const targetPath = `/dashboard/equipment/${equipmentId}?qr=true`;
 
       const stateUpdate = await verifyOrganizationAccess(

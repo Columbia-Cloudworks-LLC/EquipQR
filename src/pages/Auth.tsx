@@ -33,7 +33,11 @@ const Auth = () => {
   // Check if user came here from a QR scan (read-only check, doesn't clear)
   useEffect(() => {
     const pendingRedirect = sessionStorage.getItem('pendingRedirect');
-    if (pendingRedirect && isSafeRedirectPath(pendingRedirect) && pendingRedirect.includes('qr=true')) {
+    if (
+      pendingRedirect &&
+      isSafeRedirectPath(pendingRedirect) &&
+      (pendingRedirect.includes('qr=true') || pendingRedirect.startsWith('/qr/'))
+    ) {
       setPendingQRScan(true);
     }
   }, []);

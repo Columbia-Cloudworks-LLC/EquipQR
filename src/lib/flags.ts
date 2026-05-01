@@ -15,18 +15,6 @@
 export const QUICKBOOKS_ENABLED = import.meta.env.VITE_ENABLE_QUICKBOOKS === 'true';
 
 /**
- * Controls whether PDF attachments are enabled for QuickBooks invoice exports.
- * When enabled, a PDF containing public work order details will be attached to exported invoices.
- * 
- * Set via environment variable: VITE_ENABLE_QB_PDF_ATTACHMENT
- * Defaults to false (disabled) unless explicitly set to 'true'.
- * 
- * Note: This is a client-side flag for UI purposes. The actual feature is controlled
- * by the ENABLE_QB_PDF_ATTACHMENT environment variable in the Supabase edge function.
- */
-export const QB_PDF_ATTACHMENT_ENABLED = import.meta.env.VITE_ENABLE_QB_PDF_ATTACHMENT === 'true';
-
-/**
  * Controls whether Multi-Factor Authentication (MFA) features are enabled.
  * When enabled, TOTP-based MFA is available for all users and mandatory for admin/owner roles.
  * 
@@ -49,25 +37,12 @@ export const MFA_ENABLED = import.meta.env.VITE_ENABLE_MFA === 'true';
 export const OFFLINE_QUEUE_ENABLED = import.meta.env.VITE_ENABLE_OFFLINE_QUEUE === 'true';
 
 /**
- * Controls whether the DSR cockpit workspace is enabled.
- * When enabled, org admins/owners can access the compliance cockpit route.
- *
- * Set via environment variable: VITE_ENABLE_DSR_COCKPIT
- * Defaults to false (disabled) unless explicitly set to 'true'.
- */
-export const DSR_COCKPIT_ENABLED = import.meta.env.VITE_ENABLE_DSR_COCKPIT === 'true';
-
-/**
  * Feature flag accessor utility
  */
 export const FeatureFlags = {
   quickbooks: {
     enabled: QUICKBOOKS_ENABLED,
-    disabled: !QUICKBOOKS_ENABLED,
-    pdfAttachment: {
-      enabled: QB_PDF_ATTACHMENT_ENABLED,
-      disabled: !QB_PDF_ATTACHMENT_ENABLED
-    }
+    disabled: !QUICKBOOKS_ENABLED
   },
   mfa: {
     enabled: MFA_ENABLED,
@@ -76,10 +51,6 @@ export const FeatureFlags = {
   offlineQueue: {
     enabled: OFFLINE_QUEUE_ENABLED,
     disabled: !OFFLINE_QUEUE_ENABLED
-  },
-  dsrCockpit: {
-    enabled: DSR_COCKPIT_ENABLED,
-    disabled: !DSR_COCKPIT_ENABLED
   }
 } as const;
 
@@ -100,14 +71,6 @@ export function isQuickBooksDisabled(): boolean {
 }
 
 /**
- * Check if QuickBooks PDF attachment is enabled
- * @returns true if PDF attachments should be active
- */
-export function isQBPDFAttachmentEnabled(): boolean {
-  return QB_PDF_ATTACHMENT_ENABLED;
-}
-
-/**
  * Check if MFA is enabled
  * @returns true if MFA features should be active
  */
@@ -123,10 +86,3 @@ export function isOfflineQueueEnabled(): boolean {
   return OFFLINE_QUEUE_ENABLED;
 }
 
-/**
- * Check if DSR cockpit is enabled
- * @returns true if cockpit features should be active
- */
-export function isDSRCockpitEnabled(): boolean {
-  return DSR_COCKPIT_ENABLED;
-}

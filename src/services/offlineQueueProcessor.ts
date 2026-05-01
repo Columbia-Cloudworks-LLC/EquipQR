@@ -37,6 +37,7 @@ import { EquipmentService } from '@/features/equipment/services/EquipmentService
 import { updateEquipmentWorkingHours } from '@/features/equipment/services/equipmentWorkingHoursService';
 import { createEquipmentNoteWithImages } from '@/features/equipment/services/equipmentNotesService';
 import { createWorkOrderNoteWithImages } from '@/features/work-orders/services/workOrderNotesService';
+import { requireAuthClaims } from '@/lib/authClaims';
 
 // ─── Conflict info ───────────────────────────────────────────────────────────
 
@@ -54,8 +55,7 @@ type QueueItemHandler<T extends OfflineQueueItem = OfflineQueueItem> = (
 
 const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
   work_order_create: (async (item: OfflineQueueCreateItem) => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) throw new Error('Session expired — please sign in again');
+    const claims = await requireAuthClaims('Session expired — please sign in again');
 
     const service = new WorkOrderService(item.organizationId);
     const payload = item.payload;
@@ -76,7 +76,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
       assignee_id: assigneeId,
       team_id: undefined,
       status,
-      created_by: userData.user.id,
+      created_by: claims.sub,
       has_pm: payload.hasPM || false,
     });
 
@@ -275,8 +275,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
   }) as QueueItemHandler<never>,
 
   work_order_note: (async (item: OfflineQueueWorkOrderNoteItem) => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) throw new Error('Session expired — please sign in again');
+    await requireAuthClaims('Session expired — please sign in again');
 
     const { workOrderId, content, hoursWorked = 0, isPrivate = false, machineHours } = item.payload;
     await createWorkOrderNoteWithImages(
@@ -322,8 +321,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
   }) as QueueItemHandler<never>,
 
   equipment_note: (async (item: OfflineQueueEquipmentNoteItem) => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) throw new Error('Session expired — please sign in again');
+    await requireAuthClaims('Session expired — please sign in again');
 
     const { equipmentId, content, hoursWorked = 0, isPrivate = false, machineHours } = item.payload;
     await createEquipmentNoteWithImages(

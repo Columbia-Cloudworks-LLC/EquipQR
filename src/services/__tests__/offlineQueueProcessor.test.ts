@@ -5,19 +5,21 @@ import type { OfflineQueueItem } from '../offlineQueueService';
 import { QueryClient } from '@tanstack/react-query';
 
 // ── Mock setup ─────────────────────────────────────────────────────────
-const { mockCreate, mockSupabaseAuth, mockSupabaseFrom, mockGetSession, mockRefreshSession } = vi.hoisted(() => ({
+const { mockCreate, mockSupabaseAuth, mockSupabaseFrom, mockGetSession, mockRefreshSession, mockGetUser } = vi.hoisted(() => ({
   mockCreate: vi.fn(),
   mockSupabaseAuth: vi.fn(),
   mockSupabaseFrom: vi.fn(),
   mockGetSession: vi.fn(),
   mockRefreshSession: vi.fn(),
+  mockGetUser: vi.fn(),
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: (...args: unknown[]) => mockSupabaseFrom(...args),
     auth: {
-      getUser: () => mockSupabaseAuth(),
+      getClaims: () => mockSupabaseAuth(),
+      getUser: () => mockGetUser(),
       getSession: () => mockGetSession(),
       refreshSession: () => mockRefreshSession(),
     },
@@ -115,7 +117,7 @@ describe('OfflineQueueProcessor', () => {
 
     // Defaults: valid session + valid user
     mockGetSession.mockResolvedValue({ data: { session: { access_token: 'tok' } } });
-    mockSupabaseAuth.mockResolvedValue({ data: { user: { id: USER_ID } } });
+    mockSupabaseAuth.mockResolvedValue({ data: { claims: { sub: USER_ID } }, error: null });
   });
 
   // ── Basic processing ───────────────────────────────────────────────────
@@ -263,6 +265,23 @@ describe('OfflineQueueProcessor', () => {
     await processor.processAll();
 
     expect(executionOrder).toEqual(['First', 'Second']);
+  });
+
+  it('uses local claims instead of getUser for work_order_create identity', async () => {
+    queueService.enqueue({
+      type: 'work_order_create',
+      payload: { title: 'Fix pump', description: 'Broken', equipmentId: 'equip-1', priority: 'high' },
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+    mockCreate.mockResolvedValueOnce({ success: true, data: { id: 'wo-1' }, error: null });
+
+    const result = await processor.processAll();
+
+    expect(result.succeeded).toBe(1);
+    expect(mockGetUser).not.toHaveBeenCalled();
+    expect(mockSupabaseAuth).toHaveBeenCalled();
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ created_by: USER_ID }));
   });
 
   // ── Session refresh ────────────────────────────────────────────────────
@@ -463,7 +482,7 @@ describe('OfflineQueueProcessor', () => {
 
   it('fails note handlers when auth session is expired', async () => {
     // Override the default mock — no authenticated user
-    mockSupabaseAuth.mockResolvedValue({ data: { user: null } });
+    mockSupabaseAuth.mockResolvedValue({ data: { claims: null }, error: null });
 
     const item = createPendingItem({
       type: 'equipment_note',

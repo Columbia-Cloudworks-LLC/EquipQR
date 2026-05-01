@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { getAuthClaims } from '@/lib/authClaims';
 
 export interface InventoryOrganizationInfo {
   inventoryItemId: string;
@@ -17,8 +18,8 @@ export const getInventoryItemOrganization = async (
   inventoryItemId: string
 ): Promise<InventoryOrganizationInfo | null> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const claims = await getAuthClaims();
+    if (!claims) {
       return null;
     }
 
@@ -51,7 +52,7 @@ export const getInventoryItemOrganization = async (
       .from('organization_members')
       .select('role, status')
       .eq('organization_id', organization.id)
-      .eq('user_id', user.id)
+      .eq('user_id', claims.sub)
       .eq('status', 'active')
       .single();
 

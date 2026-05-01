@@ -74,7 +74,6 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 | `INTUIT_CLIENT_SECRET` | All QuickBooks functions | `...` | QuickBooks OAuth client secret |
 | `QB_OAUTH_REDIRECT_BASE_URL` | `quickbooks-oauth-callback` | `https://supabase.equipqr.app` | **⚠️ CRITICAL: Must match client `VITE_QB_OAUTH_REDIRECT_BASE_URL`** |
 | `QUICKBOOKS_SANDBOX` | All QuickBooks functions | `true` or `false` | Set to `true` for sandbox, `false` for production |
-| `ENABLE_QB_PDF_ATTACHMENT` | `quickbooks-export-invoice` | `true` or `false` | Enable PDF attachment for invoice exports |
 
 ### GitHub Integration (Bug Reporting)
 
@@ -143,7 +142,6 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 - `SUPABASE_URL` ✅
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
 - `QUICKBOOKS_SANDBOX` ✅
-- `ENABLE_QB_PDF_ATTACHMENT` ✅
 
 ### Bug Reporting
 
@@ -252,7 +250,6 @@ INTUIT_CLIENT_ID=<your-intuit-client-id>
 INTUIT_CLIENT_SECRET=<your-intuit-client-secret>
 QB_OAUTH_REDIRECT_BASE_URL=https://supabase.preview.equipqr.app
 QUICKBOOKS_SANDBOX=true
-ENABLE_QB_PDF_ATTACHMENT=false
 
 # Google Workspace Integration (if enabled)
 GOOGLE_WORKSPACE_CLIENT_ID=<your-google-workspace-client-id>

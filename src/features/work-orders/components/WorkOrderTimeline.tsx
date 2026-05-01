@@ -22,6 +22,39 @@ interface TimelineEvent {
   isPublic: boolean;
 }
 
+// ─── Pure helpers (no component state) ───────────────────────────────────────
+
+const formatStatusLabel = (status: string) =>
+  status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+const getStatusChangeTitle = (oldStatus: string | null, newStatus: string) => {
+  if (!oldStatus) return 'Work Order Created';
+  if (oldStatus === 'completed' && newStatus === 'accepted') return 'Work Order Reverted';
+  if (oldStatus === 'cancelled' && newStatus === 'accepted') return 'Work Order Reverted';
+
+  switch (newStatus) {
+    case 'accepted': return 'Work Order Accepted';
+    case 'assigned': return 'Work Assigned';
+    case 'in_progress': return 'Work Started';
+    case 'completed': return 'Work Completed';
+    case 'on_hold': return 'Work On Hold';
+    case 'cancelled': return 'Work Order Cancelled';
+    default: return 'Status Updated';
+  }
+};
+
+const getStatusChangeDescription = (oldStatus: string | null, newStatus: string, reason?: string) => {
+  if (!oldStatus) return 'Work order was submitted';
+
+  let baseDescription = `Status changed from ${formatStatusLabel(oldStatus)} to ${formatStatusLabel(newStatus)}`;
+  if (reason && reason !== 'Status updated') {
+    baseDescription += ` — ${reason}`;
+  }
+  return baseDescription;
+};
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ 
   workOrder, 
   showDetailedHistory = true 
@@ -65,36 +98,6 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
 
     fetchHistory();
   }, [workOrder.id]);
-
-  const getStatusChangeTitle = (oldStatus: string | null, newStatus: string) => {
-    if (!oldStatus) return 'Work Order Created';
-    if (oldStatus === 'completed' && newStatus === 'accepted') return 'Work Order Reverted';
-    if (oldStatus === 'cancelled' && newStatus === 'accepted') return 'Work Order Reverted';
-    
-    switch (newStatus) {
-      case 'accepted': return 'Work Order Accepted';
-      case 'assigned': return 'Work Assigned';
-      case 'in_progress': return 'Work Started';
-      case 'completed': return 'Work Completed';
-      case 'on_hold': return 'Work On Hold';
-      case 'cancelled': return 'Work Order Cancelled';
-      default: return 'Status Updated';
-    }
-  };
-
-  const formatStatusLabel = (status: string) => {
-    return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
-
-  const getStatusChangeDescription = (oldStatus: string | null, newStatus: string, reason?: string) => {
-    if (!oldStatus) return 'Work order was submitted';
-    
-    let baseDescription = `Status changed from ${formatStatusLabel(oldStatus)} to ${formatStatusLabel(newStatus)}`;
-    if (reason && reason !== 'Status updated') {
-      baseDescription += ` — ${reason}`;
-    }
-    return baseDescription;
-  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {

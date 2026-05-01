@@ -1,6 +1,7 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { deleteWorkOrder } from '@/features/work-orders/services/deleteWorkOrderService';
+import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 
 export interface EquipmentDeletionImpact {
   workOrders: number;
@@ -24,13 +25,12 @@ interface WorkOrderWithImages {
 
 // Check if user is admin of organization
 const checkAdminAccess = async (orgId: string): Promise<void> => {
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) throw new Error('User not authenticated');
+  const userId = await requireAuthUserIdFromClaims();
 
   const { data: member, error } = await supabase
     .from('organization_members')
     .select('role')
-    .eq('user_id', userData.user.id)
+    .eq('user_id', userId)
     .eq('organization_id', orgId)
     .eq('status', 'active')
     .single();
