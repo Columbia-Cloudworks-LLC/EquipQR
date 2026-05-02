@@ -50,6 +50,7 @@ const BulkInventory: React.FC = () => {
   const { currentOrganization } = useOrganization();
   const { data: isPartsManager = false } = useIsPartsManager(currentOrganization?.id);
   const { canManageInventory } = usePermissions();
+  const canBulkEdit = canManageInventory(isPartsManager);
   const isOnline = useOnlineStatus();
   const isMobile = useIsMobile();
 
@@ -72,7 +73,7 @@ const BulkInventory: React.FC = () => {
     selectAll,
     clearSelection,
     commit,
-  } = useBulkEditInventory(inventoryItems);
+  } = useBulkEditInventory(inventoryItems, { canCommit: canBulkEdit });
 
   // Desktop-only surface — redirect mobile to the standard inventory list.
   // Placed after hook calls to keep React's hook ordering stable.
@@ -92,7 +93,7 @@ const BulkInventory: React.FC = () => {
     );
   }
 
-  if (!canManageInventory(isPartsManager)) {
+  if (!canBulkEdit) {
     return (
       <Page maxWidth="full" padding="responsive">
         <PageHeader

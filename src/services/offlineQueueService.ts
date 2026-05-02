@@ -166,9 +166,9 @@ export interface OfflineQueueEquipmentNoteItem extends OfflineQueueItemBase {
  * `hasPM: true` finally syncs OR when the user opens an existing online
  * work order while offline and we need to seed a PM stub locally.
  *
- * `workOrderId` may be a server UUID or an `offline-<queue-item-id>`
- * placeholder. The processor resolves placeholders to the real UUID after
- * the upstream `work_order_create` succeeds.
+ * `workOrderId` must be a server UUID. Placeholder IDs (`offline-*`) are
+ * rejected by the offline-aware layer because the `work_order_create`
+ * handler is responsible for PM init when the parent work order syncs.
  */
 export interface OfflineQueuePMInitItem extends OfflineQueueItemBase {
   type: 'pm_init';
@@ -513,11 +513,26 @@ export class OfflineQueueService {
           // replay).
           existing.payload = {
             ...existing.payload,
-            checklistData: pmUpdateItem.payload.checklistData ?? existing.payload.checklistData,
-            notes: pmUpdateItem.payload.notes ?? existing.payload.notes,
-            status: pmUpdateItem.payload.status ?? existing.payload.status,
-            completedAt: pmUpdateItem.payload.completedAt ?? existing.payload.completedAt,
-            completedBy: pmUpdateItem.payload.completedBy ?? existing.payload.completedBy,
+            checklistData:
+              pmUpdateItem.payload.checklistData !== undefined
+                ? pmUpdateItem.payload.checklistData
+                : existing.payload.checklistData,
+            notes:
+              pmUpdateItem.payload.notes !== undefined
+                ? pmUpdateItem.payload.notes
+                : existing.payload.notes,
+            status:
+              pmUpdateItem.payload.status !== undefined
+                ? pmUpdateItem.payload.status
+                : existing.payload.status,
+            completedAt:
+              pmUpdateItem.payload.completedAt !== undefined
+                ? pmUpdateItem.payload.completedAt
+                : existing.payload.completedAt,
+            completedBy:
+              pmUpdateItem.payload.completedBy !== undefined
+                ? pmUpdateItem.payload.completedBy
+                : existing.payload.completedBy,
             serverUpdatedAt:
               existing.payload.serverUpdatedAt ?? pmUpdateItem.payload.serverUpdatedAt,
           };

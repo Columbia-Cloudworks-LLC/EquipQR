@@ -20,6 +20,7 @@ import { logger } from '@/utils/logger';
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
 import PMChecklistSections from '@/features/work-orders/components/PMChecklistSections';
 import { preventiveMaintenance } from '@/lib/queryKeys';
+import { useAuth } from '@/hooks/useAuth';
 
 // ============================================
 // Pure utility functions (hoisted to module scope)
@@ -55,6 +56,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   organization,
 }) => {
   const isMobile = useIsMobile();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const updatePMMutation = useUpdatePM();
   const { data: allTemplates = [] } = usePMTemplates();
@@ -415,7 +417,9 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         data: {
           checklistData: checklist,
           notes,
-          status: 'completed' as const
+          status: 'completed' as const,
+          completedAt: new Date().toISOString(),
+          completedBy: user?.id,
         },
         serverUpdatedAt: pm.updated_at,
       });

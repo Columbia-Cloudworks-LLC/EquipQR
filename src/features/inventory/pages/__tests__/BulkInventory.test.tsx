@@ -1,7 +1,6 @@
 import React from 'react';
 import { render, screen } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: vi.fn(),

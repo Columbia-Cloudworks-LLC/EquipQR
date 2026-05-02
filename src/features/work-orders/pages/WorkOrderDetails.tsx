@@ -41,6 +41,7 @@ import { useGoogleWorkspaceExportDestination } from '@/features/organization/hoo
 import { HistoryTab } from '@/components/audit';
 import { cn } from '@/lib/utils';
 import { canExportWorkOrderGoogleDoc } from '@/features/work-orders/utils/googleDocsExportAvailability';
+import { isOfflineId } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
@@ -150,6 +151,7 @@ const WorkOrderDetails = () => {
       !pmError && // Don't initialize if query has error - might be RLS issue causing 406
       !pmInitializing &&
       !workOrderLoading &&
+      !isOfflineId(workOrder.id) &&
       workOrder?.equipment_id &&
       currentOrganization?.id &&
       (permissionLevels.isManager || permissionLevels.isTechnician);

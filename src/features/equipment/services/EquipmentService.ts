@@ -356,7 +356,10 @@ export class EquipmentService {
 
       let query = supabase
         .from('equipment')
-        .select('*, team:team_id(id, name)', { count: 'exact' })
+        .select(
+          'id, organization_id, name, manufacturer, model, serial_number, status, team_id, location, image_url, working_hours, last_maintenance, installation_date, warranty_expiration, qr_code, created_at, updated_at, team:team_id(id, name)',
+          { count: 'exact' },
+        )
         .eq('organization_id', organizationId);
 
       // Team-based access control (RBAC). When the user is NOT an org admin

@@ -56,8 +56,8 @@ const privacySupportArticles: SupportArticle[] = [
     outro: (
       <p className="text-sm text-muted-foreground">
         Session diagnostics include the app version, browser, current route,
-        and error keys — but never your name, email, organization, team, or
-        session tokens.
+        organization ID/plan, and error keys — but never your name, email,
+        team membership details, or session tokens.
       </p>
     ),
     related: [

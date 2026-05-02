@@ -476,6 +476,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
         .from('preventative_maintenance')
         .select('updated_at, status')
         .eq('id', pmId)
+        .eq('organization_id', item.organizationId)
         .single();
 
       if (fetchErr) throw fetchErr;
@@ -505,8 +506,8 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
       checklistData,
       notes,
       status,
-      completedAt: completedAt ?? undefined,
-      completedBy: completedBy ?? undefined,
+      completedAt,
+      completedBy,
     });
 
     if (!updated) {

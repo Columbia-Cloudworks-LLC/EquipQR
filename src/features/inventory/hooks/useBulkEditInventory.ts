@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { inventory as inventoryKeys } from '@/lib/queryKeys';
+import { usePermissions } from '@/hooks/usePermissions';
 import {
   batchUpdateInventoryItems,
   adjustInventoryQuantity,
@@ -81,9 +82,11 @@ const normalize = (v: unknown): unknown => (v === '' ? null : v);
 // ============================================
 
 export const useBulkEditInventory = (
-  initialRows: InventoryItem[]
+  initialRows: InventoryItem[],
+  options: { canCommit?: boolean } = {}
 ): UseBulkEditInventoryResult => {
   const { currentOrganization } = useOrganization();
+  const { canManageInventory } = usePermissions();
   const queryClient = useQueryClient();
 
   const [dirtyRows, setDirtyRows] = useState<Map<string, InventoryRowDelta>>(
@@ -182,6 +185,10 @@ export const useBulkEditInventory = (
     mutationFn: async () => {
       const orgId = currentOrganization?.id;
       if (!orgId) throw new Error('Organization not selected');
+      const canCommit = options.canCommit ?? canManageInventory(false);
+      if (!canCommit) {
+        throw new Error('You do not have permission to bulk edit inventory');
+      }
 
       type RowSummary = {
         metadataSuccess: boolean;

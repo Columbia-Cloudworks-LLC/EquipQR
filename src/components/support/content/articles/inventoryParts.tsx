@@ -191,9 +191,9 @@ const inventoryArticles: SupportArticle[] = [
   },
   {
     id: "bulk-import-inventory",
-    title: "Bulk import inventory",
+    title: "Bulk edit inventory",
     summary:
-      "Load your parts catalog from a CSV so you don't have to create each item one at a time.",
+      "Update many existing inventory records in one grid instead of opening each item one at a time.",
     category: "inventory-parts",
     personas: ["admin", "owner"],
     requirement: "Must be Owner, Admin, or an assigned Parts Manager.",
@@ -205,19 +205,19 @@ const inventoryArticles: SupportArticle[] = [
           "From the Inventory list, use the Bulk button (or navigate directly to /dashboard/inventory/bulk).",
       },
       {
-        title: "Download the CSV template",
+        title: "Select rows to edit",
         description:
-          "The template has one row per inventory item with columns for name, SKU, external ID, description, on-hand quantity, low-stock threshold, default unit cost, and location.",
+          "Single-click rows to select them. Double-click a cell to edit values like name, SKU, location, quantity, threshold, or default unit cost.",
       },
       {
-        title: "Upload and validate",
+        title: "Apply changes across selected rows",
         description:
-          "The importer flags invalid rows before committing. Fix the errors locally and re-upload until the preview is clean.",
+          "Use multi-select edits to apply the same value to multiple items at once, then review the highlighted dirty cells before saving.",
       },
       {
-        title: "Commit",
+        title: "Commit and verify",
         description:
-          "Confirm the preview to create every item. After import, open each item to add compatibility rules or group it into an alternate group if needed.",
+          "Click Commit to save all staged edits. If any row fails validation or update, Bulk Inventory reports failures so you can correct only those items.",
       },
     ],
     related: [

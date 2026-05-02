@@ -606,6 +606,9 @@ export class OfflineAwareWorkOrderService {
     notes?: string;
   }): OfflineAwareResult<PreventativeMaintenance> {
     try {
+      if (input.workOrderId.startsWith('offline-')) {
+        throw new Error('Cannot queue PM init for an offline placeholder work order ID');
+      }
       const item = this.queueService.enqueue({
         type: 'pm_init',
         payload: {
@@ -641,8 +644,8 @@ export class OfflineAwareWorkOrderService {
           checklistData: data.checklistData,
           notes: data.notes,
           status: data.status,
-          completedAt: data.completedAt ?? null,
-          completedBy: data.completedBy ?? null,
+          completedAt: data.completedAt,
+          completedBy: data.completedBy,
         },
         organizationId: this.orgId,
         userId: this.userId,
