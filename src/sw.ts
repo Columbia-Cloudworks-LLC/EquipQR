@@ -16,16 +16,17 @@
  *   - SPA shell: precache (cache-first via Workbox) on hashed Vite assets;
  *     navigation requests fall back to the cached `index.html` so the
  *     React Router can still mount when offline.
- *   - Supabase REST / functions: NetworkFirst with a short timeout falls back
- *     to cache for safe GET requests. Auth, mutations, and PostgREST writes
- *     are NetworkOnly so we never serve a stale tenant-scoped response or
- *     accidentally cache a write. Per-tenant scoping is handled by TanStack
- *     Query persistence (see `src/lib/queryPersistence.ts`); this layer is
- *     defense in depth.
+ *   - Supabase REST GETs: NetworkFirst (5 s timeout, 5 min expiry, 100 entries)
+ *     so brief offline periods fall back to the last cached response instead
+ *     of failing outright. Auth, edge functions, and realtime are NetworkOnly
+ *     because those are always session-sensitive and must never serve stale
+ *     responses. POST/PUT/DELETE/PATCH have no route and use the browser default
+ *     (network-only). TanStack Query persistence (`src/lib/queryPersistence.ts`)
+ *     is the primary offline-read layer; this SW cache is defense in depth.
  *   - Google Maps and other CDNs: untouched (NetworkOnly default).
  */
 
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
+import { precacheAndRoute, cleanupOutdatedCaches, matchPrecache } from 'workbox-precaching';
 import { registerRoute, setCatchHandler } from 'workbox-routing';
 import { CacheFirst, NetworkFirst, NetworkOnly } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
@@ -249,17 +250,37 @@ registerRoute(
   })
 );
 
-// Authenticated PostgREST traffic: NEVER cache. We don't want stale tenant
-// data, and tenant scoping is handled by TanStack Query persistence per
-// user/org. A NetworkOnly route with no fallback is the safe default.
+// PostgREST read traffic: NetworkFirst with a short timeout so GET requests
+// fall back to the cached response during brief connectivity drops. Short
+// expiry and a limited entry count bound the risk of serving stale
+// tenant-scoped data. Auth, edge-function calls, and realtime stay
+// NetworkOnly because those are always session-sensitive.
 registerRoute(
   ({ url, request }) =>
     url.hostname.endsWith('.supabase.co') &&
-    (url.pathname.startsWith('/rest/') ||
-      url.pathname.startsWith('/auth/') ||
-      url.pathname.startsWith('/functions/') ||
-      url.pathname.startsWith('/realtime/')) &&
+    url.pathname.startsWith('/rest/') &&
     request.method === 'GET',
+  new NetworkFirst({
+    cacheName: 'equipqr-supabase-rest-v1',
+    networkTimeoutSeconds: 5,
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 100,
+        maxAgeSeconds: 5 * 60,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  })
+);
+
+// Auth, edge functions, and realtime: always NetworkOnly — never cache these
+// session-sensitive or mutation responses, regardless of HTTP method.
+registerRoute(
+  ({ url }) =>
+    url.hostname.endsWith('.supabase.co') &&
+    (url.pathname.startsWith('/auth/') ||
+      url.pathname.startsWith('/functions/') ||
+      url.pathname.startsWith('/realtime/')),
   new NetworkOnly()
 );
 
@@ -270,9 +291,11 @@ registerRoute(
 
 setCatchHandler(async ({ request }) => {
   if (request.mode === 'navigate') {
-    const cache = await caches.open('equipqr-pages-v1');
-    const fallback = await cache.match('/index.html');
-    if (fallback) return fallback;
+    // index.html is precached by Workbox into the precache store, not into
+    // equipqr-pages-v1. matchPrecache() resolves the versioned precache key
+    // so the SPA shell loads correctly on a first offline navigation.
+    const precached = await matchPrecache('/index.html');
+    if (precached) return precached;
   }
   return Response.error();
 });
