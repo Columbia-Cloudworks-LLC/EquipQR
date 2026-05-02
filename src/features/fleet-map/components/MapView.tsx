@@ -465,6 +465,8 @@ const MapContent: React.FC<{
                   src={selectedMarker.image_url}
                   alt={selectedMarker.name}
                   className="w-14 h-14 object-cover rounded-lg border flex-shrink-0"
+                  loading="lazy"
+                  decoding="async"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
               )}

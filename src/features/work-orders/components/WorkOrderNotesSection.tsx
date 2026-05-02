@@ -368,6 +368,8 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
                                   src={image.file_url}
                                   alt={image.file_name}
                                   className="w-full h-full object-cover"
+                                  loading="lazy"
+                                  decoding="async"
                                 />
                               </div>
                             ))}

@@ -158,6 +158,8 @@ const InventoryItemOverviewTab: React.FC<InventoryItemOverviewTabProps> = ({
                       src={img.file_url}
                       alt={img.file_name}
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
                   </div>
                   {canEdit && (

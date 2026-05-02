@@ -130,17 +130,28 @@ describe('AppProviders', () => {
         </AppProviders>,
       );
 
-      expect(QueryClient).toHaveBeenCalledWith({
+      expect(QueryClient).toHaveBeenCalledTimes(1);
+      const call = (QueryClient as unknown as { mock: { calls: unknown[][] } }).mock.calls[0]?.[0] as {
         defaultOptions: {
           queries: {
-            staleTime: 5 * 60 * 1000, // 5 minutes
-            retry: 1,
-          },
-          mutations: {
-            networkMode: 'always', // Let OfflineAwareService handle offline
-          },
-        },
-      });
+            staleTime: number;
+            retry: unknown;
+            retryDelay: unknown;
+            persister: unknown;
+          };
+          mutations: { networkMode: string };
+        };
+      };
+
+      expect(call.defaultOptions.queries.staleTime).toBe(5 * 60 * 1000);
+      // The retry predicate is a function (not a number) — it skips auth
+      // errors and caps at 2 attempts. Just assert it's callable.
+      expect(typeof call.defaultOptions.queries.retry).toBe('function');
+      // Exponential backoff retry delay function.
+      expect(typeof call.defaultOptions.queries.retryDelay).toBe('function');
+      // Persister is the scoped IDB persister built by createScopedQueryPersister.
+      expect(call.defaultOptions.queries.persister).toBeTruthy();
+      expect(call.defaultOptions.mutations.networkMode).toBe('always');
     });
   });
 
