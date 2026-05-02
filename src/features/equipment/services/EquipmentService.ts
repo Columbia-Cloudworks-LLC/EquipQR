@@ -433,6 +433,7 @@ export class EquipmentService {
         const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
         query = query
           .not('warranty_expiration', 'is', null)
+          .gte('warranty_expiration', now.toISOString())
           .lte('warranty_expiration', thirtyDaysFromNow.toISOString());
       }
 
