@@ -20,6 +20,33 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useAsyncOperation } from './useAsyncOperation';
 
+const createDeferred = <T>() => {
+  let resolve: (value: T) => void = () => {
+    throw new Error('Deferred promise resolved before initialization');
+  };
+
+  const promise = new Promise<T>(res => {
+    resolve = res;
+  });
+
+  return { promise, resolve };
+};
+
+const startExecution = <T>(execute: () => Promise<T>): Promise<T> => {
+  let executePromise: Promise<T> | undefined;
+
+  // Flush the synchronous isLoading state update while leaving the operation pending.
+  act(() => {
+    executePromise = execute();
+  });
+
+  if (!executePromise) {
+    throw new Error('Expected execution promise to be initialized');
+  }
+
+  return executePromise;
+};
+
 describe('useAsyncOperation', () => {
   describe('initial state', () => {
     it('starts with idle state', () => {
@@ -44,25 +71,17 @@ describe('useAsyncOperation', () => {
 
   describe('execute — happy path', () => {
     it('sets isLoading true while the operation is pending', async () => {
-      let resolveOperation!: (value: string) => void;
-      const pendingPromise = new Promise<string>(res => {
-        resolveOperation = res;
-      });
-      const operation = vi.fn<[], Promise<string>>(() => pendingPromise);
+      const pendingOperation = createDeferred<string>();
+      const operation = vi.fn<[], Promise<string>>(() => pendingOperation.promise);
       const { result } = renderHook(() => useAsyncOperation(operation));
 
-      // Start execution in a sync act() so only the synchronous setState
-      // (isLoading: true) is flushed — the pending promise keeps the hook "loading".
-      let executePromise!: Promise<string | null>;
-      act(() => {
-        executePromise = result.current.execute() as Promise<string | null>;
-      });
+      const executePromise = startExecution(() => result.current.execute());
 
       expect(result.current.isLoading).toBe(true);
 
       // Clean up: resolve the pending operation so no dangling state updates.
       await act(async () => {
-        resolveOperation('done');
+        pendingOperation.resolve('done');
         await executePromise;
       });
 
@@ -89,7 +108,7 @@ describe('useAsyncOperation', () => {
 
       let returnedValue: string | null = null;
       await act(async () => {
-        returnedValue = await result.current.execute() as string | null;
+        returnedValue = await result.current.execute();
       });
 
       expect(returnedValue).toBe('hello');
@@ -141,7 +160,7 @@ describe('useAsyncOperation', () => {
 
       let returnedValue: string | null = 'sentinel' as string | null;
       await act(async () => {
-        returnedValue = await result.current.execute() as string | null;
+        returnedValue = await result.current.execute();
       });
 
       expect(returnedValue).toBeNull();
@@ -150,7 +169,7 @@ describe('useAsyncOperation', () => {
 
   describe('options.onSuccess callback', () => {
     it('calls onSuccess with the result after a successful operation', async () => {
-      const onSuccess = vi.fn();
+      const onSuccess = vi.fn<(data: { id: string }) => void>();
       const operation = vi.fn<[], Promise<{ id: string }>>().mockResolvedValue({ id: '42' });
       const { result } = renderHook(() =>
         useAsyncOperation(operation, { onSuccess })
@@ -165,7 +184,7 @@ describe('useAsyncOperation', () => {
     });
 
     it('does not call onSuccess when the operation fails', async () => {
-      const onSuccess = vi.fn();
+      const onSuccess = vi.fn<(data: never) => void>();
       const operation = vi.fn<[], Promise<never>>().mockRejectedValue(new Error('fail'));
       const { result } = renderHook(() =>
         useAsyncOperation(operation, { onSuccess })
@@ -181,7 +200,7 @@ describe('useAsyncOperation', () => {
 
   describe('options.onError callback', () => {
     it('calls onError with the error message when the operation throws', async () => {
-      const onError = vi.fn();
+      const onError = vi.fn<(error: string) => void>();
       const operation = vi.fn<[], Promise<never>>().mockRejectedValue(
         new Error('network down')
       );
@@ -198,7 +217,7 @@ describe('useAsyncOperation', () => {
     });
 
     it('does not call onError on a successful operation', async () => {
-      const onError = vi.fn();
+      const onError = vi.fn<(error: string) => void>();
       const operation = vi.fn<[], Promise<string>>().mockResolvedValue('all good');
       const { result } = renderHook(() =>
         useAsyncOperation(operation, { onError })
@@ -214,12 +233,11 @@ describe('useAsyncOperation', () => {
 
   describe('options.resetOnExecute', () => {
     it('clears previous data to null at the start of each new execution when true', async () => {
-      let resolveSecond!: (v: string) => void;
-      const secondExecPromise = new Promise<string>(res => { resolveSecond = res; });
+      const secondExecution = createDeferred<string>();
 
       const operation = vi.fn<[], Promise<string>>()
         .mockResolvedValueOnce('first')
-        .mockImplementationOnce(() => secondExecPromise);
+        .mockImplementationOnce(() => secondExecution.promise);
 
       const { result } = renderHook(() =>
         useAsyncOperation(operation, { resetOnExecute: true })
@@ -232,16 +250,13 @@ describe('useAsyncOperation', () => {
       expect(result.current.data).toBe('first');
 
       // Second execution begins: data should be cleared immediately
-      let executeSecondPromise!: Promise<string | null>;
-      act(() => {
-        executeSecondPromise = result.current.execute() as Promise<string | null>;
-      });
+      const executeSecondPromise = startExecution(() => result.current.execute());
 
       expect(result.current.data).toBeNull();
 
       // Resolve and clean up
       await act(async () => {
-        resolveSecond('second');
+        secondExecution.resolve('second');
         await executeSecondPromise;
       });
 
@@ -249,12 +264,11 @@ describe('useAsyncOperation', () => {
     });
 
     it('preserves previous data during a new execution when resetOnExecute is false (default)', async () => {
-      let resolveSecond!: (v: string) => void;
-      const secondExecPromise = new Promise<string>(res => { resolveSecond = res; });
+      const secondExecution = createDeferred<string>();
 
       const operation = vi.fn<[], Promise<string>>()
         .mockResolvedValueOnce('first')
-        .mockImplementationOnce(() => secondExecPromise);
+        .mockImplementationOnce(() => secondExecution.promise);
 
       const { result } = renderHook(() => useAsyncOperation(operation));
 
@@ -265,16 +279,13 @@ describe('useAsyncOperation', () => {
       expect(result.current.data).toBe('first');
 
       // Second execution begins: data should still be 'first'
-      let executeSecondPromise!: Promise<string | null>;
-      act(() => {
-        executeSecondPromise = result.current.execute() as Promise<string | null>;
-      });
+      const executeSecondPromise = startExecution(() => result.current.execute());
 
       expect(result.current.data).toBe('first');
 
       // Clean up
       await act(async () => {
-        resolveSecond('second');
+        secondExecution.resolve('second');
         await executeSecondPromise;
       });
     });
