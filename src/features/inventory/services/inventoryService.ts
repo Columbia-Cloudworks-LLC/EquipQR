@@ -596,21 +596,26 @@ export const uploadInventoryItemImages = async (
       );
     }
 
-    // Validate total file size against storage quota
-    const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+    // Validate MIME types and per-file size limits before any compression work.
+    for (const file of files) {
+      validateImageFile(file, 20);
+    }
+
+    // Compress all files up front so quota validation uses the bytes that will
+    // actually be written to storage, not the original (larger) file sizes.
+    // This prevents false "quota exceeded" errors when uncompressed totals
+    // exceed remaining quota but compressed totals would fit.
+    const filesToStore = await Promise.all(files.map(f => compressImageFile(f)));
+    const totalSize = filesToStore.reduce((sum, f) => sum + f.size, 0);
     await validateStorageQuota(organizationId, totalSize);
 
-    // Upload each file and save metadata; track successes for rollback on partial failure
+    // Upload each pre-compressed file and save metadata; track successes for rollback on partial failure
     const results: InventoryItemImage[] = [];
     const uploadedImages: { id: string; fileUrl: string }[] = [];
 
     try {
-      for (const file of files) {
-        validateImageFile(file, 20);
-
-        // Compress before upload so the metadata we save to the DB (size,
-        // MIME type) matches what is actually stored in the bucket.
-        const fileToStore = await compressImageFile(file);
+      for (let i = 0; i < files.length; i++) {
+        const fileToStore = filesToStore[i];
         const filePath = generateFilePath(organizationId, itemId, fileToStore);
         const publicUrl = await uploadImageToStorage(
           'inventory-item-images',
