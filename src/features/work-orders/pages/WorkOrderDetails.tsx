@@ -169,8 +169,13 @@ const WorkOrderDetails = () => {
           templateId: equipment?.default_pm_template_id || undefined
         },
         {
-          onSuccess: () => {
-            toast.success('PM checklist initialized');
+          onSuccess: (result) => {
+            // null means the init was queued offline — the offline banner
+            // already surfaces the pending state; don't show a misleading
+            // "initialized" toast when no PM record exists yet.
+            if (result !== null) {
+              toast.success('PM checklist initialized');
+            }
             setPmInitializing(false);
           },
           onError: (error) => {

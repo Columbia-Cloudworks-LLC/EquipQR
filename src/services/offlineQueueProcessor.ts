@@ -481,22 +481,23 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
 
       if (fetchErr) throw fetchErr;
 
+      const SERVER_TERMINAL_STATUSES = ['completed', 'cancelled'] as const;
       if (
         current &&
         current.updated_at !== serverUpdatedAt &&
-        current.status === 'completed' &&
-        status !== 'completed'
+        SERVER_TERMINAL_STATUSES.includes(current.status as typeof SERVER_TERMINAL_STATUSES[number]) &&
+        !SERVER_TERMINAL_STATUSES.includes(status as typeof SERVER_TERMINAL_STATUSES[number])
       ) {
-        // Server already completed this PM — discarding our offline
-        // edits avoids re-opening a completed checklist behind the user's
-        // back. Surface this as a conflict so the toast tells the user.
-        logger.warn(`PM ${pmId} already completed on server; offline edits discarded`);
+        // Server moved this PM to a terminal state while the client was
+        // offline — discard our edits to avoid overwriting a completed or
+        // cancelled record behind the user's back.
+        logger.warn(`PM ${pmId} reached terminal status '${current.status}' on server; offline edits discarded`);
         return {
           success: true,
           conflict: {
             workOrderId: pmId,
             type: 'status_conflict',
-            details: 'PM was completed on the server while offline. Your offline checklist edits were discarded.',
+            details: `PM was ${current.status} on the server while offline. Your offline checklist edits were discarded.`,
           },
         };
       }

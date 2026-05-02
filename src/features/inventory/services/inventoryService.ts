@@ -12,6 +12,7 @@ import type { InventoryItemFormData } from '@/features/inventory/schemas/invento
 import { bulkSetCompatibilityRules } from '@/features/inventory/services/inventoryCompatibilityRulesService';
 import {
   uploadImageToStorage,
+  compressImageFile,
   deleteImageFromStorage,
   deleteImagesFromStorage,
   generateFilePath,
@@ -605,13 +606,17 @@ export const uploadInventoryItemImages = async (
 
     try {
       for (const file of files) {
-        validateImageFile(file, 10);
+        validateImageFile(file, 20);
 
-        const filePath = generateFilePath(organizationId, itemId, file);
+        // Compress before upload so the metadata we save to the DB (size,
+        // MIME type) matches what is actually stored in the bucket.
+        const fileToStore = await compressImageFile(file);
+        const filePath = generateFilePath(organizationId, itemId, fileToStore);
         const publicUrl = await uploadImageToStorage(
           'inventory-item-images',
           filePath,
-          file
+          fileToStore,
+          { compress: false }
         );
 
         const { data: record, error: insertError } = await supabase
@@ -620,9 +625,9 @@ export const uploadInventoryItemImages = async (
             inventory_item_id: itemId,
             organization_id: organizationId,
             file_url: publicUrl,
-            file_name: file.name,
-            file_size: file.size,
-            mime_type: file.type,
+            file_name: fileToStore.name,
+            file_size: fileToStore.size,
+            mime_type: fileToStore.type,
             uploaded_by: userId,
             uploaded_by_name: userName,
           })

@@ -26,7 +26,7 @@ export const uploadAvatar = async (
     'user-avatars',
     filePath,
     file,
-    { upsert: true }
+    { upsert: true, compress: false }
   );
 
   // Update profiles table
