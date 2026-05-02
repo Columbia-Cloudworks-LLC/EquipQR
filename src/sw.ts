@@ -16,20 +16,19 @@
  *   - SPA shell: precache (cache-first via Workbox) on hashed Vite assets;
  *     navigation requests fall back to the cached `index.html` so the
  *     React Router can still mount when offline.
- *   - Supabase REST GETs: NetworkFirst (5 s timeout, 5 min expiry, 100 entries)
- *     so brief offline periods fall back to the last cached response instead
- *     of failing outright. Auth, edge functions, and realtime are NetworkOnly
- *     because those are always session-sensitive and must never serve stale
- *     responses. POST/PUT/DELETE/PATCH have no route and use the browser default
- *     (network-only). TanStack Query persistence (`src/lib/queryPersistence.ts`)
- *     is the primary offline-read layer; this SW cache is defense in depth.
+ *   - Supabase API traffic: all paths (/rest/, /auth/, /functions/, /realtime/)
+ *     are NetworkOnly. Authenticated PostgREST GET responses contain
+ *     tenant-scoped data; Cache Storage keys do not vary by Authorization header,
+ *     so caching them risks cross-session/cross-user data exposure on shared
+ *     devices. TanStack Query persistence (`src/lib/queryPersistence.ts`) is the
+ *     designated offline-read layer and handles per-query cache keying safely.
+ *     POST/PUT/DELETE/PATCH have no route and use the browser default (network-only).
  *   - Google Maps and other CDNs: untouched (NetworkOnly default).
  */
 
 import { precacheAndRoute, cleanupOutdatedCaches, matchPrecache } from 'workbox-precaching';
 import { registerRoute, setCatchHandler } from 'workbox-routing';
-import { CacheFirst, NetworkFirst, NetworkOnly } from 'workbox-strategies';
-import { ExpirationPlugin } from 'workbox-expiration';
+import { CacheFirst, NetworkOnly } from 'workbox-strategies';
 
 declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
@@ -250,35 +249,15 @@ registerRoute(
   })
 );
 
-// PostgREST read traffic: NetworkFirst with a short timeout so GET requests
-// fall back to the cached response during brief connectivity drops. Short
-// expiry and a limited entry count bound the risk of serving stale
-// tenant-scoped data. Auth, edge-function calls, and realtime stay
-// NetworkOnly because those are always session-sensitive.
-registerRoute(
-  ({ url, request }) =>
-    url.hostname.endsWith('.supabase.co') &&
-    url.pathname.startsWith('/rest/') &&
-    request.method === 'GET',
-  new NetworkFirst({
-    cacheName: 'equipqr-supabase-rest-v1',
-    networkTimeoutSeconds: 5,
-    plugins: [
-      new ExpirationPlugin({
-        maxEntries: 100,
-        maxAgeSeconds: 5 * 60,
-        purgeOnQuotaError: true,
-      }),
-    ],
-  })
-);
-
-// Auth, edge functions, and realtime: always NetworkOnly — never cache these
-// session-sensitive or mutation responses, regardless of HTTP method.
+// All Supabase API traffic is NetworkOnly. Caching authenticated PostgREST
+// GET responses in Cache Storage would risk cross-session tenant data exposure
+// because cache keys do not vary by Authorization header. Offline data access
+// is handled by TanStack Query persistence (src/lib/queryPersistence.ts).
 registerRoute(
   ({ url }) =>
     url.hostname.endsWith('.supabase.co') &&
-    (url.pathname.startsWith('/auth/') ||
+    (url.pathname.startsWith('/rest/') ||
+      url.pathname.startsWith('/auth/') ||
       url.pathname.startsWith('/functions/') ||
       url.pathname.startsWith('/realtime/')),
   new NetworkOnly()
