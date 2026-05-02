@@ -137,7 +137,6 @@ describe('AppProviders', () => {
             staleTime: number;
             retry: unknown;
             retryDelay: unknown;
-            persister: unknown;
           };
           mutations: { networkMode: string };
         };
@@ -149,9 +148,10 @@ describe('AppProviders', () => {
       expect(typeof call.defaultOptions.queries.retry).toBe('function');
       // Exponential backoff retry delay function.
       expect(typeof call.defaultOptions.queries.retryDelay).toBe('function');
-      // Persister is the scoped IDB persister built by createScopedQueryPersister.
-      expect(call.defaultOptions.queries.persister).toBeTruthy();
-      expect(call.defaultOptions.mutations.networkMode).toBe('always');
+      // NOTE: persister is intentionally NOT set globally; experimental_createQueryPersister
+      // stalls org queries when used as a default option (it intercepts the restore
+      // phase of every query before the IDB open resolves).
+      expect(call.defaultOptions.mutations.networkMode).toBe('always'); // Let OfflineAwareService handle offline
     });
   });
 

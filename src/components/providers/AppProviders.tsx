@@ -9,7 +9,6 @@ import { UserProvider } from '@/contexts/UserContext';
 import { SessionProvider } from '@/contexts/SessionContext';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { createScopedQueryPersister } from '@/lib/queryPersistence';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,11 +23,13 @@ const queryClient = new QueryClient({
         return failureCount < 2;
       },
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-      // Per-query persistence to IndexedDB, scoped per <user, org>. When the
-      // browser is offline (or a cold reload happens on slow cellular), this
-      // is what lets a previously-loaded equipment / work-order / PM page
-      // hydrate from disk instead of showing a blank skeleton forever.
-      persister: createScopedQueryPersister(),
+      // NOTE: experimental_createQueryPersister from @tanstack/react-query-persist-client
+      // is NOT set here as a global default because it intercepts the restore phase
+      // of EVERY query and stalls any query whose IDB entry doesn't resolve
+      // synchronously, breaking the organization loading. Targeted per-query
+      // persistence can be wired on individual hooks once the stable v5 API is
+      // confirmed. The PWA service worker (src/sw.ts) already covers app-shell
+      // caching for offline/cellular scenarios.
     },
     mutations: {
       networkMode: 'always', // Always fire mutationFn; offline handling is in OfflineAwareService layer

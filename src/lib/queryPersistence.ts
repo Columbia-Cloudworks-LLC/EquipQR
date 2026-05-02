@@ -172,12 +172,31 @@ export function createScopedQueryPersister() {
 
   return experimental_createQueryPersister<string>({
     storage: {
-      getItem: async (key) => (await get<string>(key)) ?? null,
+      // All three methods must be fail-safe. IndexedDB can be unavailable
+      // (private browsing mode, quota exceeded, mobile Safari restrictions,
+      // or first-open timing races). A thrown error here would propagate
+      // into TanStack Query's restoration step and silently abort the query
+      // instead of falling through to the normal network fetch.
+      getItem: async (key) => {
+        try {
+          return (await get<string>(key)) ?? null;
+        } catch {
+          return null;
+        }
+      },
       setItem: async (key, value) => {
-        await set(key, value);
+        try {
+          await set(key, value);
+        } catch {
+          // Silently swallow write failures — the cache is best-effort.
+        }
       },
       removeItem: async (key) => {
-        await del(key);
+        try {
+          await del(key);
+        } catch {
+          // Silently swallow removal failures.
+        }
       },
     },
     prefix,
