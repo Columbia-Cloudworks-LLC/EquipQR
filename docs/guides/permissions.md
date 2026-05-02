@@ -63,8 +63,12 @@ This document defines the comprehensive role-based access control (RBAC) system 
 | Update Organization Settings | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Delete Organization | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | View Organization Details | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Manage Billing | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Switch Organizations | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+> Billing capabilities were removed from EquipQR in Jan 2025; there is no
+> billing surface to permission against. Historical billing tables
+> (`billing_events`, `organization_subscriptions`, etc.) are kept for
+> auditability only and are not exposed in the UI.
 
 ### Member Management
 
