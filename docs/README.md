@@ -22,12 +22,29 @@ Technical documentation for developers and system architects:
 - **[Testing Guidelines](./technical/testing-guidelines.md)** - Test patterns and coverage expectations
 - **[API Reference](./technical/api-reference.md)** - API documentation with examples
 
-### 📖 User Guides
+### 👋 For End Users
 
-Guides for end users and administrators:
+Day-to-day support for technicians, managers, admins, owners, and requestors
+lives **inside the app**:
 
-- **[Workflows](./guides/workflows.md)** - Work order workflows and image upload processes
-- **[Permissions](./guides/permissions.md)** - Roles and permissions system
+- **In-app Support Library** — open `/dashboard/support` while signed in, or
+  `/support` for the public variant. It is the source of truth for
+  step-by-step walkthroughs organized by role and workflow (Start Here,
+  Technician Field Work, Work Orders, Equipment & QR Codes, Inventory & Parts,
+  Teams & Roles, Admin & Integrations, Privacy & Support).
+- **[Image Upload Quick Reference](./how-to/image-upload/quick-reference-card.md)** —
+  printable cheat sheet for technicians in the field.
+- **[Image Upload Technician Guide](./how-to/image-upload/technician-image-upload-guide.md)** —
+  numbered-step guide with screenshots for the work-order-plus-photo flow.
+
+### 📖 Reference Guides (developers & admins)
+
+Technical reference for developers, admins, and support engineers who need the
+full lifecycle and permission map:
+
+- **[Workflows Reference](./guides/workflows.md)** — canonical work order
+  lifecycle and status-transition rules.
+- **[Permissions](./guides/permissions.md)** — full RBAC matrix.
 
 ### 🚀 Operations
 
@@ -58,8 +75,10 @@ Operational documentation for deployment and maintenance:
 4. Monitor [Workflows](./guides/workflows.md) - User processes
 
 ### For End Users
-1. Explore [Workflows](./guides/workflows.md) - Work order and image upload processes
-2. Understand [Permissions](./guides/permissions.md) - Role-based access
+1. Open the in-app **Support Library** at `/dashboard/support` (or `/support` while
+   signed out) — the authoritative source of step-by-step walkthroughs.
+2. For field technicians, print the [Image Upload Quick Reference](./how-to/image-upload/quick-reference-card.md).
+3. For RBAC questions, see [Permissions](./guides/permissions.md).
 
 ### For DevOps Engineers
 1. **READ FIRST**: [Migrations](./ops/migrations.md) - ⚠️ **CRITICAL** migration rules

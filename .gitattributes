@@ -1,0 +1,92 @@
+# EquipQR .gitattributes
+# Normalise all text files to LF in the git object store and on checkout.
+# This overrides the Git for Windows default of core.autocrlf=true, which
+# otherwise causes phantom "modified" diffs and StrReplace failures whenever
+# a tool (Cursor Write, PowerShell Set-Content, npm build scripts) writes
+# CRLF content that git hasn't re-normalised yet.
+#
+# Rules of thumb used here:
+#   eol=lf   — text files that must be LF everywhere (source, docs, scripts,
+#               SQL, config). Linux CI runners and bash interpreters require LF.
+#   eol=crlf — files that Windows shells consume directly (.bat, .cmd, .ps1).
+#              dev-start.bat and dev-start.ps1 are documented in AGENTS.md as
+#              requiring Windows-compatible line endings.
+#   binary   — true binary assets; git must not touch their bytes at all.
+
+# ─── Default ────────────────────────────────────────────────────────────────
+# text=auto lets git decide whether a file is text; eol=lf normalises it to
+# LF both in the object store and on checkout. This single line fixes the
+# majority of CRLF drift.
+* text=auto eol=lf
+
+# ─── Source code (always LF) ────────────────────────────────────────────────
+*.ts        text eol=lf
+*.tsx       text eol=lf
+*.js        text eol=lf
+*.jsx       text eol=lf
+*.mjs       text eol=lf
+*.cjs       text eol=lf
+*.d.ts      text eol=lf
+
+# ─── Config / data formats ──────────────────────────────────────────────────
+*.json      text eol=lf
+*.jsonc     text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+*.toml      text eol=lf
+*.env       text eol=lf
+*.env.*     text eol=lf
+
+# ─── Styles ─────────────────────────────────────────────────────────────────
+*.css       text eol=lf
+*.scss      text eol=lf
+*.less      text eol=lf
+
+# ─── Markup / docs ──────────────────────────────────────────────────────────
+*.html      text eol=lf
+*.htm       text eol=lf
+*.md        text eol=lf
+*.mdx       text eol=lf
+*.txt       text eol=lf
+*.svg       text eol=lf
+
+# ─── Database / backend ─────────────────────────────────────────────────────
+*.sql       text eol=lf
+
+# ─── Shell scripts (Linux CI and bash – must be LF) ─────────────────────────
+# AGENTS.md: ".sh scripts written from PowerShell need explicit LF
+# normalisation … the same constraint applies to other 5.1-targeted scripts."
+*.sh        text eol=lf
+
+# ─── Windows shell files (must stay CRLF) ───────────────────────────────────
+# AGENTS.md: "dev-start.ps1 must stay pure ASCII" and targets PowerShell 5.1
+# which reads BOM-less files as Windows-1252 – line endings must be CRLF.
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+*.ps1       text eol=crlf
+*.psm1      text eol=crlf
+*.psd1      text eol=crlf
+
+# ─── Binary assets (no line-ending conversion at all) ───────────────────────
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.webp      binary
+*.ico       binary
+*.pdf       binary
+*.zip       binary
+*.tgz       binary
+*.gz        binary
+*.tar       binary
+*.7z        binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+*.otf       binary
+*.eot       binary
+*.mp4       binary
+*.mov       binary
+*.avi       binary
+*.mp3       binary
+*.wav       binary

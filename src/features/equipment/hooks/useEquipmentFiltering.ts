@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef } from 'react';
-import { useEquipment } from '@/features/equipment/hooks/useEquipment';
+import { useEquipmentList, useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
+import type { EquipmentListFilters } from '@/features/equipment/services/EquipmentService';
 import { usePermissions } from '@/hooks/usePermissions';
 
 export interface EquipmentFilters {
@@ -38,6 +39,19 @@ const initialSort: SortConfig = {
   direction: 'asc'
 };
 
+/**
+ * Equipment list state: filters, sort, pagination — all driven server-side
+ * via `useEquipmentList`. The previous implementation pulled the entire
+ * org into the browser and filtered/sorted/paginated in `useMemo`, which
+ * shipped megabytes of unused rows on Slow 4G; this version ships only
+ * the rows the page is rendering.
+ *
+ * Filter dropdown options (manufacturers, locations) are derived from the
+ * lightweight `useEquipmentSummaries` projection, which is also the
+ * source of `equipment.length` (the org-wide total). Both queries cache
+ * independently of the paginated rows so toggling filters does not
+ * re-fetch the option lists.
+ */
 export const useEquipmentFiltering = (organizationId?: string) => {
   const [filters, setFilters] = useState<EquipmentFilters>(initialFilters);
   const [sortConfig, setSortConfig] = useState<SortConfig>(initialSort);
@@ -46,175 +60,77 @@ export const useEquipmentFiltering = (organizationId?: string) => {
   const [pageSize, setPageSize] = useState(10);
   const [activeQuickFilter, setActiveQuickFilter] = useState<string | null>(null);
 
-  // Refs mirror latest filter/sort state so callbacks stay stable (no `currentPage`
-  // in deps) while still detecting true no-ops — e.g. Equipment.tsx re-running
-  // `updateFilter('team', 'all')` after pagination must not reset the page.
+  // Refs mirror latest filter/sort state so callbacks stay stable (no
+  // `currentPage` in deps) while still detecting true no-ops.
   const filtersRef = useRef(filters);
   filtersRef.current = filters;
   const sortConfigRef = useRef(sortConfig);
   sortConfigRef.current = sortConfig;
 
-  // Get equipment data using explicit organization ID
-  const equipmentQuery = useEquipment(organizationId);
-  const { data: equipment = [], isLoading } = equipmentQuery;
+  // Server-side filtered + paginated rows. Filter shape is normalized so
+  // the service can map `'all'` / `'unassigned'` sentinels and synthetic
+  // `'out_of_service'` directly to PostgREST predicates.
+  const serverFilters: EquipmentListFilters = useMemo(
+    () => ({
+      search: filters.search || undefined,
+      status:
+        filters.status === 'all'
+          ? undefined
+          : (filters.status as EquipmentListFilters['status']),
+      manufacturer: filters.manufacturer === 'all' ? undefined : filters.manufacturer,
+      location: filters.location === 'all' ? undefined : filters.location,
+      team: filters.team === 'all' ? undefined : filters.team,
+      maintenanceDateFrom: filters.maintenanceDateFrom || undefined,
+      maintenanceDateTo: filters.maintenanceDateTo || undefined,
+      installationDateFrom: filters.installationDateFrom || undefined,
+      installationDateTo: filters.installationDateTo || undefined,
+      warrantyExpiring: filters.warrantyExpiring || undefined,
+    }),
+    [filters],
+  );
+
+  const listQuery = useEquipmentList(organizationId, serverFilters, {
+    page: currentPage,
+    pageSize,
+    sortField: sortConfig.field,
+    sortDirection: sortConfig.direction,
+  });
+
+  // Lightweight org-wide summary used for filter dropdown options and
+  // "X of N" totals. The query is cheap enough to keep separate from the
+  // paginated list — PMs and dropdowns share the same cache entry.
+  const summariesQuery = useEquipmentSummaries(organizationId);
 
   usePermissions();
 
-  // Extract unique values for filter options.
-  // Team is intentionally NOT in this shape — team scope is owned by the
-  // global TopBar `useSelectedTeam` and mirrored onto `filters.team` by the
-  // page wiring (see `Equipment.tsx`).
-  // Filter out empty strings to prevent SelectItem crash (Radix UI requires non-empty values).
+  const equipment = useMemo(
+    () => summariesQuery.data ?? [],
+    [summariesQuery.data],
+  );
+  const paginatedEquipment = useMemo(
+    () => listQuery.data?.data ?? [],
+    [listQuery.data],
+  );
+  const totalFilteredCount = listQuery.data?.count ?? 0;
+  const isLoading =
+    listQuery.isLoading ||
+    (summariesQuery.isLoading && !summariesQuery.data);
+
+  // Filter option sources. Filter empty strings so the Radix Select doesn't
+  // crash on an empty value.
   const filterOptions = useMemo(() => {
-    const manufacturers = [...new Set(equipment.map(item => item.manufacturer))]
+    const manufacturers = [...new Set(equipment.map(item => item.manufacturer ?? ''))]
       .filter(m => m && m.trim() !== '')
       .sort();
-    const locations = [...new Set(equipment.map(item => item.location))]
+    const locations = [...new Set(equipment.map(item => item.location ?? ''))]
       .filter(l => l && l.trim() !== '')
       .sort();
-
-    return {
-      manufacturers,
-      locations,
-    } as const;
+    return { manufacturers, locations } as const;
   }, [equipment]);
 
-  // Filter and sort equipment
-  const filteredAndSortedEquipment = useMemo(() => {
-    const filtered = equipment.filter(item => {
-      // Search filter
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        const searchMatch = 
-          item.name.toLowerCase().includes(searchLower) ||
-          item.manufacturer.toLowerCase().includes(searchLower) ||
-          item.model.toLowerCase().includes(searchLower) ||
-          item.serial_number.toLowerCase().includes(searchLower) ||
-          item.location.toLowerCase().includes(searchLower);
-        
-        if (!searchMatch) return false;
-      }
-
-      // Status filter
-      if (filters.status !== 'all') {
-        if (filters.status === 'out_of_service') {
-          if (item.status !== 'maintenance' && item.status !== 'inactive') {
-            return false;
-          }
-        } else if (item.status !== filters.status) {
-          return false;
-        }
-      }
-
-      // Manufacturer filter
-      if (filters.manufacturer !== 'all' && item.manufacturer !== filters.manufacturer) {
-        return false;
-      }
-
-      // Location filter
-      if (filters.location !== 'all' && item.location !== filters.location) {
-        return false;
-      }
-
-      // Team filter
-      if (filters.team !== 'all') {
-        if (filters.team === 'unassigned' && item.team_id) {
-          return false;
-        }
-        if (filters.team !== 'unassigned' && item.team_id !== filters.team) {
-          return false;
-        }
-      }
-
-      // Maintenance date range filter
-      if (filters.maintenanceDateFrom || filters.maintenanceDateTo) {
-        if (!item.last_maintenance) return false;
-        
-        const maintenanceDate = new Date(item.last_maintenance);
-        
-        if (filters.maintenanceDateFrom) {
-          const fromDate = new Date(filters.maintenanceDateFrom);
-          if (maintenanceDate < fromDate) return false;
-        }
-        
-        if (filters.maintenanceDateTo) {
-          const toDate = new Date(filters.maintenanceDateTo);
-          if (maintenanceDate > toDate) return false;
-        }
-      }
-
-      // Installation date range filter
-      if (filters.installationDateFrom || filters.installationDateTo) {
-        const installationDate = new Date(item.installation_date);
-        
-        if (filters.installationDateFrom) {
-          const fromDate = new Date(filters.installationDateFrom);
-          if (installationDate < fromDate) return false;
-        }
-        
-        if (filters.installationDateTo) {
-          const toDate = new Date(filters.installationDateTo);
-          if (installationDate > toDate) return false;
-        }
-      }
-
-      // Warranty expiring filter
-      if (filters.warrantyExpiring) {
-        if (!item.warranty_expiration) return false;
-        
-        const warrantyDate = new Date(item.warranty_expiration);
-        const now = new Date();
-        const thirtyDaysFromNow = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
-        
-        if (warrantyDate > thirtyDaysFromNow) return false;
-      }
-
-      return true;
-    });
-
-    // Sort equipment
-    filtered.sort((a, b) => {
-      let aValue: unknown = a[sortConfig.field as keyof typeof a];
-      let bValue: unknown = b[sortConfig.field as keyof typeof b];
-
-      // Handle null/undefined values
-      if (aValue == null && bValue == null) return 0;
-      if (aValue == null) return sortConfig.direction === 'asc' ? 1 : -1;
-      if (bValue == null) return sortConfig.direction === 'asc' ? -1 : 1;
-
-      // Handle date fields
-      if (['installation_date', 'last_maintenance', 'warranty_expiration', 'created_at', 'updated_at'].includes(sortConfig.field)) {
-        aValue = new Date(aValue as string).getTime();
-        bValue = new Date(bValue as string).getTime();
-      }
-
-      // Handle string comparison
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        const aStr = aValue.toLowerCase();
-        const bStr = bValue.toLowerCase();
-        if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
-      }
-
-      const aNum = Number(aValue);
-      const bNum = Number(bValue);
-      if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
-        if (aNum < bNum) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aNum > bNum) return sortConfig.direction === 'asc' ? 1 : -1;
-      }
-      return 0;
-    });
-
-    return filtered;
-  }, [equipment, filters, sortConfig]);
-
-  // Paginate the filtered and sorted equipment
-  const paginatedEquipment = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return filteredAndSortedEquipment.slice(startIndex, endIndex);
-  }, [filteredAndSortedEquipment, currentPage, pageSize]);
+  // For consumers that previously read `filteredAndSortedEquipment` to
+  // count the filtered total, route them through the server count.
+  const filteredAndSortedEquipment = paginatedEquipment;
 
   const applyQuickFilter = useCallback((type: string) => {
     if (activeQuickFilter === type) {
@@ -246,12 +162,15 @@ export const useEquipmentFiltering = (organizationId?: string) => {
     setCurrentPage(1);
   }, [activeQuickFilter]);
 
-  const updateFilter = useCallback((key: keyof EquipmentFilters, value: EquipmentFilters[keyof EquipmentFilters]) => {
-    if (filtersRef.current[key] === value) return;
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setActiveQuickFilter(null);
-    setCurrentPage(1);
-  }, []);
+  const updateFilter = useCallback(
+    (key: keyof EquipmentFilters, value: EquipmentFilters[keyof EquipmentFilters]) => {
+      if (filtersRef.current[key] === value) return;
+      setFilters(prev => ({ ...prev, [key]: value }));
+      setActiveQuickFilter(null);
+      setCurrentPage(1);
+    },
+    [],
+  );
 
   const updateSort = useCallback((field: string, direction?: 'asc' | 'desc') => {
     const prev = sortConfigRef.current;
@@ -271,7 +190,7 @@ export const useEquipmentFiltering = (organizationId?: string) => {
 
   const hasActiveFilters = useMemo(() => {
     return Object.entries(filters).some(([key, value]) => {
-      if (key === 'search' || key === 'maintenanceDateFrom' || key === 'maintenanceDateTo' || 
+      if (key === 'search' || key === 'maintenanceDateFrom' || key === 'maintenanceDateTo' ||
           key === 'installationDateFrom' || key === 'installationDateTo') {
         return value !== '';
       }
@@ -282,7 +201,7 @@ export const useEquipmentFiltering = (organizationId?: string) => {
     });
   }, [filters]);
 
-  const totalPages = Math.ceil(filteredAndSortedEquipment.length / pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalFilteredCount / pageSize));
 
   return {
     filters,
@@ -298,13 +217,13 @@ export const useEquipmentFiltering = (organizationId?: string) => {
     currentPage,
     pageSize,
     totalPages,
-    totalFilteredCount: filteredAndSortedEquipment.length,
+    totalFilteredCount,
     updateFilter,
     updateSort,
     clearFilters,
     applyQuickFilter,
     setCurrentPage,
     setPageSize,
-    setShowAdvancedFilters
+    setShowAdvancedFilters,
   };
 };

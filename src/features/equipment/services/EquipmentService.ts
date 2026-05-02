@@ -76,6 +76,51 @@ export interface EquipmentFilters extends FilterParams {
   isOrgAdmin?: boolean;
 }
 
+/**
+ * Extended filter shape used by the dense equipment list page. Mirrors the
+ * UI's `EquipmentFilters` shape one-for-one so the server query can do the
+ * filtering work that used to happen in the browser.
+ */
+export interface EquipmentListFilters {
+  /** Free-text search across name, manufacturer, model, serial, location. */
+  search?: string;
+  /**
+   * One of `'active'`, `'maintenance'`, `'inactive'`, the sentinel
+   * `'out_of_service'` (= maintenance + inactive), or `undefined` for "all".
+   */
+  status?: Equipment['status'] | 'out_of_service';
+  manufacturer?: string;
+  location?: string;
+  /**
+   * One of a real team UUID, the sentinel `'unassigned'`, `'all'`, or
+   * `undefined` for "all teams".
+   */
+  team?: string;
+  /** ISO date (yyyy-mm-dd) or empty string. Filters `last_maintenance`. */
+  maintenanceDateFrom?: string;
+  maintenanceDateTo?: string;
+  installationDateFrom?: string;
+  installationDateTo?: string;
+  /** When true, filters to rows whose warranty_expiration is within 30 days. */
+  warrantyExpiring?: boolean;
+  // Team-based access control (RBAC) — populated by the page.
+  userTeamIds?: string[];
+  isOrgAdmin?: boolean;
+}
+
+export interface EquipmentListResult {
+  data: EquipmentWithTeam[];
+  /** Total rows matching `filters` (NOT the page slice). Drives pagination. */
+  count: number;
+}
+
+/**
+ * Page size cap. Defends against a misconfigured caller asking for an
+ * unbounded scan (which on a 10k-row org would defeat the entire purpose
+ * of moving filtering server-side).
+ */
+const MAX_LIST_PAGE_SIZE = 200;
+
 export type EquipmentCreateData = Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>;
 
 export type EquipmentUpdateData = Partial<Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>>;
@@ -284,6 +329,130 @@ export class EquipmentService {
       }));
 
       return handleSuccess(flattened);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /**
+   * Server-paginated, server-filtered equipment list for the dense list
+   * page (`/dashboard/equipment`). Returns `{ data, count }` where `count`
+   * is the total rows matching the filter (NOT the slice) so pagination
+   * controls have everything they need without a second round trip.
+   *
+   * This replaces the previous flow where `useEquipmentFiltering` fetched
+   * the entire org and filtered/sorted/sliced in memory — over Slow 4G on
+   * a 500-piece fleet, the old flow shipped ~500 rows × ~30 columns even
+   * when the user only saw 10. The new flow ships at most `limit` rows.
+   */
+  static async getFilteredList(
+    organizationId: string,
+    filters: EquipmentListFilters = {},
+    pagination: { page?: number; pageSize?: number; sortField?: string; sortDirection?: 'asc' | 'desc' } = {}
+  ): Promise<ApiResponse<EquipmentListResult>> {
+    try {
+      const page = Math.max(1, pagination.page ?? 1);
+      const pageSize = Math.min(MAX_LIST_PAGE_SIZE, Math.max(1, pagination.pageSize ?? 10));
+
+      let query = supabase
+        .from('equipment')
+        .select('*, team:team_id(id, name)', { count: 'exact' })
+        .eq('organization_id', organizationId);
+
+      // Team-based access control (RBAC). When the user is NOT an org admin
+      // and has no team memberships, return an empty page short-circuit so
+      // we don't issue a query that the DB would happily answer with zero
+      // rows but that still costs a round trip.
+      if (filters.userTeamIds !== undefined && !filters.isOrgAdmin) {
+        if (filters.userTeamIds.length === 0) {
+          return handleSuccess({ data: [], count: 0 });
+        }
+        query = query.in('team_id', filters.userTeamIds);
+      }
+
+      // Free-text search: PostgREST `or()` matches across columns. Names,
+      // manufacturers, models, serial numbers and locations are all the
+      // operator-friendly identifiers a technician will type.
+      if (filters.search && filters.search.trim()) {
+        const term = filters.search.trim().replace(/[,()]/g, ' ');
+        // ilike is case-insensitive substring match. Wrap in % wildcards.
+        const pattern = `%${term}%`;
+        query = query.or(
+          [
+            `name.ilike.${pattern}`,
+            `manufacturer.ilike.${pattern}`,
+            `model.ilike.${pattern}`,
+            `serial_number.ilike.${pattern}`,
+            `location.ilike.${pattern}`,
+          ].join(','),
+        );
+      }
+
+      // Status: handle the synthetic `out_of_service` sentinel that the UI
+      // uses for "anything that's not active" (maintenance OR inactive).
+      if (filters.status && filters.status !== undefined) {
+        if (filters.status === 'out_of_service') {
+          query = query.in('status', ['maintenance', 'inactive']);
+        } else {
+          query = query.eq('status', filters.status);
+        }
+      }
+
+      if (filters.manufacturer && filters.manufacturer !== 'all') {
+        query = query.eq('manufacturer', filters.manufacturer);
+      }
+      if (filters.location && filters.location !== 'all') {
+        query = query.eq('location', filters.location);
+      }
+      if (filters.team && filters.team !== 'all') {
+        if (filters.team === 'unassigned') {
+          query = query.is('team_id', null);
+        } else {
+          query = query.eq('team_id', filters.team);
+        }
+      }
+
+      if (filters.maintenanceDateFrom) {
+        query = query.gte('last_maintenance', filters.maintenanceDateFrom);
+      }
+      if (filters.maintenanceDateTo) {
+        query = query.lte('last_maintenance', filters.maintenanceDateTo);
+      }
+      if (filters.installationDateFrom) {
+        query = query.gte('installation_date', filters.installationDateFrom);
+      }
+      if (filters.installationDateTo) {
+        query = query.lte('installation_date', filters.installationDateTo);
+      }
+
+      if (filters.warrantyExpiring) {
+        const now = new Date();
+        const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        query = query
+          .not('warranty_expiration', 'is', null)
+          .lte('warranty_expiration', thirtyDaysFromNow.toISOString());
+      }
+
+      const sortField = pagination.sortField ?? 'name';
+      const sortDirection = pagination.sortDirection ?? 'asc';
+      query = query.order(sortField, { ascending: sortDirection !== 'desc' });
+
+      const from = (page - 1) * pageSize;
+      query = query.range(from, from + pageSize - 1);
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        logger.error('Error fetching paginated equipment list:', error);
+        return handleError(error);
+      }
+
+      const flattened = (data || []).map(row => ({
+        ...row,
+        team_name: (row.team as { name?: string } | null | undefined)?.name ?? undefined,
+      })) as EquipmentWithTeam[];
+
+      return handleSuccess({ data: flattened, count: count ?? flattened.length });
     } catch (error) {
       return handleError(error);
     }

@@ -28,13 +28,17 @@ export const MFA_ENABLED = import.meta.env.VITE_ENABLE_MFA === 'true';
  * When enabled, mutations are queued locally when the device is offline and
  * replayed automatically on reconnect (OfflineQueueProvider + PendingSyncBanner).
  *
- * This feature is work-in-progress. Keep defaulting to false until it is
- * fully validated and ready for general availability.
+ * As of 2026-05, this is enabled by default for all environments because
+ * the offline queue is the field-critical path: technicians need to be
+ * able to create / update / complete PM checklists and work orders on
+ * cellular dead-zones. Coverage was extended in the same release to
+ * include PM init / update via OfflineAwareWorkOrderService.
  *
- * Set via environment variable: VITE_ENABLE_OFFLINE_QUEUE
- * Defaults to false (disabled) unless explicitly set to 'true'.
+ * Set `VITE_ENABLE_OFFLINE_QUEUE=false` (literal string `false`) to disable
+ * the feature for tests or emergency rollbacks. Any other value (unset,
+ * empty, `true`, etc.) keeps it on.
  */
-export const OFFLINE_QUEUE_ENABLED = import.meta.env.VITE_ENABLE_OFFLINE_QUEUE === 'true';
+export const OFFLINE_QUEUE_ENABLED = import.meta.env.VITE_ENABLE_OFFLINE_QUEUE !== 'false';
 
 /**
  * Feature flag accessor utility

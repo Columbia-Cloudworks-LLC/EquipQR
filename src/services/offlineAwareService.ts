@@ -31,6 +31,15 @@ import type {
 import type { UpdateWorkingHoursData } from '@/features/equipment/services/equipmentWorkingHoursService';
 import { OfflineQueueService, OfflineQueuePayloadError } from './offlineQueueService';
 import type { WorkOrderServerSnapshot } from './offlineQueueService';
+import type {
+  PMChecklistItem,
+  PreventativeMaintenance,
+  UpdatePMData,
+} from '@/features/pm-templates/services/preventativeMaintenanceService';
+import {
+  createPM,
+  updatePM,
+} from '@/features/pm-templates/services/preventativeMaintenanceService';
 
 // ─── Result type ─────────────────────────────────────────────────────────────
 
@@ -521,6 +530,128 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline work order note', err);
+      throw new Error('Cannot save offline — please try again when connected.');
+    }
+  }
+
+  // ── Preventative Maintenance — init ──────────────────────────────────────
+
+  /**
+   * Initialize a PM record for a work order + equipment pair. When offline,
+   * the call is queued for replay. Useful for the auto-init effect in
+   * `WorkOrderDetails` when a technician opens a `has_pm = true` work
+   * order on a flaky cellular link.
+   */
+  async initPM(input: {
+    workOrderId: string;
+    equipmentId: string;
+    templateId?: string;
+    checklistData: PMChecklistItem[];
+    notes?: string;
+  }): Promise<OfflineAwareResult<PreventativeMaintenance>> {
+    if (!navigator.onLine) {
+      return this.queuePMInit(input);
+    }
+    try {
+      const pm = await createPM({
+        workOrderId: input.workOrderId,
+        equipmentId: input.equipmentId,
+        organizationId: this.orgId,
+        checklistData: input.checklistData,
+        notes: input.notes,
+        templateId: input.templateId,
+      });
+      if (!pm) throw new Error('Failed to create PM');
+      return { data: pm, queuedOffline: false };
+    } catch (error) {
+      if (isNetworkError(error)) return this.queuePMInit(input);
+      throw error;
+    }
+  }
+
+  // ── Preventative Maintenance — update ────────────────────────────────────
+
+  /**
+   * Update a PM record. Offline edits queue under the `pm_update` type and
+   * collapse via `OfflineQueueService.compact()` so a 50-item checklist
+   * session syncs as a single network call.
+   *
+   * `serverUpdatedAt` is the snapshot of `pm.updated_at` the user saw when
+   * they began editing — the processor uses it for server-wins conflict
+   * detection on `status` (a server-side completion always wins).
+   */
+  async updatePM(
+    pmId: string,
+    data: UpdatePMData,
+    serverUpdatedAt?: string,
+  ): Promise<OfflineAwareResult<PreventativeMaintenance>> {
+    if (!navigator.onLine) {
+      return this.queuePMUpdate(pmId, data, serverUpdatedAt);
+    }
+    try {
+      const pm = await updatePM(pmId, data);
+      if (!pm) throw new Error('Failed to update PM');
+      return { data: pm, queuedOffline: false };
+    } catch (error) {
+      if (isNetworkError(error)) return this.queuePMUpdate(pmId, data, serverUpdatedAt);
+      throw error;
+    }
+  }
+
+  private queuePMInit(input: {
+    workOrderId: string;
+    equipmentId: string;
+    templateId?: string;
+    checklistData: PMChecklistItem[];
+    notes?: string;
+  }): OfflineAwareResult<PreventativeMaintenance> {
+    try {
+      const item = this.queueService.enqueue({
+        type: 'pm_init',
+        payload: {
+          workOrderId: input.workOrderId,
+          equipmentId: input.equipmentId,
+          templateId: input.templateId,
+          checklistData: input.checklistData,
+          notes: input.notes,
+        },
+        organizationId: this.orgId,
+        userId: this.userId,
+      });
+      logger.info('PM init queued offline', { queueItemId: item.id, workOrderId: input.workOrderId });
+      return { data: null, queuedOffline: true, queueItemId: item.id };
+    } catch (err) {
+      if (err instanceof OfflineQueuePayloadError) throw err;
+      logger.error('Failed to enqueue offline PM init', err);
+      throw new Error('Cannot save offline — please try again when connected.');
+    }
+  }
+
+  private queuePMUpdate(
+    pmId: string,
+    data: UpdatePMData,
+    serverUpdatedAt?: string,
+  ): OfflineAwareResult<PreventativeMaintenance> {
+    try {
+      const item = this.queueService.enqueue({
+        type: 'pm_update',
+        payload: {
+          pmId,
+          serverUpdatedAt,
+          checklistData: data.checklistData,
+          notes: data.notes,
+          status: data.status,
+          completedAt: data.completedAt ?? null,
+          completedBy: data.completedBy ?? null,
+        },
+        organizationId: this.orgId,
+        userId: this.userId,
+      });
+      logger.info('PM update queued offline', { queueItemId: item.id, pmId });
+      return { data: null, queuedOffline: true, queueItemId: item.id };
+    } catch (err) {
+      if (err instanceof OfflineQueuePayloadError) throw err;
+      logger.error('Failed to enqueue offline PM update', err);
       throw new Error('Cannot save offline — please try again when connected.');
     }
   }

@@ -121,17 +121,26 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
           checklistData: currentChecklist,
           notes: currentNotes,
           status: pm.status === 'pending' ? 'in_progress' as const : pm.status as 'pending' | 'in_progress' | 'completed' | 'cancelled'
-        }
+        },
+        // Capture the server timestamp at edit time so the offline-sync
+        // processor can detect a server-side change while we were offline.
+        serverUpdatedAt: pm.updated_at,
       });
-      
+
       if (result) {
         setSaveStatus('saved');
         setLastSaved(new Date());
         setHasUnsavedChanges(false);
         clearStorage(); // Clear backup after successful save
-        
+
         // Refresh the component to show the updated data
         onUpdate();
+      } else if (result === null) {
+        // Queued offline — surface the saved state without dropping unsaved
+        // markers (they continue to live in `useBrowserStorage`).
+        setSaveStatus('saved');
+        setLastSaved(new Date());
+        setHasUnsavedChanges(false);
       } else {
         setSaveStatus('error');
       }
@@ -139,7 +148,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       setSaveStatus('error');
       logger.error('Auto-save failed', error);
     }
-  }, [pm.id, pm.status, readOnly, clearStorage, updatePMMutation, onUpdate]);
+  }, [pm.id, pm.status, pm.updated_at, readOnly, clearStorage, updatePMMutation, onUpdate]);
 
   const { triggerAutoSave, cancelAutoSave } = useAutoSave({
     onSave: handleAutoSave,
@@ -268,10 +277,15 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
           checklistData: defaultForkliftChecklist,
           notes: notes || 'PM checklist initialized with default forklift maintenance items.',
           status: pm.status === 'pending' ? 'in_progress' as const : pm.status as 'pending' | 'in_progress' | 'completed' | 'cancelled'
-        }
+        },
+        serverUpdatedAt: pm.updated_at,
       });
 
-      if (updatedPM) {
+      if (updatedPM === null) {
+        // Queued offline
+        setChecklist([...defaultForkliftChecklist]);
+        setHasUnsavedChanges(false);
+      } else if (updatedPM) {
         toast.success('Checklist initialized successfully');
         setChecklist([...defaultForkliftChecklist]);
         setHasUnsavedChanges(false);
@@ -286,7 +300,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     } finally {
       setIsUpdating(false);
     }
-  }, [pm.id, notes, pm.status, clearStorage, updatePMMutation]);
+  }, [pm.id, notes, pm.status, pm.updated_at, clearStorage, updatePMMutation]);
 
   const handleChecklistItemChange = useCallback((itemId: string, condition: 1 | 2 | 3 | 4 | 5) => {
     setChecklist(prev => prev.map(item => 
@@ -349,10 +363,16 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
           checklistData: currentChecklist,
           notes: currentNotes,
           status: pm.status === 'pending' ? 'in_progress' as const : pm.status as 'pending' | 'in_progress' | 'completed' | 'cancelled'
-        }
+        },
+        serverUpdatedAt: pm.updated_at,
       });
 
-      if (updatedPM) {
+      if (updatedPM === null) {
+        // Queued offline — pending sync banner reflects the state.
+        setSaveStatus('saved');
+        setLastSaved(new Date());
+        setHasUnsavedChanges(false);
+      } else if (updatedPM) {
         toast.success('PM checklist updated successfully');
         setSaveStatus('saved');
         setLastSaved(new Date());
@@ -371,7 +391,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     } finally {
       setIsUpdating(false);
     }
-  }, [pm.id, pm.status, cancelAutoSave, clearStorage, updatePMMutation, onUpdate]);
+  }, [pm.id, pm.status, pm.updated_at, cancelAutoSave, clearStorage, updatePMMutation, onUpdate]);
 
   const completePM = async () => {
     const requiredItems = checklist.filter(item => item.required);
@@ -396,10 +416,13 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
           checklistData: checklist,
           notes,
           status: 'completed' as const
-        }
+        },
+        serverUpdatedAt: pm.updated_at,
       });
 
-      if (updatedPM) {
+      if (updatedPM === null) {
+        toast.success('PM completion saved offline — will sync when you reconnect.');
+      } else if (updatedPM) {
         toast.success('PM completed successfully');
         // Don't call onUpdate() - the mutation hook already handles cache updates
       } else {
@@ -478,18 +501,25 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         data: {
           checklistData: updatedChecklist,
           notes: notes
-        }
+        },
+        serverUpdatedAt: pm.updated_at,
       });
 
-      if (result) {
-        
+      if (result === null) {
+        // Queued offline — keep optimistic state.
+        setHasUnsavedChanges(false);
+        localStorage.removeItem(storageKey);
+        toast.success('All items set to OK — saved offline, will sync when you reconnect.');
+        setShowSetAllOKDialog(false);
+      } else if (result) {
+
         setHasUnsavedChanges(false);
         // Clear backup since we've saved successfully
         localStorage.removeItem(storageKey);
-        
+
         toast.success('All items set to OK and PM saved successfully');
         setShowSetAllOKDialog(false);
-        
+
         // Don't call onUpdate() - the mutation hook already handles cache updates
         // Calling it causes query invalidation that triggers re-initialization
         // onUpdate();

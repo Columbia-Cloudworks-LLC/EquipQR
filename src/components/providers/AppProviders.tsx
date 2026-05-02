@@ -14,7 +14,22 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: 1,
+      // Auth/permission errors should not retry; on cellular, give a real
+      // error a fast first retry and exponential backoff thereafter so
+      // failures pile up sensibly instead of hammering the network.
+      retry: (failureCount, error) => {
+        const message = error instanceof Error ? error.message : String(error ?? '');
+        if (message.includes('401') || message.includes('403')) return false;
+        return failureCount < 2;
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      // NOTE: experimental_createQueryPersister from @tanstack/react-query-persist-client
+      // is NOT set here as a global default because it intercepts the restore phase
+      // of EVERY query and stalls any query whose IDB entry doesn't resolve
+      // synchronously, breaking the organization loading. Targeted per-query
+      // persistence can be wired on individual hooks once the stable v5 API is
+      // confirmed. The PWA service worker (src/sw.ts) already covers app-shell
+      // caching for offline/cellular scenarios.
     },
     mutations: {
       networkMode: 'always', // Always fire mutationFn; offline handling is in OfflineAwareService layer

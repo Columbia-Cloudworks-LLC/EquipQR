@@ -1,117 +1,33 @@
 # Equipment Image Upload Documentation
 
-This directory contains comprehensive documentation for technicians on how to upload images to equipment records in EquipQR™.
+> **Primary source of truth:** The in-app support library at
+> `/dashboard/support` — look for the **Technician Field Work** category and
+> specifically the "Add notes and photos to a work order" and "Complete a PM
+> checklist" articles. Those articles are kept current alongside the app UI.
 
-## 📚 Documentation Files
+This directory holds the longer-form technical reference and the quick
+reference card that a new technician can keep on their phone. It is intentionally
+lightweight and should not diverge from the in-app articles.
 
-### Main Guides
-- **[Technician Image Upload Guide](technician-image-upload-guide.md)** - Step-by-step guide with screenshots for basic image upload workflow
-- **[Complete Workflow Guide](complete-workflow-guide.md)** - Comprehensive guide covering all aspects of equipment management and image uploads
-- **[Quick Reference Card](quick-reference-card.md)** - Quick reference for experienced users
+## Documentation Files
 
-### Screenshots
-- **[screenshots/](screenshots/)** - Directory containing all workflow screenshots with green arrows
+- **[Technician Image Upload Guide](technician-image-upload-guide.md)** — a
+  numbered-step guide with screenshots for the core work-order-plus-photo flow.
+  Mirrors the in-app article but is easier to print or share with a new hire.
+- **[Quick Reference Card](quick-reference-card.md)** — a laminated-card style
+  cheat sheet for field technicians.
 
-## 🎯 Target Audience
+## Target Audience
 
-This documentation is designed for:
-- **Technicians** with basic computer skills
-- **Field workers** using mobile devices
-- **Maintenance staff** documenting equipment issues
-- **Team leads** training new technicians
+- **Technicians** running work orders in the field.
+- **Team leads** training new technicians.
 
-## 🚀 Quick Start
+## Related Documentation
 
-1. **New to EquipQR™?** Start with the [Technician Image Upload Guide](technician-image-upload-guide.md)
-2. **Need comprehensive info?** Read the [Complete Workflow Guide](complete-workflow-guide.md)
-3. **Experienced user?** Use the [Quick Reference Card](quick-reference-card.md)
-
-## 📋 What's Covered
-
-### Image Upload Workflows
-- Uploading images through work orders
-- Uploading images through equipment notes
-- Setting display images for equipment
-- Managing image galleries
-
-### Work Order Management
-- Creating work orders with PM checklists
-- Adding detailed notes with images
-- Managing work order status
-- Adding parts and costs
-
-### PM Checklist Management
-- Initializing PM checklists
-- Completing checklist items
-- Adding notes and photos to items
-- Saving progress and resuming later
-
-### Advanced Features
-- Private vs public notes
-- Cost and parts tracking
-- Image gallery management
-- Troubleshooting common issues
-
-## 🖼️ Screenshots
-
-All screenshots are stored in the `screenshots/` directory and include:
-- Green arrows pointing to important buttons and fields
-- Step-by-step visual guides
-- Mobile and desktop views
-- Error states and troubleshooting
-
-## 🔧 Technical Requirements
-
-### Supported Image Formats
-- JPG/JPEG
-- PNG
-- GIF
-
-### File Size Limits
-- Maximum 10MB per image
-- Up to 10 images per note
-
-### Browser Requirements
-- Modern web browser (Chrome, Firefox, Safari, Edge)
-- JavaScript enabled
-- Stable internet connection
-
-## 📱 Mobile vs Desktop
-
-The documentation covers both mobile and desktop interfaces:
-- **Mobile**: Optimized for field technicians using phones/tablets
-- **Desktop**: Full-featured interface for office-based work
-
-## 🆘 Support and Feedback
-
-### Getting Help
-1. Check the troubleshooting sections in the guides
-2. Contact your team lead or administrator
-3. Submit a support ticket through the app
-4. Review the main EquipQR™ documentation
-
-### Providing Feedback
-- Report issues with the documentation
-- Suggest improvements or additional topics
-- Share feedback on screenshot clarity
-- Request additional workflow coverage
-
-## 📝 Documentation Updates
-
-This documentation is updated regularly to reflect:
-- New features and functionality
-- UI/UX changes
-- Workflow improvements
-- User feedback and suggestions
-
-## 🔗 Related Documentation
-
-- [Main EquipQR™ Documentation](../../README.md)
-- [Equipment Management Guide](../equipment-management/)
-- [Work Order Management Guide](../work-orders/)
-- [PM Checklist Guide](../pm-checklists/)
+- `docs/guides/workflows.md` — work order lifecycle and permission details.
+- `docs/guides/permissions.md` — the canonical RBAC matrix.
+- In-app support at `/dashboard/support` — authoritative step-by-step guides.
 
 ---
 
-*Last updated: October 2024*
-*Version: 1.0*
+*Last reviewed: 2026-05-01.*

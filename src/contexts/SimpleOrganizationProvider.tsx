@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useSession } from '@/hooks/useSession';
 import { logger } from '@/utils/logger';
+import { setActivePersistenceScope } from '@/lib/queryPersistence';
 import { 
   SimpleOrganizationContext, 
   SimpleOrganization, 
@@ -264,6 +265,19 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
       : null,
     [currentOrganizationId, organizations]
   );
+
+  // Announce the active <user, org> scope to the TanStack Query persistence
+  // layer. The persister namespaces IndexedDB keys by scope so two users on
+  // the same device never read each other's cached PM/equipment/work-order
+  // data. When the user signs out or no org is selected, scope is cleared
+  // and the persister becomes a no-op until a real scope reappears.
+  useEffect(() => {
+    if (user?.id && currentOrganization?.id) {
+      setActivePersistenceScope({ userId: user.id, orgId: currentOrganization.id });
+    } else {
+      setActivePersistenceScope(null);
+    }
+  }, [user?.id, currentOrganization?.id]);
 
   // Monitor state changes for debugging (removed excessive logging)
 
