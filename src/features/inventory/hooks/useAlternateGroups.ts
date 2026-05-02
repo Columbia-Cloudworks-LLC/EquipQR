@@ -194,6 +194,9 @@ export const useDeleteAlternateGroup = () => {
       queryClient.invalidateQueries({
         queryKey: ['alternate-groups', variables.organizationId],
       });
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-group-membership-counts', variables.organizationId],
+      });
       toast({
         title: 'Alternate group deleted',
         description: 'The alternate group has been removed.',
@@ -232,6 +235,9 @@ export const useAddInventoryItemToGroup = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['alternate-group', variables.organizationId, variables.groupId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-group-membership-counts', variables.organizationId],
       });
       // Invalidate alternates queries since group membership changed.
       queryClient.invalidateQueries({
@@ -336,6 +342,9 @@ export const useRemoveGroupMember = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['alternate-group', variables.organizationId, variables.groupId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-group-membership-counts', variables.organizationId],
       });
       queryClient.invalidateQueries({
         queryKey: ['inventory-item-alternates'],
