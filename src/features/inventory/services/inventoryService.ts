@@ -718,6 +718,91 @@ export const deleteInventoryItemImage = async (
   }
 };
 
+// ============================================
+// Bulk Update (metadata only — no quantity_on_hand)
+// ============================================
+
+/**
+ * Editable metadata fields for the bulk inventory grid.
+ * Excludes `quantity_on_hand` — quantity changes must go through the
+ * `adjustInventoryQuantity` RPC to preserve `inventory_transactions`.
+ */
+export type InventoryBulkUpdateData = {
+  name?: string;
+  sku?: string | null;
+  external_id?: string | null;
+  location?: string | null;
+  low_stock_threshold?: number;
+  default_unit_cost?: number | null;
+};
+
+const BULK_UPDATE_CONCURRENCY = 10;
+
+/**
+ * Update metadata for multiple inventory items in a single batched call.
+ *
+ * Uses the same partial-success semantics as `EquipmentService.batchUpdate`:
+ * each row is attempted independently. Returns `succeeded` and `failed` ID
+ * lists so the caller can display accurate partial-success feedback and keep
+ * failed rows dirty in the grid.
+ *
+ * Every update is scoped by both `id` and `organization_id` for multi-tenant
+ * isolation. RLS enforcement means a missing row (wrong ID or wrong org)
+ * returns 0 rows updated and is surfaced as a failure, not silently skipped.
+ */
+export const batchUpdateInventoryItems = async (
+  organizationId: string,
+  updates: Array<{ id: string; data: InventoryBulkUpdateData }>
+): Promise<{ succeeded: string[]; failed: Array<{ id: string; error: string }> }> => {
+  if (updates.length === 0) {
+    return { succeeded: [], failed: [] };
+  }
+
+  const succeeded: string[] = [];
+  const failed: Array<{ id: string; error: string }> = [];
+
+  for (let start = 0; start < updates.length; start += BULK_UPDATE_CONCURRENCY) {
+    const chunk = updates.slice(start, start + BULK_UPDATE_CONCURRENCY);
+    const results = await Promise.allSettled(
+      chunk.map(async ({ id, data }) => {
+        const { data: rows, error } = await supabase
+          .from('inventory_items')
+          .update(data)
+          .eq('id', id)
+          .eq('organization_id', organizationId)
+          .select('id');
+
+        if (error) {
+          return { id, error: error.message };
+        }
+        if (!rows || rows.length === 0) {
+          return { id, error: 'Inventory item not found or access denied' };
+        }
+        return { id, error: null as string | null };
+      })
+    );
+
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      if (result.status === 'fulfilled') {
+        const { id, error: rowError } = result.value;
+        if (rowError) {
+          failed.push({ id, error: rowError });
+        } else {
+          succeeded.push(id);
+        }
+      } else {
+        const id = chunk[i].id;
+        const msg =
+          result.reason instanceof Error ? result.reason.message : 'Unknown error';
+        failed.push({ id, error: msg });
+      }
+    }
+  }
+
+  return { succeeded, failed };
+};
+
 // Note: Per-item inventory managers have been deprecated.
 // Use organization-level parts managers instead (see partsManagersService.ts).
 

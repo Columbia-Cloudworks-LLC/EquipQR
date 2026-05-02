@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Package, Users, MoreVertical, Eye, QrCode, Pencil, ChevronUp, ChevronDown, ArrowUpDown, Minus, Layers } from 'lucide-react';
+import { Plus, Package, Users, MoreVertical, Eye, QrCode, Pencil, ChevronUp, ChevronDown, ArrowUpDown, Minus, Layers, Table2 } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAdjustInventoryQuantity, useInventoryItems, useInventoryListMetadata } from '@/features/inventory/hooks/useInventory';
 import { useInventoryGroupMembershipCounts } from '@/features/inventory/hooks/useAlternateGroups';
@@ -237,10 +237,26 @@ const InventoryList = () => {
               )}
 
               {canCreate && (
-                <Button onClick={handleAddItem} className="hidden sm:inline-flex">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Item
-                </Button>
+                <div className="hidden sm:inline-flex">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Item
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={handleAddItem}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Single Item
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/dashboard/inventory/bulk')}>
+                        <Table2 className="mr-2 h-4 w-4" />
+                        Bulk Add / Edit (Grid)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               )}
 
               {canManage && (

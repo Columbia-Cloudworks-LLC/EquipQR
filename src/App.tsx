@@ -80,6 +80,7 @@ const WorkspaceOnboarding = lazy(() => import('@/pages/WorkspaceOnboarding'));
 // const BillingExemptionsAdmin = lazy(() => import('@/pages/BillingExemptionsAdmin'));
 const PMTemplateView = lazy(() => import('@/features/pm-templates/pages/PMTemplateView'));
 const InventoryList = lazy(() => import('@/features/inventory/pages/InventoryList'));
+const BulkInventory = lazy(() => import('@/features/inventory/pages/BulkInventory'));
 const InventoryItemDetail = lazy(() => import('@/features/inventory/pages/InventoryItemDetail'));
 const PartLookup = lazy(() => import('@/features/inventory/pages/PartLookup'));
 const AlternateGroupsPage = lazy(() => import('@/features/inventory/pages/AlternateGroupsPage'));
@@ -250,6 +251,7 @@ function App() {
                                 <Route path="/onboarding/workspace" element={<WorkspaceOnboarding />} />
                                 <Route path="/reports" element={<Reports />} />
                                 <Route path="/inventory" element={<InventoryList />} />
+                                <Route path="/inventory/bulk" element={<BulkInventory />} />
                                 <Route path="/inventory/:itemId" element={<InventoryItemDetail />} />
                                 <Route path="/part-lookup" element={<PartLookup />} />
                                 <Route path="/alternate-groups" element={<AlternateGroupsPage />} />

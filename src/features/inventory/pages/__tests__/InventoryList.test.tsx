@@ -416,4 +416,95 @@ describe('InventoryList — desktop table', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/inventory/item-1?alternateAction=add');
   });
+
+  it('Add Item button opens a dropdown with "Add Single Item" and "Bulk Add / Edit (Grid)" on desktop', async () => {
+    const user = userEvent.setup();
+    render(<InventoryList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
+    });
+
+    // The main trigger button for the dropdown
+    const addButton = screen.getByRole('button', { name: /add item/i });
+    await user.click(addButton);
+
+    expect(await screen.findByRole('menuitem', { name: /add single item/i })).toBeInTheDocument();
+    expect(await screen.findByRole('menuitem', { name: /bulk add \/ edit/i })).toBeInTheDocument();
+  });
+
+  it('"Bulk Add / Edit (Grid)" navigates to /dashboard/inventory/bulk', async () => {
+    const user = userEvent.setup();
+    render(<InventoryList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
+    });
+
+    const addButton = screen.getByRole('button', { name: /add item/i });
+    await user.click(addButton);
+
+    const bulkItem = await screen.findByRole('menuitem', { name: /bulk add \/ edit/i });
+    await user.click(bulkItem);
+
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/inventory/bulk');
+  });
+
+  it('"Add Single Item" opens the single-item form on desktop', async () => {
+    const user = userEvent.setup();
+    render(<InventoryList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
+    });
+
+    const addButton = screen.getByRole('button', { name: /add item/i });
+    await user.click(addButton);
+
+    const singleItem = await screen.findByRole('menuitem', { name: /add single item/i });
+    await user.click(singleItem);
+
+    expect(await screen.findByTestId('inventory-item-form')).toBeInTheDocument();
+  });
+});
+
+describe('InventoryList — mobile — bulk option not exposed', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(usePermissionsModule.usePermissions).mockImplementation(() => ({
+      canManageInventory: () => true,
+      canManagePartsManagers: () => false,
+    } as unknown as ReturnType<typeof usePermissionsModule.usePermissions>));
+    vi.mocked(useIsMobile).mockReturnValue(true);
+    vi.mocked(useInventoryModule.useAdjustInventoryQuantity).mockReturnValue({
+      mutateAsync: vi.fn().mockResolvedValue(0),
+      isPending: false,
+    } as unknown as ReturnType<typeof useInventoryModule.useAdjustInventoryQuantity>);
+    inventoryHookMocks.useInventoryListMetadata.mockReturnValue({
+      data: { uniqueLocations: [], lowStockCount: 0 },
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    vi.mocked(useInventoryModule.useInventoryItems).mockImplementation((_orgId, filters) => ({
+      data: filterItems(filters),
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useInventoryModule.useInventoryItems>));
+  });
+
+  it('does not show the desktop Add Item dropdown on mobile', async () => {
+    render(<InventoryList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
+    });
+
+    // The desktop Add Item dropdown button is hidden on mobile (hidden sm:inline-flex wrapper)
+    // It should not be visually present; query by test-id or name
+    expect(screen.queryByRole('menuitem', { name: /bulk add \/ edit/i })).not.toBeInTheDocument();
+  });
 });
