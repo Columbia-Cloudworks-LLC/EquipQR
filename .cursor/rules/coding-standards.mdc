@@ -1,5 +1,5 @@
 ---
-description: "Code Style, Structure & Naming Conventions"
+description: "Code style best practices — typing, imports, exports, and logic separation"
 globs: "**/*.{ts,tsx}"
 ---
 # Coding Standards
