@@ -91,6 +91,7 @@ const setupMocks = (options: {
     canManageTeamMembers: () => canEdit,
     canManageOrganization: () => canEdit,
     canManagePartsManagers: () => canEdit,
+    canManageInventory: () => canEdit,
     isLoading: false,
   } as unknown as ReturnType<typeof usePermissions>);
 
