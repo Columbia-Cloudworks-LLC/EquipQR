@@ -10,6 +10,7 @@ import {
   removeGroupMember,
   createPartIdentifier,
   addIdentifierToGroup,
+  getInventoryGroupMembershipCounts,
 } from '@/features/inventory/services/partAlternatesService';
 import type {
   PartIdentifierType,
@@ -62,6 +63,24 @@ export const useAlternateGroup = (
     },
     enabled: !!organizationId && !!groupId,
     staleTime,
+  });
+};
+
+/**
+ * Returns a map of inventoryItemId -> alternate-group count for the organization.
+ * Used by inventory list surfaces to show membership indicators.
+ */
+export const useInventoryGroupMembershipCounts = (
+  organizationId: string | undefined
+) => {
+  return useQuery({
+    queryKey: ['inventory-group-membership-counts', organizationId],
+    queryFn: async () => {
+      if (!organizationId) return {} as Record<string, number>;
+      return await getInventoryGroupMembershipCounts(organizationId);
+    },
+    enabled: !!organizationId,
+    staleTime: DEFAULT_STALE_TIME,
   });
 };
 

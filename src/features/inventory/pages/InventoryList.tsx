@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Package, Users, MoreVertical, Eye, QrCode, Pencil, ChevronUp, ChevronDown, ArrowUpDown, Minus } from 'lucide-react';
+import { Plus, Package, Users, MoreVertical, Eye, QrCode, Pencil, ChevronUp, ChevronDown, ArrowUpDown, Minus, Layers } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAdjustInventoryQuantity, useInventoryItems, useInventoryListMetadata } from '@/features/inventory/hooks/useInventory';
+import { useInventoryGroupMembershipCounts } from '@/features/inventory/hooks/useAlternateGroups';
 import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
@@ -62,6 +63,7 @@ const InventoryList = () => {
     sortOrder: 'asc',
   });
   const adjustMutation = useAdjustInventoryQuantity();
+  const { data: groupMembershipCounts = {} } = useInventoryGroupMembershipCounts(currentOrganization?.id);
   const initializedFromUrl = useRef(false);
 
   useEffect(() => {
@@ -155,6 +157,10 @@ const InventoryList = () => {
 
   const handleMobileFilterChange = (patch: Partial<InventoryFilters>) => {
     setFilters((prev) => ({ ...prev, ...patch }));
+  };
+
+  const handleManageAlternateGroups = (itemId: string) => {
+    navigate(`/dashboard/inventory/${itemId}?alternateAction=add`);
   };
 
   const handleMobileResetSortAndFilters = () => {
@@ -314,6 +320,8 @@ const InventoryList = () => {
                 onQuickAdjust={handleQuickAdjust}
                 onShowQR={handleShowQRCode}
                 onEdit={handleEditItem}
+                groupCount={groupMembershipCounts[item.id] ?? 0}
+                onManageGroups={handleManageAlternateGroups}
               />
             ))}
           </div>
@@ -386,6 +394,12 @@ const InventoryList = () => {
                               SKU: {item.sku || '-'}
                               {item.location ? `  •  ${item.location}` : ''}
                             </p>
+                            {(groupMembershipCounts[item.id] ?? 0) > 0 && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                <Layers className="h-3 w-3" aria-hidden />
+                                Part of {groupMembershipCounts[item.id]} alternate group{groupMembershipCounts[item.id] > 1 ? 's' : ''}
+                              </p>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
@@ -468,6 +482,12 @@ const InventoryList = () => {
                                 <DropdownMenuItem onClick={() => handleEditItem(item)}>
                                   <Pencil className="mr-2 h-4 w-4" />
                                   Edit
+                                </DropdownMenuItem>
+                              )}
+                              {canCreate && (
+                                <DropdownMenuItem onClick={() => handleManageAlternateGroups(item.id)}>
+                                  <Layers className="mr-2 h-4 w-4" />
+                                  Manage Alternate Groups
                                 </DropdownMenuItem>
                               )}
                             </DropdownMenuContent>

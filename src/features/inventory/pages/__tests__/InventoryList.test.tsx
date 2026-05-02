@@ -14,6 +14,10 @@ vi.mock('@/features/inventory/hooks/useInventory', () => ({
   useInventoryListMetadata: vi.fn(),
 }));
 
+vi.mock('@/features/inventory/hooks/useAlternateGroups', () => ({
+  useInventoryGroupMembershipCounts: vi.fn(() => ({ data: {}, isLoading: false })),
+}));
+
 const inventoryHookMocks = useInventoryModule as typeof useInventoryModule & {
   useInventoryListMetadata: ReturnType<typeof vi.fn>;
 };
@@ -378,5 +382,38 @@ describe('InventoryList — desktop table', () => {
     });
 
     expect(screen.getAllByText('Negative stock')).toHaveLength(2);
+  });
+
+  it('shows alternate group count for items that belong to groups', async () => {
+    const { useInventoryGroupMembershipCounts } = await import('@/features/inventory/hooks/useAlternateGroups');
+    vi.mocked(useInventoryGroupMembershipCounts).mockReturnValue({
+      data: { 'item-1': 3 },
+      isLoading: false,
+    } as unknown as ReturnType<typeof useInventoryGroupMembershipCounts>);
+
+    render(<InventoryList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/part of 3 alternate groups/i)).toBeInTheDocument();
+  });
+
+  it('navigates to item detail with alternateAction param when Manage Alternate Groups is clicked', async () => {
+    render(<InventoryList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
+    });
+
+    const user = userEvent.setup();
+    const menuTrigger = screen.getAllByRole('button', { name: /actions for healthy part/i })[0];
+    await user.click(menuTrigger);
+
+    const manageGroupsItem = await screen.findByRole('menuitem', { name: /manage alternate groups/i });
+    await user.click(manageGroupsItem);
+
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/inventory/item-1?alternateAction=add');
   });
 });

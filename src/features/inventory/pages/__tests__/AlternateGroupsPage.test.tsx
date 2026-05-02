@@ -44,6 +44,15 @@ vi.mock('@/features/inventory/components/AlternateGroupForm', () => ({
   ),
 }));
 
+vi.mock('@/features/inventory/components/AlternateGroupCreateWizard', () => ({
+  AlternateGroupCreateWizard: ({ onSuccess, onCancel }: { onSuccess: (groupId: string) => void; onCancel: () => void }) => (
+    <div data-testid="alternate-group-create-wizard">
+      <button onClick={() => onSuccess('new-group-id')}>Create Group</button>
+      <button onClick={onCancel}>Cancel</button>
+    </div>
+  ),
+}));
+
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import {
@@ -135,7 +144,7 @@ describe('AlternateGroupsPage', () => {
 
       expect(screen.getByText('No alternate groups yet')).toBeInTheDocument();
       expect(
-        screen.getByText(/Create a group to define interchangeable parts/)
+        screen.getByText(/Group interchangeable or compatible parts/)
       ).toBeInTheDocument();
     });
 
@@ -159,20 +168,20 @@ describe('AlternateGroupsPage', () => {
       expect(screen.getAllByText('Verified').length).toBeGreaterThan(0);
     });
 
-    it('shows New Group button when user can edit', () => {
+    it('shows New Alternate Part Group button when user can edit', () => {
       setupMocks({ canEdit: true });
 
       render(<AlternateGroupsPage />);
 
-      expect(screen.getByRole('button', { name: /new group/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /new alternate part group/i })).toBeInTheDocument();
     });
 
-    it('hides New Group button when user cannot edit', () => {
+    it('hides New Alternate Part Group button when user cannot edit', () => {
       setupMocks({ canEdit: false });
 
       render(<AlternateGroupsPage />);
 
-      expect(screen.queryByRole('button', { name: /new group/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /new alternate part group/i })).not.toBeInTheDocument();
     });
 
     it('shows placeholder message when no organization selected', () => {
@@ -272,49 +281,69 @@ describe('AlternateGroupsPage', () => {
   });
 
   describe('Create Group', () => {
-    it('opens create dialog when New Group button is clicked', async () => {
+    it('opens wizard when New Alternate Part Group button is clicked', async () => {
       setupMocks();
 
       render(<AlternateGroupsPage />);
 
-      const newButton = screen.getByRole('button', { name: /new group/i });
+      const newButton = screen.getByRole('button', { name: /new alternate part group/i });
       fireEvent.click(newButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Create Alternate Group')).toBeInTheDocument();
-        expect(screen.getByTestId('alternate-group-form')).toBeInTheDocument();
+        expect(screen.getByTestId('alternate-group-create-wizard')).toBeInTheDocument();
       });
     });
 
-    it('shows Create First Group button in empty state', async () => {
+    it('shows New Alternate Part Group button in empty state', async () => {
       setupMocks({ groups: [] });
 
       render(<AlternateGroupsPage />);
 
-      expect(screen.getByRole('button', { name: /create first group/i })).toBeInTheDocument();
+      // Both the PageHeader action and the empty-state card have this button
+      const newGroupButtons = screen.getAllByRole('button', { name: /new alternate part group/i });
+      expect(newGroupButtons.length).toBeGreaterThan(0);
 
-      fireEvent.click(screen.getByRole('button', { name: /create first group/i }));
+      // Click the empty-state button (last one in DOM)
+      fireEvent.click(newGroupButtons[newGroupButtons.length - 1]);
 
       await waitFor(() => {
-        expect(screen.getByText('Create Alternate Group')).toBeInTheDocument();
+        expect(screen.getByTestId('alternate-group-create-wizard')).toBeInTheDocument();
       });
     });
 
-    it('closes create dialog on cancel', async () => {
+    it('opens wizard and navigates on successful create', async () => {
       setupMocks();
 
       render(<AlternateGroupsPage />);
 
-      fireEvent.click(screen.getByRole('button', { name: /new group/i }));
+      fireEvent.click(screen.getByRole('button', { name: /new alternate part group/i }));
 
       await waitFor(() => {
-        expect(screen.getByTestId('alternate-group-form')).toBeInTheDocument();
+        expect(screen.getByTestId('alternate-group-create-wizard')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Create Group' }));
+
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/dashboard/alternate-groups/new-group-id');
+      });
+    });
+
+    it('closes wizard on cancel', async () => {
+      setupMocks();
+
+      render(<AlternateGroupsPage />);
+
+      fireEvent.click(screen.getByRole('button', { name: /new alternate part group/i }));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('alternate-group-create-wizard')).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
       await waitFor(() => {
-        expect(screen.queryByTestId('alternate-group-form')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('alternate-group-create-wizard')).not.toBeInTheDocument();
       });
     });
   });
@@ -330,7 +359,7 @@ describe('AlternateGroupsPage', () => {
       expect(screen.getByText(partAlternateGroups.airFilterGroup.name)).toBeInTheDocument();
       
       // The new group button exists confirming edit mode
-      expect(screen.getByRole('button', { name: /new group/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /new alternate part group/i })).toBeInTheDocument();
     });
   });
 
@@ -511,12 +540,12 @@ describe('AlternateGroupsPage', () => {
       expect(menuButtons.length).toBe(0);
     });
 
-    it('hides Create First Group button when user cannot edit', () => {
+    it('hides New Alternate Part Group button when user cannot edit in empty state', () => {
       setupMocks({ groups: [], canEdit: false });
 
       render(<AlternateGroupsPage />);
 
-      expect(screen.queryByRole('button', { name: /create first group/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /new alternate part group/i })).not.toBeInTheDocument();
     });
   });
 });
@@ -573,18 +602,21 @@ describe('AlternateGroupsPage User Journeys', () => {
    * when I discover interchangeable parts.
    */
   describe('Parts Manager creates new group', () => {
-    it('opens form and can create new group', async () => {
+    it('opens wizard and navigates to new group on create', async () => {
       setupMocks();
 
       render(<AlternateGroupsPage />);
 
-      fireEvent.click(screen.getByRole('button', { name: /new group/i }));
+      fireEvent.click(screen.getByRole('button', { name: /new alternate part group/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Create Alternate Group')).toBeInTheDocument();
-        expect(
-          screen.getByText(/Create a group for interchangeable parts/)
-        ).toBeInTheDocument();
+        expect(screen.getByTestId('alternate-group-create-wizard')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Create Group' }));
+
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/dashboard/alternate-groups/new-group-id');
       });
     });
   });
@@ -604,7 +636,7 @@ describe('AlternateGroupsPage User Journeys', () => {
       expect(mockDeleteMutateAsync).toBeDefined();
       
       // Verify page renders with edit capabilities
-      expect(screen.getByRole('button', { name: /new group/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /new alternate part group/i })).toBeInTheDocument();
     });
   });
 
@@ -622,7 +654,7 @@ describe('AlternateGroupsPage User Journeys', () => {
       expect(screen.getByText(partAlternateGroups.oilFilterGroup.name)).toBeInTheDocument();
 
       // Cannot see edit controls
-      expect(screen.queryByRole('button', { name: /new group/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /new alternate part group/i })).not.toBeInTheDocument();
       
       const allButtons = screen.queryAllByRole('button');
       const menuButtons = allButtons.filter(
