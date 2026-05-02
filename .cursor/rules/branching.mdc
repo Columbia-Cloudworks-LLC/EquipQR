@@ -1,6 +1,6 @@
 ---
 description: "Git branching model for EquipQR — apply when creating branches, committing, pushing, or opening PRs. preview is the integration branch; never target main directly."
-alwaysApply: false
+alwaysApply: true
 ---
 # Branching Model (authoritative)
 

@@ -1,6 +1,6 @@
 ---
 description: "PowerShell-compatible git syntax for Windows — apply when writing git commands, shell scripts, or PowerShell automation."
-alwaysApply: false
+alwaysApply: true
 ---
 # Git & PowerShell Conventions
 

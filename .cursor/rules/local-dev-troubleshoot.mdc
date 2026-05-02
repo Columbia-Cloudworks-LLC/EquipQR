@@ -13,7 +13,7 @@ globs: "{dev-start.ps1,dev-stop.ps1,scripts/**/*.ps1,supabase/functions/**}"
 ## 3. `types.ts` polluted with Supabase CLI banners
 **Signature:** Post-`-Force`, `types.ts` gains `Connecting to db 5432` / CLI upgrade-banner lines; dirty (`tsc --noEmit` passes).
 **Root cause:** Step 6 pipes raw `npx supabase gen types typescript --local` stdout/stderr to disk; `.cursor/hooks/sync-types.ps1` anchors (`^export type` … `^} as const`).
-**Fix:** #620 — `git checkout -- src/integrations/supabase/types.ts`.
+**Workaround:** #620 — `git checkout -- src/integrations/supabase/types.ts`.
 ## 4. Fleet map markers, no basemap tiles
 [`fleet-map.mdc`](./fleet-map.mdc): `useGoogleMapsKey` only with `<MapView>`.
 ## 5. CSP blocks `data:image/png` on fleet map
