@@ -431,10 +431,12 @@ export class EquipmentService {
       if (filters.warrantyExpiring) {
         const now = new Date();
         const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        const todayDate = now.toISOString().slice(0, 10);
+        const thirtyDaysDate = thirtyDaysFromNow.toISOString().slice(0, 10);
         query = query
           .not('warranty_expiration', 'is', null)
-          .gte('warranty_expiration', now.toISOString())
-          .lte('warranty_expiration', thirtyDaysFromNow.toISOString());
+          .gte('warranty_expiration', todayDate)
+          .lte('warranty_expiration', thirtyDaysDate);
       }
 
       const sortField = pagination.sortField ?? 'name';
