@@ -1,6 +1,6 @@
 ---
 name: reflect
-description: Reflect
+description: Use after a Cursor session that felt inefficient, wrong, or confusing when you want a structured retrospective and optional updates to AGENTS.md, `.cursor/rules/`, or `.cursor/skills/`—apply edits only with your explicit approval on each file.
 disable-model-invocation: true
 ---
 
@@ -10,9 +10,19 @@ disable-model-invocation: true
 
 If a workflow reaches an authorized commit step, include unrelated incremental Cursor workflow updates when they are limited to agent operating guidance or tooling configuration: `AGENTS.md`, `.cursor/skills/`, `.cursor/rules/`, `.cursor/hooks/`, Cursor MCP/template configuration, subagent guidance, or similar workflow files. Do not treat those edits as scope drift just because they were produced irregularly while another task was running. Still inspect the diff for secrets, destructive rewrites, broad unrelated content, or behavior changes outside Cursor workflow. This policy does not allow read-only skills to edit, commit, or push on their own.
 
-Reflect on this conversation.
-Identify what worked and what didn't.
-Identify potential improvements in your tools and rules, or my work style, that would have made the process more efficient.
-Identify important questions that were not asked.
-Identify important questions that I didn't answer.
-Be prepared to update every relevant file with my approval.
+## Output
+
+Cover each item below in order:
+
+1. **What worked** — approaches, tools, or decisions that helped.
+2. **What did not** — friction, errors, retries, or misunderstandings.
+3. **Improvements** — concrete changes to tools, rules, skills, or collaboration habits that would have helped (tie each to a file or practice when possible).
+4. **Unasked questions** — gaps the agent should have surfaced earlier.
+5. **Unanswered questions** — things you left open that still block clarity.
+
+End by listing any workflow files worth updating; **do not edit files** until you approve each change.
+
+## Invocation
+
+- `/reflect` — run against the current conversation.
+- User phrases such as “retro this chat”, “what should we fix in our agent setup”, or “capture lessons from this session” map here.

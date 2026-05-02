@@ -1,5 +1,5 @@
 ---
-description: "Git commands must use PowerShell-compatible syntax (Windows host)"
+description: "PowerShell-compatible git syntax for Windows — apply when writing git commands, shell scripts, or PowerShell automation."
 alwaysApply: true
 ---
 # Git & PowerShell Conventions
