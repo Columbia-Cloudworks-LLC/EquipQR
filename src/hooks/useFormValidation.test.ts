@@ -1,29 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { z } from 'zod';
-import { useFormValidation } from './useFormValidation';
+import { useFormValidation, type ValidationResult } from './useFormValidation';
 
-// Mock the dependencies that useFormValidation calls on error
-vi.mock('sonner', () => ({
-  toast: {
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+vi.mock('@/utils/errorHandling', () => ({
+  showErrorToast: vi.fn(() => ({
+    message: 'Server error',
+  })),
 }));
 
-vi.mock('@/utils/logger', () => ({
-  logger: {
-    error: vi.fn(),
-    warn: vi.fn(),
-    info: vi.fn(),
-    debug: vi.fn(),
-  },
-}));
-
-// ---------------------------------------------------------------------------
-// Test schema used throughout
-// ---------------------------------------------------------------------------
 const testSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email'),
@@ -31,15 +16,72 @@ const testSchema = z.object({
 });
 
 type TestFormValues = z.infer<typeof testSchema>;
+type SubmitHandler = (values: TestFormValues) => Promise<void> | void;
+
+const runValidation = (validate: () => ValidationResult): ValidationResult => {
+  let validation: ValidationResult | undefined;
+
+  act(() => {
+    validation = validate();
+  });
+
+  if (!validation) {
+    throw new Error('Expected validation result to be initialized');
+  }
+
+  return validation;
+};
+
+const runFieldValidation = (validateField: () => boolean): boolean => {
+  let isValid: boolean | undefined;
+
+  act(() => {
+    isValid = validateField();
+  });
+
+  if (isValid === undefined) {
+    throw new Error('Expected field validation result to be initialized');
+  }
+
+  return isValid;
+};
+
+const createDeferred = () => {
+  let resolve: () => void = () => {
+    throw new Error('Deferred submit resolved before initialization');
+  };
+
+  const promise = new Promise<void>(res => {
+    resolve = res;
+  });
+
+  return { promise, resolve };
+};
+
+const startSubmit = (submit: () => Promise<void>): Promise<void> => {
+  let submitPromise: Promise<void> | undefined;
+
+  act(() => {
+    submitPromise = submit();
+  });
+
+  if (!submitPromise) {
+    throw new Error('Expected submit promise to be initialized');
+  }
+
+  return submitPromise;
+};
 
 describe('useFormValidation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
   });
 
-  // -------------------------------------------------------------------------
-  // Initial state
-  // -------------------------------------------------------------------------
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   describe('initial state', () => {
     it('returns empty values and no errors when no initialValues provided', () => {
       const { result } = renderHook(() =>
@@ -63,9 +105,6 @@ describe('useFormValidation', () => {
     });
   });
 
-  // -------------------------------------------------------------------------
-  // setValue
-  // -------------------------------------------------------------------------
   describe('setValue', () => {
     it('updates a single field value', () => {
       const { result } = renderHook(() =>
@@ -84,15 +123,12 @@ describe('useFormValidation', () => {
         useFormValidation<TestFormValues>(testSchema)
       );
 
-      // Trigger a validation error first
       act(() => {
         result.current.validate();
       });
 
-      // name is required so an error should exist
       expect(result.current.errors.name).toBeTruthy();
 
-      // Providing a value should clear the name error
       act(() => {
         result.current.setValue('name', 'Carol');
       });
@@ -109,24 +145,18 @@ describe('useFormValidation', () => {
         result.current.validate();
       });
 
-      // Both name and email errors should exist
       expect(result.current.errors.name).toBeTruthy();
       expect(result.current.errors.email).toBeTruthy();
 
-      // Only update name
       act(() => {
         result.current.setValue('name', 'Dave');
       });
 
-      // name error cleared, email error still present
       expect(result.current.errors.name).toBeUndefined();
       expect(result.current.errors.email).toBeTruthy();
     });
   });
 
-  // -------------------------------------------------------------------------
-  // setValues
-  // -------------------------------------------------------------------------
   describe('setValues', () => {
     it('merges multiple values at once', () => {
       const { result } = renderHook(() =>
@@ -154,9 +184,6 @@ describe('useFormValidation', () => {
     });
   });
 
-  // -------------------------------------------------------------------------
-  // validate
-  // -------------------------------------------------------------------------
   describe('validate', () => {
     it('returns isValid: true and empty errors when all required fields pass', () => {
       const { result } = renderHook(() =>
@@ -166,13 +193,10 @@ describe('useFormValidation', () => {
         })
       );
 
-      let validation: ReturnType<typeof result.current.validate>;
-      act(() => {
-        validation = result.current.validate();
-      });
+      const validation = runValidation(result.current.validate);
 
-      expect(validation!.isValid).toBe(true);
-      expect(validation!.errors).toEqual({});
+      expect(validation.isValid).toBe(true);
+      expect(validation.errors).toEqual({});
       expect(result.current.errors).toEqual({});
     });
 
@@ -181,14 +205,11 @@ describe('useFormValidation', () => {
         useFormValidation<TestFormValues>(testSchema)
       );
 
-      let validation: ReturnType<typeof result.current.validate>;
-      act(() => {
-        validation = result.current.validate();
-      });
+      const validation = runValidation(result.current.validate);
 
-      expect(validation!.isValid).toBe(false);
-      expect(validation!.errors.name).toBeTruthy();
-      expect(validation!.errors.email).toBeTruthy();
+      expect(validation.isValid).toBe(false);
+      expect(validation.errors.name).toBeTruthy();
+      expect(validation.errors.email).toBeTruthy();
     });
 
     it('reports correct field error message for invalid email', () => {
@@ -199,12 +220,9 @@ describe('useFormValidation', () => {
         })
       );
 
-      let validation: ReturnType<typeof result.current.validate>;
-      act(() => {
-        validation = result.current.validate();
-      });
+      const validation = runValidation(result.current.validate);
 
-      expect(validation!.errors.email).toMatch(/email/i);
+      expect(validation.errors.email).toMatch(/email/i);
     });
 
     it('isValid reflects whether errors object is empty', () => {
@@ -212,39 +230,29 @@ describe('useFormValidation', () => {
         useFormValidation<TestFormValues>(testSchema)
       );
 
-      // Initially no errors → isValid is true
       expect(result.current.isValid).toBe(true);
 
       act(() => {
         result.current.validate();
       });
 
-      // Errors populated → isValid is false
       expect(result.current.isValid).toBe(false);
     });
   });
 
-  // -------------------------------------------------------------------------
-  // validateField
-  // -------------------------------------------------------------------------
   describe('validateField', () => {
     it('returns true and clears the field error when field passes safeParse', () => {
       const { result } = renderHook(() =>
         useFormValidation<TestFormValues>(testSchema, { name: 'Hank' })
       );
 
-      // Seed an error manually via full validate
       act(() => {
         result.current.validate();
       });
 
-      let fieldValid: boolean;
-      act(() => {
-        fieldValid = result.current.validateField('name');
-      });
+      const fieldValid = runFieldValidation(() => result.current.validateField('name'));
 
-      // validateField uses safeParse (never throws), so it returns true
-      expect(fieldValid!).toBe(true);
+      expect(fieldValid).toBe(true);
     });
 
     it('returns true even for fields with no value (safeParse does not throw)', () => {
@@ -252,18 +260,12 @@ describe('useFormValidation', () => {
         useFormValidation<TestFormValues>(testSchema)
       );
 
-      let fieldValid: boolean;
-      act(() => {
-        fieldValid = result.current.validateField('email');
-      });
+      const fieldValid = runFieldValidation(() => result.current.validateField('email'));
 
-      expect(fieldValid!).toBe(true);
+      expect(fieldValid).toBe(true);
     });
   });
 
-  // -------------------------------------------------------------------------
-  // reset
-  // -------------------------------------------------------------------------
   describe('reset', () => {
     it('restores values to initialValues and clears errors and isSubmitting', () => {
       const initial: Partial<TestFormValues> = { name: 'Initial' };
@@ -271,7 +273,6 @@ describe('useFormValidation', () => {
         useFormValidation<TestFormValues>(testSchema, initial)
       );
 
-      // Change a value and trigger an error
       act(() => {
         result.current.setValue('name', 'Changed');
         result.current.validate();
@@ -300,16 +301,13 @@ describe('useFormValidation', () => {
     });
   });
 
-  // -------------------------------------------------------------------------
-  // handleSubmit
-  // -------------------------------------------------------------------------
   describe('handleSubmit', () => {
     it('does not call onSubmit when validation fails', async () => {
       const { result } = renderHook(() =>
         useFormValidation<TestFormValues>(testSchema)
       );
 
-      const onSubmit = vi.fn();
+      const onSubmit = vi.fn<SubmitHandler>();
 
       await act(async () => {
         await result.current.handleSubmit(onSubmit);
@@ -328,7 +326,8 @@ describe('useFormValidation', () => {
         useFormValidation<TestFormValues>(testSchema, validData)
       );
 
-      const onSubmit = vi.fn().mockResolvedValueOnce(undefined);
+      const onSubmit = vi.fn<(values: TestFormValues) => Promise<void>>()
+        .mockResolvedValueOnce(undefined);
 
       await act(async () => {
         await result.current.handleSubmit(onSubmit);
@@ -345,28 +344,22 @@ describe('useFormValidation', () => {
         email: 'julia@example.com',
       };
 
-      let resolveSubmit!: () => void;
+      const submit = createDeferred();
       const submitting: boolean[] = [];
-      const slowSubmit = () =>
-        new Promise<void>(res => {
-          resolveSubmit = res;
-        });
+      const slowSubmit = vi.fn<(values: TestFormValues) => Promise<void>>(
+        () => submit.promise
+      );
 
       const { result } = renderHook(() =>
         useFormValidation<TestFormValues>(testSchema, validData)
       );
 
-      let submitPromise: Promise<void>;
-      act(() => {
-        submitPromise = result.current.handleSubmit(slowSubmit);
-      });
+      const submitPromise = startSubmit(() => result.current.handleSubmit(slowSubmit));
 
-      // isSubmitting should be true while the promise is pending
       submitting.push(result.current.isSubmitting);
 
-      // Resolve and wait
       await act(async () => {
-        resolveSubmit();
+        submit.resolve();
         await submitPromise;
       });
 
@@ -383,7 +376,8 @@ describe('useFormValidation', () => {
         useFormValidation<TestFormValues>(testSchema, validData)
       );
 
-      const failingSubmit = vi.fn().mockRejectedValueOnce(new Error('Server error'));
+      const failingSubmit = vi.fn<(values: TestFormValues) => Promise<void>>()
+        .mockRejectedValueOnce(new Error('Server error'));
 
       await act(async () => {
         await result.current.handleSubmit(failingSubmit);
@@ -402,7 +396,7 @@ describe('useFormValidation', () => {
         useFormValidation<TestFormValues>(testSchema, validData)
       );
 
-      const syncSubmit = vi.fn();
+      const syncSubmit = vi.fn<(values: TestFormValues) => void>();
 
       await act(async () => {
         await result.current.handleSubmit(syncSubmit);
@@ -413,9 +407,6 @@ describe('useFormValidation', () => {
     });
   });
 
-  // -------------------------------------------------------------------------
-  // setData / full round-trip integration
-  // -------------------------------------------------------------------------
   describe('full round-trip', () => {
     it('allows editing a field, validating, and submitting successfully', async () => {
       const { result } = renderHook(() =>
@@ -427,14 +418,12 @@ describe('useFormValidation', () => {
         result.current.setValue('email', 'mike@example.com');
       });
 
-      let validation: ReturnType<typeof result.current.validate>;
-      act(() => {
-        validation = result.current.validate();
-      });
+      const validation = runValidation(result.current.validate);
 
-      expect(validation!.isValid).toBe(true);
+      expect(validation.isValid).toBe(true);
 
-      const onSubmit = vi.fn().mockResolvedValueOnce(undefined);
+      const onSubmit = vi.fn<(values: TestFormValues) => Promise<void>>()
+        .mockResolvedValueOnce(undefined);
       await act(async () => {
         await result.current.handleSubmit(onSubmit);
       });
@@ -448,14 +437,13 @@ describe('useFormValidation', () => {
         useFormValidation<TestFormValues>(testSchema, initial)
       );
 
-      // Submit once
-      const firstSubmit = vi.fn().mockResolvedValueOnce(undefined);
+      const firstSubmit = vi.fn<(values: TestFormValues) => Promise<void>>()
+        .mockResolvedValueOnce(undefined);
       await act(async () => {
         await result.current.handleSubmit(firstSubmit);
       });
       expect(firstSubmit).toHaveBeenCalledOnce();
 
-      // Reset and update
       act(() => {
         result.current.reset();
         result.current.setValue('name', 'NewNancy');
@@ -464,8 +452,8 @@ describe('useFormValidation', () => {
       expect(result.current.values.name).toBe('NewNancy');
       expect(result.current.values.email).toBe(initial.email);
 
-      // Submit again
-      const secondSubmit = vi.fn().mockResolvedValueOnce(undefined);
+      const secondSubmit = vi.fn<(values: TestFormValues) => Promise<void>>()
+        .mockResolvedValueOnce(undefined);
       await act(async () => {
         await result.current.handleSubmit(secondSubmit);
       });
