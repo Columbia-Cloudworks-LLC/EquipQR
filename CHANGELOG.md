@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Equipment list pagination jumping back to page 1** — `useEquipmentFiltering` now treats no-op `updateFilter` calls as inert and keeps `updateFilter` / `updateSort` callbacks stable, so the Equipment page’s team-scope mirror effect no longer resets the current page when paginating. Regression covered in `useEquipmentFiltering` tests.
+
 ## [3.1.1] - 2026-05-01
 
 ### Changed

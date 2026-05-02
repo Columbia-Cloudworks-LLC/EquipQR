@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useEquipment } from '@/features/equipment/hooks/useEquipment';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -45,6 +45,14 @@ export const useEquipmentFiltering = (organizationId?: string) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [activeQuickFilter, setActiveQuickFilter] = useState<string | null>(null);
+
+  // Refs mirror latest filter/sort state so callbacks stay stable (no `currentPage`
+  // in deps) while still detecting true no-ops — e.g. Equipment.tsx re-running
+  // `updateFilter('team', 'all')` after pagination must not reset the page.
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+  const sortConfigRef = useRef(sortConfig);
+  sortConfigRef.current = sortConfig;
 
   // Get equipment data using explicit organization ID
   const equipmentQuery = useEquipment(organizationId);
@@ -239,25 +247,20 @@ export const useEquipmentFiltering = (organizationId?: string) => {
   }, [activeQuickFilter]);
 
   const updateFilter = useCallback((key: keyof EquipmentFilters, value: EquipmentFilters[keyof EquipmentFilters]) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: value
-    }));
+    if (filtersRef.current[key] === value) return;
+    setFilters(prev => ({ ...prev, [key]: value }));
     setActiveQuickFilter(null);
-    if (currentPage !== 1) {
-      setCurrentPage(1);
-    }
-  }, [currentPage]);
+    setCurrentPage(1);
+  }, []);
 
   const updateSort = useCallback((field: string, direction?: 'asc' | 'desc') => {
-    setSortConfig(prev => ({
-      field,
-      direction: direction ?? (prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'),
-    }));
-    if (currentPage !== 1) {
-      setCurrentPage(1);
-    }
-  }, [currentPage]);
+    const prev = sortConfigRef.current;
+    const nextDirection =
+      direction ?? (prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc');
+    if (prev.field === field && prev.direction === nextDirection) return;
+    setSortConfig({ field, direction: nextDirection });
+    setCurrentPage(1);
+  }, []);
 
   const clearFilters = useCallback(() => {
     setFilters(initialFilters);

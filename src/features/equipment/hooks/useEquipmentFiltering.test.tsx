@@ -159,4 +159,39 @@ describe('useEquipmentFiltering', () => {
     act(() => result.current.applyQuickFilter('active-only'));
     expect(result.current.filters.status).toBe('active');
   });
+
+  it('does not reset pagination when updateFilter is a no-op (e.g. team mirror sync)', () => {
+    const paginationDataset = [
+      ...equipmentFixtures,
+      ...Array.from({ length: 8 }, (_, i) => ({
+        id: `eq-m${i + 1}`,
+        name: `M-${String(i + 1).padStart(2, '0')}`,
+        manufacturer: 'Acme',
+        model: 'M',
+        serial_number: `SN-M-${i + 1}`,
+        status: 'active' as const,
+        location: 'NY',
+        team_id: null as string | null,
+        last_maintenance: daysFromNow(-7),
+        installation_date: '2024-01-15T00:00:00.000Z',
+        warranty_expiration: daysFromNow(10),
+        created_at: '2025-08-01T00:00:00.000Z',
+      })),
+    ];
+    (useEquipment as Mock).mockReturnValue({
+      data: paginationDataset,
+      isLoading: false,
+    });
+
+    const { result } = renderHook(() => useEquipmentFiltering('org-1'), { wrapper });
+
+    // Default sort name asc: Bulldozer, Excavator, Forklift, M-01 … M-08 (11 rows); page 2 is M-08 only.
+    act(() => result.current.setCurrentPage(2));
+    expect(result.current.currentPage).toBe(2);
+    expect(result.current.paginatedEquipment.map(e => e.id)).toEqual(['eq-m8']);
+
+    act(() => result.current.updateFilter('team', 'all'));
+    expect(result.current.currentPage).toBe(2);
+    expect(result.current.paginatedEquipment.map(e => e.id)).toEqual(['eq-m8']);
+  });
 });
