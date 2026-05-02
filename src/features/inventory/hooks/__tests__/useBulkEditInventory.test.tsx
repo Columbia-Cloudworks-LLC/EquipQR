@@ -7,6 +7,12 @@ vi.mock('@/contexts/OrganizationContext', () => ({
   useOrganization: () => ({ currentOrganization: { id: 'test-org', name: 'Test Org' } }),
 }));
 
+vi.mock('@/hooks/usePermissions', () => ({
+  usePermissions: () => ({
+    canManageInventory: () => true,
+  }),
+}));
+
 vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),
