@@ -1,4 +1,5 @@
 import { logger } from '@/utils/logger';
+import { isNetworkError } from '@/utils/errorHandling';
 
 import { supabase } from '@/integrations/supabase/client';
 import { Tables, Database, Json } from '@/integrations/supabase/types';
@@ -3673,6 +3674,7 @@ export const createPM = async (data: CreatePMData): Promise<PreventativeMaintena
     return pm;
   } catch (error) {
     logger.error('Error in createPM:', error);
+    if (isNetworkError(error)) throw error;
     return null;
   }
 };
@@ -3963,6 +3965,7 @@ export const updatePM = async (pmId: string, data: UpdatePMData): Promise<Preven
     return pm;
   } catch (error) {
     logger.error('Error in updatePM:', { error, pmId, data });
+    if (isNetworkError(error)) throw error;
     return null;
   }
 };
