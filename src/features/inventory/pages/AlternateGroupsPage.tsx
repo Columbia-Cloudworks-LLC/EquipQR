@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
 import {
   useAlternateGroups,
   useDeleteAlternateGroup,
@@ -71,8 +72,9 @@ const AlternateGroupsPage: React.FC = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { currentOrganization } = useOrganization();
-  const { canCreateEquipment } = usePermissions();
-  const canEdit = canCreateEquipment();
+  const { canManageInventory } = usePermissions();
+  const { data: isPartsManager = false } = useIsPartsManager(currentOrganization?.id);
+  const canEdit = canManageInventory(isPartsManager);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<GroupStatusFilter>('all');

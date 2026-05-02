@@ -21,6 +21,7 @@ import { getErrorMessage } from '@/utils/errorHandling';
 import { workOrders, organization, equipment, preventiveMaintenance } from '@/lib/queryKeys';
 import type {
   OfflineQueueItem,
+  OfflineQueueEnqueueInput,
   OfflineQueueCreateItem,
   OfflineQueueUpdateItem,
   OfflineQueueStatusItem,
@@ -60,7 +61,7 @@ export interface ConflictInfo {
 
 type QueueItemHandler<T extends OfflineQueueItem = OfflineQueueItem> = (
   item: T,
-) => Promise<{ success: boolean; conflict?: ConflictInfo }>;
+) => Promise<{ success: boolean; conflict?: ConflictInfo; followUpItems?: OfflineQueueEnqueueInput[] }>;
 
 const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
   work_order_create: (async (item: OfflineQueueCreateItem) => {
@@ -132,17 +133,49 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
         });
 
         if (!pmRecord) {
-          logger.error(
-            `PM init failed during offline sync for work order ${response.data.id}; ` +
-              'queued work order was created but PM checklist is missing. ' +
-              'A user can re-open the work order to trigger auto-init.',
+          logger.warn(
+            `PM init returned null during offline sync for work order ${response.data.id}; ` +
+              're-queuing pm_init for retry.',
           );
+          return {
+            success: true,
+            followUpItems: [
+              {
+                type: 'pm_init' as const,
+                organizationId: item.organizationId,
+                userId: claims.sub,
+                payload: {
+                  workOrderId: response.data.id,
+                  equipmentId: payload.equipmentId,
+                  templateId: payload.pmTemplateId,
+                },
+              } as OfflineQueueEnqueueInput,
+            ],
+          };
         }
       } catch (pmError) {
-        // Don't fail the whole sync — the work order itself succeeded.
-        // The PM record can be auto-initialised on next online open via
-        // the WorkOrderDetails effect.
-        logger.error('Failed to create PM during offline sync', pmError);
+        // The work order itself succeeded; re-queue a pm_init so the PM
+        // checklist is retried independently rather than lost on transient failure.
+        logger.warn(
+          `PM init failed during offline sync for work order ${response.data.id}; ` +
+            'a pm_init item has been re-queued for retry.',
+          pmError,
+        );
+        return {
+          success: true,
+          followUpItems: [
+            {
+              type: 'pm_init' as const,
+              organizationId: item.organizationId,
+              userId: claims.sub,
+              payload: {
+                workOrderId: response.data.id,
+                equipmentId: payload.equipmentId,
+                templateId: payload.pmTemplateId,
+              },
+            } as OfflineQueueEnqueueInput,
+          ],
+        };
       }
     }
 
@@ -590,6 +623,16 @@ export class OfflineQueueProcessor {
         const result = await handler(item as never);
         this.queueService.remove(item.id);
         succeeded++;
+
+        if (result.followUpItems?.length) {
+          for (const followUp of result.followUpItems) {
+            try {
+              this.queueService.enqueue(followUp);
+            } catch (enqueueErr) {
+              logger.error('Failed to re-queue follow-up item after sync', enqueueErr);
+            }
+          }
+        }
 
         if (result.conflict) {
           conflicts.push(result.conflict);

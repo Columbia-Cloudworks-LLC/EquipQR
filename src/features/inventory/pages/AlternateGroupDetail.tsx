@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
 import { useInventoryItems } from '@/features/inventory/hooks/useInventory';
 import {
   useAlternateGroup,
@@ -81,8 +82,9 @@ const AlternateGroupDetail: React.FC = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { currentOrganization } = useOrganization();
-  const { canCreateEquipment } = usePermissions();
-  const canEdit = canCreateEquipment();
+  const { canManageInventory } = usePermissions();
+  const { data: isPartsManager = false } = useIsPartsManager(currentOrganization?.id);
+  const canEdit = canManageInventory(isPartsManager);
 
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showAddItemDialog, setShowAddItemDialog] = useState(false);
