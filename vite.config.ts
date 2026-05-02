@@ -72,8 +72,10 @@ export default defineConfig(({ mode }) => ({
       // vite-plugin-pwa not to emit its own manifest file.
       manifest: false,
       // Disable the SW in dev — we don't want stale precache while editing.
-      // Push notification subscription / unsubscription flows continue to
-      // work in dev because the legacy registration path is unchanged.
+      // Note: push notification subscribe/unsubscribe flows require a live
+      // /sw.js registration and cannot be tested in local dev (HTTPS push is
+      // not testable locally anyway; production or preview is the intended
+      // validation path for push notification flows).
       devOptions: { enabled: false },
       injectManifest: {
         // Keep precache lean: HTML shell, JS, CSS, fonts, and the small icon
