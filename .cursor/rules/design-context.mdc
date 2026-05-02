@@ -1,6 +1,7 @@
 ---
-description: "Persistent design context for UI and UX decisions"
-alwaysApply: true
+description: "EquipQR brand, user, and UX design principles — apply for all UI component and page work."
+globs: "src/**/*.{ts,tsx}"
+alwaysApply: false
 ---
 ## Design Context
 

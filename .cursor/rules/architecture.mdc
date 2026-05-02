@@ -4,6 +4,22 @@ globs: "**/*.{ts,tsx}"
 ---
 # Architecture
 
+## Project Structure
+
+### Folder Structure
+- **Feature-Based:** Organize code by feature in `src/features/<feature-name>/`.
+  - `components/`: Feature-specific UI
+  - `hooks/`: Logic and state
+  - `services/`: API/Supabase interaction
+  - `types/`: Domain interfaces
+- **Shared:** Generic UI goes in `src/components/ui` or `src/components/common`.
+
+### Naming Conventions
+- **Components:** PascalCase (e.g., `WorkOrderCard.tsx`)
+- **Hooks:** camelCase with `use` prefix (e.g., `useWorkOrderData.ts`)
+- **Functions:** camelCase (e.g., `calculateTotalCost`)
+- **Types:** PascalCase, no `I` prefix (e.g., `interface WorkOrder`)
+
 ## Data Fetching
 - **Read Operations:** Use custom hooks wrapping `useQuery`. Define keys in `src/lib/queryKeys.ts` (if available) or a dedicated factory.
 - **Write Operations:** Use custom hooks wrapping `useMutation`. Always invalidate relevant query keys upon success.

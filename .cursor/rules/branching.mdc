@@ -1,6 +1,6 @@
 ---
-description: "Branching model — base off preview, target preview in PRs"
-alwaysApply: true
+description: "Git branching model for EquipQR — apply when creating branches, committing, pushing, or opening PRs. preview is the integration branch; never target main directly."
+alwaysApply: false
 ---
 # Branching Model (authoritative)
 
@@ -36,6 +36,8 @@ There is **no `dev` branch** despite what older sections of `CONTRIBUTING.md` su
    - **Linked worktrees (paths under `~/.cursor/worktrees/EquipQR/`) → formal flow.** Branch off `origin/preview`, push the feature branch, open a PR with `gh pr create --base preview`, and let CI / review run. Placing the agent into a linked worktree IS the opt-in to the slower flow; do not collapse it back into a direct push.
    - **`main` stays protected regardless.** Never direct-push to `main`. `main` only updates via a merged `preview → main` PR (the `/raise` flow) or an explicit hotfix, per rules 6 and 7.
    - This policy supersedes any older "trivial commits only" / "runtime files need a PR" carve-out — runtime risk on `preview` is acceptable to the user because `preview` is a non-production environment that the user actively monitors.
+
+See git-powershell.mdc for Windows worktree cleanup gotchas.
 
 ## Why this exists
 

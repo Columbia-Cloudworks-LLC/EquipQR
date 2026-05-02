@@ -1,6 +1,6 @@
 ---
-description: "Ensures new major features are wrapped in Feature Flags."
-globs: src/pages/**/*.tsx, src/features/**/*.tsx
+description: "Apply whenever creating a new page, feature component, or experimental UI — always gate new entry points with a feature flag from src/lib/flags.ts"
+globs: "src/pages/**/*.tsx,src/features/**/*.tsx"
 alwaysApply: false
 ---
 
