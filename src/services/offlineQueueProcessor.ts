@@ -562,6 +562,16 @@ export interface ProcessResult {
 }
 
 export class OfflineQueueProcessor {
+  /**
+   * In-memory guard: IDs of items whose server-side handler already succeeded
+   * this runtime session. If localStorage removal fails, this Set prevents
+   * re-processing on subsequent processAll() calls within the same page load,
+   * avoiding duplicate server-side side effects (e.g. duplicate work_order_create).
+   * The Set is intentionally not persisted — on page reload the queue's own
+   * item statuses and the pending filter are the authoritative guard.
+   */
+  private readonly _processedInSession = new Set<string>();
+
   constructor(
     private queueService: OfflineQueueService,
     private queryClient: QueryClient,
@@ -609,6 +619,13 @@ export class OfflineQueueProcessor {
     const conflicts: ConflictInfo[] = [];
 
     for (const item of items) {
+      // Skip items whose handler already succeeded earlier in this session.
+      // This guards against same-session replay when localStorage removal
+      // failed and the item's persisted status is still 'processing'.
+      if (this._processedInSession.has(item.id)) {
+        continue;
+      }
+
       this.queueService.updateStatus(item.id, 'processing');
 
       const handler = HANDLER_MAP[item.type];
@@ -621,6 +638,10 @@ export class OfflineQueueProcessor {
 
       try {
         const result = await handler(item as never);
+
+        // Mark as processed immediately so any subsequent storage failure
+        // cannot cause a duplicate server-side operation within this session.
+        this._processedInSession.add(item.id);
 
         if (result.followUpItems?.length) {
           // Atomically remove the processed item and append follow-ups in a
@@ -636,6 +657,8 @@ export class OfflineQueueProcessor {
             try {
               this.queueService.remove(item.id);
             } catch (removeErr) {
+              // item.id is already in _processedInSession — same-session replay
+              // is blocked regardless of the queue's persisted state.
               logger.error('Failed to remove processed queue item after follow-up failure', removeErr);
             }
             for (const followUp of result.followUpItems) {
