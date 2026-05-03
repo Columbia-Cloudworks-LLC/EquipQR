@@ -89,6 +89,11 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
 
   // Perform the actual update
   const performUpdate = useCallback(async (data: WorkOrderFormData, equipmentId?: string) => {
+    if (!organizationId) {
+      toast.error('Organization not loaded. Please try again.');
+      throw new Error('organizationId is required for PM operations');
+    }
+
     const updateData: UpdateWorkOrderData = {
       title: data.title,
       description: data.description,
