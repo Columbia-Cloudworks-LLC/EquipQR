@@ -206,6 +206,8 @@ export interface OfflineQueuePMUpdateItem extends OfflineQueueItemBase {
     checklistData?: PMChecklistItem[];
     notes?: string;
     status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+    /** When set, replay updates `preventative_maintenance.template_id` (e.g. template swap). */
+    templateId?: string;
     /** Set when status transitions to/from completed. */
     completedAt?: string | null;
     completedBy?: string | null;
@@ -565,6 +567,10 @@ export class OfflineQueueService {
               pmUpdateItem.payload.status !== undefined
                 ? pmUpdateItem.payload.status
                 : existing.payload.status,
+            templateId:
+              pmUpdateItem.payload.templateId !== undefined
+                ? pmUpdateItem.payload.templateId
+                : existing.payload.templateId,
             completedAt:
               pmUpdateItem.payload.completedAt !== undefined
                 ? pmUpdateItem.payload.completedAt

@@ -102,7 +102,15 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
     const pmTemplateChanged = pmData?.template_id !== data.pmTemplateId;
     const pmBeingEnabled = data.hasPM === true && !pmExists;
     const pmBeingDisabled = data.hasPM === false && pmExists;
-    
+
+    // Save the work order first (hasPM and other fields) so a failed save never leaves
+    // queued pm_init / pm_update that assume the WO mutation committed. When offline, the
+    // queue replays in FIFO order so work_order_update is applied before PM follow-ups.
+    await updateWorkOrderMutation.mutateAsync({
+      workOrderId,
+      data: updateData,
+    });
+
     // 1. If PM is being disabled (hasPM: false) and PM exists, delete it
     if (pmBeingDisabled && pmData?.id) {
       await deletePM(pmData.id);
@@ -144,7 +152,6 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
     }
     // 3. If PM template is being changed and PM exists, update the template
     else if (pmExists && pmTemplateChanged && data.hasPM && data.pmTemplateId) {
-      // Get the new template's checklist data
       const checklistData = await getTemplateChecklistData(data.pmTemplateId);
       try {
         const payload = {
@@ -170,12 +177,6 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
         throw pmError;
       }
     }
-    
-    // Update the work order
-    await updateWorkOrderMutation.mutateAsync({
-      workOrderId,
-      data: updateData
-    });
     
     // Refresh the work order data after update - invalidate all relevant query keys
     queryClient.invalidateQueries({ 

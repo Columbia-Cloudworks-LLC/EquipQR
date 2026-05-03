@@ -487,6 +487,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
       checklistData,
       notes,
       status,
+      templateId,
       completedAt,
       completedBy,
     } = item.payload;
@@ -540,6 +541,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
       checklistData,
       notes,
       status,
+      templateId,
       completedAt,
       completedBy,
     });

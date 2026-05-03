@@ -644,6 +644,7 @@ export class OfflineAwareWorkOrderService {
           checklistData: data.checklistData,
           notes: data.notes,
           status: data.status,
+          templateId: data.templateId,
           completedAt: data.completedAt,
           completedBy: data.completedBy,
         },
