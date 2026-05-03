@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { useUpdateWorkOrder, UpdateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderUpdate';
 import type { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
 import { 
@@ -105,26 +106,36 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
       const effectiveEquipmentId = data.equipmentId || equipmentId;
       if (effectiveEquipmentId) {
         const checklistData = await getTemplateChecklistData(data.pmTemplateId);
-        await createPM({
-          workOrderId,
-          equipmentId: effectiveEquipmentId,
-          organizationId,
-          checklistData,
-          templateId: data.pmTemplateId
-        });
+        try {
+          await createPM({
+            workOrderId,
+            equipmentId: effectiveEquipmentId,
+            organizationId,
+            checklistData,
+            templateId: data.pmTemplateId
+          });
+        } catch (pmError) {
+          toast.error('Failed to create PM checklist. Check your connection and try again.');
+          throw pmError;
+        }
       }
     }
     // 3. If PM template is being changed and PM exists, update the template
     else if (pmExists && pmTemplateChanged && data.hasPM && data.pmTemplateId) {
       // Get the new template's checklist data
       const checklistData = await getTemplateChecklistData(data.pmTemplateId);
-      await updatePM(pmData!.id, {
-        templateId: data.pmTemplateId,
-        checklistData, // Reset checklist to new template
-        status: 'pending', // Reset status since checklist is new
-        completedAt: null,
-        completedBy: null
-      });
+      try {
+        await updatePM(pmData!.id, {
+          templateId: data.pmTemplateId,
+          checklistData, // Reset checklist to new template
+          status: 'pending', // Reset status since checklist is new
+          completedAt: null,
+          completedBy: null
+        });
+      } catch (pmError) {
+        toast.error('Failed to update PM checklist. Check your connection and try again.');
+        throw pmError;
+      }
     }
     
     // Update the work order

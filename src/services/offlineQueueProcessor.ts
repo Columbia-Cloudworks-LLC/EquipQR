@@ -621,18 +621,25 @@ export class OfflineQueueProcessor {
 
       try {
         const result = await handler(item as never);
-        this.queueService.remove(item.id);
-        succeeded++;
 
         if (result.followUpItems?.length) {
-          for (const followUp of result.followUpItems) {
-            try {
-              this.queueService.enqueue(followUp);
-            } catch (enqueueErr) {
-              logger.error('Failed to re-queue follow-up item after sync', enqueueErr);
-            }
+          // Atomically remove the processed item and append follow-ups in a
+          // single localStorage write so neither can be lost independently.
+          try {
+            this.queueService.replaceWithFollowUps(item.id, result.followUpItems);
+          } catch (replaceErr) {
+            // Atomic replacement failed (e.g. quota exceeded). The original item
+            // is still in the queue, so we surface this as a hard failure rather
+            // than silently discarding the follow-up work.
+            logger.error('Failed to atomically replace queue item with follow-ups', replaceErr);
+            this.queueService.updateStatus(item.id, 'failed', 'Follow-up persistence failed');
+            failed++;
+            continue;
           }
+        } else {
+          this.queueService.remove(item.id);
         }
+        succeeded++;
 
         if (result.conflict) {
           conflicts.push(result.conflict);

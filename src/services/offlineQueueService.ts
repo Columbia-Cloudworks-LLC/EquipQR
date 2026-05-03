@@ -350,6 +350,46 @@ export class OfflineQueueService {
     this.persist(queue);
   }
 
+  /**
+   * Atomically remove a processed item and append follow-up items in the same
+   * localStorage write. This prevents a race where the original item is gone
+   * but the follow-ups were never persisted (e.g. quota exceeded between two
+   * separate calls). If any follow-up fails validation the entire operation is
+   * aborted and the original item stays in the queue so the processor can
+   * retry on the next sync cycle.
+   */
+  replaceWithFollowUps(removeId: string, followUps: OfflineQueueEnqueueInput[]): OfflineQueueItem[] {
+    const current = this.getAll();
+    const remaining = current.filter(i => i.id !== removeId);
+
+    // Build and validate each follow-up item before touching storage.
+    const followUpItems: OfflineQueueItem[] = [];
+    for (const input of followUps) {
+      const serialized = JSON.stringify(input.payload);
+      const sizeBytes = new Blob([serialized]).size;
+
+      if (OfflineQueueService.containsBinaryData(serialized)) {
+        throw new OfflineQueuePayloadError('Follow-up payload contains binary data');
+      }
+      if (sizeBytes > MAX_ITEM_SIZE_BYTES) {
+        throw new OfflineQueuePayloadError(`Follow-up payload exceeds ${MAX_ITEM_SIZE_BYTES / 1024}KB limit`);
+      }
+
+      followUpItems.push({
+        ...input,
+        id: crypto.randomUUID(),
+        retryCount: 0,
+        maxRetries: 5,
+        status: 'pending' as const,
+        payloadSizeBytes: sizeBytes,
+        timestamp: Date.now(),
+      } as OfflineQueueItem);
+    }
+
+    this.persist([...remaining, ...followUpItems]);
+    return followUpItems;
+  }
+
   /** Remove all items. */
   clear(): void {
     try {

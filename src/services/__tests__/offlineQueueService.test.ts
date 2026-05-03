@@ -390,5 +390,156 @@ describe('OfflineQueueService', () => {
         expect(item.payload.newHours).toBe(150);
       }
     });
+
+    // ── pm_update compaction ─────────────────────────────────────────────
+
+    it('merges multiple pm_update items for the same pmId', () => {
+      const svc = createService();
+      svc.enqueue({
+        type: 'pm_update',
+        payload: {
+          pmId: 'pm-1',
+          checklistData: [{ id: 'item-1', title: 'Check oil', condition: 1, notes: '' }],
+          notes: 'First note',
+          status: 'in_progress',
+          serverUpdatedAt: '2026-05-01T10:00:00Z',
+        },
+        organizationId: ORG_ID,
+        userId: USER_ID,
+      });
+      svc.enqueue({
+        type: 'pm_update',
+        payload: {
+          pmId: 'pm-1',
+          checklistData: [{ id: 'item-1', title: 'Check oil', condition: 3, notes: 'Updated' }],
+          notes: 'Second note',
+          status: 'completed',
+          completedAt: '2026-05-01T11:00:00Z',
+          completedBy: 'user-123',
+          serverUpdatedAt: '2026-05-01T10:30:00Z',
+        },
+        organizationId: ORG_ID,
+        userId: USER_ID,
+      });
+
+      expect(svc.getCount()).toBe(2);
+      svc.compact();
+      expect(svc.getCount()).toBe(1);
+
+      const item = svc.getAll()[0];
+      expect(item.type).toBe('pm_update');
+      if (item.type === 'pm_update') {
+        // Latest checklist/notes/status/completion win
+        expect(item.payload.checklistData?.[0].condition).toBe(3);
+        expect(item.payload.notes).toBe('Second note');
+        expect(item.payload.status).toBe('completed');
+        expect(item.payload.completedAt).toBe('2026-05-01T11:00:00Z');
+        expect(item.payload.completedBy).toBe('user-123');
+        // Earliest serverUpdatedAt is kept as 3-way merge anchor
+        expect(item.payload.serverUpdatedAt).toBe('2026-05-01T10:00:00Z');
+      }
+    });
+
+    it('preserves explicit null completedAt/completedBy through compaction', () => {
+      const svc = createService();
+      svc.enqueue({
+        type: 'pm_update',
+        payload: {
+          pmId: 'pm-2',
+          status: 'completed',
+          completedAt: '2026-05-01T10:00:00Z',
+          completedBy: 'user-123',
+        },
+        organizationId: ORG_ID,
+        userId: USER_ID,
+      });
+      // Reverting completion — explicitly clears completedAt/completedBy to null
+      svc.enqueue({
+        type: 'pm_update',
+        payload: {
+          pmId: 'pm-2',
+          status: 'in_progress',
+          completedAt: null,
+          completedBy: null,
+        },
+        organizationId: ORG_ID,
+        userId: USER_ID,
+      });
+
+      svc.compact();
+      expect(svc.getCount()).toBe(1);
+
+      const item = svc.getAll()[0];
+      expect(item.type).toBe('pm_update');
+      if (item.type === 'pm_update') {
+        expect(item.payload.status).toBe('in_progress');
+        // null must survive compaction — nullish-coalescing (??) would silently
+        // revert to the prior non-null value and leave completion metadata stuck.
+        expect(item.payload.completedAt).toBeNull();
+        expect(item.payload.completedBy).toBeNull();
+      }
+    });
+
+    it('keeps undefined fields from newer pm_update from overwriting existing values', () => {
+      const svc = createService();
+      svc.enqueue({
+        type: 'pm_update',
+        payload: {
+          pmId: 'pm-3',
+          notes: 'Keep this note',
+          status: 'in_progress',
+        },
+        organizationId: ORG_ID,
+        userId: USER_ID,
+      });
+      // Second update only changes checklist, not notes/status
+      svc.enqueue({
+        type: 'pm_update',
+        payload: {
+          pmId: 'pm-3',
+          checklistData: [{ id: 'item-2', title: 'Check brakes', condition: 2, notes: '' }],
+          // notes and status intentionally omitted (undefined)
+        },
+        organizationId: ORG_ID,
+        userId: USER_ID,
+      });
+
+      svc.compact();
+      expect(svc.getCount()).toBe(1);
+
+      const item = svc.getAll()[0];
+      expect(item.type).toBe('pm_update');
+      if (item.type === 'pm_update') {
+        // Undefined in newer should not overwrite existing value
+        expect(item.payload.notes).toBe('Keep this note');
+        expect(item.payload.status).toBe('in_progress');
+        // New checklist should be applied
+        expect(item.payload.checklistData?.[0].title).toBe('Check brakes');
+      }
+    });
+
+    it('keeps pm_update items for different pmIds separate', () => {
+      const svc = createService();
+      svc.enqueue({
+        type: 'pm_update',
+        payload: { pmId: 'pm-A', notes: 'PM A note', status: 'in_progress' },
+        organizationId: ORG_ID,
+        userId: USER_ID,
+      });
+      svc.enqueue({
+        type: 'pm_update',
+        payload: { pmId: 'pm-B', notes: 'PM B note', status: 'completed' },
+        organizationId: ORG_ID,
+        userId: USER_ID,
+      });
+
+      svc.compact();
+      expect(svc.getCount()).toBe(2);
+
+      const items = svc.getAll().filter(i => i.type === 'pm_update');
+      const pmIds = items.map(i => i.type === 'pm_update' ? i.payload.pmId : null);
+      expect(pmIds).toContain('pm-A');
+      expect(pmIds).toContain('pm-B');
+    });
   });
 });

@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useRef } from 'react';
 import { useEquipmentList, useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
 import type { EquipmentListFilters } from '@/features/equipment/services/EquipmentService';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
 
 export interface EquipmentFilters {
   search: string;
@@ -67,6 +68,14 @@ export const useEquipmentFiltering = (organizationId?: string) => {
   const sortConfigRef = useRef(sortConfig);
   sortConfigRef.current = sortConfig;
 
+  // Derive RBAC inputs for the server-side query so team-scoped users only
+  // see equipment on their teams (mirrors the app-layer gate in the non-
+  // paginated path). isOrgAdmin = true skips the team filter entirely.
+  const { canManageOrganization } = usePermissions();
+  const { getUserTeamIds } = useTeamMembership();
+  const isOrgAdmin = canManageOrganization();
+  const rbacUserTeamIds = isOrgAdmin ? undefined : getUserTeamIds();
+
   // Server-side filtered + paginated rows. Filter shape is normalized so
   // the service can map `'all'` / `'unassigned'` sentinels and synthetic
   // `'out_of_service'` directly to PostgREST predicates.
@@ -85,8 +94,11 @@ export const useEquipmentFiltering = (organizationId?: string) => {
       installationDateFrom: filters.installationDateFrom || undefined,
       installationDateTo: filters.installationDateTo || undefined,
       warrantyExpiring: filters.warrantyExpiring || undefined,
+      isOrgAdmin,
+      userTeamIds: rbacUserTeamIds,
     }),
-    [filters],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filters, isOrgAdmin, rbacUserTeamIds?.join(',')],
   );
 
   const listQuery = useEquipmentList(organizationId, serverFilters, {
@@ -100,8 +112,6 @@ export const useEquipmentFiltering = (organizationId?: string) => {
   // "X of N" totals. The query is cheap enough to keep separate from the
   // paginated list — PMs and dropdowns share the same cache entry.
   const summariesQuery = useEquipmentSummaries(organizationId);
-
-  usePermissions();
 
   const equipment = useMemo(
     () => summariesQuery.data ?? [],

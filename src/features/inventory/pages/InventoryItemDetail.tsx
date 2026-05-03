@@ -95,12 +95,14 @@ const InventoryItemDetail = () => {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [groupSearch, setGroupSearch] = useState('');
 
-  // Open add-to-group dialog when navigated with ?alternateAction=add
+  // Open add-to-group dialog when navigated with ?alternateAction=add.
+  // Guard on canEdit so a crafted URL cannot drop a read-only user into a
+  // write flow they should never see.
   useEffect(() => {
-    if (searchParams.get('alternateAction') === 'add') {
+    if (searchParams.get('alternateAction') === 'add' && canEdit) {
       setShowAddToGroupDialog(true);
     }
-  }, [searchParams]);
+  }, [searchParams, canEdit]);
 
   const { data: item, isLoading: itemLoading } = useInventoryItem(
     currentOrganization?.id,

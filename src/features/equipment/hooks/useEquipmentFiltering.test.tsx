@@ -20,6 +20,10 @@ vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: () => ({ canManageOrganization: () => true }),
 }));
 
+vi.mock('@/features/teams/hooks/useTeamMembership', () => ({
+  useTeamMembership: () => ({ getUserTeamIds: () => [] }),
+}));
+
 import { useEquipmentFiltering } from './useEquipmentFiltering';
 import { useEquipmentList, useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
 import { useSyncTeamsByOrganization } from '@/services/syncDataService';

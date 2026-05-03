@@ -425,7 +425,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       });
 
       if (updatedPM === null) {
-        toast.success('PM completion saved offline — will sync when you reconnect.');
+        // usePMData's onSuccess already fires the offline toast; no second toast here.
       } else if (updatedPM) {
         toast.success('PM completed successfully');
         // Don't call onUpdate() - the mutation hook already handles cache updates
@@ -511,9 +511,9 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 
       if (result === null) {
         // Queued offline — keep optimistic state.
+        // usePMData's onSuccess fires the offline toast; no second toast here.
         setHasUnsavedChanges(false);
         localStorage.removeItem(storageKey);
-        toast.success('All items set to OK — saved offline, will sync when you reconnect.');
         setShowSetAllOKDialog(false);
       } else if (result) {
 
