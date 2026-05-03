@@ -182,14 +182,16 @@ BEGIN
 END;
 $$;
 
--- Grant USAGE on the schema to both roles so they can resolve function names.
--- service_role (Edge Function) needs full access to drain the queue.
--- authenticated may call send to enqueue messages from app code (e.g. privacy
--- request submission) but must NOT be able to read, delete, pop, or archive
--- messages — those operations expose other users' notification payloads and
--- allow denial-of-service on the delivery pipeline.
+-- Grant USAGE on the schema to service_role only so it can resolve function names.
+-- The queue-worker Edge Function (service_role) needs full access to drain the queue.
+-- authenticated is intentionally NOT granted USAGE or EXECUTE on any pgmq_public
+-- function: the only legitimate producer is the SECURITY DEFINER trigger
+-- public.broadcast_notification (which runs as postgres and has direct pgmq access),
+-- not app-layer code. Granting send to authenticated would allow any authenticated
+-- user to inject arbitrary push notifications for any victim user_id via the
+-- PostgREST RPC path (/rest/v1/rpc/send with schema=pgmq_public).
 -- anon is intentionally NOT granted — anonymous users must not enqueue.
-GRANT USAGE ON SCHEMA pgmq_public TO authenticated, service_role;
+GRANT USAGE ON SCHEMA pgmq_public TO service_role;
 
 -- service_role: full queue access for the queue-worker Edge Function.
 GRANT EXECUTE ON FUNCTION pgmq_public.send(text, jsonb, integer) TO service_role;
@@ -197,9 +199,6 @@ GRANT EXECUTE ON FUNCTION pgmq_public.read(text, integer, integer) TO service_ro
 GRANT EXECUTE ON FUNCTION pgmq_public.delete(text, bigint) TO service_role;
 GRANT EXECUTE ON FUNCTION pgmq_public.archive(text, bigint) TO service_role;
 GRANT EXECUTE ON FUNCTION pgmq_public.pop(text) TO service_role;
-
--- authenticated: send only — app code may enqueue but must not drain or peek.
-GRANT EXECUTE ON FUNCTION pgmq_public.send(text, jsonb, integer) TO authenticated;
 
 ALTER DEFAULT PRIVILEGES IN SCHEMA pgmq_public
   GRANT EXECUTE ON FUNCTIONS TO service_role;

@@ -202,10 +202,21 @@ BEGIN
     SELECT 1 FROM pg_matviews
     WHERE schemaname = 'public' AND matviewname = 'org_active_stripe_subscriptions'
   ) THEN
+    -- Scope results to only the caller's organizations. An admin of org A must
+    -- not see org B's billing data. Join the materialized view back to
+    -- public.organizations on stripe_customer_id, then restrict to the orgs
+    -- where the caller holds an owner/admin role.
     RETURN QUERY EXECUTE
-      'SELECT subscription_id, stripe_customer_id, status, current_period_end, '
-      'stripe_customer_email, stripe_customer_metadata '
-      'FROM public.org_active_stripe_subscriptions';
+      'SELECT mv.subscription_id, mv.stripe_customer_id, mv.status, mv.current_period_end, '
+      'mv.stripe_customer_email, mv.stripe_customer_metadata '
+      'FROM public.org_active_stripe_subscriptions mv '
+      'JOIN public.organizations o ON o.stripe_customer_id = mv.stripe_customer_id '
+      'WHERE o.id IN ('
+      '  SELECT organization_id FROM public.organization_members '
+      '  WHERE user_id = (SELECT auth.uid()) '
+      '  AND role IN (''owner'', ''admin'') '
+      '  AND status = ''active'''
+      ')';
   END IF;
   -- MV missing: return empty. Admin UI gets a clean empty state instead of
   -- an error during the pre-Section-B window.

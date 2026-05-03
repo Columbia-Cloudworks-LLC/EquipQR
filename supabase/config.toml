@@ -65,12 +65,14 @@ allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 [api]
 enabled = true
 port = 54321
-# pgmq_public is added so the queue-worker Edge Function can call
+# pgmq_public is listed so the queue-worker Edge Function can call
 # supabase.schema('pgmq_public').rpc('read'/'delete', ...) per the Supabase
 # Queues documented pattern. The schema is set up by migration
 # 20260503130000_add_notifications_queue.sql with SECURITY DEFINER wrappers
-# around the bare pgmq.* functions. anon is NOT granted EXECUTE. authenticated
-# may call send only; read/delete/pop/archive are restricted to service_role.
+# around the bare pgmq.* functions. anon is NOT granted USAGE. authenticated
+# is NOT granted EXECUTE on any pgmq_public function — only service_role has
+# read/delete/pop/archive/send access. The SECURITY DEFINER trigger
+# public.broadcast_notification is the only producer; app code must not enqueue.
 schemas = ["public", "graphql_public", "pgmq_public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
