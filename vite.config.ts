@@ -1,5 +1,6 @@
 import { defineConfig, PluginOption } from "vite";
 import react from "@vitejs/plugin-react-swc";
+import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 import fs from "fs";
 
@@ -54,6 +55,39 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     mode === 'development' && httpLogger(),
     react(),
+    // PWA / service worker. We use `injectManifest` mode so we can keep our
+    // own custom Push notification handlers (see `src/sw.ts`); generateSW
+    // would overwrite them. The output filename MUST stay `sw.js` because
+    // `src/main.tsx` and `src/hooks/usePushNotifications.ts` register and
+    // resolve the worker by that exact path.
+    VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      // Register manually from `src/main.tsx` so we keep control of the
+      // registration scope and the periodic update check.
+      injectRegister: false,
+      // Reuse the existing `public/manifest.webmanifest` rather than letting
+      // the plugin generate a new one. Setting `manifest: false` tells
+      // vite-plugin-pwa not to emit its own manifest file.
+      manifest: false,
+      // Disable the SW in dev — we don't want stale precache while editing.
+      // Note: push notification subscribe/unsubscribe flows require a live
+      // /sw.js registration and cannot be tested in local dev (HTTPS push is
+      // not testable locally anyway; production or preview is the intended
+      // validation path for push notification flows).
+      devOptions: { enabled: false },
+      injectManifest: {
+        // Keep precache lean: HTML shell, JS, CSS, fonts, and the small icon
+        // set. Excludes large images, source maps, and the OG asset which
+        // doesn't need to be cached for the app to run.
+        globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
+        globIgnores: ['**/og-image.png', '**/sw.js.map'],
+        // 4 MB ceiling per file to prevent accidental precaching of giant
+        // chunks. Anything larger will fail the build with a clear error.
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+      },
+    }),
   ].filter(Boolean),
   resolve: {
     alias: {

@@ -1,10 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useAuth } from '@/hooks/useAuth';
+import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
+import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 import {
   getPMByWorkOrderId,
   getPMByWorkOrderAndEquipment,
   getPMsByWorkOrderId,
-  updatePM,
   UpdatePMData,
 } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
@@ -58,9 +60,40 @@ export const usePMsByWorkOrderId = (workOrderId: string) => {
 export const useUpdatePM = () => {
   const queryClient = useQueryClient();
   const { currentOrganization } = useOrganization();
+  const { user } = useAuth();
+  const offlineCtx = useOfflineQueueOptional();
 
   return useMutation({
-    mutationFn: async ({ pmId, data }: { pmId: string; data: UpdatePMData }) => {
+    mutationFn: async ({
+      pmId,
+      data,
+      serverUpdatedAt,
+    }: {
+      pmId: string;
+      data: UpdatePMData;
+      /**
+       * Pass the snapshot of `pm.updated_at` from the time the user opened
+       * the PM checklist so the offline-sync conflict detector can compare
+       * against the live server value during replay. Optional for online
+       * paths that don't care about offline conflicts.
+       */
+      serverUpdatedAt?: string;
+    }) => {
+      // When the user is signed in inside an organization, route through
+      // the offline-aware service so failed network calls (or `!navigator.
+      // onLine`) queue locally instead of throwing. Otherwise fall back to
+      // the original direct call so unrelated callers (e.g. tests) keep
+      // working.
+      if (currentOrganization?.id && user?.id) {
+        const svc = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
+        const result = await svc.updatePM(pmId, data, serverUpdatedAt);
+        if (result.queuedOffline) {
+          offlineCtx?.refresh();
+          return null;
+        }
+        return result.data;
+      }
+      const { updatePM } = await import('@/features/pm-templates/services/preventativeMaintenanceService');
       return await updatePM(pmId, data);
     },
     onSuccess: (updatedPM) => {
@@ -70,21 +103,24 @@ export const useUpdatePM = () => {
           ['preventativeMaintenance', updatedPM.work_order_id, updatedPM.equipment_id, currentOrganization.id],
           updatedPM
         );
-        
+
         // Invalidate related queries to ensure fresh data on next load
-        queryClient.invalidateQueries({ 
+        queryClient.invalidateQueries({
           queryKey: ['preventativeMaintenance', updatedPM.work_order_id],
           exact: false,
           refetchType: 'active' // Refetch active queries to get updated data
         });
-        queryClient.invalidateQueries({ 
+        queryClient.invalidateQueries({
           queryKey: ['workOrder'],
           exact: false,
           refetchType: 'active' // OK to refetch work orders
         });
-        
+
         // Only show toast if not already shown by caller
         // (Some callers like handleSetAllToOK show their own toast)
+      } else if (updatedPM === null) {
+        // queuedOffline path — the banner will surface the queued state.
+        toast.success('PM saved offline — will sync when you reconnect.');
       }
     },
     onError: (error) => {

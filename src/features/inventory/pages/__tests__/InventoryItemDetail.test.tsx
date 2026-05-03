@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor } from '@/test/utils/test-utils';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import InventoryItemDetail from '../InventoryItemDetail';
 
 // Helper to setup userEvent
@@ -17,12 +17,14 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 // Mock react-router-dom
 const mockNavigate = vi.fn();
+let mockSearchParams = new URLSearchParams();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
     useParams: () => ({ itemId: 'item-1' }),
-    useNavigate: () => mockNavigate
+    useNavigate: () => mockNavigate,
+    useSearchParams: () => [mockSearchParams, vi.fn()],
   };
 });
 
@@ -704,6 +706,32 @@ describe('InventoryItemDetail - Equipment Links', () => {
       const bulldozerElements = screen.getAllByText('Bulldozer 1');
       expect(bulldozerElements.length).toBeGreaterThan(0);
     }, { timeout: 3000 });
+  });
+});
+
+describe('InventoryItemDetail - alternateAction query param', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockSearchParams = new URLSearchParams('alternateAction=add');
+    setupMocks();
+  });
+
+  afterEach(() => {
+    mockSearchParams = new URLSearchParams();
+  });
+
+  it('opens Add to Alternate Group dialog when ?alternateAction=add is present', async () => {
+    render(<InventoryItemDetail />);
+
+    // Wait for item detail to load
+    await waitFor(() => {
+      expect(screen.getAllByText('Test Part').length).toBeGreaterThan(0);
+    });
+
+    // The add-to-group dialog should be visible — triggered by the query param
+    await waitFor(() => {
+      expect(screen.getAllByText('Add to Alternate Group').length).toBeGreaterThan(0);
+    });
   });
 });
 

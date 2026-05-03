@@ -1,154 +1,26 @@
 ---
-description: "Local dev failure modes that bite recurring — kong stale-IP, gcloud stderr, types.ts pollution, dual-loader"
+description: "Dev:kong502,gcloud stderr,types gen,maps CSP,WinNAT"
 globs: "{dev-start.ps1,dev-stop.ps1,scripts/**/*.ps1,supabase/functions/**}"
 ---
-# Local dev troubleshooting catalog
-
-A short list of failure modes that have already cost time in this repo and
-are virtually guaranteed to recur unless you recognize them on sight.
-
-## 1. Kong returns 502 for every `/functions/v1/*` after `dev-start.bat`
-
-**Signature**
-
-- Browser: `POST http://localhost:54321/functions/v1/<fn>` returns **502 Bad Gateway**
-- `docker logs supabase_kong_*` shows: `connect() failed (113: Host is unreachable)` or `(111: Connection refused)` while connecting to `http://172.18.0.X:8081/<fn>`
-- `docker inspect supabase_edge_runtime_*` shows a different IP than the one in the kong error
-
-**Root cause**
-
-`supabase start` brings up `supabase_kong` + `supabase_edge_runtime` together;
-kong caches edge_runtime's Docker IP in its nginx upstream pool. `supabase
-functions serve` then **recreates** the edge_runtime container with the
-locally-mounted source tree, assigning a new IP. Kong keeps the old IP.
-
-**Fix**
-
-Already permanently fixed in `dev-start.ps1` step `[8b/10]` which restarts
-kong after `supabase functions serve` boots. If kong somehow gets out of
-sync mid-session: `docker restart supabase_kong_<project_ref>` and wait
-~5s for routes to reload.
-
-**Reference:** #617 follow-up; commit `46cbf4ac`
-
-## 2. `dev-start.bat` aborts step 1b with red `python.exe : ...` + `MCP config render failed`
-
-**Signature**
-
-- Output includes a red block starting with `python.exe : Activated service account credentials for: [...]`
-- Followed by `WARNING: MCP config render failed (exit 1)`
-- gcloud activation actually succeeded — the success message is the trigger
-
-**Root cause**
-
-`gcloud auth activate-service-account` writes its success line to **stderr**,
-not stdout. Inside `gcloud.ps1` (the wrapper), `& python.exe ...` triggers
-a `NativeCommandError` for that stderr write. With `$ErrorActionPreference = 'Stop'`
-inherited from the caller, the success message becomes a terminating
-exception. PowerShell 7.3+ does the same via `$PSNativeCommandUseErrorActionPreference`.
-
-**Fix**
-
-Already permanently fixed in `scripts/render-mcp-config.ps1` (commit
-`157ab9a6`): wrap gcloud invocations in a local `$ErrorActionPreference = 'Continue'`
-block + `try/catch` + restore in `finally`. **Never** rely on `2>&1 + try/finally`
-alone — `finally` does not suppress the inherited terminating error and `2>&1`
-cannot intercept failures originating inside the child script.
-
-**Reference:** AGENTS.md → Learned Workspace Facts; commit `157ab9a6`
-
-## 3. `src/integrations/supabase/types.ts` polluted with Supabase CLI banners
-
-**Signature**
-
-- After `dev-start.bat -Force`: `git diff src/integrations/supabase/types.ts` shows extra lines like `Connecting to db 5432` at the top and `A new version of Supabase CLI is available: v2.X.X` at the bottom
-- File still passes `tsc --noEmit` today (compiler tolerates the noise) but is fragile and dirties the working tree
-
-**Root cause**
-
-`dev-start.ps1` step 6 captures stdout+stderr from `npx supabase gen types typescript --local`
-unfiltered and pipes it directly to the file. The repo already has a hardened
-extractor at `.cursor/hooks/sync-types.ps1` (anchor-based extraction between
-the first `^export type` and the last `^} as const`); dev-start doesn't use it.
-
-**Fix**
-
-Tracked in #620. Until merged, after a `-Force` run: `git checkout -- src/integrations/supabase/types.ts`
-to discard the polluted regen.
-
-## 4. Fleet Map renders with markers but no basemap tiles
-
-See [`fleet-map.mdc`](./fleet-map.mdc) — dual-loader race between
-`useGoogleMapsLoader` and `<APIProvider>`. Fix is to use `useGoogleMapsKey`
-exclusively in any component tree that mounts `<MapView>`.
-
-## 5. CSP `Refused to connect ... data:image/png;base64,...` on Fleet Map
-
-**Signature**
-
-- Browser console floods with `Refused to connect because it violates the document's Content Security Policy` from `shared-label-worker.js`
-- Blocked URI is `data:image/png;base64,...`
-
-**Root cause**
-
-Google Maps' vector basemap label renderer issues `fetch('data:image/png;base64,...')`
-for inline label sprite assets. CSP `connect-src` must include `data:`.
-
-**Fix**
-
-Already added to `vite.config.ts` and `vercel.json` (commit `b42326b0`).
-If you re-tighten CSP for any reason, do not remove `data:` from `connect-src`
-without a plan to disable Maps vector basemaps.
-
-## 6. `dev-start.bat` step 4 fails with WSAEACCES on a Supabase port
-
-**Signature**
-
-- `npx supabase start` exits non-zero with: `failed to start docker container "supabase_db_*": ports are not available: ... bind: An attempt was made to access a socket in a way forbidden by its access permissions.` (Win32 `WSAEACCES`)
-- `Get-NetTCPConnection -LocalPort 54322 -State Listen` returns nothing (no Windows process is listening)
-- `docker ps -a` shows no Supabase containers (container layer is clean)
-- `netsh int ipv4 show excludedportrange protocol=tcp` shows a non-`*`-flagged range that includes the failing port (e.g. `54278  54377` traps 54321-54328)
-
-**Root cause**
-
-Supabase uses fixed ports 54321 (API), 54322 (Postgres), 54323 (Studio), 54324 (Inbucket), 54327 (Analytics), 54328 (Pooler). All of these fall **inside** Windows' default ephemeral port range (49152-65535). WinNAT and Hyper-V dynamically reserve 100-port chunks within that range for outbound NAT mappings (Hyper-V VMs, WSL2 distros, VPN clients), and one of those chunks can land on top of the Supabase ports.
-
-**This is not a Docker leak.** The reservation is held by the Windows TCP/IP stack itself. Killing Docker Desktop, terminating WSL distros, running `docker network prune`, restarting `vmcompute`, etc., will not release it because Docker doesn't own it. Verified empirically: `dev-stop.bat -Force` (which kills Docker Desktop entirely and terminates the docker-desktop WSL distro) leaves the reservation intact.
-
-**Fix**
-
-One-time admin command, persistent across reboots:
-
-```powershell
-.\scripts\reserve-supabase-ports.ps1
-```
-
-The helper auto-elevates via UAC. It briefly stops WinNAT (~2s), registers a persistent administered exclusion for ports 54321-54328 via `netsh int ipv4 add excludedportrange ... store=persistent`, then restarts WinNAT. After running once, ports 54321-54328 are permanently registered as administered exclusions; the Windows kernel will never auto-allocate them again (across reboots, Docker restarts, WSL2 churn, Windows updates).
-
-If the helper script is unavailable, run manually in an Admin PowerShell:
-
-```powershell
-net stop winnat
-netsh int ipv4 add excludedportrange protocol=tcp startport=54321 numberofports=8 store=persistent
-net start winnat
-```
-
-Verify: `netsh int ipv4 show excludedportrange protocol=tcp` should show `54321  54328  *` (the asterisk = administered).
-
-**Why the WinNAT stop/start dance**
-
-Windows refuses to add an "administered" exclusion that overlaps an active OS-allocated dynamic reservation. The error is misleading — `ERROR_SHARING_VIOLATION` ("the process cannot access the file because it is being used by another process") — it has nothing to do with file access. Stopping WinNAT releases all dynamic reservations; the persistent exclusion can then be added without overlap; restarting WinNAT will respect the new exclusion forever.
-
-**Why `dev-start.ps1` and `dev-stop.ps1` only diagnose, never auto-fix**
-
-The fix requires Administrator and modifies kernel-level networking config. Auto-elevating from inside `dev-start` would (a) prompt UAC mid-flow at a confusing point and (b) couple the per-session dev script to a one-time-per-machine setup task. Both scripts detect the trap (parse `excludedportrange` for non-`*`-flagged ranges that overlap 54321-54328) and print the exact fix command + helper script path. The fix is one-shot per machine.
-
-**Reference:** discovered during Apr 2026 v3.0.0 deployment incident; commit TBD.
-
-## General rule
-
-**Local reproduction is required before claiming a fix.** If `dev-start.bat`
-(with or without `-Force`) cannot bring the stack up cleanly with **zero
-warnings or errors of any kind**, defer the work until the local environment
-is healthy rather than ship a fix that hasn't been observed working. See
-also `AGENTS.md → Learned Workspace Facts`.
+## 1. Kong 502 on `/functions/v1/*` after `dev-start.bat`
+**Signature:** 502 on `/functions/v1/*`; kong upstream stale edge_runtime IP.
+**Root cause:** Kong upstream cache stale after `functions serve` recreates the container.
+**Reference:** `dev-start.ps1` `[8b/10]`; `46cbf4ac`; #617.
+## 2. Step 1b red `python.exe` + MCP render failed
+**Signature:** stderr success line from gcloud then MCP render exit 1 despite OK auth.
+**Root cause:** gcloud writes success to stderr; PS `Stop` mode treats it as terminating (7.3+).
+**Reference:** `scripts/render-mcp-config.ps1`; `157ab9a6`.
+## 3. `types.ts` polluted with Supabase CLI banners
+**Signature:** Post-`-Force`, `types.ts` gains `Connecting to db 5432` / CLI upgrade-banner lines; dirty (`tsc --noEmit` passes).
+**Root cause:** Step 6 pipes raw `npx supabase gen types typescript --local` stdout/stderr to disk; `.cursor/hooks/sync-types.ps1` anchors (`^export type` … `^} as const`).
+**Workaround:** #620 — `git checkout -- src/integrations/supabase/types.ts`.
+## 4. Fleet map markers, no basemap tiles
+[`fleet-map.mdc`](./fleet-map.mdc): `useGoogleMapsKey` only with `<MapView>`.
+## 5. CSP blocks `data:image/png` on fleet map
+**Signature:** `shared-label-worker.js` CSP errors on `data:` URIs.
+**Root cause:** Vector labels `fetch(data:)` → `connect-src` needs `data:`.
+**Reference:** `vite.config.ts`, `vercel.json`; `b42326b0`.
+## 6. `supabase start` WSAEACCES on 543xx
+**Signature:** WSAEACCES bind on 543xx; no listener/containers; `netsh excludedportrange` overlaps 54321-54328 (no `*`).
+**Root cause:** Ephemeral-range / WinNAT - **not Docker**; AGENTS.md.
+**Fix:** `.\scripts\reserve-supabase-ports.ps1` (elevated). Alt: `net stop winnat`; `netsh int ipv4 add excludedportrange protocol=tcp startport=54321 numberofports=8 store=persistent`; `net start winnat`. Verify `54321  54328  *`. Green dev-start before fix claims; AGENTS.md.

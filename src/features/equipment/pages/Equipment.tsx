@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronDown, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import type { EquipmentViewMode } from '@/features/equipment/components/EquipmentCard';
@@ -27,7 +27,10 @@ import { EquipmentFilters } from '@/features/equipment/components/EquipmentFilte
 import EquipmentSortHeader from '@/features/equipment/components/EquipmentSortHeader';
 import EquipmentGrid from '@/features/equipment/components/EquipmentGrid';
 import EquipmentLoadingState from '@/features/equipment/components/EquipmentLoadingState';
-import ImportCsvWizard from '@/features/equipment/components/ImportCsvWizard';
+// `ImportCsvWizard` statically imports `papaparse` (~45 KB gzipped). Most
+// users on this page never open the importer, so lazy-load it to keep the
+// list page slim on Slow 4G.
+const ImportCsvWizard = lazy(() => import('@/features/equipment/components/ImportCsvWizard'));
 import EquipmentColumnPicker from '@/features/equipment/components/EquipmentColumnPicker';
 import { EQUIPMENT_TABLE_COLUMN_META } from '@/features/equipment/components/EquipmentTable';
 import { useEquipmentTableColumns } from '@/features/equipment/hooks/useEquipmentTableColumns';
@@ -405,13 +408,18 @@ const Equipment = () => {
         organizationId={currentOrganization?.id}
       />
 
-      {/* CSV Import Wizard */}
-      <ImportCsvWizard
-        open={showImportCsv}
-        onClose={() => setShowImportCsv(false)}
-        organizationId={currentOrganization.id}
-        organizationName={currentOrganization.name}
-      />
+      {/* CSV Import Wizard — lazy-loaded so papaparse (~45 KB gzipped)
+          only ships when the user actually opens the importer. */}
+      {showImportCsv && (
+        <Suspense fallback={null}>
+          <ImportCsvWizard
+            open={showImportCsv}
+            onClose={() => setShowImportCsv(false)}
+            organizationId={currentOrganization.id}
+            organizationName={currentOrganization.name}
+          />
+        </Suspense>
+      )}
 
       {isMobile && canCreate && (
         <Button

@@ -18,9 +18,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { WorkOrderService } from '@/features/work-orders/services/workOrderService';
 import { logger } from '@/utils/logger';
 import { getErrorMessage } from '@/utils/errorHandling';
-import { workOrders, organization, equipment } from '@/lib/queryKeys';
+import { workOrders, organization, equipment, preventiveMaintenance } from '@/lib/queryKeys';
 import type {
   OfflineQueueItem,
+  OfflineQueueEnqueueInput,
   OfflineQueueCreateItem,
   OfflineQueueUpdateItem,
   OfflineQueueStatusItem,
@@ -30,6 +31,9 @@ import type {
   OfflineQueueEquipmentUpdateItem,
   OfflineQueueEquipmentHoursItem,
   OfflineQueueEquipmentNoteItem,
+  OfflineQueuePMInitItem,
+  OfflineQueuePMUpdateItem,
+  OfflineQueuePMDeleteItem,
   WorkOrderServerSnapshot,
 } from './offlineQueueService';
 import { OfflineQueueService } from './offlineQueueService';
@@ -37,6 +41,14 @@ import { EquipmentService } from '@/features/equipment/services/EquipmentService
 import { updateEquipmentWorkingHours } from '@/features/equipment/services/equipmentWorkingHoursService';
 import { createEquipmentNoteWithImages } from '@/features/equipment/services/equipmentNotesService';
 import { createWorkOrderNoteWithImages } from '@/features/work-orders/services/workOrderNotesService';
+import {
+  createPM,
+  updatePM,
+  deletePM,
+  defaultForkliftChecklist,
+  type PMChecklistItem,
+} from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { pmChecklistTemplatesService } from '@/features/pm-templates/services/pmChecklistTemplatesService';
 import { requireAuthClaims } from '@/lib/authClaims';
 
 // ─── Conflict info ───────────────────────────────────────────────────────────
@@ -51,7 +63,7 @@ export interface ConflictInfo {
 
 type QueueItemHandler<T extends OfflineQueueItem = OfflineQueueItem> = (
   item: T,
-) => Promise<{ success: boolean; conflict?: ConflictInfo }>;
+) => Promise<{ success: boolean; conflict?: ConflictInfo; followUpItems?: OfflineQueueEnqueueInput[] }>;
 
 const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
   work_order_create: (async (item: OfflineQueueCreateItem) => {
@@ -84,10 +96,89 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
       throw new Error(response.error || 'Sync failed: work order create');
     }
 
-    if (payload.hasPM) {
-      logger.warn(
-        `Queued work order had PM — PM was NOT auto-created during offline sync. Work order ID: ${response.data?.id}`,
-      );
+    // Initialize the PM record alongside the work order. This used to be a
+    // logged-and-skipped no-op; without it, queued work orders with
+    // `hasPM: true` would sync the work order but leave technicians without
+    // a PM checklist to fill out, which is the field-critical path. Pull
+    // the template's checklist if one was provided, otherwise fall back to
+    // the default forklift checklist (matching the online path's behavior
+    // in `useInitializePMChecklist.ts`).
+    if (payload.hasPM && response.data?.id && payload.equipmentId) {
+      try {
+        let checklistData: PMChecklistItem[] = defaultForkliftChecklist;
+        let notes = 'PM checklist initialized from queued offline work order.';
+
+        if (payload.pmTemplateId) {
+          try {
+            const template = await pmChecklistTemplatesService.getTemplate(payload.pmTemplateId);
+            if (template && Array.isArray(template.template_data)) {
+              const items = template.template_data as unknown as PMChecklistItem[];
+              checklistData = items.map((checklistItem) => ({
+                ...checklistItem,
+                condition: null,
+                notes: '',
+              }));
+              notes = `PM checklist initialized from template: ${template.name}`;
+            }
+          } catch (templateError) {
+            logger.warn('Failed to fetch PM template during offline sync; using default', templateError);
+          }
+        }
+
+        const pmRecord = await createPM({
+          workOrderId: response.data.id,
+          equipmentId: payload.equipmentId,
+          organizationId: item.organizationId,
+          checklistData,
+          notes,
+          templateId: payload.pmTemplateId,
+        });
+
+        if (!pmRecord) {
+          logger.warn(
+            `PM init returned null during offline sync for work order ${response.data.id}; ` +
+              're-queuing pm_init for retry.',
+          );
+          return {
+            success: true,
+            followUpItems: [
+              {
+                type: 'pm_init' as const,
+                organizationId: item.organizationId,
+                userId: claims.sub,
+                payload: {
+                  workOrderId: response.data.id,
+                  equipmentId: payload.equipmentId,
+                  templateId: payload.pmTemplateId,
+                },
+              } as OfflineQueueEnqueueInput,
+            ],
+          };
+        }
+      } catch (pmError) {
+        // The work order itself succeeded; re-queue a pm_init so the PM
+        // checklist is retried independently rather than lost on transient failure.
+        logger.warn(
+          `PM init failed during offline sync for work order ${response.data.id}; ` +
+            'a pm_init item has been re-queued for retry.',
+          pmError,
+        );
+        return {
+          success: true,
+          followUpItems: [
+            {
+              type: 'pm_init' as const,
+              organizationId: item.organizationId,
+              userId: claims.sub,
+              payload: {
+                workOrderId: response.data.id,
+                equipmentId: payload.equipmentId,
+                templateId: payload.pmTemplateId,
+              },
+            } as OfflineQueueEnqueueInput,
+          ],
+        };
+      }
     }
 
     return { success: true };
@@ -335,6 +426,153 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
     );
     return { success: true };
   }) as QueueItemHandler<never>,
+
+  pm_init: (async (item: OfflineQueuePMInitItem) => {
+    await requireAuthClaims('Session expired — please sign in again');
+
+    const { workOrderId, equipmentId, templateId, checklistData, notes } = item.payload;
+
+    // Resolve placeholder work-order id (`offline-<queue-item-id>`) by
+    // refusing to apply: the offline-aware mutation layer should NEVER queue
+    // a `pm_init` against an unsynced placeholder because the work-order
+    // sync itself takes care of PM init via the `work_order_create` handler
+    // above. Surface this clearly so a developer sees the misuse.
+    if (workOrderId.startsWith('offline-')) {
+      throw new Error(
+        `pm_init queued against unsynced offline work order ${workOrderId} ` +
+          '— the work_order_create handler is responsible for initial PM creation.',
+      );
+    }
+
+    let resolvedChecklist: PMChecklistItem[] = checklistData ?? defaultForkliftChecklist;
+    let resolvedNotes = notes ?? 'PM checklist initialized from queued offline session.';
+
+    if (!checklistData && templateId) {
+      try {
+        const template = await pmChecklistTemplatesService.getTemplate(templateId);
+        if (template && Array.isArray(template.template_data)) {
+          const items = template.template_data as unknown as PMChecklistItem[];
+          resolvedChecklist = items.map((checklistItem) => ({
+            ...checklistItem,
+            condition: null,
+            notes: '',
+          }));
+          resolvedNotes = `PM checklist initialized from template: ${template.name}`;
+        }
+      } catch (templateError) {
+        logger.warn('Failed to fetch PM template during pm_init sync; using default', templateError);
+      }
+    }
+
+    const pmRecord = await createPM({
+      workOrderId,
+      equipmentId,
+      organizationId: item.organizationId,
+      checklistData: resolvedChecklist,
+      notes: resolvedNotes,
+      templateId,
+    });
+
+    if (!pmRecord) {
+      throw new Error(`Sync failed: PM init returned null for work order ${workOrderId}`);
+    }
+
+    return { success: true };
+  }) as QueueItemHandler<never>,
+
+  pm_update: (async (item: OfflineQueuePMUpdateItem) => {
+    await requireAuthClaims('Session expired — please sign in again');
+
+    const {
+      pmId,
+      serverUpdatedAt,
+      checklistData,
+      notes,
+      status,
+      templateId,
+      completedAt,
+      completedBy,
+    } = item.payload;
+
+    if (pmId.startsWith('offline-')) {
+      throw new Error(
+        `pm_update queued against unsynced offline PM ${pmId} ` +
+          '— init must succeed before updates can apply.',
+      );
+    }
+
+    // Conflict detection: if the server's updated_at differs from the
+    // baseline the user saw when they began editing offline, prefer the
+    // server's `status` (status transitions are non-mergeable) and apply
+    // the user's checklist + notes only if the server hasn't completed the
+    // PM in the meantime. This matches the work_order_status server-wins
+    // strategy used elsewhere in the processor.
+    if (serverUpdatedAt) {
+      const { data: current, error: fetchErr } = await supabase
+        .from('preventative_maintenance')
+        .select('updated_at, status')
+        .eq('id', pmId)
+        .eq('organization_id', item.organizationId)
+        .single();
+
+      if (fetchErr) throw fetchErr;
+
+      const SERVER_TERMINAL_STATUSES = ['completed', 'cancelled'] as const;
+      if (
+        current &&
+        current.updated_at !== serverUpdatedAt &&
+        SERVER_TERMINAL_STATUSES.includes(current.status as typeof SERVER_TERMINAL_STATUSES[number]) &&
+        !SERVER_TERMINAL_STATUSES.includes(status as typeof SERVER_TERMINAL_STATUSES[number])
+      ) {
+        // Server moved this PM to a terminal state while the client was
+        // offline — discard our edits to avoid overwriting a completed or
+        // cancelled record behind the user's back.
+        logger.warn(`PM ${pmId} reached terminal status '${current.status}' on server; offline edits discarded`);
+        return {
+          success: true,
+          conflict: {
+            workOrderId: pmId,
+            type: 'status_conflict',
+            details: `PM was ${current.status} on the server while offline. Your offline checklist edits were discarded.`,
+          },
+        };
+      }
+    }
+
+    const updated = await updatePM(pmId, {
+      checklistData,
+      notes,
+      status,
+      templateId,
+      completedAt,
+      completedBy,
+    }, item.organizationId);
+
+    if (!updated) {
+      throw new Error(`Sync failed: PM update returned null for ${pmId}`);
+    }
+
+    return { success: true };
+  }) as QueueItemHandler<never>,
+
+  pm_delete: (async (item: OfflineQueuePMDeleteItem) => {
+    await requireAuthClaims('Session expired — please sign in again');
+
+    const { pmId } = item.payload;
+    if (pmId.startsWith('offline-')) {
+      throw new Error(
+        `pm_delete queued against unsynced offline PM ${pmId} ` +
+          '— init must succeed before deletion can apply.',
+      );
+    }
+
+    const deleted = await deletePM(pmId, item.organizationId);
+    if (!deleted) {
+      throw new Error(`Sync failed: PM delete returned false for ${pmId}`);
+    }
+
+    return { success: true };
+  }) as QueueItemHandler<never>,
 };
 
 // ─── Processor ───────────────────────────────────────────────────────────────
@@ -347,6 +585,16 @@ export interface ProcessResult {
 }
 
 export class OfflineQueueProcessor {
+  /**
+   * In-memory guard: IDs of items whose server-side handler already succeeded
+   * this runtime session. If localStorage removal fails, this Set prevents
+   * re-processing on subsequent processAll() calls within the same page load,
+   * avoiding duplicate server-side side effects (e.g. duplicate work_order_create).
+   * The Set is intentionally not persisted — on page reload the queue's own
+   * item statuses and the pending filter are the authoritative guard.
+   */
+  private readonly _processedInSession = new Set<string>();
+
   constructor(
     private queueService: OfflineQueueService,
     private queryClient: QueryClient,
@@ -394,6 +642,13 @@ export class OfflineQueueProcessor {
     const conflicts: ConflictInfo[] = [];
 
     for (const item of items) {
+      // Skip items whose handler already succeeded earlier in this session.
+      // This guards against same-session replay when localStorage removal
+      // failed and the item's persisted status is still 'processing'.
+      if (this._processedInSession.has(item.id)) {
+        continue;
+      }
+
       this.queueService.updateStatus(item.id, 'processing');
 
       const handler = HANDLER_MAP[item.type];
@@ -406,7 +661,40 @@ export class OfflineQueueProcessor {
 
       try {
         const result = await handler(item as never);
-        this.queueService.remove(item.id);
+
+        // Mark as processed immediately so any subsequent storage failure
+        // cannot cause a duplicate server-side operation within this session.
+        this._processedInSession.add(item.id);
+
+        if (result.followUpItems?.length) {
+          // Atomically remove the processed item and append follow-ups in a
+          // single localStorage write so neither can be lost independently.
+          try {
+            this.queueService.replaceWithFollowUps(item.id, result.followUpItems);
+          } catch (replaceErr) {
+            // Handler already succeeded against the server — never leave the
+            // original item marked retryable or we risk duplicate creates on a
+            // later sync (e.g. work_order_create). Drop the processed item, then
+            // best-effort enqueue follow-ups individually.
+            logger.error('Failed to atomically replace queue item with follow-ups', replaceErr);
+            try {
+              this.queueService.remove(item.id);
+            } catch (removeErr) {
+              // item.id is already in _processedInSession — same-session replay
+              // is blocked regardless of the queue's persisted state.
+              logger.error('Failed to remove processed queue item after follow-up failure', removeErr);
+            }
+            for (const followUp of result.followUpItems) {
+              try {
+                this.queueService.enqueue(followUp);
+              } catch (enqueueErr) {
+                logger.error('Failed to enqueue follow-up item after primary handler succeeded', enqueueErr);
+              }
+            }
+          }
+        } else {
+          this.queueService.remove(item.id);
+        }
         succeeded++;
 
         if (result.conflict) {
@@ -415,10 +703,18 @@ export class OfflineQueueProcessor {
       } catch (error) {
         const newRetryCount = item.retryCount + 1;
         if (newRetryCount >= item.maxRetries) {
-          this.queueService.updateStatus(item.id, 'failed', getErrorMessage(error));
+          try {
+            this.queueService.updateStatus(item.id, 'failed', getErrorMessage(error));
+          } catch (persistErr) {
+            logger.error('Failed to persist failed status for queue item', persistErr);
+          }
           failed++;
         } else {
-          this.queueService.updateRetry(item.id, newRetryCount, getErrorMessage(error));
+          try {
+            this.queueService.updateRetry(item.id, newRetryCount, getErrorMessage(error));
+          } catch (persistErr) {
+            logger.error('Failed to persist retry state for queue item', persistErr);
+          }
         }
       }
     }
@@ -431,6 +727,12 @@ export class OfflineQueueProcessor {
       );
       const hasEquipmentItems = items.some(i =>
         ['equipment_create', 'equipment_create_full', 'equipment_update', 'equipment_hours', 'equipment_note'].includes(i.type),
+      );
+      const hasPMItems = items.some(i =>
+        i.type === 'pm_init' ||
+        i.type === 'pm_update' ||
+        i.type === 'pm_delete' ||
+        (i.type === 'work_order_create' && i.payload.hasPM),
       );
 
       for (const orgId of orgIds) {
@@ -446,6 +748,12 @@ export class OfflineQueueProcessor {
         if (hasEquipmentItems) {
           this.queryClient.invalidateQueries({ queryKey: equipment.root });
           this.queryClient.invalidateQueries({ queryKey: ['equipment', orgId] });
+        }
+        if (hasPMItems) {
+          // Bulk-invalidate the entire `preventativeMaintenance` namespace so
+          // every per-WO and per-WO+equipment cache key picks up the freshly
+          // synced PM record without us having to enumerate them.
+          this.queryClient.invalidateQueries({ queryKey: preventiveMaintenance.root });
         }
         this.queryClient.invalidateQueries({ queryKey: organization(orgId).dashboardStats() });
         this.queryClient.invalidateQueries({ queryKey: ['dashboardStats', orgId] });

@@ -262,7 +262,7 @@ export const uploadOrganizationLogo = async (
     'organization-logos',
     filePath,
     file,
-    { upsert: true }
+    { upsert: true, compress: false }
   );
 
   // Update the organizations table with the new logo URL

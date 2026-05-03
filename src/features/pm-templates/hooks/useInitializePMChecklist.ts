@@ -1,10 +1,15 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createPM, defaultForkliftChecklist, PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { defaultForkliftChecklist, PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { useAuth } from '@/hooks/useAuth';
+import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
+import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 
 export const useInitializePMChecklist = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const offlineCtx = useOfflineQueueOptional();
 
   return useMutation({
     mutationFn: async ({
@@ -19,16 +24,16 @@ export const useInitializePMChecklist = () => {
       templateId?: string;
     }) => {
       // Initializing PM checklist for work order
-      
+
       let checklistData = defaultForkliftChecklist;
       let notes = 'PM checklist initialized with default forklift maintenance items.';
-      
+
       // If templateId provided, try to fetch template data
       if (templateId) {
         try {
           const { pmChecklistTemplatesService } = await import('@/features/pm-templates/services/pmChecklistTemplatesService');
           const template = await pmChecklistTemplatesService.getTemplate(templateId);
-          
+
           if (template && Array.isArray(template.template_data)) {
             // Safely convert JSON to PMChecklistItem[] and sanitize
             const templateItems = template.template_data as unknown as PMChecklistItem[];
@@ -44,7 +49,31 @@ export const useInitializePMChecklist = () => {
           // Fall back to default checklist
         }
       }
-      
+
+      // Route through the offline-aware service so a flaky cellular link
+      // (or `!navigator.onLine`) queues the init for replay rather than
+      // throwing. Tests / contexts without an authenticated user fall back
+      // to the direct service call.
+      if (user?.id) {
+        const svc = new OfflineAwareWorkOrderService(organizationId, user.id);
+        const result = await svc.initPM({
+          workOrderId,
+          equipmentId,
+          templateId,
+          checklistData,
+          notes,
+        });
+        if (result.queuedOffline) {
+          offlineCtx?.refresh();
+          return null;
+        }
+        if (!result.data) {
+          throw new Error('Failed to create PM record');
+        }
+        return result.data;
+      }
+
+      const { createPM } = await import('@/features/pm-templates/services/preventativeMaintenanceService');
       const pmRecord = await createPM({
         workOrderId,
         equipmentId,
@@ -62,6 +91,11 @@ export const useInitializePMChecklist = () => {
       return pmRecord;
     },
     onSuccess: (pmRecord, variables) => {
+      // Queued offline — banner surfaces the pending state; bail before
+      // touching the cache because there is no record to seed yet.
+      if (pmRecord === null) {
+        return;
+      }
       // Immediately set the query data with the created PM record
       const queryKey = ['preventativeMaintenance', variables.workOrderId, variables.equipmentId, variables.organizationId];
       queryClient.setQueryData(queryKey, pmRecord);

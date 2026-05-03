@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
 import { useInventoryItems } from '@/features/inventory/hooks/useInventory';
 import {
   useAlternateGroup,
@@ -81,8 +82,9 @@ const AlternateGroupDetail: React.FC = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { currentOrganization } = useOrganization();
-  const { canCreateEquipment } = usePermissions();
-  const canEdit = canCreateEquipment();
+  const { canManageInventory } = usePermissions();
+  const { data: isPartsManager = false } = useIsPartsManager(currentOrganization?.id);
+  const canEdit = canManageInventory(isPartsManager);
 
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showAddItemDialog, setShowAddItemDialog] = useState(false);
@@ -463,11 +465,12 @@ const AlternateGroupDetail: React.FC = () => {
             {inventoryMembers.length === 0 ? (
               <div className="text-center py-8">
                 <Package className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                <p className="text-muted-foreground mb-4">
-                  No inventory items in this group yet
+                <p className="font-medium mb-1">No inventory items in this group yet</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Add interchangeable parts — OEM, aftermarket, or equivalent substitutes.
                 </p>
                 {canEdit && (
-                  <Button variant="outline" onClick={() => setShowAddItemDialog(true)}>
+                  <Button onClick={() => setShowAddItemDialog(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add First Item
                   </Button>

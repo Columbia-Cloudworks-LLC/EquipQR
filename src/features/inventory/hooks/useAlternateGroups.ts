@@ -10,6 +10,7 @@ import {
   removeGroupMember,
   createPartIdentifier,
   addIdentifierToGroup,
+  getInventoryGroupMembershipCounts,
 } from '@/features/inventory/services/partAlternatesService';
 import type {
   PartIdentifierType,
@@ -62,6 +63,24 @@ export const useAlternateGroup = (
     },
     enabled: !!organizationId && !!groupId,
     staleTime,
+  });
+};
+
+/**
+ * Returns a map of inventoryItemId -> alternate-group count for the organization.
+ * Used by inventory list surfaces to show membership indicators.
+ */
+export const useInventoryGroupMembershipCounts = (
+  organizationId: string | undefined
+) => {
+  return useQuery({
+    queryKey: ['inventory-group-membership-counts', organizationId],
+    queryFn: async () => {
+      if (!organizationId) return {} as Record<string, number>;
+      return await getInventoryGroupMembershipCounts(organizationId);
+    },
+    enabled: !!organizationId,
+    staleTime: DEFAULT_STALE_TIME,
   });
 };
 
@@ -175,6 +194,9 @@ export const useDeleteAlternateGroup = () => {
       queryClient.invalidateQueries({
         queryKey: ['alternate-groups', variables.organizationId],
       });
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-group-membership-counts', variables.organizationId],
+      });
       toast({
         title: 'Alternate group deleted',
         description: 'The alternate group has been removed.',
@@ -213,6 +235,9 @@ export const useAddInventoryItemToGroup = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['alternate-group', variables.organizationId, variables.groupId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-group-membership-counts', variables.organizationId],
       });
       // Invalidate alternates queries since group membership changed.
       queryClient.invalidateQueries({
@@ -317,6 +342,9 @@ export const useRemoveGroupMember = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['alternate-group', variables.organizationId, variables.groupId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['inventory-group-membership-counts', variables.organizationId],
       });
       queryClient.invalidateQueries({
         queryKey: ['inventory-item-alternates'],

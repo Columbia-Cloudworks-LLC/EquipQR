@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
 import {
   useAlternateGroups,
   useDeleteAlternateGroup,
@@ -60,6 +61,7 @@ import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AlternateGroupForm } from '@/features/inventory/components/AlternateGroupForm';
+import { AlternateGroupCreateWizard } from '@/features/inventory/components/AlternateGroupCreateWizard';
 import AlternateGroupsToolbar from '@/features/inventory/components/AlternateGroupsToolbar';
 import type { PartAlternateGroup } from '@/features/inventory/types/inventory';
 
@@ -70,8 +72,9 @@ const AlternateGroupsPage: React.FC = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { currentOrganization } = useOrganization();
-  const { canCreateEquipment } = usePermissions();
-  const canEdit = canCreateEquipment();
+  const { canManageInventory } = usePermissions();
+  const { data: isPartsManager = false } = useIsPartsManager(currentOrganization?.id);
+  const canEdit = canManageInventory(isPartsManager);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<GroupStatusFilter>('all');
@@ -155,7 +158,7 @@ const AlternateGroupsPage: React.FC = () => {
             canEdit && (
               <Button onClick={() => setShowCreateDialog(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                New Group
+                New Alternate Part Group
               </Button>
             )
           }
@@ -197,12 +200,12 @@ const AlternateGroupsPage: React.FC = () => {
                 <>
                   <h3 className="text-lg font-semibold mb-2">No alternate groups yet</h3>
                   <p className="text-muted-foreground mb-4">
-                    Create a group to define interchangeable parts that technicians can substitute for each other.
+                    Group interchangeable or compatible parts — OEM, aftermarket, or equivalent substitutes that technicians can swap for each other.
                   </p>
                   {canEdit && (
                     <Button onClick={() => setShowCreateDialog(true)}>
                       <Plus className="h-4 w-4 mr-2" />
-                      Create First Group
+                      New Alternate Part Group
                     </Button>
                   )}
                 </>
@@ -391,19 +394,22 @@ const AlternateGroupsPage: React.FC = () => {
         </DrawerContent>
       </Drawer>
 
-      {/* Create Dialog / Drawer */}
+      {/* Create Dialog / Drawer — uses multi-step wizard */}
       {isMobile ? (
         <Drawer open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DrawerContent className="max-h-[85dvh]">
+          <DrawerContent className="max-h-[92dvh]">
             <DrawerHeader>
-              <DrawerTitle>Create Alternate Group</DrawerTitle>
+              <DrawerTitle>New Alternate Part Group</DrawerTitle>
               <DrawerDescription>
-                Create a group for interchangeable parts that can substitute for each other.
+                Group interchangeable or compatible parts — OEM, aftermarket, or equivalent substitutes.
               </DrawerDescription>
             </DrawerHeader>
             <div className="px-4 pb-4 overflow-y-auto">
-              <AlternateGroupForm
-                onSuccess={() => setShowCreateDialog(false)}
+              <AlternateGroupCreateWizard
+                onSuccess={(groupId) => {
+                  setShowCreateDialog(false);
+                  navigate(`/dashboard/alternate-groups/${groupId}`);
+                }}
                 onCancel={() => setShowCreateDialog(false)}
               />
             </div>
@@ -411,15 +417,18 @@ const AlternateGroupsPage: React.FC = () => {
         </Drawer>
       ) : (
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create Alternate Group</DialogTitle>
+              <DialogTitle>New Alternate Part Group</DialogTitle>
               <DialogDescription>
-                Create a group for interchangeable parts that can substitute for each other.
+                Group interchangeable or compatible parts — OEM, aftermarket, or equivalent substitutes.
               </DialogDescription>
             </DialogHeader>
-            <AlternateGroupForm
-              onSuccess={() => setShowCreateDialog(false)}
+            <AlternateGroupCreateWizard
+              onSuccess={(groupId) => {
+                setShowCreateDialog(false);
+                navigate(`/dashboard/alternate-groups/${groupId}`);
+              }}
               onCancel={() => setShowCreateDialog(false)}
             />
           </DialogContent>

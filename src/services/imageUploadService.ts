@@ -20,6 +20,87 @@ export type StorageBucket =
 const ACCEPTED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
 /**
+ * Compression settings used for technician-captured photos. The defaults
+ * are tuned for slow cellular: a modern phone camera produces 8–12 MB JPEGs
+ * at full resolution, which is unusable on a 1.5 Mbps uplink. Resizing to
+ * 1600px on the long edge and re-encoding to ≤500 KB preserves enough
+ * detail for equipment / work-order documentation while making the upload
+ * complete in seconds.
+ *
+ * GIFs are skipped (animation would be lost) and small files under
+ * `skipBelowKB` short-circuit so we don't waste CPU re-encoding a logo.
+ */
+export interface CompressionOptions {
+  /** Approximate target in MB (compressor honors as upper bound). */
+  maxSizeMB?: number;
+  /** Long-edge resize target in pixels. */
+  maxWidthOrHeight?: number;
+  /** Skip compression entirely when the source file is below this size in KB. */
+  skipBelowKB?: number;
+  /** When true, run compression in a Web Worker (default). */
+  useWebWorker?: boolean;
+}
+
+const DEFAULT_COMPRESSION: Required<CompressionOptions> = {
+  maxSizeMB: 0.5,
+  maxWidthOrHeight: 1600,
+  skipBelowKB: 200,
+  useWebWorker: true,
+};
+
+/**
+ * Compress an image file in the browser. Returns a new `File` that is
+ * safe to pass to `uploadImageToStorage`. Falls back to the original file
+ * (logged, not thrown) if compression is unsupported or fails — better to
+ * upload a large file than to drop the user's data on the floor.
+ *
+ * GIFs are returned unchanged because the canvas-based compressor used
+ * here flattens to a single frame.
+ */
+export async function compressImageFile(
+  file: File,
+  options: CompressionOptions = {}
+): Promise<File> {
+  const settings = { ...DEFAULT_COMPRESSION, ...options };
+
+  if (file.type === 'image/gif') {
+    return file;
+  }
+  if (file.size <= settings.skipBelowKB * 1024) {
+    return file;
+  }
+
+  try {
+    const { default: imageCompression } = await import('browser-image-compression');
+    const compressed = await imageCompression(file, {
+      maxSizeMB: settings.maxSizeMB,
+      maxWidthOrHeight: settings.maxWidthOrHeight,
+      useWebWorker: settings.useWebWorker,
+      // The compressor preserves the original MIME type when possible, so
+      // PNG transparency survives. Quality is auto-adjusted to hit
+      // `maxSizeMB`.
+    });
+
+    // Some browsers return a Blob without a `name` — preserve the original
+    // filename so storage path generation continues to work.
+    if (compressed instanceof File) {
+      return compressed;
+    }
+    return new File([compressed], file.name, {
+      type: compressed.type || file.type,
+      lastModified: Date.now(),
+    });
+  } catch (error) {
+    logger.warn('Image compression failed; uploading original file', {
+      error: error instanceof Error ? error.message : String(error),
+      sizeBytes: file.size,
+      type: file.type,
+    });
+    return file;
+  }
+}
+
+/**
  * Generate a standardized file path for storage uploads.
  * Convention: {prefix}/{entityId}/{timestamp}.{ext}
  */
@@ -71,23 +152,42 @@ export function validateImageFile(
  * Upload a single image to a Supabase Storage bucket.
  * Returns the public URL of the uploaded file.
  *
- * When `upsert` is true the storage path stays the same across re-uploads, so
- * Supabase's CDN (`cache-control: public, max-age=3600`) can serve a stale
- * version. To bust the cache we append a `?v={timestamp}` query parameter to
- * the URL stored in the DB. `extractStoragePath` strips query params before
- * calling `storage.remove()` so deletions still work.
+ * Behavior:
+ *   - The file is compressed in the browser before upload by default. A
+ *     phone-captured 12 MB JPEG drops to ≤500 KB, which is the difference
+ *     between an upload that completes and one that times out on Slow 4G.
+ *     Pass `compress: false` to opt out (e.g. when the caller has
+ *     pre-processed the file or needs pixel-perfect fidelity such as
+ *     logos).
+ *   - When `upsert` is true the storage path stays the same across
+ *     re-uploads, so Supabase's CDN (`cache-control: public, max-age=3600`)
+ *     can serve a stale version. To bust the cache we append a
+ *     `?v={timestamp}` query parameter to the URL stored in the DB.
+ *     `extractStoragePath` strips query params before calling
+ *     `storage.remove()` so deletions still work.
  */
 export async function uploadImageToStorage(
   bucket: StorageBucket,
   filePath: string,
   file: File,
-  options?: { upsert?: boolean }
+  options?: {
+    upsert?: boolean;
+    /** Disable compression (default: true). Logos / pixel-perfect uploads. */
+    compress?: boolean;
+    /** Override default compression settings. */
+    compression?: CompressionOptions;
+  }
 ): Promise<string> {
+  const shouldCompress = options?.compress ?? true;
+  const fileToUpload = shouldCompress
+    ? await compressImageFile(file, options?.compression)
+    : file;
+
   const { data: uploadData, error: uploadError } = await supabase.storage
     .from(bucket)
-    .upload(filePath, file, {
+    .upload(filePath, fileToUpload, {
       upsert: options?.upsert ?? false,
-      contentType: file.type,
+      contentType: fileToUpload.type,
     });
 
   if (uploadError) {

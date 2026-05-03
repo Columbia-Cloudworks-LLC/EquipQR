@@ -1,5 +1,5 @@
-import React, { useState, useMemo, lazy, Suspense } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Package, History, Link2, Plus, Minus, QrCode, Search, Check, X, Settings2, CheckCircle2, AlertCircle, RefreshCw, Layers, Cpu, LinkIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -61,6 +61,7 @@ import { getStockHealthPresentation } from '@/features/inventory/utils/stockHeal
 const InventoryItemDetail = () => {
   const { itemId } = useParams<{ itemId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
   const { canManageInventory } = usePermissions();
@@ -93,6 +94,15 @@ const InventoryItemDetail = () => {
   const [newGroupName, setNewGroupName] = useState('');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [groupSearch, setGroupSearch] = useState('');
+
+  // Open add-to-group dialog when navigated with ?alternateAction=add.
+  // Guard on canEdit so a crafted URL cannot drop a read-only user into a
+  // write flow they should never see.
+  useEffect(() => {
+    if (searchParams.get('alternateAction') === 'add' && canEdit) {
+      setShowAddToGroupDialog(true);
+    }
+  }, [searchParams, canEdit]);
 
   const { data: item, isLoading: itemLoading } = useInventoryItem(
     currentOrganization?.id,

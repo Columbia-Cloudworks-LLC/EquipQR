@@ -21,6 +21,7 @@ import type {
   EquipmentUpdateData,
 } from '@/features/equipment/services/EquipmentService';
 import type { UpdateWorkingHoursData } from '@/features/equipment/services/equipmentWorkingHoursService';
+import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -49,7 +50,10 @@ export type OfflineQueueItemType =
   | 'equipment_create_full'
   | 'equipment_update'
   | 'equipment_hours'
-  | 'equipment_note';
+  | 'equipment_note'
+  | 'pm_init'
+  | 'pm_update'
+  | 'pm_delete';
 
 export type OfflineQueueItemStatus = 'pending' | 'processing' | 'failed';
 
@@ -158,6 +162,71 @@ export interface OfflineQueueEquipmentNoteItem extends OfflineQueueItemBase {
   };
 }
 
+/**
+ * Initialize a PM record on the server when a queued work order with
+ * `hasPM: true` finally syncs OR when the user opens an existing online
+ * work order while offline and we need to seed a PM stub locally.
+ *
+ * `workOrderId` must be a server UUID. Placeholder IDs (`offline-*`) are
+ * rejected by the offline-aware layer because the `work_order_create`
+ * handler is responsible for PM init when the parent work order syncs.
+ */
+export interface OfflineQueuePMInitItem extends OfflineQueueItemBase {
+  type: 'pm_init';
+  payload: {
+    workOrderId: string;
+    equipmentId: string;
+    /** Optional template id to seed checklist data from. */
+    templateId?: string;
+    /** Optional explicit checklist data; falls back to template / default. */
+    checklistData?: PMChecklistItem[];
+    notes?: string;
+  };
+}
+
+/**
+ * Update a PM record offline. Carries the full latest checklist + notes the
+ * user has so the processor can replay the change once online. Conflict
+ * resolution: server-wins on `status` transitions; field-level last-write-
+ * wins on the checklist payload via `serverUpdatedAt`.
+ *
+ * `pmId` may be `offline-<queue-item-id>` if the PM was queued for
+ * initialisation in the same offline session — the processor resolves the
+ * placeholder before applying the update.
+ */
+export interface OfflineQueuePMUpdateItem extends OfflineQueueItemBase {
+  type: 'pm_update';
+  payload: {
+    pmId: string;
+    /**
+     * Snapshot of `pm.updated_at` when the user began editing offline.
+     * Used by the processor to detect a server-side change while we were
+     * offline and choose the appropriate merge strategy.
+     */
+    serverUpdatedAt?: string;
+    checklistData?: PMChecklistItem[];
+    notes?: string;
+    status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+    /** When set, replay updates `preventative_maintenance.template_id` (e.g. template swap). */
+    templateId?: string;
+    /** Set when status transitions to/from completed. */
+    completedAt?: string | null;
+    completedBy?: string | null;
+  };
+}
+
+/**
+ * Delete a PM record while offline. Used when a user disables PM on a work
+ * order and the mutation must replay later in FIFO order after the queued
+ * work_order_update.
+ */
+export interface OfflineQueuePMDeleteItem extends OfflineQueueItemBase {
+  type: 'pm_delete';
+  payload: {
+    pmId: string;
+  };
+}
+
 export type OfflineQueueItem =
   | OfflineQueueCreateItem
   | OfflineQueueUpdateItem
@@ -167,7 +236,10 @@ export type OfflineQueueItem =
   | OfflineQueueEquipmentCreateFullItem
   | OfflineQueueEquipmentUpdateItem
   | OfflineQueueEquipmentHoursItem
-  | OfflineQueueEquipmentNoteItem;
+  | OfflineQueueEquipmentNoteItem
+  | OfflineQueuePMInitItem
+  | OfflineQueuePMUpdateItem
+  | OfflineQueuePMDeleteItem;
 
 /** The shape callers pass to enqueue — id, retryCount, status etc. are generated. */
 export type OfflineQueueEnqueueInput = {
@@ -294,6 +366,46 @@ export class OfflineQueueService {
     this.persist(queue);
   }
 
+  /**
+   * Atomically remove a processed item and append follow-up items in the same
+   * localStorage write. This prevents a race where the original item is gone
+   * but the follow-ups were never persisted (e.g. quota exceeded between two
+   * separate calls). If any follow-up fails validation the entire operation is
+   * aborted and the original item stays in the queue so the processor can
+   * retry on the next sync cycle.
+   */
+  replaceWithFollowUps(removeId: string, followUps: OfflineQueueEnqueueInput[]): OfflineQueueItem[] {
+    const current = this.getAll();
+    const remaining = current.filter(i => i.id !== removeId);
+
+    // Build and validate each follow-up item before touching storage.
+    const followUpItems: OfflineQueueItem[] = [];
+    for (const input of followUps) {
+      const serialized = JSON.stringify(input.payload);
+      const sizeBytes = new Blob([serialized]).size;
+
+      if (OfflineQueueService.containsBinaryData(serialized)) {
+        throw new OfflineQueuePayloadError('Follow-up payload contains binary data');
+      }
+      if (sizeBytes > MAX_ITEM_SIZE_BYTES) {
+        throw new OfflineQueuePayloadError(`Follow-up payload exceeds ${MAX_ITEM_SIZE_BYTES / 1024}KB limit`);
+      }
+
+      followUpItems.push({
+        ...input,
+        id: crypto.randomUUID(),
+        retryCount: 0,
+        maxRetries: 5,
+        status: 'pending' as const,
+        payloadSizeBytes: sizeBytes,
+        timestamp: Date.now(),
+      } as OfflineQueueItem);
+    }
+
+    this.persist([...remaining, ...followUpItems]);
+    return followUpItems;
+  }
+
   /** Remove all items. */
   clear(): void {
     try {
@@ -376,6 +488,10 @@ export class OfflineQueueService {
     const statusMap = new Map<string, OfflineQueueStatusItem>();
     const equipmentUpdateMap = new Map<string, OfflineQueueEquipmentUpdateItem>();
     const equipmentHoursMap = new Map<string, OfflineQueueEquipmentHoursItem>();
+    // PM updates collapse by pmId so a 50-item checklist edit session yields
+    // one network call. PM inits are NOT compacted because each binds to a
+    // distinct work-order/equipment pair.
+    const pmUpdateMap = new Map<string, OfflineQueuePMUpdateItem>();
 
     for (const item of queue) {
       if (item.type === 'work_order_create') {
@@ -443,6 +559,48 @@ export class OfflineQueueService {
       } else if (item.type === 'equipment_hours') {
         const eqHoursItem = item as OfflineQueueEquipmentHoursItem;
         equipmentHoursMap.set(eqHoursItem.payload.equipmentId, eqHoursItem);
+      } else if (item.type === 'pm_update') {
+        const pmUpdateItem = item as OfflineQueuePMUpdateItem;
+        const existing = pmUpdateMap.get(pmUpdateItem.payload.pmId);
+        if (existing) {
+          // Merge: latest checklist + notes win; keep earliest serverUpdatedAt
+          // (3-way merge anchor); collapse status to the latest (so an
+          // in_progress -> completed flow surfaces as a single completed
+          // replay).
+          existing.payload = {
+            ...existing.payload,
+            checklistData:
+              pmUpdateItem.payload.checklistData !== undefined
+                ? pmUpdateItem.payload.checklistData
+                : existing.payload.checklistData,
+            notes:
+              pmUpdateItem.payload.notes !== undefined
+                ? pmUpdateItem.payload.notes
+                : existing.payload.notes,
+            status:
+              pmUpdateItem.payload.status !== undefined
+                ? pmUpdateItem.payload.status
+                : existing.payload.status,
+            templateId:
+              pmUpdateItem.payload.templateId !== undefined
+                ? pmUpdateItem.payload.templateId
+                : existing.payload.templateId,
+            completedAt:
+              pmUpdateItem.payload.completedAt !== undefined
+                ? pmUpdateItem.payload.completedAt
+                : existing.payload.completedAt,
+            completedBy:
+              pmUpdateItem.payload.completedBy !== undefined
+                ? pmUpdateItem.payload.completedBy
+                : existing.payload.completedBy,
+            serverUpdatedAt:
+              existing.payload.serverUpdatedAt ?? pmUpdateItem.payload.serverUpdatedAt,
+          };
+          existing.timestamp = pmUpdateItem.timestamp;
+        } else {
+          const clone = JSON.parse(JSON.stringify(pmUpdateItem)) as OfflineQueuePMUpdateItem;
+          pmUpdateMap.set(pmUpdateItem.payload.pmId, clone);
+        }
       } else {
         compacted.push(item);
       }
@@ -458,6 +616,9 @@ export class OfflineQueueService {
       compacted.push(item);
     }
     for (const item of equipmentHoursMap.values()) {
+      compacted.push(item);
+    }
+    for (const item of pmUpdateMap.values()) {
       compacted.push(item);
     }
 

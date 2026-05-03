@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-05-02
+
+### Added
+
+- **Bulk inventory edit grid** ([#628](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/628)) — Desktop-only `/dashboard/inventory/bulk` route with a TanStack Table-driven inline-edit grid for rapid in-place inventory management. Single-click selects rows; double-click mounts the cell editor; editing a multi-row selection prompts a **Bulk Apply** confirm dialog (Apply to All Selected / Apply to This Row Only). Quantity adjustments route through the existing `adjust_inventory_quantity` RPC so audit history, low-stock threshold checks, and RLS boundaries are fully preserved. The footer `BulkCommitToolbar` fires `Promise.allSettled` batch commits with per-row Zod validation and `sonner` toasts surfacing success, partial-failure, and full-failure outcomes. The Inventory list page's header gains a Bulk Edit split-action mirroring the Equipment bulk entry point. `react-window` virtualization activates above 100 rows. Adds 42 targeted tests across the bulk grid component, `useBulkEditInventory` hook, bulk inventory page, and inventory list page. Resolves #628.
+
+- **Support & Documentation library overhaul** — Replaces the five hard-coded JSX tabs (Guide, Guides, FAQ, Roles, Tips) with a scalable, persona- and workflow-oriented support library at `/dashboard/support` and `/support`. 40 articles across 8 categories: Start Here, Technician Field Work, Work Orders, Equipment & QR Codes, Inventory & Parts, Teams & Roles, Admin & Integrations, and Privacy & Support. Each article has numbered steps, inline notes, screenshot placeholders with graceful fallback, related-article cross-links, a persona badge (Technician / Requestor / Manager / Admin / Owner), and a `lastReviewed` date. A role filter and full-text search surface the right articles for each user type. Dashboard-only articles (bug reporting, ticket tracking) are gated so the public `/support` page never exposes authenticated controls. Stale copy removed: billing/plan references (billing was removed in Jan 2025), `Premium Service` labeling on the Requestor role, and unverified marketing copy. `docs/guides/workflows.md` refactored to a technical reference; `docs/README.md` updated to point end users to the in-app library; `docs/guides/permissions.md` billing row removed. New screenshot capture conventions documented in `public/docs/support/README.md`.
+
+- **Guided alternate-group creation workflow** — Part alternates now support a dedicated create wizard from the inventory and alternates surfaces, with service-layer creation helpers and tests covering entry points from the item detail, inventory list, alternate group list, and mobile inventory card.
+
+### Changed
+
+- **Repository line-ending normalization** — Adds `.gitattributes` so source, docs, SQL, and Linux shell scripts normalize to LF while Windows shell scripts stay CRLF, reducing phantom diffs and making agent-authored scripts safer to validate before CI.
+
+### Fixed
+
+- **Support library category navigation buttons overflowing their container** — `TabsList` base class imposes `h-10` (40 px); the eight icon/label/count tabs rendered taller and content below started behind the overflowing buttons. Fixed by replacing the inline `gridTemplateColumns` style with `!h-auto items-stretch grid-cols-4 xl:grid-cols-8` and giving each `TabsTrigger` a `min-h-[3.5rem]`; all eight categories fit in one row at desktop width and wrap cleanly into two rows of four on mobile.
+
+- **Equipment list pagination jumping back to page 1** — `useEquipmentFiltering` now treats no-op `updateFilter` calls as inert and keeps `updateFilter` / `updateSort` callbacks stable, so the Equipment page’s team-scope mirror effect no longer resets the current page when paginating. Regression covered in `useEquipmentFiltering` tests.
+
+- **Offline query persistence stalled organization loading** — The app no longer enables a global query persister by default, preventing cached organization state from blocking normal organization resolution while preserving the explicit offline-aware service paths.
+
 ## [3.1.1] - 2026-05-01
 
 ### Changed

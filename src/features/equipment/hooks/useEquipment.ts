@@ -1,6 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { EquipmentService, EquipmentFilters, EquipmentCreateData, EquipmentUpdateData, EquipmentSummary } from '@/features/equipment/services/EquipmentService';
+import {
+  EquipmentService,
+  EquipmentFilters,
+  EquipmentCreateData,
+  EquipmentUpdateData,
+  EquipmentSummary,
+  EquipmentListFilters,
+  EquipmentListResult,
+} from '@/features/equipment/services/EquipmentService';
 import { PaginationParams } from '@/services/base/BaseService';
 import { useBackgroundSync } from '@/hooks/useCacheInvalidation';
 import { performanceMonitor } from '@/utils/performanceMonitoring';
@@ -56,6 +64,54 @@ export const useEquipment = (
   }, [organizationId, enableSync, subscribeToOrganization]);
 
   return query;
+};
+
+/**
+ * Server-paginated equipment list for the dense list page. Returns rows
+ * for the current page PLUS the total filtered count so pagination
+ * controls don't need a second round trip. The query key includes filters
+ * + pagination + sort so toggling any of them yields a new cache entry.
+ *
+ * On Slow 4G this is the difference between a ~500-row payload and a
+ * 10-row payload — by far the biggest single field-UX win in the offline
+ * / cellular plan.
+ */
+export const useEquipmentList = (
+  organizationId: string | undefined,
+  filters: EquipmentListFilters = {},
+  pagination: { page?: number; pageSize?: number; sortField?: string; sortDirection?: 'asc' | 'desc' } = {},
+  options?: { staleTime?: number; enabled?: boolean }
+) => {
+  const staleTime = options?.staleTime ?? 5 * 60 * 1000;
+  const enabled = options?.enabled ?? true;
+
+  return useQuery<EquipmentListResult>({
+    queryKey: [
+      'equipment',
+      organizationId,
+      'paginated',
+      filters,
+      pagination,
+    ],
+    queryFn: async () => {
+      if (!organizationId) return { data: [], count: 0 };
+      const result = await EquipmentService.getFilteredList(
+        organizationId,
+        filters,
+        pagination,
+      );
+      if (result.success && result.data) {
+        return result.data;
+      }
+      throw new Error(result.error || 'Failed to fetch equipment list');
+    },
+    enabled: enabled && !!organizationId,
+    staleTime,
+    // Keep the previous page visible while a new page request flies — on
+    // cellular the user otherwise sees a flash of empty state on every
+    // page click, which feels broken even though it isn't.
+    placeholderData: (previousData) => previousData,
+  });
 };
 
 /**

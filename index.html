@@ -15,6 +15,19 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/icons/EquipQR-Icon-Purple-Small.png" />
     <link rel="icon" href="/favicon.ico" />
 
+    <!--
+      Preconnect / DNS-prefetch for Supabase. On a 300 ms+ cellular link
+      the TLS handshake to *.supabase.co is the single biggest blocker
+      before the dashboard can fetch any data; preconnect shaves an entire
+      round trip. The HTML constant is replaced at build time by Vite from
+      `import.meta.env.VITE_SUPABASE_URL`. If the env var is missing in a
+      build (preview or production), Vite leaves the literal `%VITE_SUPABASE_URL%`
+      in place — the browser silently ignores invalid `href` values, so
+      this is safe to ship even when the env var isn't set.
+    -->
+    <link rel="preconnect" href="%VITE_SUPABASE_URL%" crossorigin />
+    <link rel="dns-prefetch" href="%VITE_SUPABASE_URL%" />
+
     <meta property="og:title" content="EquipQR - Fleet Equipment Management & QR Code Tracking Platform" />
     <meta property="og:description" content="Streamline equipment operations with QR code tracking, intelligent work order management, and enterprise-grade team collaboration. Trusted by industry leaders." />
     <meta property="og:type" content="website" />

@@ -7,6 +7,7 @@ import {
   Pencil,
   Plus,
   Minus,
+  Layers,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,8 @@ export interface MobileInventoryCardProps {
   onQuickAdjust: (itemId: string, delta: 1 | -1) => void;
   onShowQR: (item: InventoryItem) => void;
   onEdit: (item: InventoryItem) => void;
+  groupCount?: number;
+  onManageGroups?: (itemId: string) => void;
 }
 
 const MobileInventoryCard: React.FC<MobileInventoryCardProps> = ({
@@ -53,6 +56,8 @@ const MobileInventoryCard: React.FC<MobileInventoryCardProps> = ({
   onQuickAdjust,
   onShowQR,
   onEdit,
+  groupCount = 0,
+  onManageGroups,
 }) => {
   const stockBadge = getStockHealthListBadgeClassName(item);
   const shouldShowStockBadge = item.isLowStock ?? item.quantity_on_hand <= item.low_stock_threshold;
@@ -91,6 +96,15 @@ const MobileInventoryCard: React.FC<MobileInventoryCardProps> = ({
                     </span>
                   </>
                 ) : null}
+                {groupCount > 0 && (
+                  <>
+                    <span className="text-muted-foreground/40" aria-hidden>·</span>
+                    <span className="inline-flex items-center gap-1">
+                      <Layers className="h-3 w-3 shrink-0 opacity-80" aria-hidden />
+                      {groupCount} group{groupCount > 1 ? 's' : ''}
+                    </span>
+                  </>
+                )}
               </p>
               <div className="flex shrink-0 items-baseline gap-1.5 tabular-nums">
                 <span
@@ -159,6 +173,12 @@ const MobileInventoryCard: React.FC<MobileInventoryCardProps> = ({
                   <DropdownMenuItem onClick={() => onEdit(item)}>
                     <Pencil className="mr-2 h-4 w-4" />
                     Edit
+                  </DropdownMenuItem>
+                )}
+                {canCreate && onManageGroups && (
+                  <DropdownMenuItem onClick={() => onManageGroups(item.id)}>
+                    <Layers className="mr-2 h-4 w-4" />
+                    Manage Alternate Groups
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>

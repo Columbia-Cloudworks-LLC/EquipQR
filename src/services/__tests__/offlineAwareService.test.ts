@@ -4,9 +4,12 @@ import { OfflineQueueService } from '../offlineQueueService';
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
-const { mockCreate, mockSupabaseFrom } = vi.hoisted(() => ({
+const { mockCreate, mockSupabaseFrom, mockCreatePM, mockUpdatePM, mockDeletePM } = vi.hoisted(() => ({
   mockCreate: vi.fn(),
   mockSupabaseFrom: vi.fn(),
+  mockCreatePM: vi.fn(),
+  mockUpdatePM: vi.fn(),
+  mockDeletePM: vi.fn(),
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
@@ -20,6 +23,12 @@ vi.mock('@/features/work-orders/services/workOrderService', () => ({
   WorkOrderService: vi.fn().mockImplementation(() => ({
     create: (...args: unknown[]) => mockCreate(...args),
   })),
+}));
+
+vi.mock('@/features/pm-templates/services/preventativeMaintenanceService', () => ({
+  createPM: (...args: unknown[]) => mockCreatePM(...args),
+  updatePM: (...args: unknown[]) => mockUpdatePM(...args),
+  deletePM: (...args: unknown[]) => mockDeletePM(...args),
 }));
 
 vi.mock('sonner', () => ({
@@ -204,6 +213,251 @@ describe('OfflineAwareWorkOrderService', () => {
       expect(queueReader.getCount()).toBe(1);
 
       Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+    });
+  });
+
+  // ── PM init ────────────────────────────────────────────────────────────────
+
+  describe('initPM', () => {
+    const pmInput = {
+      workOrderId: 'wo-abc',
+      equipmentId: 'equip-abc',
+      templateId: 'tmpl-1',
+      checklistData: [{ id: 'item-1', label: 'Check fluid', completed: false }],
+      notes: 'Initial notes',
+    };
+
+    it('queues immediately when navigator.onLine is false (TIER 1 pre-check)', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const result = await svc.initPM(pmInput);
+
+      expect(result.queuedOffline).toBe(true);
+      expect(result.data).toBeNull();
+      expect(result.queueItemId).toBeDefined();
+      expect(queueReader.getCount()).toBe(1);
+      const items = queueReader.getAll();
+      expect(items[0].type).toBe('pm_init');
+      expect(items[0].payload).toMatchObject({
+        workOrderId: 'wo-abc',
+        equipmentId: 'equip-abc',
+        templateId: 'tmpl-1',
+      });
+
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+    });
+
+    it('returns PM data directly when online and createPM succeeds', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+      const fakePM = { id: 'pm-1', work_order_id: 'wo-abc', status: 'in_progress' };
+      mockCreatePM.mockResolvedValueOnce(fakePM);
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const result = await svc.initPM(pmInput);
+
+      expect(result.queuedOffline).toBe(false);
+      expect(result.data).toEqual(fakePM);
+      expect(queueReader.getCount()).toBe(0);
+    });
+
+    it('queues on network error when online call fails (TIER 2 fallback)', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+      mockCreatePM.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const result = await svc.initPM(pmInput);
+
+      expect(result.queuedOffline).toBe(true);
+      expect(result.data).toBeNull();
+      expect(queueReader.getCount()).toBe(1);
+      const items = queueReader.getAll();
+      expect(items[0].type).toBe('pm_init');
+
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+    });
+
+    it('throws on non-network errors (does not queue)', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+      mockCreatePM.mockRejectedValueOnce(new Error('Permission denied'));
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      await expect(svc.initPM(pmInput)).rejects.toThrow('Permission denied');
+      expect(queueReader.getCount()).toBe(0);
+    });
+
+    it('throws when workOrderId is an offline placeholder', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      await expect(
+        svc.initPM({ ...pmInput, workOrderId: 'offline-placeholder-123' }),
+      ).rejects.toThrow();
+      expect(queueReader.getCount()).toBe(0);
+
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+    });
+
+    it('throws when createPM returns null (unexpected null response)', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+      mockCreatePM.mockResolvedValueOnce(null);
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      await expect(svc.initPM(pmInput)).rejects.toThrow('Failed to create PM');
+      expect(queueReader.getCount()).toBe(0);
+    });
+  });
+
+  // ── PM update ──────────────────────────────────────────────────────────────
+
+  describe('updatePM', () => {
+    const pmId = 'pm-xyz';
+    const updateData = {
+      checklistData: [{ id: 'item-1', label: 'Check fluid', completed: true }],
+      notes: 'Updated notes',
+      status: 'in_progress' as const,
+    };
+    const serverUpdatedAt = '2026-05-01T10:00:00Z';
+
+    it('queues immediately when navigator.onLine is false (TIER 1 pre-check)', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const result = await svc.updatePM(pmId, updateData, serverUpdatedAt);
+
+      expect(result.queuedOffline).toBe(true);
+      expect(result.data).toBeNull();
+      expect(result.queueItemId).toBeDefined();
+      expect(queueReader.getCount()).toBe(1);
+      const items = queueReader.getAll();
+      expect(items[0].type).toBe('pm_update');
+      expect(items[0].payload).toMatchObject({
+        pmId,
+        serverUpdatedAt,
+        notes: 'Updated notes',
+      });
+
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+    });
+
+    it('returns updated PM data directly when online and updatePM succeeds', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+      const fakePM = { id: pmId, status: 'in_progress', notes: 'Updated notes' };
+      mockUpdatePM.mockResolvedValueOnce(fakePM);
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const result = await svc.updatePM(pmId, updateData, serverUpdatedAt);
+
+      expect(result.queuedOffline).toBe(false);
+      expect(result.data).toEqual(fakePM);
+      expect(queueReader.getCount()).toBe(0);
+    });
+
+    it('queues on network error when online call fails (TIER 2 fallback)', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+      mockUpdatePM.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const result = await svc.updatePM(pmId, updateData, serverUpdatedAt);
+
+      expect(result.queuedOffline).toBe(true);
+      expect(result.data).toBeNull();
+      expect(queueReader.getCount()).toBe(1);
+      const items = queueReader.getAll();
+      expect(items[0].type).toBe('pm_update');
+
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+    });
+
+    it('throws on non-network errors (does not queue)', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+      mockUpdatePM.mockRejectedValueOnce(new Error('Forbidden'));
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      await expect(svc.updatePM(pmId, updateData)).rejects.toThrow('Forbidden');
+      expect(queueReader.getCount()).toBe(0);
+    });
+
+    it('queues without serverUpdatedAt (optional field defaults to undefined)', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const result = await svc.updatePM(pmId, updateData);
+
+      expect(result.queuedOffline).toBe(true);
+      const items = queueReader.getAll();
+      expect(items[0].payload).toMatchObject({ pmId });
+      expect(items[0].payload.serverUpdatedAt).toBeUndefined();
+
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+    });
+
+    it('throws when updatePM returns null (unexpected null response)', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+      mockUpdatePM.mockResolvedValueOnce(null);
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      await expect(svc.updatePM(pmId, updateData)).rejects.toThrow('Failed to update PM');
+      expect(queueReader.getCount()).toBe(0);
+    });
+  });
+
+  // ── PM delete ──────────────────────────────────────────────────────────────
+
+  describe('deletePM', () => {
+    const pmId = 'pm-delete-1';
+
+    it('queues immediately when navigator.onLine is false (TIER 1 pre-check)', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const result = await svc.deletePM(pmId);
+
+      expect(result.queuedOffline).toBe(true);
+      expect(result.data).toBeNull();
+      expect(result.queueItemId).toBeDefined();
+      expect(queueReader.getCount()).toBe(1);
+      const items = queueReader.getAll();
+      expect(items[0].type).toBe('pm_delete');
+      expect(items[0].payload).toMatchObject({ pmId });
+
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+    });
+
+    it('returns success when online deletePM succeeds', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+      mockDeletePM.mockResolvedValueOnce(true);
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const result = await svc.deletePM(pmId);
+
+      expect(result.queuedOffline).toBe(false);
+      expect(result.data).toBeNull();
+      expect(queueReader.getCount()).toBe(0);
+    });
+
+    it('queues on network error when online deletePM fails (TIER 2 fallback)', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+      mockDeletePM.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const result = await svc.deletePM(pmId);
+
+      expect(result.queuedOffline).toBe(true);
+      expect(result.data).toBeNull();
+      expect(queueReader.getCount()).toBe(1);
+      const items = queueReader.getAll();
+      expect(items[0].type).toBe('pm_delete');
+      expect(items[0].payload).toMatchObject({ pmId });
+    });
+
+    it('throws on non-network errors (does not queue)', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+      mockDeletePM.mockRejectedValueOnce(new Error('Forbidden'));
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      await expect(svc.deletePM(pmId)).rejects.toThrow('Forbidden');
+      expect(queueReader.getCount()).toBe(0);
     });
   });
 });

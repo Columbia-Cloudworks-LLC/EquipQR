@@ -4,7 +4,8 @@ import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('@/features/equipment/hooks/useEquipment', () => ({
-  useEquipment: vi.fn(),
+  useEquipmentList: vi.fn(),
+  useEquipmentSummaries: vi.fn(),
 }));
 
 vi.mock('@/services/syncDataService', () => ({
@@ -19,8 +20,12 @@ vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: () => ({ canManageOrganization: () => true }),
 }));
 
+vi.mock('@/features/teams/hooks/useTeamMembership', () => ({
+  useTeamMembership: () => ({ getUserTeamIds: () => [] }),
+}));
+
 import { useEquipmentFiltering } from './useEquipmentFiltering';
-import { useEquipment } from '@/features/equipment/hooks/useEquipment';
+import { useEquipmentList, useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
 import { useSyncTeamsByOrganization } from '@/services/syncDataService';
 
 const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -30,54 +35,10 @@ const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 };
 
-const daysFromNow = (days: number) => {
-  const d = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
-  return d.toISOString();
-};
-
-const equipmentFixtures = [
-  {
-    id: 'eq1',
-    name: 'Excavator',
-    manufacturer: 'Acme',
-    model: 'X1',
-    serial_number: 'SN-1',
-    status: 'active',
-    location: 'NY',
-    team_id: null,
-    last_maintenance: daysFromNow(-7),
-    installation_date: '2024-01-15T00:00:00.000Z',
-    warranty_expiration: daysFromNow(10),
-    created_at: '2025-08-01T00:00:00.000Z',
-  },
-  {
-    id: 'eq2',
-    name: 'Bulldozer',
-    manufacturer: 'Globex',
-    model: 'G-200',
-    serial_number: 'SN-2',
-    status: 'maintenance',
-    location: 'SF',
-    team_id: 'team-1',
-    last_maintenance: '2025-06-01T00:00:00.000Z',
-    installation_date: '2023-12-01T00:00:00.000Z',
-    warranty_expiration: daysFromNow(60),
-    created_at: '2025-07-20T00:00:00.000Z',
-  },
-  {
-    id: 'eq3',
-    name: 'Forklift',
-    manufacturer: 'Acme',
-    model: 'F-10',
-    serial_number: 'SN-3',
-    status: 'inactive',
-    location: 'LA',
-    team_id: 'team-2',
-    // no last_maintenance
-    installation_date: '2022-05-10T00:00:00.000Z',
-    warranty_expiration: daysFromNow(5),
-    created_at: '2025-06-01T00:00:00.000Z',
-  },
+const summariesFixture = [
+  { id: 'eq1', name: 'Excavator', manufacturer: 'Acme', location: 'NY', team_id: null },
+  { id: 'eq2', name: 'Bulldozer', manufacturer: 'Globex', location: 'SF', team_id: 'team-1' },
+  { id: 'eq3', name: 'Forklift', manufacturer: 'Acme', location: 'LA', team_id: 'team-2' },
 ];
 
 const teamFixtures = [
@@ -86,8 +47,12 @@ const teamFixtures = [
 ];
 
 beforeEach(() => {
-  (useEquipment as Mock).mockReturnValue({
-    data: equipmentFixtures,
+  (useEquipmentList as Mock).mockReturnValue({
+    data: { data: [], count: 0 },
+    isLoading: false,
+  });
+  (useEquipmentSummaries as Mock).mockReturnValue({
+    data: summariesFixture,
     isLoading: false,
   });
   (useSyncTeamsByOrganization as Mock).mockReturnValue({
@@ -96,55 +61,58 @@ beforeEach(() => {
   });
 });
 
-describe('useEquipmentFiltering', () => {
-  it('filters by status', () => {
+describe('useEquipmentFiltering (server-paginated)', () => {
+  it('passes status filter to server-side useEquipmentList', () => {
     const { result } = renderHook(() => useEquipmentFiltering('org-1'), { wrapper });
     act(() => result.current.updateFilter('status', 'active'));
-    expect(result.current.filteredAndSortedEquipment.map(e => e.id)).toEqual(['eq1']);
+
+    const lastCall = (useEquipmentList as Mock).mock.calls.at(-1);
+    expect(lastCall?.[0]).toBe('org-1');
+    expect(lastCall?.[1]).toMatchObject({ status: 'active' });
   });
 
-  it('filters by manufacturer', () => {
+  it('passes manufacturer filter to server-side useEquipmentList', () => {
     const { result } = renderHook(() => useEquipmentFiltering('org-1'), { wrapper });
     act(() => result.current.updateFilter('manufacturer', 'Globex'));
-    expect(result.current.filteredAndSortedEquipment.map(e => e.id)).toEqual(['eq2']);
+    const lastCall = (useEquipmentList as Mock).mock.calls.at(-1);
+    expect(lastCall?.[1]).toMatchObject({ manufacturer: 'Globex' });
   });
 
-  it('filters by maintenance date range', () => {
+  it('passes maintenance date range to server-side useEquipmentList', () => {
     const { result } = renderHook(() => useEquipmentFiltering('org-1'), { wrapper });
-    const from = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
-    const to = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString();
+    const from = '2025-01-01';
+    const to = '2025-12-31';
     act(() => {
       result.current.updateFilter('maintenanceDateFrom', from);
       result.current.updateFilter('maintenanceDateTo', to);
     });
-    expect(result.current.filteredAndSortedEquipment.map(e => e.id)).toEqual(['eq1']);
+    const lastCall = (useEquipmentList as Mock).mock.calls.at(-1);
+    expect(lastCall?.[1]).toMatchObject({ maintenanceDateFrom: from, maintenanceDateTo: to });
   });
 
-  it('filters by installation date range', () => {
-    const { result } = renderHook(() => useEquipmentFiltering('org-1'), { wrapper });
-    act(() => {
-      result.current.updateFilter('installationDateFrom', '2023-01-01');
-      result.current.updateFilter('installationDateTo', '2023-12-31');
-    });
-    expect(result.current.filteredAndSortedEquipment.map(e => e.id)).toEqual(['eq2']);
-  });
-
-  it('filters by team including unassigned', () => {
+  it('translates the unassigned team sentinel to team: "unassigned"', () => {
     const { result } = renderHook(() => useEquipmentFiltering('org-1'), { wrapper });
     act(() => result.current.updateFilter('team', 'unassigned'));
-    expect(result.current.filteredAndSortedEquipment.map(e => e.id)).toEqual(['eq1']);
-
-    act(() => result.current.updateFilter('team', 'team-2'));
-    expect(result.current.filteredAndSortedEquipment.map(e => e.id)).toEqual(['eq3']);
+    const lastCall = (useEquipmentList as Mock).mock.calls.at(-1);
+    expect(lastCall?.[1]).toMatchObject({ team: 'unassigned' });
   });
 
-  it('filters warranty expiring within 30 days', () => {
+  it('translates "all" sentinel to undefined so the server applies no filter', () => {
+    const { result } = renderHook(() => useEquipmentFiltering('org-1'), { wrapper });
+    act(() => result.current.updateFilter('manufacturer', 'all'));
+    const lastCall = (useEquipmentList as Mock).mock.calls.at(-1);
+    // PostgREST treats undefined predicates as no-ops, so "all" maps to undefined.
+    expect(lastCall?.[1]?.manufacturer).toBeUndefined();
+  });
+
+  it('passes warrantyExpiring as a boolean filter', () => {
     const { result } = renderHook(() => useEquipmentFiltering('org-1'), { wrapper });
     act(() => result.current.updateFilter('warrantyExpiring', true));
-    expect(result.current.filteredAndSortedEquipment.map(e => e.id).sort()).toEqual(['eq1', 'eq3'].sort());
+    const lastCall = (useEquipmentList as Mock).mock.calls.at(-1);
+    expect(lastCall?.[1]).toMatchObject({ warrantyExpiring: true });
   });
 
-  it('applies quick filters and sorting', () => {
+  it('applies quick filters and sets the right server params', () => {
     const { result } = renderHook(() => useEquipmentFiltering('org-1'), { wrapper });
 
     act(() => result.current.applyQuickFilter('warranty-expiring'));
@@ -152,11 +120,41 @@ describe('useEquipmentFiltering', () => {
 
     act(() => result.current.applyQuickFilter('recently-added'));
     expect(result.current.sortConfig).toEqual({ field: 'created_at', direction: 'desc' });
-    // ensure order by created_at desc -> eq1 is latest (created_at: '2025-08-01')
-    expect(result.current.filteredAndSortedEquipment.length).toBeGreaterThan(0);
-    expect(result.current.filteredAndSortedEquipment[0]?.id).toBe('eq1');
 
     act(() => result.current.applyQuickFilter('active-only'));
     expect(result.current.filters.status).toBe('active');
+
+    const lastCall = (useEquipmentList as Mock).mock.calls.at(-1);
+    expect(lastCall?.[1]).toMatchObject({ status: 'active' });
+    // pagination/sort options are passed in the third arg
+    expect(lastCall?.[2]).toMatchObject({ page: 1, sortField: 'name', sortDirection: 'asc' });
+  });
+
+  it('does not reset pagination when updateFilter is a no-op (e.g. team mirror sync)', () => {
+    const { result } = renderHook(() => useEquipmentFiltering('org-1'), { wrapper });
+
+    act(() => result.current.setCurrentPage(2));
+    expect(result.current.currentPage).toBe(2);
+
+    // No-op: setting team to its current value 'all' should not bump page back to 1
+    act(() => result.current.updateFilter('team', 'all'));
+    expect(result.current.currentPage).toBe(2);
+  });
+
+  it('exposes server-driven totalFilteredCount and computes totalPages', () => {
+    (useEquipmentList as Mock).mockReturnValue({
+      data: { data: Array.from({ length: 10 }, (_, i) => ({ id: `e${i}` })), count: 27 },
+      isLoading: false,
+    });
+    const { result } = renderHook(() => useEquipmentFiltering('org-1'), { wrapper });
+    expect(result.current.totalFilteredCount).toBe(27);
+    // 27 / 10 -> 3 pages
+    expect(result.current.totalPages).toBe(3);
+  });
+
+  it('derives manufacturers and locations from the lightweight summaries query', () => {
+    const { result } = renderHook(() => useEquipmentFiltering('org-1'), { wrapper });
+    expect(result.current.filterOptions.manufacturers).toEqual(['Acme', 'Globex']);
+    expect(result.current.filterOptions.locations).toEqual(['LA', 'NY', 'SF']);
   });
 });

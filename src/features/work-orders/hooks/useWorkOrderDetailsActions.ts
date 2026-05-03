@@ -1,14 +1,18 @@
 import { useState, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { useUpdateWorkOrder, UpdateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderUpdate';
 import type { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
-import { 
-  createPM, 
-  updatePM, 
-  deletePM, 
-  type PMChecklistItem 
+import {
+  createPM,
+  updatePM,
+  deletePM,
+  type PMChecklistItem,
 } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { pmChecklistTemplatesService } from '@/features/pm-templates/services/pmChecklistTemplatesService';
+import { useAuth } from '@/hooks/useAuth';
+import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
+import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 
 interface PMData {
   id: string;
@@ -17,9 +21,13 @@ interface PMData {
   checklist_data?: unknown[];
   equipment_id?: string;
   template_id?: string | null;
+  /** Server `updated_at` — used for offline PM conflict detection when swapping templates. */
+  updated_at?: string | null;
 }
 
 export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: string, pmData?: PMData | null) => {
+  const { user } = useAuth();
+  const refreshOfflineQueue = useOfflineQueueOptional()?.refresh;
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showPMWarning, setShowPMWarning] = useState(false);
@@ -81,6 +89,11 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
 
   // Perform the actual update
   const performUpdate = useCallback(async (data: WorkOrderFormData, equipmentId?: string) => {
+    if (!organizationId) {
+      toast.error('Organization not loaded. Please try again.');
+      throw new Error('organizationId is required for PM operations');
+    }
+
     const updateData: UpdateWorkOrderData = {
       title: data.title,
       description: data.description,
@@ -94,44 +107,118 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
     const pmTemplateChanged = pmData?.template_id !== data.pmTemplateId;
     const pmBeingEnabled = data.hasPM === true && !pmExists;
     const pmBeingDisabled = data.hasPM === false && pmExists;
-    
-    // 1. If PM is being disabled (hasPM: false) and PM exists, delete it
-    if (pmBeingDisabled && pmData?.id) {
-      await deletePM(pmData.id);
-    }
-    // 2. If PM is being enabled (hasPM: true) and PM doesn't exist, create it
-    // Prioritize form's equipmentId over parameter to handle equipment changes during update
-    else if (pmBeingEnabled && data.pmTemplateId) {
-      const effectiveEquipmentId = data.equipmentId || equipmentId;
-      if (effectiveEquipmentId) {
+
+    const runPMChanges = async (allowOfflineQueue: boolean) => {
+      // 1. If PM is being disabled (hasPM: false) and PM exists, delete it
+      if (pmBeingDisabled && pmData?.id) {
+        if (allowOfflineQueue && user?.id) {
+          const svc = new OfflineAwareWorkOrderService(organizationId, user.id);
+          const result = await svc.deletePM(pmData.id);
+          if (result.queuedOffline) {
+            refreshOfflineQueue?.();
+          }
+          return;
+        }
+
+        const deleted = await deletePM(pmData.id, organizationId);
+        if (!deleted) {
+          throw new Error('Failed to remove PM checklist');
+        }
+        return;
+      }
+
+      // 2. If PM is being enabled (hasPM: true) and PM doesn't exist, create it
+      // Prioritize form's equipmentId over parameter to handle equipment changes during update
+      if (pmBeingEnabled && data.pmTemplateId) {
+        const effectiveEquipmentId = data.equipmentId || equipmentId;
+        if (!effectiveEquipmentId) return;
+
         const checklistData = await getTemplateChecklistData(data.pmTemplateId);
-        await createPM({
+        if (allowOfflineQueue && user?.id) {
+          const svc = new OfflineAwareWorkOrderService(organizationId, user.id);
+          const result = await svc.initPM({
+            workOrderId,
+            equipmentId: effectiveEquipmentId,
+            templateId: data.pmTemplateId,
+            checklistData,
+          });
+          if (result.queuedOffline) {
+            refreshOfflineQueue?.();
+          } else if (!result.data) {
+            throw new Error('Failed to create PM checklist');
+          }
+          return;
+        }
+
+        const created = await createPM({
           workOrderId,
           equipmentId: effectiveEquipmentId,
           organizationId,
           checklistData,
-          templateId: data.pmTemplateId
+          templateId: data.pmTemplateId,
         });
+        if (!created) {
+          throw new Error('Failed to create PM checklist');
+        }
+        return;
       }
+
+      // 3. If PM template is being changed and PM exists, update the template
+      if (pmExists && pmTemplateChanged && data.hasPM && data.pmTemplateId) {
+        const checklistData = await getTemplateChecklistData(data.pmTemplateId);
+        const payload = {
+          templateId: data.pmTemplateId,
+          checklistData, // Reset checklist to new template
+          status: 'pending' as const, // Reset status since checklist is new
+          completedAt: null,
+          completedBy: null,
+        };
+
+        if (allowOfflineQueue && user?.id) {
+          const svc = new OfflineAwareWorkOrderService(organizationId, user.id);
+          const result = await svc.updatePM(pmData!.id, payload, pmData!.updated_at ?? undefined);
+          if (result.queuedOffline) {
+            refreshOfflineQueue?.();
+          } else if (!result.data) {
+            throw new Error('Failed to update PM checklist');
+          }
+          return;
+        }
+
+        const updated = await updatePM(pmData!.id, payload, organizationId);
+        if (!updated) {
+          throw new Error('Failed to update PM checklist');
+        }
+      }
+    };
+
+    try {
+      if (navigator.onLine) {
+        // Online path: apply PM changes first so PM failures never commit a
+        // mismatched hasPM state on the work order.
+        await runPMChanges(false);
+        await updateWorkOrderMutation.mutateAsync({
+          workOrderId,
+          data: updateData,
+        });
+      } else {
+        // Offline path: queue work-order update first to preserve FIFO replay
+        // order (work_order_update before pm_init/pm_update follow-ups).
+        await updateWorkOrderMutation.mutateAsync({
+          workOrderId,
+          data: updateData,
+        });
+        await runPMChanges(true);
+      }
+    } catch (pmError) {
+      const message = pmBeingDisabled
+        ? 'Failed to remove PM checklist. Check your connection and try again.'
+        : pmBeingEnabled
+          ? 'Failed to create PM checklist. Check your connection and try again.'
+          : 'Failed to update PM checklist. Check your connection and try again.';
+      toast.error(message);
+      throw pmError;
     }
-    // 3. If PM template is being changed and PM exists, update the template
-    else if (pmExists && pmTemplateChanged && data.hasPM && data.pmTemplateId) {
-      // Get the new template's checklist data
-      const checklistData = await getTemplateChecklistData(data.pmTemplateId);
-      await updatePM(pmData!.id, {
-        templateId: data.pmTemplateId,
-        checklistData, // Reset checklist to new template
-        status: 'pending', // Reset status since checklist is new
-        completedAt: null,
-        completedBy: null
-      });
-    }
-    
-    // Update the work order
-    await updateWorkOrderMutation.mutateAsync({
-      workOrderId,
-      data: updateData
-    });
     
     // Refresh the work order data after update - invalidate all relevant query keys
     queryClient.invalidateQueries({ 
@@ -155,7 +242,16 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
     }
     
     setIsEditFormOpen(false);
-  }, [workOrderId, organizationId, queryClient, updateWorkOrderMutation, pmData, getTemplateChecklistData]);
+  }, [
+    workOrderId,
+    organizationId,
+    queryClient,
+    updateWorkOrderMutation,
+    pmData,
+    getTemplateChecklistData,
+    user?.id,
+    refreshOfflineQueue,
+  ]);
 
   // Handle form submission with PM change detection
   const handleUpdateWorkOrder = useCallback(async (data: WorkOrderFormData, originalHasPM?: boolean, equipmentId?: string) => {

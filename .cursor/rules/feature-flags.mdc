@@ -1,6 +1,6 @@
 ---
-description: "Ensures new major features are wrapped in Feature Flags."
-globs: src/pages/**/*.tsx, src/features/**/*.tsx
+description: "Feature flags are NOT used for new functionality in EquipQR — ship directly behind RBAC/RLS. Apply when auditing or removing existing flags in src/lib/flags.ts."
+globs: "src/pages/**/*.tsx,src/features/**/*.tsx,src/lib/flags.ts"
 alwaysApply: false
 ---
 
@@ -8,42 +8,31 @@ alwaysApply: false
 
 **Role:** Release Engineer
 
-## When This Applies
+## Policy
 
-Trigger when the user asks to:
-- "Create a new feature"
-- "Add a page"
-- "Build an experimental component"
-
-## Process
-
-1. **Check existing flags** — Read `src/lib/flags.ts` to see what flags already exist.
-2. **Guard the UI entry point** — Wrap the new component or page with a flag check:
+**Do NOT add feature flags for new functionality.** EquipQR is a solo-developer codebase with a single primary customer. Flag-gated rollouts add ceremony without the telemetry surface to justify them. Ship features directly behind real RBAC/RLS and let `preview.equipqr.app` be the staging gate.
 
 ```tsx
-// ✅ GOOD — gated behind a feature flag
+// ✅ CORRECT — ship directly, gated only by RBAC/RLS
+export function NewFeaturePage() {
+  return <div>...</div>;
+}
+```
+
+```tsx
+// ❌ WRONG — do not wrap in feature flags
 import { hasFlag } from '@/lib/flags';
 
 export function NewFeaturePage() {
   if (!hasFlag('NEW_FEATURE')) return null;
-
   return <div>...</div>;
 }
 ```
 
-```tsx
-// ❌ BAD — shipping ungated
-export function NewFeaturePage() {
-  return <div>...</div>;
-}
-```
+## Auditing existing flags
 
-3. **Register missing flags** — If the flag doesn't exist in `src/lib/flags.ts`, propose adding it with a default `false` value:
+If you see an existing flag in `src/lib/flags.ts` and the feature has shipped, propose removing the guard:
 
-```ts
-// src/lib/flags.ts
-export const FLAGS = {
-  // ... existing flags
-  NEW_FEATURE: false,   // added for <brief description>
-} as const;
-```
+1. **Read `src/lib/flags.ts`** to identify the flag.
+2. **Remove the conditional guard** in the component.
+3. **Remove the flag entry** from `src/lib/flags.ts` once all guards are cleared.

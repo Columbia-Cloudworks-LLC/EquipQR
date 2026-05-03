@@ -538,6 +538,50 @@ export const addInventoryItemToGroup = async (
 };
 
 // ============================================
+// Inventory Group Membership Counts
+// ============================================
+
+/**
+ * Returns a map of inventoryItemId -> number of alternate groups
+ * the item belongs to within the given organization.
+ */
+export const getInventoryGroupMembershipCounts = async (
+  organizationId: string
+): Promise<Record<string, number>> => {
+  try {
+    // Fetch all group IDs for this org (one org-scoped query)
+    const { data: groups, error: groupsError } = await supabase
+      .from('part_alternate_groups')
+      .select('id')
+      .eq('organization_id', organizationId);
+
+    if (groupsError) throw groupsError;
+    if (!groups || groups.length === 0) return {};
+
+    const groupIds = groups.map((g) => g.id);
+
+    const { data: memberships, error: membershipsError } = await supabase
+      .from('part_alternate_group_members')
+      .select('inventory_item_id')
+      .in('group_id', groupIds)
+      .not('inventory_item_id', 'is', null);
+
+    if (membershipsError) throw membershipsError;
+
+    const counts: Record<string, number> = {};
+    for (const row of memberships ?? []) {
+      if (row.inventory_item_id) {
+        counts[row.inventory_item_id] = (counts[row.inventory_item_id] ?? 0) + 1;
+      }
+    }
+    return counts;
+  } catch (error) {
+    logger.error('Error fetching inventory group membership counts:', error);
+    throw error;
+  }
+};
+
+// ============================================
 // Part Identifier Management
 // ============================================
 

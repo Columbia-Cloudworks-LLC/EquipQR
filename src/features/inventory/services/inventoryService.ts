@@ -12,6 +12,7 @@ import type { InventoryItemFormData } from '@/features/inventory/schemas/invento
 import { bulkSetCompatibilityRules } from '@/features/inventory/services/inventoryCompatibilityRulesService';
 import {
   uploadImageToStorage,
+  compressImageFile,
   deleteImageFromStorage,
   deleteImagesFromStorage,
   generateFilePath,
@@ -595,23 +596,32 @@ export const uploadInventoryItemImages = async (
       );
     }
 
-    // Validate total file size against storage quota
-    const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+    // Validate MIME types and per-file size limits before any compression work.
+    for (const file of files) {
+      validateImageFile(file, 20);
+    }
+
+    // Compress all files up front so quota validation uses the bytes that will
+    // actually be written to storage, not the original (larger) file sizes.
+    // This prevents false "quota exceeded" errors when uncompressed totals
+    // exceed remaining quota but compressed totals would fit.
+    const filesToStore = await Promise.all(files.map(f => compressImageFile(f)));
+    const totalSize = filesToStore.reduce((sum, f) => sum + f.size, 0);
     await validateStorageQuota(organizationId, totalSize);
 
-    // Upload each file and save metadata; track successes for rollback on partial failure
+    // Upload each pre-compressed file and save metadata; track successes for rollback on partial failure
     const results: InventoryItemImage[] = [];
     const uploadedImages: { id: string; fileUrl: string }[] = [];
 
     try {
-      for (const file of files) {
-        validateImageFile(file, 10);
-
-        const filePath = generateFilePath(organizationId, itemId, file);
+      for (let i = 0; i < files.length; i++) {
+        const fileToStore = filesToStore[i];
+        const filePath = generateFilePath(organizationId, itemId, fileToStore);
         const publicUrl = await uploadImageToStorage(
           'inventory-item-images',
           filePath,
-          file
+          fileToStore,
+          { compress: false }
         );
 
         const { data: record, error: insertError } = await supabase
@@ -620,9 +630,9 @@ export const uploadInventoryItemImages = async (
             inventory_item_id: itemId,
             organization_id: organizationId,
             file_url: publicUrl,
-            file_name: file.name,
-            file_size: file.size,
-            mime_type: file.type,
+            file_name: fileToStore.name,
+            file_size: fileToStore.size,
+            mime_type: fileToStore.type,
             uploaded_by: userId,
             uploaded_by_name: userName,
           })
@@ -716,6 +726,91 @@ export const deleteInventoryItemImage = async (
       organizationId,
     });
   }
+};
+
+// ============================================
+// Bulk Update (metadata only — no quantity_on_hand)
+// ============================================
+
+/**
+ * Editable metadata fields for the bulk inventory grid.
+ * Excludes `quantity_on_hand` — quantity changes must go through the
+ * `adjustInventoryQuantity` RPC to preserve `inventory_transactions`.
+ */
+export type InventoryBulkUpdateData = {
+  name?: string;
+  sku?: string | null;
+  external_id?: string | null;
+  location?: string | null;
+  low_stock_threshold?: number;
+  default_unit_cost?: number | null;
+};
+
+const BULK_UPDATE_CONCURRENCY = 10;
+
+/**
+ * Update metadata for multiple inventory items in a single batched call.
+ *
+ * Uses the same partial-success semantics as `EquipmentService.batchUpdate`:
+ * each row is attempted independently. Returns `succeeded` and `failed` ID
+ * lists so the caller can display accurate partial-success feedback and keep
+ * failed rows dirty in the grid.
+ *
+ * Every update is scoped by both `id` and `organization_id` for multi-tenant
+ * isolation. RLS enforcement means a missing row (wrong ID or wrong org)
+ * returns 0 rows updated and is surfaced as a failure, not silently skipped.
+ */
+export const batchUpdateInventoryItems = async (
+  organizationId: string,
+  updates: Array<{ id: string; data: InventoryBulkUpdateData }>
+): Promise<{ succeeded: string[]; failed: Array<{ id: string; error: string }> }> => {
+  if (updates.length === 0) {
+    return { succeeded: [], failed: [] };
+  }
+
+  const succeeded: string[] = [];
+  const failed: Array<{ id: string; error: string }> = [];
+
+  for (let start = 0; start < updates.length; start += BULK_UPDATE_CONCURRENCY) {
+    const chunk = updates.slice(start, start + BULK_UPDATE_CONCURRENCY);
+    const results = await Promise.allSettled(
+      chunk.map(async ({ id, data }) => {
+        const { data: rows, error } = await supabase
+          .from('inventory_items')
+          .update(data)
+          .eq('id', id)
+          .eq('organization_id', organizationId)
+          .select('id');
+
+        if (error) {
+          return { id, error: error.message };
+        }
+        if (!rows || rows.length === 0) {
+          return { id, error: 'Inventory item not found or access denied' };
+        }
+        return { id, error: null as string | null };
+      })
+    );
+
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      if (result.status === 'fulfilled') {
+        const { id, error: rowError } = result.value;
+        if (rowError) {
+          failed.push({ id, error: rowError });
+        } else {
+          succeeded.push(id);
+        }
+      } else {
+        const id = chunk[i].id;
+        const msg =
+          result.reason instanceof Error ? result.reason.message : 'Unknown error';
+        failed.push({ id, error: msg });
+      }
+    }
+  }
+
+  return { succeeded, failed };
 };
 
 // Note: Per-item inventory managers have been deprecated.
