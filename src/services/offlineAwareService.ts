@@ -589,7 +589,7 @@ export class OfflineAwareWorkOrderService {
       return this.queuePMUpdate(pmId, data, serverUpdatedAt);
     }
     try {
-      const pm = await updatePM(pmId, data);
+      const pm = await updatePM(pmId, data, this.orgId);
       if (!pm) throw new Error('Failed to update PM');
       return { data: pm, queuedOffline: false };
     } catch (error) {

@@ -3867,7 +3867,11 @@ export const createPMsForEquipment = async (
 };
 
 // Update PM record
-export const updatePM = async (pmId: string, data: UpdatePMData): Promise<PreventativeMaintenance | null> => {
+export const updatePM = async (
+  pmId: string,
+  data: UpdatePMData,
+  organizationId?: string,
+): Promise<PreventativeMaintenance | null> => {
   try {
     const claims = await getAuthClaims();
     if (!claims) {
@@ -3912,10 +3916,14 @@ export const updatePM = async (pmId: string, data: UpdatePMData): Promise<Preven
       status: data.status 
     });
 
-    const { data: pm, error } = await supabase
+    let query = supabase
       .from('preventative_maintenance')
       .update(updateData)
-      .eq('id', pmId)
+      .eq('id', pmId);
+    if (organizationId) {
+      query = query.eq('organization_id', organizationId);
+    }
+    const { data: pm, error } = await query
       .select()
       .single();
 

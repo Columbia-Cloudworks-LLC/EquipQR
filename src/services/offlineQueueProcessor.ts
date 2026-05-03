@@ -544,7 +544,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
       templateId,
       completedAt,
       completedBy,
-    });
+    }, item.organizationId);
 
     if (!updated) {
       throw new Error(`Sync failed: PM update returned null for ${pmId}`);
