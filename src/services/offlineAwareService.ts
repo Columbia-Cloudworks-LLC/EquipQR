@@ -39,6 +39,7 @@ import type {
 import {
   createPM,
   updatePM,
+  deletePM,
 } from '@/features/pm-templates/services/preventativeMaintenanceService';
 
 // ─── Result type ─────────────────────────────────────────────────────────────
@@ -598,6 +599,24 @@ export class OfflineAwareWorkOrderService {
     }
   }
 
+  // ── Preventative Maintenance — delete ────────────────────────────────────
+
+  async deletePM(
+    pmId: string,
+  ): Promise<OfflineAwareResult<null>> {
+    if (!navigator.onLine) {
+      return this.queuePMDelete(pmId);
+    }
+    try {
+      const deleted = await deletePM(pmId, this.orgId);
+      if (!deleted) throw new Error('Failed to delete PM');
+      return { data: null, queuedOffline: false };
+    } catch (error) {
+      if (isNetworkError(error)) return this.queuePMDelete(pmId);
+      throw error;
+    }
+  }
+
   private queuePMInit(input: {
     workOrderId: string;
     equipmentId: string;
@@ -656,6 +675,23 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline PM update', err);
+      throw new Error('Cannot save offline — please try again when connected.');
+    }
+  }
+
+  private queuePMDelete(pmId: string): OfflineAwareResult<null> {
+    try {
+      const item = this.queueService.enqueue({
+        type: 'pm_delete',
+        payload: { pmId },
+        organizationId: this.orgId,
+        userId: this.userId,
+      });
+      logger.info('PM delete queued offline', { queueItemId: item.id, pmId });
+      return { data: null, queuedOffline: true, queueItemId: item.id };
+    } catch (err) {
+      if (err instanceof OfflineQueuePayloadError) throw err;
+      logger.error('Failed to enqueue offline PM delete', err);
       throw new Error('Cannot save offline — please try again when connected.');
     }
   }

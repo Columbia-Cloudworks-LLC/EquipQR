@@ -52,7 +52,8 @@ export type OfflineQueueItemType =
   | 'equipment_hours'
   | 'equipment_note'
   | 'pm_init'
-  | 'pm_update';
+  | 'pm_update'
+  | 'pm_delete';
 
 export type OfflineQueueItemStatus = 'pending' | 'processing' | 'failed';
 
@@ -214,6 +215,18 @@ export interface OfflineQueuePMUpdateItem extends OfflineQueueItemBase {
   };
 }
 
+/**
+ * Delete a PM record while offline. Used when a user disables PM on a work
+ * order and the mutation must replay later in FIFO order after the queued
+ * work_order_update.
+ */
+export interface OfflineQueuePMDeleteItem extends OfflineQueueItemBase {
+  type: 'pm_delete';
+  payload: {
+    pmId: string;
+  };
+}
+
 export type OfflineQueueItem =
   | OfflineQueueCreateItem
   | OfflineQueueUpdateItem
@@ -225,7 +238,8 @@ export type OfflineQueueItem =
   | OfflineQueueEquipmentHoursItem
   | OfflineQueueEquipmentNoteItem
   | OfflineQueuePMInitItem
-  | OfflineQueuePMUpdateItem;
+  | OfflineQueuePMUpdateItem
+  | OfflineQueuePMDeleteItem;
 
 /** The shape callers pass to enqueue — id, retryCount, status etc. are generated. */
 export type OfflineQueueEnqueueInput = {

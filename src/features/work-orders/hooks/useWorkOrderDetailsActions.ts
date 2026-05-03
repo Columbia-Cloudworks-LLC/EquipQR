@@ -106,6 +106,15 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
     const runPMChanges = async (allowOfflineQueue: boolean) => {
       // 1. If PM is being disabled (hasPM: false) and PM exists, delete it
       if (pmBeingDisabled && pmData?.id) {
+        if (allowOfflineQueue && user?.id) {
+          const svc = new OfflineAwareWorkOrderService(organizationId, user.id);
+          const result = await svc.deletePM(pmData.id);
+          if (result.queuedOffline) {
+            refreshOfflineQueue?.();
+          }
+          return;
+        }
+
         const deleted = await deletePM(pmData.id);
         if (!deleted) {
           throw new Error('Failed to remove PM checklist');

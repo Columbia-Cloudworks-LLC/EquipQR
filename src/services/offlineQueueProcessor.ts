@@ -33,6 +33,7 @@ import type {
   OfflineQueueEquipmentNoteItem,
   OfflineQueuePMInitItem,
   OfflineQueuePMUpdateItem,
+  OfflineQueuePMDeleteItem,
   WorkOrderServerSnapshot,
 } from './offlineQueueService';
 import { OfflineQueueService } from './offlineQueueService';
@@ -43,6 +44,7 @@ import { createWorkOrderNoteWithImages } from '@/features/work-orders/services/w
 import {
   createPM,
   updatePM,
+  deletePM,
   defaultForkliftChecklist,
   type PMChecklistItem,
 } from '@/features/pm-templates/services/preventativeMaintenanceService';
@@ -552,6 +554,25 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
 
     return { success: true };
   }) as QueueItemHandler<never>,
+
+  pm_delete: (async (item: OfflineQueuePMDeleteItem) => {
+    await requireAuthClaims('Session expired — please sign in again');
+
+    const { pmId } = item.payload;
+    if (pmId.startsWith('offline-')) {
+      throw new Error(
+        `pm_delete queued against unsynced offline PM ${pmId} ` +
+          '— init must succeed before deletion can apply.',
+      );
+    }
+
+    const deleted = await deletePM(pmId, item.organizationId);
+    if (!deleted) {
+      throw new Error(`Sync failed: PM delete returned false for ${pmId}`);
+    }
+
+    return { success: true };
+  }) as QueueItemHandler<never>,
 };
 
 // ─── Processor ───────────────────────────────────────────────────────────────
@@ -708,7 +729,10 @@ export class OfflineQueueProcessor {
         ['equipment_create', 'equipment_create_full', 'equipment_update', 'equipment_hours', 'equipment_note'].includes(i.type),
       );
       const hasPMItems = items.some(i =>
-        i.type === 'pm_init' || i.type === 'pm_update' || (i.type === 'work_order_create' && i.payload.hasPM),
+        i.type === 'pm_init' ||
+        i.type === 'pm_update' ||
+        i.type === 'pm_delete' ||
+        (i.type === 'work_order_create' && i.payload.hasPM),
       );
 
       for (const orgId of orgIds) {

@@ -3997,12 +3997,16 @@ export const getLatestCompletedPM = async (equipmentId: string) => {
 };
 
 // Delete PM record
-export const deletePM = async (pmId: string): Promise<boolean> => {
+export const deletePM = async (pmId: string, organizationId?: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
+    let query = supabase
       .from('preventative_maintenance')
       .delete()
       .eq('id', pmId);
+    if (organizationId) {
+      query = query.eq('organization_id', organizationId);
+    }
+    const { error } = await query;
 
     if (error) {
       logger.error('Error deleting PM:', error);
@@ -4012,6 +4016,7 @@ export const deletePM = async (pmId: string): Promise<boolean> => {
     return true;
   } catch (error) {
     logger.error('Error in deletePM:', error);
+    if (isNetworkError(error)) throw error;
     return false;
   }
 };
