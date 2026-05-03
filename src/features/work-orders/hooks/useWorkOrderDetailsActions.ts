@@ -115,7 +115,7 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
           return;
         }
 
-        const deleted = await deletePM(pmData.id);
+        const deleted = await deletePM(pmData.id, organizationId);
         if (!deleted) {
           throw new Error('Failed to remove PM checklist');
         }
