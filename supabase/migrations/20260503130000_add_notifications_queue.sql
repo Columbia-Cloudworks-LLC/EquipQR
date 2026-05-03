@@ -182,6 +182,17 @@ BEGIN
 END;
 $$;
 
+-- Revoke the default PUBLIC EXECUTE grant on each SECURITY DEFINER wrapper.
+-- PostgreSQL grants EXECUTE to PUBLIC by default on new functions; without this
+-- revoke, authenticated (which inherits from PUBLIC) could call these functions
+-- despite never being granted EXECUTE explicitly. Defense-in-depth: two
+-- independent controls (schema USAGE + function EXECUTE) must both be satisfied.
+REVOKE EXECUTE ON FUNCTION pgmq_public.send(text, jsonb, integer) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION pgmq_public.read(text, integer, integer) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION pgmq_public.delete(text, bigint) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION pgmq_public.archive(text, bigint) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION pgmq_public.pop(text) FROM PUBLIC;
+
 -- Grant USAGE on the schema to service_role only so it can resolve function names.
 -- The queue-worker Edge Function (service_role) needs full access to drain the queue.
 -- authenticated is intentionally NOT granted USAGE or EXECUTE on any pgmq_public
