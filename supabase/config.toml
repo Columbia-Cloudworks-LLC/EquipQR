@@ -65,7 +65,15 @@ allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 [api]
 enabled = true
 port = 54321
-schemas = ["public", "graphql_public"]
+# pgmq_public is listed so the queue-worker Edge Function can call
+# supabase.schema('pgmq_public').rpc('read'/'delete', ...) per the Supabase
+# Queues documented pattern. The schema is set up by migration
+# 20260503130000_add_notifications_queue.sql with SECURITY DEFINER wrappers
+# around the bare pgmq.* functions. anon is NOT granted USAGE. authenticated
+# is NOT granted EXECUTE on any pgmq_public function — only service_role has
+# read/delete/pop/archive/send access. The SECURITY DEFINER trigger
+# public.broadcast_notification is the only producer; app code must not enqueue.
+schemas = ["public", "graphql_public", "pgmq_public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
@@ -146,6 +154,16 @@ verify_jwt = false
 # Uses service role key passed in Authorization header for authentication.
 # Also handles cleanup of expired push subscriptions.
 
+[functions.queue-worker]
+verify_jwt = true
+# Cron-triggered drainer for the public.notifications pgmq queue.
+# Invoked every minute by cron.schedule('drain-notifications-queue', ...) via
+# net.http_post from the SECURITY DEFINER function public.invoke_queue_worker.
+# Authenticates via Bearer = SUPABASE_SERVICE_ROLE_KEY. The platform JWT check
+# (verify_jwt = true) validates that the token is a valid Supabase JWT; the
+# function additionally enforces a literal-match against the service role key
+# (defense-in-depth, same posture as quickbooks-refresh-tokens).
+
 [functions.submit-privacy-request]
 verify_jwt = false
 # Public CCPA/CPRA DSR intake endpoint. No JWT required for anonymous submitters.
@@ -169,6 +187,36 @@ verify_jwt = false
 [db.seed]
 enabled = true
 sql_paths = ['./seeds/*.sql']
+
+# =============================================================================
+# Database Branching (per-PR ephemeral branches) — Issue #722, Sub-change 3
+# =============================================================================
+# As of 2026-05-03, the production project is configured to create ephemeral
+# preview branches automatically on PRs via the Supabase Dashboard's
+# "Supabase changes only" toggle. That trigger fires on ANY change under the
+# supabase/ directory (migrations, Edge Functions, config.toml, seeds, etc.) —
+# NOT just supabase/migrations/**. PRs touching only application code, CI, or
+# docs do NOT create a branch.
+#
+# Configuration lives in the Supabase Dashboard, not in this file:
+#   Settings → Integrations → GitHub Integration
+#     Automatic branching: ON
+#     Supabase changes only: ON
+#     Branch limit: 50 (hard cap; auto-rejects above this)
+#     Deploy to production: ON (auto-deploys to main on push/merge)
+#
+# Branches auto-delete on PR close. Estimated recurring cost at typical
+# EquipQR cadence: ~$25-35/mo at $0.01344/branch/hour
+# (https://supabase.com/pricing). Branching compute is NOT covered by the
+# organization Spend Cap — monitor weekly via Settings → Billing → Usage →
+# Branching.
+#
+# Per-branch overrides (e.g. seed files for ephemeral preview branches) would
+# go in [remotes.<branch_name>] blocks below. The [remotes.staging] block
+# below is for the LONG-LIVED preview Supabase project (olsdirkvvfegvclbpgrg),
+# which is distinct from per-PR ephemeral branches.
+#
+# See docs/ops/supabase-branching.md for the runbook.
 
 # Staging/Preview Branch Configuration
 # This configuration allows Supabase CLI to deploy to the preview branch project
