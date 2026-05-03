@@ -52,7 +52,8 @@ export type OfflineQueueItemType =
   | 'equipment_hours'
   | 'equipment_note'
   | 'pm_init'
-  | 'pm_update';
+  | 'pm_update'
+  | 'pm_delete';
 
 export type OfflineQueueItemStatus = 'pending' | 'processing' | 'failed';
 
@@ -206,9 +207,23 @@ export interface OfflineQueuePMUpdateItem extends OfflineQueueItemBase {
     checklistData?: PMChecklistItem[];
     notes?: string;
     status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+    /** When set, replay updates `preventative_maintenance.template_id` (e.g. template swap). */
+    templateId?: string;
     /** Set when status transitions to/from completed. */
     completedAt?: string | null;
     completedBy?: string | null;
+  };
+}
+
+/**
+ * Delete a PM record while offline. Used when a user disables PM on a work
+ * order and the mutation must replay later in FIFO order after the queued
+ * work_order_update.
+ */
+export interface OfflineQueuePMDeleteItem extends OfflineQueueItemBase {
+  type: 'pm_delete';
+  payload: {
+    pmId: string;
   };
 }
 
@@ -223,7 +238,8 @@ export type OfflineQueueItem =
   | OfflineQueueEquipmentHoursItem
   | OfflineQueueEquipmentNoteItem
   | OfflineQueuePMInitItem
-  | OfflineQueuePMUpdateItem;
+  | OfflineQueuePMUpdateItem
+  | OfflineQueuePMDeleteItem;
 
 /** The shape callers pass to enqueue — id, retryCount, status etc. are generated. */
 export type OfflineQueueEnqueueInput = {
@@ -565,6 +581,10 @@ export class OfflineQueueService {
               pmUpdateItem.payload.status !== undefined
                 ? pmUpdateItem.payload.status
                 : existing.payload.status,
+            templateId:
+              pmUpdateItem.payload.templateId !== undefined
+                ? pmUpdateItem.payload.templateId
+                : existing.payload.templateId,
             completedAt:
               pmUpdateItem.payload.completedAt !== undefined
                 ? pmUpdateItem.payload.completedAt

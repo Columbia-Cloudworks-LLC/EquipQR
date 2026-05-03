@@ -3867,7 +3867,11 @@ export const createPMsForEquipment = async (
 };
 
 // Update PM record
-export const updatePM = async (pmId: string, data: UpdatePMData): Promise<PreventativeMaintenance | null> => {
+export const updatePM = async (
+  pmId: string,
+  data: UpdatePMData,
+  organizationId?: string,
+): Promise<PreventativeMaintenance | null> => {
   try {
     const claims = await getAuthClaims();
     if (!claims) {
@@ -3912,10 +3916,14 @@ export const updatePM = async (pmId: string, data: UpdatePMData): Promise<Preven
       status: data.status 
     });
 
-    const { data: pm, error } = await supabase
+    let query = supabase
       .from('preventative_maintenance')
       .update(updateData)
-      .eq('id', pmId)
+      .eq('id', pmId);
+    if (organizationId) {
+      query = query.eq('organization_id', organizationId);
+    }
+    const { data: pm, error } = await query
       .select()
       .single();
 
@@ -3989,12 +3997,13 @@ export const getLatestCompletedPM = async (equipmentId: string) => {
 };
 
 // Delete PM record
-export const deletePM = async (pmId: string): Promise<boolean> => {
+export const deletePM = async (pmId: string, organizationId: string): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('preventative_maintenance')
       .delete()
-      .eq('id', pmId);
+      .eq('id', pmId)
+      .eq('organization_id', organizationId);
 
     if (error) {
       logger.error('Error deleting PM:', error);
@@ -4004,6 +4013,7 @@ export const deletePM = async (pmId: string): Promise<boolean> => {
     return true;
   } catch (error) {
     logger.error('Error in deletePM:', error);
+    if (isNetworkError(error)) throw error;
     return false;
   }
 };

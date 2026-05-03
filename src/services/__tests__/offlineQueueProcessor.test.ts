@@ -40,6 +40,7 @@ const {
   mockUpdateWorkingHours,
   mockCreateEquipmentNote,
   mockCreateWorkOrderNote,
+  mockDeletePM,
 } = vi.hoisted(() => ({
   mockEquipmentCreateQuick: vi.fn(),
   mockEquipmentCreate: vi.fn(),
@@ -47,6 +48,7 @@ const {
   mockUpdateWorkingHours: vi.fn(),
   mockCreateEquipmentNote: vi.fn(),
   mockCreateWorkOrderNote: vi.fn(),
+  mockDeletePM: vi.fn(),
 }));
 
 vi.mock('@/features/equipment/services/EquipmentService', () => ({
@@ -68,6 +70,16 @@ vi.mock('@/features/equipment/services/equipmentNotesService', () => ({
 vi.mock('@/features/work-orders/services/workOrderNotesService', () => ({
   createWorkOrderNoteWithImages: (...args: unknown[]) => mockCreateWorkOrderNote(...args),
 }));
+
+vi.mock('@/features/pm-templates/services/preventativeMaintenanceService', async () => {
+  const actual = await vi.importActual<typeof import('@/features/pm-templates/services/preventativeMaintenanceService')>(
+    '@/features/pm-templates/services/preventativeMaintenanceService',
+  );
+  return {
+    ...actual,
+    deletePM: (...args: unknown[]) => mockDeletePM(...args),
+  };
+});
 
 vi.mock('sonner', () => ({
   toast: { error: vi.fn(), warning: vi.fn(), success: vi.fn(), info: vi.fn() },
@@ -498,5 +510,21 @@ describe('OfflineQueueProcessor', () => {
     expect(all).toHaveLength(1);
     expect(all[0].retryCount).toBe(1);
     expect(all[0].lastError).toContain('Session expired');
+  });
+
+  it('processes pm_delete using tenant-scoped deletePM()', async () => {
+    const item = createPendingItem({
+      type: 'pm_delete',
+      payload: { pmId: 'pm-123' },
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
+    mockDeletePM.mockResolvedValueOnce(true);
+
+    const result = await processor.processAll();
+
+    expect(result.succeeded).toBe(1);
+    expect(result.failed).toBe(0);
+    expect(queueService.getCount()).toBe(0);
+    expect(mockDeletePM).toHaveBeenCalledWith('pm-123', ORG_ID);
   });
 });

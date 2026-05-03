@@ -518,6 +518,39 @@ describe('OfflineQueueService', () => {
       }
     });
 
+    it('merges templateId from the latest pm_update when provided', () => {
+      const svc = createService();
+      svc.enqueue({
+        type: 'pm_update',
+        payload: {
+          pmId: 'pm-T',
+          templateId: 'tpl-old',
+          status: 'in_progress',
+        },
+        organizationId: ORG_ID,
+        userId: USER_ID,
+      });
+      svc.enqueue({
+        type: 'pm_update',
+        payload: {
+          pmId: 'pm-T',
+          templateId: 'tpl-new',
+          checklistData: [{ id: 'x', title: 'Item', condition: 1, notes: '' }],
+        },
+        organizationId: ORG_ID,
+        userId: USER_ID,
+      });
+
+      svc.compact();
+      expect(svc.getCount()).toBe(1);
+      const item = svc.getAll()[0];
+      expect(item.type).toBe('pm_update');
+      if (item.type === 'pm_update') {
+        expect(item.payload.templateId).toBe('tpl-new');
+        expect(item.payload.checklistData?.[0].title).toBe('Item');
+      }
+    });
+
     it('keeps pm_update items for different pmIds separate', () => {
       const svc = createService();
       svc.enqueue({
