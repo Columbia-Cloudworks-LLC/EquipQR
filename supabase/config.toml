@@ -191,12 +191,25 @@ sql_paths = ['./seeds/*.sql']
 # =============================================================================
 # Database Branching (per-PR ephemeral branches) — Issue #722, Sub-change 3
 # =============================================================================
-# As of 2026-05-03, the project is configured to create ephemeral preview
-# branches automatically on PRs that touch supabase/migrations/**. The trigger
-# policy is configured in the Supabase Dashboard (Project → Branches →
-# Settings → "Branch only on file changes" path filter), NOT in this file.
-# Branches auto-delete on PR close. Estimated spend ceiling at this cadence:
-# ~$14/mo at $0.01344/branch/hour (https://supabase.com/pricing).
+# As of 2026-05-03, the production project is configured to create ephemeral
+# preview branches automatically on PRs via the Supabase Dashboard's
+# "Supabase changes only" toggle. That trigger fires on ANY change under the
+# supabase/ directory (migrations, Edge Functions, config.toml, seeds, etc.) —
+# NOT just supabase/migrations/**. PRs touching only application code, CI, or
+# docs do NOT create a branch.
+#
+# Configuration lives in the Supabase Dashboard, not in this file:
+#   Settings → Integrations → GitHub Integration
+#     Automatic branching: ON
+#     Supabase changes only: ON
+#     Branch limit: 50 (hard cap; auto-rejects above this)
+#     Deploy to production: ON (auto-deploys to main on push/merge)
+#
+# Branches auto-delete on PR close. Estimated recurring cost at typical
+# EquipQR cadence: ~$25-35/mo at $0.01344/branch/hour
+# (https://supabase.com/pricing). Branching compute is NOT covered by the
+# organization Spend Cap — monitor weekly via Settings → Billing → Usage →
+# Branching.
 #
 # Per-branch overrides (e.g. seed files for ephemeral preview branches) would
 # go in [remotes.<branch_name>] blocks below. The [remotes.staging] block

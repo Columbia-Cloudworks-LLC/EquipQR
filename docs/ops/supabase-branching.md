@@ -10,30 +10,44 @@ The point: schema migrations are validated against a real Postgres instance — 
 
 ## Trigger policy
 
-Branching is configured to create a branch ONLY when a PR touches `supabase/migrations/**`. PRs that don't change the schema do not consume branch-hours. The policy is set in the Supabase Dashboard:
+Branching is configured via the Supabase Dashboard's **`Supabase changes only`** toggle, which creates a preview branch when ANY file under the `supabase/` directory changes — NOT just `supabase/migrations/**`. That means a PR is branched when it touches any of:
+
+- `supabase/migrations/**` (schema changes — the highest-risk surface)
+- `supabase/functions/**` (Edge Function changes)
+- `supabase/config.toml` (project config — auth, CORS, function settings)
+- `supabase/seeds/**` (local-dev seeds)
+- Any other file under `supabase/`
+
+PRs that touch only application code (`src/**`), CI, docs, or other non-Supabase paths do NOT trigger a branch.
+
+The policy lives in the Supabase Dashboard, not in `supabase/config.toml`:
 
 ```text
-https://supabase.com/dashboard/project/ymxkzronkhwxzcdcbnwq → Branches → Settings → "Branch only on file changes"
-Path filter: supabase/migrations/**
+https://supabase.com/dashboard/project/ymxkzronkhwxzcdcbnwq → Settings → Integrations → GitHub Integration
+Automatic branching: ON
+Supabase changes only: ON   ← triggers on any supabase/** change
+Branch limit: 50            ← hard cap (auto-rejects new branches above this)
+Deploy to production: ON    ← auto-deploys to main on push/merge
 ```
 
-**Why targeted, not every PR**: at $0.01344 per branch per hour, the bulk of EquipQR's PRs (front-end-only, doc-only, CI tweaks) would generate 0 schema risk and ~3-5x the spend if branching ran on every PR. The targeted policy keeps the bill near $14/mo for typical cadence.
+**Why broader than just `supabase/migrations/**`**: this is the only built-in trigger granularity Supabase exposes today (the alternative is "every PR", which is materially noisier). The over-trigger is bounded by the 50-branch hard cap and by branches auto-deleting on PR close.
 
 ## Cost model
 
 Live pricing (https://supabase.com/pricing, validated 2026-05-03):
 
 - **Per branch:** $0.01344 / hour.
-- **Typical PR (24-hour life):** ~$0.32.
-- **Typical week (5 PRs touching migrations × 48h each):** ~$3.22 → ~$14/mo.
-- **Worst case (10 long-lived branches):** ~$96/mo. Still under any reasonable spend cap.
+- **Typical PR touching `supabase/` (24-hour life):** ~$0.32.
+- **Typical week, broader trigger (10–15 PRs touching `supabase/` × 36h average):** ~$5–7 → **~$25–35/mo**.
+  - This is the realistic estimate with the `Supabase changes only` trigger (broader than the original "migrations only" projection of ~$14/mo). Edge Function changes and `config.toml` tweaks now also trigger branches.
+- **Worst case (50-branch cap × ~$10/branch over multi-day life):** ~$500/mo, bounded by the dashboard's branch limit.
 
-The Pro plan's spend cap (Project → Billing → "Spend cap is ON by default") prevents runaway billing if a branch is forgotten.
+> ⚠ **Branching compute is NOT covered by the organization Spend Cap** (called out explicitly in the GitHub Integration panel as of 2026-05-03). The Pro plan's Spend Cap covers most metered usage but Supabase has carved out branching compute as a separate line item. Glance at https://supabase.com/dashboard/project/ymxkzronkhwxzcdcbnwq/settings/billing → Usage → **Branching** weekly for the first month after enablement to catch runaway branches before they accumulate.
 
 ## Branch lifecycle
 
-1. **PR opened** with a commit that modifies `supabase/migrations/**`.
-2. **Supabase GitHub App** (already connected per the existing integration) detects the path match, clones the production schema (no data — branches are dataless by design), and starts the deployment workflow:
+1. **PR opened** with a commit that modifies any file under `supabase/`.
+2. **Supabase GitHub App** (already connected per the existing integration) detects the change, clones the production schema (no data — branches are dataless by design), and starts the deployment workflow:
    - **Clone** → checks out the repo at the PR's HEAD.
    - **Pull** → retrieves prior production migrations to seed the migration history table.
    - **Health** → waits up to ~2 minutes for all Supabase services on the branch (Auth, API, Postgres, Storage, Realtime) to come up.
