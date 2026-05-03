@@ -146,6 +146,16 @@ verify_jwt = false
 # Uses service role key passed in Authorization header for authentication.
 # Also handles cleanup of expired push subscriptions.
 
+[functions.queue-worker]
+verify_jwt = true
+# Cron-triggered drainer for the public.notifications pgmq queue.
+# Invoked every minute by cron.schedule('drain-notifications-queue', ...) via
+# net.http_post from the SECURITY DEFINER function public.invoke_queue_worker.
+# Authenticates via Bearer = SUPABASE_SERVICE_ROLE_KEY. The platform JWT check
+# (verify_jwt = true) validates that the token is a valid Supabase JWT; the
+# function additionally enforces a literal-match against the service role key
+# (defense-in-depth, same posture as quickbooks-refresh-tokens).
+
 [functions.submit-privacy-request]
 verify_jwt = false
 # Public CCPA/CPRA DSR intake endpoint. No JWT required for anonymous submitters.
