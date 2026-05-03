@@ -93,6 +93,7 @@ export interface QueueMessage {
   enqueued_at: string;
   vt: string;
   message: Record<string, unknown> | null;
+  headers: Record<string, unknown> | null;
 }
 
 export interface DrainResult {

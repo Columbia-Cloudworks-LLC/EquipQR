@@ -34,6 +34,7 @@ const SAMPLE_MESSAGE = (
   enqueued_at: "2026-05-03T18:00:00Z",
   vt: "2026-05-03T18:01:00Z",
   message: body,
+  headers: null,
 });
 
 interface CallLog {
