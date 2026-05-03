@@ -32,9 +32,27 @@
 -- Security posture (per Service Request Section B gotcha):
 --   * The 'stripe' schema is PRIVATE — never add it to [api].schemas in
 --     supabase/config.toml. FDWs do NOT enforce RLS.
---   * User-facing access goes only through the SECURITY DEFINER function
---     public.list_active_stripe_subscriptions, which is REVOKEd from PUBLIC
---     and anon and GRANTed only to authenticated.
+--   * The materialized view public.org_active_stripe_subscriptions is REVOKEd
+--     from anon and authenticated; only postgres / service_role can SELECT.
+--   * The SECURITY DEFINER function public.list_active_stripe_subscriptions is
+--     REVOKEd from PUBLIC, anon, and authenticated. It is GRANTed ONLY to
+--     service_role. Application code that needs Stripe data must call it from
+--     a server-side Edge Function with the service role key.
+--
+-- Tenant-scoping note (issue #722 PR feedback round 2):
+--   The original cross-tenant scoping attempt joined the MV against
+--   public.organizations on stripe_customer_id, but that column does not exist
+--   on the organizations table — verified empirically against the live schema
+--   2026-05-03 (zero rows in information_schema.columns where column_name LIKE
+--   '%stripe%' on the public schema except customers_feature_enabled boolean).
+--   EquipQR has no live mapping today between organizations and Stripe
+--   customers; the legacy check-subscription Edge Function is itself stubbed
+--   to return 410 Gone (see supabase/functions/check-subscription/index.ts).
+--   Until a real mapping exists, the safest posture is service_role only —
+--   no untrusted caller can hit the function, and there is no broken join to
+--   leak data through. When EquipQR reintroduces an org → Stripe mapping in a
+--   future change, a follow-up migration can re-grant to authenticated with
+--   the correct tenant filter.
 --
 -- See Change Record on issue #722 for the full design.
 -- =============================================================================
@@ -162,10 +180,11 @@ END $$;
 -- ============================================================================
 -- PART 3: SECURITY DEFINER exposure function (always created)
 -- ============================================================================
--- This function is the ONLY user-facing access path to Stripe data via the
--- FDW. The 'stripe' schema is private (not in [api].schemas), and PUBLIC /
--- anon are explicitly REVOKEd; only authenticated org members can call it
--- via supabase.rpc('list_active_stripe_subscriptions').
+-- This function is the only access path to Stripe data via the FDW. Until
+-- EquipQR introduces a real org → Stripe customer mapping (see migration
+-- header), the function is locked down to service_role only. Future
+-- migrations will re-grant to authenticated and add the correct tenant
+-- filter once the mapping exists.
 --
 -- The body uses RETURN QUERY EXECUTE so the function body parses successfully
 -- even when the materialized view does not exist yet (graceful degradation
@@ -186,54 +205,45 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
 BEGIN
-  -- Restrict to org owners and admins only; billing data must not be readable
-  -- by regular members or viewers.
-  IF NOT EXISTS (
-    SELECT 1
-    FROM public.organization_members
-    WHERE user_id = (SELECT auth.uid())
-      AND role IN ('owner', 'admin')
-      AND status = 'active'
-  ) THEN
-    RAISE EXCEPTION 'access denied' USING ERRCODE = '42501';
-  END IF;
-
   IF EXISTS (
     SELECT 1 FROM pg_matviews
     WHERE schemaname = 'public' AND matviewname = 'org_active_stripe_subscriptions'
   ) THEN
-    -- Scope results to only the caller's organizations. An admin of org A must
-    -- not see org B's billing data. Join the materialized view back to
-    -- public.organizations on stripe_customer_id, then restrict to the orgs
-    -- where the caller holds an owner/admin role.
+    -- No tenant scoping: the function is service_role only (see GRANT below),
+    -- so the only legitimate caller is a server-side Edge Function with the
+    -- service role key. That caller is responsible for any tenant filtering
+    -- it needs.
     RETURN QUERY EXECUTE
-      'SELECT mv.subscription_id, mv.stripe_customer_id, mv.status, mv.current_period_end, '
-      'mv.stripe_customer_email, mv.stripe_customer_metadata '
-      'FROM public.org_active_stripe_subscriptions mv '
-      'JOIN public.organizations o ON o.stripe_customer_id = mv.stripe_customer_id '
-      'WHERE o.id IN ('
-      '  SELECT organization_id FROM public.organization_members '
-      '  WHERE user_id = (SELECT auth.uid()) '
-      '  AND role IN (''owner'', ''admin'') '
-      '  AND status = ''active'''
-      ')';
+      'SELECT subscription_id, stripe_customer_id, status, current_period_end, '
+      'stripe_customer_email, stripe_customer_metadata '
+      'FROM public.org_active_stripe_subscriptions';
   END IF;
-  -- MV missing: return empty. Admin UI gets a clean empty state instead of
-  -- an error during the pre-Section-B window.
+  -- MV missing: return empty. Future Edge Function callers get a clean empty
+  -- state instead of an error during the pre-Section-B window.
   RETURN;
 END;
 $$;
 
+-- Lock down to service_role only. Until a real org → Stripe customer mapping
+-- exists in the schema, exposing this function to authenticated users would
+-- either (a) leak cross-tenant Stripe data, or (b) require a join against a
+-- non-existent column (the prior cross-tenant scoping attempt failed because
+-- public.organizations has no stripe_customer_id column — verified
+-- empirically against the live schema 2026-05-03).
 REVOKE EXECUTE ON FUNCTION public.list_active_stripe_subscriptions() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.list_active_stripe_subscriptions() FROM anon;
-GRANT EXECUTE ON FUNCTION public.list_active_stripe_subscriptions() TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.list_active_stripe_subscriptions() FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.list_active_stripe_subscriptions() TO service_role;
 
 COMMENT ON FUNCTION public.list_active_stripe_subscriptions() IS
   'Returns active/trialing/past-due Stripe subscriptions joined to their '
-  'customers. Reads from the materialized view public.org_active_stripe_subscriptions '
-  '(refreshed every 15 minutes by the refresh-stripe-mvs cron job). The '
-  'stripe.* foreign tables are private; this SECURITY DEFINER function is '
-  'the only authenticated access path. Returns empty when the FDW pilot has '
-  'not yet been provisioned (Section B of the Change Record on issue #722).';
+  'customers. Reads from the materialized view '
+  'public.org_active_stripe_subscriptions (refreshed every 15 minutes by the '
+  'refresh-stripe-mvs cron job). The stripe.* foreign tables are private; '
+  'this SECURITY DEFINER function is GRANTed only to service_role until '
+  'EquipQR reintroduces an org → Stripe customer mapping. Server-side Edge '
+  'Functions invoke it with the service role key and apply any tenant '
+  'filtering themselves. Returns empty when the FDW pilot has not yet been '
+  'provisioned (Section B of the Change Record on issue #722).';
 
 COMMIT;
