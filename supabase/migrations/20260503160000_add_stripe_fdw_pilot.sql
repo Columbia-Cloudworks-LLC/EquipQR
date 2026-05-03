@@ -150,13 +150,13 @@ BEGIN
       SELECT
         s.id AS subscription_id,
         s.customer AS stripe_customer_id,
-        s.status,
+        (s.attrs->>'status') AS status,
         s.current_period_end,
         c.email AS stripe_customer_email,
         c.attrs->>'metadata' AS stripe_customer_metadata
       FROM stripe.subscriptions s
       JOIN stripe.customers c ON c.id = s.customer
-      WHERE s.status IN ('active', 'trialing', 'past_due')
+      WHERE (s.attrs->>'status') IN ('active', 'trialing', 'past_due')
     $mv$;
 
     -- Unique index supports REFRESH MATERIALIZED VIEW CONCURRENTLY in the
