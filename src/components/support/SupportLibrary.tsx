@@ -164,6 +164,7 @@ const SupportLibrary: React.FC<SupportLibraryProps> = ({
                 variant={persona === ALL_PERSONAS ? "default" : "outline"}
                 onClick={() => setPersona(ALL_PERSONAS)}
                 className="h-7 px-3 text-xs"
+                aria-pressed={persona === ALL_PERSONAS}
               >
                 Everyone
               </Button>

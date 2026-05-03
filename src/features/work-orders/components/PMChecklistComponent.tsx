@@ -426,6 +426,28 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 
       if (updatedPM === null) {
         // usePMData's onSuccess already fires the offline toast; no second toast here.
+        const orgId = organization?.id;
+        if (orgId && workOrder?.id) {
+          const queryKey = preventiveMaintenance.byWorkOrderAndEquipment(
+            workOrder.id,
+            equipment?.id || pm.equipment_id,
+            orgId,
+          );
+          const completedAt = new Date().toISOString();
+          queryClient.setQueryData(queryKey, (prev: PreventativeMaintenance | undefined) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              status: 'completed',
+              completed_at: completedAt,
+              completed_by: user?.id ?? null,
+              checklist_data: checklist as unknown as typeof prev.checklist_data,
+              notes,
+            };
+          });
+        }
+        setIsManuallyUpdated(false);
+        onUpdate();
       } else if (updatedPM) {
         toast.success('PM completed successfully');
         // Don't call onUpdate() - the mutation hook already handles cache updates

@@ -48,8 +48,10 @@ const initialSort: SortConfig = {
  * the rows the page is rendering.
  *
  * Filter dropdown options (manufacturers, locations) are derived from the
- * lightweight `useEquipmentSummaries` projection, which is also the
- * source of `equipment.length` (the org-wide total). Both queries cache
+ * lightweight `useEquipmentSummaries` projection, which is also the source of
+ * list totals. Summaries use the same
+ * team-scoped RBAC inputs as the paginated list so non-admin users never
+ * receive org-wide equipment rows in option lists. Both queries cache
  * independently of the paginated rows so toggling filters does not
  * re-fetch the option lists.
  */
@@ -111,7 +113,10 @@ export const useEquipmentFiltering = (organizationId?: string) => {
   // Lightweight org-wide summary used for filter dropdown options and
   // "X of N" totals. The query is cheap enough to keep separate from the
   // paginated list — PMs and dropdowns share the same cache entry.
-  const summariesQuery = useEquipmentSummaries(organizationId);
+  const summariesQuery = useEquipmentSummaries(organizationId, {
+    userTeamIds: rbacUserTeamIds,
+    isOrgAdmin,
+  });
 
   const equipment = useMemo(
     () => summariesQuery.data ?? [],

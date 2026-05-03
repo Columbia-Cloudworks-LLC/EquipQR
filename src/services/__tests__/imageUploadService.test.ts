@@ -1,12 +1,44 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const { mockUpload, mockFrom } = vi.hoisted(() => {
+  const mockUpload = vi.fn();
+  const mockFrom = vi.fn(() => ({
+    upload: mockUpload,
+    getPublicUrl: vi.fn(() => ({ data: { publicUrl: 'https://example.test/object/public/bucket/p.jpg' } })),
+  }));
+  return { mockUpload, mockFrom };
+});
+
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    storage: {
+      from: mockFrom,
+    },
+  },
+}));
+
+vi.mock('browser-image-compression', () => ({
+  default: vi.fn(),
+}));
+
+import imageCompression from 'browser-image-compression';
 import {
   generateFilePath,
   generateSingleFilePath,
   extractStoragePath,
   validateImageFile,
+  compressImageFile,
+  uploadImageToStorage,
 } from '@/services/imageUploadService';
 
 describe('imageUploadService', () => {
+  beforeEach(() => {
+    vi.mocked(imageCompression).mockReset();
+    mockUpload.mockResolvedValue({ data: { path: 'prefix/1.jpg' }, error: null });
+    mockFrom.mockClear();
+    mockUpload.mockClear();
+  });
+
   describe('generateFilePath', () => {
     it('should generate a path with prefix, entity ID, and timestamp', () => {
       const file = new File([''], 'photo.jpg', { type: 'image/jpeg' });
@@ -21,7 +53,6 @@ describe('imageUploadService', () => {
     });
 
     it('should use the last segment when filename has no dot', () => {
-      // In practice all real files have extensions, but verify no crash
       const file = new File([''], 'noextension', { type: 'image/jpeg' });
       const path = generateFilePath('user', 'entity', file);
       expect(path).toMatch(/^user\/entity\/\d+\.noextension$/);
@@ -91,19 +122,52 @@ describe('imageUploadService', () => {
     });
 
     it('should reject files exceeding size limit', () => {
-      // Create a file object with a large size (mock via Object.defineProperty)
       const file = new File(['x'], 'big.jpg', { type: 'image/jpeg' });
-      Object.defineProperty(file, 'size', { value: 6 * 1024 * 1024 }); // 6MB
+      Object.defineProperty(file, 'size', { value: 6 * 1024 * 1024 });
       expect(() => validateImageFile(file, 5)).toThrow(/too large/);
     });
 
     it('should respect custom size limits', () => {
       const file = new File(['x'], 'photo.jpg', { type: 'image/jpeg' });
-      Object.defineProperty(file, 'size', { value: 8 * 1024 * 1024 }); // 8MB
-      // 10MB limit - should pass
+      Object.defineProperty(file, 'size', { value: 8 * 1024 * 1024 });
       expect(() => validateImageFile(file, 10)).not.toThrow();
-      // 5MB limit - should fail
       expect(() => validateImageFile(file, 5)).toThrow(/too large/);
+    });
+  });
+
+  describe('compressImageFile', () => {
+    it('returns the original file when compression throws', async () => {
+      const file = new File(['x'.repeat(400_000)], 'big.jpg', { type: 'image/jpeg' });
+      vi.mocked(imageCompression).mockRejectedValue(new Error('codec failure'));
+      const out = await compressImageFile(file);
+      expect(out).toBe(file);
+    });
+
+    it('does not invoke compressor for GIF inputs', async () => {
+      const file = new File(['x'.repeat(400_000)], 'a.gif', { type: 'image/gif' });
+      const out = await compressImageFile(file);
+      expect(out).toBe(file);
+      expect(imageCompression).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('uploadImageToStorage', () => {
+    it('uploads the compressed file when compression succeeds', async () => {
+      const original = new File(['x'.repeat(400_000)], 'big.jpg', { type: 'image/jpeg' });
+      const compressed = new File(['tiny'], 'big.jpg', { type: 'image/jpeg' });
+      vi.mocked(imageCompression).mockResolvedValue(compressed);
+      await uploadImageToStorage('inventory-item-images', 'u/e/1.jpg', original, { compress: true });
+      expect(mockUpload).toHaveBeenCalled();
+      const uploaded = mockUpload.mock.calls[0][1] as File;
+      expect(uploaded.size).toBe(compressed.size);
+    });
+
+    it('uploads the original file when compression fails', async () => {
+      const original = new File(['x'.repeat(400_000)], 'big.jpg', { type: 'image/jpeg' });
+      vi.mocked(imageCompression).mockRejectedValue(new Error('fail'));
+      await uploadImageToStorage('inventory-item-images', 'u/e/1.jpg', original, { compress: true });
+      const uploaded = mockUpload.mock.calls[0][1] as File;
+      expect(uploaded).toBe(original);
     });
   });
 });

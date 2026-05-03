@@ -3,13 +3,16 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useUpdateWorkOrder, UpdateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderUpdate';
 import type { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
-import { 
-  createPM, 
-  updatePM, 
-  deletePM, 
-  type PMChecklistItem 
+import {
+  createPM,
+  updatePM,
+  deletePM,
+  type PMChecklistItem,
 } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { pmChecklistTemplatesService } from '@/features/pm-templates/services/pmChecklistTemplatesService';
+import { useAuth } from '@/hooks/useAuth';
+import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
+import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 
 interface PMData {
   id: string;
@@ -18,9 +21,13 @@ interface PMData {
   checklist_data?: unknown[];
   equipment_id?: string;
   template_id?: string | null;
+  /** Server `updated_at` — used for offline PM conflict detection when swapping templates. */
+  updated_at?: string | null;
 }
 
 export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: string, pmData?: PMData | null) => {
+  const { user } = useAuth();
+  const refreshOfflineQueue = useOfflineQueueOptional()?.refresh;
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showPMWarning, setShowPMWarning] = useState(false);
@@ -107,13 +114,28 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
       if (effectiveEquipmentId) {
         const checklistData = await getTemplateChecklistData(data.pmTemplateId);
         try {
-          await createPM({
-            workOrderId,
-            equipmentId: effectiveEquipmentId,
-            organizationId,
-            checklistData,
-            templateId: data.pmTemplateId
-          });
+          if (user?.id) {
+            const svc = new OfflineAwareWorkOrderService(organizationId, user.id);
+            const result = await svc.initPM({
+              workOrderId,
+              equipmentId: effectiveEquipmentId,
+              templateId: data.pmTemplateId,
+              checklistData,
+            });
+            if (result.queuedOffline) {
+              refreshOfflineQueue?.();
+            } else if (!result.data) {
+              throw new Error('Failed to create PM checklist');
+            }
+          } else {
+            await createPM({
+              workOrderId,
+              equipmentId: effectiveEquipmentId,
+              organizationId,
+              checklistData,
+              templateId: data.pmTemplateId,
+            });
+          }
         } catch (pmError) {
           toast.error('Failed to create PM checklist. Check your connection and try again.');
           throw pmError;
@@ -125,13 +147,24 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
       // Get the new template's checklist data
       const checklistData = await getTemplateChecklistData(data.pmTemplateId);
       try {
-        await updatePM(pmData!.id, {
+        const payload = {
           templateId: data.pmTemplateId,
           checklistData, // Reset checklist to new template
-          status: 'pending', // Reset status since checklist is new
+          status: 'pending' as const, // Reset status since checklist is new
           completedAt: null,
-          completedBy: null
-        });
+          completedBy: null,
+        };
+        if (user?.id) {
+          const svc = new OfflineAwareWorkOrderService(organizationId, user.id);
+          const result = await svc.updatePM(pmData!.id, payload, pmData!.updated_at ?? undefined);
+          if (result.queuedOffline) {
+            refreshOfflineQueue?.();
+          } else if (!result.data) {
+            throw new Error('Failed to update PM checklist');
+          }
+        } else {
+          await updatePM(pmData!.id, payload);
+        }
       } catch (pmError) {
         toast.error('Failed to update PM checklist. Check your connection and try again.');
         throw pmError;
@@ -166,7 +199,16 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
     }
     
     setIsEditFormOpen(false);
-  }, [workOrderId, organizationId, queryClient, updateWorkOrderMutation, pmData, getTemplateChecklistData]);
+  }, [
+    workOrderId,
+    organizationId,
+    queryClient,
+    updateWorkOrderMutation,
+    pmData,
+    getTemplateChecklistData,
+    user?.id,
+    refreshOfflineQueue,
+  ]);
 
   // Handle form submission with PM change detection
   const handleUpdateWorkOrder = useCallback(async (data: WorkOrderFormData, originalHasPM?: boolean, equipmentId?: string) => {

@@ -628,13 +628,23 @@ export class OfflineQueueProcessor {
           try {
             this.queueService.replaceWithFollowUps(item.id, result.followUpItems);
           } catch (replaceErr) {
-            // Atomic replacement failed (e.g. quota exceeded). The original item
-            // is still in the queue, so we surface this as a hard failure rather
-            // than silently discarding the follow-up work.
+            // Handler already succeeded against the server — never leave the
+            // original item marked retryable or we risk duplicate creates on a
+            // later sync (e.g. work_order_create). Drop the processed item, then
+            // best-effort enqueue follow-ups individually.
             logger.error('Failed to atomically replace queue item with follow-ups', replaceErr);
-            this.queueService.updateStatus(item.id, 'failed', 'Follow-up persistence failed');
-            failed++;
-            continue;
+            try {
+              this.queueService.remove(item.id);
+            } catch (removeErr) {
+              logger.error('Failed to remove processed queue item after follow-up failure', removeErr);
+            }
+            for (const followUp of result.followUpItems) {
+              try {
+                this.queueService.enqueue(followUp);
+              } catch (enqueueErr) {
+                logger.error('Failed to enqueue follow-up item after primary handler succeeded', enqueueErr);
+              }
+            }
           }
         } else {
           this.queueService.remove(item.id);
@@ -647,10 +657,18 @@ export class OfflineQueueProcessor {
       } catch (error) {
         const newRetryCount = item.retryCount + 1;
         if (newRetryCount >= item.maxRetries) {
-          this.queueService.updateStatus(item.id, 'failed', getErrorMessage(error));
+          try {
+            this.queueService.updateStatus(item.id, 'failed', getErrorMessage(error));
+          } catch (persistErr) {
+            logger.error('Failed to persist failed status for queue item', persistErr);
+          }
           failed++;
         } else {
-          this.queueService.updateRetry(item.id, newRetryCount, getErrorMessage(error));
+          try {
+            this.queueService.updateRetry(item.id, newRetryCount, getErrorMessage(error));
+          } catch (persistErr) {
+            logger.error('Failed to persist retry state for queue item', persistErr);
+          }
         }
       }
     }

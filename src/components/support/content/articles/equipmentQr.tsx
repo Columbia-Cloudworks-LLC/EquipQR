@@ -138,13 +138,13 @@ const equipmentArticles: SupportArticle[] = [
   },
   {
     id: "bulk-import-equipment",
-    title: "Bulk import equipment",
+    title: "Bulk edit equipment",
     summary:
-      "Load dozens or hundreds of equipment records at once from a CSV instead of adding them one at a time.",
+      "Update many existing equipment records in one grid instead of opening each record one at a time.",
     category: "equipment-qr",
     personas: ["admin", "owner"],
     requirement: "Must be Organization Owner or Admin.",
-    lastReviewed: "2026-05-01",
+    lastReviewed: "2026-05-02",
     steps: [
       {
         title: "Open Equipment → Bulk Equipment",
@@ -152,20 +152,20 @@ const equipmentArticles: SupportArticle[] = [
           "From the Equipment list, use the Bulk button (or navigate directly to /dashboard/equipment/bulk).",
       },
       {
-        title: "Download the CSV template",
+        title: "Select rows to edit",
         description:
-          "The template has one row per equipment with the supported columns (name, make, model, serial, team, status, location).",
+          "Use the row checkboxes to choose which equipment records you want to change. You can search and sort first to narrow the list.",
       },
       {
-        title: "Upload your populated file",
+        title: "Edit cells in the grid",
         description:
-          "The importer validates each row before committing. Rows with errors stay highlighted so you can fix and re-upload without losing your progress.",
+          "Click a cell to change fields such as name, status, location, or team assignment. Edits stay local until you commit.",
       },
       {
-        title: "Commit the import",
+        title: "Commit your changes",
         description:
-          "Confirm the final preview. EquipQR creates every equipment record and assigns it to the team you specified on each row.",
-        note: "Bulk import does not print QR codes automatically. After import, open the Equipment list, pick the new records, and print labels in a batch.",
+          "Use Commit (or the equivalent action in the bulk toolbar) to save all edited rows. Validation runs before anything is written.",
+        note: "Net-new equipment is added from Add Equipment on the list; bulk equipment is for editing existing rows.",
       },
     ],
     related: [

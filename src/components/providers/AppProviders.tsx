@@ -10,6 +10,21 @@ import { SessionProvider } from '@/contexts/SessionContext';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
+/** TanStack Query retries should stop on hard auth/RBAC failures (not only numeric 401/403 strings). */
+function isNonRetryableQueryError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  if (message.includes('401') || message.includes('403')) return true;
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('jwt') ||
+    lower.includes('permission denied') ||
+    lower.includes('not authorized') ||
+    lower.includes('unauthorized') ||
+    lower.includes('invalid refresh token') ||
+    lower.includes('session expired')
+  );
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -18,8 +33,7 @@ const queryClient = new QueryClient({
       // error a fast first retry and exponential backoff thereafter so
       // failures pile up sensibly instead of hammering the network.
       retry: (failureCount, error) => {
-        const message = error instanceof Error ? error.message : String(error ?? '');
-        if (message.includes('401') || message.includes('403')) return false;
+        if (isNonRetryableQueryError(error)) return false;
         return failureCount < 2;
       },
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),

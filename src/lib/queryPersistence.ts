@@ -22,7 +22,7 @@
  *    schema-incompatible build).
  */
 
-import { get, set, del } from 'idb-keyval';
+import { get, set, del, keys, delMany } from 'idb-keyval';
 import { experimental_createQueryPersister } from '@tanstack/react-query-persist-client';
 import type { Query } from '@tanstack/react-query';
 
@@ -140,8 +140,16 @@ export function setActivePersistenceScope(scope: PersistenceScope | null): void 
  * Logs and swallows IDB failures — clearing is best-effort.
  */
 export async function clearPersistedCache(scope: PersistenceScope): Promise<void> {
+  const legacyKey = persistenceKey(scope);
+  const persisterKeyPrefix = `equipqr:tq:${scope.userId}:${scope.orgId}`;
   try {
-    await del(persistenceKey(scope));
+    await del(legacyKey);
+    const allKeys = await keys<IDBValidKey>();
+    const scoped = allKeys.filter((k): k is string => {
+      if (typeof k !== 'string') return false;
+      return k === legacyKey || k.startsWith(persisterKeyPrefix);
+    });
+    if (scoped.length) await delMany(scoped);
   } catch {
     // best-effort cleanup — IDB unavailable in some contexts
   }
