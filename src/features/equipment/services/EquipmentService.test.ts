@@ -294,4 +294,32 @@ describe('EquipmentService', () => {
       expect(typeof result.data.active).toBe('number');
     });
   });
+
+  describe('getFilteredList', () => {
+    it('select string omits the non-existent qr_code column', async () => {
+      const mockSelect = vi.fn().mockReturnThis();
+      const mockQuery = {
+        select: mockSelect,
+        eq: vi.fn().mockReturnThis(),
+        in: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        or: vi.fn().mockReturnThis(),
+        gte: vi.fn().mockReturnThis(),
+        lte: vi.fn().mockReturnThis(),
+        lt: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        range: vi.fn().mockResolvedValue({ data: [], count: 0, error: null }),
+      };
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+
+      await EquipmentService.getFilteredList(organizationId, {}, { page: 1, pageSize: 10 });
+
+      expect(mockSelect).toHaveBeenCalled();
+      const selectArg = mockSelect.mock.calls[0][0] as string;
+      expect(selectArg).not.toMatch(/\bqr_code\b/);
+      expect(selectArg).toContain('id');
+      expect(selectArg).toContain('warranty_expiration');
+      expect(selectArg).toContain('team:team_id(id, name)');
+    });
+  });
 });
