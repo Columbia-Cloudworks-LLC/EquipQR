@@ -147,6 +147,15 @@ BEGIN
       CREATE UNIQUE INDEX uniq_org_active_stripe_subscriptions_id
         ON public.org_active_stripe_subscriptions (subscription_id)
     $ui$;
+
+    -- Revoke direct access: the MV is only reachable through the
+    -- list_active_stripe_subscriptions SECURITY DEFINER function, which
+    -- enforces the admin/owner role check. Without this, the default
+    -- privilege grants from the baseline migration would let anon and
+    -- authenticated users bypass the authorization check via PostgREST.
+    EXECUTE $rv$
+      REVOKE SELECT ON public.org_active_stripe_subscriptions FROM anon, authenticated
+    $rv$;
   END IF;
 END $$;
 
@@ -184,6 +193,7 @@ BEGIN
     FROM public.organization_members
     WHERE user_id = (SELECT auth.uid())
       AND role IN ('owner', 'admin')
+      AND status = 'active'
   ) THEN
     RAISE EXCEPTION 'access denied' USING ERRCODE = '42501';
   END IF;
