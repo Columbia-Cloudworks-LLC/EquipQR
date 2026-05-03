@@ -69,8 +69,8 @@ port = 54321
 # supabase.schema('pgmq_public').rpc('read'/'delete', ...) per the Supabase
 # Queues documented pattern. The schema is set up by migration
 # 20260503130000_add_notifications_queue.sql with SECURITY DEFINER wrappers
-# around the bare pgmq.* functions; PUBLIC and anon are NOT granted EXECUTE,
-# so external callers cannot enqueue or drain.
+# around the bare pgmq.* functions. anon is NOT granted EXECUTE. authenticated
+# may call send only; read/delete/pop/archive are restricted to service_role.
 schemas = ["public", "graphql_public", "pgmq_public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000

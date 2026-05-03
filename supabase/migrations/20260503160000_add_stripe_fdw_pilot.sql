@@ -177,6 +177,17 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
 BEGIN
+  -- Restrict to org owners and admins only; billing data must not be readable
+  -- by regular members or viewers.
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members
+    WHERE user_id = (SELECT auth.uid())
+      AND role IN ('owner', 'admin')
+  ) THEN
+    RAISE EXCEPTION 'access denied' USING ERRCODE = '42501';
+  END IF;
+
   IF EXISTS (
     SELECT 1 FROM pg_matviews
     WHERE schemaname = 'public' AND matviewname = 'org_active_stripe_subscriptions'

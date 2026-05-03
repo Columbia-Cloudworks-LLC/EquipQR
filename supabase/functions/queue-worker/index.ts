@@ -141,8 +141,8 @@ function buildSupabaseDrainClient(
     read: async (qty, vt) => {
       const result = await pgmqClient.rpc("read", {
         queue_name: QUEUE_NAME,
-        vt,
-        qty,
+        sleep_seconds: vt,
+        n: qty,
       });
       return {
         data: (result.data ?? null) as QueueMessage[] | null,

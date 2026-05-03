@@ -182,15 +182,27 @@ BEGIN
 END;
 $$;
 
--- Grant EXECUTE to the standard Supabase roles. service_role drains via the
--- Edge Function; authenticated may need to publish from app code (e.g.
--- privacy request submission, future use cases). anon is intentionally NOT
--- granted — anonymous users must not be able to enqueue messages.
+-- Grant USAGE on the schema to both roles so they can resolve function names.
+-- service_role (Edge Function) needs full access to drain the queue.
+-- authenticated may call send to enqueue messages from app code (e.g. privacy
+-- request submission) but must NOT be able to read, delete, pop, or archive
+-- messages — those operations expose other users' notification payloads and
+-- allow denial-of-service on the delivery pipeline.
+-- anon is intentionally NOT granted — anonymous users must not enqueue.
 GRANT USAGE ON SCHEMA pgmq_public TO authenticated, service_role;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA pgmq_public TO authenticated, service_role;
+
+-- service_role: full queue access for the queue-worker Edge Function.
+GRANT EXECUTE ON FUNCTION pgmq_public.send(text, jsonb, integer) TO service_role;
+GRANT EXECUTE ON FUNCTION pgmq_public.read(text, integer, integer) TO service_role;
+GRANT EXECUTE ON FUNCTION pgmq_public.delete(text, bigint) TO service_role;
+GRANT EXECUTE ON FUNCTION pgmq_public.archive(text, bigint) TO service_role;
+GRANT EXECUTE ON FUNCTION pgmq_public.pop(text) TO service_role;
+
+-- authenticated: send only — app code may enqueue but must not drain or peek.
+GRANT EXECUTE ON FUNCTION pgmq_public.send(text, jsonb, integer) TO authenticated;
 
 ALTER DEFAULT PRIVILEGES IN SCHEMA pgmq_public
-  GRANT EXECUTE ON FUNCTIONS TO authenticated, service_role;
+  GRANT EXECUTE ON FUNCTIONS TO service_role;
 
 COMMENT ON SCHEMA pgmq_public IS
   'Public-facing SECURITY DEFINER wrappers around the pgmq.* functions, '
