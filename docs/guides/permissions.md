@@ -135,7 +135,7 @@ This document defines the comprehensive role-based access control (RBAC) system 
 // Permission validation hook
 export const usePermissions = () => {
   const { currentOrganization } = useOrganization();
-  const { currentUser } = useAuth(); // When implemented
+  const { currentUser } = useAuth();
   
   const hasOrganizationPermission = (action: string): boolean => {
     if (!currentOrganization || !currentUser) return false;

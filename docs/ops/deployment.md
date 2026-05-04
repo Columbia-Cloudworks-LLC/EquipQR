@@ -16,7 +16,7 @@ npm install
 # Start development server
 npm run dev
 
-# Access application at http://localhost:5173
+# Access application at http://localhost:8080
 ```
 
 ### Production Build
@@ -65,7 +65,6 @@ VITE_LOG_LEVEL=error
 VITE_SENTRY_DSN=your-sentry-dsn
 
 # Optional Service Integrations
-VITE_STRIPE_PUBLISHABLE_KEY=your_stripe_key
 VITE_GOOGLE_MAPS_API_KEY=your_maps_key
 ```
 
@@ -757,19 +756,19 @@ self.addEventListener('install', (event) => {
 
 ### Content Security Policy
 ```html
-<!-- Add to index.html -->
+<!-- The authoritative CSP is set as a header in `vercel.json`; this is illustrative -->
 <meta http-equiv="Content-Security-Policy" 
       content="default-src 'self'; 
-               script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com; 
+               script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://*.hcaptcha.com; 
                style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
                font-src 'self' https://fonts.gstatic.com;
                img-src 'self' data: https: blob:;
-               connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://maps.googleapis.com;">
+               connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com https://*.hcaptcha.com;">
 ```
 
 ### HTTPS Configuration
 Ensure all deployments use HTTPS:
-- **Development**: Use `https://localhost:5173` for local HTTPS
+- **Development**: Use `https://localhost:8080` for local HTTPS
 - **Production**: Configure SSL certificates on hosting platform
 - **API Calls**: Ensure all API endpoints use HTTPS
 
