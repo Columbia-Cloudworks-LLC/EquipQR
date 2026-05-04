@@ -145,18 +145,22 @@ BEGIN
     SELECT 1 FROM pg_matviews
     WHERE schemaname = 'public' AND matviewname = 'org_active_stripe_subscriptions'
   ) THEN
+    -- Stripe wrapper foreign table `stripe.subscriptions` exposes id, customer,
+    -- currency, period bounds, and attrs — not a top-level `status` column.
+    -- Subscription status is read from attrs (Stripe API object). Ref:
+    -- https://github.com/supabase/wrappers/blob/main/docs/catalog/stripe.md#subscriptions
     EXECUTE $mv$
       CREATE MATERIALIZED VIEW public.org_active_stripe_subscriptions AS
       SELECT
         s.id AS subscription_id,
         s.customer AS stripe_customer_id,
-        s.status,
+        s.attrs->>'status' AS status,
         s.current_period_end,
         c.email AS stripe_customer_email,
         c.attrs->>'metadata' AS stripe_customer_metadata
       FROM stripe.subscriptions s
       JOIN stripe.customers c ON c.id = s.customer
-      WHERE s.status IN ('active', 'trialing', 'past_due')
+      WHERE (s.attrs->>'status') IN ('active', 'trialing', 'past_due')
     $mv$;
 
     -- Unique index supports REFRESH MATERIALIZED VIEW CONCURRENTLY in the
