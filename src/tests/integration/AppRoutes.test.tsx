@@ -60,6 +60,9 @@ vi.mock('@/pages/Auth', () => ({ default: () => <div data-testid="auth-page">Aut
 vi.mock('@/pages/TermsOfService', () => ({ default: () => <div data-testid="terms-page">Terms</div> }));
 vi.mock('@/pages/PrivacyPolicy', () => ({ default: () => <div data-testid="privacy-page">Privacy</div> }));
 vi.mock('@/pages/PrivacyRequest', () => ({ default: () => <div data-testid="privacy-request-page">Privacy Request</div> }));
+vi.mock('@/pages/DoNotSellOrShare', () => ({
+  default: () => <div data-testid="do-not-sell-or-share-page">Do Not Sell Or Share</div>,
+}));
 vi.mock('@/pages/dsr/CockpitPage', () => ({ default: () => <div data-testid="dsr-cockpit-page">DSR Cockpit</div> }));
 vi.mock('@/pages/dsr/CasePage', () => ({ default: () => <div data-testid="dsr-case-page">DSR Case</div> }));
 vi.mock('@/components/layout/AppSidebar', () => ({ default: () => <div data-testid="app-sidebar">Sidebar</div> }));
@@ -224,6 +227,11 @@ describe('App', () => {
   it('renders privacy request page for /privacy-request path', async () => {
     renderApp(['/privacy-request']);
     expect(await screen.findByTestId('privacy-request-page')).toBeInTheDocument();
+  });
+
+  it('renders do-not-sell-or-share page for /do-not-sell-or-share path', async () => {
+    renderApp(['/do-not-sell-or-share']);
+    expect(await screen.findByTestId('do-not-sell-or-share-page')).toBeInTheDocument();
   });
 
   it('contains app providers', () => {

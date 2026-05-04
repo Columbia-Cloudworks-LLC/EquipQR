@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Weekly dependency PRs; majors arrive as standalone PRs (default behavior).
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 15
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10

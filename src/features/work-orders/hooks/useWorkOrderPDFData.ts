@@ -18,6 +18,7 @@ import { generateFieldWorksheetPDF } from '@/features/work-orders/services/workO
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { SERVICE_REPORT_EXPORT_POLICY, FIELD_WORKSHEET_EXPORT_POLICY } from '@/features/work-orders/constants/workOrderExportPolicy';
 import { equipmentQRPath, workOrderQRPath, qrFullUrl, buildQRAsset } from '@/utils/qr';
+import { resolveImageDisplayUrl } from '@/services/imageUploadService';
 
 /** Response from the upload-to-google-drive edge function */
 interface GoogleDriveUploadResponse {
@@ -354,7 +355,9 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
           .eq('id', teamId)
           .eq('organization_id', organizationId)
           .maybeSingle();
-        teamImgUrl = data?.image_url ?? null;
+        teamImgUrl = data?.image_url
+          ? (await resolveImageDisplayUrl('team-images', data.image_url)) ?? null
+          : null;
       }
 
       const qrCodes = await buildQRCodes();

@@ -1,8 +1,10 @@
 /**
  * Shared Image Upload Service
- * 
+ *
  * DRY abstraction for uploading images to Supabase Storage buckets.
- * Used by organization logos, user avatars, team images, and inventory item images.
+ * Private buckets persist canonical object paths in the database and rely on
+ * short-lived signed URLs at read time. Public buckets (organization logos,
+ * landing-page marketing assets) continue to use getPublicUrl().
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -17,7 +19,19 @@ export type StorageBucket =
   | 'work-order-images'
   | 'equipment-note-images';
 
+/** Buckets that remain publicly readable via `getPublicUrl` (no signing). */
+export const PUBLIC_STORAGE_BUCKETS: ReadonlySet<StorageBucket> = new Set([
+  'organization-logos',
+]);
+
+/** Default signed URL TTL — within the 5–15 minute compliance window. */
+export const DEFAULT_SIGNED_URL_TTL_SECONDS = 900;
+
 const ACCEPTED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+export function isPublicStorageBucket(bucket: StorageBucket): boolean {
+  return PUBLIC_STORAGE_BUCKETS.has(bucket);
+}
 
 /**
  * Compression settings used for technician-captured photos. The defaults
@@ -76,13 +90,8 @@ export async function compressImageFile(
       maxSizeMB: settings.maxSizeMB,
       maxWidthOrHeight: settings.maxWidthOrHeight,
       useWebWorker: settings.useWebWorker,
-      // The compressor preserves the original MIME type when possible, so
-      // PNG transparency survives. Quality is auto-adjusted to hit
-      // `maxSizeMB`.
     });
 
-    // Some browsers return a Blob without a `name` — preserve the original
-    // filename so storage path generation continues to work.
     if (compressed instanceof File) {
       return compressed;
     }
@@ -150,21 +159,13 @@ export function validateImageFile(
 
 /**
  * Upload a single image to a Supabase Storage bucket.
- * Returns the public URL of the uploaded file.
  *
- * Behavior:
- *   - The file is compressed in the browser before upload by default. A
- *     phone-captured 12 MB JPEG drops to ≤500 KB, which is the difference
- *     between an upload that completes and one that times out on Slow 4G.
- *     Pass `compress: false` to opt out (e.g. when the caller has
- *     pre-processed the file or needs pixel-perfect fidelity such as
- *     logos).
- *   - When `upsert` is true the storage path stays the same across
- *     re-uploads, so Supabase's CDN (`cache-control: public, max-age=3600`)
- *     can serve a stale version. To bust the cache we append a
- *     `?v={timestamp}` query parameter to the URL stored in the DB.
- *     `extractStoragePath` strips query params before calling
- *     `storage.remove()` so deletions still work.
+ * Returns:
+ * - **Public buckets**: full public URL (optional `?v=` cache-buster when upserting).
+ * - **Private buckets**: canonical object path inside the bucket (for DB storage).
+ *
+ * When `upsert` is true on **public** buckets, a `?v={timestamp}` query parameter
+ * busts CDN caches. Private buckets omit query strings — readers use signed URLs.
  */
 export async function uploadImageToStorage(
   bucket: StorageBucket,
@@ -195,39 +196,151 @@ export async function uploadImageToStorage(
     throw new Error(`Failed to upload image: ${uploadError.message}`);
   }
 
-  const { data: { publicUrl } } = supabase.storage
-    .from(bucket)
-    .getPublicUrl(uploadData.path);
+  if (isPublicStorageBucket(bucket)) {
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from(bucket).getPublicUrl(uploadData.path);
 
-  // Bust CDN cache for upserted files (same path, new content)
-  if (options?.upsert) {
-    return `${publicUrl}?v=${Date.now()}`;
+    if (options?.upsert) {
+      return `${publicUrl}?v=${Date.now()}`;
+    }
+
+    return publicUrl;
   }
 
-  return publicUrl;
+  return uploadData.path;
+}
+
+/**
+ * Create a signed URL for an object path inside a private bucket.
+ */
+export async function createSignedUrlForPath(
+  bucket: StorageBucket,
+  objectPath: string,
+  expiresInSeconds: number = DEFAULT_SIGNED_URL_TTL_SECONDS
+): Promise<string | null> {
+  const trimmed = objectPath.trim();
+  if (!trimmed) return null;
+
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUrl(trimmed, expiresInSeconds);
+
+  if (error || !data?.signedUrl) {
+    logger.warn('createSignedUrl failed', { bucket, error });
+    return null;
+  }
+
+  return data.signedUrl;
+}
+
+/**
+ * Normalize a stored file reference (legacy public URL, signed URL, or canonical path)
+ * to the storage object path for the given bucket.
+ */
+export function normalizeStoredObjectPath(
+  stored: string,
+  bucket: StorageBucket
+): string | null {
+  const trimmed = stored.trim();
+  if (!trimmed) return null;
+
+  const publicPath = extractPublicStoragePath(trimmed, bucket);
+  if (publicPath) return publicPath;
+
+  const signedPath = extractSignedStoragePath(trimmed, bucket);
+  if (signedPath) return signedPath;
+
+  if (!/^https?:\/\//i.test(trimmed)) {
+    const noQuery = trimmed.includes('?') ? trimmed.split('?')[0] : trimmed;
+    return noQuery.replace(/^\/+/, '');
+  }
+
+  return null;
+}
+
+/**
+ * Resolve a stored reference to a browser-fetchable URL (public URL or signed).
+ * External HTTP URLs are returned unchanged when they do not match our patterns.
+ */
+export async function resolveImageDisplayUrl(
+  bucket: StorageBucket,
+  stored: string | null | undefined,
+  options?: { expiresInSeconds?: number }
+): Promise<string | null> {
+  if (!stored?.trim()) return null;
+
+  const expiresIn = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
+
+  if (isPublicStorageBucket(bucket)) {
+    const path = normalizeStoredObjectPath(stored, bucket);
+    if (path) {
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from(bucket).getPublicUrl(path);
+      return publicUrl;
+    }
+    if (stored.startsWith('http')) return stored;
+    return null;
+  }
+
+  const path = normalizeStoredObjectPath(stored, bucket);
+  if (!path) {
+    return stored.startsWith('http') ? stored : null;
+  }
+
+  return createSignedUrlForPath(bucket, path, expiresIn);
+}
+
+/**
+ * Equipment `image_url` may reference either work-order or equipment-note buckets.
+ * Path-only rows are ambiguous; we try signing against each bucket in order.
+ */
+export async function resolveEquipmentDisplayImageUrl(
+  stored: string | null | undefined,
+  options?: { expiresInSeconds?: number }
+): Promise<string | null> {
+  if (!stored?.trim()) return null;
+
+  const expiresIn = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
+
+  const path =
+    normalizeStoredObjectPath(stored, 'work-order-images') ??
+    normalizeStoredObjectPath(stored, 'equipment-note-images') ??
+    (!/^https?:\/\//i.test(stored)
+      ? stored.trim().split('?')[0]?.replace(/^\/+/, '') ?? null
+      : null);
+
+  if (!path) {
+    return stored.startsWith('http') ? stored : null;
+  }
+
+  const wo = await createSignedUrlForPath('work-order-images', path, expiresIn);
+  if (wo) return wo;
+
+  const eq = await createSignedUrlForPath('equipment-note-images', path, expiresIn);
+  if (eq) return eq;
+
+  return stored.startsWith('http') ? stored : null;
 }
 
 /**
  * Delete a single image from a Supabase Storage bucket.
- * Extracts the storage path from a public URL.
  */
 export async function deleteImageFromStorage(
   bucket: StorageBucket,
-  publicUrl: string
+  storedReference: string
 ): Promise<void> {
-  const storagePath = extractStoragePath(publicUrl, bucket);
+  const storagePath = normalizeStoredObjectPath(storedReference, bucket);
   if (!storagePath) {
-    logger.error('Could not extract storage path from URL:', { publicUrl, bucket });
+    logger.error('Could not extract storage path:', { storedReference, bucket });
     return;
   }
 
-  const { error } = await supabase.storage
-    .from(bucket)
-    .remove([storagePath]);
+  const { error } = await supabase.storage.from(bucket).remove([storagePath]);
 
   if (error) {
     logger.error('Error deleting image from storage:', error);
-    // Don't throw — storage cleanup failure shouldn't block the operation
   }
 }
 
@@ -236,17 +349,15 @@ export async function deleteImageFromStorage(
  */
 export async function deleteImagesFromStorage(
   bucket: StorageBucket,
-  publicUrls: string[]
+  storedReferences: string[]
 ): Promise<void> {
-  const paths = publicUrls
-    .map(url => extractStoragePath(url, bucket))
+  const paths = storedReferences
+    .map(ref => normalizeStoredObjectPath(ref, bucket))
     .filter((p): p is string => !!p);
 
   if (paths.length === 0) return;
 
-  const { error } = await supabase.storage
-    .from(bucket)
-    .remove(paths);
+  const { error } = await supabase.storage.from(bucket).remove(paths);
 
   if (error) {
     logger.error('Error deleting images from storage:', error);
@@ -254,27 +365,39 @@ export async function deleteImagesFromStorage(
 }
 
 /**
- * Extract the storage object path from a Supabase public URL.
- * 
- * Public URL format: 
- *   {supabaseUrl}/storage/v1/object/public/{bucket}/{path}[?query]
- * 
- * Returns the {path} portion (without query params), or null if extraction fails.
- * Query params (e.g. `?v=...` cache-busters) are stripped so the path is safe
- * to pass to `storage.remove()`.
+ * Extract the storage object path from a Supabase **public** object URL.
+ *
+ * Returns the path portion (without query params), or null if extraction fails.
  */
 export function extractStoragePath(
   publicUrl: string,
   bucket: StorageBucket
 ): string | null {
+  return extractPublicStoragePath(publicUrl, bucket);
+}
+
+function extractPublicStoragePath(url: string, bucket: StorageBucket): string | null {
   try {
     const marker = `/storage/v1/object/public/${bucket}/`;
-    const idx = publicUrl.indexOf(marker);
+    const idx = url.indexOf(marker);
     if (idx === -1) return null;
-    const pathWithQuery = publicUrl.substring(idx + marker.length);
-    // Strip query parameters (e.g. ?v=1234 cache-bust)
+    const pathWithQuery = url.substring(idx + marker.length);
     const qIdx = pathWithQuery.indexOf('?');
     return qIdx === -1 ? pathWithQuery : pathWithQuery.substring(0, qIdx);
+  } catch {
+    return null;
+  }
+}
+
+function extractSignedStoragePath(url: string, bucket: StorageBucket): string | null {
+  try {
+    const marker = `/storage/v1/object/sign/${bucket}/`;
+    const idx = url.indexOf(marker);
+    if (idx === -1) return null;
+    let rest = url.substring(idx + marker.length);
+    const qIdx = rest.indexOf('?');
+    if (qIdx !== -1) rest = rest.substring(0, qIdx);
+    return rest;
   } catch {
     return null;
   }
