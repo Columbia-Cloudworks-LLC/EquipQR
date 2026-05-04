@@ -9,11 +9,12 @@ import {
   deleteImageFromStorage,
   generateSingleFilePath,
   validateImageFile,
+  resolveImageDisplayUrl,
 } from '@/services/imageUploadService';
 
 /**
  * Upload a user avatar to Supabase Storage and update the profiles table.
- * Returns the public URL of the uploaded avatar.
+ * Returns a signed display URL for immediate UI use (canonical path is persisted).
  */
 export const uploadAvatar = async (
   userId: string,
@@ -22,7 +23,7 @@ export const uploadAvatar = async (
   validateImageFile(file, 5);
 
   const filePath = generateSingleFilePath(userId, 'avatar', file);
-  const publicUrl = await uploadImageToStorage(
+  const storedPath = await uploadImageToStorage(
     'user-avatars',
     filePath,
     file,
@@ -32,21 +33,21 @@ export const uploadAvatar = async (
   // Update profiles table
   const { error } = await supabase
     .from('profiles')
-    .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
+    .update({ avatar_url: storedPath, updated_at: new Date().toISOString() })
     .eq('id', userId);
 
   if (error) {
     logger.error('Error updating avatar in DB:', error);
     // Clean up orphaned storage file since DB update failed
     try {
-      await deleteImageFromStorage('user-avatars', publicUrl);
+      await deleteImageFromStorage('user-avatars', storedPath);
     } catch (deleteError) {
       logger.error('Failed to delete orphaned avatar from storage:', deleteError);
     }
     throw new Error('Failed to save avatar');
   }
 
-  return publicUrl;
+  return (await resolveImageDisplayUrl('user-avatars', storedPath)) ?? storedPath;
 };
 
 /**

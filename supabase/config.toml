@@ -33,12 +33,12 @@ additional_redirect_urls = [
 # =============================================================================
 # Storage buckets used by the application
 [storage.buckets.work-order-images]
-public = true
+public = false
 file_size_limit = "10MB"
 allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 
 [storage.buckets.equipment-note-images]
-public = true
+public = false
 file_size_limit = "10MB"
 allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 
@@ -48,18 +48,24 @@ file_size_limit = "5MB"
 allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 
 [storage.buckets.user-avatars]
-public = true
+public = false
 file_size_limit = "5MB"
 allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 
 [storage.buckets.team-images]
-public = true
+public = false
 file_size_limit = "5MB"
 allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 
 [storage.buckets.inventory-item-images]
-public = true
+public = false
 file_size_limit = "10MB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+
+# Public marketing screenshots (anonymous GET via storage policies + public bucket flag).
+[storage.buckets.landing-page-images]
+public = true
+file_size_limit = "5MB"
 allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 
 [api]
@@ -174,6 +180,9 @@ verify_jwt = false
 verify_jwt = false
 # Internal admin endpoint for DSR lifecycle management. Requires authenticated admin/owner.
 # JWT verification handled inside the function via supabase.auth.getUser().
+
+[functions.record-terms-acceptance]
+verify_jwt = true
 
 [functions.verify-hcaptcha]
 verify_jwt = false

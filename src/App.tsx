@@ -74,6 +74,7 @@ const InvitationAccept = lazy(() => import('@/pages/InvitationAccept'));
 const TermsOfService = lazy(() => import('@/pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
 const PrivacyRequest = lazy(() => import('@/pages/PrivacyRequest'));
+const DoNotSellOrShare = lazy(() => import('@/pages/DoNotSellOrShare'));
 const Security = lazy(() => import('@/pages/Security'));
 const WorkspaceOnboarding = lazy(() => import('@/pages/WorkspaceOnboarding'));
 // const DebugBilling = lazy(() => import('@/pages/DebugBilling'));
@@ -173,6 +174,7 @@ function App() {
         <Route path="/terms-of-service" element={<Suspense fallback={<div>Loading...</div>}><TermsOfService /></Suspense>} />
         <Route path="/privacy-policy" element={<Suspense fallback={<div>Loading...</div>}><PrivacyPolicy /></Suspense>} />
         <Route path="/privacy-request" element={<Suspense fallback={<div>Loading...</div>}><PrivacyRequest /></Suspense>} />
+        <Route path="/do-not-sell-or-share" element={<Suspense fallback={<div>Loading...</div>}><DoNotSellOrShare /></Suspense>} />
         <Route path="/security" element={<Suspense fallback={<div>Loading...</div>}><Security /></Suspense>} />
 
           {/* Redirect routes for backward compatibility */}
