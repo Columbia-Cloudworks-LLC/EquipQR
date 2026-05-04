@@ -7,6 +7,7 @@ import {
   type User,
   type UserContextType,
 } from './user-context';
+import { resolveImageDisplayUrl } from '@/services/imageUploadService';
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user: authUser, isLoading: authLoading } = useAuth();
@@ -38,11 +39,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error('Failed to fetch user profile:', error.message);
           }
 
+          const avatarRaw = profile?.avatar_url ?? null;
           const user: User = {
             id: authUser.id,
             email: authUser.email || '',
             name: profile?.name || authUser.user_metadata?.name || authUser.email || 'User',
-            avatar_url: profile?.avatar_url ?? null,
+            avatar_url: avatarRaw
+              ? (await resolveImageDisplayUrl('user-avatars', avatarRaw)) ?? avatarRaw
+              : null,
           };
           setCurrentUser(user);
         } catch (err) {

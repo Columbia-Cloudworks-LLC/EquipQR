@@ -19,6 +19,7 @@ import {
   validateImageFile,
   requireAuthUserId,
   getCurrentUserName,
+  resolveImageDisplayUrl,
 } from '@/services/imageUploadService';
 import { validateStorageQuota } from '@/utils/storageQuota';
 
@@ -560,7 +561,13 @@ export const getInventoryItemImages = async (
       .order('created_at', { ascending: true });
 
     if (error) throw error;
-    return (data || []) as InventoryItemImage[];
+    return Promise.all(
+      (data || []).map(async row => ({
+        ...(row as InventoryItemImage),
+        file_url:
+          (await resolveImageDisplayUrl('inventory-item-images', row.file_url)) ?? row.file_url,
+      }))
+    );
   } catch (error) {
     logger.error('Error fetching inventory item images:', error);
     throw error;

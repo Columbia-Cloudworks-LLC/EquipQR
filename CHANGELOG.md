@@ -9,7 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Compliance hardening (storage, signup, privacy)** — Private Supabase buckets (`work-order-images`, `equipment-note-images`, `team-images`, `user-avatars`, `inventory-item-images`) with tightened `storage.objects` SELECT policies and short-lived **signed URLs** (default 900s TTL) for authorized reads; `organization-logos` remains public via `getPublicUrl`. Upload flows persist canonical object paths; `imageUploadService` resolves legacy public URLs for signing/deletion. SQL backfill converts matching legacy public URLs to canonical paths. New `terms_acceptances` table (RLS: users read own rows) and `record-terms-acceptance` edge function record IP, user-agent, and policy version hashes. Signup adds notice-at-collection copy, required terms/privacy checkbox, visible password policy with strength meter, and HIBP k-anonymity breach check before sign-up. Public `/do-not-sell-or-share` page and footer links; privacy policy `#notice-at-collection` anchor. Dependabot weekly updates for npm and GitHub Actions.
+
 ### Fixed
+
+- **Stripe FDW pilot migration failed when Vault secret present** — `stripe.subscriptions` from Supabase Wrappers has no top-level `status` column (status lives in `attrs` JSON). `20260503160000_add_stripe_fdw_pilot.sql` now selects and filters on `attrs->>'status'` so `org_active_stripe_subscriptions` creates cleanly on preview/production.
 
 - **Equipment list page returned HTTP 400 for every load** ([#724](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/724)) — `EquipmentService.getFilteredList` selected a `qr_code` column that does not exist in `public.equipment` (no migration ever creates it; the column is not in `Database['public']['Tables']['equipment']['Row']`). PostgREST returned HTTP 400 with `code 42703 — undefined_column` on every `/dashboard/equipment` page load, so the page rendered the empty-state card for every signed-in user in every organization with equipment. Fix removes `qr_code` from the explicit select column list at `EquipmentService.ts:360`. New regression test asserts the select string never reintroduces a `qr_code` reference. Resolves #724.
 

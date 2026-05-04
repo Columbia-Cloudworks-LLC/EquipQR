@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import SignUpForm from '../SignUpForm';
 
 import { supabase } from '@/integrations/supabase/client';
@@ -10,13 +11,18 @@ import type { AuthError } from '@supabase/supabase-js';
 // Mock environment variable for hCaptcha
 vi.stubEnv('VITE_HCAPTCHA_SITEKEY', 'test-hcaptcha-site-key');
 
+vi.mock('@/lib/hibpPasswordCheck', () => ({
+  checkPasswordBreachedHibp: vi.fn(() => Promise.resolve({ status: 'ok' as const, breached: false })),
+}));
+
 // Mock Supabase
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     auth: {
-      signUp: vi.fn()
-    }
-  }
+      signUp: vi.fn(),
+      getSession: vi.fn(),
+    },
+  },
 }));
 
 // Mock HCaptcha component
@@ -55,6 +61,13 @@ vi.mock('@/components/ui/HCaptcha', () => ({
 }));
 
 const mockSignUp = vi.mocked(supabase.auth.signUp);
+const mockGetSession = vi.mocked(supabase.auth.getSession);
+
+const withRouter = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
+
+const RouterWrapper = ({ children }: { children: React.ReactNode }) => (
+  <MemoryRouter>{children}</MemoryRouter>
+);
 
 // Helper to fill form fields quickly using fireEvent.change (much faster than userEvent.type)
 interface FormData {
@@ -71,8 +84,8 @@ const fillFormFast = (overrides: FormData = {}) => {
     name: 'John Doe',
     email: 'john@example.com',
     organization: 'Test Org',
-    password: 'password123',
-    confirmPassword: 'password123',
+    password: 'SecurePass1!',
+    confirmPassword: 'SecurePass1!',
     verifyCaptcha: true,
   };
   const data = { ...defaults, ...overrides };
@@ -92,6 +105,7 @@ const fillFormFast = (overrides: FormData = {}) => {
   if (data.confirmPassword !== undefined) {
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: data.confirmPassword } });
   }
+  fireEvent.click(screen.getByLabelText(/I have read and agree/i));
   if (data.verifyCaptcha) {
     fireEvent.click(screen.getByTestId('hcaptcha-success'));
   }
@@ -107,12 +121,32 @@ describe('SignUpForm', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSignUp.mockResolvedValue({ error: null, data: { user: null, session: null } });
+    mockSignUp.mockResolvedValue({
+      error: null,
+      data: {
+        user: { id: 'u1' } as never,
+        session: { access_token: 'test-access-token' } as never,
+      },
+    });
+    mockGetSession.mockResolvedValue({
+      data: { session: { access_token: 'test-access-token' } as never },
+      error: null,
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = typeof input === 'string' ? input : input instanceof Request ? input.url : input.toString();
+        if (url.includes('record-terms-acceptance')) {
+          return new Response(JSON.stringify({ success: true }), { status: 200 });
+        }
+        return new Response('not mocked', { status: 500 });
+      }),
+    );
   });
 
   describe('Form Rendering', () => {
     it('should render all form fields correctly', () => {
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       expect(screen.getByLabelText(/full name/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
@@ -124,7 +158,7 @@ describe('SignUpForm', () => {
     });
 
     it('should have correct input types and attributes', () => {
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       expect(screen.getByLabelText(/full name/i)).toHaveAttribute('type', 'text');
       expect(screen.getByLabelText(/email/i)).toHaveAttribute('type', 'email');
@@ -141,7 +175,7 @@ describe('SignUpForm', () => {
     });
 
     it('should have organization name placeholder', () => {
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       expect(screen.getByLabelText(/organization name/i)).toHaveAttribute(
         'placeholder', 
@@ -152,7 +186,7 @@ describe('SignUpForm', () => {
 
   describe('Input Handling', () => {
     it('should update form data when inputs change', () => {
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       const nameInput = screen.getByLabelText(/full name/i);
       const emailInput = screen.getByLabelText(/email/i);
@@ -168,16 +202,16 @@ describe('SignUpForm', () => {
     });
 
     it('should handle password input changes', () => {
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       const passwordInput = screen.getByLabelText('Password');
       const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
       
-      fireEvent.change(passwordInput, { target: { value: 'password123' } });
-      fireEvent.change(confirmPasswordInput, { target: { value: 'password123' } });
+      fireEvent.change(passwordInput, { target: { value: 'SecurePass1!' } });
+      fireEvent.change(confirmPasswordInput, { target: { value: 'SecurePass1!' } });
       
-      expect(passwordInput).toHaveValue('password123');
-      expect(confirmPasswordInput).toHaveValue('password123');
+      expect(passwordInput).toHaveValue('SecurePass1!');
+      expect(confirmPasswordInput).toHaveValue('SecurePass1!');
     });
   });
 
@@ -187,34 +221,38 @@ describe('SignUpForm', () => {
     
     it('should show password length validation error', async () => {
       const user = userEvent.setup({ delay: null });
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       const passwordInput = screen.getByLabelText('Password');
       await user.type(passwordInput, '123');
       fireEvent.blur(passwordInput);
-      
-      expect(screen.getByText(/password must be at least 6 characters/i)).toBeInTheDocument();
+
+      const fieldRoot = passwordInput.closest('div.space-y-2');
+      const inlineError = fieldRoot?.querySelector('p.text-destructive');
+      expect(inlineError).toBeTruthy();
+      expect(inlineError).toHaveTextContent(/At least 12 characters/i);
     });
 
     it('should not show password length error for valid password', async () => {
       const user = userEvent.setup({ delay: null });
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       const passwordInput = screen.getByLabelText('Password');
-      await user.type(passwordInput, 'password123');
-      
-      expect(screen.queryByText(/password must be at least 6 characters/i)).not.toBeInTheDocument();
+      await user.type(passwordInput, 'SecurePass1!');
+
+      const fieldRoot = passwordInput.closest('div.space-y-2');
+      expect(fieldRoot?.querySelector('p.text-destructive')).toBeNull();
     });
 
     it('should show password match validation in real-time', async () => {
       const user = userEvent.setup({ delay: null });
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       const passwordInput = screen.getByLabelText('Password');
       const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
       
-      await user.type(passwordInput, 'password123');
-      await user.type(confirmPasswordInput, 'password456');
+      await user.type(passwordInput, 'SecurePass1!');
+      await user.type(confirmPasswordInput, 'SecurePass2!');
       
       expect(screen.getByText(/passwords do not match/i)).toBeInTheDocument();
       expect(screen.getByTestId('password-match-error')).toBeInTheDocument();
@@ -222,13 +260,13 @@ describe('SignUpForm', () => {
 
     it('should show success icon when passwords match', async () => {
       const user = userEvent.setup({ delay: null });
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       const passwordInput = screen.getByLabelText('Password');
       const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
       
-      await user.type(passwordInput, 'password123');
-      await user.type(confirmPasswordInput, 'password123');
+      await user.type(passwordInput, 'SecurePass1!');
+      await user.type(confirmPasswordInput, 'SecurePass1!');
       
       expect(screen.queryByText(/passwords do not match/i)).not.toBeInTheDocument();
       expect(screen.getByTestId('password-match-success')).toBeInTheDocument();
@@ -236,28 +274,28 @@ describe('SignUpForm', () => {
 
     it('should validate password match when changing password field', async () => {
       const user = userEvent.setup({ delay: null });
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       const passwordInput = screen.getByLabelText('Password');
       const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
       
       // Set confirm password first
-      await user.type(confirmPasswordInput, 'password123');
+      await user.type(confirmPasswordInput, 'SecurePass1!');
       // Then set password that doesn't match
-      await user.type(passwordInput, 'different');
+      await user.type(passwordInput, 'Different1!');
       
       expect(screen.getByText(/passwords do not match/i)).toBeInTheDocument();
     });
 
     it('should clear password match indicator when confirm password is empty', async () => {
       const user = userEvent.setup({ delay: null });
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       const passwordInput = screen.getByLabelText('Password');
       const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
       
-      await user.type(passwordInput, 'password123');
-      await user.type(confirmPasswordInput, 'password123');
+      await user.type(passwordInput, 'SecurePass1!');
+      await user.type(confirmPasswordInput, 'SecurePass1!');
       
       // Clear confirm password
       await user.clear(confirmPasswordInput);
@@ -269,14 +307,14 @@ describe('SignUpForm', () => {
 
   describe('Form Validation', () => {
     it('should disable submit button when form is invalid', () => {
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       expect(submitButton).toBeDisabled();
     });
 
     it('should enable submit button when form is valid', () => {
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       // Fill all required fields using fast helper
       fillFormFast();
@@ -286,7 +324,7 @@ describe('SignUpForm', () => {
     });
 
     it('should require all fields to be valid', () => {
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       
@@ -296,28 +334,27 @@ describe('SignUpForm', () => {
       expect(submitButton).toBeDisabled();
     });
 
-    it('should require password to be at least 6 characters', () => {
-      render(<SignUpForm {...defaultProps} />);
+    it('should disable submit when password does not meet complexity', () => {
+      withRouter(<SignUpForm {...defaultProps} />);
       
-      // Fill form with short password
-      fillFormFast({ password: '123', confirmPassword: '123' });
+      fillFormFast({ password: 'ab', confirmPassword: 'ab' });
       
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       expect(submitButton).toBeDisabled();
     });
 
     it('should require passwords to match', () => {
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       // Fill form with mismatched passwords
-      fillFormFast({ confirmPassword: 'different' });
+      fillFormFast({ confirmPassword: 'SecurePass2!' });
       
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       expect(submitButton).toBeDisabled();
     });
 
     it('should require captcha verification', () => {
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       // Fill form but don't verify captcha
       fillFormFast({ verifyCaptcha: false });
@@ -329,7 +366,7 @@ describe('SignUpForm', () => {
 
   describe('HCaptcha Integration', () => {
     it('should enable form submission after captcha verification', () => {
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       // Fill form using fast helper
       fillFormFast();
@@ -340,7 +377,7 @@ describe('SignUpForm', () => {
 
     it('should handle captcha error', () => {
       const onError = vi.fn();
-      render(<SignUpForm {...defaultProps} onError={onError} />);
+      withRouter(<SignUpForm {...defaultProps} onError={onError} />);
       
       fireEvent.click(screen.getByTestId('hcaptcha-error'));
       
@@ -349,7 +386,7 @@ describe('SignUpForm', () => {
 
     it('should handle captcha expiration', () => {
       const onError = vi.fn();
-      render(<SignUpForm {...defaultProps} onError={onError} />);
+      withRouter(<SignUpForm {...defaultProps} onError={onError} />);
       
       fireEvent.click(screen.getByTestId('hcaptcha-expire'));
       
@@ -360,7 +397,7 @@ describe('SignUpForm', () => {
   describe('Form Submission', () => {
     it('should submit form with correct data', async () => {
       const onSuccess = vi.fn();
-      render(<SignUpForm {...defaultProps} onSuccess={onSuccess} />);
+      withRouter(<SignUpForm {...defaultProps} onSuccess={onSuccess} />);
       
       // Fill form with specific values for assertion
       fillFormFast({ organization: 'Test Organization' });
@@ -371,7 +408,7 @@ describe('SignUpForm', () => {
       await waitFor(() => {
         expect(mockSignUp).toHaveBeenCalledWith({
           email: 'john@example.com',
-          password: 'password123',
+          password: 'SecurePass1!',
           options: {
             emailRedirectTo: `${window.location.origin}/`,
             data: {
@@ -390,7 +427,7 @@ describe('SignUpForm', () => {
 
     it('should handle submission with incomplete form', async () => {
       const onError = vi.fn();
-      render(<SignUpForm {...defaultProps} onError={onError} />);
+      withRouter(<SignUpForm {...defaultProps} onError={onError} />);
       
       // Try to submit without filling form (this shouldn't happen due to disabled button, but test anyway)
       const form = screen.getByRole('button', { name: /create account & organization/i }).closest('form');
@@ -402,7 +439,9 @@ describe('SignUpForm', () => {
         }
       });
       
-      expect(onError).toHaveBeenCalledWith('Please fill in all fields correctly');
+      expect(onError).toHaveBeenCalledWith(
+        'Please accept the Terms of Service and Privacy Policy to continue.',
+      );
       expect(mockSignUp).not.toHaveBeenCalled();
     });
 
@@ -420,7 +459,7 @@ describe('SignUpForm', () => {
         data: { user: null, session: null } 
       });
       
-      render(<SignUpForm {...defaultProps} onError={onError} setIsLoading={setIsLoading} />);
+      withRouter(<SignUpForm {...defaultProps} onError={onError} setIsLoading={setIsLoading} />);
       
       // Fill form using fast helper
       fillFormFast();
@@ -440,7 +479,7 @@ describe('SignUpForm', () => {
       
       mockSignUp.mockRejectedValue(new Error('Network error'));
       
-      render(<SignUpForm {...defaultProps} onError={onError} setIsLoading={setIsLoading} />);
+      withRouter(<SignUpForm {...defaultProps} onError={onError} setIsLoading={setIsLoading} />);
       
       // Fill form using fast helper
       fillFormFast();
@@ -460,7 +499,7 @@ describe('SignUpForm', () => {
       // Use instant resolution instead of setTimeout
       mockSignUp.mockResolvedValue({ error: null, data: { user: null, session: null } });
       
-      render(<SignUpForm {...defaultProps} setIsLoading={setIsLoading} />);
+      withRouter(<SignUpForm {...defaultProps} setIsLoading={setIsLoading} />);
       
       // Fill form using fast helper
       fillFormFast();
@@ -486,7 +525,7 @@ describe('SignUpForm', () => {
         data: { user: null, session: null } 
       });
       
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       // Fill form using fast helper
       fillFormFast();
@@ -506,14 +545,14 @@ describe('SignUpForm', () => {
 
   describe('Loading State', () => {
     it('should show loading spinner when isLoading is true', () => {
-      render(<SignUpForm {...defaultProps} isLoading={true} />);
+      withRouter(<SignUpForm {...defaultProps} isLoading={true} />);
       
       expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /create account & organization/i })).toBeDisabled();
     });
 
     it('should not show loading spinner when isLoading is false', () => {
-      render(<SignUpForm {...defaultProps} isLoading={false} />);
+      withRouter(<SignUpForm {...defaultProps} isLoading={false} />);
       
       expect(screen.queryByTestId('loading-spinner')).not.toBeInTheDocument();
     });
@@ -534,14 +573,16 @@ describe('SignUpForm', () => {
         const [isLoading, setIsLoadingState] = React.useState(false);
         
         return (
-          <SignUpForm 
-            {...defaultProps} 
-            isLoading={isLoading} 
-            setIsLoading={(loading: boolean) => {
-              setIsLoadingState(loading);
-              setIsLoading(loading);
-            }} 
-          />
+          <MemoryRouter>
+            <SignUpForm 
+              {...defaultProps} 
+              isLoading={isLoading} 
+              setIsLoading={(loading: boolean) => {
+                setIsLoadingState(loading);
+                setIsLoading(loading);
+              }} 
+            />
+          </MemoryRouter>
         );
       };
       
@@ -570,13 +611,16 @@ describe('SignUpForm', () => {
       expect(mockSignUp).toHaveBeenCalledTimes(1);
       
       // Resolve the promise to clean up
-      resolveSignUp({ error: null, data: { user: null, session: null } });
+      resolveSignUp({
+        error: null,
+        data: { user: null, session: { access_token: 'tok' } as never },
+      });
     });
   });
 
   describe('Edge Cases', () => {
     it('should handle very long input values', () => {
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       const longString = 'a'.repeat(200);
       const nameInput = screen.getByLabelText(/full name/i);
@@ -586,7 +630,7 @@ describe('SignUpForm', () => {
     });
 
     it('should handle special characters in organization name', () => {
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       const orgInput = screen.getByLabelText(/organization name/i);
       const specialString = 'Test Org & Co. - "Best Company" #1!';
@@ -600,7 +644,7 @@ describe('SignUpForm', () => {
       
       mockSignUp.mockRejectedValue('String error');
       
-      render(<SignUpForm {...defaultProps} onError={onError} />);
+      withRouter(<SignUpForm {...defaultProps} onError={onError} />);
       
       // Fill and submit form using fast helper
       fillFormFast();
@@ -614,7 +658,7 @@ describe('SignUpForm', () => {
 
   describe('Accessibility', () => {
     it('should have proper label associations', () => {
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       expect(screen.getByLabelText(/full name/i)).toHaveAttribute('id', 'signup-name');
       expect(screen.getByLabelText(/email/i)).toHaveAttribute('id', 'signup-email');
@@ -626,9 +670,12 @@ describe('SignUpForm', () => {
     it('should support keyboard navigation', async () => {
       // Keep userEvent for keyboard navigation testing, but use delay: null
       const user = userEvent.setup({ delay: null });
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
-      // Tab through form fields
+      // Notice-at-collection link is first in tab order
+      await user.tab();
+      expect(screen.getByRole('link', { name: /Privacy Notice at Collection/i })).toHaveFocus();
+
       await user.tab();
       expect(screen.getByLabelText(/full name/i)).toHaveFocus();
       
@@ -652,7 +699,8 @@ describe('SignUpForm', () => {
         <SignUpForm 
           {...defaultProps} 
           prefillEmail="prefilled@example.com"
-        />
+        />,
+        { wrapper: RouterWrapper }
       );
       
       const emailInput = screen.getByLabelText(/email/i);
@@ -664,7 +712,8 @@ describe('SignUpForm', () => {
         <SignUpForm 
           {...defaultProps} 
           prefillEmail="first@example.com"
-        />
+        />,
+        { wrapper: RouterWrapper }
       );
       
       const emailInput = screen.getByLabelText(/email/i);
@@ -688,7 +737,8 @@ describe('SignUpForm', () => {
         <SignUpForm 
           {...defaultProps} 
           prefillEmail="test@example.com"
-        />
+        />,
+        { wrapper: RouterWrapper }
       );
       
       const emailInput = screen.getByLabelText(/email/i);
@@ -704,7 +754,8 @@ describe('SignUpForm', () => {
         <SignUpForm 
           {...defaultProps} 
           prefillEmail="manual@example.com"
-        />
+        />,
+        { wrapper: RouterWrapper }
       );
       
       const newEmailInput = screen.getByLabelText(/email/i);
@@ -717,7 +768,8 @@ describe('SignUpForm', () => {
         <SignUpForm 
           {...defaultProps} 
           prefillEmail=""
-        />
+        />,
+        { wrapper: RouterWrapper }
       );
       
       // Start with empty email
@@ -747,7 +799,8 @@ describe('SignUpForm', () => {
         <SignUpForm 
           {...defaultProps} 
           prefillEmail="invalid-email"
-        />
+        />,
+        { wrapper: RouterWrapper }
       );
       
       const emailInput = screen.getByLabelText(/email/i);
@@ -790,7 +843,7 @@ describe('SignUpForm', () => {
     });
 
     it('should not update if prefillEmail is not provided', () => {
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       const emailInput = screen.getByLabelText(/email/i);
       expect(emailInput).toHaveValue('');
@@ -799,7 +852,7 @@ describe('SignUpForm', () => {
 
   describe('Invitation-based Signup', () => {
     it('should show info banner when invitedOrgName is provided', () => {
-      render(
+      withRouter(
         <SignUpForm 
           {...defaultProps} 
           invitedOrgName="Acme Corporation"
@@ -812,7 +865,7 @@ describe('SignUpForm', () => {
     });
 
     it('should show error when organization name matches invited org name', async () => {
-      render(
+      withRouter(
         <SignUpForm 
           {...defaultProps} 
           invitedOrgName="Acme Corporation"
@@ -829,7 +882,7 @@ describe('SignUpForm', () => {
     });
 
     it('should show error for case-insensitive match', async () => {
-      render(
+      withRouter(
         <SignUpForm 
           {...defaultProps} 
           invitedOrgName="Acme Corporation"
@@ -848,7 +901,7 @@ describe('SignUpForm', () => {
     });
 
     it('should disable submit button when org name matches invited org', () => {
-      render(
+      withRouter(
         <SignUpForm 
           {...defaultProps} 
           invitedOrgName="Acme Corporation"
@@ -863,7 +916,7 @@ describe('SignUpForm', () => {
     });
 
     it('should enable submit when org name is different from invited org', () => {
-      render(
+      withRouter(
         <SignUpForm 
           {...defaultProps} 
           invitedOrgName="Acme Corporation"
@@ -878,7 +931,7 @@ describe('SignUpForm', () => {
     });
 
     it('should include invitation metadata in signUp call', async () => {
-      render(
+      withRouter(
         <SignUpForm 
           {...defaultProps} 
           invitedOrgId="org-123"
@@ -895,7 +948,7 @@ describe('SignUpForm', () => {
       await waitFor(() => {
         expect(mockSignUp).toHaveBeenCalledWith({
           email: 'john@example.com',
-          password: 'password123',
+          password: 'SecurePass1!',
           options: {
             emailRedirectTo: expect.any(String),
             data: {
@@ -912,7 +965,7 @@ describe('SignUpForm', () => {
     });
 
     it('should update placeholder text when invited', () => {
-      render(
+      withRouter(
         <SignUpForm 
           {...defaultProps} 
           invitedOrgName="Acme Corporation"
@@ -924,7 +977,7 @@ describe('SignUpForm', () => {
     });
 
     it('should not show banner when no invitation', () => {
-      render(<SignUpForm {...defaultProps} />);
+      withRouter(<SignUpForm {...defaultProps} />);
       
       expect(screen.queryByText(/You'll join/i)).not.toBeInTheDocument();
     });

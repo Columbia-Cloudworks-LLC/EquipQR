@@ -4,6 +4,11 @@ import { logger } from '@/utils/logger';
 import { validateStorageQuota } from '@/utils/storageQuota';
 import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
 import { getAuthClaims } from '@/lib/authClaims';
+import {
+  uploadImageToStorage,
+  resolveImageDisplayUrl,
+  normalizeStoredObjectPath,
+} from '@/services/imageUploadService';
 
 // Import and re-export unified types from the single source of truth
 import {
@@ -830,24 +835,31 @@ export class WorkOrderService extends BaseService {
       }
 
       // Map notes with authors and images
-      const enrichedNotes: WorkOrderNote[] = notes.map(note => {
-        const author = (profiles || []).find(p => p.id === note.author_id);
-        const noteImages = (allImages || [])
-          .filter(img => img.note_id === note.id)
-          .map(img => {
-            const uploader = uploaderProfiles.find(p => p.id === img.uploaded_by);
-            return {
-              ...img,
-              uploaded_by_name: uploader?.name || 'Unknown'
-            };
-          });
+      const enrichedNotes: WorkOrderNote[] = await Promise.all(
+        notes.map(async note => {
+          const author = (profiles || []).find(p => p.id === note.author_id);
+          const noteImages = await Promise.all(
+            (allImages || [])
+              .filter(img => img.note_id === note.id)
+              .map(async img => {
+                const uploader = uploaderProfiles.find(p => p.id === img.uploaded_by);
+                const displayUrl =
+                  (await resolveImageDisplayUrl('work-order-images', img.file_url)) ?? img.file_url;
+                return {
+                  ...img,
+                  file_url: displayUrl,
+                  uploaded_by_name: uploader?.name || 'Unknown',
+                };
+              })
+          );
 
-        return {
-          ...note,
-          author_name: author?.name || 'Unknown',
-          images: noteImages
-        };
-      });
+          return {
+            ...note,
+            author_name: author?.name || 'Unknown',
+            images: noteImages,
+          };
+        })
+      );
 
       return this.handleSuccess(enrichedNotes);
     } catch (error) {
@@ -946,19 +958,7 @@ export class WorkOrderService extends BaseService {
         try {
           const fileExt = file.name.split('.').pop();
           const fileName = `${claims.sub}/${workOrderId}/${note.id}/${Date.now()}.${fileExt}`;
-          
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('work-order-images')
-            .upload(fileName, file);
-
-          if (uploadError) {
-            logger.error('Failed to upload image:', uploadError);
-            continue;
-          }
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('work-order-images')
-            .getPublicUrl(uploadData.path);
+          const storedPath = await uploadImageToStorage('work-order-images', fileName, file);
 
           const { data: imageRecord, error: imageError } = await supabase
             .from('work_order_images')
@@ -966,7 +966,7 @@ export class WorkOrderService extends BaseService {
               work_order_id: workOrderId,
               note_id: note.id,
               file_name: file.name,
-              file_url: publicUrl,
+              file_url: storedPath,
               file_size: file.size,
               mime_type: file.type,
               uploaded_by: claims.sub,
@@ -982,7 +982,10 @@ export class WorkOrderService extends BaseService {
 
           uploadedImages.push({
             ...imageRecord,
-            uploaded_by_name: note.author_name
+            uploaded_by_name: note.author_name,
+            file_url:
+              (await resolveImageDisplayUrl('work-order-images', imageRecord.file_url)) ??
+              imageRecord.file_url,
           });
         } catch (error) {
           logger.error('Error processing image:', error);
@@ -1041,13 +1044,18 @@ export class WorkOrderService extends BaseService {
         .select('id, name')
         .in('id', uploaderIds);
 
-      const enrichedImages: WorkOrderImage[] = images.map(image => {
-        const uploader = (profiles || []).find(p => p.id === image.uploaded_by);
-        return {
-          ...image,
-          uploaded_by_name: uploader?.name || 'Unknown'
-        };
-      });
+      const enrichedImages: WorkOrderImage[] = await Promise.all(
+        images.map(async image => {
+          const uploader = (profiles || []).find(p => p.id === image.uploaded_by);
+          const displayUrl =
+            (await resolveImageDisplayUrl('work-order-images', image.file_url)) ?? image.file_url;
+          return {
+            ...image,
+            file_url: displayUrl,
+            uploaded_by_name: uploader?.name || 'Unknown',
+          };
+        })
+      );
 
       return this.handleSuccess(enrichedImages);
     } catch (error) {
@@ -1087,20 +1095,7 @@ export class WorkOrderService extends BaseService {
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${claims.sub}/${workOrderId}/${Date.now()}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('work-order-images')
-        .upload(fileName, file);
-
-      if (uploadError) {
-        logger.error('Error uploading image:', uploadError);
-        return this.handleError(uploadError);
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('work-order-images')
-        .getPublicUrl(uploadData.path);
+      const storedPath = await uploadImageToStorage('work-order-images', fileName, file);
 
       // Save image record
       const { data: imageRecord, error: imageError } = await supabase
@@ -1109,7 +1104,7 @@ export class WorkOrderService extends BaseService {
           work_order_id: workOrderId,
           uploaded_by: claims.sub,
           file_name: file.name,
-          file_url: publicUrl,
+          file_url: storedPath,
           file_size: file.size,
           mime_type: file.type,
           description: description || null
@@ -1131,7 +1126,10 @@ export class WorkOrderService extends BaseService {
 
       return this.handleSuccess({
         ...imageRecord,
-        uploaded_by_name: profile?.name || 'Unknown'
+        uploaded_by_name: profile?.name || 'Unknown',
+        file_url:
+          (await resolveImageDisplayUrl('work-order-images', imageRecord.file_url)) ??
+          imageRecord.file_url,
       });
     } catch (error) {
       return this.handleError(error);
@@ -1186,12 +1184,11 @@ export class WorkOrderService extends BaseService {
         return this.handleError(deleteError);
       }
 
-      // Delete from storage
       try {
-        const filePath = image.file_url.split('/').slice(-4).join('/');
-        await supabase.storage
-          .from('work-order-images')
-          .remove([filePath]);
+        const filePath = normalizeStoredObjectPath(image.file_url, 'work-order-images');
+        if (filePath) {
+          await supabase.storage.from('work-order-images').remove([filePath]);
+        }
       } catch (storageError) {
         logger.warn('Failed to delete image from storage:', storageError);
         // Don't fail the operation if storage deletion fails

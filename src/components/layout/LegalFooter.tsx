@@ -73,7 +73,7 @@ export default function LegalFooter() {
             </Link>
             <span className="text-muted-foreground/40">&middot;</span>
             <Link
-              to="/privacy-request"
+              to="/do-not-sell-or-share"
               className="text-muted-foreground/70 hover:text-foreground transition-colors"
             >
               Do Not Sell

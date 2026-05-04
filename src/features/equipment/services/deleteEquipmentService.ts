@@ -2,6 +2,7 @@ import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { deleteWorkOrder } from '@/features/work-orders/services/deleteWorkOrderService';
 import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
+import { normalizeStoredObjectPath } from '@/services/imageUploadService';
 
 export interface EquipmentDeletionImpact {
   workOrders: number;
@@ -98,19 +99,13 @@ const getPMCount = async (workOrderIds: string[]): Promise<number> => {
   return count || 0;
 };
 
-// Extract storage path from URL
-const extractStoragePath = (fileUrl: string): string => {
-  const url = new URL(fileUrl);
-  const pathSegments = url.pathname.split('/');
-  // Path format: /storage/v1/object/public/bucket/path
-  return pathSegments.slice(5).join('/'); // Remove /storage/v1/object/public/bucket
-};
-
 // Delete equipment note images from storage
 const deleteEquipmentNoteImagesFromStorage = async (images: EquipmentNoteImage[]): Promise<void> => {
   if (images.length === 0) return;
 
-  const filePaths = images.map(img => extractStoragePath(img.file_url));
+  const filePaths = images
+    .map(img => normalizeStoredObjectPath(img.file_url, 'equipment-note-images'))
+    .filter((p): p is string => !!p);
   
   const results = await Promise.allSettled(
     filePaths.map(path => 

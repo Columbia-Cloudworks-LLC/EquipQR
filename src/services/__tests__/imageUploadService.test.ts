@@ -1,12 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockUpload, mockFrom } = vi.hoisted(() => {
+const { mockUpload, mockFrom, mockCreateSignedUrl, mockGetPublicUrl } = vi.hoisted(() => {
   const mockUpload = vi.fn();
+  const mockCreateSignedUrl = vi.fn();
+  const mockGetPublicUrl = vi.fn(() => ({
+    data: {
+      publicUrl: 'https://example.supabase.co/storage/v1/object/public/organization-logos/org/logo.png',
+    },
+  }));
   const mockFrom = vi.fn(() => ({
     upload: mockUpload,
-    getPublicUrl: vi.fn(() => ({ data: { publicUrl: 'https://example.test/object/public/bucket/p.jpg' } })),
+    getPublicUrl: mockGetPublicUrl,
+    createSignedUrl: mockCreateSignedUrl,
   }));
-  return { mockUpload, mockFrom };
+  return { mockUpload, mockFrom, mockCreateSignedUrl, mockGetPublicUrl };
 });
 
 vi.mock('@/integrations/supabase/client', () => ({
@@ -29,14 +36,31 @@ import {
   validateImageFile,
   compressImageFile,
   uploadImageToStorage,
+  normalizeStoredObjectPath,
+  resolveImageDisplayUrl,
+  createSignedUrlForPath,
+  DEFAULT_SIGNED_URL_TTL_SECONDS,
 } from '@/services/imageUploadService';
 
 describe('imageUploadService', () => {
   beforeEach(() => {
     vi.mocked(imageCompression).mockReset();
     mockUpload.mockResolvedValue({ data: { path: 'prefix/1.jpg' }, error: null });
+    mockCreateSignedUrl.mockImplementation((path: string, expiresIn: number) => ({
+      data: {
+        signedUrl: `https://example.supabase.co/storage/v1/object/sign/mock/${path}?e=${expiresIn}`,
+      },
+      error: null,
+    }));
+    mockGetPublicUrl.mockImplementation((path: string) => ({
+      data: {
+        publicUrl: `https://example.supabase.co/storage/v1/object/public/organization-logos/${path}`,
+      },
+    }));
     mockFrom.mockClear();
     mockUpload.mockClear();
+    mockCreateSignedUrl.mockClear();
+    mockGetPublicUrl.mockClear();
   });
 
   describe('generateFilePath', () => {
@@ -168,6 +192,90 @@ describe('imageUploadService', () => {
       await uploadImageToStorage('inventory-item-images', 'u/e/1.jpg', original, { compress: true });
       const uploaded = mockUpload.mock.calls[0][1] as File;
       expect(uploaded).toBe(original);
+    });
+
+    it('returns canonical object path for private buckets', async () => {
+      const file = new File(['x'], 'a.jpg', { type: 'image/jpeg' });
+      vi.mocked(imageCompression).mockResolvedValue(file);
+      mockUpload.mockResolvedValue({ data: { path: 'org/item/99.jpg' }, error: null });
+      const out = await uploadImageToStorage('inventory-item-images', 'org/item/99.jpg', file, {
+        compress: false,
+      });
+      expect(out).toBe('org/item/99.jpg');
+      expect(mockGetPublicUrl).not.toHaveBeenCalled();
+    });
+
+    it('returns public URL for organization-logos', async () => {
+      const file = new File(['x'], 'logo.png', { type: 'image/png' });
+      vi.mocked(imageCompression).mockResolvedValue(file);
+      mockUpload.mockResolvedValue({ data: { path: 'org/logo.png' }, error: null });
+      const out = await uploadImageToStorage('organization-logos', 'org/logo.png', file, {
+        compress: false,
+      });
+      expect(out).toContain('/storage/v1/object/public/organization-logos/org/logo.png');
+      expect(mockGetPublicUrl).toHaveBeenCalled();
+    });
+
+    it('appends cache-buster when upserting public uploads', async () => {
+      const file = new File(['x'], 'logo.png', { type: 'image/png' });
+      vi.mocked(imageCompression).mockResolvedValue(file);
+      mockUpload.mockResolvedValue({ data: { path: 'org/logo.png' }, error: null });
+      const out = await uploadImageToStorage('organization-logos', 'org/logo.png', file, {
+        compress: false,
+        upsert: true,
+      });
+      expect(out).toMatch(/\?v=\d+$/);
+    });
+  });
+
+  describe('normalizeStoredObjectPath', () => {
+    it('normalizes legacy public URLs to object paths', () => {
+      const url =
+        'https://example.supabase.co/storage/v1/object/public/work-order-images/u/wo/1.jpg';
+      expect(normalizeStoredObjectPath(url, 'work-order-images')).toBe('u/wo/1.jpg');
+    });
+
+    it('normalizes signed URLs to object paths', () => {
+      const url =
+        'https://example.supabase.co/storage/v1/object/sign/inventory-item-images/org/a/1.jpg?token=abc';
+      expect(normalizeStoredObjectPath(url, 'inventory-item-images')).toBe('org/a/1.jpg');
+    });
+
+    it('accepts bare object paths', () => {
+      expect(normalizeStoredObjectPath('user123/avatar.png', 'user-avatars')).toBe('user123/avatar.png');
+    });
+
+    it('strips query strings from bare paths', () => {
+      expect(normalizeStoredObjectPath('a/b.jpg?v=1', 'team-images')).toBe('a/b.jpg');
+    });
+  });
+
+  describe('createSignedUrlForPath', () => {
+    it('delegates to supabase storage createSignedUrl', async () => {
+      const url = await createSignedUrlForPath('team-images', 'org/photo.jpg', 120);
+      expect(url).toContain('sign/mock/org/photo.jpg');
+      expect(mockCreateSignedUrl).toHaveBeenCalledWith('org/photo.jpg', 120);
+    });
+
+    it('returns null for empty path', async () => {
+      await expect(createSignedUrlForPath('team-images', '  ', DEFAULT_SIGNED_URL_TTL_SECONDS)).resolves.toBeNull();
+      expect(mockCreateSignedUrl).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('resolveImageDisplayUrl', () => {
+    it('returns signed URL for private bucket path references', async () => {
+      const resolved = await resolveImageDisplayUrl('work-order-images', 'u/w/5.jpg');
+      expect(resolved).toContain('sign/mock/u/w/5.jpg');
+      expect(mockCreateSignedUrl).toHaveBeenCalledWith('u/w/5.jpg', DEFAULT_SIGNED_URL_TTL_SECONDS);
+    });
+
+    it('reconstructs public URL for organization logos', async () => {
+      const resolved = await resolveImageDisplayUrl(
+        'organization-logos',
+        'org123/logo.png'
+      );
+      expect(resolved).toContain('/storage/v1/object/public/organization-logos/org123/logo.png');
     });
   });
 });

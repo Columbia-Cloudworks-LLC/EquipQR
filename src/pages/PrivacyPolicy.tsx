@@ -68,9 +68,9 @@ export default function PrivacyPolicy() {
         {/* ---------------------------------------------------------------- */}
         {/* Section 2 — Individual-Level Data Collection                     */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
+        <Card id="notice-at-collection" className="scroll-mt-24">
           <CardHeader>
-            <CardTitle>2. Information We Collect — Individual User Level</CardTitle>
+            <CardTitle>2. Information We Collect — Individual User Level (Notice at Collection)</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <p>
