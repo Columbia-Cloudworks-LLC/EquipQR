@@ -227,7 +227,7 @@ export async function createSignedUrlForPath(
     .createSignedUrl(trimmed, expiresInSeconds);
 
   if (error || !data?.signedUrl) {
-    logger.warn('createSignedUrl failed', { bucket, error });
+    logger.error('createSignedUrl failed', { bucket, error });
     return null;
   }
 

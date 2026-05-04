@@ -341,8 +341,7 @@ export class EquipmentService {
         team_name: (row.team as { name?: string } | null | undefined)?.name ?? undefined,
       }));
 
-      const resolved = await withResolvedEquipmentImages(flattened);
-      return handleSuccess(resolved);
+      return handleSuccess(flattened);
     } catch (error) {
       return handleError(error);
     }

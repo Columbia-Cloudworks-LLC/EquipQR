@@ -55,6 +55,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [acceptanceTouched, setAcceptanceTouched] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [showRetryAcceptance, setShowRetryAcceptance] = useState(false);
 
   const complexity = validatePasswordComplexity(formData.password);
   const strength = calculatePasswordStrength(formData.password);
@@ -241,6 +242,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       if (accessToken) {
         const recorded = await recordTermsAcceptance(accessToken);
         if (!recorded) {
+          setShowRetryAcceptance(true);
           onError(
             'Your account was created, but we could not save legal acceptance evidence. Use “Retry acceptance” below or sign out and sign in again after verifying email.',
           );
@@ -527,9 +529,11 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
         Create Account & Organization
       </Button>
 
-      <Button type="button" variant="outline" className="w-full" onClick={handleRetryAcceptance} disabled={isLoading}>
-        Retry saving legal acceptance
-      </Button>
+      {showRetryAcceptance && (
+        <Button type="button" variant="outline" className="w-full" onClick={handleRetryAcceptance} disabled={isLoading}>
+          Retry saving legal acceptance
+        </Button>
+      )}
 
       {!isFormValid() && Object.keys(touched).length > 0 && (
         <p className="text-xs text-muted-foreground text-center">Fill in all required fields to continue</p>
