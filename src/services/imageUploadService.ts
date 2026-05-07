@@ -364,6 +364,32 @@ export async function batchResolveTeamImageDisplayUrls(
   );
 }
 
+/** Batch-sign `equipment-note-images` paths (one Storage round-trip when possible). */
+export async function batchResolveEquipmentNoteImageDisplayUrls(
+  storedRefs: (string | null | undefined)[],
+  options?: { expiresInSeconds?: number },
+): Promise<(string | null)[]> {
+  return batchResolveStoredRefsForPrivateBucket(
+    'equipment-note-images',
+    storedRefs,
+    'equipment-note-images batch',
+    options,
+  );
+}
+
+/** Batch-sign `inventory-item-images` paths (one Storage round-trip when possible). */
+export async function batchResolveInventoryItemImageDisplayUrls(
+  storedRefs: (string | null | undefined)[],
+  options?: { expiresInSeconds?: number },
+): Promise<(string | null)[]> {
+  return batchResolveStoredRefsForPrivateBucket(
+    'inventory-item-images',
+    storedRefs,
+    'inventory-item-images batch',
+    options,
+  );
+}
+
 /**
  * Normalize an equipment `image_url` reference to a single bucket-relative path.
  * Used before batch or single-bucket signing (ambiguous paths may exist in WO or note buckets).

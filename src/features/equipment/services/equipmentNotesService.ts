@@ -8,6 +8,8 @@ import {
   normalizeStoredObjectPath,
   displayUrlForStoredPrivateImage,
   deleteImageFromStorage,
+  batchResolveEquipmentNoteImageDisplayUrls,
+  extractEquipmentDisplayImagePath,
 } from '@/services/imageUploadService';
 import type { EquipmentNote, EquipmentNoteImage } from '@/features/equipment/types/equipmentNotes';
 
@@ -40,32 +42,38 @@ export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<
 
   if (error) throw error;
 
-  return Promise.all(
-    (data || []).map(async note => ({
-      ...note,
-      hours_worked: Number(note.hours_worked) || 0,
-      machine_hours: note.machine_hours != null ? Number(note.machine_hours) : null,
-      author_name: (note.profiles as { name?: string } | null | undefined)?.name || 'Unknown',
-      images: (
-        await Promise.all(
-          (note.equipment_note_images || []).map(
-            async (img: EquipmentNoteImage & { profiles?: { name?: string } }) => {
-              const url = displayUrlForStoredPrivateImage(
-                await resolveImageDisplayUrl('equipment-note-images', img.file_url),
-                img.file_url,
-              );
-              if (url == null) return null;
-              return {
-                ...img,
-                uploaded_by_name: img.profiles?.name || 'Unknown',
-                file_url: url,
-              };
-            },
-          ),
-        )
-      ).filter((img): img is EquipmentNoteImage & { uploaded_by_name: string } => img != null),
-    }))
-  );
+  const notesData = data || [];
+  type NoteImg = EquipmentNoteImage & { profiles?: { name?: string } };
+  const flat: Array<{ noteIdx: number; img: NoteImg }> = [];
+  notesData.forEach((note, noteIdx) => {
+    for (const img of note.equipment_note_images || []) {
+      flat.push({ noteIdx, img: img as NoteImg });
+    }
+  });
+
+  const signedBatch = await batchResolveEquipmentNoteImageDisplayUrls(flat.map(f => f.img.file_url));
+  const imagesByNoteIdx = new Map<number, Array<NoteImg & { uploaded_by_name: string; file_url: string }>>();
+
+  flat.forEach((entry, i) => {
+    const url = displayUrlForStoredPrivateImage(signedBatch[i], entry.img.file_url);
+    if (url == null) return;
+    const row = {
+      ...entry.img,
+      uploaded_by_name: entry.img.profiles?.name || 'Unknown',
+      file_url: url,
+    };
+    const list = imagesByNoteIdx.get(entry.noteIdx) ?? [];
+    list.push(row);
+    imagesByNoteIdx.set(entry.noteIdx, list);
+  });
+
+  return notesData.map((note, noteIdx) => ({
+    ...note,
+    hours_worked: Number(note.hours_worked) || 0,
+    machine_hours: note.machine_hours != null ? Number(note.machine_hours) : null,
+    author_name: (note.profiles as { name?: string } | null | undefined)?.name || 'Unknown',
+    images: imagesByNoteIdx.get(noteIdx) ?? [],
+  }));
 };
 
 // Legacy function for backward compatibility
@@ -295,28 +303,25 @@ export const getEquipmentImages = async (equipmentId: string) => {
 
   if (error) throw error;
 
-  return (
-    await Promise.all(
-      (data || []).map(async image => {
-        const url = displayUrlForStoredPrivateImage(
-          await resolveImageDisplayUrl('equipment-note-images', image.file_url),
-          image.file_url,
-        );
-        if (url == null) return null;
-        return {
-          ...image,
-          file_url: url,
-          uploaded_by_name: (image.profiles as { name?: string } | null | undefined)?.name || 'Unknown',
-          note_content: (image.equipment_notes as { content?: string } | null | undefined)?.content,
-          note_author_name:
-            (image.equipment_notes as { profiles?: { name?: string } } | null | undefined)?.profiles
-              ?.name || 'Unknown',
-          is_private_note: (image.equipment_notes as { is_private?: boolean } | null | undefined)
-            ?.is_private,
-        };
-      }),
-    )
-  ).filter((row): row is NonNullable<typeof row> => row != null);
+  const rows = data || [];
+  const signedBatch = await batchResolveEquipmentNoteImageDisplayUrls(rows.map(image => image.file_url));
+
+  return rows
+    .map((image, i) => {
+      const url = displayUrlForStoredPrivateImage(signedBatch[i], image.file_url);
+      if (url == null) return null;
+      return {
+        ...image,
+        file_url: url,
+        uploaded_by_name: (image.profiles as { name?: string } | null | undefined)?.name || 'Unknown',
+        note_content: (image.equipment_notes as { content?: string } | null | undefined)?.content,
+        note_author_name:
+          (image.equipment_notes as { profiles?: { name?: string } } | null | undefined)?.profiles?.name ||
+          'Unknown',
+        is_private_note: (image.equipment_notes as { is_private?: boolean } | null | undefined)?.is_private,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row != null);
 };
 
 // Delete an image
@@ -358,14 +363,16 @@ export const updateEquipmentDisplayImage = async (
   equipmentId: string,
   imageUrl: string
 ): Promise<void> => {
-  const canonical =
-    normalizeStoredObjectPath(imageUrl, 'work-order-images') ??
-    normalizeStoredObjectPath(imageUrl, 'equipment-note-images') ??
-    imageUrl;
+  const canonical = extractEquipmentDisplayImagePath(imageUrl);
+  if (!canonical) {
+    throw new Error(
+      'Could not resolve that image to a durable storage path. Choose an image from work orders or equipment notes again.',
+    );
+  }
 
   const { error } = await supabase
     .from('equipment')
-    .update({ image_url: canonical || null })
+    .update({ image_url: canonical })
     .eq('id', equipmentId)
     .eq('organization_id', organizationId);
 

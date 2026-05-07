@@ -19,8 +19,8 @@ import {
   validateImageFile,
   requireAuthUserId,
   getCurrentUserName,
-  resolveImageDisplayUrl,
   displayUrlForStoredPrivateImage,
+  batchResolveInventoryItemImageDisplayUrls,
 } from '@/services/imageUploadService';
 import { validateStorageQuota } from '@/utils/storageQuota';
 
@@ -562,17 +562,15 @@ export const getInventoryItemImages = async (
       .order('created_at', { ascending: true });
 
     if (error) throw error;
-    const resolved = await Promise.all(
-      (data || []).map(async row => {
-        const url = displayUrlForStoredPrivateImage(
-          await resolveImageDisplayUrl('inventory-item-images', row.file_url),
-          row.file_url,
-        );
+    const rows = data || [];
+    const signedBatch = await batchResolveInventoryItemImageDisplayUrls(rows.map(row => row.file_url));
+    return rows
+      .map((row, i) => {
+        const url = displayUrlForStoredPrivateImage(signedBatch[i], row.file_url);
         if (url == null) return null;
         return { ...(row as InventoryItemImage), file_url: url };
-      }),
-    );
-    return resolved.filter((row): row is InventoryItemImage => row != null);
+      })
+      .filter((row): row is InventoryItemImage => row != null);
   } catch (error) {
     logger.error('Error fetching inventory item images:', error);
     throw error;

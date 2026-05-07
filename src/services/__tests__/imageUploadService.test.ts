@@ -48,6 +48,8 @@ import {
   resolveImageDisplayUrl,
   createSignedUrlForPath,
   batchResolveEquipmentDisplayImageUrls,
+  batchResolveEquipmentNoteImageDisplayUrls,
+  batchResolveInventoryItemImageDisplayUrls,
   batchResolveTeamImageDisplayUrls,
   batchResolveWorkOrderImageDisplayUrls,
   displayUrlForStoredPrivateImage,
@@ -332,6 +334,26 @@ describe('imageUploadService', () => {
       expect(out[1]).toContain('org/a/t2.jpg');
       expect(mockCreateSignedUrls).toHaveBeenCalledTimes(1);
       expect(mockCreateSignedUrls.mock.calls[0][0]).toEqual(['org/a/t1.jpg', 'org/a/t2.jpg']);
+    });
+  });
+
+  describe('batchResolveEquipmentNoteImageDisplayUrls', () => {
+    it('uses createSignedUrls with deduped paths', async () => {
+      const paths = ['u/n/a.jpg', 'u/n/b.jpg', 'u/n/a.jpg'];
+      const out = await batchResolveEquipmentNoteImageDisplayUrls(paths);
+      expect(out).toHaveLength(3);
+      expect(mockCreateSignedUrls).toHaveBeenCalledTimes(1);
+      expect(mockCreateSignedUrls.mock.calls[0][0]).toEqual(['u/n/a.jpg', 'u/n/b.jpg']);
+    });
+  });
+
+  describe('batchResolveInventoryItemImageDisplayUrls', () => {
+    it('uses createSignedUrls with deduped paths', async () => {
+      const paths = ['org/item/a.jpg', 'org/item/b.jpg', 'org/item/a.jpg'];
+      const out = await batchResolveInventoryItemImageDisplayUrls(paths);
+      expect(out).toHaveLength(3);
+      expect(mockCreateSignedUrls).toHaveBeenCalledTimes(1);
+      expect(mockCreateSignedUrls.mock.calls[0][0]).toEqual(['org/item/a.jpg', 'org/item/b.jpg']);
     });
   });
 

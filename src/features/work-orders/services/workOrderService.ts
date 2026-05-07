@@ -1158,7 +1158,8 @@ export class WorkOrderService extends BaseService {
             const { error: dbErr } = await supabase
               .from('work_order_images')
               .delete()
-              .eq('id', imageRecord.id);
+              .eq('id', imageRecord.id)
+              .eq('work_order_id', workOrderId);
             if (dbErr) {
               logger.error('Work order image cleanup: DB delete failed after signing failure', {
                 ...cleanupCtx,
