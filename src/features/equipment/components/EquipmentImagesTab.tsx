@@ -70,7 +70,7 @@ const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
 
   // Set display image mutation
   const setDisplayImageMutation = useMutation({
-    mutationFn: (imageUrl: string) => updateEquipmentDisplayImage(equipmentId, imageUrl),
+    mutationFn: (imageUrl: string) => updateEquipmentDisplayImage(organizationId, equipmentId, imageUrl),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ['equipment']

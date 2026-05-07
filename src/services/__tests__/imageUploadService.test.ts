@@ -1,8 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockUpload, mockFrom, mockCreateSignedUrl, mockGetPublicUrl } = vi.hoisted(() => {
+const { mockUpload, mockFrom, mockCreateSignedUrl, mockCreateSignedUrls, mockGetPublicUrl } = vi.hoisted(() => {
   const mockUpload = vi.fn();
   const mockCreateSignedUrl = vi.fn();
+  const mockCreateSignedUrls = vi.fn((paths: string[], expiresIn: number) => ({
+    data: paths.map((path: string) => ({
+      path,
+      signedUrl: `https://example.supabase.co/storage/v1/object/sign/mock/${path}?e=${expiresIn}`,
+    })),
+    error: null,
+  }));
   const mockGetPublicUrl = vi.fn(() => ({
     data: {
       publicUrl: 'https://example.supabase.co/storage/v1/object/public/organization-logos/org/logo.png',
@@ -12,8 +19,9 @@ const { mockUpload, mockFrom, mockCreateSignedUrl, mockGetPublicUrl } = vi.hoist
     upload: mockUpload,
     getPublicUrl: mockGetPublicUrl,
     createSignedUrl: mockCreateSignedUrl,
+    createSignedUrls: mockCreateSignedUrls,
   }));
-  return { mockUpload, mockFrom, mockCreateSignedUrl, mockGetPublicUrl };
+  return { mockUpload, mockFrom, mockCreateSignedUrl, mockCreateSignedUrls, mockGetPublicUrl };
 });
 
 vi.mock('@/integrations/supabase/client', () => ({
@@ -39,6 +47,9 @@ import {
   normalizeStoredObjectPath,
   resolveImageDisplayUrl,
   createSignedUrlForPath,
+  batchResolveEquipmentDisplayImageUrls,
+  batchResolveWorkOrderImageDisplayUrls,
+  displayUrlForStoredPrivateImage,
   DEFAULT_SIGNED_URL_TTL_SECONDS,
 } from '@/services/imageUploadService';
 
@@ -58,8 +69,15 @@ describe('imageUploadService', () => {
       },
     }));
     mockFrom.mockClear();
+    mockFrom.mockImplementation(() => ({
+      upload: mockUpload,
+      getPublicUrl: mockGetPublicUrl,
+      createSignedUrl: mockCreateSignedUrl,
+      createSignedUrls: mockCreateSignedUrls,
+    }));
     mockUpload.mockClear();
     mockCreateSignedUrl.mockClear();
+    mockCreateSignedUrls.mockClear();
     mockGetPublicUrl.mockClear();
   });
 
@@ -252,14 +270,91 @@ describe('imageUploadService', () => {
 
   describe('createSignedUrlForPath', () => {
     it('delegates to supabase storage createSignedUrl', async () => {
-      const url = await createSignedUrlForPath('team-images', 'org/photo.jpg', 120);
+      const url = await createSignedUrlForPath('team-images', 'org/photo.jpg', { expiresInSeconds: 120 });
       expect(url).toContain('sign/mock/org/photo.jpg');
       expect(mockCreateSignedUrl).toHaveBeenCalledWith('org/photo.jpg', 120);
     });
 
     it('returns null for empty path', async () => {
-      await expect(createSignedUrlForPath('team-images', '  ', DEFAULT_SIGNED_URL_TTL_SECONDS)).resolves.toBeNull();
+      await expect(
+        createSignedUrlForPath('team-images', '  ', { expiresInSeconds: DEFAULT_SIGNED_URL_TTL_SECONDS }),
+      ).resolves.toBeNull();
       expect(mockCreateSignedUrl).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('displayUrlForStoredPrivateImage', () => {
+    it('prefers signed URL over stored path', () => {
+      expect(displayUrlForStoredPrivateImage('https://signed.example/x', 'uid/wo/n.jpg')).toBe(
+        'https://signed.example/x',
+      );
+    });
+
+    it('allows legacy absolute URLs when signing failed', () => {
+      expect(displayUrlForStoredPrivateImage(null, 'https://cdn.example/a.jpg')).toBe(
+        'https://cdn.example/a.jpg',
+      );
+    });
+
+    it('returns null for canonical path without a signed URL', () => {
+      expect(displayUrlForStoredPrivateImage(null, 'uid/work/img.jpg')).toBeNull();
+      expect(displayUrlForStoredPrivateImage(undefined, 'path-only')).toBeNull();
+    });
+  });
+
+  describe('batchResolveWorkOrderImageDisplayUrls', () => {
+    it('uses createSignedUrls with deduped paths', async () => {
+      const paths = ['u/a/1.jpg', 'u/a/2.jpg', 'u/a/1.jpg'];
+      const out = await batchResolveWorkOrderImageDisplayUrls(paths);
+      expect(out).toHaveLength(3);
+      expect(out[0]).toContain('u/a/1.jpg');
+      expect(out[1]).toContain('u/a/2.jpg');
+      expect(out[2]).toContain('u/a/1.jpg');
+      expect(mockCreateSignedUrls).toHaveBeenCalledTimes(1);
+      expect(mockCreateSignedUrls.mock.calls[0][0]).toEqual(['u/a/1.jpg', 'u/a/2.jpg']);
+    });
+
+    it('falls back to createSignedUrl when batch errors', async () => {
+      mockCreateSignedUrls.mockImplementationOnce(() => ({ data: null, error: { message: 'fail' } }));
+      const out = await batchResolveWorkOrderImageDisplayUrls(['x/y.jpg']);
+      expect(mockCreateSignedUrl).toHaveBeenCalled();
+      expect(out[0]).toContain('sign/mock/x/y.jpg');
+    });
+  });
+
+  describe('batchResolveEquipmentDisplayImageUrls', () => {
+    it('signs canonical paths via createSignedUrl on work-order bucket', async () => {
+      const out = await batchResolveEquipmentDisplayImageUrls(['u/wo/a.jpg', null, 'u/wo/b.jpg']);
+      expect(out[0]).toContain('sign/mock/u/wo/a.jpg');
+      expect(out[1]).toBeNull();
+      expect(out[2]).toContain('sign/mock/u/wo/b.jpg');
+      expect(mockCreateSignedUrl).toHaveBeenCalled();
+      expect(mockCreateSignedUrls).not.toHaveBeenCalled();
+    });
+
+    it('falls back to equipment-note bucket when work-order signing returns null', async () => {
+      mockFrom.mockImplementation((bucket: string) => ({
+        upload: mockUpload,
+        getPublicUrl: mockGetPublicUrl,
+        createSignedUrl: vi.fn((path: string, expiresIn: number) => {
+          if (bucket === 'work-order-images') {
+            return Promise.resolve({ data: null, error: { message: 'not found' } });
+          }
+          if (bucket === 'equipment-note-images') {
+            return Promise.resolve({
+              data: {
+                signedUrl: `https://example.supabase.co/storage/v1/object/sign/eq-note/${path}?e=${expiresIn}`,
+              },
+              error: null,
+            });
+          }
+          return mockCreateSignedUrl(path, expiresIn);
+        }),
+        createSignedUrls: mockCreateSignedUrls,
+      }));
+
+      const out = await batchResolveEquipmentDisplayImageUrls(['only/in/eq.jpg']);
+      expect(out[0]).toContain('sign/eq-note/only/in/eq.jpg');
     });
   });
 
@@ -276,6 +371,14 @@ describe('imageUploadService', () => {
         'org123/logo.png'
       );
       expect(resolved).toContain('/storage/v1/object/public/organization-logos/org123/logo.png');
+    });
+
+    it('preserves cache-buster query on existing public logo URLs', async () => {
+      const url =
+        'https://example.supabase.co/storage/v1/object/public/organization-logos/org123/logo.png?v=999';
+      const resolved = await resolveImageDisplayUrl('organization-logos', url);
+      expect(resolved).toBe(url);
+      expect(mockGetPublicUrl).not.toHaveBeenCalled();
     });
   });
 });

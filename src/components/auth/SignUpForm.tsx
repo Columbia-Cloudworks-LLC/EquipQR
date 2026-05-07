@@ -16,9 +16,9 @@ import {
 } from '@/lib/passwordPolicy';
 import { checkPasswordBreachedHibp } from '@/lib/hibpPasswordCheck';
 import {
-  PRIVACY_VERSION_HASH,
-  TERMS_VERSION_HASH,
-} from '@/lib/legalPolicyVersions';
+  markPendingTermsAcceptanceForUser,
+  recordTermsAcceptance,
+} from '@/lib/termsAcceptanceRecording';
 
 interface SignUpFormProps {
   onSuccess: (message: string) => void;
@@ -55,6 +55,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [acceptanceTouched, setAcceptanceTouched] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [showRetryAcceptance, setShowRetryAcceptance] = useState(false);
 
   const complexity = validatePasswordComplexity(formData.password);
   const strength = calculatePasswordStrength(formData.password);
@@ -142,25 +143,6 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
     return hcaptchaEnabled ? baseValid && !!hcaptchaToken : baseValid;
   };
 
-  const recordTermsAcceptance = async (accessToken: string): Promise<boolean> => {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const res = await fetch(`${supabaseUrl}/functions/v1/record-terms-acceptance`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        terms_version_hash: TERMS_VERSION_HASH,
-        privacy_version_hash: PRIVACY_VERSION_HASH,
-        accepted_at: new Date().toISOString(),
-      }),
-    });
-
-    const payload = await res.json().catch(() => ({}));
-    return res.ok && payload?.success === true;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -238,22 +220,37 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       }
 
       const accessToken = data.session?.access_token;
+      const newUserId = data.user?.id;
+
       if (accessToken) {
-        const recorded = await recordTermsAcceptance(accessToken);
-        if (!recorded) {
+        try {
+          const recorded = await recordTermsAcceptance(accessToken);
+          if (!recorded) {
+            setShowRetryAcceptance(true);
+            onError(
+              'Your account was created, but we could not save legal acceptance evidence. Use “Retry acceptance” below or sign out and sign in again after verifying email.',
+            );
+            setHcaptchaToken(null);
+            setIsLoading(false);
+            return;
+          }
+        } catch {
+          setShowRetryAcceptance(true);
           onError(
-            'Your account was created, but we could not save legal acceptance evidence. Use “Retry acceptance” below or sign out and sign in again after verifying email.',
+            'Your account was created, but we could not reach the server to save legal acceptance. Check your connection and use “Retry acceptance” below.',
           );
           setHcaptchaToken(null);
           setIsLoading(false);
           return;
         }
+      } else if (newUserId) {
+        markPendingTermsAcceptanceForUser(newUserId);
       }
 
       onSuccess(
         accessToken
           ? 'Account created successfully! Please check your email to verify your account and complete organization setup.'
-          : 'Account created successfully! After you verify your email, sign in once so we can finalize your Terms acceptance record. Please check your inbox to verify your account.',
+          : 'Account created successfully! After you verify your email, your first sign-in will save your Terms acceptance record automatically. Please check your inbox to verify your account.',
       );
     } catch (error) {
       onError(error instanceof Error ? error.message : 'An error occurred during sign up');
@@ -275,6 +272,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       }
       const ok = await recordTermsAcceptance(token);
       if (ok) {
+        setShowRetryAcceptance(false);
         onSuccess('Legal acceptance recorded successfully.');
       } else {
         onError('Could not record acceptance. Try again shortly or contact support.');
@@ -527,9 +525,11 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
         Create Account & Organization
       </Button>
 
-      <Button type="button" variant="outline" className="w-full" onClick={handleRetryAcceptance} disabled={isLoading}>
-        Retry saving legal acceptance
-      </Button>
+      {showRetryAcceptance && (
+        <Button type="button" variant="outline" className="w-full" onClick={handleRetryAcceptance} disabled={isLoading}>
+          Retry saving legal acceptance
+        </Button>
+      )}
 
       {!isFormValid() && Object.keys(touched).length > 0 && (
         <p className="text-xs text-muted-foreground text-center">Fill in all required fields to continue</p>

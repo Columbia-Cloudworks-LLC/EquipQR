@@ -5,8 +5,9 @@ import { validateStorageQuota } from '@/utils/storageQuota';
 import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import {
   uploadImageToStorage,
-  resolveImageDisplayUrl,
   normalizeStoredObjectPath,
+  batchResolveWorkOrderImageDisplayUrls,
+  displayUrlForStoredPrivateImage,
 } from '@/services/imageUploadService';
 
 export interface WorkOrderNote {
@@ -115,18 +116,24 @@ export const createWorkOrderNoteWithImages = async (
       uploadedImages.push({
         ...imageRecord,
         note_id: note.id,
-        file_url:
-          (await resolveImageDisplayUrl('work-order-images', imageRecord.file_url)) ??
-          imageRecord.file_url,
+        file_url: imageRecord.file_url,
       });
     } catch (error) {
       logger.error('Error processing image:', error);
     }
   }
 
+  const signedCreated = await batchResolveWorkOrderImageDisplayUrls(uploadedImages.map(i => i.file_url));
+  const withDisplayUrls = uploadedImages
+    .map((img, i) => {
+      const url = displayUrlForStoredPrivateImage(signedCreated[i], img.file_url);
+      return url == null ? null : { ...img, file_url: url };
+    })
+    .filter((row): row is WorkOrderNoteImage => row != null);
+
   return {
     ...note,
-    images: uploadedImages
+    images: withDisplayUrls,
   };
 };
 
@@ -198,34 +205,37 @@ export const getWorkOrderNotesWithImages = async (
       uploaderProfiles = uploaderData || [];
     }
 
-    return Promise.all(
-      notes.map(async note => {
-        const author = profiles.find(p => p.id === note.author_id);
+    const imagesList = allImages || [];
+    const signedBatch = await batchResolveWorkOrderImageDisplayUrls(imagesList.map(img => img.file_url));
+    const displayByImageId = new Map<string, string>();
+    imagesList.forEach((img, i) => {
+      const url = displayUrlForStoredPrivateImage(signedBatch[i], img.file_url);
+      if (url != null) displayByImageId.set(img.id, url);
+    });
 
-        const noteImages = await Promise.all(
-          (allImages || [])
-            .filter(img => img.note_id === note.id)
-            .map(async img => {
-              const uploader = uploaderProfiles.find(p => p.id === img.uploaded_by);
-              const displayUrl =
-                (await resolveImageDisplayUrl('work-order-images', img.file_url)) ?? img.file_url;
-              return {
-                ...img,
-                file_url: displayUrl,
-                uploaded_by_name: uploader?.name || 'Unknown',
-              };
-            })
-        );
+    return notes.map(note => {
+      const author = profiles.find(p => p.id === note.author_id);
 
-        return {
-          ...note,
-          hours_worked: Number(note.hours_worked) || 0,
-          machine_hours: note.machine_hours != null ? Number(note.machine_hours) : null,
-          author_name: author?.name || 'Unknown',
-          images: noteImages,
-        };
-      })
-    );
+      const noteImages = imagesList
+        .filter(img => img.note_id === note.id)
+        .filter(img => displayByImageId.has(img.id))
+        .map(img => {
+          const uploader = uploaderProfiles.find(p => p.id === img.uploaded_by);
+          return {
+            ...img,
+            file_url: displayByImageId.get(img.id)!,
+            uploaded_by_name: uploader?.name || 'Unknown',
+          };
+        });
+
+      return {
+        ...note,
+        hours_worked: Number(note.hours_worked) || 0,
+        machine_hours: note.machine_hours != null ? Number(note.machine_hours) : null,
+        author_name: author?.name || 'Unknown',
+        images: noteImages,
+      };
+    });
   } catch (error) {
     logger.error('Error fetching work order notes:', error);
     return [];
@@ -257,11 +267,13 @@ export const getWorkOrderImages = async (workOrderId: string) => {
       uploaderProfiles = uploaderData || [];
     }
 
-    return Promise.all(
-      images.map(async image => {
+    const signedBatch = await batchResolveWorkOrderImageDisplayUrls(images.map(img => img.file_url));
+
+    return images
+      .map((image, i) => {
         const uploader = uploaderProfiles.find(p => p.id === image.uploaded_by);
-        const displayUrl =
-          (await resolveImageDisplayUrl('work-order-images', image.file_url)) ?? image.file_url;
+        const displayUrl = displayUrlForStoredPrivateImage(signedBatch[i], image.file_url);
+        if (displayUrl == null) return null;
         return {
           ...image,
           file_url: displayUrl,
@@ -271,7 +283,7 @@ export const getWorkOrderImages = async (workOrderId: string) => {
           is_private_note: false,
         };
       })
-    );
+      .filter((row): row is NonNullable<typeof row> => row != null);
   } catch (error) {
     logger.error('Error fetching work order images:', error);
     return [];

@@ -6,6 +6,7 @@ import {
   uploadImageToStorage,
   resolveImageDisplayUrl,
   normalizeStoredObjectPath,
+  displayUrlForStoredPrivateImage,
 } from '@/services/imageUploadService';
 import type { EquipmentNote, EquipmentNoteImage } from '@/features/equipment/types/equipmentNotes';
 
@@ -44,16 +45,24 @@ export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<
       hours_worked: Number(note.hours_worked) || 0,
       machine_hours: note.machine_hours != null ? Number(note.machine_hours) : null,
       author_name: (note.profiles as { name?: string } | null | undefined)?.name || 'Unknown',
-      images: await Promise.all(
-        (note.equipment_note_images || []).map(
-          async (img: EquipmentNoteImage & { profiles?: { name?: string } }) => ({
-            ...img,
-            uploaded_by_name: img.profiles?.name || 'Unknown',
-            file_url:
-              (await resolveImageDisplayUrl('equipment-note-images', img.file_url)) ?? img.file_url,
-          })
+      images: (
+        await Promise.all(
+          (note.equipment_note_images || []).map(
+            async (img: EquipmentNoteImage & { profiles?: { name?: string } }) => {
+              const url = displayUrlForStoredPrivateImage(
+                await resolveImageDisplayUrl('equipment-note-images', img.file_url),
+                img.file_url,
+              );
+              if (url == null) return null;
+              return {
+                ...img,
+                uploaded_by_name: img.profiles?.name || 'Unknown',
+                file_url: url,
+              };
+            },
+          ),
         )
-      ),
+      ).filter((img): img is EquipmentNoteImage & { uploaded_by_name: string } => img != null),
     }))
   );
 };
@@ -137,12 +146,16 @@ export const createEquipmentNoteWithImages = async (
         continue;
       }
 
-      uploadedImages.push({
-        ...imageRecord,
-        file_url:
-          (await resolveImageDisplayUrl('equipment-note-images', imageRecord.file_url)) ??
-          imageRecord.file_url,
-      });
+      const displayUrl = displayUrlForStoredPrivateImage(
+        await resolveImageDisplayUrl('equipment-note-images', imageRecord.file_url),
+        imageRecord.file_url,
+      );
+      if (displayUrl != null) {
+        uploadedImages.push({
+          ...imageRecord,
+          file_url: displayUrl,
+        });
+      }
     } catch (error) {
       logger.error('Error processing image:', error);
     }
@@ -239,11 +252,19 @@ export const uploadEquipmentNoteImage = async (
     .single();
 
   if (imageError) throw imageError;
+
+  const displayUrl = displayUrlForStoredPrivateImage(
+    await resolveImageDisplayUrl('equipment-note-images', imageRecord.file_url),
+    imageRecord.file_url,
+  );
+
+  if (displayUrl == null) {
+    throw new Error('Could not generate a secure link for the uploaded image. Try again.');
+  }
+
   return {
     ...imageRecord,
-    file_url:
-      (await resolveImageDisplayUrl('equipment-note-images', imageRecord.file_url)) ??
-      imageRecord.file_url,
+    file_url: displayUrl,
   };
 };
 
@@ -271,20 +292,28 @@ export const getEquipmentImages = async (equipmentId: string) => {
 
   if (error) throw error;
 
-  return Promise.all(
-    (data || []).map(async image => ({
-      ...image,
-      file_url:
-        (await resolveImageDisplayUrl('equipment-note-images', image.file_url)) ?? image.file_url,
-      uploaded_by_name: (image.profiles as { name?: string } | null | undefined)?.name || 'Unknown',
-      note_content: (image.equipment_notes as { content?: string } | null | undefined)?.content,
-      note_author_name:
-        (image.equipment_notes as { profiles?: { name?: string } } | null | undefined)?.profiles
-          ?.name || 'Unknown',
-      is_private_note: (image.equipment_notes as { is_private?: boolean } | null | undefined)
-        ?.is_private,
-    }))
-  );
+  return (
+    await Promise.all(
+      (data || []).map(async image => {
+        const url = displayUrlForStoredPrivateImage(
+          await resolveImageDisplayUrl('equipment-note-images', image.file_url),
+          image.file_url,
+        );
+        if (url == null) return null;
+        return {
+          ...image,
+          file_url: url,
+          uploaded_by_name: (image.profiles as { name?: string } | null | undefined)?.name || 'Unknown',
+          note_content: (image.equipment_notes as { content?: string } | null | undefined)?.content,
+          note_author_name:
+            (image.equipment_notes as { profiles?: { name?: string } } | null | undefined)?.profiles
+              ?.name || 'Unknown',
+          is_private_note: (image.equipment_notes as { is_private?: boolean } | null | undefined)
+            ?.is_private,
+        };
+      }),
+    )
+  ).filter((row): row is NonNullable<typeof row> => row != null);
 };
 
 // Delete an image
@@ -321,7 +350,11 @@ export const deleteEquipmentNoteImage = async (imageId: string): Promise<void> =
 };
 
 // Update equipment display image
-export const updateEquipmentDisplayImage = async (equipmentId: string, imageUrl: string): Promise<void> => {
+export const updateEquipmentDisplayImage = async (
+  organizationId: string,
+  equipmentId: string,
+  imageUrl: string
+): Promise<void> => {
   const canonical =
     normalizeStoredObjectPath(imageUrl, 'work-order-images') ??
     normalizeStoredObjectPath(imageUrl, 'equipment-note-images') ??
@@ -330,7 +363,8 @@ export const updateEquipmentDisplayImage = async (equipmentId: string, imageUrl:
   const { error } = await supabase
     .from('equipment')
     .update({ image_url: canonical || null })
-    .eq('id', equipmentId);
+    .eq('id', equipmentId)
+    .eq('organization_id', organizationId);
 
   if (error) throw error;
 };

@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
 import { getAuthClaims } from '@/lib/authClaims';
-import { resolveEquipmentDisplayImageUrl } from '@/services/imageUploadService';
+import { batchResolveEquipmentDisplayImageUrls } from '@/services/imageUploadService';
 
 // Use Supabase types for Equipment
 export type Equipment = Tables<'equipment'>;
@@ -175,12 +175,11 @@ function handleSuccess<T>(data: T): ApiResponse<T> {
 async function withResolvedEquipmentImages<T extends { image_url?: string | null }>(
   rows: T[]
 ): Promise<T[]> {
-  return Promise.all(
-    rows.map(async row => ({
-      ...row,
-      image_url: await resolveEquipmentDisplayImageUrl(row.image_url ?? null),
-    }))
-  );
+  const urls = await batchResolveEquipmentDisplayImageUrls(rows.map(r => r.image_url ?? null));
+  return rows.map((row, i) => ({
+    ...row,
+    image_url: urls[i] ?? row.image_url ?? null,
+  }));
 }
 
 /**
@@ -341,8 +340,7 @@ export class EquipmentService {
         team_name: (row.team as { name?: string } | null | undefined)?.name ?? undefined,
       }));
 
-      const resolved = await withResolvedEquipmentImages(flattened);
-      return handleSuccess(resolved);
+      return handleSuccess(flattened);
     } catch (error) {
       return handleError(error);
     }

@@ -7,10 +7,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAppToast } from '@/hooks/useAppToast';
 import SingleImageUpload from '@/components/common/SingleImageUpload';
 import { uploadAvatar, deleteAvatar } from '@/services/profileService';
+import { useResolvedAvatarUrl } from '@/hooks/useResolvedAvatarUrl';
 import { Save, Loader2 } from 'lucide-react';
 
 const ProfileSettings = () => {
   const { currentUser, setCurrentUser } = useUser();
+  const { data: avatarDisplayUrl } = useResolvedAvatarUrl(currentUser?.avatar_url);
   const appToast = useAppToast();
   const [name, setName] = useState(currentUser?.name || '');
   const [isLoading, setIsLoading] = useState(false);
@@ -67,7 +69,7 @@ const ProfileSettings = () => {
   return (
     <>
       <SingleImageUpload
-        currentImageUrl={currentUser.avatar_url}
+        currentImageUrl={avatarDisplayUrl}
         onUpload={handleAvatarUpload}
         onDelete={handleAvatarDelete}
         maxSizeMB={5}

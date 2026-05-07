@@ -13,7 +13,10 @@ import { useMemo } from 'react';
 import type { Database } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
 import type { OrganizationMember } from '@/features/organization/types/organization';
-import { resolveImageDisplayUrl } from '@/services/imageUploadService';
+import {
+  batchResolveUserAvatarDisplayUrls,
+  displayUrlForStoredPrivateImage,
+} from '@/services/imageUploadService';
 
 // Re-export the canonical type for backward compatibility
 export type RealOrganizationMember = OrganizationMember;
@@ -65,26 +68,27 @@ export const useOrganizationMembersQuery = (organizationId: string) => {
         throw error;
       }
 
-      return Promise.all(
-        (data || []).map(async member => {
-          const rawAvatar = member.profiles?.avatar_url;
-          const avatar = rawAvatar
-            ? (await resolveImageDisplayUrl('user-avatars', rawAvatar)) ?? undefined
-            : undefined;
+      const rows = data || [];
+      const avatarRefs = rows.map(m => m.profiles?.avatar_url ?? null);
+      const signedAvatars = await batchResolveUserAvatarDisplayUrls(avatarRefs);
 
-          return {
-            id: member.user_id,
-            userId: member.user_id,
-            name: member.profiles?.name ?? 'Unknown',
-            email: member.profiles?.email ?? '',
-            role: member.role as 'owner' | 'admin' | 'member',
-            status: member.status as 'active' | 'pending' | 'inactive',
-            joinedDate: member.joined_date,
-            avatar,
-            canManageQuickBooks: member.can_manage_quickbooks ?? false,
-          };
-        })
-      );
+      return rows.map((member, i) => {
+        const rawAvatar = member.profiles?.avatar_url;
+        const avatarUrl = displayUrlForStoredPrivateImage(signedAvatars[i], rawAvatar);
+        const avatar = avatarUrl ?? undefined;
+
+        return {
+          id: member.user_id,
+          userId: member.user_id,
+          name: member.profiles?.name ?? 'Unknown',
+          email: member.profiles?.email ?? '',
+          role: member.role as 'owner' | 'admin' | 'member',
+          status: member.status as 'active' | 'pending' | 'inactive',
+          joinedDate: member.joined_date,
+          avatar,
+          canManageQuickBooks: member.can_manage_quickbooks ?? false,
+        };
+      });
     },
     enabled: !!organizationId,
     staleTime: 5 * 60 * 1000, // Increased to 5 minutes for better caching

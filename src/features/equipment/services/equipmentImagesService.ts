@@ -118,9 +118,10 @@ export const deleteEquipmentImage = async (
 
 // Update equipment display image
 export const updateEquipmentDisplayImage = async (
-  equipmentId: string, 
+  organizationId: string,
+  equipmentId: string,
   imageUrl: string
 ): Promise<void> => {
   const { updateEquipmentDisplayImage } = await import('./equipmentNotesService');
-  return updateEquipmentDisplayImage(equipmentId, imageUrl);
+  return updateEquipmentDisplayImage(organizationId, equipmentId, imageUrl);
 };

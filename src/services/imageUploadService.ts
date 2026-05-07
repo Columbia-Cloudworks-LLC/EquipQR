@@ -3,8 +3,9 @@
  *
  * DRY abstraction for uploading images to Supabase Storage buckets.
  * Private buckets persist canonical object paths in the database and rely on
- * short-lived signed URLs at read time. Public buckets (organization logos,
- * landing-page marketing assets) continue to use getPublicUrl().
+ * short-lived signed URLs at read time. Public buckets (e.g. organization
+ * logos) continue to use getPublicUrl(). Landing / marketing images use
+ * `src/lib/landingImage.ts`, not this module.
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -100,7 +101,7 @@ export async function compressImageFile(
       lastModified: Date.now(),
     });
   } catch (error) {
-    logger.warn('Image compression failed; uploading original file', {
+    logger.error('Image compression failed; uploading original file', {
       error: error instanceof Error ? error.message : String(error),
       sizeBytes: file.size,
       type: file.type,
@@ -211,27 +212,285 @@ export async function uploadImageToStorage(
   return uploadData.path;
 }
 
+export interface CreateSignedUrlForPathOptions {
+  expiresInSeconds?: number;
+  /** When false, skips logging (e.g. expected miss during multi-bucket fallback). */
+  logFailures?: boolean;
+}
+
 /**
  * Create a signed URL for an object path inside a private bucket.
  */
 export async function createSignedUrlForPath(
   bucket: StorageBucket,
   objectPath: string,
-  expiresInSeconds: number = DEFAULT_SIGNED_URL_TTL_SECONDS
+  options?: CreateSignedUrlForPathOptions
 ): Promise<string | null> {
   const trimmed = objectPath.trim();
   if (!trimmed) return null;
+
+  const expiresInSeconds = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
+  const logFailures = options?.logFailures ?? true;
 
   const { data, error } = await supabase.storage
     .from(bucket)
     .createSignedUrl(trimmed, expiresInSeconds);
 
   if (error || !data?.signedUrl) {
-    logger.warn('createSignedUrl failed', { bucket, error });
+    if (logFailures) {
+      logger.error('createSignedUrl failed', { bucket, error });
+    }
     return null;
   }
 
   return data.signedUrl;
+}
+
+/**
+ * Resolve many `work-order-images` references with one Storage `createSignedUrls` call.
+ * Falls back to `createSignedUrlForPath` when the batch response omits a path or errors.
+ */
+export async function batchResolveWorkOrderImageDisplayUrls(
+  storedRefs: (string | null | undefined)[],
+  options?: { expiresInSeconds?: number }
+): Promise<(string | null)[]> {
+  const bucket: StorageBucket = 'work-order-images';
+  const expiresIn = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
+  const results: (string | null)[] = storedRefs.map(() => null);
+
+  type Pending = { idx: number; path: string; httpFallback: string | null };
+  const pending: Pending[] = [];
+
+  storedRefs.forEach((stored, idx) => {
+    if (!stored?.trim()) return;
+
+    const trimmed = stored.trim();
+    const path = normalizeStoredObjectPath(trimmed, bucket);
+
+    if (!path) {
+      results[idx] = /^https?:\/\//i.test(trimmed) ? trimmed : null;
+      return;
+    }
+
+    const httpFallback = /^https?:\/\//i.test(trimmed) ? trimmed : null;
+    pending.push({ idx, path, httpFallback });
+  });
+
+  if (pending.length === 0) {
+    return results;
+  }
+
+  const uniquePaths = [...new Set(pending.map(p => p.path))];
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrls(uniquePaths, expiresIn);
+
+  const signedByPath = new Map<string, string>();
+  if (!error && data) {
+    for (const row of data) {
+      if (row.path && row.signedUrl) {
+        signedByPath.set(row.path, row.signedUrl);
+      }
+    }
+  } else if (error) {
+    logger.error('createSignedUrls failed for work-order-images batch', { error });
+  }
+
+  await Promise.all(
+    pending.map(async ({ idx, path, httpFallback }) => {
+      let url = signedByPath.get(path) ?? null;
+      if (!url) {
+        url = await createSignedUrlForPath(bucket, path, {
+          expiresInSeconds: expiresIn,
+          logFailures: true,
+        });
+      }
+      results[idx] = url ?? httpFallback;
+    }),
+  );
+
+  return results;
+}
+
+/**
+ * Combine a signed/private URL with legacy absolute URLs only. Canonical bucket paths must not be
+ * passed through as `<img src>` when signing fails.
+ */
+export function displayUrlForStoredPrivateImage(
+  signedOrResolved: string | null | undefined,
+  stored: string | null | undefined,
+): string | null {
+  if (signedOrResolved) return signedOrResolved;
+  const s = String(stored ?? '').trim();
+  if (/^https?:\/\//i.test(s)) return s;
+  return null;
+}
+
+/**
+ * Resolve many `user-avatars` references with one Storage `createSignedUrls` call.
+ */
+export async function batchResolveUserAvatarDisplayUrls(
+  storedRefs: (string | null | undefined)[],
+  options?: { expiresInSeconds?: number },
+): Promise<(string | null)[]> {
+  const bucket: StorageBucket = 'user-avatars';
+  const expiresIn = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
+  const results: (string | null)[] = storedRefs.map(() => null);
+
+  type Pending = { idx: number; path: string; httpFallback: string | null };
+  const pending: Pending[] = [];
+
+  storedRefs.forEach((stored, idx) => {
+    if (!stored?.trim()) return;
+
+    const trimmed = stored.trim();
+    const path = normalizeStoredObjectPath(trimmed, bucket);
+
+    if (!path) {
+      results[idx] = /^https?:\/\//i.test(trimmed) ? trimmed : null;
+      return;
+    }
+
+    const httpFallback = /^https?:\/\//i.test(trimmed) ? trimmed : null;
+    pending.push({ idx, path, httpFallback });
+  });
+
+  if (pending.length === 0) {
+    return results;
+  }
+
+  const uniquePaths = [...new Set(pending.map(p => p.path))];
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrls(uniquePaths, expiresIn);
+
+  const signedByPath = new Map<string, string>();
+  if (!error && data) {
+    for (const row of data) {
+      if (row.path && row.signedUrl) {
+        signedByPath.set(row.path, row.signedUrl);
+      }
+    }
+  } else if (error) {
+    logger.error('createSignedUrls failed for user-avatars batch', { error });
+  }
+
+  await Promise.all(
+    pending.map(async ({ idx, path, httpFallback }) => {
+      let url = signedByPath.get(path) ?? null;
+      if (!url) {
+        url = await createSignedUrlForPath(bucket, path, {
+          expiresInSeconds: expiresIn,
+          logFailures: true,
+        });
+      }
+      results[idx] = url ?? httpFallback;
+    }),
+  );
+
+  return results;
+}
+
+/**
+ * Normalize an equipment `image_url` reference to a single bucket-relative path.
+ * Used before batch or single-bucket signing (ambiguous paths may exist in WO or note buckets).
+ */
+export function extractEquipmentDisplayImagePath(stored: string | null | undefined): string | null {
+  if (!stored?.trim()) return null;
+
+  return (
+    normalizeStoredObjectPath(stored, 'work-order-images') ??
+    normalizeStoredObjectPath(stored, 'equipment-note-images') ??
+    (!/^https?:\/\//i.test(stored)
+      ? stored.trim().split('?')[0]?.replace(/^\/+/, '') ?? null
+      : null)
+  );
+}
+
+/**
+ * Resolve many equipment display image references with parallel per-path signing on the
+ * work-order bucket, then parallel signing on equipment-note for paths missing from WO.
+ *
+ * Uses individual `createSignedUrl` calls (not batch `createSignedUrls`) because the batch
+ * API returns a signed URL for every path regardless of object existence, which breaks
+ * fallback to the equipment-note bucket.
+ */
+export async function batchResolveEquipmentDisplayImageUrls(
+  storedRefs: (string | null | undefined)[],
+  options?: { expiresInSeconds?: number }
+): Promise<(string | null)[]> {
+  const expiresIn = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
+  const results: (string | null)[] = storedRefs.map(() => null);
+
+  type Pending = { idx: number; path: string; stored: string };
+  const pending: Pending[] = [];
+
+  storedRefs.forEach((stored, idx) => {
+    if (!stored?.trim()) {
+      results[idx] = null;
+      return;
+    }
+
+    const trimmed = stored.trim();
+    const woNorm = normalizeStoredObjectPath(trimmed, 'work-order-images');
+    const eqNorm = normalizeStoredObjectPath(trimmed, 'equipment-note-images');
+    if (/^https?:\/\//i.test(trimmed) && !woNorm && !eqNorm) {
+      results[idx] = trimmed;
+      return;
+    }
+
+    const path = extractEquipmentDisplayImagePath(trimmed);
+    if (!path) {
+      results[idx] = /^https?:\/\//i.test(trimmed) ? trimmed : null;
+      return;
+    }
+
+    pending.push({ idx, path, stored: trimmed });
+  });
+
+  if (pending.length === 0) {
+    return results;
+  }
+
+  const uniquePaths = [...new Set(pending.map(p => p.path))];
+
+  const woResults = await Promise.all(
+    uniquePaths.map(p =>
+      createSignedUrlForPath('work-order-images', p, {
+        expiresInSeconds: expiresIn,
+        logFailures: false,
+      }),
+    ),
+  );
+  const woSigned = new Map<string, string>();
+  uniquePaths.forEach((p, i) => {
+    const url = woResults[i];
+    if (url) woSigned.set(p, url);
+  });
+
+  const needEq = uniquePaths.filter(p => !woSigned.has(p));
+  const eqSigned = new Map<string, string>();
+  if (needEq.length > 0) {
+    const eqResults = await Promise.all(
+      needEq.map(p =>
+        createSignedUrlForPath('equipment-note-images', p, {
+          expiresInSeconds: expiresIn,
+          logFailures: false,
+        }),
+      ),
+    );
+    needEq.forEach((p, i) => {
+      const url = eqResults[i];
+      if (url) eqSigned.set(p, url);
+    });
+  }
+
+  for (const { idx, path, stored } of pending) {
+    const url = woSigned.get(path) ?? eqSigned.get(path) ?? null;
+    if (url) {
+      results[idx] = url;
+    } else {
+      results[idx] = stored.startsWith('http') ? stored : null;
+    }
+  }
+
+  return results;
 }
 
 /**
@@ -275,6 +534,11 @@ export async function resolveImageDisplayUrl(
   if (isPublicStorageBucket(bucket)) {
     const path = normalizeStoredObjectPath(stored, bucket);
     if (path) {
+      const trimmed = stored.trim();
+      if (/^https?:\/\//i.test(trimmed)) {
+        const extracted = extractPublicStoragePath(trimmed, bucket);
+        if (extracted === path) return trimmed;
+      }
       const {
         data: { publicUrl },
       } = supabase.storage.from(bucket).getPublicUrl(path);
@@ -289,39 +553,7 @@ export async function resolveImageDisplayUrl(
     return stored.startsWith('http') ? stored : null;
   }
 
-  return createSignedUrlForPath(bucket, path, expiresIn);
-}
-
-/**
- * Equipment `image_url` may reference either work-order or equipment-note buckets.
- * Path-only rows are ambiguous; we try signing against each bucket in order.
- */
-export async function resolveEquipmentDisplayImageUrl(
-  stored: string | null | undefined,
-  options?: { expiresInSeconds?: number }
-): Promise<string | null> {
-  if (!stored?.trim()) return null;
-
-  const expiresIn = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
-
-  const path =
-    normalizeStoredObjectPath(stored, 'work-order-images') ??
-    normalizeStoredObjectPath(stored, 'equipment-note-images') ??
-    (!/^https?:\/\//i.test(stored)
-      ? stored.trim().split('?')[0]?.replace(/^\/+/, '') ?? null
-      : null);
-
-  if (!path) {
-    return stored.startsWith('http') ? stored : null;
-  }
-
-  const wo = await createSignedUrlForPath('work-order-images', path, expiresIn);
-  if (wo) return wo;
-
-  const eq = await createSignedUrlForPath('equipment-note-images', path, expiresIn);
-  if (eq) return eq;
-
-  return stored.startsWith('http') ? stored : null;
+  return createSignedUrlForPath(bucket, path, { expiresInSeconds: expiresIn });
 }
 
 /**
