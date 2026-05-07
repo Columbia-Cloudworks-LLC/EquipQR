@@ -10,7 +10,6 @@ import {
   normalizeStoredObjectPath,
   batchResolveWorkOrderImageDisplayUrls,
   displayUrlForStoredPrivateImage,
-  deleteImageFromStorage,
 } from '@/services/imageUploadService';
 
 // Import and re-export unified types from the single source of truth
@@ -1149,8 +1148,41 @@ export class WorkOrderService extends BaseService {
       );
 
       if (displayUrl == null) {
-        await supabase.from('work_order_images').delete().eq('id', imageRecord.id);
-        await deleteImageFromStorage('work-order-images', storedPath);
+        const cleanupCtx = {
+          imageId: imageRecord.id,
+          storedPath,
+          workOrderId,
+        };
+        await Promise.allSettled([
+          (async () => {
+            const { error: dbErr } = await supabase
+              .from('work_order_images')
+              .delete()
+              .eq('id', imageRecord.id);
+            if (dbErr) {
+              logger.error('Work order image cleanup: DB delete failed after signing failure', {
+                ...cleanupCtx,
+                error: dbErr,
+              });
+            }
+          })(),
+          (async () => {
+            const path = normalizeStoredObjectPath(storedPath, 'work-order-images');
+            if (!path) {
+              logger.error('Work order image cleanup: invalid storage path after signing failure', cleanupCtx);
+              return;
+            }
+            const { error: storageErr } = await supabase.storage
+              .from('work-order-images')
+              .remove([path]);
+            if (storageErr) {
+              logger.error('Work order image cleanup: storage delete failed after signing failure', {
+                ...cleanupCtx,
+                error: storageErr,
+              });
+            }
+          })(),
+        ]);
         return this.handleError(
           new Error('Could not generate a secure link for the uploaded image. Try again.'),
         );

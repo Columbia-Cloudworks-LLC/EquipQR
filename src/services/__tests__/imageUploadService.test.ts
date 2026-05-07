@@ -48,6 +48,7 @@ import {
   resolveImageDisplayUrl,
   createSignedUrlForPath,
   batchResolveEquipmentDisplayImageUrls,
+  batchResolveTeamImageDisplayUrls,
   batchResolveWorkOrderImageDisplayUrls,
   displayUrlForStoredPrivateImage,
   DEFAULT_SIGNED_URL_TTL_SECONDS,
@@ -319,6 +320,18 @@ describe('imageUploadService', () => {
       const out = await batchResolveWorkOrderImageDisplayUrls(['x/y.jpg']);
       expect(mockCreateSignedUrl).toHaveBeenCalled();
       expect(out[0]).toContain('sign/mock/x/y.jpg');
+    });
+  });
+
+  describe('batchResolveTeamImageDisplayUrls', () => {
+    it('uses createSignedUrls with deduped paths', async () => {
+      const paths = ['org/a/t1.jpg', 'org/a/t2.jpg', 'org/a/t1.jpg'];
+      const out = await batchResolveTeamImageDisplayUrls(paths);
+      expect(out).toHaveLength(3);
+      expect(out[0]).toContain('org/a/t1.jpg');
+      expect(out[1]).toContain('org/a/t2.jpg');
+      expect(mockCreateSignedUrls).toHaveBeenCalledTimes(1);
+      expect(mockCreateSignedUrls.mock.calls[0][0]).toEqual(['org/a/t1.jpg', 'org/a/t2.jpg']);
     });
   });
 

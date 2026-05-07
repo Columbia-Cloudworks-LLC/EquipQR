@@ -13,6 +13,8 @@ import type {
 import {
   uploadImageToStorage,
   resolveImageDisplayUrl,
+  batchResolveTeamImageDisplayUrls,
+  displayUrlForStoredPrivateImage,
   deleteImageFromStorage,
   generateSingleFilePath,
   validateImageFile,
@@ -448,7 +450,11 @@ export const getOrganizationTeamsOptimized = async (organizationId: string): Pro
 
     if (error) throw error;
 
-    return Promise.all((data || []).map(async team => {
+    const teams = data || [];
+    const rawImages = teams.map(t => (t as TeamRow).image_url ?? null);
+    const signedBatch = await batchResolveTeamImageDisplayUrls(rawImages);
+
+    return teams.map((team, i) => {
       const customer = (team as Record<string, unknown>).customers as
         { id: string; name: string; status: string; quickbooks_synced_at: string | null } | null;
       const rawImage = (team as TeamRow).image_url;
@@ -460,9 +466,7 @@ export const getOrganizationTeamsOptimized = async (organizationId: string): Pro
         member_count: team.team_members?.[0]?.count || 0,
         created_at: team.created_at,
         updated_at: team.updated_at,
-        image_url: rawImage
-          ? (await resolveImageDisplayUrl('team-images', rawImage)) ?? rawImage
-          : null,
+        image_url: displayUrlForStoredPrivateImage(signedBatch[i], rawImage),
         location_address: team.location_address,
         location_city: team.location_city,
         location_state: team.location_state,
@@ -475,7 +479,7 @@ export const getOrganizationTeamsOptimized = async (organizationId: string): Pro
         customer_status: customer?.status ?? null,
         quickbooks_synced_at: customer?.quickbooks_synced_at ?? null,
       };
-    }));
+    });
   } catch (error) {
     logger.error('Error fetching organization teams:', error);
     return [];
@@ -506,6 +510,7 @@ export const getTeamByIdOptimized = async (teamId: string): Promise<Team | null>
       { id: string; name: string; status: string; quickbooks_synced_at: string | null } | null;
 
     const rawImage = (data as unknown as TeamRow).image_url;
+    const [signedForTeam] = await batchResolveTeamImageDisplayUrls(rawImage ? [rawImage] : []);
 
     return {
       id: data.id,
@@ -515,9 +520,7 @@ export const getTeamByIdOptimized = async (teamId: string): Promise<Team | null>
       member_count: data.team_members?.[0]?.count || 0,
       created_at: data.created_at,
       updated_at: data.updated_at,
-      image_url: rawImage
-        ? (await resolveImageDisplayUrl('team-images', rawImage)) ?? rawImage
-        : null,
+      image_url: displayUrlForStoredPrivateImage(signedForTeam, rawImage),
       location_address: data.location_address,
       location_city: data.location_city,
       location_state: data.location_state,
@@ -598,7 +601,15 @@ export const uploadTeamImage = async (
     throw new Error('Failed to save team image');
   }
 
-  return (await resolveImageDisplayUrl('team-images', storedPath)) ?? storedPath;
+  const displayUrl = displayUrlForStoredPrivateImage(
+    await resolveImageDisplayUrl('team-images', storedPath),
+    storedPath,
+  );
+  if (displayUrl == null) {
+    logger.error('Could not sign team image URL after upload', { teamId, storedPath });
+    throw new Error('Could not generate a secure link for the team image. Try again.');
+  }
+  return displayUrl;
 };
 
 /**
