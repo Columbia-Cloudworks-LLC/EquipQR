@@ -12,13 +12,16 @@ import {
   createErrorResponse,
 } from '../_shared/supabase-clients.ts';
 import { MissingSecretError } from '../_shared/require-secret.ts';
+import {
+  PRIVACY_VERSION_HASH,
+  TERMS_VERSION_HASH,
+} from '../_shared/legal-policy-versions.ts';
 
 const FUNCTION_NAME = 'record-terms-acceptance';
 
 interface Body {
   terms_version_hash: string;
   privacy_version_hash: string;
-  accepted_at?: string;
 }
 
 Deno.serve(
@@ -44,12 +47,20 @@ Deno.serve(
         return createErrorResponse('Invalid JSON body', 400, { req });
       }
 
-      const termsHash = typeof body.terms_version_hash === 'string' ? body.terms_version_hash.trim() : '';
-      const privacyHash =
+      const clientTerms = typeof body.terms_version_hash === 'string' ? body.terms_version_hash.trim() : '';
+      const clientPrivacy =
         typeof body.privacy_version_hash === 'string' ? body.privacy_version_hash.trim() : '';
 
-      if (!termsHash || !privacyHash || termsHash.length > 256 || privacyHash.length > 256) {
+      if (!clientTerms || !clientPrivacy || clientTerms.length > 256 || clientPrivacy.length > 256) {
         return createErrorResponse('Invalid request body: legal version hashes invalid', 400, { req });
+      }
+
+      if (clientTerms !== TERMS_VERSION_HASH || clientPrivacy !== PRIVACY_VERSION_HASH) {
+        return createErrorResponse(
+          'Legal policy version mismatch; refresh the app and accept the current Terms and Privacy Policy.',
+          409,
+          { req },
+        );
       }
 
       const forwarded = req.headers.get('x-forwarded-for');
@@ -60,13 +71,7 @@ Deno.serve(
       const ip = rawIp.length > 128 ? rawIp.slice(0, 128) : rawIp;
       const userAgent = req.headers.get('user-agent')?.slice(0, 2000) || 'unknown';
 
-      let acceptedAt = new Date().toISOString();
-      if (body.accepted_at) {
-        const parsed = Date.parse(body.accepted_at);
-        if (!Number.isNaN(parsed)) {
-          acceptedAt = new Date(parsed).toISOString();
-        }
-      }
+      const acceptedAt = new Date().toISOString();
 
       const admin = createAdminSupabaseClient();
       const { error } = await admin.from('terms_acceptances').insert({
@@ -74,8 +79,8 @@ Deno.serve(
         accepted_at: acceptedAt,
         ip_address: ip,
         user_agent: userAgent,
-        terms_version_hash: termsHash,
-        privacy_version_hash: privacyHash,
+        terms_version_hash: TERMS_VERSION_HASH,
+        privacy_version_hash: PRIVACY_VERSION_HASH,
       });
 
       if (error) {

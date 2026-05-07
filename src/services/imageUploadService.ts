@@ -246,6 +246,70 @@ export async function createSignedUrlForPath(
 }
 
 /**
+ * Resolve many `work-order-images` references with one Storage `createSignedUrls` call.
+ * Falls back to `createSignedUrlForPath` when the batch response omits a path or errors.
+ */
+export async function batchResolveWorkOrderImageDisplayUrls(
+  storedRefs: (string | null | undefined)[],
+  options?: { expiresInSeconds?: number }
+): Promise<(string | null)[]> {
+  const bucket: StorageBucket = 'work-order-images';
+  const expiresIn = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
+  const results: (string | null)[] = storedRefs.map(() => null);
+
+  type Pending = { idx: number; path: string; httpFallback: string | null };
+  const pending: Pending[] = [];
+
+  storedRefs.forEach((stored, idx) => {
+    if (!stored?.trim()) return;
+
+    const trimmed = stored.trim();
+    const path = normalizeStoredObjectPath(trimmed, bucket);
+
+    if (!path) {
+      results[idx] = /^https?:\/\//i.test(trimmed) ? trimmed : null;
+      return;
+    }
+
+    const httpFallback = /^https?:\/\//i.test(trimmed) ? trimmed : null;
+    pending.push({ idx, path, httpFallback });
+  });
+
+  if (pending.length === 0) {
+    return results;
+  }
+
+  const uniquePaths = [...new Set(pending.map(p => p.path))];
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrls(uniquePaths, expiresIn);
+
+  const signedByPath = new Map<string, string>();
+  if (!error && data) {
+    for (const row of data) {
+      if (row.path && row.signedUrl) {
+        signedByPath.set(row.path, row.signedUrl);
+      }
+    }
+  } else if (error) {
+    logger.error('createSignedUrls failed for work-order-images batch', { error });
+  }
+
+  await Promise.all(
+    pending.map(async ({ idx, path, httpFallback }) => {
+      let url = signedByPath.get(path) ?? null;
+      if (!url) {
+        url = await createSignedUrlForPath(bucket, path, {
+          expiresInSeconds: expiresIn,
+          logFailures: true,
+        });
+      }
+      results[idx] = url ?? httpFallback;
+    }),
+  );
+
+  return results;
+}
+
+/**
  * Normalize an equipment `image_url` reference to a single bucket-relative path.
  * Used before batch or single-bucket signing (ambiguous paths may exist in WO or note buckets).
  */

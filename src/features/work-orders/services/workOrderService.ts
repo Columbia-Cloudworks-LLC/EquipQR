@@ -8,6 +8,7 @@ import {
   uploadImageToStorage,
   resolveImageDisplayUrl,
   normalizeStoredObjectPath,
+  batchResolveWorkOrderImageDisplayUrls,
 } from '@/services/imageUploadService';
 
 // Import and re-export unified types from the single source of truth
@@ -834,32 +835,36 @@ export class WorkOrderService extends BaseService {
         uploaderProfiles = uploaderData || [];
       }
 
-      // Map notes with authors and images
-      const enrichedNotes: WorkOrderNote[] = await Promise.all(
-        notes.map(async note => {
-          const author = (profiles || []).find(p => p.id === note.author_id);
-          const noteImages = await Promise.all(
-            (allImages || [])
-              .filter(img => img.note_id === note.id)
-              .map(async img => {
-                const uploader = uploaderProfiles.find(p => p.id === img.uploaded_by);
-                const displayUrl =
-                  (await resolveImageDisplayUrl('work-order-images', img.file_url)) ?? img.file_url;
-                return {
-                  ...img,
-                  file_url: displayUrl,
-                  uploaded_by_name: uploader?.name || 'Unknown',
-                };
-              })
-          );
-
-          return {
-            ...note,
-            author_name: author?.name || 'Unknown',
-            images: noteImages,
-          };
-        })
+      const imagesList = allImages || [];
+      const signedForImages = await batchResolveWorkOrderImageDisplayUrls(
+        imagesList.map(img => img.file_url),
       );
+      const resolvedByImageId = new Map<string, string>();
+      imagesList.forEach((img, i) => {
+        resolvedByImageId.set(img.id, signedForImages[i] ?? img.file_url);
+      });
+
+      // Map notes with authors and images
+      const enrichedNotes: WorkOrderNote[] = notes.map(note => {
+        const author = (profiles || []).find(p => p.id === note.author_id);
+        const noteImages = imagesList
+          .filter(img => img.note_id === note.id)
+          .map(img => {
+            const uploader = uploaderProfiles.find(p => p.id === img.uploaded_by);
+            const displayUrl = resolvedByImageId.get(img.id) ?? img.file_url;
+            return {
+              ...img,
+              file_url: displayUrl,
+              uploaded_by_name: uploader?.name || 'Unknown',
+            };
+          });
+
+        return {
+          ...note,
+          author_name: author?.name || 'Unknown',
+          images: noteImages,
+        };
+      });
 
       return this.handleSuccess(enrichedNotes);
     } catch (error) {
@@ -983,18 +988,24 @@ export class WorkOrderService extends BaseService {
           uploadedImages.push({
             ...imageRecord,
             uploaded_by_name: note.author_name,
-            file_url:
-              (await resolveImageDisplayUrl('work-order-images', imageRecord.file_url)) ??
-              imageRecord.file_url,
+            file_url: imageRecord.file_url,
           });
         } catch (error) {
           logger.error('Error processing image:', error);
         }
       }
 
+      const signedUploads = await batchResolveWorkOrderImageDisplayUrls(
+        uploadedImages.map(img => img.file_url),
+      );
+      const uploadedWithUrls = uploadedImages.map((img, i) => ({
+        ...img,
+        file_url: signedUploads[i] ?? img.file_url,
+      }));
+
       return this.handleSuccess({
         ...note,
-        images: uploadedImages
+        images: uploadedWithUrls,
       });
     } catch (error) {
       return this.handleError(error);
@@ -1044,18 +1055,16 @@ export class WorkOrderService extends BaseService {
         .select('id, name')
         .in('id', uploaderIds);
 
-      const enrichedImages: WorkOrderImage[] = await Promise.all(
-        images.map(async image => {
-          const uploader = (profiles || []).find(p => p.id === image.uploaded_by);
-          const displayUrl =
-            (await resolveImageDisplayUrl('work-order-images', image.file_url)) ?? image.file_url;
-          return {
-            ...image,
-            file_url: displayUrl,
-            uploaded_by_name: uploader?.name || 'Unknown',
-          };
-        })
-      );
+      const signedUrls = await batchResolveWorkOrderImageDisplayUrls(images.map(img => img.file_url));
+      const enrichedImages: WorkOrderImage[] = images.map((image, i) => {
+        const uploader = (profiles || []).find(p => p.id === image.uploaded_by);
+        const displayUrl = signedUrls[i] ?? image.file_url;
+        return {
+          ...image,
+          file_url: displayUrl,
+          uploaded_by_name: uploader?.name || 'Unknown',
+        };
+      });
 
       return this.handleSuccess(enrichedImages);
     } catch (error) {

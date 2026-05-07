@@ -48,6 +48,7 @@ import {
   resolveImageDisplayUrl,
   createSignedUrlForPath,
   batchResolveEquipmentDisplayImageUrls,
+  batchResolveWorkOrderImageDisplayUrls,
   DEFAULT_SIGNED_URL_TTL_SECONDS,
 } from '@/services/imageUploadService';
 
@@ -278,6 +279,26 @@ describe('imageUploadService', () => {
         createSignedUrlForPath('team-images', '  ', { expiresInSeconds: DEFAULT_SIGNED_URL_TTL_SECONDS }),
       ).resolves.toBeNull();
       expect(mockCreateSignedUrl).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('batchResolveWorkOrderImageDisplayUrls', () => {
+    it('uses createSignedUrls with deduped paths', async () => {
+      const paths = ['u/a/1.jpg', 'u/a/2.jpg', 'u/a/1.jpg'];
+      const out = await batchResolveWorkOrderImageDisplayUrls(paths);
+      expect(out).toHaveLength(3);
+      expect(out[0]).toContain('u/a/1.jpg');
+      expect(out[1]).toContain('u/a/2.jpg');
+      expect(out[2]).toContain('u/a/1.jpg');
+      expect(mockCreateSignedUrls).toHaveBeenCalledTimes(1);
+      expect(mockCreateSignedUrls.mock.calls[0][0]).toEqual(['u/a/1.jpg', 'u/a/2.jpg']);
+    });
+
+    it('falls back to createSignedUrl when batch errors', async () => {
+      mockCreateSignedUrls.mockImplementationOnce(() => ({ data: null, error: { message: 'fail' } }));
+      const out = await batchResolveWorkOrderImageDisplayUrls(['x/y.jpg']);
+      expect(mockCreateSignedUrl).toHaveBeenCalled();
+      expect(out[0]).toContain('sign/mock/x/y.jpg');
     });
   });
 

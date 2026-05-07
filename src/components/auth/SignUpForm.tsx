@@ -154,7 +154,6 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       body: JSON.stringify({
         terms_version_hash: TERMS_VERSION_HASH,
         privacy_version_hash: PRIVACY_VERSION_HASH,
-        accepted_at: new Date().toISOString(),
       }),
     });
 

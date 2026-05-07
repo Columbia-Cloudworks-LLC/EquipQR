@@ -42,7 +42,8 @@ export async function checkPasswordBreachedHibp(password: string): Promise<HibpC
     for (const line of body.split('\r\n')) {
       if (!line.trim()) continue;
       const parsed = parseSuffixLine(line);
-      if (parsed && parsed.suffix === suffix) {
+      // HIBP padding lines use count 0; matching only the suffix would false-positive.
+      if (parsed && parsed.suffix === suffix && parsed.count > 0) {
         return { status: 'ok', breached: true };
       }
     }
