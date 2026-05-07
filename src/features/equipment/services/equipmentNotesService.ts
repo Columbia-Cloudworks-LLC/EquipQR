@@ -363,6 +363,17 @@ export const updateEquipmentDisplayImage = async (
   equipmentId: string,
   imageUrl: string
 ): Promise<void> => {
+  if (!imageUrl.trim()) {
+    const { error } = await supabase
+      .from('equipment')
+      .update({ image_url: null })
+      .eq('id', equipmentId)
+      .eq('organization_id', organizationId);
+
+    if (error) throw error;
+    return;
+  }
+
   const canonical = extractEquipmentDisplayImagePath(imageUrl);
   if (!canonical) {
     throw new Error(
