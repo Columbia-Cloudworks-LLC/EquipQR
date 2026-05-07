@@ -70,11 +70,18 @@ const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
 
   // Set display image mutation
   const setDisplayImageMutation = useMutation({
-    mutationFn: (imageUrl: string) => updateEquipmentDisplayImage(organizationId, equipmentId, imageUrl),
+    mutationFn: (imageUrl: string) => {
+      if (!currentOrganization?.id) {
+        throw new Error('No active organization selected');
+      }
+      return updateEquipmentDisplayImage(currentOrganization.id, equipmentId, imageUrl);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['equipment']
-      });
+      if (currentOrganization?.id) {
+        queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization.id] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      }
       toast.success('Display image updated successfully');
     },
     onError: (error) => {
