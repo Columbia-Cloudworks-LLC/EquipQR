@@ -16,6 +16,7 @@ import {
 } from '@/lib/passwordPolicy';
 import { checkPasswordBreachedHibp } from '@/lib/hibpPasswordCheck';
 import {
+  clearPendingTermsAcceptanceForUser,
   markPendingTermsAcceptanceForUser,
   recordTermsAcceptance,
 } from '@/lib/termsAcceptanceRecording';
@@ -226,6 +227,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
         try {
           const recorded = await recordTermsAcceptance(accessToken);
           if (!recorded) {
+            if (newUserId) markPendingTermsAcceptanceForUser(newUserId);
             setShowRetryAcceptance(true);
             onError(
               'Your account was created, but we could not save legal acceptance evidence. Use “Retry acceptance” below or sign out and sign in again after verifying email.',
@@ -235,6 +237,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
             return;
           }
         } catch {
+          if (newUserId) markPendingTermsAcceptanceForUser(newUserId);
           setShowRetryAcceptance(true);
           onError(
             'Your account was created, but we could not reach the server to save legal acceptance. Check your connection and use “Retry acceptance” below.',
@@ -273,6 +276,8 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       const ok = await recordTermsAcceptance(token);
       if (ok) {
         setShowRetryAcceptance(false);
+        const uid = data.session?.user?.id;
+        if (uid) clearPendingTermsAcceptanceForUser(uid);
         onSuccess('Legal acceptance recorded successfully.');
       } else {
         onError('Could not record acceptance. Try again shortly or contact support.');

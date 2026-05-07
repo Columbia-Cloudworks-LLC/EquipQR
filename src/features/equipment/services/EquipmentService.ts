@@ -178,7 +178,7 @@ async function withResolvedEquipmentImages<T extends { image_url?: string | null
   const urls = await batchResolveEquipmentDisplayImageUrls(rows.map(r => r.image_url ?? null));
   return rows.map((row, i) => ({
     ...row,
-    image_url: urls[i] ?? row.image_url ?? null,
+    image_url: urls[i] ?? null,
   }));
 }
 

@@ -73,9 +73,7 @@ export function schedulePendingTermsAcceptanceFlush(userIdAtEvent: string): void
         });
       })
       .catch(err => {
-        if (import.meta.env.DEV) {
-          logger.warn('Deferred terms acceptance flush skipped', err);
-        }
+        logger.error('Deferred terms acceptance flush failed', err);
       });
   });
 }
