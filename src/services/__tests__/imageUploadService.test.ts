@@ -331,5 +331,13 @@ describe('imageUploadService', () => {
       );
       expect(resolved).toContain('/storage/v1/object/public/organization-logos/org123/logo.png');
     });
+
+    it('preserves cache-buster query on existing public logo URLs', async () => {
+      const url =
+        'https://example.supabase.co/storage/v1/object/public/organization-logos/org123/logo.png?v=999';
+      const resolved = await resolveImageDisplayUrl('organization-logos', url);
+      expect(resolved).toBe(url);
+      expect(mockGetPublicUrl).not.toHaveBeenCalled();
+    });
   });
 });

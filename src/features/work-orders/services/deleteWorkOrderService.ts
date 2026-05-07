@@ -46,7 +46,7 @@ export const deleteWorkOrderCascade = async (workOrderId: string): Promise<void>
         .remove(filePaths);
 
       if (storageError) {
-        logger.warn('Some storage files could not be deleted:', storageError);
+        logger.error('Some storage files could not be deleted:', storageError);
         // Continue with database deletion even if storage cleanup fails
       }
     }

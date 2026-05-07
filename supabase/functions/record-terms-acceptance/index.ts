@@ -53,10 +53,11 @@ Deno.serve(
       }
 
       const forwarded = req.headers.get('x-forwarded-for');
-      const ip =
+      const rawIp =
         forwarded?.split(',')[0]?.trim() ||
         req.headers.get('x-real-ip')?.trim() ||
         'unknown';
+      const ip = rawIp.length > 128 ? rawIp.slice(0, 128) : rawIp;
       const userAgent = req.headers.get('user-agent')?.slice(0, 2000) || 'unknown';
 
       let acceptedAt = new Date().toISOString();

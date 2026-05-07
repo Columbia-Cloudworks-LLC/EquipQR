@@ -1190,7 +1190,7 @@ export class WorkOrderService extends BaseService {
           await supabase.storage.from('work-order-images').remove([filePath]);
         }
       } catch (storageError) {
-        logger.warn('Failed to delete image from storage:', storageError);
+        logger.error('Failed to delete image from storage:', storageError);
         // Don't fail the operation if storage deletion fails
       }
 

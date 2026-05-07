@@ -277,6 +277,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       }
       const ok = await recordTermsAcceptance(token);
       if (ok) {
+        setShowRetryAcceptance(false);
         onSuccess('Legal acceptance recorded successfully.');
       } else {
         onError('Could not record acceptance. Try again shortly or contact support.');

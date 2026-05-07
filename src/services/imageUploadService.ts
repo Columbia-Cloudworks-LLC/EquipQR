@@ -100,7 +100,7 @@ export async function compressImageFile(
       lastModified: Date.now(),
     });
   } catch (error) {
-    logger.warn('Image compression failed; uploading original file', {
+    logger.error('Image compression failed; uploading original file', {
       error: error instanceof Error ? error.message : String(error),
       sizeBytes: file.size,
       type: file.type,
@@ -392,6 +392,11 @@ export async function resolveImageDisplayUrl(
   if (isPublicStorageBucket(bucket)) {
     const path = normalizeStoredObjectPath(stored, bucket);
     if (path) {
+      const trimmed = stored.trim();
+      if (/^https?:\/\//i.test(trimmed)) {
+        const extracted = extractPublicStoragePath(trimmed, bucket);
+        if (extracted === path) return trimmed;
+      }
       const {
         data: { publicUrl },
       } = supabase.storage.from(bucket).getPublicUrl(path);

@@ -118,7 +118,7 @@ const deleteEquipmentNoteImagesFromStorage = async (images: EquipmentNoteImage[]
   // Log any failures but don't throw
   results.forEach((result, index) => {
     if (result.status === 'rejected') {
-      logger.warn(`Failed to delete equipment note image ${filePaths[index]}:`, result.reason);
+      logger.error(`Failed to delete equipment note image ${filePaths[index]}:`, result.reason);
     }
   });
 };
