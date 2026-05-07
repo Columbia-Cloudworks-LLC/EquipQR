@@ -992,7 +992,6 @@ export class WorkOrderService extends BaseService {
           uploadedImages.push({
             ...imageRecord,
             uploaded_by_name: note.author_name,
-            file_url: imageRecord.file_url,
           });
         } catch (error) {
           logger.error('Error processing image:', error);

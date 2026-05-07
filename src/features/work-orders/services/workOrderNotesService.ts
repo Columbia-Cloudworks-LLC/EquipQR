@@ -116,7 +116,6 @@ export const createWorkOrderNoteWithImages = async (
       uploadedImages.push({
         ...imageRecord,
         note_id: note.id,
-        file_url: imageRecord.file_url,
       });
     } catch (error) {
       logger.error('Error processing image:', error);
