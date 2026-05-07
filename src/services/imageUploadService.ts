@@ -310,6 +310,83 @@ export async function batchResolveWorkOrderImageDisplayUrls(
 }
 
 /**
+ * Combine a signed/private URL with legacy absolute URLs only. Canonical bucket paths must not be
+ * passed through as `<img src>` when signing fails.
+ */
+export function displayUrlForStoredPrivateImage(
+  signedOrResolved: string | null | undefined,
+  stored: string | null | undefined,
+): string | null {
+  if (signedOrResolved) return signedOrResolved;
+  const s = String(stored ?? '').trim();
+  if (/^https?:\/\//i.test(s)) return s;
+  return null;
+}
+
+/**
+ * Resolve many `user-avatars` references with one Storage `createSignedUrls` call.
+ */
+export async function batchResolveUserAvatarDisplayUrls(
+  storedRefs: (string | null | undefined)[],
+  options?: { expiresInSeconds?: number },
+): Promise<(string | null)[]> {
+  const bucket: StorageBucket = 'user-avatars';
+  const expiresIn = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
+  const results: (string | null)[] = storedRefs.map(() => null);
+
+  type Pending = { idx: number; path: string; httpFallback: string | null };
+  const pending: Pending[] = [];
+
+  storedRefs.forEach((stored, idx) => {
+    if (!stored?.trim()) return;
+
+    const trimmed = stored.trim();
+    const path = normalizeStoredObjectPath(trimmed, bucket);
+
+    if (!path) {
+      results[idx] = /^https?:\/\//i.test(trimmed) ? trimmed : null;
+      return;
+    }
+
+    const httpFallback = /^https?:\/\//i.test(trimmed) ? trimmed : null;
+    pending.push({ idx, path, httpFallback });
+  });
+
+  if (pending.length === 0) {
+    return results;
+  }
+
+  const uniquePaths = [...new Set(pending.map(p => p.path))];
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrls(uniquePaths, expiresIn);
+
+  const signedByPath = new Map<string, string>();
+  if (!error && data) {
+    for (const row of data) {
+      if (row.path && row.signedUrl) {
+        signedByPath.set(row.path, row.signedUrl);
+      }
+    }
+  } else if (error) {
+    logger.error('createSignedUrls failed for user-avatars batch', { error });
+  }
+
+  await Promise.all(
+    pending.map(async ({ idx, path, httpFallback }) => {
+      let url = signedByPath.get(path) ?? null;
+      if (!url) {
+        url = await createSignedUrlForPath(bucket, path, {
+          expiresInSeconds: expiresIn,
+          logFailures: true,
+        });
+      }
+      results[idx] = url ?? httpFallback;
+    }),
+  );
+
+  return results;
+}
+
+/**
  * Normalize an equipment `image_url` reference to a single bucket-relative path.
  * Used before batch or single-bucket signing (ambiguous paths may exist in WO or note buckets).
  */

@@ -49,6 +49,7 @@ import {
   createSignedUrlForPath,
   batchResolveEquipmentDisplayImageUrls,
   batchResolveWorkOrderImageDisplayUrls,
+  displayUrlForStoredPrivateImage,
   DEFAULT_SIGNED_URL_TTL_SECONDS,
 } from '@/services/imageUploadService';
 
@@ -279,6 +280,25 @@ describe('imageUploadService', () => {
         createSignedUrlForPath('team-images', '  ', { expiresInSeconds: DEFAULT_SIGNED_URL_TTL_SECONDS }),
       ).resolves.toBeNull();
       expect(mockCreateSignedUrl).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('displayUrlForStoredPrivateImage', () => {
+    it('prefers signed URL over stored path', () => {
+      expect(displayUrlForStoredPrivateImage('https://signed.example/x', 'uid/wo/n.jpg')).toBe(
+        'https://signed.example/x',
+      );
+    });
+
+    it('allows legacy absolute URLs when signing failed', () => {
+      expect(displayUrlForStoredPrivateImage(null, 'https://cdn.example/a.jpg')).toBe(
+        'https://cdn.example/a.jpg',
+      );
+    });
+
+    it('returns null for canonical path without a signed URL', () => {
+      expect(displayUrlForStoredPrivateImage(null, 'uid/work/img.jpg')).toBeNull();
+      expect(displayUrlForStoredPrivateImage(undefined, 'path-only')).toBeNull();
     });
   });
 

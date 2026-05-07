@@ -239,11 +239,21 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
 
       const accessToken = data.session?.access_token;
       if (accessToken) {
-        const recorded = await recordTermsAcceptance(accessToken);
-        if (!recorded) {
+        try {
+          const recorded = await recordTermsAcceptance(accessToken);
+          if (!recorded) {
+            setShowRetryAcceptance(true);
+            onError(
+              'Your account was created, but we could not save legal acceptance evidence. Use “Retry acceptance” below or sign out and sign in again after verifying email.',
+            );
+            setHcaptchaToken(null);
+            setIsLoading(false);
+            return;
+          }
+        } catch {
           setShowRetryAcceptance(true);
           onError(
-            'Your account was created, but we could not save legal acceptance evidence. Use “Retry acceptance” below or sign out and sign in again after verifying email.',
+            'Your account was created, but we could not reach the server to save legal acceptance. Check your connection and use “Retry acceptance” below.',
           );
           setHcaptchaToken(null);
           setIsLoading(false);

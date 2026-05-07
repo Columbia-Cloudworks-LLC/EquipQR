@@ -9,6 +9,7 @@ import {
   resolveImageDisplayUrl,
   normalizeStoredObjectPath,
   batchResolveWorkOrderImageDisplayUrls,
+  displayUrlForStoredPrivateImage,
 } from '@/services/imageUploadService';
 
 // Import and re-export unified types from the single source of truth
@@ -841,7 +842,10 @@ export class WorkOrderService extends BaseService {
       );
       const resolvedByImageId = new Map<string, string>();
       imagesList.forEach((img, i) => {
-        resolvedByImageId.set(img.id, signedForImages[i] ?? img.file_url);
+        const displayUrl = displayUrlForStoredPrivateImage(signedForImages[i], img.file_url);
+        if (displayUrl != null) {
+          resolvedByImageId.set(img.id, displayUrl);
+        }
       });
 
       // Map notes with authors and images
@@ -849,12 +853,12 @@ export class WorkOrderService extends BaseService {
         const author = (profiles || []).find(p => p.id === note.author_id);
         const noteImages = imagesList
           .filter(img => img.note_id === note.id)
+          .filter(img => resolvedByImageId.has(img.id))
           .map(img => {
             const uploader = uploaderProfiles.find(p => p.id === img.uploaded_by);
-            const displayUrl = resolvedByImageId.get(img.id) ?? img.file_url;
             return {
               ...img,
-              file_url: displayUrl,
+              file_url: resolvedByImageId.get(img.id)!,
               uploaded_by_name: uploader?.name || 'Unknown',
             };
           });
@@ -998,10 +1002,12 @@ export class WorkOrderService extends BaseService {
       const signedUploads = await batchResolveWorkOrderImageDisplayUrls(
         uploadedImages.map(img => img.file_url),
       );
-      const uploadedWithUrls = uploadedImages.map((img, i) => ({
-        ...img,
-        file_url: signedUploads[i] ?? img.file_url,
-      }));
+      const uploadedWithUrls = uploadedImages
+        .map((img, i) => {
+          const url = displayUrlForStoredPrivateImage(signedUploads[i], img.file_url);
+          return url == null ? null : { ...img, file_url: url };
+        })
+        .filter((row): row is WorkOrderImage => row != null);
 
       return this.handleSuccess({
         ...note,
@@ -1056,15 +1062,18 @@ export class WorkOrderService extends BaseService {
         .in('id', uploaderIds);
 
       const signedUrls = await batchResolveWorkOrderImageDisplayUrls(images.map(img => img.file_url));
-      const enrichedImages: WorkOrderImage[] = images.map((image, i) => {
-        const uploader = (profiles || []).find(p => p.id === image.uploaded_by);
-        const displayUrl = signedUrls[i] ?? image.file_url;
-        return {
-          ...image,
-          file_url: displayUrl,
-          uploaded_by_name: uploader?.name || 'Unknown',
-        };
-      });
+      const enrichedImages: WorkOrderImage[] = images
+        .map((image, i) => {
+          const uploader = (profiles || []).find(p => p.id === image.uploaded_by);
+          const displayUrl = displayUrlForStoredPrivateImage(signedUrls[i], image.file_url);
+          if (displayUrl == null) return null;
+          return {
+            ...image,
+            file_url: displayUrl,
+            uploaded_by_name: uploader?.name || 'Unknown',
+          };
+        })
+        .filter((row): row is WorkOrderImage => row != null);
 
       return this.handleSuccess(enrichedImages);
     } catch (error) {
