@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useUser } from '@/contexts/useUser';
+import { useResolvedAvatarUrl } from '@/hooks/useResolvedAvatarUrl';
 import Page from '@/components/layout/Page';
 import { AlertTriangle, ExternalLink } from 'lucide-react';
 
@@ -28,6 +29,7 @@ const SettingsContent = () => {
   const { resetSettings } = useSettings();
   const { user } = useAuth();
   const { currentUser } = useUser();
+  const { data: headerAvatarUrl } = useResolvedAvatarUrl(currentUser?.avatar_url);
   const appToast = useAppToast();
 
   const { data: profile, refetch: refetchProfile } = useQuery({
@@ -71,7 +73,7 @@ const SettingsContent = () => {
         {currentUser && (
           <div className="flex items-center gap-3 mt-3">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={currentUser.avatar_url || undefined} alt={currentUser.name || ''} />
+              <AvatarImage src={headerAvatarUrl || undefined} alt={currentUser.name || ''} />
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
             <div>

@@ -155,6 +155,7 @@ describe('SignUpForm', () => {
       expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
       expect(screen.getByTestId('hcaptcha-mock')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /create account & organization/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /retry saving legal acceptance/i })).not.toBeInTheDocument();
     });
 
     it('should have correct input types and attributes', () => {

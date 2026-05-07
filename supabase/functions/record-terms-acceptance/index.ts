@@ -2,12 +2,14 @@
  * Records signup Terms + Privacy acceptance with IP / User-Agent evidence.
  * Authenticated users only; inserts via service role.
  */
-import { corsHeaders } from '../_shared/cors.ts';
 import {
   createAdminSupabaseClient,
   createUserSupabaseClient,
   requireUser,
   withCorrelationId,
+  handleCorsPreflightIfNeeded,
+  createJsonResponse,
+  createErrorResponse,
 } from '../_shared/supabase-clients.ts';
 import { MissingSecretError } from '../_shared/require-secret.ts';
 
@@ -21,37 +23,33 @@ interface Body {
 
 Deno.serve(
   withCorrelationId(async (req, _ctx) => {
-    if (req.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
-    }
+    const corsPreflight = handleCorsPreflightIfNeeded(req);
+    if (corsPreflight) return corsPreflight;
 
     if (req.method !== 'POST') {
-      return new Response(JSON.stringify({ success: false, error: 'Method not allowed' }), {
-        status: 405,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return createErrorResponse('Method not allowed', 405, { req });
     }
 
     try {
       const userClient = createUserSupabaseClient(req);
       const auth = await requireUser(req, userClient);
       if ('error' in auth) {
-        return new Response(JSON.stringify({ success: false, error: auth.error }), {
-          status: auth.status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return createErrorResponse(auth.error, auth.status, { req });
       }
 
-      const body = (await req.json()) as Body;
+      let body: Body;
+      try {
+        body = (await req.json()) as Body;
+      } catch {
+        return createErrorResponse('Invalid JSON body', 400, { req });
+      }
+
       const termsHash = typeof body.terms_version_hash === 'string' ? body.terms_version_hash.trim() : '';
       const privacyHash =
         typeof body.privacy_version_hash === 'string' ? body.privacy_version_hash.trim() : '';
 
       if (!termsHash || !privacyHash || termsHash.length > 256 || privacyHash.length > 256) {
-        return new Response(JSON.stringify({ success: false, error: 'Invalid version hashes' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return createErrorResponse('Invalid request body: legal version hashes invalid', 400, { req });
       }
 
       const forwarded = req.headers.get('x-forwarded-for');
@@ -81,28 +79,16 @@ Deno.serve(
 
       if (error) {
         console.error(`[${FUNCTION_NAME}] insert error`, error);
-        return new Response(JSON.stringify({ success: false, error: 'Failed to record acceptance' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return createErrorResponse('Failed to record legal acceptance', 500, { req });
       }
 
-      return new Response(JSON.stringify({ success: true }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return createJsonResponse({ success: true }, 200, { req });
     } catch (e) {
       if (e instanceof MissingSecretError) {
-        return new Response(JSON.stringify({ success: false, error: 'Server configuration error' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return createErrorResponse(e, 500, { req });
       }
       console.error(`[${FUNCTION_NAME}]`, e);
-      return new Response(JSON.stringify({ success: false, error: 'Unexpected error' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return createErrorResponse('An unexpected error occurred', 500, { req });
     }
   }),
 );

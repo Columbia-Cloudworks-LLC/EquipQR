@@ -211,27 +211,142 @@ export async function uploadImageToStorage(
   return uploadData.path;
 }
 
+export interface CreateSignedUrlForPathOptions {
+  expiresInSeconds?: number;
+  /** When false, skips logging (e.g. expected miss during multi-bucket fallback). */
+  logFailures?: boolean;
+}
+
 /**
  * Create a signed URL for an object path inside a private bucket.
  */
 export async function createSignedUrlForPath(
   bucket: StorageBucket,
   objectPath: string,
-  expiresInSeconds: number = DEFAULT_SIGNED_URL_TTL_SECONDS
+  options?: CreateSignedUrlForPathOptions
 ): Promise<string | null> {
   const trimmed = objectPath.trim();
   if (!trimmed) return null;
+
+  const expiresInSeconds = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
+  const logFailures = options?.logFailures ?? true;
 
   const { data, error } = await supabase.storage
     .from(bucket)
     .createSignedUrl(trimmed, expiresInSeconds);
 
   if (error || !data?.signedUrl) {
-    logger.warn('createSignedUrl failed', { bucket, error });
+    if (logFailures) {
+      logger.error('createSignedUrl failed', { bucket, error });
+    }
     return null;
   }
 
   return data.signedUrl;
+}
+
+/**
+ * Normalize an equipment `image_url` reference to a single bucket-relative path.
+ * Used before batch or single-bucket signing (ambiguous paths may exist in WO or note buckets).
+ */
+export function extractEquipmentDisplayImagePath(stored: string | null | undefined): string | null {
+  if (!stored?.trim()) return null;
+
+  return (
+    normalizeStoredObjectPath(stored, 'work-order-images') ??
+    normalizeStoredObjectPath(stored, 'equipment-note-images') ??
+    (!/^https?:\/\//i.test(stored)
+      ? stored.trim().split('?')[0]?.replace(/^\/+/, '') ?? null
+      : null)
+  );
+}
+
+/**
+ * Resolve many equipment display image references using at most two Storage batch calls
+ * (work-order bucket, then remaining paths against equipment-note bucket).
+ */
+export async function batchResolveEquipmentDisplayImageUrls(
+  storedRefs: (string | null | undefined)[],
+  options?: { expiresInSeconds?: number }
+): Promise<(string | null)[]> {
+  const expiresIn = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
+  const results: (string | null)[] = storedRefs.map(() => null);
+
+  type Pending = { idx: number; path: string; stored: string };
+  const pending: Pending[] = [];
+
+  storedRefs.forEach((stored, idx) => {
+    if (!stored?.trim()) {
+      results[idx] = null;
+      return;
+    }
+
+    const trimmed = stored.trim();
+    const woNorm = normalizeStoredObjectPath(trimmed, 'work-order-images');
+    const eqNorm = normalizeStoredObjectPath(trimmed, 'equipment-note-images');
+    if (/^https?:\/\//i.test(trimmed) && !woNorm && !eqNorm) {
+      results[idx] = trimmed;
+      return;
+    }
+
+    const path = extractEquipmentDisplayImagePath(trimmed);
+    if (!path) {
+      results[idx] = /^https?:\/\//i.test(trimmed) ? trimmed : null;
+      return;
+    }
+
+    pending.push({ idx, path, stored: trimmed });
+  });
+
+  if (pending.length === 0) {
+    return results;
+  }
+
+  const uniquePaths = [...new Set(pending.map(p => p.path))];
+
+  const woSigned = new Map<string, string>();
+  const { data: woData, error: woErr } = await supabase.storage
+    .from('work-order-images')
+    .createSignedUrls(uniquePaths, expiresIn);
+
+  if (woErr) {
+    logger.error('batch createSignedUrls failed (work-order-images)', { error: woErr });
+  } else if (woData) {
+    for (const row of woData) {
+      if (row.path && row.signedUrl) {
+        woSigned.set(row.path, row.signedUrl);
+      }
+    }
+  }
+
+  const needEq = uniquePaths.filter(p => !woSigned.has(p));
+  const eqSigned = new Map<string, string>();
+  if (needEq.length > 0) {
+    const { data: eqData, error: eqErr } = await supabase.storage
+      .from('equipment-note-images')
+      .createSignedUrls(needEq, expiresIn);
+
+    if (eqErr) {
+      logger.error('batch createSignedUrls failed (equipment-note-images)', { error: eqErr });
+    } else if (eqData) {
+      for (const row of eqData) {
+        if (row.path && row.signedUrl) {
+          eqSigned.set(row.path, row.signedUrl);
+        }
+      }
+    }
+  }
+
+  for (const { idx, path, stored } of pending) {
+    const url = woSigned.get(path) ?? eqSigned.get(path) ?? null;
+    if (url) {
+      results[idx] = url;
+    } else {
+      results[idx] = stored.startsWith('http') ? stored : null;
+    }
+  }
+
+  return results;
 }
 
 /**
@@ -289,7 +404,7 @@ export async function resolveImageDisplayUrl(
     return stored.startsWith('http') ? stored : null;
   }
 
-  return createSignedUrlForPath(bucket, path, expiresIn);
+  return createSignedUrlForPath(bucket, path, { expiresInSeconds: expiresIn });
 }
 
 /**
@@ -304,21 +419,22 @@ export async function resolveEquipmentDisplayImageUrl(
 
   const expiresIn = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
 
-  const path =
-    normalizeStoredObjectPath(stored, 'work-order-images') ??
-    normalizeStoredObjectPath(stored, 'equipment-note-images') ??
-    (!/^https?:\/\//i.test(stored)
-      ? stored.trim().split('?')[0]?.replace(/^\/+/, '') ?? null
-      : null);
+  const path = extractEquipmentDisplayImagePath(stored);
 
   if (!path) {
     return stored.startsWith('http') ? stored : null;
   }
 
-  const wo = await createSignedUrlForPath('work-order-images', path, expiresIn);
+  const wo = await createSignedUrlForPath('work-order-images', path, {
+    expiresInSeconds: expiresIn,
+    logFailures: false,
+  });
   if (wo) return wo;
 
-  const eq = await createSignedUrlForPath('equipment-note-images', path, expiresIn);
+  const eq = await createSignedUrlForPath('equipment-note-images', path, {
+    expiresInSeconds: expiresIn,
+    logFailures: false,
+  });
   if (eq) return eq;
 
   return stored.startsWith('http') ? stored : null;

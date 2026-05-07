@@ -155,6 +155,7 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   /^Name is required$/,
   /^Invalid request type$/,
   /^Failed to submit privacy request$/,
+  /^Failed to record legal acceptance$/,
   /^Rate limit exceeded\. Maximum \d+ privacy requests per \d+ hours$/,
   /^A similar request was already submitted recently\. Please wait before submitting again$/,
 

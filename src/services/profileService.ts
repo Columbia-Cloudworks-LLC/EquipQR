@@ -9,12 +9,11 @@ import {
   deleteImageFromStorage,
   generateSingleFilePath,
   validateImageFile,
-  resolveImageDisplayUrl,
 } from '@/services/imageUploadService';
 
 /**
  * Upload a user avatar to Supabase Storage and update the profiles table.
- * Returns a signed display URL for immediate UI use (canonical path is persisted).
+ * Returns the canonical storage path persisted in `profiles.avatar_url`.
  */
 export const uploadAvatar = async (
   userId: string,
@@ -47,7 +46,7 @@ export const uploadAvatar = async (
     throw new Error('Failed to save avatar');
   }
 
-  return (await resolveImageDisplayUrl('user-avatars', storedPath)) ?? storedPath;
+  return storedPath;
 };
 
 /**

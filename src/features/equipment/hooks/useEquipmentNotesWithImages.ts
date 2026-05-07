@@ -138,8 +138,15 @@ export const useSetEquipmentDisplayImage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ equipmentId, imageUrl }: { equipmentId: string; imageUrl: string }) =>
-      updateEquipmentDisplayImage(equipmentId, imageUrl),
+    mutationFn: ({
+      equipmentId,
+      organizationId,
+      imageUrl,
+    }: {
+      equipmentId: string;
+      organizationId: string;
+      imageUrl: string;
+    }) => updateEquipmentDisplayImage(organizationId, equipmentId, imageUrl),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ['equipment']

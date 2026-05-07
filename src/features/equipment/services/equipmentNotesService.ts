@@ -321,7 +321,11 @@ export const deleteEquipmentNoteImage = async (imageId: string): Promise<void> =
 };
 
 // Update equipment display image
-export const updateEquipmentDisplayImage = async (equipmentId: string, imageUrl: string): Promise<void> => {
+export const updateEquipmentDisplayImage = async (
+  organizationId: string,
+  equipmentId: string,
+  imageUrl: string
+): Promise<void> => {
   const canonical =
     normalizeStoredObjectPath(imageUrl, 'work-order-images') ??
     normalizeStoredObjectPath(imageUrl, 'equipment-note-images') ??
@@ -330,7 +334,8 @@ export const updateEquipmentDisplayImage = async (equipmentId: string, imageUrl:
   const { error } = await supabase
     .from('equipment')
     .update({ image_url: canonical || null })
-    .eq('id', equipmentId);
+    .eq('id', equipmentId)
+    .eq('organization_id', organizationId);
 
   if (error) throw error;
 };

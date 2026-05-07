@@ -135,7 +135,12 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
 
   // Set display image mutation
   const setDisplayImageMutation = useMutation({
-    mutationFn: (imageUrl: string) => updateEquipmentDisplayImage(equipmentId, imageUrl),
+    mutationFn: (imageUrl: string) => {
+      if (!currentOrganization?.id) {
+        throw new Error('No active organization selected');
+      }
+      return updateEquipmentDisplayImage(currentOrganization.id, equipmentId, imageUrl);
+    },
     onSuccess: () => {
       // Invalidate the canonical equipment cache root so both the by-id query
       // (`['equipment', orgId, equipmentId]`) and the lightweight summaries

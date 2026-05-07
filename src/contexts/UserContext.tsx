@@ -7,7 +7,6 @@ import {
   type User,
   type UserContextType,
 } from './user-context';
-import { resolveImageDisplayUrl } from '@/services/imageUploadService';
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user: authUser, isLoading: authLoading } = useAuth();
@@ -44,9 +43,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: authUser.id,
             email: authUser.email || '',
             name: profile?.name || authUser.user_metadata?.name || authUser.email || 'User',
-            avatar_url: avatarRaw
-              ? (await resolveImageDisplayUrl('user-avatars', avatarRaw)) ?? avatarRaw
-              : null,
+            avatar_url: avatarRaw,
           };
           setCurrentUser(user);
         } catch (err) {

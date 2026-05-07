@@ -1,8 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockUpload, mockFrom, mockCreateSignedUrl, mockGetPublicUrl } = vi.hoisted(() => {
+const { mockUpload, mockFrom, mockCreateSignedUrl, mockCreateSignedUrls, mockGetPublicUrl } = vi.hoisted(() => {
   const mockUpload = vi.fn();
   const mockCreateSignedUrl = vi.fn();
+  const mockCreateSignedUrls = vi.fn((paths: string[], expiresIn: number) => ({
+    data: paths.map((path: string) => ({
+      path,
+      signedUrl: `https://example.supabase.co/storage/v1/object/sign/mock/${path}?e=${expiresIn}`,
+    })),
+    error: null,
+  }));
   const mockGetPublicUrl = vi.fn(() => ({
     data: {
       publicUrl: 'https://example.supabase.co/storage/v1/object/public/organization-logos/org/logo.png',
@@ -12,8 +19,9 @@ const { mockUpload, mockFrom, mockCreateSignedUrl, mockGetPublicUrl } = vi.hoist
     upload: mockUpload,
     getPublicUrl: mockGetPublicUrl,
     createSignedUrl: mockCreateSignedUrl,
+    createSignedUrls: mockCreateSignedUrls,
   }));
-  return { mockUpload, mockFrom, mockCreateSignedUrl, mockGetPublicUrl };
+  return { mockUpload, mockFrom, mockCreateSignedUrl, mockCreateSignedUrls, mockGetPublicUrl };
 });
 
 vi.mock('@/integrations/supabase/client', () => ({
@@ -39,6 +47,7 @@ import {
   normalizeStoredObjectPath,
   resolveImageDisplayUrl,
   createSignedUrlForPath,
+  batchResolveEquipmentDisplayImageUrls,
   DEFAULT_SIGNED_URL_TTL_SECONDS,
 } from '@/services/imageUploadService';
 
@@ -60,6 +69,7 @@ describe('imageUploadService', () => {
     mockFrom.mockClear();
     mockUpload.mockClear();
     mockCreateSignedUrl.mockClear();
+    mockCreateSignedUrls.mockClear();
     mockGetPublicUrl.mockClear();
   });
 
@@ -252,14 +262,26 @@ describe('imageUploadService', () => {
 
   describe('createSignedUrlForPath', () => {
     it('delegates to supabase storage createSignedUrl', async () => {
-      const url = await createSignedUrlForPath('team-images', 'org/photo.jpg', 120);
+      const url = await createSignedUrlForPath('team-images', 'org/photo.jpg', { expiresInSeconds: 120 });
       expect(url).toContain('sign/mock/org/photo.jpg');
       expect(mockCreateSignedUrl).toHaveBeenCalledWith('org/photo.jpg', 120);
     });
 
     it('returns null for empty path', async () => {
-      await expect(createSignedUrlForPath('team-images', '  ', DEFAULT_SIGNED_URL_TTL_SECONDS)).resolves.toBeNull();
+      await expect(
+        createSignedUrlForPath('team-images', '  ', { expiresInSeconds: DEFAULT_SIGNED_URL_TTL_SECONDS }),
+      ).resolves.toBeNull();
       expect(mockCreateSignedUrl).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('batchResolveEquipmentDisplayImageUrls', () => {
+    it('uses createSignedUrls on work-order bucket for canonical paths', async () => {
+      const out = await batchResolveEquipmentDisplayImageUrls(['u/wo/a.jpg', null, 'u/wo/b.jpg']);
+      expect(out[0]).toContain('sign/mock/u/wo/a.jpg');
+      expect(out[1]).toBeNull();
+      expect(out[2]).toContain('sign/mock/u/wo/b.jpg');
+      expect(mockCreateSignedUrls).toHaveBeenCalled();
     });
   });
 
