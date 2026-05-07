@@ -67,6 +67,12 @@ describe('imageUploadService', () => {
       },
     }));
     mockFrom.mockClear();
+    mockFrom.mockImplementation(() => ({
+      upload: mockUpload,
+      getPublicUrl: mockGetPublicUrl,
+      createSignedUrl: mockCreateSignedUrl,
+      createSignedUrls: mockCreateSignedUrls,
+    }));
     mockUpload.mockClear();
     mockCreateSignedUrl.mockClear();
     mockCreateSignedUrls.mockClear();
@@ -276,12 +282,38 @@ describe('imageUploadService', () => {
   });
 
   describe('batchResolveEquipmentDisplayImageUrls', () => {
-    it('uses createSignedUrls on work-order bucket for canonical paths', async () => {
+    it('signs canonical paths via createSignedUrl on work-order bucket', async () => {
       const out = await batchResolveEquipmentDisplayImageUrls(['u/wo/a.jpg', null, 'u/wo/b.jpg']);
       expect(out[0]).toContain('sign/mock/u/wo/a.jpg');
       expect(out[1]).toBeNull();
       expect(out[2]).toContain('sign/mock/u/wo/b.jpg');
-      expect(mockCreateSignedUrls).toHaveBeenCalled();
+      expect(mockCreateSignedUrl).toHaveBeenCalled();
+      expect(mockCreateSignedUrls).not.toHaveBeenCalled();
+    });
+
+    it('falls back to equipment-note bucket when work-order signing returns null', async () => {
+      mockFrom.mockImplementation((bucket: string) => ({
+        upload: mockUpload,
+        getPublicUrl: mockGetPublicUrl,
+        createSignedUrl: vi.fn((path: string, expiresIn: number) => {
+          if (bucket === 'work-order-images') {
+            return Promise.resolve({ data: null, error: { message: 'not found' } });
+          }
+          if (bucket === 'equipment-note-images') {
+            return Promise.resolve({
+              data: {
+                signedUrl: `https://example.supabase.co/storage/v1/object/sign/eq-note/${path}?e=${expiresIn}`,
+              },
+              error: null,
+            });
+          }
+          return mockCreateSignedUrl(path, expiresIn);
+        }),
+        createSignedUrls: mockCreateSignedUrls,
+      }));
+
+      const out = await batchResolveEquipmentDisplayImageUrls(['only/in/eq.jpg']);
+      expect(out[0]).toContain('sign/eq-note/only/in/eq.jpg');
     });
   });
 

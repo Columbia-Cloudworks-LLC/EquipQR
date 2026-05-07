@@ -69,7 +69,7 @@ const ProfileSettings = () => {
   return (
     <>
       <SingleImageUpload
-        currentImageUrl={avatarDisplayUrl ?? currentUser.avatar_url}
+        currentImageUrl={avatarDisplayUrl}
         onUpload={handleAvatarUpload}
         onDelete={handleAvatarDelete}
         maxSizeMB={5}

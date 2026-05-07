@@ -262,8 +262,12 @@ export function extractEquipmentDisplayImagePath(stored: string | null | undefin
 }
 
 /**
- * Resolve many equipment display image references using at most two Storage batch calls
- * (work-order bucket, then remaining paths against equipment-note bucket).
+ * Resolve many equipment display image references with parallel per-path signing on the
+ * work-order bucket, then parallel signing on equipment-note for paths missing from WO.
+ *
+ * Uses individual `createSignedUrl` calls (not batch `createSignedUrls`) because the batch
+ * API returns a signed URL for every path regardless of object existence, which breaks
+ * fallback to the equipment-note bucket.
  */
 export async function batchResolveEquipmentDisplayImageUrls(
   storedRefs: (string | null | undefined)[],
@@ -304,37 +308,35 @@ export async function batchResolveEquipmentDisplayImageUrls(
 
   const uniquePaths = [...new Set(pending.map(p => p.path))];
 
+  const woResults = await Promise.all(
+    uniquePaths.map(p =>
+      createSignedUrlForPath('work-order-images', p, {
+        expiresInSeconds: expiresIn,
+        logFailures: false,
+      }),
+    ),
+  );
   const woSigned = new Map<string, string>();
-  const { data: woData, error: woErr } = await supabase.storage
-    .from('work-order-images')
-    .createSignedUrls(uniquePaths, expiresIn);
-
-  if (woErr) {
-    logger.error('batch createSignedUrls failed (work-order-images)', { error: woErr });
-  } else if (woData) {
-    for (const row of woData) {
-      if (row.path && row.signedUrl) {
-        woSigned.set(row.path, row.signedUrl);
-      }
-    }
-  }
+  uniquePaths.forEach((p, i) => {
+    const url = woResults[i];
+    if (url) woSigned.set(p, url);
+  });
 
   const needEq = uniquePaths.filter(p => !woSigned.has(p));
   const eqSigned = new Map<string, string>();
   if (needEq.length > 0) {
-    const { data: eqData, error: eqErr } = await supabase.storage
-      .from('equipment-note-images')
-      .createSignedUrls(needEq, expiresIn);
-
-    if (eqErr) {
-      logger.error('batch createSignedUrls failed (equipment-note-images)', { error: eqErr });
-    } else if (eqData) {
-      for (const row of eqData) {
-        if (row.path && row.signedUrl) {
-          eqSigned.set(row.path, row.signedUrl);
-        }
-      }
-    }
+    const eqResults = await Promise.all(
+      needEq.map(p =>
+        createSignedUrlForPath('equipment-note-images', p, {
+          expiresInSeconds: expiresIn,
+          logFailures: false,
+        }),
+      ),
+    );
+    needEq.forEach((p, i) => {
+      const url = eqResults[i];
+      if (url) eqSigned.set(p, url);
+    });
   }
 
   for (const { idx, path, stored } of pending) {
@@ -405,39 +407,6 @@ export async function resolveImageDisplayUrl(
   }
 
   return createSignedUrlForPath(bucket, path, { expiresInSeconds: expiresIn });
-}
-
-/**
- * Equipment `image_url` may reference either work-order or equipment-note buckets.
- * Path-only rows are ambiguous; we try signing against each bucket in order.
- */
-export async function resolveEquipmentDisplayImageUrl(
-  stored: string | null | undefined,
-  options?: { expiresInSeconds?: number }
-): Promise<string | null> {
-  if (!stored?.trim()) return null;
-
-  const expiresIn = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
-
-  const path = extractEquipmentDisplayImagePath(stored);
-
-  if (!path) {
-    return stored.startsWith('http') ? stored : null;
-  }
-
-  const wo = await createSignedUrlForPath('work-order-images', path, {
-    expiresInSeconds: expiresIn,
-    logFailures: false,
-  });
-  if (wo) return wo;
-
-  const eq = await createSignedUrlForPath('equipment-note-images', path, {
-    expiresInSeconds: expiresIn,
-    logFailures: false,
-  });
-  if (eq) return eq;
-
-  return stored.startsWith('http') ? stored : null;
 }
 
 /**
