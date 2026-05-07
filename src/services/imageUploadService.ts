@@ -3,8 +3,9 @@
  *
  * DRY abstraction for uploading images to Supabase Storage buckets.
  * Private buckets persist canonical object paths in the database and rely on
- * short-lived signed URLs at read time. Public buckets (organization logos,
- * landing-page marketing assets) continue to use getPublicUrl().
+ * short-lived signed URLs at read time. Public buckets (e.g. organization
+ * logos) continue to use getPublicUrl(). Landing / marketing images use
+ * `src/lib/landingImage.ts`, not this module.
  */
 
 import { supabase } from '@/integrations/supabase/client';
