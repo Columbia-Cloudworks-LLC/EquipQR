@@ -10,6 +10,7 @@ import {
   normalizeStoredObjectPath,
   batchResolveWorkOrderImageDisplayUrls,
   displayUrlForStoredPrivateImage,
+  deleteImageFromStorage,
 } from '@/services/imageUploadService';
 
 // Import and re-export unified types from the single source of truth
@@ -1142,12 +1143,23 @@ export class WorkOrderService extends BaseService {
         .eq('id', claims.sub)
         .single();
 
+      const displayUrl = displayUrlForStoredPrivateImage(
+        await resolveImageDisplayUrl('work-order-images', imageRecord.file_url),
+        imageRecord.file_url,
+      );
+
+      if (displayUrl == null) {
+        await supabase.from('work_order_images').delete().eq('id', imageRecord.id);
+        await deleteImageFromStorage('work-order-images', storedPath);
+        return this.handleError(
+          new Error('Could not generate a secure link for the uploaded image. Try again.'),
+        );
+      }
+
       return this.handleSuccess({
         ...imageRecord,
         uploaded_by_name: profile?.name || 'Unknown',
-        file_url:
-          (await resolveImageDisplayUrl('work-order-images', imageRecord.file_url)) ??
-          imageRecord.file_url,
+        file_url: displayUrl,
       });
     } catch (error) {
       return this.handleError(error);

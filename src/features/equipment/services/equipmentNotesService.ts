@@ -7,6 +7,7 @@ import {
   resolveImageDisplayUrl,
   normalizeStoredObjectPath,
   displayUrlForStoredPrivateImage,
+  deleteImageFromStorage,
 } from '@/services/imageUploadService';
 import type { EquipmentNote, EquipmentNoteImage } from '@/features/equipment/types/equipmentNotes';
 
@@ -259,6 +260,8 @@ export const uploadEquipmentNoteImage = async (
   );
 
   if (displayUrl == null) {
+    await supabase.from('equipment_note_images').delete().eq('id', imageRecord.id);
+    await deleteImageFromStorage('equipment-note-images', storedPath);
     throw new Error('Could not generate a secure link for the uploaded image. Try again.');
   }
 
