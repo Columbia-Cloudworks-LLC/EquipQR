@@ -152,6 +152,11 @@ export const createEquipmentNoteWithImages = async (
 
       if (imageError) {
         logger.error('Failed to save image record:', imageError);
+        try {
+          await deleteImageFromStorage('equipment-note-images', storedPath);
+        } catch (cleanupError) {
+          logger.error('Failed to delete orphaned equipment note image after DB insert failure:', cleanupError);
+        }
         continue;
       }
 
