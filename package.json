@@ -156,7 +156,7 @@
     "baseline-browser-mapping": "2.9.19",
     "d3-geo": "3.1.1",
     "dotenv": "17.2.4",
-    "eslint": "^9.9.1",
+    "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.26",
     "globals": "^15.9.0",
