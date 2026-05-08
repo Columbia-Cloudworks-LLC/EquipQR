@@ -24,15 +24,13 @@ name: Schema Drift Check
 #      red-light every PR.
 
 on:
+  # pull_request has no paths: filter so preview→main release PRs always run
+  # this gate even when the diff does not touch migrations (drift can exist from
+  # earlier merges). push keeps paths: to limit noise on routine preview pushes.
   pull_request:
     branches:
       - main
       - preview
-    paths:
-      - 'supabase/migrations/**'
-      - '.github/scripts/check-schema-drift.js'
-      - '.github/workflows/schema-drift-check.yml'
-      - '.github/actions/load-1p-secrets/**'
   push:
     branches:
       - preview
