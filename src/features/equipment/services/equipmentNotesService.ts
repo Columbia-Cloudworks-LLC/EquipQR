@@ -121,7 +121,11 @@ export const createEquipmentNoteWithImages = async (
       content,
       hours_worked: Number(hoursWorked) || 0,
       is_private: isPrivate || false,
-      ...(machineHours !== undefined ? { machine_hours: machineHours } : {}),
+      // Only include machine_hours when the user provided a meaningful value.
+      // See workOrderNotesService for the rationale (issue #735).
+      ...(Number.isFinite(Number(machineHours)) && Number(machineHours) > 0
+        ? { machine_hours: Number(machineHours) }
+        : {}),
     })
     .select()
     .single();
