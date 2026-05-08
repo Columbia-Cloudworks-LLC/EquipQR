@@ -32,6 +32,56 @@ export type Database = {
       [_ in never]: never
     }
   }
+  pgmq_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      archive: {
+        Args: { message_id: number; queue_name: string }
+        Returns: boolean
+      }
+      delete: {
+        Args: { message_id: number; queue_name: string }
+        Returns: boolean
+      }
+      pop: {
+        Args: { queue_name: string }
+        Returns: {
+          enqueued_at: string
+          headers: Json
+          message: Json
+          msg_id: number
+          read_ct: number
+          vt: string
+        }[]
+      }
+      read: {
+        Args: { n: number; queue_name: string; sleep_seconds: number }
+        Returns: {
+          enqueued_at: string
+          headers: Json
+          message: Json
+          msg_id: number
+          read_ct: number
+          vt: string
+        }[]
+      }
+      send: {
+        Args: { message: Json; queue_name: string; sleep_seconds?: number }
+        Returns: number[]
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       audit_log: {
@@ -3082,6 +3132,39 @@ export type Database = {
           },
         ]
       }
+      terms_acceptances: {
+        Row: {
+          accepted_at: string
+          created_at: string
+          id: string
+          ip_address: string
+          privacy_version_hash: string
+          terms_version_hash: string
+          user_agent: string
+          user_id: string
+        }
+        Insert: {
+          accepted_at: string
+          created_at?: string
+          id?: string
+          ip_address: string
+          privacy_version_hash: string
+          terms_version_hash: string
+          user_agent: string
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          created_at?: string
+          id?: string
+          ip_address?: string
+          privacy_version_hash?: string
+          terms_version_hash?: string
+          user_agent?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ticket_comments: {
         Row: {
           author: string
@@ -4371,14 +4454,6 @@ export type Database = {
           work_order_title: string
         }[]
       }
-      latest_scans_for_equipment_ids: {
-        Args: { p_equipment_ids: string[]; p_organization_id: string }
-        Returns: {
-          equipment_id: string
-          location: string
-          scanned_at: string
-        }[]
-      }
       get_matching_pm_templates: {
         Args: { p_equipment_id: string; p_organization_id: string }
         Returns: {
@@ -4615,6 +4690,7 @@ export type Database = {
         }
         Returns: Json
       }
+      invoke_queue_worker: { Args: never; Returns: undefined }
       invoke_quickbooks_token_refresh: { Args: never; Returns: undefined }
       is_org_admin: {
         Args: { org_id: string; user_uuid: string }
@@ -4648,8 +4724,27 @@ export type Database = {
         }
         Returns: boolean
       }
+      latest_scans_for_equipment_ids: {
+        Args: { p_equipment_ids: string[]; p_organization_id: string }
+        Returns: {
+          equipment_id: string
+          location: string
+          scanned_at: string
+        }[]
+      }
       leave_organization: { Args: { p_organization_id: string }; Returns: Json }
       leave_organization_safely: { Args: { org_id: string }; Returns: Json }
+      list_active_stripe_subscriptions: {
+        Args: never
+        Returns: {
+          current_period_end: string
+          status: string
+          stripe_customer_email: string
+          stripe_customer_id: string
+          stripe_customer_metadata: string
+          subscription_id: string
+        }[]
+      }
       list_pm_templates:
         | {
             Args: never
@@ -4778,6 +4873,7 @@ export type Database = {
           message: string
         }[]
       }
+      refresh_stripe_materialized_views: { Args: never; Returns: undefined }
       release_reserved_slot: {
         Args: { invitation_id: string; org_id: string }
         Returns: undefined
@@ -5071,6 +5167,9 @@ export type CompositeTypes<
 
 export const Constants = {
   graphql_public: {
+    Enums: {},
+  },
+  pgmq_public: {
     Enums: {},
   },
   public: {
