@@ -3,6 +3,13 @@ import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { validateStorageQuota } from '@/utils/storageQuota';
 import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
+import {
+  uploadImageToStorage,
+  normalizeStoredObjectPath,
+  batchResolveWorkOrderImageDisplayUrls,
+  displayUrlForStoredPrivateImage,
+  deleteImageFromStorage,
+} from '@/services/imageUploadService';
 
 export interface WorkOrderNote {
   id: string;
@@ -81,23 +88,10 @@ export const createWorkOrderNoteWithImages = async (
   const uploadedImages: WorkOrderNoteImage[] = [];
   for (const file of images) {
     try {
-      // Upload file to storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${userId}/${workOrderId}/${note.id}/${Date.now()}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('work-order-images')
-        .upload(fileName, file);
 
-      if (uploadError) {
-        logger.error('Failed to upload image:', uploadError);
-        continue;
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('work-order-images')
-        .getPublicUrl(uploadData.path);
+      const storedPath = await uploadImageToStorage('work-order-images', fileName, file);
 
       // Save image record to database with proper note_id association
       const { data: imageRecord, error: imageError } = await supabase
@@ -106,7 +100,7 @@ export const createWorkOrderNoteWithImages = async (
           work_order_id: workOrderId,
           note_id: note.id,
           file_name: file.name,
-          file_url: publicUrl,
+          file_url: storedPath,
           file_size: file.size,
           mime_type: file.type,
           uploaded_by: userId,
@@ -117,21 +111,34 @@ export const createWorkOrderNoteWithImages = async (
 
       if (imageError) {
         logger.error('Failed to save image record:', imageError);
+        try {
+          await deleteImageFromStorage('work-order-images', storedPath);
+        } catch (cleanupError) {
+          logger.error('Failed to delete orphaned work-order image after DB insert failure:', cleanupError);
+        }
         continue;
       }
 
       uploadedImages.push({
         ...imageRecord,
-        note_id: note.id
+        note_id: note.id,
       });
     } catch (error) {
       logger.error('Error processing image:', error);
     }
   }
 
+  const signedCreated = await batchResolveWorkOrderImageDisplayUrls(uploadedImages.map(i => i.file_url));
+  const withDisplayUrls = uploadedImages
+    .map((img, i) => {
+      const url = displayUrlForStoredPrivateImage(signedCreated[i], img.file_url);
+      return url == null ? null : { ...img, file_url: url };
+    })
+    .filter((row): row is WorkOrderNoteImage => row != null);
+
   return {
     ...note,
-    images: uploadedImages
+    images: withDisplayUrls,
   };
 };
 
@@ -203,18 +210,26 @@ export const getWorkOrderNotesWithImages = async (
       uploaderProfiles = uploaderData || [];
     }
 
-    // Combine the data
+    const imagesList = allImages || [];
+    const signedBatch = await batchResolveWorkOrderImageDisplayUrls(imagesList.map(img => img.file_url));
+    const displayByImageId = new Map<string, string>();
+    imagesList.forEach((img, i) => {
+      const url = displayUrlForStoredPrivateImage(signedBatch[i], img.file_url);
+      if (url != null) displayByImageId.set(img.id, url);
+    });
+
     return notes.map(note => {
       const author = profiles.find(p => p.id === note.author_id);
-      
-      // Find images that belong to this note using the note_id foreign key
-      const noteImages = (allImages || [])
+
+      const noteImages = imagesList
         .filter(img => img.note_id === note.id)
+        .filter(img => displayByImageId.has(img.id))
         .map(img => {
           const uploader = uploaderProfiles.find(p => p.id === img.uploaded_by);
           return {
             ...img,
-            uploaded_by_name: uploader?.name || 'Unknown'
+            file_url: displayByImageId.get(img.id)!,
+            uploaded_by_name: uploader?.name || 'Unknown',
           };
         });
 
@@ -223,7 +238,7 @@ export const getWorkOrderNotesWithImages = async (
         hours_worked: Number(note.hours_worked) || 0,
         machine_hours: note.machine_hours != null ? Number(note.machine_hours) : null,
         author_name: author?.name || 'Unknown',
-        images: noteImages
+        images: noteImages,
       };
     });
   } catch (error) {
@@ -257,16 +272,23 @@ export const getWorkOrderImages = async (workOrderId: string) => {
       uploaderProfiles = uploaderData || [];
     }
 
-    return images.map(image => {
-      const uploader = uploaderProfiles.find(p => p.id === image.uploaded_by);
-      return {
-        ...image,
-        uploaded_by_name: uploader?.name || 'Unknown',
-        note_content: image.description || '',
-        note_author_name: uploader?.name || 'Unknown',
-        is_private_note: false
-      };
-    });
+    const signedBatch = await batchResolveWorkOrderImageDisplayUrls(images.map(img => img.file_url));
+
+    return images
+      .map((image, i) => {
+        const uploader = uploaderProfiles.find(p => p.id === image.uploaded_by);
+        const displayUrl = displayUrlForStoredPrivateImage(signedBatch[i], image.file_url);
+        if (displayUrl == null) return null;
+        return {
+          ...image,
+          file_url: displayUrl,
+          uploaded_by_name: uploader?.name || 'Unknown',
+          note_content: image.description || '',
+          note_author_name: uploader?.name || 'Unknown',
+          is_private_note: false,
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row != null);
   } catch (error) {
     logger.error('Error fetching work order images:', error);
     return [];
@@ -300,11 +322,10 @@ export const deleteWorkOrderImage = async (imageId: string): Promise<void> => {
 
   if (deleteError) throw deleteError;
 
-  // Delete from storage
-  const filePath = image.file_url.split('/').slice(-4).join('/'); // Extract path from URL
-  await supabase.storage
-    .from('work-order-images')
-    .remove([filePath]);
+  const filePath = normalizeStoredObjectPath(image.file_url, 'work-order-images');
+  if (filePath) {
+    await supabase.storage.from('work-order-images').remove([filePath]);
+  }
 };
 
 

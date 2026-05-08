@@ -1,5 +1,6 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizeStoredObjectPath } from '@/services/imageUploadService';
 
 export interface WorkOrderImageCount {
   count: number;
@@ -36,21 +37,24 @@ export const deleteWorkOrderCascade = async (workOrderId: string): Promise<void>
 
     // Delete storage files first
     if (images.length > 0) {
-      const filePaths = images.map(img => {
-        // Extract file path from URL
-        const url = new URL(img.file_url);
-        const pathSegments = url.pathname.split('/');
-        // Path format: /storage/v1/object/public/bucket/path
-        return pathSegments.slice(5).join('/'); // Remove /storage/v1/object/public/bucket
-      });
+      const filePaths = images
+        .map(img => normalizeStoredObjectPath(img.file_url, 'work-order-images'))
+        .filter((p): p is string => !!p);
 
-      const { error: storageError } = await supabase.storage
-        .from('work-order-images')
-        .remove(filePaths);
+      if (filePaths.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from('work-order-images')
+          .remove(filePaths);
 
-      if (storageError) {
-        logger.warn('Some storage files could not be deleted:', storageError);
-        // Continue with database deletion even if storage cleanup fails
+        if (storageError) {
+          logger.error('Some storage files could not be deleted:', storageError);
+          // Continue with database deletion even if storage cleanup fails
+        }
+      } else {
+        logger.error('Skipping work-order image storage cleanup because no valid object paths were found', {
+          workOrderId,
+          imageCount: images.length,
+        });
       }
     }
 

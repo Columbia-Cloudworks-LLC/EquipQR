@@ -465,6 +465,10 @@ function normalizeAllowlistedErrorMessage(error: string): string {
       return "Invalid request type";
     case "Failed to submit privacy request":
       return "Failed to submit privacy request";
+    case "Failed to record legal acceptance":
+      return "Failed to record legal acceptance";
+    case "Legal policy version mismatch; refresh the app and accept the current Terms and Privacy Policy.":
+      return "Legal policy version mismatch; refresh the app and accept the current Terms and Privacy Policy.";
     case "A similar request was already submitted recently. Please wait before submitting again":
       return "A similar request was already submitted recently. Please wait before submitting again";
     case "Invalid action":

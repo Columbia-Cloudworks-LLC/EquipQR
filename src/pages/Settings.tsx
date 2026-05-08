@@ -20,14 +20,16 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useUser } from '@/contexts/useUser';
+import { useResolvedAvatarUrl } from '@/hooks/useResolvedAvatarUrl';
 import Page from '@/components/layout/Page';
-import { AlertTriangle, ExternalLink } from 'lucide-react';
+import { AlertTriangle, ExternalLink, Loader2 } from 'lucide-react';
 
 
 const SettingsContent = () => {
   const { resetSettings } = useSettings();
   const { user } = useAuth();
   const { currentUser } = useUser();
+  const { data: headerAvatarUrl, isPending: isHeaderAvatarPending } = useResolvedAvatarUrl(currentUser?.avatar_url);
   const appToast = useAppToast();
 
   const { data: profile, refetch: refetchProfile } = useQuery({
@@ -59,6 +61,9 @@ const SettingsContent = () => {
         .toUpperCase()
         .slice(0, 2)
     : '?';
+  const headerAvatarPath = currentUser?.avatar_url?.trim() ?? '';
+  const isHeaderAvatarResolving =
+    isHeaderAvatarPending && headerAvatarPath.length > 0 && !/^https?:\/\//i.test(headerAvatarPath);
 
   return (
     <div className="space-y-6">
@@ -71,8 +76,10 @@ const SettingsContent = () => {
         {currentUser && (
           <div className="flex items-center gap-3 mt-3">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={currentUser.avatar_url || undefined} alt={currentUser.name || ''} />
-              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+              <AvatarImage src={headerAvatarUrl || undefined} alt={currentUser.name || ''} />
+              <AvatarFallback className="text-xs">
+                {isHeaderAvatarResolving ? <Loader2 className="h-3 w-3 animate-spin" /> : initials}
+              </AvatarFallback>
             </Avatar>
             <div>
               <p className="text-sm font-medium leading-none">{currentUser.name}</p>

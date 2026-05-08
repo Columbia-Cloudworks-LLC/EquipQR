@@ -38,11 +38,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error('Failed to fetch user profile:', error.message);
           }
 
+          const avatarRaw = profile?.avatar_url ?? null;
           const user: User = {
             id: authUser.id,
             email: authUser.email || '',
             name: profile?.name || authUser.user_metadata?.name || authUser.email || 'User',
-            avatar_url: profile?.avatar_url ?? null,
+            avatar_url: avatarRaw,
           };
           setCurrentUser(user);
         } catch (err) {

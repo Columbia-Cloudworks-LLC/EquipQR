@@ -12,6 +12,9 @@ import type {
 } from '@/features/teams/types/team';
 import {
   uploadImageToStorage,
+  resolveImageDisplayUrl,
+  batchResolveTeamImageDisplayUrls,
+  displayUrlForStoredPrivateImage,
   deleteImageFromStorage,
   generateSingleFilePath,
   validateImageFile,
@@ -447,9 +450,14 @@ export const getOrganizationTeamsOptimized = async (organizationId: string): Pro
 
     if (error) throw error;
 
-    return (data || []).map(team => {
+    const teams = data || [];
+    const rawImages = teams.map(t => (t as TeamRow).image_url ?? null);
+    const signedBatch = await batchResolveTeamImageDisplayUrls(rawImages);
+
+    return teams.map((team, i) => {
       const customer = (team as Record<string, unknown>).customers as
         { id: string; name: string; status: string; quickbooks_synced_at: string | null } | null;
+      const rawImage = (team as TeamRow).image_url;
       return {
         id: team.id,
         name: team.name,
@@ -458,7 +466,7 @@ export const getOrganizationTeamsOptimized = async (organizationId: string): Pro
         member_count: team.team_members?.[0]?.count || 0,
         created_at: team.created_at,
         updated_at: team.updated_at,
-        image_url: (team as TeamRow).image_url,
+        image_url: displayUrlForStoredPrivateImage(signedBatch[i], rawImage),
         location_address: team.location_address,
         location_city: team.location_city,
         location_state: team.location_state,
@@ -501,6 +509,9 @@ export const getTeamByIdOptimized = async (teamId: string): Promise<Team | null>
     const customer = (data as Record<string, unknown>).customers as
       { id: string; name: string; status: string; quickbooks_synced_at: string | null } | null;
 
+    const rawImage = (data as unknown as TeamRow).image_url;
+    const [signedForTeam] = await batchResolveTeamImageDisplayUrls(rawImage ? [rawImage] : []);
+
     return {
       id: data.id,
       name: data.name,
@@ -509,7 +520,7 @@ export const getTeamByIdOptimized = async (teamId: string): Promise<Team | null>
       member_count: data.team_members?.[0]?.count || 0,
       created_at: data.created_at,
       updated_at: data.updated_at,
-      image_url: (data as unknown as TeamRow).image_url,
+      image_url: displayUrlForStoredPrivateImage(signedForTeam, rawImage),
       location_address: data.location_address,
       location_city: data.location_city,
       location_state: data.location_state,
@@ -566,7 +577,7 @@ export const uploadTeamImage = async (
   validateImageFile(file, 5);
 
   const filePath = generateSingleFilePath(`${organizationId}/${teamId}`, 'image', file);
-  const publicUrl = await uploadImageToStorage(
+  const storedPath = await uploadImageToStorage(
     'team-images',
     filePath,
     file,
@@ -575,7 +586,7 @@ export const uploadTeamImage = async (
 
   const { error } = await supabase
     .from('teams')
-    .update({ image_url: publicUrl, updated_at: new Date().toISOString() })
+    .update({ image_url: storedPath, updated_at: new Date().toISOString() })
     .eq('id', teamId)
     .eq('organization_id', organizationId);
 
@@ -583,14 +594,22 @@ export const uploadTeamImage = async (
     logger.error('Error updating team image in DB:', error);
     // Clean up orphaned storage file since DB update failed
     try {
-      await deleteImageFromStorage('team-images', publicUrl);
+      await deleteImageFromStorage('team-images', storedPath);
     } catch (deleteError) {
       logger.error('Failed to delete orphaned team image from storage:', deleteError);
     }
     throw new Error('Failed to save team image');
   }
 
-  return publicUrl;
+  const displayUrl = displayUrlForStoredPrivateImage(
+    await resolveImageDisplayUrl('team-images', storedPath),
+    storedPath,
+  );
+  if (displayUrl == null) {
+    logger.error('Could not sign team image URL after upload', { teamId, storedPath });
+    throw new Error('Could not generate a secure link for the team image. Try again.');
+  }
+  return displayUrl;
 };
 
 /**

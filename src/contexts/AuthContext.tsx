@@ -4,6 +4,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { getSafeRedirectPath } from '@/utils/redirectValidation';
+import { schedulePendingTermsAcceptanceFlush } from '@/lib/termsAcceptanceRecording';
 
 /**
  * Throttle duration for applying pending admin grants.
@@ -51,6 +52,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
+
+        if (
+          session?.user &&
+          (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')
+        ) {
+          schedulePendingTermsAcceptanceFlush(session.user);
+        }
 
         // Handle post-login redirect for QR code scans (only for actual sign-ins)
         if (isSignIn && session?.user) {

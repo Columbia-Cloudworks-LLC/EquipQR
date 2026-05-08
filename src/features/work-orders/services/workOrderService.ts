@@ -4,6 +4,14 @@ import { logger } from '@/utils/logger';
 import { validateStorageQuota } from '@/utils/storageQuota';
 import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
 import { getAuthClaims } from '@/lib/authClaims';
+import {
+  uploadImageToStorage,
+  resolveImageDisplayUrl,
+  normalizeStoredObjectPath,
+  batchResolveWorkOrderImageDisplayUrls,
+  displayUrlForStoredPrivateImage,
+  deleteImageFromStorage,
+} from '@/services/imageUploadService';
 
 // Import and re-export unified types from the single source of truth
 import {
@@ -829,23 +837,37 @@ export class WorkOrderService extends BaseService {
         uploaderProfiles = uploaderData || [];
       }
 
+      const imagesList = allImages || [];
+      const signedForImages = await batchResolveWorkOrderImageDisplayUrls(
+        imagesList.map(img => img.file_url),
+      );
+      const resolvedByImageId = new Map<string, string>();
+      imagesList.forEach((img, i) => {
+        const displayUrl = displayUrlForStoredPrivateImage(signedForImages[i], img.file_url);
+        if (displayUrl != null) {
+          resolvedByImageId.set(img.id, displayUrl);
+        }
+      });
+
       // Map notes with authors and images
       const enrichedNotes: WorkOrderNote[] = notes.map(note => {
         const author = (profiles || []).find(p => p.id === note.author_id);
-        const noteImages = (allImages || [])
+        const noteImages = imagesList
           .filter(img => img.note_id === note.id)
+          .filter(img => resolvedByImageId.has(img.id))
           .map(img => {
             const uploader = uploaderProfiles.find(p => p.id === img.uploaded_by);
             return {
               ...img,
-              uploaded_by_name: uploader?.name || 'Unknown'
+              file_url: resolvedByImageId.get(img.id)!,
+              uploaded_by_name: uploader?.name || 'Unknown',
             };
           });
 
         return {
           ...note,
           author_name: author?.name || 'Unknown',
-          images: noteImages
+          images: noteImages,
         };
       });
 
@@ -946,19 +968,7 @@ export class WorkOrderService extends BaseService {
         try {
           const fileExt = file.name.split('.').pop();
           const fileName = `${claims.sub}/${workOrderId}/${note.id}/${Date.now()}.${fileExt}`;
-          
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('work-order-images')
-            .upload(fileName, file);
-
-          if (uploadError) {
-            logger.error('Failed to upload image:', uploadError);
-            continue;
-          }
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('work-order-images')
-            .getPublicUrl(uploadData.path);
+          const storedPath = await uploadImageToStorage('work-order-images', fileName, file);
 
           const { data: imageRecord, error: imageError } = await supabase
             .from('work_order_images')
@@ -966,7 +976,7 @@ export class WorkOrderService extends BaseService {
               work_order_id: workOrderId,
               note_id: note.id,
               file_name: file.name,
-              file_url: publicUrl,
+              file_url: storedPath,
               file_size: file.size,
               mime_type: file.type,
               uploaded_by: claims.sub,
@@ -977,21 +987,36 @@ export class WorkOrderService extends BaseService {
 
           if (imageError) {
             logger.error('Failed to save image record:', imageError);
+            try {
+              await deleteImageFromStorage('work-order-images', storedPath);
+            } catch (cleanupError) {
+              logger.error('Failed to delete orphaned work-order image after DB insert failure:', cleanupError);
+            }
             continue;
           }
 
           uploadedImages.push({
             ...imageRecord,
-            uploaded_by_name: note.author_name
+            uploaded_by_name: note.author_name,
           });
         } catch (error) {
           logger.error('Error processing image:', error);
         }
       }
 
+      const signedUploads = await batchResolveWorkOrderImageDisplayUrls(
+        uploadedImages.map(img => img.file_url),
+      );
+      const uploadedWithUrls = uploadedImages
+        .map((img, i) => {
+          const url = displayUrlForStoredPrivateImage(signedUploads[i], img.file_url);
+          return url == null ? null : { ...img, file_url: url };
+        })
+        .filter((row): row is WorkOrderImage => row != null);
+
       return this.handleSuccess({
         ...note,
-        images: uploadedImages
+        images: uploadedWithUrls,
       });
     } catch (error) {
       return this.handleError(error);
@@ -1041,13 +1066,19 @@ export class WorkOrderService extends BaseService {
         .select('id, name')
         .in('id', uploaderIds);
 
-      const enrichedImages: WorkOrderImage[] = images.map(image => {
-        const uploader = (profiles || []).find(p => p.id === image.uploaded_by);
-        return {
-          ...image,
-          uploaded_by_name: uploader?.name || 'Unknown'
-        };
-      });
+      const signedUrls = await batchResolveWorkOrderImageDisplayUrls(images.map(img => img.file_url));
+      const enrichedImages: WorkOrderImage[] = images
+        .map((image, i) => {
+          const uploader = (profiles || []).find(p => p.id === image.uploaded_by);
+          const displayUrl = displayUrlForStoredPrivateImage(signedUrls[i], image.file_url);
+          if (displayUrl == null) return null;
+          return {
+            ...image,
+            file_url: displayUrl,
+            uploaded_by_name: uploader?.name || 'Unknown',
+          };
+        })
+        .filter((row): row is WorkOrderImage => row != null);
 
       return this.handleSuccess(enrichedImages);
     } catch (error) {
@@ -1087,20 +1118,7 @@ export class WorkOrderService extends BaseService {
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${claims.sub}/${workOrderId}/${Date.now()}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('work-order-images')
-        .upload(fileName, file);
-
-      if (uploadError) {
-        logger.error('Error uploading image:', uploadError);
-        return this.handleError(uploadError);
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('work-order-images')
-        .getPublicUrl(uploadData.path);
+      const storedPath = await uploadImageToStorage('work-order-images', fileName, file);
 
       // Save image record
       const { data: imageRecord, error: imageError } = await supabase
@@ -1109,7 +1127,7 @@ export class WorkOrderService extends BaseService {
           work_order_id: workOrderId,
           uploaded_by: claims.sub,
           file_name: file.name,
-          file_url: publicUrl,
+          file_url: storedPath,
           file_size: file.size,
           mime_type: file.type,
           description: description || null
@@ -1119,6 +1137,14 @@ export class WorkOrderService extends BaseService {
 
       if (imageError) {
         logger.error('Error saving image record:', imageError);
+        try {
+          await deleteImageFromStorage('work-order-images', storedPath);
+        } catch (cleanupError) {
+          logger.error(
+            'Failed to delete orphaned work-order image after DB insert failure:',
+            cleanupError,
+          );
+        }
         return this.handleError(imageError);
       }
 
@@ -1129,9 +1155,50 @@ export class WorkOrderService extends BaseService {
         .eq('id', claims.sub)
         .single();
 
+      const displayUrl = displayUrlForStoredPrivateImage(
+        await resolveImageDisplayUrl('work-order-images', imageRecord.file_url),
+        imageRecord.file_url,
+      );
+
+      if (displayUrl == null) {
+        const cleanupCtx = {
+          imageId: imageRecord.id,
+          storedPath,
+          workOrderId,
+        };
+        // Signing failed — clean up DB row and storage to avoid orphaned resources.
+        // DB delete must succeed before storage delete; otherwise the DB row still
+        // exists and would point at a missing storage object, creating broken state.
+        logger.error('Signing failed for uploaded work order image, rolling back', cleanupCtx);
+        const { error: dbDeleteError } = await supabase
+          .from('work_order_images')
+          .delete()
+          .eq('id', imageRecord.id)
+          .eq('work_order_id', workOrderId);
+        if (dbDeleteError) {
+          logger.error(
+            'Failed to delete DB row during signing-failure rollback; skipping storage cleanup to preserve consistency',
+            { ...cleanupCtx, error: dbDeleteError },
+          );
+        } else {
+          try {
+            await deleteImageFromStorage('work-order-images', storedPath);
+          } catch (cleanupError) {
+            logger.error(
+              'Failed to delete orphaned work-order storage object during rollback',
+              { ...cleanupCtx, error: cleanupError },
+            );
+          }
+        }
+        return this.handleError(
+          new Error('Could not generate a secure link for the uploaded image. Try again.'),
+        );
+      }
+
       return this.handleSuccess({
         ...imageRecord,
-        uploaded_by_name: profile?.name || 'Unknown'
+        uploaded_by_name: profile?.name || 'Unknown',
+        file_url: displayUrl,
       });
     } catch (error) {
       return this.handleError(error);
@@ -1186,14 +1253,13 @@ export class WorkOrderService extends BaseService {
         return this.handleError(deleteError);
       }
 
-      // Delete from storage
       try {
-        const filePath = image.file_url.split('/').slice(-4).join('/');
-        await supabase.storage
-          .from('work-order-images')
-          .remove([filePath]);
+        const filePath = normalizeStoredObjectPath(image.file_url, 'work-order-images');
+        if (filePath) {
+          await supabase.storage.from('work-order-images').remove([filePath]);
+        }
       } catch (storageError) {
-        logger.warn('Failed to delete image from storage:', storageError);
+        logger.error('Failed to delete image from storage:', storageError);
         // Don't fail the operation if storage deletion fails
       }
 

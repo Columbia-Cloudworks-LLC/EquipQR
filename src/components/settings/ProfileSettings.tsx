@@ -7,10 +7,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAppToast } from '@/hooks/useAppToast';
 import SingleImageUpload from '@/components/common/SingleImageUpload';
 import { uploadAvatar, deleteAvatar } from '@/services/profileService';
+import { useResolvedAvatarUrl } from '@/hooks/useResolvedAvatarUrl';
 import { Save, Loader2 } from 'lucide-react';
 
 const ProfileSettings = () => {
   const { currentUser, setCurrentUser } = useUser();
+  const { data: avatarDisplayUrl, isPending: isAvatarPending } = useResolvedAvatarUrl(currentUser?.avatar_url);
   const appToast = useAppToast();
   const [name, setName] = useState(currentUser?.name || '');
   const [isLoading, setIsLoading] = useState(false);
@@ -63,17 +65,19 @@ const ProfileSettings = () => {
         .toUpperCase()
         .slice(0, 2)
     : '?';
+  const avatarPath = currentUser.avatar_url?.trim() ?? '';
+  const hasCanonicalAvatarPath = avatarPath.length > 0 && !/^https?:\/\//i.test(avatarPath);
 
   return (
     <>
       <SingleImageUpload
-        currentImageUrl={currentUser.avatar_url}
+        currentImageUrl={avatarDisplayUrl}
         onUpload={handleAvatarUpload}
         onDelete={handleAvatarDelete}
         maxSizeMB={5}
         disabled={isLoading}
         variant="avatar"
-        avatarFallback={initials}
+        avatarFallback={isAvatarPending && hasCanonicalAvatarPath ? '' : initials}
       />
 
       <div className="space-y-2">

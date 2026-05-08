@@ -581,6 +581,8 @@ const EquipmentDetails = () => {
             <Suspense fallback={<TabContentSkeleton />}>
               <EquipmentNotesTab
                 equipmentId={equipment.id}
+                organizationId={currentOrganization.id}
+                equipmentTeamId={equipment.team_id || undefined}
                 currentDisplayImage={equipment.image_url}
               />
             </Suspense>

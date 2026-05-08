@@ -1,8 +1,11 @@
 /**
  * Shared Image Upload Service
- * 
+ *
  * DRY abstraction for uploading images to Supabase Storage buckets.
- * Used by organization logos, user avatars, team images, and inventory item images.
+ * Private buckets persist canonical object paths in the database and rely on
+ * short-lived signed URLs at read time. Public buckets (e.g. organization
+ * logos) continue to use getPublicUrl(). Landing / marketing images use
+ * `src/lib/landingImage.ts`, not this module.
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -17,7 +20,19 @@ export type StorageBucket =
   | 'work-order-images'
   | 'equipment-note-images';
 
+/** Buckets that remain publicly readable via `getPublicUrl` (no signing). */
+export const PUBLIC_STORAGE_BUCKETS: ReadonlySet<StorageBucket> = new Set([
+  'organization-logos',
+]);
+
+/** Default signed URL TTL — within the 5–15 minute compliance window. */
+export const DEFAULT_SIGNED_URL_TTL_SECONDS = 900;
+
 const ACCEPTED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+export function isPublicStorageBucket(bucket: StorageBucket): boolean {
+  return PUBLIC_STORAGE_BUCKETS.has(bucket);
+}
 
 /**
  * Compression settings used for technician-captured photos. The defaults
@@ -76,13 +91,8 @@ export async function compressImageFile(
       maxSizeMB: settings.maxSizeMB,
       maxWidthOrHeight: settings.maxWidthOrHeight,
       useWebWorker: settings.useWebWorker,
-      // The compressor preserves the original MIME type when possible, so
-      // PNG transparency survives. Quality is auto-adjusted to hit
-      // `maxSizeMB`.
     });
 
-    // Some browsers return a Blob without a `name` — preserve the original
-    // filename so storage path generation continues to work.
     if (compressed instanceof File) {
       return compressed;
     }
@@ -91,7 +101,7 @@ export async function compressImageFile(
       lastModified: Date.now(),
     });
   } catch (error) {
-    logger.warn('Image compression failed; uploading original file', {
+    logger.error('Image compression failed; uploading original file', {
       error: error instanceof Error ? error.message : String(error),
       sizeBytes: file.size,
       type: file.type,
@@ -150,21 +160,13 @@ export function validateImageFile(
 
 /**
  * Upload a single image to a Supabase Storage bucket.
- * Returns the public URL of the uploaded file.
  *
- * Behavior:
- *   - The file is compressed in the browser before upload by default. A
- *     phone-captured 12 MB JPEG drops to ≤500 KB, which is the difference
- *     between an upload that completes and one that times out on Slow 4G.
- *     Pass `compress: false` to opt out (e.g. when the caller has
- *     pre-processed the file or needs pixel-perfect fidelity such as
- *     logos).
- *   - When `upsert` is true the storage path stays the same across
- *     re-uploads, so Supabase's CDN (`cache-control: public, max-age=3600`)
- *     can serve a stale version. To bust the cache we append a
- *     `?v={timestamp}` query parameter to the URL stored in the DB.
- *     `extractStoragePath` strips query params before calling
- *     `storage.remove()` so deletions still work.
+ * Returns:
+ * - **Public buckets**: full public URL (optional `?v=` cache-buster when upserting).
+ * - **Private buckets**: canonical object path inside the bucket (for DB storage).
+ *
+ * When `upsert` is true on **public** buckets, a `?v={timestamp}` query parameter
+ * busts CDN caches. Private buckets omit query strings — readers use signed URLs.
  */
 export async function uploadImageToStorage(
   bucket: StorageBucket,
@@ -195,39 +197,385 @@ export async function uploadImageToStorage(
     throw new Error(`Failed to upload image: ${uploadError.message}`);
   }
 
-  const { data: { publicUrl } } = supabase.storage
-    .from(bucket)
-    .getPublicUrl(uploadData.path);
+  if (isPublicStorageBucket(bucket)) {
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from(bucket).getPublicUrl(uploadData.path);
 
-  // Bust CDN cache for upserted files (same path, new content)
-  if (options?.upsert) {
-    return `${publicUrl}?v=${Date.now()}`;
+    if (options?.upsert) {
+      return `${publicUrl}?v=${Date.now()}`;
+    }
+
+    return publicUrl;
   }
 
-  return publicUrl;
+  return uploadData.path;
+}
+
+export interface CreateSignedUrlForPathOptions {
+  expiresInSeconds?: number;
+  /** When false, skips logging (e.g. expected miss during multi-bucket fallback). */
+  logFailures?: boolean;
+}
+
+/**
+ * Create a signed URL for an object path inside a private bucket.
+ */
+export async function createSignedUrlForPath(
+  bucket: StorageBucket,
+  objectPath: string,
+  options?: CreateSignedUrlForPathOptions
+): Promise<string | null> {
+  const trimmed = objectPath.trim();
+  if (!trimmed) return null;
+
+  const expiresInSeconds = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
+  const logFailures = options?.logFailures ?? true;
+
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUrl(trimmed, expiresInSeconds);
+
+  if (error || !data?.signedUrl) {
+    if (logFailures) {
+      logger.error('createSignedUrl failed', { bucket, error });
+    }
+    return null;
+  }
+
+  return data.signedUrl;
+}
+
+/**
+ * Resolve many stored references for a private bucket with one `createSignedUrls` call.
+ * Falls back to `createSignedUrlForPath` when the batch response omits a path or errors.
+ */
+async function batchResolveStoredRefsForPrivateBucket(
+  bucket: StorageBucket,
+  storedRefs: (string | null | undefined)[],
+  batchLogLabel: string,
+  options?: { expiresInSeconds?: number },
+): Promise<(string | null)[]> {
+  const expiresIn = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
+  const results: (string | null)[] = storedRefs.map(() => null);
+
+  type Pending = { idx: number; path: string; httpFallback: string | null };
+  const pending: Pending[] = [];
+
+  storedRefs.forEach((stored, idx) => {
+    if (!stored?.trim()) return;
+
+    const trimmed = stored.trim();
+    const path = normalizeStoredObjectPath(trimmed, bucket);
+
+    if (!path) {
+      results[idx] = /^https?:\/\//i.test(trimmed) ? trimmed : null;
+      return;
+    }
+
+    const httpFallback = /^https?:\/\//i.test(trimmed) ? trimmed : null;
+    pending.push({ idx, path, httpFallback });
+  });
+
+  if (pending.length === 0) {
+    return results;
+  }
+
+  const uniquePaths = [...new Set(pending.map(p => p.path))];
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrls(uniquePaths, expiresIn);
+
+  const signedByPath = new Map<string, string>();
+  if (!error && data) {
+    for (const row of data) {
+      if (row.path && row.signedUrl) {
+        signedByPath.set(row.path, row.signedUrl);
+      }
+    }
+  } else if (error) {
+    logger.error(`createSignedUrls failed for ${batchLogLabel}`, { bucket, error });
+  }
+
+  await Promise.all(
+    pending.map(async ({ idx, path, httpFallback }) => {
+      let url = signedByPath.get(path) ?? null;
+      if (!url) {
+        url = await createSignedUrlForPath(bucket, path, {
+          expiresInSeconds: expiresIn,
+          logFailures: true,
+        });
+      }
+      results[idx] = url ?? httpFallback;
+    }),
+  );
+
+  return results;
+}
+
+/** Batch-sign `work-order-images` paths (one Storage round-trip when possible). */
+export async function batchResolveWorkOrderImageDisplayUrls(
+  storedRefs: (string | null | undefined)[],
+  options?: { expiresInSeconds?: number },
+): Promise<(string | null)[]> {
+  return batchResolveStoredRefsForPrivateBucket(
+    'work-order-images',
+    storedRefs,
+    'work-order-images batch',
+    options,
+  );
+}
+
+/**
+ * Combine a signed/private URL with legacy absolute URLs only. Canonical bucket paths must not be
+ * passed through as `<img src>` when signing fails.
+ */
+export function displayUrlForStoredPrivateImage(
+  signedOrResolved: string | null | undefined,
+  stored: string | null | undefined,
+): string | null {
+  if (signedOrResolved) return signedOrResolved;
+  const s = String(stored ?? '').trim();
+  if (/^https?:\/\//i.test(s)) return s;
+  return null;
+}
+
+/** Batch-sign `user-avatars` paths (one Storage round-trip when possible). */
+export async function batchResolveUserAvatarDisplayUrls(
+  storedRefs: (string | null | undefined)[],
+  options?: { expiresInSeconds?: number },
+): Promise<(string | null)[]> {
+  return batchResolveStoredRefsForPrivateBucket(
+    'user-avatars',
+    storedRefs,
+    'user-avatars batch',
+    options,
+  );
+}
+
+/** Batch-sign `team-images` paths (one Storage round-trip when possible). */
+export async function batchResolveTeamImageDisplayUrls(
+  storedRefs: (string | null | undefined)[],
+  options?: { expiresInSeconds?: number },
+): Promise<(string | null)[]> {
+  return batchResolveStoredRefsForPrivateBucket(
+    'team-images',
+    storedRefs,
+    'team-images batch',
+    options,
+  );
+}
+
+/** Batch-sign `equipment-note-images` paths (one Storage round-trip when possible). */
+export async function batchResolveEquipmentNoteImageDisplayUrls(
+  storedRefs: (string | null | undefined)[],
+  options?: { expiresInSeconds?: number },
+): Promise<(string | null)[]> {
+  return batchResolveStoredRefsForPrivateBucket(
+    'equipment-note-images',
+    storedRefs,
+    'equipment-note-images batch',
+    options,
+  );
+}
+
+/** Batch-sign `inventory-item-images` paths (one Storage round-trip when possible). */
+export async function batchResolveInventoryItemImageDisplayUrls(
+  storedRefs: (string | null | undefined)[],
+  options?: { expiresInSeconds?: number },
+): Promise<(string | null)[]> {
+  return batchResolveStoredRefsForPrivateBucket(
+    'inventory-item-images',
+    storedRefs,
+    'inventory-item-images batch',
+    options,
+  );
+}
+
+/**
+ * Normalize an equipment `image_url` reference to a single bucket-relative path.
+ * Used before batch or single-bucket signing (ambiguous paths may exist in WO or note buckets).
+ */
+export function extractEquipmentDisplayImagePath(stored: string | null | undefined): string | null {
+  if (!stored?.trim()) return null;
+
+  return (
+    normalizeStoredObjectPath(stored, 'work-order-images') ??
+    normalizeStoredObjectPath(stored, 'equipment-note-images') ??
+    (!/^https?:\/\//i.test(stored)
+      ? stored.trim().split('?')[0]?.replace(/^\/+/, '') ?? null
+      : null)
+  );
+}
+
+/**
+ * Resolve many equipment display image references with parallel per-path signing on the
+ * work-order bucket, then parallel signing on equipment-note for paths missing from WO.
+ *
+ * Uses individual `createSignedUrl` calls (not batch `createSignedUrls`) because the batch
+ * API returns a signed URL for every path regardless of object existence, which breaks
+ * fallback to the equipment-note bucket.
+ */
+export async function batchResolveEquipmentDisplayImageUrls(
+  storedRefs: (string | null | undefined)[],
+  options?: { expiresInSeconds?: number }
+): Promise<(string | null)[]> {
+  const expiresIn = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
+  const results: (string | null)[] = storedRefs.map(() => null);
+
+  type Pending = { idx: number; path: string; stored: string };
+  const pending: Pending[] = [];
+
+  storedRefs.forEach((stored, idx) => {
+    if (!stored?.trim()) {
+      results[idx] = null;
+      return;
+    }
+
+    const trimmed = stored.trim();
+    const woNorm = normalizeStoredObjectPath(trimmed, 'work-order-images');
+    const eqNorm = normalizeStoredObjectPath(trimmed, 'equipment-note-images');
+    if (/^https?:\/\//i.test(trimmed) && !woNorm && !eqNorm) {
+      results[idx] = trimmed;
+      return;
+    }
+
+    const path = extractEquipmentDisplayImagePath(trimmed);
+    if (!path) {
+      results[idx] = /^https?:\/\//i.test(trimmed) ? trimmed : null;
+      return;
+    }
+
+    pending.push({ idx, path, stored: trimmed });
+  });
+
+  if (pending.length === 0) {
+    return results;
+  }
+
+  const uniquePaths = [...new Set(pending.map(p => p.path))];
+
+  const woResults = await Promise.all(
+    uniquePaths.map(p =>
+      createSignedUrlForPath('work-order-images', p, {
+        expiresInSeconds: expiresIn,
+        logFailures: false,
+      }),
+    ),
+  );
+  const woSigned = new Map<string, string>();
+  uniquePaths.forEach((p, i) => {
+    const url = woResults[i];
+    if (url) woSigned.set(p, url);
+  });
+
+  const needEq = uniquePaths.filter(p => !woSigned.has(p));
+  const eqSigned = new Map<string, string>();
+  if (needEq.length > 0) {
+    const eqResults = await Promise.all(
+      needEq.map(p =>
+        createSignedUrlForPath('equipment-note-images', p, {
+          expiresInSeconds: expiresIn,
+          logFailures: false,
+        }),
+      ),
+    );
+    needEq.forEach((p, i) => {
+      const url = eqResults[i];
+      if (url) eqSigned.set(p, url);
+    });
+  }
+
+  for (const { idx, path, stored } of pending) {
+    const url = woSigned.get(path) ?? eqSigned.get(path) ?? null;
+    if (url) {
+      results[idx] = url;
+    } else {
+      results[idx] = stored.startsWith('http') ? stored : null;
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Normalize a stored file reference (legacy public URL, signed URL, or canonical path)
+ * to the storage object path for the given bucket.
+ */
+export function normalizeStoredObjectPath(
+  stored: string,
+  bucket: StorageBucket
+): string | null {
+  const trimmed = stored.trim();
+  if (!trimmed) return null;
+
+  const publicPath = extractPublicStoragePath(trimmed, bucket);
+  if (publicPath) return publicPath;
+
+  const signedPath = extractSignedStoragePath(trimmed, bucket);
+  if (signedPath) return signedPath;
+
+  if (!/^https?:\/\//i.test(trimmed)) {
+    const noQuery = trimmed.includes('?') ? trimmed.split('?')[0] : trimmed;
+    return noQuery.replace(/^\/+/, '');
+  }
+
+  return null;
+}
+
+/**
+ * Resolve a stored reference to a browser-fetchable URL (public URL or signed).
+ * External HTTP URLs are returned unchanged when they do not match our patterns.
+ */
+export async function resolveImageDisplayUrl(
+  bucket: StorageBucket,
+  stored: string | null | undefined,
+  options?: { expiresInSeconds?: number }
+): Promise<string | null> {
+  if (!stored?.trim()) return null;
+
+  const expiresIn = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
+
+  if (isPublicStorageBucket(bucket)) {
+    const path = normalizeStoredObjectPath(stored, bucket);
+    if (path) {
+      const trimmed = stored.trim();
+      if (/^https?:\/\//i.test(trimmed)) {
+        const extracted = extractPublicStoragePath(trimmed, bucket);
+        if (extracted === path) return trimmed;
+      }
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from(bucket).getPublicUrl(path);
+      return publicUrl;
+    }
+    if (stored.startsWith('http')) return stored;
+    return null;
+  }
+
+  const path = normalizeStoredObjectPath(stored, bucket);
+  if (!path) {
+    return stored.startsWith('http') ? stored : null;
+  }
+
+  return createSignedUrlForPath(bucket, path, { expiresInSeconds: expiresIn });
 }
 
 /**
  * Delete a single image from a Supabase Storage bucket.
- * Extracts the storage path from a public URL.
  */
 export async function deleteImageFromStorage(
   bucket: StorageBucket,
-  publicUrl: string
+  storedReference: string
 ): Promise<void> {
-  const storagePath = extractStoragePath(publicUrl, bucket);
+  const storagePath = normalizeStoredObjectPath(storedReference, bucket);
   if (!storagePath) {
-    logger.error('Could not extract storage path from URL:', { publicUrl, bucket });
+    logger.error('Could not extract storage path:', { storedReference, bucket });
     return;
   }
 
-  const { error } = await supabase.storage
-    .from(bucket)
-    .remove([storagePath]);
+  const { error } = await supabase.storage.from(bucket).remove([storagePath]);
 
   if (error) {
     logger.error('Error deleting image from storage:', error);
-    // Don't throw — storage cleanup failure shouldn't block the operation
   }
 }
 
@@ -236,17 +584,15 @@ export async function deleteImageFromStorage(
  */
 export async function deleteImagesFromStorage(
   bucket: StorageBucket,
-  publicUrls: string[]
+  storedReferences: string[]
 ): Promise<void> {
-  const paths = publicUrls
-    .map(url => extractStoragePath(url, bucket))
+  const paths = storedReferences
+    .map(ref => normalizeStoredObjectPath(ref, bucket))
     .filter((p): p is string => !!p);
 
   if (paths.length === 0) return;
 
-  const { error } = await supabase.storage
-    .from(bucket)
-    .remove(paths);
+  const { error } = await supabase.storage.from(bucket).remove(paths);
 
   if (error) {
     logger.error('Error deleting images from storage:', error);
@@ -254,27 +600,39 @@ export async function deleteImagesFromStorage(
 }
 
 /**
- * Extract the storage object path from a Supabase public URL.
- * 
- * Public URL format: 
- *   {supabaseUrl}/storage/v1/object/public/{bucket}/{path}[?query]
- * 
- * Returns the {path} portion (without query params), or null if extraction fails.
- * Query params (e.g. `?v=...` cache-busters) are stripped so the path is safe
- * to pass to `storage.remove()`.
+ * Extract the storage object path from a Supabase **public** object URL.
+ *
+ * Returns the path portion (without query params), or null if extraction fails.
  */
 export function extractStoragePath(
   publicUrl: string,
   bucket: StorageBucket
 ): string | null {
+  return extractPublicStoragePath(publicUrl, bucket);
+}
+
+function extractPublicStoragePath(url: string, bucket: StorageBucket): string | null {
   try {
     const marker = `/storage/v1/object/public/${bucket}/`;
-    const idx = publicUrl.indexOf(marker);
+    const idx = url.indexOf(marker);
     if (idx === -1) return null;
-    const pathWithQuery = publicUrl.substring(idx + marker.length);
-    // Strip query parameters (e.g. ?v=1234 cache-bust)
+    const pathWithQuery = url.substring(idx + marker.length);
     const qIdx = pathWithQuery.indexOf('?');
     return qIdx === -1 ? pathWithQuery : pathWithQuery.substring(0, qIdx);
+  } catch {
+    return null;
+  }
+}
+
+function extractSignedStoragePath(url: string, bucket: StorageBucket): string | null {
+  try {
+    const marker = `/storage/v1/object/sign/${bucket}/`;
+    const idx = url.indexOf(marker);
+    if (idx === -1) return null;
+    let rest = url.substring(idx + marker.length);
+    const qIdx = rest.indexOf('?');
+    if (qIdx !== -1) rest = rest.substring(0, qIdx);
+    return rest;
   } catch {
     return null;
   }
