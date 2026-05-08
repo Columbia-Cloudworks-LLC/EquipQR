@@ -8,6 +8,7 @@ import {
   normalizeStoredObjectPath,
   batchResolveWorkOrderImageDisplayUrls,
   displayUrlForStoredPrivateImage,
+  deleteImageFromStorage,
 } from '@/services/imageUploadService';
 
 export interface WorkOrderNote {
@@ -110,6 +111,11 @@ export const createWorkOrderNoteWithImages = async (
 
       if (imageError) {
         logger.error('Failed to save image record:', imageError);
+        try {
+          await deleteImageFromStorage('work-order-images', storedPath);
+        } catch (cleanupError) {
+          logger.error('Failed to delete orphaned work-order image after DB insert failure:', cleanupError);
+        }
         continue;
       }
 

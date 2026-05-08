@@ -7,6 +7,9 @@ import { hashPasswordSha1Hex } from '@/lib/passwordPolicy';
 
 const prefixCache = new Map<string, string>();
 
+/** Range fetch timeout — stalled HIBP must not block signup indefinitely */
+const HIBP_FETCH_TIMEOUT_MS = 5000;
+
 export type HibpCheckResult =
   | { status: 'ok'; breached: false }
   | { status: 'ok'; breached: true }
@@ -29,14 +32,26 @@ export async function checkPasswordBreachedHibp(password: string): Promise<HibpC
 
     let body = prefixCache.get(prefix);
     if (body === undefined) {
-      const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
-        headers: { 'Add-Padding': 'true' },
-      });
-      if (!res.ok) {
-        return { status: 'error', message: `HIBP HTTP ${res.status}` };
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), HIBP_FETCH_TIMEOUT_MS);
+      try {
+        const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
+          headers: { 'Add-Padding': 'true' },
+          signal: controller.signal,
+        });
+        if (!res.ok) {
+          return { status: 'error', message: `HIBP HTTP ${res.status}` };
+        }
+        body = await res.text();
+        prefixCache.set(prefix, body);
+      } catch (e) {
+        if (e instanceof Error && e.name === 'AbortError') {
+          return { status: 'error', message: 'Breach check timed out' };
+        }
+        throw e;
+      } finally {
+        clearTimeout(timer);
       }
-      body = await res.text();
-      prefixCache.set(prefix, body);
     }
 
     for (const line of body.split(/\r?\n/)) {

@@ -20,6 +20,7 @@ import {
   markPendingTermsAcceptanceForUser,
   recordTermsAcceptance,
 } from '@/lib/termsAcceptanceRecording';
+import { PRIVACY_VERSION_HASH, TERMS_VERSION_HASH } from '@/lib/legalPolicyVersions';
 
 interface SignUpFormProps {
   onSuccess: (message: string) => void;
@@ -202,6 +203,11 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       if (invitedOrgId || invitedOrgName) {
         signUpData.signup_source = 'invite';
       }
+
+      signUpData.terms_accepted = 'true';
+      signUpData.terms_version_hash = TERMS_VERSION_HASH;
+      signUpData.privacy_version_hash = PRIVACY_VERSION_HASH;
+      signUpData.terms_accepted_at = new Date().toISOString();
 
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,

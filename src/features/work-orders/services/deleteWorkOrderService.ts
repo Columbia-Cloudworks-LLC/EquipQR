@@ -51,7 +51,7 @@ export const deleteWorkOrderCascade = async (workOrderId: string): Promise<void>
           // Continue with database deletion even if storage cleanup fails
         }
       } else {
-        logger.warn('Skipping work-order image storage cleanup because no valid object paths were found', {
+        logger.error('Skipping work-order image storage cleanup because no valid object paths were found', {
           workOrderId,
           imageCount: images.length,
         });
