@@ -41,13 +41,20 @@ export const deleteWorkOrderCascade = async (workOrderId: string): Promise<void>
         .map(img => normalizeStoredObjectPath(img.file_url, 'work-order-images'))
         .filter((p): p is string => !!p);
 
-      const { error: storageError } = await supabase.storage
-        .from('work-order-images')
-        .remove(filePaths);
+      if (filePaths.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from('work-order-images')
+          .remove(filePaths);
 
-      if (storageError) {
-        logger.error('Some storage files could not be deleted:', storageError);
-        // Continue with database deletion even if storage cleanup fails
+        if (storageError) {
+          logger.error('Some storage files could not be deleted:', storageError);
+          // Continue with database deletion even if storage cleanup fails
+        }
+      } else {
+        logger.warn('Skipping work-order image storage cleanup because no valid object paths were found', {
+          workOrderId,
+          imageCount: images.length,
+        });
       }
     }
 

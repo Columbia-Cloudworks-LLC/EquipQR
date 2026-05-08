@@ -39,7 +39,7 @@ export async function checkPasswordBreachedHibp(password: string): Promise<HibpC
       prefixCache.set(prefix, body);
     }
 
-    for (const line of body.split('\r\n')) {
+    for (const line of body.split(/\r?\n/)) {
       if (!line.trim()) continue;
       const parsed = parseSuffixLine(line);
       // HIBP padding lines use count 0; matching only the suffix would false-positive.

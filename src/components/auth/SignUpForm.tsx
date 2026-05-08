@@ -400,7 +400,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
           required
           minLength={PASSWORD_POLICY.minLength}
           aria-invalid={!!getFieldError('password')}
-          aria-describedby="signup-password-hint"
+          aria-describedby={getFieldError('password') ? 'signup-password-hint signup-password-error' : 'signup-password-hint'}
         />
         <div id="signup-password-hint" className="space-y-2 text-sm">
           <p className="text-muted-foreground">Password must have:</p>
@@ -434,7 +434,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
           </div>
         </div>
         {getFieldError('password') && (
-          <p className="text-sm text-destructive" aria-live="polite">
+          <p id="signup-password-error" className="text-sm text-destructive" aria-live="polite">
             {getFieldError('password')}
           </p>
         )}

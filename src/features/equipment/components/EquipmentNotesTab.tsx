@@ -27,6 +27,7 @@ import { logger } from '@/utils/logger';
 
 interface EquipmentNotesTabProps {
   equipmentId: string;
+  organizationId?: string;
   /**
    * Current display image URL for the equipment. Passed from
    * `EquipmentDetails` so this tab does not issue a duplicate
@@ -38,6 +39,7 @@ interface EquipmentNotesTabProps {
 
 const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   equipmentId,
+  organizationId,
   currentDisplayImage,
 }) => {
   const { user } = useAuth();
@@ -47,6 +49,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   const [showForm, setShowForm] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
+  const activeOrganizationId = organizationId ?? currentOrganization?.id;
 
   // Fetch notes with images
   const { data: serverNotes = [], isLoading: notesLoading } = useQuery({
@@ -74,10 +77,10 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
       images: File[];
       machineHours?: number;
     }) => {
-      if (!currentOrganization?.id) {
+      if (!activeOrganizationId) {
         throw new Error('No active organization selected');
       }
-      const orgId = currentOrganization.id;
+      const orgId = activeOrganizationId;
 
       // Images require Storage upload (online only), so only text-only notes can go through the offline queue
       const useOfflinePath = !navigator.onLine || images.length === 0;
@@ -136,17 +139,17 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   // Set display image mutation
   const setDisplayImageMutation = useMutation({
     mutationFn: (imageUrl: string) => {
-      if (!currentOrganization?.id) {
+      if (!activeOrganizationId) {
         throw new Error('No active organization selected');
       }
-      return updateEquipmentDisplayImage(currentOrganization.id, equipmentId, imageUrl);
+      return updateEquipmentDisplayImage(activeOrganizationId, equipmentId, imageUrl);
     },
     onSuccess: () => {
       // Invalidate the canonical equipment cache root so both the by-id query
       // (`['equipment', orgId, equipmentId]`) and the lightweight summaries
       // query pick up the new display image.
-      if (currentOrganization?.id) {
-        queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization.id] });
+      if (activeOrganizationId) {
+        queryClient.invalidateQueries({ queryKey: ['equipment', activeOrganizationId] });
       } else {
         queryClient.invalidateQueries({ queryKey: ['equipment'] });
       }
