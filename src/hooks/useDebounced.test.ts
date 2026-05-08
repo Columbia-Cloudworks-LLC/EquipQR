@@ -47,6 +47,7 @@ describe('useDebounced', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it('returns the initial value immediately without waiting for the delay', () => {
@@ -150,7 +151,6 @@ describe('useDebounced', () => {
     unmount();
 
     expect(clearTimeoutSpy).toHaveBeenCalled();
-    clearTimeoutSpy.mockRestore();
   });
 
   it('restarts the timer when the delay value changes', () => {
@@ -196,6 +196,7 @@ describe('useDebouncedSearch', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it('returns all items immediately when searchTerm is empty', () => {
