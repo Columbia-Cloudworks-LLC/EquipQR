@@ -128,8 +128,9 @@ export const createEquipmentNoteWithImages = async (
 
   if (noteError) throw noteError;
 
-  // Upload images if provided
-  const uploadedImages: EquipmentNoteImage[] = [];
+  // Upload images if provided — collect DB records first, then batch-sign
+  type InsertedRecord = { record: EquipmentNoteImage; storedPath: string };
+  const insertedRecords: InsertedRecord[] = [];
   for (const file of images) {
     try {
       const fileExt = file.name.split('.').pop();
@@ -160,18 +161,32 @@ export const createEquipmentNoteWithImages = async (
         continue;
       }
 
-      const displayUrl = displayUrlForStoredPrivateImage(
-        await resolveImageDisplayUrl('equipment-note-images', imageRecord.file_url),
-        imageRecord.file_url,
-      );
-      if (displayUrl != null) {
-        uploadedImages.push({
-          ...imageRecord,
-          file_url: displayUrl,
-        });
-      }
+      insertedRecords.push({ record: imageRecord as unknown as EquipmentNoteImage, storedPath });
     } catch (error) {
       logger.error('Error processing image:', error);
+    }
+  }
+
+  // Batch-sign all successfully inserted records in one round-trip
+  const signedBatch = insertedRecords.length > 0
+    ? await batchResolveEquipmentNoteImageDisplayUrls(insertedRecords.map(r => r.record.file_url))
+    : [];
+
+  const uploadedImages: EquipmentNoteImage[] = [];
+  for (let i = 0; i < insertedRecords.length; i++) {
+    const { record, storedPath } = insertedRecords[i];
+    const displayUrl = displayUrlForStoredPrivateImage(signedBatch[i] ?? null, record.file_url);
+    if (displayUrl != null) {
+      uploadedImages.push({ ...record, file_url: displayUrl });
+    } else {
+      // Signing failed — clean up DB row and storage to avoid orphaned resources
+      logger.error('Signing failed for uploaded image, rolling back:', record.file_url);
+      try {
+        await supabase.from('equipment_note_images').delete().eq('id', record.id);
+        await deleteImageFromStorage('equipment-note-images', storedPath);
+      } catch (cleanupError) {
+        logger.error('Failed to clean up image after signing failure:', cleanupError);
+      }
     }
   }
 

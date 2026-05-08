@@ -24,10 +24,13 @@ import InlineNoteComposer from '@/components/common/InlineNoteComposer';
 import ImageGallery from '@/components/common/ImageGallery';
 import { OfflineFormBanner } from '@/features/offline-queue/components/OfflineFormBanner';
 import { logger } from '@/utils/logger';
+import { useEquipmentNotesPermissions } from '@/features/equipment/hooks/useEquipmentNotesPermissions';
 
 interface EquipmentNotesTabProps {
   equipmentId: string;
   organizationId?: string;
+  /** Team the equipment belongs to — used for permission checks. */
+  equipmentTeamId?: string;
   /**
    * Current display image URL for the equipment. Passed from
    * `EquipmentDetails` so this tab does not issue a duplicate
@@ -40,6 +43,7 @@ interface EquipmentNotesTabProps {
 const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   equipmentId,
   organizationId,
+  equipmentTeamId,
   currentDisplayImage,
 }) => {
   const { user } = useAuth();
@@ -50,6 +54,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   const [noteContent, setNoteContent] = useState('');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
   const activeOrganizationId = organizationId ?? currentOrganization?.id;
+  const permissions = useEquipmentNotesPermissions(equipmentTeamId);
 
   // Fetch notes with images
   const { data: serverNotes = [], isLoading: notesLoading } = useQuery({
@@ -139,6 +144,9 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   // Set display image mutation
   const setDisplayImageMutation = useMutation({
     mutationFn: (imageUrl: string) => {
+      if (!permissions.canSetDisplayImage) {
+        throw new Error('You do not have permission to set the equipment display image');
+      }
       if (!activeOrganizationId) {
         throw new Error('No active organization selected');
       }
@@ -376,7 +384,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
               onDelete={deleteImageMutation.mutateAsync}
               onSetDisplayImage={setDisplayImageMutation.mutateAsync}
               canDelete={canDeleteImage}
-              canSetDisplayImage={true}
+              canSetDisplayImage={permissions.canSetDisplayImage}
               currentDisplayImage={currentDisplayImage ?? undefined}
               title=""
               emptyMessage="No images uploaded yet."
