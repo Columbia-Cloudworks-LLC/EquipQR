@@ -179,13 +179,25 @@ export const createEquipmentNoteWithImages = async (
     if (displayUrl != null) {
       uploadedImages.push({ ...record, file_url: displayUrl });
     } else {
-      // Signing failed — clean up DB row and storage to avoid orphaned resources
+      // Signing failed — clean up DB row and storage to avoid orphaned resources.
+      // DB delete must succeed before storage delete; otherwise the DB row still
+      // exists and would point at a missing storage object, creating broken state.
       logger.error('Signing failed for uploaded image, rolling back:', record.file_url);
-      try {
-        await supabase.from('equipment_note_images').delete().eq('id', record.id);
-        await deleteImageFromStorage('equipment-note-images', storedPath);
-      } catch (cleanupError) {
-        logger.error('Failed to clean up image after signing failure:', cleanupError);
+      const { error: dbDeleteError } = await supabase
+        .from('equipment_note_images')
+        .delete()
+        .eq('id', record.id);
+      if (dbDeleteError) {
+        logger.error(
+          'Failed to delete DB row during signing-failure rollback; skipping storage cleanup to preserve consistency:',
+          { imageId: record.id, error: dbDeleteError }
+        );
+      } else {
+        try {
+          await deleteImageFromStorage('equipment-note-images', storedPath);
+        } catch (cleanupError) {
+          logger.error('Failed to delete orphaned storage object during rollback:', cleanupError);
+        }
       }
     }
   }

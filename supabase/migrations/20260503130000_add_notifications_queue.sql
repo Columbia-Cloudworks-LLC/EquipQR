@@ -67,7 +67,10 @@ COMMENT ON TABLE pgmq.q_notifications IS
 -- pgmq_public.<fn> works without modification.
 CREATE SCHEMA IF NOT EXISTS pgmq_public;
 
--- pgmq_public.send(queue_name text, message jsonb) -> bigint (msg_id)
+-- pgmq_public.send(queue_name text, message jsonb, sleep_seconds int) -> SETOF bigint (msg_ids)
+-- Note: returns SETOF bigint (not scalar bigint) to mirror pgmq.send, which itself
+-- returns SETOF bigint. Trigger callers that discard the result via PERFORM are unaffected.
+-- PostgREST/supabase-js RPC callers receive an array; use [0] if a scalar msg_id is needed.
 CREATE OR REPLACE FUNCTION pgmq_public.send(
   queue_name text,
   message jsonb,
@@ -222,3 +225,4 @@ COMMENT ON SCHEMA pgmq_public IS
   'requiring a Dashboard click-through. See Change Record on issue #722.';
 
 COMMIT;
+
