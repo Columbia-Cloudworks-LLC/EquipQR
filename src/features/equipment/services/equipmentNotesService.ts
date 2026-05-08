@@ -292,7 +292,18 @@ export const uploadEquipmentNoteImage = async (
     .select()
     .single();
 
-  if (imageError) throw imageError;
+  if (imageError) {
+    logger.error('Failed to save equipment note image record:', imageError);
+    try {
+      await deleteImageFromStorage('equipment-note-images', storedPath);
+    } catch (cleanupError) {
+      logger.error(
+        'Failed to delete orphaned equipment note image after DB insert failure:',
+        cleanupError,
+      );
+    }
+    throw imageError;
+  }
 
   const displayUrl = displayUrlForStoredPrivateImage(
     await resolveImageDisplayUrl('equipment-note-images', imageRecord.file_url),
@@ -300,8 +311,30 @@ export const uploadEquipmentNoteImage = async (
   );
 
   if (displayUrl == null) {
-    await supabase.from('equipment_note_images').delete().eq('id', imageRecord.id);
-    await deleteImageFromStorage('equipment-note-images', storedPath);
+    const cleanupCtx = { imageId: imageRecord.id, storedPath };
+    // Signing failed — clean up DB row and storage to avoid orphaned resources.
+    // DB delete must succeed before storage delete; otherwise the DB row still
+    // exists and would point at a missing storage object, creating broken state.
+    logger.error('Signing failed for uploaded equipment note image, rolling back', cleanupCtx);
+    const { error: dbDeleteError } = await supabase
+      .from('equipment_note_images')
+      .delete()
+      .eq('id', imageRecord.id);
+    if (dbDeleteError) {
+      logger.error(
+        'Failed to delete DB row during signing-failure rollback; skipping storage cleanup to preserve consistency',
+        { ...cleanupCtx, error: dbDeleteError },
+      );
+    } else {
+      try {
+        await deleteImageFromStorage('equipment-note-images', storedPath);
+      } catch (cleanupError) {
+        logger.error(
+          'Failed to delete orphaned equipment note storage object during rollback',
+          { ...cleanupCtx, error: cleanupError },
+        );
+      }
+    }
     throw new Error('Could not generate a secure link for the uploaded image. Try again.');
   }
 

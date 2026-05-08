@@ -1137,6 +1137,14 @@ export class WorkOrderService extends BaseService {
 
       if (imageError) {
         logger.error('Error saving image record:', imageError);
+        try {
+          await deleteImageFromStorage('work-order-images', storedPath);
+        } catch (cleanupError) {
+          logger.error(
+            'Failed to delete orphaned work-order image after DB insert failure:',
+            cleanupError,
+          );
+        }
         return this.handleError(imageError);
       }
 
@@ -1158,37 +1166,30 @@ export class WorkOrderService extends BaseService {
           storedPath,
           workOrderId,
         };
-        await Promise.allSettled([
-          (async () => {
-            const { error: dbErr } = await supabase
-              .from('work_order_images')
-              .delete()
-              .eq('id', imageRecord.id)
-              .eq('work_order_id', workOrderId);
-            if (dbErr) {
-              logger.error('Work order image cleanup: DB delete failed after signing failure', {
-                ...cleanupCtx,
-                error: dbErr,
-              });
-            }
-          })(),
-          (async () => {
-            const path = normalizeStoredObjectPath(storedPath, 'work-order-images');
-            if (!path) {
-              logger.error('Work order image cleanup: invalid storage path after signing failure', cleanupCtx);
-              return;
-            }
-            const { error: storageErr } = await supabase.storage
-              .from('work-order-images')
-              .remove([path]);
-            if (storageErr) {
-              logger.error('Work order image cleanup: storage delete failed after signing failure', {
-                ...cleanupCtx,
-                error: storageErr,
-              });
-            }
-          })(),
-        ]);
+        // Signing failed — clean up DB row and storage to avoid orphaned resources.
+        // DB delete must succeed before storage delete; otherwise the DB row still
+        // exists and would point at a missing storage object, creating broken state.
+        logger.error('Signing failed for uploaded work order image, rolling back', cleanupCtx);
+        const { error: dbDeleteError } = await supabase
+          .from('work_order_images')
+          .delete()
+          .eq('id', imageRecord.id)
+          .eq('work_order_id', workOrderId);
+        if (dbDeleteError) {
+          logger.error(
+            'Failed to delete DB row during signing-failure rollback; skipping storage cleanup to preserve consistency',
+            { ...cleanupCtx, error: dbDeleteError },
+          );
+        } else {
+          try {
+            await deleteImageFromStorage('work-order-images', storedPath);
+          } catch (cleanupError) {
+            logger.error(
+              'Failed to delete orphaned work-order storage object during rollback',
+              { ...cleanupCtx, error: cleanupError },
+            );
+          }
+        }
         return this.handleError(
           new Error('Could not generate a secure link for the uploaded image. Try again.'),
         );
