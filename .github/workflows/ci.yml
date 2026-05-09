@@ -238,13 +238,9 @@ jobs:
     - name: Merge coverage
       run: node scripts/merge-coverage.mjs
 
+    # Floors match vitest.config.ts coverage.thresholds.global (ratchet runs on merged shards).
     - name: Run coverage ratchet
       run: node scripts/coverage-ratchet.mjs
-      env:
-        # CI uses v8 now (was istanbul). v8 produces ~15-20% higher numbers
-        # than istanbul on the same code. The legacy istanbul baseline of 51
-        # is preserved as a floor; v8 should comfortably exceed it.
-        COVERAGE_BASELINE: 51
 
     - name: Upload merged coverage to Codecov
       uses: codecov/codecov-action@v6
