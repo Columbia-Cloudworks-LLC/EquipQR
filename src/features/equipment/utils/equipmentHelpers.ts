@@ -1,3 +1,6 @@
+import { formatDate } from '@/utils/dateFormatter';
+import type { UserSettings } from '@/types/settings';
+
 interface Equipment {
   id: string;
   name: string;
@@ -115,12 +118,12 @@ export const formatDateForInput = (dateString: string | null): string => {
 };
 
 /**
- * Safely formats a date for display. Returns null if invalid.
+ * Safely formats a date for display in the user's timezone. Returns null if invalid.
  */
-export const safeFormatDate = (value: string): string | null => {
+export const safeFormatDate = (value: string, settings: UserSettings): string | null => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return null;
   }
-  return date.toLocaleDateString();
+  return formatDate(date, settings);
 };

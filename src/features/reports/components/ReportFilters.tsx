@@ -89,7 +89,7 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
                   onSelect={(date) => updateFilters({ 
                     dateRange: { ...filters.dateRange, from: date } 
                   })}
-                  initialFocus
+                  autoFocus
                 />
               </PopoverContent>
             </Popover>
@@ -114,7 +114,7 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
                   onSelect={(date) => updateFilters({ 
                     dateRange: { ...filters.dateRange, to: date } 
                   })}
-                  initialFocus
+                  autoFocus
                 />
               </PopoverContent>
             </Popover>

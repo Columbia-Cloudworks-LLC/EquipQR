@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { DotStatus } from '@/components/ui/dot-status';
 import { safeFormatDate } from '@/features/equipment/utils/equipmentHelpers';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import type { EquipmentPMStatus } from '@/features/equipment/hooks/useEquipmentPMStatus';
 import type { SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
 
@@ -89,6 +90,7 @@ const EquipmentTable: React.FC<EquipmentTableProps> = ({
   visibleColumns,
 }) => {
   const navigate = useNavigate();
+  const { settings } = useUserSettings();
 
   const columns = useMemo<Column<EquipmentRow>[]>(() => {
     const isVisible = (key: string): boolean => visibleColumns?.[key] ?? true;
@@ -184,7 +186,7 @@ const EquipmentTable: React.FC<EquipmentTableProps> = ({
         width: '160px',
         render: (_value, item) => {
           if (!item.last_maintenance) return '—';
-          return safeFormatDate(item.last_maintenance) ?? '—';
+          return safeFormatDate(item.last_maintenance, settings) ?? '—';
         },
       });
     }
@@ -211,7 +213,7 @@ const EquipmentTable: React.FC<EquipmentTableProps> = ({
     });
 
     return cols;
-  }, [navigate, onShowQRCode, visibleColumns]);
+  }, [navigate, onShowQRCode, visibleColumns, settings]);
 
   const sorting =
     sortConfig && onSortChange

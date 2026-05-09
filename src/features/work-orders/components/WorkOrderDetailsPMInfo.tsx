@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { Badge } from '@/components/ui/badge';
 import { Clipboard, Wrench } from 'lucide-react';
 import { WorkOrderData, PMData, PermissionLevels } from '@/features/work-orders/types/workOrderDetails';
@@ -16,6 +17,7 @@ export const WorkOrderDetailsPMInfo: React.FC<WorkOrderDetailsPMInfoProps> = ({
   pmData,
   permissionLevels
 }) => {
+  const { formatDate } = useFormatTimestamp();
   const { data: allTemplates = [] } = usePMTemplates();
   
   // Find the template name if template_id exists
@@ -63,7 +65,7 @@ export const WorkOrderDetailsPMInfo: React.FC<WorkOrderDetailsPMInfoProps> = ({
           </p>
           {pmData.status === 'completed' && pmData.completed_at && (
             <p className="text-sm text-success">
-              PM completed on {new Date(pmData.completed_at).toLocaleDateString()}
+              PM completed on {formatDate(pmData.completed_at)}
             </p>
           )}
         </div>
@@ -71,5 +73,4 @@ export const WorkOrderDetailsPMInfo: React.FC<WorkOrderDetailsPMInfoProps> = ({
     </Card>
   );
 };
-
 

@@ -44,6 +44,12 @@ describe('AuditLogDetailPanel', () => {
     expect(screen.getByText(/Identifiers/i)).toBeInTheDocument();
   });
 
+  it('shows audit instant as ISO-8601 Zulu in Overview', () => {
+    render(<AuditLogDetailPanel entry={sampleEntry} />);
+
+    expect(screen.getByText('2026-04-20T10:00:00.000Z')).toBeInTheDocument();
+  });
+
   it('switches to the Changes tab and renders the diff', async () => {
     const user = userEvent.setup();
     render(<AuditLogDetailPanel entry={sampleEntry} />);
