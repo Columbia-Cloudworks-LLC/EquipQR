@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import { useSettings } from '@/contexts/useSettings';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import {
   formatDate,
   formatDateTime,
@@ -11,7 +11,7 @@ import {
 } from '@/utils/dateFormatter';
 
 export function useFormatTimestamp() {
-  const { settings } = useSettings();
+  const { settings } = useUserSettings();
 
   return useMemo(
     () => ({
