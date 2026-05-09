@@ -22,7 +22,8 @@ vi.mock('@/features/equipment/hooks/useEquipmentNotesPermissions', () => ({
   useEquipmentNotesPermissions: vi.fn(() => ({
     canCreate: true,
     canEdit: true,
-    canDelete: true
+    canDelete: true,
+    canSetDisplayImage: true,
   }))
 }));
 

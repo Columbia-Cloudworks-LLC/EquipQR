@@ -48,6 +48,9 @@ import {
   resolveImageDisplayUrl,
   createSignedUrlForPath,
   batchResolveEquipmentDisplayImageUrls,
+  batchResolveEquipmentNoteImageDisplayUrls,
+  batchResolveInventoryItemImageDisplayUrls,
+  batchResolveTeamImageDisplayUrls,
   batchResolveWorkOrderImageDisplayUrls,
   displayUrlForStoredPrivateImage,
   DEFAULT_SIGNED_URL_TTL_SECONDS,
@@ -319,6 +322,38 @@ describe('imageUploadService', () => {
       const out = await batchResolveWorkOrderImageDisplayUrls(['x/y.jpg']);
       expect(mockCreateSignedUrl).toHaveBeenCalled();
       expect(out[0]).toContain('sign/mock/x/y.jpg');
+    });
+  });
+
+  describe('batchResolveTeamImageDisplayUrls', () => {
+    it('uses createSignedUrls with deduped paths', async () => {
+      const paths = ['org/a/t1.jpg', 'org/a/t2.jpg', 'org/a/t1.jpg'];
+      const out = await batchResolveTeamImageDisplayUrls(paths);
+      expect(out).toHaveLength(3);
+      expect(out[0]).toContain('org/a/t1.jpg');
+      expect(out[1]).toContain('org/a/t2.jpg');
+      expect(mockCreateSignedUrls).toHaveBeenCalledTimes(1);
+      expect(mockCreateSignedUrls.mock.calls[0][0]).toEqual(['org/a/t1.jpg', 'org/a/t2.jpg']);
+    });
+  });
+
+  describe('batchResolveEquipmentNoteImageDisplayUrls', () => {
+    it('uses createSignedUrls with deduped paths', async () => {
+      const paths = ['u/n/a.jpg', 'u/n/b.jpg', 'u/n/a.jpg'];
+      const out = await batchResolveEquipmentNoteImageDisplayUrls(paths);
+      expect(out).toHaveLength(3);
+      expect(mockCreateSignedUrls).toHaveBeenCalledTimes(1);
+      expect(mockCreateSignedUrls.mock.calls[0][0]).toEqual(['u/n/a.jpg', 'u/n/b.jpg']);
+    });
+  });
+
+  describe('batchResolveInventoryItemImageDisplayUrls', () => {
+    it('uses createSignedUrls with deduped paths', async () => {
+      const paths = ['org/item/a.jpg', 'org/item/b.jpg', 'org/item/a.jpg'];
+      const out = await batchResolveInventoryItemImageDisplayUrls(paths);
+      expect(out).toHaveLength(3);
+      expect(mockCreateSignedUrls).toHaveBeenCalledTimes(1);
+      expect(mockCreateSignedUrls.mock.calls[0][0]).toEqual(['org/item/a.jpg', 'org/item/b.jpg']);
     });
   });
 

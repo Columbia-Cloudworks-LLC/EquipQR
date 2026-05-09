@@ -19,8 +19,8 @@ import {
   validateImageFile,
   requireAuthUserId,
   getCurrentUserName,
-  resolveImageDisplayUrl,
   displayUrlForStoredPrivateImage,
+  batchResolveInventoryItemImageDisplayUrls,
 } from '@/services/imageUploadService';
 import { validateStorageQuota } from '@/utils/storageQuota';
 
@@ -562,17 +562,15 @@ export const getInventoryItemImages = async (
       .order('created_at', { ascending: true });
 
     if (error) throw error;
-    const resolved = await Promise.all(
-      (data || []).map(async row => {
-        const url = displayUrlForStoredPrivateImage(
-          await resolveImageDisplayUrl('inventory-item-images', row.file_url),
-          row.file_url,
-        );
+    const rows = data || [];
+    const signedBatch = await batchResolveInventoryItemImageDisplayUrls(rows.map(row => row.file_url));
+    return rows
+      .map((row, i) => {
+        const url = displayUrlForStoredPrivateImage(signedBatch[i], row.file_url);
         if (url == null) return null;
         return { ...(row as InventoryItemImage), file_url: url };
-      }),
-    );
-    return resolved.filter((row): row is InventoryItemImage => row != null);
+      })
+      .filter((row): row is InventoryItemImage => row != null);
   } catch (error) {
     logger.error('Error fetching inventory item images:', error);
     throw error;
@@ -669,15 +667,13 @@ export const uploadInventoryItemImages = async (
 
       return results;
     } catch (uploadError) {
-      // Best-effort rollback of images created before the failure
+      // Best-effort rollback of images created before the failure.
+      // DB delete must succeed before storage delete; otherwise the DB row
+      // still exists and would point at a missing storage object, creating
+      // broken state. Mirrors the canonical pattern in equipmentNotesService.
       if (uploadedImages.length > 0) {
         logger.error('Error during multi-file upload, rolling back created images:', uploadError);
         for (const image of uploadedImages) {
-          try {
-            await deleteImageFromStorage('inventory-item-images', image.fileUrl);
-          } catch (storageErr) {
-            logger.error('Rollback: failed to delete storage object:', storageErr);
-          }
           try {
             const { error: deleteErr } = await supabase
               .from('inventory_item_images')
@@ -685,10 +681,23 @@ export const uploadInventoryItemImages = async (
               .eq('id', image.id)
               .eq('organization_id', organizationId);
             if (deleteErr) {
-              logger.error('Rollback: failed to delete image metadata:', deleteErr);
+              logger.error(
+                'Rollback: failed to delete image metadata; skipping storage cleanup to preserve consistency:',
+                { imageId: image.id, error: deleteErr },
+              );
+              continue;
             }
           } catch (dbErr) {
-            logger.error('Rollback: unexpected error deleting image metadata:', dbErr);
+            logger.error(
+              'Rollback: unexpected error deleting image metadata; skipping storage cleanup to preserve consistency:',
+              { imageId: image.id, error: dbErr },
+            );
+            continue;
+          }
+          try {
+            await deleteImageFromStorage('inventory-item-images', image.fileUrl);
+          } catch (storageErr) {
+            logger.error('Rollback: failed to delete storage object:', storageErr);
           }
         }
       }

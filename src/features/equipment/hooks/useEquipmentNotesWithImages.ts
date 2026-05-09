@@ -7,7 +7,6 @@ import {
   deleteEquipmentNote,
   uploadEquipmentNoteImage,
   deleteEquipmentNoteImage,
-  updateEquipmentDisplayImage
 } from '@/features/equipment/services/equipmentNotesService';
 import { toast } from 'sonner';
 
@@ -133,30 +132,3 @@ export const useDeleteEquipmentNoteImage = () => {
     }
   });
 };
-
-export const useSetEquipmentDisplayImage = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      equipmentId,
-      organizationId,
-      imageUrl,
-    }: {
-      equipmentId: string;
-      organizationId: string;
-      imageUrl: string;
-    }) => updateEquipmentDisplayImage(organizationId, equipmentId, imageUrl),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['equipment']
-      });
-      toast.success('Display image updated successfully');
-    },
-    onError: (error) => {
-      console.error('Error setting display image:', error);
-      toast.error('Failed to update display image');
-    }
-  });
-};
-

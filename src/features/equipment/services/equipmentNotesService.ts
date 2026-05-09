@@ -8,6 +8,8 @@ import {
   normalizeStoredObjectPath,
   displayUrlForStoredPrivateImage,
   deleteImageFromStorage,
+  batchResolveEquipmentNoteImageDisplayUrls,
+  extractEquipmentDisplayImagePath,
 } from '@/services/imageUploadService';
 import type { EquipmentNote, EquipmentNoteImage } from '@/features/equipment/types/equipmentNotes';
 
@@ -40,32 +42,38 @@ export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<
 
   if (error) throw error;
 
-  return Promise.all(
-    (data || []).map(async note => ({
-      ...note,
-      hours_worked: Number(note.hours_worked) || 0,
-      machine_hours: note.machine_hours != null ? Number(note.machine_hours) : null,
-      author_name: (note.profiles as { name?: string } | null | undefined)?.name || 'Unknown',
-      images: (
-        await Promise.all(
-          (note.equipment_note_images || []).map(
-            async (img: EquipmentNoteImage & { profiles?: { name?: string } }) => {
-              const url = displayUrlForStoredPrivateImage(
-                await resolveImageDisplayUrl('equipment-note-images', img.file_url),
-                img.file_url,
-              );
-              if (url == null) return null;
-              return {
-                ...img,
-                uploaded_by_name: img.profiles?.name || 'Unknown',
-                file_url: url,
-              };
-            },
-          ),
-        )
-      ).filter((img): img is EquipmentNoteImage & { uploaded_by_name: string } => img != null),
-    }))
-  );
+  const notesData = data || [];
+  type NoteImg = EquipmentNoteImage & { profiles?: { name?: string } };
+  const flat: Array<{ noteIdx: number; img: NoteImg }> = [];
+  notesData.forEach((note, noteIdx) => {
+    for (const img of note.equipment_note_images || []) {
+      flat.push({ noteIdx, img: img as NoteImg });
+    }
+  });
+
+  const signedBatch = await batchResolveEquipmentNoteImageDisplayUrls(flat.map(f => f.img.file_url));
+  const imagesByNoteIdx = new Map<number, Array<NoteImg & { uploaded_by_name: string; file_url: string }>>();
+
+  flat.forEach((entry, i) => {
+    const url = displayUrlForStoredPrivateImage(signedBatch[i], entry.img.file_url);
+    if (url == null) return;
+    const row = {
+      ...entry.img,
+      uploaded_by_name: entry.img.profiles?.name || 'Unknown',
+      file_url: url,
+    };
+    const list = imagesByNoteIdx.get(entry.noteIdx) ?? [];
+    list.push(row);
+    imagesByNoteIdx.set(entry.noteIdx, list);
+  });
+
+  return notesData.map((note, noteIdx) => ({
+    ...note,
+    hours_worked: Number(note.hours_worked) || 0,
+    machine_hours: note.machine_hours != null ? Number(note.machine_hours) : null,
+    author_name: (note.profiles as { name?: string } | null | undefined)?.name || 'Unknown',
+    images: imagesByNoteIdx.get(noteIdx) ?? [],
+  }));
 };
 
 // Legacy function for backward compatibility
@@ -113,15 +121,20 @@ export const createEquipmentNoteWithImages = async (
       content,
       hours_worked: Number(hoursWorked) || 0,
       is_private: isPrivate || false,
-      ...(machineHours !== undefined ? { machine_hours: machineHours } : {}),
+      // Only include machine_hours when the user provided a meaningful value.
+      // See workOrderNotesService for the rationale (issue #735).
+      ...(Number.isFinite(Number(machineHours)) && Number(machineHours) > 0
+        ? { machine_hours: Number(machineHours) }
+        : {}),
     })
     .select()
     .single();
 
   if (noteError) throw noteError;
 
-  // Upload images if provided
-  const uploadedImages: EquipmentNoteImage[] = [];
+  // Upload images if provided — collect DB records first, then batch-sign
+  type InsertedRecord = { record: EquipmentNoteImage; storedPath: string };
+  const insertedRecords: InsertedRecord[] = [];
   for (const file of images) {
     try {
       const fileExt = file.name.split('.').pop();
@@ -144,21 +157,52 @@ export const createEquipmentNoteWithImages = async (
 
       if (imageError) {
         logger.error('Failed to save image record:', imageError);
+        try {
+          await deleteImageFromStorage('equipment-note-images', storedPath);
+        } catch (cleanupError) {
+          logger.error('Failed to delete orphaned equipment note image after DB insert failure:', cleanupError);
+        }
         continue;
       }
 
-      const displayUrl = displayUrlForStoredPrivateImage(
-        await resolveImageDisplayUrl('equipment-note-images', imageRecord.file_url),
-        imageRecord.file_url,
-      );
-      if (displayUrl != null) {
-        uploadedImages.push({
-          ...imageRecord,
-          file_url: displayUrl,
-        });
-      }
+      insertedRecords.push({ record: imageRecord as unknown as EquipmentNoteImage, storedPath });
     } catch (error) {
       logger.error('Error processing image:', error);
+    }
+  }
+
+  // Batch-sign all successfully inserted records in one round-trip
+  const signedBatch = insertedRecords.length > 0
+    ? await batchResolveEquipmentNoteImageDisplayUrls(insertedRecords.map(r => r.record.file_url))
+    : [];
+
+  const uploadedImages: EquipmentNoteImage[] = [];
+  for (let i = 0; i < insertedRecords.length; i++) {
+    const { record, storedPath } = insertedRecords[i];
+    const displayUrl = displayUrlForStoredPrivateImage(signedBatch[i] ?? null, record.file_url);
+    if (displayUrl != null) {
+      uploadedImages.push({ ...record, file_url: displayUrl });
+    } else {
+      // Signing failed — clean up DB row and storage to avoid orphaned resources.
+      // DB delete must succeed before storage delete; otherwise the DB row still
+      // exists and would point at a missing storage object, creating broken state.
+      logger.error('Signing failed for uploaded image, rolling back:', record.file_url);
+      const { error: dbDeleteError } = await supabase
+        .from('equipment_note_images')
+        .delete()
+        .eq('id', record.id);
+      if (dbDeleteError) {
+        logger.error(
+          'Failed to delete DB row during signing-failure rollback; skipping storage cleanup to preserve consistency:',
+          { imageId: record.id, error: dbDeleteError }
+        );
+      } else {
+        try {
+          await deleteImageFromStorage('equipment-note-images', storedPath);
+        } catch (cleanupError) {
+          logger.error('Failed to delete orphaned storage object during rollback:', cleanupError);
+        }
+      }
     }
   }
 
@@ -252,7 +296,18 @@ export const uploadEquipmentNoteImage = async (
     .select()
     .single();
 
-  if (imageError) throw imageError;
+  if (imageError) {
+    logger.error('Failed to save equipment note image record:', imageError);
+    try {
+      await deleteImageFromStorage('equipment-note-images', storedPath);
+    } catch (cleanupError) {
+      logger.error(
+        'Failed to delete orphaned equipment note image after DB insert failure:',
+        cleanupError,
+      );
+    }
+    throw imageError;
+  }
 
   const displayUrl = displayUrlForStoredPrivateImage(
     await resolveImageDisplayUrl('equipment-note-images', imageRecord.file_url),
@@ -260,8 +315,30 @@ export const uploadEquipmentNoteImage = async (
   );
 
   if (displayUrl == null) {
-    await supabase.from('equipment_note_images').delete().eq('id', imageRecord.id);
-    await deleteImageFromStorage('equipment-note-images', storedPath);
+    const cleanupCtx = { imageId: imageRecord.id, storedPath };
+    // Signing failed — clean up DB row and storage to avoid orphaned resources.
+    // DB delete must succeed before storage delete; otherwise the DB row still
+    // exists and would point at a missing storage object, creating broken state.
+    logger.error('Signing failed for uploaded equipment note image, rolling back', cleanupCtx);
+    const { error: dbDeleteError } = await supabase
+      .from('equipment_note_images')
+      .delete()
+      .eq('id', imageRecord.id);
+    if (dbDeleteError) {
+      logger.error(
+        'Failed to delete DB row during signing-failure rollback; skipping storage cleanup to preserve consistency',
+        { ...cleanupCtx, error: dbDeleteError },
+      );
+    } else {
+      try {
+        await deleteImageFromStorage('equipment-note-images', storedPath);
+      } catch (cleanupError) {
+        logger.error(
+          'Failed to delete orphaned equipment note storage object during rollback',
+          { ...cleanupCtx, error: cleanupError },
+        );
+      }
+    }
     throw new Error('Could not generate a secure link for the uploaded image. Try again.');
   }
 
@@ -295,28 +372,25 @@ export const getEquipmentImages = async (equipmentId: string) => {
 
   if (error) throw error;
 
-  return (
-    await Promise.all(
-      (data || []).map(async image => {
-        const url = displayUrlForStoredPrivateImage(
-          await resolveImageDisplayUrl('equipment-note-images', image.file_url),
-          image.file_url,
-        );
-        if (url == null) return null;
-        return {
-          ...image,
-          file_url: url,
-          uploaded_by_name: (image.profiles as { name?: string } | null | undefined)?.name || 'Unknown',
-          note_content: (image.equipment_notes as { content?: string } | null | undefined)?.content,
-          note_author_name:
-            (image.equipment_notes as { profiles?: { name?: string } } | null | undefined)?.profiles
-              ?.name || 'Unknown',
-          is_private_note: (image.equipment_notes as { is_private?: boolean } | null | undefined)
-            ?.is_private,
-        };
-      }),
-    )
-  ).filter((row): row is NonNullable<typeof row> => row != null);
+  const rows = data || [];
+  const signedBatch = await batchResolveEquipmentNoteImageDisplayUrls(rows.map(image => image.file_url));
+
+  return rows
+    .map((image, i) => {
+      const url = displayUrlForStoredPrivateImage(signedBatch[i], image.file_url);
+      if (url == null) return null;
+      return {
+        ...image,
+        file_url: url,
+        uploaded_by_name: (image.profiles as { name?: string } | null | undefined)?.name || 'Unknown',
+        note_content: (image.equipment_notes as { content?: string } | null | undefined)?.content,
+        note_author_name:
+          (image.equipment_notes as { profiles?: { name?: string } } | null | undefined)?.profiles?.name ||
+          'Unknown',
+        is_private_note: (image.equipment_notes as { is_private?: boolean } | null | undefined)?.is_private,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row != null);
 };
 
 // Delete an image
@@ -358,14 +432,27 @@ export const updateEquipmentDisplayImage = async (
   equipmentId: string,
   imageUrl: string
 ): Promise<void> => {
-  const canonical =
-    normalizeStoredObjectPath(imageUrl, 'work-order-images') ??
-    normalizeStoredObjectPath(imageUrl, 'equipment-note-images') ??
-    imageUrl;
+  if (!imageUrl.trim()) {
+    const { error } = await supabase
+      .from('equipment')
+      .update({ image_url: null })
+      .eq('id', equipmentId)
+      .eq('organization_id', organizationId);
+
+    if (error) throw error;
+    return;
+  }
+
+  const canonical = extractEquipmentDisplayImagePath(imageUrl);
+  if (!canonical) {
+    throw new Error(
+      'Could not resolve that image to a durable storage path. Choose an image from work orders or equipment notes again.',
+    );
+  }
 
   const { error } = await supabase
     .from('equipment')
-    .update({ image_url: canonical || null })
+    .update({ image_url: canonical })
     .eq('id', equipmentId)
     .eq('organization_id', organizationId);
 

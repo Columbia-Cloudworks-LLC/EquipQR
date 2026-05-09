@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import SignUpForm from '../SignUpForm';
 
 import { supabase } from '@/integrations/supabase/client';
+import { PRIVACY_VERSION_HASH, TERMS_VERSION_HASH } from '@/lib/legalPolicyVersions';
 import type { AuthError } from '@supabase/supabase-js';
 
 // Mock environment variable for hCaptcha
@@ -414,7 +415,11 @@ describe('SignUpForm', () => {
             emailRedirectTo: `${window.location.origin}/`,
             data: {
               name: 'John Doe',
-              organization_name: 'Test Organization'
+              organization_name: 'Test Organization',
+              terms_accepted: 'true',
+              terms_version_hash: TERMS_VERSION_HASH,
+              privacy_version_hash: PRIVACY_VERSION_HASH,
+              terms_accepted_at: expect.any(String),
             },
             captchaToken: 'mock-captcha-token'
           }
@@ -957,7 +962,11 @@ describe('SignUpForm', () => {
               organization_name: 'My Company',
               invited_organization_id: 'org-123',
               invited_organization_name: 'Acme Corporation',
-              signup_source: 'invite'
+              signup_source: 'invite',
+              terms_accepted: 'true',
+              terms_version_hash: TERMS_VERSION_HASH,
+              privacy_version_hash: PRIVACY_VERSION_HASH,
+              terms_accepted_at: expect.any(String),
             },
             captchaToken: 'mock-captcha-token'
           }

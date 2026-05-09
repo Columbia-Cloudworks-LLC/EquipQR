@@ -8,6 +8,7 @@ import {
   normalizeStoredObjectPath,
   batchResolveWorkOrderImageDisplayUrls,
   displayUrlForStoredPrivateImage,
+  deleteImageFromStorage,
 } from '@/services/imageUploadService';
 
 export interface WorkOrderNote {
@@ -76,7 +77,14 @@ export const createWorkOrderNoteWithImages = async (
       content,
       hours_worked: hoursWorked,
       is_private: isPrivate,
-      ...(machineHours !== undefined ? { machine_hours: machineHours } : {}),
+      // Only include machine_hours when the user provided a meaningful value.
+      // The form initializes machineHours to 0; including {machine_hours: 0}
+      // unconditionally caused issue #735 on production when the column was
+      // missing, and conveys no information either way. Matches the display
+      // convention in WorkOrderNotesSection (`Number.isFinite(n) && n > 0`).
+      ...(Number.isFinite(Number(machineHours)) && Number(machineHours) > 0
+        ? { machine_hours: Number(machineHours) }
+        : {}),
     })
     .select()
     .single();
@@ -110,13 +118,17 @@ export const createWorkOrderNoteWithImages = async (
 
       if (imageError) {
         logger.error('Failed to save image record:', imageError);
+        try {
+          await deleteImageFromStorage('work-order-images', storedPath);
+        } catch (cleanupError) {
+          logger.error('Failed to delete orphaned work-order image after DB insert failure:', cleanupError);
+        }
         continue;
       }
 
       uploadedImages.push({
         ...imageRecord,
         note_id: note.id,
-        file_url: imageRecord.file_url,
       });
     } catch (error) {
       logger.error('Error processing image:', error);

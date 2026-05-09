@@ -12,7 +12,7 @@ import { Save, Loader2 } from 'lucide-react';
 
 const ProfileSettings = () => {
   const { currentUser, setCurrentUser } = useUser();
-  const { data: avatarDisplayUrl } = useResolvedAvatarUrl(currentUser?.avatar_url);
+  const { data: avatarDisplayUrl, isPending: isAvatarPending } = useResolvedAvatarUrl(currentUser?.avatar_url);
   const appToast = useAppToast();
   const [name, setName] = useState(currentUser?.name || '');
   const [isLoading, setIsLoading] = useState(false);
@@ -65,6 +65,8 @@ const ProfileSettings = () => {
         .toUpperCase()
         .slice(0, 2)
     : '?';
+  const avatarPath = currentUser.avatar_url?.trim() ?? '';
+  const hasCanonicalAvatarPath = avatarPath.length > 0 && !/^https?:\/\//i.test(avatarPath);
 
   return (
     <>
@@ -75,7 +77,7 @@ const ProfileSettings = () => {
         maxSizeMB={5}
         disabled={isLoading}
         variant="avatar"
-        avatarFallback={initials}
+        avatarFallback={isAvatarPending && hasCanonicalAvatarPath ? '' : initials}
       />
 
       <div className="space-y-2">

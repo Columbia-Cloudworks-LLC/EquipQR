@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           session?.user &&
           (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')
         ) {
-          schedulePendingTermsAcceptanceFlush(session.user.id);
+          schedulePendingTermsAcceptanceFlush(session.user);
         }
 
         // Handle post-login redirect for QR code scans (only for actual sign-ins)

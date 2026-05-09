@@ -20,6 +20,7 @@ import {
   markPendingTermsAcceptanceForUser,
   recordTermsAcceptance,
 } from '@/lib/termsAcceptanceRecording';
+import { PRIVACY_VERSION_HASH, TERMS_VERSION_HASH } from '@/lib/legalPolicyVersions';
 
 interface SignUpFormProps {
   onSuccess: (message: string) => void;
@@ -202,6 +203,11 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       if (invitedOrgId || invitedOrgName) {
         signUpData.signup_source = 'invite';
       }
+
+      signUpData.terms_accepted = 'true';
+      signUpData.terms_version_hash = TERMS_VERSION_HASH;
+      signUpData.privacy_version_hash = PRIVACY_VERSION_HASH;
+      signUpData.terms_accepted_at = new Date().toISOString();
 
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
@@ -400,7 +406,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
           required
           minLength={PASSWORD_POLICY.minLength}
           aria-invalid={!!getFieldError('password')}
-          aria-describedby="signup-password-hint"
+          aria-describedby={getFieldError('password') ? 'signup-password-hint signup-password-error' : 'signup-password-hint'}
         />
         <div id="signup-password-hint" className="space-y-2 text-sm">
           <p className="text-muted-foreground">Password must have:</p>
@@ -434,7 +440,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
           </div>
         </div>
         {getFieldError('password') && (
-          <p className="text-sm text-destructive" aria-live="polite">
+          <p id="signup-password-error" className="text-sm text-destructive" aria-live="polite">
             {getFieldError('password')}
           </p>
         )}

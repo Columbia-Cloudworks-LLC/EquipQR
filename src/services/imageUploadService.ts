@@ -247,14 +247,15 @@ export async function createSignedUrlForPath(
 }
 
 /**
- * Resolve many `work-order-images` references with one Storage `createSignedUrls` call.
+ * Resolve many stored references for a private bucket with one `createSignedUrls` call.
  * Falls back to `createSignedUrlForPath` when the batch response omits a path or errors.
  */
-export async function batchResolveWorkOrderImageDisplayUrls(
+async function batchResolveStoredRefsForPrivateBucket(
+  bucket: StorageBucket,
   storedRefs: (string | null | undefined)[],
-  options?: { expiresInSeconds?: number }
+  batchLogLabel: string,
+  options?: { expiresInSeconds?: number },
 ): Promise<(string | null)[]> {
-  const bucket: StorageBucket = 'work-order-images';
   const expiresIn = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
   const results: (string | null)[] = storedRefs.map(() => null);
 
@@ -291,7 +292,7 @@ export async function batchResolveWorkOrderImageDisplayUrls(
       }
     }
   } else if (error) {
-    logger.error('createSignedUrls failed for work-order-images batch', { error });
+    logger.error(`createSignedUrls failed for ${batchLogLabel}`, { bucket, error });
   }
 
   await Promise.all(
@@ -308,6 +309,19 @@ export async function batchResolveWorkOrderImageDisplayUrls(
   );
 
   return results;
+}
+
+/** Batch-sign `work-order-images` paths (one Storage round-trip when possible). */
+export async function batchResolveWorkOrderImageDisplayUrls(
+  storedRefs: (string | null | undefined)[],
+  options?: { expiresInSeconds?: number },
+): Promise<(string | null)[]> {
+  return batchResolveStoredRefsForPrivateBucket(
+    'work-order-images',
+    storedRefs,
+    'work-order-images batch',
+    options,
+  );
 }
 
 /**
@@ -324,67 +338,56 @@ export function displayUrlForStoredPrivateImage(
   return null;
 }
 
-/**
- * Resolve many `user-avatars` references with one Storage `createSignedUrls` call.
- */
+/** Batch-sign `user-avatars` paths (one Storage round-trip when possible). */
 export async function batchResolveUserAvatarDisplayUrls(
   storedRefs: (string | null | undefined)[],
   options?: { expiresInSeconds?: number },
 ): Promise<(string | null)[]> {
-  const bucket: StorageBucket = 'user-avatars';
-  const expiresIn = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
-  const results: (string | null)[] = storedRefs.map(() => null);
-
-  type Pending = { idx: number; path: string; httpFallback: string | null };
-  const pending: Pending[] = [];
-
-  storedRefs.forEach((stored, idx) => {
-    if (!stored?.trim()) return;
-
-    const trimmed = stored.trim();
-    const path = normalizeStoredObjectPath(trimmed, bucket);
-
-    if (!path) {
-      results[idx] = /^https?:\/\//i.test(trimmed) ? trimmed : null;
-      return;
-    }
-
-    const httpFallback = /^https?:\/\//i.test(trimmed) ? trimmed : null;
-    pending.push({ idx, path, httpFallback });
-  });
-
-  if (pending.length === 0) {
-    return results;
-  }
-
-  const uniquePaths = [...new Set(pending.map(p => p.path))];
-  const { data, error } = await supabase.storage.from(bucket).createSignedUrls(uniquePaths, expiresIn);
-
-  const signedByPath = new Map<string, string>();
-  if (!error && data) {
-    for (const row of data) {
-      if (row.path && row.signedUrl) {
-        signedByPath.set(row.path, row.signedUrl);
-      }
-    }
-  } else if (error) {
-    logger.error('createSignedUrls failed for user-avatars batch', { error });
-  }
-
-  await Promise.all(
-    pending.map(async ({ idx, path, httpFallback }) => {
-      let url = signedByPath.get(path) ?? null;
-      if (!url) {
-        url = await createSignedUrlForPath(bucket, path, {
-          expiresInSeconds: expiresIn,
-          logFailures: true,
-        });
-      }
-      results[idx] = url ?? httpFallback;
-    }),
+  return batchResolveStoredRefsForPrivateBucket(
+    'user-avatars',
+    storedRefs,
+    'user-avatars batch',
+    options,
   );
+}
 
-  return results;
+/** Batch-sign `team-images` paths (one Storage round-trip when possible). */
+export async function batchResolveTeamImageDisplayUrls(
+  storedRefs: (string | null | undefined)[],
+  options?: { expiresInSeconds?: number },
+): Promise<(string | null)[]> {
+  return batchResolveStoredRefsForPrivateBucket(
+    'team-images',
+    storedRefs,
+    'team-images batch',
+    options,
+  );
+}
+
+/** Batch-sign `equipment-note-images` paths (one Storage round-trip when possible). */
+export async function batchResolveEquipmentNoteImageDisplayUrls(
+  storedRefs: (string | null | undefined)[],
+  options?: { expiresInSeconds?: number },
+): Promise<(string | null)[]> {
+  return batchResolveStoredRefsForPrivateBucket(
+    'equipment-note-images',
+    storedRefs,
+    'equipment-note-images batch',
+    options,
+  );
+}
+
+/** Batch-sign `inventory-item-images` paths (one Storage round-trip when possible). */
+export async function batchResolveInventoryItemImageDisplayUrls(
+  storedRefs: (string | null | undefined)[],
+  options?: { expiresInSeconds?: number },
+): Promise<(string | null)[]> {
+  return batchResolveStoredRefsForPrivateBucket(
+    'inventory-item-images',
+    storedRefs,
+    'inventory-item-images batch',
+    options,
+  );
 }
 
 /**

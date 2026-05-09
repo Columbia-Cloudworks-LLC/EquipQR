@@ -1,7 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { resolveImageDisplayUrl } from '@/services/imageUploadService';
+import {
+  DEFAULT_SIGNED_URL_TTL_SECONDS,
+  resolveImageDisplayUrl,
+} from '@/services/imageUploadService';
 
-const AVATAR_SIGNED_URL_STALE_MS = 60 * 14 * 1000;
+/** Refresh before default TTL so cached signed URLs do not expire mid-session. */
+const AVATAR_SIGNED_URL_REFRESH_MS = Math.max(60_000, (DEFAULT_SIGNED_URL_TTL_SECONDS - 120) * 1000);
 
 /**
  * Resolve a canonical `user-avatars` storage path to a short-lived signed URL,
@@ -17,8 +21,9 @@ export function useResolvedAvatarUrl(stored: string | null | undefined) {
     queryKey: ['resolved-avatar-url', trimmed],
     queryFn: () => resolveImageDisplayUrl('user-avatars', trimmed),
     enabled,
-    staleTime: AVATAR_SIGNED_URL_STALE_MS,
-    gcTime: AVATAR_SIGNED_URL_STALE_MS * 2,
+    staleTime: AVATAR_SIGNED_URL_REFRESH_MS,
+    gcTime: AVATAR_SIGNED_URL_REFRESH_MS * 2,
+    refetchInterval: AVATAR_SIGNED_URL_REFRESH_MS,
   });
 
   const displayUrl =

@@ -70,11 +70,17 @@ const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
 
   // Set display image mutation
   const setDisplayImageMutation = useMutation({
-    mutationFn: (imageUrl: string) => updateEquipmentDisplayImage(organizationId, equipmentId, imageUrl),
+    mutationFn: (imageUrl: string) => {
+      if (!permissions.canSetDisplayImage) {
+        throw new Error('You do not have permission to set the equipment display image');
+      }
+      if (!organizationId) {
+        throw new Error('No organization context for this equipment');
+      }
+      return updateEquipmentDisplayImage(organizationId, equipmentId, imageUrl);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['equipment']
-      });
+      queryClient.invalidateQueries({ queryKey: ['equipment', organizationId] });
       toast.success('Display image updated successfully');
     },
     onError: (error) => {
