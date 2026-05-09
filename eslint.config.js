@@ -37,8 +37,6 @@ const timezoneFormattingLegacyAllowlist = [
   "src/features/equipment/utils/getEquipmentCardDisplayModel.ts",
   "src/features/fleet-map/components/EquipmentPanel.tsx",
   "src/features/fleet-map/components/MapView.tsx",
-  "src/features/inventory/components/AlternateGroupsDownloadMenu.tsx",
-  "src/features/inventory/components/InventoryDownloadMenu.tsx",
   "src/features/inventory/components/PartsManagersSheet.tsx",
   "src/features/organization/components/InvitationManagement.tsx",
   "src/features/organization/components/MembersList.tsx",
