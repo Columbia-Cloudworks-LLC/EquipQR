@@ -36,7 +36,7 @@ EquipQR™ is a modern, cloud-native fleet equipment management platform built w
 ┌─────────────────────────────────────────────────────────────────┐
 │                  External Services                              │
 ├─────────────────────────────────────────────────────────────────┤
-│  Stripe (Billing) │ Google Maps │ Email (Resend) │ hCaptcha    │
+│  Google Maps │ Google Workspace │ Email (Resend) │ hCaptcha    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -108,7 +108,8 @@ App
 │       │   ├── Work Orders
 │       │   ├── Team Management
 │       │   ├── Fleet Map
-│       │   └── Billing
+│       │   ├── Inventory & Parts
+│       │   └── DSR Cockpit
 │       └── Settings & Admin
 ```
 
@@ -500,7 +501,7 @@ Organizations (Root Entity)
 │       └── Work Order Costs
 ├── PM Templates
 ├── Preventative Maintenance
-├── Billing & Subscriptions
+├── Inventory & Parts
 └── Notifications
 ```
 
@@ -619,10 +620,9 @@ CREATE TYPE cost_type AS ENUM ('labor', 'parts', 'materials', 'external_service'
 
 -- Preventative maintenance
 CREATE TYPE pm_frequency_type AS ENUM ('hours', 'days', 'weeks', 'months', 'years');
-
--- Billing
-CREATE TYPE subscription_status AS ENUM ('active', 'inactive', 'canceled', 'past_due');
 ```
+
+> Billing-related tables and enums (e.g., `subscription_status`) were retired with the in-app billing surface in early 2025 and are not part of the current schema.
 
 ### Indexes for Performance
 
