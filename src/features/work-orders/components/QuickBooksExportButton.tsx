@@ -135,7 +135,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
     ? (existingExport.quickbooks_invoice_number || existingExport.quickbooks_invoice_id)
     : null;
 
-  let tooltipMessage = '';
+  let tooltipMessage: string;
   let isDisabled = false;
 
   if (!isCompleted) {
