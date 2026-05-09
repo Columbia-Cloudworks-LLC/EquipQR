@@ -4,7 +4,8 @@
  * Merge coverage artifacts produced by sharded test jobs.
  *
  * Expects each shard's artifact to be downloaded into:
- *   coverage-shards/coverage-shard-<N>/{coverage-final.json,lcov.info,coverage-summary.json}
+ *   coverage-shards/coverage-shard-<N>/coverage/{coverage-final.json,lcov.info,coverage-summary.json}
+ *   (upload-artifact preserves the uploaded paths; also accepts flat shard roots for local runs.)
  *
  * Produces, in `coverage/`:
  *   - coverage-final.json   (merged via istanbul-lib-coverage)
@@ -44,12 +45,21 @@ if (shardDirs.length === 0) {
 
 console.log(`📦 Merging coverage from ${shardDirs.length} shards...`);
 
+/** Resolve coverage-final.json inside a downloaded shard folder (CI preserves coverage/ prefix). */
+function resolveCoverageFinalJson(shardDir) {
+  const nested = path.join(shardDir, 'coverage', 'coverage-final.json');
+  if (fs.existsSync(nested)) return nested;
+  const flat = path.join(shardDir, 'coverage-final.json');
+  if (fs.existsSync(flat)) return flat;
+  return null;
+}
+
 const map = libCoverage.createCoverageMap({});
 let mergedCount = 0;
 
 for (const dir of shardDirs) {
-  const finalPath = path.join(dir, 'coverage-final.json');
-  if (!fs.existsSync(finalPath)) {
+  const finalPath = resolveCoverageFinalJson(dir);
+  if (!finalPath) {
     console.warn(`⚠️  Skipping ${dir} — no coverage-final.json`);
     continue;
   }
