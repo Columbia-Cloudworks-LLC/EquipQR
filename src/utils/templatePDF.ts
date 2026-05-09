@@ -1,12 +1,18 @@
 // jsPDF is loaded dynamically to reduce initial bundle size (~150KB)
 // It's only needed when a user explicitly triggers a PDF preview
 
+import type { UserSettings } from '@/types/settings';
+import { defaultUserSettings } from '@/types/settings';
+import { formatDateTime } from '@/utils/dateFormatter';
+
 export async function generateTemplatePreviewPDF(params: {
   name: string;
   description?: string;
   sections: { name: string; items: { id: string; title: string; description?: string; required: boolean }[] }[];
   createdAt: string;
   updatedAt: string;
+  /** When omitted, uses default personalization (#768). */
+  exportDateSettings?: Pick<UserSettings, 'timezone' | 'dateFormat'>;
   options?: {
     includeHandwritingLines?: boolean;
     linesPerItem?: number;
@@ -16,6 +22,7 @@ export async function generateTemplatePreviewPDF(params: {
   const { default: jsPDF } = await import('jspdf');
   const doc = new jsPDF();
   let y = 20;
+  const dateCtx = (params.exportDateSettings ?? defaultUserSettings) as UserSettings;
 
   const addLine = (text: string, size = 10, bold = false) => {
     doc.setFontSize(size);
@@ -36,8 +43,8 @@ export async function generateTemplatePreviewPDF(params: {
   addLine('PM Template Preview', 16, true);
   addLine(params.name, 14, true);
   if (params.description) addLine(params.description, 10);
-  addLine(`Created: ${new Date(params.createdAt).toLocaleString()}`, 9);
-  addLine(`Updated: ${new Date(params.updatedAt).toLocaleString()}`, 9);
+  addLine(`Created: ${formatDateTime(params.createdAt, dateCtx)}`, 9);
+  addLine(`Updated: ${formatDateTime(params.updatedAt, dateCtx)}`, 9);
 
   // Sections
   const includeLines = params.options?.includeHandwritingLines === true;

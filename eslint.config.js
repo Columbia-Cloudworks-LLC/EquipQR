@@ -28,7 +28,9 @@ const timezoneFormattingLegacyAllowlist = [
   "src/features/dsr/components/DsrChecklistPanel.tsx",
   "src/features/dsr/components/DsrQueueRail.tsx",
   "src/features/equipment/components/EquipmentDetailsTab.tsx",
+
   "src/features/equipment/components/WorkingHoursTimelineModal.tsx",
+
   "src/features/fleet-map/components/EquipmentPanel.tsx",
   "src/features/fleet-map/components/MapView.tsx",
   "src/features/inventory/components/AlternateGroupsDownloadMenu.tsx",
@@ -50,31 +52,14 @@ const timezoneFormattingLegacyAllowlist = [
   "src/features/tickets/components/MyTickets.tsx",
   "src/features/tickets/components/TicketDetail.tsx",
   "src/features/work-orders/components/HistoricalWorkOrderBadge.tsx",
-  "src/features/work-orders/components/InlineEditWorkOrderCost.tsx",
-  "src/features/work-orders/components/InlineEditWorkOrderCosts.tsx",
-  "src/features/work-orders/components/PMChecklistComponent.tsx",
-  "src/features/work-orders/components/PMChecklistMobile.tsx",
-  "src/features/work-orders/components/QuickBooksExportButton.tsx",
+
   "src/features/work-orders/components/WorkOrderAssigneeDisplay.tsx",
-  "src/features/work-orders/components/WorkOrderCard.tsx",
-  "src/features/work-orders/components/WorkOrderDetailsInfo.tsx",
   "src/features/work-orders/components/WorkOrderDetailsMobile.tsx",
-  "src/features/work-orders/components/WorkOrderDetailsMobileHeader.tsx",
-  "src/features/work-orders/components/WorkOrderDetailsPMInfo.tsx",
-  "src/features/work-orders/components/WorkOrderDetailsQuickInfo.tsx",
-  "src/features/work-orders/components/WorkOrderDetailsRequestorStatus.tsx",
   "src/features/work-orders/components/WorkOrderEquipmentSelector.tsx",
   "src/features/work-orders/components/WorkOrderExcelExportDialog.tsx",
-  "src/features/work-orders/components/WorkOrderNotesSection.tsx",
   "src/features/work-orders/components/WorkOrderStatusManager.tsx",
-  "src/features/work-orders/components/WorkOrderTimeline.tsx",
   "src/features/work-orders/hooks/useWorkOrderFilters.ts",
-  "src/features/work-orders/services/workOrderCSVService.ts",
-  "src/features/work-orders/services/workOrderExcelService.ts",
-  "src/features/work-orders/services/workOrderFieldWorksheetPDFService.ts",
-  "src/features/work-orders/services/workOrderPDFService.ts",
-  "src/features/work-orders/services/workOrderReportPDFService.ts",
-  "src/features/work-orders/utils/workOrderHelpers.ts",
+
   "src/hooks/useAuditLog.ts",
   "src/pages/AuditLog.tsx",
   "src/pages/InvitationAccept.tsx",
@@ -82,7 +67,7 @@ const timezoneFormattingLegacyAllowlist = [
   "src/pages/WorkspaceOnboarding.tsx",
   "src/services/auditService.ts",
   "src/utils/exportUtils.ts",
-  "src/utils/templatePDF.ts",
+
 ];
 
 const timezoneLocaleMemberNames = [

@@ -45,11 +45,10 @@ import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { 
   getStatusColor, 
   formatStatus, 
-  formatDate,
-  formatRelativeDate,
   isOverdue,
   isTerminalStatus,
 } from '@/features/work-orders/utils/workOrderHelpers';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { getPriorityBadgeClass, getWorkOrderStatusBorderWithOverdue, getStatusBackgroundTint } from '@/lib/status-colors';
 import WorkOrderCostSubtotal from './WorkOrderCostSubtotal';
 import PMProgressIndicator from './PMProgressIndicator';
@@ -223,6 +222,8 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
   onNavigate,
   isAboveTheFold,
 }) => {
+  const { formatDate } = useFormatTimestamp();
+  const fmtDate = (v?: string | null) => (v ? formatDate(v) : '—');
   const permissions = useUnifiedPermissions();
   const workOrderData = mapToWorkOrderData(workOrder);
   const detailedPermissions = permissions.workOrders.getDetailedPermissions(workOrderData);
@@ -317,7 +318,7 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mt-3 pt-3 border-t">
           <span className="inline-flex items-center gap-1">
             <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
-            {formatDate(createdDateValue)}
+            {fmtDate(createdDateValue)}
           </span>
 
           {dueDateValue && (
@@ -326,7 +327,7 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
               isWorkOrderOverdue && "text-destructive font-medium"
             )}>
               <Clock className="h-3.5 w-3.5 flex-shrink-0" />
-              Due {formatDate(dueDateValue)}
+              Due {fmtDate(dueDateValue)}
               {isWorkOrderOverdue && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -387,7 +388,7 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
 
           {completedDateValue && (
             <span className="inline-flex items-center gap-1 text-success">
-              Completed {formatDate(completedDateValue)}
+              Completed {fmtDate(completedDateValue)}
             </span>
           )}
 
@@ -450,6 +451,7 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
   onNavigate,
   isAboveTheFold,
 }) => {
+  const { formatRelative } = useFormatTimestamp();
   const dueDateValue = workOrder.dueDate ?? workOrder.due_date;
   const createdDateValue = workOrder.createdDate ?? workOrder.created_date;
   const machineHours = formatMachineHours(workOrder.equipmentWorkingHours);
@@ -479,8 +481,8 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
   const statusTintClass = getStatusBackgroundTint(workOrder.status, isWorkOrderOverdue);
 
   const dateLabel = dueDateValue
-    ? (isWorkOrderOverdue ? `Overdue ${formatRelativeDate(dueDateValue)}` : `Due ${formatRelativeDate(dueDateValue)}`)
-    : formatRelativeDate(createdDateValue);
+    ? (isWorkOrderOverdue ? `Overdue ${formatRelative(dueDateValue)}` : `Due ${formatRelative(dueDateValue)}`)
+    : formatRelative(createdDateValue);
 
   return (
     <Card
