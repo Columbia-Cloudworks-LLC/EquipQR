@@ -32,7 +32,10 @@ jobs:
     name: Lint & Type Check
     runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     timeout-minutes: 10
-
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: read
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
@@ -115,7 +118,7 @@ jobs:
       uses: ataylorme/eslint-annotate-action@v4
       if: always()
       with:
-        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         report-json: "eslint-report.json"
 
     - name: Run type check
