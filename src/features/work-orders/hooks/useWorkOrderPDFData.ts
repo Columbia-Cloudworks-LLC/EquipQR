@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useState, useRef } from 'react';
+import { useCallback, useMemo, useState, useRef, useContext } from 'react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
-import { useSettings } from '@/contexts/useSettings';
+import { SettingsContext } from '@/contexts/settings-context';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { supabase } from '@/integrations/supabase/client';
 import { getWorkOrderNotesWithImages } from '@/features/work-orders/services/workOrderNotesService';
@@ -89,7 +90,9 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
   } = options;
   
   const { organization } = useOrganization();
-  const { settings } = useSettings();
+  const settingsContext = useContext(SettingsContext);
+  const { settings: fallbackSettings } = useUserSettings();
+  const settings = settingsContext?.settings ?? fallbackSettings;
   const organizationId = organization?.id;
   const exportDateSettings = useMemo(
     () =>
