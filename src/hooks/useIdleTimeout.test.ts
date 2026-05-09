@@ -6,7 +6,6 @@ import { useIdleTimeout } from './useIdleTimeout';
 // via repeated interval ticks — this would require many timer advances and
 // adds test fragility without meaningful branch coverage gain.
 
-const DEFAULT_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 const DEFAULT_WARNING_MS = 2 * 60 * 1000;  // 2 minutes
 
 describe('useIdleTimeout', () => {
