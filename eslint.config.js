@@ -105,7 +105,10 @@ export default tseslint.config(
       "react-refresh": reactRefresh,
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
+      // eslint-plugin-react-hooks@7 merges React Compiler rules into `recommended`.
+      // Keep classic hooks lint only until we opt into compiler rules project-wide.
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
       "react-refresh/only-export-components": [
         "warn",
         { allowConstantExport: true },

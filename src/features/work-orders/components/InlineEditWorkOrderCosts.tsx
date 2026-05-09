@@ -238,20 +238,16 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
       // Error handling: The mutation hook's onError will show a generic toast,
       // but we provide additional context here for insufficient stock errors
       console.error('Error adding part from inventory:', error);
-      
-      // Extract error message from Supabase RPC error
-      // Supabase RPC errors have the message in error.message or error.details
-      let errorMessage = '';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (error && typeof error === 'object' && 'message' in error) {
-        errorMessage = String(error.message);
-      } else if (error && typeof error === 'object' && 'details' in error) {
-        errorMessage = String(error.details);
-      } else {
-        errorMessage = String(error);
-      }
-      
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : error && typeof error === 'object' && 'message' in error
+            ? String((error as { message: unknown }).message)
+            : error && typeof error === 'object' && 'details' in error
+              ? String((error as { details: unknown }).details)
+              : String(error);
+
       // Check if it's an insufficient stock error from the RPC function
       // The RPC function raises: 'Insufficient stock: requested X units, but only Y available'
       if (errorMessage.includes('Insufficient stock')) {
