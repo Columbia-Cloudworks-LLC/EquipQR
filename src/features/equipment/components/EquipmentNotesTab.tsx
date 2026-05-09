@@ -25,6 +25,7 @@ import ImageGallery from '@/components/common/ImageGallery';
 import { OfflineFormBanner } from '@/features/offline-queue/components/OfflineFormBanner';
 import { logger } from '@/utils/logger';
 import { useEquipmentNotesPermissions } from '@/features/equipment/hooks/useEquipmentNotesPermissions';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
 interface EquipmentNotesTabProps {
   equipmentId: string;
@@ -55,6 +56,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
   const activeOrganizationId = organizationId ?? currentOrganization?.id;
   const permissions = useEquipmentNotesPermissions(equipmentTeamId);
+  const { formatDate: formatNoteDate } = useFormatTimestamp();
 
   // Fetch notes with images
   const { data: serverNotes = [], isLoading: notesLoading } = useQuery({
@@ -203,10 +205,6 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
     return image.uploaded_by === user?.id;
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
-
   const formatHours = (hours: number | null | undefined) => {
     const numHours = Number(hours) || 0;
     return numHours > 0 ? `${numHours}h` : '';
@@ -304,7 +302,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
                     <span>{note.author_name}</span>
                     {(note as { _isPendingSync?: boolean })._isPendingSync && <PendingSyncBadge />}
                     <span>•</span>
-                    <span>{formatDate(note.created_at)}</span>
+                    <span>{formatNoteDate(note.created_at)}</span>
                     {formatHours(note.hours_worked) && (
                       <>
                         <span>•</span>

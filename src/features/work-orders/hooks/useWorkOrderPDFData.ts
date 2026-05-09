@@ -1,6 +1,7 @@
-import { useCallback, useState, useRef } from 'react';
+import { useCallback, useMemo, useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { useSettings } from '@/contexts/useSettings';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { supabase } from '@/integrations/supabase/client';
 import { getWorkOrderNotesWithImages } from '@/features/work-orders/services/workOrderNotesService';
@@ -88,7 +89,16 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
   } = options;
   
   const { organization } = useOrganization();
+  const { settings } = useSettings();
   const organizationId = organization?.id;
+  const exportDateSettings = useMemo(
+    () =>
+      ({
+        timezone: settings.timezone,
+        dateFormat: settings.dateFormat,
+      }) as const,
+    [settings.timezone, settings.dateFormat],
+  );
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSavingToDrive, setIsSavingToDrive] = useState(false);
@@ -205,8 +215,9 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
       includeCosts,
       qrCodes,
       pageIdentity,
+      exportDateSettings,
     };
-  }, [equipment, fetchCustomerName, organizationName, organizationId, pmData, workOrder, buildQRCodes, buildPageIdentity]);
+  }, [equipment, exportDateSettings, fetchCustomerName, organizationName, organizationId, pmData, workOrder, buildQRCodes, buildPageIdentity]);
 
   const downloadPDF = useCallback(async (downloadOptions?: DownloadPDFOptions) => {
     // Use ref for guard check to prevent race conditions from rapid clicks.
@@ -378,6 +389,7 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
         teamImageUrl: teamImgUrl,
         qrCodes,
         pageIdentity,
+        exportDateSettings,
       };
 
       await generateFieldWorksheetPDF(worksheetData);
@@ -391,7 +403,7 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
       isGeneratingWorksheetRef.current = false;
       setIsGeneratingWorksheet(false);
     }
-  }, [equipment, organizationName, pmData, workOrder, organization, teamId, organizationId, buildQRCodes, buildPageIdentity]);
+  }, [equipment, exportDateSettings, organizationName, pmData, workOrder, organization, teamId, organizationId, buildQRCodes, buildPageIdentity]);
 
   return {
     downloadPDF,

@@ -26,7 +26,9 @@ const timezoneFormattingLegacyAllowlist = [
   "src/features/dsr/components/DsrChecklistPanel.tsx",
   "src/features/dsr/components/DsrQueueRail.tsx",
   "src/features/equipment/components/EquipmentDetailsTab.tsx",
+
   "src/features/equipment/components/WorkingHoursTimelineModal.tsx",
+
   "src/features/fleet-map/components/EquipmentPanel.tsx",
   "src/features/fleet-map/components/MapView.tsx",
   "src/features/inventory/components/PartsManagersSheet.tsx",
@@ -46,12 +48,14 @@ const timezoneFormattingLegacyAllowlist = [
   "src/features/tickets/components/MyTickets.tsx",
   "src/features/tickets/components/TicketDetail.tsx",
   "src/features/work-orders/components/HistoricalWorkOrderBadge.tsx",
+
   "src/features/work-orders/components/WorkOrderAssigneeDisplay.tsx",
   "src/features/work-orders/components/WorkOrderDetailsMobile.tsx",
   "src/features/work-orders/components/WorkOrderEquipmentSelector.tsx",
   "src/features/work-orders/components/WorkOrderExcelExportDialog.tsx",
   "src/features/work-orders/components/WorkOrderStatusManager.tsx",
   "src/features/work-orders/hooks/useWorkOrderFilters.ts",
+
   "src/hooks/useAuditLog.ts",
   "src/pages/AuditLog.tsx",
   "src/pages/InvitationAccept.tsx",
@@ -59,6 +63,7 @@ const timezoneFormattingLegacyAllowlist = [
   "src/pages/WorkspaceOnboarding.tsx",
   "src/services/auditService.ts",
   "src/utils/exportUtils.ts",
+
 ];
 
 const timezoneLocaleMemberNames = [

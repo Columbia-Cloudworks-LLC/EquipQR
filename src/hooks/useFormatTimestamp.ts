@@ -11,17 +11,11 @@ import {
   formatTime,
 } from '@/utils/dateFormatter';
 
-/**
- * Prefer settings from SettingsProvider when mounted (e.g. Settings page).
- * Otherwise read persisted personalization from useUserSettings (e.g. audit explorer).
- */
 export function useFormatTimestamp() {
   const settingsContext = useContext(SettingsContext);
-  const userSettingsFallback = useUserSettings();
+  const fallbackUserSettings = useUserSettings();
   const settings =
-    settingsContext !== undefined
-      ? settingsContext.settings
-      : userSettingsFallback.settings;
+    settingsContext?.settings ?? fallbackUserSettings.settings;
 
   return useMemo(
     () => ({
@@ -35,3 +29,4 @@ export function useFormatTimestamp() {
     [settings]
   );
 }
+
