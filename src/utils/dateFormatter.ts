@@ -63,7 +63,8 @@ export const formatRelative = (
     const dayPattern = `EEE ${DEFAULT_TIME_PATTERN}`;
     try {
       return formatInTimeZone(dateObj, settings.timezone, dayPattern);
-    } catch {
+    } catch (error) {
+      logger.error('Relative date formatting failed, using fallback', error);
       return format(dateObj, dayPattern);
     }
   }
