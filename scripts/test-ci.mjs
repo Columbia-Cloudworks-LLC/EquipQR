@@ -79,7 +79,7 @@ vitestProcess.on('error', (err) => {
 });
 
 function runCoverageRatchet(testCode) {
-  console.log('📊 Checking coverage baseline...');
+  console.log('📊 Checking merged coverage thresholds...');
   
   const ratchetProcess = spawn('node', ['scripts/coverage-ratchet.mjs'], {
     stdio: 'inherit',
