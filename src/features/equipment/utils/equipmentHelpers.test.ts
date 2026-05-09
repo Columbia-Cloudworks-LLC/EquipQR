@@ -8,6 +8,14 @@ import {
   safeFormatDate,
   EQUIPMENT_STATUS_OPTIONS
 } from './equipmentHelpers';
+import { formatDate } from '@/utils/dateFormatter';
+import type { UserSettings } from '@/types/settings';
+
+const settingsSydney: UserSettings = {
+  timezone: 'Australia/Sydney',
+  dateFormat: 'MM/dd/yyyy',
+};
+
 
 describe('equipmentHelpers', () => {
   const mockEquipment = [
@@ -137,20 +145,18 @@ describe('equipmentHelpers', () => {
   });
 
   describe('safeFormatDate', () => {
-    it('should format valid date to locale string', () => {
-      const result = safeFormatDate('2026-01-15');
-      expect(result).not.toBeNull();
-      // The exact format depends on locale, so just check it's a non-empty string
-      expect(typeof result).toBe('string');
-      expect(result!.length).toBeGreaterThan(0);
+    it('should format valid date in user timezone settings', () => {
+      const iso = '2026-01-15T12:00:00.000Z';
+      const result = safeFormatDate(iso, settingsSydney);
+      expect(result).toBe(formatDate(iso, settingsSydney));
     });
 
     it('should return null for invalid date', () => {
-      expect(safeFormatDate('invalid-date')).toBeNull();
+      expect(safeFormatDate('invalid-date', settingsSydney)).toBeNull();
     });
 
     it('should return null for empty string', () => {
-      expect(safeFormatDate('')).toBeNull();
+      expect(safeFormatDate('', settingsSydney)).toBeNull();
     });
   });
 });
