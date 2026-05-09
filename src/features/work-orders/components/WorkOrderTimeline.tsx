@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, CheckCircle, Play, Pause, XCircle, FileText, User } from 'lucide-react';
 import type { WorkOrder as EnhancedWorkOrder } from '@/features/work-orders/types/workOrder';
 import { workOrderRevertService } from '@/features/work-orders/services/workOrderRevertService';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
 interface WorkOrderTimelineProps {
   workOrder: EnhancedWorkOrder;
@@ -59,6 +60,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
   workOrder, 
   showDetailedHistory = true 
 }) => {
+  const { formatDateTime } = useFormatTimestamp();
   const [historyEvents, setHistoryEvents] = useState<TimelineEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -179,15 +181,6 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
     }
   };
 
-  const formatEventTimestamp = (timestamp: string) =>
-    new Date(timestamp).toLocaleString([], {
-      month: 'numeric',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-
   const timelineEvents = getTimelineEvents();
 
   return (
@@ -235,7 +228,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
                     <div className="flex items-center justify-between">
                       <h4 className="font-medium">{event.title}</h4>
                       <time className="text-sm text-muted-foreground">
-                        {formatEventTimestamp(event.timestamp)}
+                        {formatDateTime(event.timestamp)}
                       </time>
                     </div>
                     <p className="text-sm text-muted-foreground">{event.description}</p>

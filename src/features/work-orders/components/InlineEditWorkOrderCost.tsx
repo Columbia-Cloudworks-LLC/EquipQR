@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { Input } from '@/components/ui/input';
 import { Check, X, Edit, Trash2 } from 'lucide-react';
 import { useUpdateWorkOrderCost, useDeleteWorkOrderCost } from '@/features/work-orders/hooks/useWorkOrderCosts';
@@ -17,6 +18,7 @@ const InlineEditWorkOrderCost: React.FC<InlineEditWorkOrderCostProps> = ({
   canEdit,
   showHeaders = false
 }) => {
+  const { formatDate } = useFormatTimestamp();
   const [isEditing, setIsEditing] = useState(false);
   const [editedDescription, setEditedDescription] = useState(cost.description);
   const [editedQuantity, setEditedQuantity] = useState(cost.quantity);
@@ -161,7 +163,7 @@ const InlineEditWorkOrderCost: React.FC<InlineEditWorkOrderCostProps> = ({
             <div className="font-medium">{cost.description}</div>
             <div className="text-xs text-muted-foreground mt-1">
               Added by {cost.created_by_name} on{' '}
-              {new Date(cost.created_at).toLocaleDateString()}
+              {formatDate(cost.created_at)}
             </div>
           </div>
           <div className="text-sm">
