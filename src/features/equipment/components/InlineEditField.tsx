@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Check, X, Edit2 } from 'lucide-react';
 import { logger } from '@/utils/logger';
 import { cn } from '@/lib/utils';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
 /** Empty inline field: em dash in body style, not monospace (overrides parent font-mono on SKU/external ID). */
 function EmptyFieldDisplay({ className }: { className?: string }) {
@@ -51,6 +52,7 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
   displayNode,
   editAriaLabel
 }) => {
+  const { formatDate } = useFormatTimestamp();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
   const [isSaving, setIsSaving] = useState(false);
@@ -111,7 +113,7 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
       try {
         const date = new Date(value);
         if (!isNaN(date.getTime())) {
-          return date.toLocaleDateString();
+          return formatDate(date);
         }
       } catch (error) {
         logger.error('Error formatting date for display', error);
