@@ -26,7 +26,6 @@ env:
   # https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
   NODE_VERSION: 24.x
   CACHE_VERSION: v3
-  TEST_SHARD_TOTAL: 4
 
 jobs:
   lint-and-typecheck:

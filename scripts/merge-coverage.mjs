@@ -4,7 +4,7 @@
  * Merge coverage artifacts produced by sharded test jobs.
  *
  * Expects each shard's artifact to be downloaded into:
- *   coverage-shards/shard-<N>/coverage/{coverage-final.json,lcov.info,coverage-summary.json}
+ *   coverage-shards/coverage-shard-<N>/{coverage-final.json,lcov.info,coverage-summary.json}
  *
  * Produces, in `coverage/`:
  *   - coverage-final.json   (merged via istanbul-lib-coverage)
@@ -48,7 +48,7 @@ const map = libCoverage.createCoverageMap({});
 let mergedCount = 0;
 
 for (const dir of shardDirs) {
-  const finalPath = path.join(dir, 'coverage', 'coverage-final.json');
+  const finalPath = path.join(dir, 'coverage-final.json');
   if (!fs.existsSync(finalPath)) {
     console.warn(`⚠️  Skipping ${dir} — no coverage-final.json`);
     continue;
