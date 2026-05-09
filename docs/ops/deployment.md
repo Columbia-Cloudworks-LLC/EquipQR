@@ -756,14 +756,8 @@ self.addEventListener('install', (event) => {
 
 ### Content Security Policy
 ```html
-<!-- The authoritative CSP is set as a header in `vercel.json`; this is illustrative -->
-<meta http-equiv="Content-Security-Policy" 
-      content="default-src 'self'; 
-               script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://*.hcaptcha.com; 
-               style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
-               font-src 'self' https://fonts.gstatic.com;
-               img-src 'self' data: https: blob:;
-               connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com https://*.hcaptcha.com;">
+<!-- Use the exact Content-Security-Policy value from `vercel.json` -->
+<meta http-equiv="Content-Security-Policy" content="<copy exactly from vercel.json headers[Content-Security-Policy].value">
 ```
 
 ### HTTPS Configuration
@@ -971,4 +965,3 @@ instance without updating the number manually leaves Auth underprovisioned. With
 percentage-based allocation the pool scales proportionally.
 
 This deployment guide provides comprehensive instructions for deploying EquipQR™ to various platforms while maintaining optimal performance, security, and reliability.
-
