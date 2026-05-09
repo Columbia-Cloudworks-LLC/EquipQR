@@ -1,9 +1,34 @@
 import fs from 'fs';
 
+/**
+ * Enforces merged CI coverage floors against `coverage/coverage-summary.json`
+ * (istanbul json-summary shape: total.{lines,statements,functions,branches}.pct).
+ *
+ * Vitest disables `coverage.thresholds` during `--shard=` runs because each shard
+ * only sees a subset of files; this script runs once on the merged report in CI.
+ *
+ * Default floors MUST stay aligned with `vitest.config.ts` → `coverage.thresholds.global`.
+ * Override per metric with env: COVERAGE_THRESHOLD_BRANCHES, _FUNCTIONS, _LINES, _STATEMENTS.
+ */
 const summaryPath = 'coverage/coverage-summary.json';
-// Note: CI uses istanbul provider which reports lower coverage than v8 (local)
-// Istanbul is ~15-20% more conservative. Baseline adjusted accordingly.
-const baseline = Number(process.env.COVERAGE_BASELINE || 51);
+
+/** @type {const} */
+const METRICS = ['branches', 'functions', 'lines', 'statements'];
+
+const DEFAULT_THRESHOLDS = {
+  branches: 70,
+  functions: 50,
+  lines: 62,
+  statements: 62,
+};
+
+function thresholdFor(metric) {
+  const envName = `COVERAGE_THRESHOLD_${metric.toUpperCase()}`;
+  if (process.env[envName] !== undefined && process.env[envName] !== '') {
+    return Number(process.env[envName]);
+  }
+  return DEFAULT_THRESHOLDS[metric];
+}
 
 if (!fs.existsSync(summaryPath)) {
   console.error(`Coverage summary not found at ${summaryPath}`);
@@ -19,16 +44,28 @@ try {
   process.exit(1);
 }
 
-const pct = Number(summary?.total?.lines?.pct);
-if (Number.isNaN(pct)) {
-  console.error('Invalid coverage summary format: total.lines.pct missing or not a number');
+const failures = [];
+
+for (const metric of METRICS) {
+  const required = thresholdFor(metric);
+  const pct = Number(summary?.total?.[metric]?.pct);
+  if (Number.isNaN(pct)) {
+    failures.push(`${metric}: missing or invalid total.${metric}.pct`);
+    continue;
+  }
+  if (pct < required) {
+    failures.push(`${metric}: ${pct}% is below required ${required}%`);
+  }
+}
+
+if (failures.length > 0) {
+  console.error('❌ Coverage thresholds not met (merged report):');
+  for (const line of failures) {
+    console.error(`   - ${line}`);
+  }
   process.exit(1);
 }
 
-if (pct < baseline) {
-  console.error(`❌ Line coverage ${pct}% is below baseline ${baseline}%`);
-  process.exit(1);
-}
-
-console.log(`✅ Line coverage ${pct}% meets or exceeds baseline ${baseline}%`);
+const parts = METRICS.map((m) => `${m} ${Number(summary.total[m].pct)}% (≥${thresholdFor(m)}%)`);
+console.log(`✅ Merged coverage OK: ${parts.join('; ')}`);
 process.exit(0);
