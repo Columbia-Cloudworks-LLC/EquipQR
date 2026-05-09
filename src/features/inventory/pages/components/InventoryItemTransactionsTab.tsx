@@ -1,6 +1,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import type { InventoryTransaction } from '@/features/inventory/types/inventory';
 
 interface InventoryItemTransactionsTabProps {
@@ -10,16 +11,7 @@ interface InventoryItemTransactionsTabProps {
 const InventoryItemTransactionsTab: React.FC<InventoryItemTransactionsTabProps> = ({
   transactions,
 }) => {
-  const formatLocalDateTimeWithZone = (timestamp: string) => {
-    return new Intl.DateTimeFormat(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      timeZoneName: 'short',
-    }).format(new Date(timestamp));
-  };
+  const { formatDateTime } = useFormatTimestamp();
 
   return (
     <Card>
@@ -52,7 +44,7 @@ const InventoryItemTransactionsTab: React.FC<InventoryItemTransactionsTabProps> 
                   )}
                   <p className="text-xs text-muted-foreground mt-1">
                     {transaction.userName || 'Unknown'} •{' '}
-                    {formatLocalDateTimeWithZone(transaction.created_at)}
+                    {formatDateTime(transaction.created_at)}
                   </p>
                 </div>
               </div>
