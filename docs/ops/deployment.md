@@ -768,7 +768,7 @@ self.addEventListener('install', (event) => {
 
 ### HTTPS Configuration
 Ensure all deployments use HTTPS:
-- **Development**: Use `https://localhost:8080` for local HTTPS
+- **Development**: Use `http://localhost:8080` for local development
 - **Production**: Configure SSL certificates on hosting platform
 - **API Calls**: Ensure all API endpoints use HTTPS
 
