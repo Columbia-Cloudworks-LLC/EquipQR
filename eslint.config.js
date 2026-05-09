@@ -61,7 +61,6 @@ const timezoneFormattingLegacyAllowlist = [
   "src/pages/InvitationAccept.tsx",
   "src/pages/Notifications.tsx",
   "src/pages/WorkspaceOnboarding.tsx",
-  "src/services/auditService.ts",
   "src/utils/exportUtils.ts",
 
 ];

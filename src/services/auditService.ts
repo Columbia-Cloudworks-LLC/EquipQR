@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { formatIsoZulu } from '@/utils/dateFormatter';
 import { logger } from '@/utils/logger';
 import {
   AuditLogEntry,
@@ -140,14 +141,16 @@ function formatChangesDescription(changes: AuditChanges): string {
 }
 
 /**
- * Convert audit entries to CSV format
+ * Convert audit entries to CSV format.
+ * Timestamps are emitted as ISO-8601 Zulu (UTC) for compliance exports — not
+ * browser-local `toLocale*` rendering.
  */
 function convertToCsvRows(entries: AuditLogEntry[]): AuditLogCsvRow[] {
   return entries.map(entry => {
-    const date = new Date(entry.created_at);
+    const timestampUtc = formatIsoZulu(entry.created_at);
     return {
-      date: date.toLocaleDateString(),
-      time: date.toLocaleTimeString(),
+      date: timestampUtc,
+      time: '',
       entityType: ENTITY_TYPE_LABELS[entry.entity_type] || entry.entity_type,
       entityName: entry.entity_name || 'Unknown',
       action: ACTION_LABELS[entry.action] || entry.action,
@@ -163,8 +166,7 @@ function convertToCsvRows(entries: AuditLogEntry[]): AuditLogCsvRow[] {
  */
 function generateCsvString(rows: AuditLogCsvRow[]): string {
   const headers = [
-    'Date',
-    'Time',
+    'Timestamp (UTC)',
     'Entity Type',
     'Entity Name',
     'Action',
@@ -175,7 +177,6 @@ function generateCsvString(rows: AuditLogCsvRow[]): string {
   
   const csvRows = rows.map(row => [
     row.date,
-    row.time,
     row.entityType,
     `"${row.entityName.replace(/"/g, '""')}"`,
     row.action,
