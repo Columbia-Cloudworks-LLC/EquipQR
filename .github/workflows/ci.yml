@@ -3,10 +3,9 @@ name: Continuous Integration
 on:
   pull_request:
     branches: [ main, preview ]
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
-      - '.github/**/*.md'
+    # No paths-ignore here — pull_request is a release gate for preview→main
+    # promotion. A release PR whose diff only touches docs/markdown must still
+    # run all CI checks. (See schema-drift-check.yml line 27 for the same rule.)
   push:
     branches: [ main, preview ]
     paths-ignore:
