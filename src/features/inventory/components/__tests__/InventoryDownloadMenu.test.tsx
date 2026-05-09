@@ -10,7 +10,10 @@ import * as exportUtils from '@/utils/exportUtils';
 import InventoryDownloadMenu from '../InventoryDownloadMenu';
 
 vi.mock('@/utils/logger', () => ({
-  logger: { warn: vi.fn() },
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+  },
 }));
 
 const sydneySettings: UserSettings = {
