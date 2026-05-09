@@ -7,6 +7,7 @@ import { QrCode, MapPin, Calendar, Forklift, Clock, ChevronRight, ClipboardList,
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getEquipmentCardDisplayModel } from "@/features/equipment/utils/getEquipmentCardDisplayModel";
+import { useUserSettings } from '@/hooks/useUserSettings';
 import { getEquipmentStatusBorderClass } from "@/lib/status-colors";
 import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyncBadge';
 import PMStatusIndicator from './PMStatusIndicator';
@@ -47,7 +48,8 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
   pmStatus,
 }) => {
   const navigate = useNavigate();
-  const display = getEquipmentCardDisplayModel(equipment);
+  const { settings } = useUserSettings();
+  const display = getEquipmentCardDisplayModel(equipment, settings);
   const statusBorderClass = getEquipmentStatusBorderClass(equipment.status);
 
   const handleCardClick = () => {

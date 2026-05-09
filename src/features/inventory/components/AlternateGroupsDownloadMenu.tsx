@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { arrayToCsv, downloadCsv, downloadJson, filenameWithDate } from '@/utils/exportUtils';
 import type { PartAlternateGroup } from '@/features/inventory/types/inventory';
 
@@ -26,21 +27,26 @@ const CSV_HEADERS = [
   'Updated At',
 ];
 
-function groupsToCsvRows(groups: PartAlternateGroup[]): string[][] {
+function groupsToCsvRows(
+  groups: PartAlternateGroup[],
+  formatDate: (date: Date | string) => string
+): string[][] {
   return groups.map((g) => [
     g.name ?? '',
     g.status ?? '',
     g.description ?? '',
     g.notes ?? '',
     g.member_count != null ? String(g.member_count) : '',
-    g.created_at ? new Date(g.created_at).toLocaleDateString() : '',
-    g.updated_at ? new Date(g.updated_at).toLocaleDateString() : '',
+    g.created_at ? formatDate(g.created_at) : '',
+    g.updated_at ? formatDate(g.updated_at) : '',
   ]);
 }
 
 const AlternateGroupsDownloadMenu: React.FC<AlternateGroupsDownloadMenuProps> = ({ groups }) => {
+  const { formatDate } = useFormatTimestamp();
+
   const handleExportCsv = () => {
-    const rows = groupsToCsvRows(groups);
+    const rows = groupsToCsvRows(groups, formatDate);
     const csv = arrayToCsv(CSV_HEADERS, rows);
     downloadCsv(csv, filenameWithDate('alternate-groups', 'csv'));
   };
