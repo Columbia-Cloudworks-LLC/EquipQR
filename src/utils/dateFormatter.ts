@@ -29,7 +29,7 @@ export const formatDateTime = (
   try {
     return formatInTimeZone(dateObj, settings.timezone, pattern);
   } catch (error) {
-    logger.warn('DateTime formatting failed, using fallback', error);
+    logger.error('DateTime formatting failed, using fallback', error);
     return format(dateObj, pattern);
   }
 };
