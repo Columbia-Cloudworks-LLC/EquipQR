@@ -15,7 +15,6 @@
  */
 
 import { spawn, execSync } from 'child_process';
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -64,11 +63,6 @@ const hardTimeout = setTimeout(() => {
     vitestProcess.kill('SIGKILL');
   }
 
-  const coveragePath = path.join(repoRoot, 'coverage', 'coverage-summary.json');
-  if (fs.existsSync(coveragePath)) {
-    console.log('✅ Coverage written before timeout — treating as success');
-    process.exit(0);
-  }
   process.exit(1);
 }, TEST_TIMEOUT_MS);
 

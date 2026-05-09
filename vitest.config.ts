@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 
 const isCI = process.env.CI === 'true';
+// When sharding, thresholds apply to partial coverage and will always fail.
+// The merged-report ratchet in coverage-ratchet.mjs handles threshold enforcement.
+const isShardRun = process.argv.some((a) => a.startsWith('--shard='));
 
 export default defineConfig({
   plugins: [react()],
@@ -127,16 +130,18 @@ export default defineConfig({
         // - 'src/features/**/hooks/**'
         // - 'src/features/**/services/**'
       ],
-      thresholds: {
-        // Phase 1 thresholds (increased from baseline)
-        // Target: branches 80%, functions 75%, lines 80%, statements 80%
-        global: {
-          branches: 70,
-          functions: 50, // Increased from 45%
-          lines: 62,     // Increased from 60%
-          statements: 62, // Increased from 60%
-        },
-      },
+      thresholds: isShardRun
+        ? undefined
+        : {
+            // Phase 1 thresholds (increased from baseline)
+            // Target: branches 80%, functions 75%, lines 80%, statements 80%
+            global: {
+              branches: 70,
+              functions: 50, // Increased from 45%
+              lines: 62,     // Increased from 60%
+              statements: 62, // Increased from 60%
+            },
+          },
     },
   },
   resolve: {
