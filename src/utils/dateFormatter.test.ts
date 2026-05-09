@@ -126,6 +126,7 @@ describe("dateFormatter", () => {
       );
       expect(formatRelative(beyondWeek, settingsNy)).toMatch(/02\/20\/2024/);
     });
+
   });
 
   describe("formatIsoZulu", () => {
