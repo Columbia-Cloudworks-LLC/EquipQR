@@ -14,6 +14,7 @@ import { UserSettings } from '@/types/settings';
 
 vi.mock('@/utils/logger', () => ({
   logger: {
+    error: vi.fn(),
     warn: vi.fn(),
   },
 }));
