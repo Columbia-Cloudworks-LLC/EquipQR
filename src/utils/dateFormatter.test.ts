@@ -126,6 +126,10 @@ describe('dateFormatter', () => {
   });
 
   describe('legacy wrappers', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('formatDateInUserSettings delegates to formatDate / formatDateTime', () => {
       expect(formatDateInUserSettings(UTC_CROSS_CALENDAR, settingsNy)).toBe(
         formatDate(UTC_CROSS_CALENDAR, settingsNy)
@@ -148,7 +152,6 @@ describe('dateFormatter', () => {
       expect(formatRelativeDate(recent, settingsNy)).toBe(
         formatRelative(recent, settingsNy)
       );
-      vi.useRealTimers();
     });
   });
 });
