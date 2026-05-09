@@ -6,6 +6,7 @@ import { CheckCircle, Clock, AlertTriangle, Calendar, Timer } from 'lucide-react
 import { useQuery } from '@tanstack/react-query';
 import { getLatestCompletedPM } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { useEquipmentPMStatus, getPMComplianceLevel } from '@/features/equipment/hooks/useEquipmentPMStatus';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
 interface EquipmentPMInfoProps {
   equipmentId: string;
@@ -45,6 +46,7 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
   organizationId,
   onViewPM
 }) => {
+  const { formatDate } = useFormatTimestamp();
   const { data: latestPM, isLoading: isPMLoading } = useQuery({
     queryKey: ['latestPM', organizationId, equipmentId],
     queryFn: () => getLatestCompletedPM(equipmentId),
@@ -107,7 +109,7 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
               <span className="text-xs font-medium">Last PM</span>
             </div>
             <p className="text-sm">
-              {new Date(latestPM.completed_at).toLocaleDateString()}
+              {formatDate(latestPM.completed_at)}
             </p>
             <p className="text-xs text-muted-foreground">{daysSinceLastPM} days ago</p>
           </div>
