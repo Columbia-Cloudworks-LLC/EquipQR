@@ -7,9 +7,9 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FixedSizeList as VirtualList } from 'react-window';
-import { format as formatDate } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { ChangesSummary } from '@/components/audit/ChangesDiff';
 import {
   ACTION_SEVERITY_COLOR,
@@ -51,9 +51,10 @@ interface RowProps {
   entry: FormattedAuditEntry;
   selected: boolean;
   onClick: () => void;
+  createdAtLabel: string;
 }
 
-function AuditListRow({ entry, selected, onClick }: RowProps) {
+function AuditListRow({ entry, selected, onClick, createdAtLabel }: RowProps) {
   return (
     <div
       role="option"
@@ -72,8 +73,8 @@ function AuditListRow({ entry, selected, onClick }: RowProps) {
         style={{ backgroundColor: ACTION_SEVERITY_COLOR[entry.action] }}
         aria-hidden="true"
       />
-      <span className="font-mono tabular-nums text-[11px] text-muted-foreground w-[110px] shrink-0">
-        {formatDate(new Date(entry.created_at), 'MMM d HH:mm:ss')}
+      <span className="font-mono tabular-nums text-[11px] text-muted-foreground min-w-[110px] shrink-0">
+        {createdAtLabel}
       </span>
       <Badge
         variant="outline"
@@ -112,6 +113,8 @@ export function AuditLogList({
   isLoading = false,
   emptyState,
 }: AuditLogListProps) {
+  const { formatDateTime } = useFormatTimestamp();
+
   const [activeIndex, setActiveIndex] = useState(() =>
     Math.max(
       0,
@@ -212,6 +215,7 @@ export function AuditLogList({
             entry={entry}
             selected={entry.id === selectedId}
             onClick={() => onSelect(entry)}
+            createdAtLabel={formatDateTime(entry.created_at)}
           />
         ))}
       </div>
@@ -241,6 +245,7 @@ export function AuditLogList({
               entry={entries[index]}
               selected={entries[index].id === selectedId}
               onClick={() => onSelect(entries[index])}
+              createdAtLabel={formatDateTime(entries[index].created_at)}
             />
           </div>
         )}

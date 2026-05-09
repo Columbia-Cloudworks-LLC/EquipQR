@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { arrayToCsv, downloadCsv, downloadJson, filenameWithDate } from '@/utils/exportUtils';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
 
@@ -31,7 +32,10 @@ const CSV_HEADERS = [
   'Created At',
 ];
 
-function itemsToCsvRows(items: InventoryItem[]): string[][] {
+function itemsToCsvRows(
+  items: InventoryItem[],
+  formatDate: (date: Date | string) => string
+): string[][] {
   return items.map((item) => [
     item.name ?? '',
     item.sku ?? '',
@@ -42,7 +46,7 @@ function itemsToCsvRows(items: InventoryItem[]): string[][] {
     item.default_unit_cost != null ? String(item.default_unit_cost) : '',
     item.isLowStock ? 'Low Stock' : 'OK',
     item.description ?? '',
-    item.created_at ? new Date(item.created_at).toLocaleDateString() : '',
+    item.created_at ? formatDate(item.created_at) : '',
   ]);
 }
 
@@ -50,6 +54,8 @@ const InventoryDownloadMenu: React.FC<InventoryDownloadMenuProps> = ({
   canExport,
   items,
 }) => {
+  const { formatDate } = useFormatTimestamp();
+
   if (!canExport) {
     return (
       <Tooltip>
@@ -72,7 +78,7 @@ const InventoryDownloadMenu: React.FC<InventoryDownloadMenuProps> = ({
   }
 
   const handleExportCsv = () => {
-    const rows = itemsToCsvRows(items);
+    const rows = itemsToCsvRows(items, formatDate);
     const csv = arrayToCsv(CSV_HEADERS, rows);
     downloadCsv(csv, filenameWithDate('inventory', 'csv'));
   };

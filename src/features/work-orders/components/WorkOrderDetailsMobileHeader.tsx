@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Edit, PanelRight, Clipboard, MapPin, Calendar, Users, MoreHorizontal, Clock, AlertCircle, AlertTriangle } from 'lucide-react';
 import { getStatusColor, formatStatus, getPriorityColor, isOverdue as checkIsOverdue } from '@/features/work-orders/utils/workOrderHelpers';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { getStatusDisplayInfo as getEquipmentStatusDisplayInfo } from '@/features/equipment/utils/equipmentHelpers';
 import { WorkOrderPrimaryActionButton } from './WorkOrderPrimaryActionButton';
 import ClickableAddress from '@/components/ui/ClickableAddress';
@@ -51,6 +52,7 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
   onToggleSidebar,
   onOpenActionSheet,
 }) => {
+  const { formatDate } = useFormatTimestamp();
   const equipmentStatusInfo = workOrder.equipment
     ? getEquipmentStatusDisplayInfo(workOrder.equipment.status || 'active')
     : null;
@@ -207,7 +209,7 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
             {workOrder.created_at && (
               <div className="flex items-center gap-1.5">
                 <Calendar className="h-4 w-4" />
-                <span>Created: {new Date(workOrder.created_at).toLocaleDateString()}</span>
+                <span>Created: {formatDate(workOrder.created_at)}</span>
               </div>
             )}
             {workOrder.due_date && (() => {
@@ -223,7 +225,7 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
                       ? <AlertTriangle className="h-4 w-4" />
                       : <Clock className="h-4 w-4" />
                   }
-                  <span>Due: {due.toLocaleDateString()}</span>
+                  <span>Due: {formatDate(due)}</span>
                   {isOverdue && (
                     <Badge variant="outline" className="text-[10px] px-1 py-0 bg-destructive/10 text-destructive border-destructive/30">
                       OVERDUE

@@ -1,5 +1,8 @@
+import type { UserSettings } from '@/types/settings';
+import { formatDate } from '@/utils/dateFormatter';
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
+import type { WorkOrderExportDateSettings } from '@/features/work-orders/services/workOrderReportPDFService';
 
 export interface WorkOrderCost {
   id: string;
@@ -10,7 +13,10 @@ export interface WorkOrderCost {
   created_at: string;
 }
 
-export const generateCostsCSV = async (workOrderId: string): Promise<void> => {
+export const generateCostsCSV = async (
+  workOrderId: string,
+  exportDateSettings: WorkOrderExportDateSettings
+): Promise<void> => {
   try {
     // Fetch work order costs
     const { data: costs, error } = await supabase
@@ -38,7 +44,7 @@ export const generateCostsCSV = async (workOrderId: string): Promise<void> => {
       cost.quantity.toString(),
       `$${(cost.unit_price_cents / 100).toFixed(2)}`,
       `$${((cost.total_price_cents || cost.unit_price_cents * cost.quantity) / 100).toFixed(2)}`,
-      new Date(cost.created_at).toLocaleDateString()
+      formatDate(cost.created_at, exportDateSettings as UserSettings)
     ]);
 
     // Calculate totals
