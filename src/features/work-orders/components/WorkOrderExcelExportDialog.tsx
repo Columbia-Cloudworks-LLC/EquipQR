@@ -314,7 +314,7 @@ export const WorkOrderExcelExportDialog: React.FC<WorkOrderExcelExportDialogProp
                       mode="single"
                       selected={fromDate}
                       onSelect={setFromDate}
-                      initialFocus
+                      autoFocus
                     />
                   </PopoverContent>
                 </Popover>
@@ -341,7 +341,7 @@ export const WorkOrderExcelExportDialog: React.FC<WorkOrderExcelExportDialogProp
                       mode="single"
                       selected={toDate}
                       onSelect={setToDate}
-                      initialFocus
+                      autoFocus
                     />
                   </PopoverContent>
                 </Popover>
