@@ -1,8 +1,15 @@
 import type jsPDF from 'jspdf';
 import { logger } from '@/utils/logger';
-import { formatStatus, formatPriority, formatDate } from '@/features/work-orders/utils/workOrderHelpers';
+import { formatStatus, formatPriority } from '@/features/work-orders/utils/workOrderHelpers';
+import type { UserSettings } from '@/types/settings';
+import { formatDate as formatDateTz } from '@/utils/dateFormatter';
 import type { PMChecklistItem, PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
-import type { WorkOrderForPDF, EquipmentForPDF, WorkOrderPDFData } from './workOrderReportPDFService';
+import type {
+  WorkOrderForPDF,
+  EquipmentForPDF,
+  WorkOrderPDFData,
+  WorkOrderExportDateSettings,
+} from './workOrderReportPDFService';
 
 const CONDITION_LEGEND = [
   { value: 1, label: 'OK' },
@@ -41,6 +48,12 @@ export class WorkOrderFieldWorksheetPDFGenerator {
   private readonly contentWidth: number;
   private readonly footerY = 255;
   private readonly qrSize = 20;
+  private exportDateSettings!: WorkOrderExportDateSettings;
+
+  private pdfFormatDate(date: Date | string | null | undefined): string {
+    if (date === null || date === undefined) return '—';
+    return formatDateTz(date, this.exportDateSettings as UserSettings);
+  }
 
   private constructor() {
     this.contentWidth = this.pageWidth - 2 * this.margin;
@@ -262,7 +275,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
 
     this.doc.setFontSize(9);
     this.doc.setFont('helvetica', 'normal');
-    const statusLine = `WO: ${this.formatWorkOrderId(workOrder.id)}  |  ${formatStatus(workOrder.status)}  |  Generated: ${new Date().toLocaleDateString()}`;
+    const statusLine = `WO: ${this.formatWorkOrderId(workOrder.id)}  |  ${formatStatus(workOrder.status)}  |  Generated: ${this.pdfFormatDate(new Date())}`;
     const statusWidth = this.doc.getTextWidth(statusLine);
     this.doc.text(statusLine, (this.pageWidth - statusWidth) / 2, this.yPosition);
     this.yPosition += 4;
@@ -276,9 +289,9 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     const col1x = this.margin + 2;
     const col2x = this.margin + this.contentWidth / 2;
 
-    this.addText(`Created: ${formatDate(workOrder.created_date)}`, col1x, 9);
+    this.addText(`Created: ${this.pdfFormatDate(workOrder.created_date)}`, col1x, 9);
     this.yPosition -= this.lineHeight;
-    this.addText(`Due: ${formatDate(workOrder.due_date)}`, col2x, 9);
+    this.addText(`Due: ${this.pdfFormatDate(workOrder.due_date)}`, col2x, 9);
 
     this.addText(`Priority: ${formatPriority(workOrder.priority)}`, col1x, 9);
     this.yPosition -= this.lineHeight;
@@ -758,7 +771,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     this.doc.setFontSize(7);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(150, 150, 150);
-    const genText = `Document generated: ${new Date().toLocaleString()}`;
+    const genText = `Document generated: ${formatDateTz(new Date(), this.exportDateSettings as UserSettings)}`;
     const genWidth = this.doc.getTextWidth(genText);
     this.doc.text(genText, (this.pageWidth - genWidth) / 2, qrY + this.qrSize / 2 - 3);
     this.doc.setFont('helvetica', 'italic');
@@ -773,7 +786,8 @@ export class WorkOrderFieldWorksheetPDFGenerator {
   // ===================== PUBLIC API =====================
 
   public async generateWorksheet(data: WorkOrderPDFData): Promise<jsPDF> {
-    const { workOrder, equipment, organizationName, pmData } = data;
+    const { workOrder, equipment, organizationName, pmData, exportDateSettings } = data;
+    this.exportDateSettings = exportDateSettings;
 
     // Pre-load branding images (fail silently — text-only fallback)
     const [orgLogo, teamImage] = await Promise.all([
