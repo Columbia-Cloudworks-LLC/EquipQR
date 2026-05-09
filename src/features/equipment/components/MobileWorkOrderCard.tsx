@@ -9,6 +9,7 @@ import WorkOrderCostSubtotal from '@/features/work-orders/components/WorkOrderCo
 import PMProgressIndicator from '@/features/work-orders/components/PMProgressIndicator';
 
 import { WorkOrder } from '@/services/supabaseDataService';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
 interface ExtendedWorkOrder extends WorkOrder {
   created_date: string;
@@ -25,6 +26,7 @@ interface MobileWorkOrderCardProps {
 const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({ workOrder }) => {
   const navigate = useNavigate();
   const permissions = useUnifiedPermissions();
+  const { formatDate } = useFormatTimestamp();
   const handleNavigate = () => navigate(`/dashboard/work-orders/${workOrder.id}`);
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -121,7 +123,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({ workOrder }) 
                 <span className="text-muted-foreground">Created</span>
               </div>
               <span className="font-medium">
-                {new Date(workOrder.created_date).toLocaleDateString()}
+                {formatDate(workOrder.created_date)}
               </span>
             </div>
 
@@ -132,7 +134,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({ workOrder }) 
                   <span className="text-muted-foreground">Due</span>
                 </div>
                 <span className="font-medium">
-                  {new Date(workOrder.due_date).toLocaleDateString()}
+                  {formatDate(workOrder.due_date)}
                 </span>
               </div>
             )}
