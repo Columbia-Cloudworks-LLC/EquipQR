@@ -2,7 +2,7 @@ import React from 'react';
 import { render } from '@/test/utils/test-utils';
 import { describe, it, expect, vi } from 'vitest';
 import { SettingsContext } from '@/contexts/settings-context';
-import { defaultUserSettings, type UserSettings } from '@/types/settings';
+import type { UserSettings } from '@/types/settings';
 import { formatDateTime } from '@/utils/dateFormatter';
 import type { InventoryTransaction } from '@/features/inventory/types/inventory';
 import InventoryItemTransactionsTab from '../InventoryItemTransactionsTab';
@@ -59,31 +59,6 @@ describe('InventoryItemTransactionsTab', () => {
     });
 
     const expected = formatDateTime(UTC_CROSS_CALENDAR, sydneySettings);
-    expect(container).toHaveTextContent(expected);
-  });
-
-  it('falls back to default settings when no SettingsProvider is present', () => {
-    const transaction: InventoryTransaction = {
-      id: 'txn-1',
-      inventory_item_id: 'item-1',
-      organization_id: 'org-1',
-      change_amount: -1,
-      previous_quantity: 10,
-      new_quantity: 9,
-      transaction_type: 'adjustment',
-      user_id: 'user-1',
-      user_name: null,
-      work_order_id: null,
-      notes: null,
-      created_at: UTC_CROSS_CALENDAR,
-      userName: 'Tester',
-    };
-
-    const { container } = render(
-      <InventoryItemTransactionsTab transactions={[transaction]} />
-    );
-
-    const expected = formatDateTime(UTC_CROSS_CALENDAR, defaultUserSettings);
     expect(container).toHaveTextContent(expected);
   });
 });

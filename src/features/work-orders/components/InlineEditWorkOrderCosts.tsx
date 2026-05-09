@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { Edit2, Check, X, DollarSign, Package, Plus } from 'lucide-react';
 import { WorkOrderCost } from '@/features/work-orders/services/workOrderCostsService';
 import { useWorkOrderCostsState } from '@/features/work-orders/hooks/useWorkOrderCostsState';
@@ -40,6 +41,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
   equipmentIds,
   canEdit
 }) => {
+  const { formatDate } = useFormatTimestamp();
   const isMobile = useIsMobile();
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
@@ -285,7 +287,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
             {cost.description}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
-            Added by {cost.created_by_name} • {new Date(cost.created_at).toLocaleDateString()}
+            Added by {cost.created_by_name} • {formatDate(cost.created_at)}
             {cost.inventory_item_id && <span className="ml-1 text-info">(Inventory)</span>}
           </div>
         </div>
@@ -315,7 +317,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
           </div>
           <div className="text-xs text-muted-foreground mt-1">
             Added by {cost.created_by_name} on{' '}
-            {new Date(cost.created_at).toLocaleDateString()}
+            {formatDate(cost.created_at)}
             {cost.inventory_item_id && <span className="ml-1 text-info">(Inventory)</span>}
           </div>
         </div>

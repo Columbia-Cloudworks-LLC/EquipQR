@@ -1,13 +1,20 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { getEquipmentCardDisplayModel } from './getEquipmentCardDisplayModel';
+import { testUserSettingsSydney } from '@/test/utils/TestProviders';
+import { formatDate } from '@/utils/dateFormatter';
+
+const settings = testUserSettingsSydney;
 
 describe('getEquipmentCardDisplayModel', () => {
   describe('imageAlt', () => {
     it('generates alt text from equipment name', () => {
-      const result = getEquipmentCardDisplayModel({
-        name: 'Forklift XL',
-        status: 'active',
-      });
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Forklift XL',
+          status: 'active',
+        },
+        settings
+      );
 
       expect(result.imageAlt).toBe('Forklift XL equipment');
     });
@@ -15,10 +22,13 @@ describe('getEquipmentCardDisplayModel', () => {
 
   describe('imageFallbackSrc', () => {
     it('returns placeholder.svg path', () => {
-      const result = getEquipmentCardDisplayModel({
-        name: 'Test Equipment',
-        status: 'active',
-      });
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Test Equipment',
+          status: 'active',
+        },
+        settings
+      );
 
       expect(result.imageFallbackSrc).toBe('/placeholder.svg');
     });
@@ -26,28 +36,37 @@ describe('getEquipmentCardDisplayModel', () => {
 
   describe('statusLabel', () => {
     it('returns human-readable label for active status', () => {
-      const result = getEquipmentCardDisplayModel({
-        name: 'Test Equipment',
-        status: 'active',
-      });
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Test Equipment',
+          status: 'active',
+        },
+        settings
+      );
 
       expect(result.statusLabel).toBe('Active');
     });
 
     it('returns human-readable label for maintenance status', () => {
-      const result = getEquipmentCardDisplayModel({
-        name: 'Test Equipment',
-        status: 'maintenance',
-      });
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Test Equipment',
+          status: 'maintenance',
+        },
+        settings
+      );
 
       expect(result.statusLabel).toBe('Under Maintenance');
     });
 
     it('returns human-readable label for inactive status', () => {
-      const result = getEquipmentCardDisplayModel({
-        name: 'Test Equipment',
-        status: 'inactive',
-      });
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Test Equipment',
+          status: 'inactive',
+        },
+        settings
+      );
 
       expect(result.statusLabel).toBe('Inactive');
     });
@@ -55,73 +74,80 @@ describe('getEquipmentCardDisplayModel', () => {
 
   describe('statusClassName', () => {
     it('returns CSS variable-based classes for active status', () => {
-      const result = getEquipmentCardDisplayModel({
-        name: 'Test Equipment',
-        status: 'active',
-      });
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Test Equipment',
+          status: 'active',
+        },
+        settings
+      );
 
       expect(result.statusClassName).toBe('bg-success/20 text-success border-success/30');
     });
 
     it('returns CSS variable-based classes for maintenance status', () => {
-      const result = getEquipmentCardDisplayModel({
-        name: 'Test Equipment',
-        status: 'maintenance',
-      });
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Test Equipment',
+          status: 'maintenance',
+        },
+        settings
+      );
 
       expect(result.statusClassName).toBe('bg-warning/20 text-warning border-warning/30');
     });
 
     it('returns CSS variable-based classes for inactive status', () => {
-      const result = getEquipmentCardDisplayModel({
-        name: 'Test Equipment',
-        status: 'inactive',
-      });
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Test Equipment',
+          status: 'inactive',
+        },
+        settings
+      );
 
       expect(result.statusClassName).toBe('bg-muted text-muted-foreground border-border');
     });
   });
 
   describe('lastMaintenanceText', () => {
-    let mockToLocaleDateString: ReturnType<typeof vi.spyOn>;
+    it('formats valid date with user timezone settings', () => {
+      const lastMaintenance = '2026-01-15';
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Test Equipment',
+          status: 'active',
+          last_maintenance: lastMaintenance,
+        },
+        settings
+      );
 
-    beforeEach(() => {
-      // Mock toLocaleDateString for consistent test results
-      mockToLocaleDateString = vi.spyOn(Date.prototype, 'toLocaleDateString');
-      mockToLocaleDateString.mockReturnValue('1/15/2026');
-    });
-
-    afterEach(() => {
-      mockToLocaleDateString.mockRestore();
-    });
-
-    it('formats valid date correctly', () => {
-      const result = getEquipmentCardDisplayModel({
-        name: 'Test Equipment',
-        status: 'active',
-        last_maintenance: '2026-01-15',
-      });
-
-      expect(result.lastMaintenanceText).toBe('Last maintenance: 1/15/2026');
+      expect(result.lastMaintenanceText).toBe(
+        `Last maintenance: ${formatDate(lastMaintenance, settings)}`
+      );
     });
 
     it('returns undefined when last_maintenance is not provided', () => {
-      const result = getEquipmentCardDisplayModel({
-        name: 'Test Equipment',
-        status: 'active',
-      });
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Test Equipment',
+          status: 'active',
+        },
+        settings
+      );
 
       expect(result.lastMaintenanceText).toBeUndefined();
     });
 
     it('returns undefined for invalid date string', () => {
-      mockToLocaleDateString.mockRestore();
-      
-      const result = getEquipmentCardDisplayModel({
-        name: 'Test Equipment',
-        status: 'active',
-        last_maintenance: 'invalid-date',
-      });
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Test Equipment',
+          status: 'active',
+          last_maintenance: 'invalid-date',
+        },
+        settings
+      );
 
       expect(result.lastMaintenanceText).toBeUndefined();
     });
@@ -129,40 +155,52 @@ describe('getEquipmentCardDisplayModel', () => {
 
   describe('workingHoursText', () => {
     it('formats working hours with locale string', () => {
-      const result = getEquipmentCardDisplayModel({
-        name: 'Test Equipment',
-        status: 'active',
-        working_hours: 1234,
-      });
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Test Equipment',
+          status: 'active',
+          working_hours: 1234,
+        },
+        settings
+      );
 
       expect(result.workingHoursText).toBe('1,234 hours');
     });
 
     it('defaults to 0 when working_hours is null', () => {
-      const result = getEquipmentCardDisplayModel({
-        name: 'Test Equipment',
-        status: 'active',
-        working_hours: null,
-      });
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Test Equipment',
+          status: 'active',
+          working_hours: null,
+        },
+        settings
+      );
 
       expect(result.workingHoursText).toBe('0 hours');
     });
 
     it('defaults to 0 when working_hours is undefined', () => {
-      const result = getEquipmentCardDisplayModel({
-        name: 'Test Equipment',
-        status: 'active',
-      });
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Test Equipment',
+          status: 'active',
+        },
+        settings
+      );
 
       expect(result.workingHoursText).toBe('0 hours');
     });
 
     it('handles zero working hours', () => {
-      const result = getEquipmentCardDisplayModel({
-        name: 'Test Equipment',
-        status: 'active',
-        working_hours: 0,
-      });
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Test Equipment',
+          status: 'active',
+          working_hours: 0,
+        },
+        settings
+      );
 
       expect(result.workingHoursText).toBe('0 hours');
     });
@@ -170,21 +208,27 @@ describe('getEquipmentCardDisplayModel', () => {
 
   describe('workingHoursShortText', () => {
     it('formats hours with abbreviated unit', () => {
-      const result = getEquipmentCardDisplayModel({
-        name: 'Test Equipment',
-        status: 'active',
-        working_hours: 1234,
-      });
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Test Equipment',
+          status: 'active',
+          working_hours: 1234,
+        },
+        settings
+      );
 
       expect(result.workingHoursShortText).toBe('1,234 hrs');
     });
 
     it('defaults to 0 when working_hours is null', () => {
-      const result = getEquipmentCardDisplayModel({
-        name: 'Test Equipment',
-        status: 'active',
-        working_hours: null,
-      });
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Test Equipment',
+          status: 'active',
+          working_hours: null,
+        },
+        settings
+      );
 
       expect(result.workingHoursShortText).toBe('0 hrs');
     });

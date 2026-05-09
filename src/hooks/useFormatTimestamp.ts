@@ -1,7 +1,7 @@
 import { useContext, useMemo } from 'react';
 
 import { SettingsContext } from '@/contexts/settings-context';
-import { defaultUserSettings } from '@/types/settings';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import {
   formatDate,
   formatDateTime,
@@ -13,7 +13,9 @@ import {
 
 export function useFormatTimestamp() {
   const settingsContext = useContext(SettingsContext);
-  const settings = settingsContext?.settings ?? defaultUserSettings;
+  const fallbackUserSettings = useUserSettings();
+  const settings =
+    settingsContext?.settings ?? fallbackUserSettings.settings;
 
   return useMemo(
     () => ({
@@ -27,3 +29,4 @@ export function useFormatTimestamp() {
     [settings]
   );
 }
+

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Clock, User, UserMinus, Wrench, Clipboard } from 'lucide-react';
 import { WorkOrderData, EquipmentData, PermissionLevels, PMData } from '@/features/work-orders/types/workOrderDetails';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
 interface WorkOrderDetailsRequestorStatusProps {
   workOrder: WorkOrderData;
@@ -20,6 +21,7 @@ export const WorkOrderDetailsRequestorStatus: React.FC<WorkOrderDetailsRequestor
   equipment,
   pmData
 }) => {
+  const { formatDate } = useFormatTimestamp();
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'submitted': return 'bg-info/20 text-info';
@@ -93,14 +95,14 @@ export const WorkOrderDetailsRequestorStatus: React.FC<WorkOrderDetailsRequestor
           {workOrder.due_date && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
-              <span>Due {new Date(workOrder.due_date).toLocaleDateString()}</span>
+              <span>Due {formatDate(workOrder.due_date)}</span>
             </div>
           )}
 
           {workOrder.completed_date && (
             <div className="flex items-center gap-2 text-sm text-success">
               <Clock className="h-4 w-4" />
-              <span>Completed {new Date(workOrder.completed_date).toLocaleDateString()}</span>
+              <span>Completed {formatDate(workOrder.completed_date)}</span>
             </div>
           )}
         </div>
