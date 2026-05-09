@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -55,6 +56,8 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   equipment,
   organization,
 }) => {
+  const { formatDateTime } = useFormatTimestamp();
+
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -956,7 +959,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 
         {pm.completed_at && (
           <div className="pt-4 border-t text-sm text-muted-foreground">
-            Completed on {new Date(pm.completed_at).toLocaleString()}
+            Completed on {formatDateTime(pm.completed_at)}
           </div>
         )}
 

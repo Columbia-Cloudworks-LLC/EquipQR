@@ -222,7 +222,7 @@ export class OfflineAwareWorkOrderService {
         throw err;
       }
       logger.error('Failed to enqueue offline create', err);
-      throw new Error('Cannot save offline — please try again when connected.');
+      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
     }
   }
 
@@ -255,7 +255,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline update', err);
-      throw new Error('Cannot save offline — please try again when connected.');
+      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
     }
   }
 
@@ -280,7 +280,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline status update', err);
-      throw new Error('Cannot save offline — please try again when connected.');
+      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
     }
   }
 
@@ -420,7 +420,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline equipment create', err);
-      throw new Error('Cannot save offline — please try again when connected.');
+      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
     }
   }
 
@@ -439,7 +439,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline equipment create', err);
-      throw new Error('Cannot save offline — please try again when connected.');
+      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
     }
   }
 
@@ -468,7 +468,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline equipment update', err);
-      throw new Error('Cannot save offline — please try again when connected.');
+      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
     }
   }
 
@@ -485,7 +485,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline equipment hours', err);
-      throw new Error('Cannot save offline — please try again when connected.');
+      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
     }
   }
 
@@ -508,7 +508,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline equipment note', err);
-      throw new Error('Cannot save offline — please try again when connected.');
+      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
     }
   }
 
@@ -531,7 +531,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline work order note', err);
-      throw new Error('Cannot save offline — please try again when connected.');
+      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
     }
   }
 
@@ -645,7 +645,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline PM init', err);
-      throw new Error('Cannot save offline — please try again when connected.');
+      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
     }
   }
 
@@ -675,7 +675,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline PM update', err);
-      throw new Error('Cannot save offline — please try again when connected.');
+      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
     }
   }
 
@@ -692,7 +692,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline PM delete', err);
-      throw new Error('Cannot save offline — please try again when connected.');
+      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
     }
   }
 }

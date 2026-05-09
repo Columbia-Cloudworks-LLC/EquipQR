@@ -31,7 +31,7 @@ import { useAppToast } from '@/hooks/useAppToast';
 function formatAuditEntry(entry: AuditLogEntry): FormattedAuditEntry {
   const changeCount = Object.keys(entry.changes).length;
   const createdAt = new Date(entry.created_at);
-  
+
   return {
     ...entry,
     actionLabel: ACTION_LABELS[entry.action] || entry.action,

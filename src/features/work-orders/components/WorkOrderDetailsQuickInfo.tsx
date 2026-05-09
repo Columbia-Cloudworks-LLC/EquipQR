@@ -12,6 +12,7 @@ import { useWorkOrderImageCount } from '@/features/work-orders/hooks/useWorkOrde
 
 import { useNavigate } from 'react-router-dom';
 import { WorkOrderData, EquipmentData, PermissionLevels, PMData } from '@/features/work-orders/types/workOrderDetails';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
 interface WorkOrderDetailsQuickInfoProps {
   workOrder: WorkOrderData;
@@ -28,6 +29,7 @@ export const WorkOrderDetailsQuickInfo: React.FC<WorkOrderDetailsQuickInfoProps>
   permissionLevels,
   pmData
 }) => {
+  const { formatDate } = useFormatTimestamp();
   const permissions = useUnifiedPermissions();
   const deleteWorkOrderMutation = useDeleteWorkOrder();
   const { data: imageData } = useWorkOrderImageCount(workOrder?.id);
@@ -63,7 +65,7 @@ export const WorkOrderDetailsQuickInfo: React.FC<WorkOrderDetailsQuickInfoProps>
             <div>
               <div className="font-medium">Created</div>
               <div className="text-muted-foreground">
-                {new Date(workOrder.created_date).toLocaleDateString()}
+                {formatDate(workOrder.created_date)}
               </div>
             </div>
           </div>
@@ -76,7 +78,7 @@ export const WorkOrderDetailsQuickInfo: React.FC<WorkOrderDetailsQuickInfoProps>
                   {formMode === 'requestor' && workOrder.status === 'submitted' ? 'Preferred Due Date' : 'Due Date'}
                 </div>
                 <div className="text-muted-foreground">
-                  {new Date(workOrder.due_date).toLocaleDateString()}
+                  {formatDate(workOrder.due_date)}
                 </div>
               </div>
             </div>
