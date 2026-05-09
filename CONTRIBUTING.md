@@ -27,36 +27,37 @@ EquipQR is a comprehensive fleet equipment management platform built with React,
 
 ## Branching Model
 
-EquipQR uses a three-branch strategy to maintain code quality and controlled releases:
+EquipQR uses a two-branch strategy with feature branches to maintain code quality and controlled releases. The authoritative policy lives in [`.cursor/rules/branching.mdc`](.cursor/rules/branching.mdc); this section summarizes it.
 
 ### Branch Environments
 
 | Branch | Purpose | Deployment | Public URL |
 |--------|---------|------------|------------|
-| `dev` | Active development | None (local only) | N/A |
-| `preview` | Staging/testing | Auto-deploy on merge | preview.equipqr.app |
-| `main` | Production | Auto-deploy on merge | equipqr.app |
+| `preview` | Integration / day-to-day work | Auto-deploy on push | preview.equipqr.app |
+| `main` | Production source of truth | Manual promotion | equipqr.app |
+
+> There is no long-lived `dev` branch. Treat `preview` as the integration branch; create short-lived feature branches off `origin/preview` and target `preview` in PRs.
 
 ### Branch Flow
 
-1. **Development** (`dev` branch)
-   - All feature development happens here
-   - Push to `origin/dev` for backup
-   - No public deployment
+1. **Feature branches** (off `preview`)
+   - Branch from `origin/preview`: `git switch -c feat/<short-name> origin/preview`
+   - Open PR with `--base preview`
+   - All CI checks must pass before merge
 
 2. **Staging** (`preview` branch)
-   - Merge `dev` → `preview` via Pull Request
+   - Feature branches merge into `preview` via Pull Request
    - Triggers CI checks
-   - Deploys to preview.equipqr.app for user testing
+   - Deploys to preview.equipqr.app automatically on push
 
 3. **Production** (`main` branch)
-   - Merge `preview` → `main` via Pull Request
+   - Open `preview → main` PR only on explicit release language ("release", "promote", `/raise`)
    - Triggers strict CI checks
-   - Deploys to equipqr.app (production)
+   - After merge to `main`, production is promoted manually as a final gate
 
 4. **Hotfixes** (direct to `main`)
-   - Emergency fixes can go directly to `main`
-   - Should be rare; prefer the normal flow
+   - Emergency fixes branch off `origin/main`, PR into `main`
+   - Always followed by a merge of `main` back into `preview` so the two do not diverge
 
 **Note**: Version tags are created automatically when `package.json` is updated on `main`. See [Versioning & Release Process](#versioning--release-process) below.
 
@@ -142,7 +143,7 @@ For technical details on CI/CD workflows including version tagging, see [`docs/o
 
 ### Making Changes
 
-1. Work on the `dev` branch
+1. Branch off `origin/preview`: `git switch -c feat/<short-name> origin/preview`
 2. Follow the coding guidelines below
 3. Write tests for new features
 4. Run linting and tests before pushing:
@@ -155,19 +156,18 @@ For technical details on CI/CD workflows including version tagging, see [`docs/o
 ### Pushing Your Work
 
 ```bash
-# Push to dev for backup
-git push origin dev
+# Push your feature branch
+git push -u origin feat/<short-name>
 
-# When ready for staging, open PR to preview
-# Use GitHub UI or:
-gh pr create --base preview --head dev --title "Your feature description"
+# Open a PR targeting preview
+gh pr create --base preview --head feat/<short-name> --title "Your feature description"
 ```
 
 ## CI/CD Policy
 
 ### Preview Branch (`preview`)
 
-**On Pull Requests** (e.g., `dev` → `preview`):
+**On Pull Requests** (e.g., `feat/*` → `preview`):
 - ✅ Linting (ESLint)
 - ✅ Type checking (TypeScript)
 - ✅ Unit tests with coverage
@@ -452,7 +452,7 @@ In rare cases, emergency hotfixes may bypass normal PR approval:
 
 ### Review Process
 
-1. Create PR from `dev` to `preview` (or `preview` to `main`)
+1. Create PR from a feature branch to `preview` (or `preview` to `main` for releases)
 2. CI checks run automatically
 3. Address any failing checks
 4. Request review from maintainers
