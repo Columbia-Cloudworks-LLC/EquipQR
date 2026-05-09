@@ -1,4 +1,7 @@
+import type { UserSettings } from '@/types/settings';
+import { formatDate } from '@/utils/dateFormatter';
 import { logger } from '@/utils/logger';
+import type { WorkOrderExportDateSettings } from '@/features/work-orders/services/workOrderReportPDFService';
 // jsPDF is loaded dynamically to reduce initial bundle size (~150KB)
 // It's only needed when a user explicitly triggers a PDF export
 import { supabase } from '@/integrations/supabase/client';
@@ -23,7 +26,10 @@ export interface PMData {
   notes?: string;
 }
 
-export const generatePMChecklistPDF = async (workOrderId: string): Promise<void> => {
+export const generatePMChecklistPDF = async (
+  workOrderId: string,
+  exportDateSettings: WorkOrderExportDateSettings
+): Promise<void> => {
   try {
     // Fetch PM data and work order details
     const { data: pmData, error: pmError } = await supabase
@@ -63,7 +69,11 @@ export const generatePMChecklistPDF = async (workOrderId: string): Promise<void>
     pdf.text(`Serial: ${equipment?.serial_number || 'N/A'}`, 20, 70);
     
     if (pmData.completed_at) {
-      pdf.text(`Completed: ${new Date(pmData.completed_at).toLocaleDateString()}`, 20, 80);
+      pdf.text(
+        `Completed: ${formatDate(pmData.completed_at, exportDateSettings as UserSettings)}`,
+        20,
+        80
+      );
     }
     
     // Checklist items
