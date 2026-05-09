@@ -8,6 +8,18 @@ import {
 } from '@/types/audit';
 import { AuditLogList, VIRTUALIZATION_THRESHOLD } from '../AuditLogList';
 
+vi.mock('@/hooks/useUserSettings', () => ({
+  useUserSettings: () => ({
+    settings: {
+      timezone: 'Australia/Sydney',
+      dateFormat: 'MM/dd/yyyy' as const,
+    },
+    updateSetting: vi.fn(),
+    resetSettings: vi.fn(),
+    isLoading: false,
+  }),
+}));
+
 const { mockScrollToItem } = vi.hoisted(() => ({
   mockScrollToItem: vi.fn(),
 }));
@@ -70,6 +82,16 @@ function makeEntry(
 describe('AuditLogList', () => {
   beforeEach(() => {
     mockScrollToItem.mockClear();
+  });
+
+  it('formats created_at in the user timezone (Australia/Sydney fixture)', () => {
+    const entries = [makeEntry('a', { created_at: '2026-04-20T10:00:00.000Z' })];
+    render(<AuditLogList entries={entries} onSelect={() => {}} height={400} />);
+
+    const row = screen.getByTestId('audit-log-list-row');
+    // 10:00 UTC → 20:00 on 04/20/2026 in Sydney (AEST, UTC+10).
+    expect(row).toHaveTextContent(/04\/20\/2026/);
+    expect(row).toHaveTextContent(/8:00\s+PM/i);
   });
 
   it('calls onSelect with the entry when a row is clicked', () => {

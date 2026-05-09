@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { QrCode, Calendar, MapPin, User, Clock, MessageSquare } from 'lucide-react';
 import { useEquipmentScans } from '@/features/equipment/hooks/useEquipment';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
 interface EquipmentScansTabProps {
   equipmentId: string;
@@ -17,6 +18,7 @@ const EquipmentScansTab: React.FC<EquipmentScansTabProps> = ({
 }) => {
   const { data: scans = [], isLoading } = useEquipmentScans(organizationId, equipmentId);
   const [timelineView, setTimelineView] = useState(false);
+  const { formatDateTime } = useFormatTimestamp();
 
   if (isLoading) {
     return (
@@ -76,7 +78,7 @@ const EquipmentScansTab: React.FC<EquipmentScansTabProps> = ({
                   </div>
                 </div>
                 <Badge variant="outline">
-                  {new Date(scan.scanned_at).toLocaleString()}
+                  {formatDateTime(scan.scanned_at)}
                 </Badge>
               </div>
 
@@ -96,7 +98,7 @@ const EquipmentScansTab: React.FC<EquipmentScansTabProps> = ({
                   <div>
                     <div className="font-medium">Scan Time</div>
                     <div className="text-muted-foreground">
-                      {new Date(scan.scanned_at).toLocaleDateString()} at {new Date(scan.scanned_at).toLocaleTimeString()}
+                      {formatDateTime(scan.scanned_at)}
                     </div>
                   </div>
                 </div>
@@ -154,7 +156,7 @@ const EquipmentScansTab: React.FC<EquipmentScansTabProps> = ({
                         <span className="font-medium">{scan.scannedByName || 'Unknown User'}</span>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {new Date(scan.scanned_at).toLocaleString()}
+                        {formatDateTime(scan.scanned_at)}
                       </div>
                     </div>
                     
