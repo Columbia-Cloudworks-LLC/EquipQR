@@ -757,7 +757,7 @@ self.addEventListener('install', (event) => {
 ### Content Security Policy
 ```html
 <!-- Use the exact Content-Security-Policy value from `vercel.json` -->
-<meta http-equiv="Content-Security-Policy" content="<copy exactly from vercel.json headers[Content-Security-Policy].value">
+<meta http-equiv="Content-Security-Policy" content="(see vercel.json -> headers -> Content-Security-Policy -> value)">
 ```
 
 ### HTTPS Configuration
