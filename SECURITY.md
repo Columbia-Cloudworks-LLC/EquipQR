@@ -2,13 +2,14 @@
 
 ## Supported Versions
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+Only the latest released version of EquipQR is supported with security updates.
+Production runs from `main`; preview runs from `preview`. Older minor or patch
+releases are not backported.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.x.x   | :white_check_mark: |
-| < 1.0   | :x:                |
+| 3.x.x (latest) | :white_check_mark: |
+| < 3.0   | :x:                |
 
 ## Reporting a Vulnerability
 
