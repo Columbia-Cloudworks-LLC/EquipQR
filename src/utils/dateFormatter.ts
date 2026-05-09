@@ -15,7 +15,7 @@ export const formatDate = (
   try {
     return formatInTimeZone(dateObj, settings.timezone, settings.dateFormat);
   } catch (error) {
-    logger.warn('Date formatting failed, using fallback', error);
+    logger.error('Date formatting failed, using fallback', error);
     return format(dateObj, settings.dateFormat);
   }
 };
@@ -29,7 +29,7 @@ export const formatDateTime = (
   try {
     return formatInTimeZone(dateObj, settings.timezone, pattern);
   } catch (error) {
-    logger.warn('DateTime formatting failed, using fallback', error);
+    logger.error('DateTime formatting failed, using fallback', error);
     return format(dateObj, pattern);
   }
 };
@@ -42,7 +42,7 @@ export const formatTime = (
   try {
     return formatInTimeZone(dateObj, settings.timezone, DEFAULT_TIME_PATTERN);
   } catch (error) {
-    logger.warn('Time formatting failed, using fallback', error);
+    logger.error('Time formatting failed, using fallback', error);
     return format(dateObj, DEFAULT_TIME_PATTERN);
   }
 };
