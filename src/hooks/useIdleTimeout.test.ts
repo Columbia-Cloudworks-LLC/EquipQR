@@ -15,6 +15,7 @@ describe('useIdleTimeout', () => {
 
   afterEach(() => {
     vi.clearAllTimers();
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -284,55 +285,60 @@ describe('useIdleTimeout', () => {
       const onTimeout = vi.fn();
       const timeoutMs = 20_000;
       const warningMs = 5_000;
-      renderHook(() =>
-        useIdleTimeout({ enabled: true, timeoutMs, warningMs, onTimeout })
-      );
-
-      // Advance most of the way through the timeout
-      act(() => {
-        vi.advanceTimersByTime(timeoutMs - warningMs - 500);
-      });
-
-      // Simulate user activity — should reset the timer
-      act(() => {
-        window.dispatchEvent(new Event('mousemove'));
-      });
-
-      // Advance further: total past original timeout, but activity reset should prevent warning
-      act(() => {
-        vi.advanceTimersByTime(warningMs);
-      });
-
-      // Warning should NOT be open because activity reset the timers
-      // (we only advanced warningMs after the reset, which is less than timeoutMs - warningMs)
-      expect(onTimeout).not.toHaveBeenCalled();
-    });
-
-    it('throttles activity to at most once per ACTIVITY_THROTTLE_MS (1000ms)', () => {
-      const scheduleTimersSpy = vi.fn();
-      const onTimeout = vi.fn();
-      const timeoutMs = 60_000;
-      const warningMs = 10_000;
-
-      // We can't spy on an internal function, but we can verify that rapid
-      // events within the throttle window do not cause the warning to reset
-      // multiple times. We test this by checking that rapid events within 1s
-      // do not interfere with timer state in an unexpected way.
       const { result } = renderHook(() =>
         useIdleTimeout({ enabled: true, timeoutMs, warningMs, onTimeout })
       );
 
-      // Fire multiple events rapidly (within 1s throttle window)
+      // Advance most of the way through the timeout (warning would open at 15_000ms)
       act(() => {
-        window.dispatchEvent(new Event('mousemove'));
-        window.dispatchEvent(new Event('mousedown'));
-        window.dispatchEvent(new Event('keydown'));
+        vi.advanceTimersByTime(timeoutMs - warningMs - 500);
       });
 
-      // State should still be stable
+      // Simulate user activity — should reset the timer (new warning at 14_500 + 15_000 = 29_500ms)
+      act(() => {
+        window.dispatchEvent(new Event('mousemove'));
+      });
+
+      // Just before the new warning threshold
+      act(() => {
+        vi.advanceTimersByTime(timeoutMs - warningMs - 1);
+      });
       expect(result.current.isWarningOpen).toBe(false);
 
-      void scheduleTimersSpy; // suppress unused var lint
+      // Past the new warning threshold — warning should open (proves schedule reset from activity)
+      act(() => {
+        vi.advanceTimersByTime(2);
+      });
+      expect(result.current.isWarningOpen).toBe(true);
+      expect(onTimeout).not.toHaveBeenCalled();
+    });
+
+    it('throttles activity to at most once per ACTIVITY_THROTTLE_MS (1000ms)', () => {
+      const onTimeout = vi.fn();
+      const timeoutMs = 10_000;
+      const warningMs = 3_000;
+      const { result } = renderHook(() =>
+        useIdleTimeout({ enabled: true, timeoutMs, warningMs, onTimeout })
+      );
+
+      // Past mount; first activity schedules warning at t + (timeoutMs - warningMs) = 1100 + 7000 = 8100
+      act(() => {
+        vi.advanceTimersByTime(1100);
+        window.dispatchEvent(new Event('mousemove'));
+      });
+
+      // Second activity inside throttle window would reschedule warning to 8600 if not throttled
+      act(() => {
+        vi.advanceTimersByTime(500);
+        window.dispatchEvent(new Event('mousemove'));
+      });
+
+      // Past first scheduled warning (8100), before false reschedule (8600)
+      act(() => {
+        vi.advanceTimersByTime(6600);
+      });
+      expect(result.current.isWarningOpen).toBe(true);
+      expect(onTimeout).not.toHaveBeenCalled();
     });
 
     it('resets timers on keydown event', () => {
@@ -376,7 +382,6 @@ describe('useIdleTimeout', () => {
 
       // At least one removeEventListener call should have happened
       expect(removeEventListenerSpy).toHaveBeenCalled();
-      removeEventListenerSpy.mockRestore();
     });
 
     it('clears timers on unmount so onTimeout is not called after unmount', async () => {
@@ -405,37 +410,43 @@ describe('useIdleTimeout', () => {
       const onTimeout = vi.fn();
       const timeoutMs = 30_000;
       const warningMs = 5_000;
-      renderHook(() =>
-        useIdleTimeout({ enabled: true, timeoutMs, warningMs, onTimeout })
-      );
+      const originalDescriptor =
+        Object.getOwnPropertyDescriptor(document, 'visibilityState') ??
+        Object.getOwnPropertyDescriptor(Object.getPrototypeOf(document), 'visibilityState');
 
-      // Advance past throttle window so next activity event is not throttled
-      act(() => {
-        vi.advanceTimersByTime(1100);
-      });
+      try {
+        const { result } = renderHook(() =>
+          useIdleTimeout({ enabled: true, timeoutMs, warningMs, onTimeout })
+        );
 
-      // Simulate tab becoming visible
-      act(() => {
-        Object.defineProperty(document, 'visibilityState', {
-          value: 'visible',
-          configurable: true,
+        // Near original warning threshold (25_000ms) without crossing it
+        act(() => {
+          vi.advanceTimersByTime(timeoutMs - warningMs - 1000);
         });
-        document.dispatchEvent(new Event('visibilitychange'));
-      });
+        expect(result.current.isWarningOpen).toBe(false);
 
-      // Timer should have been reset — advance through the initial warning window
-      // (timeoutMs - warningMs) and we should NOT be in warning yet
-      act(() => {
-        vi.advanceTimersByTime(timeoutMs - warningMs - 100);
-      });
+        // Visible tab triggers registerActivity → full reschedule
+        act(() => {
+          Object.defineProperty(document, 'visibilityState', {
+            value: 'visible',
+            configurable: true,
+          });
+          document.dispatchEvent(new Event('visibilitychange'));
+        });
 
-      expect(onTimeout).not.toHaveBeenCalled();
-
-      // Restore
-      Object.defineProperty(document, 'visibilityState', {
-        value: 'visible',
-        configurable: true,
-      });
+        // Past the *pre-reset* warning time — would be open if visibility had not reset schedules
+        act(() => {
+          vi.advanceTimersByTime(1500);
+        });
+        expect(result.current.isWarningOpen).toBe(false);
+        expect(onTimeout).not.toHaveBeenCalled();
+      } finally {
+        if (originalDescriptor) {
+          Object.defineProperty(document, 'visibilityState', originalDescriptor);
+        } else {
+          delete (document as unknown as { visibilityState?: string }).visibilityState;
+        }
+      }
     });
   });
 
@@ -494,30 +505,40 @@ describe('useIdleTimeout', () => {
   });
 
   describe('onTimeout idempotency', () => {
-    it('does not call onTimeout twice if timer fires while signOutNow is in flight', async () => {
-      let resolveTimeout!: () => void;
+    it('does not call onTimeout twice if signOutNow runs while timer-fired onTimeout is pending', async () => {
+      const deferred: { resolve?: () => void } = {};
       const onTimeout = vi.fn().mockImplementation(
-        () => new Promise<void>((resolve) => { resolveTimeout = resolve; })
+        () =>
+          new Promise<void>((resolve) => {
+            deferred.resolve = resolve;
+          })
       );
 
       const { result } = renderHook(() =>
         useIdleTimeout({ enabled: true, timeoutMs: 10_000, warningMs: 3_000, onTimeout })
       );
 
-      // Start signOutNow (which calls onTimeout)
-      let signOutPromise: Promise<void>;
-      act(() => {
-        signOutPromise = result.current.signOutNow();
-      });
-
-      // Advance past the timeout timer as well
       await act(async () => {
-        vi.advanceTimersByTime(10_100);
-        resolveTimeout();
-        await signOutPromise!;
+        vi.advanceTimersByTime(10_000);
+        await Promise.resolve();
       });
 
-      // onTimeout should have been called exactly once
+      expect(onTimeout).toHaveBeenCalledOnce();
+      expect(deferred.resolve).toBeDefined();
+
+      await act(async () => {
+        await result.current.signOutNow();
+      });
+
+      expect(onTimeout).toHaveBeenCalledOnce();
+
+      const finish = deferred.resolve;
+      expect(finish).toBeDefined();
+      await act(async () => {
+        finish?.();
+        await Promise.resolve();
+      });
+
       expect(onTimeout).toHaveBeenCalledOnce();
     });
   });
