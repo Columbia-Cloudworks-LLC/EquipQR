@@ -10,8 +10,6 @@ import tseslint from "typescript-eslint";
  */
 const timezoneFormattingLegacyAllowlist = [
   "src/components/audit/explorer/AuditExplorer.tsx",
-  "src/components/audit/explorer/AuditLogDetailPanel.tsx",
-  "src/components/audit/explorer/AuditLogList.tsx",
   "src/components/audit/explorer/AuditLogTimeRangePicker.tsx",
   "src/components/audit/explorer/aggregate-bucket.ts",
   "src/components/common/ImageGallery.tsx",
