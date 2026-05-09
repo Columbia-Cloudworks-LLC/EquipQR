@@ -266,7 +266,7 @@ export async function generateSingleWorkOrderExcel(
       .replace(/[^a-z0-9]/gi, '-')
       .replace(/-+/g, '-')
       .slice(0, 40);
-    const dateStr = formatDate(new Date(), settings);
+    const dateStr = formatDate(new Date(), { ...settings, dateFormat: 'yyyy-MM-dd' });
     const filename = `WorkOrder-${safeTitle}-Costs-${dateStr}.xlsx`;
 
     logger.info('Writing Excel file', { filename });

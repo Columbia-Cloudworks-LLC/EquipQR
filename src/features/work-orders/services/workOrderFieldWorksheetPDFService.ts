@@ -2,7 +2,7 @@ import type jsPDF from 'jspdf';
 import { logger } from '@/utils/logger';
 import { formatStatus, formatPriority } from '@/features/work-orders/utils/workOrderHelpers';
 import type { UserSettings } from '@/types/settings';
-import { formatDate as formatDateTz } from '@/utils/dateFormatter';
+import { formatDate as formatDateTz, formatDateTime as formatDateTimeTz } from '@/utils/dateFormatter';
 import type { PMChecklistItem, PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import type {
   WorkOrderForPDF,
@@ -771,7 +771,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     this.doc.setFontSize(7);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(150, 150, 150);
-    const genText = `Document generated: ${formatDateTz(new Date(), this.exportDateSettings as UserSettings)}`;
+    const genText = `Document generated: ${formatDateTimeTz(new Date(), this.exportDateSettings as UserSettings)}`;
     const genWidth = this.doc.getTextWidth(genText);
     this.doc.text(genText, (this.pageWidth - genWidth) / 2, qrY + this.qrSize / 2 - 3);
     this.doc.setFont('helvetica', 'italic');
