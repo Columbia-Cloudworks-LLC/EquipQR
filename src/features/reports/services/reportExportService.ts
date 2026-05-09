@@ -27,23 +27,20 @@ export async function exportReport(
 
   logger.info('Initiating report export', { reportType, organizationId, columnCount: columns.length });
 
-  let data: unknown;
-  let error: { message?: string } | null = null;
-  try {
-    const result = await supabase.functions.invoke('export-report', {
+  const invokeResult = await supabase.functions
+    .invoke('export-report', {
       body: request,
+    })
+    .catch((err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to invoke export-report';
+      logger.error('Report export invoke failed', { error: msg });
+      throw new Error(msg, { cause: err });
     });
-    data = result.data;
-    error = result.error;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Failed to invoke export-report';
-    logger.error('Report export invoke failed', { error: msg });
-    throw new Error(msg);
-  }
 
-  if (error) {
-    logger.error('Report export failed', { error: error.message });
-    throw new Error(error.message || 'Failed to export report');
+  const { data, error: invokeError } = invokeResult;
+  if (invokeError) {
+    logger.error('Report export failed', { error: invokeError.message });
+    throw new Error(invokeError.message || 'Failed to export report', { cause: invokeError });
   }
 
   // Check if the response is an error JSON response

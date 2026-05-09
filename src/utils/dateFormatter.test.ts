@@ -1,96 +1,177 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { formatDateInUserSettings, formatTimeInUserSettings, formatRelativeDate } from './dateFormatter';
-import { UserSettings } from '@/types/settings';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import {
+  formatDate,
+  formatDateTime,
+  formatDateInUserSettings,
+  formatForExport,
+  formatIsoZulu,
+  formatRelative,
+  formatRelativeDate,
+  formatTime,
+  formatTimeInUserSettings,
+} from "./dateFormatter";
+import { UserSettings } from "@/types/settings";
 
-// Mock logger
-vi.mock('@/utils/logger', () => ({
+vi.mock("@/utils/logger", () => ({
   logger: {
-    warn: vi.fn()
-  }
+    error: vi.fn(),
+    warn: vi.fn(),
+  },
 }));
 
-describe('dateFormatter', () => {
-  const mockSettings: UserSettings = {
-    timezone: 'America/New_York',
-    dateFormat: 'MM/dd/yyyy'
-  };
+/** UTC instant that falls on different calendar dates in ET vs Sydney (AEDT). */
+const UTC_CROSS_CALENDAR = "2023-12-24T15:00:00.000Z";
 
+const settingsNy: UserSettings = {
+  timezone: "America/New_York",
+  dateFormat: "MM/dd/yyyy",
+};
+
+const settingsSydney: UserSettings = {
+  timezone: "Australia/Sydney",
+  dateFormat: "MM/dd/yyyy",
+};
+
+describe("dateFormatter", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('formatDateInUserSettings', () => {
-    it('formats date correctly without time', () => {
-      const date = new Date('2023-12-25T10:30:00Z');
-      const formatted = formatDateInUserSettings(date, mockSettings);
-      // Should format based on timezone and date format
-      expect(formatted).toMatch(/12\/25\/2023/);
+  describe("formatDate", () => {
+    it("renders different calendar dates for ET vs Sydney", () => {
+      expect(formatDate(UTC_CROSS_CALENDAR, settingsNy)).toMatch(
+        /12\/24\/2023/,
+      );
+      expect(formatDate(UTC_CROSS_CALENDAR, settingsSydney)).toMatch(
+        /12\/25\/2023/,
+      );
     });
 
-    it('formats date correctly with time when includeTime is true', () => {
-      const date = new Date('2023-12-25T10:30:00Z');
-      const formatted = formatDateInUserSettings(date, mockSettings, true);
-      // Should include time pattern
-      expect(formatted).toMatch(/12\/25\/2023/);
-      expect(formatted).toMatch(/\d{1,2}:\d{2}\s+(AM|PM)/);
+    it("handles Date input", () => {
+      expect(formatDate(new Date(UTC_CROSS_CALENDAR), settingsNy)).toMatch(
+        /12\/24\/2023/,
+      );
     });
 
-    it('handles string date input', () => {
-      const dateString = '2023-12-25T10:30:00Z';
-      const formatted = formatDateInUserSettings(dateString, mockSettings);
-      expect(formatted).toMatch(/12\/25\/2023/);
-    });
-
-    it('handles different date formats', () => {
-      const date = new Date('2023-12-25T10:30:00Z');
-      const settingsDDMM: UserSettings = { ...mockSettings, dateFormat: 'dd/MM/yyyy' };
-      const formatted = formatDateInUserSettings(date, settingsDDMM);
-      expect(formatted).toMatch(/25\/12\/2023/);
+    it("respects alternate dateFormat", () => {
+      const ddmm: UserSettings = {
+        ...settingsNy,
+        dateFormat: "dd/MM/yyyy",
+      };
+      expect(formatDate(UTC_CROSS_CALENDAR, ddmm)).toMatch(/24\/12\/2023/);
     });
   });
 
-  describe('formatTimeInUserSettings', () => {
-    it('formats time correctly', () => {
-      const date = new Date('2023-12-25T14:30:00Z');
-      const formatted = formatTimeInUserSettings(date, mockSettings);
-      // Should format as 12-hour time with AM/PM
-      expect(formatted).toMatch(/\d{1,2}:\d{2}\s+(AM|PM)/);
-    });
-
-    it('handles string date input', () => {
-      const dateString = '2023-12-25T14:30:00Z';
-      const formatted = formatTimeInUserSettings(dateString, mockSettings);
-      expect(formatted).toMatch(/\d{1,2}:\d{2}\s+(AM|PM)/);
+  describe("formatDateTime", () => {
+    it("renders different date+time for ET vs Sydney", () => {
+      const ny = formatDateTime(UTC_CROSS_CALENDAR, settingsNy);
+      const au = formatDateTime(UTC_CROSS_CALENDAR, settingsSydney);
+      expect(ny).toMatch(/12\/24\/2023/);
+      expect(ny).toMatch(/10:00\s+AM/i);
+      expect(au).toMatch(/12\/25\/2023/);
+      expect(au).toMatch(/2:00\s+AM/i);
     });
   });
 
-  describe('formatRelativeDate', () => {
-    it('formats time for dates less than 24 hours ago', () => {
-      const date = new Date(Date.now() - 2 * 60 * 60 * 1000); // 2 hours ago
-      const formatted = formatRelativeDate(date, mockSettings);
-      // Should return time format
-      expect(formatted).toMatch(/\d{1,2}:\d{2}\s+(AM|PM)/);
-    });
-
-    it('formats day and time for dates within a week', () => {
-      const date = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000); // 3 days ago
-      const formatted = formatRelativeDate(date, mockSettings);
-      // Should return day and time
-      expect(formatted).toMatch(/\w{3}\s+\d{1,2}:\d{2}\s+(AM|PM)/);
-    });
-
-    it('formats full date for dates more than a week ago', () => {
-      const date = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000); // 10 days ago
-      const formatted = formatRelativeDate(date, mockSettings);
-      // Should return full date format
-      expect(formatted).toMatch(/\d{1,2}\/\d{1,2}\/\d{4}/);
-    });
-
-    it('handles string date input', () => {
-      const dateString = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-      const formatted = formatRelativeDate(dateString, mockSettings);
-      expect(formatted).toMatch(/\d{1,2}:\d{2}\s+(AM|PM)/);
+  describe("formatTime", () => {
+    it("renders local clock differently for ET vs Sydney", () => {
+      expect(formatTime(UTC_CROSS_CALENDAR, settingsNy)).toMatch(/10:00\s+AM/i);
+      expect(formatTime(UTC_CROSS_CALENDAR, settingsSydney)).toMatch(
+        /2:00\s+AM/i,
+      );
     });
   });
 
+  describe("formatRelative", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("uses time-only when under 24h (NY vs Sydney)", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2023-12-25T18:00:00.000Z"));
+      const recent = "2023-12-25T10:00:00.000Z";
+      expect(formatRelative(recent, settingsNy)).toMatch(/5:00\s+AM/i);
+      expect(formatRelative(recent, settingsSydney)).toMatch(/9:00\s+PM/i);
+    });
+
+    it("uses weekday + time within a week (NY vs Sydney)", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2023-12-25T12:00:00.000Z"));
+      const fewDaysAgo = "2023-12-22T15:00:00.000Z";
+      const ny = formatRelative(fewDaysAgo, settingsNy);
+      const au = formatRelative(fewDaysAgo, settingsSydney);
+      expect(ny).not.toBe(au);
+      expect(ny).toMatch(/\d{1,2}:\d{2}\s+(AM|PM)/i);
+      expect(au).toMatch(/\d{1,2}:\d{2}\s+(AM|PM)/i);
+    });
+
+    it("uses full date when older than a week (NY vs Sydney)", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2024-01-15T12:00:00.000Z"));
+      const old = "2023-11-05T15:00:00.000Z";
+      expect(formatRelative(old, settingsNy)).toMatch(/11\/05\/2023/);
+      expect(formatRelative(old, settingsSydney)).toMatch(/11\/06\/2023/);
+    });
+
+    it("uses weekday or full date thresholds for future dates too", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2024-01-15T12:00:00.000Z"));
+
+      const withinWeek = "2024-01-17T15:00:00.000Z";
+      const beyondWeek = "2024-02-20T15:00:00.000Z";
+
+      expect(formatRelative(withinWeek, settingsNy)).toMatch(
+        /^Wed \d{1,2}:\d{2}\s+(AM|PM)$/i,
+      );
+      expect(formatRelative(beyondWeek, settingsNy)).toMatch(/02\/20\/2024/);
+    });
+
+  });
+
+  describe("formatIsoZulu", () => {
+    it("ignores user timezone (always UTC Z)", () => {
+      const iso = formatIsoZulu(UTC_CROSS_CALENDAR);
+      expect(iso).toBe("2023-12-24T15:00:00.000Z");
+      expect(formatIsoZulu(UTC_CROSS_CALENDAR)).toBe(iso);
+    });
+  });
+
+  describe("formatForExport", () => {
+    it("matches ISO Zulu for any viewer timezone", () => {
+      expect(formatForExport(UTC_CROSS_CALENDAR)).toBe(
+        "2023-12-24T15:00:00.000Z",
+      );
+    });
+  });
+
+  describe("legacy wrappers", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("formatDateInUserSettings delegates to formatDate / formatDateTime", () => {
+      expect(formatDateInUserSettings(UTC_CROSS_CALENDAR, settingsNy)).toBe(
+        formatDate(UTC_CROSS_CALENDAR, settingsNy),
+      );
+      expect(
+        formatDateInUserSettings(UTC_CROSS_CALENDAR, settingsNy, true),
+      ).toBe(formatDateTime(UTC_CROSS_CALENDAR, settingsNy));
+    });
+
+    it("formatTimeInUserSettings matches formatTime", () => {
+      expect(formatTimeInUserSettings(UTC_CROSS_CALENDAR, settingsNy)).toBe(
+        formatTime(UTC_CROSS_CALENDAR, settingsNy),
+      );
+    });
+
+    it("formatRelativeDate matches formatRelative", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2023-12-25T18:00:00.000Z"));
+      const recent = "2023-12-25T10:00:00.000Z";
+      expect(formatRelativeDate(recent, settingsNy)).toBe(
+        formatRelative(recent, settingsNy),
+      );
+    });
+  });
 });

@@ -22,6 +22,7 @@ import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyn
 import { useOfflineMergedNotes } from '@/features/offline-queue/hooks/useOfflineMergedNotes';
 import InlineNoteComposer from '@/components/common/InlineNoteComposer';
 import { logger } from '@/utils/logger';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
 interface WorkOrderNotesSectionProps {
   workOrderId: string;
@@ -43,6 +44,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   autoOpenForm = false,
   openFormTrigger
 }) => {
+  const { formatDate } = useFormatTimestamp();
   const { user } = useAuth();
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
@@ -184,10 +186,6 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
 
   const handleImageRemove = (index: number) => {
     setAttachedImages(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
   };
 
   const formatHours = (hours: number) => {
