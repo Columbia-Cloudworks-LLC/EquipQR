@@ -113,6 +113,19 @@ describe("dateFormatter", () => {
       expect(formatRelative(old, settingsNy)).toMatch(/11\/05\/2023/);
       expect(formatRelative(old, settingsSydney)).toMatch(/11\/06\/2023/);
     });
+
+    it("uses weekday or full date thresholds for future dates too", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2024-01-15T12:00:00.000Z"));
+
+      const withinWeek = "2024-01-17T15:00:00.000Z";
+      const beyondWeek = "2024-02-20T15:00:00.000Z";
+
+      expect(formatRelative(withinWeek, settingsNy)).toMatch(
+        /^Wed \d{1,2}:\d{2}\s+(AM|PM)$/i,
+      );
+      expect(formatRelative(beyondWeek, settingsNy)).toMatch(/02\/20\/2024/);
+    });
   });
 
   describe("formatIsoZulu", () => {

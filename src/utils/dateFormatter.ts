@@ -53,8 +53,8 @@ export const formatRelative = (
 ): string => {
   const dateObj = toDate(date);
   const now = new Date();
-  const diffInMs = now.getTime() - dateObj.getTime();
-  const diffInHours = diffInMs / (1000 * 60 * 60);
+  const diffInHours =
+    Math.abs(now.getTime() - dateObj.getTime()) / (1000 * 60 * 60);
 
   if (diffInHours < 24) {
     return formatTime(dateObj, settings);
