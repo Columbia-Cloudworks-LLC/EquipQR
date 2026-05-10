@@ -230,4 +230,21 @@ describe('resolveEquipmentQRDisplayImageUrl', () => {
     expect(url).toBeNull();
     expect(logger.error).not.toHaveBeenCalled();
   });
+
+  it('returns null and logs when batch resolution rejects for a canonical stored path', async () => {
+    mockBatchResolve.mockRejectedValue(new Error('signing_failed'));
+
+    const url = await resolveEquipmentQRDisplayImageUrl({
+      equipmentId: 'eq-id',
+      organizationId: 'org-1',
+      stored: canonicalPath,
+    });
+
+    expect(url).toBeNull();
+    expect(logger.error).toHaveBeenCalledWith('QR equipment image resolution failed', {
+      equipmentId: 'eq-id',
+      organizationId: 'org-1',
+      imagePath: canonicalPath,
+    });
+  });
 });

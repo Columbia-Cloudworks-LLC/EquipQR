@@ -82,7 +82,20 @@ export async function resolveEquipmentQRDisplayImageUrl(
   const { equipmentId, organizationId, stored } = context;
   if (!stored?.trim()) return null;
 
-  const [resolved] = await batchResolveEquipmentDisplayImageUrls([stored]);
+  let resolved: string | null = null;
+  try {
+    [resolved] = await batchResolveEquipmentDisplayImageUrls([stored]);
+  } catch {
+    resolved = null;
+    const imagePath = extractEquipmentDisplayImagePath(stored);
+    logger.error('QR equipment image resolution failed', {
+      equipmentId,
+      organizationId,
+      ...(imagePath ? { imagePath } : {}),
+    });
+    return null;
+  }
+
   if (resolved == null) {
     const imagePath = extractEquipmentDisplayImagePath(stored);
     if (imagePath) {

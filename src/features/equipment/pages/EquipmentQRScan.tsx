@@ -63,6 +63,8 @@ const EquipmentQRScan = () => {
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [heroImageFailed, setHeroImageFailed] = useState(false);
   const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
+  /** Bumps after each successful `fetchEquipmentQRPayload` so hero resolution retries on refetch even when ids + image reference are unchanged (e.g. after org switch). Local `setPayload` merges skip this bump. */
+  const [payloadLoadGeneration, setPayloadLoadGeneration] = useState(0);
   const scanStartedRef = useRef(false);
 
   useEffect(() => {
@@ -83,7 +85,10 @@ const EquipmentQRScan = () => {
 
     fetchEquipmentQRPayload(equipmentId, orgId)
       .then(result => {
-        if (!cancelled) setPayload(result);
+        if (!cancelled) {
+          setPayload(result);
+          setPayloadLoadGeneration(g => g + 1);
+        }
       })
       .catch(loadError => {
         if (!cancelled) {
@@ -99,36 +104,43 @@ const EquipmentQRScan = () => {
     };
   }, [authLoading, equipmentId, user, orgId]);
 
-  useEffect(() => {
-    setHeroImageFailed(false);
-  }, [payload?.equipment.imageReference]);
+  const heroEquipmentId = payload?.equipment.id;
+  const heroOrganizationId = payload?.organization.id;
+  const heroStoredRef = payload?.equipment.imageReference ?? null;
 
   useEffect(() => {
-    if (!payload) {
+    if (
+      heroEquipmentId == null ||
+      heroOrganizationId == null ||
+      heroStoredRef == null ||
+      !heroStoredRef.trim()
+    ) {
       setHeroImageUrl(null);
+      setHeroImageFailed(false);
       return;
     }
 
+    const stored = heroStoredRef.trim();
     let cancelled = false;
-    const stored = payload.equipment.imageReference;
+    setHeroImageFailed(false);
     setHeroImageUrl(null);
 
-    if (!stored?.trim()) {
-      return;
-    }
-
     void resolveEquipmentQRDisplayImageUrl({
-      equipmentId: payload.equipment.id,
-      organizationId: payload.organization.id,
+      equipmentId: heroEquipmentId,
+      organizationId: heroOrganizationId,
       stored,
-    }).then((url) => {
-      if (!cancelled) setHeroImageUrl(url);
-    });
+    })
+      .then((url) => {
+        if (!cancelled) setHeroImageUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setHeroImageUrl(null);
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [payload]);
+  }, [heroStoredRef, heroEquipmentId, heroOrganizationId, payloadLoadGeneration]);
 
   useEffect(() => {
     if (!payload || !user || scanStartedRef.current) return;
