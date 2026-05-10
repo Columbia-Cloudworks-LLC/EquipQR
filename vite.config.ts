@@ -130,7 +130,8 @@ export default defineConfig(({ mode }) => ({
           'vendor-supabase': ['@supabase/supabase-js'],
           // Date utilities
           'vendor-date': ['date-fns', 'date-fns-tz'],
-          // Charting - heavy, only loaded on Reports page
+          // Charting (recharts) — heavy; split chunk loaded with Reports, audit charts,
+          // dashboard widgets (lazy), and stats sparklines once trend data renders.
           'vendor-charts': ['recharts'],
         },
       },
