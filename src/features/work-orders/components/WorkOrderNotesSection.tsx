@@ -9,7 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { workOrders as workOrderQueryKeys } from '@/lib/queryKeys';
+import { workOrders as workOrderQueryKeys, workOrderMetrics } from '@/lib/queryKeys';
 import {
   createWorkOrderNoteWithImages,
   getWorkOrderNotesWithImages,
@@ -122,6 +122,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
       } else {
         queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.notesWithImages(workOrderId) });
         queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.images(workOrderId) });
+        queryClient.invalidateQueries({ queryKey: workOrderMetrics.imageCount(workOrderId) });
         toast.success('Note created successfully');
       }
       setShowForm(false);

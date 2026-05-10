@@ -678,8 +678,17 @@ const WorkOrderDetails = () => {
                 </div>
               )}
 
-              {/* Mobile Notes Section */}
+              {/* Mobile Images Section */}
               <div {...stagger(3)}>
+              <WorkOrderImagesSection 
+                workOrderId={workOrder.id}
+                canUpload={canUpload}
+                showPrivateNotes={permissionLevels.isManager}
+              />
+              </div>
+
+              {/* Mobile Notes Section */}
+              <div {...stagger(4)}>
               <div ref={notesSectionRef}>
                 <WorkOrderNotesSection 
                   workOrderId={workOrder.id}
@@ -691,14 +700,6 @@ const WorkOrderDetails = () => {
                   openCaptureTrigger={openCaptureTrigger}
                 />
               </div>
-              </div>
-
-              {/* Mobile Images Section */}
-              <div {...stagger(4)}>
-              <WorkOrderImagesSection 
-                workOrderId={workOrder.id}
-                canUpload={canUpload}
-              />
               </div>
 
               {/* Itemized costs — bottom of field flow, always findable */}
@@ -836,8 +837,17 @@ const WorkOrderDetails = () => {
               />
               </div>
 
-              {/* Notes Section */}
+              {/* Images Section */}
               <div {...stagger(4)}>
+              <WorkOrderImagesSection 
+                workOrderId={workOrder.id}
+                canUpload={canUpload}
+                showPrivateNotes={permissionLevels.isManager}
+              />
+              </div>
+
+              {/* Notes Section */}
+              <div {...stagger(5)}>
               <div ref={notesSectionRef}>
                 <WorkOrderNotesSection 
                   workOrderId={workOrder.id}
@@ -848,14 +858,6 @@ const WorkOrderDetails = () => {
                   openFormTrigger={openNoteFormTrigger}
                 />
               </div>
-              </div>
-
-              {/* Images Section */}
-              <div {...stagger(5)}>
-              <WorkOrderImagesSection 
-                workOrderId={workOrder.id}
-                canUpload={canUpload}
-              />
               </div>
 
               {/* Timeline - Show appropriate level of detail based on permissions */}

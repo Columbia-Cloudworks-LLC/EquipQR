@@ -7,6 +7,11 @@ import * as useWorkOrderDetailsActionsModule from '@/features/work-orders/hooks/
 
 const mockWorkOrderDetailsMobile = vi.fn();
 
+const { mockUseIsMobile, mockWorkOrderImagesSectionProps } = vi.hoisted(() => ({
+  mockUseIsMobile: vi.fn(() => true),
+  mockWorkOrderImagesSectionProps: vi.fn(),
+}));
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
@@ -18,7 +23,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('@/hooks/use-mobile', () => ({
-  useIsMobile: vi.fn(() => true),
+  useIsMobile: () => mockUseIsMobile(),
 }));
 
 vi.mock('@/features/work-orders/components/hooks/useWorkOrderDetailsData', () => ({
@@ -135,7 +140,10 @@ vi.mock('@/features/work-orders/components/WorkOrderNotesSection', () => ({
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderImagesSection', () => ({
-  default: () => <div>Images section</div>,
+  default: (props: Record<string, unknown>) => {
+    mockWorkOrderImagesSectionProps(props);
+    return <div>Images section</div>;
+  },
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderForm', () => ({
@@ -208,6 +216,7 @@ vi.mock('@/features/work-orders/components/MobileWorkOrderActionFooter', () => (
 describe('WorkOrderDetails', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseIsMobile.mockReturnValue(true);
 
     vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue({
       workOrder: {
@@ -365,9 +374,9 @@ describe('WorkOrderDetails', () => {
 
     const pageText = document.body.textContent ?? '';
     expect(pageText.indexOf('Compact summary')).toBeLessThan(pageText.indexOf('Next action'));
-    expect(pageText.indexOf('PM checklist')).toBeLessThan(pageText.indexOf('Notes section'));
-    expect(pageText.indexOf('Notes section')).toBeLessThan(pageText.indexOf('Images section'));
-    expect(pageText.indexOf('Images section')).toBeLessThan(pageText.indexOf('Costs section'));
+    expect(pageText.indexOf('PM checklist')).toBeLessThan(pageText.indexOf('Images section'));
+    expect(pageText.indexOf('Images section')).toBeLessThan(pageText.indexOf('Notes section'));
+    expect(pageText.indexOf('Notes section')).toBeLessThan(pageText.indexOf('Costs section'));
     expect(pageText.indexOf('Costs section')).toBeLessThan(pageText.indexOf('Review & office details'));
 
     // Itemized costs stay outside Review/office so techs can reach them without expanding.
@@ -375,11 +384,95 @@ describe('WorkOrderDetails', () => {
     expect(screen.queryByText('Timeline section')).not.toBeInTheDocument();
     expect(screen.queryByText('Audit history')).not.toBeInTheDocument();
 
+    await waitFor(() => {
+      expect(mockWorkOrderImagesSectionProps).toHaveBeenCalled();
+    });
+    const imageSectionProps = mockWorkOrderImagesSectionProps.mock.calls.at(-1)?.[0] as {
+      showPrivateNotes?: boolean;
+      workOrderId?: string;
+    };
+    expect(imageSectionProps?.workOrderId).toBe('wo-1');
+    expect(imageSectionProps?.showPrivateNotes).toBe(true);
+
     await userEvent.click(screen.getByRole('button', { name: /review & office details/i }));
 
     expect(screen.getByText('Costs section')).toBeInTheDocument();
     expect(screen.getByText('PM info')).toBeInTheDocument();
     expect(screen.getByText('Timeline section')).toBeInTheDocument();
     expect(screen.getByText('Audit history')).toBeInTheDocument();
+  });
+
+  it('renders desktop layout with images before notes and passes showPrivateNotes to WorkOrderImagesSection', async () => {
+    mockUseIsMobile.mockReturnValue(false);
+
+    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue({
+      workOrder: {
+        id: 'wo-1',
+        title: 'Replace hydraulic line',
+        description: 'Repair leak',
+        status: 'in_progress',
+        priority: 'high',
+        created_date: '2024-01-01T00:00:00Z',
+        createdDate: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-02T00:00:00Z',
+        dueDate: '2024-01-05T00:00:00Z',
+        equipment_id: 'eq-1',
+        has_pm: false,
+        assignee_id: 'user-1',
+        created_by: 'requestor-1',
+        teamName: 'Field Team',
+        assigneeName: 'Matt Technician',
+        effectiveLocation: null,
+        team: null,
+        assignee: null,
+      },
+      equipment: {
+        id: 'eq-1',
+        name: 'Excavator 1',
+        manufacturer: 'Caterpillar',
+        model: '320',
+        serial_number: null,
+        status: 'active',
+        location: null,
+        team_id: 'team-1',
+        custom_attributes: null,
+        image_url: null,
+        default_pm_template_id: null,
+      },
+      pmData: null,
+      workOrderLoading: false,
+      pmLoading: false,
+      pmError: null,
+      permissionLevels: {
+        isManager: true,
+        isTechnician: true,
+        isRequestor: false,
+      },
+      formMode: 'manager',
+      isWorkOrderLocked: false,
+      canAddCosts: true,
+      canEditCosts: true,
+      canAddNotes: true,
+      canUpload: true,
+      canEdit: true,
+      baseCanAddNotes: true,
+      currentOrganization: {
+        id: 'org-1',
+        name: 'Test Org',
+      },
+    } as unknown as ReturnType<typeof useWorkOrderDetailsDataModule.useWorkOrderDetailsData>);
+
+    render(<WorkOrderDetails />);
+
+    const pageText = document.body.textContent ?? '';
+    expect(pageText.indexOf('Images section')).toBeLessThan(pageText.indexOf('Notes section'));
+
+    await waitFor(() => {
+      expect(mockWorkOrderImagesSectionProps).toHaveBeenCalled();
+    });
+    const props = mockWorkOrderImagesSectionProps.mock.calls.at(-1)?.[0] as {
+      showPrivateNotes?: boolean;
+    };
+    expect(props?.showPrivateNotes).toBe(true);
   });
 });
