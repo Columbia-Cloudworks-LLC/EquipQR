@@ -53,16 +53,16 @@ function syncBannerCopy(sync: MobileWorkOrderFieldNextActionProps['sync']): {
   message: string;
 } | null {
   if (sync.failedCount > 0) {
-    return { tone: 'destructive', message: 'Sync failed — tap Retry to try again.' };
+    return { tone: 'destructive', message: 'Sync failed - tap Retry to try again.' };
   }
   if (sync.isSyncing) {
-    return { tone: 'info', message: 'Syncing…' };
+    return { tone: 'info', message: 'Syncing...' };
   }
   if (sync.pendingCount > 0) {
-    return { tone: 'warning', message: sync.isOnline ? 'Sync pending' : 'Saved offline — will sync when you reconnect.' };
+    return { tone: 'warning', message: sync.isOnline ? 'Sync pending' : 'Saved offline - will sync when you reconnect.' };
   }
   if (!sync.isOnline) {
-    return { tone: 'warning', message: 'Saved offline — text and status changes sync when you reconnect.' };
+    return { tone: 'warning', message: 'Saved offline - text and status changes sync when you reconnect.' };
   }
   return null;
 }
@@ -223,7 +223,7 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
         (permissions.canAddNotes || permissions.canUpload) ? (
           <div className="space-y-2">
             <Badge variant="secondary" className="min-h-[32px]">
-              View-only — capture only
+              View-only - capture only
             </Badge>
             {noteAndPhotoRow}
           </div>
