@@ -4,6 +4,7 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import EquipmentScanner from '../EquipmentScanner';
+import { getCameraAccessErrorMessage } from '@/features/equipment/utils/cameraAccessErrors';
 
 const hoisted = vi.hoisted(() => {
   const scannerState = {
@@ -62,6 +63,36 @@ function renderScanner() {
   );
 }
 
+async function startCameraScan(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByTestId('scanner-start-camera'));
+}
+
+describe('getCameraAccessErrorMessage', () => {
+  it('detects permissions policy violation text', () => {
+    expect(getCameraAccessErrorMessage(new Error('Permissions policy violation: camera is not allowed'))).toContain(
+      'security policy'
+    );
+  });
+
+  it('maps NotAllowedError', () => {
+    expect(getCameraAccessErrorMessage(new DOMException('Permission denied', 'NotAllowedError'))).toContain(
+      'permission was denied'
+    );
+  });
+
+  it('maps NotFoundError', () => {
+    expect(getCameraAccessErrorMessage(new DOMException('No camera', 'NotFoundError'))).toContain(
+      'No camera was detected'
+    );
+  });
+
+  it('maps NotReadableError', () => {
+    expect(getCameraAccessErrorMessage(new DOMException('Busy', 'NotReadableError'))).toContain(
+      'already in use'
+    );
+  });
+});
+
 describe('EquipmentScanner', () => {
   beforeEach(() => {
     // Radix Select expects Pointer Capture APIs; jsdom does not implement them.
@@ -100,7 +131,9 @@ describe('EquipmentScanner', () => {
   });
 
   it('navigates when camera decodes an equipment QR URL', async () => {
+    const user = userEvent.setup();
     renderScanner();
+    await startCameraScan(user);
     await waitFor(() => expect(hoisted.scannerState.lastOnDecode).not.toBeNull());
     act(() => {
       hoisted.scannerState.lastOnDecode?.({ data: '/qr/equipment/eq-123' });
@@ -110,7 +143,9 @@ describe('EquipmentScanner', () => {
   });
 
   it('shows parser message for external URLs', async () => {
+    const user = userEvent.setup();
     renderScanner();
+    await startCameraScan(user);
     await waitFor(() => expect(hoisted.scannerState.lastOnDecode).not.toBeNull());
     act(() => {
       hoisted.scannerState.lastOnDecode?.({ data: 'https://evil.example/not-equipqr' });
@@ -121,7 +156,9 @@ describe('EquipmentScanner', () => {
 
   it('shows guidance when no camera is available', async () => {
     hoisted.MockQrScanner.hasCamera.mockResolvedValue(false);
+    const user = userEvent.setup();
     renderScanner();
+    await startCameraScan(user);
     expect(await screen.findByText(/no camera was detected/i)).toBeInTheDocument();
   });
 
@@ -138,9 +175,42 @@ describe('EquipmentScanner', () => {
     });
   });
 
+  it('decodes upload when camera start fails', async () => {
+    hoisted.mockStart.mockRejectedValueOnce(new DOMException('Permission denied', 'NotAllowedError'));
+    const user = userEvent.setup();
+    renderScanner();
+    await startCameraScan(user);
+    expect(await screen.findByText(/permission was denied/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /upload qr image/i }));
+    const input = screen.getByLabelText(/upload an image containing a qr code/i);
+    await user.upload(input, new File(['x'], 'qr.png', { type: 'image/png' }));
+    await waitFor(() => {
+      expect(hoisted.MockQrScanner.scanImage).toHaveBeenCalled();
+      expect(hoisted.mockNavigate).toHaveBeenCalledWith('/qr/equipment/eq-upload');
+    });
+  });
+
+  it('shows denied-permission guidance when start rejects NotAllowedError', async () => {
+    hoisted.mockStart.mockRejectedValueOnce(new DOMException('Permission denied', 'NotAllowedError'));
+    const user = userEvent.setup();
+    renderScanner();
+    await startCameraScan(user);
+    expect(await screen.findByText(/permission was denied/i)).toBeInTheDocument();
+  });
+
+  it('shows policy-blocked guidance when start rejects with permissions policy message', async () => {
+    hoisted.mockStart.mockRejectedValueOnce(new Error('Permissions policy violation: camera is not allowed'));
+    const user = userEvent.setup();
+    renderScanner();
+    await startCameraScan(user);
+    expect(await screen.findByText(/security policy/i)).toBeInTheDocument();
+  });
+
   it('calls setCamera when selecting another camera', async () => {
     const user = userEvent.setup();
     renderScanner();
+    await startCameraScan(user);
     await waitFor(() => expect(screen.getByLabelText(/^camera$/i)).toBeInTheDocument());
     await user.click(screen.getByLabelText(/^camera$/i));
     await user.click(await screen.findByRole('option', { name: 'Front' }));
@@ -150,6 +220,7 @@ describe('EquipmentScanner', () => {
   it('toggles torch when flash is available', async () => {
     const user = userEvent.setup();
     renderScanner();
+    await startCameraScan(user);
     const flashBtn = await screen.findByRole('button', { name: /turn flash on/i });
     await user.click(flashBtn);
     expect(hoisted.mockToggleFlash).toHaveBeenCalled();
@@ -158,6 +229,7 @@ describe('EquipmentScanner', () => {
   it('retry scan resets error and recreates the scanner', async () => {
     const user = userEvent.setup();
     renderScanner();
+    await startCameraScan(user);
     await waitFor(() => expect(hoisted.scannerState.lastOnDecode).not.toBeNull());
     act(() => {
       hoisted.scannerState.lastOnDecode?.({ data: 'https://evil.example/x' });
@@ -169,7 +241,9 @@ describe('EquipmentScanner', () => {
   });
 
   it('destroys scanner on unmount', async () => {
+    const user = userEvent.setup();
     const { unmount } = renderScanner();
+    await startCameraScan(user);
     await waitFor(() => expect(hoisted.mockStart).toHaveBeenCalled());
     unmount();
     expect(hoisted.mockDestroy).toHaveBeenCalled();

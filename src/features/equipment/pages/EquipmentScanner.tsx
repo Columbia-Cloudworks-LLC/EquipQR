@@ -14,8 +14,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { parseEquipQRTarget } from '@/utils/qr';
+import { getCameraAccessErrorMessage } from '@/features/equipment/utils/cameraAccessErrors';
 
-type Phase = 'checking' | 'starting' | 'scanning' | 'decoded' | 'error' | 'no-camera';
+type Phase =
+  | 'ready'
+  | 'checking'
+  | 'starting'
+  | 'scanning'
+  | 'decoded'
+  | 'error'
+  | 'no-camera';
 
 const EquipmentScanner: React.FC = () => {
   const navigate = useNavigate();
@@ -24,9 +32,11 @@ const EquipmentScanner: React.FC = () => {
   const scannerRef = useRef<QrScanner | null>(null);
   const handledDecodeRef = useRef(false);
 
-  const [phase, setPhase] = useState<Phase>('checking');
+  const [phase, setPhase] = useState<Phase>('ready');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  /** Increment to begin or restart the live camera session (0 = user has not opted in). */
+  const [cameraRunId, setCameraRunId] = useState(0);
   const [cameras, setCameras] = useState<QrScanner.Camera[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string>('');
   const [hasFlash, setHasFlash] = useState(false);
@@ -74,6 +84,14 @@ const EquipmentScanner: React.FC = () => {
     if (!video) return;
 
     let cancelled = false;
+
+    if (cameraRunId === 0) {
+      setPhase('ready');
+      return () => {
+        cancelled = true;
+      };
+    }
+
     handledDecodeRef.current = false;
     destroyScannerSafe();
     setErrorMessage(null);
@@ -130,7 +148,7 @@ const EquipmentScanner: React.FC = () => {
       } catch (e) {
         if (!cancelled) {
           setPhase('error');
-          setErrorMessage(e instanceof Error ? e.message : 'Camera failed to start.');
+          setErrorMessage(getCameraAccessErrorMessage(e));
         }
       }
     };
@@ -141,7 +159,7 @@ const EquipmentScanner: React.FC = () => {
       cancelled = true;
       destroyScannerSafe();
     };
-  }, [retryKey, destroyScannerSafe, handleDecodedPayload]);
+  }, [cameraRunId, retryKey, destroyScannerSafe, handleDecodedPayload]);
 
   useEffect(() => {
     const scanner = scannerRef.current;
@@ -167,6 +185,11 @@ const EquipmentScanner: React.FC = () => {
     handledDecodeRef.current = false;
     setErrorMessage(null);
     setRetryKey((k) => k + 1);
+  };
+
+  const handleStartCameraScan = () => {
+    setErrorMessage(null);
+    setCameraRunId((n) => n + 1);
   };
 
   const handleTorchToggle = async () => {
@@ -198,7 +221,18 @@ const EquipmentScanner: React.FC = () => {
     }
   };
 
-  const showCameraPreview = phase === 'starting' || phase === 'scanning' || phase === 'checking';
+  const showCameraPreview =
+    phase === 'checking' || phase === 'starting' || phase === 'scanning';
+
+  const placeholderMessage = (() => {
+    if (phase === 'ready') {
+      return 'Tap Start camera scan below. Your browser may ask for camera permission.';
+    }
+    if (phase === 'checking' || phase === 'starting') {
+      return 'Starting camera…';
+    }
+    return null;
+  })();
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-4 p-4 pb-24 md:pb-6">
@@ -250,8 +284,8 @@ const EquipmentScanner: React.FC = () => {
               aria-label="Camera preview for QR scanning"
             />
             {!showCameraPreview && phase !== 'decoded' && (
-              <div className="flex h-full min-h-[200px] items-center justify-center text-sm text-muted-foreground">
-                {phase === 'checking' || phase === 'starting' ? 'Starting camera…' : null}
+              <div className="flex h-full min-h-[200px] items-center justify-center px-4 text-center text-sm text-muted-foreground">
+                {placeholderMessage}
               </div>
             )}
           </div>
@@ -275,6 +309,19 @@ const EquipmentScanner: React.FC = () => {
           )}
 
           <div className="flex flex-wrap gap-2">
+            {phase === 'ready' && (
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                data-testid="scanner-start-camera"
+                onClick={handleStartCameraScan}
+              >
+                <Camera className="mr-2 h-4 w-4" aria-hidden />
+                Start camera scan
+              </Button>
+            )}
+
             {phase === 'scanning' && hasFlash && (
               <Button
                 type="button"
