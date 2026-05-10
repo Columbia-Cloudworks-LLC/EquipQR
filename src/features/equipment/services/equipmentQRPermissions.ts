@@ -82,11 +82,22 @@ export async function resolveEquipmentQRDisplayImageUrl(
   const { equipmentId, organizationId, stored } = context;
   if (!stored?.trim()) return null;
 
-  let resolved: string | null = null;
   try {
-    [resolved] = await batchResolveEquipmentDisplayImageUrls([stored]);
+    const [resolved] = await batchResolveEquipmentDisplayImageUrls([stored]);
+
+    if (resolved == null) {
+      const imagePath = extractEquipmentDisplayImagePath(stored);
+      if (imagePath) {
+        logger.error('QR equipment image resolution failed', {
+          equipmentId,
+          organizationId,
+          imagePath,
+        });
+      }
+    }
+
+    return resolved ?? null;
   } catch {
-    resolved = null;
     const imagePath = extractEquipmentDisplayImagePath(stored);
     logger.error('QR equipment image resolution failed', {
       equipmentId,
@@ -95,19 +106,6 @@ export async function resolveEquipmentQRDisplayImageUrl(
     });
     return null;
   }
-
-  if (resolved == null) {
-    const imagePath = extractEquipmentDisplayImagePath(stored);
-    if (imagePath) {
-      logger.error('QR equipment image resolution failed', {
-        equipmentId,
-        organizationId,
-        imagePath,
-      });
-    }
-  }
-
-  return resolved ?? null;
 }
 
 const EQUIPMENT_QR_SELECT = `
