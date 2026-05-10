@@ -13,6 +13,7 @@ import type { Role } from '@/types/permissions';
 import QrPageLoadingShell from '@/features/equipment/components/qr/QrPageLoadingShell';
 import {
   fetchEquipmentQRPayload,
+  resolveEquipmentQRDisplayImageUrl,
   userLimitsSensitivePi,
   insertScan,
   type EquipmentQRPayload,
@@ -61,6 +62,7 @@ const EquipmentQRScan = () => {
   const [scanStatus, setScanStatus] = useState<ScanStatus>('idle');
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [heroImageFailed, setHeroImageFailed] = useState(false);
+  const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
   const scanStartedRef = useRef(false);
 
   useEffect(() => {
@@ -99,7 +101,34 @@ const EquipmentQRScan = () => {
 
   useEffect(() => {
     setHeroImageFailed(false);
-  }, [payload?.equipment.imageUrl]);
+  }, [payload?.equipment.imageReference]);
+
+  useEffect(() => {
+    if (!payload) {
+      setHeroImageUrl(null);
+      return;
+    }
+
+    let cancelled = false;
+    const stored = payload.equipment.imageReference;
+    setHeroImageUrl(null);
+
+    if (!stored?.trim()) {
+      return;
+    }
+
+    void resolveEquipmentQRDisplayImageUrl({
+      equipmentId: payload.equipment.id,
+      organizationId: payload.organization.id,
+      stored,
+    }).then((url) => {
+      if (!cancelled) setHeroImageUrl(url);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [payload]);
 
   useEffect(() => {
     if (!payload || !user || scanStartedRef.current) return;
@@ -194,7 +223,7 @@ const EquipmentQRScan = () => {
 
   const { equipment, organization } = payload;
   const currentYear = new Date().getFullYear();
-  const showHeroImage = Boolean(equipment.imageUrl) && !heroImageFailed;
+  const heroImageSrc = heroImageUrl && !heroImageFailed ? heroImageUrl : null;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -218,9 +247,9 @@ const EquipmentQRScan = () => {
 
         <Card className="overflow-hidden">
           <div className="aspect-[16/10] bg-muted">
-            {showHeroImage ? (
+            {heroImageSrc ? (
               <img
-                src={equipment.imageUrl!}
+                src={heroImageSrc}
                 alt={equipment.name}
                 className="h-full w-full object-cover"
                 decoding="async"

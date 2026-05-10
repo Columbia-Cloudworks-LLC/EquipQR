@@ -2,8 +2,21 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const mockBatchResolve = vi.fn();
 
-vi.mock('@/services/imageUploadService', () => ({
-  batchResolveEquipmentDisplayImageUrls: (refs: (string | null | undefined)[]) => mockBatchResolve(refs),
+vi.mock('@/services/imageUploadService', async () => {
+  const actual = await vi.importActual<typeof import('@/services/imageUploadService')>('@/services/imageUploadService');
+  return {
+    ...actual,
+    batchResolveEquipmentDisplayImageUrls: (refs: (string | null | undefined)[]) => mockBatchResolve(refs),
+  };
+});
+
+vi.mock('@/utils/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
 }));
 
 vi.mock('@/lib/authClaims', () => ({
@@ -18,7 +31,11 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 import { supabase } from '@/integrations/supabase/client';
-import { fetchEquipmentQRPayload } from '@/features/equipment/services/equipmentQRPermissions';
+import { logger } from '@/utils/logger';
+import {
+  fetchEquipmentQRPayload,
+  resolveEquipmentQRDisplayImageUrl,
+} from '@/features/equipment/services/equipmentQRPermissions';
 
 const canonicalPath =
   'da1368a1-9ed1-46ef-a7dc-56bf15ebeee4/eq-id/note/1769226798314.jpg';
@@ -55,7 +72,7 @@ describe('fetchEquipmentQRPayload', () => {
     );
   });
 
-  it('resolves canonical image_url to a signed URL when org is scoped (?org= path)', async () => {
+  it('returns raw imageReference for display image without calling the image resolver', async () => {
     const membershipBuilder = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -80,11 +97,11 @@ describe('fetchEquipmentQRPayload', () => {
 
     const payload = await fetchEquipmentQRPayload('eq-id', 'org-1');
 
-    expect(mockBatchResolve).toHaveBeenCalledWith([canonicalPath]);
-    expect(payload.equipment.imageUrl).toBe(signedUrl);
+    expect(mockBatchResolve).not.toHaveBeenCalled();
+    expect(payload.equipment.imageReference).toBe(canonicalPath);
   });
 
-  it('returns null imageUrl when equipment has no display image', async () => {
+  it('returns null imageReference when equipment has no display image', async () => {
     const membershipBuilder = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -110,10 +127,10 @@ describe('fetchEquipmentQRPayload', () => {
     const payload = await fetchEquipmentQRPayload('eq-id', 'org-1');
 
     expect(mockBatchResolve).not.toHaveBeenCalled();
-    expect(payload.equipment.imageUrl).toBeNull();
+    expect(payload.equipment.imageReference).toBeNull();
   });
 
-  it('resolves image_url on legacy QR links without org query param', async () => {
+  it('returns imageReference on legacy QR links without org query param', async () => {
     const listBuilder: Record<string, unknown> = {
       select: vi.fn(function (this: typeof listBuilder) {
         return this;
@@ -147,7 +164,70 @@ describe('fetchEquipmentQRPayload', () => {
 
     const payload = await fetchEquipmentQRPayload('eq-id');
 
+    expect(mockBatchResolve).not.toHaveBeenCalled();
+    expect(payload.equipment.imageReference).toBe(canonicalPath);
+  });
+});
+
+describe('resolveEquipmentQRDisplayImageUrl', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockBatchResolve.mockImplementation(async refs =>
+      refs.map(ref => (ref === canonicalPath ? signedUrl : null)),
+    );
+  });
+
+  it('returns a signed URL when batch resolution succeeds', async () => {
+    const url = await resolveEquipmentQRDisplayImageUrl({
+      equipmentId: 'eq-id',
+      organizationId: 'org-1',
+      stored: canonicalPath,
+    });
+
     expect(mockBatchResolve).toHaveBeenCalledWith([canonicalPath]);
-    expect(payload.equipment.imageUrl).toBe(signedUrl);
+    expect(url).toBe(signedUrl);
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('returns null and skips batch when stored is empty', async () => {
+    const url = await resolveEquipmentQRDisplayImageUrl({
+      equipmentId: 'eq-id',
+      organizationId: 'org-1',
+      stored: null,
+    });
+
+    expect(url).toBeNull();
+    expect(mockBatchResolve).not.toHaveBeenCalled();
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('logs when a canonical path fails to resolve', async () => {
+    mockBatchResolve.mockResolvedValue([null]);
+
+    const url = await resolveEquipmentQRDisplayImageUrl({
+      equipmentId: 'eq-id',
+      organizationId: 'org-1',
+      stored: canonicalPath,
+    });
+
+    expect(url).toBeNull();
+    expect(logger.error).toHaveBeenCalledWith('QR equipment image resolution failed', {
+      equipmentId: 'eq-id',
+      organizationId: 'org-1',
+      imagePath: canonicalPath,
+    });
+  });
+
+  it('does not log when resolution fails for a plain https URL with no extractable path', async () => {
+    mockBatchResolve.mockResolvedValue([null]);
+
+    const url = await resolveEquipmentQRDisplayImageUrl({
+      equipmentId: 'eq-id',
+      organizationId: 'org-1',
+      stored: 'https://example.com/photo.jpg',
+    });
+
+    expect(url).toBeNull();
+    expect(logger.error).not.toHaveBeenCalled();
   });
 });

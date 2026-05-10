@@ -2,7 +2,7 @@ name: Repomix Artifact
 
 on:
   push:
-    branches: [ preview ]
+    branches: [ main, preview ]
   pull_request:
     branches: [ main, preview ]
   workflow_dispatch:

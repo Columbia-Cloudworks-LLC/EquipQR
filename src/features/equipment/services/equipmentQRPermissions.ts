@@ -2,7 +2,11 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import type { Role, TeamRole } from '@/types/permissions';
 import { getAuthClaims, requireAuthUserIdFromClaims } from '@/lib/authClaims';
-import { batchResolveEquipmentDisplayImageUrls } from '@/services/imageUploadService';
+import {
+  batchResolveEquipmentDisplayImageUrls,
+  extractEquipmentDisplayImagePath,
+} from '@/services/imageUploadService';
+import { logger } from '@/utils/logger';
 
 type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 
@@ -48,7 +52,8 @@ export interface EquipmentQRPayload {
     status: EquipmentStatus;
     location: string | null;
     workingHours: number | null;
-    imageUrl: string | null;
+    /** Raw `image_url` from equipment; resolve to a display URL via `resolveEquipmentQRDisplayImageUrl`. */
+    imageReference: string | null;
     defaultPmTemplateId: string | null;
     team: TeamRelation | null;
   };
@@ -61,10 +66,34 @@ function firstRelation<T>(value: T | T[] | null | undefined): T | null {
   return value ?? null;
 }
 
-/** Turn canonical private-bucket paths / legacy URLs into browser-ready signed or absolute URLs. */
-async function resolveEquipmentQRImageUrl(stored: string | null): Promise<string | null> {
+export interface ResolveEquipmentQRDisplayImageContext {
+  equipmentId: string;
+  organizationId: string;
+  stored: string | null;
+}
+
+/**
+ * Turn canonical private-bucket paths / legacy URLs into browser-ready signed or absolute URLs.
+ * Call after the QR landing shell renders so signing is not on the critical path for payload fetch.
+ */
+export async function resolveEquipmentQRDisplayImageUrl(
+  context: ResolveEquipmentQRDisplayImageContext
+): Promise<string | null> {
+  const { equipmentId, organizationId, stored } = context;
   if (!stored?.trim()) return null;
+
   const [resolved] = await batchResolveEquipmentDisplayImageUrls([stored]);
+  if (resolved == null) {
+    const imagePath = extractEquipmentDisplayImagePath(stored);
+    if (imagePath) {
+      logger.error('QR equipment image resolution failed', {
+        equipmentId,
+        organizationId,
+        imagePath,
+      });
+    }
+  }
+
   return resolved ?? null;
 }
 
@@ -132,8 +161,6 @@ export async function fetchEquipmentQRPayload(
     const organization = firstRelation(row.organizations);
     if (!organization) throw new Error('Equipment organization not found');
 
-    const imageUrl = await resolveEquipmentQRImageUrl(row.image_url);
-
     return {
       equipment: {
         id: row.id,
@@ -144,7 +171,7 @@ export async function fetchEquipmentQRPayload(
         status: row.status,
         location: row.location,
         workingHours: row.working_hours,
-        imageUrl,
+        imageReference: row.image_url,
         defaultPmTemplateId: row.default_pm_template_id,
         team: firstRelation(row.team),
       },
@@ -187,8 +214,6 @@ export async function fetchEquipmentQRPayload(
   const scopedRole = membershipByOrganizationId.get(row.organization_id);
   if (!scopedRole) throw new Error('You do not have access to this equipment');
 
-  const imageUrl = await resolveEquipmentQRImageUrl(row.image_url);
-
   return {
     equipment: {
       id: row.id,
@@ -199,7 +224,7 @@ export async function fetchEquipmentQRPayload(
       status: row.status,
       location: row.location,
       workingHours: row.working_hours,
-      imageUrl,
+      imageReference: row.image_url,
       defaultPmTemplateId: row.default_pm_template_id,
       team: firstRelation(row.team),
     },
