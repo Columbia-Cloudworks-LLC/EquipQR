@@ -62,6 +62,28 @@ describe('parseEquipQRTarget', () => {
     if (r.ok && r.kind === 'equipment') expect(r.path).toBe('/qr/equipment/legacy-id');
   });
 
+  it('encodes dynamic QR route segments before building redirect paths', () => {
+    const equipment = parseEquipQRTarget('/qr/equipment/eq%2Funsafe', LOCAL_ORIGIN);
+    expect(equipment.ok && equipment.kind === 'equipment' && equipment.path).toBe(
+      '/qr/equipment/eq%252Funsafe',
+    );
+
+    const inventory = parseEquipQRTarget('/qr/inventory/inv%2Funsafe', LOCAL_ORIGIN);
+    expect(inventory.ok && inventory.kind === 'inventory' && inventory.path).toBe(
+      '/qr/inventory/inv%252Funsafe',
+    );
+
+    const workOrder = parseEquipQRTarget('/qr/work-order/wo%2Funsafe', LOCAL_ORIGIN);
+    expect(workOrder.ok && workOrder.kind === 'workOrder' && workOrder.path).toBe(
+      '/qr/work-order/wo%252Funsafe',
+    );
+  });
+
+  it('encodes legacy equipment IDs before building redirect paths', () => {
+    const r = parseEquipQRTarget('/qr/legacy%2Funsafe', LOCAL_ORIGIN);
+    expect(r.ok && r.kind === 'equipment' && r.path).toBe('/qr/equipment/legacy%252Funsafe');
+  });
+
   it('parses inventory path', () => {
     const r = parseEquipQRTarget('/qr/inventory/inv-1', LOCAL_ORIGIN);
     expect(r.ok && r.kind === 'inventory' && r.itemId === 'inv-1').toBe(true);

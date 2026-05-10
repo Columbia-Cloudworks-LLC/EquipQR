@@ -52,7 +52,11 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
   const { formatDateTime } = useFormatTimestamp();
   const [isOpen, setIsOpen] = useState(false);
 
-  const { data: countData, isLoading: countLoading } = useWorkOrderImageCount(workOrderId);
+  const {
+    data: countData,
+    isLoading: countLoading,
+    isError: countError,
+  } = useWorkOrderImageCount(workOrderId);
 
   const {
     data: images = [],
@@ -100,12 +104,16 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
 
   const totalCount = countData?.count ?? 0;
 
-  if (!countLoading && totalCount === 0) {
+  if (!countLoading && !countError && totalCount === 0) {
     return null;
   }
 
   const countBadgeContent = countLoading ? (
     <span className="inline-block h-5 w-8 animate-pulse rounded bg-muted" aria-hidden />
+  ) : countError ? (
+    <Badge variant="secondary" aria-label="Image count unavailable">
+      —
+    </Badge>
   ) : (
     <Badge variant="secondary">{totalCount}</Badge>
   );
@@ -127,7 +135,11 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
                   <span>Work Order Images</span>
                   {countBadgeContent}
                 </CardTitle>
-                {!countLoading && totalCount > 0 ? (
+                {countError ? (
+                  <p className="text-sm text-muted-foreground">
+                    Image count unavailable. Tap to try loading photos.
+                  </p>
+                ) : !countLoading && totalCount > 0 ? (
                   <p className="text-sm text-muted-foreground">Tap to review work order photos</p>
                 ) : null}
               </div>

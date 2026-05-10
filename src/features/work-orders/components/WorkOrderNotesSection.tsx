@@ -113,11 +113,10 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
       const queuedOffline = result && typeof result === 'object' && 'queuedOffline' in result && result.queuedOffline;
       if (queuedOffline) {
         const hadImages = result && typeof result === 'object' && 'hadImages' in result && result.hadImages;
-        toast.success(
-          hadImages
-            ? offlinePhotoMessage
-            : 'Note saved offline — will sync when you reconnect.',
-        );
+        toast.success('Note saved offline — will sync when you reconnect.');
+        if (hadImages) {
+          toast.warning(offlinePhotoMessage);
+        }
         offlineCtx?.refresh();
       } else {
         queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.notesWithImages(workOrderId) });

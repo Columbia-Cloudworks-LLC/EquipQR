@@ -1,27 +1,11 @@
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
+import { isOverdue } from '@/features/work-orders/utils/workOrderHelpers';
 
 const PRIORITY_WEIGHT: Record<string, number> = {
   high: 3,
   medium: 2,
   low: 1,
 };
-
-function isOpenStatus(status: string): boolean {
-  return status !== 'completed' && status !== 'cancelled';
-}
-
-function startOfTodayMs(): number {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
-}
-
-function isOverdue(dueDate: string | null | undefined, status: string): boolean {
-  if (!dueDate || !isOpenStatus(status)) return false;
-  const due = new Date(dueDate);
-  due.setHours(0, 0, 0, 0);
-  return due.getTime() < startOfTodayMs();
-}
 
 /**
  * Stable sort for dashboard mobile snapshots: overdue open work first, then priority, then recency.

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { format, formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SegmentedProgress } from '@/components/ui/segmented-progress';
@@ -9,6 +8,7 @@ import type { LatestCompletedPMDetails } from '@/features/pm-templates/services/
 import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { createSegmentsForSection } from '@/utils/pmChecklistHelpers';
 import { saveOrganizationPreference } from '@/utils/sessionPersistence';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
 /** Matches `EquipmentQRScan` / `SimpleOrganizationProvider` dashboard org hint. */
 const DASHBOARD_CURRENT_ORG_STORAGE_KEY = 'equipqr_current_organization';
@@ -53,6 +53,8 @@ const EquipmentQRLastPMCard: React.FC<EquipmentQRLastPMCardProps> = ({
   isLoading,
   isError,
 }) => {
+  const { formatDateTime, formatRelative } = useFormatTimestamp();
+
   if (isLoading) {
     return (
       <Card data-testid="equipment-qr-last-pm-loading">
@@ -107,10 +109,10 @@ const EquipmentQRLastPMCard: React.FC<EquipmentQRLastPMCardProps> = ({
 
   const dateLabel = Number.isNaN(completedDate.getTime())
     ? details.completed_at
-    : format(completedDate, 'PPp');
+    : formatDateTime(completedDate);
   const relativeLabel = Number.isNaN(completedDate.getTime())
     ? ''
-    : formatDistanceToNow(completedDate, { addSuffix: true });
+    : formatRelative(completedDate);
 
   const persistOrgBeforeDashboard = () => {
     saveOrganizationPreference(organizationId);

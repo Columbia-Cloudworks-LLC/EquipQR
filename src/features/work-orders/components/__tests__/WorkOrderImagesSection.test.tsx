@@ -9,6 +9,7 @@ import {
   deleteWorkOrderImage,
   type WorkOrderCarouselImage,
 } from '@/features/work-orders/services/workOrderNotesService';
+import { useWorkOrderImageCount } from '@/features/work-orders/hooks/useWorkOrderImageCount';
 import { workOrders as workOrderQueryKeys, workOrderMetrics } from '@/lib/queryKeys';
 
 vi.mock('@/features/work-orders/hooks/useWorkOrderImageCount', () => ({
@@ -58,6 +59,11 @@ describe('WorkOrderImagesSection', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useWorkOrderImageCount).mockReturnValue({
+      data: { count: 2, images: [] },
+      isLoading: false,
+      isError: false,
+    } as ReturnType<typeof useWorkOrderImageCount>);
     vi.mocked(getWorkOrderImages).mockResolvedValue([]);
     invalidateSpy = vi
       .spyOn(QueryClient.prototype, 'invalidateQueries')
@@ -176,6 +182,31 @@ describe('WorkOrderImagesSection', () => {
 
     vi.mocked(getWorkOrderImages).mockResolvedValueOnce([makeImage({ id: 'retry-success' })]);
     await user.click(screen.getByRole('button', { name: /^retry$/i }));
+
+    expect(await screen.findByAltText('a.png')).toBeInTheDocument();
+  });
+
+  it('still lets users expand when the image count query fails', async () => {
+    const user = userEvent.setup();
+    vi.mocked(useWorkOrderImageCount).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+    } as ReturnType<typeof useWorkOrderImageCount>);
+    vi.mocked(getWorkOrderImages).mockResolvedValue([makeImage({ id: 'count-error-image' })]);
+
+    render(
+      <WorkOrderImagesSection
+        workOrderId="wo-1"
+        organizationId="org-1"
+        canUpload={false}
+        showPrivateNotes={false}
+      />,
+    );
+
+    expect(screen.getByText(/Image count unavailable/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /work order images/i }));
 
     expect(await screen.findByAltText('a.png')).toBeInTheDocument();
   });

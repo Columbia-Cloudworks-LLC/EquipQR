@@ -92,28 +92,30 @@ export function parseEquipQRTarget(
   const third = segments[2];
 
   if (second === 'equipment' && third) {
+    const equipmentId = encodeURIComponent(third);
     const orgId = url.searchParams.get('org') ?? undefined;
     const path = orgId
-      ? `/qr/equipment/${third}?org=${encodeURIComponent(orgId)}`
-      : `/qr/equipment/${third}`;
+      ? `/qr/equipment/${equipmentId}?org=${encodeURIComponent(orgId)}`
+      : `/qr/equipment/${equipmentId}`;
     return { ok: true, kind: 'equipment', equipmentId: third, path, orgId };
   }
 
   if (second === 'inventory' && third) {
-    return { ok: true, kind: 'inventory', itemId: third, path: `/qr/inventory/${third}` };
+    return { ok: true, kind: 'inventory', itemId: third, path: `/qr/inventory/${encodeURIComponent(third)}` };
   }
 
   if (second === 'work-order' && third) {
-    return { ok: true, kind: 'workOrder', workOrderId: third, path: `/qr/work-order/${third}` };
+    return { ok: true, kind: 'workOrder', workOrderId: third, path: `/qr/work-order/${encodeURIComponent(third)}` };
   }
 
   // Legacy `/qr/:equipmentId` (must not shadow reserved multi-segment routes)
   if (segments.length === 2 && second && !RESERVED_QR_FIRST_SEGMENTS.has(second)) {
     const equipmentId = second;
+    const encodedEquipmentId = encodeURIComponent(equipmentId);
     const orgId = url.searchParams.get('org') ?? undefined;
     const path = orgId
-      ? `/qr/equipment/${equipmentId}?org=${encodeURIComponent(orgId)}`
-      : `/qr/equipment/${equipmentId}`;
+      ? `/qr/equipment/${encodedEquipmentId}?org=${encodeURIComponent(orgId)}`
+      : `/qr/equipment/${encodedEquipmentId}`;
     return { ok: true, kind: 'equipment', equipmentId, path, orgId };
   }
 

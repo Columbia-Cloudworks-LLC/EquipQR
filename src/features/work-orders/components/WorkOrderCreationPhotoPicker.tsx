@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Image, X } from 'lucide-react';
@@ -31,7 +31,7 @@ const Thumbnail: React.FC<{
           size="sm"
           onClick={onRemove}
           disabled={disabled}
-          className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 opacity-0 transition-opacity group-hover:opacity-100"
+          className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0"
           title="Remove image"
           aria-label={`Remove ${file.name}`}
         >
@@ -60,6 +60,9 @@ const WorkOrderCreationPhotoPicker: React.FC<WorkOrderCreationPhotoPickerProps> 
   description = 'JPEG, PNG, GIF, or WebP — up to 5 images, 10 MB each.',
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const generatedId = useId();
+  const inputId = `${generatedId}-work-order-creation-photos`;
+  const hintId = `${inputId}-hint`;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = Array.from(e.target.files || []);
@@ -71,7 +74,7 @@ const WorkOrderCreationPhotoPicker: React.FC<WorkOrderCreationPhotoPickerProps> 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Label htmlFor="work-order-creation-photos">Attach photos from this request</Label>
+        <Label htmlFor={inputId}>Attach photos from this request</Label>
         <Button
           type="button"
           variant="outline"
@@ -84,17 +87,17 @@ const WorkOrderCreationPhotoPicker: React.FC<WorkOrderCreationPhotoPickerProps> 
           Add photos
         </Button>
       </div>
-      <p id="work-order-creation-photos-hint" className="text-xs text-muted-foreground">
+      <p id={hintId} className="text-xs text-muted-foreground">
         {description}
       </p>
       <input
         ref={inputRef}
-        id="work-order-creation-photos"
+        id={inputId}
         type="file"
         accept="image/jpeg,image/png,image/gif,image/webp"
         multiple
         className="sr-only"
-        aria-describedby="work-order-creation-photos-hint"
+        aria-describedby={hintId}
         disabled={disabled}
         onChange={handleFileChange}
       />
