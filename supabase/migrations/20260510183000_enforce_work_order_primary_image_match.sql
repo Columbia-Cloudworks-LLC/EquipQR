@@ -23,6 +23,9 @@ BEGIN
 END;
 $$;
 
+REVOKE EXECUTE ON FUNCTION public.enforce_work_order_primary_image_match() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.enforce_work_order_primary_image_match() FROM anon, authenticated;
+
 DROP TRIGGER IF EXISTS enforce_work_order_primary_image_match_trigger
   ON public.work_orders;
 

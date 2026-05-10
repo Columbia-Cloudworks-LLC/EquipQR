@@ -217,6 +217,18 @@ describe('EquipmentScanner', () => {
     await waitFor(() => expect(hoisted.mockSetCamera).toHaveBeenCalledWith('cam-front'));
   });
 
+  it('does not switch cameras when the camera list loads after environment start', async () => {
+    hoisted.MockQrScanner.listCameras.mockResolvedValue([
+      { id: 'cam-front', label: 'Front Camera' },
+      { id: 'cam-back', label: 'Back Camera' },
+    ]);
+    const user = userEvent.setup();
+    renderScanner();
+    await startCameraScan(user);
+    await waitFor(() => expect(screen.getByLabelText(/^camera$/i)).toBeInTheDocument());
+    expect(hoisted.mockSetCamera).not.toHaveBeenCalled();
+  });
+
   it('toggles torch when flash is available', async () => {
     const user = userEvent.setup();
     renderScanner();

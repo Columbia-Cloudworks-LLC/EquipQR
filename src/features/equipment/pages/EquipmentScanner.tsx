@@ -16,6 +16,8 @@ import {
 import { parseEquipQRTarget } from '@/utils/qr';
 import { getCameraAccessErrorMessage } from '@/features/equipment/utils/cameraAccessErrors';
 
+const BACK_CAMERA_LABEL_PATTERN = /\b(back|rear|environment|world|wide|telephoto)\b/i;
+
 type Phase =
   | 'ready'
   | 'checking'
@@ -24,6 +26,10 @@ type Phase =
   | 'decoded'
   | 'error'
   | 'no-camera';
+
+function getPreferredListedCameraId(cameras: QrScanner.Camera[]): string {
+  return cameras.find((camera) => BACK_CAMERA_LABEL_PATTERN.test(camera.label))?.id ?? cameras[0]?.id ?? '';
+}
 
 const EquipmentScanner: React.FC = () => {
   const navigate = useNavigate();
@@ -140,7 +146,7 @@ const EquipmentScanner: React.FC = () => {
         const listed = await QrScanner.listCameras(true);
         if (!cancelled && listed.length > 0) {
           setCameras(listed);
-          setSelectedCameraId(listed[0].id);
+          setSelectedCameraId(getPreferredListedCameraId(listed));
         }
 
         const hf = await scanner.hasFlash();
@@ -161,35 +167,21 @@ const EquipmentScanner: React.FC = () => {
     };
   }, [cameraRunId, retryKey, destroyScannerSafe, handleDecodedPayload]);
 
-  useEffect(() => {
+  const handleCameraChange = async (cameraId: string) => {
     const scanner = scannerRef.current;
-    if (!scanner || phase !== 'scanning' || !selectedCameraId) return;
+    if (!scanner || phase !== 'scanning') return;
 
-    let cancelled = false;
-    void scanner.setCamera(selectedCameraId).then(async () => {
-      if (cancelled) return;
-      try {
-        const hf = await scanner.hasFlash();
-        if (!cancelled) setHasFlash(hf);
-      } catch {
-        if (!cancelled) setHasFlash(false);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedCameraId, phase]);
-
-  const handleRetry = () => {
-    handledDecodeRef.current = false;
-    setErrorMessage(null);
-    setRetryKey((k) => k + 1);
-  };
-
-  const handleStartCameraScan = () => {
-    setErrorMessage(null);
-    setCameraRunId((n) => n + 1);
+    setSelectedCameraId(cameraId);
+    setFlashOn(false);
+    try {
+      await scanner.setCamera(cameraId);
+      const hf = await scanner.hasFlash();
+      setHasFlash(hf);
+    } catch (e) {
+      setHasFlash(false);
+      setPhase('error');
+      setErrorMessage(getCameraAccessErrorMessage(e));
+    }
   };
 
   const handleTorchToggle = async () => {
@@ -219,6 +211,17 @@ const EquipmentScanner: React.FC = () => {
     } finally {
       setIsImageScanning(false);
     }
+  };
+
+  const handleRetry = () => {
+    handledDecodeRef.current = false;
+    setErrorMessage(null);
+    setRetryKey((k) => k + 1);
+  };
+
+  const handleStartCameraScan = () => {
+    setErrorMessage(null);
+    setCameraRunId((n) => n + 1);
   };
 
   const showCameraPreview =
@@ -293,7 +296,7 @@ const EquipmentScanner: React.FC = () => {
           {phase === 'scanning' && cameras.length > 1 && (
             <div className="space-y-2">
               <Label htmlFor="scanner-camera-select">Camera</Label>
-              <Select value={selectedCameraId} onValueChange={setSelectedCameraId}>
+              <Select value={selectedCameraId} onValueChange={(cameraId) => void handleCameraChange(cameraId)}>
                 <SelectTrigger id="scanner-camera-select">
                   <SelectValue placeholder="Choose a camera" />
                 </SelectTrigger>
