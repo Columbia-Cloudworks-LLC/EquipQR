@@ -53,6 +53,10 @@ function makeCreateData() {
   };
 }
 
+function jpegFile(name = 'snap.jpg') {
+  return new File(['x'], name, { type: 'image/jpeg' });
+}
+
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe('OfflineAwareWorkOrderService', () => {
@@ -85,6 +89,18 @@ describe('OfflineAwareWorkOrderService', () => {
       });
     });
 
+    it('throws instead of queuing when offline and creation photos are attached', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      await expect(
+        svc.createWorkOrder({ ...makeCreateData(), images: [jpegFile()] }),
+      ).rejects.toThrow(/Photos need a connection/);
+
+      expect(queueReader.getCount()).toBe(0);
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+    });
+
     it('calls WorkOrderService.create() when online and succeeds', async () => {
       Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
 
@@ -112,6 +128,19 @@ describe('OfflineAwareWorkOrderService', () => {
 
       expect(result.queuedOffline).toBe(true);
       expect(queueReader.getCount()).toBe(1);
+    });
+
+    it('does not queue on network error when creation photos are attached', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+
+      mockCreate.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      await expect(
+        svc.createWorkOrder({ ...makeCreateData(), images: [jpegFile()] }),
+      ).rejects.toThrow(/stable connection/);
+
+      expect(queueReader.getCount()).toBe(0);
     });
 
     it('throws on non-network errors (permission, validation)', async () => {

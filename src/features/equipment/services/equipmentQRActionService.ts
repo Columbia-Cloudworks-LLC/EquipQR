@@ -6,10 +6,12 @@ import {
 } from '@/features/equipment/services/equipmentWorkingHoursService';
 import { createPM, type PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { WorkOrderService } from '@/features/work-orders/services/workOrderService';
+import { attachWorkOrderCreationImages } from '@/features/work-orders/services/workOrderNotesService';
 import type { WorkOrder, WorkOrderPriority } from '@/features/work-orders/types/workOrder';
 import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import type { QRActionEquipment } from '@/features/equipment/services/equipmentQRPermissions';
 import { logger } from '@/utils/logger';
+import { toast } from 'sonner';
 
 export interface CreateQRWorkOrderInput {
   equipment: QRActionEquipment;
@@ -18,6 +20,8 @@ export interface CreateQRWorkOrderInput {
   priority: WorkOrderPriority;
   dueDate?: string;
   attachPM: boolean;
+  images?: File[];
+  creationPhotoNote?: string;
 }
 
 async function getPMTemplateData(templateId: string, organizationId: string): Promise<{
@@ -96,6 +100,27 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
         logger.error('Exception during rollback of work order after PM initialization failure', deleteError);
       }
       throw pmError instanceof Error ? pmError : new Error('PM initialization failed.');
+    }
+  }
+
+  if (input.images?.length) {
+    try {
+      const { primaryImageId } = await attachWorkOrderCreationImages({
+        workOrderId: result.data.id,
+        organizationId: input.equipment.organizationId,
+        images: input.images,
+        noteContent: input.creationPhotoNote,
+      });
+      if (!primaryImageId) {
+        toast.warning(
+          'Work order created, but photos did not attach. Open the work order to retry.',
+        );
+      }
+    } catch (error) {
+      logger.error('QR work order creation photos failed to attach', error);
+      toast.warning(
+        'Work order created, but photos did not attach. Open the work order to retry.',
+      );
     }
   }
 

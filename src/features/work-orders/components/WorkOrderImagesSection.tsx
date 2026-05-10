@@ -29,6 +29,8 @@ interface WorkOrderImagesSectionProps {
   workOrderId: string;
   canUpload: boolean;
   showPrivateNotes: boolean;
+  /** First creation photo — shown first with a Primary badge */
+  primaryImageId?: string | null;
 }
 
 const noteExcerpt = (text: string, maxLen = 120) => {
@@ -41,6 +43,7 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
   workOrderId,
   canUpload,
   showPrivateNotes,
+  primaryImageId,
 }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -64,14 +67,16 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
     },
   });
 
-  const visibleImages = useMemo(
-    () =>
-      images.filter((image) => {
-        if (!image.is_private_note) return true;
-        return Boolean(showPrivateNotes && image.uploaded_by === user?.id);
-      }),
-    [images, showPrivateNotes, user?.id],
-  );
+  const visibleImages = useMemo(() => {
+    const filtered = images.filter((image) => {
+      if (!image.is_private_note) return true;
+      return Boolean(showPrivateNotes && image.uploaded_by === user?.id);
+    });
+    if (!primaryImageId) return filtered;
+    const primary = filtered.find((img) => img.id === primaryImageId);
+    const rest = filtered.filter((img) => img.id !== primaryImageId);
+    return primary ? [primary, ...rest] : filtered;
+  }, [images, showPrivateNotes, user?.id, primaryImageId]);
 
   const canDeleteImage = (image: { uploaded_by: string }) => image.uploaded_by === user?.id;
 
@@ -155,6 +160,14 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
                       <CarouselItem key={image.id}>
                         <div className="space-y-3 rounded-lg border bg-card p-3">
                           <div className="relative aspect-video w-full overflow-hidden rounded-md bg-muted">
+                            {primaryImageId === image.id ? (
+                              <Badge
+                                className="absolute left-2 top-2 z-[1] shadow-sm"
+                                variant="secondary"
+                              >
+                                Primary
+                              </Badge>
+                            ) : null}
                             <img
                               src={image.file_url}
                               alt={image.file_name || 'Work order image'}

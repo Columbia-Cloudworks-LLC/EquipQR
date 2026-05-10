@@ -13,9 +13,16 @@ interface UseWorkOrderSubmissionProps {
   workOrder?: EnhancedWorkOrder;
   onSubmit?: (data: WorkOrderFormData) => void;
   onSuccess: () => void;
+  /** Photos to attach after online work order create (create mode only) */
+  creationImages?: File[];
 }
 
-export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWorkOrderSubmissionProps) => {
+export const useWorkOrderSubmission = ({
+  workOrder,
+  onSubmit,
+  onSuccess,
+  creationImages = [],
+}: UseWorkOrderSubmissionProps) => {
   
   const navigate = useNavigate();
   const isEditMode = !!workOrder;
@@ -89,6 +96,10 @@ export const useWorkOrderSubmission = ({ workOrder, onSubmit, onSuccess }: UseWo
           pmTemplateId: data.pmTemplateId || undefined,
           // Simplified assignment: just pass the assigneeId (null = unassigned)
           assigneeId: data.assigneeId || undefined,
+          images: creationImages.length ? creationImages : undefined,
+          creationPhotoNote: creationImages.length
+            ? `Photos from new work order: ${data.title}`
+            : undefined,
         };
         
         const result = await createWorkOrderMutation.mutateAsync(workOrderData);

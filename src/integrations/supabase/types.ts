@@ -3643,6 +3643,7 @@ export type Database = {
           is_historical: boolean
           organization_id: string
           pm_required: boolean
+          primary_image_id: string | null
           priority: Database["public"]["Enums"]["work_order_priority"]
           status: Database["public"]["Enums"]["work_order_status"]
           team_id: string | null
@@ -3670,6 +3671,7 @@ export type Database = {
           is_historical?: boolean
           organization_id: string
           pm_required?: boolean
+          primary_image_id?: string | null
           priority?: Database["public"]["Enums"]["work_order_priority"]
           status?: Database["public"]["Enums"]["work_order_status"]
           team_id?: string | null
@@ -3697,6 +3699,7 @@ export type Database = {
           is_historical?: boolean
           organization_id?: string
           pm_required?: boolean
+          primary_image_id?: string | null
           priority?: Database["public"]["Enums"]["work_order_priority"]
           status?: Database["public"]["Enums"]["work_order_status"]
           team_id?: string | null
@@ -3744,6 +3747,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_primary_image_id_fkey"
+            columns: ["primary_image_id"]
+            isOneToOne: false
+            referencedRelation: "work_order_images"
             referencedColumns: ["id"]
           },
         ]

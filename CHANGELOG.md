@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Work order creation photos & primary image** ([#726](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/726)) — QR scan dialog and authenticated create/request forms accept up to five evidence photos (same MIME/size rules as notes). First uploaded image sets work_orders.primary_image_id and appears first with a Primary badge in the work order images carousel. Offline create with photos is blocked with the same messaging as inline notes.
+
 ### Changed
 
 - **Mobile work order details UX** ([#829](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/829)) — Task-oriented technician layout on phones: compact job summary (status/due/overdue, equipment link, team, assignee); sticky footer for primary workflows (start/hold/resume/checklist gates/complete); PM checklist CTA; unified overflow (**Details**, **Exports**, **QuickBooks**, **Admin** with gated delete); mobile info sidebar hides status-change action buttons.

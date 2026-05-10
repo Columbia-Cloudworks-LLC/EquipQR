@@ -324,6 +324,7 @@ describe('WorkOrderDetails', () => {
         effectiveLocation: null,
         team: null,
         assignee: null,
+        primary_image_id: 'primary-img-1',
       },
       equipment: {
         id: 'eq-1',
@@ -390,9 +391,11 @@ describe('WorkOrderDetails', () => {
     const imageSectionProps = mockWorkOrderImagesSectionProps.mock.calls.at(-1)?.[0] as {
       showPrivateNotes?: boolean;
       workOrderId?: string;
+      primaryImageId?: string | null;
     };
     expect(imageSectionProps?.workOrderId).toBe('wo-1');
     expect(imageSectionProps?.showPrivateNotes).toBe(true);
+    expect(imageSectionProps?.primaryImageId).toBe('primary-img-1');
 
     await userEvent.click(screen.getByRole('button', { name: /review & office details/i }));
 
@@ -425,6 +428,7 @@ describe('WorkOrderDetails', () => {
         effectiveLocation: null,
         team: null,
         assignee: null,
+        primary_image_id: 'primary-desktop-1',
       },
       equipment: {
         id: 'eq-1',
@@ -472,7 +476,9 @@ describe('WorkOrderDetails', () => {
     });
     const props = mockWorkOrderImagesSectionProps.mock.calls.at(-1)?.[0] as {
       showPrivateNotes?: boolean;
+      primaryImageId?: string | null;
     };
     expect(props?.showPrivateNotes).toBe(true);
+    expect(props?.primaryImageId).toBe('primary-desktop-1');
   });
 });

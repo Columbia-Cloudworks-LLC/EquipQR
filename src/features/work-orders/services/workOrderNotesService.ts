@@ -183,6 +183,44 @@ export const createWorkOrderNoteWithImages = async (
   };
 };
 
+/** Attach creation-time photos via the standard note+storage path and set work_orders.primary_image_id to the first uploaded image. */
+export async function attachWorkOrderCreationImages(params: {
+  workOrderId: string;
+  organizationId: string;
+  images: File[];
+  noteContent?: string;
+}): Promise<{ primaryImageId: string | null }> {
+  const { workOrderId, organizationId, images, noteContent } = params;
+  if (!images?.length) {
+    return { primaryImageId: null };
+  }
+
+  const note = await createWorkOrderNoteWithImages(
+    workOrderId,
+    noteContent ?? 'Photos attached when this work order was created.',
+    0,
+    false,
+    images,
+    organizationId,
+    undefined,
+  );
+
+  const primaryImageId = note.images?.[0]?.id ?? null;
+  if (!primaryImageId) {
+    return { primaryImageId: null };
+  }
+
+  const { error } = await supabase
+    .from('work_orders')
+    .update({ primary_image_id: primaryImageId })
+    .eq('id', workOrderId)
+    .eq('organization_id', organizationId);
+
+  if (error) throw error;
+
+  return { primaryImageId };
+}
+
 // Get notes with images for work order
 export const getWorkOrderNotesWithImages = async (
   workOrderId: string,

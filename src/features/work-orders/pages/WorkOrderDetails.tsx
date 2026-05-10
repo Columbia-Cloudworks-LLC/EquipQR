@@ -684,6 +684,7 @@ const WorkOrderDetails = () => {
                 workOrderId={workOrder.id}
                 canUpload={canUpload}
                 showPrivateNotes={permissionLevels.isManager}
+                primaryImageId={workOrder.primary_image_id}
               />
               </div>
 
@@ -843,6 +844,7 @@ const WorkOrderDetails = () => {
                 workOrderId={workOrder.id}
                 canUpload={canUpload}
                 showPrivateNotes={permissionLevels.isManager}
+                primaryImageId={workOrder.primary_image_id}
               />
               </div>
 

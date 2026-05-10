@@ -162,6 +162,40 @@ describe('WorkOrderImagesSection', () => {
     expect(screen.getByText(/My private photo note/)).toBeInTheDocument();
   });
 
+  it('shows primary image first with a Primary badge when primaryImageId is set', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getWorkOrderImages).mockResolvedValue([
+      makeImage({
+        id: 'img-later',
+        file_name: 'later.png',
+        note_content: 'Second photo',
+      }),
+      makeImage({
+        id: 'img-primary',
+        file_name: 'primary-shot.png',
+        note_content: 'First attached',
+      }),
+    ]);
+
+    render(
+      <WorkOrderImagesSection
+        workOrderId="wo-1"
+        canUpload
+        showPrivateNotes={false}
+        primaryImageId="img-primary"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /work order images/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Primary')).toBeInTheDocument();
+    });
+
+    const imgs = screen.getAllByRole('img');
+    expect(imgs[0]).toHaveAttribute('alt', 'primary-shot.png');
+  });
+
   it('invalidates image, notes-with-images, and image count queries after delete', async () => {
     const user = userEvent.setup();
     vi.mocked(getWorkOrderImages).mockResolvedValue([makeImage({ id: 'del-1' })]);

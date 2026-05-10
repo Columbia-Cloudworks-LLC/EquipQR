@@ -240,4 +240,34 @@ describe('EquipmentQRQuickActions', () => {
     expect(await screen.findByText(/does not have a default pm template assigned/i)).toBeInTheDocument();
     expect(mockCreateWorkOrder).not.toHaveBeenCalled();
   });
+
+  it('passes attached jpeg files through to createQRWorkOrder', async () => {
+    const user = userEvent.setup();
+    mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
+    mockCreateWorkOrder.mockResolvedValue({
+      id: 'wo-with-photos',
+      title: 'Work order - Forklift 17',
+    } as Awaited<ReturnType<typeof createQRWorkOrder>>);
+
+    renderQuickActions();
+
+    await user.click(screen.getByRole('button', { name: /create generic work order/i }));
+    await screen.findByRole('dialog', undefined, { timeout: 3000 });
+
+    const file = new File(['fake-bytes'], 'site-photo.jpg', { type: 'image/jpeg' });
+    await user.upload(screen.getByLabelText(/attach photos from this request/i), file);
+
+    await user.click(screen.getByRole('button', { name: /create work order/i }));
+
+    await waitFor(() => {
+      expect(mockCreateWorkOrder).toHaveBeenCalled();
+    });
+
+    const call = mockCreateWorkOrder.mock.calls.at(-1)?.[0] as {
+      images?: File[];
+      attachPM?: boolean;
+    };
+    expect(call?.attachPM).toBe(false);
+    expect(call?.images?.some((f) => f.name === 'site-photo.jpg')).toBe(true);
+  });
 });
