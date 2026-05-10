@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { Edit2, Check, X, DollarSign, Package, Plus } from 'lucide-react';
 import { WorkOrderCost } from '@/features/work-orders/services/workOrderCostsService';
 import { useWorkOrderCostsState } from '@/features/work-orders/hooks/useWorkOrderCostsState';
@@ -40,6 +41,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
   equipmentIds,
   canEdit
 }) => {
+  const { formatDate } = useFormatTimestamp();
   const isMobile = useIsMobile();
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
@@ -236,20 +238,16 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
       // Error handling: The mutation hook's onError will show a generic toast,
       // but we provide additional context here for insufficient stock errors
       console.error('Error adding part from inventory:', error);
-      
-      // Extract error message from Supabase RPC error
-      // Supabase RPC errors have the message in error.message or error.details
-      let errorMessage = '';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (error && typeof error === 'object' && 'message' in error) {
-        errorMessage = String(error.message);
-      } else if (error && typeof error === 'object' && 'details' in error) {
-        errorMessage = String(error.details);
-      } else {
-        errorMessage = String(error);
-      }
-      
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : error && typeof error === 'object' && 'message' in error
+            ? String((error as { message: unknown }).message)
+            : error && typeof error === 'object' && 'details' in error
+              ? String((error as { details: unknown }).details)
+              : String(error);
+
       // Check if it's an insufficient stock error from the RPC function
       // The RPC function raises: 'Insufficient stock: requested X units, but only Y available'
       if (errorMessage.includes('Insufficient stock')) {
@@ -285,7 +283,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
             {cost.description}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
-            Added by {cost.created_by_name} • {new Date(cost.created_at).toLocaleDateString()}
+            Added by {cost.created_by_name} • {formatDate(cost.created_at)}
             {cost.inventory_item_id && <span className="ml-1 text-info">(Inventory)</span>}
           </div>
         </div>
@@ -315,7 +313,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
           </div>
           <div className="text-xs text-muted-foreground mt-1">
             Added by {cost.created_by_name} on{' '}
-            {new Date(cost.created_at).toLocaleDateString()}
+            {formatDate(cost.created_at)}
             {cost.inventory_item_id && <span className="ml-1 text-info">(Inventory)</span>}
           </div>
         </div>

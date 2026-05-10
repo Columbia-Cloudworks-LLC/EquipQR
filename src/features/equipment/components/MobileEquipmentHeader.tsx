@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, QrCode, MapPin, Calendar, Trash2, Clock } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import { getStatusColor, EQUIPMENT_STATUS_OPTIONS } from '@/features/equipment/utils/equipmentHelpers';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
 type Equipment = Tables<'equipment'>;
 
@@ -24,6 +25,7 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
   onShowWorkingHours,
 }) => {
   const navigate = useNavigate();
+  const { formatDate } = useFormatTimestamp();
 
   return (
     <div className="space-y-4">
@@ -97,10 +99,7 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">Last Maintenance</p>
             <p className="text-sm text-muted-foreground">
-              {equipment.last_maintenance ? 
-                new Date(equipment.last_maintenance).toLocaleDateString() : 
-                '—'
-              }
+              {equipment.last_maintenance ? formatDate(equipment.last_maintenance) : '—'}
             </p>
           </div>
         </div>

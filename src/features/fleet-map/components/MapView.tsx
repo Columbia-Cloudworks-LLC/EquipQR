@@ -99,9 +99,9 @@ function hslToHex(h: number, s: number, l: number): string {
   const huePrime = h / 60;
   const x = chroma * (1 - Math.abs((huePrime % 2) - 1));
 
-  let r = 0;
-  let g = 0;
-  let b = 0;
+  let r: number;
+  let g: number;
+  let b: number;
   if (huePrime >= 0 && huePrime < 1) [r, g, b] = [chroma, x, 0];
   else if (huePrime < 2) [r, g, b] = [x, chroma, 0];
   else if (huePrime < 3) [r, g, b] = [0, chroma, x];

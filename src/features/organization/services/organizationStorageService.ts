@@ -128,7 +128,9 @@ export class OrganizationStorageService {
 
     } catch (error) {
       logger.error('Error fetching organization storage usage:', error);
-      throw new Error(`Failed to fetch storage usage: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Failed to fetch storage usage: ${error instanceof Error ? error.message : 'Unknown error'}`, {
+        cause: error,
+      });
     }
   }
 
