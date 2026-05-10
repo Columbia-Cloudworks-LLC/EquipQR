@@ -140,8 +140,12 @@ export async function generateSingleWorkOrderExcel(
         workOrderStatus: formatStatus(workOrder.status),
         workOrderPriority: workOrder.priority.toUpperCase(),
         workOrderCreatedDate: formatDate(workOrder.created_date, settings),
-        workOrderDueDate: formatDate(workOrder.due_date, settings),
-        workOrderCompletedDate: formatDate(workOrder.completed_date, settings),
+        workOrderDueDate: workOrder.due_date
+          ? formatDate(workOrder.due_date, settings)
+          : '',
+        workOrderCompletedDate: workOrder.completed_date
+          ? formatDate(workOrder.completed_date, settings)
+          : '',
         workOrderAssignee: workOrder.assignee_name || 'Unassigned',
         // Team context
         teamName,

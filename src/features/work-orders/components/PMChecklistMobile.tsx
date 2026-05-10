@@ -15,6 +15,7 @@ import {
   Clipboard
 } from 'lucide-react';
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
 interface PMChecklistMobileProps {
   pm: {
