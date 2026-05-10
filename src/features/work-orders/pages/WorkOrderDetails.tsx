@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Clipboard, CheckCircle, History } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -28,7 +27,7 @@ import { WorkOrderDetailsMobile } from '@/features/work-orders/components/WorkOr
 
 import { WorkOrderPDFExportDialog } from '@/features/work-orders/components/WorkOrderPDFExportDialog';
 import { MobileWorkOrderActionSheet } from '@/features/work-orders/components/MobileWorkOrderActionSheet';
-import { MobileWorkOrderInProgressBar } from '@/features/work-orders/components/MobileWorkOrderInProgressBar';
+import { MobileWorkOrderActionFooter } from '@/features/work-orders/components/MobileWorkOrderActionFooter';
 import { useWorkTimer } from '@/features/work-orders/hooks/useWorkTimer';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -41,7 +40,57 @@ import { useGoogleWorkspaceExportDestination } from '@/features/organization/hoo
 import { HistoryTab } from '@/components/audit';
 import { cn } from '@/lib/utils';
 import { canExportWorkOrderGoogleDoc } from '@/features/work-orders/utils/googleDocsExportAvailability';
+import { MobileWorkOrderCompactSummary } from '@/features/work-orders/components/MobileWorkOrderCompactSummary';
+import { useAuth } from '@/hooks/useAuth';
 import { isOfflineId } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
+
+/** Single pause/hold/resume mutation for mobile footer (avoids duplicate `const` when merging edits). */
+function usePauseResumeMobileWorkOrder(
+  workOrder: { id: string; status: string } | undefined | null,
+  organization: { id: string } | undefined | null,
+  updateStatusMutation: ReturnType<typeof useUpdateWorkOrderStatus>,
+  workTimer: ReturnType<typeof useWorkTimer>
+) {
+  return useCallback(() => {
+    if (!workOrder || !organization) return;
+
+    const newStatus = workOrder.status === 'on_hold' ? 'in_progress' : 'on_hold';
+    updateStatusMutation.mutate(
+      {
+        workOrderId: workOrder.id,
+        status: newStatus,
+        organizationId: organization.id,
+      },
+      {
+        onSuccess: () => {
+          if (newStatus === 'on_hold') {
+            workTimer.pause();
+            toast('Work order paused', {
+              action: {
+                label: 'Undo',
+                onClick: () => {
+                  updateStatusMutation.mutate(
+                    {
+                      workOrderId: workOrder.id,
+                      status: 'in_progress',
+                      organizationId: organization.id,
+                    },
+                    {
+                      onSuccess: () => workTimer.start(),
+                    },
+                  );
+                },
+              },
+              duration: 5000,
+            });
+          } else {
+            workTimer.start();
+          }
+        },
+      },
+    );
+  }, [organization, updateStatusMutation, workOrder, workTimer]);
+}
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
@@ -68,6 +117,8 @@ const WorkOrderDetails = () => {
 
   // Trigger to programmatically open the note form from mobile action bar/sheet
   const [openNoteFormTrigger, setOpenNoteFormTrigger] = useState(0);
+
+  const { user } = useAuth();
 
   // Use custom hooks for data and actions
   const {
@@ -362,6 +413,13 @@ const WorkOrderDetails = () => {
     }
   };
 
+  const pauseResumeMobileWorkOrder = usePauseResumeMobileWorkOrder(
+    workOrder,
+    currentOrganization,
+    updateStatusMutation,
+    workTimer,
+  );
+
   // Only redirect if we definitely don't have the required data and aren't loading
   if (!workOrderId) {
     logNavigationEvent('REDIRECT_NO_WORK_ORDER_ID');
@@ -394,22 +452,24 @@ const WorkOrderDetails = () => {
     organizationId: currentOrganization.id 
   });
 
-  const showFloatingCTA =
+  const footerRoleEligible =
+    permissionLevels.isManager ||
+    (permissionLevels.isTechnician && workOrder.assignee_id === user?.id) ||
+    (!!user?.id &&
+      !!workOrder.created_by &&
+      workOrder.created_by === user.id &&
+      workOrder.status === 'submitted');
+
+  const showMobileActionFooter =
     isMobile &&
-    !!workOrder.has_pm &&
-    !!pmData &&
-    pmData.status !== 'completed' &&
-    (permissionLevels.isManager || permissionLevels.isTechnician) &&
+    footerRoleEligible &&
     !isWorkOrderLocked &&
     workOrder.status !== 'completed' &&
     workOrder.status !== 'cancelled';
 
-  const showInProgressBar =
-    isMobile &&
-    (workOrder.status === 'in_progress' || workOrder.status === 'on_hold') &&
-    (permissionLevels.isManager || permissionLevels.isTechnician) &&
-    !isWorkOrderLocked &&
-    !showFloatingCTA;
+  const canCompletePmGate = !workOrder.has_pm || pmData?.status === 'completed';
+  const showContinueChecklistCta =
+    !!workOrder.has_pm && !!pmData && pmData.status !== 'completed';
 
   const scrollToPMSection = () => {
     pmSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -419,21 +479,9 @@ const WorkOrderDetails = () => {
     <div className="min-h-screen bg-background texture-grain">
       {/* Mobile Header */}
       <WorkOrderDetailsMobileHeader
-        workOrder={{
-          ...workOrder,
-          equipment: equipment ? {
-            name: equipment.name,
-            status: equipment.status,
-            location: equipment.location
-          } : undefined,
-          team: workOrder.team || (workOrder.teamName && workOrder.equipmentTeamId ? { id: workOrder.equipmentTeamId, name: workOrder.teamName } : undefined),
-          created_at: workOrder.created_date || workOrder.createdDate,
-          due_date: workOrder.dueDate,
-          effectiveLocation: workOrder.effectiveLocation
-        }}
+        workOrder={{ title: workOrder.title }}
         canEdit={canEdit}
         onEditClick={handleEditWorkOrder}
-        onToggleSidebar={() => setShowMobileSidebar(!showMobileSidebar)}
         onOpenActionSheet={() => setShowMobileActionSheet(true)}
       />
 
@@ -464,8 +512,7 @@ const WorkOrderDetails = () => {
         <div
           className={cn(
             isMobile ? 'space-y-4' : 'lg:col-span-2 space-y-6',
-            showFloatingCTA && 'pb-24',
-            showInProgressBar && 'pb-28'
+            showMobileActionFooter && 'pb-32'
           )}
         >
           {/* Equipment Selector for Multi-Equipment Work Orders */}
@@ -480,6 +527,23 @@ const WorkOrderDetails = () => {
           {/* Mobile-Optimized Layout */}
           {isMobile ? (
             <>
+              <MobileWorkOrderCompactSummary
+                workOrder={{
+                  status: workOrder.status,
+                  priority: workOrder.priority,
+                  due_date: workOrder.dueDate,
+                }}
+                equipment={
+                  equipment
+                    ? { id: equipment.id, name: equipment.name, status: equipment.status }
+                    : undefined
+                }
+                team={(() => {
+                  const teamId = workOrder.team_id || equipment?.team_id;
+                  return workOrder.teamName && teamId ? { id: teamId, name: workOrder.teamName } : undefined;
+                })()}
+                assignee={workOrder.assigneeName ? { name: workOrder.assigneeName } : undefined}
+              />
               {/* Mobile Work Order Details */}
               <div {...stagger(0)}>
                 <WorkOrderDetailsMobile
@@ -532,7 +596,6 @@ const WorkOrderDetails = () => {
                 assignee={workOrder.assigneeName ? { id: '', name: workOrder.assigneeName } : undefined}
                 effectiveLocation={workOrder.effectiveLocation}
                 onScrollToPM={scrollToPMSection}
-                onDeleteRequest={permissionLevels.isManager ? () => setShowMobileActionSheet(true) : undefined}
               />
               </div>
 
@@ -601,7 +664,7 @@ const WorkOrderDetails = () => {
                   workOrderId={workOrder.id}
                   canAddNotes={canAddNotes}
                   showPrivateNotes={permissionLevels.isManager}
-                  hideInlineAddButton={showInProgressBar}
+                  hideInlineAddButton={showMobileActionFooter}
                   autoOpenForm={shouldAutoOpenNoteForm}
                   openFormTrigger={openNoteFormTrigger}
                 />
@@ -718,7 +781,7 @@ const WorkOrderDetails = () => {
                   workOrderId={workOrder.id}
                   canAddNotes={canAddNotes}
                   showPrivateNotes={permissionLevels.isManager}
-                  hideInlineAddButton={showInProgressBar}
+                  hideInlineAddButton={showMobileActionFooter}
                   autoOpenForm={shouldAutoOpenNoteForm}
                   openFormTrigger={openNoteFormTrigger}
                 />
@@ -785,20 +848,6 @@ const WorkOrderDetails = () => {
         />
       </div>
 
-      {/* Mobile floating Complete PM CTA */}
-      {showFloatingCTA && (
-        <div className="fixed bottom-[70px] left-0 right-0 z-fixed border-t bg-background p-4 pb-safe-bottom lg:hidden">
-          <Button
-            className="h-12 w-full min-h-[44px] font-medium"
-            size="lg"
-            onClick={scrollToPMSection}
-          >
-            <CheckCircle className="h-5 w-5 mr-2" />
-            Complete PM
-          </Button>
-        </div>
-      )}
-
       {/* Edit Work Order Form - Pass workOrder for edit mode */}
       <WorkOrderForm
         open={isEditFormOpen}
@@ -841,6 +890,12 @@ const WorkOrderDetails = () => {
           workOrderStatus={workOrder.status}
           equipmentTeamId={equipment?.team_id}
           isManager={permissionLevels.isManager}
+          canEdit={canEdit}
+          onEdit={handleEditWorkOrder}
+          onViewFullDetails={() => {
+            setShowMobileActionSheet(false);
+            setShowMobileSidebar(true);
+          }}
           onDownloadPDF={() => setShowMobilePDFDialog(true)}
           onDownloadWorksheet={handleMobileDownloadWorksheet}
           isGeneratingWorksheet={isMobileWorksheetGenerating}
@@ -908,65 +963,24 @@ const WorkOrderDetails = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Mobile In-Progress Bar */}
-      {showInProgressBar && (
-        <MobileWorkOrderInProgressBar
-          workOrderId={workOrder.id}
-          workOrderStatus={workOrder.status}
-          canComplete={!workOrder.has_pm || (pmData?.status === 'completed')}
-          canChangeStatus={permissionLevels.isManager || permissionLevels.isTechnician}
+      {showMobileActionFooter && (
+        <MobileWorkOrderActionFooter
+          workOrder={{
+            id: workOrder.id,
+            status: workOrder.status,
+            has_pm: workOrder.has_pm,
+            assignee_id: workOrder.assignee_id,
+            created_by: workOrder.created_by,
+          }}
+          organizationId={currentOrganization.id}
+          canCompletePm={canCompletePmGate}
+          showContinueChecklist={showContinueChecklistCta}
           canAddNotes={canAddNotes}
-          isUpdatingStatus={updateStatusMutation.isPending}
-          timerDisplay={workTimer.displayTime}
-          isTimerRunning={workTimer.isRunning}
+          isUpdatingStatusExternal={updateStatusMutation.isPending}
           isOnline={isOnline}
           isSyncing={isSyncing}
-          onAddNote={() => {
-            setOpenNoteFormTrigger(prev => prev + 1);
-            setTimeout(() => {
-              notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 50);
-          }}
-          onAddPhoto={() => {
-            notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }}
-          onPauseResume={() => {
-            const newStatus = workOrder.status === 'on_hold' ? 'in_progress' : 'on_hold';
-            updateStatusMutation.mutate(
-              {
-                workOrderId: workOrder.id,
-                status: newStatus,
-                organizationId: currentOrganization.id,
-              },
-              {
-                onSuccess: () => {
-                  if (newStatus === 'on_hold') {
-                    workTimer.pause();
-                    toast('Work order paused', {
-                      action: {
-                        label: 'Undo',
-                        onClick: () => {
-                          updateStatusMutation.mutate({
-                            workOrderId: workOrder.id,
-                            status: 'in_progress',
-                            organizationId: currentOrganization.id,
-                          }, {
-                            onSuccess: () => workTimer.start(),
-                          });
-                        },
-                      },
-                      duration: 5000,
-                    });
-                  } else {
-                    workTimer.start();
-                  }
-                },
-              }
-            );
-          }}
-          onComplete={() => {
-            setShowMobileCompleteDialog(true);
-          }}
+          timerDisplay={workTimer.displayTime}
+          isTimerRunning={workTimer.isRunning}
           onToggleTimer={() => {
             if (workTimer.isRunning) {
               workTimer.pause();
@@ -974,6 +988,18 @@ const WorkOrderDetails = () => {
               workTimer.start();
             }
           }}
+          onAddNote={() => {
+            setOpenNoteFormTrigger((prev) => prev + 1);
+            setTimeout(() => {
+              notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 50);
+          }}
+          onAddPhoto={() => {
+            notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
+          onPauseResume={pauseResumeMobileWorkOrder}
+          onOpenCompleteDialog={() => setShowMobileCompleteDialog(true)}
+          onScrollToChecklist={scrollToPMSection}
         />
       )}
     </div>

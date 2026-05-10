@@ -1,30 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { 
-  ChevronDown, 
-  ChevronUp, 
-  User,
-  Clock,
-  ExternalLink,
-  Clipboard,
-  AlertCircle,
-  AlertTriangle,
-  CheckCircle2,
-  Wrench,
-  Forklift,
-  MapPin
-} from 'lucide-react';
+import { ChevronDown, ChevronUp, Clipboard, CheckCircle2, Clock, Wrench, Forklift, MapPin } from 'lucide-react';
 import { GoogleMap, MarkerF } from '@react-google-maps/api';
 import { useEquipmentCurrentWorkingHours } from '@/features/equipment/hooks/useEquipmentWorkingHours';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import { cn } from '@/lib/utils';
-import { humanizeAttributeKey, humanizeAttributeValue, isOverdue as checkIsOverdue } from '@/features/work-orders/utils/workOrderHelpers';
+import { humanizeAttributeKey, humanizeAttributeValue } from '@/features/work-orders/utils/workOrderHelpers';
 import type { EffectiveLocation } from '@/utils/effectiveLocation';
 
 interface WorkOrderDetailsMobileProps {
@@ -75,26 +61,13 @@ interface WorkOrderDetailsMobileProps {
   effectiveLocation?: EffectiveLocation | null;
   /** Callback to scroll to the PM section */
   onScrollToPM?: () => void;
-  /** Open mobile actions focused on destructive actions */
-  onDeleteRequest?: () => void;
 }
-
-const getDueDateStatus = (dueDate: string, status: string): 'overdue' | 'due_soon' | 'normal' => {
-  if (checkIsOverdue(dueDate, status as Parameters<typeof checkIsOverdue>[1])) return 'overdue';
-  const due = new Date(dueDate);
-  const now = new Date();
-  const hoursUntilDue = (due.getTime() - now.getTime()) / (1000 * 60 * 60);
-  if (hoursUntilDue > 0 && hoursUntilDue < 24) return 'due_soon';
-  return 'normal';
-};
 
 export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
   workOrder,
   equipment,
-  assignee,
   effectiveLocation,
   onScrollToPM,
-  onDeleteRequest,
 }) => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
   const [isEquipmentDetailsExpanded, setIsEquipmentDetailsExpanded] = useState(false);
@@ -122,53 +95,11 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
     return () => cancelAnimationFrame(id);
   }, [pmProgressPercent]);
 
-  const dueDateStatus = workOrder.due_date ? getDueDateStatus(workOrder.due_date, workOrder.status) : 'normal';
-  const isOverdue = dueDateStatus === 'overdue';
-  const isDueSoon = dueDateStatus === 'due_soon';
-
   return (
     <div className="space-y-3">
       {/* Top Summary Card — unique data not in mobile header */}
       <Card className="shadow-elevation-2 border-l-4 border-l-primary">
         <CardContent className="p-4 space-y-3">
-          {/* Assignee */}
-          {assignee && (
-            <div className="flex items-center gap-2 text-[15px]">
-              <User className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="font-medium">Assigned to:</span>
-              <span className="text-muted-foreground">{assignee.name}</span>
-            </div>
-          )}
-
-          {/* Due Date */}
-          {workOrder.due_date && (
-            <div className={cn(
-              "flex items-center gap-2 text-[15px]",
-              isOverdue && "text-destructive",
-              isDueSoon && !isOverdue && "text-warning"
-            )}>
-              {isOverdue
-                ? <AlertCircle className="h-4 w-4 shrink-0" />
-                : isDueSoon
-                  ? <AlertTriangle className="h-4 w-4 shrink-0" />
-                  : <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
-              }
-              <span className="font-medium">Due:</span>
-              <span>{new Date(workOrder.due_date).toLocaleDateString()}</span>
-              {isOverdue && (
-                <Badge variant="outline" className="text-xs bg-destructive/10 text-destructive border-destructive/30">
-                  OVERDUE
-                </Badge>
-              )}
-              {isDueSoon && !isOverdue && (
-                <Badge variant="outline" className="text-xs bg-warning/10 text-warning border-warning/30">
-                  <AlertTriangle className="h-3 w-3 mr-0.5" />
-                  DUE SOON
-                </Badge>
-              )}
-            </div>
-          )}
-
           {/* Estimated Hours */}
           {workOrder.estimated_hours != null && (
             <div className="flex items-center gap-2 text-[15px]">
@@ -193,62 +124,71 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
             </span>
           </div>
 
-          {/* Equipment quick link */}
-          {equipment && (
-            <div className="flex items-center justify-between text-[15px] border-t pt-3 mt-1">
-              <div className="flex items-center gap-2">
-                <Wrench className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="font-medium text-muted-foreground">Equipment</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="min-h-[44px] gap-1.5 text-primary touch-manipulation"
-                asChild
-              >
-                <Link to={`/dashboard/equipment/${equipment.id}`}>
-                  {equipment.name}
-                  <ExternalLink className="h-3 w-3" />
-                </Link>
-              </Button>
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* PM Checklist Progress Card */}
+      {/* PM checklist — technician primary surface */}
       {workOrder.has_pm && (
-        <Card 
+        <Card
           className={cn(
-            "shadow-elevation-2 transition-colors",
-            onScrollToPM && "cursor-pointer hover:bg-muted/50",
-            workOrder.pm_status === 'completed' && "border-success/30 dark:border-success/40"
+            'border border-primary/20 bg-primary/[0.05] shadow-elevation-2 transition-colors dark:bg-primary/10',
+            workOrder.pm_status === 'completed' && 'border-success/40 bg-success/[0.04] dark:bg-success/10'
           )}
-          onClick={onScrollToPM ? () => onScrollToPM() : undefined}
         >
-          <CardContent standalone>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Clipboard className="h-4 w-4 text-muted-foreground" />
-                <span className="font-semibold text-base">PM Checklist</span>
+          <CardContent standalone className="space-y-4 p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 font-semibold text-lg">
+                  <Clipboard className="h-5 w-5 text-primary" />
+                  PM checklist
+                </div>
+                <p className="text-sm leading-snug text-muted-foreground">
+                  {workOrder.pm_status === 'completed'
+                    ? 'You can finish this work order once remaining steps are documented.'
+                    : 'Keep this card green by closing every maintenance item.'}
+                </p>
               </div>
-              <div className="flex items-center gap-2">
-                {workOrder.pm_status === 'completed' ? (
-                  <Badge variant="outline" className="bg-success/20 text-success border-success/30">
-                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Complete
-                  </Badge>
-                ) : (
-                  <span className="text-sm font-medium tabular-nums">
-                    {workOrder.pm_progress || 0} / {workOrder.pm_total || 0}
-                  </span>
-                )}
-              </div>
+              {workOrder.pm_status === 'completed' ? (
+                <Badge variant="outline" className="gap-1 border-success/30 bg-success/15 px-3 py-1 text-sm font-semibold text-success">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Done
+                </Badge>
+              ) : (
+                <span className="text-lg font-semibold tabular-nums leading-none">
+                  {workOrder.pm_progress || 0}
+                  <span className="mx-1 text-muted-foreground">/</span>
+                  {workOrder.pm_total || 0}
+                </span>
+              )}
             </div>
-            <Progress value={animatedProgress} className="h-2.5" />
-            <p className="text-xs text-muted-foreground mt-2">
-              Tap to view and complete checklist items
-            </p>
+
+            {workOrder.pm_status !== 'completed' ? (
+              <>
+                <Progress value={animatedProgress} className="h-3 rounded-full bg-muted/40" aria-label={`Checklist completion ${animatedProgress}%`} />
+                <Button
+                  type="button"
+                  variant="default"
+                  className="h-12 w-full gap-2 text-base font-semibold"
+                  disabled={!onScrollToPM}
+                  onClick={onScrollToPM}
+                >
+                  <Clipboard className="h-5 w-5" aria-hidden />
+                  Continue checklist —
+                  {' '}
+                  <span aria-live="polite">
+                    {(workOrder.pm_progress || 0).toLocaleString()} of {(workOrder.pm_total || 0).toLocaleString()} items
+                  </span>
+                </Button>
+              </>
+            ) : (
+              <div className="flex items-start gap-2 rounded-lg bg-success/10 p-4 text-success">
+                <CheckCircle2 className="mt-1 h-5 w-5" aria-hidden />
+                <div>
+                  <p className="font-semibold">Checklist complete — Ready to finish</p>
+                  <p className="text-sm text-success/90">Tap Complete in the footer to close this work order.</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -428,25 +368,6 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
                 )}
               </CollapsibleContent>
             </Collapsible>
-          </CardContent>
-        </Card>
-      )}
-
-      {onDeleteRequest && (
-        <Card className="border-destructive/80 bg-destructive/[0.06] shadow-elevation-2 dark:bg-destructive/10">
-          <CardContent className="p-4 space-y-3">
-            <p className="text-sm font-semibold text-destructive">Delete Work Order</p>
-            <p className="text-sm text-muted-foreground">
-              This action permanently removes the work order and related records.
-            </p>
-            <Button
-              type="button"
-              variant="destructive"
-              className="w-full min-h-[44px]"
-              onClick={onDeleteRequest}
-            >
-              Delete Work Order
-            </Button>
           </CardContent>
         </Card>
       )}

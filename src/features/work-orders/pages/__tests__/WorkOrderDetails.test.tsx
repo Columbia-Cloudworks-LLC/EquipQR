@@ -157,8 +157,8 @@ vi.mock('@/features/work-orders/components/MobileWorkOrderActionSheet', () => ({
   MobileWorkOrderActionSheet: () => null,
 }));
 
-vi.mock('@/features/work-orders/components/MobileWorkOrderInProgressBar', () => ({
-  MobileWorkOrderInProgressBar: () => null,
+vi.mock('@/features/work-orders/components/MobileWorkOrderActionFooter', () => ({
+  MobileWorkOrderActionFooter: () => null,
 }));
 
 describe('WorkOrderDetails', () => {

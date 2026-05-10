@@ -20,12 +20,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { 
-  Download, 
-  FileSpreadsheet, 
-  FileText,
+import {
+  Download,
   ClipboardList,
   Loader2,
+  FileSpreadsheet,
+  FileText,
+  PanelRight,
+  PencilLine,
   MoreHorizontal,
   Trash2,
 } from 'lucide-react';
@@ -44,6 +46,10 @@ interface MobileWorkOrderActionSheetProps {
   workOrderStatus: WorkOrderStatus;
   equipmentTeamId?: string | null;
   isManager: boolean;
+  /** Opens sidebar / overlay with metadata (mobile) */
+  onViewFullDetails: () => void;
+  canEdit?: boolean;
+  onEdit?: () => void;
   onDownloadPDF: () => void;
   onDownloadWorksheet: () => void;
   isGeneratingWorksheet: boolean;
@@ -60,6 +66,9 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
   workOrderStatus,
   equipmentTeamId,
   isManager,
+  onViewFullDetails,
+  canEdit = false,
+  onEdit,
   onDownloadPDF,
   onDownloadWorksheet,
   isGeneratingWorksheet,
@@ -81,6 +90,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
   const deleteWorkOrderMutation = useDeleteWorkOrder();
   const { data: imageData } = useWorkOrderImageCount(workOrderId);
   const canDelete = permissions.hasRole(['owner', 'admin']);
+  const showAdminSection = Boolean((canEdit && onEdit) || canDelete);
 
   const handleAction = (action: () => void) => {
     action();
@@ -110,9 +120,25 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
           </SheetHeader>
 
           <div className="space-y-4">
-            {/* Office Tools Section */}
+            {/* Details — always first */}
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Details
+              </p>
+              <Button
+                variant="outline"
+                className="h-12 w-full justify-start gap-2"
+                onClick={() => handleAction(onViewFullDetails)}
+              >
+                <PanelRight className="h-5 w-5" aria-hidden />
+                <span className="text-sm font-medium">View full details</span>
+              </Button>
+            </div>
+
+            {/* Office tools / exports */}
             {isManager && (
-              <div className="space-y-2">
+              <>
+                <Separator />
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Exports
@@ -169,10 +195,9 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
                     )}
                   </div>
                 </div>
-              </div>
+              </>
             )}
 
-            {/* QuickBooks Section */}
             {showQuickBooks && (
               <>
                 <Separator />
@@ -189,23 +214,34 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
               </>
             )}
 
-            {/* Danger Zone Section */}
-            {canDelete && (
+            {showAdminSection && (
               <>
                 <Separator />
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-destructive uppercase tracking-wider">
-                    Destructive Actions
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Admin
                   </p>
-                  <Button
-                    variant="outline"
-                    className="w-full h-12 border-destructive/50 text-destructive hover:bg-destructive/10"
-                    onClick={() => setShowDeleteDialog(true)}
-                    disabled={deleteWorkOrderMutation.isPending}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    <span>Delete Work Order</span>
-                  </Button>
+                  {canEdit && onEdit ? (
+                    <Button
+                      variant="outline"
+                      className="h-12 w-full justify-start gap-2"
+                      onClick={() => handleAction(onEdit)}
+                    >
+                      <PencilLine className="h-5 w-5" aria-hidden />
+                      <span className="text-sm font-medium">Edit work order</span>
+                    </Button>
+                  ) : null}
+                  {canDelete ? (
+                    <Button
+                      variant="outline"
+                      className="h-12 w-full border-destructive/50 justify-start gap-2 text-destructive hover:bg-destructive/10"
+                      onClick={() => setShowDeleteDialog(true)}
+                      disabled={deleteWorkOrderMutation.isPending}
+                    >
+                      <Trash2 className="h-5 w-5" aria-hidden />
+                      <span className="text-sm font-medium">Delete work order</span>
+                    </Button>
+                  ) : null}
                 </div>
               </>
             )}

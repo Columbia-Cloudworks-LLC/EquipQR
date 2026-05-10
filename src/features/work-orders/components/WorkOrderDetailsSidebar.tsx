@@ -77,6 +77,7 @@ export const WorkOrderDetailsSidebar: React.FC<WorkOrderDetailsSidebarProps> = (
               equipmentTeamId: equipment?.team_id
             }} 
             organizationId={currentOrganization.id}
+            hideStatusActions={isMobile && showMobileSidebar}
             contextData={{
               dueDate: workOrder.due_date,
               estimatedHours: workOrder.estimated_hours,
