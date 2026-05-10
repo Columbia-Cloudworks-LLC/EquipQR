@@ -118,7 +118,7 @@
     "react-dom": "^18.3.1",
     "react-helmet-async": "2.0.5",
     "react-hook-form": "^7.55.0",
-    "react-resizable-panels": "^2.1.9",
+    "react-resizable-panels": "^4.11.0",
     "react-router-dom": "^6.30.3",
     "react-window": "^1.8.11",
     "recharts": "^3.8.1",
