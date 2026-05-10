@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-05-09
+
 ### Added
 
 - **Schema-drift CI gate** ([#735](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/735)) - New `.github/workflows/schema-drift-check.yml` + `.github/scripts/check-schema-drift.js` compare `supabase/migrations/*.sql` against the production `supabase_migrations.schema_migrations` table and fail any `preview -> main` PR whose local migrations include a NAME not yet on production. PRs targeting `preview` and pushes to `preview` warn instead of failing (drift is expected day-to-day; the gate only blocks the release boundary). Matching is by name not version so the documented timestamp-drift duplicates (e.g. `apply_pending_admin_grants_quiet_mismatch`, `remote_schema`) don't false-positive. Workflow mirrors `edge-functions-smoke-test.yml` for token loading and degrades gracefully when `OP_SERVICE_ACCOUNT_TOKEN` is absent (fork PRs / pre-token-plant). Closes the bug class behind #735.

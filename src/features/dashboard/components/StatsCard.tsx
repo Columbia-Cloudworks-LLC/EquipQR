@@ -104,6 +104,9 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   const uid = useId();
   const gradientId = `sparkline-${uid.replace(/:/g, '')}`;
   const hasSparkline = sparkline && sparkline.length > 1;
+  const sparklineDescription = hasSparkline
+    ? formatStatsCardSparklineDescription(label, sparkline, trend, trendNote)
+    : null;
 
   const content = (
     <Card
@@ -166,25 +169,22 @@ export const StatsCard: React.FC<StatsCardProps> = ({
               <div className="mt-1.5 text-xs text-muted-foreground">{trendNote}</div>
             )}
             {hasSparkline && (
-              <React.Suspense
-                fallback={
-                  <div aria-hidden className="mt-2 h-10 w-full min-w-[4rem]">
-                    <Skeleton className="h-10 w-full" />
-                  </div>
-                }
-              >
-                <StatsCardSparkline
-                  data={sparkline!}
-                  color={styles.chartColor}
-                  gradientId={gradientId}
-                  accessibleDescription={formatStatsCardSparklineDescription(
-                    label,
-                    sparkline!,
-                    trend,
-                    trendNote
-                  )}
-                />
-              </React.Suspense>
+              <>
+                <p className="sr-only">{sparklineDescription}</p>
+                <React.Suspense
+                  fallback={
+                    <div aria-hidden className="mt-2 h-10 w-full min-w-[4rem]">
+                      <Skeleton className="h-10 w-full" />
+                    </div>
+                  }
+                >
+                  <StatsCardSparkline
+                    data={sparkline!}
+                    color={styles.chartColor}
+                    gradientId={gradientId}
+                  />
+                </React.Suspense>
+              </>
             )}
           </>
         )}

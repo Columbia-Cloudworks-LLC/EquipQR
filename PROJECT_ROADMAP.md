@@ -1,18 +1,17 @@
 # EquipQR Project Roadmap
 
-Last updated: 2026-04-30
+Last updated: 2026-05-09
 
 This roadmap is grounded in current repository evidence and active GitHub issues.
 It avoids assumptions about proprietary sensors, paid integrations, or contracts we do not already have.
 
 ## Current Snapshot
 
-- Version: **3.1.0** on `main`; `preview` is clean and at HEAD.
-- Open issues: ~48 across enhancement, bug, compliance, and Google Workspace tracks.
-- Open PRs: 1 (`#705 Source file unit tests`, all CI checks green, targeting `preview`).
-- Delivery trend since last roadmap update: Mission Control UI overhaul, animated GSAP landing hero,
-  real dashboard trends, bulk equipment edit grid, QR scan quick actions, auth-claims performance refactor,
-  Supabase migration validator CI, DSR cockpit GA work, and a major round of feature-flag cleanup.
+- Version: **3.2.0** on `main`; `preview` is staged for the **3.3.0** release.
+- Open issues: tracked across enhancement, bug, compliance, and Google Workspace workstreams.
+- Open PRs: release promotion from `preview` to `main` pending.
+- Delivery trend since last roadmap update: timezone consistency, schema-drift release gates,
+  production migration recovery, audit/export fixes, dependency upgrades, and added hook/service coverage.
 
 ## Completed (shipped since last roadmap update)
 
@@ -25,6 +24,9 @@ It avoids assumptions about proprietary sensors, paid integrations, or contracts
 - `#686` Replace `supabase.auth.getUser()` with `getClaims()` across service/hook files — shipped in
   PR #687 (merged 2026-04-26); no remaining `.auth.getUser()` calls in `src/`.
 - `#695` Permission-aware quick actions on equipment QR scan page — shipped in v3.1.0 (PR #701).
+- `#647` User time zone respected across application surfaces — staged for v3.3.0.
+- `#724` Equipment list load failure from non-existent `qr_code` select — fixed and staged for v3.3.0.
+- `#735` Production schema drift detection and note-creation recovery — fixed and staged for v3.3.0.
 
 ## In Progress
 
@@ -36,12 +38,10 @@ It avoids assumptions about proprietary sensors, paid integrations, or contracts
 
 ## Next (High Value, Realistic)
 
-- `#650` Expand `canCreateEquipment()` to team managers and technicians — narrow RBAC fix,
-  documented inconsistency between code/docs/RLS, no vendor dependency.
 - `#588` DSR cockpit GA and operator workflow — cockpit route and components exist;
   remaining work: remove feature-flag gate, SLA-focused defaults, evidence export, runbook section.
 - `#558` Upgrade to Node.js 24 LTS and toolchain alignment — `package.json` already allows
-  `>=22.9.0` and Vite is at 6.4.2; remaining: pin Node 24 in `.nvmrc`/CI, align Vitest to 4.x.
+  Node 20.19, Node 22.13, and newer; remaining: pin Node 24 in `.nvmrc`/CI after ecosystem validation.
 
 ## Planned (Near-Mid Term)
 
@@ -69,7 +69,6 @@ It avoids assumptions about proprietary sensors, paid integrations, or contracts
   fix; still open, performance optimization, low urgency given the lazy-load guards already in place.
 - `#665` Dashboard overdue sparkline excludes historically-overdue completed WOs — bug, still open.
 - `#663` Invitation links fall back to production URL when `PRODUCTION_URL` secret unset — bug, open.
-- `#647` User time zone not respected across the application — bug, open.
 - `#601` 405 when connecting to Google Workspace — user-reported bug, still open.
 
 ## Tracking Notes

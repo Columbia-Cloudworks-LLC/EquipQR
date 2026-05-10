@@ -5,20 +5,16 @@ export interface StatsCardSparklineProps {
   data: number[];
   color: string;
   gradientId: string;
-  /** Plain-language summary for assistive tech; the SVG chart is decorative (aria-hidden). */
-  accessibleDescription: string;
 }
 
 const StatsCardSparkline: React.FC<StatsCardSparklineProps> = ({
   data,
   color,
   gradientId,
-  accessibleDescription,
 }) => {
   const chartData = data.map((v) => ({ v }));
   return (
     <div className="mt-2 h-10 w-full min-w-[4rem]">
-      <p className="sr-only">{accessibleDescription}</p>
       <div aria-hidden className="h-10 w-full">
         <ResponsiveContainer width="100%" height={40}>
           <AreaChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>

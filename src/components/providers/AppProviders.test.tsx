@@ -19,7 +19,7 @@ function renderWithRouter(ui: React.ReactElement, initialPath = '/') {
 
 // Mock all the provider components
 vi.mock('@tanstack/react-query', () => ({
-  QueryClient: vi.fn(function QueryClientMock(..._args: unknown[]) {
+  QueryClient: vi.fn(function QueryClientMock() {
     return {};
   }),
   QueryClientProvider: ({ children }: { children: React.ReactNode }) => (
