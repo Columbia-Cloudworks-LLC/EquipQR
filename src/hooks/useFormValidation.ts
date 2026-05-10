@@ -53,9 +53,10 @@ export const useFormValidation = <T extends Record<string, unknown>>(
     } catch (error) {
       if (error instanceof ZodError) {
         const fieldErrors: Record<string, string> = {};
-        error.errors.forEach(err => {
-          if (err.path.length > 0) {
-            fieldErrors[err.path[0] as string] = err.message;
+        error.issues.forEach((issue) => {
+          const pathHead = issue.path[0];
+          if (typeof pathHead === 'string') {
+            fieldErrors[pathHead] = issue.message;
           }
         });
         setErrors(fieldErrors);
@@ -82,7 +83,7 @@ export const useFormValidation = <T extends Record<string, unknown>>(
       return true;
     } catch (error) {
       if (error instanceof ZodError) {
-        const fieldError = error.errors[0]?.message || 'Invalid value';
+        const fieldError = error.issues[0]?.message || 'Invalid value';
         setErrors(prev => ({ ...prev, [field as string]: fieldError }));
       }
       return false;

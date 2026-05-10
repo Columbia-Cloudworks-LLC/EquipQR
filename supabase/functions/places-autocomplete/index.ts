@@ -12,7 +12,7 @@
  * Requires authenticated user (verify_jwt = true).
  */
 
-import { z } from "https://esm.sh/zod@3.23.8";
+import { z } from "https://esm.sh/zod@4.4.3";
 import {
   createUserSupabaseClient,
   requireUser,
