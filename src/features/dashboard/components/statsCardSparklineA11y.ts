@@ -11,8 +11,9 @@ export function formatStatsCardSparklineDescription(
   trendNote?: string
 ): string {
   const series = sparklineValues.join(', ');
+  const dayCount = sparklineValues.length;
   const parts: string[] = [
-    `Recent 7-day trend for ${metricLabel}: daily values ${series}.`,
+    `Recent ${dayCount}-day trend for ${metricLabel}: daily values ${series}.`,
   ];
   if (trend) {
     if (trend.direction === 'flat') {
