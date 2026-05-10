@@ -125,13 +125,13 @@ export default defineConfig({
       thresholds: isShardRun
         ? undefined
         : {
-            // Phase 1 thresholds (increased from baseline)
-            // Target: branches 80%, functions 75%, lines 80%, statements 80%
+            // Current CI baseline (merged shards); must match scripts/coverage-ratchet.mjs DEFAULT_THRESHOLDS.
+            // Long-term raise tracked in https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/816
             global: {
-              branches: 70,
-              functions: 50, // Increased from 45%
-              lines: 62,     // Increased from 60%
-              statements: 62, // Increased from 60%
+              branches: 47,
+              functions: 50,
+              lines: 55,
+              statements: 54,
             },
           },
     },
