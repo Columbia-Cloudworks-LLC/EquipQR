@@ -337,13 +337,21 @@ export const getWorkOrderImages = async (
       .select('id')
       .eq('id', workOrderId)
       .eq('organization_id', organizationId)
-      .single();
+      .maybeSingle();
 
-    if (workOrderError || !workOrder) {
-      logger.warn('Work order not found or organization mismatch while fetching images', {
+    if (workOrderError) {
+      logger.error('Error verifying work order organization while fetching images', {
         workOrderId,
         organizationId,
         error: workOrderError,
+      });
+      throw workOrderError;
+    }
+
+    if (!workOrder) {
+      logger.warn('Work order not found or organization mismatch while fetching images', {
+        workOrderId,
+        organizationId,
       });
       return [];
     }
@@ -465,7 +473,7 @@ export const getWorkOrderImages = async (
       .filter((row): row is WorkOrderCarouselImage => row != null);
   } catch (error) {
     logger.error('Error fetching work order images:', error);
-    return [];
+    throw error;
   }
 };
 

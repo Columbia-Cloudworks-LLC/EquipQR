@@ -155,6 +155,31 @@ describe('WorkOrderImagesSection', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows a retry state when image loading fails', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getWorkOrderImages).mockRejectedValueOnce(new Error('network unavailable'));
+
+    render(
+      <WorkOrderImagesSection
+        workOrderId="wo-1"
+        organizationId="org-1"
+        canUpload={false}
+        showPrivateNotes={false}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /work order images/i }));
+
+    expect(
+      await screen.findByText(/We could not load work order images/i),
+    ).toBeInTheDocument();
+
+    vi.mocked(getWorkOrderImages).mockResolvedValueOnce([makeImage({ id: 'retry-success' })]);
+    await user.click(screen.getByRole('button', { name: /^retry$/i }));
+
+    expect(await screen.findByAltText('a.png')).toBeInTheDocument();
+  });
+
   it('shows private-note images for uploader when showPrivateNotes is true', async () => {
     const user = userEvent.setup();
     vi.mocked(getWorkOrderImages).mockResolvedValue([

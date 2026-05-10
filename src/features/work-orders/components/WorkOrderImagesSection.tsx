@@ -54,7 +54,13 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
 
   const { data: countData, isLoading: countLoading } = useWorkOrderImageCount(workOrderId);
 
-  const { data: images = [], isLoading: imagesLoading } = useQuery({
+  const {
+    data: images = [],
+    isLoading: imagesLoading,
+    isError: imagesError,
+    isFetching: imagesFetching,
+    refetch: refetchImages,
+  } = useQuery({
     queryKey: workOrderQueryKeys.images(workOrderId),
     queryFn: () => getWorkOrderImages(workOrderId, organizationId),
     enabled: !!workOrderId && !!organizationId && isOpen,
@@ -144,6 +150,19 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
                 role="status"
                 aria-label="Loading images"
               />
+            ) : imagesError ? (
+              <div className="space-y-3 py-6 text-center text-sm text-muted-foreground" role="alert">
+                <p>We could not load work order images. Check your connection and try again.</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void refetchImages()}
+                  disabled={imagesFetching}
+                >
+                  {imagesFetching ? 'Retrying...' : 'Retry'}
+                </Button>
+              </div>
             ) : visibleImages.length === 0 ? (
               <div className="space-y-2 py-6 text-center text-sm text-muted-foreground">
                 <p>
