@@ -34,7 +34,8 @@ import {
 const invitationSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   role: z.enum(['admin', 'member'], {
-    required_error: 'Please select a role',
+    error: (issue) =>
+      issue.input === undefined ? 'Please select a role' : undefined,
   }),
   message: z.string().optional(),
 });

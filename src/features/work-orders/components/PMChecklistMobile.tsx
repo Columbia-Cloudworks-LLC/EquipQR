@@ -15,6 +15,7 @@ import {
   Clipboard
 } from 'lucide-react';
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
 interface PMChecklistMobileProps {
   pm: {
@@ -37,6 +38,7 @@ export const PMChecklistMobile: React.FC<PMChecklistMobileProps> = ({
   onRevertCompletion,
   readOnly = false
 }) => {
+  const { formatDate } = useFormatTimestamp();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isNotesExpanded, setIsNotesExpanded] = useState(false);
 
@@ -270,7 +272,7 @@ export const PMChecklistMobile: React.FC<PMChecklistMobileProps> = ({
           <div className="text-sm text-muted-foreground bg-success/10 p-2 rounded">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-success" />
-              <span>Completed on {new Date(pm.completed_at).toLocaleDateString()}</span>
+              <span>Completed on {formatDate(pm.completed_at)}</span>
             </div>
           </div>
         )}

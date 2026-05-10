@@ -14,6 +14,7 @@ import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { useEquipmentCurrentWorkingHours } from '@/features/equipment/hooks/useEquipmentWorkingHours';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import { humanizeAttributeKey, humanizeAttributeValue } from '@/features/work-orders/utils/workOrderHelpers';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import type { EffectiveLocation } from '@/utils/effectiveLocation';
 
 interface WorkOrderDetailsInfoProps {
@@ -27,6 +28,7 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
   equipment,
   effectiveLocation,
 }) => {
+  const { formatDateTime } = useFormatTimestamp();
   const isMobile = useIsMobile();
   const [isEquipmentExpanded, setIsEquipmentExpanded] = React.useState(true);
   const [isCompletionExpanded, setIsCompletionExpanded] = React.useState(!isMobile);
@@ -275,8 +277,7 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2">
                 <p className="text-sm text-muted-foreground">
-                  Completed on {new Date(workOrder.completed_date).toLocaleDateString()} at{' '}
-                  {new Date(workOrder.completed_date).toLocaleTimeString()}
+                  Completed on {formatDateTime(workOrder.completed_date)}
                 </p>
               </CollapsibleContent>
             </Collapsible>

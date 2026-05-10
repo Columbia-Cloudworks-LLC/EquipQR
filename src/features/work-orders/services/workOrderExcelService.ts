@@ -8,33 +8,12 @@
 // XLSX is loaded dynamically to reduce initial bundle size (~200KB)
 // It's only needed when a user explicitly triggers an Excel export
 type XLSXModule = typeof import('xlsx');
+import type { UserSettings } from '@/types/settings';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { format } from 'date-fns';
+import { formatDate, formatDateTime } from '@/utils/dateFormatter';
 import type { WorkOrderCost } from '@/features/work-orders/types/workOrderCosts';
-
-// ============================================
-// Data Transformation
-// ============================================
-
-function formatDate(dateString: string | null | undefined): string {
-  if (!dateString) return '';
-  try {
-    return format(new Date(dateString), 'yyyy-MM-dd');
-  } catch {
-    return dateString;
-  }
-}
-
-function formatDateTime(dateString: string | null | undefined): string {
-  if (!dateString) return '';
-  try {
-    return format(new Date(dateString), 'yyyy-MM-dd HH:mm');
-  } catch {
-    return dateString;
-  }
-}
-
+import type { WorkOrderExportDateSettings } from '@/features/work-orders/services/workOrderReportPDFService';
 
 // ============================================
 // Main Export Function
@@ -51,8 +30,10 @@ function formatDateTime(dateString: string | null | undefined): string {
  */
 export async function generateSingleWorkOrderExcel(
   workOrderId: string,
-  organizationId: string
+  organizationId: string,
+  exportDateSettings: WorkOrderExportDateSettings
 ): Promise<void> {
+  const settings = exportDateSettings as UserSettings;
   logger.info('Generating Excel export for work order cost items', { workOrderId, organizationId });
 
   try {
@@ -158,9 +139,13 @@ export async function generateSingleWorkOrderExcel(
         workOrderTitle: workOrder.title,
         workOrderStatus: formatStatus(workOrder.status),
         workOrderPriority: workOrder.priority.toUpperCase(),
-        workOrderCreatedDate: formatDate(workOrder.created_date),
-        workOrderDueDate: formatDate(workOrder.due_date),
-        workOrderCompletedDate: formatDate(workOrder.completed_date),
+        workOrderCreatedDate: formatDate(workOrder.created_date, settings),
+        workOrderDueDate: workOrder.due_date
+          ? formatDate(workOrder.due_date, settings)
+          : '',
+        workOrderCompletedDate: workOrder.completed_date
+          ? formatDate(workOrder.completed_date, settings)
+          : '',
         workOrderAssignee: workOrder.assignee_name || 'Unassigned',
         // Team context
         teamName,
@@ -176,7 +161,7 @@ export async function generateSingleWorkOrderExcel(
         unitPrice: unitPriceCents / 100,
         totalPrice: totalPriceCents / 100,
         fromInventory: !!cost.inventory_item_id,
-        dateAdded: formatDateTime(cost.created_at),
+        dateAdded: formatDateTime(cost.created_at, settings),
         addedBy: cost.created_by_name || 'Unknown',
       };
     });
@@ -285,7 +270,7 @@ export async function generateSingleWorkOrderExcel(
       .replace(/[^a-z0-9]/gi, '-')
       .replace(/-+/g, '-')
       .slice(0, 40);
-    const dateStr = format(new Date(), 'yyyy-MM-dd');
+    const dateStr = formatDate(new Date(), { ...settings, dateFormat: 'yyyy-MM-dd' });
     const filename = `WorkOrder-${safeTitle}-Costs-${dateStr}.xlsx`;
 
     logger.info('Writing Excel file', { filename });

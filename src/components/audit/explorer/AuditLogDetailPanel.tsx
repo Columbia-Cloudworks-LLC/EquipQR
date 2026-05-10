@@ -6,7 +6,6 @@
  */
 
 import React from 'react';
-import { format as formatDate } from 'date-fns';
 import { Copy, Check, Inbox } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,6 +16,7 @@ import EmptyState from '@/components/ui/empty-state';
 import { ChangesDiff } from '@/components/audit/ChangesDiff';
 import { FormattedAuditEntry, AuditAction } from '@/types/audit';
 import { cn } from '@/lib/utils';
+import { formatIsoZulu } from '@/utils/dateFormatter';
 
 export interface AuditLogDetailPanelProps {
   entry: FormattedAuditEntry | null;
@@ -150,13 +150,11 @@ export function AuditLogDetailPanel({ entry }: AuditLogDetailPanelProps) {
                 </p>
                 <div className="divide-y divide-border/50">
                   <PropertyRow label="Date">
-                    <div className="flex flex-col">
-                      <span className="text-sm">
-                        {formatDate(new Date(entry.created_at), 'MMMM d, yyyy')}
-                      </span>
+                    <div className="flex flex-col gap-0.5">
+                      <code className="text-sm font-mono tabular-nums">
+                        {formatIsoZulu(entry.created_at)}
+                      </code>
                       <span className="text-xs text-muted-foreground">
-                        {formatDate(new Date(entry.created_at), 'h:mm:ss a')}
-                        {' \u00b7 '}
                         {entry.relativeTime}
                       </span>
                     </div>

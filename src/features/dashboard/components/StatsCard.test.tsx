@@ -162,4 +162,27 @@ describe('StatsCard', () => {
 
     expect(screen.getByTestId('total-equipment-value')).toBeInTheDocument();
   });
+
+  it('exposes sparkline data as screen-reader text (visual chart is decorative)', async () => {
+    render(
+      <React.Suspense fallback={null}>
+        <StatsCard
+          icon={<Package />}
+          label="Total Equipment"
+          value={42}
+          sparkline={[10, 11, 12, 12, 13, 14, 15]}
+          trend={{ direction: 'up', delta: 12 }}
+          trendNote="Week-over-week from RPC."
+        />
+      </React.Suspense>
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          'Recent 7-day trend for Total Equipment: daily values 10, 11, 12, 12, 13, 14, 15. Compared to the prior week, this metric increased by 12%. Week-over-week from RPC.'
+        )
+      ).toBeInTheDocument();
+    });
+  });
 });

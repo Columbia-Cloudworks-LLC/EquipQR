@@ -253,16 +253,19 @@ describe('useFormValidation', () => {
       const fieldValid = runFieldValidation(() => result.current.validateField('name'));
 
       expect(fieldValid).toBe(true);
+      expect(result.current.errors.name).toBeUndefined();
+      expect(result.current.errors.email).toBeTruthy();
     });
 
-    it('returns true even for fields with no value (safeParse does not throw)', () => {
+    it('returns false and sets an error for an invalid field', () => {
       const { result } = renderHook(() =>
         useFormValidation<TestFormValues>(testSchema)
       );
 
       const fieldValid = runFieldValidation(() => result.current.validateField('email'));
 
-      expect(fieldValid).toBe(true);
+      expect(fieldValid).toBe(false);
+      expect(result.current.errors.email).toBeTruthy();
     });
   });
 

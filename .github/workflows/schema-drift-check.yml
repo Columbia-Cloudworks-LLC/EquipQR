@@ -1,0 +1,73 @@
+name: Schema Drift Check
+
+# Detects when supabase/migrations/ has files whose NAME is not present in the
+# production schema_migrations table. Fails the build on PRs targeting `main`
+# (the preview -> main release gate); warns on PRs targeting `preview` and on
+# pushes (drift is expected during day-to-day work).
+#
+# Why this exists: PR #729 promoted client code that depended on
+# 20260416120000_add_machine_hours_to_notes.sql to production at
+# 2026-05-08T04:00:17Z, but the matching migration had never been applied.
+# Every user's note creation broke until the migration deploy in #735.
+# This gate catches that exact failure mode at PR time.
+#
+# Operator-facing requirements (mirrors edge-functions-smoke-test.yml):
+#   1. OP_SERVICE_ACCOUNT_TOKEN must be a REPO-LEVEL secret. This workflow
+#      does not declare environment:, so environment-scoped secrets won't
+#      resolve.
+#   2. The 1Password item `supabase-write` in the EquipQR Agents vault must
+#      contain a populated `credential` field (Supabase access token with
+#      Management API read access on the production project).
+#   3. When OP_SERVICE_ACCOUNT_TOKEN is empty (fork PRs, pre-token-plant),
+#      the load step degrades gracefully and the script skips with a
+#      ::warning:: + exit 0. A missing operator credential should not
+#      red-light every PR.
+
+on:
+  # pull_request has no paths: filter so preview→main release PRs always run
+  # this gate even when the diff does not touch migrations (drift can exist from
+  # earlier merges). push keeps paths: to limit noise on routine preview pushes.
+  pull_request:
+    branches:
+      - main
+      - preview
+  push:
+    branches:
+      - preview
+    paths:
+      - 'supabase/migrations/**'
+      - '.github/scripts/check-schema-drift.js'
+      - '.github/workflows/schema-drift-check.yml'
+      - '.github/actions/load-1p-secrets/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  schema-drift-check:
+    name: Production schema_migrations vs supabase/migrations/
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Load Supabase access token from 1Password
+        uses: ./.github/actions/load-1p-secrets
+        with:
+          required: 'false'
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: op://EquipQR Agents/supabase-write/credential
+
+      - name: Check schema drift
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          SUPABASE_PROJECT_REF: ymxkzronkhwxzcdcbnwq
+        run: node .github/scripts/check-schema-drift.js
