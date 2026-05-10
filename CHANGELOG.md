@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.1] - 2026-05-10
+
 ### Added
 
 - **In-app QR scanner and PM summary on equipment QR landing** — Protected `/dashboard/scan` route (lazy `qr-scanner` chunk) decodes EquipQR equipment, inventory, and work-order links into existing `/qr/*` flows; mobile dashboard hero and bottom nav open the scanner. Equipment QR landing shows a non-blocking last completed PM card with checklist sections and a deep link to `/dashboard/work-orders/:id?action=pm`; work order details scrolls to the PM checklist and clears only the `action` query param.
