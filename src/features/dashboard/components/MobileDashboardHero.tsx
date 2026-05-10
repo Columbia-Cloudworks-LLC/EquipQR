@@ -8,10 +8,7 @@ export interface MobileDashboardHeroProps {
   className?: string;
 }
 
-/**
- * Above-the-fold primary action for mobile technicians — routes to the fleet
- * surface where QR-backed equipment records are opened after a physical scan.
- */
+/** Above-the-fold primary action for mobile technicians — opens the in-app QR scanner. */
 const MobileDashboardHero: React.FC<MobileDashboardHeroProps> = ({ className }) => {
   return (
     <Link
@@ -31,7 +28,7 @@ const MobileDashboardHero: React.FC<MobileDashboardHeroProps> = ({ className }) 
       <span className="min-w-0 flex-1 space-y-0.5">
         <span className="block text-base font-semibold leading-tight text-foreground">Scan equipment QR</span>
         <span className="block text-sm text-muted-foreground leading-snug">
-          Open Equipment, then use your camera on any sticker — you&apos;ll jump straight to that asset.
+          Open the in-app camera scanner for any EquipQR sticker.
         </span>
       </span>
     </Link>

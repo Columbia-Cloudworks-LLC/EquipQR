@@ -7,17 +7,25 @@ import * as useWorkOrderDetailsActionsModule from '@/features/work-orders/hooks/
 
 const mockWorkOrderDetailsMobile = vi.fn();
 
-const { mockUseIsMobile, mockWorkOrderImagesSectionProps } = vi.hoisted(() => ({
-  mockUseIsMobile: vi.fn(() => true),
-  mockWorkOrderImagesSectionProps: vi.fn(),
-}));
+const { mockUseIsMobile, mockWorkOrderImagesSectionProps, mockSetSearchParams, mockUseSearchParams } = vi.hoisted(
+  () => {
+    const mockSetSearchParamsInner = vi.fn();
+    const mockUseSearchParamsInner = vi.fn(() => [new URLSearchParams(), mockSetSearchParamsInner]);
+    return {
+      mockUseIsMobile: vi.fn(() => true),
+      mockWorkOrderImagesSectionProps: vi.fn(),
+      mockSetSearchParams: mockSetSearchParamsInner,
+      mockUseSearchParams: mockUseSearchParamsInner,
+    };
+  }
+);
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
     ...actual,
     useParams: () => ({ workOrderId: 'wo-1' }),
-    useSearchParams: () => [new URLSearchParams(), vi.fn()],
+    useSearchParams: () => mockUseSearchParams(),
     Navigate: ({ to }: { to: string }) => <div data-testid="navigate">{to}</div>,
   };
 });
@@ -217,6 +225,8 @@ describe('WorkOrderDetails', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseIsMobile.mockReturnValue(true);
+    mockSetSearchParams.mockReset();
+    mockUseSearchParams.mockReturnValue([new URLSearchParams(), mockSetSearchParams]);
 
     vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue({
       workOrder: {
@@ -480,5 +490,162 @@ describe('WorkOrderDetails', () => {
     };
     expect(props?.showPrivateNotes).toBe(true);
     expect(props?.primaryImageId).toBe('primary-desktop-1');
+  });
+
+  it('scrolls to PM checklist and clears only action=pm on mobile', async () => {
+    const scrollSpy = vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(() => {});
+    mockUseSearchParams.mockReturnValue([new URLSearchParams('action=pm'), mockSetSearchParams]);
+
+    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue({
+      workOrder: {
+        id: 'wo-1',
+        title: 'PM job',
+        description: 'PM',
+        status: 'in_progress',
+        priority: 'high',
+        created_date: '2024-01-01T00:00:00Z',
+        createdDate: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-02T00:00:00Z',
+        dueDate: null,
+        equipment_id: 'eq-1',
+        has_pm: true,
+        teamName: null,
+        assigneeName: null,
+        effectiveLocation: null,
+        primary_image_id: null,
+      },
+      equipment: {
+        id: 'eq-1',
+        name: 'Excavator 1',
+        manufacturer: 'Cat',
+        model: '320',
+        serial_number: null,
+        status: 'active',
+        location: null,
+        team_id: 'team-1',
+        custom_attributes: null,
+        image_url: null,
+        default_pm_template_id: null,
+      },
+      pmData: {
+        id: 'pm-1',
+        work_order_id: 'wo-1',
+        equipment_id: 'eq-1',
+        status: 'in_progress',
+        checklist_data: [],
+      },
+      workOrderLoading: false,
+      pmLoading: false,
+      pmError: null,
+      permissionLevels: {
+        isManager: true,
+        isTechnician: true,
+        isRequestor: false,
+      },
+      formMode: 'manager',
+      isWorkOrderLocked: false,
+      canAddCosts: true,
+      canEditCosts: true,
+      canAddNotes: true,
+      canUpload: true,
+      canEdit: true,
+      baseCanAddNotes: true,
+      currentOrganization: {
+        id: 'org-1',
+        name: 'Test Org',
+      },
+    } as unknown as ReturnType<typeof useWorkOrderDetailsDataModule.useWorkOrderDetailsData>);
+
+    render(<WorkOrderDetails />);
+
+    await waitFor(() => {
+      expect(scrollSpy).toHaveBeenCalled();
+    });
+    expect(screen.getByText('PM checklist')).toBeInTheDocument();
+
+    expect(mockSetSearchParams).toHaveBeenCalled();
+    const setCall = mockSetSearchParams.mock.calls.find((c) => typeof c[0] === 'function');
+    expect(setCall).toBeDefined();
+    const updater = setCall![0] as (prev: URLSearchParams) => URLSearchParams;
+    const next = updater(new URLSearchParams('action=pm&keep=1'));
+    expect(next.get('action')).toBeNull();
+    expect(next.get('keep')).toBe('1');
+
+    scrollSpy.mockRestore();
+  });
+
+  it('scrolls to PM checklist on desktop when action=pm', async () => {
+    mockUseIsMobile.mockReturnValue(false);
+    const scrollSpy = vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(() => {});
+    mockUseSearchParams.mockReturnValue([new URLSearchParams('action=pm'), mockSetSearchParams]);
+
+    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue({
+      workOrder: {
+        id: 'wo-1',
+        title: 'PM job',
+        description: 'PM',
+        status: 'in_progress',
+        priority: 'high',
+        created_date: '2024-01-01T00:00:00Z',
+        createdDate: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-02T00:00:00Z',
+        dueDate: null,
+        equipment_id: 'eq-1',
+        has_pm: true,
+        teamName: null,
+        assigneeName: null,
+        effectiveLocation: null,
+        primary_image_id: null,
+      },
+      equipment: {
+        id: 'eq-1',
+        name: 'Excavator 1',
+        manufacturer: 'Cat',
+        model: '320',
+        serial_number: null,
+        status: 'active',
+        location: null,
+        team_id: 'team-1',
+        custom_attributes: null,
+        image_url: null,
+        default_pm_template_id: null,
+      },
+      pmData: {
+        id: 'pm-1',
+        work_order_id: 'wo-1',
+        equipment_id: 'eq-1',
+        status: 'in_progress',
+        checklist_data: [],
+      },
+      workOrderLoading: false,
+      pmLoading: false,
+      pmError: null,
+      permissionLevels: {
+        isManager: true,
+        isTechnician: true,
+        isRequestor: false,
+      },
+      formMode: 'manager',
+      isWorkOrderLocked: false,
+      canAddCosts: true,
+      canEditCosts: true,
+      canAddNotes: true,
+      canUpload: true,
+      canEdit: true,
+      baseCanAddNotes: true,
+      currentOrganization: {
+        id: 'org-1',
+        name: 'Test Org',
+      },
+    } as unknown as ReturnType<typeof useWorkOrderDetailsDataModule.useWorkOrderDetailsData>);
+
+    render(<WorkOrderDetails />);
+
+    await waitFor(() => {
+      expect(scrollSpy).toHaveBeenCalled();
+    });
+    expect(screen.getByText('PM checklist')).toBeInTheDocument();
+
+    scrollSpy.mockRestore();
   });
 });

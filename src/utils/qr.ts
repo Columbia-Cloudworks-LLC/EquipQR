@@ -29,6 +29,97 @@ export function workOrderQRPath(workOrderId: string): string {
   return `/qr/work-order/${workOrderId}`;
 }
 
+/** Origins accepted when decoding printed stickers against a different dev host. */
+const EQUIPQR_QR_ORIGINS = new Set([
+  'https://equipqr.app',
+  'https://www.equipqr.app',
+  'https://preview.equipqr.app',
+]);
+
+const RESERVED_QR_FIRST_SEGMENTS = new Set(['equipment', 'inventory', 'work-order']);
+
+export type ParseEquipQRTargetResult =
+  | { ok: true; kind: 'equipment'; equipmentId: string; path: string; orgId?: string }
+  | { ok: true; kind: 'inventory'; itemId: string; path: string }
+  | { ok: true; kind: 'workOrder'; workOrderId: string; path: string }
+  | {
+      ok: false;
+      reason: 'empty' | 'malformed' | 'external' | 'unsupported';
+      message: string;
+    };
+
+/**
+ * Parse QR decode results into EquipQR routes. Accepts relative paths and
+ * absolute URLs on the current origin or known EquipQR production/preview hosts.
+ */
+export function parseEquipQRTarget(
+  rawValue: string,
+  currentOrigin: string = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080'
+): ParseEquipQRTargetResult {
+  const trimmed = rawValue.trim();
+  if (!trimmed) {
+    return { ok: false, reason: 'empty', message: 'No QR content.' };
+  }
+
+  let url: URL;
+  try {
+    url = new URL(trimmed, currentOrigin);
+  } catch {
+    return { ok: false, reason: 'malformed', message: 'Could not read this QR link.' };
+  }
+
+  let baseOrigin: string;
+  try {
+    baseOrigin = new URL(currentOrigin).origin;
+  } catch {
+    return { ok: false, reason: 'malformed', message: 'Could not read this QR link.' };
+  }
+
+  const originAllowed = url.origin === baseOrigin || EQUIPQR_QR_ORIGINS.has(url.origin);
+
+  if (!originAllowed) {
+    return { ok: false, reason: 'external', message: 'This QR code is not an EquipQR link.' };
+  }
+
+  const pathname = url.pathname.replace(/\/+$/, '') || '/';
+  const segments = pathname.split('/').filter(Boolean);
+
+  if (segments[0] !== 'qr') {
+    return { ok: false, reason: 'unsupported', message: 'Unsupported EquipQR link.' };
+  }
+
+  const second = segments[1];
+  const third = segments[2];
+
+  if (second === 'equipment' && third) {
+    const orgId = url.searchParams.get('org') ?? undefined;
+    const path = orgId
+      ? `/qr/equipment/${third}?org=${encodeURIComponent(orgId)}`
+      : `/qr/equipment/${third}`;
+    return { ok: true, kind: 'equipment', equipmentId: third, path, orgId };
+  }
+
+  if (second === 'inventory' && third) {
+    return { ok: true, kind: 'inventory', itemId: third, path: `/qr/inventory/${third}` };
+  }
+
+  if (second === 'work-order' && third) {
+    return { ok: true, kind: 'workOrder', workOrderId: third, path: `/qr/work-order/${third}` };
+  }
+
+  // Legacy `/qr/:equipmentId` (must not shadow reserved multi-segment routes)
+  if (segments.length === 2 && second && !RESERVED_QR_FIRST_SEGMENTS.has(second)) {
+    const equipmentId = second;
+    const orgId = url.searchParams.get('org') ?? undefined;
+    const path = orgId
+      ? `/qr/equipment/${equipmentId}?org=${encodeURIComponent(orgId)}`
+      : `/qr/equipment/${equipmentId}`;
+    return { ok: true, kind: 'equipment', equipmentId, path, orgId };
+  }
+
+  return { ok: false, reason: 'unsupported', message: 'Unsupported EquipQR link.' };
+}
+
 // ── Full-URL builder ──
 
 export function qrFullUrl(relativePath: string): string {

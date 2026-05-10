@@ -59,6 +59,7 @@ const WorkOrderDetails = () => {
   const actionParam = searchParams.get('action');
   const shouldAutoOpenNoteForm = actionParam === 'add-note';
   const shouldAutoOpenPDFDialog = actionParam === 'download-pdf';
+  const shouldAutoFocusPM = actionParam === 'pm';
   const notesSectionRef = useRef<HTMLDivElement>(null);
   const pmSectionRef = useRef<HTMLDivElement>(null);
   const actionHandledRef = useRef(false);
@@ -288,8 +289,28 @@ const WorkOrderDetails = () => {
       actionHandledRef.current = true;
       // Clear the action param from URL
       setSearchParams({}, { replace: true });
+    } else if (shouldAutoFocusPM) {
+      setTimeout(() => {
+        pmSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+      actionHandledRef.current = true;
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('action');
+          return next;
+        },
+        { replace: true }
+      );
     }
-  }, [shouldAutoOpenPDFDialog, shouldAutoOpenNoteForm, workOrder, workOrderLoading, setSearchParams]);
+  }, [
+    shouldAutoOpenPDFDialog,
+    shouldAutoOpenNoteForm,
+    shouldAutoFocusPM,
+    workOrder,
+    workOrderLoading,
+    setSearchParams,
+  ]);
 
   // Reset action handled ref when action param changes (new navigation)
   useEffect(() => {
@@ -795,37 +816,40 @@ const WorkOrderDetails = () => {
               )}
 
               {/* PM Checklist Section - Now positioned after costs */}
-              {workOrder.has_pm && pmData && (permissionLevels.isManager || permissionLevels.isTechnician) && (
-                <div {...stagger(2)}>
-                <PMChecklistComponent 
-                  key={selectedEquipmentId} // Force re-render on equipment change
-                  pm={pmData} 
-                  onUpdate={handlePMUpdate}
-                  readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
-                  isAdmin={permissionLevels.isManager}
-                  workOrder={workOrder}
-                  equipment={equipment}
-                  team={teamData}
-                  organization={currentOrganization}
-                  assignee={assigneeData}
-                />
-                </div>
-              )}
+              {workOrder.has_pm && (permissionLevels.isManager || permissionLevels.isTechnician) && (
+                <div ref={pmSectionRef}>
+                  {pmData && (
+                    <div {...stagger(2)}>
+                      <PMChecklistComponent
+                        key={selectedEquipmentId} // Force re-render on equipment change
+                        pm={pmData}
+                        onUpdate={handlePMUpdate}
+                        readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
+                        isAdmin={permissionLevels.isManager}
+                        workOrder={workOrder}
+                        equipment={equipment}
+                        team={teamData}
+                        organization={currentOrganization}
+                        assignee={assigneeData}
+                      />
+                    </div>
+                  )}
 
-              {/* PM Loading State */}
-              {workOrder.has_pm && pmLoading && (permissionLevels.isManager || permissionLevels.isTechnician) && (
-                <div {...stagger(2)}>
-                <Card className="shadow-elevation-2" role="status" aria-label="Loading PM checklist">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Clipboard className="h-5 w-5" />
-                      Loading PM Checklist...
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-32 bg-muted animate-pulse rounded" aria-hidden="true" />
-                  </CardContent>
-                </Card>
+                  {pmLoading && (
+                    <div {...stagger(2)}>
+                      <Card className="shadow-elevation-2" role="status" aria-label="Loading PM checklist">
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Clipboard className="h-5 w-5" />
+                            Loading PM Checklist...
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="h-32 bg-muted animate-pulse rounded" aria-hidden="true" />
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
                 </div>
               )}
 

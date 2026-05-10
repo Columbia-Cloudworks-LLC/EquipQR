@@ -30,8 +30,6 @@ interface NavItem {
   shortLabel?: string; // Optional shorter label for small screens
   href: string;
   icon: LucideIcon;
-  /** When 'field-scan', active only on equipment list with `fieldScan=1` query */
-  activeVariant?: 'default' | 'field-scan';
 }
 
 const navItems: NavItem[] = [
@@ -39,9 +37,8 @@ const navItems: NavItem[] = [
   {
     label: 'Scan QR',
     shortLabel: 'Scan',
-    href: '/dashboard/equipment?fieldScan=1',
+    href: '/dashboard/scan',
     icon: ScanLine,
-    activeVariant: 'field-scan',
   },
   { label: 'Equipment', href: '/dashboard/equipment', icon: Forklift },
   { label: 'Inventory', href: '/dashboard/inventory', icon: Warehouse },
@@ -53,24 +50,14 @@ const BottomNav: React.FC = () => {
   const { setOpenMobile } = useSidebar();
 
   const isActive = (item: NavItem) => {
-    const { href, activeVariant } = item;
+    const { href } = item;
     if (href === '/dashboard') {
       return location.pathname === '/dashboard' || location.pathname === '/dashboard/';
     }
-    if (activeVariant === 'field-scan') {
-      return (
-        location.pathname === '/dashboard/equipment' &&
-        location.search.includes('fieldScan=1')
-      );
-    }
     if (href === '/dashboard/equipment') {
-      if (!location.pathname.startsWith('/dashboard/equipment')) return false;
-      if (location.pathname === '/dashboard/equipment' && location.search.includes('fieldScan=1')) {
-        return false;
-      }
-      return true;
+      return location.pathname.startsWith('/dashboard/equipment');
     }
-    return location.pathname.startsWith(href);
+    return location.pathname === href || location.pathname.startsWith(`${href}/`);
   };
 
   const handleMenuClick = () => {

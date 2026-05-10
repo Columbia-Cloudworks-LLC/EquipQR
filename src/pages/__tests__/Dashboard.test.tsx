@@ -639,10 +639,10 @@ describe('Dashboard', () => {
       vi.mocked(useMobileModule.useIsMobile).mockReturnValue(false);
     });
 
-    it('renders Scan QR hero linking to equipment field-scan entrypoint', () => {
+    it('renders Scan QR hero linking to in-app dashboard scanner', () => {
       render(<Dashboard />);
       const hero = screen.getByTestId('mobile-dashboard-scan-hero');
-      expect(hero).toHaveAttribute('href', '/dashboard/equipment?fieldScan=1');
+      expect(hero).toHaveAttribute('href', '/dashboard/scan');
     });
 
     it('shows full-width alert card when urgent counts exist', () => {
