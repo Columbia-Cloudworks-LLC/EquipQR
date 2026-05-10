@@ -17,6 +17,8 @@ import {
   insertScan,
   type EquipmentQRPayload,
 } from '@/features/equipment/services/equipmentQRPermissions';
+import { useLatestCompletedPMDetails } from '@/features/pm-templates/hooks/usePMData';
+import EquipmentQRLastPMCard from '@/features/equipment/components/qr/EquipmentQRLastPMCard';
 
 type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 
@@ -50,6 +52,10 @@ const EquipmentQRScan = () => {
   const orgId = searchParams.get('org') ?? undefined;
   const { user, isLoading: authLoading } = useAuth();
   const [payload, setPayload] = useState<EquipmentQRPayload | null>(null);
+  const latestPmQuery = useLatestCompletedPMDetails(
+    payload?.equipment.id,
+    payload?.organization.id
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scanStatus, setScanStatus] = useState<ScanStatus>('idle');
@@ -271,6 +277,13 @@ const EquipmentQRScan = () => {
                 Use quick actions below for field updates, or continue to the full dashboard record for parts, scans, and history.
               </p>
             </div>
+
+            <EquipmentQRLastPMCard
+              organizationId={payload.organization.id}
+              details={latestPmQuery.data ?? null}
+              isLoading={latestPmQuery.isLoading}
+              isError={latestPmQuery.isError}
+            />
 
             {showQuickActions && (
               <Suspense fallback={<div className="h-32 rounded-lg border bg-muted/30" aria-hidden="true" />}>

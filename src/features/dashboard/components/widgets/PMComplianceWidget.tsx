@@ -125,7 +125,54 @@ const PMComplianceWidget: React.FC = () => {
           </div>
         ) : data && data.length > 0 ? (
           <div aria-label="Preventive maintenance compliance distribution chart">
-            <div className="flex items-center justify-center">
+            <div className="md:hidden space-y-3" data-testid="pm-compliance-mobile-summary">
+              <p className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">{compliancePct}%</span> compliant · tap a row for work orders
+              </p>
+              <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                {data.map((entry) => {
+                  const pct = totalCount > 0 ? (entry.count / totalCount) * 100 : 0;
+                  if (pct <= 0) return null;
+                  return (
+                    <button
+                      key={`pm-bar-${entry.status}`}
+                      type="button"
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: entry.color,
+                      }}
+                      className="min-w-[4px] transition-opacity hover:opacity-90 touch-manipulation"
+                      onClick={() => handleSliceClick(entry.status)}
+                      aria-label={`${entry.label}: ${entry.count}`}
+                    />
+                  );
+                })}
+              </div>
+              <ul className="space-y-1.5">
+                {data.map((entry) => {
+                  const pct = totalCount > 0 ? Math.round((entry.count / totalCount) * 100) : 0;
+                  return (
+                    <li key={entry.status}>
+                      <button
+                        type="button"
+                        onClick={() => handleSliceClick(entry.status)}
+                        className="flex w-full items-center gap-2 rounded-lg border border-border/60 px-2 py-2 text-left text-sm transition-colors hover:bg-muted/50 touch-manipulation min-h-[48px]"
+                      >
+                        <span
+                          className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                          style={{ backgroundColor: entry.color }}
+                        />
+                        <span className="flex-1 text-foreground">{entry.label}</span>
+                        <span className="font-medium tabular-nums">{entry.count}</span>
+                        <span className="w-10 text-right text-muted-foreground tabular-nums text-xs">{pct}%</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            <div className="hidden md:flex items-center justify-center">
               <div className="flex items-center gap-6">
                 <div className="h-40 w-40 flex-shrink-0">
                     <PieChart width={160} height={160}>

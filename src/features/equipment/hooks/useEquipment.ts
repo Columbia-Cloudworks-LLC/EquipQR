@@ -13,6 +13,7 @@ import { PaginationParams } from '@/services/base/BaseService';
 import { useBackgroundSync } from '@/hooks/useCacheInvalidation';
 import { performanceMonitor } from '@/utils/performanceMonitoring';
 import { useAppToast } from '@/hooks/useAppToast';
+import { createScopedQueryPersister } from '@/lib/queryPersistence';
 
 /**
  * Stable references for the empty default arguments used by `useEquipment`.
@@ -22,6 +23,10 @@ import { useAppToast } from '@/hooks/useAppToast';
  */
 const EMPTY_EQUIPMENT_FILTERS: EquipmentFilters = Object.freeze({}) as EquipmentFilters;
 const EMPTY_EQUIPMENT_PAGINATION: PaginationParams = Object.freeze({}) as PaginationParams;
+
+function fieldReadPersister() {
+  return createScopedQueryPersister().persisterFn;
+}
 
 /**
  * Unified hook for equipment data fetching
@@ -186,6 +191,7 @@ export const useEquipmentById = (
     },
     enabled: !!organizationId && !!equipmentId,
     staleTime,
+    persister: fieldReadPersister(),
   });
 
   useEffect(() => {

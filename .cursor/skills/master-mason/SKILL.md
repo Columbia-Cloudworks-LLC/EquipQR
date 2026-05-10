@@ -45,6 +45,7 @@ Lens names: `chisel`, `compasses`, `gauge`, `level`, `plumb`, `square`, `trowel`
 5. **No mutation.** This skill audits and recommends. It does not delete code, prune docs, or rewrite architecture. Hand off to `common-gavel` for destructive cleanup or to the developer for behavior changes.
 6. **Developer-in-the-loop.** Surface ambiguous intent as questions before recommending action.
 7. **One verdict per lens.** Each lens produces its own findings block; the synthesis at the end is the only place lenses are mixed.
+8. **Plan clarity means cheap-model executable.** When auditing a plan or Change Record, treat vague implementation steps as findings if they would force the implementer to use a premium model mainly to infer missing details. Recommend splitting or adding exact files/symbols/tests until Composer 2 / Cursor Auto can execute the slice.
 
 ## Workflow
 
@@ -81,7 +82,7 @@ Otherwise auto-select using the table below. If no lens has signal, return only 
 | Lens | Auto-trigger when target involves… |
 |---|---|
 | `chisel` | code being kept (any file under audit); dense control flow, weak types, naming drift, duplicated helpers |
-| `compasses` | API routes, edge functions, IAM/role checks, rate limits, tenant scoping, background jobs, destructive paths |
+| `compasses` | API routes, edge functions, IAM/role checks, rate limits, tenant scoping, background jobs, destructive paths, plans whose scope is too broad for one bounded execution pass |
 | `gauge` | hot paths, loops, queries, renders, bundles, assets, caching, background work |
 | `level` | UI components, pages, forms, focus/keyboard, viewport-specific layout, dark/reduced-motion |
 | `plumb` | secrets, auth, validation, logging of sensitive data, regulated workflows (CCPA/GDPR/SOC 2) |
@@ -104,6 +105,7 @@ Checks:
 - misleading variable / function names
 - nested or repetitive boolean logic
 - duplicated helpers or extractable intent
+- plan steps that say "update the logic", "handle edge cases", or "add tests" without naming exact symbols, states, fixtures, and commands
 
 Output: list polish targets that **preserve behavior**. Do not delete logic — that is `common-gavel` territory.
 
@@ -117,6 +119,7 @@ Checks:
 - over-broad IAM, service-role, or admin-bypass usage
 - missing rate limits on user-facing or destructive endpoints
 - background tasks without circuit breakers or execution caps
+- plan boundaries too broad for one cheap-model pass, especially when multiple independent verification gates can be split apart
 
 Output: a boundary map plus the smallest set of guards that would keep callers in scope.
 
@@ -252,3 +255,4 @@ End with:
 - Do not duplicate work that belongs to `common-gavel`, `pencil`, `trestle`, or `raise`. Hand off instead.
 - Do not output the full lens registry in the response — only the lenses you actually ran.
 - Do not omit the **Recommended Execution Model** Output Contract item when the synthesis has any actionable findings — load [model-recommender](../model-recommender/SKILL.md) and embed its block verbatim. The executing developer needs to know which model to use for the highest-priority hand-off; an audit without that guidance leaves the developer guessing.
+- Do not recommend a premium model merely because a plan is vague. Flag the vagueness and recommend a more explicit or smaller plan first.

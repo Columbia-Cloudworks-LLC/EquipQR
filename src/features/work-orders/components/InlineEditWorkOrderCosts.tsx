@@ -1,8 +1,19 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
-import { Edit2, Check, X, DollarSign, Package, Plus } from 'lucide-react';
+import { Edit2, Check, X, DollarSign, Package, Plus, Clock } from 'lucide-react';
 import { WorkOrderCost } from '@/features/work-orders/services/workOrderCostsService';
+import { isLaborCostRow } from '@/features/work-orders/utils/isLaborCostRow';
 import { useWorkOrderCostsState } from '@/features/work-orders/hooks/useWorkOrderCostsState';
 import { 
   useCreateWorkOrderCost, 
@@ -17,6 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { InventoryPartSelector } from './InventoryPartSelector';
 import WorkOrderCostsEditor from './WorkOrderCostsEditor';
 import { useAppToast } from '@/hooks/useAppToast';
+import { cn } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,18 +40,106 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+type LaborCostDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  laborHours: string;
+  laborRate: string;
+  laborNote: string;
+  onLaborHoursChange: (value: string) => void;
+  onLaborRateChange: (value: string) => void;
+  onLaborNoteChange: (value: string) => void;
+  onConfirm: () => void | Promise<void>;
+  isPending: boolean;
+};
+
+function LaborCostDialog({
+  open,
+  onOpenChange,
+  laborHours,
+  laborRate,
+  laborNote,
+  onLaborHoursChange,
+  onLaborRateChange,
+  onLaborNoteChange,
+  onConfirm,
+  isPending,
+}: LaborCostDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add labor</DialogTitle>
+          <DialogDescription>
+            Billable hours × hourly rate. Saved as a normal cost line (no inventory change).
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label htmlFor="labor-hours">Hours</Label>
+            <Input
+              id="labor-hours"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.25"
+              value={laborHours}
+              onChange={(e) => onLaborHoursChange(e.target.value)}
+              disabled={isPending}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="labor-rate">Hourly rate (USD)</Label>
+            <Input
+              id="labor-rate"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+              value={laborRate}
+              onChange={(e) => onLaborRateChange(e.target.value)}
+              disabled={isPending}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="labor-note">Note (optional)</Label>
+            <Input
+              id="labor-note"
+              value={laborNote}
+              onChange={(e) => onLaborNoteChange(e.target.value)}
+              placeholder="e.g. Emergency call-out"
+              disabled={isPending}
+            />
+          </div>
+        </div>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+            Cancel
+          </Button>
+          <Button type="button" onClick={() => void onConfirm()} disabled={isPending}>
+            {isPending ? 'Saving…' : 'Save labor'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 interface InlineEditWorkOrderCostsProps {
   costs: WorkOrderCost[];
   workOrderId: string;
   equipmentIds: string[];
   canEdit: boolean;
+  /** Short empty state + dual CTAs for mobile field costs card */
+  compactMobile?: boolean;
 }
 
 const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
   costs,
   workOrderId,
   equipmentIds,
-  canEdit
+  canEdit,
+  compactMobile = false,
 }) => {
   const { formatDate } = useFormatTimestamp();
   const isMobile = useIsMobile();
@@ -49,6 +149,10 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showInventorySelector, setShowInventorySelector] = useState(false);
+  const [laborDialogOpen, setLaborDialogOpen] = useState(false);
+  const [laborHours, setLaborHours] = useState('');
+  const [laborRate, setLaborRate] = useState('');
+  const [laborNote, setLaborNote] = useState('');
   
   // Delete confirmation dialog state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -272,6 +376,63 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
     }
   };
 
+  const resetLaborForm = () => {
+    setLaborHours('');
+    setLaborRate('');
+    setLaborNote('');
+  };
+
+  const handleConfirmLabor = async () => {
+    const hours = Number(laborHours);
+    const rate = Number.parseFloat(laborRate);
+    if (!Number.isFinite(hours) || hours <= 0) {
+      toast({
+        title: 'Invalid hours',
+        description: 'Enter billable hours greater than zero.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!Number.isFinite(rate) || rate < 0) {
+      toast({
+        title: 'Invalid rate',
+        description: 'Enter a valid hourly rate (0 or more).',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const unitPriceCents = Math.round(rate * 100);
+    const trimmedNote = laborNote.trim();
+    const description = trimmedNote ? `Labor - ${trimmedNote}` : 'Labor';
+
+    try {
+      const createdCost = await createCostMutation.mutateAsync({
+        work_order_id: workOrderId,
+        description,
+        quantity: hours,
+        unit_price_cents: unitPriceCents,
+      });
+
+      if (isEditing) {
+        addFilledCost({
+          id: createdCost.id,
+          work_order_id: workOrderId,
+          description: createdCost.description,
+          quantity: createdCost.quantity,
+          unit_price_cents: createdCost.unit_price_cents,
+          inventory_item_id: null,
+          original_quantity: null,
+        });
+      }
+
+      setLaborDialogOpen(false);
+      resetLaborForm();
+    } catch (error) {
+      console.error('Error adding labor cost:', error);
+    }
+  };
+
   const MobileCostDisplay = ({ cost }: { cost: WorkOrderCost }) => (
     <div className="bg-muted/50 rounded-lg p-4 space-y-2">
       <div className="flex items-start justify-between">
@@ -279,6 +440,9 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
           <div className="font-medium text-sm flex items-center gap-1.5">
             {cost.inventory_item_id && (
               <Package className="h-3.5 w-3.5 text-info flex-shrink-0" title="From inventory" />
+            )}
+            {!cost.inventory_item_id && isLaborCostRow(cost) && (
+              <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" title="Labor" aria-hidden />
             )}
             {cost.description}
           </div>
@@ -308,6 +472,9 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
           <div className="font-medium flex items-center gap-1.5">
             {cost.inventory_item_id && (
               <Package className="h-4 w-4 text-info flex-shrink-0" title="From inventory" />
+            )}
+            {!cost.inventory_item_id && isLaborCostRow(cost) && (
+              <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" title="Labor" aria-hidden />
             )}
             {cost.description}
           </div>
@@ -404,8 +571,8 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
   if (!isEditing) {
     return (
       <div className="group">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm text-muted-foreground">
+        <div className={cn('flex items-center justify-between', compactMobile ? 'mb-2' : 'mb-4')}>
+          <p className={cn('text-muted-foreground', compactMobile ? 'text-xs' : 'text-sm')}>
             {costs.length > 0
               ? `${costs.length} cost item${costs.length === 1 ? '' : 's'}`
               : 'No cost items yet'}
@@ -425,7 +592,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
         </div>
         
         {costs.length > 0 ? (
-          <div className="space-y-4">
+          <div className={cn(compactMobile ? 'space-y-3' : 'space-y-4')}>
             {/* Desktop Headers */}
             {!isMobile && (
               <div className="grid grid-cols-4 gap-4 text-sm font-medium text-muted-foreground px-3">
@@ -457,20 +624,54 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
               </div>
             </div>
           </div>
+        ) : compactMobile ? (
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Button type="button" variant="default" size="sm" className="min-h-[44px] flex-1" onClick={handleStartEdit}>
+              <Plus className="h-4 w-4 mr-1.5" aria-hidden />
+              Add cost
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="min-h-[44px] flex-1"
+              onClick={() => setLaborDialogOpen(true)}
+            >
+              <Clock className="h-4 w-4 mr-1.5" aria-hidden />
+              Add labor
+            </Button>
+          </div>
         ) : (
           <div className="flex flex-col items-center gap-3 py-6 text-center">
             <DollarSign className="h-8 w-8 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">No costs recorded yet</p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleStartEdit}
-            >
-              <Plus className="h-4 w-4 mr-1.5" />
-              Add Cost Item
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleStartEdit}>
+                <Plus className="h-4 w-4 mr-1.5" />
+                Add Cost Item
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setLaborDialogOpen(true)}>
+                <Clock className="h-4 w-4 mr-1.5" />
+                Add labor
+              </Button>
+            </div>
           </div>
         )}
+        <LaborCostDialog
+          open={laborDialogOpen}
+          onOpenChange={(open) => {
+            setLaborDialogOpen(open);
+            if (!open) resetLaborForm();
+          }}
+          laborHours={laborHours}
+          laborRate={laborRate}
+          laborNote={laborNote}
+          onLaborHoursChange={setLaborHours}
+          onLaborRateChange={setLaborRate}
+          onLaborNoteChange={setLaborNote}
+          onConfirm={handleConfirmLabor}
+          isPending={createCostMutation.isPending}
+        />
       </div>
     );
   }
@@ -479,7 +680,16 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
     <div>
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-sm font-medium">Edit Cost Items</h4>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLaborDialogOpen(true)}
+            disabled={isSaving}
+          >
+            <Clock className="h-4 w-4 mr-1" />
+            Add labor
+          </Button>
           {equipmentIds.length > 0 && (
             <Button
               variant="outline"
@@ -529,6 +739,22 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
           onSelect={handleAddFromInventory}
         />
       )}
+
+      <LaborCostDialog
+        open={laborDialogOpen}
+        onOpenChange={(open) => {
+          setLaborDialogOpen(open);
+          if (!open) resetLaborForm();
+        }}
+        laborHours={laborHours}
+        laborRate={laborRate}
+        laborNote={laborNote}
+        onLaborHoursChange={setLaborHours}
+        onLaborRateChange={setLaborRate}
+        onLaborNoteChange={setLaborNote}
+        onConfirm={handleConfirmLabor}
+        isPending={createCostMutation.isPending}
+      />
 
       {/* Delete Confirmation Dialog for Inventory-Sourced Costs */}
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>

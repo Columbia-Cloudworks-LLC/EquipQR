@@ -292,7 +292,7 @@ describe('DashboardStatsGrid', () => {
 
       // needsAttention has delta=null — should render no percentage copy for 0%.
       expect(screen.queryByText('0% this week')).not.toBeInTheDocument();
-      expect(screen.getByText('Insufficient history')).toBeInTheDocument();
+      expect(screen.queryByText('Insufficient history')).not.toBeInTheDocument();
     });
 
     it('renders without trends prop (backward compatibility)', () => {

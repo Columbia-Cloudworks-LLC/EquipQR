@@ -64,6 +64,8 @@ interface StatusAction {
 interface WorkOrderStatusManagerProps {
   workOrder: StatusWorkOrder;
   organizationId: string;
+  /** Hide status-change action buttons (mobile sidebar read-only workflow) */
+  hideStatusActions?: boolean;
   /** Optional context data previously shown in QuickInfo */
   contextData?: {
     dueDate?: string;
@@ -86,7 +88,8 @@ interface WorkOrderStatusManagerProps {
 const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
   workOrder,
   organizationId,
-  contextData
+  hideStatusActions = false,
+  contextData,
 }) => {
   const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -449,7 +452,7 @@ const getStatusActions = (): StatusAction[] => {
           )}
 
           {/* Status Actions */}
-          {statusActions.length > 0 && (
+          {!hideStatusActions && statusActions.length > 0 && (
             <div className="space-y-2">
               <span className="text-sm font-medium">Available Actions:</span>
               <div className="space-y-2">

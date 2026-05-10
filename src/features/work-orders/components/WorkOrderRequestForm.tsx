@@ -1,5 +1,5 @@
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { z } from 'zod';
 import {
   Dialog,
@@ -23,6 +23,7 @@ import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 import { useEquipmentSummaries, useEquipmentById } from '@/features/equipment/hooks/useEquipment';
 import { useCreateWorkOrder, CreateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderCreation';
+import WorkOrderCreationPhotoPicker from '@/features/work-orders/components/WorkOrderCreationPhotoPicker';
 
 const requestFormSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
@@ -48,6 +49,7 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
 }) => {
   const { currentOrganization } = useOrganization();
   const createWorkOrderMutation = useCreateWorkOrder();
+  const [requestImages, setRequestImages] = useState<File[]>([]);
   
   // Use the lightweight summaries projection — the dropdown only needs
   // id/name/manufacturer/model/location to render. The pre-selected equipment
@@ -101,6 +103,10 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
           dueDate: data.dueDate || undefined,
           // Work order starts unassigned; can be assigned to team members later
           assigneeId: undefined,
+          images: requestImages.length ? requestImages : undefined,
+          creationPhotoNote: requestImages.length
+            ? `Photos from work request: ${data.title}`
+            : undefined,
         };
         
         await createWorkOrderMutation.mutateAsync(workOrderData);
@@ -109,6 +115,7 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
     {
       onSuccess: () => {
         form.reset();
+        setRequestImages([]);
         onClose();
       }
     }
@@ -124,6 +131,7 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
       if (!confirmClose) return;
     }
     form.reset();
+    setRequestImages([]);
     onClose();
   };
 
@@ -294,6 +302,12 @@ const WorkOrderRequestForm: React.FC<WorkOrderRequestFormProps> = ({
               <p id="wo-request-description-error" className="text-sm text-destructive" aria-live="polite">{form.errors.description}</p>
             )}
           </div>
+
+          <WorkOrderCreationPhotoPicker
+            images={requestImages}
+            onImagesChange={setRequestImages}
+            disabled={isSubmitting || createWorkOrderMutation.isPending}
+          />
 
           {form.errors.general && (
             <Alert variant="destructive">

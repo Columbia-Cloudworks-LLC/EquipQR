@@ -784,7 +784,9 @@ export default function PrivacyPolicy() {
                 <strong>Additional HTTP security headers:</strong> <code>X-Frame-Options: DENY</code>{' '}
                 (prevents clickjacking), <code>X-Content-Type-Options: nosniff</code>,{' '}
                 <code>Referrer-Policy: strict-origin-when-cross-origin</code>, and a{' '}
-                <code>Permissions-Policy</code> that restricts access to camera and microphone APIs.
+                <code>Permissions-Policy</code> that allows camera access only within EquipQR&apos;s
+                own application pages (same origin) for features such as in-app QR scanning, while
+                keeping microphone access disabled at the policy level.
               </li>
               <li>
                 <strong>Bot protection:</strong> hCaptcha protects signup forms against automated

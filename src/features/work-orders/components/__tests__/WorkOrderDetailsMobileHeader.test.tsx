@@ -1,40 +1,36 @@
 import React from 'react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@/test/utils/test-utils';
 import { WorkOrderDetailsMobileHeader } from '../WorkOrderDetailsMobileHeader';
 
 describe('WorkOrderDetailsMobileHeader', () => {
   const baseProps = {
-    workOrder: {
-      id: 'wo-1',
-      title: 'Hydraulic Pump Inspection',
-      priority: 'medium' as const,
-      status: 'completed' as const,
-      equipment: {
-        name: 'Excavator A',
-        status: 'maintenance',
-      },
-    },
+    workOrder: { title: 'Hydraulic Pump Inspection' },
     canEdit: true,
     onEditClick: vi.fn(),
-    onToggleSidebar: vi.fn(),
     onOpenActionSheet: vi.fn(),
   };
 
-  it('renders status before priority badges', () => {
-    const { container } = render(<WorkOrderDetailsMobileHeader {...baseProps} />);
-
-    const badges = Array.from(container.querySelectorAll('[class*="inline-flex"][class*="text-xs"]'));
-    const badgeText = badges.map((badge) => badge.textContent?.trim());
-
-    expect(badgeText).toContain('Completed');
-    expect(badgeText).toContain('medium priority');
-    expect(badgeText.indexOf('Completed')).toBeLessThan(badgeText.indexOf('medium priority'));
-  });
-
-  it('formats equipment status with equipment badge presentation', () => {
+  it('renders title and back link', () => {
     render(<WorkOrderDetailsMobileHeader {...baseProps} />);
 
-    expect(screen.getByText('Under Maintenance')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /hydraulic pump inspection/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /work orders/i })).toHaveAttribute('href', '/dashboard/work-orders');
+  });
+
+  it('invokes overflow handler from actions button', async () => {
+    const user = userEvent.setup();
+    render(<WorkOrderDetailsMobileHeader {...baseProps} />);
+
+    await user.click(screen.getByRole('button', { name: /open actions and settings/i }));
+
+    expect(baseProps.onOpenActionSheet).toHaveBeenCalledTimes(1);
+  });
+
+  it('omits edit when canEdit is false', () => {
+    render(<WorkOrderDetailsMobileHeader {...baseProps} canEdit={false} />);
+
+    expect(screen.queryByRole('button', { name: /edit work order/i })).not.toBeInTheDocument();
   });
 });

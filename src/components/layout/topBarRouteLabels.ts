@@ -8,6 +8,7 @@
 
 export const ROUTE_LABELS: Record<string, string> = {
   '/dashboard': 'Dashboard',
+  '/dashboard/scan': 'Scan QR',
   '/dashboard/equipment': 'Equipment',
   '/dashboard/work-orders': 'Work Orders',
   '/dashboard/fleet-map': 'Fleet Map',
@@ -30,6 +31,7 @@ export const ROUTE_LABELS: Record<string, string> = {
  */
 export const ROUTES_WITH_PAGE_H1 = new Set([
   '/dashboard',
+  '/dashboard/scan',
   '/dashboard/equipment',
   '/dashboard/work-orders',
   '/dashboard/inventory',

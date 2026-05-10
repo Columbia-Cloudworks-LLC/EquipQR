@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.1] - 2026-05-10
+
+### Added
+
+- **In-app QR scanner and PM summary on equipment QR landing** — Protected `/dashboard/scan` route (lazy `qr-scanner` chunk) decodes EquipQR equipment, inventory, and work-order links into existing `/qr/*` flows; mobile dashboard hero and bottom nav open the scanner. Equipment QR landing shows a non-blocking last completed PM card with checklist sections and a deep link to `/dashboard/work-orders/:id?action=pm`; work order details scrolls to the PM checklist and clears only the `action` query param.
+
+- **Work order creation photos & primary image** ([#726](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/726)) — QR scan dialog and authenticated create/request forms accept up to five evidence photos (same MIME/size rules as notes). First uploaded image sets work_orders.primary_image_id and appears first with a Primary badge in the work order images carousel. Offline create with photos is blocked with the same messaging as inline notes.
+
+### Changed
+
+- **Mobile dashboard context** ([#836](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/836)) — Mobile `/dashboard` prioritizes Scan QR (in-app `/dashboard/scan` entry), non-truncating urgent alert card, open-work preview rows, and widget order skewed to actionable queues; bottom nav adds Scan QR; dashboard FAB hides on the dashboard home to avoid clashing with nav; stats cards drop vague insufficient-history trend notes; equipment status and PM widgets use compact mobile summaries (desktop donuts unchanged).
+
+- **Mobile work order details UX** ([#829](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/829)) — Task-oriented technician layout on phones: compact job summary (status/due/overdue, equipment link, team, assignee); sticky footer for primary workflows (start/hold/resume/checklist gates/complete); PM checklist CTA; unified overflow (**Details**, **Exports**, **QuickBooks**, **Admin** with gated delete); mobile info sidebar hides status-change action buttons.
+
 ## [3.3.0] - 2026-05-09
 
 ### Added
@@ -1807,3 +1821,6 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 [1.7.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.2...v1.7.3
 [1.7.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/releases/tag/v1.7.1
+
+
+

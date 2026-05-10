@@ -18,7 +18,8 @@ import {
   Forklift, 
   Warehouse,
   ClipboardList, 
-  Menu
+  Menu,
+  ScanLine,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -33,6 +34,12 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: Home },
+  {
+    label: 'Scan QR',
+    shortLabel: 'Scan',
+    href: '/dashboard/scan',
+    icon: ScanLine,
+  },
   { label: 'Equipment', href: '/dashboard/equipment', icon: Forklift },
   { label: 'Inventory', href: '/dashboard/inventory', icon: Warehouse },
   { label: 'Work Orders', shortLabel: 'Orders', href: '/dashboard/work-orders', icon: ClipboardList },
@@ -42,11 +49,15 @@ const BottomNav: React.FC = () => {
   const location = useLocation();
   const { setOpenMobile } = useSidebar();
 
-  const isActive = (href: string) => {
+  const isActive = (item: NavItem) => {
+    const { href } = item;
     if (href === '/dashboard') {
-      return location.pathname === '/dashboard';
+      return location.pathname === '/dashboard' || location.pathname === '/dashboard/';
     }
-    return location.pathname.startsWith(href);
+    if (href === '/dashboard/equipment') {
+      return location.pathname.startsWith('/dashboard/equipment');
+    }
+    return location.pathname === href || location.pathname.startsWith(`${href}/`);
   };
 
   const handleMenuClick = () => {
@@ -71,7 +82,7 @@ const BottomNav: React.FC = () => {
     >
       <div className="flex items-stretch justify-around px-2">
         {navItems.map((item) => {
-          const active = isActive(item.href);
+          const active = isActive(item);
           const Icon = item.icon;
           
           return (

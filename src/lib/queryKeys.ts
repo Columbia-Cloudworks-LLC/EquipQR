@@ -99,6 +99,8 @@ export const preventiveMaintenance = {
     ['preventativeMaintenance', 'all', workOrderId, orgId] as const,
   byOrg: (workOrderId: string, orgId: string) =>
     ['preventativeMaintenance', workOrderId, orgId] as const,
+  latestCompletedByEquipment: (orgId: string, equipmentId: string) =>
+    ['preventativeMaintenance', 'latest-completed', orgId, equipmentId] as const,
 };
 
 // Notification keys

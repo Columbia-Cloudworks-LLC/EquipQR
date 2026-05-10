@@ -203,6 +203,7 @@ function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
     historical_notes: wo.historical_notes as string | null,
     has_pm: wo.has_pm as boolean,
     pm_required: wo.pm_required as boolean,
+    primary_image_id: (wo.primary_image_id as string | null | undefined) ?? null,
     // Computed fields from joins
     assigneeName: assignee?.name || undefined,
     teamName: equipment?.teams?.name || undefined,

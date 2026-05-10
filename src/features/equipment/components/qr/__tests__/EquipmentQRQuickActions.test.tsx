@@ -9,6 +9,7 @@ import {
   createQREquipmentNote,
 } from '@/features/equipment/services/equipmentQRActionService';
 import { fetchQRActionTeamMemberships } from '@/features/equipment/services/equipmentQRPermissions';
+import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 
 vi.mock('@/features/equipment/services/equipmentQRActionService', async () => {
   const actual = await vi.importActual<typeof import('@/features/equipment/services/equipmentQRActionService')>(
@@ -132,8 +133,11 @@ describe('EquipmentQRQuickActions', () => {
     const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
     mockCreateWorkOrder.mockResolvedValue({
-      id: 'wo-1',
-      title: 'Preventative maintenance - Forklift 17',
+      workOrder: {
+        id: 'wo-1',
+        title: 'Preventative maintenance - Forklift 17',
+      } as WorkOrder,
+      creationPhotosAttached: true,
     } as Awaited<ReturnType<typeof createQRWorkOrder>>);
 
     renderQuickActions();
@@ -156,8 +160,11 @@ describe('EquipmentQRQuickActions', () => {
     const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
     mockCreateWorkOrder.mockResolvedValue({
-      id: 'wo-2',
-      title: 'Work order - Forklift 17',
+      workOrder: {
+        id: 'wo-2',
+        title: 'Work order - Forklift 17',
+      } as WorkOrder,
+      creationPhotosAttached: true,
     } as Awaited<ReturnType<typeof createQRWorkOrder>>);
 
     renderQuickActions();
@@ -239,5 +246,38 @@ describe('EquipmentQRQuickActions', () => {
 
     expect(await screen.findByText(/does not have a default pm template assigned/i)).toBeInTheDocument();
     expect(mockCreateWorkOrder).not.toHaveBeenCalled();
+  });
+
+  it('passes attached jpeg files through to createQRWorkOrder', async () => {
+    const user = userEvent.setup();
+    mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
+    mockCreateWorkOrder.mockResolvedValue({
+      workOrder: {
+        id: 'wo-with-photos',
+        title: 'Work order - Forklift 17',
+      } as WorkOrder,
+      creationPhotosAttached: true,
+    } as Awaited<ReturnType<typeof createQRWorkOrder>>);
+
+    renderQuickActions();
+
+    await user.click(screen.getByRole('button', { name: /create generic work order/i }));
+    await screen.findByRole('dialog', undefined, { timeout: 3000 });
+
+    const file = new File(['fake-bytes'], 'site-photo.jpg', { type: 'image/jpeg' });
+    await user.upload(screen.getByLabelText(/attach photos from this request/i), file);
+
+    await user.click(screen.getByRole('button', { name: /create work order/i }));
+
+    await waitFor(() => {
+      expect(mockCreateWorkOrder).toHaveBeenCalled();
+    });
+
+    const call = mockCreateWorkOrder.mock.calls.at(-1)?.[0] as {
+      images?: File[];
+      attachPM?: boolean;
+    };
+    expect(call?.attachPM).toBe(false);
+    expect(call?.images?.some((f) => f.name === 'site-photo.jpg')).toBe(true);
   });
 });

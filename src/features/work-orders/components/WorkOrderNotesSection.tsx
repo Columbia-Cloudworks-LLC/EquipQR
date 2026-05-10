@@ -9,7 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { workOrders as workOrderQueryKeys } from '@/lib/queryKeys';
+import { workOrders as workOrderQueryKeys, workOrderMetrics } from '@/lib/queryKeys';
 import {
   createWorkOrderNoteWithImages,
   getWorkOrderNotesWithImages,
@@ -34,6 +34,8 @@ interface WorkOrderNotesSectionProps {
   autoOpenForm?: boolean;
   /** External trigger to open the note form (incremented to re-trigger) */
   openFormTrigger?: number;
+  /** Opens note form and triggers add-photo control (incremented to re-trigger) */
+  openCaptureTrigger?: number;
 }
 
 const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
@@ -42,20 +44,30 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   showPrivateNotes,
   hideInlineAddButton = false,
   autoOpenForm = false,
-  openFormTrigger
+  openFormTrigger,
+  openCaptureTrigger,
 }) => {
+  const offlinePhotoMessage = 'Photos need a connection. Text notes can still be saved offline.';
   const { formatDate } = useFormatTimestamp();
   const { user } = useAuth();
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const offlineCtx = useOfflineQueueOptional();
   const [showForm, setShowForm] = useState(autoOpenForm);
+  const [attachRequestId, setAttachRequestId] = useState(0);
 
   useEffect(() => {
     if (openFormTrigger && openFormTrigger > 0) {
       setShowForm(true);
     }
   }, [openFormTrigger]);
+
+  useEffect(() => {
+    if (openCaptureTrigger && openCaptureTrigger > 0) {
+      setShowForm(true);
+      setAttachRequestId(openCaptureTrigger);
+    }
+  }, [openCaptureTrigger]);
   const [noteContent, setNoteContent] = useState('');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
 
@@ -101,15 +113,15 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
       const queuedOffline = result && typeof result === 'object' && 'queuedOffline' in result && result.queuedOffline;
       if (queuedOffline) {
         const hadImages = result && typeof result === 'object' && 'hadImages' in result && result.hadImages;
-        toast.success(
-          hadImages
-            ? 'Note saved offline. Attach images when you reconnect.'
-            : 'Note saved offline — will sync when you reconnect.',
-        );
+        toast.success('Note saved offline — will sync when you reconnect.');
+        if (hadImages) {
+          toast.warning(offlinePhotoMessage);
+        }
         offlineCtx?.refresh();
       } else {
         queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.notesWithImages(workOrderId) });
         queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.images(workOrderId) });
+        queryClient.invalidateQueries({ queryKey: workOrderMetrics.imageCount(workOrderId) });
         toast.success('Note created successfully');
       }
       setShowForm(false);
@@ -139,6 +151,15 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
       });
     }
     
+    if (!navigator.onLine && data.images.length > 0) {
+      toast.error(offlinePhotoMessage);
+      setAttachedImages([]);
+      if (!data.content.trim()) {
+        return;
+      }
+      data = { ...data, images: [] };
+    }
+
     // Generate content if none provided but images are uploaded
     let finalContent = data.content.trim();
     if (!finalContent && data.images.length > 0) {
@@ -181,6 +202,10 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   };
 
   const handleImagesAdd = (files: File[]) => {
+    if (!navigator.onLine) {
+      toast.error(offlinePhotoMessage);
+      return;
+    }
     setAttachedImages(prev => [...prev, ...files]);
   };
 
@@ -260,6 +285,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
               isSubmitting={createNoteMutation.isPending}
               placeholder="Enter your note..."
               userDisplayName={userDisplayName}
+              requestAttachTrigger={attachRequestId}
             />
           </CardContent>
         </Card>

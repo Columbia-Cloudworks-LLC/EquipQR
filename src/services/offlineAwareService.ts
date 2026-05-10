@@ -80,6 +80,11 @@ export class OfflineAwareWorkOrderService {
   ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
     // ── TIER 1: Fast pre-check — skip network entirely when offline ──
     if (!navigator.onLine) {
+      if (data.images?.length) {
+        throw new Error(
+          'Photos need a connection. Text-only work orders can still be saved offline.',
+        );
+      }
       return this.queueCreate(data, resolvedAssigneeId);
     }
 
@@ -111,6 +116,11 @@ export class OfflineAwareWorkOrderService {
     } catch (error) {
       // Fallback: if it's a network error, queue locally
       if (isNetworkError(error)) {
+        if (data.images?.length) {
+          throw new Error('Photos need a stable connection to upload. Try again when online.', {
+            cause: error,
+          });
+        }
         return this.queueCreate(data, resolvedAssigneeId);
       }
       throw error;

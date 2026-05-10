@@ -7,7 +7,7 @@ It avoids assumptions about proprietary sensors, paid integrations, or contracts
 
 ## Current Snapshot
 
-- Version: **3.2.0** on `main`; `preview` is staged for the **3.3.0** release.
+- Version: **3.3.0** on `main`; `preview` is staged for the **3.3.1** release.
 - Open issues: tracked across enhancement, bug, compliance, and Google Workspace workstreams.
 - Open PRs: release promotion from `preview` to `main` pending.
 - Delivery trend since last roadmap update: timezone consistency, schema-drift release gates,

@@ -56,7 +56,7 @@ function toCardProps(
   return {
     sparkline: hasSeries ? trend.sparkline : undefined,
     trend: hasDelta ? { direction, delta: Math.abs(trend.delta) } : undefined,
-    trendNote: hasSeries && hasDelta ? undefined : 'Insufficient history',
+    trendNote: undefined,
   };
 }
 

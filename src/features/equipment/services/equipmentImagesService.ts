@@ -41,14 +41,23 @@ export const getAllEquipmentImages = async (
     const workOrderImages: EquipmentImageData[] = [];
     if (workOrders && workOrders.length > 0) {
       for (const wo of workOrders) {
-        const images = await getWorkOrderImages(wo.id);
-        workOrderImages.push(
-          ...images.map((img) => ({
-            ...(img as unknown as Omit<EquipmentImageData, 'source_type' | 'source_id'>),
-            source_type: 'work_order_note' as const,
-            source_id: wo.id
-          }))
-        );
+        try {
+          const images = await getWorkOrderImages(wo.id, organizationId);
+          workOrderImages.push(
+            ...images.map((img) => ({
+              ...(img as unknown as Omit<EquipmentImageData, 'source_type' | 'source_id'>),
+              source_type: 'work_order_note' as const,
+              source_id: wo.id,
+            })),
+          );
+        } catch (woImageError) {
+          logger.warn('Skipping work-order images due to fetch error', {
+            equipmentId,
+            organizationId,
+            workOrderId: wo.id,
+            error: woImageError,
+          });
+        }
       }
     }
 

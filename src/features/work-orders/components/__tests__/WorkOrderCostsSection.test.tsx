@@ -24,13 +24,23 @@ vi.mock('@/features/work-orders/hooks/useWorkOrderEquipment', () => ({
 }));
 
 vi.mock('../InlineEditWorkOrderCosts', () => ({
-  default: ({ costs, workOrderId, canEdit }: { costs: unknown[]; workOrderId: string; canEdit: boolean }) => (
-    <div data-testid="inline-edit-costs">
+  default: ({
+    costs,
+    workOrderId,
+    canEdit,
+    compactMobile,
+  }: {
+    costs: unknown[];
+    workOrderId: string;
+    canEdit: boolean;
+    compactMobile?: boolean;
+  }) => (
+    <div data-testid="inline-edit-costs" data-compact-mobile={compactMobile ? 'true' : 'false'}>
       <div data-testid="costs-count">{costs.length}</div>
       <div data-testid="work-order-id">{workOrderId}</div>
       <div data-testid="can-edit">{canEdit ? 'true' : 'false'}</div>
     </div>
-  )
+  ),
 }));
 
 // ============================================
@@ -153,6 +163,25 @@ describe('WorkOrderCostsSection', () => {
   // --------------------------------------------------------
   // Equipment integration edge case
   // --------------------------------------------------------
+  describe('mobileField variant', () => {
+    it('passes compactMobile to the inline editor', async () => {
+      const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
+      vi.mocked(useWorkOrderCosts).mockReturnValue({ data: [], isLoading: false });
+
+      render(
+        <WorkOrderCostsSection
+          workOrderId={woFixtures.assigned.id}
+          canAddCosts={true}
+          canEditCosts={true}
+          variant="mobileField"
+        />,
+      );
+
+      expect(screen.getByText(/Parts and labor/i)).toBeInTheDocument();
+      expect(screen.getByTestId('inline-edit-costs')).toHaveAttribute('data-compact-mobile', 'true');
+    });
+  });
+
   describe('equipment data handling', () => {
     it('handles equipment data including filtering null IDs', async () => {
       const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');

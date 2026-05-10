@@ -59,6 +59,7 @@ const TeamDetails = lazy(() => import('@/features/teams/pages/TeamDetails'));
 const FleetMap = lazy(() => import('@/features/fleet-map/pages/FleetMap'));
 const Organization = lazy(() => import('@/features/organization/pages/Organization'));
 const EquipmentQRScan = lazy(() => import('@/features/equipment/pages/EquipmentQRScan'));
+const EquipmentScanner = lazy(() => import('@/features/equipment/pages/EquipmentScanner'));
 const InventoryQRRedirect = lazy(() => import('@/pages/InventoryQRRedirect'));
 const WorkOrderQRRedirect = lazy(() => import('@/pages/WorkOrderQRRedirect'));
 const LegacyEquipmentQRRedirect = lazy(() => import('@/pages/LegacyEquipmentQRRedirect'));
@@ -237,6 +238,7 @@ function App() {
                                 <Route path="/equipment" element={<Equipment />} />
                                 <Route path="/equipment/bulk" element={<BulkEquipment />} />
                                 <Route path="/equipment/:equipmentId" element={<EquipmentDetails />} />
+                                <Route path="/scan" element={<EquipmentScanner />} />
                                 <Route path="/work-orders" element={<WorkOrders />} />
                                 <Route path="/work-orders/:workOrderId" element={<WorkOrderDetails />} />
                                 <Route path="/teams" element={<Teams />} />
