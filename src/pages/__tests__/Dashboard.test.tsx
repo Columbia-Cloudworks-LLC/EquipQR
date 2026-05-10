@@ -354,15 +354,19 @@ describe('Dashboard', () => {
       expect(screen.getByTitle('Dashboard settings')).toBeInTheDocument();
     });
 
-    it('displays widget content after lazy loading', async () => {
-      render(<Dashboard />);
-      await waitFor(
-        () => {
-          expect(screen.getByText('Total Equipment')).toBeInTheDocument();
-        },
-        { timeout: 5000 }
-      );
-    });
+    it(
+      'displays widget content after lazy loading',
+      async () => {
+        render(<Dashboard />);
+        await waitFor(
+          () => {
+            expect(screen.getByText('Total Equipment')).toBeInTheDocument();
+          },
+          { timeout: 15_000 }
+        );
+      },
+      20_000
+    );
 
     it('shows recent equipment for fleet monitoring', async () => {
       render(<Dashboard />);

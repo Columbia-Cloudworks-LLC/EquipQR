@@ -1,4 +1,5 @@
 import { getStatusColor, getStatusDisplayInfo, safeFormatDate } from "@/features/equipment/utils/equipmentHelpers";
+import type { UserSettings } from "@/types/settings";
 
 export interface EquipmentCardDisplayModel {
   imageAlt: string;
@@ -18,10 +19,13 @@ interface EquipmentCardDisplayInput {
 }
 
 export function getEquipmentCardDisplayModel(
-  equipment: EquipmentCardDisplayInput
+  equipment: EquipmentCardDisplayInput,
+  settings: UserSettings
 ): EquipmentCardDisplayModel {
   const statusInfo = getStatusDisplayInfo(equipment.status);
-  const lastMaintenanceDate = equipment.last_maintenance ? safeFormatDate(equipment.last_maintenance) : null;
+  const lastMaintenanceDate = equipment.last_maintenance
+    ? safeFormatDate(equipment.last_maintenance, settings)
+    : null
   const hours = equipment.working_hours ?? 0;
 
   return {

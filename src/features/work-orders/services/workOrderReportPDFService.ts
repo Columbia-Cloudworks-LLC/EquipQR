@@ -2,11 +2,18 @@
 // It's only needed when a user explicitly triggers a PDF export
 import type jsPDF from 'jspdf';
 import { logger } from '@/utils/logger';
-import { formatStatus, formatPriority, formatDate, formatDateTime } from '@/features/work-orders/utils/workOrderHelpers';
+import { formatStatus, formatPriority } from '@/features/work-orders/utils/workOrderHelpers';
+import type { UserSettings } from '@/types/settings';
+import {
+  formatDate as formatDateTz,
+  formatDateTime as formatDateTimeTz,
+} from '@/utils/dateFormatter';
 import type { WorkOrderNote } from '@/features/work-orders/services/workOrderNotesService';
 import type { WorkOrderCost } from '@/features/work-orders/types/workOrderCosts';
 import type { PMChecklistItem, PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import type { QRAsset } from '@/utils/qr';
+
+export type WorkOrderExportDateSettings = Pick<UserSettings, 'timezone' | 'dateFormat'>;
 
 /**
  * Flexible work order type that works with both WorkOrder and WorkOrderData
@@ -71,6 +78,7 @@ export interface WorkOrderPDFData {
   qrCodes?: WorkOrderPDFQRCodes;
   /** Identifying labels for repeated page headers */
   pageIdentity?: WorkOrderPDFPageIdentity;
+  exportDateSettings: WorkOrderExportDateSettings;
 }
 
 /** Milliseconds in one day - used for date delta calculations */
@@ -90,6 +98,17 @@ export class WorkOrderReportPDFGenerator {
   private readonly pageWidth = 210; // A4 width in mm
   private readonly footerY = 255;
   private readonly qrSize = 20;
+  private exportDateSettings!: WorkOrderExportDateSettings;
+
+  private pdfFormatDate(date: string | null | undefined): string {
+    if (!date) return '—';
+    return formatDateTz(date, this.exportDateSettings as UserSettings);
+  }
+
+  private pdfFormatDateTime(date: string | null | undefined): string {
+    if (!date) return '—';
+    return formatDateTimeTz(date, this.exportDateSettings as UserSettings);
+  }
 
   /**
    * Use the static create() method instead of calling the constructor directly.
@@ -272,7 +291,7 @@ export class WorkOrderReportPDFGenerator {
     this.doc.setFont('helvetica', 'normal');
 
     // Created date
-    this.addText(`Created: ${formatDate(workOrder.created_date)}`, this.margin, 10);
+    this.addText(`Created: ${this.pdfFormatDate(workOrder.created_date)}`, this.margin, 10);
 
     // Priority
     this.addText(`Priority: ${formatPriority(workOrder.priority)}`, this.margin, 10);
@@ -280,13 +299,13 @@ export class WorkOrderReportPDFGenerator {
     // Due date with delta from created
     const dueDelta = this.calculateDaysDelta(workOrder.created_date, workOrder.due_date);
     const dueDeltaStr = dueDelta !== null ? ` (${dueDelta} days from created)` : '';
-    this.addText(`Due: ${formatDate(workOrder.due_date)}${dueDeltaStr}`, this.margin, 10);
+    this.addText(`Due: ${this.pdfFormatDate(workOrder.due_date)}${dueDeltaStr}`, this.margin, 10);
 
     // Completed date with delta from created (if completed)
     if (workOrder.completed_date) {
       const completedDelta = this.calculateDaysDelta(workOrder.created_date, workOrder.completed_date);
       const completedDeltaStr = completedDelta !== null ? ` (${completedDelta} days from created)` : '';
-      this.addText(`Completed: ${formatDate(workOrder.completed_date)}${completedDeltaStr}`, this.margin, 10);
+      this.addText(`Completed: ${this.pdfFormatDate(workOrder.completed_date)}${completedDeltaStr}`, this.margin, 10);
     }
 
     this.addSeparator();
@@ -386,7 +405,7 @@ export class WorkOrderReportPDFGenerator {
     this.addSectionHeader('Public Work Order Notes');
 
     for (const note of sortedNotes) {
-      const dateStr = formatDateTime(note.created_at);
+      const dateStr = this.pdfFormatDateTime(note.created_at);
       const author = note.author_name || 'Unknown';
       const hasImages = note.images && note.images.length > 0;
 
@@ -665,7 +684,7 @@ export class WorkOrderReportPDFGenerator {
     this.addText(`Status: ${pmStatus}`, this.margin, 10, 'bold');
     
     if (pmData.completed_at) {
-      this.addText(`Completed: ${formatDateTime(pmData.completed_at)}`, this.margin, 9);
+      this.addText(`Completed: ${this.pdfFormatDateTime(pmData.completed_at)}`, this.margin, 9);
     }
     this.yPosition += 3;
 
@@ -821,7 +840,7 @@ export class WorkOrderReportPDFGenerator {
     this.doc.setFontSize(7);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(150, 150, 150);
-    const genText = `Document generated: ${new Date().toLocaleString()}`;
+    const genText = `Document generated: ${formatDateTimeTz(new Date(), this.exportDateSettings as UserSettings)}`;
     const genWidth = this.doc.getTextWidth(genText);
     this.doc.text(genText, (this.pageWidth - genWidth) / 2, qrY + this.qrSize / 2);
 
@@ -851,8 +870,11 @@ export class WorkOrderReportPDFGenerator {
       notes = [],
       costs = [],
       pmData,
-      includeCosts = false
+      includeCosts = false,
+      exportDateSettings,
     } = data;
+
+    this.exportDateSettings = exportDateSettings;
 
     // Page 1: Header, Details, Equipment, Customer/Assignment, Description
     this.generateHeader(workOrder, organizationName);
