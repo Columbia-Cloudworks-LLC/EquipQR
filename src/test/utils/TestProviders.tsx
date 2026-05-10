@@ -19,6 +19,23 @@ import {
   createMockAuthForPersona,
   createMockSimpleOrgForPersona
 } from './mock-provider-values';
+import { SettingsContext } from '@/contexts/settings-context';
+import type { SettingsContextType } from '@/contexts/settings-context';
+import type { UserSettings } from '@/types/settings';
+
+/** Non-system timezone for timezone migration tests (#647 / #767). */
+export const testUserSettingsSydney: UserSettings = {
+  timezone: 'Australia/Sydney',
+  dateFormat: 'MM/dd/yyyy',
+};
+
+const defaultTestSettingsContext: SettingsContextType = {
+  settings: testUserSettingsSydney,
+  updateSetting: () => {},
+  resetSettings: () => {},
+  isLoading: false,
+};
+
 
 export interface TestProvidersProps {
   children: React.ReactNode;
@@ -55,7 +72,8 @@ export const TestProviders = ({
       <MemoryRouter initialEntries={initialEntries || ['/']}>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
-            <MockAuthProvider value={authValue}>
+            <SettingsContext.Provider value={defaultTestSettingsContext}>
+              <MockAuthProvider value={authValue}>
               <MockSessionProvider value={sessionValue}>
                 <MockSessionProvider2>
                   <MockUserProvider>
@@ -66,6 +84,7 @@ export const TestProviders = ({
                 </MockSessionProvider2>
               </MockSessionProvider>
             </MockAuthProvider>
+            </SettingsContext.Provider>
           </TooltipProvider>
         </QueryClientProvider>
       </MemoryRouter>

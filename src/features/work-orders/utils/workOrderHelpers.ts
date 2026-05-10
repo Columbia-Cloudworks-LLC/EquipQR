@@ -5,7 +5,13 @@
  * All components should import from here instead of defining locally.
  */
 
+import type { UserSettings } from '@/types/settings';
 import type { WorkOrderStatus, WorkOrderPriority } from '@/features/work-orders/types/workOrder';
+import {
+  formatDate as formatDateInTz,
+  formatDateTime as formatDateTimeInTz,
+  formatRelative as formatRelativeInTz,
+} from '@/utils/dateFormatter';
 
 // ============================================
 // Color Utilities
@@ -106,69 +112,43 @@ export const formatPriority = (priority: string): string => {
   return priority.charAt(0).toUpperCase() + priority.slice(1);
 };
 
-/**
- * Format date string for display
- */
-export const formatDate = (dateString: string | null | undefined): string => {
+
+/** Used by CSV/PDF/Excel and helpers where explicit settings are required (#768). */
+export type WorkOrderDateSettings = Pick<UserSettings, 'timezone' | 'dateFormat'>;
+
+export const formatDate = (
+  dateString: string | null | undefined,
+  settings: WorkOrderDateSettings
+): string => {
   if (!dateString) return '—';
   try {
-    return new Date(dateString).toLocaleDateString();
+    return formatDateInTz(dateString, settings as UserSettings);
   } catch {
     return 'Invalid Date';
   }
 };
 
-/**
- * Format date with time for display
- */
-export const formatDateTime = (dateString: string | null | undefined): string => {
+export const formatDateTime = (
+  dateString: string | null | undefined,
+  settings: WorkOrderDateSettings
+): string => {
   if (!dateString) return '—';
   try {
-    return new Date(dateString).toLocaleString();
+    return formatDateTimeInTz(dateString, settings as UserSettings);
   } catch {
     return 'Invalid Date';
   }
 };
 
-const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
-  ['day', 86_400_000],
-  ['hour', 3_600_000],
-  ['minute', 60_000],
-];
-
-/**
- * Format a date as a compact relative string ("2d ago", "in 5d", "3mo ago").
- * Falls back to `formatDate()` for dates older than ~11 months.
- */
-export const formatRelativeDate = (dateString: string | null | undefined): string => {
+export const formatRelativeDate = (
+  dateString: string | null | undefined,
+  settings: WorkOrderDateSettings
+): string => {
   if (!dateString) return '—';
   try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return 'Invalid Date';
-
-    const diffMs = date.getTime() - Date.now();
-    const absDiffMs = Math.abs(diffMs);
-
-    if (absDiffMs > 330 * 86_400_000) return formatDate(dateString);
-
-    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto', style: 'narrow' });
-
-    if (absDiffMs >= 30 * 86_400_000) {
-      const months = Math.round(diffMs / (30 * 86_400_000));
-      return rtf.format(months, 'month');
-    }
-    if (absDiffMs >= 7 * 86_400_000) {
-      const weeks = Math.round(diffMs / (7 * 86_400_000));
-      return rtf.format(weeks, 'week');
-    }
-    for (const [unit, ms] of RELATIVE_UNITS) {
-      if (absDiffMs >= ms) {
-        return rtf.format(Math.round(diffMs / ms), unit);
-      }
-    }
-    return rtf.format(0, 'second');
+    return formatRelativeInTz(dateString, settings as UserSettings);
   } catch {
-    return formatDate(dateString);
+    return formatDate(dateString, settings);
   }
 };
 

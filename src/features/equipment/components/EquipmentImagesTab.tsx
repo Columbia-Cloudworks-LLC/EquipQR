@@ -93,13 +93,11 @@ const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
   const uploadImagesMutation = useMutation({
     mutationFn: async (files: File[]) => {
       const userName = user?.email?.split('@')[0] || 'User';
-      let noteContent = '';
-      if (files.length === 1) {
-        noteContent = `${userName} uploaded an image`;
-      } else {
-        noteContent = `${userName} uploaded ${files.length} images`;
-      }
-      
+      const noteContent =
+        files.length === 1
+          ? `${userName} uploaded an image`
+          : `${userName} uploaded ${files.length} images`;
+
       return createEquipmentNoteWithImages(
         equipmentId,
         noteContent,

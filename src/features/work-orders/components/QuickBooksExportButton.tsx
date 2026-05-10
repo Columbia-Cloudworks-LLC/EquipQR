@@ -20,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Badge } from '@/components/ui/badge';
 import { FileSpreadsheet, RefreshCw, CheckCircle, ExternalLink, Info, Copy } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { useQuery } from '@tanstack/react-query';
 import { 
   getConnectionStatus,
@@ -66,6 +67,8 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   onExportSuccess,
   showStatusDetails = false
 }) => {
+  const { formatDateTime } = useFormatTimestamp();
+
   const { currentOrganization } = useOrganization();
   const { success: showSuccessToast, error: showErrorToast } = useAppToast();
 
@@ -132,7 +135,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
     ? (existingExport.quickbooks_invoice_number || existingExport.quickbooks_invoice_id)
     : null;
 
-  let tooltipMessage = '';
+  let tooltipMessage: string;
   let isDisabled = false;
 
   if (!isCompleted) {
@@ -204,7 +207,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
 
   const formatTimestamp = (log: QuickBooksExportLog) => {
     const timestamp = log.exported_at ?? log.created_at;
-    return timestamp ? new Date(timestamp).toLocaleString() : 'Unknown';
+    return timestamp ? formatDateTime(timestamp) : 'Unknown';
   };
 
   const handleCopy = async (label: string, value?: string | null) => {
