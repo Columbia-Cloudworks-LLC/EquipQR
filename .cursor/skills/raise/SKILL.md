@@ -38,6 +38,7 @@ If no base branch is supplied, use `main`.
 6. If any gate fails or audit is ambiguous, switch to Plan Mode and output a remediation plan.
 7. If clarification is needed from the developer, ask explicit questions in chat (use Cursor question flow) before making assumptions.
 8. If raise is allowed and invocation is not `--audit-only`, execute push + PR creation without asking for extra confirmation.
+9. For any PR targeting `main`, write the change summary as public-facing release copy: name user-visible features and behavior changes specifically, but avoid exposing implementation details, branch mechanics, internal file paths, database objects, vendor tooling, or agent workflow minutiae in the summary. Keep operational details in later checklist sections.
 
 ## Workflow
 
@@ -112,9 +113,12 @@ When raise is allowed, produce:
 
 ```markdown
 ## Summary
-- ...
-- ...
-- ...
+- Public-facing release note about a user-visible feature or improvement.
+- Public-facing release note about a changed workflow or customer benefit.
+- Public-facing release note about another customer-visible fix, feature, or polish item.
+
+## Internal Release Notes
+- Optional: internal-only repo, workflow, agent, or release-process updates that should not appear in the public-facing summary.
 
 ## Five Points of Fellowship
 - CHANGELOG: pass
