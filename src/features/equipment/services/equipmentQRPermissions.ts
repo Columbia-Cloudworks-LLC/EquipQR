@@ -72,6 +72,14 @@ export interface ResolveEquipmentQRDisplayImageContext {
   stored: string | null;
 }
 
+function safeString(value: unknown): string {
+  try {
+    return String(value);
+  } catch {
+    return '[unstringifiable]';
+  }
+}
+
 function summarizeResolutionError(error: unknown): { errorName: string; errorMessage: string } {
   if (error instanceof Error) {
     return {
@@ -80,16 +88,23 @@ function summarizeResolutionError(error: unknown): { errorName: string; errorMes
     };
   }
 
-  if (error && typeof error === 'object' && 'message' in error) {
+  if (error && typeof error === 'object') {
+    const errorRecord = error as { constructor?: unknown; message?: unknown; name?: unknown };
+    const constructorName =
+      typeof errorRecord.constructor === 'function' && typeof errorRecord.constructor.name === 'string'
+        ? errorRecord.constructor.name
+        : undefined;
+    const objectName = typeof errorRecord.name === 'string' && errorRecord.name ? errorRecord.name : undefined;
+
     return {
-      errorName: error.constructor.name,
-      errorMessage: String(error.message),
+      errorName: constructorName || objectName || 'object',
+      errorMessage: 'message' in error ? safeString(errorRecord.message) : safeString(error),
     };
   }
 
   return {
     errorName: typeof error,
-    errorMessage: String(error),
+    errorMessage: safeString(error),
   };
 }
 

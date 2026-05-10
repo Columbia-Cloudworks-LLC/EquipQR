@@ -249,4 +249,32 @@ describe('resolveEquipmentQRDisplayImageUrl', () => {
       errorMessage: 'signing_failed',
     });
   });
+
+  it.each([
+    {
+      thrown: Object.assign(Object.create(null), { message: 'null_proto_failure' }),
+      expectedMessage: 'null_proto_failure',
+    },
+    {
+      thrown: { message: 'missing_constructor_failure', constructor: null },
+      expectedMessage: 'missing_constructor_failure',
+    },
+  ])('returns null when thrown error summary has no safe constructor', async ({ thrown, expectedMessage }) => {
+    mockBatchResolve.mockRejectedValue(thrown);
+
+    const url = await resolveEquipmentQRDisplayImageUrl({
+      equipmentId: 'eq-id',
+      organizationId: 'org-1',
+      stored: canonicalPath,
+    });
+
+    expect(url).toBeNull();
+    expect(logger.error).toHaveBeenCalledWith('QR equipment image resolution failed', {
+      equipmentId: 'eq-id',
+      organizationId: 'org-1',
+      imagePath: canonicalPath,
+      errorName: 'object',
+      errorMessage: expectedMessage,
+    });
+  });
 });
