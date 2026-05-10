@@ -701,7 +701,20 @@ const WorkOrderDetails = () => {
               />
               </div>
 
-              <div {...stagger(5)}>
+              {/* Itemized costs — bottom of field flow, always findable */}
+              {(permissionLevels.isManager || permissionLevels.isTechnician) && (
+                <div {...stagger(5)}>
+                  <WorkOrderCostsSection
+                    workOrderId={workOrder.id}
+                    canAddCosts={canAddCosts && !isWorkOrderLocked}
+                    canEditCosts={canEditCosts && !isWorkOrderLocked}
+                    primaryEquipmentId={workOrder.equipment_id}
+                    variant="mobileField"
+                  />
+                </div>
+              )}
+
+              <div {...stagger(6)}>
                 <Card className="shadow-elevation-2">
                   <Collapsible open={mobileReviewOpen} onOpenChange={setMobileReviewOpen}>
                     <CardHeader>
@@ -723,15 +736,6 @@ const WorkOrderDetails = () => {
                     </CardHeader>
                     <CollapsibleContent>
                       <CardContent className="space-y-4 pt-0">
-                        {(permissionLevels.isManager || permissionLevels.isTechnician) && (
-                          <WorkOrderCostsSection
-                            workOrderId={workOrder.id}
-                            canAddCosts={canAddCosts && !isWorkOrderLocked}
-                            canEditCosts={canEditCosts && !isWorkOrderLocked}
-                            primaryEquipmentId={workOrder.equipment_id}
-                          />
-                        )}
-
                         <WorkOrderDetailsPMInfo
                           workOrder={workOrder}
                           pmData={pmData}

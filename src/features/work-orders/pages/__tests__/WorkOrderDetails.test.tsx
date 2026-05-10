@@ -367,8 +367,11 @@ describe('WorkOrderDetails', () => {
     expect(pageText.indexOf('Compact summary')).toBeLessThan(pageText.indexOf('Next action'));
     expect(pageText.indexOf('PM checklist')).toBeLessThan(pageText.indexOf('Notes section'));
     expect(pageText.indexOf('Notes section')).toBeLessThan(pageText.indexOf('Images section'));
+    expect(pageText.indexOf('Images section')).toBeLessThan(pageText.indexOf('Costs section'));
+    expect(pageText.indexOf('Costs section')).toBeLessThan(pageText.indexOf('Review & office details'));
 
-    expect(screen.queryByText('Costs section')).not.toBeInTheDocument();
+    // Itemized costs stay outside Review/office so techs can reach them without expanding.
+    expect(screen.getByText('Costs section')).toBeInTheDocument();
     expect(screen.queryByText('Timeline section')).not.toBeInTheDocument();
     expect(screen.queryByText('Audit history')).not.toBeInTheDocument();
 

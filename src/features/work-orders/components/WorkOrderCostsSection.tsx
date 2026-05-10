@@ -12,13 +12,16 @@ interface WorkOrderCostsSectionProps {
   canEditCosts: boolean;
   /** Primary equipment ID from the work order (legacy field) */
   primaryEquipmentId?: string | null;
+  /** Compact bottom-of-page layout for mobile field workflow */
+  variant?: 'default' | 'mobileField';
 }
 
 const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
   workOrderId,
   canAddCosts,
   canEditCosts,
-  primaryEquipmentId
+  primaryEquipmentId,
+  variant = 'default',
 }) => {
   const { data: costs = [], isLoading } = useWorkOrderCosts(workOrderId);
   const { data: linkedEquipment = [] } = useWorkOrderEquipment(workOrderId);
@@ -50,20 +53,28 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
     );
   }
 
+  const isMobileField = variant === 'mobileField';
+
   return (
     <Card className="shadow-elevation-2">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <DollarSign className="h-5 w-5" />
+      <CardHeader className={isMobileField ? 'pb-2' : undefined}>
+        <CardTitle className={isMobileField ? 'flex items-center gap-2 text-base' : 'flex items-center gap-2'}>
+          <DollarSign className={isMobileField ? 'h-4 w-4' : 'h-5 w-5'} />
           Itemized Costs
         </CardTitle>
+        {isMobileField ? (
+          <p className="text-xs text-muted-foreground pt-1">
+            Parts and labor — tap to add without leaving the job screen.
+          </p>
+        ) : null}
       </CardHeader>
-      <CardContent>
+      <CardContent className={isMobileField ? 'pt-0' : undefined}>
         <InlineEditWorkOrderCosts
           costs={costs}
           workOrderId={workOrderId}
           equipmentIds={equipmentIds}
           canEdit={canAddCosts || canEditCosts}
+          compactMobile={isMobileField}
         />
       </CardContent>
     </Card>
