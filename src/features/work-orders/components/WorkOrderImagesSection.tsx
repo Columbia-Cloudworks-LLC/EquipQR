@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 
 interface WorkOrderImagesSectionProps {
   workOrderId: string;
+  organizationId: string;
   canUpload: boolean;
   showPrivateNotes: boolean;
   /** First creation photo — shown first with a Primary badge */
@@ -41,6 +42,7 @@ const noteExcerpt = (text: string, maxLen = 120) => {
 
 const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
   workOrderId,
+  organizationId,
   canUpload,
   showPrivateNotes,
   primaryImageId,
@@ -54,8 +56,8 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
 
   const { data: images = [], isLoading: imagesLoading } = useQuery({
     queryKey: workOrderQueryKeys.images(workOrderId),
-    queryFn: () => getWorkOrderImages(workOrderId),
-    enabled: !!workOrderId && isOpen,
+    queryFn: () => getWorkOrderImages(workOrderId, organizationId),
+    enabled: !!workOrderId && !!organizationId && isOpen,
   });
 
   const deleteImageMutation = useMutation({

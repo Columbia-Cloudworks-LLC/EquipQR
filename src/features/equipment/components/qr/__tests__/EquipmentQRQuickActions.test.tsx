@@ -9,6 +9,7 @@ import {
   createQREquipmentNote,
 } from '@/features/equipment/services/equipmentQRActionService';
 import { fetchQRActionTeamMemberships } from '@/features/equipment/services/equipmentQRPermissions';
+import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 
 vi.mock('@/features/equipment/services/equipmentQRActionService', async () => {
   const actual = await vi.importActual<typeof import('@/features/equipment/services/equipmentQRActionService')>(
@@ -132,8 +133,11 @@ describe('EquipmentQRQuickActions', () => {
     const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
     mockCreateWorkOrder.mockResolvedValue({
-      id: 'wo-1',
-      title: 'Preventative maintenance - Forklift 17',
+      workOrder: {
+        id: 'wo-1',
+        title: 'Preventative maintenance - Forklift 17',
+      } as WorkOrder,
+      creationPhotosAttached: true,
     } as Awaited<ReturnType<typeof createQRWorkOrder>>);
 
     renderQuickActions();
@@ -156,8 +160,11 @@ describe('EquipmentQRQuickActions', () => {
     const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
     mockCreateWorkOrder.mockResolvedValue({
-      id: 'wo-2',
-      title: 'Work order - Forklift 17',
+      workOrder: {
+        id: 'wo-2',
+        title: 'Work order - Forklift 17',
+      } as WorkOrder,
+      creationPhotosAttached: true,
     } as Awaited<ReturnType<typeof createQRWorkOrder>>);
 
     renderQuickActions();
@@ -245,8 +252,11 @@ describe('EquipmentQRQuickActions', () => {
     const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
     mockCreateWorkOrder.mockResolvedValue({
-      id: 'wo-with-photos',
-      title: 'Work order - Forklift 17',
+      workOrder: {
+        id: 'wo-with-photos',
+        title: 'Work order - Forklift 17',
+      } as WorkOrder,
+      creationPhotosAttached: true,
     } as Awaited<ReturnType<typeof createQRWorkOrder>>);
 
     renderQuickActions();

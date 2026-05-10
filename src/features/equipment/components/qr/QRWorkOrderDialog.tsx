@@ -34,6 +34,7 @@ import { logger } from '@/utils/logger';
 import { workOrders as workOrderQueryKeys, workOrderMetrics } from '@/lib/queryKeys';
 import WorkOrderCreationPhotoPicker from '@/features/work-orders/components/WorkOrderCreationPhotoPicker';
 import { OFFLINE_CREATION_PHOTOS_MESSAGE } from '@/features/work-orders/utils/workOrderCreationImages';
+import { toast } from 'sonner';
 
 interface QRWorkOrderDialogProps {
   open: boolean;
@@ -101,7 +102,7 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
 
     setIsSubmitting(true);
     try {
-      const workOrder = await createQRWorkOrder({
+      const { workOrder, creationPhotosAttached } = await createQRWorkOrder({
         equipment,
         title: title.trim(),
         description: description.trim(),
@@ -121,6 +122,11 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
         queryClient.invalidateQueries({
           queryKey: workOrderMetrics.imageCount(workOrder.id),
         });
+        if (!creationPhotosAttached) {
+          toast.warning(
+            'Work order created, but photos did not attach. Open the work order to retry.',
+          );
+        }
       }
       setImages([]);
       onCreated(workOrder);

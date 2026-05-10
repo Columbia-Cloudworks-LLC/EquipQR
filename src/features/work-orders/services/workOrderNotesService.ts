@@ -327,8 +327,27 @@ export const getWorkOrderNotesWithImages = async (
 };
 
 // Get all images for work order (for gallery / carousel view)
-export const getWorkOrderImages = async (workOrderId: string): Promise<WorkOrderCarouselImage[]> => {
+export const getWorkOrderImages = async (
+  workOrderId: string,
+  organizationId: string,
+): Promise<WorkOrderCarouselImage[]> => {
   try {
+    const { data: workOrder, error: workOrderError } = await supabase
+      .from('work_orders')
+      .select('id')
+      .eq('id', workOrderId)
+      .eq('organization_id', organizationId)
+      .single();
+
+    if (workOrderError || !workOrder) {
+      logger.warn('Work order not found or organization mismatch while fetching images', {
+        workOrderId,
+        organizationId,
+        error: workOrderError,
+      });
+      return [];
+    }
+
     const { data: rows, error: imagesError } = await supabase
       .from('work_order_images')
       .select(

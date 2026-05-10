@@ -41,7 +41,7 @@ export const getAllEquipmentImages = async (
     const workOrderImages: EquipmentImageData[] = [];
     if (workOrders && workOrders.length > 0) {
       for (const wo of workOrders) {
-        const images = await getWorkOrderImages(wo.id);
+        const images = await getWorkOrderImages(wo.id, organizationId);
         workOrderImages.push(
           ...images.map((img) => ({
             ...(img as unknown as Omit<EquipmentImageData, 'source_type' | 'source_id'>),

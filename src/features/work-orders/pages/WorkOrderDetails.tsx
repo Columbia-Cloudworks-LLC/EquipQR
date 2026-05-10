@@ -703,6 +703,7 @@ const WorkOrderDetails = () => {
               <div {...stagger(3)}>
               <WorkOrderImagesSection 
                 workOrderId={workOrder.id}
+                organizationId={workOrder.organization_id}
                 canUpload={canUpload}
                 showPrivateNotes={permissionLevels.isManager}
                 primaryImageId={workOrder.primary_image_id}
@@ -866,6 +867,7 @@ const WorkOrderDetails = () => {
               <div {...stagger(4)}>
               <WorkOrderImagesSection 
                 workOrderId={workOrder.id}
+                organizationId={workOrder.organization_id}
                 canUpload={canUpload}
                 showPrivateNotes={permissionLevels.isManager}
                 primaryImageId={workOrder.primary_image_id}

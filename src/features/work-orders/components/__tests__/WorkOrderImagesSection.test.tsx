@@ -80,7 +80,12 @@ describe('WorkOrderImagesSection', () => {
 
   it('does not fetch full images before expand', async () => {
     render(
-      <WorkOrderImagesSection workOrderId="wo-1" canUpload showPrivateNotes={false} />,
+      <WorkOrderImagesSection
+        workOrderId="wo-1"
+        organizationId="org-1"
+        canUpload
+        showPrivateNotes={false}
+      />,
     );
 
     expect(screen.getByText('Work Order Images')).toBeInTheDocument();
@@ -99,13 +104,18 @@ describe('WorkOrderImagesSection', () => {
     ]);
 
     render(
-      <WorkOrderImagesSection workOrderId="wo-1" canUpload showPrivateNotes={false} />,
+      <WorkOrderImagesSection
+        workOrderId="wo-1"
+        organizationId="org-1"
+        canUpload
+        showPrivateNotes={false}
+      />,
     );
 
     await user.click(screen.getByRole('button', { name: /work order images/i }));
 
     await waitFor(() => {
-      expect(getWorkOrderImages).toHaveBeenCalledWith('wo-1');
+      expect(getWorkOrderImages).toHaveBeenCalledWith('wo-1', 'org-1');
     });
 
     expect(screen.getByAltText('a.png')).toBeInTheDocument();
@@ -126,7 +136,12 @@ describe('WorkOrderImagesSection', () => {
     ]);
 
     render(
-      <WorkOrderImagesSection workOrderId="wo-1" canUpload={false} showPrivateNotes={false} />,
+      <WorkOrderImagesSection
+        workOrderId="wo-1"
+        organizationId="org-1"
+        canUpload={false}
+        showPrivateNotes={false}
+      />,
     );
 
     await user.click(screen.getByRole('button', { name: /work order images/i }));
@@ -151,7 +166,14 @@ describe('WorkOrderImagesSection', () => {
       }),
     ]);
 
-    render(<WorkOrderImagesSection workOrderId="wo-1" canUpload showPrivateNotes />);
+    render(
+      <WorkOrderImagesSection
+        workOrderId="wo-1"
+        organizationId="org-1"
+        canUpload
+        showPrivateNotes
+      />,
+    );
 
     await user.click(screen.getByRole('button', { name: /work order images/i }));
 
@@ -180,6 +202,7 @@ describe('WorkOrderImagesSection', () => {
     render(
       <WorkOrderImagesSection
         workOrderId="wo-1"
+        organizationId="org-1"
         canUpload
         showPrivateNotes={false}
         primaryImageId="img-primary"
@@ -200,7 +223,14 @@ describe('WorkOrderImagesSection', () => {
     const user = userEvent.setup();
     vi.mocked(getWorkOrderImages).mockResolvedValue([makeImage({ id: 'del-1' })]);
 
-    render(<WorkOrderImagesSection workOrderId="wo-1" canUpload showPrivateNotes={false} />);
+    render(
+      <WorkOrderImagesSection
+        workOrderId="wo-1"
+        organizationId="org-1"
+        canUpload
+        showPrivateNotes={false}
+      />,
+    );
 
     await user.click(screen.getByRole('button', { name: /work order images/i }));
 

@@ -14,6 +14,7 @@ BEGIN
     SELECT 1
     FROM pg_constraint
     WHERE conname = 'work_orders_primary_image_id_fkey'
+      AND conrelid = 'public.work_orders'::regclass
   ) THEN
     ALTER TABLE public.work_orders
       ADD CONSTRAINT work_orders_primary_image_id_fkey

@@ -11,7 +11,6 @@ import type { WorkOrder, WorkOrderPriority } from '@/features/work-orders/types/
 import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import type { QRActionEquipment } from '@/features/equipment/services/equipmentQRPermissions';
 import { logger } from '@/utils/logger';
-import { toast } from 'sonner';
 
 export interface CreateQRWorkOrderInput {
   equipment: QRActionEquipment;
@@ -22,6 +21,11 @@ export interface CreateQRWorkOrderInput {
   attachPM: boolean;
   images?: File[];
   creationPhotoNote?: string;
+}
+
+export interface CreateQRWorkOrderResult {
+  workOrder: WorkOrder;
+  creationPhotosAttached: boolean;
 }
 
 async function getPMTemplateData(templateId: string, organizationId: string): Promise<{
@@ -44,7 +48,7 @@ async function getPMTemplateData(templateId: string, organizationId: string): Pr
   };
 }
 
-export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<WorkOrder> {
+export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<CreateQRWorkOrderResult> {
   const createdBy = await requireAuthUserIdFromClaims();
   const service = new WorkOrderService(input.equipment.organizationId);
   const result = await service.create({
@@ -103,6 +107,8 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
     }
   }
 
+  let creationPhotosAttached = !input.images?.length;
+
   if (input.images?.length) {
     try {
       const { primaryImageId } = await attachWorkOrderCreationImages({
@@ -111,20 +117,17 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
         images: input.images,
         noteContent: input.creationPhotoNote,
       });
-      if (!primaryImageId) {
-        toast.warning(
-          'Work order created, but photos did not attach. Open the work order to retry.',
-        );
-      }
+      creationPhotosAttached = Boolean(primaryImageId);
     } catch (error) {
       logger.error('QR work order creation photos failed to attach', error);
-      toast.warning(
-        'Work order created, but photos did not attach. Open the work order to retry.',
-      );
+      creationPhotosAttached = false;
     }
   }
 
-  return result.data;
+  return {
+    workOrder: result.data,
+    creationPhotosAttached,
+  };
 }
 
 export async function updateQRWorkingHours(data: UpdateWorkingHoursData): Promise<unknown> {

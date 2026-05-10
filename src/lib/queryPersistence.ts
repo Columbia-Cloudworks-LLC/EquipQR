@@ -110,6 +110,10 @@ interface PersistenceScope {
 }
 
 let currentScope: PersistenceScope | null = null;
+type ScopedQueryPersister = ReturnType<typeof experimental_createQueryPersister<string>>;
+
+let cachedPersisterKey: string | null = null;
+let cachedPersister: ScopedQueryPersister | null = null;
 
 /** The IndexedDB key under which the persister writes its serialized cache. */
 function persistenceKey(scope: PersistenceScope): string {
@@ -178,7 +182,12 @@ export function createScopedQueryPersister() {
     ? `equipqr:tq:${scope.userId}:${scope.orgId}`
     : 'equipqr:tq:noscope';
 
-  return experimental_createQueryPersister<string>({
+  if (cachedPersisterKey === prefix && cachedPersister) {
+    return cachedPersister;
+  }
+
+  cachedPersisterKey = prefix;
+  cachedPersister = experimental_createQueryPersister<string>({
     storage: {
       // All three methods must be fail-safe. IndexedDB can be unavailable
       // (private browsing mode, quota exceeded, mobile Safari restrictions,
@@ -216,4 +225,5 @@ export function createScopedQueryPersister() {
     // whether to persist its cache entry.
     filters: { predicate: isPersistableQuery },
   });
+  return cachedPersister;
 }
