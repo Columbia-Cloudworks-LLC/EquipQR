@@ -6,13 +6,6 @@ on:
       - 'supabase/**'
       - '.github/scripts/validate-migrations.js'
       - '.github/workflows/supabase-migration-validator.yml'
-  push:
-    branches:
-      - main
-    paths:
-      - 'supabase/**'
-      - '.github/scripts/validate-migrations.js'
-      - '.github/workflows/supabase-migration-validator.yml'
 
 jobs:
   validate-migrations:
