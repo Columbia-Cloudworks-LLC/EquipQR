@@ -148,14 +148,15 @@ vi.mock('@/features/teams/hooks/useTeams', () => ({
   }))
 }));
 
-// Mock Recharts components
+// Mock Recharts components — do not forward children through chart shells so StatsCard SVG
+// (defs/linearGradient/stop) never hits jsdom as invalid HTML tags under Vitest.
 vi.mock('recharts', () => ({
-  PieChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="pie-chart">{children}</div>,
+  PieChart: () => <div data-testid="pie-chart" />,
   Pie: () => <div data-testid="pie" />,
   Cell: () => <div data-testid="cell" />,
-  AreaChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="area-chart">{children}</div>,
+  AreaChart: () => <div data-testid="area-chart" />,
   Area: () => <div data-testid="area" />,
-  BarChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="bar-chart">{children}</div>,
+  BarChart: () => <div data-testid="bar-chart" />,
   Bar: () => <div data-testid="bar" />,
   XAxis: () => <div data-testid="x-axis" />,
   YAxis: () => <div data-testid="y-axis" />,
@@ -163,8 +164,10 @@ vi.mock('recharts', () => ({
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
   Tooltip: () => <div data-testid="tooltip" />,
   Legend: () => <div data-testid="legend" />,
-  ResponsiveContainer: ({ children }: { children?: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>,
-  ScatterChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="scatter-chart">{children}</div>,
+  ResponsiveContainer: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="responsive-container">{children}</div>
+  ),
+  ScatterChart: () => <div data-testid="scatter-chart" />,
   Scatter: () => <div data-testid="scatter" />,
 }));
 
