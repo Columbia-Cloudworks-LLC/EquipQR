@@ -20,9 +20,11 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 vi.mock('@/features/work-orders/services/workOrderService', () => ({
-  WorkOrderService: vi.fn().mockImplementation(() => ({
-    create: (...args: unknown[]) => mockCreate(...args),
-  })),
+  WorkOrderService: vi.fn(function WorkOrderServiceMock() {
+    return {
+      create: (...args: unknown[]) => mockCreate(...args),
+    };
+  }),
 }));
 
 vi.mock('@/features/pm-templates/services/preventativeMaintenanceService', () => ({

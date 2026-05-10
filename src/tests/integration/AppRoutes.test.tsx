@@ -122,6 +122,20 @@ vi.mock('@/components/ui/sidebar', () => ({
   )
 }));
 
+// BottomNav (and TopBar) call useSidebar from sidebar-context; the stub
+// SidebarProvider above does not mount the real context provider.
+vi.mock('@/components/ui/sidebar-context', () => ({
+  useSidebar: () => ({
+    state: 'expanded' as const,
+    open: true,
+    setOpen: vi.fn(),
+    openMobile: false,
+    setOpenMobile: vi.fn(),
+    isMobile: false,
+    toggleSidebar: vi.fn(),
+  }),
+}));
+
 // Mock components
 vi.mock('@/components/layout/TopBar', () => ({
   default: () => <div data-testid="top-bar">TopBar</div>
