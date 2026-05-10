@@ -153,6 +153,7 @@ describe('AppProviders', () => {
       // NOTE: persister is intentionally NOT set globally; experimental_createQueryPersister
       // stalls org queries when used as a default option (it intercepts the restore
       // phase of every query before the IDB open resolves).
+      expect(call.defaultOptions.queries).not.toHaveProperty('persister');
       expect(call.defaultOptions.mutations.networkMode).toBe('always'); // Let OfflineAwareService handle offline
     });
   });

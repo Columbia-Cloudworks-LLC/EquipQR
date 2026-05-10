@@ -3,6 +3,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import { createScopedQueryPersister } from '@/lib/queryPersistence';
 import {
   getPMByWorkOrderId,
   getPMByWorkOrderAndEquipment,
@@ -10,6 +11,10 @@ import {
   UpdatePMData,
 } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { toast } from 'sonner';
+
+function fieldReadPersister() {
+  return createScopedQueryPersister().persisterFn;
+}
 
 // Legacy hook - returns first PM found
 export const usePMByWorkOrderId = (workOrderId: string) => {
@@ -41,6 +46,7 @@ export const usePMByWorkOrderAndEquipment = (workOrderId: string, equipmentId: s
     refetchOnWindowFocus: false,
     // Keep previous data when query fails - prevents clearing on 406 errors
     placeholderData: (previousData) => previousData,
+    persister: fieldReadPersister(),
   });
 };
 

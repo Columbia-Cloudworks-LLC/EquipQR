@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, waitFor } from '@/test/utils/test-utils';
+import userEvent from '@testing-library/user-event';
+import { render, screen, waitFor } from '@/test/utils/test-utils';
 import WorkOrderDetails from '../WorkOrderDetails';
 import * as useWorkOrderDetailsDataModule from '@/features/work-orders/components/hooks/useWorkOrderDetailsData';
 import * as useWorkOrderDetailsActionsModule from '@/features/work-orders/hooks/useWorkOrderDetailsActions';
@@ -36,8 +37,39 @@ vi.mock('@/features/work-orders/hooks/useWorkOrderData', () => ({
   useUpdateWorkOrderStatus: vi.fn(() => ({ isPending: false, mutate: vi.fn() })),
 }));
 
+vi.mock('@/features/work-orders/hooks/useWorkOrderStatusUpdate', () => ({
+  useWorkOrderStatusUpdate: vi.fn(() => ({ isPending: false, mutate: vi.fn() })),
+}));
+
+vi.mock('@/features/work-orders/hooks/useWorkOrderAcceptance', () => ({
+  useWorkOrderAcceptance: vi.fn(() => ({ isPending: false, mutateAsync: vi.fn() })),
+}));
+
+vi.mock('@/features/work-orders/components/WorkOrderAcceptanceModal', () => ({
+  default: () => null,
+}));
+
+vi.mock('@/contexts/OfflineQueueContext', () => ({
+  useOfflineQueue: vi.fn(() => ({
+    isOnline: true,
+    isSyncing: false,
+    pendingCount: 0,
+    failedCount: 0,
+    retryFailed: vi.fn(),
+  })),
+}));
+
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: vi.fn(() => ({ user: { id: 'user-1', email: 'tech@example.com' } })),
+}));
+
 vi.mock('@/features/work-orders/hooks/useWorkOrderExcelExport', () => ({
-  useWorkOrderExcelExport: vi.fn(() => ({ exportSingle: vi.fn(), isExportingSingle: false })),
+  useWorkOrderExcelExport: vi.fn(() => ({
+    exportSingle: vi.fn(),
+    isExportingSingle: false,
+    exportSingleToDocs: vi.fn(),
+    isExportingSingleToDocs: false,
+  })),
 }));
 
 vi.mock('@/features/work-orders/hooks/useWorkTimer', () => ({
@@ -78,12 +110,16 @@ vi.mock('@/features/organization/hooks/useGoogleWorkspaceConnectionStatus', () =
   useGoogleWorkspaceConnectionStatus: vi.fn(() => ({ isConnected: false })),
 }));
 
+vi.mock('@/features/organization/hooks/useGoogleWorkspaceExportDestination', () => ({
+  useGoogleWorkspaceExportDestination: vi.fn(() => ({ destination: null })),
+}));
+
 vi.mock('@/utils/navigationDebug', () => ({
   logNavigationEvent: vi.fn(),
 }));
 
 vi.mock('@/components/audit', () => ({
-  HistoryTab: () => null,
+  HistoryTab: () => <div>Audit history</div>,
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderDetailsInfo', () => ({
@@ -91,15 +127,15 @@ vi.mock('@/features/work-orders/components/WorkOrderDetailsInfo', () => ({
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderTimeline', () => ({
-  default: () => null,
+  default: () => <div>Timeline section</div>,
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderNotesSection', () => ({
-  default: () => null,
+  default: () => <div>Notes section</div>,
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderImagesSection', () => ({
-  default: () => null,
+  default: () => <div>Images section</div>,
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderForm', () => ({
@@ -107,11 +143,11 @@ vi.mock('@/features/work-orders/components/WorkOrderForm', () => ({
 }));
 
 vi.mock('@/features/work-orders/components/PMChecklistComponent', () => ({
-  default: () => null,
+  default: () => <div>PM checklist</div>,
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderCostsSection', () => ({
-  default: () => null,
+  default: () => <div>Costs section</div>,
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderEquipmentSelector', () => ({
@@ -131,7 +167,7 @@ vi.mock('@/features/work-orders/components/WorkOrderDetailsStatusLockWarning', (
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderDetailsPMInfo', () => ({
-  WorkOrderDetailsPMInfo: () => null,
+  WorkOrderDetailsPMInfo: () => <div>PM info</div>,
 }));
 
 vi.mock('@/features/work-orders/components/PMChangeWarningDialog', () => ({
@@ -145,8 +181,16 @@ vi.mock('@/features/work-orders/components/WorkOrderDetailsSidebar', () => ({
 vi.mock('@/features/work-orders/components/WorkOrderDetailsMobile', () => ({
   WorkOrderDetailsMobile: (props: unknown) => {
     mockWorkOrderDetailsMobile(props);
-    return <div data-testid="work-order-details-mobile" />;
+    return <div data-testid="work-order-details-mobile">Job card</div>;
   },
+}));
+
+vi.mock('@/features/work-orders/components/MobileWorkOrderCompactSummary', () => ({
+  MobileWorkOrderCompactSummary: () => <div>Compact summary</div>,
+}));
+
+vi.mock('@/features/work-orders/components/MobileWorkOrderFieldNextAction', () => ({
+  MobileWorkOrderFieldNextAction: () => <div>Next action</div>,
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderPDFExportDialog', () => ({
@@ -248,5 +292,91 @@ describe('WorkOrderDetails', () => {
     };
 
     expect(latestProps.onDeleteRequest).toBeUndefined();
+  });
+
+  it('renders the mobile field-first order with office details collapsed by default', async () => {
+    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue({
+      workOrder: {
+        id: 'wo-1',
+        title: 'Replace hydraulic line',
+        description: 'Repair leak',
+        status: 'in_progress',
+        priority: 'high',
+        created_date: '2024-01-01T00:00:00Z',
+        createdDate: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-02T00:00:00Z',
+        dueDate: '2024-01-05T00:00:00Z',
+        equipment_id: 'eq-1',
+        has_pm: true,
+        assignee_id: 'user-1',
+        created_by: 'requestor-1',
+        teamName: 'Field Team',
+        assigneeName: 'Matt Technician',
+        effectiveLocation: null,
+        team: null,
+        assignee: null,
+      },
+      equipment: {
+        id: 'eq-1',
+        name: 'Excavator 1',
+        manufacturer: 'Caterpillar',
+        model: '320',
+        serial_number: null,
+        status: 'active',
+        location: null,
+        team_id: 'team-1',
+        custom_attributes: null,
+        image_url: null,
+        default_pm_template_id: null,
+      },
+      pmData: {
+        id: 'pm-1',
+        work_order_id: 'wo-1',
+        equipment_id: 'eq-1',
+        status: 'in_progress',
+        checklist_data: [
+          { id: 'item-1', condition: 'ok' },
+          { id: 'item-2', condition: null },
+        ],
+      },
+      workOrderLoading: false,
+      pmLoading: false,
+      pmError: null,
+      permissionLevels: {
+        isManager: true,
+        isTechnician: true,
+        isRequestor: false,
+      },
+      formMode: 'manager',
+      isWorkOrderLocked: false,
+      canAddCosts: true,
+      canEditCosts: true,
+      canAddNotes: true,
+      canUpload: true,
+      canEdit: true,
+      baseCanAddNotes: true,
+      currentOrganization: {
+        id: 'org-1',
+        name: 'Test Org',
+      },
+    } as unknown as ReturnType<typeof useWorkOrderDetailsDataModule.useWorkOrderDetailsData>);
+
+    render(<WorkOrderDetails />);
+
+    const pageText = document.body.textContent ?? '';
+    expect(pageText.indexOf('Compact summary')).toBeLessThan(pageText.indexOf('Next action'));
+    expect(pageText.indexOf('PM checklist')).toBeLessThan(pageText.indexOf('Notes section'));
+    expect(pageText.indexOf('Notes section')).toBeLessThan(pageText.indexOf('Images section'));
+
+    expect(screen.queryByText('Costs section')).not.toBeInTheDocument();
+    expect(screen.queryByText('Timeline section')).not.toBeInTheDocument();
+    expect(screen.queryByText('Audit history')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /review & office details/i }));
+
+    expect(screen.getByText('Costs section')).toBeInTheDocument();
+    expect(screen.getByText('PM info')).toBeInTheDocument();
+    expect(screen.getByText('Timeline section')).toBeInTheDocument();
+    expect(screen.getByText('Audit history')).toBeInTheDocument();
   });
 });

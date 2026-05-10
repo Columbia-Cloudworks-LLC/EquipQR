@@ -113,9 +113,9 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="bottom" className="rounded-t-xl pb-safe-bottom">
           <SheetHeader className="text-left pb-4">
-            <SheetTitle>Actions</SheetTitle>
+            <SheetTitle>More work order options</SheetTitle>
             <SheetDescription>
-              Choose an action for this work order
+              Field tools stay in the footer. Office and admin options are here.
             </SheetDescription>
           </SheetHeader>
 
@@ -141,7 +141,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
                 <Separator />
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Exports
+                    Office tools
                   </p>
                   <div className="grid grid-cols-2 gap-2">
                     <Button
