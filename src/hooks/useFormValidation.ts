@@ -73,7 +73,16 @@ export const useFormValidation = <T extends Record<string, unknown>>(
       const testObject = { [field]: fieldValue } as Partial<T>;
       
       // Try to validate just this field by creating a partial schema
-      schema.safeParse(testObject);
+      const result = schema.safeParse(testObject);
+
+      if (!result.success) {
+        const fieldError = result.error.issues.find((issue) => issue.path[0] === field);
+
+        if (fieldError) {
+          setErrors(prev => ({ ...prev, [field as string]: fieldError.message }));
+          return false;
+        }
+      }
       
       setErrors(prev => {
         const newErrors = { ...prev };
