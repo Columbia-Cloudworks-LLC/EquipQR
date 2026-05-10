@@ -18,7 +18,8 @@ import {
   Forklift, 
   Warehouse,
   ClipboardList, 
-  Menu
+  Menu,
+  ScanLine,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -29,10 +30,19 @@ interface NavItem {
   shortLabel?: string; // Optional shorter label for small screens
   href: string;
   icon: LucideIcon;
+  /** When 'field-scan', active only on equipment list with `fieldScan=1` query */
+  activeVariant?: 'default' | 'field-scan';
 }
 
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: Home },
+  {
+    label: 'Scan QR',
+    shortLabel: 'Scan',
+    href: '/dashboard/equipment?fieldScan=1',
+    icon: ScanLine,
+    activeVariant: 'field-scan',
+  },
   { label: 'Equipment', href: '/dashboard/equipment', icon: Forklift },
   { label: 'Inventory', href: '/dashboard/inventory', icon: Warehouse },
   { label: 'Work Orders', shortLabel: 'Orders', href: '/dashboard/work-orders', icon: ClipboardList },
@@ -42,9 +52,23 @@ const BottomNav: React.FC = () => {
   const location = useLocation();
   const { setOpenMobile } = useSidebar();
 
-  const isActive = (href: string) => {
+  const isActive = (item: NavItem) => {
+    const { href, activeVariant } = item;
     if (href === '/dashboard') {
-      return location.pathname === '/dashboard';
+      return location.pathname === '/dashboard' || location.pathname === '/dashboard/';
+    }
+    if (activeVariant === 'field-scan') {
+      return (
+        location.pathname === '/dashboard/equipment' &&
+        location.search.includes('fieldScan=1')
+      );
+    }
+    if (href === '/dashboard/equipment') {
+      if (!location.pathname.startsWith('/dashboard/equipment')) return false;
+      if (location.pathname === '/dashboard/equipment' && location.search.includes('fieldScan=1')) {
+        return false;
+      }
+      return true;
     }
     return location.pathname.startsWith(href);
   };
@@ -71,7 +95,7 @@ const BottomNav: React.FC = () => {
     >
       <div className="flex items-stretch justify-around px-2">
         {navItems.map((item) => {
-          const active = isActive(item.href);
+          const active = isActive(item);
           const Icon = item.icon;
           
           return (

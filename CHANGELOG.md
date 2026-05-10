@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Mobile dashboard context** ([#836](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/836)) — Mobile `/dashboard` prioritizes Scan QR (equipment entry + `fieldScan=1` nav hint), non-truncating urgent alert card, open-work preview rows, and widget order skewed to actionable queues; bottom nav adds Scan QR; dashboard FAB hides on the dashboard home to avoid clashing with nav; stats cards drop vague insufficient-history trend notes; equipment status and PM widgets use compact mobile summaries (desktop donuts unchanged).
+
 - **Mobile work order details UX** ([#829](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/829)) — Task-oriented technician layout on phones: compact job summary (status/due/overdue, equipment link, team, assignee); sticky footer for primary workflows (start/hold/resume/checklist gates/complete); PM checklist CTA; unified overflow (**Details**, **Exports**, **QuickBooks**, **Admin** with gated delete); mobile info sidebar hides status-change action buttons.
 
 ## [3.3.0] - 2026-05-09

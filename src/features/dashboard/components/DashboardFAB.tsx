@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, ClipboardList, Cog, Package, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -18,10 +18,12 @@ interface SpeedDialAction {
  */
 const DashboardFAB: React.FC = () => {
   const isMobile = useIsMobile();
+  const { pathname } = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
-  if (!isMobile) return null;
+  /** Bottom nav + Scan hero cover primary actions on the dashboard home. */
+  if (!isMobile || pathname === '/dashboard' || pathname === '/dashboard/') return null;
 
   const actions: SpeedDialAction[] = [
     {

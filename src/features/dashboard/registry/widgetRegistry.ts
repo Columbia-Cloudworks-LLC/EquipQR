@@ -144,6 +144,39 @@ export function getWidgetsByCategory(category: WidgetCategory): WidgetDefinition
   return getAllWidgets().filter((w) => w.category === category);
 }
 
+/**
+ * Mobile dashboard prioritizes actionable queues first; desktop keeps hook-provided order.
+ */
+export const MOBILE_ACTIONABLE_WIDGET_PRIORITY: readonly string[] = [
+  'high-priority-wo',
+  'recent-work-orders',
+  'stats-grid',
+  'recent-equipment',
+  'equipment-by-status',
+  'pm-compliance',
+  'fleet-efficiency',
+  'cost-trend',
+  'quick-actions',
+];
+
+export function orderWidgetsForMobile(activeWidgets: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const id of MOBILE_ACTIONABLE_WIDGET_PRIORITY) {
+    if (activeWidgets.includes(id) && !seen.has(id)) {
+      out.push(id);
+      seen.add(id);
+    }
+  }
+  for (const id of activeWidgets) {
+    if (!seen.has(id)) {
+      out.push(id);
+      seen.add(id);
+    }
+  }
+  return out;
+}
+
 /** Default widget IDs shown to new users, in display order */
 export const DEFAULT_WIDGET_IDS = [
   'stats-grid',
