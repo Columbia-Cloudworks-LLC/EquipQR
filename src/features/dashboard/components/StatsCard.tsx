@@ -1,10 +1,10 @@
 import React, { ReactNode, useEffect, useId, useRef, useState } from 'react';
-import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from 'react-router-dom';
 import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { formatStatsCardSparklineDescription } from '@/features/dashboard/components/statsCardSparklineA11y';
 
 function useCountUp(target: number, durationMs = 300): number {
   const prefersReducedMotion =
@@ -82,38 +82,7 @@ const variantStyles = {
   },
 };
 
-interface SparklineChartProps {
-  data: number[];
-  color: string;
-  gradientId: string;
-}
-
-const SparklineChart: React.FC<SparklineChartProps> = ({ data, color, gradientId }) => {
-  const chartData = data.map((v) => ({ v }));
-  return (
-    <div aria-hidden title="Recent 7-day trend" className="mt-2 h-10 w-full min-w-[4rem]">
-      <ResponsiveContainer width="100%" height={40}>
-        <AreaChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
-          <defs>
-            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={color} stopOpacity={0.25} />
-              <stop offset="100%" stopColor={color} stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <Area
-            type="monotone"
-            dataKey="v"
-            stroke={color}
-            strokeWidth={1.5}
-            fill={`url(#${gradientId})`}
-            dot={false}
-            isAnimationActive={false}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
-  );
-};
+const StatsCardSparkline = React.lazy(() => import('./StatsCardSparkline'));
 
 export const StatsCard: React.FC<StatsCardProps> = ({
   icon,
@@ -197,11 +166,25 @@ export const StatsCard: React.FC<StatsCardProps> = ({
               <div className="mt-1.5 text-xs text-muted-foreground">{trendNote}</div>
             )}
             {hasSparkline && (
-              <SparklineChart
-                data={sparkline!}
-                color={styles.chartColor}
-                gradientId={gradientId}
-              />
+              <React.Suspense
+                fallback={
+                  <div aria-hidden className="mt-2 h-10 w-full min-w-[4rem]">
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                }
+              >
+                <StatsCardSparkline
+                  data={sparkline!}
+                  color={styles.chartColor}
+                  gradientId={gradientId}
+                  accessibleDescription={formatStatsCardSparklineDescription(
+                    label,
+                    sparkline!,
+                    trend,
+                    trendNote
+                  )}
+                />
+              </React.Suspense>
             )}
           </>
         )}

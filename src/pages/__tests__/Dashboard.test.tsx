@@ -148,24 +148,35 @@ vi.mock('@/features/teams/hooks/useTeams', () => ({
   }))
 }));
 
-// Mock Recharts components
+// Mock Recharts: chart shells render as <svg> and forward children so StatsCard sparkline
+// composition (defs / linearGradient / stop) stays valid in jsdom while preserving fidelity.
 vi.mock('recharts', () => ({
-  PieChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="pie-chart">{children}</div>,
-  Pie: () => <div data-testid="pie" />,
-  Cell: () => <div data-testid="cell" />,
-  AreaChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="area-chart">{children}</div>,
-  Area: () => <div data-testid="area" />,
-  BarChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="bar-chart">{children}</div>,
-  Bar: () => <div data-testid="bar" />,
-  XAxis: () => <div data-testid="x-axis" />,
-  YAxis: () => <div data-testid="y-axis" />,
-  ZAxis: () => <div data-testid="z-axis" />,
-  CartesianGrid: () => <div data-testid="cartesian-grid" />,
-  Tooltip: () => <div data-testid="tooltip" />,
-  Legend: () => <div data-testid="legend" />,
-  ResponsiveContainer: ({ children }: { children?: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>,
-  ScatterChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="scatter-chart">{children}</div>,
-  Scatter: () => <div data-testid="scatter" />,
+  PieChart: ({ children }: { children?: React.ReactNode }) => (
+    <svg data-testid="pie-chart">{children}</svg>
+  ),
+  Pie: ({ children }: { children?: React.ReactNode }) => <g data-testid="pie">{children}</g>,
+  Cell: () => <g data-testid="cell" />,
+  AreaChart: ({ children }: { children?: React.ReactNode }) => (
+    <svg data-testid="area-chart">{children}</svg>
+  ),
+  Area: () => <path data-testid="area" />,
+  BarChart: ({ children }: { children?: React.ReactNode }) => (
+    <svg data-testid="bar-chart">{children}</svg>
+  ),
+  Bar: () => <rect data-testid="bar" />,
+  XAxis: () => <g data-testid="x-axis" />,
+  YAxis: () => <g data-testid="y-axis" />,
+  ZAxis: () => <g data-testid="z-axis" />,
+  CartesianGrid: () => <g data-testid="cartesian-grid" />,
+  Tooltip: () => <g data-testid="tooltip" />,
+  Legend: () => <g data-testid="legend" />,
+  ResponsiveContainer: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="responsive-container">{children}</div>
+  ),
+  ScatterChart: ({ children }: { children?: React.ReactNode }) => (
+    <svg data-testid="scatter-chart">{children}</svg>
+  ),
+  Scatter: () => <g data-testid="scatter" />,
 }));
 
 // ============================================

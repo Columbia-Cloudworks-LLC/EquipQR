@@ -1,4 +1,7 @@
 import * as React from "react"
+// NOTE: This module statically imports `recharts`. Any route that imports `ChartContainer`
+// (or other exports) will include the `vendor-charts` chunk for that entry. Prefer lazy
+// boundaries for heavy chart screens; dashboard widgets already load via `widgetRegistry`.
 import * as RechartsPrimitive from "recharts"
 
 import { cn } from "@/lib/utils"
