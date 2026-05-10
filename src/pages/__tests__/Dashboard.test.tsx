@@ -154,29 +154,29 @@ vi.mock('recharts', () => ({
   PieChart: ({ children }: { children?: React.ReactNode }) => (
     <svg data-testid="pie-chart">{children}</svg>
   ),
-  Pie: () => <div data-testid="pie" />,
-  Cell: () => <div data-testid="cell" />,
+  Pie: ({ children }: { children?: React.ReactNode }) => <g data-testid="pie">{children}</g>,
+  Cell: () => <g data-testid="cell" />,
   AreaChart: ({ children }: { children?: React.ReactNode }) => (
     <svg data-testid="area-chart">{children}</svg>
   ),
-  Area: () => <div data-testid="area" />,
+  Area: () => <path data-testid="area" />,
   BarChart: ({ children }: { children?: React.ReactNode }) => (
     <svg data-testid="bar-chart">{children}</svg>
   ),
-  Bar: () => <div data-testid="bar" />,
-  XAxis: () => <div data-testid="x-axis" />,
-  YAxis: () => <div data-testid="y-axis" />,
-  ZAxis: () => <div data-testid="z-axis" />,
-  CartesianGrid: () => <div data-testid="cartesian-grid" />,
-  Tooltip: () => <div data-testid="tooltip" />,
-  Legend: () => <div data-testid="legend" />,
+  Bar: () => <rect data-testid="bar" />,
+  XAxis: () => <g data-testid="x-axis" />,
+  YAxis: () => <g data-testid="y-axis" />,
+  ZAxis: () => <g data-testid="z-axis" />,
+  CartesianGrid: () => <g data-testid="cartesian-grid" />,
+  Tooltip: () => <g data-testid="tooltip" />,
+  Legend: () => <g data-testid="legend" />,
   ResponsiveContainer: ({ children }: { children?: React.ReactNode }) => (
     <div data-testid="responsive-container">{children}</div>
   ),
   ScatterChart: ({ children }: { children?: React.ReactNode }) => (
     <svg data-testid="scatter-chart">{children}</svg>
   ),
-  Scatter: () => <div data-testid="scatter" />,
+  Scatter: () => <g data-testid="scatter" />,
 }));
 
 // ============================================

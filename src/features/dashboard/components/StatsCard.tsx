@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from 'react-router-dom';
 import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { formatStatsCardSparklineDescription } from '@/features/dashboard/components/statsCardSparklineA11y';
 
 function useCountUp(target: number, durationMs = 300): number {
   const prefersReducedMotion =
@@ -176,6 +177,12 @@ export const StatsCard: React.FC<StatsCardProps> = ({
                   data={sparkline!}
                   color={styles.chartColor}
                   gradientId={gradientId}
+                  accessibleDescription={formatStatsCardSparklineDescription(
+                    label,
+                    sparkline!,
+                    trend,
+                    trendNote
+                  )}
                 />
               </React.Suspense>
             )}

@@ -130,8 +130,10 @@ export default defineConfig(({ mode }) => ({
           'vendor-supabase': ['@supabase/supabase-js'],
           // Date utilities
           'vendor-date': ['date-fns', 'date-fns-tz'],
-          // Charting (recharts) — heavy; split chunk loaded with Reports, audit charts,
-          // dashboard widgets (lazy), and stats sparklines once trend data renders.
+          // Charting (recharts) — vendor-charts splits here; loads when a dynamic import
+          // pulls a module that depends on recharts (Reports, AuditTimelineHistogram,
+          // lazy dashboard widgets + FleetEfficiencyScatterPlotCard, StatsCardSparkline via
+          // React.lazy, or any future `ChartContainer` consumer).
           'vendor-charts': ['recharts'],
         },
       },
