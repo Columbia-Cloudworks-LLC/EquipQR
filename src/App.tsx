@@ -31,6 +31,7 @@ import SmartLanding from '@/components/landing/SmartLanding';
 import LegalFooter from '@/components/layout/LegalFooter';
 const Auth = lazy(() => import('@/pages/Auth'));
 const DebugAuth = import.meta.env.DEV ? lazy(() => import('@/pages/DebugAuth')) : null;
+const DebugScanFeedback = import.meta.env.DEV ? lazy(() => import('@/pages/DebugScanFeedback')) : null;
 const RepairShops = lazy(() => import('@/pages/solutions/RepairShops'));
 const PMTemplatesFeature = lazy(() => import('@/pages/features/PMTemplates'));
 const InventoryManagementFeature = lazy(() => import('@/pages/features/InventoryManagement'));
@@ -148,6 +149,12 @@ function App() {
         <Route path="/auth" element={<Suspense fallback={<div>Loading...</div>}><Auth /></Suspense>} />
         {import.meta.env.DEV && DebugAuth && (
           <Route path="/debug-auth" element={<Suspense fallback={<div>Loading...</div>}><DebugAuth /></Suspense>} />
+        )}
+        {import.meta.env.DEV && DebugScanFeedback && (
+          <Route
+            path="/debug-scan-feedback"
+            element={<Suspense fallback={<div>Loading...</div>}><DebugScanFeedback /></Suspense>}
+          />
         )}
         
         {/* Other public routes with suspense for lazy loading */}
