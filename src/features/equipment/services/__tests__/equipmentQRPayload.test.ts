@@ -245,6 +245,8 @@ describe('resolveEquipmentQRDisplayImageUrl', () => {
       equipmentId: 'eq-id',
       organizationId: 'org-1',
       imagePath: canonicalPath,
+      errorName: 'Error',
+      errorMessage: 'signing_failed',
     });
   });
 });

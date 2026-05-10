@@ -72,6 +72,27 @@ export interface ResolveEquipmentQRDisplayImageContext {
   stored: string | null;
 }
 
+function summarizeResolutionError(error: unknown): { errorName: string; errorMessage: string } {
+  if (error instanceof Error) {
+    return {
+      errorName: error.name,
+      errorMessage: error.message,
+    };
+  }
+
+  if (error && typeof error === 'object' && 'message' in error) {
+    return {
+      errorName: error.constructor.name,
+      errorMessage: String(error.message),
+    };
+  }
+
+  return {
+    errorName: typeof error,
+    errorMessage: String(error),
+  };
+}
+
 /**
  * Turn canonical private-bucket paths / legacy URLs into browser-ready signed or absolute URLs.
  * Call after the QR landing shell renders so signing is not on the critical path for payload fetch.
@@ -97,12 +118,13 @@ export async function resolveEquipmentQRDisplayImageUrl(
     }
 
     return resolved ?? null;
-  } catch {
+  } catch (error) {
     const imagePath = extractEquipmentDisplayImagePath(stored);
     logger.error('QR equipment image resolution failed', {
       equipmentId,
       organizationId,
       ...(imagePath ? { imagePath } : {}),
+      ...summarizeResolutionError(error),
     });
     return null;
   }
