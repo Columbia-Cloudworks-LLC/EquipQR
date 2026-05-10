@@ -60,6 +60,7 @@ const EquipmentQRScan = () => {
   const [error, setError] = useState<string | null>(null);
   const [scanStatus, setScanStatus] = useState<ScanStatus>('idle');
   const [showQuickActions, setShowQuickActions] = useState(false);
+  const [heroImageFailed, setHeroImageFailed] = useState(false);
   const scanStartedRef = useRef(false);
 
   useEffect(() => {
@@ -69,7 +70,7 @@ const EquipmentQRScan = () => {
     const orgParam = orgId ? `&org=${orgId}` : '';
     sessionStorage.setItem('pendingRedirect', `/qr/equipment/${equipmentId}?qr=true${orgParam}`);
     window.location.replace('/auth?tab=signin');
-  }, [authLoading, equipmentId, user]);
+  }, [authLoading, equipmentId, user, orgId]);
 
   useEffect(() => {
     if (authLoading || !user || !equipmentId) return;
@@ -94,7 +95,11 @@ const EquipmentQRScan = () => {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, equipmentId, user]);
+  }, [authLoading, equipmentId, user, orgId]);
+
+  useEffect(() => {
+    setHeroImageFailed(false);
+  }, [payload?.equipment.imageUrl]);
 
   useEffect(() => {
     if (!payload || !user || scanStartedRef.current) return;
@@ -189,6 +194,7 @@ const EquipmentQRScan = () => {
 
   const { equipment, organization } = payload;
   const currentYear = new Date().getFullYear();
+  const showHeroImage = Boolean(equipment.imageUrl) && !heroImageFailed;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -212,12 +218,13 @@ const EquipmentQRScan = () => {
 
         <Card className="overflow-hidden">
           <div className="aspect-[16/10] bg-muted">
-            {equipment.imageUrl ? (
+            {showHeroImage ? (
               <img
-                src={equipment.imageUrl}
+                src={equipment.imageUrl!}
                 alt={equipment.name}
                 className="h-full w-full object-cover"
                 decoding="async"
+                onError={() => setHeroImageFailed(true)}
               />
             ) : (
               <div className="flex h-full items-center justify-center">

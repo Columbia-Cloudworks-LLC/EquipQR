@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [3.3.2] - 2026-05-10
+
+### Fixed
+
+- **Equipment QR scan hero image** — `/qr/equipment/:id` now resolves `equipment.image_url` the same way as dashboard equipment views (signed URLs for private `work-order-images` / `equipment-note-images` paths). Hero image uses `onError` fallback to the forklift placeholder when a signed URL fails.
+
 ## [3.3.1] - 2026-05-10
 
 ### Added
@@ -1821,6 +1828,7 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 [1.7.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.2...v1.7.3
 [1.7.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/releases/tag/v1.7.1
+
 
 
 

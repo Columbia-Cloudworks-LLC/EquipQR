@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import type { Role, TeamRole } from '@/types/permissions';
 import { getAuthClaims, requireAuthUserIdFromClaims } from '@/lib/authClaims';
+import { batchResolveEquipmentDisplayImageUrls } from '@/services/imageUploadService';
 
 type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 
@@ -58,6 +59,13 @@ export interface EquipmentQRPayload {
 function firstRelation<T>(value: T | T[] | null | undefined): T | null {
   if (Array.isArray(value)) return value[0] ?? null;
   return value ?? null;
+}
+
+/** Turn canonical private-bucket paths / legacy URLs into browser-ready signed or absolute URLs. */
+async function resolveEquipmentQRImageUrl(stored: string | null): Promise<string | null> {
+  if (!stored?.trim()) return null;
+  const [resolved] = await batchResolveEquipmentDisplayImageUrls([stored]);
+  return resolved ?? null;
 }
 
 const EQUIPMENT_QR_SELECT = `
@@ -124,6 +132,8 @@ export async function fetchEquipmentQRPayload(
     const organization = firstRelation(row.organizations);
     if (!organization) throw new Error('Equipment organization not found');
 
+    const imageUrl = await resolveEquipmentQRImageUrl(row.image_url);
+
     return {
       equipment: {
         id: row.id,
@@ -134,7 +144,7 @@ export async function fetchEquipmentQRPayload(
         status: row.status,
         location: row.location,
         workingHours: row.working_hours,
-        imageUrl: row.image_url,
+        imageUrl,
         defaultPmTemplateId: row.default_pm_template_id,
         team: firstRelation(row.team),
       },
@@ -177,6 +187,8 @@ export async function fetchEquipmentQRPayload(
   const scopedRole = membershipByOrganizationId.get(row.organization_id);
   if (!scopedRole) throw new Error('You do not have access to this equipment');
 
+  const imageUrl = await resolveEquipmentQRImageUrl(row.image_url);
+
   return {
     equipment: {
       id: row.id,
@@ -187,7 +199,7 @@ export async function fetchEquipmentQRPayload(
       status: row.status,
       location: row.location,
       workingHours: row.working_hours,
-      imageUrl: row.image_url,
+      imageUrl,
       defaultPmTemplateId: row.default_pm_template_id,
       team: firstRelation(row.team),
     },
