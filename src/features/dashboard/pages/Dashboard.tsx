@@ -100,7 +100,10 @@ const Dashboard = () => {
   // Prefetch the three highest-traffic route chunks 1.5 s after mount so they
   // are cached before the user taps a nav item. The delay lets initial data
   // requests take priority over chunk downloads on a constrained link.
+  // Skip under Vitest: late dynamic imports race worker teardown and surface as
+  // EnvironmentTeardownError in Vitest 4+.
   useEffect(() => {
+    if (import.meta.env.VITEST) return;
     const timer = setTimeout(() => {
       void import('@/features/equipment/pages/Equipment');
       void import('@/features/work-orders/pages/WorkOrders');

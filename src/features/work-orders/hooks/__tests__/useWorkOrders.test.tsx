@@ -23,17 +23,19 @@ import {
 import { workOrders, organizations, teams, equipment } from '@/test/fixtures/entities';
 import { personas } from '@/test/fixtures/personas';
 
-// Mock the WorkOrderService
+// Mock the WorkOrderService (Vitest 4: constructor mocks must use function/class, not arrow factories)
 vi.mock('@/features/work-orders/services/workOrderService', () => ({
-  WorkOrderService: vi.fn().mockImplementation(() => ({
-    getAll: vi.fn(),
-    getById: vi.fn(),
-    getMyWorkOrders: vi.fn(),
-    getTeamWorkOrders: vi.fn(),
-    getEquipmentWorkOrders: vi.fn(),
-    getOverdueWorkOrders: vi.fn(),
-    getWorkOrdersDueToday: vi.fn()
-  }))
+  WorkOrderService: vi.fn(function WorkOrderServiceMock() {
+    return {
+      getAll: vi.fn(),
+      getById: vi.fn(),
+      getMyWorkOrders: vi.fn(),
+      getTeamWorkOrders: vi.fn(),
+      getEquipmentWorkOrders: vi.fn(),
+      getOverdueWorkOrders: vi.fn(),
+      getWorkOrdersDueToday: vi.fn(),
+    };
+  }),
 }));
 
 import { WorkOrderService } from '@/features/work-orders/services/workOrderService';
@@ -82,7 +84,9 @@ describe('useWorkOrders', () => {
       getWorkOrdersDueToday: vi.fn()
     };
     
-    vi.mocked(WorkOrderService).mockImplementation(() => mockService as unknown as WorkOrderService);
+    vi.mocked(WorkOrderService).mockImplementation(function () {
+      return mockService as unknown as WorkOrderService;
+    });
   });
 
   describe('useWorkOrders', () => {
