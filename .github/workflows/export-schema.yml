@@ -29,12 +29,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v2
+        uses: supabase/setup-cli@df56b21da46c98abb12a9804e4fb1f657773e333
         with:
           version: 2.72.8
 
