@@ -1,6 +1,6 @@
 name: Load EquipQR secrets from 1Password
 description: |
-  Wrapper around 1password/load-secrets-action (pinned SHA matching upstream v4) that loads secrets from the
+  Wrapper around 1Password/load-secrets-action (commit-pinned, upstream v4 equivalent) that loads secrets from the
   EquipQR Agents vault using the OP_SERVICE_ACCOUNT_TOKEN repo secret.
 
   The calling step must pass OP_SERVICE_ACCOUNT_TOKEN through env from

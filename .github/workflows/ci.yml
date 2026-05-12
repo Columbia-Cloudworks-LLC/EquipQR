@@ -119,7 +119,7 @@ jobs:
       continue-on-error: true
 
     - name: Annotate ESLint Results
-      uses: ataylorme/eslint-annotate-action@03bec515858fea50353ff60e3c537678826650a4
+      uses: ataylorme/eslint-annotate-action@5a8d8ab89a57679e90c32750e0f382e9d8570750
       if: always()
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -289,7 +289,7 @@ jobs:
         path: coverage
 
     - name: Post coverage report
-      uses: davelosert/vitest-coverage-report-action@02f3c2e641286b7fa308cd3e430783103ce6103b
+      uses: davelosert/vitest-coverage-report-action@3c50566c523e04813df28de8f7c48dd97d663f1c
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         json-summary-path: coverage/coverage-summary.json
@@ -339,13 +339,13 @@ jobs:
       continue-on-error: true
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@68bde559dea0fdcac2102bfdf6230c5f70eb485e
+      uses: github/codeql-action/init@5e316336eb4f107009e477d4bfbfff13d7250fae
       with:
         languages: javascript
         queries: security-and-quality
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@68bde559dea0fdcac2102bfdf6230c5f70eb485e
+      uses: github/codeql-action/analyze@5e316336eb4f107009e477d4bfbfff13d7250fae
       with:
         category: "/language:javascript"
 

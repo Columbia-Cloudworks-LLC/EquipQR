@@ -34,7 +34,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Supabase CLI
-        uses: supabase/setup-cli@df56b21da46c98abb12a9804e4fb1f657773e333
+        uses: supabase/setup-cli@b579fc8c7122aa485f1d947120eaeb11ee04d312
         with:
           version: 2.72.8
 
