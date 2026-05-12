@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select';
 import { parseEquipQRTarget } from '@/utils/qr';
 import { getCameraAccessErrorMessage } from '@/features/equipment/utils/cameraAccessErrors';
+import { useScanFeedback } from '@/hooks/useScanFeedback';
 
 const BACK_CAMERA_LABEL_PATTERN = /\b(back|rear|environment|world|wide|telephoto)\b/i;
 
@@ -27,12 +28,15 @@ type Phase =
   | 'error'
   | 'no-camera';
 
+type DecodeSource = 'camera' | 'upload';
+
 function getPreferredListedCameraId(cameras: QrScanner.Camera[]): string {
   return cameras.find((camera) => BACK_CAMERA_LABEL_PATTERN.test(camera.label))?.id ?? cameras[0]?.id ?? '';
 }
 
 const EquipmentScanner: React.FC = () => {
   const navigate = useNavigate();
+  const { prepareFeedback, markPendingFeedback } = useScanFeedback();
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scannerRef = useRef<QrScanner | null>(null);
@@ -67,7 +71,7 @@ const EquipmentScanner: React.FC = () => {
   }, []);
 
   const handleDecodedPayload = useCallback(
-    (raw: string) => {
+    (raw: string, source: DecodeSource) => {
       if (handledDecodeRef.current) return;
       const parsed = parseEquipQRTarget(raw);
       if (!parsed.ok) {
@@ -80,9 +84,12 @@ const EquipmentScanner: React.FC = () => {
       handledDecodeRef.current = true;
       stopScannerSafe();
       setPhase('decoded');
+      if (source === 'camera') {
+        markPendingFeedback();
+      }
       navigate(parsed.path);
     },
-    [navigate, stopScannerSafe]
+    [navigate, stopScannerSafe, markPendingFeedback]
   );
 
   useEffect(() => {
@@ -120,7 +127,7 @@ const EquipmentScanner: React.FC = () => {
         const scanner = new QrScanner(
           video,
           (result) => {
-            handleDecodedPayload(result.data);
+            handleDecodedPayload(result.data, 'camera');
           },
           {
             onDecodeError: () => {
@@ -204,7 +211,7 @@ const EquipmentScanner: React.FC = () => {
     setErrorMessage(null);
     try {
       const result = await QrScanner.scanImage(file, { returnDetailedScanResult: true });
-      handleDecodedPayload(result.data);
+      handleDecodedPayload(result.data, 'upload');
     } catch {
       setPhase('error');
       setErrorMessage('No QR code found in this image. Try another photo or use the camera.');
@@ -221,6 +228,7 @@ const EquipmentScanner: React.FC = () => {
 
   const handleStartCameraScan = () => {
     setErrorMessage(null);
+    prepareFeedback();
     setCameraRunId((n) => n + 1);
   };
 
