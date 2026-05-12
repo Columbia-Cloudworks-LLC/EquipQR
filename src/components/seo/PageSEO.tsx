@@ -1,4 +1,4 @@
-import { Helmet } from 'react-helmet-async';
+import { useEffect, useRef, type FC } from 'react';
 
 interface PageSEOProps {
   title: string;
@@ -11,13 +11,52 @@ interface PageSEOProps {
 const BASE_URL = 'https://equipqr.app';
 const DEFAULT_OG_IMAGE = `${BASE_URL}/og-image.png`;
 
+const MANAGED_ATTR = 'data-equipqr-page-seo';
+
+function upsertMeta(
+  head: HTMLHeadElement,
+  selector: string,
+  create: () => HTMLMetaElement,
+  apply: (el: HTMLMetaElement) => void
+): HTMLMetaElement {
+  let el = head.querySelector<HTMLMetaElement>(`${selector}[${MANAGED_ATTR}]`);
+  if (!el) {
+    el = create();
+    el.setAttribute(MANAGED_ATTR, 'true');
+    head.appendChild(el);
+  }
+  apply(el);
+  return el;
+}
+
+function upsertLink(
+  head: HTMLHeadElement,
+  selector: string,
+  create: () => HTMLLinkElement,
+  apply: (el: HTMLLinkElement) => void
+): HTMLLinkElement {
+  let el = head.querySelector<HTMLLinkElement>(`${selector}[${MANAGED_ATTR}]`);
+  if (!el) {
+    el = create();
+    el.setAttribute(MANAGED_ATTR, 'true');
+    head.appendChild(el);
+  }
+  apply(el);
+  return el;
+}
+
+function removeManagedMeta(head: HTMLHeadElement, selector: string): void {
+  head.querySelectorAll<HTMLMetaElement>(`${selector}[${MANAGED_ATTR}]`).forEach((n) => n.remove());
+}
+
 /**
  * PageSEO component for managing per-route metadata
- * 
+ *
  * Provides unique title, description, canonical URL, and Open Graph tags
  * for each marketing page to improve SEO and social sharing.
+ * Uses direct document updates (no react-helmet-async) for React 18 compatibility.
  */
-export const PageSEO: React.FC<PageSEOProps> = ({
+export const PageSEO: FC<PageSEOProps> = ({
   title,
   description,
   path,
@@ -26,30 +65,96 @@ export const PageSEO: React.FC<PageSEOProps> = ({
 }) => {
   const canonicalUrl = `${BASE_URL}${path}`;
   const fullTitle = path === '/' ? title : `${title} | EquipQR`;
+  const previousTitleRef = useRef<string | undefined>(undefined);
 
-  return (
-    <Helmet>
-      <title>{fullTitle}</title>
-      <meta name="description" content={description} />
-      {keywords && <meta name="keywords" content={keywords} />}
-      <link rel="canonical" href={canonicalUrl} />
+  useEffect(() => {
+    const head = document.head;
+    previousTitleRef.current = document.title;
+    document.title = fullTitle;
 
-      {/* Open Graph / Facebook */}
-      <meta property="og:type" content="website" />
-      <meta property="og:url" content={canonicalUrl} />
-      <meta property="og:title" content={fullTitle} />
-      <meta property="og:description" content={description} />
-      <meta property="og:image" content={ogImage} />
-      <meta property="og:image:width" content="1200" />
-      <meta property="og:image:height" content="630" />
-      <meta property="og:image:alt" content={`${title} - EquipQR`} />
+    upsertMeta(head, 'meta[name="description"]', () => {
+      const m = document.createElement('meta');
+      m.name = 'description';
+      return m;
+    }, (el) => {
+      el.content = description;
+    });
 
-      {/* Twitter */}
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:site" content="@equipqr" />
-      <meta name="twitter:title" content={fullTitle} />
-      <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={ogImage} />
-    </Helmet>
-  );
+    if (keywords) {
+      upsertMeta(head, 'meta[name="keywords"]', () => {
+        const m = document.createElement('meta');
+        m.name = 'keywords';
+        return m;
+      }, (el) => {
+        el.content = keywords;
+      });
+    } else {
+      removeManagedMeta(head, 'meta[name="keywords"]');
+    }
+
+    upsertLink(head, 'link[rel="canonical"]', () => document.createElement('link'), (el) => {
+      el.rel = 'canonical';
+      el.href = canonicalUrl;
+    });
+
+    const ogPairs: Array<[string, string]> = [
+      ['og:type', 'website'],
+      ['og:url', canonicalUrl],
+      ['og:title', fullTitle],
+      ['og:description', description],
+      ['og:image', ogImage],
+      ['og:image:width', '1200'],
+      ['og:image:height', '630'],
+      ['og:image:alt', `${title} - EquipQR`],
+    ];
+
+    for (const [prop, content] of ogPairs) {
+      upsertMeta(
+        head,
+        `meta[property="${prop}"]`,
+        () => {
+          const m = document.createElement('meta');
+          m.setAttribute('property', prop);
+          return m;
+        },
+        (el) => {
+          el.setAttribute('property', prop);
+          el.content = content;
+        }
+      );
+    }
+
+    const twitterPairs: Array<[string, string]> = [
+      ['twitter:card', 'summary_large_image'],
+      ['twitter:site', '@equipqr'],
+      ['twitter:title', fullTitle],
+      ['twitter:description', description],
+      ['twitter:image', ogImage],
+    ];
+
+    for (const [name, content] of twitterPairs) {
+      upsertMeta(
+        head,
+        `meta[name="${name}"]`,
+        () => {
+          const m = document.createElement('meta');
+          m.name = name;
+          return m;
+        },
+        (el) => {
+          el.name = name;
+          el.content = content;
+        }
+      );
+    }
+
+    return () => {
+      if (previousTitleRef.current !== undefined) {
+        document.title = previousTitleRef.current;
+      }
+      head.querySelectorAll(`[${MANAGED_ATTR}]`).forEach((n) => n.remove());
+    };
+  }, [title, description, path, ogImage, keywords, canonicalUrl, fullTitle]);
+
+  return null;
 };
