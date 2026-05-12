@@ -21,6 +21,10 @@ permissions:
   security-events: write
   pull-requests: write
   checks: write
+  # CodeQL init/analyze gathers workflow-run telemetry via the Actions API; without
+  # this scope the run fails with "Resource not accessible by integration" on
+  # GET /repos/.../actions/runs/{run_id} (see Security Scan job).
+  actions: read
 
 env:
   # Node 24 is the current Active LTS (Oct 2025 → Oct 2027). Node 20 reached EOL
