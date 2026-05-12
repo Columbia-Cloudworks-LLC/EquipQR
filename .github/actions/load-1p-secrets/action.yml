@@ -1,6 +1,6 @@
 name: Load EquipQR secrets from 1Password
 description: |
-  Wrapper around 1password/load-secrets-action@v4 that loads secrets from the
+  Wrapper around 1Password/load-secrets-action (commit-pinned) that loads secrets from the
   EquipQR Agents vault using the OP_SERVICE_ACCOUNT_TOKEN repo secret.
 
   The calling step must pass OP_SERVICE_ACCOUNT_TOKEN through env from
@@ -62,7 +62,7 @@ runs:
 
     - name: Load secrets from 1Password
       if: steps.probe.outputs.loaded == 'true'
-      uses: 1Password/load-secrets-action@v4
+      uses: 1Password/load-secrets-action@2bfca7363ef8f96bb66d38dd50981bf948040c7e
       with:
         export-env: ${{ inputs.export-env }}
       env:
