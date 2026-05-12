@@ -45,6 +45,16 @@ vi.mock('qr-scanner', () => ({
   default: hoisted.MockQrScanner,
 }));
 
+const scanFeedbackHookMock = vi.hoisted(() => ({
+  prepareFeedback: vi.fn(),
+  markPendingFeedback: vi.fn(),
+  triggerPendingFeedback: vi.fn(),
+}));
+
+vi.mock('@/hooks/useScanFeedback', () => ({
+  useScanFeedback: () => scanFeedbackHookMock,
+}));
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
@@ -95,6 +105,10 @@ describe('getCameraAccessErrorMessage', () => {
 
 describe('EquipmentScanner', () => {
   beforeEach(() => {
+    scanFeedbackHookMock.prepareFeedback.mockClear();
+    scanFeedbackHookMock.markPendingFeedback.mockClear();
+    scanFeedbackHookMock.triggerPendingFeedback.mockClear();
+
     // Radix Select expects Pointer Capture APIs; jsdom does not implement them.
     Object.defineProperty(Element.prototype, 'hasPointerCapture', {
       configurable: true,
@@ -134,10 +148,12 @@ describe('EquipmentScanner', () => {
     const user = userEvent.setup();
     renderScanner();
     await startCameraScan(user);
+    expect(scanFeedbackHookMock.prepareFeedback).toHaveBeenCalled();
     await waitFor(() => expect(hoisted.scannerState.lastOnDecode).not.toBeNull());
     act(() => {
       hoisted.scannerState.lastOnDecode?.({ data: '/qr/equipment/eq-123' });
     });
+    expect(scanFeedbackHookMock.markPendingFeedback).toHaveBeenCalled();
     expect(hoisted.mockNavigate).toHaveBeenCalledWith('/qr/equipment/eq-123');
     expect(await screen.findByTestId('scanner-decoded-state')).toBeInTheDocument();
   });
@@ -173,6 +189,7 @@ describe('EquipmentScanner', () => {
       expect(hoisted.MockQrScanner.scanImage).toHaveBeenCalled();
       expect(hoisted.mockNavigate).toHaveBeenCalledWith('/qr/equipment/eq-upload');
     });
+    expect(scanFeedbackHookMock.markPendingFeedback).not.toHaveBeenCalled();
   });
 
   it('decodes upload when camera start fails', async () => {

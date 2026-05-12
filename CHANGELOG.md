@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **QR scan feedback** ([#839](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/839)) — Live camera scans on `/dashboard/scan` prepare Web Audio on the Start camera gesture, set a short-lived session marker on successful decode, and play a synthesized ping plus vibration when `/qr/*` redirect access resolution completes. Upload-based decodes and direct QR opens stay silent. Development builds only: `/debug-scan-feedback` to audition the tone.
 
 ## [3.3.2] - 2026-05-10
 
