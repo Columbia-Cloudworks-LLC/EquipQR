@@ -13,10 +13,11 @@
 
   Each item must contain individual fields per env var (NOT a multi-line dotenv
   blob) so each can be referenced via op://EquipQR Agents/{item}/{field}.
-  Field labels are stored as the lowercase env var name (e.g. `vite_supabase_url`)
-  to match the convention used by .github/workflows/edge-functions-smoke-test.yml
-  and .github/actions/load-1p-secrets/action.yml. The script normalizes the
-  Vars list to lowercase before reading from op.
+  Field labels on the current `app-env-*-public` items are mixed (for example
+  `SUPABASE_URL` / `SUPABASE_ANON_KEY` alongside `VITE_*` keys); confirm with
+  `op item get` (metadata) before changing references. The script lowercases
+  each `VITE_*` name from its map when reading 1Password (e.g. `VITE_SUPABASE_URL`
+  becomes field label `vite_supabase_url` unless you align the vault to match).
 
 .PARAMETER Check
   Read-only mode. For each (env, var) pair, lists the variable as drift only
@@ -140,7 +141,7 @@ if (Get-Command vercel -ErrorAction SilentlyContinue) {
 Write-Ok "Using Vercel CLI: $vercelCmdLabel"
 
 $OP_VAULT = 'tgo2m6qbct5otqeqirjocn3joa'  # EquipQR Agents
-$vercelTokenItem = 'vercel-token'
+$vercelTokenItem = 'vercel-write'
 $vercelToken = & op read "op://$OP_VAULT/$vercelTokenItem/credential" 2>$null
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($vercelToken)) {
     Write-Warn "1Password item '$vercelTokenItem' not found. Falling back to existing Vercel CLI session."

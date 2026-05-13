@@ -27,6 +27,11 @@ If you have access to the EquipQR 1Password environments, use `dev-start.bat` as
 # Optional: verify 1Password CLI is available
 op --version
 
+# Optional (Cursor agents / headless terminals): set User-scope OP_SERVICE_ACCOUNT_TOKEN
+# for the read-only op-svc-equipqr-agents service account, then refresh in-session:
+#   $env:OP_SERVICE_ACCOUNT_TOKEN = [Environment]::GetEnvironmentVariable('OP_SERVICE_ACCOUNT_TOKEN', 'User')
+# Never echo the token. See AGENTS.md and .cursor/skills/toolbelt/SKILL.md.
+
 # Start local stack + sync env files from 1Password early in startup
 .\dev-start.bat
 
