@@ -5,16 +5,27 @@ description: >-
   Fetches unresolved review threads via GraphQL (isResolved filter), pulls
   review bodies for non-inline feedback, categorizes each item as addressed,
   deferred (with a tracking GitHub issue), or rejected with rationale, then
-  defaults to writing a cheap-model-executable implementation plan before
-  applying fixes, verifying the build, committing, pushing, replying in-thread,
-  and posting a structured summary comment on the PR. Use when PR feedback needs
-  addressing, automated reviewers leave comments, or the user asks to fix,
-  resolve, or respond to PR review comments.
+  requires a Plan Mode handoff before any fixes are applied. After the user
+  approves the plan, executes the fixes, verifies the build, commits, pushes,
+  replies in-thread, and posts a structured summary comment on the PR. Use when
+  PR feedback needs addressing, automated reviewers leave comments, or the user
+  asks to fix, resolve, or respond to PR review comments.
 ---
 
 # Address PR Feedback
 
 End-to-end workflow for triaging PR review comments, implementing fixes, tracking deferred work, and posting a structured response.
+
+## Mandatory Mode Boundary
+
+This skill is intentionally two-phase:
+
+- **Agent Mode discovery:** Use Agent Mode only for Steps 1-3: identify the PR, inspect the working tree, fetch review threads/reviews, read the relevant code, and verify whether each feedback item is valid. Do not edit files, create issues, commit, push, or reply to PR comments during this phase.
+- **Plan Mode gate:** After Step 3, call `SwitchMode` to enter Plan Mode and write the implementation plan there. The plan is the authorization artifact.
+- **Approval before execution:** Stop after presenting the Plan Mode plan. Do not continue to implementation until the user approves the plan and the session is back in Agent Mode.
+- **Agent Mode execution:** After approval, perform Steps 5-9 exactly as planned: implement fixes, verify, commit, push, create deferred tracking issues, reply to threads, post the summary comment, and spot-check PR checks.
+
+If a prior instruction says to "proceed from this plan after writing it," this mode boundary wins. The agent must not write a plan in Agent Mode and then continue executing it in the same pass.
 
 ## Workflow
 
@@ -22,7 +33,7 @@ End-to-end workflow for triaging PR review comments, implementing fixes, trackin
 - [ ] Step 1: Identify the PR and preflight the working tree
 - [ ] Step 2: Fetch review threads + PR reviews (GraphQL); classify outdated unresolved threads
 - [ ] Step 3: Triage each item (respect release / compliance rules)
-- [ ] Step 4: Write the implementation plan (default gate before edits)
+- [ ] Step 4: Switch to Plan Mode and write the implementation plan (mandatory gate before edits)
 - [ ] Step 5: Implement fixes for Address items
 - [ ] Step 6: Verify changes
 - [ ] Step 7: Commit and push
@@ -113,9 +124,11 @@ Categorize every distinct feedback item into exactly one bucket:
 - For automated reviewer comments (Copilot, CodeRabbit, Qodo, etc.), apply higher skepticism — verify before accepting.
 - Group related comments that address the same concern (one issue per theme for deferred work).
 
-### Step 4: Write the Implementation Plan (Default Gate Before Edits)
+### Step 4: Switch to Plan Mode and Write the Implementation Plan
 
-After triage and before code edits, write a short implementation plan unless the user explicitly requested investigation-only output. The plan is the handoff artifact for a cheap model; write it so `Composer 2 (fast)` / Cursor Auto can complete the whole feedback round without inferring missing workflow details.
+After triage and before code edits, call `SwitchMode` with `target_mode_id: "plan"` and a brief explanation that PR feedback has been verified and now needs an approval-gated implementation plan. Do not write the implementation plan in Agent Mode unless `SwitchMode` is unavailable.
+
+Once in Plan Mode, write a short implementation plan unless the user explicitly requested investigation-only output. The plan is the handoff artifact for a cheap model; write it so `Composer 2 (fast)` / Cursor Auto can complete the whole feedback round without inferring missing workflow details.
 
 The plan must be simple, concrete, and action-oriented:
 
@@ -160,7 +173,7 @@ Use this plan shape:
 - Stop if <condition> and ask the user how to proceed.
 ```
 
-If implementation is being done in the same session, proceed from this plan after writing it. If the user asked only for review/planning, stop after presenting the plan.
+Stop after presenting the plan and wait for explicit user approval. If the user approves, return to Agent Mode and continue with Step 5. If the user asked only for review/planning, stop after presenting the plan.
 
 ### Step 5: Implement Fixes
 
