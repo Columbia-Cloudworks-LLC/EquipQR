@@ -289,7 +289,7 @@ function Test-ManagedSecretValue {
 
 function Format-DotEnvQuotedLine {
     param([string]$Name, [string]$Value)
-    $q = $Value -replace '\\', '\\' -replace '"', '\"' -replace "`r", '\r' -replace "`n", '\n'
+    $q = $Value -replace '\\', '\\\\' -replace '"', '\"' -replace "`r", '\r' -replace "`n", '\n'
     return "${Name}=""$q"""
 }
 
