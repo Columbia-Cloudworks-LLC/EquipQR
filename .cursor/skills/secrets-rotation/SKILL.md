@@ -15,8 +15,9 @@ EquipQR uses 1Password as the single source of truth for all agent-consumed secr
 
 1. **Cursor Cloud Agent secrets** at <https://cursor.com/dashboard/cloud-agents>
 2. **GitHub Actions repo secret** at <https://github.com/Columbia-Cloudworks-LLC/EquipQR/settings/secrets/actions>
+3. **Local Windows (optional)** — User-scope `OP_SERVICE_ACCOUNT_TOKEN` so terminals (including Cursor agents) can run `op` without interactive `op signin`; refresh in-session when a shell predates the variable: `$env:OP_SERVICE_ACCOUNT_TOKEN = [Environment]::GetEnvironmentVariable('OP_SERVICE_ACCOUNT_TOKEN', 'User')`. Use for metadata (`op item list`, `op item get` without `--reveal`) and deliberate `op read` only—never log secret values.
 
-(Local Windows uses your interactive `op signin` instead of the service-account token.)
+Humans may still use interactive `op signin` if they choose not to store the service-account token locally.
 
 Vendor-side tokens stored in the EquipQR Agents vault all follow the naming convention `equipqr-agent-{readonly|write}-{YYYY-MM}` where the YYYY-MM suffix is the rotation date. This skill parses that suffix to compute age.
 
@@ -63,7 +64,7 @@ For the OP service-account token itself, check the personal-vault item `op-svc-e
 
 1. Open <https://console.cloud.google.com/iam-admin/serviceaccounts?project=equipqr-prod>
 2. Click `agent-viewer@equipqr-prod` → **Keys** tab → **Add Key → Create new key → JSON**.
-3. Open the new JSON, copy entire contents, paste into 1Password item `gcp-viewer`, field `credential` (overwrite the old value).
+3. Open the new JSON, copy entire contents, paste into 1Password item `gcp-read` (preferred field `SERVICE_ACCOUNT_JSON`, or `credential` if that is where the JSON is stored; legacy item name `gcp-viewer` is deprecated), overwriting the old value.
 4. Run `.\scripts\render-mcp-config.ps1` to write the new key to `%USERPROFILE%\.config\gcloud\equipqr-agent-viewer.json`.
 5. Run `.\scripts\op-mcp-doctor.ps1` to verify gcloud MCP still works.
 6. After 24 hours, **delete the old key** from the GCP Keys tab.
@@ -86,8 +87,9 @@ op service-account create "op-svc-equipqr-agents-temp" `
 
 ### Phase B: distribute the new token
 
-2. Update the Cursor Cloud Agent secret at <https://cursor.com/dashboard/cloud-agents>: edit `OP_SERVICE_ACCOUNT_TOKEN`, paste the new value.
-3. Update the GitHub Actions repo secret at <https://github.com/Columbia-Cloudworks-LLC/EquipQR/settings/secrets/actions>: edit `OP_SERVICE_ACCOUNT_TOKEN`, paste the new value.
+1. Update the Cursor Cloud Agent secret at <https://cursor.com/dashboard/cloud-agents>: edit `OP_SERVICE_ACCOUNT_TOKEN`, paste the new value.
+2. Update the GitHub Actions repo secret at <https://github.com/Columbia-Cloudworks-LLC/EquipQR/settings/secrets/actions>: edit `OP_SERVICE_ACCOUNT_TOKEN`, paste the new value.
+3. **Local Windows (optional):** if developers/agents use a User-scope `OP_SERVICE_ACCOUNT_TOKEN`, update it via Windows **Environment Variables** UI for the user account, or PowerShell: `[Environment]::SetEnvironmentVariable('OP_SERVICE_ACCOUNT_TOKEN', '<new-token>', 'User')` (do not paste the token into chat or commit logs). Close and reopen terminals (or refresh `$env:OP_SERVICE_ACCOUNT_TOKEN` from User scope) so new shells inherit the value.
 4. Trigger the [`secrets-drift-check.yml`](https://github.com/Columbia-Cloudworks-LLC/EquipQR/actions/workflows/secrets-drift-check.yml) workflow manually. It must pass with the new token.
 
 ### Phase C: cut over
@@ -112,7 +114,7 @@ Use when a secret is consumed by **more than one** of the four runtime platforms
 
 ### When to use this recipe vs. the per-vendor procedures above
 
-- **Per-vendor procedure (above)** — when the secret lives in only one place (e.g. a GitHub-only PAT used solely by `github-prod` in MCP).
+- **Per-vendor procedure (above)** — when the secret lives in only one place (e.g. a GitHub-only PAT used solely by the readonly `github-read` MCP entry).
 - **This cross-platform recipe** — when the secret is a vendor-shared key like `STRIPE_SECRET_KEY`, `RESEND_API_KEY`, `GOOGLE_MAPS_API_KEY`, `HCAPTCHA_SECRET`, `OPENAI_API_KEY`, etc. that the app reads from `.env` in build (Vercel), runtime (Supabase edge functions), CI (GitHub Actions secrets), and possibly a server-to-server flow (GCP Secret Manager).
 
 ### Canonical order — never skip a step, never re-order

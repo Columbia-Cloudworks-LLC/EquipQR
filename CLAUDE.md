@@ -134,7 +134,7 @@ EquipQR uses **1Password as the single source of truth** for every secret an age
 
 - **Cursor Cloud Agents** (Linux) — secret in `cursor.com/dashboard/cloud-agents`
 - **GitHub Actions** — repo secret on `Columbia-Cloudworks-LLC/EquipQR`
-- **Local Windows** — uses interactive `op signin` (no service-account token needed)
+- **Local Windows (optional, agent-friendly)** — User-scope `OP_SERVICE_ACCOUNT_TOKEN` so `op` can run headless in terminals without interactive `op signin`; humans may still use interactive sign-in if they prefer not to store the service-account token locally
 
 Vendor PATs, GCP service-account JSONs, Datadog keys, etc. live as items in the `EquipQR Agents` vault. Naming convention: `equipqr-agent-{readonly|write}-{YYYY-MM}` so the rotation date is visible at a glance.
 
