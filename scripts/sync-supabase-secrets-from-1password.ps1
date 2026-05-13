@@ -205,8 +205,19 @@ function Assert-VapidPrivateKey {
 
 function Read-OpFieldRaw {
     param([string]$Item, [string]$FieldLabel)
-    $v = & op read "op://$OP_VAULT/$Item/$FieldLabel" 2>$null
-    if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($v)) {
+    $priorErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $v = & op read "op://$OP_VAULT/$Item/$FieldLabel" 2>$null
+        $exitCode = $LASTEXITCODE
+    }
+    catch {
+        return $null
+    }
+    finally {
+        $ErrorActionPreference = $priorErrorActionPreference
+    }
+    if ($exitCode -eq 0 -and -not [string]::IsNullOrWhiteSpace($v)) {
         return $v
     }
     return $null
@@ -242,19 +253,37 @@ function Read-SupabaseToken {
 
 function Get-RemoteDigestMap {
     param([string]$Ref)
-    $output = & npx --yes supabase secrets list --project-ref $Ref -o json 2>&1
-    if ($LASTEXITCODE -ne 0) {
+    $priorErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = & npx --yes supabase secrets list --project-ref $Ref -o json 2>&1
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $priorErrorActionPreference
+    }
+    if ($exitCode -ne 0) {
         Write-Fail "supabase secrets list failed: $output"
         exit 1
     }
     $joined = ($output | Out-String).Trim()
-    $start = $joined.IndexOf('[')
-    $end = $joined.LastIndexOf(']')
-    if ($start -lt 0 -or $end -le $start) {
-        Write-Fail "Could not parse secrets list JSON (no array boundary). First 400 chars: $($joined.Substring(0, [Math]::Min(400, $joined.Length)))"
+    $outputLines = $joined -split "`r?`n"
+    $startLine = -1
+    $endLine = -1
+    for ($i = 0; $i -lt $outputLines.Count; $i++) {
+        $trimmed = $outputLines[$i].Trim()
+        if ($startLine -lt 0 -and ($trimmed -eq '[' -or $trimmed.StartsWith('[{'))) {
+            $startLine = $i
+        }
+        if ($startLine -ge 0 -and ($trimmed -eq ']' -or $trimmed.EndsWith('}]'))) {
+            $endLine = $i
+        }
+    }
+    if ($startLine -lt 0 -or $endLine -lt $startLine) {
+        Write-Fail "Could not parse secrets list JSON (no array boundary line). First 400 chars: $($joined.Substring(0, [Math]::Min(400, $joined.Length)))"
         exit 1
     }
-    $jsonOnly = $joined.Substring($start, $end - $start + 1)
+    $jsonOnly = ($outputLines[$startLine..$endLine] -join "`n")
     try {
         $data = $jsonOnly | ConvertFrom-Json
     }
@@ -271,7 +300,19 @@ function Get-RemoteDigestMap {
     $map = @{}
     foreach ($row in $rows) {
         if ($null -eq $row.name) { continue }
-        $map[$row.name] = Normalize-Digest $row.value
+        $remoteDigest = $null
+        foreach ($fieldName in @('digest', 'value')) {
+            $prop = $row.PSObject.Properties[$fieldName]
+            if ($null -ne $prop -and -not [string]::IsNullOrWhiteSpace([string]$prop.Value)) {
+                $remoteDigest = [string]$prop.Value
+                break
+            }
+        }
+        if ([string]::IsNullOrWhiteSpace($remoteDigest)) {
+            Write-Fail "supabase secrets list JSON row for '$($row.name)' did not include a digest/value field."
+            exit 1
+        }
+        $map[$row.name] = Normalize-Digest $remoteDigest
     }
     return $map
 }
@@ -381,7 +422,7 @@ foreach ($var in $required) {
 foreach ($var in $optional) {
     $v = Read-OpSecretForVar -Item $OpItem -CanonicalName $var
     if ([string]::IsNullOrWhiteSpace($v)) {
-        Write-Step "Optional ${var}: not set in 1Password — skipping."
+        Write-Step "Optional ${var}: not set in 1Password - skipping."
         continue
     }
     try {
@@ -398,7 +439,7 @@ if ($Check) {
     Write-Step "Fetching remote digest map for $ProjectRef..."
     $remote = Get-RemoteDigestMap -Ref $ProjectRef
     $drift = 0
-    foreach ($var in $resolved.Keys | Sort-Object) {
+    foreach ($var in ($resolved.Keys | Sort-Object)) {
         $localPlain = $resolved[$var]
         $localDigest = Get-SecretSha256Hex -Plain $localPlain
         $remoteDigest = ''
@@ -406,15 +447,15 @@ if ($Check) {
             $remoteDigest = $remote[$var]
         }
         if (-not $remote.ContainsKey($var)) {
-            Write-Warn "CHECK: $var — MISSING in Supabase"
+            Write-Warn "CHECK: $var - MISSING in Supabase"
             $drift++
         }
         elseif ($localDigest -ne $remoteDigest) {
-            Write-Warn "CHECK: $var — DRIFT (digest mismatch)"
+            Write-Warn "CHECK: $var - DRIFT (digest mismatch)"
             $drift++
         }
         else {
-            Write-Ok "CHECK: $var — MATCH"
+            Write-Ok "CHECK: $var - MATCH"
         }
     }
     Write-Host ''
@@ -436,8 +477,16 @@ try {
     [System.IO.File]::WriteAllLines($tempPath, $lines, [System.Text.UTF8Encoding]::new($false))
 
     Write-Step "Applying $($resolved.Count) secrets via supabase secrets set --env-file..."
-    $applyOut = & npx --yes supabase secrets set --env-file $tempPath --project-ref $ProjectRef 2>&1
-    if ($LASTEXITCODE -ne 0) {
+    $priorErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $applyOut = & npx --yes supabase secrets set --env-file $tempPath --project-ref $ProjectRef 2>&1
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $priorErrorActionPreference
+    }
+    if ($exitCode -ne 0) {
         Write-Fail "supabase secrets set failed: $applyOut"
         exit 1
     }
