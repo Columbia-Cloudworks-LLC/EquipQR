@@ -17,8 +17,9 @@ Single source of truth for every integration available to the agent in this work
 
 - Cursor Cloud Agent secrets (for Linux Cloud Agents)
 - GitHub Actions repo secret (for CI)
+- **Local Windows (optional)** — User-scope environment variable so agents can authenticate `op` without interactive `op signin`; refresh it in-session when needed: `$env:OP_SERVICE_ACCOUNT_TOKEN = [Environment]::GetEnvironmentVariable('OP_SERVICE_ACCOUNT_TOKEN', 'User')`. Use for metadata checks and deliberate reads only—never echo secret values; do not put vendor write-tier PATs in User-scope env (see `AGENTS.md`).
 
-Local Windows uses your interactive `op signin` instead.
+Humans may still use interactive `op signin` if they do not store the service-account token on disk.
 
 **MCP server distribution model:**
 
@@ -35,9 +36,9 @@ Local Windows uses your interactive `op signin` instead.
 | Better Stack | OAuth | Single-tier |
 | Context7 | None | Public |
 | Browser | None | Local |
-| GitHub | PAT (Bearer) | Two tiers: `github-prod` (readonly) + `github-write`. Read-only enforced via `X-MCP-Readonly: true` header |
+| GitHub | PAT (Bearer) | Two tiers: `github-read` (readonly) + `github-write`. Read-only enforced via `X-MCP-Readonly: true` header |
 | ~~Datadog~~ | DISABLED (cost reduction) | Re-enable instructions in `scripts/mcp.template.json` |
-| Google Cloud | Service account JSON via `GOOGLE_APPLICATION_CREDENTIALS` | Two tiers: `gcp-viewer` + `gcp-editor`. Read-only enforced via IAM viewer roles |
+| Google Cloud | Service account JSON via `GOOGLE_APPLICATION_CREDENTIALS` | Two tiers: viewer JSON from `gcp-read` (legacy `gcp-viewer` still supported by `render-mcp-config.ps1`) + `gcp-editor` vestigial; read-only enforced via IAM viewer roles |
 | ToDiagram | API key (env var) | Single-tier |
 
 **Verification:** `.\scripts\op-mcp-doctor.ps1` pings each MCP and reports green/red.
@@ -595,7 +596,7 @@ Use structured `images[]` fields instead of overloading `caption` when possible.
 .\dev-start.bat -Force   # force restart
 ```
 
-This script injects secrets from 1Password into `.env` files. The agent cannot access 1Password, so starting the server without the user present will hang waiting for authentication.
+This script injects secrets from 1Password into `.env` files. It expects a working `op` session: interactive `op signin` **or** User-scope `OP_SERVICE_ACCOUNT_TOKEN` (see Section 0). Without either, startup will hang or fail waiting for 1Password authentication.
 
 If the app is partially running, the user should run `.\dev-stop.bat` first.
 

@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **QR scan feedback** ([#839](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/839)) — Live camera scans on `/dashboard/scan` prepare Web Audio on the Start camera gesture, set a short-lived session marker on successful decode, and play a synthesized ping plus vibration when `/qr/*` redirect access resolution completes. Upload-based decodes and direct QR opens stay silent. Development builds only: `/debug-scan-feedback` to audition the tone.
 
+### Changed
+
+- **Agent docs: local Windows 1Password** — Documented optional User-scope `OP_SERVICE_ACCOUNT_TOKEN` for read-only `op` access; aligned vault item names (`vercel-write`, `gcp-read`, `github-read` in doctor), `render-mcp-config.ps1` GCP JSON resolution, and workflow README `op://` examples with current `app-env-*-public` field labels.
+
 ## [3.3.2] - 2026-05-10
 
 ### Fixed
