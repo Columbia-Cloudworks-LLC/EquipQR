@@ -391,6 +391,8 @@ gh api repos/Columbia-Cloudworks-LLC/EquipQR/pulls/123/comments
 - Use `--json` for structured output; avoid `--jq` with complex expressions in PowerShell (escaping issues).
 - Viewing the org project needs `read:project` scope; mutating items needs `project` scope.
 - Do not use `-i` (interactive) flags.
+- For multiline PR descriptions or edits, always use a UTF-8 markdown body file with `gh pr create --body-file` or `gh pr edit --body-file`. Do not build PR bodies through in-memory PowerShell string replacement; it can collapse newlines or corrupt UTF-8.
+- When updating an existing PR body, fetch it to a temp markdown file, edit/replace that file, verify any Cursor footer links remain, then apply it with `gh pr edit <num> --body-file "$env:TEMP\pr-<num>-body.md"`.
 
 ---
 
