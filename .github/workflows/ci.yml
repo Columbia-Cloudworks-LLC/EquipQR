@@ -342,13 +342,13 @@ jobs:
       continue-on-error: true
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@5e316336eb4f107009e477d4bfbfff13d7250fae
+      uses: github/codeql-action/init@68bde559dea0fdcac2102bfdf6230c5f70eb485e
       with:
         languages: javascript
         queries: security-and-quality
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@5e316336eb4f107009e477d4bfbfff13d7250fae
+      uses: github/codeql-action/analyze@68bde559dea0fdcac2102bfdf6230c5f70eb485e
       with:
         category: "/language:javascript"
 
