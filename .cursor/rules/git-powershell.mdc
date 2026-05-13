@@ -45,6 +45,17 @@ $payload | gh api repos/{owner}/{repo}/pulls/{pr_number}/comments --method POST 
 - **Treat immediate `404` replies after push as non-fatal**: this commonly means the conversation auto-resolved/outdated before the reply posted.
 - **Still post the top-level PR summary comment** even when one or more thread replies race and 404.
 
+## PR descriptions and bodies (PowerShell + gh)
+
+- **Always use body files for multiline PR descriptions or edits.** On Windows, `gh pr create --body`, `gh pr edit --body`, and in-memory PowerShell string replacements can collapse newlines, mangle emoji/UTF-8, or break when text contains quotes / `${{ ... }}` snippets. Write a UTF-8 markdown file first, then pass it with `--body-file`.
+- **Preserve existing PR footer links and generated badges.** Fetch the existing body to a file, edit the file, verify the footer is still present, then run:
+```powershell
+gh pr view <num> --json body -q .body | Set-Content -Path "$env:TEMP\pr-<num>-body.md" -Encoding utf8
+# edit/replace the temp markdown file
+gh pr edit <num> --body-file "$env:TEMP\pr-<num>-body.md"
+```
+- **Avoid in-memory PR body rewrites for markdown.** If a body needs restructuring, prefer a complete clean markdown file over chained `.Replace()` calls against `gh` output.
+
 ## Worktree gotchas (Windows)
 
 - **`gh pr merge --delete-branch` fails when the PR head branch is checked out in a worktree.** The remote merge still succeeds, but the local-branch deletion errors out with `cannot delete branch '<name>' used by worktree at '<path>'`. After the failure, verify the merge succeeded with `gh pr view <num> --json state,mergedAt` and clean up the local branch manually after pruning the worktree.
