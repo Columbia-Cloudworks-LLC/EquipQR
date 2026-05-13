@@ -1,19 +1,17 @@
 #!/usr/bin/env bash
 # Shared preflight for GitHub Actions Supabase secrets drift checks.
-# Usage: supabase-secrets-drift-preflight.sh <scope_label> <project_ref> <item1> <item2>
+# Usage: supabase-secrets-drift-preflight.sh <scope_label> <op_edge_item>
 # Env: OP_SERVICE_ACCOUNT_TOKEN, OP_VAULT (EquipQR Agents vault id)
 
 set -euo pipefail
 
-if [ "$#" -ne 4 ]; then
-  echo "Usage: $0 <scope_label> <supabase_project_ref> <item1> <item2>" >&2
+if [ "$#" -ne 2 ]; then
+  echo "Usage: $0 <scope_label> <op_edge_item>" >&2
   exit 2
 fi
 
 scope_label="$1"
-project_ref="$2"
-item1="$3"
-item2="$4"
+op_edge_item="$2"
 
 : "${OP_VAULT:?OP_VAULT must be set}"
 
@@ -44,10 +42,10 @@ require_item_or_mark_skip() {
   exit 1
 }
 
-require_item_or_mark_skip "$item1" "$scope_label"
+require_item_or_mark_skip "supabase-write" "$scope_label"
 if [ -z "$SKIP_REASON" ]; then
-  require_item_or_mark_skip "$item2" "$scope_label"
+  require_item_or_mark_skip "$op_edge_item" "$scope_label"
 fi
 if [ -z "$SKIP_REASON" ]; then
-  pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-supabase-secrets-from-1password.ps1 -Check -ProjectRef "$project_ref"
+  pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-supabase-secrets-from-1password.ps1 -Check -OpItem "$op_edge_item"
 fi
