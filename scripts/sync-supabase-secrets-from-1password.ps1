@@ -208,7 +208,7 @@ function Read-OpFieldRaw {
     $priorErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
-        $v = & op read "op://$OP_VAULT/$Item/$FieldLabel" 2>$null
+        $vRaw = & op read "op://$OP_VAULT/$Item/$FieldLabel" 2>$null
         $exitCode = $LASTEXITCODE
     }
     catch {
@@ -217,7 +217,18 @@ function Read-OpFieldRaw {
     finally {
         $ErrorActionPreference = $priorErrorActionPreference
     }
-    if ($exitCode -eq 0 -and -not [string]::IsNullOrWhiteSpace($v)) {
+    if ($exitCode -ne 0) { return $null }
+    # Native command output with embedded newlines becomes an array of lines; join so digests/env-file stay correct.
+    $v = if ($null -eq $vRaw) {
+        $null
+    }
+    elseif ($vRaw -is [System.Array]) {
+        ($vRaw -join "`n")
+    }
+    else {
+        [string]$vRaw
+    }
+    if ($null -ne $v -and -not [string]::IsNullOrWhiteSpace($v)) {
         return $v
     }
     return $null
@@ -228,7 +239,7 @@ function Read-OpSecretForVar {
     $candidates = @($CanonicalName, $CanonicalName.ToLowerInvariant())
     foreach ($label in $candidates) {
         $v = Read-OpFieldRaw -Item $Item -FieldLabel $label
-        if ($null -ne $v) { return $v.Trim() }
+        if ($null -ne $v) { return $v.TrimEnd() }
     }
     return $null
 }
@@ -237,7 +248,7 @@ function Read-OpProjectRef {
     param([string]$Item)
     foreach ($label in @('ProjectRef', 'projectref')) {
         $v = Read-OpFieldRaw -Item $Item -FieldLabel $label
-        if ($null -ne $v) { return $v.Trim() }
+        if ($null -ne $v) { return $v.TrimEnd() }
     }
     return $null
 }
@@ -248,7 +259,7 @@ function Read-SupabaseToken {
         Write-Fail "Missing $SUPABASE_TOKEN_FIELD on 1Password item '$SUPABASE_TOKEN_ITEM'."
         exit 1
     }
-    return $raw.Trim()
+    return $raw.TrimEnd()
 }
 
 function Get-RemoteDigestMap {
