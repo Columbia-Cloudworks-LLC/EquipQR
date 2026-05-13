@@ -9,8 +9,9 @@
   resolves each op:// URI against the EquipQR Agents 1Password vault using
   'op inject', and writes the rendered result to %USERPROFILE%\.cursor\mcp.json.
 
-  Also writes the GCP service-account JSON from the gcp-viewer 1Password item
-  to %USERPROFILE%\.config\gcloud\equipqr-agent-viewer.json so the gcloud MCP
+  Also writes the GCP service-account JSON from the `gcp-read` 1Password item
+  (legacy `gcp-viewer` is still used as a fallback) to
+  %USERPROFILE%\.config\gcloud\equipqr-agent-viewer.json so the gcloud MCP
   can locate it via GOOGLE_APPLICATION_CREDENTIALS.
 
   Idempotent. Safe to run on every dev-start. Requires that you are signed in
@@ -20,8 +21,8 @@
   Show what would be written without modifying any files.
 
 .PARAMETER SkipGcp
-  Skip writing the GCP SA JSON (use when gcp-viewer item does not yet exist
-  in 1Password, e.g. before Phase 1.5 is complete).
+  Skip writing the GCP SA JSON (use when neither gcp-read nor legacy gcp-viewer
+  item exists in 1Password, e.g. before Phase 1.5 is complete).
 
 .EXAMPLE
   .\scripts\render-mcp-config.ps1
@@ -120,17 +121,31 @@ if (-not $SkipGcp) {
         }
     }
 
-    $gcpProbe = & op item get 'gcp-viewer' --vault 'tgo2m6qbct5otqeqirjocn3joa' --fields credential --format json 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warn "gcp-viewer item not found in EquipQR Agents vault. Skipping GCP SA write."
-        Write-Warn "  Re-run after Phase 1.5 mints the GCP service account JSON, or pass -SkipGcp to suppress this warning."
+    $vaultId = 'tgo2m6qbct5otqeqirjocn3joa'
+    $gcpJson = $null
+    $gcpSource = $null
+    $candidates = @(
+        @{ Item = 'gcp-read'; Field = 'SERVICE_ACCOUNT_JSON' },
+        @{ Item = 'gcp-read'; Field = 'credential' },
+        @{ Item = 'gcp-viewer'; Field = 'credential' }
+    )
+    foreach ($c in $candidates) {
+        $null = & op item get $c.Item --vault $vaultId --fields $c.Field --format json 2>&1
+        if ($LASTEXITCODE -ne 0) { continue }
+        $candidateJson = & op read "op://$vaultId/$($c.Item)/$($c.Field)" 2>$null
+        if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($candidateJson)) {
+            $gcpJson = $candidateJson
+            $gcpSource = "$($c.Item)/$($c.Field)"
+            break
+        }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($gcpJson)) {
+        Write-Warn "Could not read GCP SA JSON from gcp-read (SERVICE_ACCOUNT_JSON or credential) or legacy gcp-viewer/credential. Skipping GCP SA write."
+        Write-Warn "  Re-run after the EquipQR Agents vault contains the viewer service-account JSON, or pass -SkipGcp to suppress this warning."
     } else {
-            if ($PSCmdlet.ShouldProcess($gcpKeyPath, 'Write GCP SA JSON')) {
-            $gcpJson = & op read 'op://tgo2m6qbct5otqeqirjocn3joa/gcp-viewer/credential'
-            if ($LASTEXITCODE -ne 0) {
-                Write-Fail "op read failed for gcp-viewer credential field (exit $LASTEXITCODE)"
-                exit 1
-            }
+        if ($PSCmdlet.ShouldProcess($gcpKeyPath, 'Write GCP SA JSON')) {
+            Write-Ok "GCP SA JSON source: op://$vaultId/$gcpSource"
             $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
             [System.IO.File]::WriteAllText($gcpKeyPath, $gcpJson, $utf8NoBom)
 
@@ -140,7 +155,7 @@ if (-not $SkipGcp) {
                 $saEmail = $parsed.client_email
                 Write-Ok "GCP SA JSON written and validated as JSON ($saEmail)"
             } catch {
-                Write-Fail "GCP SA JSON is not valid JSON. The gcp-viewer/credential field probably contains a literal pasting artifact - re-paste the JSON directly into the field."
+                Write-Fail "GCP SA JSON is not valid JSON. The $gcpSource field probably contains a literal pasting artifact - re-paste the JSON directly into the field."
                 exit 1
             }
 

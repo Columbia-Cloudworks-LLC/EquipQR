@@ -11,11 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Preview Edge secret sync (CI)** ([#906](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/906)) — `scripts/sync-supabase-secrets-from-1password.ps1` reads `ProjectRef` from each edge 1Password item, uses `supabase-write` / `SUPABASE_ACCESS_TOKEN`, validates placeholders and TOKEN_ENCRYPTION_KEY / KDF_SALT strength, compares SHA-256 digests in `-Check` mode (JSON list output trimmed for CLI banners), and applies via `supabase secrets set --env-file`. Non-prod **Secrets Fan-Out** Supabase job calls this script for `edge-env-preview-secrets`; auth probe loads the Supabase PAT from 1Password. Drift preflight helper simplified to `scope` + op item args. The `supabase-write` PAT is stored in 1Password as field `SUPABASE_ACCESS_TOKEN` (replacing legacy `credential`); `schema-drift-check` uses the same op:// reference. **Secrets Fan-Out (Non-Prod)** applies on `push` to `preview` when this workflow or the sync script changes; a 6-hour UTC `schedule` is defined (GitHub evaluates scheduled workflows from `main`, so the cron runs after this file exists on the default branch). Manual `workflow_dispatch` unchanged; production remains drift-check only until a future apply workflow.
+
 - **QR scan feedback** ([#839](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/839)) — Live camera scans on `/dashboard/scan` prepare Web Audio on the Start camera gesture, set a short-lived session marker on successful decode, and play a synthesized ping plus vibration when `/qr/*` redirect access resolution completes. Upload-based decodes and direct QR opens stay silent. Development builds only: `/debug-scan-feedback` to audition the tone.
 
 ### Changed
 
 - **PageSEO / document metadata** — Removed the `react-helmet-async` dependency; `PageSEO` now updates `document.title` and head tags via a small scoped effect (tags marked `data-equipqr-page-seo` for cleanup). `HelmetProvider` was dropped from app and test providers.
+- **Agent docs: local Windows 1Password** — Documented optional User-scope `OP_SERVICE_ACCOUNT_TOKEN` for read-only `op` access; aligned vault item names (`vercel-write`, `gcp-read`, `github-read` in doctor), `render-mcp-config.ps1` GCP JSON resolution, and workflow README `op://` examples with current `app-env-*-public` field labels.
 
 ## [3.3.2] - 2026-05-10
 
@@ -1835,7 +1838,6 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 [1.7.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.2...v1.7.3
 [1.7.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/releases/tag/v1.7.1
-
 
 
 
