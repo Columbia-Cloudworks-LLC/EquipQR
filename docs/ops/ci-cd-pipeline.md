@@ -108,13 +108,7 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 
 **Purpose:** Log deployment success/failure from external services (Vercel)
 
-### 6. Repomix Artifact (`repomix.yml`)
-
-**Trigger:** Push or PR to `main`/`preview`, or manual dispatch
-
-**Purpose:** Generate repository snapshot for AI context
-
-### 7. Export Database Schema (`export-schema.yml`)
+### 6. Export Database Schema (`export-schema.yml`)
 
 **Trigger:** Push to `main` branch, or manual dispatch
 
@@ -357,7 +351,6 @@ See [Deployment Guide - Self-Hosted Runner Setup](./deployment.md#self-hosted-ru
 | `.github/workflows/configure-supabase-auth.yml` | Fix OAuth URLs after Vercel deploy |
 | `.github/workflows/version-tag.yml` | Auto-create git tags on version bump |
 | `.github/workflows/deployment-status.yml` | Log deployment status from Vercel |
-| `.github/workflows/repomix.yml` | Generate repository snapshot |
 | `.github/workflows/export-schema.yml` | Export database schema from preview to `supabase/schema.sql` |
 | `.github/runner-config.yml` | Runner type configuration |
 | `vercel.json` | Vercel deployment configuration |
