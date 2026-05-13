@@ -332,8 +332,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Step 'Loading Supabase access token from 1Password...'
-$saToken = Read-SupabaseToken
-$env:SUPABASE_ACCESS_TOKEN = $saToken
+$script:SupabaseAccessToken = Read-SupabaseToken
 Write-Ok "Supabase access token loaded from '$SUPABASE_TOKEN_ITEM' / $SUPABASE_TOKEN_FIELD"
 
 Write-Step 'Reading ProjectRef from 1Password item...'
