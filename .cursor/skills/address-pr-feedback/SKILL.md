@@ -4,16 +4,28 @@ description: >-
   Triage, implement, and respond to pull request review feedback end-to-end.
   Fetches unresolved review threads via GraphQL (isResolved filter), pulls
   review bodies for non-inline feedback, categorizes each item as addressed,
-  deferred (with a tracking GitHub issue), or rejected with rationale,
-  implements valid fixes, verifies the build, commits, pushes, replies in-thread,
-  and posts a structured summary comment on the PR. Use when PR feedback needs
-  addressing, automated reviewers leave comments, or the user asks to fix,
-  resolve, or respond to PR review comments.
+  deferred (with a tracking GitHub issue), or rejected with rationale, then
+  requires a Plan Mode handoff before any fixes are applied. After the user
+  approves the plan, executes the fixes, verifies the build, commits, pushes,
+  replies in-thread, and posts a structured summary comment on the PR. Use when
+  PR feedback needs addressing, automated reviewers leave comments, or the user
+  asks to fix, resolve, or respond to PR review comments.
 ---
 
 # Address PR Feedback
 
 End-to-end workflow for triaging PR review comments, implementing fixes, tracking deferred work, and posting a structured response.
+
+## Mandatory Mode Boundary
+
+This skill is intentionally two-phase:
+
+- **Agent Mode discovery:** Use Agent Mode only for Steps 1-3: identify the PR, inspect the working tree, fetch review threads/reviews, read the relevant code, and verify whether each feedback item is valid. Do not edit files, create issues, commit, push, or reply to PR comments during this phase.
+- **Plan Mode gate:** After Step 3, call `SwitchMode` to enter Plan Mode and write the implementation plan there. The plan is the authorization artifact.
+- **Approval before execution:** Stop after presenting the Plan Mode plan. Do not continue to implementation until the user approves the plan and the session is back in Agent Mode.
+- **Agent Mode execution:** After approval, perform Steps 5-9 exactly as planned: implement fixes, verify, commit, push, create deferred tracking issues, reply to threads, post the summary comment, and spot-check PR checks.
+
+If a prior instruction says to "proceed from this plan after writing it," this mode boundary wins. The agent must not write a plan in Agent Mode and then continue executing it in the same pass.
 
 ## Workflow
 
@@ -21,11 +33,12 @@ End-to-end workflow for triaging PR review comments, implementing fixes, trackin
 - [ ] Step 1: Identify the PR and preflight the working tree
 - [ ] Step 2: Fetch review threads + PR reviews (GraphQL); classify outdated unresolved threads
 - [ ] Step 3: Triage each item (respect release / compliance rules)
-- [ ] Step 4: Implement fixes for Address items
-- [ ] Step 5: Verify changes
-- [ ] Step 6: Commit and push
-- [ ] Step 7: Track deferred items (GitHub issues), thread replies, summary comment
-- [ ] Step 8: Spot-check PR checks (optional but recommended)
+- [ ] Step 4: Switch to Plan Mode and write the implementation plan (mandatory gate before edits)
+- [ ] Step 5: Implement fixes for Address items
+- [ ] Step 6: Verify changes
+- [ ] Step 7: Commit and push
+- [ ] Step 8: Track deferred items (GitHub issues), thread replies, summary comment
+- [ ] Step 9: Spot-check PR checks (optional but recommended)
 ```
 
 ### Step 1: Identify the PR and Preflight the Working Tree
@@ -111,7 +124,58 @@ Categorize every distinct feedback item into exactly one bucket:
 - For automated reviewer comments (Copilot, CodeRabbit, Qodo, etc.), apply higher skepticism — verify before accepting.
 - Group related comments that address the same concern (one issue per theme for deferred work).
 
-### Step 4: Implement Fixes
+### Step 4: Switch to Plan Mode and Write the Implementation Plan
+
+After triage and before code edits, call `SwitchMode` with `target_mode_id: "plan"` and a brief explanation that PR feedback has been verified and now needs an approval-gated implementation plan. Do not write the implementation plan in Agent Mode unless `SwitchMode` is unavailable.
+
+Once in Plan Mode, write a short implementation plan unless the user explicitly requested investigation-only output. The plan is the handoff artifact for a cheap model; write it so `Composer 2 (fast)` / Cursor Auto can complete the whole feedback round without inferring missing workflow details.
+
+The plan must be simple, concrete, and action-oriented:
+
+- Identify every actionable feedback item and its bucket: **Address**, **Defer**, or **Reject**.
+- For each **Address** item, name the exact file(s), symbol(s), and behavior to change.
+- For each **Defer** item, specify the tracking GitHub issue title/body outline and the reply text that will link to it.
+- For each **Reject** item, specify the concise technical rationale to post back.
+- Include the exact verification commands to run, scoped tests when appropriate, and the expected pass condition.
+- Include the commit message, push target, in-thread reply plan, top-level PR summary sections, and `gh pr checks` spot-check.
+- Include stop conditions: dirty unrelated files, unclear reviewer intent, failing verification that is not obviously caused by this change, or release/compliance feedback that cannot be resolved in the PR.
+
+Use this plan shape:
+
+```markdown
+## PR Feedback Implementation Plan
+
+### Working Set
+- PR: #<number> — <title>
+- Base: <base branch>
+- Branch/worktree: <branch or path>
+
+### Triage
+- Address:
+  - <thread/review id or author/path>: <why it is valid>
+- Defer:
+  - <thread/review id or author/path>: <why out of scope>; tracking issue title: `<title>`
+- Reject:
+  - <thread/review id or author/path>: <why it does not apply>
+
+### Implementation Steps
+1. Edit `<file>` at `<symbol>` to <specific change>.
+2. Add/update `<test file>` to cover <case>.
+3. Create deferred issue(s) with the listed titles and body outlines.
+4. Run `<verification command>` and require <expected result>.
+5. Commit with `<message>`.
+6. Push to `<remote>/<branch>`.
+7. Reply to inline threads using the prepared addressed/deferred/rejected text.
+8. Post the top-level `## PR Feedback Response` comment.
+9. Run `gh pr checks <pr_number>` and report failures if any.
+
+### Stop Conditions
+- Stop if <condition> and ask the user how to proceed.
+```
+
+Stop after presenting the plan and wait for explicit user approval. If the user approves, return to Agent Mode and continue with Step 5. If the user asked only for review/planning, stop after presenting the plan.
+
+### Step 5: Implement Fixes
 
 For each **Address** item:
 
@@ -120,7 +184,7 @@ For each **Address** item:
 
 **Implementation order:** security/correctness → quick fixes → larger refactors.
 
-### Step 5: Verify Changes
+### Step 6: Verify Changes
 
 Run project verification before committing. Adapt to the project's toolchain:
 
@@ -135,7 +199,7 @@ At minimum, lint and typecheck must pass. If verification fails, fix before proc
 
 **Worktree-aware verification:** If the PR branch lives in another git worktree (`git worktree list`), run commands **in that worktree**. Optionally scope tests to touched paths for speed; CI still runs on push.
 
-### Step 6: Commit and Push
+### Step 7: Commit and Push
 
 Commit with a message referencing the PR. Prefer a temp file for multi-line bodies (PowerShell-safe; avoids quoting bugs):
 
@@ -153,9 +217,9 @@ Or short messages with multiple `-m` flags.
 
 Push to the PR branch. Per workspace workflow: push proactively once verification passes (feature branches / preview policy as in `.cursor/rules/branching.mdc`).
 
-### Step 7: Track Deferred Items, Thread Replies, Summary Comment
+### Step 8: Track Deferred Items, Thread Replies, Summary Comment
 
-#### 7a — Tracking issues for **Defer** items
+#### 8a — Tracking issues for **Defer** items
 
 Align with workspace policy (`AGENTS.md`): **when feedback is deferred (not addressed), open a GitHub issue** so backlog stays traceable outside the PR thread.
 
@@ -182,7 +246,7 @@ gh issue create --title "Deferred from PR #<number>: <short topic>" --body-file 
 
 Capture returned issue URL(s) for thread replies and the summary.
 
-#### 7b — In-thread replies
+#### 8b — In-thread replies
 
 **Addressed** inline comments: reply with what changed.
 
@@ -205,7 +269,7 @@ Use the review comment `databaseId` from GraphQL as `in_reply_to`.
 - If a reply returns `404` immediately after a push, treat as non-fatal (thread auto-resolved/outdated); continue.
 - Always still post the top-level summary comment.
 
-#### 7c — Top-level summary comment
+#### 8c — Top-level summary comment
 
 Use `--body-file` for the markdown summary:
 
@@ -234,7 +298,7 @@ gh pr comment <pr_number> --body-file "$env:TEMP\pr-feedback-response.md"
 - Omit empty sections.
 - **Deferred / tracked** lines must include issue links when issues were created.
 
-### Step 8: Spot-check PR Checks (Recommended)
+### Step 9: Spot-check PR Checks (Recommended)
 
 After push:
 
