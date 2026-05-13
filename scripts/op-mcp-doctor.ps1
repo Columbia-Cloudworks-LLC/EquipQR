@@ -164,7 +164,7 @@ if (-not (Test-Path -LiteralPath $mcpJsonPath)) {
     Test-StdioMcp -Server 'gcloud'       -Command 'npx.cmd'
 
     Test-HttpMcp -Server 'github' -Url 'https://api.githubcopilot.com/mcp/' -Headers @{
-        'Authorization'  = 'Bearer op://tgo2m6qbct5otqeqirjocn3joa/github-prod/credential'
+        'Authorization'  = 'Bearer op://tgo2m6qbct5otqeqirjocn3joa/github-read/credential'
         'X-MCP-Readonly' = 'true'
     }
 
