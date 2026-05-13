@@ -175,7 +175,7 @@
     "us-atlas": "3.0.1",
     "vite": "^6.4.2",
     "vite-plugin-pwa": "1.2.0",
-    "vitest": "4.1.5",
+    "vitest": "4.1.6",
     "web-push": "3.6.7",
     "workbox-core": "7.4.1",
     "workbox-expiration": "7.4.1",
