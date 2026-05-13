@@ -8,6 +8,9 @@ import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import { attachWorkOrderCreationImages } from '@/features/work-orders/services/workOrderNotesService';
+import { workOrders as workOrderQueryKeys, workOrderMetrics } from '@/lib/queryKeys';
+import { OFFLINE_CREATION_PHOTOS_MESSAGE } from '@/features/work-orders/utils/workOrderCreationImages';
 
 export interface CreateWorkOrderData {
   title: string;
@@ -20,12 +23,16 @@ export interface CreateWorkOrderData {
   pmTemplateId?: string;
   // Simplified assignment: just pass the assigneeId (null/undefined = unassigned)
   assigneeId?: string;
+  images?: File[];
+  /** Stored on the auto-created evidence note when images are attached */
+  creationPhotoNote?: string;
 }
 
 /** Result shape from mutationFn. */
 interface CreateWorkOrderResult {
   workOrder: { id: string; [key: string]: unknown } | null;
   queuedOffline: boolean;
+  creationPhotoFailure?: boolean;
 }
 
 export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: string; [key: string]: unknown }) => void }) => {
@@ -42,6 +49,11 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: str
       }
       if (!user) {
         throw new Error('User not authenticated');
+      }
+
+      if (data.images?.length && typeof navigator !== 'undefined' && !navigator.onLine) {
+        toast.error(OFFLINE_CREATION_PHOTOS_MESSAGE);
+        throw new Error('Cannot create work order with photos while offline');
       }
 
       // Auto-assign logic for single-user organizations
@@ -61,6 +73,8 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: str
       }
 
       const workOrder = result.data!;
+
+      let creationPhotoFailure = false;
 
       // ── Side-effects (only when online create succeeds) ──
 
@@ -114,7 +128,32 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: str
         }
       }
 
-      return { workOrder, queuedOffline: false };
+      if (data.images?.length) {
+        try {
+          const { primaryImageId } = await attachWorkOrderCreationImages({
+            workOrderId: workOrder.id,
+            organizationId: currentOrganization.id,
+            images: data.images,
+            noteContent: data.creationPhotoNote,
+          });
+          if (primaryImageId) {
+            queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.images(workOrder.id) });
+            queryClient.invalidateQueries({
+              queryKey: workOrderQueryKeys.notesWithImages(workOrder.id),
+            });
+            queryClient.invalidateQueries({
+              queryKey: workOrderMetrics.imageCount(workOrder.id),
+            });
+          } else {
+            creationPhotoFailure = true;
+          }
+        } catch (error) {
+          logger.error('Failed to attach creation photos to work order', error);
+          creationPhotoFailure = true;
+        }
+      }
+
+      return { workOrder, queuedOffline: false, creationPhotoFailure };
     },
     onSuccess: (result) => {
       if (result.queuedOffline) {
@@ -127,6 +166,11 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: str
 
       // Normal success
       toast.success('Work order created successfully');
+      if (result.creationPhotoFailure) {
+        toast.warning(
+          'Work order created, but photos did not attach. Open the work order to retry.',
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', currentOrganization?.id] });
       queryClient.invalidateQueries({ queryKey: ['workOrders', currentOrganization?.id] });
       queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', currentOrganization?.id] });

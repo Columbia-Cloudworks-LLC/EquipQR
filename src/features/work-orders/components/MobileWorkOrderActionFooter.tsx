@@ -3,7 +3,7 @@
  * Primary workflow moves out of Info/sidebar into thumb-reachable space.
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -20,12 +20,15 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOrderData';
-import { useWorkOrderAcceptance } from '@/features/work-orders/hooks/useWorkOrderAcceptance';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
-import type { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
-import WorkOrderAcceptanceModal from '@/features/work-orders/components/WorkOrderAcceptanceModal';
+
+export type MobileFooterSyncState = {
+  isOnline: boolean;
+  isSyncing: boolean;
+  pendingCount: number;
+  failedCount: number;
+};
 
 export type FooterWorkOrder = {
   id: string;
@@ -51,13 +54,17 @@ export interface MobileWorkOrderActionFooterProps {
   showContinueChecklist: boolean;
   canAddNotes: boolean;
   isUpdatingStatusExternal?: boolean;
-  isOnline?: boolean;
-  isSyncing?: boolean;
+  /** Queue + browser online from OfflineQueueContext */
+  syncState: MobileFooterSyncState;
+  onRetrySync?: () => void;
   timerDisplay?: string;
   isTimerRunning?: boolean;
   onToggleTimer?: () => void;
   onAddNote: () => void;
   onAddPhoto: () => void;
+  onStartWork: () => void;
+  /** Put on hold from assigned / accepted */
+  onAssignedPutOnHold: () => void;
   /**
    * Toggles pause vs resume for in-progress / on-hold; parent owns undo toast.
    */
@@ -65,6 +72,59 @@ export interface MobileWorkOrderActionFooterProps {
   /** Opens Complete confirmation dialog after PM gate passes */
   onOpenCompleteDialog: () => void;
   onScrollToChecklist: () => void;
+  /** Opens accept-work-order modal (submitted) */
+  onRequestAccept: () => void;
+}
+
+function footerQueueMessage(sync: MobileFooterSyncState): { className: string; content: React.ReactNode } | null {
+  if (sync.failedCount > 0) {
+    return {
+      className: 'bg-destructive/15 text-destructive',
+      content: (
+        <>
+          <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+          <span>Sync failed</span>
+        </>
+      ),
+    };
+  }
+  if (sync.isSyncing) {
+    return {
+      className: 'bg-info/20 text-info dark:bg-info/20 dark:text-info',
+      content: (
+        <>
+          <RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden />
+          <span>Syncing...</span>
+        </>
+      ),
+    };
+  }
+  if (sync.pendingCount > 0) {
+    return {
+      className: 'bg-warning/20 text-warning dark:bg-warning/20 dark:text-warning',
+      content: (
+        <>
+          <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+          <span>Sync pending</span>
+        </>
+      ),
+    };
+  }
+  if (!sync.isOnline) {
+    return {
+      className: 'bg-warning/20 text-warning dark:bg-warning/20 dark:text-warning',
+      content: (
+        <>
+          <WifiOff className="h-3.5 w-3.5" aria-hidden />
+          <span>Offline - text and status changes save locally</span>
+        </>
+      ),
+    };
+  }
+  return {
+    className: 'bg-muted/80 text-muted-foreground',
+    content: <span>Saved</span>,
+  };
 }
 
 export const MobileWorkOrderActionFooter: React.FC<MobileWorkOrderActionFooterProps> = ({
@@ -74,60 +134,29 @@ export const MobileWorkOrderActionFooter: React.FC<MobileWorkOrderActionFooterPr
   showContinueChecklist,
   canAddNotes,
   isUpdatingStatusExternal = false,
-  isOnline = true,
-  isSyncing = false,
+  syncState,
+  onRetrySync,
   timerDisplay,
   isTimerRunning,
   onToggleTimer,
   onAddNote,
   onAddPhoto,
+  onStartWork,
+  onAssignedPutOnHold,
   onPauseResume,
   onOpenCompleteDialog,
   onScrollToChecklist,
+  onRequestAccept,
 }) => {
   const { user } = useAuth();
-  const updateStatusMutation = useUpdateWorkOrderStatus();
-  const acceptanceMutation = useWorkOrderAcceptance();
   const { isManager, isTechnician } = useWorkOrderPermissionLevels();
-  const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);
 
-  const isPending =
-    updateStatusMutation.isPending || acceptanceMutation.isPending || isUpdatingStatusExternal;
+  const isPending = isUpdatingStatusExternal;
 
   const canPerformWorkflow = () => {
     if (isManager) return true;
     if (isTechnician && workOrder.assignee_id === user?.id) return true;
     return !!(workOrder.created_by === user?.id && workOrder.status === 'submitted');
-  };
-
-  const handleMutateStatus = async (status: FooterWorkOrder['status']) => {
-    if (!organizationId || !canPerformWorkflow()) return;
-
-    await updateStatusMutation.mutateAsync({
-      workOrderId: workOrder.id,
-      status,
-      organizationId,
-    });
-  };
-
-  const handleAcceptFlow = async () => {
-    if (!organizationId) return;
-    if (!canPerformWorkflow()) return;
-    setShowAcceptanceModal(true);
-  };
-
-  const handleAcceptComplete = async (assigneeId?: string) => {
-    try {
-      await acceptanceMutation.mutateAsync({
-        workOrderId: workOrder.id,
-        organizationId,
-        assigneeId,
-      });
-      setShowAcceptanceModal(false);
-    } catch (error) {
-      console.error('Error accepting work order:', error);
-      throw error;
-    }
   };
 
   const completionBlockedByPm =
@@ -149,227 +178,161 @@ export const MobileWorkOrderActionFooter: React.FC<MobileWorkOrderActionFooterPr
   const isInProgress = workOrder.status === 'in_progress';
   const isAssignedLike = workOrder.status === 'assigned' || workOrder.status === 'accepted';
   const isSubmitted = workOrder.status === 'submitted';
-  const showTimerRow =
-    (isInProgress || isOnHold) && Boolean(timerDisplay);
-  const showQuickCaptureRow =
-    canAddNotes && !isSubmitted;
+  const showTimerRow = (isInProgress || isOnHold) && Boolean(timerDisplay);
+  const showQuickCaptureRow = canAddNotes && !isSubmitted;
+
+  const queueRow = footerQueueMessage(syncState);
 
   return (
-    <>
-      <div className="fixed bottom-[70px] left-0 right-0 z-fixed border-t bg-background/95 backdrop-blur-sm shadow-elevation-2 lg:hidden">
-        {/* Offline/Syncing indicator */}
-        {(!isOnline || isSyncing) && (
-          <div
-            className={cn(
-              'flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs',
-              !isOnline
-                ? 'bg-warning/20 text-warning dark:bg-warning/20 dark:text-warning'
-                : 'bg-info/20 text-info dark:bg-info/20 dark:text-info'
-            )}
-          >
-            {!isOnline ? (
-              <>
-                <WifiOff className="h-3 w-3" aria-hidden />
-                <span>Offline - Changes saved locally</span>
-              </>
-            ) : isSyncing ? (
-              <>
-                <RefreshCw className="h-3 w-3 animate-spin" aria-hidden />
-                <span>Syncing...</span>
-              </>
-            ) : null}
-          </div>
+    <div className="fixed bottom-[70px] left-0 right-0 z-fixed border-t bg-background/95 backdrop-blur-sm shadow-elevation-2 lg:hidden">
+      <div
+        className={cn(
+          'flex min-h-[36px] items-center justify-center gap-1.5 px-3 py-1.5 text-xs',
+          queueRow.className,
         )}
-
-        <div className="space-y-2 p-3 pb-safe-bottom">
-          {/* Badge + Timer */}
-          <div className="flex items-center justify-between gap-2">
-            <Badge
-              variant="outline"
-              className={cn(
-                'text-xs',
-                isOnHold
-                  ? 'border-warning/30 bg-warning/10 text-warning'
-                  : isInProgress
-                    ? 'border-success/30 bg-success/10 text-success'
-                    : 'bg-muted text-foreground'
-              )}
-            >
-              {formatFooterStatusBadge(workOrder.status)}
-            </Badge>
-
-            {showTimerRow && timerDisplay && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (onToggleTimer) onToggleTimer();
-                }}
-                disabled={!onToggleTimer}
-                className={cn(
-                  'flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-mono transition-colors',
-                  isTimerRunning ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
-                  !onToggleTimer && 'cursor-not-allowed opacity-50'
-                )}
-              >
-                <Timer className={cn('h-3.5 w-3.5', isTimerRunning && 'animate-pulse')} aria-hidden />
-                <span aria-label="Work timer">{timerDisplay}</span>
-              </button>
-            )}
-          </div>
-
-          {/* Quick capture */}
-          {showQuickCaptureRow && (
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" className="h-11 min-h-[44px] flex-1 sm:flex-none" onClick={onAddNote}>
-                <Plus className="mr-1 h-4 w-4" aria-hidden />
-                Note
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-11 min-h-[44px] px-3"
-                onClick={onAddPhoto}
-                aria-label="Add photo"
-              >
-                <Camera className="mr-1 h-4 w-4" aria-hidden />
-                <span className="text-xs">Photo</span>
-              </Button>
-            </div>
-          )}
-
-          {/* Primary workflows */}
-          {/* Submitted */}
-          {isSubmitted && (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="default"
-                size="sm"
-                className="min-h-[44px] flex-1"
-                disabled={isPending}
-                onClick={handleAcceptFlow}
-              >
-                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> : <CheckCircle className="mr-2 h-4 w-4" aria-hidden />}
-                Accept
-              </Button>
-            </div>
-          )}
-
-          {/* Assigned / Accepted */}
-          {isAssignedLike && (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="default"
-                size="sm"
-                className="min-h-[44px] flex-1"
-                disabled={isPending}
-                onClick={() => void handleMutateStatus('in_progress')}
-              >
-                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> : <Play className="mr-2 h-4 w-4" aria-hidden />}
-                Start Work
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="min-h-[44px] flex-1"
-                disabled={isPending}
-                onClick={() => void handleMutateStatus('on_hold')}
-              >
-                {isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden /> : <Pause className="mr-1 h-4 w-4" aria-hidden />}
-                Put on Hold
-              </Button>
-            </div>
-          )}
-
-          {/* In progress */}
-          {isInProgress && (
-            <>
-              {showContinueChecklist && (
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="min-h-[44px] w-full flex-1"
-                    type="button"
-                    onClick={onScrollToChecklist}
-                  >
-                    <ClipboardCheck className="mr-2 h-4 w-4" aria-hidden />
-                    Continue Checklist
-                    <ChevronDown className="ml-2 h-4 w-4" aria-hidden />
-                  </Button>
-                </div>
-              )}
-
-              <div className="flex flex-wrap gap-2 items-stretch">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="min-h-[44px]"
-                  disabled={isPending}
-                  onClick={() => void onPauseResume()}
-                  aria-label={isPending ? 'Updating status' : 'Put work order on hold'}
-                >
-                  {isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                  ) : (
-                    <Pause className="mr-1 h-4 w-4" aria-hidden />
-                  )}
-                  <span className="text-xs sm:text-sm">Put on Hold</span>
-                </Button>
-
-                <div className="flex flex-1 min-w-[160px] flex-col gap-0.5">
-                  <Button
-                    variant={completionBlockedByPm ? 'outline' : 'default'}
-                    size="sm"
-                    type="button"
-                    className={cn(
-                      'min-h-[44px] h-auto w-full flex-col gap-1 py-2 font-semibold sm:flex-row sm:justify-center',
-                      completionBlockedByPm && 'opacity-50'
-                    )}
-                    disabled={isPending}
-                    onClick={handleCompletePress}
-                  >
-                    <span className="inline-flex items-center">
-                      <CheckCircle className="mr-2 h-4 w-4" aria-hidden />
-                      Complete
-                    </span>
-                    {completionBlockedByPm ? (
-                      <span className="text-xs font-normal text-muted-foreground">Complete checklist first</span>
-                    ) : null}
-                  </Button>
-                  {completionBlockedByPm ? (
-                    <span className="sr-only">
-                      Completion is gated until checklist is finished. Button scrolls checklist into view.
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* On hold */}
-          {isOnHold && (
-            <Button
-              variant="default"
-              size="sm"
-              className="min-h-[44px] h-11 w-full"
-              disabled={isPending}
-              onClick={() => void onPauseResume()}
-            >
-              {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> : <Play className="mr-2 h-4 w-4" aria-hidden />}
-              Resume Work
-            </Button>
-          )}
-        </div>
+        aria-live="polite"
+      >
+        {queueRow.content}
+        {syncState.failedCount > 0 && onRetrySync ? (
+          <Button type="button" variant="ghost" size="sm" className="ml-1 h-8 min-h-[44px] px-2 text-xs" onClick={onRetrySync}>
+            Retry
+          </Button>
+        ) : null}
       </div>
 
-      <WorkOrderAcceptanceModal
-        open={showAcceptanceModal}
-        onClose={() => setShowAcceptanceModal(false)}
-        workOrder={workOrder as unknown as WorkOrderLike}
-        organizationId={organizationId}
-        onAccept={handleAcceptComplete}
-      />
-    </>
+      <div className="space-y-2 p-3 pb-safe-bottom">
+        <div className="flex items-center justify-between gap-2">
+          <Badge
+            variant="outline"
+            className={cn(
+              'text-xs',
+              isOnHold
+                ? 'border-warning/30 bg-warning/10 text-warning'
+                : isInProgress
+                  ? 'border-success/30 bg-success/10 text-success'
+                  : 'bg-muted text-foreground',
+            )}
+          >
+            {formatFooterStatusBadge(workOrder.status)}
+          </Badge>
+
+          {showTimerRow && timerDisplay ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (onToggleTimer) onToggleTimer();
+              }}
+              disabled={!onToggleTimer}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-sm transition-colors',
+                isTimerRunning ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+                !onToggleTimer && 'cursor-not-allowed opacity-50',
+              )}
+            >
+              <Timer className={cn('h-3.5 w-3.5', isTimerRunning && 'animate-pulse')} aria-hidden />
+              <span aria-label="Work timer">{timerDisplay}</span>
+            </button>
+          ) : null}
+        </div>
+
+        {showQuickCaptureRow ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" className="h-11 min-h-[44px] flex-1 sm:flex-none" onClick={onAddNote}>
+              <Plus className="mr-1 h-4 w-4" aria-hidden />
+              Note
+            </Button>
+            <Button variant="outline" size="sm" className="h-11 min-h-[44px] px-3" onClick={onAddPhoto} aria-label="Add photo">
+              <Camera className="mr-1 h-4 w-4" aria-hidden />
+              <span className="text-xs">Photo</span>
+            </Button>
+          </div>
+        ) : null}
+
+        {isSubmitted ? (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="default" size="sm" className="min-h-[44px] flex-1" disabled={isPending} onClick={onRequestAccept}>
+              {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> : <CheckCircle className="mr-2 h-4 w-4" aria-hidden />}
+              Accept
+            </Button>
+          </div>
+        ) : null}
+
+        {isAssignedLike ? (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="default" size="sm" className="min-h-[44px] flex-1" disabled={isPending} onClick={onStartWork}>
+              {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> : <Play className="mr-2 h-4 w-4" aria-hidden />}
+              Start Work
+            </Button>
+            <Button variant="outline" size="sm" className="min-h-[44px] flex-1" disabled={isPending} onClick={onAssignedPutOnHold}>
+              {isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden /> : <Pause className="mr-1 h-4 w-4" aria-hidden />}
+              Put on Hold
+            </Button>
+          </div>
+        ) : null}
+
+        {isInProgress ? (
+          <>
+            {showContinueChecklist ? (
+              <div className="flex flex-wrap gap-2">
+                <Button variant="default" size="sm" className="min-h-[44px] w-full flex-1" type="button" onClick={onScrollToChecklist}>
+                  <ClipboardCheck className="mr-2 h-4 w-4" aria-hidden />
+                  Continue Checklist
+                  <ChevronDown className="ml-2 h-4 w-4" aria-hidden />
+                </Button>
+              </div>
+            ) : null}
+
+            <div className="flex flex-wrap items-stretch gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="min-h-[44px]"
+                disabled={isPending}
+                onClick={() => void onPauseResume()}
+                aria-label={isPending ? 'Updating status' : 'Put work order on hold'}
+              >
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Pause className="mr-1 h-4 w-4" aria-hidden />}
+                <span className="text-xs sm:text-sm">Put on Hold</span>
+              </Button>
+
+              <div className="flex min-w-[160px] flex-1 flex-col gap-0.5">
+                <Button
+                  variant={completionBlockedByPm ? 'outline' : 'default'}
+                  size="sm"
+                  type="button"
+                  className={cn(
+                    'min-h-[44px] h-auto w-full flex-col gap-1 py-2 font-semibold sm:flex-row sm:justify-center',
+                    completionBlockedByPm && 'opacity-50',
+                  )}
+                  disabled={isPending}
+                  onClick={handleCompletePress}
+                >
+                  <span className="inline-flex items-center">
+                    <CheckCircle className="mr-2 h-4 w-4" aria-hidden />
+                    Complete
+                  </span>
+                  {completionBlockedByPm ? (
+                    <span className="text-xs font-normal text-muted-foreground">Complete checklist first</span>
+                  ) : null}
+                </Button>
+                {completionBlockedByPm ? (
+                  <span className="sr-only">
+                    Completion is gated until checklist is finished. Button scrolls checklist into view.
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          </>
+        ) : null}
+
+        {isOnHold ? (
+          <Button variant="default" size="sm" className="h-11 min-h-[44px] w-full" disabled={isPending} onClick={() => void onPauseResume()}>
+            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> : <Play className="mr-2 h-4 w-4" aria-hidden />}
+            Resume Work
+          </Button>
+        ) : null}
+      </div>
+    </div>
   );
 };
 

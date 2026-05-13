@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,10 @@ import {
   createQRWorkOrder,
 } from '@/features/equipment/services/equipmentQRActionService';
 import { logger } from '@/utils/logger';
+import { workOrders as workOrderQueryKeys, workOrderMetrics } from '@/lib/queryKeys';
+import WorkOrderCreationPhotoPicker from '@/features/work-orders/components/WorkOrderCreationPhotoPicker';
+import { OFFLINE_CREATION_PHOTOS_MESSAGE } from '@/features/work-orders/utils/workOrderCreationImages';
+import { toast } from 'sonner';
 
 interface QRWorkOrderDialogProps {
   open: boolean;
@@ -63,6 +68,14 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
   const [dueDate, setDueDate] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [images, setImages] = useState<File[]>([]);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!open) {
+      setImages([]);
+    }
+  }, [open]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -82,16 +95,40 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
       return;
     }
 
+    if (images.length > 0 && typeof navigator !== 'undefined' && !navigator.onLine) {
+      setError(OFFLINE_CREATION_PHOTOS_MESSAGE);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const workOrder = await createQRWorkOrder({
+      const { workOrder, creationPhotosAttached } = await createQRWorkOrder({
         equipment,
         title: title.trim(),
         description: description.trim(),
         priority,
         dueDate: dueDate || undefined,
         attachPM: isPM,
+        images: images.length ? images : undefined,
+        creationPhotoNote: images.length
+          ? `Photos from QR work order request: ${title.trim()}`
+          : undefined,
       });
+      if (images.length > 0) {
+        queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.images(workOrder.id) });
+        queryClient.invalidateQueries({
+          queryKey: workOrderQueryKeys.notesWithImages(workOrder.id),
+        });
+        queryClient.invalidateQueries({
+          queryKey: workOrderMetrics.imageCount(workOrder.id),
+        });
+        if (!creationPhotosAttached) {
+          toast.warning(
+            'Work order created, but photos did not attach. Open the work order to retry.',
+          );
+        }
+      }
+      setImages([]);
       onCreated(workOrder);
       onOpenChange(false);
     } catch (submitError) {
@@ -185,6 +222,12 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
               </AlertDescription>
             </Alert>
           )}
+
+          <WorkOrderCreationPhotoPicker
+            images={images}
+            onImagesChange={setImages}
+            disabled={isSubmitting}
+          />
 
           <DialogFooter className="gap-2 sm:gap-0">
             <Button

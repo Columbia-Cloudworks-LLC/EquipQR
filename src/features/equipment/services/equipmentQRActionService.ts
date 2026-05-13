@@ -6,6 +6,7 @@ import {
 } from '@/features/equipment/services/equipmentWorkingHoursService';
 import { createPM, type PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { WorkOrderService } from '@/features/work-orders/services/workOrderService';
+import { attachWorkOrderCreationImages } from '@/features/work-orders/services/workOrderNotesService';
 import type { WorkOrder, WorkOrderPriority } from '@/features/work-orders/types/workOrder';
 import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import type { QRActionEquipment } from '@/features/equipment/services/equipmentQRPermissions';
@@ -18,6 +19,13 @@ export interface CreateQRWorkOrderInput {
   priority: WorkOrderPriority;
   dueDate?: string;
   attachPM: boolean;
+  images?: File[];
+  creationPhotoNote?: string;
+}
+
+export interface CreateQRWorkOrderResult {
+  workOrder: WorkOrder;
+  creationPhotosAttached: boolean;
 }
 
 async function getPMTemplateData(templateId: string, organizationId: string): Promise<{
@@ -40,7 +48,7 @@ async function getPMTemplateData(templateId: string, organizationId: string): Pr
   };
 }
 
-export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<WorkOrder> {
+export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<CreateQRWorkOrderResult> {
   const createdBy = await requireAuthUserIdFromClaims();
   const service = new WorkOrderService(input.equipment.organizationId);
   const result = await service.create({
@@ -99,7 +107,27 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
     }
   }
 
-  return result.data;
+  let creationPhotosAttached = !input.images?.length;
+
+  if (input.images?.length) {
+    try {
+      const { primaryImageId } = await attachWorkOrderCreationImages({
+        workOrderId: result.data.id,
+        organizationId: input.equipment.organizationId,
+        images: input.images,
+        noteContent: input.creationPhotoNote,
+      });
+      creationPhotosAttached = Boolean(primaryImageId);
+    } catch (error) {
+      logger.error('QR work order creation photos failed to attach', error);
+      creationPhotosAttached = false;
+    }
+  }
+
+  return {
+    workOrder: result.data,
+    creationPhotosAttached,
+  };
 }
 
 export async function updateQRWorkingHours(data: UpdateWorkingHoursData): Promise<unknown> {

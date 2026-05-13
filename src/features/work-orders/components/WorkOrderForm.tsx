@@ -22,6 +22,7 @@ import { WorkOrderPMChecklist } from './WorkOrderPMChecklist';
 import { WorkOrderFormActions } from './WorkOrderFormActions';
 import { WorkOrderHistoricalToggle } from './WorkOrderHistoricalToggle';
 import { WorkOrderHistoricalFields } from './WorkOrderHistoricalFields';
+import WorkOrderCreationPhotoPicker from '@/features/work-orders/components/WorkOrderCreationPhotoPicker';
 
 
 interface WorkOrderFormProps {
@@ -53,6 +54,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
   
   const [showWorkingHoursWarning, setShowWorkingHoursWarning] = useState(false);
   const [pendingSubmission, setPendingSubmission] = useState<WorkOrderFormData | null>(null);
+  const [creationImages, setCreationImages] = useState<File[]>([]);
   
   // Get user's teams and filter to those they can create equipment for
   const userTeamIds = getUserTeamIds();
@@ -103,8 +105,10 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
   const { submitForm, isLoading } = useWorkOrderSubmission({
     workOrder,
     onSubmit,
+    creationImages,
     onSuccess: () => {
       form.reset();
+      setCreationImages([]);
       onClose();
     }
   });
@@ -143,6 +147,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
       if (!confirmClose) return;
     }
     form.reset();
+    setCreationImages([]);
     onClose();
   };
 
@@ -189,6 +194,14 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
             setValue={form.setValue}
             preSelectedEquipment={preSelectedEquipment}
           />
+
+          {!isEditMode && !form.values.isHistorical ? (
+            <WorkOrderCreationPhotoPicker
+              images={creationImages}
+              onImagesChange={setCreationImages}
+              disabled={isSubmitting}
+            />
+          ) : null}
 
           <WorkOrderEquipmentSelector
             values={form.values}

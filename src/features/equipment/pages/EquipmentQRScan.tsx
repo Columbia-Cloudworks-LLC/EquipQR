@@ -13,10 +13,13 @@ import type { Role } from '@/types/permissions';
 import QrPageLoadingShell from '@/features/equipment/components/qr/QrPageLoadingShell';
 import {
   fetchEquipmentQRPayload,
+  resolveEquipmentQRDisplayImageUrl,
   userLimitsSensitivePi,
   insertScan,
   type EquipmentQRPayload,
 } from '@/features/equipment/services/equipmentQRPermissions';
+import { useLatestCompletedPMDetails } from '@/features/pm-templates/hooks/usePMData';
+import EquipmentQRLastPMCard from '@/features/equipment/components/qr/EquipmentQRLastPMCard';
 
 type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 
@@ -50,10 +53,18 @@ const EquipmentQRScan = () => {
   const orgId = searchParams.get('org') ?? undefined;
   const { user, isLoading: authLoading } = useAuth();
   const [payload, setPayload] = useState<EquipmentQRPayload | null>(null);
+  const latestPmQuery = useLatestCompletedPMDetails(
+    payload?.equipment.id,
+    payload?.organization.id
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scanStatus, setScanStatus] = useState<ScanStatus>('idle');
   const [showQuickActions, setShowQuickActions] = useState(false);
+  const [heroImageFailed, setHeroImageFailed] = useState(false);
+  const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
+  /** Bumps after each successful `fetchEquipmentQRPayload` so hero resolution retries on refetch even when ids + image reference are unchanged (e.g. after org switch). Local `setPayload` merges skip this bump. */
+  const [payloadLoadGeneration, setPayloadLoadGeneration] = useState(0);
   const scanStartedRef = useRef(false);
 
   useEffect(() => {
@@ -63,7 +74,7 @@ const EquipmentQRScan = () => {
     const orgParam = orgId ? `&org=${orgId}` : '';
     sessionStorage.setItem('pendingRedirect', `/qr/equipment/${equipmentId}?qr=true${orgParam}`);
     window.location.replace('/auth?tab=signin');
-  }, [authLoading, equipmentId, user]);
+  }, [authLoading, equipmentId, user, orgId]);
 
   useEffect(() => {
     if (authLoading || !user || !equipmentId) return;
@@ -74,7 +85,10 @@ const EquipmentQRScan = () => {
 
     fetchEquipmentQRPayload(equipmentId, orgId)
       .then(result => {
-        if (!cancelled) setPayload(result);
+        if (!cancelled) {
+          setPayload(result);
+          setPayloadLoadGeneration(g => g + 1);
+        }
       })
       .catch(loadError => {
         if (!cancelled) {
@@ -88,7 +102,45 @@ const EquipmentQRScan = () => {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, equipmentId, user]);
+  }, [authLoading, equipmentId, user, orgId]);
+
+  const heroEquipmentId = payload?.equipment.id;
+  const heroOrganizationId = payload?.organization.id;
+  const heroStoredRef = payload?.equipment.imageReference ?? null;
+
+  useEffect(() => {
+    if (
+      heroEquipmentId == null ||
+      heroOrganizationId == null ||
+      heroStoredRef == null ||
+      !heroStoredRef.trim()
+    ) {
+      setHeroImageUrl(null);
+      setHeroImageFailed(false);
+      return;
+    }
+
+    const stored = heroStoredRef.trim();
+    let cancelled = false;
+    setHeroImageFailed(false);
+    setHeroImageUrl(null);
+
+    void resolveEquipmentQRDisplayImageUrl({
+      equipmentId: heroEquipmentId,
+      organizationId: heroOrganizationId,
+      stored,
+    })
+      .then((url) => {
+        if (!cancelled) setHeroImageUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setHeroImageUrl(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [heroStoredRef, heroEquipmentId, heroOrganizationId, payloadLoadGeneration]);
 
   useEffect(() => {
     if (!payload || !user || scanStartedRef.current) return;
@@ -183,6 +235,7 @@ const EquipmentQRScan = () => {
 
   const { equipment, organization } = payload;
   const currentYear = new Date().getFullYear();
+  const heroImageSrc = heroImageUrl && !heroImageFailed ? heroImageUrl : null;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -206,12 +259,13 @@ const EquipmentQRScan = () => {
 
         <Card className="overflow-hidden">
           <div className="aspect-[16/10] bg-muted">
-            {equipment.imageUrl ? (
+            {heroImageSrc ? (
               <img
-                src={equipment.imageUrl}
+                src={heroImageSrc}
                 alt={equipment.name}
                 className="h-full w-full object-cover"
                 decoding="async"
+                onError={() => setHeroImageFailed(true)}
               />
             ) : (
               <div className="flex h-full items-center justify-center">
@@ -271,6 +325,13 @@ const EquipmentQRScan = () => {
                 Use quick actions below for field updates, or continue to the full dashboard record for parts, scans, and history.
               </p>
             </div>
+
+            <EquipmentQRLastPMCard
+              organizationId={payload.organization.id}
+              details={latestPmQuery.data ?? null}
+              isLoading={latestPmQuery.isLoading}
+              isError={latestPmQuery.isError}
+            />
 
             {showQuickActions && (
               <Suspense fallback={<div className="h-32 rounded-lg border bg-muted/30" aria-hidden="true" />}>

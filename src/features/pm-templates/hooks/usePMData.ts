@@ -3,13 +3,20 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import { createScopedQueryPersister } from '@/lib/queryPersistence';
 import {
   getPMByWorkOrderId,
   getPMByWorkOrderAndEquipment,
   getPMsByWorkOrderId,
+  getLatestCompletedPMDetails,
   UpdatePMData,
 } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { preventiveMaintenance as preventiveMaintenanceKeys } from '@/lib/queryKeys';
 import { toast } from 'sonner';
+
+function fieldReadPersister() {
+  return createScopedQueryPersister().persisterFn;
+}
 
 // Legacy hook - returns first PM found
 export const usePMByWorkOrderId = (workOrderId: string) => {
@@ -41,6 +48,7 @@ export const usePMByWorkOrderAndEquipment = (workOrderId: string, equipmentId: s
     refetchOnWindowFocus: false,
     // Keep previous data when query fails - prevents clearing on 406 errors
     placeholderData: (previousData) => previousData,
+    persister: fieldReadPersister(),
   });
 };
 
@@ -54,6 +62,24 @@ export const usePMsByWorkOrderId = (workOrderId: string) => {
     enabled: !!workOrderId && !!currentOrganization?.id,
     staleTime: 5 * 60 * 1000,  // 5 min (was 2 min)
     gcTime: 30 * 60 * 1000,    // 30 min — survive offline
+  });
+};
+
+/** For contexts without OrganizationProvider (e.g. `/qr/equipment/*` landing). */
+export const useLatestCompletedPMDetails = (
+  equipmentId: string | undefined,
+  organizationId: string | undefined
+) => {
+  const enabled = Boolean(equipmentId && organizationId);
+  return useQuery({
+    queryKey: enabled
+      ? preventiveMaintenanceKeys.latestCompletedByEquipment(organizationId!, equipmentId!)
+      : (['preventativeMaintenance', 'latest-completed', 'idle'] as const),
+    queryFn: () => getLatestCompletedPMDetails(equipmentId!, organizationId!),
+    enabled,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    retry: 1,
   });
 };
 

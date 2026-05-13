@@ -194,6 +194,8 @@ Embed that block verbatim in Phase 4 → **Execution Configuration**. Do not par
 
 `model-recommender` is the single source of truth for the specific model choice **and** the Cursor billing tier (Auto / Premium / MAX). The previous Phase 2 tier table has been retired — its scenario-to-tier heuristics now live inside the recommender's matrix and are checked against the live model report at every invocation, so the recommendation tracks deprecations (Sonnet 4 / Opus 4 / Gemini 2.5 Flash retiring June 2026), pricing changes, and new releases automatically.
 
+When the identified scenario is broad, prefer a handoff that splits the work into cheap-model executable passes instead of recommending a premium model solely to compensate for missing detail. Premium/MAX belongs in the recommendation only when the first pass is indivisible for correctness or safety after slicing.
+
 # PHASE 3 — ITIL SKILL MAPPING
 
 Recommend exactly **one** ITIL skill (or `None`) that the execution agent should load before starting:
@@ -276,6 +278,7 @@ Output your final answer using **EXACTLY** this markdown structure. No conversat
  - When Phase 3B says "Yes": a discrete step instructing the agent to spawn the `docs-researcher` subagent with the EXACT pre-written query, and to wait for the response before making code changes
  - PowerShell-compatible command examples (use `;` not `&&`, use `Get-Content` not `cat`)
  - Required verification steps before commit (lint, typecheck, build, relevant tests)
+ - Explicitly small execution scope: exact files/symbols/artifacts to touch, stop conditions, and a note to split further rather than use a premium model if the prompt is still too broad
  - Explicit instruction to commit with a conventional commit message and `git push origin preview`
  - For ITIL skills that require GitHub issue interaction, the issue number to update]
 ```

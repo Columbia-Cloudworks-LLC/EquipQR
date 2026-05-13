@@ -1,6 +1,6 @@
 ---
 name: model-recommender
-description: Recommends a specific execution model (Claude Opus 4.7, GPT-5.4, Composer 2, Gemini 3.1 Pro, Grok 4.20, Kimi K2.5, etc.) and a Cursor billing tier (Auto / Premium / MAX) for a given work shape, grounded in the EquipQR model research report at `docs/ops/ci-cd-workshop/AI Model Comparison Report  28 Models Across 6 Families (April 2026).md`. Other plan-creating skills (`itil-change-record`, `itil-problem-record`, `itil-service-request`, `pencil`, `master-mason`, `devops-triage-dispatch` Phase 2) MUST load this skill and embed its standardized **Recommended Execution Model** output block in their own outputs. Also use standalone when the user says "what model should I use", "recommend a model", "which model for this", "pick the model", or asks model-selection questions. Read-only; safe in Plan mode.
+description: Recommends the cheapest specific execution model that can safely complete a given work shape (Composer 2 / Cursor Auto first, premium models only when the work cannot be split smaller), grounded in the EquipQR model research report at `docs/ops/ci-cd-workshop/AI Model Comparison Report  28 Models Across 6 Families (April 2026).md`. Other plan-creating skills (`itil-change-record`, `itil-problem-record`, `itil-service-request`, `pencil`, `master-mason`, `devops-triage-dispatch` Phase 2) MUST load this skill and embed its standardized **Recommended Execution Model** output block in their own outputs. Also use standalone when the user says "what model should I use", "recommend a model", "which model for this", "pick the model", or asks model-selection questions. Read-only; safe in Plan mode.
 ---
 
 # Model Recommender (EquipQR)
@@ -11,9 +11,15 @@ If a workflow reaches an authorized commit step, include unrelated incremental C
 
 ## Purpose
 
-Map a work shape (single-file fix, multi-file refactor, schema migration, deep root-cause debug, security audit, vendor-doc research, agent-swarm orchestration, etc.) to the most appropriate **specific model** in the EquipQR model research report — and to a **Cursor billing tier** for users who select via the IDE picker — and emit a standardized markdown block that other skills embed verbatim.
+Map a work shape (single-file fix, multi-file refactor, schema migration, deep root-cause debug, security audit, vendor-doc research, agent-swarm orchestration, etc.) to the **cheapest sufficient specific model** in the EquipQR model research report - and to a **Cursor billing tier** for users who select via the IDE picker - then emit a standardized markdown block that other skills embed verbatim.
 
 Composition is the point. Plan-creating skills like `itil-change-record` do not maintain their own model tables. They invoke this skill, take its output, and paste it into their own **Recommended Execution Model** section.
+
+## Cheap-model planning contract
+
+For implementation plans, this skill optimizes for total execution cost, not for the strongest available model. The default target is `Composer 2 (fast)` or Cursor **Auto** whenever the plan can be made sufficiently explicit. Premium/MAX recommendations are allowed only when the work is indivisible after reasonable slicing, such as an RLS/security decision that must be reasoned about as one unit, a cross-repo audit that genuinely needs >200K context, or a production incident investigation that depends on deep log correlation.
+
+When another planning skill passes a broad work shape that maps to Premium/MAX, first ask: "Can this be split into smaller independently verifiable plans that a cheap model can execute?" If yes, recommend splitting and make the **Recommended Execution Model** for each slice cheap. If no, keep the higher-tier recommendation and state the indivisible reason in **Constraints surfaced**.
 
 ## Source of truth
 
@@ -32,7 +38,7 @@ This skill is a **lookup harness**, not a duplicate of the report. Every recomme
 - The pricing tier hint in this skill matches the report's pricing table.
 - For Cursor-only models (Composer series), the user is actually running inside Cursor IDE.
 
-If the report has been updated and contradicts this skill's matrix, **the report wins**. Surface the discrepancy in the recommendation as a "matrix outdated" callout so a future maintainer can reconcile.
+If the report has been updated and contradicts this skill's model facts (availability, pricing, context, deprecation, capabilities), **the report wins**. The cheap-model planning policy still wins for scope decomposition: split broad implementation work before recommending a stronger model. Surface factual discrepancies in the recommendation as a "matrix outdated" callout so a future maintainer can reconcile.
 
 ## When to read this skill
 
@@ -55,7 +61,7 @@ Determine which row of the **Work-shape decision matrix** below matches the task
 - A `devops-triage-dispatch` Phase 1 finding — the identified scenario maps directly to a row.
 - A standalone user prompt — ask one clarifying question if the shape is genuinely ambiguous; do not guess across two materially different shapes.
 
-If the work spans **multiple shapes** (e.g. multi-file refactor + security audit), pick the **higher-tier** model that satisfies all dimensions. Do not split into two recommendations — the consumer skill embeds one block.
+If the work spans **multiple shapes** (e.g. multi-file refactor + security audit), first decide whether the plan can be split into independently verifiable slices. Prefer smaller cheap-model slices over one expensive model recommendation. Pick the **higher-tier** model only when the shapes are genuinely indivisible for correctness or safety; in that case, explain why in **Constraints surfaced**. Do not emit two recommendations in one block - either recommend a cheap slice or justify the higher-tier monolith.
 
 ### Step 2 — Read the report and confirm the candidate
 
@@ -74,9 +80,9 @@ Cursor users select models via Auto / Premium / MAX. The tier hint helps the use
 
 | Tier | Meaning | When to recommend |
 |---|---|---|
-| **Auto** | Cursor picks a cost-efficient model from the routing pool. No credit drain on the paid plan (quota-gated since Aug 2025). | The work is small, well-isolated, low-blast-radius. The recommendation is "Auto is fine — Cursor will likely route to Composer 1, Composer 2 fast, or GPT-5.4 Mini, all of which suffice". |
-| **Premium** | User manually selects a specific model from the picker; credits drain at provider rates. | The work needs a specific frontier model (Claude Sonnet 4.6 for production multi-file work, Codex 5.3 for SWE-bench-style tasks, Gemini 3.1 Pro for ARC-AGI reasoning). Most ITIL Change Records land here. |
-| **MAX** | Premium + extended context (Max Mode). Heaviest credit drain. | The work needs >200K context (full-repo audit, large log analysis), the deepest reasoning (Claude Opus 4.7 xhigh, Codex 5.3 xhigh), or a model with a long-horizon agent loop. Reserve for genuine necessity. |
+| **Auto** | Cursor picks a cost-efficient model from the routing pool. No credit drain on the paid plan (quota-gated since Aug 2025). | The default target for implementation plans. Use when the plan names exact files/symbols, has <=10 tightly scoped files, no schema/RLS ambiguity, and clear verification. Cursor will likely route to Composer 1, Composer 2 fast, or GPT-5.4 Mini, all of which suffice for well-specified slices. |
+| **Premium** | User manually selects a specific model from the picker; credits drain at provider rates. | Use only when the work remains non-trivial after splitting: security/RLS reasoning, production incident analysis, high-risk migrations, or multi-file feature work whose correctness depends on cross-cutting reasoning that cannot be encoded into the plan. |
+| **MAX** | Premium + extended context (Max Mode). Heaviest credit drain. | Use only when the work genuinely needs >200K context, deepest reasoning, or long-horizon agent loops after attempts to split the work would destroy correctness. |
 
 When in doubt, recommend the lower tier — Premium over MAX, Auto over Premium.
 
@@ -92,15 +98,15 @@ Pick the row that best matches the task. The first model is the primary recommen
 
 | Work shape | Primary model | Fallback | Cursor tier | Why |
 |---|---|---|---|---|
-| Routine single-file fix, typo, lint fix, comment / doc tweak | **GPT-5.4 Mini** ($0.75/$4.50, 400K) | **Composer 2 (fast)** ($1.50/$7.50, 200K, IDE-only) | **Auto** | Cheap, fast, sufficient for ≤1 file changes that don't span concepts. |
-| Standard multi-file feature implementation (3–10 files, no schema) | **Claude Sonnet 4.6** ($3/$15, 1M context) | **GPT-5.4** ($2.50/$15, 272K) | **Premium** | Sonnet 4.6 is the production workhorse — Opus performance at 1/5 the price, instruction-following holds across 10+ file edits. |
-| Heavy refactor / sprawling rewrite spanning many files / packages | **Claude Opus 4.7** ($5/$25, 1M, xhigh effort) | **Codex 5.3** ($1.75/$14, 400K) | **MAX** | Opus 4.7 leads SWE-bench Verified at 87.6% and Coding Arena Elo. Pay the premium when scope justifies it. |
-| Schema migration + RLS + types regen (Supabase) | **Claude Opus 4.7** ($5/$25, 1M) | **Claude Sonnet 4.6** ($3/$15, 1M) | **Premium → MAX** | RLS reasoning is unforgiving; Opus 4.7's tool-call reliability and reasoning depth pay for themselves. Sonnet 4.6 is acceptable for simple migrations. |
+| Routine single-file fix, typo, lint fix, comment / doc tweak | **Cursor Auto** | **GPT-5.4 Mini** ($0.75/$4.50, 400K) | **Auto** | Cheap, fast, sufficient for <=1 file changes that don't span concepts. |
+| Standard multi-file feature implementation (3-10 files, no schema) | **Composer 2 (fast)** ($1.50/$7.50, 200K, IDE-only) | **GPT-5.4 Mini** ($0.75/$4.50, 400K) | **Auto** | A concrete plan with named files, symbols, states, and tests should make this cheap-model executable. If it does not, split the plan further before recommending Premium. |
+| Heavy refactor / sprawling rewrite spanning many files / packages | **Split into Composer 2 (fast) slices** | **Claude Sonnet 4.6** ($3/$15, 1M context) for an indivisible slice | **Auto -> Premium only if indivisible** | Start by dividing by module, behavior, or verification gate. Use a premium model only for the slice whose correctness depends on broad simultaneous context. |
+| Schema migration + RLS + types regen (Supabase) | **Claude Sonnet 4.6** ($3/$15, 1M) for the schema/RLS decision slice | **Claude Opus 4.7** ($5/$25, 1M) for high-risk tenancy/security ambiguity | **Premium -> MAX only if needed** | Migration/RLS planning can be premium, but implementation should be split into migration, generated types, service update, and tests where possible. Simple non-RLS migrations can still target Composer 2 with explicit SQL. |
 | Deep root-cause debugging requiring multi-file trace + log correlation | **Claude Opus 4.7 (xhigh)** | **Codex 5.3 (xhigh)** | **MAX** | Both excel at long-horizon trace following. Opus wins on architectural reasoning; Codex wins on raw coding throughput. |
 | Security audit / RLS analysis / compliance sweep (`auditor` skill, `master-mason --lens=plumb`) | **Claude Opus 4.7 (xhigh effort)** | **Claude Opus 4.6** | **MAX** | Lowest red-team breach rate (Opus 4.5 was 4.8% — Opus 4.7 inherits the alignment). Constitutional AI handles regulatory reasoning best. |
 | Full-repo audit / large log analysis (>200K context) | **Claude Opus 4.7** (1M, no premium) OR **Gemini 3.1 Pro** (~1M) OR **Grok 4.20** (2M) | **Claude Sonnet 4.6** (1M, $3/$15 — much cheaper) | **MAX** | Pick by data shape: Opus for code reasoning, Gemini for ARC-AGI-style symbolic reasoning, Grok 4.20 when 1M still isn't enough. |
 | Fast iterative coding where TTFT matters (live pair-programming, prototyping) | **Composer 1** (~250 tok/s, IDE-only) OR **Codex 5.3 Spark** (1000+ tok/s, 128K, research preview) | **Claude Haiku 4.5** (TTFT ~600ms) | **Auto** | Optimize for TTFT and tok/s. Reasoning depth is secondary when the loop is sub-minute. Codex Spark is preview — flag availability risk. |
-| Architectural design / technical spec (`pencil`, `itil-change-record` planning) | **Claude Opus 4.7** ($5/$25, 1M, xhigh) | **GPT-5.4** ($2.50/$15) | **Premium → MAX** | Opus 4.7 is currently the strongest synthesizer for cross-cutting design. GPT-5.4 is the strong alternative. |
+| Architectural design / technical spec (`pencil`, `itil-change-record` planning) | **Current planning model, then split execution to Composer 2 (fast)** | **GPT-5.4** ($2.50/$15) when the planner must be changed | **Auto for execution slices; Premium for planning only when needed** | Planning may use a stronger model, but the deliverable should be explicit enough for cheap implementation. If not, break the plan down further. |
 | Vendor docs research with citation (`itil-service-request` Step 4–6, `firecrawl` heavy) | **Gemini 3.1 Pro** (Grounding with Google Search, ~1M) | **GPT-5.4** (Computer Use API) | **Premium** | Gemini's grounding-with-search reduces hallucination on live vendor pricing/setup procedures. |
 | Multi-agent / agent-swarm orchestration | **Grok 4.20** (up to 16 sub-agents, parallel function calling) | **Kimi K2.5** (1500 tool calls in agent swarm — self-hosted only) | **Premium** | Both purpose-built for sub-agent fanout. Avoid Kimi via public API for EquipQR data (training-policy concern). |
 | High-volume classification, extraction, ranking | **GPT-5.4 Nano** ($0.20/$1.25, 400K) | **Claude Haiku 4.5** ($1/$5) OR **Gemini 3 Flash** ($0.50/$3) | **Auto** | Cost-per-call dominates. Don't pay frontier rates for batch classification. |
@@ -167,7 +173,7 @@ Other skills embed this block **verbatim** in their own outputs (e.g. as the `##
 
 When another skill loads `model-recommender`, it must:
 
-1. **Pass the work shape** as input (one or two sentences naming the task type, file count, context size, capability requirements).
+1. **Pass the work shape** as input (one or two sentences naming the task type, file count, context size, capability requirements) and say whether the plan has already been split small enough for Composer 2 / Auto.
 2. **Receive the standardized block** above.
 3. **Embed the block verbatim** under a `## Recommended Execution Model` section in its own output (or `### Recommended Execution Model` if the consumer's heading hierarchy demands it). No paraphrasing, no summarizing, no dropping fields.
 4. **Position the block** adjacent to the section that authorizes execution: in `itil-change-record`, place it just before `## Authorization`. In `pencil`, place it as item 7 in the Output Contract. In `master-mason`, append it to the **Cross-Lens Synthesis** as a final row of the priority table's hand-off column. In `devops-triage-dispatch`, replace the static Phase 2 tier table with the block in **Execution Configuration**.
@@ -191,7 +197,8 @@ Do **not** produce a full multi-row comparison unless the user explicitly asks f
 - **Never invent benchmark numbers.** Every quantitative claim in the **Rationale** field must come from the report or be omitted.
 - **Never recommend a deprecated model** for new work, even if the user names it. Suggest the successor and flag the deprecation date.
 - **Never recommend Kimi K2.5 via the public Moonshot API for EquipQR customer data.** The training-policy concern is non-negotiable. Self-hosted Kimi or Composer 2 (built on Kimi K2.5 with Cursor's policies) are acceptable substitutes.
-- **Conservatism on tiers.** Prefer Premium over MAX, Auto over Premium, when the work shape allows. Cursor credits are finite; recommendations should respect that.
+- **Cheapest sufficient model.** Prefer Auto/Composer 2 over Premium, and Premium over MAX, whenever the plan can be made explicit enough. Cursor credits are finite; recommendations should respect that.
+- **Split before spending.** If a Premium/MAX recommendation is driven mainly by breadth, tell the calling skill to split the plan into smaller independently verifiable slices instead of recommending the expensive model. Higher-tier models are for irreducible reasoning risk, not vague plans.
 - **Stale matrix detection.** If the report has been updated since this skill was last revised and the matrix's primary recommendation now contradicts the report's pricing, deprecation, or capability tables, surface a "matrix outdated" callout in the **Constraints surfaced** field so a future maintainer reconciles the skill against the report. Do not silently follow the stale matrix.
 - **One block per invocation.** When composed by another skill, emit one **Recommended Execution Model** block — not a comparison, not a multi-tier ladder. If the work spans multiple shapes, pick the higher-tier model.
 - **PowerShell on Windows host.** This skill itself runs no commands, but if you cite an example command anywhere in the recommendation, follow EquipQR's PowerShell conventions (`;` not `&&`, `Get-Content` not `cat`).

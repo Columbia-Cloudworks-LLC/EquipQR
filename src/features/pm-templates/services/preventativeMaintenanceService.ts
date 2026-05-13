@@ -3820,6 +3820,73 @@ export const getPMsByWorkOrderId = async (
   }
 };
 
+/** Latest completed PM row for QR scan summary + joined work order title. */
+export interface LatestCompletedPMDetails {
+  id: string;
+  work_order_id: string;
+  completed_at: string;
+  completed_by: string | null;
+  completed_by_name: string | null;
+  checklist_data: Json;
+  work_order_title: string | null;
+}
+
+export const getLatestCompletedPMDetails = async (
+  equipmentId: string,
+  organizationId: string
+): Promise<LatestCompletedPMDetails | null> => {
+  try {
+    if (!equipmentId || !organizationId) {
+      logger.error('Missing required parameters for getLatestCompletedPMDetails', {
+        equipmentId,
+        organizationId,
+      });
+      return null;
+    }
+
+    const { data: pm, error: pmError } = await supabase
+      .from('preventative_maintenance')
+      .select('id, work_order_id, completed_at, completed_by, completed_by_name, checklist_data')
+      .eq('organization_id', organizationId)
+      .eq('equipment_id', equipmentId)
+      .eq('status', 'completed')
+      .not('completed_at', 'is', null)
+      .order('completed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (pmError) {
+      logger.error('Error fetching latest completed PM:', pmError);
+      return null;
+    }
+    if (!pm) return null;
+
+    const { data: wo, error: woError } = await supabase
+      .from('work_orders')
+      .select('title')
+      .eq('id', pm.work_order_id)
+      .eq('organization_id', organizationId)
+      .maybeSingle();
+
+    if (woError) {
+      logger.debug('Could not load work order title for PM summary', woError);
+    }
+
+    return {
+      id: pm.id,
+      work_order_id: pm.work_order_id,
+      completed_at: pm.completed_at as string,
+      completed_by: pm.completed_by,
+      completed_by_name: pm.completed_by_name,
+      checklist_data: pm.checklist_data,
+      work_order_title: wo?.title ?? null,
+    };
+  } catch (error) {
+    logger.error('Error in getLatestCompletedPMDetails:', error);
+    return null;
+  }
+};
+
 // Create PM for multiple equipment (multi-equipment work orders)
 export const createPMsForEquipment = async (
   workOrderId: string,

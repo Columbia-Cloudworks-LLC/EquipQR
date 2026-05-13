@@ -2,6 +2,11 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import type { Role, TeamRole } from '@/types/permissions';
 import { getAuthClaims, requireAuthUserIdFromClaims } from '@/lib/authClaims';
+import {
+  batchResolveEquipmentDisplayImageUrls,
+  extractEquipmentDisplayImagePath,
+} from '@/services/imageUploadService';
+import { logger } from '@/utils/logger';
 
 type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 
@@ -47,7 +52,8 @@ export interface EquipmentQRPayload {
     status: EquipmentStatus;
     location: string | null;
     workingHours: number | null;
-    imageUrl: string | null;
+    /** Raw `image_url` from equipment; resolve to a display URL via `resolveEquipmentQRDisplayImageUrl`. */
+    imageReference: string | null;
     defaultPmTemplateId: string | null;
     team: TeamRelation | null;
   };
@@ -58,6 +64,85 @@ export interface EquipmentQRPayload {
 function firstRelation<T>(value: T | T[] | null | undefined): T | null {
   if (Array.isArray(value)) return value[0] ?? null;
   return value ?? null;
+}
+
+export interface ResolveEquipmentQRDisplayImageContext {
+  equipmentId: string;
+  organizationId: string;
+  stored: string | null;
+}
+
+function safeString(value: unknown): string {
+  try {
+    return String(value);
+  } catch {
+    return '[unstringifiable]';
+  }
+}
+
+function summarizeResolutionError(error: unknown): { errorName: string; errorMessage: string } {
+  if (error instanceof Error) {
+    return {
+      errorName: error.name,
+      errorMessage: error.message,
+    };
+  }
+
+  if (error && typeof error === 'object') {
+    const errorRecord = error as { constructor?: unknown; message?: unknown; name?: unknown };
+    const constructorName =
+      typeof errorRecord.constructor === 'function' && typeof errorRecord.constructor.name === 'string'
+        ? errorRecord.constructor.name
+        : undefined;
+    const objectName = typeof errorRecord.name === 'string' && errorRecord.name ? errorRecord.name : undefined;
+
+    return {
+      errorName: constructorName || objectName || 'object',
+      errorMessage: 'message' in error ? safeString(errorRecord.message) : safeString(error),
+    };
+  }
+
+  return {
+    errorName: typeof error,
+    errorMessage: safeString(error),
+  };
+}
+
+/**
+ * Turn canonical private-bucket paths / legacy URLs into browser-ready signed or absolute URLs.
+ * Call after the QR landing shell renders so signing is not on the critical path for payload fetch.
+ */
+export async function resolveEquipmentQRDisplayImageUrl(
+  context: ResolveEquipmentQRDisplayImageContext
+): Promise<string | null> {
+  const { equipmentId, organizationId, stored } = context;
+  if (!stored?.trim()) return null;
+
+  try {
+    const [resolved] = await batchResolveEquipmentDisplayImageUrls([stored]);
+
+    if (resolved == null) {
+      const imagePath = extractEquipmentDisplayImagePath(stored);
+      if (imagePath) {
+        logger.error('QR equipment image resolution failed', {
+          equipmentId,
+          organizationId,
+          imagePath,
+        });
+      }
+    }
+
+    return resolved ?? null;
+  } catch (error) {
+    const imagePath = extractEquipmentDisplayImagePath(stored);
+    logger.error('QR equipment image resolution failed', {
+      equipmentId,
+      organizationId,
+      ...(imagePath ? { imagePath } : {}),
+      ...summarizeResolutionError(error),
+    });
+    return null;
+  }
 }
 
 const EQUIPMENT_QR_SELECT = `
@@ -134,7 +219,7 @@ export async function fetchEquipmentQRPayload(
         status: row.status,
         location: row.location,
         workingHours: row.working_hours,
-        imageUrl: row.image_url,
+        imageReference: row.image_url,
         defaultPmTemplateId: row.default_pm_template_id,
         team: firstRelation(row.team),
       },
@@ -187,7 +272,7 @@ export async function fetchEquipmentQRPayload(
       status: row.status,
       location: row.location,
       workingHours: row.working_hours,
-      imageUrl: row.image_url,
+      imageReference: row.image_url,
       defaultPmTemplateId: row.default_pm_template_id,
       team: firstRelation(row.team),
     },

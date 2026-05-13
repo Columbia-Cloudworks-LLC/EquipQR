@@ -7,6 +7,7 @@
 
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { WorkOrderService, WorkOrderFilters, WorkOrder } from '@/features/work-orders/services/workOrderService';
+import { createScopedQueryPersister } from '@/lib/queryPersistence';
 
 // Re-export types for convenience
 export type { WorkOrderFilters, WorkOrder } from '@/features/work-orders/services/workOrderService';
@@ -46,6 +47,10 @@ export const workOrderKeys = {
 
 const DEFAULT_STALE_TIME = 2 * 60 * 1000; // 2 minutes — prevents refetch on every SPA navigation
 const EXTENDED_STALE_TIME = 5 * 60 * 1000; // 5 minutes for overdue/due-today lists
+
+function fieldReadPersister() {
+  return createScopedQueryPersister().persisterFn;
+}
 
 // ============================================
 // Main Hook
@@ -253,6 +258,7 @@ export const useWorkOrderById = (
     },
     enabled: !!organizationId && !!workOrderId,
     staleTime: DEFAULT_STALE_TIME,
+    persister: fieldReadPersister(),
   });
 };
 

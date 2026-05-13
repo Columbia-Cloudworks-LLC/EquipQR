@@ -31,6 +31,7 @@ import SmartLanding from '@/components/landing/SmartLanding';
 import LegalFooter from '@/components/layout/LegalFooter';
 const Auth = lazy(() => import('@/pages/Auth'));
 const DebugAuth = import.meta.env.DEV ? lazy(() => import('@/pages/DebugAuth')) : null;
+const DebugScanFeedback = import.meta.env.DEV ? lazy(() => import('@/pages/DebugScanFeedback')) : null;
 const RepairShops = lazy(() => import('@/pages/solutions/RepairShops'));
 const PMTemplatesFeature = lazy(() => import('@/pages/features/PMTemplates'));
 const InventoryManagementFeature = lazy(() => import('@/pages/features/InventoryManagement'));
@@ -59,6 +60,7 @@ const TeamDetails = lazy(() => import('@/features/teams/pages/TeamDetails'));
 const FleetMap = lazy(() => import('@/features/fleet-map/pages/FleetMap'));
 const Organization = lazy(() => import('@/features/organization/pages/Organization'));
 const EquipmentQRScan = lazy(() => import('@/features/equipment/pages/EquipmentQRScan'));
+const EquipmentScanner = lazy(() => import('@/features/equipment/pages/EquipmentScanner'));
 const InventoryQRRedirect = lazy(() => import('@/pages/InventoryQRRedirect'));
 const WorkOrderQRRedirect = lazy(() => import('@/pages/WorkOrderQRRedirect'));
 const LegacyEquipmentQRRedirect = lazy(() => import('@/pages/LegacyEquipmentQRRedirect'));
@@ -147,6 +149,12 @@ function App() {
         <Route path="/auth" element={<Suspense fallback={<div>Loading...</div>}><Auth /></Suspense>} />
         {import.meta.env.DEV && DebugAuth && (
           <Route path="/debug-auth" element={<Suspense fallback={<div>Loading...</div>}><DebugAuth /></Suspense>} />
+        )}
+        {import.meta.env.DEV && DebugScanFeedback && (
+          <Route
+            path="/debug-scan-feedback"
+            element={<Suspense fallback={<div>Loading...</div>}><DebugScanFeedback /></Suspense>}
+          />
         )}
         
         {/* Other public routes with suspense for lazy loading */}
@@ -237,6 +245,7 @@ function App() {
                                 <Route path="/equipment" element={<Equipment />} />
                                 <Route path="/equipment/bulk" element={<BulkEquipment />} />
                                 <Route path="/equipment/:equipmentId" element={<EquipmentDetails />} />
+                                <Route path="/scan" element={<EquipmentScanner />} />
                                 <Route path="/work-orders" element={<WorkOrders />} />
                                 <Route path="/work-orders/:workOrderId" element={<WorkOrderDetails />} />
                                 <Route path="/teams" element={<Teams />} />

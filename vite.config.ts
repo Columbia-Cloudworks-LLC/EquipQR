@@ -36,6 +36,7 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     headers: {
+      "Permissions-Policy": "camera=(self), microphone=(), geolocation=(self)",
       "Content-Security-Policy": [
         "default-src 'self'",
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://hcaptcha.com https://*.hcaptcha.com https://js.sentry-cdn.com https://maps.googleapis.com https://apis.google.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com",

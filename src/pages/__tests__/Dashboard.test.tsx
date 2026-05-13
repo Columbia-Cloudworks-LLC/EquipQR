@@ -5,6 +5,7 @@ import Dashboard from '@/features/dashboard/pages/Dashboard';
 import * as useSimpleOrganizationModule from '@/hooks/useSimpleOrganization';
 import * as useTeamBasedDashboardModule from '@/features/teams/hooks/useTeamBasedDashboard';
 import * as useDashboardLayoutModule from '@/features/dashboard/hooks/useDashboardLayout';
+import * as useMobileModule from '@/hooks/use-mobile';
 import { personas } from '@/test/fixtures/personas';
 import { organizations, equipment as eqFixtures, workOrders as woFixtures } from '@/test/fixtures/entities';
 
@@ -130,6 +131,33 @@ vi.mock('@/features/teams/hooks/useTeamBasedDashboard', () => ({
 
 vi.mock('@/features/dashboard/hooks/useDashboardLayout', () => ({
   useDashboardLayout: vi.fn()
+}));
+
+vi.mock('@/hooks/use-mobile', () => ({
+  useIsMobile: vi.fn(() => false),
+}));
+
+vi.mock('@/hooks/useSelectedTeam', () => ({
+  useSelectedTeam: vi.fn(() => ({
+    selectedTeamId: null,
+    selectedTeam: null,
+    setSelectedTeamId: vi.fn(),
+  })),
+}));
+
+vi.mock('@/features/work-orders/hooks/useWorkOrderPermissionLevels', () => ({
+  useWorkOrderPermissionLevels: vi.fn(() => ({
+    isManager: false,
+    isRequestor: true,
+    isTechnician: true,
+    canEdit: true,
+    canDelete: false,
+    canAssign: false,
+    canChangeStatus: true,
+    canAddNotes: true,
+    canAddImages: true,
+    getFormMode: vi.fn(() => 'manager' as const),
+  })),
 }));
 
 vi.mock('@/hooks/usePermissions', () => ({
@@ -577,6 +605,54 @@ describe('Dashboard', () => {
     it('shows the dashboard options button that opens the widget manager', () => {
       render(<Dashboard />);
       expect(screen.getByTitle('Dashboard settings')).toBeInTheDocument();
+    });
+  });
+
+  describe('mobile dashboard layout (#836)', () => {
+    beforeEach(() => {
+      vi.mocked(useMobileModule.useIsMobile).mockReturnValue(true);
+      setupPersonaMocks({
+        hasTeamAccess: true,
+        isManager: true,
+        userTeamIds: [personas.owner.teamMemberships[0].teamId],
+        stats: {
+          totalEquipment: 10,
+          activeEquipment: 8,
+          maintenanceEquipment: 1,
+          inactiveEquipment: 1,
+          totalWorkOrders: 15,
+          openWorkOrders: 5,
+          overdueWorkOrders: 2,
+          completedWorkOrders: 10,
+          totalTeams: 2,
+        },
+        equipment: [
+          { id: eqFixtures.forklift1.id, name: eqFixtures.forklift1.name, status: 'active', manufacturer: 'Toyota', model: '8FGU25' },
+        ],
+        workOrders: [
+          { id: woFixtures.assigned.id, title: woFixtures.assigned.title, priority: 'high', assigneeName: personas.technician.name, status: 'assigned' },
+        ],
+      });
+    });
+
+    afterEach(() => {
+      vi.mocked(useMobileModule.useIsMobile).mockReturnValue(false);
+    });
+
+    it('renders Scan QR hero linking to in-app dashboard scanner', () => {
+      render(<Dashboard />);
+      const hero = screen.getByTestId('mobile-dashboard-scan-hero');
+      expect(hero).toHaveAttribute('href', '/dashboard/scan');
+    });
+
+    it('shows full-width alert card when urgent counts exist', () => {
+      render(<Dashboard />);
+      expect(screen.getByTestId('dashboard-mobile-alert-card')).toBeInTheDocument();
+    });
+
+    it('still exposes dashboard heading for assistive tech', () => {
+      render(<Dashboard />);
+      expect(screen.getByRole('heading', { name: /^dashboard$/i })).toBeInTheDocument();
     });
   });
 });

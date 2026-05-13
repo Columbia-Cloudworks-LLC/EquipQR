@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Clipboard, CheckCircle, History } from 'lucide-react';
+import { ChevronDown, Clipboard, CheckCircle, History } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useWorkOrderDetailsData } from '@/features/work-orders/components/hooks/useWorkOrderDetailsData';
 import { useWorkOrderDetailsActions } from '@/features/work-orders/hooks/useWorkOrderDetailsActions';
 import { useWorkOrderEquipment } from '@/features/work-orders/hooks/useWorkOrderEquipment';
-import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOrderData';
 import { useWorkOrderExcelExport } from '@/features/work-orders/hooks/useWorkOrderExcelExport';
 import { logNavigationEvent } from '@/utils/navigationDebug';
 import WorkOrderDetailsInfo from '@/features/work-orders/components/WorkOrderDetailsInfo';
@@ -28,8 +28,8 @@ import { WorkOrderDetailsMobile } from '@/features/work-orders/components/WorkOr
 import { WorkOrderPDFExportDialog } from '@/features/work-orders/components/WorkOrderPDFExportDialog';
 import { MobileWorkOrderActionSheet } from '@/features/work-orders/components/MobileWorkOrderActionSheet';
 import { MobileWorkOrderActionFooter } from '@/features/work-orders/components/MobileWorkOrderActionFooter';
+import { MobileWorkOrderFieldNextAction } from '@/features/work-orders/components/MobileWorkOrderFieldNextAction';
 import { useWorkTimer } from '@/features/work-orders/hooks/useWorkTimer';
-import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useInitializePMChecklist } from '@/features/pm-templates/hooks/useInitializePMChecklist';
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
@@ -43,54 +43,12 @@ import { canExportWorkOrderGoogleDoc } from '@/features/work-orders/utils/google
 import { MobileWorkOrderCompactSummary } from '@/features/work-orders/components/MobileWorkOrderCompactSummary';
 import { useAuth } from '@/hooks/useAuth';
 import { isOfflineId } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
-
-/** Single pause/hold/resume mutation for mobile footer (avoids duplicate `const` when merging edits). */
-function usePauseResumeMobileWorkOrder(
-  workOrder: { id: string; status: string } | undefined | null,
-  organization: { id: string } | undefined | null,
-  updateStatusMutation: ReturnType<typeof useUpdateWorkOrderStatus>,
-  workTimer: ReturnType<typeof useWorkTimer>
-) {
-  return useCallback(() => {
-    if (!workOrder || !organization) return;
-
-    const newStatus = workOrder.status === 'on_hold' ? 'in_progress' : 'on_hold';
-    updateStatusMutation.mutate(
-      {
-        workOrderId: workOrder.id,
-        status: newStatus,
-        organizationId: organization.id,
-      },
-      {
-        onSuccess: () => {
-          if (newStatus === 'on_hold') {
-            workTimer.pause();
-            toast('Work order paused', {
-              action: {
-                label: 'Undo',
-                onClick: () => {
-                  updateStatusMutation.mutate(
-                    {
-                      workOrderId: workOrder.id,
-                      status: 'in_progress',
-                      organizationId: organization.id,
-                    },
-                    {
-                      onSuccess: () => workTimer.start(),
-                    },
-                  );
-                },
-              },
-              duration: 5000,
-            });
-          } else {
-            workTimer.start();
-          }
-        },
-      },
-    );
-  }, [organization, updateStatusMutation, workOrder, workTimer]);
-}
+import { useWorkOrderStatusUpdate } from '@/features/work-orders/hooks/useWorkOrderStatusUpdate';
+import { useOfflineQueue } from '@/contexts/OfflineQueueContext';
+import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
+import { useWorkOrderAcceptance } from '@/features/work-orders/hooks/useWorkOrderAcceptance';
+import WorkOrderAcceptanceModal from '@/features/work-orders/components/WorkOrderAcceptanceModal';
+import type { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
@@ -101,6 +59,7 @@ const WorkOrderDetails = () => {
   const actionParam = searchParams.get('action');
   const shouldAutoOpenNoteForm = actionParam === 'add-note';
   const shouldAutoOpenPDFDialog = actionParam === 'download-pdf';
+  const shouldAutoFocusPM = actionParam === 'pm';
   const notesSectionRef = useRef<HTMLDivElement>(null);
   const pmSectionRef = useRef<HTMLDivElement>(null);
   const actionHandledRef = useRef(false);
@@ -114,9 +73,12 @@ const WorkOrderDetails = () => {
 
   // State for mobile complete confirmation dialog
   const [showMobileCompleteDialog, setShowMobileCompleteDialog] = useState(false);
+  const [showFieldAcceptDialog, setShowFieldAcceptDialog] = useState(false);
 
   // Trigger to programmatically open the note form from mobile action bar/sheet
   const [openNoteFormTrigger, setOpenNoteFormTrigger] = useState(0);
+  const [openCaptureTrigger, setOpenCaptureTrigger] = useState(0);
+  const [mobileReviewOpen, setMobileReviewOpen] = useState(false);
 
   const { user } = useAuth();
 
@@ -141,6 +103,7 @@ const WorkOrderDetails = () => {
   } = useWorkOrderDetailsData(workOrderId || '', selectedEquipmentId);
 
   const initializePMChecklist = useInitializePMChecklist();
+  const fieldAcceptanceMutation = useWorkOrderAcceptance();
 
   const documentTitle = workOrder
     ? `${workOrder.title}${equipment ? ` – ${equipment.name}` : ''}`
@@ -298,14 +261,13 @@ const WorkOrderDetails = () => {
     currentOrganization?.name || ''
   );
 
-  // Status update mutation for in-progress bar
-  const updateStatusMutation = useUpdateWorkOrderStatus();
+  // Offline-aware mobile status mutation for field actions.
+  const mobileStatusMutation = useWorkOrderStatusUpdate();
 
   // Timer hook for tracking work time (mobile in-progress bar)
   const workTimer = useWorkTimer(workOrderId);
 
-  // Online status for offline indicator
-  const { isOnline, isSyncing } = useOnlineStatus();
+  const offlineQueue = useOfflineQueue();
 
   // Handle quick action navigation (scroll to notes section and/or open PDF dialog)
   useEffect(() => {
@@ -327,8 +289,28 @@ const WorkOrderDetails = () => {
       actionHandledRef.current = true;
       // Clear the action param from URL
       setSearchParams({}, { replace: true });
+    } else if (shouldAutoFocusPM) {
+      setTimeout(() => {
+        pmSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+      actionHandledRef.current = true;
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('action');
+          return next;
+        },
+        { replace: true }
+      );
     }
-  }, [shouldAutoOpenPDFDialog, shouldAutoOpenNoteForm, workOrder, workOrderLoading, setSearchParams]);
+  }, [
+    shouldAutoOpenPDFDialog,
+    shouldAutoOpenNoteForm,
+    shouldAutoFocusPM,
+    workOrder,
+    workOrderLoading,
+    setSearchParams,
+  ]);
 
   // Reset action handled ref when action param changes (new navigation)
   useEffect(() => {
@@ -413,12 +395,58 @@ const WorkOrderDetails = () => {
     }
   };
 
-  const pauseResumeMobileWorkOrder = usePauseResumeMobileWorkOrder(
-    workOrder,
-    currentOrganization,
-    updateStatusMutation,
-    workTimer,
-  );
+  const updateMobileStatus = useCallback((newStatus: WorkOrderStatus, onSuccess?: () => void) => {
+    if (!workOrder) return;
+    mobileStatusMutation.mutate(
+      {
+        workOrderId: workOrder.id,
+        newStatus,
+        serverUpdatedAt: workOrder.updated_at ?? undefined,
+      },
+      { onSuccess },
+    );
+  }, [mobileStatusMutation, workOrder]);
+
+  const startMobileWorkOrder = useCallback(() => {
+    updateMobileStatus('in_progress', () => {
+      workTimer.start();
+    });
+  }, [updateMobileStatus, workTimer]);
+
+  const putAssignedMobileWorkOrderOnHold = useCallback(() => {
+    updateMobileStatus('on_hold');
+  }, [updateMobileStatus]);
+
+  const pauseResumeMobileWorkOrder = useCallback(() => {
+    if (!workOrder) return;
+    const newStatus: WorkOrderStatus = workOrder.status === 'on_hold' ? 'in_progress' : 'on_hold';
+    updateMobileStatus(newStatus, () => {
+      if (newStatus === 'on_hold') {
+        workTimer.pause();
+        toast('Work order paused', {
+          action: {
+            label: 'Undo',
+            onClick: () => {
+              updateMobileStatus('in_progress', () => workTimer.start());
+            },
+          },
+          duration: 5000,
+        });
+      } else {
+        workTimer.start();
+      }
+    });
+  }, [updateMobileStatus, workOrder, workTimer]);
+
+  const handleFieldAcceptComplete = useCallback(async (assigneeId?: string) => {
+    if (!workOrder || !currentOrganization?.id) return;
+    await fieldAcceptanceMutation.mutateAsync({
+      workOrderId: workOrder.id,
+      organizationId: currentOrganization.id,
+      assigneeId,
+    });
+    setShowFieldAcceptDialog(false);
+  }, [currentOrganization?.id, fieldAcceptanceMutation, workOrder]);
 
   // Only redirect if we definitely don't have the required data and aren't loading
   if (!workOrderId) {
@@ -468,11 +496,37 @@ const WorkOrderDetails = () => {
     workOrder.status !== 'cancelled';
 
   const canCompletePmGate = !workOrder.has_pm || pmData?.status === 'completed';
+  const pmChecklist = getPMChecklistStats(pmData?.checklist_data);
   const showContinueChecklistCta =
     !!workOrder.has_pm && !!pmData && pmData.status !== 'completed';
+  const syncState = {
+    isOnline: offlineQueue.isOnline,
+    isSyncing: offlineQueue.isSyncing,
+    pendingCount: offlineQueue.pendingCount,
+    failedCount: offlineQueue.failedCount,
+  };
 
   const scrollToPMSection = () => {
     pmSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const openNotesComposer = () => {
+    setOpenNoteFormTrigger((prev) => prev + 1);
+    setTimeout(() => {
+      notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  };
+
+  const openPhotoCapture = () => {
+    if (!offlineQueue.isOnline) {
+      toast.error('Photos need a connection. Text notes can still be saved offline.');
+      return;
+    }
+    setOpenNoteFormTrigger((prev) => prev + 1);
+    setOpenCaptureTrigger((prev) => prev + 1);
+    setTimeout(() => {
+      notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
   };
 
   return (
@@ -554,28 +608,8 @@ const WorkOrderDetails = () => {
                   estimated_hours: workOrder.estimatedHours,
                   has_pm: workOrder.has_pm,
                   pm_status: pmData?.status,
-                  pm_progress: pmData ? (() => {
-                    try {
-                      const checklist = typeof pmData.checklist_data === 'string' 
-                        ? JSON.parse(pmData.checklist_data) 
-                        : pmData.checklist_data;
-                      return Array.isArray(checklist) 
-                        ? checklist.filter((item: PMChecklistItem) => item.condition !== null && item.condition !== undefined).length 
-                        : 0;
-                    } catch {
-                      return 0;
-                    }
-                  })() : 0,
-                  pm_total: pmData ? (() => {
-                    try {
-                      const checklist = typeof pmData.checklist_data === 'string' 
-                        ? JSON.parse(pmData.checklist_data) 
-                        : pmData.checklist_data;
-                      return Array.isArray(checklist) ? checklist.length : 0;
-                    } catch {
-                      return 0;
-                    }
-                  })() : 0
+                  pm_progress: pmChecklist.progress,
+                  pm_total: pmChecklist.total
                 }}
                 equipment={equipment ? {
                   id: equipment.id,
@@ -595,13 +629,42 @@ const WorkOrderDetails = () => {
                 })()}
                 assignee={workOrder.assigneeName ? { id: '', name: workOrder.assigneeName } : undefined}
                 effectiveLocation={workOrder.effectiveLocation}
-                onScrollToPM={scrollToPMSection}
               />
+              </div>
+
+              <div {...stagger(1)}>
+                <MobileWorkOrderFieldNextAction
+                  workOrder={{
+                    id: workOrder.id,
+                    status: workOrder.status,
+                    has_pm: workOrder.has_pm,
+                    updated_at: workOrder.updated_at,
+                  }}
+                  pm={{
+                    status: pmData?.status,
+                    progress: pmChecklist.progress,
+                    total: pmChecklist.total,
+                  }}
+                  permissions={{
+                    canAddNotes,
+                    canUpload,
+                    canWork: footerRoleEligible,
+                  }}
+                  sync={syncState}
+                  onAcceptWorkOrder={() => setShowFieldAcceptDialog(true)}
+                  onStartWork={startMobileWorkOrder}
+                  onResumeWork={pauseResumeMobileWorkOrder}
+                  onContinueChecklist={scrollToPMSection}
+                  onAddNote={openNotesComposer}
+                  onAddPhoto={openPhotoCapture}
+                  onComplete={() => setShowMobileCompleteDialog(true)}
+                  onRetrySync={offlineQueue.retryFailed}
+                />
               </div>
 
               {/* PM Checklist - Responsive */}
               {workOrder.has_pm && (permissionLevels.isManager || permissionLevels.isTechnician) && (
-                <div {...stagger(1)}>
+                <div {...stagger(2)}>
                 <div ref={pmSectionRef}>
                   {pmData && (
                     <PMChecklistComponent
@@ -636,24 +699,14 @@ const WorkOrderDetails = () => {
                 </div>
               )}
 
-              {/* Mobile Costs Section */}
-              {(permissionLevels.isManager || permissionLevels.isTechnician) && (
-                <div {...stagger(2)}>
-                <WorkOrderCostsSection 
-                  workOrderId={workOrder.id}
-                  canAddCosts={canAddCosts && !isWorkOrderLocked}
-                  canEditCosts={canEditCosts && !isWorkOrderLocked}
-                  primaryEquipmentId={workOrder.equipment_id}
-                />
-                </div>
-              )}
-
-              {/* Mobile PM Info for Requestors */}
+              {/* Mobile Images Section */}
               <div {...stagger(3)}>
-              <WorkOrderDetailsPMInfo 
-                workOrder={workOrder}
-                pmData={pmData}
-                permissionLevels={permissionLevels}
+              <WorkOrderImagesSection 
+                workOrderId={workOrder.id}
+                organizationId={workOrder.organization_id}
+                canUpload={canUpload}
+                showPrivateNotes={permissionLevels.isManager}
+                primaryImageId={workOrder.primary_image_id}
               />
               </div>
 
@@ -667,49 +720,82 @@ const WorkOrderDetails = () => {
                   hideInlineAddButton={showMobileActionFooter}
                   autoOpenForm={shouldAutoOpenNoteForm}
                   openFormTrigger={openNoteFormTrigger}
+                  openCaptureTrigger={openCaptureTrigger}
                 />
               </div>
               </div>
 
-              {/* Mobile Images Section */}
-              <div {...stagger(5)}>
-              <WorkOrderImagesSection 
-                workOrderId={workOrder.id}
-                canUpload={canUpload}
-              />
-              </div>
-
-              {/* Mobile Timeline */}
-              <div {...stagger(6)}>
-              <WorkOrderTimeline 
-                workOrder={workOrder} 
-                showDetailedHistory={permissionLevels.isManager}
-              />
-              </div>
-
-              {/* Mobile Audit History */}
-              {permissionLevels.isManager && currentOrganization && (
-                <div {...stagger(7)}>
-                <Card className="shadow-elevation-2">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <History className="h-5 w-5" />
-                      Change History (Field Edits)
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="mb-3 text-sm text-muted-foreground">
-                      Shows who changed work order fields and when.
-                    </p>
-                    <HistoryTab 
-                      entityType="work_order"
-                      entityId={workOrder.id}
-                      organizationId={currentOrganization.id}
-                    />
-                  </CardContent>
-                </Card>
+              {/* Itemized costs — bottom of field flow, always findable */}
+              {(permissionLevels.isManager || permissionLevels.isTechnician) && (
+                <div {...stagger(5)}>
+                  <WorkOrderCostsSection
+                    workOrderId={workOrder.id}
+                    canAddCosts={canAddCosts && !isWorkOrderLocked}
+                    canEditCosts={canEditCosts && !isWorkOrderLocked}
+                    primaryEquipmentId={workOrder.equipment_id}
+                    variant="mobileField"
+                  />
                 </div>
               )}
+
+              <div {...stagger(6)}>
+                <Card className="shadow-elevation-2">
+                  <Collapsible open={mobileReviewOpen} onOpenChange={setMobileReviewOpen}>
+                    <CardHeader>
+                      <CollapsibleTrigger asChild>
+                        <button
+                          type="button"
+                          className="flex min-h-[44px] w-full items-center justify-between gap-3 text-left"
+                        >
+                          <CardTitle className="text-lg">Review & office details</CardTitle>
+                          <ChevronDown
+                            className={cn(
+                              'h-5 w-5 text-muted-foreground transition-transform',
+                              mobileReviewOpen && 'rotate-180',
+                            )}
+                            aria-hidden
+                          />
+                        </button>
+                      </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent className="space-y-4 pt-0">
+                        <WorkOrderDetailsPMInfo
+                          workOrder={workOrder}
+                          pmData={pmData}
+                          permissionLevels={permissionLevels}
+                        />
+
+                        <WorkOrderTimeline
+                          workOrder={workOrder}
+                          showDetailedHistory={permissionLevels.isManager}
+                        />
+
+                        {permissionLevels.isManager && currentOrganization && (
+                          <Card className="shadow-elevation-2">
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <History className="h-5 w-5" />
+                                Change History (Field Edits)
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <p className="mb-3 text-sm text-muted-foreground">
+                                Shows who changed work order fields and when.
+                              </p>
+                              <HistoryTab
+                                entityType="work_order"
+                                entityId={workOrder.id}
+                                organizationId={currentOrganization.id}
+                              />
+                            </CardContent>
+                          </Card>
+                        )}
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+              </div>
             </>
           ) : (
             <>
@@ -731,37 +817,40 @@ const WorkOrderDetails = () => {
               )}
 
               {/* PM Checklist Section - Now positioned after costs */}
-              {workOrder.has_pm && pmData && (permissionLevels.isManager || permissionLevels.isTechnician) && (
-                <div {...stagger(2)}>
-                <PMChecklistComponent 
-                  key={selectedEquipmentId} // Force re-render on equipment change
-                  pm={pmData} 
-                  onUpdate={handlePMUpdate}
-                  readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
-                  isAdmin={permissionLevels.isManager}
-                  workOrder={workOrder}
-                  equipment={equipment}
-                  team={teamData}
-                  organization={currentOrganization}
-                  assignee={assigneeData}
-                />
-                </div>
-              )}
+              {workOrder.has_pm && (permissionLevels.isManager || permissionLevels.isTechnician) && (
+                <div ref={pmSectionRef}>
+                  {pmData && (
+                    <div {...stagger(2)}>
+                      <PMChecklistComponent
+                        key={selectedEquipmentId} // Force re-render on equipment change
+                        pm={pmData}
+                        onUpdate={handlePMUpdate}
+                        readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
+                        isAdmin={permissionLevels.isManager}
+                        workOrder={workOrder}
+                        equipment={equipment}
+                        team={teamData}
+                        organization={currentOrganization}
+                        assignee={assigneeData}
+                      />
+                    </div>
+                  )}
 
-              {/* PM Loading State */}
-              {workOrder.has_pm && pmLoading && (permissionLevels.isManager || permissionLevels.isTechnician) && (
-                <div {...stagger(2)}>
-                <Card className="shadow-elevation-2" role="status" aria-label="Loading PM checklist">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Clipboard className="h-5 w-5" />
-                      Loading PM Checklist...
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-32 bg-muted animate-pulse rounded" aria-hidden="true" />
-                  </CardContent>
-                </Card>
+                  {pmLoading && (
+                    <div {...stagger(2)}>
+                      <Card className="shadow-elevation-2" role="status" aria-label="Loading PM checklist">
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Clipboard className="h-5 w-5" />
+                            Loading PM Checklist...
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="h-32 bg-muted animate-pulse rounded" aria-hidden="true" />
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -774,8 +863,19 @@ const WorkOrderDetails = () => {
               />
               </div>
 
-              {/* Notes Section */}
+              {/* Images Section */}
               <div {...stagger(4)}>
+              <WorkOrderImagesSection 
+                workOrderId={workOrder.id}
+                organizationId={workOrder.organization_id}
+                canUpload={canUpload}
+                showPrivateNotes={permissionLevels.isManager}
+                primaryImageId={workOrder.primary_image_id}
+              />
+              </div>
+
+              {/* Notes Section */}
+              <div {...stagger(5)}>
               <div ref={notesSectionRef}>
                 <WorkOrderNotesSection 
                   workOrderId={workOrder.id}
@@ -786,14 +886,6 @@ const WorkOrderDetails = () => {
                   openFormTrigger={openNoteFormTrigger}
                 />
               </div>
-              </div>
-
-              {/* Images Section */}
-              <div {...stagger(5)}>
-              <WorkOrderImagesSection 
-                workOrderId={workOrder.id}
-                canUpload={canUpload}
-              />
               </div>
 
               {/* Timeline - Show appropriate level of detail based on permissions */}
@@ -932,18 +1024,18 @@ const WorkOrderDetails = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={updateStatusMutation.isPending}>
+            <AlertDialogCancel disabled={mobileStatusMutation.isPending}>
               Go Back
             </AlertDialogCancel>
             <AlertDialogAction
-              disabled={updateStatusMutation.isPending}
+              disabled={mobileStatusMutation.isPending}
               onClick={() => {
                 const hoursWorked = Math.round((workTimer.elapsedSeconds / 3600) * 100) / 100;
-                updateStatusMutation.mutate(
+                mobileStatusMutation.mutate(
                   {
                     workOrderId: workOrder.id,
-                    status: 'completed',
-                    organizationId: currentOrganization.id,
+                    newStatus: 'completed',
+                    serverUpdatedAt: workOrder.updated_at ?? undefined,
                   },
                   {
                     onSuccess: () => {
@@ -957,11 +1049,19 @@ const WorkOrderDetails = () => {
                 );
               }}
             >
-              {updateStatusMutation.isPending ? 'Completing...' : 'Mark as Complete'}
+              {mobileStatusMutation.isPending ? 'Completing...' : 'Mark as Complete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <WorkOrderAcceptanceModal
+        open={showFieldAcceptDialog}
+        onClose={() => setShowFieldAcceptDialog(false)}
+        workOrder={workOrder as unknown as WorkOrderLike}
+        organizationId={currentOrganization.id}
+        onAccept={handleFieldAcceptComplete}
+      />
 
       {showMobileActionFooter && (
         <MobileWorkOrderActionFooter
@@ -976,9 +1076,8 @@ const WorkOrderDetails = () => {
           canCompletePm={canCompletePmGate}
           showContinueChecklist={showContinueChecklistCta}
           canAddNotes={canAddNotes}
-          isUpdatingStatusExternal={updateStatusMutation.isPending}
-          isOnline={isOnline}
-          isSyncing={isSyncing}
+          isUpdatingStatusExternal={mobileStatusMutation.isPending || fieldAcceptanceMutation.isPending}
+          syncState={syncState}
           timerDisplay={workTimer.displayTime}
           isTimerRunning={workTimer.isRunning}
           onToggleTimer={() => {
@@ -988,22 +1087,38 @@ const WorkOrderDetails = () => {
               workTimer.start();
             }
           }}
-          onAddNote={() => {
-            setOpenNoteFormTrigger((prev) => prev + 1);
-            setTimeout(() => {
-              notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 50);
-          }}
-          onAddPhoto={() => {
-            notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }}
+          onAddNote={openNotesComposer}
+          onAddPhoto={openPhotoCapture}
+          onStartWork={startMobileWorkOrder}
+          onAssignedPutOnHold={putAssignedMobileWorkOrderOnHold}
           onPauseResume={pauseResumeMobileWorkOrder}
           onOpenCompleteDialog={() => setShowMobileCompleteDialog(true)}
           onScrollToChecklist={scrollToPMSection}
+          onRequestAccept={() => setShowFieldAcceptDialog(true)}
+          onRetrySync={offlineQueue.retryFailed}
         />
       )}
     </div>
   );
 };
+
+function getPMChecklistStats(checklistData: unknown): { progress: number; total: number } {
+  try {
+    const checklist = typeof checklistData === 'string'
+      ? JSON.parse(checklistData)
+      : checklistData;
+
+    if (!Array.isArray(checklist)) {
+      return { progress: 0, total: 0 };
+    }
+
+    return {
+      progress: checklist.filter((item: PMChecklistItem) => item.condition !== null && item.condition !== undefined).length,
+      total: checklist.length,
+    };
+  } catch {
+    return { progress: 0, total: 0 };
+  }
+}
 
 export default WorkOrderDetails;

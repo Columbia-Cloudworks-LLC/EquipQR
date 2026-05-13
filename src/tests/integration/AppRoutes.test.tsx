@@ -47,6 +47,9 @@ vi.mock('@/pages/Dashboard', () => ({ default: () => <div data-testid="dashboard
 vi.mock('@/features/equipment/pages/Equipment', () => ({ default: () => <div data-testid="equipment-page">Equipment</div> }));
 vi.mock('@/features/equipment/pages/EquipmentDetails', () => ({ default: () => <div data-testid="equipment-details-page">Equipment Details</div> }));
 vi.mock('@/features/equipment/pages/EquipmentQRScan', () => ({ default: () => <div data-testid="equipment-qr-scan-page">Equipment QR Scan</div> }));
+vi.mock('@/features/equipment/pages/EquipmentScanner', () => ({
+  default: () => <div data-testid="equipment-scanner-page">Equipment Scanner</div>,
+}));
 vi.mock('@/pages/WorkOrders', () => ({ default: () => <div data-testid="work-orders-page">Work Orders</div> }));
 vi.mock('@/pages/WorkOrderDetails', () => ({ default: () => <div data-testid="work-order-details-page">Work Order Details</div> }));
 vi.mock('@/features/teams/pages/Teams', () => ({ default: () => <div data-testid="teams-page">Teams</div> }));
@@ -277,6 +280,12 @@ describe('App', () => {
   it('renders TopBar component on dashboard route', async () => {
     renderApp(['/dashboard']);
     expect(await screen.findByTestId('top-bar')).toBeInTheDocument();
+  });
+
+  it('renders /dashboard/scan inside dashboard shell with TopBar', async () => {
+    renderApp(['/dashboard/scan']);
+    expect(await screen.findByTestId('top-bar')).toBeInTheDocument();
+    expect(await screen.findByTestId('equipment-scanner-page')).toBeInTheDocument();
   });
 
   it('renders DSR cockpit route for dashboard users', async () => {

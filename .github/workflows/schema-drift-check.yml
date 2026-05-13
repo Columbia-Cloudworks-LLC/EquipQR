@@ -16,8 +16,8 @@ name: Schema Drift Check
 #      does not declare environment:, so environment-scoped secrets won't
 #      resolve.
 #   2. The 1Password item `supabase-write` in the EquipQR Agents vault must
-#      contain a populated `credential` field (Supabase access token with
-#      Management API read access on the production project).
+#      contain a populated `SUPABASE_ACCESS_TOKEN` field (Supabase access
+#      token with Management API read access on the production project).
 #   3. When OP_SERVICE_ACCOUNT_TOKEN is empty (fork PRs, pre-token-plant),
 #      the load step degrades gracefully and the script skips with a
 #      ::warning:: + exit 0. A missing operator credential should not
@@ -50,10 +50,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '20'
 
@@ -63,7 +63,7 @@ jobs:
           required: 'false'
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          SUPABASE_ACCESS_TOKEN: op://EquipQR Agents/supabase-write/credential
+          SUPABASE_ACCESS_TOKEN: op://EquipQR Agents/supabase-write/SUPABASE_ACCESS_TOKEN
 
       - name: Check schema drift
         env:

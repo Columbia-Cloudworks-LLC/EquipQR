@@ -33,18 +33,17 @@ name: Edge Functions Smoke Test
 #      so environment-scoped secrets won't resolve. One token, one place
 #      to rotate, one place to audit.
 #
-#   2. The 1Password items `app-env-prod-public` and `app-env-preview-public`
-#      in the EquipQR Agents vault must contain populated `vite_supabase_url`
-#      and `vite_supabase_anon_key` fields. The other 8 fields in those
-#      items are not read by this workflow (they're consumed by
-#      scripts/sync-vercel-from-1password.ps1 for separate purposes).
+#   2. The 1Password item `supabase-write` in the EquipQR Agents vault must
+#      expose `preview_anon_public_key` and `prod_anon_public_key` (public
+#      anon JWTs for each Supabase project). This workflow does not read
+#      `app-env-*-public` items: those Vercel-facing items may omit per-field
+#      `vite_supabase_url` labels even while `supabase-write` stays canonical
+#      for CI probes.
 #
-#   3. `vite_supabase_url` must be the canonical *.supabase.co URL
-#      (e.g. https://olsdirkvvfegvclbpgrg.supabase.co). Custom domains
-#      like supabase.preview.equipqr.app may have CNAMEs in place but
-#      Cloudflare drops the TLS handshake unless the hostname is also
-#      registered via Supabase Dashboard → Custom Domains. Use the
-#      canonical URL for CI to avoid this failure mode.
+#   3. Project URLs are the stable *.supabase.co hostnames derived from the
+#      documented project refs (preview olsdirkvvfegvclbpgrg, production
+#      ymxkzronkhwxzcdcbnwq). Custom domains are intentionally not used here
+#      so CI does not depend on Supabase Dashboard custom-hostname registration.
 #
 #   4. When OP_SERVICE_ACCOUNT_TOKEN is empty (e.g. fork PRs that can't
 #      access secrets), the load step degrades gracefully and the probe
@@ -72,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Resolve target Supabase project
         id: target
@@ -80,17 +79,15 @@ jobs:
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             echo "env=production" >> $GITHUB_OUTPUT
-            echo "url_field=vite_supabase_url" >> $GITHUB_OUTPUT
-            echo "key_field=vite_supabase_anon_key" >> $GITHUB_OUTPUT
-            echo "op_item=app-env-prod-public" >> $GITHUB_OUTPUT
+            echo "supabase_url=https://ymxkzronkhwxzcdcbnwq.supabase.co" >> $GITHUB_OUTPUT
+            echo "anon_op_field=prod_anon_public_key" >> $GITHUB_OUTPUT
           else
             echo "env=preview" >> $GITHUB_OUTPUT
-            echo "url_field=vite_supabase_url" >> $GITHUB_OUTPUT
-            echo "key_field=vite_supabase_anon_key" >> $GITHUB_OUTPUT
-            echo "op_item=app-env-preview-public" >> $GITHUB_OUTPUT
+            echo "supabase_url=https://olsdirkvvfegvclbpgrg.supabase.co" >> $GITHUB_OUTPUT
+            echo "anon_op_field=preview_anon_public_key" >> $GITHUB_OUTPUT
           fi
 
-      - name: Load Supabase URL + anon key from 1Password
+      - name: Load Supabase anon key from 1Password
         uses: ./.github/actions/load-1p-secrets
         with:
           # Smoke test is best-effort — when OP_SERVICE_ACCOUNT_TOKEN has not
@@ -99,18 +96,19 @@ jobs:
           required: 'false'
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          SUPABASE_URL: op://EquipQR Agents/${{ steps.target.outputs.op_item }}/${{ steps.target.outputs.url_field }}
-          SUPABASE_ANON_KEY: op://EquipQR Agents/${{ steps.target.outputs.op_item }}/${{ steps.target.outputs.key_field }}
+          SUPABASE_ANON_KEY: op://EquipQR Agents/supabase-write/${{ steps.target.outputs.anon_op_field }}
 
       - name: Probe public-google-maps-key
         shell: bash
+        env:
+          SUPABASE_URL: ${{ steps.target.outputs.supabase_url }}
         run: |
           set -u
           # When load-1p-secrets skipped (no OP_SERVICE_ACCOUNT_TOKEN), the
           # op:// values pass through as literal strings. Detect both that
           # case and the genuinely-empty case.
           if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ] \
-             || [[ "${SUPABASE_URL}" == op://* ]] || [[ "${SUPABASE_ANON_KEY}" == op://* ]]; then
+             || [[ "${SUPABASE_ANON_KEY}" == op://* ]]; then
             echo "::warning::SUPABASE_URL or SUPABASE_ANON_KEY not resolved from 1Password — skipping smoke test for ${{ steps.target.outputs.env }} environment. Plant OP_SERVICE_ACCOUNT_TOKEN as a GHA repo secret to enable this check."
             exit 0
           fi
