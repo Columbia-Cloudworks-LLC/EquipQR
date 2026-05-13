@@ -21,10 +21,13 @@ function upsertMeta(
 ): HTMLMetaElement {
   let el = head.querySelector<HTMLMetaElement>(`${selector}[${MANAGED_ATTR}]`);
   if (!el) {
+    el = head.querySelector<HTMLMetaElement>(selector);
+  }
+  if (!el) {
     el = create();
-    el.setAttribute(MANAGED_ATTR, 'true');
     head.appendChild(el);
   }
+  el.setAttribute(MANAGED_ATTR, 'true');
   apply(el);
   return el;
 }
@@ -37,16 +40,19 @@ function upsertLink(
 ): HTMLLinkElement {
   let el = head.querySelector<HTMLLinkElement>(`${selector}[${MANAGED_ATTR}]`);
   if (!el) {
+    el = head.querySelector<HTMLLinkElement>(selector);
+  }
+  if (!el) {
     el = create();
-    el.setAttribute(MANAGED_ATTR, 'true');
     head.appendChild(el);
   }
+  el.setAttribute(MANAGED_ATTR, 'true');
   apply(el);
   return el;
 }
 
-function removeManagedMeta(head: HTMLHeadElement, selector: string): void {
-  head.querySelectorAll<HTMLMetaElement>(`${selector}[${MANAGED_ATTR}]`).forEach((n) => n.remove());
+function removeAllKeywordsMetas(head: HTMLHeadElement): void {
+  head.querySelectorAll<HTMLMetaElement>('meta[name="keywords"]').forEach((n) => n.remove());
 }
 
 /**
@@ -89,7 +95,7 @@ export const PageSEO: FC<PageSEOProps> = ({
         el.content = keywords;
       });
     } else {
-      removeManagedMeta(head, 'meta[name="keywords"]');
+      removeAllKeywordsMetas(head);
     }
 
     upsertLink(head, 'link[rel="canonical"]', () => document.createElement('link'), (el) => {

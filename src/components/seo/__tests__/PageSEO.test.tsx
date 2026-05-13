@@ -8,6 +8,55 @@ function managedCount(): number {
   return document.head.querySelectorAll(MANAGED).length;
 }
 
+/** Mirrors index.html shell SEO tags for duplicate-tag regression tests */
+function seedStaticShellSeo(): void {
+  const desc = document.createElement('meta');
+  desc.name = 'description';
+  desc.content = 'Static shell description';
+  document.head.appendChild(desc);
+
+  const kw = document.createElement('meta');
+  kw.name = 'keywords';
+  kw.content = 'static,shell,keywords';
+  document.head.appendChild(kw);
+
+  const canonical = document.createElement('link');
+  canonical.rel = 'canonical';
+  canonical.href = 'https://equipqr.app';
+  document.head.appendChild(canonical);
+
+  const ogPairs: Array<[string, string]> = [
+    ['og:type', 'website'],
+    ['og:url', 'https://equipqr.app'],
+    ['og:title', 'Static OG title'],
+    ['og:description', 'Static OG description'],
+    ['og:image', 'https://equipqr.app/og-static.png'],
+    ['og:image:width', '1200'],
+    ['og:image:height', '630'],
+    ['og:image:alt', 'Static alt'],
+  ];
+  for (const [prop, content] of ogPairs) {
+    const m = document.createElement('meta');
+    m.setAttribute('property', prop);
+    m.content = content;
+    document.head.appendChild(m);
+  }
+
+  const twitterPairs: Array<[string, string]> = [
+    ['twitter:card', 'summary_large_image'],
+    ['twitter:site', '@equipqr'],
+    ['twitter:title', 'Static Twitter title'],
+    ['twitter:description', 'Static Twitter description'],
+    ['twitter:image', 'https://equipqr.app/og-static.png'],
+  ];
+  for (const [name, content] of twitterPairs) {
+    const m = document.createElement('meta');
+    m.name = name;
+    m.content = content;
+    document.head.appendChild(m);
+  }
+}
+
 describe('PageSEO', () => {
   afterEach(() => {
     cleanup();
@@ -117,7 +166,7 @@ describe('PageSEO', () => {
     rerender(<PageSEO title="T" description="d" path="/x" />);
 
     await waitFor(() => {
-      expect(document.querySelector('meta[name="keywords"][data-equipqr-page-seo]')).toBeNull();
+      expect(document.querySelector('meta[name="keywords"]')).toBeNull();
     });
   });
 
@@ -137,5 +186,70 @@ describe('PageSEO', () => {
 
     expect(document.title).toBe('Before');
     expect(document.head.querySelectorAll(MANAGED).length).toBe(0);
+  });
+
+  it('reuses static index.html shell tags without duplicate meta or canonical links', async () => {
+    seedStaticShellSeo();
+
+    const { rerender } = render(
+      <PageSEO
+        title="Feature"
+        description="Route description"
+        path="/features/bar"
+        ogImage="https://equipqr.app/route.png"
+        keywords="route,kw"
+      />
+    );
+
+    await waitFor(() => {
+      expect(document.title).toBe('Feature | EquipQR');
+    });
+
+    expect(document.head.querySelectorAll('meta[name="description"]').length).toBe(1);
+    expect(
+      document.querySelector('meta[name="description"]')?.getAttribute('content')
+    ).toBe('Route description');
+
+    expect(document.head.querySelectorAll('link[rel="canonical"]').length).toBe(1);
+    expect(
+      document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.getAttribute('href')
+    ).toBe('https://equipqr.app/features/bar');
+
+    expect(document.head.querySelectorAll('meta[property="og:title"]').length).toBe(1);
+    expect(document.head.querySelectorAll('meta[name="twitter:card"]').length).toBe(1);
+
+    rerender(
+      <PageSEO
+        title="Feature2"
+        description="Route description 2"
+        path="/features/baz"
+      />
+    );
+
+    await waitFor(() => {
+      expect(document.title).toBe('Feature2 | EquipQR');
+    });
+
+    expect(document.head.querySelectorAll('meta[name="description"]').length).toBe(1);
+    expect(
+      document.querySelector('meta[name="description"]')?.getAttribute('content')
+    ).toBe('Route description 2');
+    expect(document.head.querySelectorAll('link[rel="canonical"]').length).toBe(1);
+    expect(
+      document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.getAttribute('href')
+    ).toBe('https://equipqr.app/features/baz');
+    await waitFor(() => {
+      expect(document.querySelector('meta[name="keywords"]')).toBeNull();
+    });
+  });
+
+  it('removes static shell keywords meta when keywords prop is omitted', async () => {
+    seedStaticShellSeo();
+
+    render(<PageSEO title="P" description="d" path="/no-kw" />);
+
+    await waitFor(() => {
+      expect(document.querySelector('meta[name="keywords"]')).toBeNull();
+    });
   });
 });
