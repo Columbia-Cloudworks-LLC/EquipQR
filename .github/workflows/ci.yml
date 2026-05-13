@@ -292,7 +292,7 @@ jobs:
         path: coverage
 
     - name: Post coverage report
-      uses: davelosert/vitest-coverage-report-action@3c50566c523e04813df28de8f7c48dd97d663f1c
+      uses: davelosert/vitest-coverage-report-action@02f3c2e641286b7fa308cd3e430783103ce6103b
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         json-summary-path: coverage/coverage-summary.json
