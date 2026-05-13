@@ -10,6 +10,10 @@
 
   Token source: op://<vault>/supabase-write/SUPABASE_ACCESS_TOKEN
 
+  For Supabase CLI calls, the script sets process env SUPABASE_ACCESS_TOKEN from
+  that value and restores any prior value in a finally block (avoids leaking the
+  PAT into the caller session after exit).
+
   Each item must contain individual fields per env var (labels may use any case;
   we read using uppercase canonical names, same as Supabase secret names).
 
@@ -335,6 +339,11 @@ Write-Step 'Loading Supabase access token from 1Password...'
 $script:SupabaseAccessToken = Read-SupabaseToken
 Write-Ok "Supabase access token loaded from '$SUPABASE_TOKEN_ITEM' / $SUPABASE_TOKEN_FIELD"
 
+# Supabase CLI reads SUPABASE_ACCESS_TOKEN for non-interactive auth (CI/headless).
+$priorSupabaseAccessToken = [Environment]::GetEnvironmentVariable('SUPABASE_ACCESS_TOKEN', 'Process')
+$env:SUPABASE_ACCESS_TOKEN = $script:SupabaseAccessToken
+
+try {
 Write-Step 'Reading ProjectRef from 1Password item...'
 $refFrom1p = Read-OpProjectRef -Item $OpItem
 if ([string]::IsNullOrWhiteSpace($refFrom1p)) {
@@ -442,3 +451,12 @@ finally {
 }
 
 exit 0
+}
+finally {
+    if ($null -eq $priorSupabaseAccessToken) {
+        [Environment]::SetEnvironmentVariable('SUPABASE_ACCESS_TOKEN', $null, 'Process')
+    }
+    else {
+        [Environment]::SetEnvironmentVariable('SUPABASE_ACCESS_TOKEN', $priorSupabaseAccessToken, 'Process')
+    }
+}
