@@ -1,20 +1,20 @@
 import * as React from "react"
 import { GripVertical } from "lucide-react"
 import {
-  PanelGroup,
+  Group,
   Panel,
-  PanelResizeHandle,
-  type PanelGroupProps,
-  type PanelResizeHandleProps,
+  Separator,
+  type GroupProps,
+  type SeparatorProps,
 } from "react-resizable-panels"
 
 import { cn } from "@/lib/utils"
 
-type ResizablePanelGroupProps = Omit<PanelGroupProps, "direction"> & {
-  /** @deprecated Prefer `direction` — kept for shadcn-style call sites */
-  direction?: PanelGroupProps["direction"]
-  /** Alias for `direction` */
-  orientation?: PanelGroupProps["direction"]
+type ResizablePanelGroupProps = Omit<GroupProps, "orientation"> & {
+  /** @deprecated Prefer `orientation` — kept for shadcn-style call sites */
+  direction?: GroupProps["orientation"]
+  /** Alias for `direction` / library `orientation` */
+  orientation?: GroupProps["orientation"]
 }
 
 const ResizablePanelGroup = ({
@@ -22,25 +22,29 @@ const ResizablePanelGroup = ({
   direction,
   orientation,
   ...props
-}: ResizablePanelGroupProps) => (
-  <PanelGroup
-    className={cn("flex h-full w-full", className)}
-    direction={direction ?? orientation ?? "horizontal"}
-    {...props}
-  />
-)
+}: ResizablePanelGroupProps) => {
+  const resolvedOrientation = direction ?? orientation ?? "horizontal"
+
+  return (
+    <Group
+      className={cn("h-full w-full min-h-0", className)}
+      orientation={resolvedOrientation}
+      {...props}
+    />
+  )
+}
 
 /** Alias of `Panel` — preserves primitive identity and ref behavior. */
 const ResizablePanel = Panel
 
-type ResizableHandleProps = PanelResizeHandleProps & { withHandle?: boolean }
+type ResizableHandleProps = SeparatorProps & { withHandle?: boolean }
 
 const ResizableHandle = React.forwardRef<
   HTMLDivElement,
   ResizableHandleProps
 >(({ withHandle, className, ...props }, ref) => (
-  <PanelResizeHandle
-    ref={ref}
+  <Separator
+    elementRef={ref}
     className={cn(
       "relative flex items-center justify-center bg-border focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-1",
       "aria-[orientation=vertical]:h-full aria-[orientation=vertical]:w-px",
@@ -57,7 +61,7 @@ const ResizableHandle = React.forwardRef<
         <GripVertical className="h-2.5 w-2.5" />
       </div>
     )}
-  </PanelResizeHandle>
+  </Separator>
 ))
 ResizableHandle.displayName = "ResizableHandle"
 

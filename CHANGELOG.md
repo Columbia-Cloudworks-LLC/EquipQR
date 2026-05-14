@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **QR redirect provider coverage** — Public `/qr/*` routes now include `SessionProvider` in the QR-specific provider chain, preserving organization-switch redirects while keeping the lightweight QR entry path; QR redirect completion consumes the scan-feedback marker only after access resolution succeeds.
 - **CodeQL release gate reliability** ([#873](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/873)) — CI grants the Security Scan job `actions: read` so CodeQL can read workflow-run metadata instead of failing with `Resource not accessible by integration`.
 
-- **Resizable panels shadcn wrapper** — `ResizablePanelGroup` and `ResizableHandle` now wrap the library's `PanelGroup` and `PanelResizeHandle` exports (replacing invalid `Group` / `Separator` imports against the installed `react-resizable-panels` API), restoring the audit log explorer split layout and Vitest coverage.
+- **Resizable panels shadcn wrapper** — `ResizablePanelGroup` and `ResizableHandle` wrap `react-resizable-panels` v4 `Group` and `Separator` (with `ResizablePanel` aliasing `Panel`), preserving the shadcn-style `direction` prop and ref forwarding via `Separator`'s `elementRef`. Audit log explorer layout persistence uses `useDefaultLayout` + stable panel `id`s (v4 replaces v2 `autoSaveId` on the group).
 
 ## [3.3.2] - 2026-05-10
 

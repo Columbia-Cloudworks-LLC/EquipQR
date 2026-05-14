@@ -135,6 +135,9 @@ export function triggerPendingScanFeedback(): void {
         playPing(ctx, closeEphemeral ? () => void ephemeral?.close().catch(() => undefined) : undefined);
       } catch {
         void ephemeral?.close().catch(() => undefined);
+        if (ephemeral === null && ctx === sharedAudioContext) {
+          sharedAudioContext = null;
+        }
       }
     };
 
@@ -172,6 +175,9 @@ export function playDirectScanFeedbackTone(): void {
         playPing(ctx, closeEphemeral ? () => void ephemeral?.close().catch(() => undefined) : undefined);
       } catch {
         void ephemeral?.close().catch(() => undefined);
+        if (ephemeral === null && ctx === sharedAudioContext) {
+          sharedAudioContext = null;
+        }
       }
     };
 

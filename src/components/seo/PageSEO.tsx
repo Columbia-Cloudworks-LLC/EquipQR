@@ -1,4 +1,4 @@
-import { useEffect, useRef, type FC } from 'react';
+import { useEffect, type FC } from 'react';
 
 interface PageSEOProps {
   title: string;
@@ -51,9 +51,9 @@ export const PageSEO: FC<PageSEOProps> = ({
 }) => {
   const canonicalUrl = `${BASE_URL}${path}`;
   const fullTitle = path === '/' ? title : `${title} | EquipQR`;
-  const previousTitleRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
+    const previousTitle = document.title;
     const head = document.head;
     const createdNodes: Element[] = [];
     const reusedRestores: Array<{ el: Element; snapshot: AttrSnapshot }> = [];
@@ -108,7 +108,6 @@ export const PageSEO: FC<PageSEOProps> = ({
       });
     }
 
-    previousTitleRef.current = document.title;
     document.title = fullTitle;
 
     upsertMeta('meta[name="description"]', () => {
@@ -186,9 +185,7 @@ export const PageSEO: FC<PageSEOProps> = ({
     }
 
     return () => {
-      if (previousTitleRef.current !== undefined) {
-        document.title = previousTitleRef.current;
-      }
+      document.title = previousTitle;
 
       for (const el of createdNodes) {
         el.remove();

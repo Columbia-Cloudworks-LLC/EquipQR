@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
+import { StrictMode } from 'react';
 import { render, cleanup, waitFor } from '@testing-library/react';
 import { PageSEO } from '../PageSEO';
 
@@ -141,6 +142,23 @@ describe('PageSEO', () => {
     await waitFor(() => {
       expect(document.title).toBe('EquipQR');
     });
+  });
+
+  it('restores original title after StrictMode mount/unmount cycle', async () => {
+    document.title = 'StrictOriginal';
+
+    const { unmount } = render(
+      <StrictMode>
+        <PageSEO title="Strict" description="d" path="/strict" />
+      </StrictMode>
+    );
+
+    await waitFor(() => {
+      expect(document.title).toBe('Strict | EquipQR');
+    });
+
+    unmount();
+    expect(document.title).toBe('StrictOriginal');
   });
 
   it('updates metadata on rerender without duplicating managed nodes', async () => {
