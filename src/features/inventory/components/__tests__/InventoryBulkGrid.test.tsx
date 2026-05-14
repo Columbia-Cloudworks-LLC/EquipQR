@@ -10,24 +10,49 @@ import type { InventoryRowDelta } from '@/features/inventory/hooks/useBulkEditIn
 // react-window requires measurements not available in jsdom; stub it to render
 // all items synchronously so tests can inspect rendered rows.
 vi.mock('react-window', () => ({
-  FixedSizeList: ({
-    children: ItemRenderer,
-    itemCount,
-    itemSize,
+  List({
+    rowComponent: Row,
+    rowCount,
+    rowHeight,
+    rowProps,
+    style,
   }: {
-    children: (props: { index: number; style: React.CSSProperties }) => React.ReactElement | null;
-    itemCount: number;
-    itemSize: number;
-    height: number;
-    width: number | string;
+    rowComponent: React.ComponentType<
+      Record<string, unknown> & {
+        index: number;
+        style: React.CSSProperties;
+        ariaAttributes: {
+          role: 'listitem';
+          'aria-posinset': number;
+          'aria-setsize': number;
+        };
+      }
+    >;
+    rowCount: number;
+    rowHeight: number;
+    rowProps: Record<string, unknown>;
     style?: React.CSSProperties;
-  }) => (
-    <div data-testid="virtual-list">
-      {Array.from({ length: itemCount }, (_, index) =>
-        <div key={index}>{ItemRenderer({ index, style: { height: itemSize, position: 'relative' } })}</div>
-      )}
-    </div>
-  ),
+  }) {
+    const rh = typeof rowHeight === 'number' ? rowHeight : 44;
+    return (
+      <div data-testid="virtual-list" style={style}>
+        {Array.from({ length: rowCount }, (_, index) => (
+          <div key={index}>
+            <Row
+              index={index}
+              style={{ height: rh, position: 'relative' }}
+              ariaAttributes={{
+                role: 'listitem',
+                'aria-posinset': index + 1,
+                'aria-setsize': rowCount,
+              }}
+              {...rowProps}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  },
 }));
 
 function buildRow(id: string, overrides: Partial<InventoryItem> = {}): InventoryItem {
