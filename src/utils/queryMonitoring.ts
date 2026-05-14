@@ -11,7 +11,7 @@ import { logger } from '@/utils/logger';
 
 class QueryMonitor {
   private logs: QueryLog[] = [];
-  private isEnabled = process.env.NODE_ENV === 'development';
+  private isEnabled = import.meta.env.DEV;
 
   logQuery(log: QueryLog) {
     if (!this.isEnabled) return;
