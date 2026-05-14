@@ -7,7 +7,7 @@ import { logger } from '@/utils/logger';
 // PHASE 3: Background sync service for real-time updates
 export class BackgroundSyncService {
   private static instance: BackgroundSyncService;
-  private subscriptions: Map<string, RealtimeChannel | NodeJS.Timeout> = new Map();
+  private subscriptions: Map<string, RealtimeChannel | ReturnType<typeof setInterval>> = new Map();
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private isOnline = navigator.onLine;
@@ -319,7 +319,7 @@ export class BackgroundSyncService {
   cleanup() {
     for (const [key, subscription] of this.subscriptions) {
       if (key.startsWith('periodic-')) {
-        clearInterval(subscription as NodeJS.Timeout);
+        clearInterval(subscription as ReturnType<typeof setInterval>);
       } else {
         supabase.removeChannel(subscription as RealtimeChannel);
       }

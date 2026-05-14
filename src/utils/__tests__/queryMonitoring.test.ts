@@ -15,7 +15,7 @@ describe('queryMonitoring', () => {
     vi.clearAllMocks();
   });
 
-  // Note: QueryMonitor class is disabled in test mode (isEnabled = process.env.NODE_ENV === 'development')
+  // Note: QueryMonitor class is disabled in test mode (isEnabled = import.meta.env.DEV)
   // So we can only test performanceUtils which don't depend on isEnabled state
 
   describe('performanceUtils', () => {

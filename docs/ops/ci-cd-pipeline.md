@@ -55,7 +55,7 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 | Job | Runner | Purpose |
 |-----|--------|---------|
 | `lint-and-typecheck` | Self-hosted | ESLint + TypeScript type checking |
-| `test` | Self-hosted | Vitest tests with coverage (Node 20.x, 22.x matrix) |
+| `test` | Self-hosted | Vitest tests with coverage (Node 25.x, matches `ci.yml`) |
 | `security` | GitHub-hosted | npm audit + CodeQL security scan |
 | `build` | Self-hosted | Production build + bundle analysis |
 | `quality-gates` | Self-hosted | Final checks (bundle size limits, gzip size) |
@@ -108,13 +108,7 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 
 **Purpose:** Log deployment success/failure from external services (Vercel)
 
-### 6. Repomix Artifact (`repomix.yml`)
-
-**Trigger:** Push or PR to `main`/`preview`, or manual dispatch
-
-**Purpose:** Generate repository snapshot for AI context
-
-### 7. Export Database Schema (`export-schema.yml`)
+### 6. Export Database Schema (`export-schema.yml`)
 
 **Trigger:** Push to `main` branch, or manual dispatch
 
@@ -320,7 +314,7 @@ See [Deployment Guide - Self-Hosted Runner Setup](./deployment.md#self-hosted-ru
 **Check:**
 1. Runner service is running: `Get-Service -Name "actions.runner.*"`
 2. Disk space: Should have > 10GB free
-3. Node.js versions: Both 20.x and 22.x should be installed
+3. Node.js: Install **Node 25.x** (must satisfy `engines.node` in root `package.json`).
 
 ### Version tag not created
 
@@ -357,7 +351,6 @@ See [Deployment Guide - Self-Hosted Runner Setup](./deployment.md#self-hosted-ru
 | `.github/workflows/configure-supabase-auth.yml` | Fix OAuth URLs after Vercel deploy |
 | `.github/workflows/version-tag.yml` | Auto-create git tags on version bump |
 | `.github/workflows/deployment-status.yml` | Log deployment status from Vercel |
-| `.github/workflows/repomix.yml` | Generate repository snapshot |
 | `.github/workflows/export-schema.yml` | Export database schema from preview to `supabase/schema.sql` |
 | `.github/runner-config.yml` | Runner type configuration |
 | `vercel.json` | Vercel deployment configuration |

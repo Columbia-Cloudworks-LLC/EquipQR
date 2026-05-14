@@ -4,6 +4,81 @@ import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import { createMockSupabaseClient } from './utils/mock-supabase';
 
+/**
+ * Node 25+ can expose a global `localStorage` / `sessionStorage` that is not
+ * Web Storage–compatible when `--localstorage-file` is invalid, which breaks
+ * Vitest + jsdom (getItem/setItem/clear are not functions). Install a small
+ * in-memory Storage so app code and tests always see a real Storage API.
+ */
+(function installTestWebStorage(): void {
+  const createMemoryStorage = (): Storage => {
+    const data = new Map<string, string>();
+    return {
+      get length() {
+        return data.size;
+      },
+      clear(): void {
+        data.clear();
+      },
+      getItem(key: string): string | null {
+        const k = String(key);
+        return data.has(k) ? data.get(k)! : null;
+      },
+      key(index: number): string | null {
+        const keys = [...data.keys()];
+        return index >= 0 && index < keys.length ? keys[index]! : null;
+      },
+      removeItem(key: string): void {
+        data.delete(String(key));
+      },
+      setItem(key: string, value: string): void {
+        data.set(String(key), String(value));
+      },
+    };
+  };
+
+  const broken = (s: unknown): boolean => {
+    if (s == null || typeof s !== 'object') return true;
+    const o = s as Pick<Storage, 'getItem' | 'setItem' | 'clear' | 'removeItem'>;
+    return (
+      typeof o.getItem !== 'function' ||
+      typeof o.setItem !== 'function' ||
+      typeof o.clear !== 'function' ||
+      typeof o.removeItem !== 'function'
+    );
+  };
+
+  const local = createMemoryStorage();
+  const session = createMemoryStorage();
+
+  const bind = (target: object & { localStorage?: unknown; sessionStorage?: unknown }): void => {
+    if (broken(target.localStorage)) {
+      Object.defineProperty(target, 'localStorage', {
+        configurable: true,
+        enumerable: true,
+        value: local,
+        writable: false,
+      });
+    }
+    if (broken(target.sessionStorage)) {
+      Object.defineProperty(target, 'sessionStorage', {
+        configurable: true,
+        enumerable: true,
+        value: session,
+        writable: false,
+      });
+    }
+  };
+
+  bind(globalThis as object & { localStorage?: unknown; sessionStorage?: unknown });
+  if (typeof global !== 'undefined' && global !== globalThis) {
+    bind(global as object & { localStorage?: unknown; sessionStorage?: unknown });
+  }
+  if (typeof window !== 'undefined') {
+    bind(window as Window & { localStorage?: unknown; sessionStorage?: unknown });
+  }
+})();
+
 declare global {
   // Expose A11y control functions for tests
   let startA11yChecks: () => void;
@@ -43,6 +118,12 @@ vi.stubEnv('VITE_SUPABASE_URL', TEST_SUPABASE_URL);
 
 beforeEach(() => {
   vi.stubEnv('VITE_SUPABASE_URL', TEST_SUPABASE_URL);
+  try {
+    globalThis.localStorage?.clear();
+    globalThis.sessionStorage?.clear();
+  } catch {
+    // ignore — storage may be missing in non-browser test environments
+  }
 });
 
 // Cleanup after each test case
@@ -210,7 +291,7 @@ beforeAll(() => {
   };
 
   // Run a11y checks periodically during tests
-  let a11yCheckInterval: NodeJS.Timeout;
+  let a11yCheckInterval: ReturnType<typeof setInterval>;
   
   type A11yGlobal = typeof globalThis & {
     startA11yChecks?: () => void;

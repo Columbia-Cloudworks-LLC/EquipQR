@@ -15,13 +15,22 @@ const DEFAULT_CONSUMER_GOOGLE_DOMAINS = [
 ] as const;
 
 /**
+ * Reads Node-style `process.env` when present (SSR, Edge, Vitest) without
+ * referencing the `process` global type (browser TS program excludes Node).
+ */
+function getNodeProcessEnv(): Record<string, string | undefined> | undefined {
+  const proc = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process;
+  return proc?.env;
+}
+
+/**
  * Checks if code is running in a Node.js/server environment where process.env is available.
  * In browser contexts, process is undefined and this returns false.
- * 
+ *
  * @returns true if running in a server environment with process.env available, false otherwise
  */
 function isServerEnvironment(): boolean {
-  return typeof process !== 'undefined' && typeof process.env !== 'undefined';
+  return getNodeProcessEnv() !== undefined;
 }
 
 /**
@@ -62,7 +71,7 @@ function loadConsumerGoogleDomains(): readonly string[] {
   // In browser contexts (Vite builds), process.env is undefined and this block is skipped,
   // meaning only DEFAULT_CONSUMER_GOOGLE_DOMAINS will be used.
   if (isServerEnvironment()) {
-    const envValue = process.env.CONSUMER_GOOGLE_DOMAINS;
+    const envValue = getNodeProcessEnv()?.CONSUMER_GOOGLE_DOMAINS;
 
     if (envValue) {
       const parsed = envValue

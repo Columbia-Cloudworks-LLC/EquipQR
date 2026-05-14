@@ -11,7 +11,7 @@ interface PageVisibilityOptions {
 export const usePageVisibility = (options: PageVisibilityOptions = {}) => {
   const [isVisible, setIsVisible] = useState(!document.hidden);
   const [isFocused, setIsFocused] = useState(document.hasFocus());
-  const debounceTimerRef = useRef<NodeJS.Timeout>();
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const { onVisibilityChange, onFocus, onBlur, debounceMs = 100 } = options;
 
   useEffect(() => {

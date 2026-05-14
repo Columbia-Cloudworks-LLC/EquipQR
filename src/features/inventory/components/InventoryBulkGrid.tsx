@@ -13,7 +13,7 @@ import {
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table';
-import { FixedSizeList, type ListChildComponentProps } from 'react-window';
+import { List, type RowComponentProps } from 'react-window';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -59,6 +59,119 @@ const FIELD_LABELS: Partial<Record<BulkEditableField, string>> = {
   low_stock_threshold: 'Low Stock',
   default_unit_cost: 'Unit Cost',
 };
+
+type InventoryBulkListRowProps = {
+  sortedRows: InventoryItem[];
+  selectedRowIds: Set<string>;
+  dirtyRows: Map<string, InventoryRowDelta>;
+  editableTextCell: (
+    row: InventoryItem,
+    field: 'name' | 'sku' | 'external_id' | 'location',
+    extra?: Partial<BulkEditableCellProps>
+  ) => React.ReactElement;
+  editableNumericCell: (
+    row: InventoryItem,
+    field: 'quantity_on_hand' | 'low_stock_threshold' | 'default_unit_cost'
+  ) => React.ReactElement;
+  handleRowClick: (rowId: string, e: React.MouseEvent<HTMLDivElement>) => void;
+  onToggleSelected: (id: string) => void;
+};
+
+function InventoryBulkListRow({
+  index,
+  style,
+  ariaAttributes,
+  sortedRows,
+  selectedRowIds,
+  dirtyRows,
+  editableTextCell,
+  editableNumericCell,
+  handleRowClick,
+  onToggleSelected,
+}: RowComponentProps<InventoryBulkListRowProps>) {
+  const row = sortedRows[index];
+  if (!row) return null;
+  const isSelected = selectedRowIds.has(row.id);
+  const isRowDirty = dirtyRows.has(row.id);
+
+  return (
+    <div
+      {...ariaAttributes}
+      role="row"
+      style={{ ...style, display: 'flex', width: TOTAL_COL_WIDTH }}
+      aria-selected={isSelected}
+      className={cn(
+        'border-b transition-colors',
+        isSelected && 'bg-muted/30',
+        isRowDirty && !isSelected && 'bg-primary/5',
+        'cursor-pointer hover:bg-muted/20'
+      )}
+      onClick={(e) => handleRowClick(row.id, e)}
+    >
+      <div
+        style={{ width: COL.select, flexShrink: 0 }}
+        className="flex items-center justify-center px-2"
+        role="gridcell"
+      >
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={() => onToggleSelected(row.id)}
+          aria-label={`Select ${row.name}`}
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
+      <div
+        style={{ width: COL.name, flexShrink: 0 }}
+        className="flex items-center px-1"
+        role="gridcell"
+      >
+        {editableTextCell(row, 'name')}
+      </div>
+      <div
+        style={{ width: COL.sku, flexShrink: 0 }}
+        className="flex items-center px-1"
+        role="gridcell"
+      >
+        {editableTextCell(row, 'sku', { mono: true })}
+      </div>
+      <div
+        style={{ width: COL.external_id, flexShrink: 0 }}
+        className="flex items-center px-1"
+        role="gridcell"
+      >
+        {editableTextCell(row, 'external_id', { mono: true })}
+      </div>
+      <div
+        style={{ width: COL.location, flexShrink: 0 }}
+        className="flex items-center px-1"
+        role="gridcell"
+      >
+        {editableTextCell(row, 'location')}
+      </div>
+      <div
+        style={{ width: COL.quantity_on_hand, flexShrink: 0 }}
+        className="flex items-center px-1"
+        role="gridcell"
+      >
+        {editableNumericCell(row, 'quantity_on_hand')}
+      </div>
+      <div
+        style={{ width: COL.low_stock_threshold, flexShrink: 0 }}
+        className="flex items-center px-1"
+        role="gridcell"
+      >
+        {editableNumericCell(row, 'low_stock_threshold')}
+      </div>
+      <div
+        style={{ width: COL.default_unit_cost, flexShrink: 0 }}
+        className="flex items-center px-1"
+        role="gridcell"
+      >
+        {editableNumericCell(row, 'default_unit_cost')}
+      </div>
+    </div>
+  );
+}
 
 // ============================================
 // Props
@@ -350,107 +463,16 @@ export const InventoryBulkGrid: React.FC<InventoryBulkGridProps> = ({
     ? 'indeterminate'
     : false;
 
-  // ── react-window row renderer ──────────────────────────────────────────────
-
-  const RowRenderer = useCallback(
-    ({ index, style }: ListChildComponentProps) => {
-      const row = sortedRows[index];
-      if (!row) return null;
-      const isSelected = selectedRowIds.has(row.id);
-      const isRowDirty = dirtyRows.has(row.id);
-
-      return (
-        <div
-          style={{ ...style, display: 'flex', width: TOTAL_COL_WIDTH }}
-          role="row"
-          aria-selected={isSelected}
-          className={cn(
-            'border-b transition-colors',
-            isSelected && 'bg-muted/30',
-            isRowDirty && !isSelected && 'bg-primary/5',
-            'cursor-pointer hover:bg-muted/20'
-          )}
-          onClick={(e) => handleRowClick(row.id, e)}
-        >
-          {/* Checkbox cell */}
-          <div
-            style={{ width: COL.select, flexShrink: 0 }}
-            className="flex items-center justify-center px-2"
-            role="gridcell"
-          >
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={() => onToggleSelected(row.id)}
-              aria-label={`Select ${row.name}`}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-
-          {/* Name */}
-          <div
-            style={{ width: COL.name, flexShrink: 0 }}
-            className="flex items-center px-1"
-            role="gridcell"
-          >
-            {editableTextCell(row, 'name')}
-          </div>
-
-          {/* SKU */}
-          <div
-            style={{ width: COL.sku, flexShrink: 0 }}
-            className="flex items-center px-1"
-            role="gridcell"
-          >
-            {editableTextCell(row, 'sku', { mono: true })}
-          </div>
-
-          {/* External ID */}
-          <div
-            style={{ width: COL.external_id, flexShrink: 0 }}
-            className="flex items-center px-1"
-            role="gridcell"
-          >
-            {editableTextCell(row, 'external_id', { mono: true })}
-          </div>
-
-          {/* Location */}
-          <div
-            style={{ width: COL.location, flexShrink: 0 }}
-            className="flex items-center px-1"
-            role="gridcell"
-          >
-            {editableTextCell(row, 'location')}
-          </div>
-
-          {/* Qty on Hand */}
-          <div
-            style={{ width: COL.quantity_on_hand, flexShrink: 0 }}
-            className="flex items-center px-1"
-            role="gridcell"
-          >
-            {editableNumericCell(row, 'quantity_on_hand')}
-          </div>
-
-          {/* Low Stock */}
-          <div
-            style={{ width: COL.low_stock_threshold, flexShrink: 0 }}
-            className="flex items-center px-1"
-            role="gridcell"
-          >
-            {editableNumericCell(row, 'low_stock_threshold')}
-          </div>
-
-          {/* Unit Cost */}
-          <div
-            style={{ width: COL.default_unit_cost, flexShrink: 0 }}
-            className="flex items-center px-1"
-            role="gridcell"
-          >
-            {editableNumericCell(row, 'default_unit_cost')}
-          </div>
-        </div>
-      );
-    },
+  const bulkListRowProps: InventoryBulkListRowProps = useMemo(
+    () => ({
+      sortedRows,
+      selectedRowIds,
+      dirtyRows,
+      editableTextCell,
+      editableNumericCell,
+      handleRowClick,
+      onToggleSelected,
+    }),
     [
       sortedRows,
       selectedRowIds,
@@ -544,15 +566,13 @@ export const InventoryBulkGrid: React.FC<InventoryBulkGridProps> = ({
           </div>
         ) : (
           <div role="rowgroup">
-            <FixedSizeList
-              height={bodyHeight}
-              itemCount={sortedRows.length}
-              itemSize={ROW_HEIGHT}
-              width={listWidth}
-              style={{ overflowX: 'hidden' }}
-            >
-              {RowRenderer}
-            </FixedSizeList>
+            <List
+              rowComponent={InventoryBulkListRow}
+              rowCount={sortedRows.length}
+              rowHeight={ROW_HEIGHT}
+              rowProps={bulkListRowProps}
+              style={{ height: bodyHeight, width: listWidth, overflowX: 'hidden' }}
+            />
           </div>
         )}
       </div>
