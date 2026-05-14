@@ -1,10 +1,10 @@
+import * as React from "react"
 import { GripVertical } from "lucide-react"
 import {
   Group,
   Panel,
   Separator,
   type GroupProps,
-  type PanelProps,
   type SeparatorProps,
 } from "react-resizable-panels"
 
@@ -29,14 +29,17 @@ const ResizablePanelGroup = ({
   />
 )
 
-const ResizablePanel = (props: PanelProps) => <Panel {...props} />
+/** Alias of `Panel` — preserves primitive identity and ref behavior. */
+const ResizablePanel = Panel
 
-const ResizableHandle = ({
-  withHandle,
-  className,
-  ...props
-}: SeparatorProps & { withHandle?: boolean }) => (
+type ResizableHandleProps = SeparatorProps & { withHandle?: boolean }
+
+const ResizableHandle = React.forwardRef<
+  React.ComponentRef<typeof Separator>,
+  ResizableHandleProps
+>(({ withHandle, className, ...props }, ref) => (
   <Separator
+    ref={ref}
     className={cn(
       "relative flex items-center justify-center bg-border focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-1",
       "aria-[orientation=vertical]:h-full aria-[orientation=vertical]:w-px",
@@ -54,6 +57,7 @@ const ResizableHandle = ({
       </div>
     )}
   </Separator>
-)
+))
+ResizableHandle.displayName = "ResizableHandle"
 
 export { ResizablePanelGroup, ResizablePanel, ResizableHandle }
