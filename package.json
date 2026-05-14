@@ -4,7 +4,7 @@
   "version": "3.3.2",
   "type": "module",
   "engines": {
-    "node": "^25.0.0"
+    "node": "24.x"
   },
   "overrides": {
     "vite": "$vite",
