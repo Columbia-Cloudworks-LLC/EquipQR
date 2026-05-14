@@ -150,7 +150,6 @@
     "@types/papaparse": "^5.3.16",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
-    "@types/react-window": "^2.0.0",
     "@types/topojson-client": "3.1.5",
     "@vitejs/plugin-react-swc": "^4.3.0",
     "@vitest/coverage-v8": "4.1.6",
