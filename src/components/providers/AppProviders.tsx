@@ -2,7 +2,6 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
-import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { MFAProvider } from '@/contexts/MFAContext';
 import { UserProvider } from '@/contexts/UserContext';
@@ -61,37 +60,33 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
 
   if (isQrEntry) {
     return (
-      <HelmetProvider>
-        <QueryClientProvider client={queryClient}>
-          <ThemeProvider attribute="class" forcedTheme="dark">
-            <TooltipProvider>
-              <AuthProvider>
-                <SessionProvider>{children}</SessionProvider>
-              </AuthProvider>
-            </TooltipProvider>
-            <Toaster />
-          </ThemeProvider>
-        </QueryClientProvider>
-      </HelmetProvider>
-    );
-  }
-
-  return (
-    <HelmetProvider>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider attribute="class" forcedTheme="dark">
           <TooltipProvider>
             <AuthProvider>
-              <MFAProvider>
-              <UserProvider>
-                <SessionProvider>{children}</SessionProvider>
-              </UserProvider>
-              </MFAProvider>
+              <SessionProvider>{children}</SessionProvider>
             </AuthProvider>
           </TooltipProvider>
           <Toaster />
         </ThemeProvider>
       </QueryClientProvider>
-    </HelmetProvider>
+    );
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" forcedTheme="dark">
+        <TooltipProvider>
+          <AuthProvider>
+            <MFAProvider>
+              <UserProvider>
+                <SessionProvider>{children}</SessionProvider>
+              </UserProvider>
+            </MFAProvider>
+          </AuthProvider>
+        </TooltipProvider>
+        <Toaster />
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 };
