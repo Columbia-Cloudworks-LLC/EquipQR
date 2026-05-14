@@ -21,6 +21,9 @@
     "noImplicitAny": false,
     "noFallthroughCasesInSwitch": false,
 
+    /* Browser + Vitest + jest-dom only — do not pull in Node ambient types for `src/` */
+    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"],
+
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
