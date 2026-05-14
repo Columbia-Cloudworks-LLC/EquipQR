@@ -20,7 +20,6 @@ Agents** 1Password vault at job time. This:
 | [`export-schema.yml`](./export-schema.yml) | TODO | `PREVIEW_DATABASE_URL` | `op://EquipQR Agents/preview-database-url/credential` |
 | [`deploy.yml`](./deploy.yml) | NEEDS AUDIT | (audit secret references) | TBD |
 | [`deployment-status.yml`](./deployment-status.yml) | NEEDS AUDIT | (audit secret references) | TBD |
-| [`repomix.yml`](./repomix.yml) | NEEDS AUDIT | (audit secret references) | TBD |
 | [`version-tag.yml`](./version-tag.yml) | NO MIGRATION | only `GITHUB_TOKEN` (built-in) | n/a |
 | [`secrets-drift-check.yml`](./secrets-drift-check.yml) | EXAMPLE | demonstrates the new pattern | (none) |
 

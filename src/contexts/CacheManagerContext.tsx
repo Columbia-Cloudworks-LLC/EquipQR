@@ -4,6 +4,7 @@ import { cacheManager } from '@/services/cacheManager';
 import { backgroundSync } from '@/services/backgroundSync';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import type { CacheStats, SyncStatus } from '@/types/cache';
 import {
   CacheManagerContext,
   type CacheManagerContextType,

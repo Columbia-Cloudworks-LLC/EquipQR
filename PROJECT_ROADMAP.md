@@ -40,8 +40,7 @@ It avoids assumptions about proprietary sensors, paid integrations, or contracts
 
 - `#588` DSR cockpit GA and operator workflow — cockpit route and components exist;
   remaining work: remove feature-flag gate, SLA-focused defaults, evidence export, runbook section.
-- `#558` Upgrade to Node.js 24 LTS and toolchain alignment — `package.json` already allows
-  Node 20.19, Node 22.13, and newer; remaining: pin Node 24 in `.nvmrc`/CI after ecosystem validation.
+- `#558` Node.js 25 runtime and toolchain alignment — `package.json` `engines.node` is **^25.0.0**; CI and docs use Node **25.x** (aligned with `@types/node` 25.x).
 
 ## Planned (Near-Mid Term)
 
