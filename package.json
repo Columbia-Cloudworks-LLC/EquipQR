@@ -4,7 +4,7 @@
   "version": "3.4.0",
   "type": "module",
   "engines": {
-    "node": "^25.0.0"
+    "node": "24.x"
   },
   "overrides": {
     "vite": "$vite",
@@ -146,7 +146,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/d3-geo": "3.1.0",
     "@types/file-saver": "^2.0.7",
-    "@types/node": "^25.7.0",
+    "@types/node": "^24.10.1",
     "@types/papaparse": "^5.3.16",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
