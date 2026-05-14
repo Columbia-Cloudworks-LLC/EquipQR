@@ -28,9 +28,9 @@ permissions:
   checks: write
 
 env:
-  # Node 25.x is the supported runtime (aligned with @types/node 25.x). See
-  # https://nodejs.org/en/about/releases/ for the current release line status.
-  NODE_VERSION: 25.x
+  # Node 24.x is the supported runtime (Vercel supports 20/22/24 only; @types/node 24.x).
+  # See https://nodejs.org/en/about/releases/ for the current release line status.
+  NODE_VERSION: 24.x
   CACHE_VERSION: v3
 
 jobs:

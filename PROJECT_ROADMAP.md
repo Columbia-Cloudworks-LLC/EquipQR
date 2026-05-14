@@ -40,7 +40,7 @@ It avoids assumptions about proprietary sensors, paid integrations, or contracts
 
 - `#588` DSR cockpit GA and operator workflow — cockpit route and components exist;
   remaining work: remove feature-flag gate, SLA-focused defaults, evidence export, runbook section.
-- `#558` Node.js 25 runtime and toolchain alignment — `package.json` `engines.node` is **^25.0.0**; CI and docs use Node **25.x** (aligned with `@types/node` 25.x).
+- `#558` Node.js 24 runtime and toolchain alignment — `package.json` `engines.node` is **24.x**; CI and docs use Node **24.x** (aligned with `@types/node` 24.x and Vercel-supported Node lines).
 
 ## Planned (Near-Mid Term)
 
