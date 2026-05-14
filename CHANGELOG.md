@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Node.js 25 runtime matrix** ([#931](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/931)) — `engines.node` is `^25.0.0` (aligned with `@types/node` 25.x). GitHub Actions default to Node **25.x**; setup and CI docs describe the same supported line.
+- **Node.js runtime (Vercel + CI)** — `engines.node` is **24.x** so Vercel preview/production builds resolve a supported Node line (Vercel rejects `^25.0.0` / Node 25 as discontinued for this project). GitHub Actions use Node **24.x** to satisfy `.npmrc` `engine-strict=true`. `@types/node` remains on the **25.x** typings line where it already tracks newer APIs.
 
 - **PageSEO / document metadata** — Removed the `react-helmet-async` dependency; `PageSEO` now updates `document.title` and head tags via a small scoped effect (tags marked `data-equipqr-page-seo` for cleanup). `HelmetProvider` was dropped from app and test providers.
 - **Agent docs: local Windows 1Password** — Documented optional User-scope `OP_SERVICE_ACCOUNT_TOKEN` for read-only `op` access; aligned vault item names (`vercel-write`, `gcp-read`, `github-read` in doctor), `render-mcp-config.ps1` GCP JSON resolution, and workflow README `op://` examples with current `app-env-*-public` field labels.
