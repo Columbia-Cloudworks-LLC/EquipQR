@@ -16,7 +16,7 @@ export const useAutoSave = ({
   selectionDelay = 1000, 
   enabled = true 
 }: UseAutoSaveOptions) => {
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const saveRequestRef = useRef<Promise<void>>();
   const lastSaveDataRef = useRef<string>('');
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -60,7 +60,7 @@ export const useAutoSave = ({
         setLastSaved(new Date());
       } catch (error) {
         setStatus('error');
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.DEV) {
           logger.warn('Auto-save failed', error);
         }
       } finally {
