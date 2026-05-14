@@ -3,26 +3,38 @@ import { render, cleanup, waitFor } from '@testing-library/react';
 import { PageSEO } from '../PageSEO';
 
 const MANAGED = '[data-equipqr-page-seo]';
+const TEST_SEED_ATTR = 'data-page-seo-test-seed';
 
 function managedCount(): number {
   return document.head.querySelectorAll(MANAGED).length;
 }
 
+function removeTestSeededHeadNodes(): void {
+  document.head.querySelectorAll(`[${TEST_SEED_ATTR}]`).forEach((n) => n.remove());
+}
+
 /** Mirrors index.html shell SEO tags for duplicate-tag regression tests */
 function seedStaticShellSeo(): void {
+  const mark = (el: Element) => {
+    el.setAttribute(TEST_SEED_ATTR, 'true');
+  };
+
   const desc = document.createElement('meta');
   desc.name = 'description';
   desc.content = 'Static shell description';
+  mark(desc);
   document.head.appendChild(desc);
 
   const kw = document.createElement('meta');
   kw.name = 'keywords';
   kw.content = 'static,shell,keywords';
+  mark(kw);
   document.head.appendChild(kw);
 
   const canonical = document.createElement('link');
   canonical.rel = 'canonical';
   canonical.href = 'https://equipqr.app';
+  mark(canonical);
   document.head.appendChild(canonical);
 
   const ogPairs: Array<[string, string]> = [
@@ -39,6 +51,7 @@ function seedStaticShellSeo(): void {
     const m = document.createElement('meta');
     m.setAttribute('property', prop);
     m.content = content;
+    mark(m);
     document.head.appendChild(m);
   }
 
@@ -53,6 +66,7 @@ function seedStaticShellSeo(): void {
     const m = document.createElement('meta');
     m.name = name;
     m.content = content;
+    mark(m);
     document.head.appendChild(m);
   }
 }
@@ -60,6 +74,7 @@ function seedStaticShellSeo(): void {
 describe('PageSEO', () => {
   afterEach(() => {
     cleanup();
+    removeTestSeededHeadNodes();
   });
 
   it('writes title, description, canonical, Open Graph, and Twitter metadata to document.head', async () => {
@@ -251,5 +266,70 @@ describe('PageSEO', () => {
     await waitFor(() => {
       expect(document.querySelector('meta[name="keywords"]')).toBeNull();
     });
+  });
+
+  it('restores static shell head tags after unmount when shell nodes were reused', async () => {
+    seedStaticShellSeo();
+    document.title = 'ShellTitle';
+
+    const { unmount } = render(
+      <PageSEO
+        title="Route"
+        description="Route description"
+        path="/features/route"
+        ogImage="https://equipqr.app/route-og.png"
+        keywords="route,kw"
+      />
+    );
+
+    await waitFor(() => {
+      expect(document.title).toBe('Route | EquipQR');
+    });
+
+    expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toBe(
+      'Route description'
+    );
+    expect(
+      document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.getAttribute('href')
+    ).toBe('https://equipqr.app/features/route');
+    expect(
+      document.querySelector('meta[property="og:title"]')?.getAttribute('content')
+    ).toBe('Route | EquipQR');
+
+    unmount();
+
+    expect(document.title).toBe('ShellTitle');
+    expect(document.head.querySelectorAll(MANAGED).length).toBe(0);
+    expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toBe(
+      'Static shell description'
+    );
+    expect(
+      document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.getAttribute('href')
+    ).toBe('https://equipqr.app');
+    expect(
+      document.querySelector('meta[property="og:title"]')?.getAttribute('content')
+    ).toBe('Static OG title');
+    expect(document.querySelector('meta[name="keywords"]')?.getAttribute('content')).toBe(
+      'static,shell,keywords'
+    );
+  });
+
+  it('restores static shell keywords after unmount when keywords prop was omitted during route', async () => {
+    seedStaticShellSeo();
+    document.title = 'ShellTitle';
+
+    const { unmount } = render(<PageSEO title="P" description="d" path="/no-kw" />);
+
+    await waitFor(() => {
+      expect(document.querySelector('meta[name="keywords"]')).toBeNull();
+    });
+
+    unmount();
+
+    expect(document.title).toBe('ShellTitle');
+    expect(document.querySelector('meta[name="keywords"]')?.getAttribute('content')).toBe(
+      'static,shell,keywords'
+    );
+    expect(document.head.querySelectorAll(MANAGED).length).toBe(0);
   });
 });
