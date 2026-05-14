@@ -5,10 +5,10 @@ import { render, screen } from '@/test/utils/test-utils';
 vi.mock('react-resizable-panels', async () => {
   const React = await import('react');
 
-  const Group = React.forwardRef<
+  const PanelGroup = React.forwardRef<
     HTMLDivElement,
-    React.ComponentPropsWithoutRef<'div'> & { orientation?: string }
-  >(function MockGroup({ children, className, ...rest }, ref) {
+    React.ComponentPropsWithoutRef<'div'> & { direction?: string }
+  >(function MockPanelGroup({ children, className, ...rest }, ref) {
     return (
       <div ref={ref} data-testid="mock-resizable-group" className={className} {...rest}>
         {children}
@@ -27,10 +27,10 @@ vi.mock('react-resizable-panels', async () => {
     );
   });
 
-  const Separator = React.forwardRef<
+  const PanelResizeHandle = React.forwardRef<
     HTMLDivElement,
     React.ComponentPropsWithoutRef<'div'>
-  >(function MockSeparator({ children, className, ...rest }, ref) {
+  >(function MockPanelResizeHandle({ children, className, ...rest }, ref) {
     return (
       <div
         ref={ref}
@@ -43,7 +43,7 @@ vi.mock('react-resizable-panels', async () => {
     );
   });
 
-  return { Group, Panel, Separator };
+  return { PanelGroup, Panel, PanelResizeHandle };
 });
 
 import { Panel } from 'react-resizable-panels';
@@ -58,7 +58,7 @@ describe('resizable', () => {
     expect(ResizablePanel).toBe(Panel);
   });
 
-  it('forwards ref from ResizableHandle to Separator', () => {
+  it('forwards ref from ResizableHandle to PanelResizeHandle', () => {
     const handleRef = createRef<HTMLDivElement | null>();
 
     render(

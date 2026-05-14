@@ -1,19 +1,20 @@
 import * as React from "react"
 import { GripVertical } from "lucide-react"
 import {
-  Group,
+  PanelGroup,
   Panel,
-  Separator,
-  type GroupProps,
-  type SeparatorProps,
+  PanelResizeHandle,
+  type PanelGroupProps,
+  type PanelResizeHandleProps,
 } from "react-resizable-panels"
 
 import { cn } from "@/lib/utils"
 
-type ResizablePanelGroupProps = Omit<GroupProps, "orientation"> & {
-  /** @deprecated Prefer `orientation` — kept for shadcn-style call sites */
-  direction?: "horizontal" | "vertical"
-  orientation?: GroupProps["orientation"]
+type ResizablePanelGroupProps = Omit<PanelGroupProps, "direction"> & {
+  /** @deprecated Prefer `direction` — kept for shadcn-style call sites */
+  direction?: PanelGroupProps["direction"]
+  /** Alias for `direction` */
+  orientation?: PanelGroupProps["direction"]
 }
 
 const ResizablePanelGroup = ({
@@ -22,9 +23,9 @@ const ResizablePanelGroup = ({
   orientation,
   ...props
 }: ResizablePanelGroupProps) => (
-  <Group
+  <PanelGroup
     className={cn("flex h-full w-full", className)}
-    orientation={orientation ?? direction ?? "horizontal"}
+    direction={direction ?? orientation ?? "horizontal"}
     {...props}
   />
 )
@@ -32,13 +33,13 @@ const ResizablePanelGroup = ({
 /** Alias of `Panel` — preserves primitive identity and ref behavior. */
 const ResizablePanel = Panel
 
-type ResizableHandleProps = SeparatorProps & { withHandle?: boolean }
+type ResizableHandleProps = PanelResizeHandleProps & { withHandle?: boolean }
 
 const ResizableHandle = React.forwardRef<
-  React.ComponentRef<typeof Separator>,
+  HTMLDivElement,
   ResizableHandleProps
 >(({ withHandle, className, ...props }, ref) => (
-  <Separator
+  <PanelResizeHandle
     ref={ref}
     className={cn(
       "relative flex items-center justify-center bg-border focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-1",
@@ -56,7 +57,7 @@ const ResizableHandle = React.forwardRef<
         <GripVertical className="h-2.5 w-2.5" />
       </div>
     )}
-  </Separator>
+  </PanelResizeHandle>
 ))
 ResizableHandle.displayName = "ResizableHandle"
 
