@@ -1,9 +1,8 @@
 name: Nightly Node Matrix
 
-# Per-PR CI runs on Node 24.x only (Active LTS) for speed.
-# This nightly job re-runs the test suite on the full supported matrix
-# so we still catch regressions on Node 22.x (Maintenance LTS) without
-# paying for it on every push.
+# Per-PR CI runs on Node 25.x for speed (see ci.yml). This nightly job re-runs
+# the test suite on the supported Node line so regressions still surface without
+# paying for a multi-version matrix on every push.
 
 on:
   schedule:
@@ -22,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [22.x, 24.x]
+        node-version: [25.x]
 
     steps:
     - name: Checkout code

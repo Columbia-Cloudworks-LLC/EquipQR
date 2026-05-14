@@ -28,10 +28,9 @@ permissions:
   checks: write
 
 env:
-  # Node 24 is the current Active LTS (Oct 2025 → Oct 2027). Node 20 reached EOL
-  # in April 2026 and must not be used. See:
-  # https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
-  NODE_VERSION: 24.x
+  # Node 25.x is the supported runtime (aligned with @types/node 25.x). See
+  # https://nodejs.org/en/about/releases/ for the current release line status.
+  NODE_VERSION: 25.x
   CACHE_VERSION: v3
 
 jobs:

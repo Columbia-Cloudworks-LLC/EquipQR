@@ -29,11 +29,11 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       # ── Node / npm ──────────────────────────────────────────────────────────
-      # Node 24 = current Active LTS (Oct 2025 → Oct 2027). Node 20 reached EOL April 2026.
-      - name: Set up Node.js 24
+      # Node 25.x is the supported runtime (aligned with @types/node 25.x).
+      - name: Set up Node.js 25
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
-          node-version: "24"
+          node-version: "25"
           cache: "npm"
 
       - name: Install npm dependencies
