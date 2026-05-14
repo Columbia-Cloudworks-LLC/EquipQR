@@ -5,12 +5,18 @@ import { render, screen } from '@/test/utils/test-utils';
 vi.mock('react-resizable-panels', async () => {
   const React = await import('react');
 
-  const PanelGroup = React.forwardRef<
+  const Group = React.forwardRef<
     HTMLDivElement,
-    React.ComponentPropsWithoutRef<'div'> & { direction?: string }
-  >(function MockPanelGroup({ children, className, ...rest }, ref) {
+    React.ComponentPropsWithoutRef<'div'> & { orientation?: string }
+  >(function MockGroup({ children, className, orientation, ...rest }, ref) {
     return (
-      <div ref={ref} data-testid="mock-resizable-group" className={className} {...rest}>
+      <div
+        ref={ref}
+        data-testid="mock-resizable-group"
+        data-orientation={orientation}
+        className={className}
+        {...rest}
+      >
         {children}
       </div>
     );
@@ -27,13 +33,25 @@ vi.mock('react-resizable-panels', async () => {
     );
   });
 
-  const PanelResizeHandle = React.forwardRef<
-    HTMLDivElement,
-    React.ComponentPropsWithoutRef<'div'>
-  >(function MockPanelResizeHandle({ children, className, ...rest }, ref) {
+  const Separator = ({
+    children,
+    className,
+    elementRef,
+    ...rest
+  }: React.ComponentPropsWithoutRef<'div'> & {
+    elementRef?: React.Ref<HTMLDivElement | null>;
+  }) => {
+    const setRef = (node: HTMLDivElement | null) => {
+      if (typeof elementRef === 'function') {
+        elementRef(node);
+      } else if (elementRef && 'current' in elementRef) {
+        (elementRef as React.MutableRefObject<HTMLDivElement | null>).current =
+          node;
+      }
+    };
     return (
       <div
-        ref={ref}
+        ref={setRef}
         role="separator"
         className={className}
         {...rest}
@@ -41,9 +59,15 @@ vi.mock('react-resizable-panels', async () => {
         {children}
       </div>
     );
+  };
+
+  const useDefaultLayout = () => ({
+    defaultLayout: undefined,
+    onLayoutChange: undefined,
+    onLayoutChanged: undefined as ((layout: Record<string, number>) => void) | undefined,
   });
 
-  return { PanelGroup, Panel, PanelResizeHandle };
+  return { Group, Panel, Separator, useDefaultLayout };
 });
 
 import { Panel } from 'react-resizable-panels';
@@ -58,7 +82,7 @@ describe('resizable', () => {
     expect(ResizablePanel).toBe(Panel);
   });
 
-  it('forwards ref from ResizableHandle to PanelResizeHandle', () => {
+  it('forwards ref from ResizableHandle to Separator via elementRef', () => {
     const handleRef = createRef<HTMLDivElement | null>();
 
     render(
