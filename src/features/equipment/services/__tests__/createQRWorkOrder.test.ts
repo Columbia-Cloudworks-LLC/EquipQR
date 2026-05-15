@@ -124,6 +124,38 @@ describe('createQRWorkOrder', () => {
     );
   });
 
+  it('falls back to equipment default when pmTemplateId is empty string', async () => {
+    await createQRWorkOrder({
+      equipment: equipment({ defaultPmTemplateId: 'default-tpl' }),
+      title: 'PM',
+      description: 'D',
+      priority: 'medium',
+      attachPM: true,
+      pmTemplateId: '',
+    });
+
+    expect(mocks.mockCreatePM).toHaveBeenCalledWith(
+      expect.objectContaining({ templateId: 'default-tpl' })
+    );
+    expect(mocks.mockDelete).not.toHaveBeenCalled();
+  });
+
+  it('falls back to equipment default when pmTemplateId is whitespace-only', async () => {
+    await createQRWorkOrder({
+      equipment: equipment({ defaultPmTemplateId: 'default-tpl' }),
+      title: 'PM',
+      description: 'D',
+      priority: 'medium',
+      attachPM: true,
+      pmTemplateId: '   ',
+    });
+
+    expect(mocks.mockCreatePM).toHaveBeenCalledWith(
+      expect.objectContaining({ templateId: 'default-tpl' })
+    );
+    expect(mocks.mockDelete).not.toHaveBeenCalled();
+  });
+
   it('rolls back the work order when PM cannot be initialized', async () => {
     mocks.mockCreatePM.mockResolvedValue(null);
 

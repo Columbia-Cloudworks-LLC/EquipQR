@@ -72,7 +72,10 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
   if (input.attachPM) {
     let pmError: unknown;
 
-    const resolvedTemplateId = input.pmTemplateId ?? input.equipment.defaultPmTemplateId;
+    const explicitOverride =
+      typeof input.pmTemplateId === 'string' ? input.pmTemplateId.trim() : '';
+    const resolvedTemplateId =
+      explicitOverride.length > 0 ? explicitOverride : input.equipment.defaultPmTemplateId;
 
     if (!resolvedTemplateId) {
       pmError = new Error('Select a PM checklist template to create this work order.');

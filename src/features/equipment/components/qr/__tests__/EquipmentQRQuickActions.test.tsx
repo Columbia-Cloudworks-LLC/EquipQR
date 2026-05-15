@@ -332,6 +332,49 @@ describe('EquipmentQRQuickActions', () => {
     });
   });
 
+  it('still creates a PM work order when recommendation matching fails but templates load', async () => {
+    const user = userEvent.setup();
+    mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
+    mockGetMatchingPmTemplates.mockRejectedValue(new Error('Access denied'));
+    mockCreateWorkOrder.mockResolvedValue({
+      workOrder: {
+        id: 'wo-pm-no-rec',
+        title: 'Preventative maintenance - Forklift 17',
+      } as WorkOrder,
+      creationPhotosAttached: true,
+    } as Awaited<ReturnType<typeof createQRWorkOrder>>);
+
+    renderQuickActions({
+      equipment: {
+        ...baseEquipment,
+        defaultPmTemplateId: null,
+      },
+    });
+
+    await user.click(screen.getByRole('button', { name: /new pm work order/i }));
+    await screen.findByRole('dialog', undefined, { timeout: 5000 });
+
+    expect(await screen.findByText(/recommendations unavailable/i)).toBeInTheDocument();
+
+    const createBtn = screen.getByRole('button', { name: /create work order/i });
+    expect(createBtn).toBeDisabled();
+
+    await user.click(screen.getByLabelText(/pm checklist template/i));
+    await user.click(await screen.findByRole('option', { name: /forklift pm/i }));
+
+    expect(createBtn).not.toBeDisabled();
+    await user.click(createBtn);
+
+    await waitFor(() => {
+      expect(mockCreateWorkOrder).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attachPM: true,
+          pmTemplateId: 'pm-option-1',
+        })
+      );
+    });
+  });
+
   it('passes attached jpeg files through to createQRWorkOrder', async () => {
     const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);

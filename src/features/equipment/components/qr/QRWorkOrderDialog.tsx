@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, Globe, Loader2, Target, Zap } from 'lucide-react';
+import { AlertCircle, Globe, Info, Loader2, Target, Zap } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -108,7 +108,8 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
       ? allSummaries
       : allSummaries.filter(t => !t.organization_id);
 
-    const matchingRows = matchingQuery.data ?? [];
+    const matchingRows = matchingQuery.isError ? [] : (matchingQuery.data ?? []);
+    const matchByTemplateId = new Map(matchingRows.map(row => [row.template_id, row]));
     const matchedIds = new Set(matchingRows.map(m => m.template_id));
 
     const matched: MatchedTemplateSummary[] = [];
@@ -116,7 +117,7 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
 
     for (const template of availableTemplates) {
       if (matchedIds.has(template.id)) {
-        const matchInfo = matchingRows.find(m => m.template_id === template.id);
+        const matchInfo = matchByTemplateId.get(template.id);
         matched.push({
           ...template,
           matchType: matchInfo?.match_type,
@@ -135,7 +136,7 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
     other.sort((a, b) => a.name.localeCompare(b.name));
 
     return { matchedTemplates: matched, otherTemplates: other };
-  }, [needsPmTemplateChoice, templatesQuery.data, matchingQuery.data]);
+  }, [needsPmTemplateChoice, templatesQuery.data, matchingQuery.data, matchingQuery.isError]);
 
   useEffect(() => {
     if (!open) {
@@ -149,19 +150,20 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
     }
   }, [open, needsPmTemplateChoice, equipment.id]);
 
-  const templatesLoading =
-    needsPmTemplateChoice && (templatesQuery.isPending || matchingQuery.isPending);
-  const templatesLoadError =
-    needsPmTemplateChoice && (templatesQuery.isError || matchingQuery.isError);
+  const templatesListLoading = needsPmTemplateChoice && templatesQuery.isPending;
+  const templatesListError = needsPmTemplateChoice && templatesQuery.isError;
+  const matchingRecommendationsError = needsPmTemplateChoice && matchingQuery.isError;
+
   const noTemplatesAvailable =
     needsPmTemplateChoice &&
-    !templatesLoading &&
-    !templatesLoadError &&
+    !templatesListLoading &&
+    !templatesListError &&
     matchedTemplates.length === 0 &&
     otherTemplates.length === 0;
 
   const submitBlockedForPmTemplate =
-    needsPmTemplateChoice && (!pmTemplateId || templatesLoading || templatesLoadError || noTemplatesAvailable);
+    needsPmTemplateChoice &&
+    (!pmTemplateId || templatesListLoading || templatesListError || noTemplatesAvailable);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -182,7 +184,7 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
     }
 
     if (needsPmTemplateChoice) {
-      if (templatesLoadError) {
+      if (templatesListError) {
         setError('Unable to load PM templates. Check your connection and try again.');
         return;
       }
@@ -328,19 +330,19 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
           {needsPmTemplateChoice && (
             <div className="space-y-2">
               <Label htmlFor="qr-pm-template-select">PM checklist template</Label>
-              {templatesLoading && (
+              {templatesListLoading && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Loading templates…
                 </div>
               )}
-              {templatesLoadError && (
+              {templatesListError && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>Could not load PM templates. Try again.</AlertDescription>
                 </Alert>
               )}
-              {noTemplatesAvailable && !templatesLoading && (
+              {noTemplatesAvailable && !templatesListLoading && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
@@ -349,8 +351,17 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
                   </AlertDescription>
                 </Alert>
               )}
-              {!templatesLoading && !templatesLoadError && !noTemplatesAvailable && (
+              {!templatesListLoading && !templatesListError && !noTemplatesAvailable && (
                 <>
+                  {matchingRecommendationsError && (
+                    <div className="flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                      <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                      <span>
+                        Recommendations unavailable. All templates are listed below; pick the checklist that fits this
+                        equipment.
+                      </span>
+                    </div>
+                  )}
                   {matchedTemplates.length > 0 && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Target className="h-3 w-3 text-primary" aria-hidden />
