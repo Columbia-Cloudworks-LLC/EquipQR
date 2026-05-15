@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { describe, expect, it, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@/test/utils/test-utils';
 import EquipmentQRQuickActions from '@/features/equipment/components/qr/EquipmentQRQuickActions';
 import {
@@ -85,6 +85,13 @@ const mockCreateWorkOrder = vi.mocked(createQRWorkOrder);
 const mockUpdateHours = vi.mocked(updateQRWorkingHours);
 const mockCreateNote = vi.mocked(createQREquipmentNote);
 
+const POINTER_CAPTURE_KEYS = ['hasPointerCapture', 'setPointerCapture', 'releasePointerCapture'] as const;
+
+/** Snapshot real jsdom/native descriptors once; restore after each test to avoid pollution. */
+const originalPointerCaptureDescriptors: Partial<
+  Record<(typeof POINTER_CAPTURE_KEYS)[number], PropertyDescriptor | undefined>
+> = {};
+
 const baseEquipment = {
   id: 'equipment-1',
   name: 'Forklift 17',
@@ -106,6 +113,12 @@ function renderQuickActions(overrides?: Partial<React.ComponentProps<typeof Equi
 }
 
 describe('EquipmentQRQuickActions', () => {
+  beforeAll(() => {
+    for (const key of POINTER_CAPTURE_KEYS) {
+      originalPointerCaptureDescriptors[key] = Object.getOwnPropertyDescriptor(Element.prototype, key);
+    }
+  });
+
   beforeEach(() => {
     // Radix Select expects Pointer Capture APIs; jsdom does not implement them.
     Object.defineProperty(Element.prototype, 'hasPointerCapture', {
@@ -142,9 +155,15 @@ describe('EquipmentQRQuickActions', () => {
   });
 
   afterEach(() => {
-    delete (Element.prototype as unknown as { hasPointerCapture?: unknown }).hasPointerCapture;
-    delete (Element.prototype as unknown as { setPointerCapture?: unknown }).setPointerCapture;
-    delete (Element.prototype as unknown as { releasePointerCapture?: unknown }).releasePointerCapture;
+    const proto = Element.prototype as unknown as Record<string, unknown>;
+    for (const key of POINTER_CAPTURE_KEYS) {
+      const descriptor = originalPointerCaptureDescriptors[key];
+      if (descriptor) {
+        Object.defineProperty(Element.prototype, key, descriptor);
+      } else {
+        delete proto[key];
+      }
+    }
   });
 
   it('denies work order and note actions when the user is only a team viewer', async () => {

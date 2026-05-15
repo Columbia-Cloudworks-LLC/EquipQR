@@ -155,30 +155,46 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     return prioritized[0].id;
   }, []);
 
-  // Synchronization monitoring and recovery
+  // Synchronization monitoring and recovery — session org is authoritative when it diverges
+  // from equipqr_current_organization (e.g. QR redirect switched session without updating this key).
   const syncWithSession = useCallback(() => {
     if (!sessionContext?.sessionData?.currentOrganizationId || !currentOrganizationId) {
-      return; // Don't sync if either context is not ready
+      return;
     }
 
     const sessionOrgId = sessionContext.sessionData.currentOrganizationId;
-    
+
     if (sessionOrgId !== currentOrganizationId) {
       setSyncWarningCount(prev => prev + 1);
-      const syncAttemptKey = `${currentOrganizationId}->${sessionOrgId}`;
+
+      const sessionOrgKnown =
+        organizations.length > 0 &&
+        organizations.some(org => org.id === sessionOrgId);
+
+      const syncAttemptKey = `follow-session:${sessionOrgId}`;
       if (
-        lastMismatchSyncAttemptRef.current !== syncAttemptKey &&
-        typeof sessionContext?.switchOrganization === 'function'
+        sessionOrgKnown &&
+        lastMismatchSyncAttemptRef.current !== syncAttemptKey
       ) {
         lastMismatchSyncAttemptRef.current = syncAttemptKey;
-        sessionContext.switchOrganization(currentOrganizationId);
+        setCurrentOrganizationId(sessionOrgId);
+        try {
+          localStorage.setItem(CURRENT_ORG_STORAGE_KEY, sessionOrgId);
+        } catch (error) {
+          logger.warn('Failed to save current organization to storage', error);
+          lastMismatchSyncAttemptRef.current = null;
+        }
       }
     } else if (syncWarningCount > 0) {
-      // Reset warning count when sync is restored
       setSyncWarningCount(0);
       lastMismatchSyncAttemptRef.current = null;
     }
-  }, [sessionContext, currentOrganizationId, syncWarningCount]);
+  }, [
+    sessionContext,
+    currentOrganizationId,
+    syncWarningCount,
+    organizations,
+  ]);
 
   // Auto-select prioritized organization if none selected and organizations are available
   useEffect(() => {
@@ -252,7 +268,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     if (sessionContext?.switchOrganization) {
       sessionContext.switchOrganization(organizationId);
     }
-  }, [setCurrentOrganization, sessionContext, currentOrganizationId]);
+  }, [setCurrentOrganization, sessionContext]);
 
   // Derive currentOrganization from currentOrganizationId + organizations
   // instead of storing it in separate state (avoids extra renders and state drift)

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Globe, Info, Loader2, Target, Zap } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -31,16 +31,13 @@ import {
 } from '@/features/equipment/services/equipmentQRPermissions';
 import { createQRWorkOrder } from '@/features/equipment/services/equipmentQRActionService';
 import { logger } from '@/utils/logger';
-import { pmTemplates, pmTemplateMatching, workOrders, workOrderMetrics } from '@/lib/queryKeys';
+import { workOrders, workOrderMetrics } from '@/lib/queryKeys';
 import WorkOrderCreationPhotoPicker from '@/features/work-orders/components/WorkOrderCreationPhotoPicker';
 import { OFFLINE_CREATION_PHOTOS_MESSAGE } from '@/features/work-orders/utils/workOrderCreationImages';
 import { toast } from 'sonner';
-import {
-  pmChecklistTemplatesService,
-  templateToSummary,
-  type PMTemplateSummary,
-} from '@/features/pm-templates/services/pmChecklistTemplatesService';
-import { getMatchingTemplatesForEquipment } from '@/features/pm-templates/services/pmTemplateCompatibilityRulesService';
+import { templateToSummary, type PMTemplateSummary } from '@/features/pm-templates/services/pmChecklistTemplatesService';
+import { usePMTemplatesForOrganization } from '@/features/pm-templates/hooks/usePMTemplates';
+import { useMatchingPMTemplatesForEquipment } from '@/features/pm-templates/hooks/usePMTemplateCompatibility';
 import { getSimplifiedOrganizationRestrictions } from '@/utils/simplifiedOrganizationRestrictions';
 
 interface QRWorkOrderDialogProps {
@@ -83,19 +80,21 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
   const [pmTemplateId, setPmTemplateId] = useState('');
   const queryClient = useQueryClient();
 
-  const templatesQuery = useQuery({
-    queryKey: pmTemplates.list(equipment.organizationId),
-    queryFn: () => pmChecklistTemplatesService.listTemplates(equipment.organizationId),
+  const templatesQuery = usePMTemplatesForOrganization(equipment.organizationId, {
     enabled: open && needsPmTemplateChoice,
     staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
   });
 
-  const matchingQuery = useQuery({
-    queryKey: pmTemplateMatching.forEquipment(equipment.organizationId, equipment.id),
-    queryFn: () => getMatchingTemplatesForEquipment(equipment.organizationId, equipment.id),
-    enabled: open && needsPmTemplateChoice,
-    staleTime: 10 * 60 * 1000,
-  });
+  const matchingQuery = useMatchingPMTemplatesForEquipment(
+    equipment.organizationId,
+    equipment.id,
+    {
+      enabled: open && needsPmTemplateChoice,
+      staleTime: 10 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
+    }
+  );
 
   const { matchedTemplates, otherTemplates } = useMemo(() => {
     if (!needsPmTemplateChoice || !templatesQuery.data) {
