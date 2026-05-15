@@ -1,16 +1,23 @@
 version: 2
 updates:
-  # Weekly dependency PRs; majors arrive as standalone PRs (default behavior).
+  # Monthly dependency PRs (coarse delay buffer vs. immediate uptake of fresh releases).
+  # Not publish-age enforcement — versions may still be newer than one week when PRs open.
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+      day: monday
+      time: "09:00"
+      timezone: America/Chicago
     open-pull-requests-limit: 15
     target-branch: preview
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+      day: monday
+      time: "09:00"
+      timezone: America/Chicago
     open-pull-requests-limit: 10
     target-branch: preview
