@@ -5,8 +5,8 @@
  * friendliness on small datasets.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FixedSizeList as VirtualList } from 'react-window';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { List, useListRef, type RowComponentProps } from 'react-window';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
@@ -52,13 +52,55 @@ interface RowProps {
   selected: boolean;
   onClick: () => void;
   createdAtLabel: string;
+  /** When false, omit listbox option role (parent virtual row owns `role="option"`). */
+  rootRole?: 'option' | false;
 }
 
-function AuditListRow({ entry, selected, onClick, createdAtLabel }: RowProps) {
+type AuditVirtualRowProps = {
+  entries: FormattedAuditEntry[];
+  selectedId?: string | null;
+  formatDateTime: (iso: string) => string;
+  onSelect: (entry: FormattedAuditEntry) => void;
+};
+
+function AuditVirtualRow({
+  index,
+  style,
+  entries,
+  selectedId,
+  formatDateTime,
+  onSelect,
+}: RowComponentProps<AuditVirtualRowProps>) {
+  const entry = entries[index];
+  if (!entry) return null;
   return (
     <div
+      style={style}
       role="option"
-      aria-selected={selected}
+      aria-selected={entry.id === selectedId}
+    >
+      <AuditListRow
+        entry={entry}
+        selected={entry.id === selectedId}
+        onClick={() => onSelect(entry)}
+        createdAtLabel={formatDateTime(entry.created_at)}
+        rootRole={false}
+      />
+    </div>
+  );
+}
+
+function AuditListRow({
+  entry,
+  selected,
+  onClick,
+  createdAtLabel,
+  rootRole = 'option',
+}: RowProps) {
+  return (
+    <div
+      role={rootRole === false ? undefined : rootRole}
+      aria-selected={rootRole === false ? undefined : selected}
       data-testid="audit-log-list-row"
       onClick={onClick}
       className={cn(
@@ -123,16 +165,26 @@ export function AuditLogList({
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<React.ComponentRef<typeof VirtualList>>(null);
+  const listRef = useListRef();
   const [containerWidth, setContainerWidth] = useState(0);
 
   const scrollVirtualToIndex = useCallback(
     (index: number) => {
       if (entries.length >= VIRTUALIZATION_THRESHOLD) {
-        listRef.current?.scrollToItem(index, 'smart');
+        listRef.current?.scrollToRow({ index, align: 'smart' });
       }
     },
-    [entries.length]
+    [entries.length, listRef]
+  );
+
+  const auditRowProps: AuditVirtualRowProps = useMemo(
+    () => ({
+      entries,
+      selectedId,
+      formatDateTime,
+      onSelect,
+    }),
+    [entries, selectedId, formatDateTime, onSelect]
   );
 
   useEffect(() => {
@@ -232,24 +284,14 @@ export function AuditLogList({
       data-testid="audit-log-list-virtual"
       className="focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
     >
-      <VirtualList
-        ref={listRef}
-        height={height}
-        width={containerWidth || 800}
-        itemCount={entries.length}
-        itemSize={ROW_HEIGHT}
-      >
-        {({ index, style }) => (
-          <div style={style}>
-            <AuditListRow
-              entry={entries[index]}
-              selected={entries[index].id === selectedId}
-              onClick={() => onSelect(entries[index])}
-              createdAtLabel={formatDateTime(entries[index].created_at)}
-            />
-          </div>
-        )}
-      </VirtualList>
+      <List
+        listRef={listRef}
+        rowComponent={AuditVirtualRow}
+        rowCount={entries.length}
+        rowHeight={ROW_HEIGHT}
+        rowProps={auditRowProps}
+        style={{ height, width: containerWidth || 800 }}
+      />
     </div>
   );
 }

@@ -15,17 +15,21 @@ on:
       - '**/*.md'
       - 'docs/**'
       - '.github/**/*.md'
+  workflow_dispatch:
 
 permissions:
+  # CodeQL init/analyze gathers workflow-run telemetry via the Actions API; without
+  # this scope the run fails with "Resource not accessible by integration" on
+  # GET /repos/.../actions/runs/{run_id} (see Security Scan job).
+  actions: read
   contents: read
   security-events: write
   pull-requests: write
   checks: write
 
 env:
-  # Node 24 is the current Active LTS (Oct 2025 → Oct 2027). Node 20 reached EOL
-  # in April 2026 and must not be used. See:
-  # https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+  # Node 24.x LTS is the supported runtime (aligned with @types/node 24.x). See
+  # https://nodejs.org/en/about/releases/ for the current release line status.
   NODE_VERSION: 24.x
   CACHE_VERSION: v3
 
@@ -40,16 +44,16 @@ jobs:
       pull-requests: read
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
     - name: Setup Node.js
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
 
     - name: Cache dependencies
-      uses: actions/cache@v5
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       with:
         path: |
           ~/.npm
@@ -117,7 +121,7 @@ jobs:
       continue-on-error: true
 
     - name: Annotate ESLint Results
-      uses: ataylorme/eslint-annotate-action@v4
+      uses: ataylorme/eslint-annotate-action@5a8d8ab89a57679e90c32750e0f382e9d8570750
       if: always()
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -142,16 +146,16 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
     - name: Setup Node.js ${{ env.NODE_VERSION }}
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
 
     - name: Cache dependencies
-      uses: actions/cache@v5
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       with:
         path: |
           ~/.npm
@@ -161,7 +165,7 @@ jobs:
           ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ env.CACHE_VERSION }}-
 
     - name: Cache Vite/SWC transform output
-      uses: actions/cache@v5
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       with:
         path: |
           node_modules/.vite
@@ -192,7 +196,7 @@ jobs:
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
     - name: Upload shard coverage
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with:
         name: coverage-shard-${{ matrix.shard }}
         path: |
@@ -210,16 +214,16 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
     - name: Setup Node.js
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
 
     - name: Cache dependencies
-      uses: actions/cache@v5
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       with:
         path: |
           ~/.npm
@@ -235,7 +239,7 @@ jobs:
         npm ci --prefer-offline --no-audit || (rm -f package-lock.json && npm install --package-lock-only --no-audit && npm ci --prefer-offline --no-audit)
 
     - name: Download shard coverage artifacts
-      uses: actions/download-artifact@v8
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
       with:
         path: coverage-shards
         pattern: coverage-shard-*
@@ -248,7 +252,7 @@ jobs:
       run: node scripts/coverage-ratchet.mjs
 
     - name: Upload merged coverage to Codecov
-      uses: codecov/codecov-action@v6
+      uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2
       with:
         files: ./coverage/lcov.info
         flags: unittests
@@ -258,7 +262,7 @@ jobs:
 
     - name: Upload merged coverage artifact for PR report
       if: github.event_name == 'pull_request'
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with:
         name: coverage-report
         path: |
@@ -278,16 +282,16 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
     - name: Download coverage artifacts
-      uses: actions/download-artifact@v8
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
       with:
         name: coverage-report
         path: coverage
 
     - name: Post coverage report
-      uses: davelosert/vitest-coverage-report-action@v2
+      uses: davelosert/vitest-coverage-report-action@02f3c2e641286b7fa308cd3e430783103ce6103b
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         json-summary-path: coverage/coverage-summary.json
@@ -302,16 +306,16 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
     - name: Setup Node.js
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
 
     - name: Cache dependencies
-      uses: actions/cache@v5
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       with:
         path: |
           ~/.npm
@@ -337,13 +341,13 @@ jobs:
       continue-on-error: true
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4
+      uses: github/codeql-action/init@68bde559dea0fdcac2102bfdf6230c5f70eb485e
       with:
         languages: javascript
         queries: security-and-quality
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v4
+      uses: github/codeql-action/analyze@68bde559dea0fdcac2102bfdf6230c5f70eb485e
       with:
         category: "/language:javascript"
 
@@ -355,16 +359,16 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
     - name: Setup Node.js
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
 
     - name: Cache dependencies
-      uses: actions/cache@v5
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       with:
         path: |
           ~/.npm
@@ -374,7 +378,7 @@ jobs:
           ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ env.CACHE_VERSION }}-
 
     - name: Cache Vite build output
-      uses: actions/cache@v5
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       with:
         path: |
           node_modules/.vite
@@ -438,7 +442,7 @@ jobs:
         install_with_retry || (rm -f package-lock.json && npm install --package-lock-only --no-audit && install_with_retry)
 
     - name: Cache build output
-      uses: actions/cache@v5
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       with:
         path: dist
         key: ${{ runner.os }}-build-${{ github.sha }}
@@ -511,7 +515,7 @@ jobs:
       timeout-minutes: 5
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with:
         name: build-files
         path: dist/
@@ -525,16 +529,16 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
     - name: Setup Node.js
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
 
     - name: Cache dependencies
-      uses: actions/cache@v5
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       with:
         path: |
           ~/.npm
@@ -582,7 +586,7 @@ jobs:
         npm ci --prefer-offline --no-audit || (rm -f package-lock.json && npm install --package-lock-only --no-audit && npm ci --prefer-offline --no-audit)
 
     - name: Restore build cache
-      uses: actions/cache@v5
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       with:
         path: dist
         key: ${{ runner.os }}-build-${{ github.sha }}

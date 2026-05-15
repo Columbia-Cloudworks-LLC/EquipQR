@@ -20,36 +20,73 @@ vi.mock('@/hooks/useUserSettings', () => ({
   }),
 }));
 
-const { mockScrollToItem } = vi.hoisted(() => ({
-  mockScrollToItem: vi.fn(),
+const { mockScrollToRow } = vi.hoisted(() => ({
+  mockScrollToRow: vi.fn(),
 }));
 
-// react-window's FixedSizeList renders absolutely positioned children inside a
+// react-window's List renders absolutely positioned children inside a
 // scrollable container. In a JSDOM env it cannot calculate layout, so it
 // commonly omits items. Stub it so the virtual-path test can still observe a
 // list render.
 vi.mock('react-window', () => ({
-  FixedSizeList: React.forwardRef(function MockFixedSizeList(
-    {
-      itemCount,
-      children,
-    }: {
-      itemCount: number;
-      children: (props: { index: number; style: React.CSSProperties }) => React.ReactNode;
-    },
-    ref: React.Ref<{ scrollToItem: (...args: unknown[]) => void }>
-  ) {
-    React.useImperativeHandle(ref, () => ({
-      scrollToItem: mockScrollToItem,
-    }));
+  List({
+    rowComponent: Row,
+    rowCount,
+    rowHeight,
+    rowProps,
+    listRef,
+    style,
+  }: {
+    rowComponent: React.ComponentType<
+      Record<string, unknown> & {
+        index: number;
+        style: React.CSSProperties;
+        ariaAttributes: {
+          role: 'listitem';
+          'aria-posinset': number;
+          'aria-setsize': number;
+        };
+      }
+    >;
+    rowCount: number;
+    rowHeight: number;
+    rowProps: Record<string, unknown>;
+    listRef?: React.MutableRefObject<{
+      scrollToRow: (config: { index: number; align?: string }) => void;
+    } | null>;
+    style?: React.CSSProperties;
+  }) {
+    React.useLayoutEffect(() => {
+      if (listRef) {
+        listRef.current = {
+          scrollToRow: mockScrollToRow,
+          get element() {
+            return null;
+          },
+        };
+      }
+    }, [listRef]);
+    const rh = typeof rowHeight === 'number' ? rowHeight : 36;
     return (
-      <div data-testid="virtual-list-stub" data-item-count={itemCount}>
-        {Array.from({ length: itemCount }, (_, index) => (
-          <React.Fragment key={index}>{children({ index, style: { height: 36 } })}</React.Fragment>
+      <div data-testid="virtual-list-stub" data-row-count={rowCount} style={style}>
+        {Array.from({ length: rowCount }, (_, index) => (
+          <React.Fragment key={index}>
+            <Row
+              index={index}
+              style={{ height: rh }}
+              ariaAttributes={{
+                role: 'listitem',
+                'aria-posinset': index + 1,
+                'aria-setsize': rowCount,
+              }}
+              {...rowProps}
+            />
+          </React.Fragment>
         ))}
       </div>
     );
-  }),
+  },
+  useListRef: () => React.useRef(null),
 }));
 
 function makeEntry(
@@ -81,7 +118,7 @@ function makeEntry(
 
 describe('AuditLogList', () => {
   beforeEach(() => {
-    mockScrollToItem.mockClear();
+    mockScrollToRow.mockClear();
   });
 
   it('formats created_at in the user timezone (Australia/Sydney fixture)', () => {
@@ -143,6 +180,18 @@ describe('AuditLogList', () => {
     expect(screen.queryByTestId('audit-log-list-static')).not.toBeInTheDocument();
   });
 
+  it('virtual rows use listbox option semantics (no react-window listitem role bleed)', () => {
+    const entries = Array.from({ length: VIRTUALIZATION_THRESHOLD }, (_, i) =>
+      makeEntry(String(i))
+    );
+    render(<AuditLogList entries={entries} onSelect={() => {}} height={400} />);
+
+    const listbox = screen.getByRole('listbox');
+    const options = screen.getAllByRole('option');
+    expect(options.length).toBeGreaterThan(0);
+    expect(listbox.querySelectorAll('[role="listitem"]')).toHaveLength(0);
+  });
+
   it('moves selection on ArrowDown / ArrowUp / Enter', () => {
     const entries = [makeEntry('a'), makeEntry('b'), makeEntry('c')];
     const onSelect = vi.fn();
@@ -185,7 +234,7 @@ describe('AuditLogList', () => {
 
     const listbox = screen.getByRole('listbox');
     fireEvent.keyDown(listbox, { key: 'ArrowDown' });
-    expect(mockScrollToItem).toHaveBeenCalledWith(1, 'smart');
+    expect(mockScrollToRow).toHaveBeenCalledWith({ index: 1, align: 'smart' });
   });
 
   it('renders the empty state when there are no entries', () => {

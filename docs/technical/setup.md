@@ -27,6 +27,11 @@ If you have access to the EquipQR 1Password environments, use `dev-start.bat` as
 # Optional: verify 1Password CLI is available
 op --version
 
+# Optional (Cursor agents / headless terminals): set User-scope OP_SERVICE_ACCOUNT_TOKEN
+# for the read-only op-svc-equipqr-agents service account, then refresh in-session:
+#   $env:OP_SERVICE_ACCOUNT_TOKEN = [Environment]::GetEnvironmentVariable('OP_SERVICE_ACCOUNT_TOKEN', 'User')
+# Never echo the token. See AGENTS.md and .cursor/skills/toolbelt/SKILL.md.
+
 # Start local stack + sync env files from 1Password early in startup
 .\dev-start.bat
 
@@ -181,7 +186,7 @@ Before you begin, ensure you have the following installed on your development ma
 
 ### Required Software
 
-- **Node.js** — must satisfy `engines.node` in the root [`package.json`](../../package.json) (currently **Node 20.17+** or **22.9+**). We recommend the latest **22.x** LTS for local development. [Download here](https://nodejs.org/)
+- **Node.js** — must satisfy `engines.node` in the root [`package.json`](../../package.json) (currently **Node 24.x LTS**). We recommend the latest **24.x** LTS release for local development. [Download here](https://nodejs.org/)
 - **npm** (comes with Node.js) - We use npm exclusively (no yarn/pnpm/bun)
 - **Docker Desktop** — required for local Supabase ([download here](https://www.docker.com/products/docker-desktop)); `dev-start.ps1` checks `docker` on `PATH` and that the daemon is reachable
 - **Git** - [Download here](https://git-scm.com/)

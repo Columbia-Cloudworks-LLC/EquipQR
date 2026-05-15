@@ -346,7 +346,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment, as
 
   const handleFieldUpdate = async (field: keyof Equipment, value: string) => {
     try {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         logger.debug(`Updating equipment field`, { field: String(field), value });
       }
       // Apply business rules (e.g., clearing work order ID when last_maintenance changes)
@@ -365,7 +365,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment, as
 
   const handleCustomAttributesUpdate = async (newAttributes: Record<string, string>) => {
     try {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         logger.debug('Updating custom attributes', { newAttributes });
       }
       await updateEquipmentMutation.mutateAsync({
@@ -392,7 +392,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment, as
   const handleTeamAssignment = async (teamId: string) => {
     try {
       const teamValue = teamId === 'unassigned' ? null : teamId;
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         logger.debug('Updating team assignment', { teamValue });
       }
       await updateEquipmentMutation.mutateAsync({
@@ -423,7 +423,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment, as
   const handlePMTemplateAssignment = async (templateId: string) => {
     try {
       const templateValue = templateId === 'none' ? null : templateId;
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         logger.debug('Updating PM template assignment', { templateValue });
       }
       await updateEquipmentMutation.mutateAsync({
@@ -453,7 +453,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment, as
   };
 
   // Debug logging
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     logger.debug('Equipment data snapshot', {
       serial_number: equipment.serial_number,
       installation_date: equipment.installation_date,
