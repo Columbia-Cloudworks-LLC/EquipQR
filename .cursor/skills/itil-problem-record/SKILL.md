@@ -17,7 +17,7 @@ This repository treats ITIL roles as follows:
 |---|---|
 | Incident Record | A GitHub Issue — preferably one already documented via [`itil-incident-record`](../itil-incident-record/SKILL.md) (production-verified reproduction + cross-system evidence). Raw reporter-only issues are accepted but the Problem Record is more rigorous when an Incident Record already exists. |
 | Problem Record | The output of **this** skill — root cause + reproduction posted on the issue and in chat |
-| Change Record | The output of [`itil-change-record`](../itil-change-record/SKILL.md) — the implementation plan, in Plan mode, awaiting user approval |
+| Change Record | The output of [`itil-change-record`](../itil-change-record/SKILL.md) — implementation plan drafted in Plan mode after pre-plan triage, awaiting user approval |
 | Change Implementation | What runs after the user approves the Change Record ("clicks build") |
 
 This skill produces the **Problem Record only**. It does **not** plan the fix and does **not** modify production code. Its output is the documented authorization the user needs before invoking `itil-change-record`.

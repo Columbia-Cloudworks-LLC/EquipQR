@@ -1,6 +1,6 @@
 ---
 name: itil-service-request
-description: Mandates an ITIL-style Service Request for exactly ONE GitHub issue (a feature request, enhancement, or capability gap) in EquipQR — the agent reads the issue, researches the cost (in dollars only, never time or effort) and feasibility of the requested feature, and when warranted scans the market for similar implementations to model the build on (preferring open-source projects). The agent makes NO code changes; it produces a Service Request comment on the issue and prints it in chat as the authorization context for a subsequent itil-change-record (which plans implementation; after approval, issue-tied work lands on preview via an issue branch and PR into preview in linked worktrees per branching.mdc rule 8, with the issue treated as fixed once integrated into preview). Includes research-driven sections — Short Description, Description, Scope, External Dependencies, Potential Costs, Market Viability, Examples, and Vendor-side Setup Procedures (researched click-by-click steps for every vendor dashboard action the request implies, with "could not confirm" callouts when a feature can't be verified live). Use whenever the user asks the agent to "evaluate", "scope the cost of", "research", "draft a service request for", "look at this feature request", or "is this feasible" against a GitHub issue tagged feature / enhancement / chore-with-vendor-cost, references an issue number (#NNN) or issue URL framed as a feature ask, or starts the ITIL flow on a non-bug request. One prompt, one issue, one Service Request.
+description: Mandates an ITIL-style Service Request for exactly ONE GitHub issue (a feature request, enhancement, or capability gap) in EquipQR — the agent reads the issue, researches the cost (in dollars only, never time or effort) and feasibility of the requested feature, and when warranted scans the market for similar implementations to model the build on (preferring open-source projects). The agent makes NO code changes; it produces a Service Request comment on the issue and prints it in chat as the authorization context for a subsequent itil-change-record (which plans implementation; after approval, post-approval execution follows that skill — issue-tied work uses a branch off origin/preview, a PR into preview, and closure when merged into preview). Includes research-driven sections — Short Description, Description, Scope, External Dependencies, Potential Costs, Market Viability, Examples, and Vendor-side Setup Procedures (researched click-by-click steps for every vendor dashboard action the request implies, with "could not confirm" callouts when a feature can't be verified live). Use whenever the user asks the agent to "evaluate", "scope the cost of", "research", "draft a service request for", "look at this feature request", or "is this feasible" against a GitHub issue tagged feature / enhancement / chore-with-vendor-cost, references an issue number (#NNN) or issue URL framed as a feature ask, or starts the ITIL flow on a non-bug request. One prompt, one issue, one Service Request.
 ---
 
 # ITIL Service Request (EquipQR)
@@ -18,8 +18,8 @@ This repository treats ITIL roles as follows:
 | Incident Record | A GitHub Issue reporting a bug / regression / defect |
 | Problem Record | Output of [`itil-problem-record`](../itil-problem-record/SKILL.md) — root cause + reproduction posted on a bug issue |
 | **Service Request** | **Output of *this* skill** — feasibility, cost, and market evaluation of a feature / enhancement issue |
-| Change Record | Output of [`itil-change-record`](../itil-change-record/SKILL.md) — the implementation plan, in Plan mode, awaiting user approval |
-| Change Implementation | What runs after the user approves the Change Record ("clicks build") — implementation uses a branch off `origin/preview`, push, and (in linked worktrees per [branching rule](../../rules/branching.mdc) rule 8) a PR into `preview`; the issue is **fixed** once the change is **integrated into `preview`** (PR merged, or authorized direct push to `preview` on the main-worktree fast path). |
+| Change Record | Output of [`itil-change-record`](../itil-change-record/SKILL.md) — implementation plan drafted in Plan mode after pre-plan triage, awaiting user approval |
+| Change Implementation | What runs after the user approves the Change Record ("clicks build") — post-approval execution is defined in [`itil-change-record`](../itil-change-record/SKILL.md): issue-tied work uses a branch off `origin/preview`, **always** opens a **PR into `preview`**, and treats the issue as **fixed** only when that **PR merges into `preview`**. |
 
 A bug issue runs `itil-problem-record` → `itil-change-record`. A **feature** / **enhancement** / **vendor-cost** issue runs **`itil-service-request` → `itil-change-record`**. The Service Request answers: *"Is this worth building, what will it cost in dollars, and how have others done it well?"* It does **not** plan the implementation — that is the Change Record's job. This skill also does **not** create branches or PRs; it only sets context for the downstream Change Record and implementation workflow above.
 
@@ -31,7 +31,7 @@ For **this repository only**, when the user asks the agent to evaluate or scope 
 2. Research the request — never fabricate cost numbers, never invent vendor names, never guess pricing.
 3. Produce the Service Request using the **exact** structure below.
 4. Post it as a comment on the GitHub issue **and** print it in chat.
-5. **Stop** after posting. Do not draft the Change Record, do not branch, do not open PRs, do not modify code — that is `itil-change-record`'s job (and post-approval execution there), which will follow [branching rule](../../rules/branching.mdc) rule 8 for branch / PR / push to `preview`.
+5. **Stop** after posting. Do not draft the Change Record, do not branch, do not open PRs, do not modify code — that is `itil-change-record`'s job (and post-approval execution there), which follows that skill's **Branch & Commit Plan** together with [branching rule](../../rules/branching.mdc) (issue-tied paths require a PR into `preview` under `itil-change-record`).
 
 ## One prompt, one issue, one Service Request
 
@@ -277,7 +277,7 @@ End with a final subsection "I. Vendor-side actions that this Service Request do
 ## Recommended Next Step
 
 [One of:
-- **Proceed to Change Record** — request is feasible, costs are bounded and acceptable, examples exist. Recommend the user invoke `itil-change-record` next. After approval, implementation will use branch `<type>/issue-<number>-<kebab-slug>` off `origin/preview`, push, and (in linked worktrees under `~/.cursor/worktrees/EquipQR/`) open a PR into `preview` per [branching rule](../../rules/branching.mdc) rule 8; treat the issue as **fixed** only after that PR merges into `preview` (or after the authorized main-worktree direct-push path lands on `preview`).
+- **Proceed to Change Record** — request is feasible, costs are bounded and acceptable, examples exist. Recommend the user invoke `itil-change-record` next. After approval, implementation follows that skill: branch `<type>/issue-<number>-<kebab-slug>` off `origin/preview`, push, **open a PR into `preview`** (mandatory for issue-tied work, including main worktree), and treat the issue as **fixed** only when that **PR merges into `preview`**.
 - **Proceed to Change Record with conditions** — feasible but requires the user to (a) approve the recurring cost, (b) sign a vendor contract, (c) provision keys in Vercel + Supabase before build. List the conditions. Same downstream integration path as **Proceed to Change Record** once those conditions are met.
 - **Return to reporter** — request is too vague to scope; list the exact clarifications needed.
 - **Decline** — request is infeasible against the current stack or market viability is too weak to justify the cost. Explain succinctly.]
@@ -288,7 +288,7 @@ End with a final subsection "I. Vendor-side actions that this Service Request do
 
 ## Authorization to Proceed
 
-Status: **Awaiting user approval to draft the Change Record (or to take the recommended alternative action above).** Approving the Change Record path implies the subsequent implementation will track the issue on a branch and integrate into `preview` per [branching rule](../../rules/branching.mdc) rule 8 — this Service Request itself performs no git or PR actions.
+Status: **Awaiting user approval to draft the Change Record (or to take the recommended alternative action above).** Approving the Change Record path implies the subsequent implementation will follow [`itil-change-record`](../itil-change-record/SKILL.md) — issue-tied work tracks the issue on a branch and **opens a PR into `preview`** — this Service Request itself performs no git or PR actions.
 ```
 
 ### Step 8 — Post the Service Request
@@ -323,7 +323,7 @@ Treat the user's response strictly: only an explicit button selection moves to t
 
 ## Strict guardrails
 
-- **Read-only on code.** This skill must not modify production code, run migrations, create branches, push branches, or open PRs. Discovery (Grep / Glob / Read) is allowed; edits are not. Downstream `itil-change-record` post-approval execution owns branch / PR / integration to `preview` per [branching rule](../../rules/branching.mdc) rule 8.
+- **Read-only on code.** This skill must not modify production code, run migrations, create branches, push branches, or open PRs. Discovery (Grep / Glob / Read) is allowed; edits are not. Downstream `itil-change-record` post-approval execution owns branch / PR / integration to `preview` per that skill (issue-tied: always PR into `preview`) and [branching rule](../../rules/branching.mdc).
 - **No engineering-effort estimates.** Cost = dollars only, per the user's explicit direction. Never estimate hours, days, story points, sprints, or "level of effort." If a vendor's cost depends on usage you cannot estimate, write a sensitivity range and cite the rate, not a guess at duration.
 - **No fabricated pricing.** Every dollar figure in **Potential Costs** must trace to a live URL pulled this session via `firecrawl`, with the date noted. If pricing is hidden behind "Contact Sales", say so — do not invent a number.
 - **No fabricated vendors.** If you cannot name a real product on a real URL, do not name one. The Service Request is a research artifact; its credibility is the only thing it has.
