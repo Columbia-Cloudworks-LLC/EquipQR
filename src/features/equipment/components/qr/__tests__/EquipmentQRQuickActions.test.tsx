@@ -1,6 +1,7 @@
 import React from 'react';
+import { fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@/test/utils/test-utils';
 import EquipmentQRQuickActions from '@/features/equipment/components/qr/EquipmentQRQuickActions';
 import {
@@ -330,6 +331,75 @@ describe('EquipmentQRQuickActions', () => {
         })
       );
     });
+  });
+
+  it('blocks submit with a loading message when PM templates are still loading', async () => {
+    const user = userEvent.setup();
+    mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
+    mockListPmTemplates.mockImplementation(() => new Promise(() => {}));
+
+    renderQuickActions({
+      equipment: {
+        ...baseEquipment,
+        defaultPmTemplateId: null,
+      },
+    });
+
+    await user.click(screen.getByRole('button', { name: /new pm work order/i }));
+    await screen.findByRole('dialog', undefined, { timeout: 5000 });
+
+    expect(screen.queryByLabelText(/pm checklist template/i)).not.toBeInTheDocument();
+    expect(await screen.findByText(/loading templates/i)).toBeInTheDocument();
+
+    const form = screen.getByRole('dialog').querySelector('form');
+    expect(form).toBeTruthy();
+    fireEvent.submit(form as HTMLFormElement);
+
+    expect(
+      await screen.findByText(/templates are still loading\. please wait a moment and try again\./i),
+    ).toBeInTheDocument();
+    expect(mockCreateWorkOrder).not.toHaveBeenCalled();
+  });
+
+  it('renders PM checklist template label only after templates load', async () => {
+    const user = userEvent.setup();
+    let resolveList: (value: unknown) => void = () => {};
+    const listPromise = new Promise(resolve => {
+      resolveList = resolve;
+    });
+    mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
+    mockListPmTemplates.mockImplementation(() => listPromise as Promise<unknown>);
+
+    renderQuickActions({
+      equipment: {
+        ...baseEquipment,
+        defaultPmTemplateId: null,
+      },
+    });
+
+    await user.click(screen.getByRole('button', { name: /new pm work order/i }));
+    await screen.findByRole('dialog', undefined, { timeout: 5000 });
+
+    expect(screen.queryByLabelText(/pm checklist template/i)).not.toBeInTheDocument();
+
+    resolveList([
+      {
+        id: 'pm-option-1',
+        organization_id: null,
+        name: 'Forklift PM',
+        description: null,
+        is_protected: false,
+        template_data: [],
+        interval_value: null,
+        interval_type: null,
+        created_by: 'user-1',
+        updated_by: null,
+        created_at: '2020-01-01T00:00:00Z',
+        updated_at: '2020-01-01T00:00:00Z',
+      },
+    ]);
+
+    expect(await screen.findByLabelText(/pm checklist template/i)).toBeInTheDocument();
   });
 
   it('still creates a PM work order when recommendation matching fails but templates load', async () => {

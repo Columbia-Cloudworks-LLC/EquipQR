@@ -184,6 +184,10 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
     }
 
     if (needsPmTemplateChoice) {
+      if (templatesListLoading) {
+        setError('Templates are still loading. Please wait a moment and try again.');
+        return;
+      }
       if (templatesListError) {
         setError('Unable to load PM templates. Check your connection and try again.');
         return;
@@ -329,7 +333,6 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
 
           {needsPmTemplateChoice && (
             <div className="space-y-2">
-              <Label htmlFor="qr-pm-template-select">PM checklist template</Label>
               {templatesListLoading && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -353,6 +356,7 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
               )}
               {!templatesListLoading && !templatesListError && !noTemplatesAvailable && (
                 <>
+                  <Label htmlFor="qr-pm-template-select">PM checklist template</Label>
                   {matchingRecommendationsError && (
                     <div className="flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
                       <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
