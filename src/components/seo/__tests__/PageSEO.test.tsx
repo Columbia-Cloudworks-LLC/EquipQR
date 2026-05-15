@@ -313,6 +313,15 @@ describe('PageSEO', () => {
     expect(
       document.querySelector('meta[property="og:title"]')?.getAttribute('content')
     ).toBe('Route | EquipQR');
+    expect(
+      document.querySelector('meta[property="og:image"]')?.getAttribute('content')
+    ).toBe('https://equipqr.app/route-og.png');
+    expect(
+      document.querySelector('meta[name="twitter:title"]')?.getAttribute('content')
+    ).toBe('Route | EquipQR');
+    expect(
+      document.querySelector('meta[name="twitter:image"]')?.getAttribute('content')
+    ).toBe('https://equipqr.app/route-og.png');
 
     unmount();
 
@@ -327,6 +336,15 @@ describe('PageSEO', () => {
     expect(
       document.querySelector('meta[property="og:title"]')?.getAttribute('content')
     ).toBe('Static OG title');
+    expect(
+      document.querySelector('meta[property="og:image"]')?.getAttribute('content')
+    ).toBe('https://equipqr.app/og-static.png');
+    expect(
+      document.querySelector('meta[name="twitter:title"]')?.getAttribute('content')
+    ).toBe('Static Twitter title');
+    expect(
+      document.querySelector('meta[name="twitter:image"]')?.getAttribute('content')
+    ).toBe('https://equipqr.app/og-static.png');
     expect(document.querySelector('meta[name="keywords"]')?.getAttribute('content')).toBe(
       'static,shell,keywords'
     );

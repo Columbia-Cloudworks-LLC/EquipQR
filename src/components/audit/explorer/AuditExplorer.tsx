@@ -316,7 +316,7 @@ export function AuditExplorer({ organizationId }: AuditExplorerProps) {
         <ResizablePanelGroup
           direction="horizontal"
           className="h-[480px]"
-          id="audit-explorer-group"
+          id={AUDIT_EXPLORER_LAYOUT_ID}
           defaultLayout={explorerLayout.defaultLayout}
           onLayoutChanged={explorerLayout.onLayoutChanged}
         >
