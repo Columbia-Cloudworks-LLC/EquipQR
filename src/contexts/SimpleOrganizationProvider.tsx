@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,6 +17,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
   const { user } = useAuth();
   const [currentOrganizationId, setCurrentOrganizationId] = useState<string | null>(null);
   const [syncWarningCount, setSyncWarningCount] = useState(0);
+  const lastMismatchSyncAttemptRef = useRef<string | null>(null);
   
   // Get session context to keep them synchronized
   const sessionContext = useSession();
@@ -164,22 +165,18 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     
     if (sessionOrgId !== currentOrganizationId) {
       setSyncWarningCount(prev => prev + 1);
-      // Sync mismatch detected between contexts
-
-      // Auto-recover after a few warnings by syncing to session context
-      if (syncWarningCount >= 2) {
-        // Auto-recovering sync with session
-        setCurrentOrganizationId(sessionOrgId);
-        try {
-          localStorage.setItem(CURRENT_ORG_STORAGE_KEY, sessionOrgId);
-        } catch (error) {
-          logger.warn('Failed to save synced organization to storage', error);
-        }
-        setSyncWarningCount(0);
+      const syncAttemptKey = `${currentOrganizationId}->${sessionOrgId}`;
+      if (
+        lastMismatchSyncAttemptRef.current !== syncAttemptKey &&
+        typeof sessionContext?.switchOrganization === 'function'
+      ) {
+        lastMismatchSyncAttemptRef.current = syncAttemptKey;
+        sessionContext.switchOrganization(currentOrganizationId);
       }
     } else if (syncWarningCount > 0) {
       // Reset warning count when sync is restored
       setSyncWarningCount(0);
+      lastMismatchSyncAttemptRef.current = null;
     }
   }, [sessionContext, currentOrganizationId, syncWarningCount]);
 
@@ -255,7 +252,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     if (sessionContext?.switchOrganization) {
       sessionContext.switchOrganization(organizationId);
     }
-  }, [setCurrentOrganization, sessionContext]);
+  }, [setCurrentOrganization, sessionContext, currentOrganizationId]);
 
   // Derive currentOrganization from currentOrganizationId + organizations
   // instead of storing it in separate state (avoids extra renders and state drift)
