@@ -11,6 +11,26 @@ import {
 import { fetchQRActionTeamMemberships } from '@/features/equipment/services/equipmentQRPermissions';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 
+const mockListPmTemplates = vi.hoisted(() => vi.fn());
+const mockGetMatchingPmTemplates = vi.hoisted(() => vi.fn());
+
+vi.mock('@/features/pm-templates/services/pmChecklistTemplatesService', async () => {
+  const actual = await vi.importActual<typeof import('@/features/pm-templates/services/pmChecklistTemplatesService')>(
+    '@/features/pm-templates/services/pmChecklistTemplatesService'
+  );
+  return {
+    ...actual,
+    pmChecklistTemplatesService: {
+      ...actual.pmChecklistTemplatesService,
+      listTemplates: mockListPmTemplates,
+    },
+  };
+});
+
+vi.mock('@/features/pm-templates/services/pmTemplateCompatibilityRulesService', () => ({
+  getMatchingTemplatesForEquipment: mockGetMatchingPmTemplates,
+}));
+
 vi.mock('@/features/equipment/services/equipmentQRActionService', async () => {
   const actual = await vi.importActual<typeof import('@/features/equipment/services/equipmentQRActionService')>(
     '@/features/equipment/services/equipmentQRActionService'
@@ -86,7 +106,44 @@ function renderQuickActions(overrides?: Partial<React.ComponentProps<typeof Equi
 
 describe('EquipmentQRQuickActions', () => {
   beforeEach(() => {
+    // Radix Select expects Pointer Capture APIs; jsdom does not implement them.
+    Object.defineProperty(Element.prototype, 'hasPointerCapture', {
+      configurable: true,
+      value: vi.fn(() => false),
+    });
+    Object.defineProperty(Element.prototype, 'setPointerCapture', {
+      configurable: true,
+      value: vi.fn(),
+    });
+    Object.defineProperty(Element.prototype, 'releasePointerCapture', {
+      configurable: true,
+      value: vi.fn(),
+    });
+
     vi.clearAllMocks();
+    mockListPmTemplates.mockResolvedValue([
+      {
+        id: 'pm-option-1',
+        organization_id: null,
+        name: 'Forklift PM',
+        description: null,
+        is_protected: false,
+        template_data: [],
+        interval_value: null,
+        interval_type: null,
+        created_by: 'user-1',
+        updated_by: null,
+        created_at: '2020-01-01T00:00:00Z',
+        updated_at: '2020-01-01T00:00:00Z',
+      },
+    ]);
+    mockGetMatchingPmTemplates.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    delete (Element.prototype as unknown as { hasPointerCapture?: unknown }).hasPointerCapture;
+    delete (Element.prototype as unknown as { setPointerCapture?: unknown }).setPointerCapture;
+    delete (Element.prototype as unknown as { releasePointerCapture?: unknown }).releasePointerCapture;
   });
 
   it('denies work order and note actions when the user is only a team viewer', async () => {
@@ -231,9 +288,16 @@ describe('EquipmentQRQuickActions', () => {
     expect(await screen.findByText(/note added to equipment/i)).toBeInTheDocument();
   });
 
-  it('shows a clear PM fallback message when no default PM template is assigned', async () => {
+  it('opens PM dialog and requires a PM template when equipment has no default template', async () => {
     const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
+    mockCreateWorkOrder.mockResolvedValue({
+      workOrder: {
+        id: 'wo-pm-pick',
+        title: 'Preventative maintenance - Forklift 17',
+      } as WorkOrder,
+      creationPhotosAttached: true,
+    } as Awaited<ReturnType<typeof createQRWorkOrder>>);
 
     renderQuickActions({
       equipment: {
@@ -243,9 +307,29 @@ describe('EquipmentQRQuickActions', () => {
     });
 
     await user.click(screen.getByRole('button', { name: /new pm work order/i }));
+    await screen.findByRole('dialog', undefined, { timeout: 5000 });
 
-    expect(await screen.findByText(/does not have a default pm template assigned/i)).toBeInTheDocument();
-    expect(mockCreateWorkOrder).not.toHaveBeenCalled();
+    const createBtn = screen.getByRole('button', { name: /create work order/i });
+    expect(createBtn).toBeDisabled();
+
+    await user.click(screen.getByLabelText(/pm checklist template/i));
+    await user.click(await screen.findByRole('option', { name: /forklift pm/i }));
+
+    expect(createBtn).not.toBeDisabled();
+    await user.click(createBtn);
+
+    await waitFor(() => {
+      expect(mockCreateWorkOrder).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attachPM: true,
+          pmTemplateId: 'pm-option-1',
+          equipment: expect.objectContaining({
+            id: 'equipment-1',
+            defaultPmTemplateId: null,
+          }),
+        })
+      );
+    });
   });
 
   it('passes attached jpeg files through to createQRWorkOrder', async () => {
