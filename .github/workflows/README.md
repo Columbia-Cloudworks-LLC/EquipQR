@@ -63,7 +63,7 @@ Notes:
 - The `supabase-write` item holds Supabase tooling secrets such as `SUPABASE_ACCESS_TOKEN`, `preview_anon_public_key`, and `prod_anon_public_key` (see `AGENTS.md`).
 - Secrets loaded by the composite action are auto-masked in logs by 1Password's action.
 - The composite action defaults to `export-env: true` so the secrets become env vars in subsequent steps.
-- [`secrets-fanout.yml`](./secrets-fanout.yml) applies preview Supabase Edge secrets from 1Password on `push` to `preview` when the sync script or this workflow changes, includes a 6-hour UTC `schedule` (GitHub runs schedules from `main` only), and supports manual `workflow_dispatch`; production secret apply stays out of this workflow for now.
+- [`secrets-fanout.yml`](./secrets-fanout.yml) runs a **digest check only** (`-Check`) on `push` to `preview` when the sync script or this workflow changes; the 6-hour UTC `schedule` applies preview Edge secrets from 1Password once the workflow exists on `main` (GitHub evaluates schedules from the default branch only). Manual `workflow_dispatch` can still apply or dry-run; production secret apply stays out of this workflow for now.
 - For step-output mode (rare), pass `with: { export-env: 'false' }` and reference via `${{ steps.load.outputs.X }}`.
 
 ### When to migrate each workflow

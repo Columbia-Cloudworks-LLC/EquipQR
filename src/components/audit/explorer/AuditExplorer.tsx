@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useDefaultLayout } from 'react-resizable-panels';
+import { useDefaultLayout, type LayoutStorage } from 'react-resizable-panels';
 import { History } from 'lucide-react';
 import EmptyState from '@/components/ui/empty-state';
 import {
@@ -38,6 +38,12 @@ const PAGE_SIZE = 200;
 
 const AUDIT_EXPLORER_LAYOUT_ID = 'audit-explorer-split';
 const AUDIT_EXPLORER_PANEL_IDS = ['audit-explorer-list', 'audit-explorer-detail'] as const;
+
+/** No-op persistence when `localStorage` is unavailable (SSR / tests). Matches `LayoutStorage`. */
+const NOOP_LAYOUT_STORAGE: LayoutStorage = {
+  getItem: () => null,
+  setItem: () => {},
+};
 
 /**
  * Bucket size in milliseconds. Mirrors `date_trunc(p_bucket, ...)` semantics
@@ -128,7 +134,7 @@ export function AuditExplorer({ organizationId }: AuditExplorerProps) {
     storage:
       typeof globalThis !== 'undefined' && 'localStorage' in globalThis
         ? globalThis.localStorage
-        : { getItem: () => null, setItem: () => {} },
+        : NOOP_LAYOUT_STORAGE,
     panelIds: [...AUDIT_EXPLORER_PANEL_IDS],
   });
 
