@@ -16,7 +16,6 @@ const CURRENT_ORG_STORAGE_KEY = 'equipqr_current_organization';
 export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [currentOrganizationId, setCurrentOrganizationId] = useState<string | null>(null);
-  const [syncWarningCount, setSyncWarningCount] = useState(0);
   const lastMismatchSyncAttemptRef = useRef<string | null>(null);
   
   // Get session context to keep them synchronized
@@ -164,37 +163,34 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
 
     const sessionOrgId = sessionContext.sessionData.currentOrganizationId;
 
-    if (sessionOrgId !== currentOrganizationId) {
-      setSyncWarningCount(prev => prev + 1);
+    if (sessionOrgId === currentOrganizationId) {
+      lastMismatchSyncAttemptRef.current = null;
+      return;
+    }
 
-      const sessionOrgKnown =
-        organizations.length > 0 &&
-        organizations.some(org => org.id === sessionOrgId);
+    if (organizations.length === 0) {
+      return;
+    }
 
-      const syncAttemptKey = `follow-session:${sessionOrgId}`;
-      if (
-        sessionOrgKnown &&
-        lastMismatchSyncAttemptRef.current !== syncAttemptKey
-      ) {
-        lastMismatchSyncAttemptRef.current = syncAttemptKey;
-        setCurrentOrganizationId(sessionOrgId);
-        try {
-          localStorage.setItem(CURRENT_ORG_STORAGE_KEY, sessionOrgId);
-        } catch (error) {
-          logger.warn('Failed to save current organization to storage', error);
-          lastMismatchSyncAttemptRef.current = null;
-        }
-      }
-    } else if (syncWarningCount > 0) {
-      setSyncWarningCount(0);
+    const sessionOrgKnown = organizations.some(org => org.id === sessionOrgId);
+    if (!sessionOrgKnown) {
+      return;
+    }
+
+    const syncAttemptKey = `follow-session:${sessionOrgId}`;
+    if (lastMismatchSyncAttemptRef.current === syncAttemptKey) {
+      return;
+    }
+
+    lastMismatchSyncAttemptRef.current = syncAttemptKey;
+    setCurrentOrganizationId(sessionOrgId);
+    try {
+      localStorage.setItem(CURRENT_ORG_STORAGE_KEY, sessionOrgId);
+    } catch (error) {
+      logger.warn('Failed to save current organization to storage', error);
       lastMismatchSyncAttemptRef.current = null;
     }
-  }, [
-    sessionContext,
-    currentOrganizationId,
-    syncWarningCount,
-    organizations,
-  ]);
+  }, [sessionContext, currentOrganizationId, organizations]);
 
   // Auto-select prioritized organization if none selected and organizations are available
   useEffect(() => {
