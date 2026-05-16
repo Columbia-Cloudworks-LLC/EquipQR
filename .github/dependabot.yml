@@ -2,12 +2,13 @@ version: 2
 updates:
   # Monthly dependency PRs (coarse delay buffer vs. immediate uptake of fresh releases).
   # Not publish-age enforcement — versions may still be newer than one week when PRs open.
-  # For interval: monthly, schedule.day is day-of-month (1–28), not a weekday name.
+  # schedule.day must be a lowercase weekday (monday..sunday). GitHub's dependabot-api
+  # rejects integers here even when interval is monthly; weekday strings are the valid schema.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: monthly
-      day: 1
+      day: monday
       time: "09:00"
       timezone: America/Chicago
     open-pull-requests-limit: 15
@@ -17,7 +18,7 @@ updates:
     directory: /
     schedule:
       interval: monthly
-      day: 1
+      day: monday
       time: "09:00"
       timezone: America/Chicago
     open-pull-requests-limit: 10
