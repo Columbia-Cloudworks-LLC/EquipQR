@@ -7,6 +7,7 @@ import type {
   ExternalContactInsert,
   ExternalContactUpdate,
 } from '@/features/teams/types/team';
+import type { QBODerivedContact } from '@/services/quickbooks/types';
 
 // ============================================
 // Customer Account CRUD
@@ -88,10 +89,15 @@ export async function linkTeamToCustomer(teamId: string, customerId: string | nu
 export interface QBCustomerPayload {
   Id: string;
   DisplayName: string;
+  GivenName?: string;
+  FamilyName?: string;
   CompanyName?: string;
   Taxable?: boolean;
   Email?: string;
   Phone?: string;
+  Mobile?: string;
+  Fax?: string;
+  contacts?: QBODerivedContact[];
   BillAddr?: {
     Line1?: string;
     City?: string;
@@ -120,6 +126,60 @@ function qbAddrToJson(addr?: QBCustomerPayload['BillAddr']): Record<string, stri
 }
 
 /**
+ * Upsert QBO-sourced external contacts for a customer.
+ * Inserts or updates one row per sourceField, then deletes stale QBO rows
+ * whose sourceField is no longer present in the latest QBO payload.
+ * Manual contacts (source = 'manual') are never touched.
+ */
+export async function replaceQuickBooksExternalContacts(
+  customerId: string,
+  qb: QBCustomerPayload
+): Promise<void> {
+  const syncedAt = new Date().toISOString();
+  const contacts = qb.contacts ?? [];
+
+  if (contacts.length > 0) {
+    const rows: ExternalContactInsert[] = contacts.map((c) => ({
+      customer_id: customerId,
+      name: c.name,
+      email: c.email ?? null,
+      phone: c.phone ?? null,
+      role: c.role,
+      notes: null,
+      source: 'quickbooks',
+      source_external_id: qb.Id,
+      source_field: c.sourceField,
+      last_synced_at: syncedAt,
+      source_payload: qb as unknown as ExternalContactInsert['source_payload'],
+    }));
+
+    const { error: upsertError } = await supabase
+      .from('external_customer_contacts')
+      .upsert(rows, {
+        onConflict: 'customer_id,source_field',
+        ignoreDuplicates: false,
+      });
+
+    if (upsertError) throw upsertError;
+  }
+
+  // Delete stale QBO-sourced rows whose sourceField is no longer present
+  const activeFields = contacts.map((c) => c.sourceField);
+  let deleteQuery = supabase
+    .from('external_customer_contacts')
+    .delete()
+    .eq('customer_id', customerId)
+    .eq('source', 'quickbooks');
+
+  if (activeFields.length > 0) {
+    deleteQuery = deleteQuery.not('source_field', 'in', `(${activeFields.map((f) => `"${f}"`).join(',')})`);
+  }
+
+  const { error: deleteError } = await deleteQuery;
+  if (deleteError) throw deleteError;
+}
+
+/**
  * Import a QuickBooks customer as a new EquipQR customer account.
  * Returns the created customer row.
  */
@@ -141,7 +201,9 @@ export async function importCustomerFromQB(
     is_tax_exempt: qb.Taxable === undefined ? null : qb.Taxable === false,
   };
 
-  return createCustomer(insert);
+  const customer = await createCustomer(insert);
+  await replaceQuickBooksExternalContacts(customer.id, qb);
+  return customer;
 }
 
 /**
@@ -162,7 +224,9 @@ export async function refreshCustomerFromQB(
     is_tax_exempt: qb.Taxable === undefined ? null : qb.Taxable === false,
   };
 
-  return updateCustomer(customerId, updates);
+  const customer = await updateCustomer(customerId, updates);
+  await replaceQuickBooksExternalContacts(customerId, qb);
+  return customer;
 }
 
 // ============================================

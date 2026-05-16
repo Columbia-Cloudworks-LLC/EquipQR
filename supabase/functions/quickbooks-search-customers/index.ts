@@ -46,10 +46,14 @@ interface IntuitTokenResponse {
 interface QuickBooksCustomer {
   Id: string;
   DisplayName: string;
+  GivenName?: string;
+  FamilyName?: string;
   CompanyName?: string;
   Taxable?: boolean;
   PrimaryEmailAddr?: { Address: string };
   PrimaryPhone?: { FreeFormNumber: string };
+  Mobile?: { FreeFormNumber: string };
+  Fax?: { FreeFormNumber: string };
   BillAddr?: {
     Line1?: string;
     City?: string;
@@ -66,6 +70,9 @@ interface QuickBooksCustomer {
   };
   Active?: boolean;
 }
+
+import { buildQBOContacts } from "./qbo-contacts.ts";
+export { buildQBOContacts } from "./qbo-contacts.ts";
 
 interface CustomerQueryResponse {
   QueryResponse: {
@@ -271,8 +278,8 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       clientSecret
     );
 
-    // Build the QuickBooks Customer query
-    let customerQuery = "SELECT Id, DisplayName, CompanyName, PrimaryEmailAddr, PrimaryPhone, BillAddr, ShipAddr, Taxable FROM Customer WHERE Active = true";
+    // Build the QuickBooks Customer query — include all documented contact fields
+    let customerQuery = "SELECT Id, DisplayName, GivenName, FamilyName, CompanyName, PrimaryEmailAddr, PrimaryPhone, Mobile, Fax, BillAddr, ShipAddr, Taxable FROM Customer WHERE Active = true";
     if (query && query.trim()) {
       // Whitelist: allow only alphanumeric, spaces, hyphens, periods, commas, apostrophes
       // This prevents QuickBooks Query Language injection via special characters
@@ -292,7 +299,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       if (sanitizedQuery.length > 0) {
         // Escape single quotes for the QuickBooks query (defense-in-depth)
         const escapedQuery = sanitizedQuery.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-        customerQuery = `SELECT Id, DisplayName, CompanyName, PrimaryEmailAddr, PrimaryPhone, BillAddr, ShipAddr, Taxable FROM Customer WHERE Active = true AND (DisplayName LIKE '%${escapedQuery}%' OR CompanyName LIKE '%${escapedQuery}%')`;
+        customerQuery = `SELECT Id, DisplayName, GivenName, FamilyName, CompanyName, PrimaryEmailAddr, PrimaryPhone, Mobile, Fax, BillAddr, ShipAddr, Taxable FROM Customer WHERE Active = true AND (DisplayName LIKE '%${escapedQuery}%' OR CompanyName LIKE '%${escapedQuery}%')`;
       }
     }
     customerQuery += " MAXRESULTS 100";
@@ -363,14 +370,21 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
 
     logStep("Customers fetched successfully", { count: customers.length, intuit_tid: intuitTid });
 
-    // Return simplified customer list
+    // Return simplified customer list with documented contact fields and normalized contacts
     const simplifiedCustomers = customers.map(c => ({
       Id: c.Id,
       DisplayName: c.DisplayName,
+      GivenName: c.GivenName,
+      FamilyName: c.FamilyName,
       CompanyName: c.CompanyName,
       Taxable: c.Taxable,
+      // Backward-compatible flat fields
       Email: c.PrimaryEmailAddr?.Address,
       Phone: c.PrimaryPhone?.FreeFormNumber,
+      Mobile: c.Mobile?.FreeFormNumber,
+      Fax: c.Fax?.FreeFormNumber,
+      // Normalized contact entries for UI display and DB sync
+      contacts: buildQBOContacts(c),
       BillAddr: c.BillAddr ? {
         Line1: c.BillAddr.Line1,
         City: c.BillAddr.City,

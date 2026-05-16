@@ -60,10 +60,15 @@ function qbCustomerToPayload(c: QuickBooksCustomer): QBCustomerPayload {
   return {
     Id: c.Id,
     DisplayName: c.DisplayName,
+    GivenName: c.GivenName,
+    FamilyName: c.FamilyName,
     CompanyName: c.CompanyName,
     Taxable: c.Taxable,
     Email: c.Email ?? c.PrimaryEmailAddr?.Address,
     Phone: c.Phone ?? c.PrimaryPhone?.FreeFormNumber,
+    Mobile: c.Mobile,
+    Fax: c.Fax,
+    contacts: c.contacts,
     BillAddr: c.BillAddr,
     ShipAddr: c.ShipAddr,
   };

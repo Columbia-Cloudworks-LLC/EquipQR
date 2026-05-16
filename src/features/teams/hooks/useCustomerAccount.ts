@@ -88,8 +88,9 @@ export function useCustomerMutations(organizationId: string | undefined) {
   const importFromQB = useMutation({
     mutationFn: ({ qb }: { qb: QBCustomerPayload }) =>
       importCustomerFromQB(organizationId!, qb),
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({ title: 'Imported', description: 'Customer imported from QuickBooks' });
+      queryClient.invalidateQueries({ queryKey: ['external-contacts', data.id] });
       invalidate();
     },
     onError: (err: Error) => {
@@ -103,6 +104,7 @@ export function useCustomerMutations(organizationId: string | undefined) {
     onSuccess: (_data, vars) => {
       toast({ title: 'Refreshed', description: 'Customer data refreshed from QuickBooks' });
       queryClient.invalidateQueries({ queryKey: ['customer', vars.customerId] });
+      queryClient.invalidateQueries({ queryKey: ['external-contacts', vars.customerId] });
       invalidate();
     },
     onError: (err: Error) => {
