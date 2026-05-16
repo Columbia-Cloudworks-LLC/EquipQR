@@ -497,8 +497,6 @@ const WorkOrderDetails = () => {
 
   const canCompletePmGate = !workOrder.has_pm || pmData?.status === 'completed';
   const pmChecklist = getPMChecklistStats(pmData?.checklist_data);
-  const showContinueChecklistCta =
-    !!workOrder.has_pm && !!pmData && pmData.status !== 'completed';
   const syncState = {
     isOnline: offlineQueue.isOnline,
     isSyncing: offlineQueue.isSyncing,
@@ -632,35 +630,37 @@ const WorkOrderDetails = () => {
               />
               </div>
 
-              <div {...stagger(1)}>
-                <MobileWorkOrderFieldNextAction
-                  workOrder={{
-                    id: workOrder.id,
-                    status: workOrder.status,
-                    has_pm: workOrder.has_pm,
-                    updated_at: workOrder.updated_at,
-                  }}
-                  pm={{
-                    status: pmData?.status,
-                    progress: pmChecklist.progress,
-                    total: pmChecklist.total,
-                  }}
-                  permissions={{
-                    canAddNotes,
-                    canUpload,
-                    canWork: footerRoleEligible,
-                  }}
-                  sync={syncState}
-                  onAcceptWorkOrder={() => setShowFieldAcceptDialog(true)}
-                  onStartWork={startMobileWorkOrder}
-                  onResumeWork={pauseResumeMobileWorkOrder}
-                  onContinueChecklist={scrollToPMSection}
-                  onAddNote={openNotesComposer}
-                  onAddPhoto={openPhotoCapture}
-                  onComplete={() => setShowMobileCompleteDialog(true)}
-                  onRetrySync={offlineQueue.retryFailed}
-                />
-              </div>
+              {!showMobileActionFooter ? (
+                <div {...stagger(1)}>
+                  <MobileWorkOrderFieldNextAction
+                    workOrder={{
+                      id: workOrder.id,
+                      status: workOrder.status,
+                      has_pm: workOrder.has_pm,
+                      updated_at: workOrder.updated_at,
+                    }}
+                    pm={{
+                      status: pmData?.status,
+                      progress: pmChecklist.progress,
+                      total: pmChecklist.total,
+                    }}
+                    permissions={{
+                      canAddNotes,
+                      canUpload,
+                      canWork: footerRoleEligible,
+                    }}
+                    sync={syncState}
+                    onAcceptWorkOrder={() => setShowFieldAcceptDialog(true)}
+                    onStartWork={startMobileWorkOrder}
+                    onResumeWork={pauseResumeMobileWorkOrder}
+                    onContinueChecklist={scrollToPMSection}
+                    onAddNote={openNotesComposer}
+                    onAddPhoto={openPhotoCapture}
+                    onComplete={() => setShowMobileCompleteDialog(true)}
+                    onRetrySync={offlineQueue.retryFailed}
+                  />
+                </div>
+              ) : null}
 
               {/* PM Checklist - Responsive */}
               {workOrder.has_pm && (permissionLevels.isManager || permissionLevels.isTechnician) && (
@@ -1074,7 +1074,6 @@ const WorkOrderDetails = () => {
           }}
           organizationId={currentOrganization.id}
           canCompletePm={canCompletePmGate}
-          showContinueChecklist={showContinueChecklistCta}
           canAddNotes={canAddNotes}
           isUpdatingStatusExternal={mobileStatusMutation.isPending || fieldAcceptanceMutation.isPending}
           syncState={syncState}

@@ -31,7 +31,6 @@ describe('MobileWorkOrderActionFooter', () => {
         }}
         organizationId="org"
         canCompletePm
-        showContinueChecklist={false}
         canAddNotes
         syncState={{
           isOnline: true,
@@ -62,7 +61,6 @@ describe('MobileWorkOrderActionFooter', () => {
         }}
         organizationId="org"
         canCompletePm
-        showContinueChecklist={false}
         canAddNotes
         syncState={{
           isOnline: true,
@@ -96,7 +94,6 @@ describe('MobileWorkOrderActionFooter', () => {
         }}
         organizationId="org"
         canCompletePm
-        showContinueChecklist={false}
         canAddNotes
         syncState={{
           isOnline: true,
@@ -118,6 +115,77 @@ describe('MobileWorkOrderActionFooter', () => {
     expect(onStartWork).toHaveBeenCalled();
   });
 
+  it('PM incomplete hides Complete and Continue Checklist scrolls to checklist section', async () => {
+    const onScrollToChecklist = vi.fn();
+    const user = (await import('@testing-library/user-event')).default;
+    render(
+      <MobileWorkOrderActionFooter
+        workOrder={{
+          id: 'wo',
+          status: 'in_progress',
+          assignee_id: 'u1',
+          has_pm: true,
+        }}
+        organizationId="org"
+        canCompletePm={false}
+        canAddNotes
+        syncState={{
+          isOnline: true,
+          isSyncing: false,
+          pendingCount: 0,
+          failedCount: 0,
+        }}
+        onAddNote={vi.fn()}
+        onAddPhoto={vi.fn()}
+        onStartWork={vi.fn()}
+        onAssignedPutOnHold={vi.fn()}
+        onPauseResume={vi.fn()}
+        onOpenCompleteDialog={vi.fn()}
+        onScrollToChecklist={onScrollToChecklist}
+        onRequestAccept={vi.fn()}
+      />,
+    );
+    expect(screen.getByText(/Finish the checklist before completing/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^complete$/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /continue checklist/i }));
+    expect(onScrollToChecklist).toHaveBeenCalledTimes(1);
+  });
+
+  it('PM complete shows Complete which opens confirmation dialog handler', async () => {
+    const onOpenCompleteDialog = vi.fn();
+    const user = (await import('@testing-library/user-event')).default;
+    render(
+      <MobileWorkOrderActionFooter
+        workOrder={{
+          id: 'wo',
+          status: 'in_progress',
+          assignee_id: 'u1',
+          has_pm: true,
+        }}
+        organizationId="org"
+        canCompletePm
+        canAddNotes
+        syncState={{
+          isOnline: true,
+          isSyncing: false,
+          pendingCount: 0,
+          failedCount: 0,
+        }}
+        onAddNote={vi.fn()}
+        onAddPhoto={vi.fn()}
+        onStartWork={vi.fn()}
+        onAssignedPutOnHold={vi.fn()}
+        onPauseResume={vi.fn()}
+        onOpenCompleteDialog={onOpenCompleteDialog}
+        onScrollToChecklist={vi.fn()}
+        onRequestAccept={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText(/Finish the checklist before completing/i)).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^complete$/i }));
+    expect(onOpenCompleteDialog).toHaveBeenCalledTimes(1);
+  });
+
   it('renders null when user cannot perform workflow', () => {
     vi.mocked(useAuthModule.useAuth).mockReturnValue({ user: { id: 'other' } } as never);
     vi.mocked(permModule.useWorkOrderPermissionLevels).mockReturnValue({
@@ -133,7 +201,6 @@ describe('MobileWorkOrderActionFooter', () => {
         }}
         organizationId="org"
         canCompletePm
-        showContinueChecklist={false}
         canAddNotes
         syncState={{
           isOnline: true,

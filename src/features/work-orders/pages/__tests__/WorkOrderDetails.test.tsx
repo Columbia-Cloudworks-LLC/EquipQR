@@ -311,6 +311,10 @@ describe('WorkOrderDetails', () => {
     };
 
     expect(latestProps.onDeleteRequest).toBeUndefined();
+
+    await waitFor(() => {
+      expect(screen.getByText('Next action')).toBeInTheDocument();
+    });
   });
 
   it('renders the mobile field-first order with office details collapsed by default', async () => {
@@ -383,9 +387,11 @@ describe('WorkOrderDetails', () => {
 
     render(<WorkOrderDetails />);
 
+    expect(screen.queryByText('Next action')).not.toBeInTheDocument();
+
     const pageText = document.body.textContent ?? '';
-    expect(pageText.indexOf('Compact summary')).toBeLessThan(pageText.indexOf('Next action'));
-    expect(pageText.indexOf('PM checklist')).toBeLessThan(pageText.indexOf('Images section'));
+    expect(pageText.indexOf('Compact summary')).toBeLessThan(pageText.indexOf('Job card'));
+    expect(pageText.indexOf('Job card')).toBeLessThan(pageText.indexOf('PM checklist'));
     expect(pageText.indexOf('Images section')).toBeLessThan(pageText.indexOf('Notes section'));
     expect(pageText.indexOf('Notes section')).toBeLessThan(pageText.indexOf('Costs section'));
     expect(pageText.indexOf('Costs section')).toBeLessThan(pageText.indexOf('Review & office details'));
