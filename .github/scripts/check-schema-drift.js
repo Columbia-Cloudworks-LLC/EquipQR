@@ -17,11 +17,15 @@
 //
 // Failure semantics (mirrors edge-functions-smoke-test.yml):
 //   - Missing SUPABASE_ACCESS_TOKEN: emit ::warning:: and exit 0. Fork PRs
-//     and pre-token-plant repos must not be red-lighted by this gate.
-//   - Pending migrations on a PR targeting main: exit 1 with markdown summary.
+//     and pre-token-plant repos must not be hard-failed by this gate.
+//   - SCHEMA_DRIFT_STRICT=true (or SCHEMA_DRIFT_MODE=strict): pending
+//     migrations always exit 1 — used by production-release-readiness.yml
+//     after applying migrations to production.
+//   - Pending migrations on a PR targeting main (without strict): ::warning::
+//     + exit 0. Release PRs are allowed to include migrations; the
+//     production-release-readiness workflow applies them after merge.
 //   - Pending migrations on a PR targeting preview, or on a push: exit 0 with
-//     ::warning:: + markdown summary. Drift is expected during day-to-day
-//     work; the gate only blocks the release boundary.
+//     ::warning:: + markdown summary. Drift is expected during day-to-day work.
 //
 // Issue: #735.
 
@@ -44,6 +48,9 @@ const FILENAME_RE = /^(\d{14})_(.+)\.sql$/;
 const baseRef = process.env.GITHUB_BASE_REF || '';
 const eventName = process.env.GITHUB_EVENT_NAME || '';
 const isReleasePR = eventName === 'pull_request' && baseRef === 'main';
+const strict =
+  process.env.SCHEMA_DRIFT_STRICT === 'true' ||
+  process.env.SCHEMA_DRIFT_MODE === 'strict';
 
 function step(msg) {
   process.stdout.write(`${msg}\n`);
@@ -142,7 +149,7 @@ async function main() {
       'schema-drift-check',
       `Failed to query production schema_migrations: ${err instanceof Error ? err.message : String(err)}`,
     );
-    process.exit(isReleasePR ? 1 : 0);
+    process.exit(strict || isReleasePR ? 1 : 0);
   }
   step(`Applied names on production: ${applied.size}`);
 
@@ -158,19 +165,29 @@ async function main() {
   const md = summary(pending);
   await appendStepSummary(`## Schema-drift check\n\n${md}`);
 
-  if (isReleasePR) {
+  if (strict) {
     ghError(
       'schema-drift-check',
-      `Release PR (preview -> main) cannot proceed with ${pending.length} local migration(s) not yet applied to production. Apply the migrations first via the Supabase MCP \`apply_migration\` tool or \`supabase db push --linked --include-all\`, then re-run this check.`,
+      `Strict drift check failed: ${pending.length} local migration(s) not yet present in production schema_migrations.`,
     );
     step('');
     step(md);
     process.exit(1);
   }
 
+  if (isReleasePR) {
+    ghWarning(
+      'schema-drift-check',
+      `Release PR (preview -> main) has ${pending.length} local migration(s) not yet applied to production. They will be applied automatically by the Production Release Readiness workflow after merge to main.`,
+    );
+    step('');
+    step(md);
+    process.exit(0);
+  }
+
   ghWarning(
     'schema-drift-check',
-    `${pending.length} local migration(s) not yet applied to production. The preview -> main release gate will fail until these are applied.`,
+    `${pending.length} local migration(s) not yet applied to production.`,
   );
   step('');
   step(md);
@@ -181,5 +198,5 @@ main().catch((err) => {
     'schema-drift-check',
     `Unexpected error: ${err instanceof Error ? err.stack || err.message : String(err)}`,
   );
-  process.exit(isReleasePR ? 1 : 0);
+  process.exit(strict || isReleasePR ? 1 : 0);
 });

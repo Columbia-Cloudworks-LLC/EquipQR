@@ -200,6 +200,28 @@ Configure these environment variables in your Vercel project dashboard:
 - **Production**: `main` branch deploys to `equipqr.app`
 - **Preview**: `preview` branch deploys to `preview.equipqr.app`
 
+### Production release readiness (Supabase + Vercel gate)
+
+Pushes to `main` run **Production Release Readiness** (`.github/workflows/production-release-readiness.yml`). This workflow:
+
+1. Applies pending SQL migrations to the **production** Supabase project (`supabase link` + `supabase db push --include-all`).
+2. Re-runs the schema drift script in **strict** mode so `schema_migrations` matches `supabase/migrations/` by name.
+3. Polls the Vercel API until the **READY** deployment for the same `github.sha` on `main` exists for the SPA project (`prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA`).
+
+It does **not** run `vercel promote`. The maintainer manually promotes in the Vercel dashboard when this workflow is green; the job summary lists the deployment URL and states that promotion to `equipqr.app` is safe.
+
+**GitHub / 1Password:** `OP_SERVICE_ACCOUNT_TOKEN` must remain a repo-level secret. The workflow loads:
+
+| Variable | 1Password reference |
+|----------|---------------------|
+| `SUPABASE_ACCESS_TOKEN` | `op://EquipQR Agents/supabase-write/SUPABASE_ACCESS_TOKEN` |
+| `SUPABASE_DB_PASSWORD` | `op://EquipQR Agents/supabase-write/prod_db_password` |
+| `VERCEL_TOKEN` | `op://EquipQR Agents/vercel-write/credential` |
+
+Add `prod_db_password` to the `supabase-write` item if it is not already present (production database password for CLI `link` / `db push` in CI only).
+
+Release PRs (`preview` → `main`) still run **Schema Drift Check** as a **warning** when migrations are not on production yet; the hard alignment check runs in this post-merge workflow.
+
 ### Secrets Checklist
 
 EquipQR runs on **two independent platforms** — Vercel (frontend build) and Supabase (backend / Edge Functions). Each has its own secrets store. Redeploying one does **not** update the other.
