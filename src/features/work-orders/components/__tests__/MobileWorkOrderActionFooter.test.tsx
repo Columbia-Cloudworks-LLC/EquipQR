@@ -186,6 +186,43 @@ describe('MobileWorkOrderActionFooter', () => {
     expect(onOpenCompleteDialog).toHaveBeenCalledTimes(1);
   });
 
+  it('shows Note (not Photo) quick capture for submitted work orders when canAddNotes', async () => {
+    const onAddNote = vi.fn();
+    const user = (await import('@testing-library/user-event')).default;
+    render(
+      <MobileWorkOrderActionFooter
+        workOrder={{
+          id: 'wo',
+          status: 'submitted',
+          assignee_id: null,
+          created_by: 'u1',
+        }}
+        organizationId="org"
+        canCompletePm
+        canAddNotes
+        syncState={{
+          isOnline: true,
+          isSyncing: false,
+          pendingCount: 0,
+          failedCount: 0,
+        }}
+        onAddNote={onAddNote}
+        onAddPhoto={vi.fn()}
+        onStartWork={vi.fn()}
+        onAssignedPutOnHold={vi.fn()}
+        onPauseResume={vi.fn()}
+        onOpenCompleteDialog={vi.fn()}
+        onScrollToChecklist={vi.fn()}
+        onRequestAccept={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /^note$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /add photo/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /accept/i })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^note$/i }));
+    expect(onAddNote).toHaveBeenCalledTimes(1);
+  });
+
   it('renders null when user cannot perform workflow', () => {
     vi.mocked(useAuthModule.useAuth).mockReturnValue({ user: { id: 'other' } } as never);
     vi.mocked(permModule.useWorkOrderPermissionLevels).mockReturnValue({

@@ -168,7 +168,8 @@ export const MobileWorkOrderActionFooter: React.FC<MobileWorkOrderActionFooterPr
   const isAssignedLike = workOrder.status === 'assigned' || workOrder.status === 'accepted';
   const isSubmitted = workOrder.status === 'submitted';
   const showTimerRow = (isInProgress || isOnHold) && Boolean(timerDisplay);
-  const showQuickCaptureRow = canAddNotes && !isSubmitted;
+  /** Submitted WO still needs thumb-reachable note entry while Next Action + inline add are suppressed. Photo stays gated to active work. */
+  const showNoteQuickCapture = canAddNotes;
 
   const queueRow = footerQueueMessage(syncState);
 
@@ -224,16 +225,18 @@ export const MobileWorkOrderActionFooter: React.FC<MobileWorkOrderActionFooterPr
           ) : null}
         </div>
 
-        {showQuickCaptureRow ? (
+        {showNoteQuickCapture ? (
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" className="h-11 min-h-[44px] flex-1 sm:flex-none" onClick={onAddNote}>
               <Plus className="mr-1 h-4 w-4" aria-hidden />
               Note
             </Button>
-            <Button variant="outline" size="sm" className="h-11 min-h-[44px] px-3" onClick={onAddPhoto} aria-label="Add photo">
-              <Camera className="mr-1 h-4 w-4" aria-hidden />
-              <span className="text-xs">Photo</span>
-            </Button>
+            {!isSubmitted ? (
+              <Button variant="outline" size="sm" className="h-11 min-h-[44px] px-3" onClick={onAddPhoto} aria-label="Add photo">
+                <Camera className="mr-1 h-4 w-4" aria-hidden />
+                <span className="text-xs">Photo</span>
+              </Button>
+            ) : null}
           </div>
         ) : null}
 

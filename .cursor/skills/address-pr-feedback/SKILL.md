@@ -6,7 +6,8 @@ description: >-
   review bodies for non-inline feedback, categorizes each item as addressed,
   deferred (with a tracking GitHub issue), or rejected with rationale, then
   requires a Plan Mode handoff before any fixes are applied. After the user
-  approves the plan, executes the fixes, verifies the build, commits, pushes,
+  approves the plan, verifies with a proportionate gate (scoped tests for targeted
+  fixes; full suite when the change is broad), commits, pushes,
   replies in-thread, and posts a structured summary comment on the PR. Use when
   PR feedback needs addressing, automated reviewers leave comments, or the user
   asks to fix, resolve, or respond to PR review comments.
@@ -35,7 +36,7 @@ If a prior instruction says to "proceed from this plan after writing it," this m
 - [ ] Step 3: Triage each item (respect release / compliance rules)
 - [ ] Step 4: Switch to Plan Mode and write the implementation plan (mandatory gate before edits)
 - [ ] Step 5: Implement fixes for Address items
-- [ ] Step 6: Verify changes
+- [ ] Step 6: Verify changes (fast path for targeted fixes; full suite only when warranted)
 - [ ] Step 7: Commit and push
 - [ ] Step 8: Track deferred items (GitHub issues), thread replies, summary comment
 - [ ] Step 9: Spot-check PR checks (optional but recommended)
@@ -169,7 +170,7 @@ The plan must be simple, concrete, and action-oriented:
 - For each **Address** item, name the exact file(s), symbol(s), and behavior to change.
 - For each **Defer** item, specify the tracking GitHub issue title/body outline and the reply text that will link to it.
 - For each **Reject** item, specify the concise technical rationale to post back.
-- Include the exact verification commands to run, scoped tests when appropriate, and the expected pass condition.
+- Include the exact verification commands: for **targeted** fixes, default to `npm run lint`, `npx tsc --noEmit`, and **scoped** `npx vitest run <touched test paths>` — not a repo-wide `npm test` unless the plan documents why the change is broad or high-risk (see Step 6). State the expected pass condition.
 - Include the commit message, push target, in-thread reply plan, top-level PR summary sections, and `gh pr checks` spot-check.
 - Include stop conditions: dirty unrelated files, unclear reviewer intent, failing verification that is not obviously caused by this change, or release/compliance feedback that cannot be resolved in the PR.
 
@@ -195,7 +196,7 @@ Use this plan shape:
 1. Edit `<file>` at `<symbol>` to <specific change>.
 2. Add/update `<test file>` to cover <case>.
 3. Create deferred issue(s) with the listed titles and body outlines.
-4. Run `<verification command>` and require <expected result>.
+4. Run lint, `tsc --noEmit`, and scoped `vitest run` paths (unless the change is broad; then run `Invoke-PrVerification.ps1` or full `npm test`). Require green output.
 5. Commit with `<message>`.
 6. Push to `<remote>/<branch>`.
 7. Reply to inline threads using the prepared addressed/deferred/rejected text.
@@ -219,26 +220,51 @@ For each **Address** item:
 
 ### Step 6: Verify Changes
 
-**Script (recommended):**
+**Do not treat a full local test suite as mandatory for every micro feedback round.** Waiting on `npm test` for the entire repo (often several minutes, and on Windows the `scripts/test-runner.mjs` wrapper enforces a hard timeout) is a poor default when the diff is a few lines in one feature. **CI on push is the authoritative full-suite gate**; the agent’s job is to run *enough* local checks to be confident the change is sound.
+
+#### Default: targeted / small-surface fixes (most PR feedback)
+
+Before commit, run in the PR worktree:
+
+1. `npm run lint`
+2. `npx tsc --noEmit`
+3. **Scoped unit tests** for the touched area, e.g.  
+   `npx vitest run src/path/to/__tests__/Something.test.tsx`  
+   Add more paths if multiple modules are implicated; prefer the narrowest set that covers the behavior you changed.
+
+**Optional** after those pass: `npm run build` when the change could affect bundling (lazy routes, env imports, Vite config, PWA, etc.). Skip if clearly UI-only inside existing components.
+
+#### When to run the full helper (or full `npm test`)
+
+Use `.\scripts\pr-feedback\Invoke-PrVerification.ps1` (lint → tsc → **full** `npm test` → `npm run build`) only when the change is **broad or high-risk**, for example:
+
+- Touches shared providers, auth/session, React Query defaults, router shells, or cross-feature hooks
+- Touches build/tooling, CI, Vitest config, path aliases, or environment wiring
+- Spans many unrelated directories or refactors types used widely
+- You have a concrete reason to doubt CI would catch a regression without a local full run
+
+The user otherwise expects **minutes saved**: document scoped commands in the plan and execute those for narrow feedback.
+
+**Script shortcuts:**
 
 ```powershell
+# Full local gate — use sparingly (see criteria above).
 .\scripts\pr-feedback\Invoke-PrVerification.ps1
-# optional: skip slow steps while iterating
+
+# Lint + typecheck + build only (no npm test).
+.\scripts\pr-feedback\Invoke-PrVerification.ps1 -SkipTest
+
+# Lint + typecheck only (iteration only — still add scoped vitest before commit).
 .\scripts\pr-feedback\Invoke-PrVerification.ps1 -SkipTest -SkipBuild
 ```
 
-Run project verification before committing. Adapt to the project's toolchain:
+#### Minimum bar
 
-```powershell
-npm run lint
-npx tsc --noEmit
-npm test
-npm run build
-```
+Lint and TypeScript (`tsc --noEmit`) **must** pass before commit. **At least one** relevant automated test command must pass locally: scoped `vitest run` counts; skipping *all* tests is only acceptable when the change is non-executable docs-only and the plan says so.
 
-At minimum, lint and typecheck must pass. If verification fails, fix before proceeding.
+If a scoped run fails, fix before proceeding. If CI fails later on unrelated tests, triage normally.
 
-**Worktree-aware verification:** If the PR branch lives in another git worktree (`git worktree list`), run commands **in that worktree**. Optionally scope tests to touched paths for speed; CI still runs on push.
+**Worktree-aware verification:** If the PR branch lives in another git worktree (`git worktree list`), run commands **in that worktree**.
 
 ### Step 7: Commit and Push
 
