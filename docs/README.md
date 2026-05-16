@@ -25,13 +25,17 @@ Technical documentation for developers and system architects:
 ### 👋 For End Users
 
 Day-to-day support for technicians, managers, admins, owners, and requestors
-lives **inside the app**:
+lives **inside the app** on EquipQR:
 
-- **In-app Support Library** — open `/dashboard/support` while signed in, or
-  `/support` for the public variant. It is the source of truth for
-  step-by-step walkthroughs organized by role and workflow (Start Here,
-  Technician Field Work, Work Orders, Equipment & QR Codes, Inventory & Parts,
-  Teams & Roles, Admin & Integrations, Privacy & Support).
+- **In-app Support Library (signed in):** `https://equipqr.app/dashboard/support`
+- **Public support page:** `https://equipqr.app/support`
+
+That surface is the source of truth for step-by-step walkthroughs (Start Here,
+Technician Field Work, Work Orders, Equipment & QR Codes, Inventory & Parts,
+Teams & Roles, Admin & Integrations, Privacy & Support).
+
+**Developer and ops documentation** (this Markdown tree) is published at **`https://equipqr.info`** as a static site.
+
 - **[Image Upload Quick Reference](./how-to/image-upload/quick-reference-card.md)** —
   printable cheat sheet for technicians in the field.
 - **[Image Upload Technician Guide](./how-to/image-upload/technician-image-upload-guide.md)** —
@@ -75,8 +79,8 @@ Operational documentation for deployment and maintenance:
 4. Monitor [Workflows](./guides/workflows.md) - User processes
 
 ### For End Users
-1. Open the in-app **Support Library** at `/dashboard/support` (or `/support` while
-   signed out) — the authoritative source of step-by-step walkthroughs.
+
+1. Open the in-app **Support Library** at **`https://equipqr.app/dashboard/support`** (signed in) or **`https://equipqr.app/support`** (public) — the authoritative source of step-by-step walkthroughs.
 2. For field technicians, print the [Image Upload Quick Reference](./how-to/image-upload/quick-reference-card.md).
 3. For RBAC questions, see [Permissions](./guides/permissions.md).
 
@@ -91,13 +95,13 @@ Operational documentation for deployment and maintenance:
 ## 📁 Additional Resources
 
 ### Archived Documentation
-- **[Historical Fixes](./archive/historical-fixes/)** - Historical documentation of fixes and improvements
+- **[Historical Fixes](./archive/historical-fixes/README.md)** - Historical documentation of fixes and improvements
 
 ### PM Templates
-- **[PM Checklists](./pm-templates/)** - Preventative maintenance checklist templates
+- **[PM Checklists](./pm-templates/index)** - Preventative maintenance checklist templates
 
 ### Root Cause Analysis
-- **[RCA Documents](./rca/)** - Root cause analysis documents
+- **[RCA Documents](./rca/index)** - Root cause analysis documents
 
 ## 🔍 Finding Information
 

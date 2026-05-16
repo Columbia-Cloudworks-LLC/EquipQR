@@ -6,6 +6,10 @@ This guide covers all aspects of deploying EquipQR™, including build processes
 
 EquipQR™ is designed as a modern single-page application (SPA) that can be deployed to various hosting platforms with minimal configuration.
 
+### Public documentation site (`equipqr.info`)
+
+Developer and operator documentation is published from this repository’s [`docs/`](https://github.com/Columbia-Cloudworks-LLC/EquipQR/tree/preview/docs) directory as a **standalone VitePress** static site. It is deployed as a **separate Vercel project** with **Root Directory** set to `docs` (build: `npm run docs:build`, output: `.vitepress/dist`). Production hostname: **`https://equipqr.info`**. The product app remains on **`https://equipqr.app`**.
+
 ## Build Process
 
 ### Development Build

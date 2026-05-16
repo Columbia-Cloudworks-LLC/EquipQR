@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Public documentation site bootstrap (VitePress)** ([#908](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/908)) — `docs/` builds as a standalone static site (VitePress) for deployment to `equipqr.info`; runbook updates in deployment and CI/CD docs; app footer links to published docs.
+
 ## [3.5.0] - 2026-05-15
 
 ### Added
