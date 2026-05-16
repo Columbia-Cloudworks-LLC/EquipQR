@@ -103,7 +103,7 @@ export interface TokenRefreshSummary {
 
 /**
  * Normalized contact entry derived from a documented QBO Customer field.
- * At most 4 entries per customer: primary_email, primary_phone, mobile, fax.
+ * Up to five entries per customer: primary_email, primary_phone, mobile, fax, alternate_phone.
  */
 export interface QBODerivedContact {
   sourceField: string;
@@ -127,6 +127,7 @@ export interface QuickBooksCustomerRecord {
   Phone?: string;
   Mobile?: string;
   Fax?: string;
+  AlternatePhone?: string;
   contacts?: QBODerivedContact[];
   BillAddr?: {
     Line1?: string;

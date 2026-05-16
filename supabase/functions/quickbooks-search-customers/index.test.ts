@@ -14,16 +14,18 @@ const stubCustomer = {
   PrimaryPhone: { FreeFormNumber: "(415) 444-6538" },
   Mobile: { FreeFormNumber: "(415) 555-0001" },
   Fax: { FreeFormNumber: "(415) 555-0002" },
+  AlternatePhone: { FreeFormNumber: "(415) 555-0003" },
 };
 
-Deno.test("buildQBOContacts returns entries for all four documented fields", () => {
+Deno.test("buildQBOContacts returns entries for all five documented fields", () => {
   const contacts = buildQBOContacts(stubCustomer);
-  assertEquals(contacts.length, 4, "Expected 4 contact entries");
+  assertEquals(contacts.length, 5, "Expected 5 contact entries");
   const fields = contacts.map((c) => c.sourceField);
   assertEquals(fields.includes("primary_email"), true, "Missing primary_email");
   assertEquals(fields.includes("primary_phone"), true, "Missing primary_phone");
   assertEquals(fields.includes("mobile"), true, "Missing mobile");
   assertEquals(fields.includes("fax"), true, "Missing fax");
+  assertEquals(fields.includes("alternate_phone"), true, "Missing alternate_phone");
 });
 
 Deno.test("buildQBOContacts primary_email entry has correct email and role", () => {
@@ -60,6 +62,14 @@ Deno.test("buildQBOContacts fax entry uses Fax.FreeFormNumber", () => {
   assertEquals(faxEntry!.role, "Fax");
 });
 
+Deno.test("buildQBOContacts alternate_phone entry uses AlternatePhone.FreeFormNumber", () => {
+  const contacts = buildQBOContacts(stubCustomer);
+  const altEntry = contacts.find((c) => c.sourceField === "alternate_phone");
+  assertExists(altEntry, "alternate_phone entry missing");
+  assertEquals(altEntry!.phone, "(415) 555-0003");
+  assertEquals(altEntry!.role, "Alternate phone");
+});
+
 Deno.test("buildQBOContacts derives display name from GivenName + FamilyName", () => {
   const contacts = buildQBOContacts(stubCustomer);
   for (const c of contacts) {
@@ -78,8 +88,15 @@ Deno.test("buildQBOContacts falls back to DisplayName when name parts absent", (
 Deno.test("buildQBOContacts returns only present fields (no fax when absent)", () => {
   const customerNoFax = { ...stubCustomer, Fax: undefined };
   const contacts = buildQBOContacts(customerNoFax);
-  assertEquals(contacts.length, 3, "Expected 3 contacts without fax");
+  assertEquals(contacts.length, 4, "Expected 4 contacts without fax");
   assertEquals(contacts.some((c) => c.sourceField === "fax"), false);
+});
+
+Deno.test("buildQBOContacts returns only present fields (no alternate_phone when absent)", () => {
+  const customerNoAlt = { ...stubCustomer, AlternatePhone: undefined };
+  const contacts = buildQBOContacts(customerNoAlt);
+  assertEquals(contacts.length, 4, "Expected 4 contacts without alternate_phone");
+  assertEquals(contacts.some((c) => c.sourceField === "alternate_phone"), false);
 });
 
 Deno.test("buildQBOContacts returns empty array when no contact fields present", () => {

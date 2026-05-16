@@ -23,6 +23,12 @@ const createExternalContactsMutationChain = () => ({
   error: null,
 });
 
+/**
+ * Sets up mockFrom so that:
+ * - 'external_customer_contacts' → externalContactsChain
+ * - 'customers' → customerChain (handles both the mutation and the org-validation lookup)
+ * The customerChain must include eq + maybeSingle for getCustomerById calls.
+ */
 const mockCustomerMutationWithContactReplacement = (customerChain: unknown) => {
   const externalContactsChain = createExternalContactsMutationChain();
 
@@ -30,7 +36,6 @@ const mockCustomerMutationWithContactReplacement = (customerChain: unknown) => {
     if (table === 'external_customer_contacts') {
       return externalContactsChain as never;
     }
-
     return customerChain as never;
   });
 
@@ -40,6 +45,7 @@ const mockCustomerMutationWithContactReplacement = (customerChain: unknown) => {
 describe('QuickBooks Import', () => {
   const orgId = 'org-123';
 
+  // contacts: [] means QBO returned an explicit empty contacts array → delete all QBO contacts.
   const sampleQBPayload: QBCustomerPayload = {
     Id: 'qb-42',
     DisplayName: 'Acme Corp',
@@ -47,6 +53,7 @@ describe('QuickBooks Import', () => {
     Taxable: false,
     Email: 'billing@acme.com',
     Phone: '555-123-4567',
+    contacts: [],
     BillAddr: {
       Line1: '100 Main St',
       City: 'Dallas',
@@ -72,7 +79,12 @@ describe('QuickBooks Import', () => {
       const mockChain = {
         insert: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({
+          data: { id: 'cust-1', name: 'Acme Corp', organization_id: orgId },
+          error: null,
+        }),
+        maybeSingle: vi.fn().mockResolvedValue({
           data: { id: 'cust-1', name: 'Acme Corp', organization_id: orgId },
           error: null,
         }),
@@ -108,6 +120,7 @@ describe('QuickBooks Import', () => {
     });
 
     it('should handle null optional fields gracefully', async () => {
+      // contacts is intentionally omitted → replaceQuickBooksExternalContacts returns early
       const minPayload: QBCustomerPayload = {
         Id: 'qb-99',
         DisplayName: 'Minimal Customer',
@@ -116,8 +129,13 @@ describe('QuickBooks Import', () => {
       const mockChain = {
         insert: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({
-          data: { id: 'cust-2', name: 'Minimal Customer' },
+          data: { id: 'cust-2', name: 'Minimal Customer', organization_id: orgId },
+          error: null,
+        }),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 'cust-2', name: 'Minimal Customer', organization_id: orgId },
           error: null,
         }),
       };
@@ -134,26 +152,90 @@ describe('QuickBooks Import', () => {
           shipping_address: null,
         })
       );
-      expect(externalContactsChain.delete).toHaveBeenCalled();
-      expect(externalContactsChain.eq).toHaveBeenCalledWith('customer_id', 'cust-2');
-      expect(externalContactsChain.eq).toHaveBeenCalledWith('source', 'quickbooks');
+      // contacts was omitted → early return, no contact rows touched
+      expect(externalContactsChain.upsert).not.toHaveBeenCalled();
+      expect(externalContactsChain.delete).not.toHaveBeenCalled();
     });
-  });
 
-  describe('refreshCustomerFromQB', () => {
-    it('should update only QB-sourced fields', async () => {
+    it('should skip contact operations when contacts is undefined', async () => {
+      const payloadWithoutContacts: QBCustomerPayload = {
+        Id: 'qb-77',
+        DisplayName: 'Skip Contacts Corp',
+        contacts: undefined,
+      };
+
       const mockChain = {
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
+        insert: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({
-          data: { id: 'cust-1', name: 'Acme Corp' },
+          data: { id: 'cust-3', name: 'Skip Contacts Corp', organization_id: orgId },
+          error: null,
+        }),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 'cust-3', name: 'Skip Contacts Corp', organization_id: orgId },
           error: null,
         }),
       };
       const externalContactsChain = mockCustomerMutationWithContactReplacement(mockChain);
 
-      await refreshCustomerFromQB('cust-1', sampleQBPayload);
+      await importCustomerFromQB(orgId, payloadWithoutContacts);
+
+      expect(externalContactsChain.upsert).not.toHaveBeenCalled();
+      expect(externalContactsChain.delete).not.toHaveBeenCalled();
+    });
+
+    it('should delete all QBO contacts when contacts is explicitly empty', async () => {
+      const payloadWithEmptyContacts: QBCustomerPayload = {
+        Id: 'qb-88',
+        DisplayName: 'Empty Contacts Corp',
+        contacts: [],
+      };
+
+      const mockChain = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 'cust-4', name: 'Empty Contacts Corp', organization_id: orgId },
+          error: null,
+        }),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 'cust-4', name: 'Empty Contacts Corp', organization_id: orgId },
+          error: null,
+        }),
+      };
+      const externalContactsChain = mockCustomerMutationWithContactReplacement(mockChain);
+
+      await importCustomerFromQB(orgId, payloadWithEmptyContacts);
+
+      // No upsert (no contacts to write)
+      expect(externalContactsChain.upsert).not.toHaveBeenCalled();
+      // Delete-all-QBO-contacts path fires
+      expect(externalContactsChain.delete).toHaveBeenCalled();
+      expect(externalContactsChain.eq).toHaveBeenCalledWith('customer_id', 'cust-4');
+      expect(externalContactsChain.eq).toHaveBeenCalledWith('source', 'quickbooks');
+    });
+  });
+
+  describe('refreshCustomerFromQB', () => {
+    it('should update only QB-sourced fields and scope the update by organization', async () => {
+      const mockChain = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 'cust-1', name: 'Acme Corp', organization_id: orgId },
+          error: null,
+        }),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 'cust-1', name: 'Acme Corp', organization_id: orgId },
+          error: null,
+        }),
+      };
+      const externalContactsChain = mockCustomerMutationWithContactReplacement(mockChain);
+
+      await refreshCustomerFromQB(orgId, 'cust-1', sampleQBPayload);
 
       const updateArg = mockChain.update.mock.calls[0][0];
       expect(updateArg.email).toBe('billing@acme.com');
@@ -166,6 +248,8 @@ describe('QuickBooks Import', () => {
       expect(updateArg).not.toHaveProperty('notes');
       expect(updateArg).not.toHaveProperty('account_owner_id');
       expect(updateArg).not.toHaveProperty('status');
+      // Update should be scoped to the organization
+      expect(mockChain.eq).toHaveBeenCalledWith('organization_id', orgId);
       expect(externalContactsChain.delete).toHaveBeenCalled();
       expect(externalContactsChain.eq).toHaveBeenCalledWith('customer_id', 'cust-1');
       expect(externalContactsChain.eq).toHaveBeenCalledWith('source', 'quickbooks');

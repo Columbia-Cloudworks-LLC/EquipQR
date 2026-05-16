@@ -25,6 +25,7 @@ export interface QuickBooksCustomer {
   Phone?: string;
   Mobile?: string;
   Fax?: string;
+  AlternatePhone?: string;
   contacts?: import('./types').QBODerivedContact[];
   BillAddr?: {
     Line1?: string;

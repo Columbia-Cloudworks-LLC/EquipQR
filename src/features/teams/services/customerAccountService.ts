@@ -97,6 +97,7 @@ export interface QBCustomerPayload {
   Phone?: string;
   Mobile?: string;
   Fax?: string;
+  AlternatePhone?: string;
   contacts?: QBODerivedContact[];
   BillAddr?: {
     Line1?: string;
@@ -130,13 +131,26 @@ function qbAddrToJson(addr?: QBCustomerPayload['BillAddr']): Record<string, stri
  * Inserts or updates one row per sourceField, then deletes stale QBO rows
  * whose sourceField is no longer present in the latest QBO payload.
  * Manual contacts (source = 'manual') are never touched.
+ *
+ * When qb.contacts is undefined the function returns immediately, preserving
+ * any previously-synced QBO rows.  Pass contacts: [] to explicitly clear them.
  */
 export async function replaceQuickBooksExternalContacts(
+  organizationId: string,
   customerId: string,
   qb: QBCustomerPayload
 ): Promise<void> {
+  // Preserve existing QBO contact rows when the caller did not supply contacts.
+  if (qb.contacts === undefined) return;
+
+  // Validate that the customer belongs to the stated organization before mutating.
+  const owner = await getCustomerById(customerId, organizationId);
+  if (!owner) {
+    throw new Error(`Customer ${customerId} not found in organization ${organizationId}`);
+  }
+
   const syncedAt = new Date().toISOString();
-  const contacts = qb.contacts ?? [];
+  const contacts = qb.contacts;
 
   if (contacts.length > 0) {
     const rows: ExternalContactInsert[] = contacts.map((c) => ({
@@ -202,7 +216,7 @@ export async function importCustomerFromQB(
   };
 
   const customer = await createCustomer(insert);
-  await replaceQuickBooksExternalContacts(customer.id, qb);
+  await replaceQuickBooksExternalContacts(organizationId, customer.id, qb);
   return customer;
 }
 
@@ -211,6 +225,7 @@ export async function importCustomerFromQB(
  * EquipQR-only fields (name, notes, account_owner_id, status).
  */
 export async function refreshCustomerFromQB(
+  organizationId: string,
   customerId: string,
   qb: QBCustomerPayload
 ): Promise<CustomerRow> {
@@ -224,8 +239,8 @@ export async function refreshCustomerFromQB(
     is_tax_exempt: qb.Taxable === undefined ? null : qb.Taxable === false,
   };
 
-  const customer = await updateCustomer(customerId, updates);
-  await replaceQuickBooksExternalContacts(customerId, qb);
+  const customer = await updateCustomer(customerId, updates, organizationId);
+  await replaceQuickBooksExternalContacts(organizationId, customerId, qb);
   return customer;
 }
 

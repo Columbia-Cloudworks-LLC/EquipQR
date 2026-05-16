@@ -1,6 +1,6 @@
 /**
  * Normalized contact entry derived from a documented QBO Customer field.
- * At most 4 entries per customer: primary_email, primary_phone, mobile, fax.
+ * Up to five entries per customer: primary_email, primary_phone, mobile, fax, alternate_phone.
  */
 export interface QBODerivedContact {
   sourceField: string;
@@ -19,11 +19,12 @@ export interface QBOCustomerContactFields {
   PrimaryPhone?: { FreeFormNumber: string };
   Mobile?: { FreeFormNumber: string };
   Fax?: { FreeFormNumber: string };
+  AlternatePhone?: { FreeFormNumber: string };
 }
 
 /**
- * Build up to four normalized contact entries from documented QBO Customer fields.
- * Does NOT invent a separate multi-contact collection; only documented fields are used.
+ * Build normalized contact entries from documented QBO Customer fields.
+ * Returns up to five entries: primary_email, primary_phone, mobile, fax, alternate_phone.
  */
 export function buildQBOContacts(c: QBOCustomerContactFields): QBODerivedContact[] {
   const displayName =
@@ -48,6 +49,11 @@ export function buildQBOContacts(c: QBOCustomerContactFields): QBODerivedContact
   const fax = c.Fax?.FreeFormNumber;
   if (fax) {
     contacts.push({ sourceField: "fax", name: displayName, role: "Fax", phone: fax });
+  }
+
+  const alternatePhone = c.AlternatePhone?.FreeFormNumber;
+  if (alternatePhone) {
+    contacts.push({ sourceField: "alternate_phone", name: displayName, role: "Alternate phone", phone: alternatePhone });
   }
 
   return contacts;

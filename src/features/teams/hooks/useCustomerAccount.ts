@@ -100,7 +100,7 @@ export function useCustomerMutations(organizationId: string | undefined) {
 
   const refreshFromQB = useMutation({
     mutationFn: ({ customerId, qb }: { customerId: string; qb: QBCustomerPayload }) =>
-      refreshCustomerFromQB(customerId, qb),
+      refreshCustomerFromQB(organizationId!, customerId, qb),
     onSuccess: (_data, vars) => {
       toast({ title: 'Refreshed', description: 'Customer data refreshed from QuickBooks' });
       queryClient.invalidateQueries({ queryKey: ['customer', vars.customerId] });

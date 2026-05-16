@@ -68,6 +68,7 @@ function qbCustomerToPayload(c: QuickBooksCustomer): QBCustomerPayload {
     Phone: c.Phone ?? c.PrimaryPhone?.FreeFormNumber,
     Mobile: c.Mobile,
     Fax: c.Fax,
+    AlternatePhone: c.AlternatePhone,
     contacts: c.contacts,
     BillAddr: c.BillAddr,
     ShipAddr: c.ShipAddr,
