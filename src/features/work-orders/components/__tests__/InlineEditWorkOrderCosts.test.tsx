@@ -195,6 +195,25 @@ describe('InlineEditWorkOrderCosts mobile edit UX', () => {
     expect(screen.getByText('Edit cost lines')).toBeInTheDocument();
   });
 
+  it('does not show validation alert immediately after Add cost line', async () => {
+    const user = userEvent.setup();
+    render(
+      <InlineEditWorkOrderCosts
+        costs={[]}
+        workOrderId="wo-1"
+        equipmentIds={['eq-1']}
+        canEdit
+        compactMobile
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /add cost/i }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /add cost line/i }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('shows validation after Save with invalid rows', async () => {
     const user = userEvent.setup();
     render(

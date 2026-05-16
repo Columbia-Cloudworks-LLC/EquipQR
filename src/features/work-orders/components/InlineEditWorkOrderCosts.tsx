@@ -276,7 +276,6 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
   );
 
   const wrappedAddCost = () => {
-    setCostValidationPhase('dirty');
     addCost();
   };
 
