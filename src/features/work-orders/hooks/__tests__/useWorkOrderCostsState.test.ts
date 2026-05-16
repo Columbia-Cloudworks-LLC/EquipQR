@@ -4,14 +4,27 @@ import { useWorkOrderCostsState } from '../useWorkOrderCostsState';
 
 describe('useWorkOrderCostsState', () => {
   it('uses crypto.randomUUID when available', () => {
-    const { result } = renderHook(() => useWorkOrderCostsState([]));
-    act(() => {
-      result.current.resetCostsWithMinimum([]);
+    const original = globalThis.crypto;
+    const deterministicUuid = '11111111-1111-4111-8111-111111111111';
+    Object.defineProperty(globalThis, 'crypto', {
+      configurable: true,
+      value: {
+        randomUUID: () => deterministicUuid,
+      },
     });
-    expect(result.current.costs).toHaveLength(1);
-    expect(result.current.costs[0].id).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-    );
+    try {
+      const { result } = renderHook(() => useWorkOrderCostsState([]));
+      act(() => {
+        result.current.resetCostsWithMinimum([]);
+      });
+      expect(result.current.costs).toHaveLength(1);
+      expect(result.current.costs[0].id).toBe(deterministicUuid);
+    } finally {
+      Object.defineProperty(globalThis, 'crypto', {
+        configurable: true,
+        value: original,
+      });
+    }
   });
 
   it('uses fallback id when crypto.randomUUID is unavailable', () => {
