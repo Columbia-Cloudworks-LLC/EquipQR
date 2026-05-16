@@ -218,7 +218,12 @@ It does **not** run `vercel promote`. The maintainer manually promotes in the Ve
 | `SUPABASE_DB_PASSWORD` | `op://EquipQR Agents/supabase-write/prod_db_password` |
 | `VERCEL_TOKEN` | `op://EquipQR Agents/vercel-write/credential` |
 
-Add `prod_db_password` to the `supabase-write` item if it is not already present (production database password for CLI `link` / `db push` in CI only).
+Keep these database passwords on the `supabase-write` item in sync with **Supabase Dashboard → Project Settings → Database** (the Postgres password) for each project:
+
+| 1Password field | Supabase project | Typical use |
+|-----------------|------------------|-------------|
+| `prod_db_password` | Production (`ymxkzronkhwxzcdcbnwq`) | **Production Release Readiness** maps this to `SUPABASE_DB_PASSWORD` for `supabase link` / `db push` after merge to `main`. |
+| `preview_db_password` | Preview (`olsdirkvvfegvclbpgrg`) | Local or scripted `supabase link` / `db push` against preview; not used by the current GitHub workflows. |
 
 Release PRs (`preview` → `main`) still run **Schema Drift Check** as a **warning** when migrations are not on production yet; the hard alignment check runs in this post-merge workflow.
 
