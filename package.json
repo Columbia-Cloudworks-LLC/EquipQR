@@ -21,6 +21,7 @@
     "preview": "vite preview",
     "verify:preview-access": "node scripts/verify-preview-access.mjs",
     "test": "node scripts/test-runner.mjs",
+    "test:itil-scripts": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/itil/tests/Run-ItilWorkflowTests.ps1",
     "test:coverage": "node scripts/test-runner.mjs --coverage",
     "test:watch": "vitest --watch",
     "test:ui": "vitest --ui",
