@@ -15,6 +15,28 @@ import type { QBCustomerPayload } from '@/features/teams/services/customerAccoun
 
 const mockFrom = vi.mocked(supabase.from);
 
+const createExternalContactsMutationChain = () => ({
+  upsert: vi.fn().mockReturnThis(),
+  delete: vi.fn().mockReturnThis(),
+  eq: vi.fn().mockReturnThis(),
+  not: vi.fn().mockReturnThis(),
+  error: null,
+});
+
+const mockCustomerMutationWithContactReplacement = (customerChain: unknown) => {
+  const externalContactsChain = createExternalContactsMutationChain();
+
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'external_customer_contacts') {
+      return externalContactsChain as never;
+    }
+
+    return customerChain as never;
+  });
+
+  return externalContactsChain;
+};
+
 describe('QuickBooks Import', () => {
   const orgId = 'org-123';
 
@@ -55,7 +77,7 @@ describe('QuickBooks Import', () => {
           error: null,
         }),
       };
-      mockFrom.mockReturnValue(mockChain as never);
+      const externalContactsChain = mockCustomerMutationWithContactReplacement(mockChain);
 
       await importCustomerFromQB(orgId, sampleQBPayload);
 
@@ -80,6 +102,9 @@ describe('QuickBooks Import', () => {
           }),
         })
       );
+      expect(externalContactsChain.delete).toHaveBeenCalled();
+      expect(externalContactsChain.eq).toHaveBeenCalledWith('customer_id', 'cust-1');
+      expect(externalContactsChain.eq).toHaveBeenCalledWith('source', 'quickbooks');
     });
 
     it('should handle null optional fields gracefully', async () => {
@@ -96,7 +121,7 @@ describe('QuickBooks Import', () => {
           error: null,
         }),
       };
-      mockFrom.mockReturnValue(mockChain as never);
+      const externalContactsChain = mockCustomerMutationWithContactReplacement(mockChain);
 
       await importCustomerFromQB(orgId, minPayload);
 
@@ -109,6 +134,9 @@ describe('QuickBooks Import', () => {
           shipping_address: null,
         })
       );
+      expect(externalContactsChain.delete).toHaveBeenCalled();
+      expect(externalContactsChain.eq).toHaveBeenCalledWith('customer_id', 'cust-2');
+      expect(externalContactsChain.eq).toHaveBeenCalledWith('source', 'quickbooks');
     });
   });
 
@@ -123,7 +151,7 @@ describe('QuickBooks Import', () => {
           error: null,
         }),
       };
-      mockFrom.mockReturnValue(mockChain as never);
+      const externalContactsChain = mockCustomerMutationWithContactReplacement(mockChain);
 
       await refreshCustomerFromQB('cust-1', sampleQBPayload);
 
@@ -138,6 +166,9 @@ describe('QuickBooks Import', () => {
       expect(updateArg).not.toHaveProperty('notes');
       expect(updateArg).not.toHaveProperty('account_owner_id');
       expect(updateArg).not.toHaveProperty('status');
+      expect(externalContactsChain.delete).toHaveBeenCalled();
+      expect(externalContactsChain.eq).toHaveBeenCalledWith('customer_id', 'cust-1');
+      expect(externalContactsChain.eq).toHaveBeenCalledWith('source', 'quickbooks');
     });
   });
 
