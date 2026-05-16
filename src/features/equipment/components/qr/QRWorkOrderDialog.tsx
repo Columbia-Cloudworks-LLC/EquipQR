@@ -35,7 +35,7 @@ import { workOrders, workOrderMetrics } from '@/lib/queryKeys';
 import WorkOrderCreationPhotoPicker from '@/features/work-orders/components/WorkOrderCreationPhotoPicker';
 import { OFFLINE_CREATION_PHOTOS_MESSAGE } from '@/features/work-orders/utils/workOrderCreationImages';
 import { toast } from 'sonner';
-import { templateToSummary, type PMTemplateSummary } from '@/features/pm-templates/services/pmChecklistTemplatesService';
+import type { PMTemplateSummary } from '@/features/pm-templates/services/pmChecklistTemplatesService';
 import { usePMTemplatesForOrganization } from '@/features/pm-templates/hooks/usePMTemplates';
 import { useMatchingPMTemplatesForEquipment } from '@/features/pm-templates/hooks/usePMTemplateCompatibility';
 import { getSimplifiedOrganizationRestrictions } from '@/utils/simplifiedOrganizationRestrictions';
@@ -102,7 +102,7 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
     }
 
     const restrictions = getSimplifiedOrganizationRestrictions();
-    const allSummaries = templatesQuery.data.map(templateToSummary);
+    const allSummaries = templatesQuery.data;
     const availableTemplates = restrictions.canCreateCustomPMTemplates
       ? allSummaries
       : allSummaries.filter(t => !t.organization_id);

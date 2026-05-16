@@ -22,6 +22,9 @@ export const usePMTemplatesForOrganization = (
     enabled: enabledFlag && !!organizationId,
     staleTime: options.staleTime ?? 30 * 60 * 1000,
     gcTime: options.gcTime ?? 60 * 60 * 1000,
+    select: (data: PMTemplate[]): PMTemplateSummary[] => {
+      return data.map(templateToSummary);
+    },
   });
 };
 
