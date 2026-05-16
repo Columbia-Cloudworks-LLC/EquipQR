@@ -8,6 +8,10 @@ import type { WorkOrderCost } from '@/features/work-orders/services/workOrderCos
 const mutateAsyncCreate = vi.fn();
 const adjustInventoryMutateAsync = vi.fn();
 
+const { mockUseIsMobile } = vi.hoisted(() => ({
+  mockUseIsMobile: vi.fn(() => false),
+}));
+
 vi.mock('@/features/work-orders/hooks/useWorkOrderCosts', async (importOriginal) => {
   const mod = await importOriginal<typeof import('@/features/work-orders/hooks/useWorkOrderCosts')>();
   return {
@@ -53,7 +57,7 @@ vi.mock('@/hooks/useAuth', () => ({
 }));
 
 vi.mock('@/hooks/use-mobile', () => ({
-  useIsMobile: () => false,
+  useIsMobile: () => mockUseIsMobile(),
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
@@ -78,6 +82,7 @@ describe('isLaborCostRow', () => {
 describe('InlineEditWorkOrderCosts labor preset', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseIsMobile.mockReturnValue(false);
     mutateAsyncCreate.mockResolvedValue({
       id: 'cost-new',
       work_order_id: 'wo-1',
@@ -149,5 +154,82 @@ describe('InlineEditWorkOrderCosts labor preset', () => {
       });
     });
     expect(adjustInventoryMutateAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe('InlineEditWorkOrderCosts mobile edit UX', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUseIsMobile.mockReturnValue(true);
+    mutateAsyncCreate.mockResolvedValue({
+      id: 'cost-new',
+      work_order_id: 'wo-1',
+      description: 'Labor',
+      quantity: 2,
+      unit_price_cents: 7500,
+      total_price_cents: 15000,
+      created_by: 'user-1',
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+      inventory_item_id: null,
+      original_quantity: null,
+    } satisfies WorkOrderCost);
+  });
+
+  it('does not show inline validation on entering mobile edit mode', async () => {
+    const user = userEvent.setup();
+    render(
+      <InlineEditWorkOrderCosts
+        costs={[]}
+        workOrderId="wo-1"
+        equipmentIds={['eq-1']}
+        canEdit
+        compactMobile
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /add cost/i }));
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByText('Cost Items')).not.toBeInTheDocument();
+    expect(screen.getByText('Edit cost lines')).toBeInTheDocument();
+  });
+
+  it('shows validation after Save with invalid rows', async () => {
+    const user = userEvent.setup();
+    render(
+      <InlineEditWorkOrderCosts
+        costs={[]}
+        workOrderId="wo-1"
+        equipmentIds={['eq-1']}
+        canEdit
+        compactMobile
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /add cost/i }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /^save$/i }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/valid quantities/i);
+  });
+
+  it('shows validation after first field interaction while still invalid', async () => {
+    const user = userEvent.setup();
+    render(
+      <InlineEditWorkOrderCosts
+        costs={[]}
+        workOrderId="wo-1"
+        equipmentIds={['eq-1']}
+        canEdit
+        compactMobile
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /add cost/i }));
+    await user.type(screen.getByPlaceholderText('Qty'), '2');
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/valid quantities/i);
   });
 });

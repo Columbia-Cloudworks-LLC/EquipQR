@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +14,7 @@ import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { Edit2, Check, X, DollarSign, Package, Plus, Clock } from 'lucide-react';
 import { WorkOrderCost } from '@/features/work-orders/services/workOrderCostsService';
 import { isLaborCostRow } from '@/features/work-orders/utils/isLaborCostRow';
-import { useWorkOrderCostsState } from '@/features/work-orders/hooks/useWorkOrderCostsState';
+import { useWorkOrderCostsState, type WorkOrderCostItem } from '@/features/work-orders/hooks/useWorkOrderCostsState';
 import { 
   useCreateWorkOrderCost, 
   useUpdateWorkOrderCostWithInventory, 
@@ -157,6 +157,8 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
   // Delete confirmation dialog state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [costToDelete, setCostToDelete] = useState<{ id: string; hasInventory: boolean; quantity: number } | null>(null);
+  /** Hide inline validation noise until Save fails or user edits rows */
+  const [costValidationPhase, setCostValidationPhase] = useState<'pristine' | 'dirty'>('pristine');
   
   const adjustInventoryMutation = useAdjustInventoryQuantity();
   
@@ -194,11 +196,16 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
   const handleStartEdit = () => {
     resetCosts(costs);
     ensureMinimumCosts();
+    setCostValidationPhase('pristine');
     setIsEditing(true);
   };
 
   const handleSave = async () => {
-    if (!validateCosts() || !currentOrganization) {
+    if (!validateCosts()) {
+      setCostValidationPhase('dirty');
+      return;
+    }
+    if (!currentOrganization) {
       return;
     }
 
@@ -256,7 +263,21 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
 
   const handleCancel = () => {
     resetCosts(costs);
+    setCostValidationPhase('pristine');
     setIsEditing(false);
+  };
+
+  const wrappedUpdateCost = useCallback(
+    (id: string, field: keyof WorkOrderCostItem, value: string | number) => {
+      setCostValidationPhase('dirty');
+      updateCost(id, field, value);
+    },
+    [updateCost],
+  );
+
+  const wrappedAddCost = () => {
+    setCostValidationPhase('dirty');
+    addCost();
   };
 
   const handleAddFromInventory = async (itemId: string, quantity: number, unitCost: number) => {
@@ -319,6 +340,10 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
         inventory_item_id: itemId,
         original_quantity: quantity
       });
+
+      if (isEditing) {
+        setCostValidationPhase('dirty');
+      }
 
       // Update local editing state so user sees the new cost immediately
       // (the mutation invalidates the query, but we're in edit mode showing local state)
@@ -407,6 +432,9 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
     const description = trimmedNote ? `Labor - ${trimmedNote}` : 'Labor';
 
     try {
+      if (isEditing) {
+        setCostValidationPhase('dirty');
+      }
       const createdCost = await createCostMutation.mutateAsync({
         work_order_id: workOrderId,
         description,
@@ -505,12 +533,13 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
       });
       setDeleteConfirmOpen(true);
     } else {
-      // Directly remove non-inventory costs
+      setCostValidationPhase('dirty');
       removeCost(id);
     }
   };
 
   const confirmDelete = () => {
+    setCostValidationPhase('dirty');
     if (costToDelete) {
       removeCost(costToDelete.id);
       setCostToDelete(null);
@@ -676,59 +705,139 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
     );
   }
 
+  const costsHasInlineError = costValidationPhase === 'dirty' && !validateCosts();
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="text-sm font-medium">Edit Cost Items</h4>
-        <div className="flex flex-wrap gap-2 justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setLaborDialogOpen(true)}
-            disabled={isSaving}
+    <div className="overflow-x-hidden">
+      {isMobile ? (
+        <div className="space-y-4">
+          <h4 className="text-base font-semibold leading-snug text-foreground">Edit cost lines</h4>
+
+          <div
+            className={cn(
+              'grid gap-2',
+              equipmentIds.length > 0 ? 'grid-cols-2' : 'grid-cols-1',
+            )}
           >
-            <Clock className="h-4 w-4 mr-1" />
-            Add labor
-          </Button>
-          {equipmentIds.length > 0 && (
             <Button
+              type="button"
               variant="outline"
               size="sm"
-              onClick={() => setShowInventorySelector(true)}
+              className="min-h-[44px] h-auto w-full whitespace-normal px-2 py-2 text-center leading-snug"
+              onClick={() => setLaborDialogOpen(true)}
               disabled={isSaving}
             >
-              <Package className="h-4 w-4 mr-1" />
-              Add from Inventory
+              <Clock className="mr-1 inline h-4 w-4 shrink-0 align-text-bottom" aria-hidden />
+              Add labor
             </Button>
-          )}
+            {equipmentIds.length > 0 ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="min-h-[44px] h-auto w-full whitespace-normal px-2 py-2 text-center leading-snug"
+                onClick={() => setShowInventorySelector(true)}
+                disabled={isSaving}
+              >
+                <Package className="mr-1 inline h-4 w-4 shrink-0 align-text-bottom" aria-hidden />
+                Add from Inventory
+              </Button>
+            ) : null}
+          </div>
+
           <Button
-            variant="ghost"
+            type="button"
+            variant="secondary"
             size="sm"
-            onClick={handleSave}
-            disabled={isSaving || !validateCosts()}
-          >
-            <Check className="h-4 w-4 mr-1" />
-            Save
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCancel}
+            className="min-h-[44px] h-auto w-full"
+            onClick={wrappedAddCost}
             disabled={isSaving}
           >
-            <X className="h-4 w-4 mr-1" />
-            Cancel
+            <Plus className="mr-2 h-4 w-4 shrink-0" aria-hidden />
+            Add cost line
           </Button>
+
+          <WorkOrderCostsEditor
+            costs={editCosts}
+            onAddCost={wrappedAddCost}
+            onRemoveCost={handleRemoveCost}
+            onUpdateCost={wrappedUpdateCost}
+            hasError={costsHasInlineError}
+            suppressMobileChrome
+          />
+
+          <div className="grid grid-cols-2 gap-2 border-t pt-3">
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              className="min-h-[44px]"
+              onClick={() => void handleSave()}
+              disabled={isSaving}
+            >
+              <Check className="mr-2 h-4 w-4 shrink-0" aria-hidden />
+              Save
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="min-h-[44px]"
+              onClick={handleCancel}
+              disabled={isSaving}
+            >
+              <X className="mr-2 h-4 w-4 shrink-0" aria-hidden />
+              Cancel
+            </Button>
+          </div>
         </div>
-      </div>
-      
-      <WorkOrderCostsEditor
-        costs={editCosts}
-        onAddCost={addCost}
-        onRemoveCost={handleRemoveCost}
-        onUpdateCost={updateCost}
-        hasError={!validateCosts()}
-      />
+      ) : (
+        <>
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <h4 className="text-sm font-medium">Edit Cost Items</h4>
+            <div className="flex max-w-full flex-wrap justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setLaborDialogOpen(true)}
+                disabled={isSaving}
+              >
+                <Clock className="h-4 w-4 mr-1" aria-hidden />
+                Add labor
+              </Button>
+              {equipmentIds.length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowInventorySelector(true)}
+                  disabled={isSaving}
+                >
+                  <Package className="h-4 w-4 mr-1" aria-hidden />
+                  Add from Inventory
+                </Button>
+              )}
+              <Button type="button" variant="ghost" size="sm" onClick={() => void handleSave()} disabled={isSaving}>
+                <Check className="h-4 w-4 mr-1" aria-hidden />
+                Save
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={handleCancel} disabled={isSaving}>
+                <X className="h-4 w-4 mr-1" aria-hidden />
+                Cancel
+              </Button>
+            </div>
+          </div>
+
+          <WorkOrderCostsEditor
+            costs={editCosts}
+            onAddCost={wrappedAddCost}
+            onRemoveCost={handleRemoveCost}
+            onUpdateCost={wrappedUpdateCost}
+            hasError={costsHasInlineError}
+          />
+        </>
+      )}
 
       {/* Inventory Part Selector */}
       {showInventorySelector && equipmentIds.length > 0 && (
