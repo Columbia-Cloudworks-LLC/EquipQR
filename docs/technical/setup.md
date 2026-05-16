@@ -112,7 +112,7 @@ VITE_GOOGLE_PICKER_APP_ID=your-google-cloud-project-number
 
 Edge Functions require secrets configured in the Supabase Dashboard. See the complete reference:
 
-👉 **[Supabase Branch Secrets Configuration](../ops/supabase-branch-secrets.md)**
+👉 **[Supabase Branch Secrets Configuration](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/supabase-branch-secrets.md)**
 
 Key secrets include:
 
@@ -138,13 +138,13 @@ SUPABASE_ANON_KEY=<local-anon-key>
 # Add integration secrets as needed (see .env.example for full list)
 ```
 
-See **[Local Supabase Development Guide](../ops/local-supabase-development.md)** for complete setup instructions.
+See **[Local Supabase Development Guide](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/local-supabase-development.md)** for complete setup instructions.
 
 ### Setting Up Supabase
 
 > **⚠️ IMPORTANT: Local Supabase is the standard development method.**
 > 
-> All database development should be done locally first, then deployed to production. See [Local Supabase Development Guide](../ops/local-supabase-development.md) for complete setup instructions.
+> All database development should be done locally first, then deployed to production. See [Local Supabase Development Guide](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/local-supabase-development.md) for complete setup instructions.
 
 **For local development (recommended):**
 
@@ -550,7 +550,7 @@ describe('EquipmentCard', () => {
    npx supabase db push --linked
    ```
 
-**Note**: See [Local Supabase Development Guide](../ops/local-supabase-development.md) for detailed setup instructions.
+**Note**: See [Local Supabase Development Guide](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/local-supabase-development.md) for detailed setup instructions.
 
 ## Troubleshooting Common Issues
 

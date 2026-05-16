@@ -4,11 +4,13 @@ import { defineConfig } from "vitepress";
 export default defineConfig({
   title: "EquipQR Documentation",
   description:
-    "Technical guides, operations runbooks, and references for the EquipQR fleet equipment management platform.",
+    "Public technical guides, support how-tos, and references for the EquipQR fleet equipment management platform.",
   lang: "en-US",
   lastUpdated: true,
   cleanUrls: true,
   srcDir: ".",
+  // Internal ops runbooks stay in-repo only (not published on equipqr.info).
+  srcExclude: ["ops/**"],
   sitemap: {
     hostname: "https://equipqr.info",
   },
@@ -41,7 +43,6 @@ export default defineConfig({
       { text: "Getting started", link: "/getting-started/developer-onboarding" },
       { text: "Technical", link: "/technical/setup" },
       { text: "Guides", link: "/guides/workflows" },
-      { text: "Operations", link: "/ops/deployment" },
       {
         text: "App",
         link: "https://equipqr.app",
@@ -113,52 +114,6 @@ export default defineConfig({
           items: [
             { text: "Workflows", link: "/guides/workflows" },
             { text: "Permissions (RBAC)", link: "/guides/permissions" },
-          ],
-        },
-      ],
-
-      "/ops/": [
-        {
-          text: "Operations",
-          items: [
-            { text: "Deployment", link: "/ops/deployment" },
-            { text: "CI/CD pipeline", link: "/ops/ci-cd-pipeline" },
-            { text: "Migrations", link: "/ops/migrations" },
-            {
-              text: "Migration rules (quick ref)",
-              link: "/ops/migration-rules-quick-reference",
-            },
-            {
-              text: "Local Supabase",
-              link: "/ops/local-supabase-development",
-            },
-            { text: "Disaster recovery", link: "/ops/disaster-recovery" },
-            { text: "Observability", link: "/ops/observability" },
-            {
-              text: "Better Stack monitoring",
-              link: "/ops/better-stack-monitoring",
-            },
-            { text: "Supabase branching", link: "/ops/supabase-branching" },
-            {
-              text: "Supabase branch secrets",
-              link: "/ops/supabase-branch-secrets",
-            },
-            { text: "Cloud admin access", link: "/ops/cloud-admin-access" },
-            {
-              text: "Access control policy",
-              link: "/ops/access-control-policy",
-            },
-            { text: "DSR compliance runbook", link: "/ops/dsr-compliance-runbook" },
-          ],
-        },
-        {
-          text: "Workshop",
-          collapsed: true,
-          items: [
-            {
-              text: "AI model comparison report (April 2026)",
-              link: "/ops/ci-cd-workshop/AI Model Comparison Report  28 Models Across 6 Families (April 2026)",
-            },
           ],
         },
       ],

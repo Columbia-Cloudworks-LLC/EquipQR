@@ -3,15 +3,15 @@ layout: home
 
 hero:
   name: EquipQR Documentation
-  text: Fleet operations, guides & runbooks
-  tagline: Public documentation for EquipQR—support guides, technical reference, and operations runbooks—hosted at equipqr.info.
+  text: Guides, how-tos & technical reference
+  tagline: Public documentation for EquipQR—support guides, technical reference, and field workflows—hosted at equipqr.info.
   actions:
     - theme: brand
       text: Developer onboarding
       link: /getting-started/developer-onboarding
     - theme: alt
-      text: Deployment
-      link: /ops/deployment
+      text: Workflows
+      link: /guides/workflows
 
 features:
   - title: Getting started
@@ -26,10 +26,10 @@ features:
     details: Workflows and the full RBAC permissions matrix.
     link: /guides/workflows
     linkText: Read guides
-  - title: Operations
-    details: CI/CD, migrations, disaster recovery, and observability.
-    link: /ops/ci-cd-pipeline
-    linkText: Operations runbooks
+  - title: How-to
+    details: Field image upload guides and printable quick references.
+    link: /how-to/image-upload/
+    linkText: Image upload guides
 ---
 
 ## Browse the library

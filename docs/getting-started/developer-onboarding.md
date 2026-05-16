@@ -88,8 +88,8 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 > **📋 Full Reference**: The `.env.example` file contains detailed documentation for all environment variables, including descriptions, file references, and generation commands. See also:
 > - **[Setup Guide - Environment Configuration](../technical/setup.md#environment-configuration)** - Overview of environment variable categories
-> - **[Supabase Branch Secrets](../ops/supabase-branch-secrets.md)** - Edge Function secrets for production/preview
-> - **[Local Supabase Development](../ops/local-supabase-development.md)** - Local development environment setup
+> - **[Supabase Branch Secrets](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/supabase-branch-secrets.md)** - Edge Function secrets for production/preview
+> - **[Local Supabase Development](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/local-supabase-development.md)** - Local development environment setup
 
 ### 4. Start Development Server
 
@@ -113,7 +113,7 @@ Visit `http://localhost:8080` to see the application running!
 
 > **⚠️ IMPORTANT: Local Supabase is the standard development method.**
 > 
-> All database development should be done locally first, then deployed to production. See [Local Supabase Development Guide](../ops/local-supabase-development.md) for complete setup instructions.
+> All database development should be done locally first, then deployed to production. See [Local Supabase Development Guide](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/local-supabase-development.md) for complete setup instructions.
 
 **For local development (recommended):**
 
@@ -452,7 +452,7 @@ describe('EquipmentCard', () => {
    npx supabase db push --linked
    ```
 
-**Note**: See [Local Supabase Development Guide](../ops/local-supabase-development.md) for detailed setup instructions.
+**Note**: See [Local Supabase Development Guide](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/local-supabase-development.md) for detailed setup instructions.
 
 ## Troubleshooting Common Issues
 
