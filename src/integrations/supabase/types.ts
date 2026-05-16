@@ -929,10 +929,15 @@ export type Database = {
           customer_id: string
           email: string | null
           id: string
+          last_synced_at: string | null
           name: string
           notes: string | null
           phone: string | null
           role: string | null
+          source: string
+          source_external_id: string | null
+          source_field: string | null
+          source_payload: Json | null
           updated_at: string | null
         }
         Insert: {
@@ -940,10 +945,15 @@ export type Database = {
           customer_id: string
           email?: string | null
           id?: string
+          last_synced_at?: string | null
           name: string
           notes?: string | null
           phone?: string | null
           role?: string | null
+          source?: string
+          source_external_id?: string | null
+          source_field?: string | null
+          source_payload?: Json | null
           updated_at?: string | null
         }
         Update: {
@@ -951,10 +961,15 @@ export type Database = {
           customer_id?: string
           email?: string | null
           id?: string
+          last_synced_at?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
           role?: string | null
+          source?: string
+          source_external_id?: string | null
+          source_field?: string | null
+          source_payload?: Json | null
           updated_at?: string | null
         }
         Relationships: [

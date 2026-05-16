@@ -32,6 +32,7 @@ export interface EquipmentData {
   status: 'active' | 'maintenance' | 'inactive';
   location?: string;
   team_id?: string | null;
+  customer_id?: string | null;
 }
 
 export interface PMData {

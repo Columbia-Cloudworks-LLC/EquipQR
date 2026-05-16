@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Building2, Mail, Phone, Link2 } from 'lucide-react';
-import { useCustomer } from '@/features/teams/hooks/useCustomerAccount';
+import { useCustomer, useExternalContacts } from '@/features/teams/hooks/useCustomerAccount';
 
 interface CustomerAccountCardProps {
   customerId: string;
@@ -17,6 +17,8 @@ const statusStyles: Record<string, string> = {
 
 const CustomerAccountCard: React.FC<CustomerAccountCardProps> = ({ customerId }) => {
   const { data: customer, isLoading } = useCustomer(customerId);
+  const { data: allContacts = [] } = useExternalContacts(customerId);
+  const qboContacts = allContacts.filter((c) => c.source === 'quickbooks');
 
   if (isLoading || !customer) return null;
 
@@ -82,6 +84,29 @@ const CustomerAccountCard: React.FC<CustomerAccountCardProps> = ({ customerId })
                 &middot; synced {new Date(customer.quickbooks_synced_at).toLocaleDateString()}
               </span>
             )}
+          </div>
+        )}
+
+        {qboContacts.length > 0 && (
+          <div className="border-t pt-2 mt-2 space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">QuickBooks Contacts</p>
+            {qboContacts.map((c) => (
+              <div key={c.id} className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">{c.role ?? c.name}</span>
+                {c.email && (
+                  <a href={`mailto:${c.email}`} className="flex items-center gap-1 hover:text-primary transition-colors">
+                    <Mail className="h-3 w-3" />
+                    {c.email}
+                  </a>
+                )}
+                {c.phone && (
+                  <a href={`tel:${c.phone}`} className="flex items-center gap-1 hover:text-primary transition-colors">
+                    <Phone className="h-3 w-3" />
+                    {c.phone}
+                  </a>
+                )}
+              </div>
+            ))}
           </div>
         )}
 
