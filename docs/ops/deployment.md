@@ -6,6 +6,25 @@ This guide covers all aspects of deploying EquipQR™, including build processes
 
 EquipQR™ is designed as a modern single-page application (SPA) that can be deployed to various hosting platforms with minimal configuration.
 
+### Public documentation site (`equipqr.info`)
+
+Developer and operator documentation is published from this repository’s [`docs/`](https://github.com/Columbia-Cloudworks-LLC/EquipQR/tree/main/docs) directory as a **standalone VitePress** static site. It is deployed as a **separate Vercel project** with **Root Directory** set to `docs` (build: `npm run docs:build`, output: `.vitepress/dist`). Production hostname: **`https://equipqr.info`**. The product app remains on **`https://equipqr.app`**.
+
+**Operational wiring (Columbia Cloudworks Vercel team):**
+
+| Item | Value |
+|------|--------|
+| Docs project name | `equipqr-docs` |
+| Docs project ID | `prj_6QicTVywixyyAYc7sxCRDLnqwbM9` |
+| Production branch | `main` (same branch gate as `equipqr.app`) |
+| Domains on docs project | `equipqr.info` (apex), `www.equipqr.info` → apex redirect |
+
+Keep **`equipqr.info` off the SPA project (`equipqr`)** — only the docs project should attach that hostname.
+
+**Build note:** Vercel installs dependencies from `docs/package.json` only. Because the monorepo root still has [`postcss.config.js`](../../postcss.config.js), the docs site pins `@tailwindcss/postcss`, `tailwindcss`, and `postcss` under [`docs/package.json`](../package.json) and applies Tailwind via [`docs/.vitepress/config.ts`](../.vitepress/config.ts) so Production builds do not try to resolve `@tailwindcss/postcss` from an uninstalled repo-root tree.
+
+**Related domains:** During domain migration, **`equipqr.support`** / **`www.equipqr.support`** on the SPA project may temporarily redirect to **`equipqr.app`** instead of **`equipqr.info`** because Vercel only allows same-project redirect targets; revisit in the dashboard if those URLs should land on the public docs site again.
+
 ## Build Process
 
 ### Development Build

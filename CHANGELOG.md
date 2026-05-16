@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Public docs security (PR #956)** — Exclude `docs/ops/**` from the equipqr.info VitePress build; remove Operations from public nav; README ops links use GitHub `blob/main`; tighten `Content-Security-Policy` `script-src` to `'self'` only (no `unsafe-inline` / `unsafe-eval`); add public vs internal authoring guidance; fix PM/RCA README links for GitHub.
+
+### Added
+
+- **Public documentation site bootstrap (VitePress)** ([#908](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/908)) — `docs/` builds as a standalone static site (VitePress) for deployment to `equipqr.info`; runbook updates in deployment and CI/CD docs; app footer links to published docs.
+
 ## [3.5.0] - 2026-05-15
 
 ### Added

@@ -2,15 +2,14 @@
 
 This document is the canonical technical reference for EquipQR's work-order
 lifecycle, role capabilities, and status-transition rules. It is not the
-step-by-step walkthrough for end users — those live in the in-app support
-library at `/dashboard/support`.
+step-by-step walkthrough for end users — those live in the **in-app Support Library** on the product host,  
+**`https://equipqr.app/dashboard/support`** (signed in) or **`https://equipqr.app/support`** (public).  
+Technical and operations documentation for developers is published at **`https://equipqr.info`** (this repository’s `docs/` tree, built with VitePress).
 
 ## Where to find user-facing walkthroughs
 
-- **In-app support library** (`/dashboard/support`) — the primary source of
-  truth for step-by-step guides, organized by role (Technician, Requestor,
-  Manager, Admin, Owner) and workflow (Work Orders, Equipment & QR Codes,
-  Inventory & Parts, Admin & Integrations, Privacy & Support).
+- **In-app support library** — `https://equipqr.app/dashboard/support` (primary
+  source of truth for step-by-step guides, organized by role and workflow).
 - **[Image upload quick reference](../how-to/image-upload/quick-reference-card.md)**
   — single-page cheat sheet for technicians in the field.
 - **[Image upload technician guide](../how-to/image-upload/technician-image-upload-guide.md)**
@@ -159,7 +158,7 @@ technical contract for developers is:
   the device steady.
 
 For user-facing troubleshooting that the support team can send to customers,
-point them to the in-app Support library (`/dashboard/support`) or the status
+point them to the in-app Support library (`https://equipqr.app/dashboard/support`) or the status
 page (`status.equipqr.app`).
 
 ## Related Documentation
