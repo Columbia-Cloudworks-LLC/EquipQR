@@ -95,6 +95,6 @@ If the projected `_Default` ingestion exceeds, say, 25 GiB/month (half the free 
 
 - [`docs/ops/deployment.md`](deployment.md) — Workspace OAuth setup and shared client policy.
 - [`docs/ops/better-stack-monitoring.md`](better-stack-monitoring.md) — uptime monitoring (separate observability surface).
-- [`.env.example` (repository)](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/.env.example) — Workspace OAuth env vars (`VITE_GOOGLE_WORKSPACE_CLIENT_ID`, `GOOGLE_WORKSPACE_CLIENT_ID`, `GOOGLE_WORKSPACE_CLIENT_SECRET`).
+- [`.env.example` (repository)](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/.env.example) — Workspace OAuth env vars (`VITE_GOOGLE_WORKSPACE_CLIENT_ID`, `GOOGLE_WORKSPACE_CLIENT_ID`, `GOOGLE_WORKSPACE_CLIENT_SECRET`).
 - [Issue #629](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/629) — original ticket and redirect comment.
 - [Issue #601](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/601) — the customer report that surfaced the original observability gap.

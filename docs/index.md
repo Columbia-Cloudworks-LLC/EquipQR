@@ -4,7 +4,7 @@ layout: home
 hero:
   name: EquipQR Documentation
   text: Fleet operations, guides & runbooks
-  tagline: Public technical documentation and operational reference for the EquipQR platform.
+  tagline: Public documentation for EquipQR—support guides, technical reference, and operations runbooks—hosted at equipqr.info.
   actions:
     - theme: brand
       text: Developer onboarding
@@ -36,9 +36,12 @@ features:
 
 The same markdown sources live under the repository `docs/` tree. Use the sidebar or search to jump to a topic.
 
-### End-user help (in-app)
+### Support & user-facing documentation
 
-Step-by-step product walkthroughs for technicians and admins are available **inside the EquipQR app** at **Support Library** (`/support` when signed out, `/dashboard/support` when signed in). This site focuses on **developer and operator** documentation.
+Published support and how-to documentation (including workflows, permissions, and
+field guides from this library) lives on **`https://equipqr.info`**. The in-app
+**Support Library** (`/support` when signed out, `/dashboard/support` when signed
+in on `equipqr.app`) complements this site for contextual help while using the product.
 
 ### Repository index
 

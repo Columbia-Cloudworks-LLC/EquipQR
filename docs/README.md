@@ -22,19 +22,20 @@ Technical documentation for developers and system architects:
 - **[Testing Guidelines](./technical/testing-guidelines.md)** - Test patterns and coverage expectations
 - **[API Reference](./technical/api-reference.md)** - API documentation with examples
 
-### 👋 For End Users
+### 👋 Support & public documentation
 
-Day-to-day support for technicians, managers, admins, owners, and requestors
-lives **inside the app** on EquipQR:
+Published EquipQR documentation—including technician how-tos, reference guides,
+permissions, workflows, and ops runbooks from this `docs/` tree—is hosted at
+**`https://equipqr.info`** (searchable, SEO-friendly, and offline-friendly when
+cached).
 
-- **In-app Support Library (signed in):** `https://equipqr.app/dashboard/support`
-- **Public support page:** `https://equipqr.app/support`
+**In-app shortcuts while using the product:**
 
-That surface is the source of truth for step-by-step walkthroughs (Start Here,
-Technician Field Work, Work Orders, Equipment & QR Codes, Inventory & Parts,
-Teams & Roles, Admin & Integrations, Privacy & Support).
+- **Support Library (signed in):** `https://equipqr.app/dashboard/support`
+- **Public app support page:** `https://equipqr.app/support`
 
-**Developer and ops documentation** (this Markdown tree) is published at **`https://equipqr.info`** as a static site.
+Use these when you need contextual help inside the app; use **`https://equipqr.info`**
+as the canonical URL to share, bookmark, or index.
 
 - **[Image Upload Quick Reference](./how-to/image-upload/quick-reference-card.md)** —
   printable cheat sheet for technicians in the field.
@@ -80,9 +81,10 @@ Operational documentation for deployment and maintenance:
 
 ### For End Users
 
-1. Open the in-app **Support Library** at **`https://equipqr.app/dashboard/support`** (signed in) or **`https://equipqr.app/support`** (public) — the authoritative source of step-by-step walkthroughs.
-2. For field technicians, print the [Image Upload Quick Reference](./how-to/image-upload/quick-reference-card.md).
-3. For RBAC questions, see [Permissions](./guides/permissions.md).
+1. Start at **`https://equipqr.info`** for published guides, how-tos, and reference material.
+2. For in-app help without leaving the product, use **`https://equipqr.app/dashboard/support`** (signed in) or **`https://equipqr.app/support`**.
+3. For field technicians, print the [Image Upload Quick Reference](./how-to/image-upload/quick-reference-card.md).
+4. For RBAC questions, see [Permissions](./guides/permissions.md).
 
 ### For DevOps Engineers
 1. **READ FIRST**: [Migrations](./ops/migrations.md) - ⚠️ **CRITICAL** migration rules

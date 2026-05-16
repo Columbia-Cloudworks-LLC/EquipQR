@@ -190,6 +190,6 @@ This document summarizes the compliance audit and remediation work performed for
 ## Related Documents
 
 - [Access Control Policy](../ops/access-control-policy.md)
-- [Change Management Policy](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/CONTRIBUTING.md#change-management-policy)
+- [Change Management Policy](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/CONTRIBUTING.md#change-management-policy)
 - [Disaster Recovery Plan](../ops/disaster-recovery.md)
-- [RLS Migration](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/supabase/migrations/20260113210000_fix_rls_cross_tenant_vulnerabilities.sql)
+- [RLS Migration](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/supabase/migrations/20260113210000_fix_rls_cross_tenant_vulnerabilities.sql)

@@ -32,7 +32,7 @@ export default defineConfig({
 
     editLink: {
       pattern:
-        "https://github.com/Columbia-Cloudworks-LLC/EquipQR/edit/preview/docs/:path",
+        "https://github.com/Columbia-Cloudworks-LLC/EquipQR/edit/main/docs/:path",
       text: "Edit this page on GitHub",
     },
 

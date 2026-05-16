@@ -12,7 +12,7 @@ Before you begin, ensure you have the following installed on your development ma
 
 ### Required Software
 
-- **Node.js** — must satisfy `engines.node` in the root [`package.json`](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/package.json) (currently **Node 24.x LTS**). We recommend the latest **24.x** LTS release. [Download here](https://nodejs.org/)
+- **Node.js** — must satisfy `engines.node` in the root [`package.json`](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/package.json) (currently **Node 24.x LTS**). We recommend the latest **24.x** LTS release. [Download here](https://nodejs.org/)
 - **npm** (comes with Node.js) - We use npm exclusively (no yarn/pnpm/bun)
 - **Docker Desktop** — required for the full local stack (`dev-start.bat` / Supabase). [Download here](https://www.docker.com/products/docker-desktop)
 - **Git** - [Download here](https://git-scm.com/)
