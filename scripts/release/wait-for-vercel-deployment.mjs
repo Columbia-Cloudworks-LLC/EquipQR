@@ -13,6 +13,7 @@
  *   VERCEL_BRANCH — default main
  *   VERCEL_POLL_INTERVAL_SEC — default 20
  *   VERCEL_WAIT_TIMEOUT_MINUTES — default 45
+ *   VERCEL_FETCH_TIMEOUT_MS — per-request HTTP timeout (default 45000)
  *   GITHUB_OUTPUT — set by GitHub Actions; receives `url=<deployment URL>`
  *
  * Does not run `vercel promote`.
@@ -35,6 +36,7 @@ Environment:
   VERCEL_BRANCH                Default: main
   VERCEL_POLL_INTERVAL_SEC     Default: 20
   VERCEL_WAIT_TIMEOUT_MINUTES  Default: 45
+  VERCEL_FETCH_TIMEOUT_MS      Default: 45000
 `);
 }
 
@@ -84,7 +86,14 @@ function pickReadyDeployment(deployments, sha, branch) {
   return candidates[0];
 }
 
-async function listDeployments({ token, teamId, projectId, sha, branch }) {
+/**
+ * List deployments from Vercel; transient failures do not exit the process —
+ * callers retry until deadline. Auth / client errors exit non‑zero immediately.
+ *
+ * @param {object} p
+ * @returns {Promise<{ ok: true, deployments: any[] } | { ok: false, transient: boolean, detail: string }>}
+ */
+async function listDeployments({ token, teamId, projectId, sha, branch, timeoutMs }) {
   const u = new URL('https://api.vercel.com/v6/deployments');
   u.searchParams.set('teamId', teamId);
   u.searchParams.set('projectId', projectId);
@@ -92,22 +101,56 @@ async function listDeployments({ token, teamId, projectId, sha, branch }) {
   u.searchParams.set('branch', branch);
   u.searchParams.set('limit', '25');
 
-  const res = await fetch(u, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    throw new Error(`Vercel API ${res.status}: ${text.slice(0, 500)}`);
-  }
-  let data;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error(`Vercel API returned non-JSON: ${text.slice(0, 200)}`);
+    const res = await fetch(u, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      signal: controller.signal,
+    });
+
+    const text = await res.text();
+
+    if (!res.ok) {
+      if (res.status === 429 || res.status >= 500) {
+        return {
+          ok: false,
+          transient: true,
+          detail: `HTTP ${res.status}: ${text.slice(0, 300)}`,
+        };
+      }
+      return {
+        ok: false,
+        transient: false,
+        detail: `Vercel API ${res.status}: ${text.slice(0, 400)}`,
+      };
+    }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return {
+        ok: false,
+        transient: true,
+        detail: `invalid JSON (${text.slice(0, 200)})`,
+      };
+    }
+    return { ok: true, deployments: data.deployments || [] };
+  } catch (err) {
+    const message =
+      err && typeof err === 'object' && 'name' in err && err.name === 'AbortError'
+        ? `request timeout after ${timeoutMs}ms`
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    return { ok: false, transient: true, detail: message };
+  } finally {
+    clearTimeout(timeoutId);
   }
-  return data.deployments || [];
 }
 
 function sleep(ms) {
@@ -116,7 +159,8 @@ function sleep(ms) {
 
 /**
  * Validate `GITHUB_OUTPUT` before writing — env-controlled paths must not be trusted blindly.
- * Under Actions, require the resolved path to stay under `GITHUB_WORKSPACE` or `RUNNER_TEMP`.
+ * Under Actions, require the resolved path to stay under `GITHUB_WORKSPACE` or `RUNNER_TEMP`,
+ * strictly below the base dir (reject when GITHUB_OUTPUT is a workspace/temp folder).
  *
  * @param {string} raw
  * @returns {{ ok: true, resolved: string } | { ok: false, reason: string }}
@@ -129,6 +173,12 @@ function resolveGithubOutputPath(raw) {
     return { ok: false, reason: 'path contains NUL' };
   }
   const resolved = path.resolve(raw.trim());
+  const baseName = path.basename(resolved);
+
+  if (baseName === '' || baseName === '.' || baseName === '..') {
+    return { ok: false, reason: 'GITHUB_OUTPUT must be a concrete file path' };
+  }
+
   if (process.env.GITHUB_ACTIONS === 'true') {
     const bases = [];
     if (process.env.GITHUB_WORKSPACE) {
@@ -140,15 +190,20 @@ function resolveGithubOutputPath(raw) {
     if (bases.length === 0) {
       return { ok: false, reason: 'GITHUB_WORKSPACE and RUNNER_TEMP unset under GITHUB_ACTIONS' };
     }
-    const allowed = bases.some((base) => {
-      if (resolved === base) return true;
+
+    /** @param {string} base */
+    const isStrictlyInside = (base) => {
+      if (resolved === base) return false;
       const rel = path.relative(base, resolved);
       return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
-    });
+    };
+
+    const allowed = bases.some(isStrictlyInside);
     if (!allowed) {
-      return { ok: false, reason: 'path escapes GITHUB_WORKSPACE / RUNNER_TEMP' };
+      return { ok: false, reason: 'path escapes GITHUB_WORKSPACE / RUNNER_TEMP or equals a base directory' };
     }
   }
+
   return { ok: true, resolved };
 }
 
@@ -171,6 +226,10 @@ async function main() {
   const timeoutMin = Math.max(
     1,
     Number.parseInt(process.env.VERCEL_WAIT_TIMEOUT_MINUTES || '45', 10) || 45,
+  );
+  const fetchTimeoutMs = Math.max(
+    5000,
+    Number.parseInt(process.env.VERCEL_FETCH_TIMEOUT_MS || '45000', 10) || 45000,
   );
 
   if (!token || token.startsWith('op://')) {
@@ -195,7 +254,38 @@ async function main() {
 
   while (Date.now() < deadline) {
     attempt += 1;
-    const deployments = await listDeployments({ token, teamId, projectId, sha, branch });
+
+    const listed = await listDeployments({
+      token,
+      teamId,
+      projectId,
+      sha,
+      branch,
+      timeoutMs: fetchTimeoutMs,
+    });
+
+    if (!listed.ok) {
+      if (!listed.transient) {
+        process.stderr.write(
+          `::error title=wait-for-vercel-deployment::${listed.detail}\n`,
+        );
+        process.exit(1);
+      }
+
+      process.stdout.write(
+        `::warning title=wait-for-vercel-deployment::Transient Vercel list failure (attempt ${attempt}): ${listed.detail}. Retrying...\n`,
+      );
+
+      if (attempt === 1 || attempt % 5 === 0) {
+        process.stdout.write(
+          `[wait] attempt ${attempt}: still polling after transient API error (${intervalSec}s interval)\n`,
+        );
+      }
+      await sleep(intervalSec * 1000);
+      continue;
+    }
+
+    const { deployments } = listed;
 
     const failed = terminalErrorStates(deployments, sha, branch);
     if (failed.length > 0) {
@@ -210,10 +300,18 @@ async function main() {
     const ready = pickReadyDeployment(deployments, sha, branch);
     if (ready) {
       const url = deploymentPublicUrl(ready);
+      if (!url || typeof url !== 'string' || url.trim() === '') {
+        process.stderr.write(
+          '::error title=wait-for-vercel-deployment::READY deployment missing public URL — cannot populate GITHUB_OUTPUT for operator summary.\n',
+        );
+        process.exit(1);
+      }
+
       process.stdout.write(`::notice::Vercel deployment READY: ${url}\n`);
       process.stdout.write(
         `Safe to manually promote this build to production (equipqr.app) after verifying migrations — see workflow summary.\n`,
       );
+
       const out = process.env.GITHUB_OUTPUT;
       if (out) {
         const ghOut = resolveGithubOutputPath(out);

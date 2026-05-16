@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import type {
   CustomerRow,
   CustomerInsert,
@@ -132,15 +133,17 @@ function buildQuickBooksContactSourcePayload(
   qb: QBCustomerPayload,
   contact: QBODerivedContact
 ): NonNullable<ExternalContactInsert['source_payload']> {
-  return {
+  const payload: Json = {
     Id: qb.Id,
     DisplayName: qb.DisplayName,
     sourceField: contact.sourceField,
     name: contact.name,
     role: contact.role,
-    email: contact.email,
-    phone: contact.phone,
-  } as unknown as NonNullable<ExternalContactInsert['source_payload']>;
+    email: contact.email ?? null,
+    phone: contact.phone ?? null,
+  };
+
+  return payload;
 }
 
 /**

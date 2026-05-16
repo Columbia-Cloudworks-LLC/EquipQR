@@ -48,7 +48,7 @@ export interface PMData {
 export interface PermissionLevels {
   isManager: boolean;
   /** Team technician or manager (see useWorkOrderPermissionLevels). */
-  isTechnician?: boolean;
+  isTechnician: boolean;
   isRequestor: boolean;
   canEdit: boolean;
   canDelete: boolean;
