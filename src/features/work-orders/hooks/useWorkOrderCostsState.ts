@@ -25,9 +25,17 @@ function mapPropsCostsToItems(newCosts: WorkOrderCost[]): WorkOrderCostItem[] {
   }));
 }
 
+function createPlaceholderRowId(): string {
+  const cryptoObj = globalThis.crypto;
+  if (cryptoObj && typeof cryptoObj.randomUUID === 'function') {
+    return cryptoObj.randomUUID();
+  }
+  return `new-cost-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
 function createEmptyPlaceholderCost(): WorkOrderCostItem {
   return {
-    id: crypto.randomUUID(),
+    id: createPlaceholderRowId(),
     work_order_id: '',
     description: '',
     quantity: 1,
