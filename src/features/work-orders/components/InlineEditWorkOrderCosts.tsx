@@ -174,7 +174,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
     getInventoryInfo,
     validateCosts,
     resetCosts,
-    ensureMinimumCosts
+    resetCostsWithMinimum
   } = useWorkOrderCostsState(costs);
 
   const createCostMutation = useCreateWorkOrderCost();
@@ -194,8 +194,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
   };
 
   const handleStartEdit = () => {
-    resetCosts(costs);
-    ensureMinimumCosts();
+    resetCostsWithMinimum(costs);
     setCostValidationPhase('pristine');
     setIsEditing(true);
   };

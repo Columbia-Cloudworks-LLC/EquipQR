@@ -251,4 +251,48 @@ describe('InlineEditWorkOrderCosts mobile edit UX', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent(/valid quantities/i);
   });
+
+  it('adds a placeholder row when entering edit with empty props after prior non-empty hook state', async () => {
+    const user = userEvent.setup();
+    const existingCost = {
+      id: 'cost-1',
+      work_order_id: 'wo-1',
+      description: 'Part',
+      quantity: 1,
+      unit_price_cents: 100,
+      total_price_cents: 100,
+      created_by: 'user-1',
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+      inventory_item_id: null,
+      original_quantity: null,
+    } satisfies WorkOrderCost;
+
+    const { rerender } = render(
+      <InlineEditWorkOrderCosts
+        costs={[existingCost]}
+        workOrderId="wo-1"
+        equipmentIds={['eq-1']}
+        canEdit
+        compactMobile
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /edit costs/i }));
+    await user.click(screen.getByRole('button', { name: /cancel/i }));
+
+    rerender(
+      <InlineEditWorkOrderCosts
+        costs={[]}
+        workOrderId="wo-1"
+        equipmentIds={['eq-1']}
+        canEdit
+        compactMobile
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /add cost/i }));
+
+    expect(screen.getAllByPlaceholderText('Qty')).toHaveLength(1);
+  });
 });
