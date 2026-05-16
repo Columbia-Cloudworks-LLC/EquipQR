@@ -41,9 +41,32 @@ If a prior instruction says to "proceed from this plan after writing it," this m
 - [ ] Step 9: Spot-check PR checks (optional but recommended)
 ```
 
+### Script helpers (EquipQR repository)
+
+From the repo root, prefer the shared PowerShell drivers to reduce long inline `gh`/`git` blocks:
+
+| Step | Script |
+|------|--------|
+| 1 | [`scripts/pr-feedback/Get-PrContext.ps1`](../../../scripts/pr-feedback/Get-PrContext.ps1) |
+| 2 (inline threads) | [`scripts/pr-feedback/Get-PrFeedbackThreads.ps1`](../../../scripts/pr-feedback/Get-PrFeedbackThreads.ps1) |
+| 2b (review bodies) | [`scripts/pr-feedback/Get-PrReviewBodies.ps1`](../../../scripts/pr-feedback/Get-PrReviewBodies.ps1) |
+| 6 | [`scripts/pr-feedback/Invoke-PrVerification.ps1`](../../../scripts/pr-feedback/Invoke-PrVerification.ps1) |
+| 8 | [`scripts/pr-feedback/Publish-PrFeedbackResponses.ps1`](../../../scripts/pr-feedback/Publish-PrFeedbackResponses.ps1) |
+| 9 | [`scripts/pr-feedback/Get-PrChecks.ps1`](../../../scripts/pr-feedback/Get-PrChecks.ps1) |
+
+JSON manifest formats, dry-run behavior, and examples live in [`scripts/pr-feedback/README.md`](../../../scripts/pr-feedback/README.md). Run [`scripts/pr-feedback/tests/Run-PrFeedbackSmoke.ps1`](../../../scripts/pr-feedback/tests/Run-PrFeedbackSmoke.ps1) after changing these scripts.
+
 ### Step 1: Identify the PR and Preflight the Working Tree
 
-Determine the PR number from user context, branch name, or auto-detect:
+**Script (recommended):**
+
+```powershell
+.\scripts\pr-feedback\Get-PrContext.ps1 -Json
+# or for an explicit PR:
+.\scripts\pr-feedback\Get-PrContext.ps1 -PullRequestNumber <number> -Json
+```
+
+**Manual fallback —** determine the PR number from user context, branch name, or auto-detect:
 
 ```powershell
 gh pr view --json number,title,url,baseRefName
@@ -68,6 +91,16 @@ git diff
 **Release PR guard:** Read `baseRefName` from `gh pr view`. If the PR targets `main` (`preview` → `main` release / `/raise` flow), **do not defer** compliance, security, RBAC/RLS, or service-boundary findings — resolve them in this PR or stop and escalate. Deferred tracking issues apply to normal integration PRs (typically base `preview`).
 
 ### Step 2: Fetch Review Threads and PR Reviews (GraphQL)
+
+**Scripts (recommended):**
+
+```powershell
+.\scripts\pr-feedback\Get-PrFeedbackThreads.ps1 -PullRequestNumber <number> -Json
+.\scripts\pr-feedback\Get-PrReviewBodies.ps1 -PullRequestNumber <number> -Json
+# current branch PR:
+.\scripts\pr-feedback\Get-PrFeedbackThreads.ps1 -Json
+.\scripts\pr-feedback\Get-PrReviewBodies.ps1 -Json
+```
 
 **Inline threads:** Prefer GraphQL `reviewThreads` — it returns resolution state and comment content together. Do not use REST `pulls/{pr}/comments` as the primary source for inline threads.
 
@@ -186,6 +219,14 @@ For each **Address** item:
 
 ### Step 6: Verify Changes
 
+**Script (recommended):**
+
+```powershell
+.\scripts\pr-feedback\Invoke-PrVerification.ps1
+# optional: skip slow steps while iterating
+.\scripts\pr-feedback\Invoke-PrVerification.ps1 -SkipTest -SkipBuild
+```
+
 Run project verification before committing. Adapt to the project's toolchain:
 
 ```powershell
@@ -218,6 +259,19 @@ Or short messages with multiple `-m` flags.
 Push to the PR branch. Per workspace workflow: push proactively once verification passes (feature branches / preview policy as in `.cursor/rules/branching.mdc`).
 
 ### Step 8: Track Deferred Items, Thread Replies, Summary Comment
+
+**Script (recommended):** prepare JSON manifests and a summary markdown file (see [`scripts/pr-feedback/README.md`](../../../scripts/pr-feedback/README.md)), then run:
+
+```powershell
+.\scripts\pr-feedback\Publish-PrFeedbackResponses.ps1 `
+  -PullRequestNumber <number> `
+  -DeferredIssuesFile .\tmp\deferred.json `
+  -ThreadRepliesFile .\tmp\replies.json `
+  -SummaryBodyFile .\tmp\pr-feedback-response.md
+
+# rehearsal only (no GitHub mutations):
+.\scripts\pr-feedback\Publish-PrFeedbackResponses.ps1 -DryRun -ThreadRepliesFile .\tmp\replies.json -SummaryBodyFile .\tmp\pr-feedback-response.md
+```
 
 #### 8a — Tracking issues for **Defer** items
 
@@ -301,6 +355,14 @@ gh pr comment <pr_number> --body-file "$env:TEMP\pr-feedback-response.md"
 ### Step 9: Spot-check PR Checks (Recommended)
 
 After push:
+
+```powershell
+.\scripts\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <pr_number>
+# or current branch PR:
+.\scripts\pr-feedback\Get-PrChecks.ps1
+```
+
+Manual fallback:
 
 ```powershell
 gh pr checks <pr_number>

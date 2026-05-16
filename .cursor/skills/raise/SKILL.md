@@ -65,6 +65,12 @@ Capture:
 
 ### 2) The Lion's Paw (The Grip): CI/CD hard gate
 
+**Script (recommended, EquipQR repo root):**
+
+```powershell
+.\scripts\pr-feedback\Invoke-PrVerification.ps1
+```
+
 Run the full local verification sequence used by this repository:
 
 - `npm run lint`

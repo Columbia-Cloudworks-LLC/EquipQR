@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **PR feedback PowerShell helpers** — `scripts/pr-feedback/` drivers for PR context preflight, GraphQL review threads/reviews, local verification gates, deferred-issue + thread-reply + summary publishing, and `gh pr checks`, with `scripts/pr-feedback/tests/Run-PrFeedbackSmoke.ps1` and skill doc references via `scripts/pr-feedback/README.md`.
 - **Public documentation site bootstrap (VitePress)** ([#908](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/908)) — `docs/` builds as a standalone static site (VitePress) for deployment to `equipqr.info`; runbook updates in deployment and CI/CD docs; app footer links to published docs.
 
 ### Fixed
