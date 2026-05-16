@@ -7,7 +7,7 @@ Use these scripts from the repo root to replace long `gh` / `git` command chains
 | `Get-PrContext.ps1` | PR metadata, owner/repo slug, dirty-tree preflight |
 | `Get-PrFeedbackThreads.ps1` | GraphQL review threads → `workingSet` / `outdatedOpenSet` |
 | `Get-PrReviewBodies.ps1` | Top-level PR reviews (bodies / states) |
-| `Invoke-PrVerification.ps1` | Full local gate: `npm run lint` → TypeScript → `npm test` → `npm run build` (use sparingly on large suites; targeted PR feedback prefers lint + `tsc` + scoped `vitest run` — see `.cursor/skills/address-pr-feedback/SKILL.md` Step 6) |
+| `Invoke-PrVerification.ps1` | Full local gate: `npm run lint` → TypeScript → `npm test` → `npm run build` (use sparingly on large suites; targeted PR feedback prefers lint + `tsc` + scoped `npm test -- <path>` — see `.cursor/skills/address-pr-feedback/SKILL.md` Step 6) |
 | `Publish-PrFeedbackResponses.ps1` | Deferred issues, inline replies, top-level PR comment |
 | `Get-PrChecks.ps1` | `gh pr checks` |
 

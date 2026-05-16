@@ -170,7 +170,7 @@ The plan must be simple, concrete, and action-oriented:
 - For each **Address** item, name the exact file(s), symbol(s), and behavior to change.
 - For each **Defer** item, specify the tracking GitHub issue title/body outline and the reply text that will link to it.
 - For each **Reject** item, specify the concise technical rationale to post back.
-- Include the exact verification commands: for **targeted** fixes, default to `npm run lint`, `npx tsc --noEmit`, and **scoped** `npx vitest run <touched test paths>` — not a repo-wide `npm test` unless the plan documents why the change is broad or high-risk (see Step 6). State the expected pass condition.
+- Include the exact verification commands: for **targeted** fixes, default to `npm run lint`, `npx tsc --noEmit`, and **scoped** `npm test -- <touched test paths>` (runs `scripts/test-runner.mjs`) — not a repo-wide `npm test` unless the plan documents why the change is broad or high-risk (see Step 6). State the expected pass condition.
 - Include the commit message, push target, in-thread reply plan, top-level PR summary sections, and `gh pr checks` spot-check.
 - Include stop conditions: dirty unrelated files, unclear reviewer intent, failing verification that is not obviously caused by this change, or release/compliance feedback that cannot be resolved in the PR.
 
@@ -196,7 +196,7 @@ Use this plan shape:
 1. Edit `<file>` at `<symbol>` to <specific change>.
 2. Add/update `<test file>` to cover <case>.
 3. Create deferred issue(s) with the listed titles and body outlines.
-4. Run lint, `tsc --noEmit`, and scoped `vitest run` paths (unless the change is broad; then run `Invoke-PrVerification.ps1` or full `npm test`). Require green output.
+4. Run lint, `tsc --noEmit`, and scoped `npm test -- <paths>` (unless the change is broad; then run `Invoke-PrVerification.ps1` or full `npm test`). Require green output.
 5. Commit with `<message>`.
 6. Push to `<remote>/<branch>`.
 7. Reply to inline threads using the prepared addressed/deferred/rejected text.
@@ -229,8 +229,10 @@ Before commit, run in the PR worktree:
 1. `npm run lint`
 2. `npx tsc --noEmit`
 3. **Scoped unit tests** for the touched area, e.g.  
-   `npx vitest run src/path/to/__tests__/Something.test.tsx`  
-   Add more paths if multiple modules are implicated; prefer the narrowest set that covers the behavior you changed.
+   `npm test -- src/path/to/__tests__/Something.test.tsx`  
+   (equivalent: `node scripts/test-runner.mjs src/path/to/__tests__/Something.test.tsx`.)  
+   Add more file paths after `--` if multiple modules are implicated; prefer the narrowest set that covers the behavior you changed.  
+   Direct `npx vitest run` bypasses the repo timeout wrapper and can hang on Windows — avoid it for default agent verification; non-Windows hosts may still use it when the hang risk is understood.
 
 **Optional** after those pass: `npm run build` when the change could affect bundling (lazy routes, env imports, Vite config, PWA, etc.). Skip if clearly UI-only inside existing components.
 
@@ -254,13 +256,13 @@ The user otherwise expects **minutes saved**: document scoped commands in the pl
 # Lint + typecheck + build only (no npm test).
 .\scripts\pr-feedback\Invoke-PrVerification.ps1 -SkipTest
 
-# Lint + typecheck only (iteration only — still add scoped vitest before commit).
+# Lint + typecheck only (iteration only — still add scoped `npm test --` before commit).
 .\scripts\pr-feedback\Invoke-PrVerification.ps1 -SkipTest -SkipBuild
 ```
 
 #### Minimum bar
 
-Lint and TypeScript (`tsc --noEmit`) **must** pass before commit. **At least one** relevant automated test command must pass locally: scoped `vitest run` counts; skipping *all* tests is only acceptable when the change is non-executable docs-only and the plan says so.
+Lint and TypeScript (`tsc --noEmit`) **must** pass before commit. **At least one** relevant automated test command must pass locally: scoped `npm test -- <path>` counts; skipping *all* tests is only acceptable when the change is non-executable docs-only and the plan says so.
 
 If a scoped run fails, fix before proceeding. If CI fails later on unrelated tests, triage normally.
 
