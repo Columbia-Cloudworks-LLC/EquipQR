@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-05-15
+
+### Added
+
+- **QR PM template picker for untemplated equipment** ([#916](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/916), [#941](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/941)) — QR work-order creation now surfaces a template chooser when scanned equipment has no default PM template, preserving the fast QR flow while preventing empty-template submissions.
+
+### Changed
+
+- **Dependabot update cadence** — GitHub dependency update runs are reduced to monthly to lower churn and keep supply-chain updates bundled into deliberate review windows.
+- **ITIL workflow guidance for issue-tied implementation** — Internal skill/rule docs now require triage before Change Records and enforce PR-based delivery for issue-tracked implementation flows.
+
+### Fixed
+
+- **QR organization context handoff** — QR redirect and downstream flows keep organization switching synchronized across providers/contexts so QR users land in the expected org-scoped state.
+- **Desktop sidebar layout regression** — Restored sidebar content offset behavior to prevent visual overlap/misalignment in desktop dashboard navigation.
+- **QR PM template submit hardening** ([#941](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/941)) — Added validation and label-association guardrails to improve template selection reliability in QR PM work-order creation.
+
 ## [3.4.0] - 2026-05-14
 
 ### Added
