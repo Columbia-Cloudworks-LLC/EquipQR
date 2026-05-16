@@ -355,7 +355,7 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
               )}
               {!templatesListLoading && !templatesListError && !noTemplatesAvailable && (
                 <>
-                  <Label htmlFor="qr-pm-template-select">PM checklist template</Label>
+                  <Label id="qr-pm-template-label">PM checklist template</Label>
                   {matchingRecommendationsError && (
                     <div className="flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
                       <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -380,7 +380,10 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
                     disabled={isSubmitting}
                     required
                   >
-                    <SelectTrigger id="qr-pm-template-select">
+                    <SelectTrigger
+                      id="qr-pm-template-select"
+                      aria-labelledby="qr-pm-template-label"
+                    >
                       <SelectValue placeholder="Select a checklist template…" />
                     </SelectTrigger>
                     <SelectContent>
