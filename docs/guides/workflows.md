@@ -2,8 +2,8 @@
 
 This document is the canonical technical reference for EquipQR's work-order
 lifecycle, role capabilities, and status-transition rules. It is not the
-step-by-step walkthrough for end users — those live in the **in-app Support Library** on the product host,  
-**`https://equipqr.app/dashboard/support`** (signed in) or **`https://equipqr.app/support`** (public).  
+step-by-step walkthrough for end users — those live in the **in-app Support Library** on the product host,
+**`https://equipqr.app/dashboard/support`** (signed in) or **`https://equipqr.app/support`** (public).
 Technical and operations documentation for developers is published at **`https://equipqr.info`** (this repository’s `docs/` tree, built with VitePress).
 
 ## Where to find user-facing walkthroughs

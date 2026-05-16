@@ -228,10 +228,10 @@ Before commit, run in the PR worktree:
 
 1. `npm run lint`
 2. `npx tsc --noEmit`
-3. **Scoped unit tests** for the touched area, e.g.  
-   `npm test -- src/path/to/__tests__/Something.test.tsx`  
-   (equivalent: `node scripts/test-runner.mjs src/path/to/__tests__/Something.test.tsx`.)  
-   Add more file paths after `--` if multiple modules are implicated; prefer the narrowest set that covers the behavior you changed.  
+3. **Scoped unit tests** for the touched area, e.g.
+   `npm test -- src/path/to/__tests__/Something.test.tsx`
+   (equivalent: `node scripts/test-runner.mjs src/path/to/__tests__/Something.test.tsx`.)
+   Add more file paths after `--` if multiple modules are implicated; prefer the narrowest set that covers the behavior you changed.
    Direct `npx vitest run` bypasses the repo timeout wrapper and can hang on Windows — avoid it for default agent verification; non-Windows hosts may still use it when the hang risk is understood.
 
 **Optional** after those pass: `npm run build` when the change could affect bundling (lazy routes, env imports, Vite config, PWA, etc.). Skip if clearly UI-only inside existing components.
