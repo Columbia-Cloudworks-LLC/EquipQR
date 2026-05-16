@@ -197,7 +197,7 @@ Configure these environment variables in your Vercel project dashboard:
 > **Important**: Vercel env vars are build-time only (`VITE_*` prefix). Edge Function runtime secrets (e.g., `GOOGLE_MAPS_BROWSER_KEY`, OAuth secrets) must be set in the **Supabase Dashboard**, not Vercel. See [Secrets Checklist](#secrets-checklist) below.
 
 #### Branch Configuration
-- **Production**: `main` branch deploys to `equipqr.app`
+- **Production**: merges to `main` trigger Vercel production-environment builds for **equipqr.app**, but **traffic stays on the prior deployment until you manually promote** in the Vercel dashboard. Treat `main` as the release candidate branch, not instantaneous production HTML/JS cutover.
 - **Preview**: `preview` branch deploys to `preview.equipqr.app`
 
 ### Production release readiness (Supabase + Vercel gate)
@@ -225,7 +225,7 @@ Keep these database passwords on the `supabase-write` item in sync with **Supaba
 | `prod_db_password` | Production (`ymxkzronkhwxzcdcbnwq`) | **Production Release Readiness** maps this to `SUPABASE_DB_PASSWORD` for `supabase link` / `db push` after merge to `main`. |
 | `preview_db_password` | Preview (`olsdirkvvfegvclbpgrg`) | Local or scripted `supabase link` / `db push` against preview; not used by the current GitHub workflows. |
 
-Release PRs (`preview` → `main`) still run **Schema Drift Check** as a **warning** when migrations are not on production yet; the hard alignment check runs in this post-merge workflow.
+Release PRs (`preview` → `main`) run **Schema Drift Check** as a **hard gate**: if any local migration file’s **name** is missing from production `schema_migrations`, the PR fails until production is aligned (typically by applying pending migrations and confirming names landed). After merge, **Production Release Readiness** applies any remaining SQL via `supabase db push --include-all`, then re-runs this script in strict mode.
 
 ### Secrets Checklist
 

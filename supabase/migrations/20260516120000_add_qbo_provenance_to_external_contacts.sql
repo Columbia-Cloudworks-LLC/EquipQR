@@ -47,16 +47,38 @@ DO $$ BEGIN
 END $$;
 
 -- ============================================
--- PART 3: Partial unique index for QBO-sourced rows
--- Ensures at most one row per (customer, QBO field) so upsert is idempotent.
+-- PART 3: QBO provenance required when source = quickbooks
 -- ============================================
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_ext_contacts_qbo_field
-  ON public.external_customer_contacts (customer_id, source_field)
-  WHERE source = 'quickbooks' AND source_field IS NOT NULL;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'external_customer_contacts_qbo_source_required_check'
+      AND conrelid = 'public.external_customer_contacts'::regclass
+  ) THEN
+    ALTER TABLE public.external_customer_contacts
+      ADD CONSTRAINT external_customer_contacts_qbo_source_required_check
+      CHECK (
+        source = 'manual'
+        OR (source_external_id IS NOT NULL AND source_field IS NOT NULL)
+      );
+  END IF;
+END $$;
 
 -- ============================================
--- PART 4: Index for org-scoped QBO contact lookups (last_synced_at filter)
+-- PART 4: Unique index for upsert / idempotent QBO sync
+-- Non-partial index on (customer_id, source, source_field) matches PostgREST
+-- on_conflict targets. Manual rows keep source_field NULL; Postgres UNIQUE
+-- treats NULLs as distinct, so multiple manual contacts per customer remain valid.
+-- ============================================
+
+DROP INDEX IF EXISTS public.idx_ext_contacts_qbo_field;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ext_contacts_customer_source_source_field
+  ON public.external_customer_contacts (customer_id, source, source_field);
+
+-- ============================================
+-- PART 5: Index for org-scoped QBO contact lookups (last_synced_at filter)
 -- ============================================
 
 CREATE INDEX IF NOT EXISTS idx_ext_contacts_source

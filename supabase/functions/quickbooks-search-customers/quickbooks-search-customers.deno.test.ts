@@ -2,7 +2,7 @@
  * Deno unit tests for the QBO contact normalization helper.
  * Tests buildQBOContacts in isolation — no Supabase or HTTP dependencies.
  */
-import { assertEquals, assertExists } from "https://deno.land/std@0.220.0/assert/mod.ts";
+import { assertEquals, assertExists } from "jsr:@std/assert@1";
 import { buildQBOContacts } from "./qbo-contacts.ts";
 
 const stubCustomer = {
@@ -112,7 +112,7 @@ Deno.test("buildQBOContacts does not include token fields in output", () => {
     assertEquals(
       keys.some((k) => k.toLowerCase().includes("token")),
       false,
-      "Contact entry must not include token fields"
+      "Contact entry must not include token fields",
     );
   }
 });

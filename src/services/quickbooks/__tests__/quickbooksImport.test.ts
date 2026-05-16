@@ -194,9 +194,26 @@ describe('QuickBooks Import', () => {
 
       await importCustomerFromQB(orgId, payload);
 
+      expect(externalContactsChain.upsert.mock.calls[0][1]).toEqual(
+        expect.objectContaining({
+          onConflict: 'customer_id,source,source_field',
+          ignoreDuplicates: false,
+        }),
+      );
+
       const upsertRows = externalContactsChain.upsert.mock.calls[0][0] as Array<{
+        source?: string;
+        source_external_id?: string | null;
+        source_field?: string | null;
         source_payload?: Record<string, unknown>;
       }>;
+      expect(upsertRows[0]).toEqual(
+        expect.objectContaining({
+          source: 'quickbooks',
+          source_external_id: 'qb-42',
+          source_field: 'primary_email',
+        }),
+      );
       expect(upsertRows[0].source_payload).toEqual(
         expect.objectContaining({
           Id: 'qb-42',

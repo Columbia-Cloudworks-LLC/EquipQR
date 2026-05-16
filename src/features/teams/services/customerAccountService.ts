@@ -187,7 +187,7 @@ export async function replaceQuickBooksExternalContacts(
     const { error: upsertError } = await supabase
       .from('external_customer_contacts')
       .upsert(rows, {
-        onConflict: 'customer_id,source_field',
+        onConflict: 'customer_id,source,source_field',
         ignoreDuplicates: false,
       });
 

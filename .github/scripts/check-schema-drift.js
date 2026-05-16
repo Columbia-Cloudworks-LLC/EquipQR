@@ -21,9 +21,11 @@
 //   - SCHEMA_DRIFT_STRICT=true (or SCHEMA_DRIFT_MODE=strict): pending
 //     migrations always exit 1 — used by production-release-readiness.yml
 //     after applying migrations to production.
-//   - Pending migrations on a PR targeting main (without strict): ::warning::
-//     + exit 0. Release PRs are allowed to include migrations; the
-//     production-release-readiness workflow applies them after merge.
+//   - Pending migrations on a PR targeting main (without strict): exit 1 with
+//     ::error:: + markdown summary. Release PRs must not merge until production
+//     schema_migrations already includes every migration in this branch (applied
+//     out-of-band or via a prior promotion), because `main` builds can ship before
+//     post-merge readiness applies pending SQL.
 //   - Pending migrations on a PR targeting preview, or on a push: exit 0 with
 //     ::warning:: + markdown summary. Drift is expected during day-to-day work.
 //
@@ -176,13 +178,13 @@ async function main() {
   }
 
   if (isReleasePR) {
-    ghWarning(
+    ghError(
       'schema-drift-check',
-      `Release PR (preview -> main) has ${pending.length} local migration(s) not yet applied to production. They will be applied automatically by the Production Release Readiness workflow after merge to main.`,
+      `Release PR (preview -> main) has ${pending.length} local migration(s) not yet present in production schema_migrations by name. Merge is blocked until production is aligned (apply migrations first, then re-run this check).`,
     );
     step('');
     step(md);
-    process.exit(0);
+    process.exit(1);
   }
 
   ghWarning(

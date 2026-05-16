@@ -109,8 +109,8 @@ export const WorkOrderDetailsSidebar: React.FC<WorkOrderDetailsSidebarProps> = (
           pmData={pmData}
         />
 
-        {/* Customer Contacts - visible to managers when equipment has a linked customer */}
-        {permissionLevels.isManager && equipment?.customer_id && (
+        {/* Customer Contacts — managers + field technicians; requestors/viewers excluded */}
+        {(permissionLevels.isManager || permissionLevels.isTechnician) && equipment?.customer_id && (
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">

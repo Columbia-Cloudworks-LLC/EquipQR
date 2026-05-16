@@ -19,6 +19,7 @@
  */
 
 import { appendFileSync } from 'node:fs';
+import path from 'node:path';
 
 const DEFAULT_TEAM = 'team_78VeGDURoofThjZNJOKEBpP5';
 const DEFAULT_PROJECT = 'prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA';
@@ -113,6 +114,44 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+/**
+ * Validate `GITHUB_OUTPUT` before writing — env-controlled paths must not be trusted blindly.
+ * Under Actions, require the resolved path to stay under `GITHUB_WORKSPACE` or `RUNNER_TEMP`.
+ *
+ * @param {string} raw
+ * @returns {{ ok: true, resolved: string } | { ok: false, reason: string }}
+ */
+function resolveGithubOutputPath(raw) {
+  if (typeof raw !== 'string' || raw.trim() === '') {
+    return { ok: false, reason: 'empty or non-string' };
+  }
+  if (raw.includes('\0')) {
+    return { ok: false, reason: 'path contains NUL' };
+  }
+  const resolved = path.resolve(raw.trim());
+  if (process.env.GITHUB_ACTIONS === 'true') {
+    const bases = [];
+    if (process.env.GITHUB_WORKSPACE) {
+      bases.push(path.resolve(process.env.GITHUB_WORKSPACE));
+    }
+    if (process.env.RUNNER_TEMP) {
+      bases.push(path.resolve(process.env.RUNNER_TEMP));
+    }
+    if (bases.length === 0) {
+      return { ok: false, reason: 'GITHUB_WORKSPACE and RUNNER_TEMP unset under GITHUB_ACTIONS' };
+    }
+    const allowed = bases.some((base) => {
+      if (resolved === base) return true;
+      const rel = path.relative(base, resolved);
+      return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
+    });
+    if (!allowed) {
+      return { ok: false, reason: 'path escapes GITHUB_WORKSPACE / RUNNER_TEMP' };
+    }
+  }
+  return { ok: true, resolved };
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   if (argv.includes('--help') || argv.includes('-h')) {
@@ -177,7 +216,14 @@ async function main() {
       );
       const out = process.env.GITHUB_OUTPUT;
       if (out) {
-        appendFileSync(out, `url=${url}\n`, { encoding: 'utf8' });
+        const ghOut = resolveGithubOutputPath(out);
+        if (!ghOut.ok) {
+          process.stderr.write(
+            `::error title=wait-for-vercel-deployment::GITHUB_OUTPUT invalid (${ghOut.reason}).\n`,
+          );
+          process.exit(1);
+        }
+        appendFileSync(ghOut.resolved, `url=${url}\n`, { encoding: 'utf8' });
       }
       process.exit(0);
     }
