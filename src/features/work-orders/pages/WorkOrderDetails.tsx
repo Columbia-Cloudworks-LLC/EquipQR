@@ -494,6 +494,7 @@ const WorkOrderDetails = () => {
     !isWorkOrderLocked &&
     workOrder.status !== 'completed' &&
     workOrder.status !== 'cancelled';
+  const hideInlineNoteAddButton = showMobileActionFooter && workOrder.status !== 'submitted';
 
   const canCompletePmGate = !workOrder.has_pm || pmData?.status === 'completed';
   const pmChecklist = getPMChecklistStats(pmData?.checklist_data);
@@ -717,7 +718,7 @@ const WorkOrderDetails = () => {
                   workOrderId={workOrder.id}
                   canAddNotes={canAddNotes}
                   showPrivateNotes={permissionLevels.isManager}
-                  hideInlineAddButton={showMobileActionFooter}
+                  hideInlineAddButton={hideInlineNoteAddButton}
                   autoOpenForm={shouldAutoOpenNoteForm}
                   openFormTrigger={openNoteFormTrigger}
                   openCaptureTrigger={openCaptureTrigger}
@@ -881,7 +882,7 @@ const WorkOrderDetails = () => {
                   workOrderId={workOrder.id}
                   canAddNotes={canAddNotes}
                   showPrivateNotes={permissionLevels.isManager}
-                  hideInlineAddButton={showMobileActionFooter}
+                  hideInlineAddButton={hideInlineNoteAddButton}
                   autoOpenForm={shouldAutoOpenNoteForm}
                   openFormTrigger={openNoteFormTrigger}
                 />

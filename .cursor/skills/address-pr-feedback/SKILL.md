@@ -196,7 +196,7 @@ Use this plan shape:
 1. Edit `<file>` at `<symbol>` to <specific change>.
 2. Add/update `<test file>` to cover <case>.
 3. Create deferred issue(s) with the listed titles and body outlines.
-4. Run lint, `tsc --noEmit`, and scoped `npm test -- <paths>` (unless the change is broad; then run `Invoke-PrVerification.ps1` or full `npm test`). Require green output.
+4. Run lint, `tsc --noEmit`, and scoped `npm test -- <paths>` (unless the change is broad; then run `./scripts/pr-feedback/Invoke-PrVerification.ps1` or full `npm test`). Require green output.
 5. Commit with `<message>`.
 6. Push to `<remote>/<branch>`.
 7. Reply to inline threads using the prepared addressed/deferred/rejected text.

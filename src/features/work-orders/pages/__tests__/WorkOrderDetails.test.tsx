@@ -10,6 +10,7 @@ const mockWorkOrderDetailsMobile = vi.fn();
 const {
   mockUseIsMobile,
   mockWorkOrderImagesSectionProps,
+  mockWorkOrderNotesSectionProps,
   mockSetSearchParams,
   mockUseSearchParams,
   mockMobileWorkOrderActionFooterProps,
@@ -19,6 +20,7 @@ const {
   return {
     mockUseIsMobile: vi.fn(() => true),
     mockWorkOrderImagesSectionProps: vi.fn(),
+    mockWorkOrderNotesSectionProps: vi.fn(),
     mockSetSearchParams: mockSetSearchParamsInner,
     mockUseSearchParams: mockUseSearchParamsInner,
     mockMobileWorkOrderActionFooterProps: vi.fn(),
@@ -149,7 +151,10 @@ vi.mock('@/features/work-orders/components/WorkOrderTimeline', () => ({
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderNotesSection', () => ({
-  default: () => <div>Notes section</div>,
+  default: (props: Record<string, unknown>) => {
+    mockWorkOrderNotesSectionProps(props);
+    return <div>Notes section</div>;
+  },
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderImagesSection', () => ({
@@ -233,6 +238,7 @@ describe('WorkOrderDetails', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockMobileWorkOrderActionFooterProps.mockClear();
+    mockWorkOrderNotesSectionProps.mockClear();
     mockUseIsMobile.mockReturnValue(true);
     mockSetSearchParams.mockReset();
     mockUseSearchParams.mockReturnValue([new URLSearchParams(), mockSetSearchParams]);
@@ -398,6 +404,16 @@ describe('WorkOrderDetails', () => {
     expect(footerProps.workOrder.status).toBe('submitted');
     expect(footerProps.canAddNotes).toBe(true);
     expect(typeof footerProps.onAddNote).toBe('function');
+
+    await waitFor(() => {
+      expect(mockWorkOrderNotesSectionProps).toHaveBeenCalled();
+    });
+    const notesProps = mockWorkOrderNotesSectionProps.mock.calls.at(-1)?.[0] as {
+      canAddNotes?: boolean;
+      hideInlineAddButton?: boolean;
+    };
+    expect(notesProps.canAddNotes).toBe(true);
+    expect(notesProps.hideInlineAddButton).toBe(false);
   });
 
   it('renders the mobile field-first order with office details collapsed by default', async () => {
@@ -483,6 +499,14 @@ describe('WorkOrderDetails', () => {
     expect(screen.getByText('Costs section')).toBeInTheDocument();
     expect(screen.queryByText('Timeline section')).not.toBeInTheDocument();
     expect(screen.queryByText('Audit history')).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(mockWorkOrderNotesSectionProps).toHaveBeenCalled();
+    });
+    const notesProps = mockWorkOrderNotesSectionProps.mock.calls.at(-1)?.[0] as {
+      hideInlineAddButton?: boolean;
+    };
+    expect(notesProps.hideInlineAddButton).toBe(true);
 
     await waitFor(() => {
       expect(mockWorkOrderImagesSectionProps).toHaveBeenCalled();
