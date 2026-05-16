@@ -9,14 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-
-- **Public docs security (PR #956)** — Exclude `docs/ops/**` from the equipqr.info VitePress build; remove Operations from public nav; README ops links use GitHub `blob/main`; tighten `Content-Security-Policy` `script-src` to `'self'` only (no `unsafe-inline` / `unsafe-eval`); add public vs internal authoring guidance; fix PM/RCA README links for GitHub.
+## [3.5.1] - 2026-05-16
 
 ### Added
 
+- **QuickBooks Customer contact sync** ([#914](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/914), [#960](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/960)) — QBO Customer email, phone, mobile, and fax contacts sync into EquipQR customer/team records and appear as tap-to-call / tap-to-email actions on relevant work-order surfaces; QBO-sourced rows remain read-only in EquipQR.
 - **PR feedback PowerShell helpers** — `scripts/pr-feedback/` drivers for PR context preflight, GraphQL review threads/reviews, local verification gates, deferred-issue + thread-reply + summary publishing, and `gh pr checks`, with `scripts/pr-feedback/tests/Run-PrFeedbackSmoke.ps1` and skill doc references via `scripts/pr-feedback/README.md`.
 - **Public documentation site bootstrap (VitePress)** ([#908](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/908)) — `docs/` builds as a standalone static site (VitePress) for deployment to `equipqr.info`; runbook updates in deployment and CI/CD docs; app footer links to published docs.
+
+### Changed
+
+- **Public docs security (PR #956)** — Exclude `docs/ops/**` from the equipqr.info VitePress build; remove Operations from public nav; README ops links use GitHub `blob/main`; tighten `Content-Security-Policy` `script-src` to `'self'` only (no `unsafe-inline` / `unsafe-eval`); add public vs internal authoring guidance; fix PM/RCA README links for GitHub.
 
 ### Fixed
 
