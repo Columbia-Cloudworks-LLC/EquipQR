@@ -5,7 +5,7 @@ name: Production Release Readiness
 # then waits until the Vercel deployment for the same commit is READY.
 #
 # Final Vercel production promotion stays manual (`equipqr.app`); when this
-# workflow is green, the deployment URL in the summary is safe to promote.
+# workflow is green, use the READY URL from the wait step logs or Vercel to promote.
 #
 # Required 1Password fields (EquipQR Agents vault), loaded via OP_SERVICE_ACCOUNT_TOKEN:
 #   - supabase-write / SUPABASE_ACCESS_TOKEN
@@ -84,7 +84,6 @@ jobs:
         run: node .github/scripts/check-schema-drift.js
 
       - name: Wait for Vercel deployment (main, READY)
-        id: wait_vercel
         env:
           VERCEL_TEAM_ID: team_78VeGDURoofThjZNJOKEBpP5
           VERCEL_PROJECT_ID: prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA
@@ -96,14 +95,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          URL="${{ steps.wait_vercel.outputs.url }}"
           {
             echo "## Production release readiness"
             echo ""
             echo "- **Supabase:** migrations applied to production; strict schema drift check passed."
-            echo "- **Vercel:** main deployment READY — $URL"
+            echo "- **Vercel:** main deployment READY — copy the deployment URL from the **Wait for Vercel deployment** step logs (\`::notice::Vercel deployment READY:\`) or open the matching deployment for this commit in the Vercel dashboard."
             echo ""
             echo "### Manual promotion"
             echo ""
-            echo "This workflow does **not** run \`vercel promote\`. When the steps above are green, it is **safe to manually promote** the listed deployment in the Vercel dashboard so traffic for **equipqr.app** matches this build."
+            echo "This workflow does **not** run \`vercel promote\`. When the steps above are green, it is **safe to manually promote** that deployment so traffic for **equipqr.app** matches this build."
           } >> "$GITHUB_STEP_SUMMARY"

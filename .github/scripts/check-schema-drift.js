@@ -16,8 +16,10 @@
 //   timestamp-drift discussion.
 //
 // Failure semantics (mirrors edge-functions-smoke-test.yml):
-//   - Missing SUPABASE_ACCESS_TOKEN: emit ::warning:: and exit 0. Fork PRs
-//     and pre-token-plant repos must not be hard-failed by this gate.
+//   - Missing SUPABASE_ACCESS_TOKEN: emit ::warning:: and exit 0 on everyday
+//     preview PRs / pushes (fork PRs, pre-token-plant). When SCHEMA_DRIFT_STRICT
+//     is true or this run is a release PR (base main), emit ::error:: and exit 1
+//     so production-release-readiness and preview→main gates cannot false-green.
 //   - SCHEMA_DRIFT_STRICT=true (or SCHEMA_DRIFT_MODE=strict): pending
 //     migrations always exit 1 — used by production-release-readiness.yml
 //     after applying migrations to production.
@@ -133,10 +135,13 @@ async function main() {
   step(`migrations_dir: ${MIGRATIONS_DIR}`);
 
   if (!token || token.startsWith('op://')) {
-    ghWarning(
-      'schema-drift-check',
-      'SUPABASE_ACCESS_TOKEN not resolved from 1Password — skipping drift check. Plant OP_SERVICE_ACCOUNT_TOKEN as a repo secret to enable this gate.',
-    );
+    const msg =
+      'SUPABASE_ACCESS_TOKEN missing or unresolved — cannot verify schema drift. Plant OP_SERVICE_ACCOUNT_TOKEN as a repo secret and ensure load-1p-secrets resolves supabase-write.';
+    if (strict || isReleasePR) {
+      ghError('schema-drift-check', msg);
+      process.exit(1);
+    }
+    ghWarning('schema-drift-check', `${msg} Skipping drift check for this run.`);
     process.exit(0);
   }
 
