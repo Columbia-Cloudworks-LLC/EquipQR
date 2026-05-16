@@ -6,6 +6,7 @@ import type {
   ExternalContactRow,
   ExternalContactInsert,
   ExternalContactUpdate,
+  ExternalContactListRow,
 } from '@/features/teams/types/team';
 import type { QBODerivedContact } from '@/services/quickbooks/types';
 
@@ -126,6 +127,22 @@ function qbAddrToJson(addr?: QBCustomerPayload['BillAddr']): Record<string, stri
   };
 }
 
+/** Slim QBO debug snapshot per contact row (avoid storing the full customer payload N times). */
+function buildQuickBooksContactSourcePayload(
+  qb: QBCustomerPayload,
+  contact: QBODerivedContact
+): NonNullable<ExternalContactInsert['source_payload']> {
+  return {
+    Id: qb.Id,
+    DisplayName: qb.DisplayName,
+    sourceField: contact.sourceField,
+    name: contact.name,
+    role: contact.role,
+    email: contact.email,
+    phone: contact.phone,
+  } as unknown as NonNullable<ExternalContactInsert['source_payload']>;
+}
+
 /**
  * Upsert QBO-sourced external contacts for a customer.
  * Inserts or updates one row per sourceField, then deletes stale QBO rows
@@ -164,7 +181,7 @@ export async function replaceQuickBooksExternalContacts(
       source_external_id: qb.Id,
       source_field: c.sourceField,
       last_synced_at: syncedAt,
-      source_payload: qb as unknown as ExternalContactInsert['source_payload'],
+      source_payload: buildQuickBooksContactSourcePayload(qb, c),
     }));
 
     const { error: upsertError } = await supabase
@@ -216,7 +233,29 @@ export async function importCustomerFromQB(
   };
 
   const customer = await createCustomer(insert);
-  await replaceQuickBooksExternalContacts(organizationId, customer.id, qb);
+  try {
+    await replaceQuickBooksExternalContacts(organizationId, customer.id, qb);
+  } catch (syncErr) {
+    const syncMessage =
+      syncErr instanceof Error
+        ? syncErr.message
+        : syncErr && typeof syncErr === 'object' && 'message' in syncErr
+          ? String((syncErr as { message: unknown }).message)
+          : String(syncErr);
+    const { error: rollbackError } = await supabase
+      .from('customers')
+      .delete()
+      .eq('id', customer.id)
+      .eq('organization_id', organizationId);
+
+    if (rollbackError) {
+      throw new Error(
+        `${syncMessage} (Cleanup of the partially imported customer also failed: ${rollbackError.message})`,
+        { cause: syncErr }
+      );
+    }
+    throw syncErr instanceof Error ? syncErr : new Error(syncMessage, { cause: syncErr });
+  }
   return customer;
 }
 
@@ -248,10 +287,13 @@ export async function refreshCustomerFromQB(
 // External Customer Contacts CRUD
 // ============================================
 
-export async function getExternalContacts(customerId: string): Promise<ExternalContactRow[]> {
+/** List rows for UI — excludes `source_payload` (debug-only, can be large). */
+export async function getExternalContacts(customerId: string): Promise<ExternalContactListRow[]> {
   const { data, error } = await supabase
     .from('external_customer_contacts')
-    .select('*')
+    .select(
+      'id, customer_id, name, email, phone, role, notes, source, source_external_id, source_field, last_synced_at, created_at, updated_at'
+    )
     .eq('customer_id', customerId)
     .order('name');
 

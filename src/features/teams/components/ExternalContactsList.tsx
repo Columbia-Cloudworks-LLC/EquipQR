@@ -17,7 +17,7 @@ import {
   useExternalContacts,
   useExternalContactMutations,
 } from '@/features/teams/hooks/useCustomerAccount';
-import type { ExternalContactRow } from '@/features/teams/types/team';
+import type { ExternalContactListRow } from '@/features/teams/types/team';
 
 interface ExternalContactsListProps {
   customerId: string;
@@ -50,7 +50,7 @@ const ExternalContactsList: React.FC<ExternalContactsListProps> = ({
     setDialogOpen(true);
   };
 
-  const openEdit = (contact: ExternalContactRow) => {
+  const openEdit = (contact: ExternalContactListRow) => {
     setEditingId(contact.id);
     setForm({
       name: contact.name,
