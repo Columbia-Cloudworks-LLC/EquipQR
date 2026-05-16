@@ -171,12 +171,15 @@ Technical documentation is deployed as a **second Vercel project** (same GitHub 
 | Item | Value |
 |------|--------|
 | Repository | `Columbia-Cloudworks-LLC/EquipQR` |
+| Vercel project | `equipqr-docs` (`prj_6QicTVywixyyAYc7sxCRDLnqwbM9`) |
 | Root Directory | `docs` |
 | Install Command | `npm ci` |
 | Build Command | `npm run docs:build` |
 | Output Directory | `.vitepress/dist` |
 | Config | [`docs/vercel.json`](../vercel.json) |
 | Production hostname | `https://equipqr.info` (apex). `www.equipqr.info` should redirect to apex. |
+
+**Deployment cadence:** Git-connected Production builds run when **`main`** receives commits that touch **`docs/`** (scoped Root Directory). App-only merges do **not** redeploy the docs bundle unless `docs/` changes — intentional for static documentation.
 
 **Setup (dashboard):** Vercel → **Add New Project** → import the repo → set **Root Directory** to `docs` → confirm build settings above → deploy. Then attach **`equipqr.info`** and **`www.equipqr.info`** to this docs project (move from the app project if they were previously assigned there), and configure **`www` → apex** redirect. DNS must follow Vercel’s instructions at the domain registrar.
 

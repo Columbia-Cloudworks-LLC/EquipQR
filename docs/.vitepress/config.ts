@@ -1,3 +1,4 @@
+import tailwindcssPostcss from "@tailwindcss/postcss";
 import { defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
@@ -13,6 +14,13 @@ export default defineConfig({
   srcExclude: ["ops/**"],
   sitemap: {
     hostname: "https://equipqr.info",
+  },
+  vite: {
+    css: {
+      postcss: {
+        plugins: [tailwindcssPostcss()],
+      },
+    },
   },
   head: [
     ["meta", { name: "theme-color", content: "#5f67ee" }],
