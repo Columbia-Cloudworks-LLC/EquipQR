@@ -296,7 +296,8 @@ Deno.test("buildInvoiceLines uses Service type for Labor item creation and reuse
 
       if (url.includes("/query") && url.includes(encodeURIComponent("Item"))) {
         const decoded = decodeURIComponent(url);
-        if (decoded.includes(QBO_INVOICE_ITEM_NAMES.labor)) {
+        const escapedLaborName = escapeQuickBooksQueryValue(QBO_INVOICE_ITEM_NAMES.labor);
+        if (decoded.includes(`Name = '${escapedLaborName}'`)) {
           return Promise.resolve(
             new Response(
               JSON.stringify({
