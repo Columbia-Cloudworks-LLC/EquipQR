@@ -99,10 +99,16 @@ export function formatVersionMismatchRepair(mismatches) {
   lines.push('```');
   lines.push('');
   lines.push(
-    'This marks the remote-only versions as reverted, then re-applies all local migrations',
+    'This marks the remote-only versions as reverted, then attempts `supabase db push --include-all --yes` ',
   );
-  lines.push('(which are idempotent via `IF EXISTS`/`IF NOT EXISTS` guards) so production history');
-  lines.push('aligns with `supabase/migrations/` by version.');
+  lines.push('so production history aligns with `supabase/migrations/**` by version.');
+  lines.push('');
+  lines.push(
+    '**Caution:** Not every migration in this repo is safe to replay blindly (for example plain `CREATE POLICY` statements that error when run twice).',
+  );
+  lines.push(
+    'If `db push` fails or replay is unsafe, prefer the **placeholder migration file** path: add `supabase/migrations/<remoteVersion>_<name>.sql` (minimal SQL or `SELECT 1;`) and use `migration repair` as needed, same pattern as orphan-remote repairs below.',
+  );
   return lines.join('\n');
 }
 

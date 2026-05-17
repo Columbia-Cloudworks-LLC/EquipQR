@@ -183,6 +183,8 @@ describe('formatVersionMismatchRepair', () => {
     assert.ok(out.includes('20260401120000_fix_advisor_warn_bucket.sql'), 'should include local filename');
     assert.ok(out.includes('supabase migration repair --status reverted'), 'should include repair command');
     assert.ok(out.includes('supabase db push --include-all --yes'), 'should include push command');
+    assert.ok(!out.includes('idempotent'), 'should not claim migrations replay safely by default');
+    assert.ok(out.toLowerCase().includes('placeholder'), 'should mention placeholder migration fallback');
   });
 });
 

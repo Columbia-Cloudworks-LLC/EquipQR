@@ -260,29 +260,36 @@ export async function getOrCreateSalesItem(
   );
   const specificResponse = await fetch(specificUrl, { method: "GET", headers });
 
-  if (specificResponse.ok) {
-    const data = await specificResponse.json();
-    if (data.Fault) {
-      logStep("Fault in item query response", {
-        fault: JSON.stringify(data.Fault).substring(0, 300),
-      });
-    } else if (data.QueryResponse?.Item?.[0]) {
-      logStep("Found existing QuickBooks item by name", {
-        id: data.QueryResponse.Item[0].Id,
-        itemName,
-        type: data.QueryResponse.Item[0].Type,
-      });
-      return {
-        value: data.QueryResponse.Item[0].Id,
-        name: data.QueryResponse.Item[0].Name,
-      };
-    }
-  } else if (
-    specificResponse.status === 401 ||
-    specificResponse.status === 403 ||
-    specificResponse.status >= 500
-  ) {
-    throw new Error(`QuickBooks item query failed with status ${specificResponse.status}`);
+  if (!specificResponse.ok) {
+    const retryAfter = specificResponse.headers.get("Retry-After");
+    const errorBody = await specificResponse.text();
+    const bodySnippet = errorBody.length > 500 ? `${errorBody.slice(0, 500)}…` : errorBody;
+    const retryPart = retryAfter ? `; Retry-After: ${retryAfter}` : "";
+    logStep("QuickBooks item query failed", {
+      status: specificResponse.status,
+      retry_after: retryAfter ?? null,
+      body_snippet: bodySnippet.substring(0, 300),
+    });
+    throw new Error(
+      `QuickBooks item query failed with status ${specificResponse.status}${retryPart} — ${bodySnippet}`,
+    );
+  }
+
+  const data = await specificResponse.json();
+  if (data.Fault) {
+    logStep("Fault in item query response", {
+      fault: JSON.stringify(data.Fault).substring(0, 300),
+    });
+  } else if (data.QueryResponse?.Item?.[0]) {
+    logStep("Found existing QuickBooks item by name", {
+      id: data.QueryResponse.Item[0].Id,
+      itemName,
+      type: data.QueryResponse.Item[0].Type,
+    });
+    return {
+      value: data.QueryResponse.Item[0].Id,
+      name: data.QueryResponse.Item[0].Name,
+    };
   }
 
   logStep("QuickBooks item not found, creating", { itemName, itemType });
