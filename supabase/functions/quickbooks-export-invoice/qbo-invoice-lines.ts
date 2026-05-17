@@ -5,7 +5,6 @@
 import {
   QBO_API_BASE,
   QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS,
-  QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID,
   QBO_INVOICE_ITEM_INCOME_ACCOUNT_NAME,
   QBO_INVOICE_ITEM_NAMES,
   resolveQboInvoicePartsItemType,
@@ -162,9 +161,13 @@ export async function resolveIncomeAccountRef(
     "Content-Type": "application/json",
   };
 
-  if (QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID) {
+  // Read at call time so Deno tests can set QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID without re-importing modules.
+  const configuredIncomeAccountId =
+    Deno.env.get("QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID")?.trim() ?? "";
+
+  if (configuredIncomeAccountId) {
     const url = withMinorVersion(
-      `${QBO_API_BASE}/v3/company/${realmId}/account/${encodeURIComponent(QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID)}`,
+      `${QBO_API_BASE}/v3/company/${realmId}/account/${encodeURIComponent(configuredIncomeAccountId)}`,
     );
     const res = await fetch(url, { method: "GET", headers });
     if (res.ok) {
@@ -509,11 +512,11 @@ export async function buildInvoiceLines(
       "Service",
       lazyIncomeRef,
     );
-    const laborQty = loggedHours > 0 ? Number(loggedHours.toFixed(2)) : 1;
-    // UnitPrice is derived from the aggregated total so Qty × UnitPrice ≈ Amount.
-    const laborUnit = loggedHours > 0
-      ? laborTotalCents / (Math.max(loggedHours, 1e-9) * 100)
-      : laborTotalCents / 100;
+    // Same rounded quantity for Qty and UnitPrice so tiny logs cannot yield Qty=0 vs unrounded hours.
+    const laborQty = loggedHours > 0
+      ? Math.max(0.01, Number(loggedHours.toFixed(2)))
+      : 1;
+    const laborUnit = (laborTotalCents / 100) / laborQty;
     const laborDescRaw =
       primary === "labor" && pmPublicDesc.trim().length > 0
         ? `${pmPublicDesc.trim()}\n\n${laborShortDescription}`

@@ -470,6 +470,69 @@ Deno.test("buildInvoiceLines Labor Amount matches aggregated labor cost even whe
   }
 });
 
+// Labor Qty must match the value used for UnitPrice (rounded hours, min 0.01) so Qty×UnitPrice ≈ Amount
+Deno.test("buildInvoiceLines Labor uses clamped rounded Qty and matching UnitPrice for tiny logged hours", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = (_input: RequestInfo | URL, init?: RequestInit) => {
+      const method = (init?.method ?? "GET").toUpperCase();
+      if (method === "POST") {
+        const body = JSON.parse(String(init?.body ?? "{}")) as { Name: string; Type: string };
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({ Item: { Id: `id-${body.Name}`, Name: body.Name } }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        );
+      }
+      const url = String(_input);
+      if (url.includes("/query") && url.includes(encodeURIComponent("Account"))) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({ QueryResponse: { Account: [{ Id: "inc-1", Name: "Sales" }] } }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        );
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify({ QueryResponse: {} }), {
+          status: 200, headers: { "Content-Type": "application/json" },
+        }),
+      );
+    };
+
+    const costs = [{
+      description: "Labor — small job",
+      quantity: 1,
+      unit_price_cents: 5000,
+      total_price_cents: 5000,
+      inventory_item_id: null,
+    }];
+    const notes = [{
+      hours_worked: 0.004,
+      is_private: false,
+      content: "",
+      author_name: null,
+      created_at: "",
+    }] as never[];
+
+    const lines = await buildInvoiceLines("tok", REALM, costs as never, notes, {
+      workOrder: minimalWorkOrder as never,
+      pm: null,
+      publicNotesText: "",
+    });
+
+    assertEquals(lines.length, 1);
+    assertEquals(lines[0]!.Amount, 50);
+    const qty = lines[0]!.SalesItemLineDetail.Qty;
+    const unit = lines[0]!.SalesItemLineDetail.UnitPrice;
+    assertEquals(qty, 0.01);
+    assertEquals(unit, 5000);
+  } finally {
+    restoreFetch(originalFetch);
+  }
+});
+
 // Fix 2a: PM exception path includes technician attribution
 Deno.test("buildPMInvoiceDescription includes technician attribution in exception path", () => {
   const text = buildPMInvoiceDescription(
@@ -558,25 +621,31 @@ Deno.test("getOrCreateSalesItem reuses existing item without calling resolveInco
   }
 });
 
-// Fix 5: Configured non-Income account by ID is rejected; fallback query runs instead
+// Configured non-Income account by ID is rejected; fallback Income query runs
 Deno.test("resolveIncomeAccountRef rejects configured ID that returns a non-Income account and falls back", async () => {
   const originalFetch = globalThis.fetch;
+  const prevConfiguredId = Deno.env.get("QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID");
   const callUrls: string[] = [];
   try {
-    // Simulate QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID resolving a non-Income account
+    Deno.env.set("QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID", "cfg-non-income-1");
     globalThis.fetch = (input: RequestInfo | URL) => {
       const url = String(input);
       callUrls.push(url);
-      if (url.includes("/account/")) {
-        // ID lookup returns an Expense account — should be rejected
+      if (url.includes("/account/cfg-non-income-1")) {
         return Promise.resolve(
           new Response(
-            JSON.stringify({ Account: { Id: "exp-1", Name: "Operating Expenses", AccountType: "Expense", Active: true } }),
+            JSON.stringify({
+              Account: {
+                Id: "cfg-non-income-1",
+                Name: "Operating Expenses",
+                AccountType: "Expense",
+                Active: true,
+              },
+            }),
             { status: 200, headers: { "Content-Type": "application/json" } },
           ),
         );
       }
-      // Fallback query returns a real Income account
       return Promise.resolve(
         new Response(
           JSON.stringify({ QueryResponse: { Account: [{ Id: "inc-2", Name: "Services Income" }] } }),
@@ -585,16 +654,20 @@ Deno.test("resolveIncomeAccountRef rejects configured ID that returns a non-Inco
       );
     };
 
-    // Temporarily set the env var via the module-level constant (already resolved at import
-    // time, so we cannot override it here — this test validates the fallback branch reached
-    // when the configured ID returns a non-Income account, which is covered by the mock above).
-    const { resolveIncomeAccountRef: resolve } = __testables;
-    // When QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID is empty (as in test env) the function falls
-    // straight through to the fallback Income query; verify it returns the Income account.
-    const ref = await resolve("tok", REALM);
+    const ref = await resolveIncomeAccountRef("tok", REALM);
     assertEquals(ref.value, "inc-2");
+    assertEquals(
+      callUrls.some((u) => u.includes("/account/cfg-non-income-1")),
+      true,
+      "/account/{id} must run when QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID is set",
+    );
   } finally {
     restoreFetch(originalFetch);
+    if (prevConfiguredId === undefined) {
+      Deno.env.delete("QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID");
+    } else {
+      Deno.env.set("QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID", prevConfiguredId);
+    }
   }
 });
 
