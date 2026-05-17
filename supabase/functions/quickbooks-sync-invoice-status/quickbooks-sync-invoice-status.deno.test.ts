@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert@1";
+import { assertEquals, assertRejects } from "jsr:@std/assert@1";
 import {
   deriveQuickBooksInvoiceStatus,
   type QuickBooksInvoice,
@@ -312,6 +312,56 @@ Deno.test("refreshTokenIfNeeded returns rotated tokens and updated in-memory cre
     assertEquals(result.credential.id, "cred-2");
     assertEquals(dbUpdatePayload.access_token, "new-access-token");
     assertEquals(dbUpdatePayload.refresh_token, "new-refresh-token");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("refreshTokenIfNeeded throws when QuickBooks token refresh succeeds but credential persistence fails", async () => {
+  const expiredExpiry = new Date(Date.now() - 60 * 1000).toISOString();
+  const futureRefresh = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
+  const credential = {
+    id: "cred-3",
+    organization_id: "org-3",
+    realm_id: "realm-3",
+    access_token: "old-access-token",
+    refresh_token: "old-refresh-token",
+    access_token_expires_at: expiredExpiry,
+    refresh_token_expires_at: futureRefresh,
+  };
+
+  const fakeClient = {
+    from: (_table: string) => ({
+      update: (_payload: Record<string, unknown>) => ({
+        eq: () =>
+          Promise.resolve({
+            error: { message: "simulated quickbooks_credentials update failure" },
+          }),
+      }),
+    }),
+  };
+
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = () =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            access_token: "new-access-token",
+            refresh_token: "new-refresh-token",
+            token_type: "bearer",
+            expires_in: 3600,
+            x_refresh_token_expires_in: 8726400,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+
+    await assertRejects(
+      async () => await refreshTokenIfNeeded(credential, fakeClient, "client-id", "client-secret"),
+      Error,
+      "QuickBooks credential persistence failed:",
+    );
   } finally {
     globalThis.fetch = originalFetch;
   }

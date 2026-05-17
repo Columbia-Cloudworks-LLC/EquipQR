@@ -49,8 +49,13 @@ export async function updateWorkOrderInvoiceMirror(
     .eq("organization_id", params.organizationId);
 
   if (error) {
-    logStep("Work Order invoice mirror update failed", { error: error.message });
-    throw new Error(`Work Order invoice mirror update failed: ${error.message}`);
+    logStep("Warning: Work Order invoice mirror update failed — export already succeeded", {
+      workOrderId: params.workOrderId,
+      organizationId: params.organizationId,
+      quickbooks_invoice_id: params.invoice.Id,
+      error: error.message,
+    });
+    return;
   }
 
   const wasEmailed = params.invoice.EmailStatus?.toLowerCase() === "emailsent";

@@ -1407,7 +1407,7 @@ Deno.test("updateWorkOrderInvoiceMirror first-writes invoice_sent_at for emailed
   assertEquals(sentFollowUp!.hasSentNullGuard, true);
 });
 
-Deno.test("updateWorkOrderInvoiceMirror rejects when the main work_orders update fails", async () => {
+Deno.test("updateWorkOrderInvoiceMirror resolves without throwing when the main work_orders update fails", async () => {
   function from(_table: string) {
     const builder: any = {
       update(_p: Record<string, unknown>) { return builder; },
@@ -1435,5 +1435,9 @@ Deno.test("updateWorkOrderInvoiceMirror rejects when the main work_orders update
   } catch {
     threw = true;
   }
-  assertEquals(threw, true, "mirror should throw when the main update fails");
+  assertEquals(
+    threw,
+    false,
+    "mirror failures are secondary side effects — export outcome must not propagate them as failures",
+  );
 });

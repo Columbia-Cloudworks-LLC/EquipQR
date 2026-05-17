@@ -111,7 +111,7 @@ async function refreshTokenIfNeeded(
   const tokenData: IntuitTokenResponse = await response.json();
   const newAccessTokenExpiresAt = new Date(now.getTime() + tokenData.expires_in * 1000).toISOString();
   const newRefreshTokenExpiresAt = new Date(now.getTime() + tokenData.x_refresh_token_expires_in * 1000).toISOString();
-  await supabaseClient
+  const { error: credentialUpdateError } = await supabaseClient
     .from("quickbooks_credentials")
     .update({
       access_token: tokenData.access_token,
@@ -121,6 +121,10 @@ async function refreshTokenIfNeeded(
       updated_at: now.toISOString(),
     })
     .eq("id", credential.id);
+
+  if (credentialUpdateError) {
+    throw new Error(`QuickBooks credential persistence failed: ${credentialUpdateError.message}`);
+  }
 
   const refreshedCredential: QuickBooksCredential = {
     ...credential,
