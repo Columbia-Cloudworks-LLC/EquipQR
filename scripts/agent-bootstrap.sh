@@ -310,12 +310,18 @@ fs.writeFileSync(process.env.GCP_OUT_PATH, `${JSON.stringify(parsed, null, 2)}\n
 });
 NODE
             then
-                mv "$GCP_NORMALIZED_TMP" "$GCP_KEY_PATH"
-                chmod 600 "$GCP_KEY_PATH"
-                ok "GCP SA JSON written from '${GCP_ITEM_NAME}/${GCP_FIELD_NAME}' and validated: ${GCP_KEY_PATH}"
-                gcp_written=1
-                rm -f "$GCP_RAW_TMP"
-                break
+                if mv "$GCP_NORMALIZED_TMP" "$GCP_KEY_PATH" \
+                    && chmod 600 "$GCP_KEY_PATH" \
+                    && [[ -s "$GCP_KEY_PATH" ]]; then
+                    ok "GCP SA JSON written from '${GCP_ITEM_NAME}/${GCP_FIELD_NAME}' and validated: ${GCP_KEY_PATH}"
+                    gcp_written=1
+                    rm -f "$GCP_RAW_TMP" "$GCP_NORMALIZED_TMP"
+                    break
+                else
+                    warn "Could not place GCP SA JSON at ${GCP_KEY_PATH} from '${GCP_ITEM_NAME}/${GCP_FIELD_NAME}'."
+                    rm -f "$GCP_RAW_TMP" "$GCP_NORMALIZED_TMP"
+                    continue
+                fi
             else
                 warn "Field '${GCP_ITEM_NAME}/${GCP_FIELD_NAME}' is present but not valid service-account JSON."
             fi
