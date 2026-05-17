@@ -3,17 +3,25 @@ import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   QBO_API_BASE,
-  QBO_DEFAULT_LABOR_RATE_CENTS,
-  QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS,
   QBO_ENVIRONMENT,
   QBO_INVOICE_CUSTOM_FIELD_DEFINITION_IDS,
-  QBO_INVOICE_ITEM_NAMES,
   QBO_TOKEN_URL,
   getIntuitTid,
   withMinorVersion,
 } from "../_shared/quickbooks-config.ts";
 import { withCorrelationId } from "../_shared/supabase-clients.ts";
 import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
+import {
+  buildInvoiceLines,
+  buildPrivateNote,
+  type InvoiceSalesLines,
+  type PreventativeMaintenanceInvoiceRow,
+  type WorkOrderCost,
+  type WorkOrderData,
+  type WorkOrderNote,
+} from "./qbo-invoice-lines.ts";
+
+export { __testables } from "./qbo-invoice-lines.ts";
 
 const FUNCTION_NAME = "quickbooks-export-invoice";
 
@@ -62,50 +70,6 @@ interface IntuitTokenResponse {
   x_refresh_token_expires_in: number;
 }
 
-interface WorkOrderData {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  equipment_id: string;
-  organization_id: string;
-  created_date: string;
-  due_date: string | null;
-  completed_date: string | null;
-  equipment_working_hours_at_creation: number | null;
-  has_pm: boolean;
-  equipment?: {
-    name: string;
-    manufacturer: string;
-    model: string;
-    serial_number: string;
-    team_id: string | null;
-    team?: {
-      name: string;
-    };
-  };
-}
-
-interface WorkOrderCost {
-  id?: string;
-  description: string;
-  quantity: number;
-  unit_price_cents: number;
-  total_price_cents: number | null;
-  inventory_item_id?: string | null;
-}
-
-interface WorkOrderNote {
-  id?: string;
-  content: string;
-  hours_worked?: number | null;
-  machine_hours?: number | null;
-  is_private: boolean;
-  author_name: string | null;
-  created_at: string;
-}
-
 interface WorkOrderStatusEvent {
   id: string;
   old_status: string | null;
@@ -123,16 +87,7 @@ interface QuickBooksInvoice {
   Id?: string;
   SyncToken?: string;
   CustomerRef: { value: string };
-  Line: Array<{
-    Amount: number;
-    DetailType: "SalesItemLineDetail";
-    Description?: string;
-    SalesItemLineDetail: {
-      ItemRef: { value: string; name?: string };
-      Qty?: number;
-      UnitPrice?: number;
-    };
-  }>;
+  Line: InvoiceSalesLines;
   CustomField?: Array<{
     DefinitionId: string;
     Name?: string;
@@ -209,61 +164,6 @@ async function refreshTokenIfNeeded(
   return tokenData.access_token;
 }
 
-function buildPrivateNote(
-  workOrder: WorkOrderData,
-  notes: WorkOrderNote[],
-  costs: WorkOrderCost[],
-): string {
-  const lines: string[] = [];
-  
-  lines.push(`EquipQR Work Order ID: ${workOrder.id}`);
-  lines.push(`Created: ${new Date(workOrder.created_date).toLocaleDateString('en-US')}`);
-  if (workOrder.due_date) {
-    lines.push(`Due: ${new Date(workOrder.due_date).toLocaleDateString('en-US')}`);
-  }
-  if (workOrder.completed_date) {
-    lines.push(`Completed: ${new Date(workOrder.completed_date).toLocaleDateString('en-US')}`);
-  }
-  
-  // Add private notes
-  const privateNotes = notes.filter(n => n.is_private);
-  if (privateNotes.length > 0) {
-    lines.push('');
-    lines.push('Private Notes:');
-    privateNotes.forEach(note => {
-      lines.push(`- ${note.content} (${note.author_name || 'Unknown'})`);
-    });
-  }
-  
-  // Add cost breakdown
-  if (costs.length > 0) {
-    lines.push('');
-    lines.push('Cost Breakdown:');
-    costs.forEach(cost => {
-      const unitPrice = (cost.unit_price_cents / 100).toFixed(2);
-      const total = ((cost.total_price_cents || cost.unit_price_cents * cost.quantity) / 100).toFixed(2);
-      lines.push(`- ${cost.description}: ${cost.quantity} x $${unitPrice} = $${total}`);
-    });
-  }
-  
-  // Truncate if too long (QuickBooks has a 4000 char limit for PrivateNote)
-  let result = lines.join('\n');
-  if (result.length > 3900) {
-    result = result.substring(0, 3900) + '\n... (truncated)';
-  }
-  
-  return result;
-}
-
-const getCostAmountCents = (cost: WorkOrderCost): number =>
-  cost.total_price_cents ?? cost.unit_price_cents * cost.quantity;
-
-const isTruckSuppliesCost = (cost: WorkOrderCost): boolean =>
-  /truck supplies|truck fee|travel fee|service fee|trip fee/i.test(cost.description);
-
-const isLaborCost = (cost: WorkOrderCost): boolean =>
-  /labor|labour|hour|technician|service time/i.test(cost.description);
-
 const formatTimelineTimestamp = (value: string): string => {
   const iso = new Date(value).toISOString();
   return `${iso.slice(0, 16)}z`;
@@ -273,23 +173,6 @@ const formatStatus = (status: string): string =>
   status
     .replace(/_/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
-
-/**
- * Escapes a value for safe embedding inside a single-quoted QuickBooks Query
- * Language string literal.  QBO uses `'` as the string delimiter and `\` as
- * the escape character, so those are the only characters we need to neutralize
- * to defeat query-language injection.  We deliberately do NOT strip other
- * characters (e.g. `:`, `&`, `(`, `)`) because doing so causes the lookup
- * value to differ from the value we use when creating the item, which results
- * in duplicate Item records on every export.
- *
- * Control characters and embedded newlines are still removed so the rendered
- * query stays on a single line.
- */
-const escapeQuickBooksQueryValue = (value: string): string => {
-  const stripped = value.replace(/[\u0000-\u001f\u007f]/g, "").trim();
-  return stripped.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-};
 
 function buildCustomerTimelineLines(
   statusEvents: WorkOrderStatusEvent[],
@@ -389,238 +272,6 @@ function buildInvoiceCustomFields(
       StringValue: getMachineHoursCustomFieldValue(workOrder, notes),
     },
   ];
-}
-
-/**
- * Get an existing service item or create one for invoicing.
- */
-async function getOrCreateServiceItem(
-  accessToken: string,
-  realmId: string,
-  itemName: string,
-): Promise<{ value: string; name: string }> {
-  const headers = {
-    "Authorization": `Bearer ${accessToken}`,
-    "Accept": "application/json",
-    "Content-Type": "application/json",
-  };
-
-  const escapedItemName = escapeQuickBooksQueryValue(itemName);
-  const specificQuery = `SELECT * FROM Item WHERE Name = '${escapedItemName}' AND Type = 'Service' AND Active = true`;
-  const specificUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(specificQuery)}`);
-  const specificResponse = await fetch(specificUrl, { method: "GET", headers });
-  
-  if (specificResponse.ok) {
-    const data = await specificResponse.json();
-    // Check for Fault in 200 OK response
-    if (data.Fault) {
-      logStep("Fault in item query response", { fault: JSON.stringify(data.Fault).substring(0, 300) });
-    } else if (data.QueryResponse?.Item?.[0]) {
-      logStep("Found service item", { id: data.QueryResponse.Item[0].Id, itemName });
-      return { 
-        value: data.QueryResponse.Item[0].Id, 
-        name: data.QueryResponse.Item[0].Name 
-      };
-    }
-  } else if (specificResponse.status === 401 || specificResponse.status === 403 || specificResponse.status >= 500) {
-    throw new Error(`QuickBooks item query failed with status ${specificResponse.status}`);
-  }
-
-  logStep("Service item not found, creating", { itemName });
-  
-  const accountQuery = `SELECT * FROM Account WHERE AccountType = 'Income' AND Active = true MAXRESULTS 1`;
-  const accountUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(accountQuery)}`);
-  const accountResponse = await fetch(accountUrl, { method: "GET", headers });
-  
-  if (!accountResponse.ok) {
-    throw new Error(`Failed to query income accounts: ${accountResponse.status} ${accountResponse.statusText}`);
-  }
-  
-  const accountData = await accountResponse.json();
-  // Check for Fault in 200 OK response
-  if (accountData.Fault) {
-    throw new Error(`QuickBooks account query Fault: ${JSON.stringify(accountData.Fault).substring(0, 300)}`);
-  }
-  const incomeAccount = accountData.QueryResponse?.Account?.[0];
-  
-  if (!incomeAccount) {
-    throw new Error("No income account found in QuickBooks");
-  }
-
-  const createUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/item`);
-  const newItem = {
-    Name: itemName,
-    Type: "Service",
-    IncomeAccountRef: {
-      value: incomeAccount.Id,
-      name: incomeAccount.Name
-    },
-    Description: `Auto-created service item for ${itemName}`
-  };
-
-  const createResponse = await fetch(createUrl, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(newItem)
-  });
-
-  if (!createResponse.ok) {
-    const errorText = await createResponse.text();
-    throw new Error(`Failed to create service item: ${createResponse.status} - ${errorText}`);
-  }
-
-  const createdItem = await createResponse.json();
-  
-  // Check for Fault in 200 OK response
-  if (createdItem.Fault) {
-    throw new Error(`QuickBooks create item Fault: ${JSON.stringify(createdItem.Fault).substring(0, 300)}`);
-  }
-
-  if (!createdItem?.Item?.Id) {
-    throw new Error("QuickBooks returned invalid item structure after creation");
-  }
-
-  logStep("Successfully created service item", { id: createdItem.Item.Id, itemName });
-  
-  return { 
-    value: createdItem.Item.Id, 
-    name: createdItem.Item.Name 
-  };
-}
-
-async function buildInvoiceLines(
-  accessToken: string,
-  realmId: string,
-  costs: WorkOrderCost[],
-  notes: WorkOrderNote[],
-): Promise<QuickBooksInvoice["Line"]> {
-  const partCosts = costs.filter((cost) => (cost.inventory_item_id ?? null) !== null);
-  const truckCosts = costs.filter(isTruckSuppliesCost);
-  const laborCandidateCosts = costs.filter(
-    (cost) => !partCosts.includes(cost) && !truckCosts.includes(cost),
-  );
-
-  const loggedHours = notes.reduce((sum, note) => sum + (note.hours_worked ?? 0), 0);
-
-  // When time logs exist, only costs whose description matches the labor regex
-  // are folded into the labor line.  The remaining non-part/non-truck costs
-  // (e.g. "Disposal fee", "Environmental") still need to be billed — we emit
-  // one invoice line per cost below (each line tagged with the shared "Other"
-  // QBO item) so the invoice total matches the work order total and per-cost
-  // descriptions remain visible on the invoice.  When no time logs exist,
-  // every non-part/non-truck cost is treated as labor (legacy behavior).
-  const laborMatchedCosts = loggedHours > 0
-    ? laborCandidateCosts.filter(isLaborCost)
-    : laborCandidateCosts;
-  const otherCosts = loggedHours > 0
-    ? laborCandidateCosts.filter((cost) => !isLaborCost(cost))
-    : [];
-
-  const laborCostsCents = laborMatchedCosts.reduce(
-    (sum, cost) => sum + getCostAmountCents(cost),
-    0,
-  );
-  const otherCostsCents = otherCosts.reduce(
-    (sum, cost) => sum + getCostAmountCents(cost),
-    0,
-  );
-  const laborUnitRateCents = loggedHours > 0
-    ? (
-      QBO_DEFAULT_LABOR_RATE_CENTS > 0
-        ? QBO_DEFAULT_LABOR_RATE_CENTS
-        : Math.round(laborCostsCents / loggedHours)
-    )
-    : 0;
-  const laborTotalCents = loggedHours > 0
-    ? Math.max(0, Math.round(loggedHours * laborUnitRateCents))
-    : laborCostsCents;
-
-  const truckSuppliesSumCents = truckCosts.reduce(
-    (sum, cost) => sum + getCostAmountCents(cost),
-    0,
-  );
-  const truckSuppliesCents = truckCosts.length > 0
-    ? truckSuppliesSumCents
-    : QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS;
-
-  const lines: QuickBooksInvoice["Line"] = [];
-
-  if (laborTotalCents > 0) {
-    const laborItem = await getOrCreateServiceItem(
-      accessToken,
-      realmId,
-      QBO_INVOICE_ITEM_NAMES.labor,
-    );
-    lines.push({
-      Amount: laborTotalCents / 100,
-      DetailType: "SalesItemLineDetail",
-      Description: `Labor (${loggedHours.toFixed(2)} hrs)`,
-      SalesItemLineDetail: {
-        ItemRef: laborItem,
-        Qty: Number(loggedHours.toFixed(2)),
-        UnitPrice: laborUnitRateCents / 100,
-      },
-    });
-  }
-
-  for (const part of partCosts) {
-    const partAmountCents = getCostAmountCents(part);
-    if (partAmountCents <= 0) continue;
-    const partItemName = `${QBO_INVOICE_ITEM_NAMES.partsPrefix}: ${part.description}`.slice(0, 100);
-    const partItem = await getOrCreateServiceItem(accessToken, realmId, partItemName);
-    lines.push({
-      Amount: partAmountCents / 100,
-      DetailType: "SalesItemLineDetail",
-      Description: part.description,
-      SalesItemLineDetail: {
-        ItemRef: partItem,
-        Qty: part.quantity,
-        UnitPrice: part.unit_price_cents / 100,
-      },
-    });
-  }
-
-  if (otherCostsCents > 0) {
-    const otherItem = await getOrCreateServiceItem(
-      accessToken,
-      realmId,
-      QBO_INVOICE_ITEM_NAMES.other,
-    );
-    for (const cost of otherCosts) {
-      const otherAmountCents = getCostAmountCents(cost);
-      if (otherAmountCents <= 0) continue;
-      lines.push({
-        Amount: otherAmountCents / 100,
-        DetailType: "SalesItemLineDetail",
-        Description: cost.description,
-        SalesItemLineDetail: {
-          ItemRef: otherItem,
-          Qty: cost.quantity,
-          UnitPrice: cost.unit_price_cents / 100,
-        },
-      });
-    }
-  }
-
-  if (truckSuppliesCents > 0) {
-    const truckSuppliesItem = await getOrCreateServiceItem(
-      accessToken,
-      realmId,
-      QBO_INVOICE_ITEM_NAMES.truckSupplies,
-    );
-    lines.push({
-      Amount: truckSuppliesCents / 100,
-      DetailType: "SalesItemLineDetail",
-      Description: "Truck Supplies",
-      SalesItemLineDetail: {
-        ItemRef: truckSuppliesItem,
-        Qty: 1,
-        UnitPrice: truckSuppliesCents / 100,
-      },
-    });
-  }
-
-  return lines;
 }
 
 Deno.serve(withCorrelationId(async (req, ctx) => {
@@ -899,6 +550,17 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       .eq('work_orders.organization_id', workOrder.organization_id)
       .order('changed_at', { ascending: true });
 
+    const { data: pmRow } = await supabaseClient
+      .from('preventative_maintenance')
+      .select(
+        'id, checklist_data, notes, completed_by_name, pm_checklist_templates(name)',
+      )
+      .eq('work_order_id', work_order_id)
+      .eq('organization_id', workOrder.organization_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     // Get valid access token
     const accessToken = await refreshTokenIfNeeded(
       credentials,
@@ -907,11 +569,22 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       clientSecret
     );
 
+    const notesTyped = (notes || []) as WorkOrderNote[];
+    const publicNotesText = notesTyped
+      .filter((n) => !n.is_private)
+      .map((n) => n.content)
+      .join("\n");
+
     const invoiceLines = await buildInvoiceLines(
       accessToken,
       credentials.realm_id,
       (costs || []) as WorkOrderCost[],
-      (notes || []) as WorkOrderNote[],
+      notesTyped,
+      {
+        workOrder: workOrder as WorkOrderData,
+        pm: (pmRow ?? null) as PreventativeMaintenanceInvoiceRow | null,
+        publicNotesText,
+      },
     );
     if (invoiceLines.length === 0) {
       throw new Error("No billable line items were found for this work order.");

@@ -225,7 +225,13 @@ Keep these database passwords on the `supabase-write` item in sync with **Supaba
 | `prod_db_password` | Production (`ymxkzronkhwxzcdcbnwq`) | **Production Release Readiness** maps this to `SUPABASE_DB_PASSWORD` for `supabase link` / `db push` after merge to `main`. |
 | `preview_db_password` | Preview (`olsdirkvvfegvclbpgrg`) | Local or scripted `supabase link` / `db push` against preview; not used by the current GitHub workflows. |
 
-Release PRs (`preview` → `main`) run **Schema Drift Check** as a **hard gate**: if any local migration file’s **name** is missing from production `schema_migrations`, the PR fails until production is aligned (typically by applying pending migrations and confirming names landed). After merge, **Production Release Readiness** applies any remaining SQL via `supabase db push --include-all`, then re-runs this script in strict mode.
+Release PRs (`preview` → `main`) run **Schema Drift Check** as a **hard gate** that blocks merge when any of the following conditions exist:
+
+- **Pending local migrations** - a local `supabase/migrations/*.sql` file whose migration _name_ is absent from production `schema_migrations`. The SQL has not run on production.
+- **Version mismatches** - production `schema_migrations` rows whose _version_ timestamp has no matching local file, but the migration _name_ does exist locally under a different timestamp. This happens when migrations are applied through Supabase MCP `apply_migration` or the Dashboard, which record a wall-clock timestamp instead of the file timestamp. `supabase db push --include-all` fails with "Remote migration versions not found in local migrations directory" until repaired with `supabase migration repair --status reverted <versions>` followed by `supabase db push --include-all --yes`.
+- **Orphan remote versions** - production rows that have no matching local file by either version or name. Operator must create a placeholder file or revert the entry before the release gate clears.
+
+After merge, **Production Release Readiness** applies any remaining SQL via `supabase db push --include-all`, then re-runs the script in strict mode (which catches all three categories). The schema drift script and its classification helpers live in `.github/scripts/check-schema-drift.js` and `.github/scripts/schema-drift-lib.js`; the library is covered by `.github/scripts/schema-drift-lib.test.js` (run with `node --test .github/scripts/schema-drift-lib.test.js`).
 
 ### Secrets Checklist
 

@@ -69,9 +69,10 @@ function getPlannedExitCode() {
 // Pass through all CLI arguments to vitest
 const args = process.argv.slice(2);
 
-// Default timeout: 5 minutes for normal tests, 8 minutes with coverage
+// Default timeout: allow a healthy margin above full-suite Vitest duration on Windows CI/dev machines.
+// (The prior 5-minute ceiling could kill runs that complete successfully but exceed ~300s wall clock.)
 const hasCoverage = args.includes('--coverage');
-const DEFAULT_TIMEOUT_MS = hasCoverage ? 8 * 60 * 1000 : 5 * 60 * 1000;
+const DEFAULT_TIMEOUT_MS = hasCoverage ? 10 * 60 * 1000 : 8 * 60 * 1000;
 
 // Check for custom timeout
 const timeoutArg = args.find((a) => a.startsWith('--runner-timeout='));
