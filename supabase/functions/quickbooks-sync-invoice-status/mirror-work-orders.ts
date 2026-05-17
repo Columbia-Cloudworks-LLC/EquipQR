@@ -40,8 +40,8 @@ export async function updateMirroredWorkOrders(
 
   if (error) throw error;
 
-  const shouldSetSent =
-    invoiceStatus === "sent" && params.invoice.EmailStatus?.toLowerCase() === "emailsent";
+  const wasEmailed = params.invoice.EmailStatus?.toLowerCase() === "emailsent";
+  const shouldSetSent = wasEmailed && invoiceStatus !== "draft" && invoiceStatus !== "voided";
   const shouldSetPaid = invoiceStatus === "paid";
   const timestamp = now.toISOString();
 

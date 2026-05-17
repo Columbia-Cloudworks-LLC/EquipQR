@@ -29,7 +29,7 @@ export async function fetchPayment(
   accessToken: string,
   realmId: string,
   paymentId: string,
-): Promise<QuickBooksPayment> {
+): Promise<{ payment: QuickBooksPayment; intuitTid: string | null }> {
   const response = await fetch(
     withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/payment/${encodeURIComponent(paymentId)}`),
     {
@@ -40,16 +40,22 @@ export async function fetchPayment(
       },
     },
   );
-  getIntuitTid(response);
+  const intuitTid = getIntuitTid(response);
   if (!response.ok) {
-    throw new Error(`QuickBooks payment read failed (${response.status})`);
+    throw new Error(
+      `QuickBooks payment read failed (${response.status}) (intuit_tid: ${intuitTid ?? "unknown"})`,
+    );
   }
   const body = await response.json();
   if (body.Fault) {
-    throw new Error(`QuickBooks payment read Fault: ${JSON.stringify(body.Fault).substring(0, 300)}`);
+    throw new Error(
+      `QuickBooks payment read Fault: ${JSON.stringify(body.Fault).substring(0, 300)} (intuit_tid: ${intuitTid ?? "unknown"})`,
+    );
   }
   if (!body.Payment) {
-    throw new Error("QuickBooks payment read returned no Payment");
+    throw new Error(
+      `QuickBooks payment read returned no Payment (intuit_tid: ${intuitTid ?? "unknown"})`,
+    );
   }
-  return body.Payment as QuickBooksPayment;
+  return { payment: body.Payment as QuickBooksPayment, intuitTid };
 }

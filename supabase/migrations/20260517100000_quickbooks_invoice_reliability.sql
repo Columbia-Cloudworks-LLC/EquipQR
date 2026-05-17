@@ -190,17 +190,13 @@ DECLARE
   service_role_key text;
   supabase_url text;
   request_id bigint;
-  current_user_role text;
   cron_job_id text;
 BEGIN
-  SELECT rolname
-  INTO current_user_role
-  FROM pg_roles
-  WHERE oid = current_user::oid;
-
   cron_job_id := current_setting('cron.job_id', true);
 
-  IF current_user_role != 'postgres' OR cron_job_id IS NULL THEN
+  -- current_user is the session role name; compare directly instead of casting
+  -- to OID (which fails for role names that are not valid numeric literals).
+  IF current_user != 'postgres' OR cron_job_id IS NULL THEN
     RAISE EXCEPTION 'Access denied: invoke_quickbooks_invoice_status_sync can only be called by the pg_cron scheduler as postgres';
   END IF;
 

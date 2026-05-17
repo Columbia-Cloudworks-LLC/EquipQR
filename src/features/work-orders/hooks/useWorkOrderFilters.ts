@@ -18,7 +18,13 @@ const PRESET_FILTER_MAP: Record<QuickFilterPreset, { key: keyof WorkOrderFilters
   'unassigned': { key: 'assigneeFilter', value: 'unassigned' },
 };
 
-/** Collectible invoice balances for the Work Orders "Unpaid" filter (excludes paid, voided, and unknown). */
+/**
+ * Collectible invoice balances for the Work Orders "Unpaid" filter.
+ * Excludes paid, voided, and unknown.
+ * A NULL invoice_status with a set quickbooks_invoice_id is also treated as
+ * unpaid/collectible: it represents the transitional state where a QBO invoice
+ * has been exported but the hourly reconciler has not yet mirrored the status.
+ */
 const COLLECTIBLE_UNPAID_INVOICE_STATUSES: ReadonlySet<QuickBooksInvoiceStatus> = new Set([
   'draft',
   'sent',
@@ -77,8 +83,7 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
         (filters.invoiceFilter === 'not_exported' && !hasExportedInvoice) ||
         (filters.invoiceFilter === 'unpaid' &&
           hasExportedInvoice &&
-          invoiceStatus != null &&
-          COLLECTIBLE_UNPAID_INVOICE_STATUSES.has(invoiceStatus));
+          (invoiceStatus === null || COLLECTIBLE_UNPAID_INVOICE_STATUSES.has(invoiceStatus)));
 
       return matchesSearch && matchesStatus && matchesAssignee && matchesTeam && matchesPriority && matchesDueDate && matchesInvoice;
     });

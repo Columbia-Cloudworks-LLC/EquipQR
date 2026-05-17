@@ -133,30 +133,50 @@ async function fetchInvoice(
   );
   const intuitTid = getIntuitTid(response);
   if (!response.ok) {
-    throw new Error(`QuickBooks invoice read failed (${response.status})`);
+    throw new Error(
+      `QuickBooks invoice read failed (${response.status}) (intuit_tid: ${intuitTid ?? "unknown"})`,
+    );
   }
   const body = await response.json();
   if (body.Fault) {
-    throw new Error(`QuickBooks invoice read Fault: ${JSON.stringify(body.Fault).substring(0, 300)}`);
+    throw new Error(
+      `QuickBooks invoice read Fault: ${JSON.stringify(body.Fault).substring(0, 300)} (intuit_tid: ${intuitTid ?? "unknown"})`,
+    );
   }
   if (!body.Invoice?.Id) {
-    throw new Error("QuickBooks invoice read returned no Invoice.Id");
+    throw new Error(
+      `QuickBooks invoice read returned no Invoice.Id (intuit_tid: ${intuitTid ?? "unknown"})`,
+    );
   }
   return { invoice: body.Invoice as QuickBooksInvoice, intuitTid };
 }
 
-async function loadCredentialsByRealm(supabaseClient: any, realmIds: string[]) {
-  if (realmIds.length === 0) return new Map<string, QuickBooksCredential>();
+/** Stable key for a credential entry so the same realm under two orgs never collides. */
+function credentialKey(organizationId: string, realmId: string): string {
+  return `${organizationId}::${realmId}`;
+}
+
+async function loadCredentialsByOrgRealm(
+  supabaseClient: any,
+  pairs: Array<{ organizationId: string; realmId: string }>,
+): Promise<Map<string, QuickBooksCredential>> {
+  if (pairs.length === 0) return new Map<string, QuickBooksCredential>();
+  const realmIds = Array.from(new Set(pairs.map((p) => p.realmId)));
+  const orgIds = Array.from(new Set(pairs.map((p) => p.organizationId)));
   const { data, error } = await supabaseClient
     .from("quickbooks_credentials")
     .select("*")
-    .in("realm_id", realmIds);
+    .in("realm_id", realmIds)
+    .in("organization_id", orgIds);
   if (error) throw error;
-  const byRealm = new Map<string, QuickBooksCredential>();
+  const byKey = new Map<string, QuickBooksCredential>();
   for (const credential of data ?? []) {
-    byRealm.set(credential.realm_id, credential as QuickBooksCredential);
+    byKey.set(
+      credentialKey(credential.organization_id, credential.realm_id),
+      credential as QuickBooksCredential,
+    );
   }
-  return byRealm;
+  return byKey;
 }
 
 async function markEvent(
@@ -190,9 +210,9 @@ async function processInvoiceEvents(
 
   if (error) throw error;
   const typedEvents = (events ?? []) as InvoiceEvent[];
-  const credentialsByRealm = await loadCredentialsByRealm(
+  const credentialsByKey = await loadCredentialsByOrgRealm(
     supabaseClient,
-    Array.from(new Set(typedEvents.map((event) => event.realm_id))),
+    typedEvents.map((event) => ({ organizationId: event.organization_id, realmId: event.realm_id })),
   );
 
   let processed = 0;
@@ -205,13 +225,14 @@ async function processInvoiceEvents(
         .update({ status: "processing", attempts: event.attempts + 1 })
         .eq("id", event.id);
 
-      const credential = credentialsByRealm.get(event.realm_id);
-      if (!credential) throw new Error("No QuickBooks credentials for event realm");
+      const credential = credentialsByKey.get(credentialKey(event.organization_id, event.realm_id));
+      if (!credential) throw new Error("No QuickBooks credentials for event realm and organization");
 
       const accessToken = await refreshTokenIfNeeded(credential, supabaseClient, clientId, clientSecret);
 
       if (event.entity_name === "Invoice") {
-        const { invoice } = await fetchInvoice(accessToken, event.realm_id, event.entity_id);
+        const { invoice, intuitTid } = await fetchInvoice(accessToken, event.realm_id, event.entity_id);
+        logStep("Invoice fetched", { entity_id: event.entity_id, intuit_tid: intuitTid });
         await updateMirroredWorkOrders(supabaseClient, {
           organizationId: event.organization_id,
           realmId: event.realm_id,
@@ -219,13 +240,19 @@ async function processInvoiceEvents(
           operation: event.operation,
         });
       } else if (event.entity_name === "Payment") {
-        const payment = await fetchPayment(accessToken, event.realm_id, event.entity_id);
+        const { payment, intuitTid: paymentIntuitTid } = await fetchPayment(
+          accessToken,
+          event.realm_id,
+          event.entity_id,
+        );
+        logStep("Payment fetched", { entity_id: event.entity_id, payment_intuit_tid: paymentIntuitTid });
         const invoiceIds = extractLinkedInvoiceIdsFromPayment(payment);
         if (invoiceIds.length === 0) {
           throw new Error("QuickBooks Payment event did not reference any Invoice transactions");
         }
         for (const invoiceId of invoiceIds) {
-          const { invoice } = await fetchInvoice(accessToken, event.realm_id, invoiceId);
+          const { invoice, intuitTid } = await fetchInvoice(accessToken, event.realm_id, invoiceId);
+          logStep("Payment-linked invoice fetched", { invoice_id: invoiceId, intuit_tid: intuitTid });
           await updateMirroredWorkOrders(supabaseClient, {
             organizationId: event.organization_id,
             realmId: event.realm_id,
@@ -268,9 +295,11 @@ async function reconcileOpenInvoices(
 
   if (error) throw error;
   const candidates = rows ?? [];
-  const credentialsByRealm = await loadCredentialsByRealm(
+  const credentialsByKey = await loadCredentialsByOrgRealm(
     supabaseClient,
-    Array.from(new Set(candidates.map((row) => row.quickbooks_realm_id).filter(Boolean) as string[])),
+    candidates
+      .filter((row) => row.organization_id && row.quickbooks_realm_id)
+      .map((row) => ({ organizationId: row.organization_id, realmId: row.quickbooks_realm_id })),
   );
 
   let reconciled = 0;
@@ -278,10 +307,18 @@ async function reconcileOpenInvoices(
 
   for (const row of candidates) {
     try {
-      const credential = credentialsByRealm.get(row.quickbooks_realm_id);
-      if (!credential) throw new Error("No QuickBooks credentials for invoice realm");
+      const credential = credentialsByKey.get(credentialKey(row.organization_id, row.quickbooks_realm_id));
+      if (!credential) throw new Error("No QuickBooks credentials for invoice realm and organization");
       const accessToken = await refreshTokenIfNeeded(credential, supabaseClient, clientId, clientSecret);
-      const { invoice } = await fetchInvoice(accessToken, row.quickbooks_realm_id, row.quickbooks_invoice_id);
+      const { invoice, intuitTid } = await fetchInvoice(
+        accessToken,
+        row.quickbooks_realm_id,
+        row.quickbooks_invoice_id,
+      );
+      logStep("Reconcile invoice fetched", {
+        invoice_id: row.quickbooks_invoice_id,
+        intuit_tid: intuitTid,
+      });
       await updateMirroredWorkOrders(supabaseClient, {
         organizationId: row.organization_id,
         realmId: row.quickbooks_realm_id,

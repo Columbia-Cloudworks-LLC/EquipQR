@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Building2, Mail, Phone, Link2 } from 'lucide-react';
 import { useCustomer, useExternalContacts } from '@/features/teams/hooks/useCustomerAccount';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
 interface CustomerAccountCardProps {
   customerId: string;
@@ -18,6 +19,7 @@ const statusStyles: Record<string, string> = {
 const CustomerAccountCard: React.FC<CustomerAccountCardProps> = ({ customerId }) => {
   const { data: customer, isLoading } = useCustomer(customerId);
   const { data: allContacts = [] } = useExternalContacts(customerId);
+  const { formatDate } = useFormatTimestamp();
   const qboContacts = allContacts.filter((c) => c.source === 'quickbooks');
 
   if (isLoading || !customer) return null;
@@ -81,12 +83,12 @@ const CustomerAccountCard: React.FC<CustomerAccountCardProps> = ({ customerId })
             QB linked
             {customer.quickbooks_synced_at && (
               <span>
-                &middot; synced {new Date(customer.quickbooks_synced_at).toLocaleDateString()}
+                &middot; synced {formatDate(customer.quickbooks_synced_at)}
               </span>
             )}
             {customer.quickbooks_tax_status_synced_at && (
               <span>
-                &middot; tax status synced {new Date(customer.quickbooks_tax_status_synced_at).toLocaleDateString()}
+                &middot; tax status synced {formatDate(customer.quickbooks_tax_status_synced_at)}
               </span>
             )}
           </div>

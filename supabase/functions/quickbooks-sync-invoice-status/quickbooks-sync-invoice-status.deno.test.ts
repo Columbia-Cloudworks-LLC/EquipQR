@@ -6,6 +6,7 @@ import {
 import { updateMirroredWorkOrders } from "./mirror-work-orders.ts";
 import {
   extractLinkedInvoiceIdsFromPayment,
+  fetchPayment,
   type QuickBooksPayment,
 } from "./payment-linked-invoices.ts";
 
@@ -112,6 +113,89 @@ Deno.test("updateMirroredWorkOrders null-guards invoice_sent_at when status is s
   const sentFollowUp = updates.find((u) => "invoice_sent_at" in u.payload);
   assertEquals(sentFollowUp !== undefined, true);
   assertEquals(sentFollowUp!.hasSentNullGuard, true);
+});
+
+Deno.test("updateMirroredWorkOrders first-writes invoice_sent_at for emailed paid invoices", async () => {
+  const { from, updates } = createWorkOrderUpdateMock();
+  await updateMirroredWorkOrders({ from }, {
+    organizationId: "org-1",
+    realmId: "realm-1",
+    invoice: {
+      Id: "inv-3",
+      Balance: 0,
+      TotalAmt: 100,
+      EmailStatus: "EmailSent",
+    } as QuickBooksInvoice,
+  });
+
+  const sentFollowUp = updates.find((u) => "invoice_sent_at" in u.payload);
+  assertEquals(sentFollowUp !== undefined, true, "invoice_sent_at should be first-written for emailed paid invoices");
+  assertEquals(sentFollowUp!.hasSentNullGuard, true);
+});
+
+Deno.test("updateMirroredWorkOrders does not write invoice_sent_at for voided emailed invoices", async () => {
+  const { from, updates } = createWorkOrderUpdateMock();
+  await updateMirroredWorkOrders({ from }, {
+    organizationId: "org-1",
+    realmId: "realm-1",
+    invoice: {
+      Id: "inv-4",
+      Balance: 50,
+      TotalAmt: 50,
+      EmailStatus: "EmailSent",
+    } as QuickBooksInvoice,
+    operation: "Void",
+  });
+
+  const sentFollowUp = updates.find((u) => "invoice_sent_at" in u.payload);
+  assertEquals(sentFollowUp, undefined, "voided invoices should not write invoice_sent_at");
+});
+
+Deno.test("fetchPayment returns both payment and intuitTid from response header", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = () =>
+      Promise.resolve(
+        new Response(JSON.stringify({ Payment: { Id: "pay-99", Line: [] } }), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            intuit_tid: "tid-abc-123",
+          },
+        }),
+      );
+
+    const { payment, intuitTid } = await fetchPayment("token", "realm-1", "pay-99");
+    assertEquals(payment.Id, "pay-99");
+    assertEquals(intuitTid, "tid-abc-123");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("fetchPayment includes intuit_tid in error message when response is not ok", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = () =>
+      Promise.resolve(
+        new Response("Unauthorized", {
+          status: 401,
+          headers: { intuit_tid: "tid-err-456" },
+        }),
+      );
+
+    let thrown = false;
+    try {
+      await fetchPayment("token", "realm-1", "pay-1");
+    } catch (e) {
+      thrown = true;
+      const msg = e instanceof Error ? e.message : String(e);
+      assertEquals(msg.includes("tid-err-456"), true);
+    }
+    assertEquals(thrown, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 Deno.test("extractLinkedInvoiceIdsFromPayment collects unique Invoice-linked TxnIds across lines", () => {

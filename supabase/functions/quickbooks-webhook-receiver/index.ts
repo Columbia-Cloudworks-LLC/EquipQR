@@ -37,6 +37,51 @@ function parseEventTime(value: string | undefined): string {
   return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
 }
 
+/**
+ * Build the rows to insert into `quickbooks_invoice_status_events` from a
+ * parsed Intuit webhook payload and the set of known credentials.
+ *
+ * One row is emitted per (organization, entity) pair so that when the same
+ * QBO realm is connected to multiple organizations, every tenant receives its
+ * own event to process.
+ */
+export function buildInvoiceStatusEventRows(
+  payload: IntuitWebhookPayload,
+  credentials: Array<{ organization_id: string; realm_id: string }>,
+): Array<Record<string, unknown>> {
+  const orgsByRealm = new Map<string, string[]>();
+  for (const credential of credentials) {
+    const existing = orgsByRealm.get(credential.realm_id) ?? [];
+    existing.push(credential.organization_id);
+    orgsByRealm.set(credential.realm_id, existing);
+  }
+
+  const rows: Array<Record<string, unknown>> = [];
+  for (const notification of payload.eventNotifications ?? []) {
+    const realmId = notification.realmId;
+    const organizationIds = realmId ? (orgsByRealm.get(realmId) ?? []) : [];
+    if (!realmId || organizationIds.length === 0) continue;
+
+    for (const entity of notification.dataChangeEvent?.entities ?? []) {
+      if (!entity.id || !entity.name || !["Invoice", "Payment"].includes(entity.name)) {
+        continue;
+      }
+      for (const organizationId of organizationIds) {
+        rows.push({
+          organization_id: organizationId,
+          realm_id: realmId,
+          entity_name: entity.name,
+          entity_id: entity.id,
+          operation: entity.operation ?? "Update",
+          event_time: parseEventTime(entity.lastUpdated),
+          raw_event: { realmId, entity },
+        });
+      }
+    }
+  }
+  return rows;
+}
+
 Deno.serve(withCorrelationId(async (req, ctx) => {
   const corsResponse = handleCorsPreflightIfNeeded(req, { useValidatedOrigin: true });
   if (corsResponse) return corsResponse;
@@ -84,35 +129,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
 
     if (credentialError) throw credentialError;
 
-    const orgByRealm = new Map<string, string>();
-    for (const credential of credentials ?? []) {
-      orgByRealm.set(credential.realm_id, credential.organization_id);
-    }
-
-    const rows: Array<Record<string, unknown>> = [];
-    for (const notification of payload.eventNotifications ?? []) {
-      const realmId = notification.realmId;
-      const organizationId = realmId ? orgByRealm.get(realmId) : undefined;
-      if (!realmId || !organizationId) continue;
-
-      for (const entity of notification.dataChangeEvent?.entities ?? []) {
-        if (!entity.id || !entity.name || !["Invoice", "Payment"].includes(entity.name)) {
-          continue;
-        }
-        rows.push({
-          organization_id: organizationId,
-          realm_id: realmId,
-          entity_name: entity.name,
-          entity_id: entity.id,
-          operation: entity.operation ?? "Update",
-          event_time: parseEventTime(entity.lastUpdated),
-          raw_event: {
-            realmId,
-            entity,
-          },
-        });
-      }
-    }
+    const rows = buildInvoiceStatusEventRows(payload, credentials ?? []);
 
     if (rows.length > 0) {
       const { error } = await adminClient.from("quickbooks_invoice_status_events").insert(rows);
@@ -133,4 +150,5 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
 
 export const __webhookTestables = {
   verifyIntuitSignature,
+  buildInvoiceStatusEventRows,
 };

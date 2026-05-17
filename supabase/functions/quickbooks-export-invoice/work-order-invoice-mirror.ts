@@ -49,12 +49,12 @@ export async function updateWorkOrderInvoiceMirror(
     .eq("organization_id", params.organizationId);
 
   if (error) {
-    logStep("Warning: Work Order invoice mirror update failed", { error: error.message });
-    return;
+    logStep("Work Order invoice mirror update failed", { error: error.message });
+    throw new Error(`Work Order invoice mirror update failed: ${error.message}`);
   }
 
-  const shouldSetSent =
-    invoiceStatus === "sent" && params.invoice.EmailStatus?.toLowerCase() === "emailsent";
+  const wasEmailed = params.invoice.EmailStatus?.toLowerCase() === "emailsent";
+  const shouldSetSent = wasEmailed && invoiceStatus !== "draft" && invoiceStatus !== "voided";
   const shouldSetPaid = invoiceStatus === "paid";
   const timestamp = now.toISOString();
 

@@ -1387,3 +1387,53 @@ Deno.test("updateWorkOrderInvoiceMirror null-guards invoice_sent_at for sent inv
   assertEquals(sentFollowUp !== undefined, true);
   assertEquals(sentFollowUp!.hasSentNullGuard, true);
 });
+
+Deno.test("updateWorkOrderInvoiceMirror first-writes invoice_sent_at for emailed paid invoices", async () => {
+  const { from, updates } = createExportMirrorMock();
+  await updateWorkOrderInvoiceMirror({ from }, {
+    workOrderId: "wo-3",
+    organizationId: "org-1",
+    realmId: "realm-1",
+    invoice: {
+      Id: "inv-3",
+      Balance: 0,
+      TotalAmt: 100,
+      EmailStatus: "EmailSent",
+    } as QuickBooksInvoice,
+  });
+
+  const sentFollowUp = updates.find((u) => "invoice_sent_at" in u.payload);
+  assertEquals(sentFollowUp !== undefined, true, "invoice_sent_at should be first-written for emailed paid invoices");
+  assertEquals(sentFollowUp!.hasSentNullGuard, true);
+});
+
+Deno.test("updateWorkOrderInvoiceMirror rejects when the main work_orders update fails", async () => {
+  function from(_table: string) {
+    const builder: any = {
+      update(_p: Record<string, unknown>) { return builder; },
+      eq(_c: string, _v: unknown) { return builder; },
+      is(_c: string, _v: unknown) { return builder; },
+    };
+    builder.then = (resolve: (v: unknown) => unknown) =>
+      Promise.resolve({ error: { message: "simulated DB error" } }).then(resolve);
+    return builder;
+  }
+
+  let threw = false;
+  try {
+    await updateWorkOrderInvoiceMirror({ from }, {
+      workOrderId: "wo-fail",
+      organizationId: "org-1",
+      realmId: "realm-1",
+      invoice: {
+        Id: "inv-fail",
+        Balance: 50,
+        TotalAmt: 100,
+        EmailStatus: "NotSent",
+      } as QuickBooksInvoice,
+    });
+  } catch {
+    threw = true;
+  }
+  assertEquals(threw, true, "mirror should throw when the main update fails");
+});

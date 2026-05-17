@@ -10,7 +10,7 @@ import {
   resolveQboTaxStatusUnconfirmedMode,
   withMinorVersion,
 } from "../_shared/quickbooks-config.ts";
-import { withCorrelationId } from "../_shared/supabase-clients.ts";
+import { createErrorResponse, withCorrelationId } from "../_shared/supabase-clients.ts";
 import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
 import {
   buildInvoiceLines,
@@ -951,22 +951,9 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     }
 
     if (error instanceof TaxStatusUnconfirmedError) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: error.message,
-      }), {
-        status: 409,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createErrorResponse(error.message, 409, { req });
     }
 
-    // Return generic error message to user to prevent information leakage
-    return new Response(JSON.stringify({
-      success: false,
-      error: "An error occurred while exporting invoice. Please try again or contact support."
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return createErrorResponse("An internal error occurred", 500, { req });
   }
 }));
