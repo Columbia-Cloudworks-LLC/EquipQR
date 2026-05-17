@@ -4,7 +4,8 @@
 import { assertEquals, assertMatch, assertRejects } from "jsr:@std/assert@1";
 import { QBO_INVOICE_ITEM_NAMES } from "../_shared/quickbooks-config.ts";
 import { __testables } from "./qbo-invoice-lines.ts";
-import { __payloadTestables } from "./qbo-invoice-payload.ts";
+import { __payloadTestables, type QuickBooksInvoice } from "./qbo-invoice-payload.ts";
+import { updateWorkOrderInvoiceMirror } from "./work-order-invoice-mirror.ts";
 
 const {
   buildInvoiceLines,
@@ -1292,4 +1293,97 @@ Deno.test("buildInvoiceLines final line Description stays within QBO field limit
   } finally {
     restoreFetch(originalFetch);
   }
+});
+
+// ────────────────────────────────────────────────────────────────
+// Invoice mirror timestamps (PR #968)
+// ────────────────────────────────────────────────────────────────
+
+type MirrorUpdateCapture = {
+  payload: Record<string, unknown>;
+  hasSentNullGuard: boolean;
+  hasPaidNullGuard: boolean;
+};
+
+function createExportMirrorMock() {
+  const updates: MirrorUpdateCapture[] = [];
+  function from(_table: string) {
+    let payload: Record<string, unknown> = {};
+    let sentGuard = false;
+    let paidGuard = false;
+    let recorded = false;
+    const capture = () => {
+      if (recorded) return;
+      recorded = true;
+      updates.push({
+        payload: { ...payload },
+        hasSentNullGuard: sentGuard,
+        hasPaidNullGuard: paidGuard,
+      });
+    };
+    const builder: any = {
+      update(p: Record<string, unknown>) {
+        payload = { ...p };
+        recorded = false;
+        sentGuard = false;
+        paidGuard = false;
+        return builder;
+      },
+      eq(_c: string, _v: unknown) {
+        return builder;
+      },
+      is(col: string, val: unknown) {
+        if (col === "invoice_sent_at" && val === null) sentGuard = true;
+        if (col === "invoice_paid_at" && val === null) paidGuard = true;
+        return builder;
+      },
+    };
+    builder.then = (resolve: (v: unknown) => unknown) => {
+      capture();
+      return Promise.resolve({ error: null }).then(resolve);
+    };
+    return builder;
+  }
+  return { from, updates };
+}
+
+Deno.test("updateWorkOrderInvoiceMirror omits timestamps from main payload and null-guards paid_at", async () => {
+  const { from, updates } = createExportMirrorMock();
+  await updateWorkOrderInvoiceMirror({ from }, {
+    workOrderId: "wo-1",
+    organizationId: "org-1",
+    realmId: "realm-1",
+    invoice: {
+      Id: "inv-1",
+      Balance: 0,
+      TotalAmt: 100,
+      EmailStatus: "EmailSent",
+    } as QuickBooksInvoice,
+  });
+
+  assertEquals(updates.length >= 2, true);
+  assertEquals("invoice_paid_at" in updates[0]!.payload, false);
+  assertEquals("invoice_sent_at" in updates[0]!.payload, false);
+  const paidFollowUp = updates.find((u) => "invoice_paid_at" in u.payload);
+  assertEquals(paidFollowUp !== undefined, true);
+  assertEquals(paidFollowUp!.hasPaidNullGuard, true);
+});
+
+Deno.test("updateWorkOrderInvoiceMirror null-guards invoice_sent_at for sent invoices", async () => {
+  const { from, updates } = createExportMirrorMock();
+  await updateWorkOrderInvoiceMirror({ from }, {
+    workOrderId: "wo-2",
+    organizationId: "org-1",
+    realmId: "realm-1",
+    invoice: {
+      Id: "inv-2",
+      Balance: 50,
+      TotalAmt: 50,
+      EmailStatus: "EmailSent",
+    } as QuickBooksInvoice,
+  });
+
+  const sentFollowUp = updates.find((u) => "invoice_sent_at" in u.payload);
+  assertEquals(sentFollowUp !== undefined, true);
+  assertEquals(sentFollowUp!.hasSentNullGuard, true);
 });

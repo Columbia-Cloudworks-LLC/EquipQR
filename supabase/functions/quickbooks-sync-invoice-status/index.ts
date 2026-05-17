@@ -1,19 +1,19 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
-import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   QBO_API_BASE,
-  QBO_ENVIRONMENT,
   QBO_TOKEN_URL,
   getIntuitTid,
   withMinorVersion,
 } from "../_shared/quickbooks-config.ts";
 import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
-import { withCorrelationId } from "../_shared/supabase-clients.ts";
 import {
-  amountToCents,
-  deriveQuickBooksInvoiceStatus,
-  type QuickBooksInvoice,
-} from "../quickbooks-export-invoice/qbo-invoice-payload.ts";
+  createErrorResponse,
+  createJsonResponse,
+  handleCorsPreflightIfNeeded,
+  withCorrelationId,
+} from "../_shared/supabase-clients.ts";
+import { deriveQuickBooksInvoiceStatus, type QuickBooksInvoice } from "../quickbooks-export-invoice/qbo-invoice-payload.ts";
+import { updateMirroredWorkOrders } from "./mirror-work-orders.ts";
 
 const FUNCTION_NAME = "quickbooks-sync-invoice-status";
 const EVENT_BATCH_SIZE = 25;
@@ -139,48 +139,6 @@ async function fetchInvoice(
     throw new Error("QuickBooks invoice read returned no Invoice.Id");
   }
   return { invoice: body.Invoice as QuickBooksInvoice, intuitTid };
-}
-
-async function updateMirroredWorkOrders(
-  supabaseClient: any,
-  params: {
-    organizationId: string;
-    realmId: string;
-    invoice: QuickBooksInvoice;
-    operation?: string;
-  },
-): Promise<number> {
-  if (!params.invoice.Id) return 0;
-  const now = new Date();
-  const invoiceStatus = deriveQuickBooksInvoiceStatus(params.invoice, params.operation, now);
-  const updatePayload: Record<string, unknown> = {
-    quickbooks_invoice_number: params.invoice.DocNumber ?? null,
-    quickbooks_invoice_environment: QBO_ENVIRONMENT,
-    quickbooks_realm_id: params.realmId,
-    invoice_status: invoiceStatus,
-    invoice_balance_cents: amountToCents(params.invoice.Balance),
-    invoice_due_date: params.invoice.DueDate ?? null,
-    invoice_last_synced_at: now.toISOString(),
-    invoice_sync_error: null,
-  };
-
-  if (invoiceStatus === "sent" && params.invoice.EmailStatus?.toLowerCase() === "emailsent") {
-    updatePayload.invoice_sent_at = now.toISOString();
-  }
-  if (invoiceStatus === "paid") {
-    updatePayload.invoice_paid_at = now.toISOString();
-  }
-
-  const { data, error } = await supabaseClient
-    .from("work_orders")
-    .update(updatePayload)
-    .eq("organization_id", params.organizationId)
-    .eq("quickbooks_realm_id", params.realmId)
-    .eq("quickbooks_invoice_id", params.invoice.Id)
-    .select("id");
-
-  if (error) throw error;
-  return data?.length ?? 0;
 }
 
 async function loadCredentialsByRealm(supabaseClient: any, realmIds: string[]) {
@@ -327,10 +285,8 @@ async function reconcileOpenInvoices(
 }
 
 Deno.serve(withCorrelationId(async (req, ctx) => {
-  const corsHeaders = getCorsHeaders(req);
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req, { useValidatedOrigin: true });
+  if (corsResponse) return corsResponse;
 
   try {
     const clientId = requireSecret("INTUIT_CLIENT_ID", { functionName: FUNCTION_NAME });
@@ -339,10 +295,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     const serviceRoleKey = requireSecret("SUPABASE_SERVICE_ROLE_KEY", { functionName: FUNCTION_NAME });
 
     if (!validateServiceRoleAuth(req, serviceRoleKey)) {
-      return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createErrorResponse("Unauthorized", 401, { req });
     }
 
     const supabaseClient = createClient(supabaseUrl, serviceRoleKey, {
@@ -358,29 +311,25 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       correlation_id: ctx.correlationId,
     });
 
-    return new Response(JSON.stringify({
+    return createJsonResponse({
       success: true,
       events_processed: eventResult.processed,
       events_failed: eventResult.failed,
       invoices_reconciled: reconcileResult.reconciled,
       invoices_failed: reconcileResult.failed,
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    }, 200, { req });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (!(error instanceof MissingSecretError)) {
-      logStep("ERROR", { message, correlation_id: ctx.correlationId });
+    if (error instanceof MissingSecretError) {
+      return createErrorResponse(error, 500, { req });
     }
-    return new Response(JSON.stringify({ success: false, error: "Invoice status sync failed" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const message = error instanceof Error ? error.message : String(error);
+    logStep("ERROR", { message, correlation_id: ctx.correlationId });
+    return createErrorResponse("An internal error occurred", 500, { req });
   }
 }));
 
 export const __syncTestables = {
   deriveQuickBooksInvoiceStatus,
   validateServiceRoleAuth,
+  updateMirroredWorkOrders,
 };

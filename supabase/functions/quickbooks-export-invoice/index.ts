@@ -21,16 +21,15 @@ import {
   type WorkOrderNote,
 } from "./qbo-invoice-lines.ts";
 import {
-  amountToCents,
   applyInvoiceTaxState,
   applyTransactionTaxState,
   buildCustomerMemo,
   buildInvoiceCustomFields,
-  deriveQuickBooksInvoiceStatus,
   type QuickBooksInvoice,
   type VerifiedTaxState,
   type WorkOrderStatusEvent,
 } from "./qbo-invoice-payload.ts";
+import { updateWorkOrderInvoiceMirror } from "./work-order-invoice-mirror.ts";
 
 export { __testables } from "./qbo-invoice-lines.ts";
 export { __payloadTestables } from "./qbo-invoice-payload.ts";
@@ -317,49 +316,6 @@ async function confirmCustomerTaxStatus(
     }
 
     throw new TaxStatusUnconfirmedError();
-  }
-}
-
-async function updateWorkOrderInvoiceMirror(
-  supabaseClient: any,
-  params: {
-    workOrderId: string;
-    organizationId: string;
-    realmId: string;
-    invoice: QuickBooksInvoice;
-    operation?: string;
-  },
-): Promise<void> {
-  if (!params.invoice.Id) return;
-  const now = new Date();
-  const invoiceStatus = deriveQuickBooksInvoiceStatus(params.invoice, params.operation, now);
-  const updatePayload: Record<string, unknown> = {
-    quickbooks_invoice_id: params.invoice.Id,
-    quickbooks_invoice_number: params.invoice.DocNumber ?? null,
-    quickbooks_invoice_environment: QBO_ENVIRONMENT,
-    quickbooks_realm_id: params.realmId,
-    invoice_status: invoiceStatus,
-    invoice_balance_cents: amountToCents(params.invoice.Balance),
-    invoice_due_date: params.invoice.DueDate ?? null,
-    invoice_last_synced_at: now.toISOString(),
-    invoice_sync_error: null,
-  };
-
-  if (invoiceStatus === "sent" && params.invoice.EmailStatus?.toLowerCase() === "emailsent") {
-    updatePayload.invoice_sent_at = now.toISOString();
-  }
-  if (invoiceStatus === "paid") {
-    updatePayload.invoice_paid_at = now.toISOString();
-  }
-
-  const { error } = await supabaseClient
-    .from("work_orders")
-    .update(updatePayload)
-    .eq("id", params.workOrderId)
-    .eq("organization_id", params.organizationId);
-
-  if (error) {
-    logStep("Warning: Work Order invoice mirror update failed", { error: error.message });
   }
 }
 

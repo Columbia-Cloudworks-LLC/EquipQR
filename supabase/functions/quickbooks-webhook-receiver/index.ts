@@ -1,7 +1,11 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
-import { getCorsHeaders } from "../_shared/cors.ts";
 import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
-import { withCorrelationId } from "../_shared/supabase-clients.ts";
+import {
+  createErrorResponse,
+  createJsonResponse,
+  handleCorsPreflightIfNeeded,
+  withCorrelationId,
+} from "../_shared/supabase-clients.ts";
 import { verifyIntuitSignature } from "./webhook-helpers.ts";
 
 const FUNCTION_NAME = "quickbooks-webhook-receiver";
@@ -34,10 +38,8 @@ function parseEventTime(value: string | undefined): string {
 }
 
 Deno.serve(withCorrelationId(async (req, ctx) => {
-  const corsHeaders = getCorsHeaders(req);
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req, { useValidatedOrigin: true });
+  if (corsResponse) return corsResponse;
 
   try {
     const verifierToken = requireSecret("QBO_WEBHOOK_VERIFIER_TOKEN", { functionName: FUNCTION_NAME });
@@ -53,20 +55,14 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
 
     if (!isValid) {
       logStep("Invalid webhook signature", { correlation_id: ctx.correlationId });
-      return new Response(JSON.stringify({ success: false, error: "Invalid signature" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createErrorResponse("Unauthorized", 401, { req });
     }
 
     let payload: IntuitWebhookPayload;
     try {
       payload = JSON.parse(rawBody) as IntuitWebhookPayload;
     } catch {
-      return new Response(JSON.stringify({ success: false, error: "Invalid JSON" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createErrorResponse("Invalid JSON body", 400, { req });
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
@@ -78,10 +74,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     );
 
     if (realmIds.length === 0) {
-      return new Response(JSON.stringify({ success: true, inserted: 0 }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createJsonResponse({ success: true, inserted: 0 }, 200, { req });
     }
 
     const { data: credentials, error: credentialError } = await adminClient
@@ -127,19 +120,14 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     }
 
     logStep("Webhook accepted", { inserted: rows.length, correlation_id: ctx.correlationId });
-    return new Response(JSON.stringify({ success: true, inserted: rows.length }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return createJsonResponse({ success: true, inserted: rows.length }, 200, { req });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (!(error instanceof MissingSecretError)) {
-      logStep("ERROR", { message, correlation_id: ctx.correlationId });
+    if (error instanceof MissingSecretError) {
+      return createErrorResponse(error, 500, { req });
     }
-    return new Response(JSON.stringify({ success: false, error: "Webhook processing failed" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const message = error instanceof Error ? error.message : String(error);
+    logStep("ERROR", { message, correlation_id: ctx.correlationId });
+    return createErrorResponse("An internal error occurred", 500, { req });
   }
 }));
 
