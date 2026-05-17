@@ -17,9 +17,10 @@
 //
 // Failure semantics (mirrors edge-functions-smoke-test.yml):
 //   - Missing SUPABASE_ACCESS_TOKEN: emit ::warning:: and exit 0 on everyday
-//     preview PRs / pushes (fork PRs, pre-token-plant). When SCHEMA_DRIFT_STRICT
-//     is true or this run is a release PR (base main), emit ::error:: and exit 1
-//     so production-release-readiness and preview→main gates cannot false-green.
+//     preview PRs / pushes (pre-token-plant, non-main PRs).
+//     Fork PRs targeting main also warn + exit 0 (no repo secrets).
+//     Same-repository release PRs (base main) and SCHEMA_DRIFT_STRICT runs emit
+//     ::error:: and exit 1 so gates cannot false-green when credentials should exist.
 //   - SCHEMA_DRIFT_STRICT=true (or SCHEMA_DRIFT_MODE=strict): pending
 //     migrations always exit 1 — used by production-release-readiness.yml
 //     after applying migrations to production.
@@ -33,7 +34,7 @@
 //
 // Issue: #735.
 
-import { readdir } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -64,6 +65,33 @@ function ghWarning(title, body) {
 }
 function ghError(title, body) {
   process.stdout.write(`::error title=${title}::${body}\n`);
+}
+
+/**
+ * Fork PRs cannot access repository secrets. Used only when the token is
+ * missing: same-repo heads still fail closed on release PRs.
+ */
+async function isForkPullRequest() {
+  const eventPath = process.env.GITHUB_EVENT_PATH || '';
+  if (eventName !== 'pull_request' || !eventPath) return false;
+
+  try {
+    const raw = await readFile(eventPath, 'utf8');
+    const evt = JSON.parse(raw);
+    const headName = evt?.pull_request?.head?.repo?.full_name;
+    const baseName = evt?.pull_request?.base?.repo?.full_name;
+
+    if (typeof headName !== 'string' || typeof baseName !== 'string' || !headName || !baseName) {
+      return false;
+    }
+    return headName !== baseName;
+  } catch (err) {
+    ghWarning(
+      'schema-drift-check',
+      `Could not read or parse GITHUB_EVENT_PATH for fork detection: ${err instanceof Error ? err.message : String(err)}. Treating as same-repository PR.`,
+    );
+    return false;
+  }
 }
 
 async function readLocalMigrations() {
@@ -137,7 +165,19 @@ async function main() {
   if (!token || token.startsWith('op://')) {
     const msg =
       'SUPABASE_ACCESS_TOKEN missing or unresolved — cannot verify schema drift. Plant OP_SERVICE_ACCOUNT_TOKEN as a repo secret and ensure load-1p-secrets resolves supabase-write.';
-    if (strict || isReleasePR) {
+    if (strict) {
+      ghError('schema-drift-check', msg);
+      process.exit(1);
+    }
+    const forkPR = await isForkPullRequest();
+    if (isReleasePR && forkPR) {
+      ghWarning(
+        'schema-drift-check',
+        `${msg} Fork PR — repository secrets are unavailable here; skipping drift check for this run.`,
+      );
+      process.exit(0);
+    }
+    if (isReleasePR) {
       ghError('schema-drift-check', msg);
       process.exit(1);
     }
