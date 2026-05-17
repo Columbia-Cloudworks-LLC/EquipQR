@@ -10,9 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [3.5.2] - 2026-05-16
+
 ### Changed
 
 - **QuickBooks invoice export** ([#913](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/913)) — Draft invoices use summarized Labor and non-inventory Parts lines, PM-aware customer-facing line descriptions, and optional Edge secrets for item names and income accounts; `QBO_INVOICE_PARTS_ITEM_PREFIX` is deprecated for invoice behavior. Private memo still includes the full itemized cost breakdown.
+
+### Fixed
+
+- **Local test runner** — `useSession` missing-provider coverage uses `renderHook` so React 18 does not leave the Vitest process wedged; raise the default `scripts/test-runner.mjs` hard wall-clock timeout (`8m` standard runs, `10m` with coverage cap) so full `npm test` can finish on Windows after lint/typecheck without false `⏰ Test runner timeout` exits.
 
 ## [3.5.1] - 2026-05-16
 
