@@ -663,6 +663,50 @@ Deno.test("getOrCreateSalesItem rejects throttled item query (429) without POST 
   }
 });
 
+Deno.test("getOrCreateSalesItem rejects Fault item query response without POST or income resolution", async () => {
+  const originalFetch = globalThis.fetch;
+  let postItemCount = 0;
+  let incomeRefCalls = 0;
+  try {
+    globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = (init?.method ?? "GET").toUpperCase();
+      if (method === "POST" && /\/v3\/company\/[^/]+\/item(?:\?|$)/.test(url)) {
+        postItemCount++;
+      }
+      if (url.includes("/query") && url.includes(encodeURIComponent("Item"))) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              Fault: {
+                Error: [{ Message: "Query failed", Detail: "Malformed query" }],
+                type: "ValidationFault",
+              },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        );
+      }
+      return Promise.resolve(new Response("unexpected", { status: 500 }));
+    };
+
+    const { getOrCreateSalesItem: getOrCreate } = __testables;
+    await assertRejects(
+      async () =>
+        await getOrCreate("tok", REALM, "Labor", "Service", async () => {
+          incomeRefCalls++;
+          return { value: "inc-1" };
+        }),
+      Error,
+      "QuickBooks item query Fault",
+    );
+    assertEquals(postItemCount, 0, "Must not POST create item after Fault query response");
+    assertEquals(incomeRefCalls, 0, "Income resolver must not run when query returned Fault");
+  } finally {
+    restoreFetch(originalFetch);
+  }
+});
+
 // Configured non-Income account by ID is rejected; fallback Income query runs
 Deno.test("resolveIncomeAccountRef rejects configured ID that returns a non-Income account and falls back", async () => {
   const originalFetch = globalThis.fetch;

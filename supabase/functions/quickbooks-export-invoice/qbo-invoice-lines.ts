@@ -280,6 +280,9 @@ export async function getOrCreateSalesItem(
     logStep("Fault in item query response", {
       fault: JSON.stringify(data.Fault).substring(0, 300),
     });
+    throw new Error(
+      `QuickBooks item query Fault: ${JSON.stringify(data.Fault).substring(0, 300)}`,
+    );
   } else if (data.QueryResponse?.Item?.[0]) {
     logStep("Found existing QuickBooks item by name", {
       id: data.QueryResponse.Item[0].Id,
