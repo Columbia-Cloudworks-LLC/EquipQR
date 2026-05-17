@@ -4,7 +4,6 @@
  */
 import {
   QBO_API_BASE,
-  QBO_DEFAULT_LABOR_RATE_CENTS,
   QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS,
   QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID,
   QBO_INVOICE_ITEM_INCOME_ACCOUNT_NAME,
@@ -170,12 +169,19 @@ export async function resolveIncomeAccountRef(
     const res = await fetch(url, { method: "GET", headers });
     if (res.ok) {
       const data = await res.json();
-      if (!data.Fault && data.Account?.Id) {
+      if (
+        !data.Fault &&
+        data.Account?.Id &&
+        data.Account?.AccountType === "Income" &&
+        data.Account?.Active !== false
+      ) {
         logStep("Resolved income account by configured Id", { id: data.Account.Id });
         return { value: data.Account.Id, name: data.Account.Name };
       }
-      logStep("Configured income account Id not usable", {
-        status: res.status,
+      logStep("Configured income account Id not usable (not an active Income account)", {
+        id: data.Account?.Id,
+        accountType: data.Account?.AccountType,
+        active: data.Account?.Active,
         fault: data.Fault ? JSON.stringify(data.Fault).slice(0, 300) : undefined,
       });
     }
@@ -183,7 +189,7 @@ export async function resolveIncomeAccountRef(
 
   if (QBO_INVOICE_ITEM_INCOME_ACCOUNT_NAME) {
     const escaped = escapeQuickBooksQueryValue(QBO_INVOICE_ITEM_INCOME_ACCOUNT_NAME);
-    const q = `SELECT * FROM Account WHERE Name = '${escaped}' AND Active = true`;
+    const q = `SELECT * FROM Account WHERE Name = '${escaped}' AND AccountType = 'Income' AND Active = true`;
     const qUrl = withMinorVersion(
       `${QBO_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(q)}`,
     );
@@ -234,7 +240,8 @@ export async function getOrCreateSalesItem(
   realmId: string,
   itemName: string,
   itemType: QboItemCreateType,
-  incomeAccountRef: { value: string; name?: string },
+  /** Called lazily — only invoked when the item does not exist and must be created. */
+  resolveIncomeRef: () => Promise<{ value: string; name?: string }>,
 ): Promise<{ value: string; name: string }> {
   const headers = {
     Authorization: `Bearer ${accessToken}`,
@@ -277,6 +284,7 @@ export async function getOrCreateSalesItem(
 
   logStep("QuickBooks item not found, creating", { itemName, itemType });
 
+  const incomeAccountRef = await resolveIncomeRef();
   const createUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/item`);
   const newItem: Record<string, unknown> = {
     Name: itemName,
@@ -364,12 +372,15 @@ export function buildPMInvoiceDescription(
     if (hasRows && allOk) {
       lines.push(`All PM items were marked OK by ${tech}.`);
     } else if (hasRows) {
+      lines.push(`PM items were reviewed by ${tech}; exceptions are listed below.`);
       const exceptions = items.filter((it) => !isPmConditionOk(it.condition));
       for (const ex of exceptions) {
         lines.push(`${ex.section} | ${ex.title}`);
         const noteBlock = (ex.notes?.trim() || ex.description?.trim() || "").trim();
         if (noteBlock) lines.push(noteBlock);
       }
+    } else {
+      lines.push(`PM checklist was completed by ${tech}; no checklist rows were recorded.`);
     }
 
     const pmNotes = pm.notes?.trim();
@@ -392,6 +403,14 @@ export function buildPMInvoiceDescription(
 }
 
 type InvoicePrimaryTarget = "labor" | "parts" | "other" | "truck";
+
+/** Hard cap for any single QuickBooks Line.Description field. */
+const MAX_QBO_LINE_DESCRIPTION_CHARS = 3975;
+
+function capLineDescription(desc: string): string {
+  if (desc.length <= MAX_QBO_LINE_DESCRIPTION_CHARS) return desc;
+  return desc.slice(0, MAX_QBO_LINE_DESCRIPTION_CHARS - 20) + "\n... (truncated)";
+}
 
 export async function buildInvoiceLines(
   accessToken: string,
@@ -428,16 +447,9 @@ export async function buildInvoiceLines(
     (sum, cost) => sum + getCostAmountCents(cost),
     0,
   );
-  const laborUnitRateCents = loggedHours > 0
-    ? (
-      QBO_DEFAULT_LABOR_RATE_CENTS > 0
-        ? QBO_DEFAULT_LABOR_RATE_CENTS
-        : Math.round(laborCostsCents / Math.max(loggedHours, 1e-9))
-    )
-    : 0;
-  const laborTotalCents = loggedHours > 0
-    ? Math.max(0, Math.round(loggedHours * laborUnitRateCents))
-    : laborCostsCents;
+  // Labor Amount is always the aggregated work-order labor total so invoices
+  // match EquipQR's cost records exactly, regardless of the configured rate.
+  const laborTotalCents = Math.max(0, laborCostsCents);
 
   const truckSuppliesSumCents = truckCosts.reduce(
     (sum, cost) => sum + getCostAmountCents(cost),
@@ -469,7 +481,18 @@ export async function buildInvoiceLines(
   else if (otherCostsCents > 0) primary = "other";
   else if (truckSuppliesCents > 0) primary = "truck";
 
-  const incomeRef = await resolveIncomeAccountRef(accessToken, realmId);
+  // Return early before any QBO network calls when the work order has no billable lines.
+  if (primary === null) {
+    return [];
+  }
+
+  const lazyIncomeRef = (() => {
+    let cached: Promise<{ value: string; name?: string }> | null = null;
+    return () => {
+      if (!cached) cached = resolveIncomeAccountRef(accessToken, realmId);
+      return cached;
+    };
+  })();
   const partsItemType = resolveQboInvoicePartsItemType();
 
   const lines: InvoiceSalesLines = [];
@@ -484,14 +507,18 @@ export async function buildInvoiceLines(
       realmId,
       QBO_INVOICE_ITEM_NAMES.labor,
       "Service",
-      incomeRef,
+      lazyIncomeRef,
     );
     const laborQty = loggedHours > 0 ? Number(loggedHours.toFixed(2)) : 1;
-    const laborUnit = loggedHours > 0 ? laborUnitRateCents / 100 : laborTotalCents / 100;
-    const laborDesc =
+    // UnitPrice is derived from the aggregated total so Qty × UnitPrice ≈ Amount.
+    const laborUnit = loggedHours > 0
+      ? laborTotalCents / (Math.max(loggedHours, 1e-9) * 100)
+      : laborTotalCents / 100;
+    const laborDescRaw =
       primary === "labor" && pmPublicDesc.trim().length > 0
         ? `${pmPublicDesc.trim()}\n\n${laborShortDescription}`
         : laborShortDescription;
+    const laborDesc = capLineDescription(laborDescRaw);
 
     lines.push({
       Amount: laborTotalCents / 100,
@@ -511,12 +538,13 @@ export async function buildInvoiceLines(
       realmId,
       QBO_INVOICE_ITEM_NAMES.parts,
       partsItemType,
-      incomeRef,
+      lazyIncomeRef,
     );
-    const partsDesc =
+    const partsDescRaw =
       primary === "parts" && pmPublicDesc.trim().length > 0
         ? `${pmPublicDesc.trim()}\n\nParts`
         : "Parts";
+    const partsDesc = capLineDescription(partsDescRaw);
 
     lines.push({
       Amount: partsTotalCents / 100,
@@ -536,16 +564,17 @@ export async function buildInvoiceLines(
       realmId,
       QBO_INVOICE_ITEM_NAMES.other,
       "Service",
-      incomeRef,
+      lazyIncomeRef,
     );
     let isFirstOther = true;
     for (const cost of otherCosts) {
       const otherAmountCents = getCostAmountCents(cost);
       if (otherAmountCents <= 0) continue;
-      const desc =
+      const descRaw =
         primary === "other" && isFirstOther && pmPublicDesc.trim().length > 0
           ? `${pmPublicDesc.trim()}\n\n${cost.description}`
           : cost.description;
+      const desc = capLineDescription(descRaw);
       lines.push({
         Amount: otherAmountCents / 100,
         DetailType: "SalesItemLineDetail",
@@ -566,12 +595,13 @@ export async function buildInvoiceLines(
       realmId,
       QBO_INVOICE_ITEM_NAMES.truckSupplies,
       "Service",
-      incomeRef,
+      lazyIncomeRef,
     );
-    const truckDesc =
+    const truckDescRaw =
       primary === "truck" && pmPublicDesc.trim().length > 0
         ? `${pmPublicDesc.trim()}\n\nTruck Supplies`
         : "Truck Supplies";
+    const truckDesc = capLineDescription(truckDescRaw);
 
     lines.push({
       Amount: truckSuppliesCents / 100,
