@@ -76,12 +76,17 @@ const CustomerAccountCard: React.FC<CustomerAccountCardProps> = ({ customerId })
         </div>
 
         {customer.quickbooks_customer_id && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
             <Link2 className="h-3 w-3" />
             QB linked
             {customer.quickbooks_synced_at && (
               <span>
                 &middot; synced {new Date(customer.quickbooks_synced_at).toLocaleDateString()}
+              </span>
+            )}
+            {customer.quickbooks_tax_status_synced_at && (
+              <span>
+                &middot; tax status synced {new Date(customer.quickbooks_tax_status_synced_at).toLocaleDateString()}
               </span>
             )}
           </div>

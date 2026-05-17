@@ -221,6 +221,7 @@ export async function importCustomerFromQB(
   organizationId: string,
   qb: QBCustomerPayload
 ): Promise<CustomerRow> {
+  const syncedAt = new Date().toISOString();
   const insert: CustomerInsert = {
     organization_id: organizationId,
     name: qb.DisplayName,
@@ -231,8 +232,9 @@ export async function importCustomerFromQB(
     shipping_address: qbAddrToJson(qb.ShipAddr),
     quickbooks_customer_id: qb.Id,
     quickbooks_display_name: qb.DisplayName,
-    quickbooks_synced_at: new Date().toISOString(),
+    quickbooks_synced_at: syncedAt,
     is_tax_exempt: qb.Taxable === undefined ? null : qb.Taxable === false,
+    quickbooks_tax_status_synced_at: qb.Taxable === undefined ? null : syncedAt,
   };
 
   const customer = await createCustomer(insert);
@@ -271,14 +273,16 @@ export async function refreshCustomerFromQB(
   customerId: string,
   qb: QBCustomerPayload
 ): Promise<CustomerRow> {
+  const syncedAt = new Date().toISOString();
   const updates: CustomerUpdate = {
     email: qb.Email ?? null,
     phone: qb.Phone ?? null,
     billing_address: qbAddrToJson(qb.BillAddr),
     shipping_address: qbAddrToJson(qb.ShipAddr),
     quickbooks_display_name: qb.DisplayName,
-    quickbooks_synced_at: new Date().toISOString(),
+    quickbooks_synced_at: syncedAt,
     is_tax_exempt: qb.Taxable === undefined ? null : qb.Taxable === false,
+    quickbooks_tax_status_synced_at: qb.Taxable === undefined ? null : syncedAt,
   };
 
   const customer = await updateCustomer(customerId, updates, organizationId);

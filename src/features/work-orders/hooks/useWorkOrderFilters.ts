@@ -25,7 +25,8 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
     assigneeFilter: 'all',
     teamFilter: 'all',
     priorityFilter: 'all',
-    dueDateFilter: 'all'
+    dueDateFilter: 'all',
+    invoiceFilter: 'all'
   });
   const [activePresets, setActivePresets] = useState<Set<QuickFilterPreset>>(new Set());
   const [sortField, setSortField] = useState<SortField>('created');
@@ -57,8 +58,16 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
                             (filters.dueDateFilter === 'overdue' && isOverdue(order.dueDate, order.status)) ||
                             (filters.dueDateFilter === 'today' && order.dueDate && isToday(new Date(order.dueDate))) ||
                             (filters.dueDateFilter === 'this_week' && order.dueDate && isThisWeek(new Date(order.dueDate)));
-      
-      return matchesSearch && matchesStatus && matchesAssignee && matchesTeam && matchesPriority && matchesDueDate;
+
+      const invoiceStatus = order.invoiceStatus ?? order.invoice_status ?? null;
+      const matchesInvoice =
+        filters.invoiceFilter === 'all' ||
+        (filters.invoiceFilter === 'paid' && invoiceStatus === 'paid') ||
+        (filters.invoiceFilter === 'overdue' && invoiceStatus === 'overdue') ||
+        (filters.invoiceFilter === 'not_exported' && !order.quickbooksInvoiceId && !order.quickbooks_invoice_id) ||
+        (filters.invoiceFilter === 'unpaid' && Boolean(order.quickbooksInvoiceId ?? order.quickbooks_invoice_id) && invoiceStatus !== 'paid');
+
+      return matchesSearch && matchesStatus && matchesAssignee && matchesTeam && matchesPriority && matchesDueDate && matchesInvoice;
     });
   }, [workOrders, filters, currentUserId]);
 
@@ -93,6 +102,7 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
     if (filters.assigneeFilter !== 'all') count++;
     if (filters.priorityFilter !== 'all') count++;
     if (filters.dueDateFilter !== 'all') count++;
+    if (filters.invoiceFilter !== 'all') count++;
     return count;
   }, [filters]);
 
@@ -103,7 +113,8 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
       assigneeFilter: 'all',
       teamFilter: 'all',
       priorityFilter: 'all',
-      dueDateFilter: 'all'
+      dueDateFilter: 'all',
+      invoiceFilter: 'all'
     });
     setActivePresets(new Set());
   }, []);

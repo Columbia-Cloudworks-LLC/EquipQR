@@ -4,9 +4,10 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   QBO_API_BASE,
   QBO_ENVIRONMENT,
-  QBO_INVOICE_CUSTOM_FIELD_DEFINITION_IDS,
   QBO_TOKEN_URL,
   getIntuitTid,
+  resolveQboTaxStatusMaxCacheAgeHours,
+  resolveQboTaxStatusUnconfirmedMode,
   withMinorVersion,
 } from "../_shared/quickbooks-config.ts";
 import { withCorrelationId } from "../_shared/supabase-clients.ts";
@@ -14,14 +15,25 @@ import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts"
 import {
   buildInvoiceLines,
   buildPrivateNote,
-  type InvoiceSalesLines,
   type PreventativeMaintenanceInvoiceRow,
   type WorkOrderCost,
   type WorkOrderData,
   type WorkOrderNote,
 } from "./qbo-invoice-lines.ts";
+import {
+  amountToCents,
+  applyInvoiceTaxState,
+  applyTransactionTaxState,
+  buildCustomerMemo,
+  buildInvoiceCustomFields,
+  deriveQuickBooksInvoiceStatus,
+  type QuickBooksInvoice,
+  type VerifiedTaxState,
+  type WorkOrderStatusEvent,
+} from "./qbo-invoice-payload.ts";
 
 export { __testables } from "./qbo-invoice-lines.ts";
+export { __payloadTestables } from "./qbo-invoice-payload.ts";
 
 const FUNCTION_NAME = "quickbooks-export-invoice";
 
@@ -70,35 +82,12 @@ interface IntuitTokenResponse {
   x_refresh_token_expires_in: number;
 }
 
-interface WorkOrderStatusEvent {
-  id: string;
-  old_status: string | null;
-  new_status: string;
-  changed_at: string;
-  reason: string | null;
-}
-
 interface TeamCustomerMapping {
   quickbooks_customer_id: string;
   display_name: string;
-}
-
-interface QuickBooksInvoice {
-  Id?: string;
-  SyncToken?: string;
-  CustomerRef: { value: string };
-  Line: InvoiceSalesLines;
-  CustomField?: Array<{
-    DefinitionId: string;
-    Name?: string;
-    Type?: "StringType";
-    StringValue: string;
-  }>;
-  PrivateNote?: string;
-  CustomerMemo?: { value: string };
-  DocNumber?: string;
-  TxnDate?: string;
-  DueDate?: string;
+  customer_account_id: string | null;
+  cached_is_tax_exempt: boolean | null;
+  tax_status_synced_at: string | null;
 }
 
 /**
@@ -164,114 +153,214 @@ async function refreshTokenIfNeeded(
   return tokenData.access_token;
 }
 
-const formatTimelineTimestamp = (value: string): string => {
-  const iso = new Date(value).toISOString();
-  return `${iso.slice(0, 16)}z`;
+class TaxStatusUnconfirmedError extends Error {
+  constructor(message = "QuickBooks tax status could not be confirmed. Please refresh the customer from QuickBooks and try again.") {
+    super(message);
+    this.name = "TaxStatusUnconfirmedError";
+  }
+}
+
+const isCacheFresh = (syncedAt: string | null, maxAgeHours: number): boolean => {
+  if (!syncedAt) return false;
+  const parsed = new Date(syncedAt).getTime();
+  if (Number.isNaN(parsed)) return false;
+  return Date.now() - parsed <= maxAgeHours * 60 * 60 * 1000;
 };
 
-const formatStatus = (status: string): string =>
-  status
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+async function logTaxStatusAudit(
+  supabaseClient: any,
+  params: {
+    organizationId: string;
+    customerAccountId: string | null;
+    displayName: string;
+    action: string;
+    previousValue: boolean | null;
+    nextValue: boolean | null;
+    source: VerifiedTaxState["source"];
+  },
+): Promise<void> {
+  if (!params.customerAccountId) return;
+  try {
+    const { error } = await supabaseClient.rpc("log_audit_entry", {
+      p_organization_id: params.organizationId,
+      p_entity_type: "customer",
+      p_entity_id: params.customerAccountId,
+      p_entity_name: params.displayName,
+      p_action: params.action,
+      p_changes: {
+        is_tax_exempt: {
+          old: params.previousValue,
+          new: params.nextValue,
+        },
+      },
+      p_metadata: {
+        source: "quickbooks",
+        tax_status_source: params.source,
+      },
+    });
+    if (error) {
+      logStep("Warning: tax status audit logging failed", { error: error.message });
+    }
+  } catch (error) {
+    logStep("Warning: tax status audit logging failed with exception", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
 
-function buildCustomerTimelineLines(
-  statusEvents: WorkOrderStatusEvent[],
-  notes: WorkOrderNote[],
-): string[] {
-  const timelineLines: Array<{ timestamp: string; text: string }> = [];
+async function confirmCustomerTaxStatus(
+  supabaseClient: any,
+  params: {
+    accessToken: string;
+    realmId: string;
+    organizationId: string;
+    customerMapping: TeamCustomerMapping;
+  },
+): Promise<VerifiedTaxState> {
+  const headers = {
+    Authorization: `Bearer ${params.accessToken}`,
+    Accept: "application/json",
+  };
+  const url = withMinorVersion(
+    `${QBO_API_BASE}/v3/company/${params.realmId}/customer/${encodeURIComponent(params.customerMapping.quickbooks_customer_id)}`,
+  );
+  const maxAgeHours = resolveQboTaxStatusMaxCacheAgeHours();
+  const mode = resolveQboTaxStatusUnconfirmedMode();
+  const cachedState: VerifiedTaxState = {
+    isTaxExempt: params.customerMapping.cached_is_tax_exempt,
+    verified: false,
+    source: "cache",
+  };
 
-  statusEvents.forEach((event) => {
-    const summary = event.reason
-      ? `Status changed to ${formatStatus(event.new_status)} - ${event.reason}`
-      : `Status changed to ${formatStatus(event.new_status)}`;
-    timelineLines.push({ timestamp: event.changed_at, text: summary });
-  });
+  try {
+    const response = await fetch(url, { method: "GET", headers });
+    if (!response.ok) {
+      throw new Error(`QuickBooks Customer lookup failed with HTTP ${response.status}`);
+    }
 
-  notes
-    .filter((note) => !note.is_private)
-    .forEach((note) => {
-      timelineLines.push({ timestamp: note.created_at, text: note.content });
+    const body = await response.json();
+    if (body.Fault) {
+      throw new Error(`QuickBooks Customer lookup Fault: ${JSON.stringify(body.Fault).substring(0, 300)}`);
+    }
+
+    const taxable = body.Customer?.Taxable;
+    if (typeof taxable !== "boolean") {
+      throw new Error("QuickBooks Customer.Taxable was not present in the response");
+    }
+
+    const nextIsTaxExempt = taxable === false;
+    const now = new Date().toISOString();
+    if (params.customerMapping.customer_account_id) {
+      const { error } = await supabaseClient
+        .from("customers")
+        .update({
+          is_tax_exempt: nextIsTaxExempt,
+          quickbooks_tax_status_synced_at: now,
+        })
+        .eq("id", params.customerMapping.customer_account_id)
+        .eq("organization_id", params.organizationId);
+
+      if (error) {
+        logStep("Warning: tax status cache update failed", { error: error.message });
+      }
+    }
+
+    const action = params.customerMapping.cached_is_tax_exempt !== null &&
+      params.customerMapping.cached_is_tax_exempt !== nextIsTaxExempt
+      ? "quickbooks_tax_status_diverged"
+      : "quickbooks_tax_status_read";
+
+    await logTaxStatusAudit(supabaseClient, {
+      organizationId: params.organizationId,
+      customerAccountId: params.customerMapping.customer_account_id,
+      displayName: params.customerMapping.display_name,
+      action,
+      previousValue: params.customerMapping.cached_is_tax_exempt,
+      nextValue: nextIsTaxExempt,
+      source: "quickbooks",
     });
 
-  return timelineLines
-    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-    .map((entry) => `${formatTimelineTimestamp(entry.timestamp)} - [${entry.text}]`);
+    return {
+      isTaxExempt: nextIsTaxExempt,
+      verified: true,
+      source: "quickbooks",
+    };
+  } catch (error) {
+    logStep("QuickBooks tax status confirmation failed", {
+      customerId: params.customerMapping.quickbooks_customer_id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    if (
+      cachedState.isTaxExempt !== null &&
+      isCacheFresh(params.customerMapping.tax_status_synced_at, maxAgeHours)
+    ) {
+      return cachedState;
+    }
+
+    await logTaxStatusAudit(supabaseClient, {
+      organizationId: params.organizationId,
+      customerAccountId: params.customerMapping.customer_account_id,
+      displayName: params.customerMapping.display_name,
+      action: mode === "warn" ? "quickbooks_tax_status_unconfirmed_warn" : "quickbooks_tax_status_unconfirmed_block",
+      previousValue: params.customerMapping.cached_is_tax_exempt,
+      nextValue: params.customerMapping.cached_is_tax_exempt,
+      source: "unconfirmed",
+    });
+
+    if (mode === "warn") {
+      return {
+        isTaxExempt: params.customerMapping.cached_is_tax_exempt,
+        verified: false,
+        source: "unconfirmed",
+      };
+    }
+
+    throw new TaxStatusUnconfirmedError();
+  }
 }
 
-function buildCustomerMemo(
-  workOrder: WorkOrderData,
-  notes: WorkOrderNote[],
-  statusEvents: WorkOrderStatusEvent[],
-): string {
-  const publicNotes = notes.filter((note) => !note.is_private);
-  const latestPublicResolution = publicNotes.length > 0
-    ? publicNotes[publicNotes.length - 1].content
-    : "Resolved per work order completion.";
+async function updateWorkOrderInvoiceMirror(
+  supabaseClient: any,
+  params: {
+    workOrderId: string;
+    organizationId: string;
+    realmId: string;
+    invoice: QuickBooksInvoice;
+    operation?: string;
+  },
+): Promise<void> {
+  if (!params.invoice.Id) return;
+  const now = new Date();
+  const invoiceStatus = deriveQuickBooksInvoiceStatus(params.invoice, params.operation, now);
+  const updatePayload: Record<string, unknown> = {
+    quickbooks_invoice_id: params.invoice.Id,
+    quickbooks_invoice_number: params.invoice.DocNumber ?? null,
+    quickbooks_invoice_environment: QBO_ENVIRONMENT,
+    quickbooks_realm_id: params.realmId,
+    invoice_status: invoiceStatus,
+    invoice_balance_cents: amountToCents(params.invoice.Balance),
+    invoice_due_date: params.invoice.DueDate ?? null,
+    invoice_last_synced_at: now.toISOString(),
+    invoice_sync_error: null,
+  };
 
-  const header = [
-    `Initial request: ${workOrder.description || workOrder.title}.`,
-    `Resolution: ${latestPublicResolution}`,
-  ].join("\n");
-
-  const timeline = buildCustomerTimelineLines(statusEvents, notes);
-  if (timeline.length === 0) {
-    return header;
+  if (invoiceStatus === "sent" && params.invoice.EmailStatus?.toLowerCase() === "emailsent") {
+    updatePayload.invoice_sent_at = now.toISOString();
+  }
+  if (invoiceStatus === "paid") {
+    updatePayload.invoice_paid_at = now.toISOString();
   }
 
-  return `${header}\n\n${timeline.join("\n")}`.slice(0, 3900);
-}
+  const { error } = await supabaseClient
+    .from("work_orders")
+    .update(updatePayload)
+    .eq("id", params.workOrderId)
+    .eq("organization_id", params.organizationId);
 
-function getMachineHoursCustomFieldValue(
-  workOrder: WorkOrderData,
-  notes: WorkOrderNote[],
-): string {
-  const intakeHours = workOrder.equipment_working_hours_at_creation;
-  const checkoutEntry = [...notes]
-    .reverse()
-    .find((note) => note.machine_hours !== null && note.machine_hours !== undefined);
-  const checkoutHours = checkoutEntry?.machine_hours ?? null;
-
-  if (intakeHours !== null && checkoutHours !== null) {
-    return `Intake ${intakeHours} / Checkout ${checkoutHours}`;
+  if (error) {
+    logStep("Warning: Work Order invoice mirror update failed", { error: error.message });
   }
-  if (intakeHours !== null) {
-    return `Intake ${intakeHours}`;
-  }
-  if (checkoutHours !== null) {
-    return `Checkout ${checkoutHours}`;
-  }
-  return "N/A";
-}
-
-function buildInvoiceCustomFields(
-  workOrder: WorkOrderData,
-  notes: WorkOrderNote[],
-): NonNullable<QuickBooksInvoice["CustomField"]> {
-  const makeModelValue = [workOrder.equipment?.manufacturer, workOrder.equipment?.model]
-    .filter(Boolean)
-    .join(" ")
-    .trim() || workOrder.equipment?.name || "N/A";
-
-  return [
-    {
-      DefinitionId: QBO_INVOICE_CUSTOM_FIELD_DEFINITION_IDS.makeModel,
-      Type: "StringType",
-      Name: "Make/Model",
-      StringValue: makeModelValue,
-    },
-    {
-      DefinitionId: QBO_INVOICE_CUSTOM_FIELD_DEFINITION_IDS.serial,
-      Type: "StringType",
-      Name: "Serial",
-      StringValue: workOrder.equipment?.serial_number || "N/A",
-    },
-    {
-      DefinitionId: QBO_INVOICE_CUSTOM_FIELD_DEFINITION_IDS.machineHours,
-      Type: "StringType",
-      Name: "Machine Hours",
-      StringValue: getMachineHoursCustomFieldValue(workOrder, notes),
-    },
-  ];
 }
 
 Deno.serve(withCorrelationId(async (req, ctx) => {
@@ -444,6 +533,9 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     // Resolve QB customer ID: prefer team → customer account, fall back to legacy mapping
     let resolvedQBCustomerId: string | null = null;
     let resolvedDisplayName: string | null = null;
+    let resolvedCustomerAccountId: string | null = null;
+    let cachedIsTaxExempt: boolean | null = null;
+    let taxStatusSyncedAt: string | null = null;
 
     const { data: teamRow, error: teamError } = await supabaseClient
       .from('teams')
@@ -465,7 +557,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     if (teamRow?.customer_id) {
       const { data: customerAccount } = await supabaseClient
         .from('customers')
-        .select('quickbooks_customer_id, name')
+        .select('id, quickbooks_customer_id, name, is_tax_exempt, quickbooks_tax_status_synced_at')
         .eq('id', teamRow.customer_id)
         .eq('organization_id', workOrder.organization_id)
         .single();
@@ -473,6 +565,9 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       if (customerAccount?.quickbooks_customer_id) {
         resolvedQBCustomerId = customerAccount.quickbooks_customer_id;
         resolvedDisplayName = customerAccount.name;
+        resolvedCustomerAccountId = customerAccount.id;
+        cachedIsTaxExempt = customerAccount.is_tax_exempt ?? null;
+        taxStatusSyncedAt = customerAccount.quickbooks_tax_status_synced_at ?? null;
       }
     }
 
@@ -504,6 +599,9 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     const customerMapping: TeamCustomerMapping = {
       quickbooks_customer_id: resolvedQBCustomerId,
       display_name: resolvedDisplayName ?? 'Unknown',
+      customer_account_id: resolvedCustomerAccountId,
+      cached_is_tax_exempt: cachedIsTaxExempt,
+      tax_status_synced_at: taxStatusSyncedAt,
     };
 
     logStep("Customer mapping found", { 
@@ -569,13 +667,20 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       clientSecret
     );
 
+    const taxState = await confirmCustomerTaxStatus(supabaseClient, {
+      accessToken,
+      realmId: credentials.realm_id,
+      organizationId: workOrder.organization_id,
+      customerMapping,
+    });
+
     const notesTyped = (notes || []) as WorkOrderNote[];
     const publicNotesText = notesTyped
       .filter((n) => !n.is_private)
       .map((n) => n.content)
       .join("\n");
 
-    const invoiceLines = await buildInvoiceLines(
+    let invoiceLines = await buildInvoiceLines(
       accessToken,
       credentials.realm_id,
       (costs || []) as WorkOrderCost[],
@@ -589,6 +694,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     if (invoiceLines.length === 0) {
       throw new Error("No billable line items were found for this work order.");
     }
+    invoiceLines = applyInvoiceTaxState(invoiceLines, taxState);
     const privateNote = buildPrivateNote(
       workOrder as WorkOrderData,
       (notes || []) as WorkOrderNote[],
@@ -616,6 +722,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
 
     let invoiceId: string | undefined;
     let invoiceNumber: string | undefined;
+    let syncedInvoice: QuickBooksInvoice | null = null;
     let isUpdate = false;
     let intuitTid: string | null = null;
 
@@ -660,7 +767,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
         const existingInvoice = existingInvoiceData.Invoice;
 
         // Build updated invoice
-        const updatedInvoice: QuickBooksInvoice = {
+        let updatedInvoice: QuickBooksInvoice = {
           Id: existingInvoice.Id,
           SyncToken: existingInvoice.SyncToken,
           CustomerRef: { value: customerMapping.quickbooks_customer_id },
@@ -669,6 +776,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
           PrivateNote: privateNote,
           CustomerMemo: { value: customerMemo },
         };
+        updatedInvoice = applyTransactionTaxState(updatedInvoice, taxState);
 
         const updateUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${credentials.realm_id}/invoice`);
         const updateResponse = await fetch(updateUrl, {
@@ -697,8 +805,9 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
           logStep("Fault in invoice update response", { fault: faultMsg, intuit_tid: intuitTid });
           throw new Error(`Invoice update Fault: ${faultMsg}`);
         }
-        invoiceId = updateResult.Invoice.Id;
-        invoiceNumber = updateResult.Invoice.DocNumber;
+        syncedInvoice = updateResult.Invoice as QuickBooksInvoice;
+        invoiceId = syncedInvoice.Id;
+        invoiceNumber = syncedInvoice.DocNumber;
         isUpdate = true;
         
         logStep("Invoice updated", { invoiceId, invoiceNumber, intuit_tid: intuitTid });
@@ -738,7 +847,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
         const generatedDocNumber = `WO-${work_order_id.substring(0, 8).toUpperCase()}`;
         logStep("Creating new invoice", { docNumber: generatedDocNumber });
 
-        const newInvoice: QuickBooksInvoice = {
+        let newInvoice: QuickBooksInvoice = {
           DocNumber: generatedDocNumber,
           CustomerRef: { value: customerMapping.quickbooks_customer_id },
           Line: invoiceLines,
@@ -751,6 +860,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
         if (workOrder.due_date) {
           newInvoice.DueDate = workOrder.due_date.split('T')[0];
         }
+        newInvoice = applyTransactionTaxState(newInvoice, taxState);
 
         const createUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${credentials.realm_id}/invoice`);
         const createResponse = await fetch(createUrl, {
@@ -779,8 +889,9 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
           logStep("Fault in invoice create response", { fault: faultMsg, intuit_tid: intuitTid });
           throw new Error(`Invoice create Fault: ${faultMsg}`);
         }
-        invoiceId = createResult.Invoice.Id;
-        invoiceNumber = createResult.Invoice.DocNumber;
+        syncedInvoice = createResult.Invoice as QuickBooksInvoice;
+        invoiceId = syncedInvoice.Id;
+        invoiceNumber = syncedInvoice.DocNumber;
         
         logStep("Invoice created", { invoiceId, invoiceNumber, intuit_tid: intuitTid });
 
@@ -827,6 +938,16 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
           .eq('id', logEntry.id);
       }
 
+      if (syncedInvoice) {
+        await updateWorkOrderInvoiceMirror(supabaseClient, {
+          workOrderId: work_order_id,
+          organizationId: workOrder.organization_id,
+          realmId: credentials.realm_id,
+          invoice: syncedInvoice,
+          operation: isUpdate ? "Update" : "Create",
+        });
+      }
+
       logStep("Invoice exported successfully", { 
         invoiceId, 
         invoiceNumber, 
@@ -871,6 +992,16 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (!(error instanceof MissingSecretError)) {
       logStep("ERROR", { message: errorMessage, correlation_id: ctx.correlationId });
+    }
+
+    if (error instanceof TaxStatusUnconfirmedError) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: error.message,
+      }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Return generic error message to user to prevent information leakage

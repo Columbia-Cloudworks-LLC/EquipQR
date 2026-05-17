@@ -4,6 +4,7 @@
 import { assertEquals, assertMatch, assertRejects } from "jsr:@std/assert@1";
 import { QBO_INVOICE_ITEM_NAMES } from "../_shared/quickbooks-config.ts";
 import { __testables } from "./qbo-invoice-lines.ts";
+import { __payloadTestables } from "./qbo-invoice-payload.ts";
 
 const {
   buildInvoiceLines,
@@ -12,6 +13,12 @@ const {
   escapeQuickBooksQueryValue,
   resolveIncomeAccountRef,
 } = __testables;
+const {
+  applyInvoiceTaxState,
+  buildCustomerMemo,
+  buildInvoiceCustomFields,
+  deriveQuickBooksInvoiceStatus,
+} = __payloadTestables;
 
 const REALM = "realm-test-1";
 
@@ -120,6 +127,83 @@ Deno.test("buildPrivateNote keeps itemized per-cost lines", () => {
   assertMatch(memo, /Hydraulic hose/);
   assertMatch(memo, /Labor/);
   assertMatch(memo, /Cost Breakdown/);
+});
+
+Deno.test("buildInvoiceCustomFields maps equipment and machine hours", () => {
+  const fields = buildInvoiceCustomFields(
+    {
+      ...minimalWorkOrder,
+      equipment_working_hours_at_creation: 123,
+      equipment: {
+        name: "Forklift 7",
+        manufacturer: "Toyota",
+        model: "8FGCU25",
+        serial_number: "SER-7",
+        team_id: "team-1",
+      },
+    },
+    [{
+      content: "checkout",
+      is_private: false,
+      author_name: "Tech",
+      created_at: new Date().toISOString(),
+      machine_hours: 130,
+    }],
+  );
+
+  assertEquals(fields.find((f) => f.Name === "Make/Model")?.StringValue, "Toyota 8FGCU25");
+  assertEquals(fields.find((f) => f.Name === "Serial")?.StringValue, "SER-7");
+  assertEquals(fields.find((f) => f.Name === "Machine Hours")?.StringValue, "Intake 123 / Checkout 130");
+});
+
+Deno.test("buildCustomerMemo formats public timeline entries with z timestamps", () => {
+  const memo = buildCustomerMemo(
+    { ...minimalWorkOrder, title: "Hydraulic repair", description: "Lift leaking" },
+    [{
+      content: "Replaced seal kit",
+      is_private: false,
+      author_name: "Tech",
+      created_at: "2026-05-17T12:34:56.000Z",
+    }],
+    [{
+      id: "hist-1",
+      old_status: "in_progress",
+      new_status: "completed",
+      changed_at: "2026-05-17T13:45:00.000Z",
+      reason: "Ready for pickup",
+    }],
+  );
+
+  assertMatch(memo, /Initial request: Lift leaking\./);
+  assertMatch(memo, /2026-05-17T12:34z - \[Replaced seal kit\]/);
+  assertMatch(memo, /2026-05-17T13:45z - \[Status changed to Completed - Ready for pickup\]/);
+});
+
+Deno.test("applyInvoiceTaxState applies NON tax code to tax-exempt sales lines", () => {
+  const lines = applyInvoiceTaxState(
+    [{
+      Amount: 100,
+      DetailType: "SalesItemLineDetail",
+      SalesItemLineDetail: {
+        ItemRef: { value: "labor", name: "Labor" },
+        Qty: 1,
+        UnitPrice: 100,
+      },
+    }],
+    { isTaxExempt: true, verified: true, source: "quickbooks" },
+  );
+
+  assertEquals(lines[0]!.SalesItemLineDetail.TaxCodeRef?.value, "NON");
+});
+
+Deno.test("deriveQuickBooksInvoiceStatus classifies paid, partial, overdue, and sent invoices", () => {
+  assertEquals(deriveQuickBooksInvoiceStatus({ Balance: 0, TotalAmt: 50 }), "paid");
+  assertEquals(deriveQuickBooksInvoiceStatus({ Balance: 25, TotalAmt: 50 }), "partially_paid");
+  assertEquals(
+    deriveQuickBooksInvoiceStatus({ Balance: 50, TotalAmt: 50, DueDate: "2026-01-01" }, undefined, new Date("2026-05-17T00:00:00Z")),
+    "overdue",
+  );
+  assertEquals(deriveQuickBooksInvoiceStatus({ Balance: 50, TotalAmt: 50, EmailStatus: "EmailSent" }), "sent");
 });
 
 Deno.test("resolveIncomeAccountRef throws actionable message when no Income account exists", async () => {
