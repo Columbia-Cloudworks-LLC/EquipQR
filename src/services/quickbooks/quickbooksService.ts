@@ -17,10 +17,16 @@ import type { QuickBooksConnectionStatus, InvoiceExportResult } from './types';
 export interface QuickBooksCustomer {
   Id: string;
   DisplayName: string;
+  GivenName?: string;
+  FamilyName?: string;
   CompanyName?: string;
   Taxable?: boolean;
   Email?: string;
   Phone?: string;
+  Mobile?: string;
+  Fax?: string;
+  AlternatePhone?: string;
+  contacts?: import('./types').QBODerivedContact[];
   BillAddr?: {
     Line1?: string;
     City?: string;

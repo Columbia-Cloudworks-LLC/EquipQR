@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.1] - 2026-05-16
+
+### Added
+
+- **QuickBooks customer contact sync** ([#914](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/914), [#960](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/960)) — QuickBooks customer imports and refreshes now capture email, phone, mobile, and fax contacts, show their QuickBooks provenance, and surface tap-to-call / tap-to-email actions on linked work orders without adding write-back to QuickBooks.
+- **Public documentation site bootstrap (VitePress)** ([#908](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/908), [#956](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/956)) — `docs/` builds as a standalone static site (VitePress) for deployment to `equipqr.info`; runbook updates in deployment and CI/CD docs; app footer links to published docs.
+- **PR feedback PowerShell helpers** — `scripts/pr-feedback/` drivers for PR context preflight, GraphQL review threads/reviews, local verification gates, deferred-issue + thread-reply + summary publishing, and `gh pr checks`, with `scripts/pr-feedback/tests/Run-PrFeedbackSmoke.ps1` and skill doc references via `scripts/pr-feedback/README.md`.
+
+### Changed
+
+- **Public docs security** ([#956](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/956)) — Exclude `docs/ops/**` from the equipqr.info VitePress build; remove Operations from public nav; README ops links use GitHub `blob/main`; tighten `Content-Security-Policy` `script-src` to `'self'` only (no `unsafe-inline` / `unsafe-eval`); add public vs internal authoring guidance; fix PM/RCA README links for GitHub.
+
+### Fixed
+
+- **Mobile work order details UX** ([#829](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/829), [#958](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/958)) — Sticky footer owns primary actions with PM checklist completion gating; hides duplicate Next action when the footer is visible; trims duplicate compact-summary rows from mobile details; mobile admin delete requires typing DELETE.
+- **Mobile work order cost editor** ([#903](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/903), [#957](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/957)) — Touch-friendly stacked actions for labor, inventory, and manual lines; duplicate Cost Items chrome suppressed on small screens; inline validation deferred until Save or row edits; overflow clamps on notes/timeline/image carousel regions.
+
 ## [3.5.0] - 2026-05-15
 
 ### Added

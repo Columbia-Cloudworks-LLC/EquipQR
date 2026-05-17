@@ -102,7 +102,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
       serial_number: equipment.serial_number,
       status: equipment.status,
       location: equipment.location,
-      customerId: (equipment as { customer_id?: string | null }).customer_id ?? null,
+      customerId: equipment.customer_id ?? null,
     } : null,
     pmData: pmData as PreventativeMaintenance | null,
     organizationName,

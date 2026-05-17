@@ -32,6 +32,7 @@ export interface EquipmentData {
   status: 'active' | 'maintenance' | 'inactive';
   location?: string;
   team_id?: string | null;
+  customer_id?: string | null;
 }
 
 export interface PMData {
@@ -46,6 +47,8 @@ export interface PMData {
 
 export interface PermissionLevels {
   isManager: boolean;
+  /** Team technician or manager (see useWorkOrderPermissionLevels). */
+  isTechnician: boolean;
   isRequestor: boolean;
   canEdit: boolean;
   canDelete: boolean;

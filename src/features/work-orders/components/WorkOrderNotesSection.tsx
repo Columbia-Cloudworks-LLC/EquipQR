@@ -247,7 +247,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Add Note Form - Always show if no notes exist or explicitly requested */}
       {canAddNotes && (visibleNotes.length === 0 || showForm) && (
         <Card className="shadow-elevation-2">

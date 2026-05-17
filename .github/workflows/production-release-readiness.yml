@@ -1,0 +1,107 @@
+name: Production Release Readiness
+
+# After a merge to `main`, applies pending Supabase migrations to the production
+# project, verifies production schema_migrations alignment (strict drift check),
+# then waits until the Vercel deployment for the same commit is READY.
+#
+# Final Vercel production promotion stays manual (`equipqr.app`); when this
+# workflow is green, use the READY URL from the wait step logs or Vercel to promote.
+#
+# Required 1Password fields (EquipQR Agents vault), loaded via OP_SERVICE_ACCOUNT_TOKEN:
+#   - supabase-write / SUPABASE_ACCESS_TOKEN
+#   - supabase-write / prod_db_password  (production DB password for `supabase link`)
+#   - vercel-write / credential           (Vercel token for deployment polling)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-release-readiness:
+    name: Migrate, verify schema, wait for Vercel
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '24'
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@df56b21da46c98abb12a9804e4fb1f657773e333
+        with:
+          version: 2.72.8
+
+      - name: Load release secrets from 1Password
+        uses: ./.github/actions/load-1p-secrets
+        with:
+          required: 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: op://EquipQR Agents/supabase-write/SUPABASE_ACCESS_TOKEN
+          SUPABASE_DB_PASSWORD: op://EquipQR Agents/supabase-write/prod_db_password
+          VERCEL_TOKEN: op://EquipQR Agents/vercel-write/credential
+
+      - name: Verify secrets resolved
+        shell: bash
+        run: |
+          set -euo pipefail
+          fail=0
+          for var in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD VERCEL_TOKEN; do
+            val="${!var:-}"
+            if [[ -z "$val" ]] || [[ "$val" == op://* ]]; then
+              echo "::error title=production-release-readiness::$var is empty or unresolved — check 1Password item fields and OP_SERVICE_ACCOUNT_TOKEN."
+              fail=1
+            fi
+          done
+          if [[ "$fail" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Apply migrations to production
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "::notice::Linking production Supabase project..."
+          supabase link --project-ref ymxkzronkhwxzcdcbnwq --password "$SUPABASE_DB_PASSWORD"
+          echo "::notice::Pushing migrations (include-all)..."
+          supabase db push --include-all --yes
+
+      - name: Strict production schema drift check
+        env:
+          GITHUB_EVENT_NAME: workflow_dispatch
+          GITHUB_BASE_REF: ''
+          SUPABASE_PROJECT_REF: ymxkzronkhwxzcdcbnwq
+          SCHEMA_DRIFT_STRICT: 'true'
+        run: node .github/scripts/check-schema-drift.js
+
+      - name: Wait for Vercel deployment (main, READY)
+        env:
+          VERCEL_TEAM_ID: team_78VeGDURoofThjZNJOKEBpP5
+          VERCEL_PROJECT_ID: prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA
+          GITHUB_SHA: ${{ github.sha }}
+        run: node scripts/release/wait-for-vercel-deployment.mjs
+
+      - name: Release readiness summary
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "## Production release readiness"
+            echo ""
+            echo "- **Supabase:** migrations applied to production; strict schema drift check passed."
+            echo "- **Vercel:** main deployment READY — copy the deployment URL from the **Wait for Vercel deployment** step logs (\`::notice::Vercel deployment READY:\`) or open the matching deployment for this commit in the Vercel dashboard."
+            echo ""
+            echo "### Manual promotion"
+            echo ""
+            echo "This workflow does **not** run \`vercel promote\`. When the steps above are green, it is **safe to manually promote** that deployment so traffic for **equipqr.app** matches this build."
+          } >> "$GITHUB_STEP_SUMMARY"

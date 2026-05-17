@@ -71,9 +71,15 @@ If the issue is a bug / regression / defect (or labeled as such), use [`itil-pro
 
 ### Step 1 — Pull the request
 
-1. Fetch the issue and **all** its comments:
-   `gh issue view <number> --json number,title,body,labels,state,assignees,comments,url`
-2. Note: type signal from labels, reporter, business context, attached mockups, links to vendors / docs / competitors that the reporter already cited.
+1. **Preferred:** from the repo root, fetch an ITIL-aware JSON bundle (slug, labels, upstream-artifact hints, comments):
+   ```powershell
+   .\scripts\itil\Get-ItilIssueContext.ps1 -Issue <number> -Json
+   ```
+   Fallback (equivalent manual pull if the script is unavailable):
+   ```powershell
+   gh issue view <number> --json number,title,body,labels,state,assignees,comments,url
+   ```
+2. Note: type signal from labels, reporter/body context, attached mockups, links to vendors / docs / competitors that the reporter already cited.
 
 ### Step 2 — Right-skill check
 
@@ -294,12 +300,24 @@ Status: **Awaiting user approval to draft the Change Record (or to take the reco
 ### Step 8 — Post the Service Request
 
 1. Print the full Service Request in chat.
-2. Post it as a comment on the GitHub issue:
+2. **Preferred:** validate required markdown headings, open the GitHub comment, and attach an evaluation label **only when it already exists** (suppresses cleanly if missing—the same safeguard as bullet #303):
+   ```powershell
+   .\scripts\itil\Publish-ItilArtifact.ps1 `
+     -Issue <number> `
+     -ArtifactType ServiceRequest `
+     -BodyFile <temp-file.md> `
+     [-ApplyExistingLabel service-request-posted] `
+     -Json
+   ```
+   Capture `commentUrl` from JSON before deleting `<temp-file.md>`.
+   Fallback (manual two-step equivalence):
    ```powershell
    gh issue comment <number> --body-file <temp-file.md>
+   gh label list
+   gh issue edit <number> --add-label service-request-posted   # ONLY if gh label list already contains that literal label text
    ```
    Write the body to a temp file first to preserve markdown formatting, then delete the temp file. Do **not** use `--body "..."` for multi-line content on PowerShell.
-3. Apply a label that signals evaluation is complete (e.g. `triage:scoped` or `service-request-posted`) **only if** such a label already exists in the repo (`gh label list`). Do not create new labels.
+3. When you relied on the manual fallback (not `Publish-ItilArtifact.ps1`), also satisfy the standalone label safeguard: evaluation-complete labels attach **only when** already present (`gh label list`; never mint new GitHub labels). **When `-ApplyExistingLabel` was used successfully, omit the redundant `gh issue edit` pass.**
 4. **STOP.** Tell the user the Service Request is posted, then ask the next-step question via `AskQuestion` (buttons — never freeform text — they are deterministic and trivial to act on):
 
    ```json
@@ -351,6 +369,7 @@ Treat the user's response strictly: only an explicit button selection moves to t
 
 ## Progressive disclosure
 
+- EquipQR ITIL helper scripts (`Get-ItilIssueContext.ps1`, `Publish-ItilArtifact.ps1`, etc.) ship under [`scripts/itil/`](../../scripts/itil/) whenever you prefer a compact, JSON-friendly invocation over juggling multiple `gh` flags.
 - For research tools (`firecrawl`, `plugin-context7-plugin-context7`, `gh`) and how to call them in EquipQR, follow [toolbelt](../toolbelt/SKILL.md).
 - For the prior ITIL step on bug issues (reproducing and root-causing), follow [itil-problem-record](../itil-problem-record/SKILL.md).
 - For the next ITIL step (the implementation plan), follow [itil-change-record](../itil-change-record/SKILL.md).
