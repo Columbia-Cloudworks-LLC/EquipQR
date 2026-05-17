@@ -278,16 +278,54 @@ fi
 
 if [[ -n "$GCP_ITEM_NAME" ]]; then
     mkdir -p "$GCP_KEY_DIR"
-    if op read "op://${OP_VAULT}/${GCP_ITEM_NAME}/credential" > "$GCP_KEY_PATH" 2>/dev/null; then
-        chmod 600 "$GCP_KEY_PATH"
-        if python3 -c "import json,sys; json.load(open('$GCP_KEY_PATH'))" 2>/dev/null \
-            || node -e "JSON.parse(require('fs').readFileSync('$GCP_KEY_PATH','utf8'))" 2>/dev/null; then
-            ok "GCP SA JSON written from '${GCP_ITEM_NAME}' and validated: ${GCP_KEY_PATH}"
-        else
-            warn "GCP SA JSON written but not valid JSON. Re-paste the JSON into the ${GCP_ITEM_NAME}/credential field."
+    gcp_written=0
+    for GCP_FIELD_NAME in SERVICE_ACCOUNT_JSON credential; do
+        GCP_RAW_TMP="$(mktemp)"
+        GCP_NORMALIZED_TMP="$(mktemp)"
+
+        if op read "op://${OP_VAULT}/${GCP_ITEM_NAME}/${GCP_FIELD_NAME}" > "$GCP_RAW_TMP" 2>/dev/null \
+            && [[ -s "$GCP_RAW_TMP" ]]; then
+            if GCP_RAW_PATH="$GCP_RAW_TMP" GCP_OUT_PATH="$GCP_NORMALIZED_TMP" node <<'NODE'
+const fs = require("fs");
+
+const raw = fs.readFileSync(process.env.GCP_RAW_PATH, "utf8").trim();
+if (!raw) process.exit(2);
+
+let parsed = JSON.parse(raw);
+if (typeof parsed === "string") {
+  parsed = JSON.parse(parsed);
+}
+
+if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+  process.exit(3);
+}
+
+for (const key of ["type", "client_email", "private_key"]) {
+  if (!parsed[key]) process.exit(4);
+}
+
+fs.writeFileSync(process.env.GCP_OUT_PATH, `${JSON.stringify(parsed, null, 2)}\n`, {
+  encoding: "utf8",
+  mode: 0o600,
+});
+NODE
+            then
+                mv "$GCP_NORMALIZED_TMP" "$GCP_KEY_PATH"
+                chmod 600 "$GCP_KEY_PATH"
+                ok "GCP SA JSON written from '${GCP_ITEM_NAME}/${GCP_FIELD_NAME}' and validated: ${GCP_KEY_PATH}"
+                gcp_written=1
+                rm -f "$GCP_RAW_TMP"
+                break
+            else
+                warn "Field '${GCP_ITEM_NAME}/${GCP_FIELD_NAME}' is present but not valid service-account JSON."
+            fi
         fi
-    else
-        warn "op read of ${GCP_ITEM_NAME}/credential failed. SA JSON not written."
+
+        rm -f "$GCP_RAW_TMP" "$GCP_NORMALIZED_TMP"
+    done
+
+    if [[ "$gcp_written" -ne 1 ]]; then
+        warn "Could not read valid GCP SA JSON from '${GCP_ITEM_NAME}/SERVICE_ACCOUNT_JSON' or '${GCP_ITEM_NAME}/credential'. SA JSON not written."
     fi
 else
     warn "Neither 1Password item 'gcp-read' nor legacy item 'gcp-viewer' was found in EquipQR Agents vault. gcloud MCP will fail until the viewer service-account JSON is present."
