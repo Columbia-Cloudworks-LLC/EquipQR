@@ -443,6 +443,183 @@ Deno.test("buildInvoiceLines produces Labor and Parts rows when both totals are 
   }
 });
 
+Deno.test(
+  "buildInvoiceLines sums manual non-inventory and inventory-backed rows into one Parts line with Labor",
+  async () => {
+    const originalFetch = globalThis.fetch;
+    const postBodies: string[] = [];
+    try {
+      globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        const method = (init?.method ?? "GET").toUpperCase();
+        const bodyStr = init?.body ? String(init.body) : "";
+
+        if (url.includes("/query") && url.includes(encodeURIComponent("Account"))) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                QueryResponse: { Account: [{ Id: "inc-1", Name: "Sales Income" }] },
+              }),
+              { status: 200, headers: { "Content-Type": "application/json" } },
+            ),
+          );
+        }
+
+        if (url.includes("/query") && url.includes(encodeURIComponent("Item"))) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ QueryResponse: {} }), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
+
+        if (method === "POST" && /\/v3\/company\/[^/]+\/item(?:\?|$)/.test(url)) {
+          postBodies.push(bodyStr);
+          const body = JSON.parse(bodyStr) as { Name: string; Type: string };
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                Item: { Id: `new-${body.Name}`, Name: body.Name, Type: body.Type },
+              }),
+              { status: 200, headers: { "Content-Type": "application/json" } },
+            ),
+          );
+        }
+
+        return Promise.resolve(new Response("not mocked", { status: 500 }));
+      };
+
+      const costs = [
+        {
+          description: "Labor",
+          quantity: 1,
+          unit_price_cents: 6000,
+          total_price_cents: 6000,
+          inventory_item_id: null,
+        },
+        {
+          description: "Seal kit",
+          quantity: 1,
+          unit_price_cents: 2500,
+          total_price_cents: 2500,
+          inventory_item_id: "inv-1",
+        },
+        {
+          description: "Shop supplies (manual)",
+          quantity: 1,
+          unit_price_cents: 1500,
+          total_price_cents: 1500,
+          inventory_item_id: null,
+        },
+      ];
+
+      const notes = [{
+        hours_worked: 0,
+        is_private: false,
+        content: "",
+        author_name: null,
+        created_at: "",
+      }] as never[];
+
+      const lines = await buildInvoiceLines("tok", REALM, costs as never, notes, {
+        workOrder: minimalWorkOrder as never,
+        pm: null,
+        publicNotesText: "",
+      });
+
+      assertEquals(lines.length, 2);
+      assertEquals(lines[0]!.Description, "Labor");
+      assertEquals(lines[0]!.Amount, 60);
+      assertEquals(lines[1]!.Description, "Parts");
+      // $25 + $15 = $40
+      assertEquals(lines[1]!.Amount, 40);
+
+      const parsedPosts = postBodies.map((p) => JSON.parse(p) as { Name: string; Type: string });
+      assertEquals(parsedPosts.some((p) => p.Name === "Other"), false);
+      assertEquals(parsedPosts.some((p) => p.Name === "Truck Supplies"), false);
+    } finally {
+      restoreFetch(originalFetch);
+    }
+  },
+);
+
+Deno.test("buildInvoiceLines folds Truck Supplies cost row into summarized Parts only", async () => {
+  const originalFetch = globalThis.fetch;
+  const postBodies: string[] = [];
+  try {
+    globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = (init?.method ?? "GET").toUpperCase();
+      const bodyStr = init?.body ? String(init.body) : "";
+
+      if (url.includes("/query") && url.includes(encodeURIComponent("Account"))) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              QueryResponse: { Account: [{ Id: "inc-1", Name: "Sales Income" }] },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        );
+      }
+
+      if (url.includes("/query") && url.includes(encodeURIComponent("Item"))) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ QueryResponse: {} }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }
+
+      if (method === "POST" && /\/v3\/company\/[^/]+\/item(?:\?|$)/.test(url)) {
+        postBodies.push(bodyStr);
+        const body = JSON.parse(bodyStr) as { Name: string; Type: string };
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              Item: { Id: `new-${body.Name}`, Name: body.Name, Type: body.Type },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        );
+      }
+
+      return Promise.resolve(new Response("not mocked", { status: 500 }));
+    };
+
+    const costs = [
+      {
+        description: "Truck Supplies",
+        quantity: 1,
+        unit_price_cents: 3500,
+        total_price_cents: 3500,
+        inventory_item_id: null,
+      },
+    ];
+
+    const notes = [{ hours_worked: 0, is_private: false, content: "", author_name: null, created_at: "" }] as never[];
+
+    const lines = await buildInvoiceLines("tok", REALM, costs as never, notes, {
+      workOrder: minimalWorkOrder as never,
+      pm: null,
+      publicNotesText: "",
+    });
+
+    assertEquals(lines.length, 1);
+    assertEquals(lines[0]!.Description, "Parts");
+    assertEquals(lines[0]!.Amount, 35);
+
+    const parsedPosts = postBodies.map((p) => JSON.parse(p) as { Name: string; Type: string });
+    assertEquals(parsedPosts.some((p) => p.Name === "Truck Supplies"), false);
+    assertEquals(parsedPosts.some((p) => p.Name === "Other"), false);
+    assertEquals(parsedPosts.some((p) => p.Name === "Parts"), true);
+  } finally {
+    restoreFetch(originalFetch);
+  }
+});
+
 // ────────────────────────────────────────────────────────────────
 // Regression tests for PR #964 Qodo feedback
 // ────────────────────────────────────────────────────────────────

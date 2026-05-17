@@ -4,7 +4,6 @@
  */
 import {
   QBO_API_BASE,
-  QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS,
   QBO_INVOICE_ITEM_INCOME_ACCOUNT_NAME,
   QBO_INVOICE_ITEM_NAMES,
   resolveQboDefaultLaborRateCents,
@@ -132,11 +131,13 @@ export function buildPrivateNote(
 const getCostAmountCents = (cost: WorkOrderCost): number =>
   cost.total_price_cents ?? cost.unit_price_cents * cost.quantity;
 
-const isTruckSuppliesCost = (cost: WorkOrderCost): boolean =>
-  /truck supplies|truck fee|travel fee|service fee|trip fee/i.test(cost.description);
-
-const isLaborCost = (cost: WorkOrderCost): boolean =>
-  /labor|labour|hour|technician|service time/i.test(cost.description);
+/**
+ * Matches work-order UI: manual labor lines are "Labor" or "Labor - …" with no inventory link.
+ * Inventory-sourced rows are never classified as labor for invoice bucketing.
+ */
+const isExplicitLaborCostRow = (cost: WorkOrderCost): boolean =>
+  !(cost.inventory_item_id ?? null) &&
+  /^Labor(\s|$|-)/i.test(cost.description.trim());
 
 /**
  * Escapes a value for safe embedding inside a single-quoted QuickBooks Query Language string literal.
@@ -435,7 +436,7 @@ export function buildPMInvoiceDescription(
   return result;
 }
 
-type InvoicePrimaryTarget = "labor" | "parts" | "other" | "truck";
+type InvoicePrimaryTarget = "labor" | "parts";
 
 /** Hard cap for any single QuickBooks Line.Description field. */
 const MAX_QBO_LINE_DESCRIPTION_CHARS = 3975;
@@ -457,11 +458,8 @@ export async function buildInvoiceLines(
   },
 ): Promise<InvoiceSalesLines> {
   void ctx.workOrder;
-  const partCosts = costs.filter((cost) => (cost.inventory_item_id ?? null) !== null);
-  const truckCosts = costs.filter(isTruckSuppliesCost);
-  const laborCandidateCosts = costs.filter(
-    (cost) => !partCosts.includes(cost) && !truckCosts.includes(cost),
-  );
+  const laborMatchedCosts = costs.filter(isExplicitLaborCostRow);
+  const partCosts = costs.filter((cost) => !isExplicitLaborCostRow(cost));
 
   const loggedHours = notes.reduce((sum, note) => sum + (note.hours_worked ?? 0), 0);
 
@@ -470,18 +468,7 @@ export async function buildInvoiceLines(
     ? Math.max(0.01, Number(loggedHours.toFixed(2)))
     : 1;
 
-  const laborMatchedCosts = loggedHours > 0
-    ? laborCandidateCosts.filter(isLaborCost)
-    : laborCandidateCosts;
-  const otherCosts = loggedHours > 0
-    ? laborCandidateCosts.filter((cost) => !isLaborCost(cost))
-    : [];
-
   const laborCostsCents = laborMatchedCosts.reduce(
-    (sum, cost) => sum + getCostAmountCents(cost),
-    0,
-  );
-  const otherCostsCents = otherCosts.reduce(
     (sum, cost) => sum + getCostAmountCents(cost),
     0,
   );
@@ -500,14 +487,6 @@ export async function buildInvoiceLines(
       Math.round(laborQty * defaultLaborRateCents),
     );
   }
-
-  const truckSuppliesSumCents = truckCosts.reduce(
-    (sum, cost) => sum + getCostAmountCents(cost),
-    0,
-  );
-  const truckSuppliesCents = truckCosts.length > 0
-    ? truckSuppliesSumCents
-    : QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS;
 
   const partsTotalCents = partCosts.reduce((sum, cost) => {
     const cents = getCostAmountCents(cost);
@@ -528,8 +507,6 @@ export async function buildInvoiceLines(
   let primary: InvoicePrimaryTarget | null = null;
   if (laborTotalCents > 0) primary = "labor";
   else if (partsTotalCents > 0) primary = "parts";
-  else if (otherCostsCents > 0) primary = "other";
-  else if (truckSuppliesCents > 0) primary = "truck";
 
   // Return early before any QBO network calls when the work order has no billable lines.
   if (primary === null) {
@@ -600,63 +577,6 @@ export async function buildInvoiceLines(
         ItemRef: partsItem,
         Qty: 1,
         UnitPrice: partsTotalCents / 100,
-      },
-    });
-  }
-
-  if (otherCostsCents > 0) {
-    const otherItem = await getOrCreateSalesItem(
-      accessToken,
-      realmId,
-      QBO_INVOICE_ITEM_NAMES.other,
-      "Service",
-      lazyIncomeRef,
-    );
-    let isFirstOther = true;
-    for (const cost of otherCosts) {
-      const otherAmountCents = getCostAmountCents(cost);
-      if (otherAmountCents <= 0) continue;
-      const descRaw =
-        primary === "other" && isFirstOther && pmPublicDesc.trim().length > 0
-          ? `${pmPublicDesc.trim()}\n\n${cost.description}`
-          : cost.description;
-      const desc = capLineDescription(descRaw);
-      lines.push({
-        Amount: otherAmountCents / 100,
-        DetailType: "SalesItemLineDetail",
-        Description: desc,
-        SalesItemLineDetail: {
-          ItemRef: otherItem,
-          Qty: cost.quantity,
-          UnitPrice: cost.unit_price_cents / 100,
-        },
-      });
-      isFirstOther = false;
-    }
-  }
-
-  if (truckSuppliesCents > 0) {
-    const truckSuppliesItem = await getOrCreateSalesItem(
-      accessToken,
-      realmId,
-      QBO_INVOICE_ITEM_NAMES.truckSupplies,
-      "Service",
-      lazyIncomeRef,
-    );
-    const truckDescRaw =
-      primary === "truck" && pmPublicDesc.trim().length > 0
-        ? `${pmPublicDesc.trim()}\n\nTruck Supplies`
-        : "Truck Supplies";
-    const truckDesc = capLineDescription(truckDescRaw);
-
-    lines.push({
-      Amount: truckSuppliesCents / 100,
-      DetailType: "SalesItemLineDetail",
-      Description: truckDesc,
-      SalesItemLineDetail: {
-        ItemRef: truckSuppliesItem,
-        Qty: 1,
-        UnitPrice: truckSuppliesCents / 100,
       },
     });
   }
