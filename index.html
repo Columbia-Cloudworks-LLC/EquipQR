@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0a0a0a" />
     <link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials" />
-    <title>EquipQR - Fleet Equipment Management & QR Code Tracking Platform</title>
-    <meta name="description" content="Streamline equipment operations with QR code tracking, intelligent work order management, and enterprise-grade team collaboration. Trusted by industry leaders." />
-    <meta name="keywords" content="fleet management, equipment tracking, QR code, work orders, CMMS, maintenance management, team collaboration, mobile-first, enterprise" />
+    <title>EquipQR | Free Work Order Software for Heavy Equipment Repair Shops</title>
+    <meta name="description" content="Stop losing money to lost work orders. EquipQR gives heavy equipment repair shops secure QR code equipment tracking, team-based access, and one-click QuickBooks work order invoicing." />
     <meta name="author" content="EquipQR" />
     <link rel="canonical" href="https://equipqr.app" />
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/EquipQR-Icon-Purple-Large.png" />
@@ -28,8 +27,8 @@
     <link rel="preconnect" href="%VITE_SUPABASE_URL%" crossorigin />
     <link rel="dns-prefetch" href="%VITE_SUPABASE_URL%" />
 
-    <meta property="og:title" content="EquipQR - Fleet Equipment Management & QR Code Tracking Platform" />
-    <meta property="og:description" content="Streamline equipment operations with QR code tracking, intelligent work order management, and enterprise-grade team collaboration. Trusted by industry leaders." />
+    <meta property="og:title" content="EquipQR | Free Work Order Software for Heavy Equipment Repair Shops" />
+    <meta property="og:description" content="Stop losing money to lost work orders. EquipQR gives heavy equipment repair shops secure QR code equipment tracking, team-based access, and one-click QuickBooks work order invoicing." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://equipqr.app" />
     <!--
@@ -42,41 +41,81 @@
     <meta property="og:image" content="https://equipqr.app/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="EquipQR - Fleet Equipment Management Platform" />
+    <meta property="og:image:alt" content="EquipQR | Heavy equipment repair work order software" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@equipqr" />
-    <meta name="twitter:title" content="EquipQR - Fleet Equipment Management & QR Code Tracking Platform" />
-    <meta name="twitter:description" content="Streamline equipment operations with QR code tracking and enterprise-grade team collaboration." />
+    <meta name="twitter:title" content="EquipQR | Free Work Order Software for Heavy Equipment Repair Shops" />
+    <meta name="twitter:description" content="QR-tracked work orders for heavy equipment repair shops with QuickBooks draft invoicing. Free to start." />
     <meta name="twitter:image" content="https://equipqr.app/og-image.png" />
-    
+
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "EquipQR",
-      "description": "Next-generation fleet equipment management platform with QR code tracking, work order management, and team collaboration.",
-      "url": "https://equipqr.app",
-      "applicationCategory": "BusinessApplication",
-      "operatingSystem": "Web, iOS, Android",
-      "datePublished": "2024-06-01",
-      "dateModified": "2026-02-09",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD",
-        "availability": "https://schema.org/InStock"
-      },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "5.0",
-        "reviewCount": "1"
-      }
+      "@graph": [
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://equipqr.app/#software",
+          "name": "EquipQR",
+          "description": "Free work order software for heavy equipment repair shops with QR equipment tracking, PM templates, inventory, and QuickBooks draft invoice export.",
+          "url": "https://equipqr.app",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web, iOS, Android",
+          "datePublished": "2024-06-01",
+          "dateModified": "2026-05-17",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
+          },
+          "publisher": { "@id": "https://equipqr.app/#organization" }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://equipqr.app/#organization",
+          "name": "Columbia Cloudworks LLC",
+          "url": "https://columbiacloudworks.com",
+          "logo": "https://equipqr.app/icons/EquipQR-Icon-Purple-Large.png",
+          "sameAs": [
+            "https://github.com/Columbia-Cloudworks-LLC/EquipQR"
+          ]
+        },
+        {
+          "@type": "Review",
+          "@id": "https://equipqr.app/#review-matt-hankins",
+          "itemReviewed": { "@id": "https://equipqr.app/#software" },
+          "author": {
+            "@type": "Person",
+            "name": "Matt Hankins"
+          },
+          "reviewBody": "We used to track PMs on paper and hope nothing slipped through. Now every machine has a QR code — scanning it proves exactly where it was dropped off and pulls up the full inspection history. I can see at a glance that every item was checked for defects, and so can my customers.",
+          "reviewRating": {
+            "@type": "Rating",
+            "ratingValue": "5",
+            "bestRating": "5"
+          }
+        }
+      ]
     }
     </script>
   </head>
 
   <body>
+    <noscript>
+      <div style="font-family:system-ui,sans-serif;max-width:42rem;margin:2rem auto;padding:0 1rem;line-height:1.5;color:#fafafa;background:#0a0a0a;">
+        <p><strong>EquipQR</strong> requires JavaScript for the full application.</p>
+        <p>Heavy equipment repair shops use EquipQR for QR-tracked work orders, PM templates, inventory, and QuickBooks draft invoicing.</p>
+        <p>Public pages you can open without JavaScript:</p>
+        <ul>
+          <li><a href="https://equipqr.app/">Homepage</a></li>
+          <li><a href="https://equipqr.app/features/work-order-management">Work order management</a></li>
+          <li><a href="https://equipqr.app/features/qr-code-integration">QR code integration</a></li>
+          <li><a href="https://equipqr.app/privacy-policy">Privacy policy</a></li>
+          <li><a href="https://equipqr.app/terms-of-service">Terms of service</a></li>
+        </ul>
+      </div>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
