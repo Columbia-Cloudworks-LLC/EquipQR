@@ -154,6 +154,19 @@ const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
             </Badge>
           )}
 
+          {filters.invoiceFilter !== 'all' && (
+            <Badge variant="secondary" className="flex items-center gap-1 text-xs h-5 px-2">
+              Invoice: {filters.invoiceFilter.replace('_', ' ')}
+              <button
+                onClick={() => onFilterChange('invoiceFilter', 'all')}
+                className="ml-0.5 hover:text-foreground"
+                aria-label="Clear invoice filter"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+
           <Button
             variant="ghost"
             size="sm"

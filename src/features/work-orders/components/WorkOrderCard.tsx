@@ -55,6 +55,7 @@ import PMProgressIndicator from './PMProgressIndicator';
 import { WorkOrderQuickActions } from './WorkOrderQuickActions';
 import { WorkOrderAssignmentHover } from './WorkOrderAssignmentHover';
 import { WorkOrderPrimaryActionButton } from './WorkOrderPrimaryActionButton';
+import QuickBooksInvoiceStatusBadge from './QuickBooksInvoiceStatusBadge';
 import type { WorkOrder, WorkOrderData } from '@/features/work-orders/types/workOrder';
 import type { AssignmentWorkOrderContext } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
 import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyncBadge';
@@ -310,6 +311,12 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
             >
               {formatPriorityLabel(workOrder.priority)}
             </Badge>
+            <QuickBooksInvoiceStatusBadge
+              status={workOrder.invoiceStatus ?? workOrder.invoice_status}
+              invoiceNumber={workOrder.quickbooksInvoiceNumber ?? workOrder.quickbooks_invoice_number}
+              balanceCents={workOrder.invoiceBalanceCents ?? workOrder.invoice_balance_cents}
+              paidAt={workOrder.invoicePaidAt ?? workOrder.invoice_paid_at}
+            />
             {(workOrder as MergedWorkOrder)._isPendingSync && <PendingSyncBadge />}
           </div>
         </div>
@@ -545,6 +552,13 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
           >
             {formatPriorityLabel(workOrder.priority)}
           </Badge>
+          <QuickBooksInvoiceStatusBadge
+            status={workOrder.invoiceStatus ?? workOrder.invoice_status}
+            invoiceNumber={workOrder.quickbooksInvoiceNumber ?? workOrder.quickbooks_invoice_number}
+            balanceCents={workOrder.invoiceBalanceCents ?? workOrder.invoice_balance_cents}
+            paidAt={workOrder.invoicePaidAt ?? workOrder.invoice_paid_at}
+            className="rounded-full px-2 py-0.5"
+          />
           {(workOrder as MergedWorkOrder)._isPendingSync && <PendingSyncBadge className="flex-shrink-0" />}
         </div>
 
