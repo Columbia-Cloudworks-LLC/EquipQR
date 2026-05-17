@@ -13,6 +13,38 @@ import { __syncTestables } from "./index.ts";
 
 const { refreshTokenIfNeeded } = __syncTestables;
 
+/** Records update payload and chained `.eq()` filters for service-role credential writes. */
+function createQuickBooksCredentialUpdateMock(opts?: { persistError?: { message: string } }) {
+  let payload: Record<string, unknown> = {};
+  const eqFilters: Array<[string, unknown]> = [];
+  return {
+    from: (_table: string) => ({
+      update: (p: Record<string, unknown>) => {
+        payload = { ...p };
+        return {
+          eq: (col: string, val: unknown) => {
+            eqFilters.push([col, val]);
+            return {
+              eq: (col2: string, val2: unknown) => {
+                eqFilters.push([col2, val2]);
+                return Promise.resolve({
+                  error: opts?.persistError ?? null,
+                });
+              },
+            };
+          },
+        };
+      },
+    }),
+    get capturedPayload() {
+      return payload;
+    },
+    get eqFilters() {
+      return eqFilters;
+    },
+  };
+}
+
 type UpdateCapture = {
   payload: Record<string, unknown>;
   hasSentNullGuard: boolean;
@@ -278,15 +310,7 @@ Deno.test("refreshTokenIfNeeded returns rotated tokens and updated in-memory cre
     refresh_token_expires_at: futureRefresh,
   };
 
-  let dbUpdatePayload: Record<string, unknown> = {};
-  const fakeClient = {
-    from: (_table: string) => ({
-      update: (payload: Record<string, unknown>) => {
-        dbUpdatePayload = payload;
-        return { eq: () => Promise.resolve({ error: null }) };
-      },
-    }),
-  };
+  const mock = createQuickBooksCredentialUpdateMock();
 
   const originalFetch = globalThis.fetch;
   try {
@@ -304,14 +328,15 @@ Deno.test("refreshTokenIfNeeded returns rotated tokens and updated in-memory cre
         ),
       );
 
-    const result = await refreshTokenIfNeeded(credential, fakeClient, "client-id", "client-secret");
+    const result = await refreshTokenIfNeeded(credential, mock, "client-id", "client-secret");
 
     assertEquals(result.accessToken, "new-access-token");
     assertEquals(result.credential.access_token, "new-access-token");
     assertEquals(result.credential.refresh_token, "new-refresh-token");
     assertEquals(result.credential.id, "cred-2");
-    assertEquals(dbUpdatePayload.access_token, "new-access-token");
-    assertEquals(dbUpdatePayload.refresh_token, "new-refresh-token");
+    assertEquals(mock.capturedPayload.access_token, "new-access-token");
+    assertEquals(mock.capturedPayload.refresh_token, "new-refresh-token");
+    assertEquals(mock.eqFilters, [["id", "cred-2"], ["organization_id", "org-2"]]);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -330,16 +355,9 @@ Deno.test("refreshTokenIfNeeded throws when QuickBooks token refresh succeeds bu
     refresh_token_expires_at: futureRefresh,
   };
 
-  const fakeClient = {
-    from: (_table: string) => ({
-      update: (_payload: Record<string, unknown>) => ({
-        eq: () =>
-          Promise.resolve({
-            error: { message: "simulated quickbooks_credentials update failure" },
-          }),
-      }),
-    }),
-  };
+  const mock = createQuickBooksCredentialUpdateMock({
+    persistError: { message: "simulated quickbooks_credentials update failure" },
+  });
 
   const originalFetch = globalThis.fetch;
   try {
@@ -358,10 +376,11 @@ Deno.test("refreshTokenIfNeeded throws when QuickBooks token refresh succeeds bu
       );
 
     await assertRejects(
-      async () => await refreshTokenIfNeeded(credential, fakeClient, "client-id", "client-secret"),
+      async () => await refreshTokenIfNeeded(credential, mock, "client-id", "client-secret"),
       Error,
       "QuickBooks credential persistence failed:",
     );
+    assertEquals(mock.eqFilters, [["id", "cred-3"], ["organization_id", "org-3"]]);
   } finally {
     globalThis.fetch = originalFetch;
   }

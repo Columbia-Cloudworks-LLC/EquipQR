@@ -120,7 +120,8 @@ async function refreshTokenIfNeeded(
       refresh_token_expires_at: newRefreshTokenExpiresAt,
       updated_at: now.toISOString(),
     })
-    .eq("id", credential.id);
+    .eq("id", credential.id)
+    .eq("organization_id", credential.organization_id);
 
   if (credentialUpdateError) {
     throw new Error(`QuickBooks credential persistence failed: ${credentialUpdateError.message}`);
