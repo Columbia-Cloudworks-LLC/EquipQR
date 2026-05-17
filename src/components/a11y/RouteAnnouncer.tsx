@@ -3,6 +3,8 @@ import { useLocation } from 'react-router-dom';
 
 /**
  * Announces SPA navigations to assistive tech and moves focus to the primary route heading.
+ * Only runs on pathname changes — query-string updates (filters/sorts in the dashboard) and
+ * hash-only jumps must not steal focus or spam the live region.
  * Skips announcements for hash-only navigations on `/` (same-page section jumps).
  */
 export const RouteAnnouncer: FC = () => {
@@ -36,6 +38,11 @@ export const RouteAnnouncer: FC = () => {
     }
 
     if (!pathnameChanged && !searchChanged && !hashChanged) {
+      prevRef.current = { pathname, search, hash };
+      return;
+    }
+
+    if (!pathnameChanged) {
       prevRef.current = { pathname, search, hash };
       return;
     }
