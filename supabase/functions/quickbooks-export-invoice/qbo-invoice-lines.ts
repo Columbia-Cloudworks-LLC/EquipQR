@@ -200,6 +200,13 @@ export async function resolveIncomeAccountRef(
       active: data.Account?.Active,
       fault: data.Fault ? JSON.stringify(data.Fault).slice(0, 300) : undefined,
     });
+    const faultSnippet = data.Fault ? JSON.stringify(data.Fault).substring(0, 400) : "";
+    throw new Error(
+      `Configured QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID (${configuredIncomeAccountId}) did not resolve to an active Income account ` +
+        `(accountType=${data.Account?.AccountType ?? "unknown"}, active=${data.Account?.Active ?? "unknown"}` +
+        (faultSnippet ? `, fault=${faultSnippet}` : "") +
+        `). ${INCOME_ACCOUNT_CONFIGURE_HINT}`,
+    );
   }
 
   if (QBO_INVOICE_ITEM_INCOME_ACCOUNT_NAME) {
@@ -458,6 +465,11 @@ export async function buildInvoiceLines(
 
   const loggedHours = notes.reduce((sum, note) => sum + (note.hours_worked ?? 0), 0);
 
+  // Same rounded/clamped quantity as QuickBooks Qty for descriptions and default-rate billing.
+  const laborQty = loggedHours > 0
+    ? Math.max(0.01, Number(loggedHours.toFixed(2)))
+    : 1;
+
   const laborMatchedCosts = loggedHours > 0
     ? laborCandidateCosts.filter(isLaborCost)
     : laborCandidateCosts;
@@ -485,7 +497,7 @@ export async function buildInvoiceLines(
   ) {
     laborTotalCents = Math.max(
       0,
-      Math.round(loggedHours * defaultLaborRateCents),
+      Math.round(laborQty * defaultLaborRateCents),
     );
   }
 
@@ -535,10 +547,6 @@ export async function buildInvoiceLines(
 
   const lines: InvoiceSalesLines = [];
 
-  // Same rounded/clamped quantity for customer-facing description and QuickBooks Qty.
-  const laborQty = loggedHours > 0
-    ? Math.max(0.01, Number(loggedHours.toFixed(2)))
-    : 1;
   const laborShortDescription = loggedHours > 0
     ? `Labor (${laborQty.toFixed(2)} hrs)`
     : "Labor";

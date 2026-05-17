@@ -565,6 +565,72 @@ Deno.test("buildInvoiceLines bills labor from default rate when hours exist but 
   }
 });
 
+Deno.test("buildInvoiceLines default-rate labor bills rounded Qty so UnitPrice matches configured hourly rate", async () => {
+  const prevRate = Deno.env.get("QBO_DEFAULT_LABOR_RATE_CENTS");
+  try {
+    Deno.env.set("QBO_DEFAULT_LABOR_RATE_CENTS", "5000"); // $50.00/hr
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = (_input: RequestInfo | URL, init?: RequestInit) => {
+        const method = (init?.method ?? "GET").toUpperCase();
+        if (method === "POST") {
+          const body = JSON.parse(String(init?.body ?? "{}")) as { Name: string; Type: string };
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({ Item: { Id: `id-${body.Name}`, Name: body.Name } }),
+              { status: 200, headers: { "Content-Type": "application/json" } },
+            ),
+          );
+        }
+        const url = String(_input);
+        if (url.includes("/query") && url.includes(encodeURIComponent("Account"))) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({ QueryResponse: { Account: [{ Id: "inc-1", Name: "Sales" }] } }),
+              { status: 200, headers: { "Content-Type": "application/json" } },
+            ),
+          );
+        }
+        return Promise.resolve(
+          new Response(JSON.stringify({ QueryResponse: {} }), {
+            status: 200, headers: { "Content-Type": "application/json" },
+          }),
+        );
+      };
+
+      const notes = [{
+        hours_worked: 1.234,
+        is_private: false,
+        content: "",
+        author_name: null,
+        created_at: "",
+      }] as never[];
+
+      const lines = await buildInvoiceLines("tok", REALM, [], notes, {
+        workOrder: minimalWorkOrder as never,
+        pm: null,
+        publicNotesText: "",
+      });
+
+      const laborLines = lines.filter((l) => /Labor/.test(l.Description ?? ""));
+      assertEquals(laborLines.length >= 1, true);
+      const qty = laborLines[0]!.SalesItemLineDetail.Qty;
+      assertEquals(qty, 1.23);
+      // round(1.23 * 5000) / 100 dollars — must not use raw 1.234 for cents total
+      assertEquals(laborLines[0]!.Amount, 61.5);
+      assertEquals(laborLines[0]!.SalesItemLineDetail.UnitPrice, 50);
+    } finally {
+      restoreFetch(originalFetch);
+    }
+  } finally {
+    if (prevRate === undefined) {
+      Deno.env.delete("QBO_DEFAULT_LABOR_RATE_CENTS");
+    } else {
+      Deno.env.set("QBO_DEFAULT_LABOR_RATE_CENTS", prevRate);
+    }
+  }
+});
+
 // Labor Qty must match the value used for UnitPrice (rounded hours, min 0.01) so Qty×UnitPrice ≈ Amount
 Deno.test("buildInvoiceLines Labor uses clamped rounded Qty and matching UnitPrice for tiny logged hours", async () => {
   const originalFetch = globalThis.fetch;
@@ -803,8 +869,8 @@ Deno.test("getOrCreateSalesItem rejects Fault item query response without POST o
   }
 });
 
-// Configured non-Income account by ID is rejected; fallback Income query runs
-Deno.test("resolveIncomeAccountRef rejects configured ID that returns a non-Income account and falls back", async () => {
+// Configured non-Income account by ID fails closed (no silent fallback to another Income account)
+Deno.test("resolveIncomeAccountRef throws when configured ID returns a non-Income account", async () => {
   const originalFetch = globalThis.fetch;
   const prevConfiguredId = Deno.env.get("QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID");
   const callUrls: string[] = [];
@@ -836,12 +902,60 @@ Deno.test("resolveIncomeAccountRef rejects configured ID that returns a non-Inco
       );
     };
 
-    const ref = await resolveIncomeAccountRef("tok", REALM);
-    assertEquals(ref.value, "inc-2");
+    await assertRejects(
+      async () => await resolveIncomeAccountRef("tok", REALM),
+      Error,
+      "QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID",
+    );
     assertEquals(
       callUrls.some((u) => u.includes("/account/cfg-non-income-1")),
       true,
       "/account/{id} must run when QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID is set",
+    );
+    assertEquals(
+      callUrls.some((u) => u.includes("/query") && u.includes(encodeURIComponent("Account"))),
+      false,
+      "must not fall back to Income query when configured Id is unusable",
+    );
+  } finally {
+    restoreFetch(originalFetch);
+    if (prevConfiguredId === undefined) {
+      Deno.env.delete("QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID");
+    } else {
+      Deno.env.set("QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID", prevConfiguredId);
+    }
+  }
+});
+
+Deno.test("resolveIncomeAccountRef throws when configured ID returns inactive Income account", async () => {
+  const originalFetch = globalThis.fetch;
+  const prevConfiguredId = Deno.env.get("QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID");
+  try {
+    Deno.env.set("QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID", "cfg-inactive-income");
+    globalThis.fetch = (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/account/cfg-inactive-income")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              Account: {
+                Id: "cfg-inactive-income",
+                Name: "Old Services Income",
+                AccountType: "Income",
+                Active: false,
+              },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        );
+      }
+      return Promise.resolve(new Response("unexpected", { status: 500 }));
+    };
+
+    await assertRejects(
+      async () => await resolveIncomeAccountRef("tok", REALM),
+      Error,
+      "active Income account",
     );
   } finally {
     restoreFetch(originalFetch);
