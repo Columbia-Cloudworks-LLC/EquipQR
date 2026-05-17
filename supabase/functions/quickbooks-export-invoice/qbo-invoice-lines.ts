@@ -7,6 +7,7 @@ import {
   QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS,
   QBO_INVOICE_ITEM_INCOME_ACCOUNT_NAME,
   QBO_INVOICE_ITEM_NAMES,
+  resolveQboDefaultLaborRateCents,
   resolveQboInvoicePartsItemType,
   withMinorVersion,
 } from "../_shared/quickbooks-config.ts";
@@ -388,9 +389,10 @@ export function buildPMInvoiceDescription(
       lines.push(`PM items were reviewed by ${tech}; exceptions are listed below.`);
       const exceptions = items.filter((it) => !isPmConditionOk(it.condition));
       for (const ex of exceptions) {
-        lines.push(`${ex.section} | ${ex.title}`);
+        const header = `${ex.section} | ${ex.title}`;
         const noteBlock = (ex.notes?.trim() || ex.description?.trim() || "").trim();
-        if (noteBlock) lines.push(noteBlock);
+        // Compliance: each exception row is `{Section} | {Check}\r\n{Comment}` when a comment exists.
+        lines.push(noteBlock ? `${header}\r\n${noteBlock}` : header);
       }
     } else {
       lines.push(`PM checklist was completed by ${tech}; no checklist rows were recorded.`);
@@ -460,9 +462,21 @@ export async function buildInvoiceLines(
     (sum, cost) => sum + getCostAmountCents(cost),
     0,
   );
-  // Labor Amount is always the aggregated work-order labor total so invoices
-  // match EquipQR's cost records exactly, regardless of the configured rate.
-  const laborTotalCents = Math.max(0, laborCostsCents);
+  const laborCostsOnlyCents = Math.max(0, laborCostsCents);
+  // Prefer aggregated labor cost rows when present. When hours are logged but no
+  // labor cost amount exists, bill using configured default rate (cents/hour).
+  const defaultLaborRateCents = resolveQboDefaultLaborRateCents();
+  let laborTotalCents = laborCostsOnlyCents;
+  if (
+    loggedHours > 0 &&
+    laborCostsOnlyCents === 0 &&
+    defaultLaborRateCents > 0
+  ) {
+    laborTotalCents = Math.max(
+      0,
+      Math.round(loggedHours * defaultLaborRateCents),
+    );
+  }
 
   const truckSuppliesSumCents = truckCosts.reduce(
     (sum, cost) => sum + getCostAmountCents(cost),

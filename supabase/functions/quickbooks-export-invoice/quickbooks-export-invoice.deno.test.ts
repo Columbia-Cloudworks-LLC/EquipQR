@@ -71,8 +71,7 @@ Deno.test("buildPMInvoiceDescription lists only exception rows when conditions a
     "Jamie",
   );
   assertEquals(text.includes("All PM items were marked OK"), false);
-  assertMatch(text, /B \| Bad row/);
-  assertMatch(text, /Needs repair/);
+  assertMatch(text, /B \| Bad row\r\nNeeds repair/);
 });
 
 Deno.test("buildPMInvoiceDescription appends Public notes after PM summary", () => {
@@ -470,6 +469,69 @@ Deno.test("buildInvoiceLines Labor Amount matches aggregated labor cost even whe
   }
 });
 
+Deno.test("buildInvoiceLines bills labor from default rate when hours exist but no labor costs", async () => {
+  const prevRate = Deno.env.get("QBO_DEFAULT_LABOR_RATE_CENTS");
+  try {
+    Deno.env.set("QBO_DEFAULT_LABOR_RATE_CENTS", "5000");
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = (_input: RequestInfo | URL, init?: RequestInit) => {
+        const method = (init?.method ?? "GET").toUpperCase();
+        if (method === "POST") {
+          const body = JSON.parse(String(init?.body ?? "{}")) as { Name: string; Type: string };
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({ Item: { Id: `id-${body.Name}`, Name: body.Name } }),
+              { status: 200, headers: { "Content-Type": "application/json" } },
+            ),
+          );
+        }
+        const url = String(_input);
+        if (url.includes("/query") && url.includes(encodeURIComponent("Account"))) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({ QueryResponse: { Account: [{ Id: "inc-1", Name: "Sales" }] } }),
+              { status: 200, headers: { "Content-Type": "application/json" } },
+            ),
+          );
+        }
+        return Promise.resolve(
+          new Response(JSON.stringify({ QueryResponse: {} }), {
+            status: 200, headers: { "Content-Type": "application/json" },
+          }),
+        );
+      };
+
+      const notes = [{
+        hours_worked: 2,
+        is_private: false,
+        content: "",
+        author_name: null,
+        created_at: "",
+      }] as never[];
+
+      const lines = await buildInvoiceLines("tok", REALM, [], notes, {
+        workOrder: minimalWorkOrder as never,
+        pm: null,
+        publicNotesText: "",
+      });
+
+      const laborLines = lines.filter((l) => /Labor/.test(l.Description ?? ""));
+      assertEquals(laborLines.length >= 1, true);
+      // 2 hrs * 5000 cents/hr = 10000 cents => $100.00
+      assertEquals(laborLines[0]!.Amount, 100);
+    } finally {
+      restoreFetch(originalFetch);
+    }
+  } finally {
+    if (prevRate === undefined) {
+      Deno.env.delete("QBO_DEFAULT_LABOR_RATE_CENTS");
+    } else {
+      Deno.env.set("QBO_DEFAULT_LABOR_RATE_CENTS", prevRate);
+    }
+  }
+});
+
 // Labor Qty must match the value used for UnitPrice (rounded hours, min 0.01) so Qty×UnitPrice ≈ Amount
 Deno.test("buildInvoiceLines Labor uses clamped rounded Qty and matching UnitPrice for tiny logged hours", async () => {
   const originalFetch = globalThis.fetch;
@@ -550,8 +612,7 @@ Deno.test("buildPMInvoiceDescription includes technician attribution in exceptio
     "Fallback",
   );
   assertMatch(text, /PM items were reviewed by Sam Tech/);
-  assertMatch(text, /B \| Bad row/);
-  assertMatch(text, /Needs repair/);
+  assertMatch(text, /B \| Bad row\r\nNeeds repair/);
 });
 
 // Fix 2b: Empty checklist path includes technician attribution

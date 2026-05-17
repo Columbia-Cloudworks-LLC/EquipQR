@@ -118,10 +118,12 @@ export function resolveQboInvoicePartsItemType(): "NonInventory" {
 }
 
 /** Default labor rate (in cents) used when WO time logs exist but no labor-cost amount is provided. */
-export const QBO_DEFAULT_LABOR_RATE_CENTS = envNumberOrDefault(
-  Deno.env.get("QBO_DEFAULT_LABOR_RATE_CENTS"),
-  0,
-);
+export function resolveQboDefaultLaborRateCents(): number {
+  return envNumberOrDefault(Deno.env.get("QBO_DEFAULT_LABOR_RATE_CENTS"), 0);
+}
+
+/** @deprecated Prefer {@link resolveQboDefaultLaborRateCents} — reads env at call time (tests, late injection). */
+export const QBO_DEFAULT_LABOR_RATE_CENTS = resolveQboDefaultLaborRateCents();
 
 /** Default truck supplies fee (in cents) appended when no explicit truck fee cost is present. */
 export const QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS = envNumberOrDefault(
