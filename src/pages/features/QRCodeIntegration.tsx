@@ -8,21 +8,19 @@ import { StepList } from '@/components/landing/features/StepList';
 import { ScreenshotBlock } from '@/components/landing/features/ScreenshotBlock';
 import { FeatureCTA } from '@/components/landing/features/FeatureCTA';
 import { benefits, steps, screenshots } from './data/qrCodeIntegrationData';
+import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
+
+const seo = getFeatureSeoByPath('/features/qr-code-integration')!;
 
 const QRCodeIntegrationFeature = () => {
   return (
     <>
-      <PageSEO
-        title="QR Code Integration"
-        description="Instantly access equipment details, work orders, and maintenance history with QR code scanning. Generate labels and streamline field operations from any device."
-        path="/features/qr-code-integration"
-        keywords="QR code tracking, equipment QR codes, QR code scanning, asset tracking QR codes, maintenance QR codes"
-      />
+      <PageSEO title={seo.pageTitle} description={seo.description} path={seo.path} />
       <FeaturePageLayout>
       <FeatureHero
         icon={QrCode}
-        title="QR Code Integration"
-        description="Instantly access equipment details, work orders, and maintenance history with QR code scanning. Generate labels and streamline field operations from any device."
+        title={seo.heroTitle}
+        description={seo.heroDescription}
         ctaText="Start Using QR Codes Free"
       />
 

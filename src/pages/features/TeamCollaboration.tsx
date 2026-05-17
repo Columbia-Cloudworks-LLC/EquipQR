@@ -11,21 +11,19 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
 import { landingImage } from '@/lib/landingImage';
+import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
+
+const seo = getFeatureSeoByPath('/features/team-collaboration')!;
 
 const TeamCollaborationFeature = () => {
   return (
     <>
-      <PageSEO
-        title="Team Collaboration"
-        description="Organize teams across multiple organizations with role-based access control. Track performance and distribute workload efficiently."
-        path="/features/team-collaboration"
-        keywords="team collaboration, role-based access control, equipment management teams, fleet management teams, CMMS collaboration"
-      />
+      <PageSEO title={seo.pageTitle} description={seo.description} path={seo.path} />
       <FeaturePageLayout>
       <FeatureHero
         icon={Users}
-        title="Team Collaboration"
-        description="Organize teams across multiple organizations with role-based access control. Track performance and distribute workload efficiently."
+        title={seo.heroTitle}
+        description={seo.heroDescription}
         ctaText="Start Using Teams Free"
       />
 

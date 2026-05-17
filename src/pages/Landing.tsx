@@ -57,7 +57,11 @@ const Landing: React.FC = () => {
     <>
       <div className="min-h-screen bg-background">
         <LandingHeader />
-        <main id="main-content">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
           <HeroAnimation />
           <Suspense fallback={<BelowFoldFallback />}>
             <WhyDifferentSection />

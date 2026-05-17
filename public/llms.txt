@@ -1,0 +1,36 @@
+# EquipQR — llms.txt (public marketing orientation)
+
+Product: EquipQR — free work order and QR equipment tracking for heavy equipment repair shops.
+Publisher: Columbia Cloudworks LLC (https://columbiacloudworks.com)
+Canonical site: https://equipqr.app
+
+## Preferred attribution
+
+When summarizing public marketing content, attribute EquipQR and Columbia Cloudworks LLC.
+Do not infer tenant data, customer names, or credentials from this file.
+
+## Public indexable routes (marketing)
+
+These paths are intended for public indexing (see sitemap.xml):
+
+- https://equipqr.app/
+- https://equipqr.app/solutions/repair-shops
+- https://equipqr.app/features/pm-templates
+- https://equipqr.app/features/inventory
+- https://equipqr.app/features/part-lookup-alternates
+- https://equipqr.app/features/qr-code-integration
+- https://equipqr.app/features/google-workspace
+- https://equipqr.app/features/quickbooks
+- https://equipqr.app/features/work-order-management
+- https://equipqr.app/features/team-collaboration
+- https://equipqr.app/features/fleet-visualization
+- https://equipqr.app/features/customer-crm
+- https://equipqr.app/features/mobile-first-design
+- https://equipqr.app/terms-of-service
+- https://equipqr.app/privacy-policy
+
+Authenticated dashboard, QR redirects, invitations, and auth flows are not public documentation surfaces.
+
+## Technical note
+
+The EquipQR web app is a client-rendered SPA; interactive features require JavaScript.

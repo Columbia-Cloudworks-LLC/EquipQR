@@ -17,6 +17,7 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
 import { landingImage } from '@/lib/landingImage';
+import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
 
 interface Capability {
   name: string;
@@ -52,20 +53,17 @@ const capabilities: Capability[] = [
   },
 ];
 
+const seo = getFeatureSeoByPath('/features/part-lookup-alternates')!;
+
 const PartLookupAlternatesFeature = () => {
   return (
     <>
-      <PageSEO
-        title="Part Lookup & Alternates"
-        description="Find compatible parts quickly with intelligent search. Discover OEM, aftermarket, and cross-reference alternatives. Link parts to equipment for instant compatibility."
-        path="/features/part-lookup-alternates"
-        keywords="part lookup, part alternates, OEM parts, aftermarket parts, part compatibility, parts search, equipment parts"
-      />
+      <PageSEO title={seo.pageTitle} description={seo.description} path={seo.path} />
       <FeaturePageLayout>
       <FeatureHero
         icon={Search}
-        title="Part Lookup & Alternates"
-        description="Quickly find parts by part number and discover interchangeable alternatives. Search inventory, external catalogs, and alternate part groups—all in one place."
+        title={seo.heroTitle}
+        description={seo.heroDescription}
         ctaText="Start Using Part Lookup Free"
       />
 
