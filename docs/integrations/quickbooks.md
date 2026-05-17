@@ -122,11 +122,10 @@ Before exporting invoices, map each team to a QuickBooks customer:
 
 Exported draft invoices include **summarized billing lines** mapped from EquipQR work-order costs (EquipQR remains the source of truth for itemized inventory and labor detail):
 
-- **Labor** (`SalesItemLineDetail`): Total billable labor — quantity reflects logged hours when present; otherwise a single quantity `1` line at the blended rate.
-- **Parts** (`SalesItemLineDetail`): One **summarized** non-inventory line for all inventory-linked parts/materials (`Qty` 1, `UnitPrice` = total dollars). EquipQR does **not** sync inventory quantities or COGS into QuickBooks.
-- **Other** / **Truck Supplies**: Unchanged from prior behavior — additional lines as needed so invoice totals match the work order.
+- **Labor** (`SalesItemLineDetail`): Billable labor from work-order cost rows titled **Labor** / **Labor - …** (no inventory link). If no labor cost row exists but technicians logged hours, a Labor line can be generated from the configured default hourly rate (see Edge secrets). Quantity reflects logged hours when present; otherwise a single quantity `1` line at the blended rate.
+- **Parts** (`SalesItemLineDetail`): One **summarized** non-inventory line for **all other** work-order costs — manual parts/materials, inventory consumption lines, and any former truck/fee-style rows (`Qty` 1, `UnitPrice` = total dollars). EquipQR does **not** sync inventory quantities or COGS into QuickBooks.
 
-**Customer-facing descriptions** on the primary line (Labor when present, otherwise Parts, otherwise the first Other/Truck line) can include:
+**Customer-facing descriptions** on the primary line (Labor when present, otherwise Parts) can include:
 
 - Preventative maintenance context when a PM record exists: template name, all-OK summary (`condition === 1` only), or exception rows only; PM notes; then **Public notes:** from non-private work-order notes.
 
@@ -144,8 +143,8 @@ Optional Edge Function secrets (Supabase → Edge Functions → Secrets):
 |--------|---------|
 | `QBO_INVOICE_LABOR_ITEM_NAME` | Display name for the Labor item (default `Labor`) |
 | `QBO_INVOICE_PARTS_ITEM_NAME` | Display name for summarized Parts (default `Parts`) |
-| `QBO_INVOICE_TRUCK_SUPPLIES_ITEM_NAME` | Truck supplies item name |
-| `QBO_INVOICE_OTHER_ITEM_NAME` | Other/fees item name |
+| `QBO_INVOICE_TRUCK_SUPPLIES_ITEM_NAME` | Legacy name — invoice export no longer emits a separate Truck Supplies line (amounts roll into **Parts**) |
+| `QBO_INVOICE_OTHER_ITEM_NAME` | Legacy name — invoice export no longer emits separate **Other** lines |
 | `QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID` | Prefer this Income account Id when auto-creating items |
 | `QBO_INVOICE_ITEM_INCOME_ACCOUNT_NAME` | Else match this exact active Income account **Name** |
 | `QBO_INVOICE_PARTS_ITEM_TYPE` | Ignored except `NonInventory` — unsupported values fall back safely |
@@ -155,7 +154,7 @@ Optional Edge Function secrets (Supabase → Edge Functions → Secrets):
 Item resolution behavior:
 
 1. Query active QuickBooks **Item** by exact **Name** (any type). If found, reuse its Id.
-2. If missing, create with **Service** for Labor / Truck / Other and **NonInventory** for summarized Parts, using the resolved Income account above or the first active **Income** account.
+2. If missing, create **Labor** as **Service** and **Parts** as **NonInventory**, using the resolved Income account above or the first active **Income** account.
 
 ## Architecture
 

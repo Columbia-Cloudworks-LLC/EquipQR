@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [3.5.3] - 2026-05-17
+
+### Fixed
+
+- **QuickBooks invoice export** — Summarized **Parts** line includes every non-labor work-order cost (manual and inventory-backed rows; previously separate truck/fee-style amounts roll into Parts). Only cost items matching **Labor** / **Labor - …** (no inventory link) count as labor; customer-facing invoices are Labor and Parts lines only. Private memo still lists the full itemized breakdown.
+
 ## [3.5.2] - 2026-05-16
 
 ### Changed
