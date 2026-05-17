@@ -1,0 +1,598 @@
+/**
+ * QuickBooks invoice sales lines, PM-facing descriptions, and private memo builder.
+ * Split from index.ts so Deno unit tests can import testables without starting Deno.serve.
+ */
+import {
+  QBO_API_BASE,
+  QBO_DEFAULT_LABOR_RATE_CENTS,
+  QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS,
+  QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID,
+  QBO_INVOICE_ITEM_INCOME_ACCOUNT_NAME,
+  QBO_INVOICE_ITEM_NAMES,
+  resolveQboInvoicePartsItemType,
+  withMinorVersion,
+} from "../_shared/quickbooks-config.ts";
+
+const logStep = (step: string, details?: Record<string, unknown>) => {
+  const safeDetails = details ? { ...details } : undefined;
+  if (safeDetails) {
+    delete safeDetails.access_token;
+    delete safeDetails.refresh_token;
+  }
+  const detailsStr = safeDetails ? ` - ${JSON.stringify(safeDetails)}` : "";
+  console.log(`[QUICKBOOKS-EXPORT-INVOICE] ${step}${detailsStr}`);
+};
+
+export interface WorkOrderData {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  equipment_id: string;
+  organization_id: string;
+  created_date: string;
+  due_date: string | null;
+  completed_date: string | null;
+  equipment_working_hours_at_creation: number | null;
+  has_pm: boolean;
+  equipment?: {
+    name: string;
+    manufacturer: string;
+    model: string;
+    serial_number: string;
+    team_id: string | null;
+    team?: {
+      name: string;
+    };
+  };
+}
+
+export interface WorkOrderCost {
+  id?: string;
+  description: string;
+  quantity: number;
+  unit_price_cents: number;
+  total_price_cents: number | null;
+  inventory_item_id?: string | null;
+}
+
+export interface WorkOrderNote {
+  id?: string;
+  content: string;
+  hours_worked?: number | null;
+  machine_hours?: number | null;
+  is_private: boolean;
+  author_name: string | null;
+  created_at: string;
+}
+
+/** PM row loaded for invoice line descriptions (customer-facing only). */
+export interface PreventativeMaintenanceInvoiceRow {
+  id: string;
+  checklist_data: unknown;
+  notes: string | null;
+  completed_by_name: string | null;
+  pm_checklist_templates?: { name: string | null } | { name: string | null }[] | null;
+}
+
+export type InvoiceSalesLines = Array<{
+  Amount: number;
+  DetailType: "SalesItemLineDetail";
+  Description?: string;
+  SalesItemLineDetail: {
+    ItemRef: { value: string; name?: string };
+    Qty?: number;
+    UnitPrice?: number;
+  };
+}>;
+
+export function buildPrivateNote(
+  workOrder: WorkOrderData,
+  notes: WorkOrderNote[],
+  costs: WorkOrderCost[],
+): string {
+  const lines: string[] = [];
+
+  lines.push(`EquipQR Work Order ID: ${workOrder.id}`);
+  lines.push(`Created: ${new Date(workOrder.created_date).toLocaleDateString("en-US")}`);
+  if (workOrder.due_date) {
+    lines.push(`Due: ${new Date(workOrder.due_date).toLocaleDateString("en-US")}`);
+  }
+  if (workOrder.completed_date) {
+    lines.push(`Completed: ${new Date(workOrder.completed_date).toLocaleDateString("en-US")}`);
+  }
+
+  const privateNotes = notes.filter((n) => n.is_private);
+  if (privateNotes.length > 0) {
+    lines.push("");
+    lines.push("Private Notes:");
+    privateNotes.forEach((note) => {
+      lines.push(`- ${note.content} (${note.author_name || "Unknown"})`);
+    });
+  }
+
+  if (costs.length > 0) {
+    lines.push("");
+    lines.push("Cost Breakdown:");
+    costs.forEach((cost) => {
+      const unitPrice = (cost.unit_price_cents / 100).toFixed(2);
+      const total = ((cost.total_price_cents || cost.unit_price_cents * cost.quantity) / 100).toFixed(2);
+      lines.push(`- ${cost.description}: ${cost.quantity} x $${unitPrice} = $${total}`);
+    });
+  }
+
+  let result = lines.join("\n");
+  if (result.length > 3900) {
+    result = result.substring(0, 3900) + "\n... (truncated)";
+  }
+
+  return result;
+}
+
+const getCostAmountCents = (cost: WorkOrderCost): number =>
+  cost.total_price_cents ?? cost.unit_price_cents * cost.quantity;
+
+const isTruckSuppliesCost = (cost: WorkOrderCost): boolean =>
+  /truck supplies|truck fee|travel fee|service fee|trip fee/i.test(cost.description);
+
+const isLaborCost = (cost: WorkOrderCost): boolean =>
+  /labor|labour|hour|technician|service time/i.test(cost.description);
+
+/**
+ * Escapes a value for safe embedding inside a single-quoted QuickBooks Query Language string literal.
+ */
+export function escapeQuickBooksQueryValue(value: string): string {
+  const stripped = value.replace(/[\u0000-\u001f\u007f]/g, "").trim();
+  return stripped.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+type QboItemCreateType = "Service" | "NonInventory";
+
+const INCOME_ACCOUNT_CONFIGURE_HINT =
+  "Configure Edge Function secrets QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID or QBO_INVOICE_ITEM_INCOME_ACCOUNT_NAME " +
+  "to point at an active Income account in QuickBooks Chart of Accounts.";
+
+export async function resolveIncomeAccountRef(
+  accessToken: string,
+  realmId: string,
+): Promise<{ value: string; name?: string }> {
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  };
+
+  if (QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID) {
+    const url = withMinorVersion(
+      `${QBO_API_BASE}/v3/company/${realmId}/account/${encodeURIComponent(QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID)}`,
+    );
+    const res = await fetch(url, { method: "GET", headers });
+    if (res.ok) {
+      const data = await res.json();
+      if (!data.Fault && data.Account?.Id) {
+        logStep("Resolved income account by configured Id", { id: data.Account.Id });
+        return { value: data.Account.Id, name: data.Account.Name };
+      }
+      logStep("Configured income account Id not usable", {
+        status: res.status,
+        fault: data.Fault ? JSON.stringify(data.Fault).slice(0, 300) : undefined,
+      });
+    }
+  }
+
+  if (QBO_INVOICE_ITEM_INCOME_ACCOUNT_NAME) {
+    const escaped = escapeQuickBooksQueryValue(QBO_INVOICE_ITEM_INCOME_ACCOUNT_NAME);
+    const q = `SELECT * FROM Account WHERE Name = '${escaped}' AND Active = true`;
+    const qUrl = withMinorVersion(
+      `${QBO_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(q)}`,
+    );
+    const res = await fetch(qUrl, { method: "GET", headers });
+    if (res.ok) {
+      const data = await res.json();
+      if (!data.Fault && data.QueryResponse?.Account?.[0]?.Id) {
+        const acc = data.QueryResponse.Account[0];
+        logStep("Resolved income account by configured Name", { id: acc.Id, name: acc.Name });
+        return { value: acc.Id, name: acc.Name };
+      }
+    }
+  }
+
+  const fallbackQuery =
+    `SELECT * FROM Account WHERE AccountType = 'Income' AND Active = true MAXRESULTS 1`;
+  const accountUrl = withMinorVersion(
+    `${QBO_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(fallbackQuery)}`,
+  );
+  const accountResponse = await fetch(accountUrl, { method: "GET", headers });
+
+  if (!accountResponse.ok) {
+    throw new Error(
+      `Failed to query QuickBooks Income accounts (${accountResponse.status}). ${INCOME_ACCOUNT_CONFIGURE_HINT}`,
+    );
+  }
+
+  const accountData = await accountResponse.json();
+  if (accountData.Fault) {
+    throw new Error(
+      `QuickBooks account query Fault: ${JSON.stringify(accountData.Fault).substring(0, 300)}. ${INCOME_ACCOUNT_CONFIGURE_HINT}`,
+    );
+  }
+  const incomeAccount = accountData.QueryResponse?.Account?.[0];
+
+  if (!incomeAccount?.Id) {
+    throw new Error(
+      "No active Income account found in QuickBooks to attach auto-created invoice items. " +
+        INCOME_ACCOUNT_CONFIGURE_HINT,
+    );
+  }
+
+  return { value: incomeAccount.Id, name: incomeAccount.Name };
+}
+
+export async function getOrCreateSalesItem(
+  accessToken: string,
+  realmId: string,
+  itemName: string,
+  itemType: QboItemCreateType,
+  incomeAccountRef: { value: string; name?: string },
+): Promise<{ value: string; name: string }> {
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  };
+
+  const escapedItemName = escapeQuickBooksQueryValue(itemName);
+  const specificQuery =
+    `SELECT * FROM Item WHERE Name = '${escapedItemName}' AND Active = true`;
+  const specificUrl = withMinorVersion(
+    `${QBO_API_BASE}/v3/company/${realmId}/query?query=${encodeURIComponent(specificQuery)}`,
+  );
+  const specificResponse = await fetch(specificUrl, { method: "GET", headers });
+
+  if (specificResponse.ok) {
+    const data = await specificResponse.json();
+    if (data.Fault) {
+      logStep("Fault in item query response", {
+        fault: JSON.stringify(data.Fault).substring(0, 300),
+      });
+    } else if (data.QueryResponse?.Item?.[0]) {
+      logStep("Found existing QuickBooks item by name", {
+        id: data.QueryResponse.Item[0].Id,
+        itemName,
+        type: data.QueryResponse.Item[0].Type,
+      });
+      return {
+        value: data.QueryResponse.Item[0].Id,
+        name: data.QueryResponse.Item[0].Name,
+      };
+    }
+  } else if (
+    specificResponse.status === 401 ||
+    specificResponse.status === 403 ||
+    specificResponse.status >= 500
+  ) {
+    throw new Error(`QuickBooks item query failed with status ${specificResponse.status}`);
+  }
+
+  logStep("QuickBooks item not found, creating", { itemName, itemType });
+
+  const createUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/item`);
+  const newItem: Record<string, unknown> = {
+    Name: itemName,
+    Type: itemType,
+    IncomeAccountRef: {
+      value: incomeAccountRef.value,
+      ...(incomeAccountRef.name ? { name: incomeAccountRef.name } : {}),
+    },
+    Description: `Auto-created ${itemType.toLowerCase()} item for ${itemName}`,
+  };
+
+  const createResponse = await fetch(createUrl, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(newItem),
+  });
+
+  if (!createResponse.ok) {
+    const errorText = await createResponse.text();
+    throw new Error(`Failed to create QuickBooks item: ${createResponse.status} - ${errorText}`);
+  }
+
+  const createdItem = await createResponse.json();
+
+  if (createdItem.Fault) {
+    throw new Error(
+      `QuickBooks create item Fault: ${JSON.stringify(createdItem.Fault).substring(0, 300)}`,
+    );
+  }
+
+  if (!createdItem?.Item?.Id) {
+    throw new Error("QuickBooks returned invalid item structure after creation");
+  }
+
+  logStep("Successfully created QuickBooks item", {
+    id: createdItem.Item.Id,
+    itemName,
+    itemType,
+  });
+
+  return {
+    value: createdItem.Item.Id,
+    name: createdItem.Item.Name,
+  };
+}
+
+const MAX_PM_INVOICE_DESCRIPTION_CHARS = 3900;
+
+function pmTemplateName(pm: PreventativeMaintenanceInvoiceRow | null): string | null {
+  if (!pm?.pm_checklist_templates) return null;
+  const t = pm.pm_checklist_templates;
+  if (Array.isArray(t)) return t[0]?.name ?? null;
+  return t.name ?? null;
+}
+
+function isPmConditionOk(condition: unknown): boolean {
+  return condition === 1;
+}
+
+/** Builds PM + public-notes narrative for customer-visible invoice line descriptions. */
+export function buildPMInvoiceDescription(
+  pm: PreventativeMaintenanceInvoiceRow | null,
+  publicNotes: string,
+  fallbackTechnician: string,
+): string {
+  const lines: string[] = [];
+
+  if (pm) {
+    const checklistLabel = pmTemplateName(pm)?.trim() || "PM checklist";
+    lines.push(`PM performed: ${checklistLabel}.`);
+
+    const rawItems = pm.checklist_data;
+    const items: Array<{
+      section: string;
+      title: string;
+      notes?: string;
+      description?: string;
+      condition?: unknown;
+    }> = Array.isArray(rawItems) ? rawItems : [];
+
+    const hasRows = items.length > 0;
+    const allOk = hasRows && items.every((it) => isPmConditionOk(it.condition));
+    const tech = (pm.completed_by_name?.trim() || fallbackTechnician || "Technician").trim();
+
+    if (hasRows && allOk) {
+      lines.push(`All PM items were marked OK by ${tech}.`);
+    } else if (hasRows) {
+      const exceptions = items.filter((it) => !isPmConditionOk(it.condition));
+      for (const ex of exceptions) {
+        lines.push(`${ex.section} | ${ex.title}`);
+        const noteBlock = (ex.notes?.trim() || ex.description?.trim() || "").trim();
+        if (noteBlock) lines.push(noteBlock);
+      }
+    }
+
+    const pmNotes = pm.notes?.trim();
+    if (pmNotes) {
+      lines.push(pmNotes);
+    }
+  }
+
+  const pub = publicNotes.trim();
+  if (pub) {
+    lines.push("Public notes:");
+    lines.push(pub);
+  }
+
+  let result = lines.filter(Boolean).join("\n");
+  if (result.length > MAX_PM_INVOICE_DESCRIPTION_CHARS) {
+    result = result.slice(0, MAX_PM_INVOICE_DESCRIPTION_CHARS - 20) + "\n... (truncated)";
+  }
+  return result;
+}
+
+type InvoicePrimaryTarget = "labor" | "parts" | "other" | "truck";
+
+export async function buildInvoiceLines(
+  accessToken: string,
+  realmId: string,
+  costs: WorkOrderCost[],
+  notes: WorkOrderNote[],
+  ctx: {
+    workOrder: WorkOrderData;
+    pm: PreventativeMaintenanceInvoiceRow | null;
+    publicNotesText: string;
+  },
+): Promise<InvoiceSalesLines> {
+  void ctx.workOrder;
+  const partCosts = costs.filter((cost) => (cost.inventory_item_id ?? null) !== null);
+  const truckCosts = costs.filter(isTruckSuppliesCost);
+  const laborCandidateCosts = costs.filter(
+    (cost) => !partCosts.includes(cost) && !truckCosts.includes(cost),
+  );
+
+  const loggedHours = notes.reduce((sum, note) => sum + (note.hours_worked ?? 0), 0);
+
+  const laborMatchedCosts = loggedHours > 0
+    ? laborCandidateCosts.filter(isLaborCost)
+    : laborCandidateCosts;
+  const otherCosts = loggedHours > 0
+    ? laborCandidateCosts.filter((cost) => !isLaborCost(cost))
+    : [];
+
+  const laborCostsCents = laborMatchedCosts.reduce(
+    (sum, cost) => sum + getCostAmountCents(cost),
+    0,
+  );
+  const otherCostsCents = otherCosts.reduce(
+    (sum, cost) => sum + getCostAmountCents(cost),
+    0,
+  );
+  const laborUnitRateCents = loggedHours > 0
+    ? (
+      QBO_DEFAULT_LABOR_RATE_CENTS > 0
+        ? QBO_DEFAULT_LABOR_RATE_CENTS
+        : Math.round(laborCostsCents / Math.max(loggedHours, 1e-9))
+    )
+    : 0;
+  const laborTotalCents = loggedHours > 0
+    ? Math.max(0, Math.round(loggedHours * laborUnitRateCents))
+    : laborCostsCents;
+
+  const truckSuppliesSumCents = truckCosts.reduce(
+    (sum, cost) => sum + getCostAmountCents(cost),
+    0,
+  );
+  const truckSuppliesCents = truckCosts.length > 0
+    ? truckSuppliesSumCents
+    : QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS;
+
+  const partsTotalCents = partCosts.reduce((sum, cost) => {
+    const cents = getCostAmountCents(cost);
+    return sum + (cents > 0 ? cents : 0);
+  }, 0);
+
+  const fallbackTechnician =
+    [...notes].filter((n) => !n.is_private).slice(-1)[0]?.author_name?.trim() ||
+    [...notes].slice(-1)[0]?.author_name?.trim() ||
+    "Technician";
+
+  const pmPublicDesc = buildPMInvoiceDescription(
+    ctx.pm,
+    ctx.publicNotesText,
+    fallbackTechnician,
+  );
+
+  let primary: InvoicePrimaryTarget | null = null;
+  if (laborTotalCents > 0) primary = "labor";
+  else if (partsTotalCents > 0) primary = "parts";
+  else if (otherCostsCents > 0) primary = "other";
+  else if (truckSuppliesCents > 0) primary = "truck";
+
+  const incomeRef = await resolveIncomeAccountRef(accessToken, realmId);
+  const partsItemType = resolveQboInvoicePartsItemType();
+
+  const lines: InvoiceSalesLines = [];
+
+  const laborShortDescription = loggedHours > 0
+    ? `Labor (${loggedHours.toFixed(2)} hrs)`
+    : "Labor";
+
+  if (laborTotalCents > 0) {
+    const laborItem = await getOrCreateSalesItem(
+      accessToken,
+      realmId,
+      QBO_INVOICE_ITEM_NAMES.labor,
+      "Service",
+      incomeRef,
+    );
+    const laborQty = loggedHours > 0 ? Number(loggedHours.toFixed(2)) : 1;
+    const laborUnit = loggedHours > 0 ? laborUnitRateCents / 100 : laborTotalCents / 100;
+    const laborDesc =
+      primary === "labor" && pmPublicDesc.trim().length > 0
+        ? `${pmPublicDesc.trim()}\n\n${laborShortDescription}`
+        : laborShortDescription;
+
+    lines.push({
+      Amount: laborTotalCents / 100,
+      DetailType: "SalesItemLineDetail",
+      Description: laborDesc,
+      SalesItemLineDetail: {
+        ItemRef: laborItem,
+        Qty: laborQty,
+        UnitPrice: laborUnit,
+      },
+    });
+  }
+
+  if (partsTotalCents > 0) {
+    const partsItem = await getOrCreateSalesItem(
+      accessToken,
+      realmId,
+      QBO_INVOICE_ITEM_NAMES.parts,
+      partsItemType,
+      incomeRef,
+    );
+    const partsDesc =
+      primary === "parts" && pmPublicDesc.trim().length > 0
+        ? `${pmPublicDesc.trim()}\n\nParts`
+        : "Parts";
+
+    lines.push({
+      Amount: partsTotalCents / 100,
+      DetailType: "SalesItemLineDetail",
+      Description: partsDesc,
+      SalesItemLineDetail: {
+        ItemRef: partsItem,
+        Qty: 1,
+        UnitPrice: partsTotalCents / 100,
+      },
+    });
+  }
+
+  if (otherCostsCents > 0) {
+    const otherItem = await getOrCreateSalesItem(
+      accessToken,
+      realmId,
+      QBO_INVOICE_ITEM_NAMES.other,
+      "Service",
+      incomeRef,
+    );
+    let isFirstOther = true;
+    for (const cost of otherCosts) {
+      const otherAmountCents = getCostAmountCents(cost);
+      if (otherAmountCents <= 0) continue;
+      const desc =
+        primary === "other" && isFirstOther && pmPublicDesc.trim().length > 0
+          ? `${pmPublicDesc.trim()}\n\n${cost.description}`
+          : cost.description;
+      lines.push({
+        Amount: otherAmountCents / 100,
+        DetailType: "SalesItemLineDetail",
+        Description: desc,
+        SalesItemLineDetail: {
+          ItemRef: otherItem,
+          Qty: cost.quantity,
+          UnitPrice: cost.unit_price_cents / 100,
+        },
+      });
+      isFirstOther = false;
+    }
+  }
+
+  if (truckSuppliesCents > 0) {
+    const truckSuppliesItem = await getOrCreateSalesItem(
+      accessToken,
+      realmId,
+      QBO_INVOICE_ITEM_NAMES.truckSupplies,
+      "Service",
+      incomeRef,
+    );
+    const truckDesc =
+      primary === "truck" && pmPublicDesc.trim().length > 0
+        ? `${pmPublicDesc.trim()}\n\nTruck Supplies`
+        : "Truck Supplies";
+
+    lines.push({
+      Amount: truckSuppliesCents / 100,
+      DetailType: "SalesItemLineDetail",
+      Description: truckDesc,
+      SalesItemLineDetail: {
+        ItemRef: truckSuppliesItem,
+        Qty: 1,
+        UnitPrice: truckSuppliesCents / 100,
+      },
+    });
+  }
+
+  return lines;
+}
+
+export const __testables = {
+  escapeQuickBooksQueryValue,
+  buildPMInvoiceDescription,
+  buildPrivateNote,
+  buildInvoiceLines,
+  resolveIncomeAccountRef,
+  getOrCreateSalesItem,
+};
