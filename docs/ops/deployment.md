@@ -216,7 +216,7 @@ It does **not** run `vercel promote`. The maintainer manually promotes in the Ve
 |----------|---------------------|
 | `SUPABASE_ACCESS_TOKEN` | `op://EquipQR Agents/supabase-write/SUPABASE_ACCESS_TOKEN` |
 | `SUPABASE_DB_PASSWORD` | `op://EquipQR Agents/supabase-write/prod_db_password` |
-| `VERCEL_TOKEN` | `op://EquipQR Agents/vercel-write/credential` |
+| `VERCEL_TOKEN` | `op://EquipQR Agents/vercel-write/VERCEL_TOKEN` |
 
 Keep these database passwords on the `supabase-write` item in sync with **Supabase Dashboard → Project Settings → Database** (the Postgres password) for each project:
 
