@@ -9,6 +9,9 @@ import {
   fetchPayment,
   type QuickBooksPayment,
 } from "./payment-linked-invoices.ts";
+import { __syncTestables } from "./index.ts";
+
+const { refreshTokenIfNeeded } = __syncTestables;
 
 type UpdateCapture = {
   payload: Record<string, unknown>;
@@ -242,4 +245,74 @@ Deno.test("extractLinkedInvoiceIdsFromPayment returns empty when no Invoice link
     }),
     [],
   );
+});
+
+Deno.test("refreshTokenIfNeeded returns current access_token without refresh when still valid", async () => {
+  const futureExpiry = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+  const credential = {
+    id: "cred-1",
+    organization_id: "org-1",
+    realm_id: "realm-1",
+    access_token: "current-access-token",
+    refresh_token: "current-refresh-token",
+    access_token_expires_at: futureExpiry,
+    refresh_token_expires_at: futureExpiry,
+  };
+  const fakeClient = { from: () => ({ update: () => ({ eq: () => Promise.resolve({ error: null }) }) }) };
+
+  const result = await refreshTokenIfNeeded(credential, fakeClient, "client-id", "client-secret");
+  assertEquals(result.accessToken, "current-access-token");
+  assertEquals(result.credential, credential);
+});
+
+Deno.test("refreshTokenIfNeeded returns rotated tokens and updated in-memory credential after refresh", async () => {
+  const expiredExpiry = new Date(Date.now() - 60 * 1000).toISOString();
+  const futureRefresh = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
+  const credential = {
+    id: "cred-2",
+    organization_id: "org-2",
+    realm_id: "realm-2",
+    access_token: "old-access-token",
+    refresh_token: "old-refresh-token",
+    access_token_expires_at: expiredExpiry,
+    refresh_token_expires_at: futureRefresh,
+  };
+
+  let dbUpdatePayload: Record<string, unknown> = {};
+  const fakeClient = {
+    from: (_table: string) => ({
+      update: (payload: Record<string, unknown>) => {
+        dbUpdatePayload = payload;
+        return { eq: () => Promise.resolve({ error: null }) };
+      },
+    }),
+  };
+
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = () =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            access_token: "new-access-token",
+            refresh_token: "new-refresh-token",
+            token_type: "bearer",
+            expires_in: 3600,
+            x_refresh_token_expires_in: 8726400,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+
+    const result = await refreshTokenIfNeeded(credential, fakeClient, "client-id", "client-secret");
+
+    assertEquals(result.accessToken, "new-access-token");
+    assertEquals(result.credential.access_token, "new-access-token");
+    assertEquals(result.credential.refresh_token, "new-refresh-token");
+    assertEquals(result.credential.id, "cred-2");
+    assertEquals(dbUpdatePayload.access_token, "new-access-token");
+    assertEquals(dbUpdatePayload.refresh_token, "new-refresh-token");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

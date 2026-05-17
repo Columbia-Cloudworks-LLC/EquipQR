@@ -60,6 +60,13 @@ interface InvoiceEvent {
   attempts: number;
 }
 
+interface WorkOrderInvoiceRow {
+  id: string;
+  organization_id: string;
+  quickbooks_realm_id: string;
+  quickbooks_invoice_id: string;
+}
+
 function validateServiceRoleAuth(req: Request, expected: string): boolean {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) return false;
@@ -72,10 +79,10 @@ async function refreshTokenIfNeeded(
   supabaseClient: any,
   clientId: string,
   clientSecret: string,
-): Promise<string> {
+): Promise<{ accessToken: string; credential: QuickBooksCredential }> {
   const now = new Date();
   if (new Date(credential.access_token_expires_at) > new Date(now.getTime() + 5 * 60 * 1000)) {
-    return credential.access_token;
+    return { accessToken: credential.access_token, credential };
   }
 
   if (new Date(credential.refresh_token_expires_at) <= now) {
@@ -102,18 +109,27 @@ async function refreshTokenIfNeeded(
   }
 
   const tokenData: IntuitTokenResponse = await response.json();
+  const newAccessTokenExpiresAt = new Date(now.getTime() + tokenData.expires_in * 1000).toISOString();
+  const newRefreshTokenExpiresAt = new Date(now.getTime() + tokenData.x_refresh_token_expires_in * 1000).toISOString();
   await supabaseClient
     .from("quickbooks_credentials")
     .update({
       access_token: tokenData.access_token,
       refresh_token: tokenData.refresh_token,
-      access_token_expires_at: new Date(now.getTime() + tokenData.expires_in * 1000).toISOString(),
-      refresh_token_expires_at: new Date(now.getTime() + tokenData.x_refresh_token_expires_in * 1000).toISOString(),
+      access_token_expires_at: newAccessTokenExpiresAt,
+      refresh_token_expires_at: newRefreshTokenExpiresAt,
       updated_at: now.toISOString(),
     })
     .eq("id", credential.id);
 
-  return tokenData.access_token;
+  const refreshedCredential: QuickBooksCredential = {
+    ...credential,
+    access_token: tokenData.access_token,
+    refresh_token: tokenData.refresh_token,
+    access_token_expires_at: newAccessTokenExpiresAt,
+    refresh_token_expires_at: newRefreshTokenExpiresAt,
+  };
+  return { accessToken: tokenData.access_token, credential: refreshedCredential };
 }
 
 async function fetchInvoice(
@@ -228,7 +244,8 @@ async function processInvoiceEvents(
       const credential = credentialsByKey.get(credentialKey(event.organization_id, event.realm_id));
       if (!credential) throw new Error("No QuickBooks credentials for event realm and organization");
 
-      const accessToken = await refreshTokenIfNeeded(credential, supabaseClient, clientId, clientSecret);
+      const { accessToken, credential: refreshedCredential } = await refreshTokenIfNeeded(credential, supabaseClient, clientId, clientSecret);
+      credentialsByKey.set(credentialKey(event.organization_id, event.realm_id), refreshedCredential);
 
       if (event.entity_name === "Invoice") {
         const { invoice, intuitTid } = await fetchInvoice(accessToken, event.realm_id, event.entity_id);
@@ -248,7 +265,11 @@ async function processInvoiceEvents(
         logStep("Payment fetched", { entity_id: event.entity_id, payment_intuit_tid: paymentIntuitTid });
         const invoiceIds = extractLinkedInvoiceIdsFromPayment(payment);
         if (invoiceIds.length === 0) {
-          throw new Error("QuickBooks Payment event did not reference any Invoice transactions");
+          logStep("Payment has no linked Invoice transactions — skipping as no-op", {
+            event_id: event.id,
+            entity_id: event.entity_id,
+            payment_intuit_tid: paymentIntuitTid,
+          });
         }
         for (const invoiceId of invoiceIds) {
           const { invoice, intuitTid } = await fetchInvoice(accessToken, event.realm_id, invoiceId);
@@ -294,7 +315,7 @@ async function reconcileOpenInvoices(
     .limit(RECONCILE_BATCH_SIZE);
 
   if (error) throw error;
-  const candidates = rows ?? [];
+  const candidates: WorkOrderInvoiceRow[] = rows ?? [];
   const credentialsByKey = await loadCredentialsByOrgRealm(
     supabaseClient,
     candidates
@@ -309,7 +330,8 @@ async function reconcileOpenInvoices(
     try {
       const credential = credentialsByKey.get(credentialKey(row.organization_id, row.quickbooks_realm_id));
       if (!credential) throw new Error("No QuickBooks credentials for invoice realm and organization");
-      const accessToken = await refreshTokenIfNeeded(credential, supabaseClient, clientId, clientSecret);
+      const { accessToken, credential: refreshedCredential } = await refreshTokenIfNeeded(credential, supabaseClient, clientId, clientSecret);
+      credentialsByKey.set(credentialKey(row.organization_id, row.quickbooks_realm_id), refreshedCredential);
       const { invoice, intuitTid } = await fetchInvoice(
         accessToken,
         row.quickbooks_realm_id,
@@ -390,4 +412,6 @@ export const __syncTestables = {
   deriveQuickBooksInvoiceStatus,
   validateServiceRoleAuth,
   updateMirroredWorkOrders,
+  refreshTokenIfNeeded,
+  extractLinkedInvoiceIdsFromPayment,
 };
