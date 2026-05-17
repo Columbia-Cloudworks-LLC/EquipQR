@@ -4,6 +4,10 @@ import {
   type QuickBooksInvoice,
 } from "../quickbooks-export-invoice/qbo-invoice-payload.ts";
 import { updateMirroredWorkOrders } from "./mirror-work-orders.ts";
+import {
+  extractLinkedInvoiceIdsFromPayment,
+  type QuickBooksPayment,
+} from "./payment-linked-invoices.ts";
 
 type UpdateCapture = {
   payload: Record<string, unknown>;
@@ -108,4 +112,50 @@ Deno.test("updateMirroredWorkOrders null-guards invoice_sent_at when status is s
   const sentFollowUp = updates.find((u) => "invoice_sent_at" in u.payload);
   assertEquals(sentFollowUp !== undefined, true);
   assertEquals(sentFollowUp!.hasSentNullGuard, true);
+});
+
+Deno.test("extractLinkedInvoiceIdsFromPayment collects unique Invoice-linked TxnIds across lines", () => {
+  const payment: QuickBooksPayment = {
+    Id: "pay-1",
+    Line: [
+      {
+        LinkedTxn: [
+          { TxnId: "70", TxnType: "Invoice" },
+          { TxnId: "70", TxnType: "Invoice" },
+        ],
+      },
+      {
+        LinkedTxn: [
+          { TxnId: "71", TxnType: "invoice" },
+        ],
+      },
+    ],
+  };
+  assertEquals(extractLinkedInvoiceIdsFromPayment(payment), ["70", "71"]);
+});
+
+Deno.test("extractLinkedInvoiceIdsFromPayment ignores non-Invoice linked types and blank ids", () => {
+  const payment: QuickBooksPayment = {
+    Line: [
+      {
+        LinkedTxn: [
+          { TxnId: "80", TxnType: "CreditMemo" },
+          { TxnId: "  ", TxnType: "Invoice" },
+          { TxnId: "81", TxnType: "Invoice" },
+        ],
+      },
+    ],
+  };
+  assertEquals(extractLinkedInvoiceIdsFromPayment(payment), ["81"]);
+});
+
+Deno.test("extractLinkedInvoiceIdsFromPayment returns empty when no Invoice links", () => {
+  assertEquals(extractLinkedInvoiceIdsFromPayment({}), []);
+  assertEquals(extractLinkedInvoiceIdsFromPayment({ Line: [] }), []);
+  assertEquals(
+    extractLinkedInvoiceIdsFromPayment({
+      Line: [{ LinkedTxn: [{ TxnId: "1", TxnType: "Check" }] }],
+    }),
+    [],
+  );
 });

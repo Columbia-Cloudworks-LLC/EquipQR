@@ -13,6 +13,10 @@ import {
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
 import { deriveQuickBooksInvoiceStatus, type QuickBooksInvoice } from "../quickbooks-export-invoice/qbo-invoice-payload.ts";
+import {
+  extractLinkedInvoiceIdsFromPayment,
+  fetchPayment,
+} from "./payment-linked-invoices.ts";
 import { updateMirroredWorkOrders } from "./mirror-work-orders.ts";
 
 const FUNCTION_NAME = "quickbooks-sync-invoice-status";
@@ -204,8 +208,9 @@ async function processInvoiceEvents(
       const credential = credentialsByRealm.get(event.realm_id);
       if (!credential) throw new Error("No QuickBooks credentials for event realm");
 
+      const accessToken = await refreshTokenIfNeeded(credential, supabaseClient, clientId, clientSecret);
+
       if (event.entity_name === "Invoice") {
-        const accessToken = await refreshTokenIfNeeded(credential, supabaseClient, clientId, clientSecret);
         const { invoice } = await fetchInvoice(accessToken, event.realm_id, event.entity_id);
         await updateMirroredWorkOrders(supabaseClient, {
           organizationId: event.organization_id,
@@ -213,6 +218,22 @@ async function processInvoiceEvents(
           invoice,
           operation: event.operation,
         });
+      } else if (event.entity_name === "Payment") {
+        const payment = await fetchPayment(accessToken, event.realm_id, event.entity_id);
+        const invoiceIds = extractLinkedInvoiceIdsFromPayment(payment);
+        if (invoiceIds.length === 0) {
+          throw new Error("QuickBooks Payment event did not reference any Invoice transactions");
+        }
+        for (const invoiceId of invoiceIds) {
+          const { invoice } = await fetchInvoice(accessToken, event.realm_id, invoiceId);
+          await updateMirroredWorkOrders(supabaseClient, {
+            organizationId: event.organization_id,
+            realmId: event.realm_id,
+            invoice,
+          });
+        }
+      } else {
+        throw new Error(`Unsupported QuickBooks event entity_name: ${(event as InvoiceEvent).entity_name}`);
       }
 
       await markEvent(supabaseClient, event.id, "processed");

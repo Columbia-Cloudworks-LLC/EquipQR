@@ -97,6 +97,12 @@ describe('useWorkOrderFilters', () => {
         invoiceStatus: 'draft',
       }),
       baseWorkOrder({
+        id: 'wo-voided',
+        title: 'Voided invoice WO',
+        quickbooksInvoiceId: 'inv-voided',
+        invoiceStatus: 'voided',
+      }),
+      baseWorkOrder({
         id: 'wo-unexported',
         title: 'Not exported WO',
         quickbooksInvoiceId: null,

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { isToday, isThisWeek } from 'date-fns';
-import { WorkOrderFilters, WorkOrderData } from '@/features/work-orders/types/workOrder';
+import { WorkOrderFilters, WorkOrderData, type QuickBooksInvoiceStatus } from '@/features/work-orders/types/workOrder';
 import { getPriorityValue, isOverdue } from '@/features/work-orders/utils/workOrderHelpers';
 
 export type QuickFilterPreset = 'my-work' | 'urgent' | 'overdue' | 'unassigned';
@@ -17,6 +17,15 @@ const PRESET_FILTER_MAP: Record<QuickFilterPreset, { key: keyof WorkOrderFilters
   'overdue':    { key: 'dueDateFilter',  value: 'overdue' },
   'unassigned': { key: 'assigneeFilter', value: 'unassigned' },
 };
+
+/** Collectible invoice balances for the Work Orders "Unpaid" filter (excludes paid, voided, and unknown). */
+const COLLECTIBLE_UNPAID_INVOICE_STATUSES: ReadonlySet<QuickBooksInvoiceStatus> = new Set([
+  'draft',
+  'sent',
+  'viewed',
+  'partially_paid',
+  'overdue',
+]);
 
 export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?: string) => {
   const [filters, setFilters] = useState<WorkOrderFilters>({
@@ -60,12 +69,16 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
                             (filters.dueDateFilter === 'this_week' && order.dueDate && isThisWeek(new Date(order.dueDate)));
 
       const invoiceStatus = order.invoiceStatus ?? order.invoice_status ?? null;
+      const hasExportedInvoice = Boolean(order.quickbooksInvoiceId ?? order.quickbooks_invoice_id);
       const matchesInvoice =
         filters.invoiceFilter === 'all' ||
         (filters.invoiceFilter === 'paid' && invoiceStatus === 'paid') ||
         (filters.invoiceFilter === 'overdue' && invoiceStatus === 'overdue') ||
-        (filters.invoiceFilter === 'not_exported' && !order.quickbooksInvoiceId && !order.quickbooks_invoice_id) ||
-        (filters.invoiceFilter === 'unpaid' && Boolean(order.quickbooksInvoiceId ?? order.quickbooks_invoice_id) && invoiceStatus !== 'paid');
+        (filters.invoiceFilter === 'not_exported' && !hasExportedInvoice) ||
+        (filters.invoiceFilter === 'unpaid' &&
+          hasExportedInvoice &&
+          invoiceStatus != null &&
+          COLLECTIBLE_UNPAID_INVOICE_STATUSES.has(invoiceStatus));
 
       return matchesSearch && matchesStatus && matchesAssignee && matchesTeam && matchesPriority && matchesDueDate && matchesInvoice;
     });
