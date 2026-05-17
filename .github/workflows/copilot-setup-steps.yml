@@ -9,11 +9,13 @@ on:
       - .github/workflows/copilot-setup-steps.yml
       - .github/actions/load-1p-secrets/**
       - scripts/agent-bootstrap.sh
+      - scripts/cloud-agent-frontend-setup.sh
   pull_request:
     paths:
       - .github/workflows/copilot-setup-steps.yml
       - .github/actions/load-1p-secrets/**
       - scripts/agent-bootstrap.sh
+      - scripts/cloud-agent-frontend-setup.sh
 
 jobs:
   # MUST be named exactly `copilot-setup-steps` to be picked up by the agent.

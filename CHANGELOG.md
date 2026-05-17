@@ -156,6 +156,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Cursor Cloud Agent environment bootstrap failures** — `.nvmrc` now matches the Node 24 runtime required by `package.json`; `scripts/cloud-agent-frontend-setup.sh` loads/installs Node 24 through `nvm` before `npm ci` so cold VMs no longer fail with `EBADENGINE`; Linux `scripts/agent-bootstrap.sh` now reads the populated `gcp-read/SERVICE_ACCOUNT_JSON` field before legacy credential fields and validates service-account JSON before writing the gcloud MCP key.
+
 - **Slow 4G P0/P1 performance bottlenecks** ([#708](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/708)) — `Dashboard` prefetches Equipment, Work Orders, and Inventory List chunks 1.5 s after mount so SPA navigation is instant on constrained links; lazy-route `<Suspense>` fallbacks replaced with `PageSkeleton` shimmer cards for perceived-progress feedback during chunk hydration; `SimpleOrganizationProvider` short-circuits a duplicate `organization_members` fetch when `SessionProvider` has already resolved org data (saves 2 Supabase round-trips per dashboard mount); `teamBasedWorkOrderService.getTeamBasedWorkOrders` skips `getAccessibleEquipmentIds` + `IN()` filter for org-admin sessions (eliminates 3 KB URL bloat and a redundant equipment table scan); `useWorkOrders` default stale time raised 30 s → 2 min and extended stale time 1 min → 5 min to prevent refetch on every SPA hop.
 
 - **Requestor team role missing from `TeamCollaboration` marketing roles matrix** — Role now listed in canonical order (Manager / Technician / Requestor / Viewer) on the public feature page.
