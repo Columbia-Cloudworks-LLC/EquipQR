@@ -82,11 +82,6 @@ export const QBO_INVOICE_ITEM_NAMES = {
   labor: envOrDefault(Deno.env.get("QBO_INVOICE_LABOR_ITEM_NAME"), "Labor"),
   /** Summarized billable parts / materials line (non-inventory by default). */
   parts: envOrDefault(Deno.env.get("QBO_INVOICE_PARTS_ITEM_NAME"), "Parts"),
-  truckSupplies: envOrDefault(
-    Deno.env.get("QBO_INVOICE_TRUCK_SUPPLIES_ITEM_NAME"),
-    "Truck Supplies",
-  ),
-  other: envOrDefault(Deno.env.get("QBO_INVOICE_OTHER_ITEM_NAME"), "Other"),
 } as const;
 
 /**
@@ -124,12 +119,6 @@ export function resolveQboDefaultLaborRateCents(): number {
 
 /** @deprecated Prefer {@link resolveQboDefaultLaborRateCents} — reads env at call time (tests, late injection). */
 export const QBO_DEFAULT_LABOR_RATE_CENTS = resolveQboDefaultLaborRateCents();
-
-/** Default truck supplies fee (in cents) appended when no explicit truck fee cost is present. */
-export const QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS = envNumberOrDefault(
-  Deno.env.get("QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS"),
-  0,
-);
 
 /**
  * Extracts the `intuit_tid` header from a QuickBooks API response.

@@ -2,6 +2,7 @@
  * Deno unit tests for QuickBooks invoice line builders (summarized Labor/Parts, PM copy).
  */
 import { assertEquals, assertMatch, assertRejects } from "jsr:@std/assert@1";
+import { QBO_INVOICE_ITEM_NAMES } from "../_shared/quickbooks-config.ts";
 import { __testables } from "./qbo-invoice-lines.ts";
 
 const {
@@ -258,11 +259,11 @@ Deno.test("buildInvoiceLines emits one Parts line for multiple inventory-backed 
     assertEquals(partsLines[0]!.SalesItemLineDetail.UnitPrice, 5);
 
     const laborPosts = postBodies.map((p) => JSON.parse(p) as { Type: string; Name: string }).filter((p) =>
-      p.Name === "Labor"
+      p.Name === QBO_INVOICE_ITEM_NAMES.labor
     );
     const partsPosts = postBodies.filter((p) => {
       const j = JSON.parse(p) as { Type: string; Name: string };
-      return j.Name === "Parts";
+      return j.Name === QBO_INVOICE_ITEM_NAMES.parts;
     }).map((p) => JSON.parse(p) as { Type: string });
 
     assertEquals(laborPosts.length === 0, true);
@@ -295,11 +296,17 @@ Deno.test("buildInvoiceLines uses Service type for Labor item creation and reuse
 
       if (url.includes("/query") && url.includes(encodeURIComponent("Item"))) {
         const decoded = decodeURIComponent(url);
-        if (decoded.includes("Labor")) {
+        if (decoded.includes(QBO_INVOICE_ITEM_NAMES.labor)) {
           return Promise.resolve(
             new Response(
               JSON.stringify({
-                QueryResponse: { Item: [{ Id: "existing-labor", Name: "Labor", Type: "Service" }] },
+                QueryResponse: {
+                  Item: [{
+                    Id: "existing-labor",
+                    Name: QBO_INVOICE_ITEM_NAMES.labor,
+                    Type: "Service",
+                  }],
+                },
               }),
               { status: 200, headers: { "Content-Type": "application/json" } },
             ),
@@ -351,7 +358,7 @@ Deno.test("buildInvoiceLines uses Service type for Labor item creation and reuse
     assertEquals(lines[0]!.SalesItemLineDetail.ItemRef.value, "existing-labor");
 
     const laborCreates = postBodies.map((p) => JSON.parse(p) as { Name: string; Type: string }).filter((p) =>
-      p.Name === "Labor"
+      p.Name === QBO_INVOICE_ITEM_NAMES.labor
     );
     assertEquals(laborCreates.length, 0);
   } finally {
@@ -434,8 +441,8 @@ Deno.test("buildInvoiceLines produces Labor and Parts rows when both totals are 
     assertEquals(lines[1]!.Description, "Parts");
 
     const parsedPosts = postBodies.map((p) => JSON.parse(p) as { Name: string; Type: string });
-    const laborCreate = parsedPosts.find((p) => p.Name === "Labor");
-    const partsCreate = parsedPosts.find((p) => p.Name === "Parts");
+    const laborCreate = parsedPosts.find((p) => p.Name === QBO_INVOICE_ITEM_NAMES.labor);
+    const partsCreate = parsedPosts.find((p) => p.Name === QBO_INVOICE_ITEM_NAMES.parts);
     assertEquals(laborCreate?.Type, "Service");
     assertEquals(partsCreate?.Type, "NonInventory");
   } finally {
@@ -614,7 +621,7 @@ Deno.test("buildInvoiceLines folds Truck Supplies cost row into summarized Parts
     const parsedPosts = postBodies.map((p) => JSON.parse(p) as { Name: string; Type: string });
     assertEquals(parsedPosts.some((p) => p.Name === "Truck Supplies"), false);
     assertEquals(parsedPosts.some((p) => p.Name === "Other"), false);
-    assertEquals(parsedPosts.some((p) => p.Name === "Parts"), true);
+    assertEquals(parsedPosts.some((p) => p.Name === QBO_INVOICE_ITEM_NAMES.parts), true);
   } finally {
     restoreFetch(originalFetch);
   }
@@ -941,14 +948,16 @@ Deno.test("getOrCreateSalesItem reuses existing item without calling resolveInco
     globalThis.fetch = (_input: RequestInfo | URL) => {
       return Promise.resolve(
         new Response(
-          JSON.stringify({ QueryResponse: { Item: [{ Id: "existing-id", Name: "Labor" }] } }),
+          JSON.stringify({
+            QueryResponse: { Item: [{ Id: "existing-id", Name: QBO_INVOICE_ITEM_NAMES.labor }] },
+          }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         ),
       );
     };
 
     const { getOrCreateSalesItem: getOrCreate } = __testables;
-    const result = await getOrCreate("tok", REALM, "Labor", "Service", async () => {
+    const result = await getOrCreate("tok", REALM, QBO_INVOICE_ITEM_NAMES.labor, "Service", async () => {
       incomeRefCalls++;
       return { value: "inc-99" };
     });
@@ -988,7 +997,7 @@ Deno.test("getOrCreateSalesItem rejects throttled item query (429) without POST 
     const { getOrCreateSalesItem: getOrCreate } = __testables;
     await assertRejects(
       async () =>
-        await getOrCreate("tok", REALM, "Labor", "Service", async () => {
+        await getOrCreate("tok", REALM, QBO_INVOICE_ITEM_NAMES.labor, "Service", async () => {
           incomeRefCalls++;
           return { value: "inc-1" };
         }),
@@ -1032,7 +1041,7 @@ Deno.test("getOrCreateSalesItem rejects Fault item query response without POST o
     const { getOrCreateSalesItem: getOrCreate } = __testables;
     await assertRejects(
       async () =>
-        await getOrCreate("tok", REALM, "Labor", "Service", async () => {
+        await getOrCreate("tok", REALM, QBO_INVOICE_ITEM_NAMES.labor, "Service", async () => {
           incomeRefCalls++;
           return { value: "inc-1" };
         }),
