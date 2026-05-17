@@ -10,7 +10,7 @@ name: Production Release Readiness
 # Required 1Password fields (EquipQR Agents vault), loaded via OP_SERVICE_ACCOUNT_TOKEN:
 #   - supabase-write / SUPABASE_ACCESS_TOKEN
 #   - supabase-write / prod_db_password  (production DB password for `supabase link`)
-#   - vercel-write / credential           (Vercel token for deployment polling)
+#   - vercel-write / VERCEL_TOKEN         (Vercel token for deployment polling)
 
 on:
   push:
@@ -48,7 +48,7 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: op://EquipQR Agents/supabase-write/SUPABASE_ACCESS_TOKEN
           SUPABASE_DB_PASSWORD: op://EquipQR Agents/supabase-write/prod_db_password
-          VERCEL_TOKEN: op://EquipQR Agents/vercel-write/credential
+          VERCEL_TOKEN: op://EquipQR Agents/vercel-write/VERCEL_TOKEN
 
       - name: Verify secrets resolved
         shell: bash
