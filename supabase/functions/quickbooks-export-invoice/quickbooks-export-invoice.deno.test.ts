@@ -142,6 +142,39 @@ Deno.test("resolveIncomeAccountRef throws actionable message when no Income acco
   }
 });
 
+Deno.test("resolveIncomeAccountRef throws when configured ID returns non-OK HTTP", async () => {
+  const originalFetch = globalThis.fetch;
+  const prevConfiguredId = Deno.env.get("QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID");
+  try {
+    Deno.env.set("QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID", "missing-account-99");
+    globalThis.fetch = (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/account/missing-account-99")) {
+        return Promise.resolve(new Response("Not Found", { status: 404 }));
+      }
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({ QueryResponse: { Account: [{ Id: "inc-should-not-run", Name: "Sales" }] } }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    };
+
+    await assertRejects(
+      async () => await resolveIncomeAccountRef("tok", REALM),
+      Error,
+      "QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID",
+    );
+  } finally {
+    restoreFetch(originalFetch);
+    if (prevConfiguredId === undefined) {
+      Deno.env.delete("QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID");
+    } else {
+      Deno.env.set("QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID", prevConfiguredId);
+    }
+  }
+});
+
 Deno.test("buildInvoiceLines emits one Parts line for multiple inventory-backed costs", async () => {
   const originalFetch = globalThis.fetch;
   const postBodies: string[] = [];
@@ -590,6 +623,8 @@ Deno.test("buildInvoiceLines Labor uses clamped rounded Qty and matching UnitPri
     const unit = lines[0]!.SalesItemLineDetail.UnitPrice;
     assertEquals(qty, 0.01);
     assertEquals(unit, 5000);
+    assertMatch(lines[0]!.Description ?? "", /Labor \(0\.01 hrs\)/);
+    assertEquals((lines[0]!.Description ?? "").includes("Labor (0.00 hrs)"), false);
   } finally {
     restoreFetch(originalFetch);
   }

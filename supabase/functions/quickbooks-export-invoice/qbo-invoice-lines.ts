@@ -171,24 +171,35 @@ export async function resolveIncomeAccountRef(
       `${QBO_API_BASE}/v3/company/${realmId}/account/${encodeURIComponent(configuredIncomeAccountId)}`,
     );
     const res = await fetch(url, { method: "GET", headers });
-    if (res.ok) {
-      const data = await res.json();
-      if (
-        !data.Fault &&
-        data.Account?.Id &&
-        data.Account?.AccountType === "Income" &&
-        data.Account?.Active !== false
-      ) {
-        logStep("Resolved income account by configured Id", { id: data.Account.Id });
-        return { value: data.Account.Id, name: data.Account.Name };
-      }
-      logStep("Configured income account Id not usable (not an active Income account)", {
-        id: data.Account?.Id,
-        accountType: data.Account?.AccountType,
-        active: data.Account?.Active,
-        fault: data.Fault ? JSON.stringify(data.Fault).slice(0, 300) : undefined,
+    if (!res.ok) {
+      const errorBody = await res.text();
+      const bodySnippet = errorBody.length > 500 ? `${errorBody.slice(0, 500)}…` : errorBody;
+      logStep("Configured income account Id lookup failed", {
+        id: configuredIncomeAccountId,
+        status: res.status,
+        body_snippet: bodySnippet.substring(0, 300),
       });
+      throw new Error(
+        `QuickBooks Income account lookup failed for configured QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID (${configuredIncomeAccountId}) ` +
+          `with HTTP ${res.status}: ${bodySnippet.substring(0, 400)}. ${INCOME_ACCOUNT_CONFIGURE_HINT}`,
+      );
     }
+    const data = await res.json();
+    if (
+      !data.Fault &&
+      data.Account?.Id &&
+      data.Account?.AccountType === "Income" &&
+      data.Account?.Active !== false
+    ) {
+      logStep("Resolved income account by configured Id", { id: data.Account.Id });
+      return { value: data.Account.Id, name: data.Account.Name };
+    }
+    logStep("Configured income account Id not usable (not an active Income account)", {
+      id: data.Account?.Id,
+      accountType: data.Account?.AccountType,
+      active: data.Account?.Active,
+      fault: data.Fault ? JSON.stringify(data.Fault).slice(0, 300) : undefined,
+    });
   }
 
   if (QBO_INVOICE_ITEM_INCOME_ACCOUNT_NAME) {
@@ -524,8 +535,12 @@ export async function buildInvoiceLines(
 
   const lines: InvoiceSalesLines = [];
 
+  // Same rounded/clamped quantity for customer-facing description and QuickBooks Qty.
+  const laborQty = loggedHours > 0
+    ? Math.max(0.01, Number(loggedHours.toFixed(2)))
+    : 1;
   const laborShortDescription = loggedHours > 0
-    ? `Labor (${loggedHours.toFixed(2)} hrs)`
+    ? `Labor (${laborQty.toFixed(2)} hrs)`
     : "Labor";
 
   if (laborTotalCents > 0) {
@@ -536,10 +551,6 @@ export async function buildInvoiceLines(
       "Service",
       lazyIncomeRef,
     );
-    // Same rounded quantity for Qty and UnitPrice so tiny logs cannot yield Qty=0 vs unrounded hours.
-    const laborQty = loggedHours > 0
-      ? Math.max(0.01, Number(loggedHours.toFixed(2)))
-      : 1;
     const laborUnit = (laborTotalCents / 100) / laborQty;
     const laborDescRaw =
       primary === "labor" && pmPublicDesc.trim().length > 0
