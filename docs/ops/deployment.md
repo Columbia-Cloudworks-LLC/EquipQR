@@ -100,10 +100,10 @@ export const config = {
     anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
   },
   services: {
-    stripe: {
-      publishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
-    },
     maps: {
+      // Build-time fallback only. The Maps browser key is normally fetched at
+      // runtime from the `public-google-maps-key` Edge Function, which reads
+      // the `GOOGLE_MAPS_BROWSER_KEY` Supabase secret.
       apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     },
   },
@@ -187,8 +187,7 @@ Configure these environment variables in your Vercel project dashboard:
 
 **Optional:**
 - `VITE_APP_VERSION`: Application version (defaults to 'dev')
-- `VITE_STRIPE_PUBLISHABLE_KEY`: Stripe integration key
-- `VITE_GOOGLE_MAPS_API_KEY`: Google Maps API key
+- `VITE_GOOGLE_MAPS_API_KEY`: Google Maps API key (build-time fallback; the runtime key is normally served by the `public-google-maps-key` Edge Function — see [Secrets Checklist](#secrets-checklist))
 - `VITE_GOOGLE_WORKSPACE_CLIENT_ID`: Shared Google OAuth web client ID (Workspace sync + Picker token flow)
 - `VITE_GOOGLE_PICKER_API_KEY`: Google Picker browser key
 - `VITE_GOOGLE_PICKER_APP_ID`: Google Cloud project number (Picker App ID)
