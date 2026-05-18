@@ -265,11 +265,12 @@ EquipQR follows strict coding standards to maintain quality and consistency.
 
 ### Architecture Patterns
 
-Follow the patterns documented in [`docs/architecture/`](./docs/architecture/):
+Follow the patterns documented in [`docs/technical/architecture.md`](./docs/technical/architecture.md):
 
 1. **Component Hierarchy**:
    - Pages: `src/pages/` (route-level, <300 LOC)
-   - Features: `src/components/[feature]/` (e.g., `equipment/`, `work-orders/`)
+   - Features: `src/features/[feature]/` (e.g., `equipment/`, `work-orders/`, `teams/`) — domain-scoped pages, components, hooks, and services
+   - Cross-cutting UI: `src/components/[area]/` (e.g., `auth/`, `layout/`, `navigation/`, `providers/`)
    - UI Primitives: `src/components/ui/` (shadcn-style, no business logic)
 
 2. **Data Patterns**:

@@ -308,16 +308,24 @@ Use `-UseHardLink` if you want the worktree to share the same files as the sourc
 
 ```
 src/
-├── components/          # React components
-│   ├── ui/             # Reusable UI components (shadcn/ui)
-│   ├── equipment/      # Equipment-specific components
-│   ├── work-orders/    # Work order components
-│   ├── teams/          # Team management components
+├── features/           # Feature modules (pages, components, hooks, services scoped per domain)
+│   ├── equipment/      # Equipment management feature
+│   ├── work-orders/    # Work orders feature
+│   ├── teams/          # Team management feature
+│   ├── inventory/      # Inventory & parts feature
+│   ├── dashboard/      # Dashboard feature
+│   ├── dsr/            # Data Subject Request (privacy) feature
+│   └── ...             # See src/features/ for the full list
+├── components/         # Cross-cutting React components
+│   ├── ui/             # Reusable UI primitives (shadcn/ui)
 │   ├── auth/           # Authentication components
-│   └── layout/         # Layout components (sidebar, nav, etc.)
-├── pages/              # Route-level page components
-├── hooks/              # Custom React hooks
-├── services/           # API service layer
+│   ├── layout/         # Layout components (sidebar, top bar, etc.)
+│   ├── navigation/     # Navigation components
+│   ├── providers/      # App-wide provider composition
+│   └── ...             # Other cross-cutting areas (landing, support, settings, ...)
+├── pages/              # Top-level route components not owned by a feature module
+├── hooks/              # Shared custom React hooks
+├── services/           # Shared API/service layer
 ├── utils/              # Utility functions
 ├── types/              # TypeScript type definitions
 ├── contexts/           # React Context providers
@@ -328,9 +336,10 @@ src/
 ### Key Architectural Patterns
 
 #### 1. Component Organization
-- **Pages**: Route-level components in `src/pages/`
-- **Feature Components**: Domain-specific components in `src/components/[feature]/`
-- **UI Components**: Reusable primitives in `src/components/ui/`
+- **Feature Modules**: Domain-specific pages, components, hooks, and services in `src/features/[feature]/`
+- **Standalone Pages**: Route-level components in `src/pages/` (typically thin wrappers; most page logic lives under `src/features/[feature]/pages/`)
+- **Cross-cutting Components**: Non-feature components in `src/components/[area]/` (e.g., `auth/`, `layout/`, `navigation/`)
+- **UI Primitives**: Reusable shadcn-style primitives in `src/components/ui/`
 
 #### 2. Data Fetching
 - **TanStack Query** for server state management
