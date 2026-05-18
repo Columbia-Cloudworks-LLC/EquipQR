@@ -209,7 +209,7 @@ async function markEvent(
   status: "processed" | "error",
   lastError?: string,
 ): Promise<void> {
-  await supabaseClient
+  const { error } = await supabaseClient
     .from("quickbooks_invoice_status_events")
     .update({
       status,
@@ -217,6 +217,15 @@ async function markEvent(
       last_error: lastError ? lastError.substring(0, 1000) : null,
     })
     .eq("id", eventId);
+
+  if (error) {
+    logStep("Failed to mark invoice status event", {
+      event_id: eventId,
+      status,
+      error: error.message,
+    });
+    throw new Error(`Failed to mark invoice status event ${eventId}: ${error.message}`);
+  }
 }
 
 /** Atomically claim queued events in Postgres (SKIP LOCKED) so workers cannot duplicate work. */
@@ -422,5 +431,6 @@ export const __syncTestables = {
   refreshTokenIfNeeded,
   extractLinkedInvoiceIdsFromPayment,
   claimInvoiceEvents,
+  markEvent,
   EVENT_BATCH_SIZE,
 };

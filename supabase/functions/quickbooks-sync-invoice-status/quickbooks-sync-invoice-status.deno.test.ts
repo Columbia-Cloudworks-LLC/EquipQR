@@ -12,7 +12,7 @@ import {
 } from "./payment-linked-invoices.ts";
 import { __syncTestables } from "./index.ts";
 
-const { refreshTokenIfNeeded, claimInvoiceEvents, EVENT_BATCH_SIZE } = __syncTestables;
+const { refreshTokenIfNeeded, claimInvoiceEvents, EVENT_BATCH_SIZE, markEvent } = __syncTestables;
 
 /** Records update payload and chained `.eq()` filters for service-role credential writes. */
 function createQuickBooksCredentialUpdateMock(opts?: { persistError?: { message: string } }) {
@@ -451,5 +451,22 @@ Deno.test("claimInvoiceEvents throws when RPC returns an error", async () => {
     async () => await claimInvoiceEvents(fakeClient as unknown as SupabaseClient),
     Error,
     "simulated claim failure",
+  );
+});
+
+Deno.test("markEvent throws when quickbooks_invoice_status_events update fails", async () => {
+  const fakeClient = {
+    from: (_table: string) => ({
+      update: (_payload: Record<string, unknown>) => ({
+        eq: (_col: string, _val: unknown) =>
+          Promise.resolve({ error: { message: "simulated mark failure" } }),
+      }),
+    }),
+  };
+
+  await assertRejects(
+    async () => await markEvent(fakeClient as unknown as SupabaseClient, "evt-mark-1", "processed"),
+    Error,
+    "Failed to mark invoice status event evt-mark-1:",
   );
 });

@@ -32,25 +32,6 @@ function replaceOne(html: string, pattern: RegExp, replacement: string, label: s
   return html.replace(pattern, replacement);
 }
 
-function upsertMetaKeywords(html: string, kw: string | undefined): string {
-  const line = kw ? `    <meta name="keywords" content="${escapeHtml(kw)}" />` : '';
-  const metaRe = /\n?\s*<meta name="keywords" content="[^"]*" \/>/;
-
-  if (kw) {
-    if (metaRe.test(html)) {
-      return html.replace(metaRe, `\n${line}`);
-    }
-    return replaceOne(
-      html,
-      /(<meta name="description" content="[^"]*" \/>)/,
-      `$1\n${line}`,
-      'meta description (for keywords insert)'
-    );
-  }
-
-  return html.replace(metaRe, '');
-}
-
 function buildNavHtml(currentPath: string): string {
   const links = [...MARKETING_ROUTES]
     .filter((r) => r.path !== currentPath)
@@ -103,8 +84,6 @@ export function prerenderMarketingHtmlTemplate(template: string, route: Marketin
     `<meta name="description" content="${escapeHtml(desc)}" />`,
     'meta description'
   );
-
-  out = upsertMetaKeywords(out, route.keywords);
 
   out = replaceOne(
     out,

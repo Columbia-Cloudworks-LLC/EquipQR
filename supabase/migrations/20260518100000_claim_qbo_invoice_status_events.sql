@@ -2,6 +2,8 @@
 -- Uses row locks (FOR UPDATE SKIP LOCKED) so concurrent sync workers cannot
 -- process the same event.
 
+BEGIN;
+
 CREATE OR REPLACE FUNCTION public.claim_quickbooks_invoice_status_events(p_batch_size integer)
 RETURNS SETOF public.quickbooks_invoice_status_events
 LANGUAGE sql
@@ -35,3 +37,5 @@ REVOKE ALL ON FUNCTION public.claim_quickbooks_invoice_status_events(integer) FR
 REVOKE ALL ON FUNCTION public.claim_quickbooks_invoice_status_events(integer) FROM anon;
 REVOKE ALL ON FUNCTION public.claim_quickbooks_invoice_status_events(integer) FROM authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_quickbooks_invoice_status_events(integer) TO service_role;
+
+COMMIT;

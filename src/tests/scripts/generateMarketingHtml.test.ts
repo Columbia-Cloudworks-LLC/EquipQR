@@ -49,8 +49,7 @@ describe('prerenderMarketingHtmlTemplate', () => {
     expect(html).toContain('aria-label="Public marketing pages"');
     expect(html).toContain('Public marketing pages');
     expect(html).toContain('<script type="module" crossorigin src="/assets/index-TESTHASH.js"></script>');
-    expect(html).toContain('<meta name="keywords"');
-    expect(html).toMatch(/work order management, maintenance work orders/);
+    expect(html).not.toContain('<meta name="keywords"');
   });
 
   it('uses canonical home metadata for the /landing compatibility route', () => {
