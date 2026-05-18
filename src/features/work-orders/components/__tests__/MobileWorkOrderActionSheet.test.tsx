@@ -67,7 +67,7 @@ describe('MobileWorkOrderActionSheet', () => {
     expect(pdfIdx).toBeGreaterThan(viewIdx);
   });
 
-  it('shows Admin section with edit and delete requiring DELETE confirmation', async () => {
+  it('shows Admin section with edit and delete', async () => {
     render(
       <MemoryRouter>
         <MobileWorkOrderActionSheet {...baseProps} />
@@ -79,9 +79,5 @@ describe('MobileWorkOrderActionSheet', () => {
     expect(screen.getByRole('alertdialog')).toBeInTheDocument();
     expect(screen.getByText(/All uploaded images/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
-    const deletePermanently = screen.getByRole('button', { name: /delete permanently/i });
-    expect(deletePermanently).toBeDisabled();
-    await userEvent.type(screen.getByLabelText(/type delete to confirm/i), 'DELETE');
-    expect(deletePermanently).not.toBeDisabled();
   });
 });

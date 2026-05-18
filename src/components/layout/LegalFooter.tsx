@@ -50,17 +50,7 @@ export default function LegalFooter() {
             </ExternalLink>
             
             <span className="hidden sm:inline text-muted-foreground/50">·</span>
-
-            <ExternalLink
-              href="https://equipqr.info"
-              className="text-muted-foreground/70 hover:text-foreground transition-colors no-underline hover:underline"
-              showIcon={false}
-            >
-              Documentation
-            </ExternalLink>
-
-            <span className="hidden sm:inline text-muted-foreground/50">·</span>
-
+            
             <Link
               to="/terms-of-service"
               className="text-muted-foreground/70 hover:text-foreground transition-colors"

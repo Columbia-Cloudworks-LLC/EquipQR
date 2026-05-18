@@ -80,69 +80,25 @@ export const QBO_INVOICE_CUSTOM_FIELD_DEFINITION_IDS = {
  */
 export const QBO_INVOICE_ITEM_NAMES = {
   labor: envOrDefault(Deno.env.get("QBO_INVOICE_LABOR_ITEM_NAME"), "Labor"),
-  /** Summarized billable parts / materials line (non-inventory by default). */
-  parts: envOrDefault(Deno.env.get("QBO_INVOICE_PARTS_ITEM_NAME"), "Parts"),
+  truckSupplies: envOrDefault(
+    Deno.env.get("QBO_INVOICE_TRUCK_SUPPLIES_ITEM_NAME"),
+    "Truck Supplies",
+  ),
+  partsPrefix: envOrDefault(Deno.env.get("QBO_INVOICE_PARTS_ITEM_PREFIX"), "Part"),
+  other: envOrDefault(Deno.env.get("QBO_INVOICE_OTHER_ITEM_NAME"), "Other"),
 } as const;
 
-/**
- * @deprecated Invoice export emits one summarized {@link QBO_INVOICE_ITEM_NAMES.parts} line.
- * `QBO_INVOICE_PARTS_ITEM_PREFIX` is no longer used by `quickbooks-export-invoice`;
- * configure {@link QBO_INVOICE_ITEM_NAMES.parts} via `QBO_INVOICE_PARTS_ITEM_NAME` instead.
- */
-export const QBO_INVOICE_PARTS_ITEM_PREFIX = envOrDefault(
-  Deno.env.get("QBO_INVOICE_PARTS_ITEM_PREFIX"),
-  "Part",
-);
-
-/** Optional Income account Id for auto-created invoice items (chart of accounts). */
-export const QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID =
-  Deno.env.get("QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID")?.trim() ?? "";
-
-/** Optional exact Income account Name for auto-created invoice items. */
-export const QBO_INVOICE_ITEM_INCOME_ACCOUNT_NAME =
-  Deno.env.get("QBO_INVOICE_ITEM_INCOME_ACCOUNT_NAME")?.trim() ?? "";
-
-/**
- * QuickBooks Item Type used when creating the summarized Parts product.
- * Only `NonInventory` is supported; any other value falls back safely.
- */
-export function resolveQboInvoicePartsItemType(): "NonInventory" {
-  const raw = Deno.env.get("QBO_INVOICE_PARTS_ITEM_TYPE")?.trim().toLowerCase();
-  if (!raw || raw === "noninventory") return "NonInventory";
-  return "NonInventory";
-}
-
 /** Default labor rate (in cents) used when WO time logs exist but no labor-cost amount is provided. */
-export function resolveQboDefaultLaborRateCents(): number {
-  return envNumberOrDefault(Deno.env.get("QBO_DEFAULT_LABOR_RATE_CENTS"), 0);
-}
-
-/** @deprecated Prefer {@link resolveQboDefaultLaborRateCents} — reads env at call time (tests, late injection). */
-export const QBO_DEFAULT_LABOR_RATE_CENTS = resolveQboDefaultLaborRateCents();
-
-/** Maximum age for cached QuickBooks Customer.Taxable before export must re-confirm. */
-export function resolveQboTaxStatusMaxCacheAgeHours(): number {
-  return Math.max(
-    0,
-    envNumberOrDefault(Deno.env.get("QBO_TAX_STATUS_MAX_CACHE_AGE_HOURS"), 24),
-  );
-}
-
-/** Export behavior when QuickBooks tax status cannot be confirmed and cache is stale/missing. */
-export function resolveQboTaxStatusUnconfirmedMode(): "block" | "warn" {
-  const raw = Deno.env.get("QBO_TAX_STATUS_UNCONFIRMED_MODE")?.trim().toLowerCase();
-  return raw === "warn" ? "warn" : "block";
-}
-
-/** QBO tax code used for customer-level tax-exempt invoices. */
-export const QBO_NON_TAXABLE_TAX_CODE_REF = envOrDefault(
-  Deno.env.get("QBO_NON_TAXABLE_TAX_CODE_REF"),
-  "NON",
+export const QBO_DEFAULT_LABOR_RATE_CENTS = envNumberOrDefault(
+  Deno.env.get("QBO_DEFAULT_LABOR_RATE_CENTS"),
+  0,
 );
 
-/** Optional explicit QBO tax code for taxable invoices; empty means let QBO defaults apply. */
-export const QBO_TAXABLE_TAX_CODE_REF =
-  Deno.env.get("QBO_TAXABLE_TAX_CODE_REF")?.trim() ?? "";
+/** Default truck supplies fee (in cents) appended when no explicit truck fee cost is present. */
+export const QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS = envNumberOrDefault(
+  Deno.env.get("QBO_DEFAULT_TRUCK_SUPPLIES_FEE_CENTS"),
+  0,
+);
 
 /**
  * Extracts the `intuit_tid` header from a QuickBooks API response.

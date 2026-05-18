@@ -8,15 +8,9 @@ vi.mock('react-resizable-panels', async () => {
   const Group = React.forwardRef<
     HTMLDivElement,
     React.ComponentPropsWithoutRef<'div'> & { orientation?: string }
-  >(function MockGroup({ children, className, orientation, ...rest }, ref) {
+  >(function MockGroup({ children, className, ...rest }, ref) {
     return (
-      <div
-        ref={ref}
-        data-testid="mock-resizable-group"
-        data-orientation={orientation}
-        className={className}
-        {...rest}
-      >
+      <div ref={ref} data-testid="mock-resizable-group" className={className} {...rest}>
         {children}
       </div>
     );
@@ -33,26 +27,13 @@ vi.mock('react-resizable-panels', async () => {
     );
   });
 
-  function assignRef<T>(r: React.Ref<T> | undefined, value: T | null): void {
-    if (!r) return;
-    if (typeof r === 'function') {
-      r(value);
-    } else if ('current' in r) {
-      (r as React.MutableRefObject<T | null>).current = value;
-    }
-  }
-
-  function MockSeparator({
-    children,
-    className,
-    elementRef,
-    ...rest
-  }: React.ComponentPropsWithoutRef<'div'> & {
-    elementRef?: React.Ref<HTMLDivElement | null>;
-  }) {
+  const Separator = React.forwardRef<
+    HTMLDivElement,
+    React.ComponentPropsWithoutRef<'div'>
+  >(function MockSeparator({ children, className, ...rest }, ref) {
     return (
       <div
-        ref={(el) => assignRef(elementRef, el)}
+        ref={ref}
         role="separator"
         className={className}
         {...rest}
@@ -60,9 +41,7 @@ vi.mock('react-resizable-panels', async () => {
         {children}
       </div>
     );
-  }
-
-  const Separator = MockSeparator;
+  });
 
   return { Group, Panel, Separator };
 });
@@ -79,7 +58,7 @@ describe('resizable', () => {
     expect(ResizablePanel).toBe(Panel);
   });
 
-  it('forwards ref from ResizableHandle to Separator via elementRef', () => {
+  it('forwards ref from ResizableHandle to Separator', () => {
     const handleRef = createRef<HTMLDivElement | null>();
 
     render(
@@ -97,18 +76,5 @@ describe('resizable', () => {
     const handle = screen.getByTestId('split-handle');
     expect(handle).toBeInTheDocument();
     expect(handleRef.current).toBe(handle);
-  });
-
-  it('maps direction vertical to orientation on the underlying Group', () => {
-    render(
-      <ResizablePanelGroup direction="vertical" className="min-h-[200px]">
-        <ResizablePanel defaultSize={50}>A</ResizablePanel>
-        <ResizableHandle />
-        <ResizablePanel defaultSize={50}>B</ResizablePanel>
-      </ResizablePanelGroup>
-    );
-
-    const group = screen.getByTestId('mock-resizable-group');
-    expect(group).toHaveAttribute('data-orientation', 'vertical');
   });
 });

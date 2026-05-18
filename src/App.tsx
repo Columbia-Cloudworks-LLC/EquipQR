@@ -29,7 +29,6 @@ import { PageSkeleton } from '@/components/ui/PageSkeleton';
 // for SignIn/SignUp/MFA form code unless authentication is actually required.
 import SmartLanding from '@/components/landing/SmartLanding';
 import LegalFooter from '@/components/layout/LegalFooter';
-import { RouteAnnouncer } from '@/components/a11y/RouteAnnouncer';
 const Auth = lazy(() => import('@/pages/Auth'));
 const DebugAuth = import.meta.env.DEV ? lazy(() => import('@/pages/DebugAuth')) : null;
 const DebugScanFeedback = import.meta.env.DEV ? lazy(() => import('@/pages/DebugScanFeedback')) : null;
@@ -142,7 +141,6 @@ function App() {
         >
           Skip to main content
         </a>
-        <RouteAnnouncer />
         <ErrorBoundary>
         <Routes>
         {/* Public routes - no suspense needed, loaded eagerly */}
@@ -240,7 +238,7 @@ function App() {
                             <BrandedTopBar />
                           </Suspense>
                           {OFFLINE_QUEUE_ENABLED && <PendingSyncBanner />}
-                          <main id="main-content" tabIndex={-1} className="flex-1 overflow-auto min-w-0 pb-16 md:pb-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+                          <main id="main-content" className="flex-1 overflow-auto min-w-0 pb-16 md:pb-0">
                             <Suspense fallback={<PageSkeleton />}>
                               <Routes>
                                 <Route path="/" element={<Dashboard />} />

@@ -300,28 +300,12 @@ Deno.test("createErrorResponse preserves important canonical allowlisted message
       "Failed to store directory users",
       "Failed to store directory users",
     ],
-    [
-      "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.",
-      "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.",
-    ],
-    [
-      "QuickBooks tax status could not be confirmed. Please refresh the customer from QuickBooks and try again.",
-      "QuickBooks tax status could not be confirmed. Please refresh the customer from QuickBooks and try again.",
-    ],
   ];
 
   for (const [input, expected] of cases) {
     const response = createErrorResponse(input, 400);
     assertEquals(await readErrorMessage(response), expected);
   }
-});
-
-Deno.test("createErrorResponse uses 409 status for QuickBooks tax-status conflict errors", async () => {
-  const msg =
-    "QuickBooks tax status could not be confirmed. Please refresh the customer from QuickBooks and try again.";
-  const response = createErrorResponse(msg, 409);
-  assertEquals(response.status, 409);
-  assertEquals(await readErrorMessage(response), msg);
 });
 
 Deno.test("createErrorResponse canonicalizes dynamic allowlisted messages without reflecting input tails", async () => {

@@ -19,8 +19,8 @@ This guide provides step-by-step instructions for technicians on how to upload i
 2. **Or navigate directly** to the equipment page if you have the equipment ID
 3. The equipment page will display basic information about the machine
 
-> **Figure 1:** Initial equipment page showing basic information.
-> *(Screenshots for this guide live under `docs/how-to/image-upload/screenshots/`; add PNGs per the folder README if you need inline figures in the published site.)*
+![Equipment Page](screenshots/01-equipment-page-initial.png)
+*Figure 1: Initial equipment page showing basic information*
 
 ### Step 2: Create a Work Order
 
@@ -31,8 +31,8 @@ This guide provides step-by-step instructions for technicians on how to upload i
    - **Priority**: Select appropriate priority level
    - **Description**: Provide detailed description of the work needed
 
-> **Figure 2:** Creating a new work order.
-> *(Screenshot path: `screenshots/03-work-order-creation-form.png` — optional asset.)*
+![Work Order Creation](screenshots/03-work-order-creation-form.png)
+*Figure 2: Creating a new work order*
 
 ### Step 3: Upload Images with Notes
 
@@ -47,8 +47,8 @@ This guide provides step-by-step instructions for technicians on how to upload i
    - Select one or more images from your device
    - Images will be automatically uploaded when you save the note
 
-> **Figure 3:** Uploading images with detailed notes.
-> *(Screenshot path: `screenshots/09-notes-section-with-image-upload.png` — optional asset.)*
+![Upload Images with Notes](screenshots/09-notes-section-with-image-upload.png)
+*Figure 3: Uploading images with detailed notes*
 
 ### Step 4: Set Display Image for Equipment
 
@@ -57,8 +57,8 @@ This guide provides step-by-step instructions for technicians on how to upload i
 3. Click the **"Set as Display Image"** button on the desired image
 4. The image will now appear as the main equipment photo
 
-> **Figure 4:** Setting an image as the equipment display photo.
-> *(Screenshot path: `screenshots/final-images-tab-state.png` — optional asset.)*
+![Set Display Image](screenshots/final-images-tab-state.png)
+*Figure 4: Setting an image as the equipment display photo*
 
 ## Working with PM Checklists
 
@@ -68,8 +68,8 @@ This guide provides step-by-step instructions for technicians on how to upload i
 2. Select a PM template (e.g., "Forklift PM Checklist")
 3. The work order will include a comprehensive maintenance checklist
 
-> **Figure 5:** Creating a work order with PM checklist.
-> *(Screenshot path: `screenshots/04-work-order-form-with-pm-checklist.png` — optional asset.)*
+![PM Checklist Creation](screenshots/04-work-order-form-with-pm-checklist.png)
+*Figure 5: Creating a work order with PM checklist*
 
 ### Step 6: Complete PM Checklist Items
 
@@ -80,8 +80,8 @@ This guide provides step-by-step instructions for technicians on how to upload i
    - Add detailed notes explaining the issue
    - Upload photos showing the problem
 
-> **Figure 6:** Completing PM checklist items with notes and photos.
-> *(Screenshot path: `screenshots/06-pm-checklist-section.png` — optional asset.)*
+![PM Checklist Completion](screenshots/06-pm-checklist-section.png)
+*Figure 6: Completing PM checklist items with notes and photos*
 
 ### Step 7: Save Progress
 
@@ -89,8 +89,8 @@ This guide provides step-by-step instructions for technicians on how to upload i
 2. The system will auto-save your progress
 3. You can return to the checklist later to continue work
 
-> **Figure 7:** Saving PM checklist progress.
-> *(Screenshot path: `screenshots/08-pm-checklist-after-set-all-ok.png` — optional asset.)*
+![Save PM Checklist](screenshots/08-pm-checklist-after-set-all-ok.png)
+*Figure 7: Saving PM checklist progress*
 
 ## Managing Work Order Status
 
@@ -103,8 +103,8 @@ This guide provides step-by-step instructions for technicians on how to upload i
    - **Completed**: All work finished
    - **Cancelled**: Work order cancelled
 
-> **Figure 8:** Updating work order status.
-> *(Screenshot path: `screenshots/work-order-complete-view.png` — optional asset.)*
+![Update Work Order Status](screenshots/work-order-complete-view.png)
+*Figure 8: Updating work order status*
 
 ## Adding Items and Costs
 
@@ -118,8 +118,8 @@ This guide provides step-by-step instructions for technicians on how to upload i
    - **Unit Cost**: Cost per item
    - **Description**: Additional details
 
-> **Figure 9:** Adding parts and costs to work order.
-> *(Screenshot path: `screenshots/work-order-add-note-form.png` — optional asset.)*
+![Add Parts and Costs](screenshots/work-order-add-note-form.png)
+*Figure 9: Adding parts and costs to work order*
 
 ## Private Notes
 
@@ -132,8 +132,8 @@ This guide provides step-by-step instructions for technicians on how to upload i
    - Personal reminders
    - Sensitive information
 
-> **Figure 10:** Adding private notes that customers won't see.
-> *(Screenshot path: `screenshots/note-with-uploaded-image.png` — optional asset.)*
+![Private Notes](screenshots/note-with-uploaded-image.png)
+*Figure 10: Adding private notes that customers won't see*
 
 ## Viewing All Equipment Images
 
@@ -144,8 +144,8 @@ This guide provides step-by-step instructions for technicians on how to upload i
 3. Images are organized by date and source
 4. Click on any image to view it in full size
 
-> **Figure 11:** Viewing all equipment images in the gallery.
-> *(Screenshot path: `screenshots/images-tab-with-both-images.png` — optional asset.)*
+![Equipment Image Gallery](screenshots/images-tab-with-both-images.png)
+*Figure 11: Viewing all equipment images in the gallery*
 
 ## Troubleshooting
 

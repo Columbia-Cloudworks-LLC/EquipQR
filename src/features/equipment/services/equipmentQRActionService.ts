@@ -19,8 +19,6 @@ export interface CreateQRWorkOrderInput {
   priority: WorkOrderPriority;
   dueDate?: string;
   attachPM: boolean;
-  /** When equipment has no default PM template, supply the chosen template id from the QR dialog. */
-  pmTemplateId?: string;
   images?: File[];
   creationPhotoNote?: string;
 }
@@ -72,17 +70,12 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
   if (input.attachPM) {
     let pmError: unknown;
 
-    const explicitOverride =
-      typeof input.pmTemplateId === 'string' ? input.pmTemplateId.trim() : '';
-    const resolvedTemplateId =
-      explicitOverride.length > 0 ? explicitOverride : input.equipment.defaultPmTemplateId;
-
-    if (!resolvedTemplateId) {
-      pmError = new Error('Select a PM checklist template to create this work order.');
+    if (!input.equipment.defaultPmTemplateId) {
+      pmError = new Error('This equipment does not have a default PM template assigned.');
     } else {
       try {
         const template = await getPMTemplateData(
-          resolvedTemplateId,
+          input.equipment.defaultPmTemplateId,
           input.equipment.organizationId
         );
         const pm = await createPM({
@@ -91,7 +84,7 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
           organizationId: input.equipment.organizationId,
           checklistData: template.checklistData,
           notes: template.notes,
-          templateId: resolvedTemplateId,
+          templateId: input.equipment.defaultPmTemplateId,
         });
         if (!pm) {
           pmError = new Error('PM initialization failed.');

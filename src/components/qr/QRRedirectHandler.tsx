@@ -17,14 +17,14 @@ interface QRRedirectHandlerProps {
 export const QRRedirectHandler: React.FC<QRRedirectHandlerProps> = ({ equipmentId, inventoryItemId, workOrderId }) => {
   const [shouldNavigate, setShouldNavigate] = React.useState(false);
   const [navigationTarget, setNavigationTarget] = React.useState<string | null>(null);
-  const { triggerFeedback } = useScanFeedback();
+  const { triggerPendingFeedback } = useScanFeedback();
 
   const { state, isSwitchingOrg, handleOrgSwitch, retry } = useQRRedirectWithOrgSwitch({
     equipmentId,
     inventoryItemId,
     workOrderId,
     onComplete: (targetPath) => {
-      triggerFeedback();
+      triggerPendingFeedback();
       // Allow parent component to run any additional logic here (analytics, toasts, etc.)
       if (import.meta.env.DEV) {
         logger.info('QR redirect complete, navigating', { targetPath });

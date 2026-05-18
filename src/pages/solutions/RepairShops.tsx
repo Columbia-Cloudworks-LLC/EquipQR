@@ -16,23 +16,16 @@ const RepairShops = () => {
         title="Built for Repair Shops"
         description="Streamline your repair operations with QR code tracking, photo documentation, and customer management—all completely free. Built specifically for repair shops."
         path="/solutions/repair-shops"
+        keywords="repair shop software, equipment repair tracking, customer management, QR code tracking, repair shop management, free repair shop software"
       />
       <div className="min-h-screen bg-background">
         <LandingHeader />
-      <main
-        id="main-content"
-        tabIndex={-1}
-        className="outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-      >
+      <main id="main-content">
         {/* Hero Section */}
         <section className="relative pt-32 pb-24 bg-gradient-to-br from-background via-background to-primary/5">
           <div className="container px-4 mx-auto">
             <div className="text-center max-w-4xl mx-auto">
-              <h1
-                data-route-heading="true"
-                tabIndex={-1}
-                className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-6 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              >
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-6">
                 Built for Repair Shops
               </h1>
               <p className="text-xl sm:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto">

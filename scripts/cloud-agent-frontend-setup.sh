@@ -18,57 +18,19 @@ cd "$REPO_ROOT"
 
 log "Repo root: $REPO_ROOT"
 
-REQUIRED_NODE_MAJOR="24"
-
-load_nvm() {
-    export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
-    if [[ -s "$NVM_DIR/nvm.sh" ]]; then
-        # shellcheck disable=SC1091
-        . "$NVM_DIR/nvm.sh"
-        return 0
-    fi
-
-    return 1
-}
-
-node_matches_required_major() {
-    command -v node >/dev/null 2>&1 \
-        && node -e "process.exit(Number(process.versions.node.split('.')[0]) === Number(process.argv[1]) ? 0 : 1)" "$REQUIRED_NODE_MAJOR"
-}
-
 log "[1/6] Checking Node.js and npm..."
-if ! node_matches_required_major; then
-    if command -v node >/dev/null 2>&1; then
-        warn "Found node $(node -v), but package.json requires Node ${REQUIRED_NODE_MAJOR}.x."
-    else
-        warn "node is not installed or not on PATH."
-    fi
-
-    if load_nvm; then
-        log "Installing/using Node ${REQUIRED_NODE_MAJOR}.x via nvm..."
-        nvm install "$REQUIRED_NODE_MAJOR"
-        nvm use "$REQUIRED_NODE_MAJOR"
-        nvm alias default "$REQUIRED_NODE_MAJOR" >/dev/null || true
-        hash -r
-    else
-        fail "Node ${REQUIRED_NODE_MAJOR}.x is required and nvm is not available at ${NVM_DIR:-$HOME/.nvm}."
-        exit 1
-    fi
-fi
-
-if ! node_matches_required_major; then
-    fail "Node ${REQUIRED_NODE_MAJOR}.x is required, but the active version is $(node -v 2>/dev/null || echo 'missing')."
+if ! command -v node >/dev/null 2>&1; then
+    fail "node is not installed or not on PATH."
     exit 1
 fi
-
 if ! command -v npm >/dev/null 2>&1; then
-    fail "npm is not installed or not on PATH after selecting Node ${REQUIRED_NODE_MAJOR}.x."
+    fail "npm is not installed or not on PATH."
     exit 1
 fi
 ok "node $(node -v)"
 ok "npm v$(npm -v)"
 
-if ! node -e "const p=require('./package.json'); const required=p.engines && p.engines.node; const [maj]=process.versions.node.split('.').map(Number); const match=String(required || '').match(/^(\\d+)\\.x$/); const ok=match ? maj === Number(match[1]) : true; if(!ok){ console.error('Node version does not satisfy package.json engines.node: ' + required + '; found ' + process.versions.node); process.exit(1);}"; then
+if ! node -e "const p=require('./package.json'); const [maj,min]=process.versions.node.split('.').map(Number); const ok=((maj===20&&min>=17)||(maj>20&&maj<22?false:(maj>22||(maj===22&&min>=9)))); if(!ok){ console.error('Node version does not satisfy package.json engines.node: ' + p.engines.node + '; found ' + process.versions.node); process.exit(1);}"; then
     fail "Installed Node version does not satisfy package.json engines.node."
     exit 1
 fi

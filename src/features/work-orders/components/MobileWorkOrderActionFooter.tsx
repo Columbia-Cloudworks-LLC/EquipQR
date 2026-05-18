@@ -50,6 +50,8 @@ export interface MobileWorkOrderActionFooterProps {
   organizationId: string;
   /** PM checklist is complete enough to allow WO completion gate */
   canCompletePm: boolean;
+  /** Show \"Continue checklist\" primary affordance while PM items remain */
+  showContinueChecklist: boolean;
   canAddNotes: boolean;
   isUpdatingStatusExternal?: boolean;
   /** Queue + browser online from OfflineQueueContext */
@@ -129,6 +131,7 @@ export const MobileWorkOrderActionFooter: React.FC<MobileWorkOrderActionFooterPr
   workOrder,
   organizationId,
   canCompletePm,
+  showContinueChecklist,
   canAddNotes,
   isUpdatingStatusExternal = false,
   syncState,
@@ -159,6 +162,14 @@ export const MobileWorkOrderActionFooter: React.FC<MobileWorkOrderActionFooterPr
   const completionBlockedByPm =
     workOrder.status === 'in_progress' && !!workOrder.has_pm && !canCompletePm;
 
+  const handleCompletePress = () => {
+    if (completionBlockedByPm) {
+      onScrollToChecklist();
+      return;
+    }
+    onOpenCompleteDialog();
+  };
+
   if (!organizationId || !canPerformWorkflow()) {
     return null;
   }
@@ -168,8 +179,7 @@ export const MobileWorkOrderActionFooter: React.FC<MobileWorkOrderActionFooterPr
   const isAssignedLike = workOrder.status === 'assigned' || workOrder.status === 'accepted';
   const isSubmitted = workOrder.status === 'submitted';
   const showTimerRow = (isInProgress || isOnHold) && Boolean(timerDisplay);
-  /** Submitted WO still needs thumb-reachable note entry while Next Action + inline add are suppressed. Photo stays gated to active work. */
-  const showNoteQuickCapture = canAddNotes;
+  const showQuickCaptureRow = canAddNotes && !isSubmitted;
 
   const queueRow = footerQueueMessage(syncState);
 
@@ -225,18 +235,16 @@ export const MobileWorkOrderActionFooter: React.FC<MobileWorkOrderActionFooterPr
           ) : null}
         </div>
 
-        {showNoteQuickCapture ? (
+        {showQuickCaptureRow ? (
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" className="h-11 min-h-[44px] flex-1 sm:flex-none" onClick={onAddNote}>
               <Plus className="mr-1 h-4 w-4" aria-hidden />
               Note
             </Button>
-            {!isSubmitted ? (
-              <Button variant="outline" size="sm" className="h-11 min-h-[44px] px-3" onClick={onAddPhoto} aria-label="Add photo">
-                <Camera className="mr-1 h-4 w-4" aria-hidden />
-                <span className="text-xs">Photo</span>
-              </Button>
-            ) : null}
+            <Button variant="outline" size="sm" className="h-11 min-h-[44px] px-3" onClick={onAddPhoto} aria-label="Add photo">
+              <Camera className="mr-1 h-4 w-4" aria-hidden />
+              <span className="text-xs">Photo</span>
+            </Button>
           </div>
         ) : null}
 
@@ -264,65 +272,56 @@ export const MobileWorkOrderActionFooter: React.FC<MobileWorkOrderActionFooterPr
 
         {isInProgress ? (
           <>
-            {completionBlockedByPm ? (
-              <div className="space-y-2">
-                <p className="px-0.5 text-xs text-muted-foreground">
-                  Finish the checklist before completing this work order.
-                </p>
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="min-h-[44px] w-full"
-                  type="button"
-                  onClick={onScrollToChecklist}
-                >
+            {showContinueChecklist ? (
+              <div className="flex flex-wrap gap-2">
+                <Button variant="default" size="sm" className="min-h-[44px] w-full flex-1" type="button" onClick={onScrollToChecklist}>
                   <ClipboardCheck className="mr-2 h-4 w-4" aria-hidden />
                   Continue Checklist
                   <ChevronDown className="ml-2 h-4 w-4" aria-hidden />
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="min-h-[44px] w-full"
-                  disabled={isPending}
-                  onClick={() => void onPauseResume()}
-                  aria-label={isPending ? 'Updating status' : 'Put work order on hold'}
-                >
-                  {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> : <Pause className="mr-2 h-4 w-4" aria-hidden />}
-                  Put on Hold
-                </Button>
               </div>
-            ) : (
-              <div className="flex flex-wrap items-stretch gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="min-h-[44px]"
-                  disabled={isPending}
-                  onClick={() => void onPauseResume()}
-                  aria-label={isPending ? 'Updating status' : 'Put work order on hold'}
-                >
-                  {isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Pause className="mr-1 h-4 w-4" aria-hidden />}
-                  <span className="text-xs sm:text-sm">Put on Hold</span>
-                </Button>
+            ) : null}
 
-                <div className="flex min-w-[160px] flex-1 flex-col gap-0.5">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    type="button"
-                    className="min-h-[44px] h-auto w-full flex-col gap-1 py-2 font-semibold sm:flex-row sm:justify-center"
-                    disabled={isPending}
-                    onClick={() => onOpenCompleteDialog()}
-                  >
-                    <span className="inline-flex items-center">
-                      <CheckCircle className="mr-2 h-4 w-4" aria-hidden />
-                      Complete
-                    </span>
-                  </Button>
-                </div>
+            <div className="flex flex-wrap items-stretch gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="min-h-[44px]"
+                disabled={isPending}
+                onClick={() => void onPauseResume()}
+                aria-label={isPending ? 'Updating status' : 'Put work order on hold'}
+              >
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Pause className="mr-1 h-4 w-4" aria-hidden />}
+                <span className="text-xs sm:text-sm">Put on Hold</span>
+              </Button>
+
+              <div className="flex min-w-[160px] flex-1 flex-col gap-0.5">
+                <Button
+                  variant={completionBlockedByPm ? 'outline' : 'default'}
+                  size="sm"
+                  type="button"
+                  className={cn(
+                    'min-h-[44px] h-auto w-full flex-col gap-1 py-2 font-semibold sm:flex-row sm:justify-center',
+                    completionBlockedByPm && 'opacity-50',
+                  )}
+                  disabled={isPending}
+                  onClick={handleCompletePress}
+                >
+                  <span className="inline-flex items-center">
+                    <CheckCircle className="mr-2 h-4 w-4" aria-hidden />
+                    Complete
+                  </span>
+                  {completionBlockedByPm ? (
+                    <span className="text-xs font-normal text-muted-foreground">Complete checklist first</span>
+                  ) : null}
+                </Button>
+                {completionBlockedByPm ? (
+                  <span className="sr-only">
+                    Completion is gated until checklist is finished. Button scrolls checklist into view.
+                  </span>
+                ) : null}
               </div>
-            )}
+            </div>
           </>
         ) : null}
 

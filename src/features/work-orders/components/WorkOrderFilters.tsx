@@ -48,7 +48,6 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
   const mobileAssigneeFilterId = 'work-order-assignee-filter-mobile';
   const mobilePriorityFilterId = 'work-order-priority-filter-mobile';
   const mobileDueDateFilterId = 'work-order-due-date-filter-mobile';
-  const mobileInvoiceFilterId = 'work-order-invoice-filter-mobile';
 
   if (isMobile) {
     return (
@@ -184,22 +183,6 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                         </SelectContent>
                       </Select>
                     </div>
-
-                    <div>
-                      <label htmlFor={mobileInvoiceFilterId} className="text-sm font-medium mb-2 block">Invoice</label>
-                      <Select value={filters.invoiceFilter} onValueChange={(value) => onFilterChange('invoiceFilter', value)}>
-                        <SelectTrigger id={mobileInvoiceFilterId} className="h-12">
-                          <SelectValue placeholder="All Invoices" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Invoices</SelectItem>
-                          <SelectItem value="paid">Paid</SelectItem>
-                          <SelectItem value="unpaid">Unpaid</SelectItem>
-                          <SelectItem value="overdue">Overdue</SelectItem>
-                          <SelectItem value="not_exported">Not Exported</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
                   </div>
 
                   {/* Clear All Button */}
@@ -274,21 +257,6 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
                   className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
                   onClick={() => onFilterChange('dueDateFilter', 'all')}
                   aria-label="Clear due date filter"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            )}
-            {filters.invoiceFilter !== 'all' && (
-              <Badge variant="secondary" className="flex max-w-full items-center gap-1">
-                <span className="truncate" title={`Invoice: ${filters.invoiceFilter}`}>
-                  Invoice: {filters.invoiceFilter}
-                </span>
-                <button
-                  type="button"
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
-                  onClick={() => onFilterChange('invoiceFilter', 'all')}
-                  aria-label="Clear invoice filter"
                 >
                   <X className="h-3 w-3" />
                 </button>

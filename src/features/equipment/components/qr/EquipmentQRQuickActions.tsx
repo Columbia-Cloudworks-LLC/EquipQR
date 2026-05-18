@@ -85,6 +85,13 @@ export default function EquipmentQRQuickActions({
         return;
       }
 
+      if (action === 'pm-work-order' && !equipment.defaultPmTemplateId) {
+        setPermissionMessage(
+          'This equipment does not have a default PM template assigned. Use the generic work order action instead.'
+        );
+        return;
+      }
+
       setActivePermissionContext(nextPermissionContext);
       setDialog(nextDialog);
     } catch (error) {

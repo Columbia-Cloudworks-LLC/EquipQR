@@ -194,7 +194,7 @@ openssl rand -hex 32
 | **Preview branch** | Supabase Dashboard > Edge Functions > Secrets | Both secrets |
 | **Production** | Supabase Dashboard > Edge Functions > Secrets | Both secrets |
 
-For complete secrets documentation, see [Supabase Branch Secrets](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/supabase-branch-secrets.md).
+For complete secrets documentation, see [Supabase Branch Secrets](../ops/supabase-branch-secrets.md).
 
 ## Troubleshooting
 

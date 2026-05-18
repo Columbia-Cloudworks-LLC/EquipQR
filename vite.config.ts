@@ -3,7 +3,6 @@ import react from "@vitejs/plugin-react-swc";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 import fs from "fs";
-import { writeMarketingHtmlFiles } from "./scripts/generate-marketing-html";
 
 // HTTP request logger plugin for dev server
 function httpLogger(): PluginOption {
@@ -19,16 +18,6 @@ function httpLogger(): PluginOption {
         });
         next();
       });
-    },
-  };
-}
-
-function marketingPrerenderPlugin(): PluginOption {
-  return {
-    name: 'equipqr-marketing-prerender',
-    apply: 'build',
-    closeBundle() {
-      writeMarketingHtmlFiles();
     },
   };
 }
@@ -67,7 +56,6 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     mode === 'development' && httpLogger(),
     react(),
-    marketingPrerenderPlugin(),
     // PWA / service worker. We use `injectManifest` mode so we can keep our
     // own custom Push notification handlers (see `src/sw.ts`); generateSW
     // would overwrite them. The output filename MUST stay `sw.js` because

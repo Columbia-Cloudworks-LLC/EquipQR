@@ -18,7 +18,6 @@ Agents** 1Password vault at job time. This:
 | [`ci.yml`](./ci.yml) | TODO | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `CODECOV_TOKEN` | `op://EquipQR Agents/app-env-prod-public/SUPABASE_URL`, `op://EquipQR Agents/app-env-prod-public/SUPABASE_ANON_KEY` (confirm field labels on the item with `op item get` metadata), `op://EquipQR Agents/codecov-token/credential` |
 | [`configure-supabase-auth.yml`](./configure-supabase-auth.yml) | TODO | `SUPABASE_ACCESS_TOKEN` | `op://EquipQR Agents/supabase-write/SUPABASE_ACCESS_TOKEN` |
 | [`export-schema.yml`](./export-schema.yml) | TODO | `PREVIEW_DATABASE_URL` | `op://EquipQR Agents/preview-database-url/credential` |
-| [`production-release-readiness.yml`](./production-release-readiness.yml) | LIVE | `OP_SERVICE_ACCOUNT_TOKEN` + `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `VERCEL_TOKEN` via 1Password | `op://EquipQR Agents/supabase-write/SUPABASE_ACCESS_TOKEN`, `op://EquipQR Agents/supabase-write/prod_db_password`, `op://EquipQR Agents/vercel-write/VERCEL_TOKEN` |
 | [`deploy.yml`](./deploy.yml) | NEEDS AUDIT | (audit secret references) | TBD |
 | [`deployment-status.yml`](./deployment-status.yml) | NEEDS AUDIT | (audit secret references) | TBD |
 | [`version-tag.yml`](./version-tag.yml) | NO MIGRATION | only `GITHUB_TOKEN` (built-in) | n/a |
@@ -61,10 +60,10 @@ jobs:
 Notes:
 
 - `OP_SERVICE_ACCOUNT_TOKEN` is the **only** repo secret that needs to remain.
-- The `supabase-write` item holds Supabase tooling secrets such as `SUPABASE_ACCESS_TOKEN`, `preview_anon_public_key`, `prod_anon_public_key`, `prod_db_password` (CI: production-release-readiness), and `preview_db_password` (local / preview CLI only unless a future workflow loads it). See `AGENTS.md` and `docs/ops/deployment.md`.
+- The `supabase-write` item holds Supabase tooling secrets such as `SUPABASE_ACCESS_TOKEN`, `preview_anon_public_key`, and `prod_anon_public_key` (see `AGENTS.md`).
 - Secrets loaded by the composite action are auto-masked in logs by 1Password's action.
 - The composite action defaults to `export-env: true` so the secrets become env vars in subsequent steps.
-- [`secrets-fanout.yml`](./secrets-fanout.yml) runs a **digest check only** (`-Check`) on `push` to `preview` when the sync script or this workflow changes; the 6-hour UTC `schedule` applies preview Edge secrets from 1Password once the workflow exists on `main` (GitHub evaluates schedules from the default branch only). Manual `workflow_dispatch` can still apply or dry-run; production secret apply stays out of this workflow for now.
+- [`secrets-fanout.yml`](./secrets-fanout.yml) applies preview Supabase Edge secrets from 1Password on `push` to `preview` when the sync script or this workflow changes, includes a 6-hour UTC `schedule` (GitHub runs schedules from `main` only), and supports manual `workflow_dispatch`; production secret apply stays out of this workflow for now.
 - For step-output mode (rare), pass `with: { export-env: 'false' }` and reference via `${{ steps.load.outputs.X }}`.
 
 ### When to migrate each workflow

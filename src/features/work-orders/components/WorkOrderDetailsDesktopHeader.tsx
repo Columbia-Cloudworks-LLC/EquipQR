@@ -33,7 +33,6 @@ import { useDeleteWorkOrder } from '@/features/work-orders/hooks/useDeleteWorkOr
 import { useWorkOrderImageCount } from '@/features/work-orders/hooks/useWorkOrderImageCount';
 import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
 import { isQuickBooksEnabled } from '@/lib/flags';
-import QuickBooksInvoiceStatusBadge from './QuickBooksInvoiceStatusBadge';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { canExportWorkOrderGoogleDoc } from '@/features/work-orders/utils/googleDocsExportAvailability';
 import { useLatestExportArtifact } from '@/features/work-orders/hooks/useLatestExportArtifact';
@@ -103,7 +102,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
       serial_number: equipment.serial_number,
       status: equipment.status,
       location: equipment.location,
-      customerId: equipment.customer_id ?? null,
+      customerId: (equipment as { customer_id?: string | null }).customer_id ?? null,
     } : null,
     pmData: pmData as PreventativeMaintenance | null,
     organizationName,
@@ -171,12 +170,6 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
               <span className="text-sm text-muted-foreground capitalize">
                 {formatPriority(workOrder.priority)} Priority
               </span>
-              <QuickBooksInvoiceStatusBadge
-                status={workOrder.invoice_status}
-                invoiceNumber={workOrder.quickbooks_invoice_number}
-                balanceCents={workOrder.invoice_balance_cents}
-                paidAt={workOrder.invoice_paid_at}
-              />
               {formMode === 'requestor' && !permissionLevels.isManager && (
                 <Tooltip>
                   <TooltipTrigger asChild>

@@ -102,9 +102,6 @@ export type ExternalContactRow = Database['public']['Tables']['external_customer
 export type ExternalContactInsert = Database['public']['Tables']['external_customer_contacts']['Insert'];
 export type ExternalContactUpdate = Database['public']['Tables']['external_customer_contacts']['Update'];
 
-/** Rows returned by list queries that omit debug-only `source_payload`. */
-export type ExternalContactListRow = Omit<ExternalContactRow, 'source_payload'>;
-
 export interface CustomerAccountSummary {
   id: string;
   name: string;
@@ -112,7 +109,6 @@ export interface CustomerAccountSummary {
   email?: string | null;
   phone?: string | null;
   is_tax_exempt?: boolean | null;
-  quickbooks_tax_status_synced_at?: string | null;
   quickbooks_customer_id?: string | null;
   quickbooks_synced_at?: string | null;
 }

@@ -12,19 +12,21 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
 import { landingImage } from '@/lib/landingImage';
-import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
-
-const seo = getFeatureSeoByPath('/features/work-order-management')!;
 
 const WorkOrderManagementFeature = () => {
   return (
     <>
-      <PageSEO title={seo.pageTitle} description={seo.description} path={seo.path} />
+      <PageSEO
+        title="Work Order Management"
+        description="Create, assign, and track work orders with intelligent workflows. Monitor progress and ensure nothing falls through the cracks—from request to completion."
+        path="/features/work-order-management"
+        keywords="work order management, maintenance work orders, CMMS work orders, equipment repair tracking, work order software"
+      />
       <FeaturePageLayout>
       <FeatureHero
         icon={ClipboardList}
-        title={seo.heroTitle}
-        description={seo.heroDescription}
+        title="Work Order Management"
+        description="Create, assign, and track work orders with intelligent workflows. Monitor progress and ensure nothing falls through the cracks—from request to completion."
         ctaText="Start Using Work Orders Free"
       />
 

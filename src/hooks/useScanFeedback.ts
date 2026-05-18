@@ -14,16 +14,9 @@ export function useScanFeedback() {
     markScanFeedbackPending();
   }, []);
 
-  const triggerFeedback = useCallback(() => {
+  const triggerPendingFeedback = useCallback(() => {
     triggerPendingScanFeedback();
   }, []);
 
-  return {
-    prepareFeedback,
-    markPendingFeedback,
-    /** Compliance / checklist entrypoint — same as `triggerPendingScanFeedback`. */
-    triggerFeedback,
-    /** @deprecated Prefer `triggerFeedback` — kept for existing call sites. */
-    triggerPendingFeedback: triggerFeedback,
-  };
+  return { prepareFeedback, markPendingFeedback, triggerPendingFeedback };
 }

@@ -224,7 +224,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
                     {!isLast && <div className="w-px h-8 bg-border mt-2" />}
                   </div>
                   
-                  <div className="min-w-0 flex-1 space-y-1 pb-4">
+                  <div className="flex-1 space-y-1 pb-4">
                     <div className="flex items-center justify-between">
                       <h4 className="font-medium">{event.title}</h4>
                       <time className="text-sm text-muted-foreground">

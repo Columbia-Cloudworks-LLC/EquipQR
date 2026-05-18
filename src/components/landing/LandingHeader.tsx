@@ -26,13 +26,6 @@ const navigation: NavigationItem[] = [
   { name: 'Pricing', href: '#pricing' },
 ];
 
-/** Crawler-visible deep links to primary marketing feature routes */
-const featureDeepLinks: Array<{ label: string; to: string }> = [
-  { label: 'Work orders', to: '/features/work-order-management' },
-  { label: 'QR codes', to: '/features/qr-code-integration' },
-  { label: 'QuickBooks', to: '/features/quickbooks' },
-];
-
 // Stable constant for section IDs to avoid unnecessary re-renders (order matches page flow)
 const SECTION_IDS: string[] = ['features', 'about', 'customers', 'pricing'];
 
@@ -63,7 +56,7 @@ const LandingHeader = () => {
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-2">
-              <Logo size="sm" title="" />
+              <Logo size="sm" />
               <span className="font-bold text-xl text-foreground">EquipQR™</span>
             </Link>
           </div>
@@ -93,20 +86,6 @@ const LandingHeader = () => {
                 </a>
               );
             })}
-            <div
-              className="hidden xl:flex items-center gap-4 ml-2 pl-4 border-l border-border"
-              aria-label="Popular features"
-            >
-              {featureDeepLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
           </div>
 
           {/* Desktop CTA */}
@@ -169,23 +148,6 @@ const LandingHeader = () => {
                           </SheetClose>
                         );
                       })}
-                    </nav>
-                  </div>
-                  <div className="space-y-3 border-t border-border pt-6">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
-                      Feature guides
-                    </p>
-                    <nav className="flex flex-col gap-1" aria-label="Marketing feature pages">
-                      {featureDeepLinks.map((link) => (
-                        <SheetClose asChild key={link.to}>
-                          <Link
-                            to={link.to}
-                            className="rounded-lg px-3 py-2.5 text-base font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                          >
-                            {link.label}
-                          </Link>
-                        </SheetClose>
-                      ))}
                     </nav>
                   </div>
                   <div className="space-y-3 border-t border-border pt-6">

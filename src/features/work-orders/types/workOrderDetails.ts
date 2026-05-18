@@ -17,15 +17,6 @@ export interface WorkOrderData {
   has_pm?: boolean;
   equipment_working_hours_at_creation?: number | null;
   machine_hours?: number | null;
-  quickbooks_invoice_id?: string | null;
-  quickbooks_invoice_number?: string | null;
-  quickbooks_invoice_environment?: 'sandbox' | 'production' | null;
-  invoice_status?: 'draft' | 'sent' | 'viewed' | 'paid' | 'partially_paid' | 'overdue' | 'voided' | null;
-  invoice_sent_at?: string | null;
-  invoice_paid_at?: string | null;
-  invoice_balance_cents?: number | null;
-  invoice_due_date?: string | null;
-  invoice_last_synced_at?: string | null;
   assignee?: {
     id: string;
     name: string;
@@ -41,7 +32,6 @@ export interface EquipmentData {
   status: 'active' | 'maintenance' | 'inactive';
   location?: string;
   team_id?: string | null;
-  customer_id?: string | null;
 }
 
 export interface PMData {
@@ -56,8 +46,6 @@ export interface PMData {
 
 export interface PermissionLevels {
   isManager: boolean;
-  /** Team technician or manager (see useWorkOrderPermissionLevels). */
-  isTechnician: boolean;
   isRequestor: boolean;
   canEdit: boolean;
   canDelete: boolean;

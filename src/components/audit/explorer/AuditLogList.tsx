@@ -66,6 +66,7 @@ type AuditVirtualRowProps = {
 function AuditVirtualRow({
   index,
   style,
+  ariaAttributes,
   entries,
   selectedId,
   formatDateTime,
@@ -76,6 +77,7 @@ function AuditVirtualRow({
   return (
     <div
       style={style}
+      {...ariaAttributes}
       role="option"
       aria-selected={entry.id === selectedId}
     >

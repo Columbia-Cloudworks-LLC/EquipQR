@@ -22,7 +22,7 @@ export const FeatureHero = ({ icon: Icon, title, description, ctaText, ctaLink =
   };
 
   return (
-    <section className="relative pt-16 sm:pt-20 pb-24 bg-gradient-to-br from-background via-background to-primary/5">
+    <section className="relative pt-32 pb-24 bg-gradient-to-br from-background via-background to-primary/5">
       <div className="container px-4 mx-auto">
         <div className="max-w-4xl mx-auto">
           <button
@@ -38,11 +38,7 @@ export const FeatureHero = ({ icon: Icon, title, description, ctaText, ctaLink =
             <div className="p-3 rounded-lg bg-primary/10">
               <Icon className="h-10 w-10 text-primary" />
             </div>
-            <h1
-              data-route-heading="true"
-              tabIndex={-1}
-              className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground">
               {title}
             </h1>
           </div>

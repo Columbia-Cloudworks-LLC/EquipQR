@@ -17,12 +17,6 @@
     },
     "context7-plugin": {
       "enabled": true
-    },
-    "datadog": {
-      "enabled": true
-    },
-    "grafana-cloud-mcp": {
-      "enabled": true
     }
   }
 }

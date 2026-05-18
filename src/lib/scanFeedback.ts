@@ -105,48 +105,6 @@ function playPing(ctx: AudioContext, onEnded?: () => void): void {
 }
 
 /**
- * After `prepareScanFeedback()`, play the ping on the shared or an ephemeral AudioContext.
- * On failure, closes ephemeral context and clears shared context when the failure used it.
- */
-function playScanFeedbackPingAfterPrepare(): void {
-  let ctx = sharedAudioContext;
-  let ephemeral: AudioContext | null = null;
-  const Ctor = getAudioContextConstructor();
-
-  if (!ctx && Ctor) {
-    try {
-      ephemeral = new Ctor();
-      ctx = ephemeral;
-    } catch {
-      return;
-    }
-  }
-
-  if (!ctx) return;
-
-  const run = () => {
-    try {
-      const closeEphemeral = ephemeral !== null;
-      playPing(
-        ctx,
-        closeEphemeral ? () => void ephemeral?.close().catch(() => undefined) : undefined
-      );
-    } catch {
-      void ephemeral?.close().catch(() => undefined);
-      if (ephemeral === null && ctx === sharedAudioContext) {
-        sharedAudioContext = null;
-      }
-    }
-  };
-
-  if (ctx.state === 'suspended') {
-    void ctx.resume().then(run).catch(() => undefined);
-  } else {
-    run();
-  }
-}
-
-/**
  * If a live camera scan set a pending marker, play haptic + ping. Safe to call on every redirect completion.
  */
 export function triggerPendingScanFeedback(): void {
@@ -155,7 +113,36 @@ export function triggerPendingScanFeedback(): void {
     triggerHaptic();
 
     prepareScanFeedback();
-    playScanFeedbackPingAfterPrepare();
+
+    let ctx = sharedAudioContext;
+    let ephemeral: AudioContext | null = null;
+    const Ctor = getAudioContextConstructor();
+
+    if (!ctx && Ctor) {
+      try {
+        ephemeral = new Ctor();
+        ctx = ephemeral;
+      } catch {
+        return;
+      }
+    }
+
+    if (!ctx) return;
+
+    const run = () => {
+      try {
+        const closeEphemeral = ephemeral !== null;
+        playPing(ctx, closeEphemeral ? () => void ephemeral?.close().catch(() => undefined) : undefined);
+      } catch {
+        void ephemeral?.close().catch(() => undefined);
+      }
+    };
+
+    if (ctx.state === 'suspended') {
+      void ctx.resume().then(run).catch(() => undefined);
+    } else {
+      run();
+    }
   } catch {
     /* no-op */
   }
@@ -165,7 +152,34 @@ export function triggerPendingScanFeedback(): void {
 export function playDirectScanFeedbackTone(): void {
   try {
     prepareScanFeedback();
-    playScanFeedbackPingAfterPrepare();
+    let ctx = sharedAudioContext;
+    let ephemeral: AudioContext | null = null;
+    const Ctor = getAudioContextConstructor();
+
+    if (!ctx && Ctor) {
+      try {
+        ephemeral = new Ctor();
+        ctx = ephemeral;
+      } catch {
+        return;
+      }
+    }
+    if (!ctx) return;
+
+    const run = () => {
+      try {
+        const closeEphemeral = ephemeral !== null;
+        playPing(ctx, closeEphemeral ? () => void ephemeral?.close().catch(() => undefined) : undefined);
+      } catch {
+        void ephemeral?.close().catch(() => undefined);
+      }
+    };
+
+    if (ctx.state === 'suspended') {
+      void ctx.resume().then(run).catch(() => undefined);
+    } else {
+      run();
+    }
   } catch {
     /* no-op */
   }

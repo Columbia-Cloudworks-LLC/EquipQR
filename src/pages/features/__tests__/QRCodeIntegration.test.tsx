@@ -4,9 +4,6 @@ import { describe, it, expect, vi } from 'vitest';
 import QRCodeIntegration from '../QRCodeIntegration';
 import { TestProviders } from '@/test/utils/TestProviders';
 import { benefits, steps, screenshots } from '../data/qrCodeIntegrationData';
-import { getFeatureSeoByPath } from '../data/featureSeoContent';
-
-const qrSeo = getFeatureSeoByPath('/features/qr-code-integration')!;
 
 // Mock the feature page components to focus on QRCodeIntegration logic
 vi.mock('@/components/landing/features/FeaturePageLayout', () => ({
@@ -118,8 +115,8 @@ describe('QRCodeIntegration Feature Page', () => {
         </TestProviders>
       );
 
-      expect(screen.getByText(qrSeo.heroTitle)).toBeInTheDocument();
-      expect(screen.getByText(qrSeo.heroDescription)).toBeInTheDocument();
+      expect(screen.getByText('QR Code Integration')).toBeInTheDocument();
+      expect(screen.getByText(/Instantly access equipment details, work orders, and maintenance history with QR code scanning/)).toBeInTheDocument();
       expect(screen.getByText('Start Using QR Codes Free')).toBeInTheDocument();
     });
   });
@@ -313,7 +310,7 @@ describe('QRCodeIntegration Feature Page', () => {
       );
 
       // Main title should be h1
-      const mainTitle = screen.getByText(qrSeo.heroTitle);
+      const mainTitle = screen.getByText('QR Code Integration');
       expect(mainTitle.tagName).toBe('H1');
 
       // Section titles should be h2

@@ -1,5 +1,4 @@
 import React, { Suspense, lazy, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
 import LandingHeader from '@/components/landing/LandingHeader';
 import HeroAnimation from '@/components/landing/HeroAnimation';
 import LandingFooter from '@/components/landing/LandingFooter';
@@ -24,16 +23,16 @@ function BelowFoldFallback() {
 }
 
 const Landing: React.FC = () => {
-  const location = useLocation();
   const prefersReducedMotion = usePrefersReducedMotion();
   // Snapshot reduced-motion preference in a ref so the hash-scroll effect
-  // reads the current value without depending on it. Toggles to OS
-  // accessibility settings must not re-run this effect (only hash changes should).
+  // reads the current value without depending on it. This keeps the effect
+  // a one-shot mount handler — toggling the OS accessibility setting must
+  // not re-scroll the page back to the hash target.
   const prefersReducedMotionRef = useRef(prefersReducedMotion);
   prefersReducedMotionRef.current = prefersReducedMotion;
 
   useEffect(() => {
-    const rawHash = location.hash;
+    const rawHash = window.location.hash;
     if (!rawHash) return;
 
     const sectionId = rawHash.startsWith('#') ? rawHash.slice(1) : rawHash;
@@ -46,40 +45,19 @@ const Landing: React.FC = () => {
       return;
     }
 
-    let cancelled = false;
-    let attempts = 0;
-    const maxAttempts = 60;
+    const target = document.getElementById(decodedId);
+    if (!target) return;
 
-    const tryScroll = (): void => {
-      if (cancelled || attempts++ > maxAttempts) return;
-
-      const target = document.getElementById(decodedId);
-      if (!target) {
-        requestAnimationFrame(tryScroll);
-        return;
-      }
-
-      target.scrollIntoView({
-        behavior: prefersReducedMotionRef.current ? 'auto' : 'smooth',
-      });
-    };
-
-    tryScroll();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [location.hash]);
+    target.scrollIntoView({
+      behavior: prefersReducedMotionRef.current ? 'auto' : 'smooth',
+    });
+  }, []);
 
   return (
     <>
       <div className="min-h-screen bg-background">
         <LandingHeader />
-        <main
-          id="main-content"
-          tabIndex={-1}
-          className="outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        >
+        <main id="main-content">
           <HeroAnimation />
           <Suspense fallback={<BelowFoldFallback />}>
             <WhyDifferentSection />

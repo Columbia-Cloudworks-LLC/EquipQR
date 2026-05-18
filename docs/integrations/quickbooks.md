@@ -120,41 +120,19 @@ Before exporting invoices, map each team to a QuickBooks customer:
 
 ### Invoice Details
 
-Exported draft invoices include **summarized billing lines** mapped from EquipQR work-order costs (EquipQR remains the source of truth for itemized inventory and labor detail):
+Exported invoices include:
 
-- **Labor** (`SalesItemLineDetail`): Billable labor from work-order cost rows titled **Labor** / **Labor - …** (no inventory link). If no labor cost row exists but technicians logged hours, a Labor line can be generated from the configured default hourly rate (see Edge secrets). Quantity reflects logged hours when present; otherwise a single quantity `1` line at the blended rate.
-- **Parts** (`SalesItemLineDetail`): One **summarized** non-inventory line for **all other** work-order costs — manual parts/materials, inventory consumption lines, and any former truck/fee-style rows (`Qty` 1, `UnitPrice` = total dollars). EquipQR does **not** sync inventory quantities or COGS into QuickBooks.
+- **Line Item**: Single service line item with total cost (uses "EquipQR Services" item)
+- **Description**: Work order details, equipment info, and public notes
+- **Private Note**: Work order ID, dates, private notes, and cost breakdown
+- **Customer Memo**: Work order title
 
-**Customer-facing descriptions** on the primary line (Labor when present, otherwise Parts) can include:
+#### Service Item Selection
 
-- Preventative maintenance context when a PM record exists: template name, all-OK summary (`condition === 1` only), or exception rows only; PM notes; then **Public notes:** from non-private work-order notes.
-
-**Private Note** (unchanged): EquipQR work order ID, dates, **private** notes, and **full itemized cost breakdown** (per cost row).
-
-**Customer Memo**: Timeline + resolution summary (unchanged).
-
-#### QuickBooks products & Edge Function secrets
-
-Pre-create **Labor** as a **Service** item and **Parts** as a **Non-inventory** item in QuickBooks **Products & services**, or allow EquipQR to auto-create them when missing.
-
-Optional Edge Function secrets (Supabase → Edge Functions → Secrets):
-
-| Secret | Purpose |
-|--------|---------|
-| `QBO_INVOICE_LABOR_ITEM_NAME` | Display name for the Labor item (default `Labor`) |
-| `QBO_INVOICE_PARTS_ITEM_NAME` | Display name for summarized Parts (default `Parts`) |
-| `QBO_INVOICE_TRUCK_SUPPLIES_ITEM_NAME` | Legacy name — invoice export no longer emits a separate Truck Supplies line (amounts roll into **Parts**) |
-| `QBO_INVOICE_OTHER_ITEM_NAME` | Legacy name — invoice export no longer emits separate **Other** lines |
-| `QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID` | Prefer this Income account Id when auto-creating items |
-| `QBO_INVOICE_ITEM_INCOME_ACCOUNT_NAME` | Else match this exact active Income account **Name** |
-| `QBO_INVOICE_PARTS_ITEM_TYPE` | Ignored except `NonInventory` — unsupported values fall back safely |
-
-**Deprecated:** `QBO_INVOICE_PARTS_ITEM_PREFIX` — invoice export no longer emits one QuickBooks line per part using `Part: <description>`; use summarized **Parts** via `QBO_INVOICE_PARTS_ITEM_NAME` instead.
-
-Item resolution behavior:
-
-1. Query active QuickBooks **Item** by exact **Name** (any type). If found, reuse its Id.
-2. If missing, create **Labor** as **Service** and **Parts** as **NonInventory**, using the resolved Income account above or the first active **Income** account.
+When exporting, the system will use a QuickBooks service item in this priority:
+1. An existing item named "EquipQR Services"
+2. Any active Service-type item in your QuickBooks account
+3. Auto-create an "EquipQR Services" item (requires an Income account to exist)
 
 ## Architecture
 
@@ -220,10 +198,10 @@ Item resolution behavior:
 - Ensure the customer still exists in QuickBooks
 - Verify the QuickBooks company has proper permissions
 
-**"Could not find or create a valid Service Item" / income account errors**
-- Ensure your QuickBooks company has at least one active **Income** account
-- Optionally set `QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID` or `QBO_INVOICE_ITEM_INCOME_ACCOUNT_NAME` so auto-created **Labor** / **Parts** items attach to the correct account
-- Confirm **Labor** and **Parts** products exist (or allow EquipQR to create them)
+**"Could not find or create a valid Service Item"**
+- The system automatically searches for or creates an "EquipQR Services" item
+- Ensure your QuickBooks account has at least one Income account (required for item creation)
+- Check that EquipQR has permission to create items in your QuickBooks company
 
 ### API Rate Limits
 
@@ -237,14 +215,6 @@ QuickBooks API has rate limits. If you encounter throttling:
 
 ```bash
 npm test -- --grep quickbooks
-```
-
-### QuickBooks export invoice (Deno)
-
-From `supabase/functions` (uses `deno.json`):
-
-```bash
-deno test --allow-env --allow-net=quickbooks.api.intuit.com,sandbox-quickbooks.api.intuit.com ./quickbooks-export-invoice/quickbooks-export-invoice.deno.test.ts
 ```
 
 ### Local Development

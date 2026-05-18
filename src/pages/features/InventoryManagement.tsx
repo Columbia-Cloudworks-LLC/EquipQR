@@ -14,19 +14,21 @@ import {
   steps,
   screenshots,
 } from './data/inventoryManagementData';
-import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
-
-const seo = getFeatureSeoByPath('/features/inventory')!;
 
 const InventoryManagementFeature = () => {
   return (
     <>
-      <PageSEO title={seo.pageTitle} description={seo.description} path={seo.path} />
+      <PageSEO
+        title="Inventory Management"
+        description="Track parts, materials, and supplies with real-time stock levels, location management, and equipment compatibility rules. Never run out of critical parts."
+        path="/features/inventory"
+        keywords="inventory management, parts tracking, equipment parts, stock management, CMMS inventory, parts inventory software"
+      />
       <FeaturePageLayout>
       <FeatureHero
         icon={Warehouse}
-        title={seo.heroTitle}
-        description={seo.heroDescription}
+        title="Inventory Management"
+        description="Track parts and supplies with real-time stock levels, low stock alerts, and transaction history. Link inventory to equipment for compatibility tracking and streamlined work order workflows."
         ctaText="Start Using Inventory Management Free"
       />
 

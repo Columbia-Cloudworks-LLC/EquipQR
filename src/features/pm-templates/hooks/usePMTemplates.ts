@@ -9,25 +9,6 @@ import { toast } from 'sonner';
 // Re-export types for convenience
 export type { PMTemplateSummary };
 
-/** List PM templates for an explicit org id (e.g. QR flows outside OrganizationContext scope). */
-export const usePMTemplatesForOrganization = (
-  organizationId: string | undefined,
-  options: { enabled?: boolean; staleTime?: number; gcTime?: number } = {}
-) => {
-  const enabledFlag = options.enabled ?? true;
-
-  return useQuery({
-    queryKey: queryKeys.pmTemplates.list(organizationId ?? ''),
-    queryFn: () => pmChecklistTemplatesService.listTemplates(organizationId ?? ''),
-    enabled: enabledFlag && !!organizationId,
-    staleTime: options.staleTime ?? 30 * 60 * 1000,
-    gcTime: options.gcTime ?? 60 * 60 * 1000,
-    select: (data: PMTemplate[]): PMTemplateSummary[] => {
-      return data.map(templateToSummary);
-    },
-  });
-};
-
 // Query hook for fetching PM templates
 export const usePMTemplates = (options: { enabled?: boolean } = {}) => {
   const { currentOrganization } = useOrganization();

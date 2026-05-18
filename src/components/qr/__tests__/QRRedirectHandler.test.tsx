@@ -4,14 +4,13 @@ import { render, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QRRedirectHandler } from '@/components/qr/QRRedirectHandler';
 
-const triggerFeedback = vi.fn();
+const triggerPendingFeedback = vi.fn();
 
 vi.mock('@/hooks/useScanFeedback', () => ({
   useScanFeedback: () => ({
     prepareFeedback: vi.fn(),
     markPendingFeedback: vi.fn(),
-    triggerFeedback,
-    triggerPendingFeedback: triggerFeedback,
+    triggerPendingFeedback,
   }),
 }));
 
@@ -45,7 +44,7 @@ describe('QRRedirectHandler', () => {
     capturedOnComplete = undefined;
   });
 
-  it('calls triggerFeedback when onComplete runs', () => {
+  it('calls triggerPendingFeedback when onComplete runs', () => {
     render(
       <MemoryRouter>
         <QRRedirectHandler equipmentId="eq-1" />
@@ -56,6 +55,6 @@ describe('QRRedirectHandler', () => {
       capturedOnComplete?.('/dashboard/equipment/eq-1?qr=true');
     });
 
-    expect(triggerFeedback).toHaveBeenCalledTimes(1);
+    expect(triggerPendingFeedback).toHaveBeenCalledTimes(1);
   });
 });

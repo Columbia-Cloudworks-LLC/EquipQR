@@ -55,7 +55,7 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 | Job | Runner | Purpose |
 |-----|--------|---------|
 | `lint-and-typecheck` | Self-hosted | ESLint + TypeScript type checking |
-| `test` | Self-hosted | Vitest tests with coverage (Node 24.x LTS, matches `ci.yml`) |
+| `test` | Self-hosted | Vitest tests with coverage (Node 24.x, matches `ci.yml`) |
 | `security` | GitHub-hosted | npm audit + CodeQL security scan |
 | `build` | Self-hosted | Production build + bundle analysis |
 | `quality-gates` | Self-hosted | Final checks (bundle size limits, gzip size) |
@@ -163,27 +163,6 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 - `VITE_SUPABASE_URL` - Supabase project URL
 - `VITE_SUPABASE_ANON_KEY` - Supabase anonymous key
 - `VITE_APP_VERSION` - Set automatically during build
-
-#### Public documentation site (`equipqr.info`)
-
-Technical documentation is deployed as a **second Vercel project** (same GitHub repo, different **Root Directory**), so `equipqr.app` stays the product SPA and `equipqr.info` serves static docs.
-
-| Item | Value |
-|------|--------|
-| Repository | `Columbia-Cloudworks-LLC/EquipQR` |
-| Vercel project | `equipqr-docs` (`prj_6QicTVywixyyAYc7sxCRDLnqwbM9`) |
-| Root Directory | `docs` |
-| Install Command | `npm ci` |
-| Build Command | `npm run docs:build` |
-| Output Directory | `.vitepress/dist` |
-| Config | [`docs/vercel.json`](../vercel.json) |
-| Production hostname | `https://equipqr.info` (apex). `www.equipqr.info` should redirect to apex. |
-
-**Deployment cadence:** Git-connected Production builds run when **`main`** receives commits that touch **`docs/`** (scoped Root Directory). App-only merges do **not** redeploy the docs bundle unless `docs/` changes — intentional for static documentation.
-
-**Setup (dashboard):** Vercel → **Add New Project** → import the repo → set **Root Directory** to `docs` → confirm build settings above → deploy. Then attach **`equipqr.info`** and **`www.equipqr.info`** to this docs project (move from the app project if they were previously assigned there), and configure **`www` → apex** redirect. DNS must follow Vercel’s instructions at the domain registrar.
-
-Local preview: from repo root, `npm run docs:dev` or `npm run docs:preview` after `npm run docs:build`.
 
 ---
 
@@ -335,7 +314,7 @@ See [Deployment Guide - Self-Hosted Runner Setup](./deployment.md#self-hosted-ru
 **Check:**
 1. Runner service is running: `Get-Service -Name "actions.runner.*"`
 2. Disk space: Should have > 10GB free
-3. Node.js: Install **Node 24.x LTS** (must satisfy `engines.node` in root `package.json`).
+3. Node.js: Install **Node 24.x** (must satisfy `engines.node` in root `package.json`).
 
 ### Version tag not created
 

@@ -278,9 +278,6 @@ function Get-RemoteDigestMap {
         exit 1
     }
     $joined = ($output | Out-String).Trim()
-    if ($joined.Trim() -eq '[]') {
-        return @{}
-    }
     $outputLines = $joined -split "`r?`n"
     $startLine = -1
     $endLine = -1

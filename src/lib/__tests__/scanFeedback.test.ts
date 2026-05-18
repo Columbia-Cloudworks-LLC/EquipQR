@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   PENDING_SCAN_FEEDBACK_STORAGE_KEY,
-  getScanFeedbackDebugInfo,
   markScanFeedbackPending,
   playDirectScanFeedbackTone,
   prepareScanFeedback,
@@ -133,45 +132,6 @@ describe('scanFeedback', () => {
 
     triggerPendingScanFeedback();
     expect(vibrate).not.toHaveBeenCalled();
-  });
-
-  it('clears shared AudioContext when playPing throws on shared context', () => {
-    prepareScanFeedback();
-    const ctx = audioInstances[0];
-    ctx.state = 'running';
-
-    const vibrate = vi.fn();
-    vi.stubGlobal('navigator', { ...navigator, vibrate });
-
-    markScanFeedbackPending();
-
-    ctx.createOscillator.mockImplementationOnce(() => {
-      throw new Error('playPing fail');
-    });
-
-    triggerPendingScanFeedback();
-
-    expect(vibrate).toHaveBeenCalled();
-    expect(getScanFeedbackDebugInfo().contextState).toBeNull();
-
-    prepareScanFeedback();
-    expect(audioInstances.length).toBe(2);
-  });
-
-  it('playDirectScanFeedbackTone clears shared context when playPing throws', () => {
-    prepareScanFeedback();
-    const ctx = audioInstances[0];
-    ctx.state = 'running';
-
-    ctx.createOscillator.mockImplementationOnce(() => {
-      throw new Error('playPing fail');
-    });
-
-    playDirectScanFeedbackTone();
-
-    expect(getScanFeedbackDebugInfo().contextState).toBeNull();
-    prepareScanFeedback();
-    expect(audioInstances.length).toBe(2);
   });
 
   it('playDirectScanFeedbackTone plays without session marker', () => {

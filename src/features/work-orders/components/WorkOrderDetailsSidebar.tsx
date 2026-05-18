@@ -1,15 +1,12 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import WorkOrderStatusManager from '@/features/work-orders/components/WorkOrderStatusManager';
 import { WorkOrderDetailsRequestorStatus } from './WorkOrderDetailsRequestorStatus';
 import { WorkOrderDetailsStatusLockWarning } from './WorkOrderDetailsStatusLockWarning';
 import { WorkOrderData, EquipmentData, PMData, PermissionLevels, OrganizationData } from '@/features/work-orders/types/workOrderDetails';
 import type { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
-import CustomerContactActions from '@/features/teams/components/CustomerContactActions';
 
 interface WorkOrderDetailsSidebarProps {
   workOrder: WorkOrderData;
@@ -108,24 +105,6 @@ export const WorkOrderDetailsSidebar: React.FC<WorkOrderDetailsSidebarProps> = (
           equipment={equipment}
           pmData={pmData}
         />
-
-        {/* Customer Contacts — managers + field technicians; requestors/viewers excluded */}
-        {(permissionLevels.isManager || permissionLevels.isTechnician) && equipment?.customer_id && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Customer Contacts
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <CustomerContactActions
-                customerId={equipment.customer_id}
-                emptyLabel="No QuickBooks contacts synced yet."
-              />
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );

@@ -13,10 +13,6 @@ interface WorkOrderCostsEditorProps {
   onRemoveCost: (id: string) => void;
   onUpdateCost: (id: string, field: keyof WorkOrderCostItem, value: string | number) => void;
   hasError?: boolean;
-  /**
-   * When true on mobile, hides the duplicate “Cost Items” + inline Add strip — parent supplies CTAs.
-   */
-  suppressMobileChrome?: boolean;
 }
 
 const WorkOrderCostsEditor: React.FC<WorkOrderCostsEditorProps> = ({
@@ -24,11 +20,9 @@ const WorkOrderCostsEditor: React.FC<WorkOrderCostsEditorProps> = ({
   onAddCost,
   onRemoveCost,
   onUpdateCost,
-  hasError = false,
-  suppressMobileChrome = false,
+  hasError = false
 }) => {
   const isMobile = useIsMobile();
-  const showMobileHeaderStrip = !(isMobile && suppressMobileChrome);
   
   const formatCurrency = useCallback((cents: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -45,24 +39,27 @@ const WorkOrderCostsEditor: React.FC<WorkOrderCostsEditorProps> = ({
   const canRemove = costs.length > 1;
 
   return (
-    <div className="space-y-4 overflow-x-hidden">
-      {showMobileHeaderStrip ? (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-            Cost Items
-          </h3>
-          <Button type="button" variant="outline" size="sm" onClick={onAddCost}>
-            <Plus className="h-4 w-4 mr-1" />
-            Add Cost Item
-          </Button>
-        </div>
-      ) : null}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+          Cost Items
+        </h3>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onAddCost}
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          Add Cost Item
+        </Button>
+      </div>
 
-      {hasError ? (
-        <p className="text-sm text-destructive" role="alert">
+      {hasError && (
+        <p className="text-sm text-destructive">
           All cost items must have a description and valid quantities/prices
         </p>
-      ) : null}
+      )}
 
       <div className="space-y-3">
         {/* Desktop Headers */}

@@ -6,7 +6,6 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useDefaultLayout, type LayoutStorage } from 'react-resizable-panels';
 import { History } from 'lucide-react';
 import EmptyState from '@/components/ui/empty-state';
 import {
@@ -35,15 +34,6 @@ import { AuditLogList } from './AuditLogList';
 import { AuditLogDetailPanel } from './AuditLogDetailPanel';
 
 const PAGE_SIZE = 200;
-
-const AUDIT_EXPLORER_LAYOUT_ID = 'audit-explorer-split';
-const AUDIT_EXPLORER_PANEL_IDS = ['audit-explorer-list', 'audit-explorer-detail'] as const;
-
-/** No-op persistence when `localStorage` is unavailable (SSR / tests). Matches `LayoutStorage`. */
-const NOOP_LAYOUT_STORAGE: LayoutStorage = {
-  getItem: () => null,
-  setItem: () => {},
-};
 
 /**
  * Bucket size in milliseconds. Mirrors `date_trunc(p_bucket, ...)` semantics
@@ -128,15 +118,6 @@ export interface AuditExplorerProps {
 export function AuditExplorer({ organizationId }: AuditExplorerProps) {
   const { canManageOrganization } = usePermissions();
   const canExport = canManageOrganization();
-
-  const explorerLayout = useDefaultLayout({
-    id: AUDIT_EXPLORER_LAYOUT_ID,
-    storage:
-      typeof globalThis !== 'undefined' && 'localStorage' in globalThis
-        ? globalThis.localStorage
-        : NOOP_LAYOUT_STORAGE,
-    panelIds: [...AUDIT_EXPLORER_PANEL_IDS],
-  });
 
   const [preset, setPreset] = useState<AuditLogTimePreset>(DEFAULT_AUDIT_TIME_PRESET);
   const [range, setRange] = useState(() => presetToRange(DEFAULT_AUDIT_TIME_PRESET));
@@ -321,12 +302,10 @@ export function AuditExplorer({ organizationId }: AuditExplorerProps) {
       <div className="rounded-md border overflow-hidden bg-card">
         <ResizablePanelGroup
           direction="horizontal"
+          autoSaveId="audit-explorer-split"
           className="h-[480px]"
-          id={AUDIT_EXPLORER_LAYOUT_ID}
-          defaultLayout={explorerLayout.defaultLayout}
-          onLayoutChanged={explorerLayout.onLayoutChanged}
         >
-          <ResizablePanel id={AUDIT_EXPLORER_PANEL_IDS[0]} defaultSize={60} minSize={30}>
+          <ResizablePanel defaultSize={60} minSize={30}>
             <AuditLogList
               entries={entries}
               selectedId={selectedEntry?.id ?? null}
@@ -344,7 +323,7 @@ export function AuditExplorer({ organizationId }: AuditExplorerProps) {
             />
           </ResizablePanel>
           <ResizableHandle withHandle />
-          <ResizablePanel id={AUDIT_EXPLORER_PANEL_IDS[1]} defaultSize={40} minSize={25}>
+          <ResizablePanel defaultSize={40} minSize={25}>
             <AuditLogDetailPanel entry={selectedEntry} />
           </ResizablePanel>
         </ResizablePanelGroup>

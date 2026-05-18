@@ -88,16 +88,7 @@ export const convertToWorkOrderDetailsData = (workOrder: WorkOrderData): WorkOrd
     team_id: workOrder.teamId,
     equipment_id: workOrder.equipmentId,
     organization_id: workOrder.organizationId,
-    has_pm: false, // Default value
-    quickbooks_invoice_id: workOrder.quickbooksInvoiceId,
-    quickbooks_invoice_number: workOrder.quickbooksInvoiceNumber,
-    quickbooks_invoice_environment: workOrder.quickbooksInvoiceEnvironment,
-    invoice_status: workOrder.invoiceStatus,
-    invoice_sent_at: workOrder.invoiceSentAt,
-    invoice_paid_at: workOrder.invoicePaidAt,
-    invoice_balance_cents: workOrder.invoiceBalanceCents,
-    invoice_due_date: workOrder.invoiceDueDate,
-    invoice_last_synced_at: workOrder.invoiceLastSyncedAt
+    has_pm: false // Default value
   };
 };
 

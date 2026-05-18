@@ -1,6 +1,6 @@
 # EquipQR™ Documentation
 
-Welcome to the comprehensive documentation for EquipQR™, a modern fleet equipment management platform. This tree is organized for **Technical** and **Guides** content on the public docs site, plus **Operations** runbooks that remain **repository-internal** (not published on `equipqr.info`).
+Welcome to the comprehensive documentation for EquipQR™, a modern fleet equipment management platform. This documentation is organized into three main sections: Technical, Guides, and Operations.
 
 ## 📚 Documentation Structure
 
@@ -22,22 +22,16 @@ Technical documentation for developers and system architects:
 - **[Testing Guidelines](./technical/testing-guidelines.md)** - Test patterns and coverage expectations
 - **[API Reference](./technical/api-reference.md)** - API documentation with examples
 
-### 👋 Support & public documentation
+### 👋 For End Users
 
-Published EquipQR documentation—including technician how-tos, reference guides,
-permissions, and workflows from this `docs/` tree—is hosted at **`https://equipqr.info`**
-(searchable, SEO-friendly, and offline-friendly when cached). **Operations runbooks**
-under `docs/ops/` are maintained in this repository for maintainers and are **not**
-included in the public VitePress build.
+Day-to-day support for technicians, managers, admins, owners, and requestors
+lives **inside the app**:
 
-**In-app shortcuts while using the product:**
-
-- **Support Library (signed in):** `https://equipqr.app/dashboard/support`
-- **Public app support page:** `https://equipqr.app/support`
-
-Use these when you need contextual help inside the app; use **`https://equipqr.info`**
-as the canonical URL to share, bookmark, or index.
-
+- **In-app Support Library** — open `/dashboard/support` while signed in, or
+  `/support` for the public variant. It is the source of truth for
+  step-by-step walkthroughs organized by role and workflow (Start Here,
+  Technician Field Work, Work Orders, Equipment & QR Codes, Inventory & Parts,
+  Teams & Roles, Admin & Integrations, Privacy & Support).
 - **[Image Upload Quick Reference](./how-to/image-upload/quick-reference-card.md)** —
   printable cheat sheet for technicians in the field.
 - **[Image Upload Technician Guide](./how-to/image-upload/technician-image-upload-guide.md)** —
@@ -52,18 +46,16 @@ full lifecycle and permission map:
   lifecycle and status-transition rules.
 - **[Permissions](./guides/permissions.md)** — full RBAC matrix.
 
-### 🚀 Operations (repository only)
+### 🚀 Operations
 
-Operational runbooks for deployment and maintenance live under `docs/ops/` in this repo.
-They are **not** published on **`https://equipqr.info`** (see [Public vs internal content](#public-vs-internal-content)).
-Browse them on GitHub or in your local checkout:
+Operational documentation for deployment and maintenance:
 
-- **[CI/CD Pipeline](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/ci-cd-pipeline.md)** - Complete CI/CD pipeline documentation including GitHub Actions, Vercel, and Supabase integrations
-- **[Deployment](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/deployment.md)** - Complete deployment guide including build, hosting, runners, and versioning
-- **[Migrations](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/migrations.md)** - Database migration guide with critical rules
-- **[Migration Rules Quick Reference](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/migration-rules-quick-reference.md)** - Quick reference for migration best practices
-- **[Local Supabase Development](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/local-supabase-development.md)** - Complete guide for local Supabase setup, edge function development, and migration synchronization
-- **[Disaster Recovery](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/disaster-recovery.md)** - Database backup and point-in-time recovery procedures
+- **[CI/CD Pipeline](./ops/ci-cd-pipeline.md)** - Complete CI/CD pipeline documentation including GitHub Actions, Vercel, and Supabase integrations
+- **[Deployment](./ops/deployment.md)** - Complete deployment guide including build, hosting, runners, and versioning
+- **[Migrations](./ops/migrations.md)** - Database migration guide with critical rules
+- **[Migration Rules Quick Reference](./ops/migration-rules-quick-reference.md)** - Quick reference for migration best practices
+- **[Local Supabase Development](./ops/local-supabase-development.md)** - Complete guide for local Supabase setup, edge function development, and migration synchronization
+- **[Disaster Recovery](./ops/disaster-recovery.md)** - Database backup and point-in-time recovery procedures
 
 ## 🎯 Quick Navigation
 
@@ -77,30 +69,29 @@ Browse them on GitHub or in your local checkout:
 6. Check [Troubleshooting](./getting-started/troubleshooting.md) if you encounter issues
 
 ### For System Administrators
-1. **READ FIRST**: [Migrations](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/migrations.md) - ⚠️ **CRITICAL** migration rules
-2. Review [Deployment](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/deployment.md) - Multi-platform deployment
+1. **READ FIRST**: [Migrations](./ops/migrations.md) - ⚠️ **CRITICAL** migration rules
+2. Review [Deployment](./ops/deployment.md) - Multi-platform deployment
 3. Understand [Architecture](./technical/architecture.md) - System design
 4. Monitor [Workflows](./guides/workflows.md) - User processes
 
 ### For End Users
-
-1. Start at **`https://equipqr.info`** for published guides, how-tos, and reference material.
-2. For in-app help without leaving the product, use **`https://equipqr.app/dashboard/support`** (signed in) or **`https://equipqr.app/support`**.
-3. For field technicians, print the [Image Upload Quick Reference](./how-to/image-upload/quick-reference-card.md).
-4. For RBAC questions, see [Permissions](./guides/permissions.md).
+1. Open the in-app **Support Library** at `/dashboard/support` (or `/support` while
+   signed out) — the authoritative source of step-by-step walkthroughs.
+2. For field technicians, print the [Image Upload Quick Reference](./how-to/image-upload/quick-reference-card.md).
+3. For RBAC questions, see [Permissions](./guides/permissions.md).
 
 ### For DevOps Engineers
-1. **READ FIRST**: [Migrations](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/migrations.md) - ⚠️ **CRITICAL** migration rules
-2. Study [CI/CD Pipeline](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/ci-cd-pipeline.md) - Complete pipeline documentation
-3. Study [Deployment](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/deployment.md) - Complete deployment guide
-4. Review [Disaster Recovery](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/disaster-recovery.md) - Backup and PITR procedures
+1. **READ FIRST**: [Migrations](./ops/migrations.md) - ⚠️ **CRITICAL** migration rules
+2. Study [CI/CD Pipeline](./ops/ci-cd-pipeline.md) - Complete pipeline documentation
+3. Study [Deployment](./ops/deployment.md) - Complete deployment guide
+4. Review [Disaster Recovery](./ops/disaster-recovery.md) - Backup and PITR procedures
 5. Review [Architecture](./technical/architecture.md) - System architecture
-6. Reference [Migration Rules Quick Reference](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/migration-rules-quick-reference.md) - Quick reference
+6. Reference [Migration Rules Quick Reference](./ops/migration-rules-quick-reference.md) - Quick reference
 
 ## 📁 Additional Resources
 
 ### Archived Documentation
-- **[Historical Fixes](./archive/historical-fixes/README.md)** - Historical documentation of fixes and improvements
+- **[Historical Fixes](./archive/historical-fixes/)** - Historical documentation of fixes and improvements
 
 ### PM Templates
 - **[PM Checklists](./pm-templates/)** - Preventative maintenance checklist templates
@@ -124,7 +115,7 @@ Browse them on GitHub or in your local checkout:
 
 #### Database & Data Management
 - [Architecture - Database Schema](./technical/architecture.md#database-schema)
-- [Migrations](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/migrations.md) - Migration strategies
+- [Migrations](./ops/migrations.md) - Migration strategies
 - [API Reference](./technical/api-reference.md) - Data access patterns
 
 #### Development Workflow
@@ -133,11 +124,11 @@ Browse them on GitHub or in your local checkout:
 - [Architecture - Component Patterns](./technical/architecture.md#component-design-patterns)
 
 #### Deployment & DevOps
-- [CI/CD Pipeline](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/ci-cd-pipeline.md) - GitHub Actions, Vercel, Supabase integrations
-- [Deployment Guide](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/deployment.md) - Platform-specific deployment
-- [Migrations](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/migrations.md) - Database migrations
-- [Local Supabase Development](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/local-supabase-development.md) - Local development setup and edge function workflow
-- [Disaster Recovery](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/disaster-recovery.md) - Database backup and PITR restoration
+- [CI/CD Pipeline](./ops/ci-cd-pipeline.md) - GitHub Actions, Vercel, Supabase integrations
+- [Deployment Guide](./ops/deployment.md) - Platform-specific deployment
+- [Migrations](./ops/migrations.md) - Database migrations
+- [Local Supabase Development](./ops/local-supabase-development.md) - Local development setup and edge function workflow
+- [Disaster Recovery](./ops/disaster-recovery.md) - Database backup and PITR restoration
 - [Architecture - Performance](./technical/architecture.md#performance-architecture)
 
 #### Business Logic & Features
@@ -161,18 +152,6 @@ To avoid redundancy and ensure consistency, each topic has a single **source of 
 **For AI/reviewer checklists** (`.github/instructions/*`, `.github/copilot-instructions.md`):
 - These are short checklists for code review, not comprehensive documentation
 - They should reference the full docs above, not duplicate content
-
-## Public vs internal content
-
-Use this when authoring or reviewing documentation:
-
-| Surface | Audience | Content |
-|--------|----------|---------|
-| **`https://equipqr.info`** | Customers, technicians, partners, general public | Support how-tos, guides, technical reference, compliance summaries **without** live infrastructure identifiers, privileged command sequences, or step-by-step admin/impersonation procedures. |
-| **Repository `docs/ops/`** | Maintainers, security-reviewed operators | CI/CD, migrations, disaster recovery, observability, cloud admin posture, and similar runbooks. Keep sensitive placeholders out of public pages; link to GitHub for ops detail when needed from public docs. |
-| **In-app Support Library** | Signed-in users | Contextual UI help; complements the public site. |
-
-Do not add real org IDs, project IDs, tenant domains, service account emails, or copy-paste admin keys to public-facing pages. Prefer placeholders (for example `<GCP_ORG_ID>`) or point readers at internal ops docs in the repo.
 
 ## 🤝 Contributing to Documentation
 

@@ -7,7 +7,6 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
 import { landingImage } from '@/lib/landingImage';
-import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
 
 interface BuiltInTemplate {
   name: string;
@@ -62,20 +61,24 @@ const builtInTemplates: BuiltInTemplate[] = [
   },
 ];
 
-const seo = getFeatureSeoByPath('/features/pm-templates')!;
-
 const PMTemplatesFeature = () => {
   return (
     <>
-      <PageSEO title={seo.pageTitle} description={seo.description} path={seo.path} />
+      <PageSEO
+        title="PM Templates"
+        description="Create reusable preventative maintenance templates with checklists, schedules, and equipment compatibility rules. Standardize maintenance procedures across your fleet."
+        path="/features/pm-templates"
+        keywords="PM templates, preventative maintenance, maintenance checklists, equipment maintenance, CMMS templates, maintenance scheduling"
+      />
       <FeaturePageLayout>
       <FeatureHero
         icon={FileCheck}
-        title={seo.heroTitle}
-        description={seo.heroDescription}
+        title="PM Templates"
+        description="Standardize preventative maintenance across your fleet with pre-built checklists for common equipment types, or create custom templates tailored to your specific needs."
         ctaText="Start Using PM Templates Free"
       />
 
+        {/* Key Benefits Section */}
         <section className="py-24 bg-muted/30">
           <div className="container px-4 mx-auto">
             <div className="text-center mb-16">

@@ -116,12 +116,6 @@ export const pmTemplates = {
   byId: (templateId: string) => ['pm-templates', templateId] as const,
 };
 
-/** PM template compatibility matching for an equipment record (org-scoped). */
-export const pmTemplateMatching = {
-  forEquipment: (orgId: string, equipmentId: string) =>
-    ['pm-template-matching', orgId, equipmentId] as const,
-};
-
 // Inventory keys
 export const inventory = {
   root: ['inventory'] as const,
@@ -228,7 +222,6 @@ export const queryKeys = {
   preventiveMaintenance,
   notifications,
   pmTemplates,
-  pmTemplateMatching,
   inventory,
   quickBooks,
   googleWorkspace,

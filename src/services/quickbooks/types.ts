@@ -102,33 +102,15 @@ export interface TokenRefreshSummary {
 }
 
 /**
- * Normalized contact entry derived from a documented QBO Customer field.
- * Up to five entries per customer: primary_email, primary_phone, mobile, fax, alternate_phone.
- */
-export interface QBODerivedContact {
-  sourceField: string;
-  name: string;
-  role: string;
-  email?: string;
-  phone?: string;
-}
-
-/**
  * QuickBooks customer payload returned by customer search/sync APIs.
  */
 export interface QuickBooksCustomerRecord {
   Id: string;
   DisplayName: string;
-  GivenName?: string;
-  FamilyName?: string;
   CompanyName?: string;
   Taxable?: boolean;
   Email?: string;
   Phone?: string;
-  Mobile?: string;
-  Fax?: string;
-  AlternatePhone?: string;
-  contacts?: QBODerivedContact[];
   BillAddr?: {
     Line1?: string;
     City?: string;
@@ -156,7 +138,6 @@ export type QuickBooksExportInvoiceRequest = {
  * QuickBooks environment type
  */
 export type QuickBooksEnvironment = 'sandbox' | 'production';
-export type QuickBooksInvoiceStatus = 'draft' | 'sent' | 'viewed' | 'paid' | 'partially_paid' | 'overdue' | 'voided';
 
 /**
  * Response from quickbooks-export-invoice Edge Function

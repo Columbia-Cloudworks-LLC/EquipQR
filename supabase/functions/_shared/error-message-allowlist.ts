@@ -142,7 +142,6 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
 
   // QuickBooks integration errors
   /^QuickBooks returned a validation error for the customer query\. Please adjust your search and try again\.$/,
-  /^QuickBooks tax status could not be confirmed\. Please refresh the customer from QuickBooks and try again\.$/,
 
   // Places autocomplete errors (now routed through createErrorResponse)
   /^Place not found$/,

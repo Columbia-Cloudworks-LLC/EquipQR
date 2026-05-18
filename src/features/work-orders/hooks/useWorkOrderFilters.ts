@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { isToday, isThisWeek } from 'date-fns';
-import { WorkOrderFilters, WorkOrderData, type QuickBooksInvoiceStatus } from '@/features/work-orders/types/workOrder';
+import { WorkOrderFilters, WorkOrderData } from '@/features/work-orders/types/workOrder';
 import { getPriorityValue, isOverdue } from '@/features/work-orders/utils/workOrderHelpers';
 
 export type QuickFilterPreset = 'my-work' | 'urgent' | 'overdue' | 'unassigned';
@@ -18,21 +18,6 @@ const PRESET_FILTER_MAP: Record<QuickFilterPreset, { key: keyof WorkOrderFilters
   'unassigned': { key: 'assigneeFilter', value: 'unassigned' },
 };
 
-/**
- * Collectible invoice balances for the Work Orders "Unpaid" filter.
- * Excludes paid, voided, and unknown.
- * A NULL invoice_status with a set quickbooks_invoice_id is also treated as
- * unpaid/collectible: it represents the transitional state where a QBO invoice
- * has been exported but the hourly reconciler has not yet mirrored the status.
- */
-const COLLECTIBLE_UNPAID_INVOICE_STATUSES: ReadonlySet<QuickBooksInvoiceStatus> = new Set([
-  'draft',
-  'sent',
-  'viewed',
-  'partially_paid',
-  'overdue',
-]);
-
 export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?: string) => {
   const [filters, setFilters] = useState<WorkOrderFilters>({
     searchQuery: '',
@@ -40,8 +25,7 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
     assigneeFilter: 'all',
     teamFilter: 'all',
     priorityFilter: 'all',
-    dueDateFilter: 'all',
-    invoiceFilter: 'all'
+    dueDateFilter: 'all'
   });
   const [activePresets, setActivePresets] = useState<Set<QuickFilterPreset>>(new Set());
   const [sortField, setSortField] = useState<SortField>('created');
@@ -73,19 +57,8 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
                             (filters.dueDateFilter === 'overdue' && isOverdue(order.dueDate, order.status)) ||
                             (filters.dueDateFilter === 'today' && order.dueDate && isToday(new Date(order.dueDate))) ||
                             (filters.dueDateFilter === 'this_week' && order.dueDate && isThisWeek(new Date(order.dueDate)));
-
-      const invoiceStatus = order.invoiceStatus ?? order.invoice_status ?? null;
-      const hasExportedInvoice = Boolean(order.quickbooksInvoiceId ?? order.quickbooks_invoice_id);
-      const matchesInvoice =
-        filters.invoiceFilter === 'all' ||
-        (filters.invoiceFilter === 'paid' && invoiceStatus === 'paid') ||
-        (filters.invoiceFilter === 'overdue' && invoiceStatus === 'overdue') ||
-        (filters.invoiceFilter === 'not_exported' && !hasExportedInvoice) ||
-        (filters.invoiceFilter === 'unpaid' &&
-          hasExportedInvoice &&
-          (invoiceStatus === null || COLLECTIBLE_UNPAID_INVOICE_STATUSES.has(invoiceStatus)));
-
-      return matchesSearch && matchesStatus && matchesAssignee && matchesTeam && matchesPriority && matchesDueDate && matchesInvoice;
+      
+      return matchesSearch && matchesStatus && matchesAssignee && matchesTeam && matchesPriority && matchesDueDate;
     });
   }, [workOrders, filters, currentUserId]);
 
@@ -120,7 +93,6 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
     if (filters.assigneeFilter !== 'all') count++;
     if (filters.priorityFilter !== 'all') count++;
     if (filters.dueDateFilter !== 'all') count++;
-    if (filters.invoiceFilter !== 'all') count++;
     return count;
   }, [filters]);
 
@@ -131,8 +103,7 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
       assigneeFilter: 'all',
       teamFilter: 'all',
       priorityFilter: 'all',
-      dueDateFilter: 'all',
-      invoiceFilter: 'all'
+      dueDateFilter: 'all'
     });
     setActivePresets(new Set());
   }, []);

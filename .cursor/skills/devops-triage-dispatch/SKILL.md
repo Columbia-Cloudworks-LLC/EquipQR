@@ -438,7 +438,7 @@ If 6b flagged a tool not listed in A.1–A.8 (rare), do NOT improvise an install
 
 - `.cursor/skills/model-recommender/SKILL.md` — work-shape → specific model + Cursor tier mapping; reads `docs/ops/ci-cd-workshop/AI Model Comparison Report  28 Models Across 6 Families (April 2026).md` and emits the standardized **Recommended Execution Model** block that Phase 4 → Execution Configuration embeds.
 - `.cursor/skills/itil-problem-record/SKILL.md` — root-cause investigation for bugs / regressions / CI failures.
-- `.cursor/skills/itil-change-record/SKILL.md` — ITIL Change Record (pre-plan triage, then Plan-mode draft/post, then post-approval execution) for any code change requiring authorization.
+- `.cursor/skills/itil-change-record/SKILL.md` — Plan-mode change record for any code change requiring authorization.
 - `.cursor/skills/itil-incident-record/SKILL.md` — live-site bug reproduction and evidence capture.
 - `.cursor/skills/itil-service-request/SKILL.md` — feasibility / scope research for feature requests.
 - `.cursor/skills/auditor/SKILL.md` — vulnerability patching and compliance sweeps.
