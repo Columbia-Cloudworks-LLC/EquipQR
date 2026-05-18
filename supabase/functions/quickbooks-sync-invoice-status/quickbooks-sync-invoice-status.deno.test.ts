@@ -1,4 +1,5 @@
 import { assertEquals, assertRejects } from "jsr:@std/assert@1";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import {
   deriveQuickBooksInvoiceStatus,
   type QuickBooksInvoice,
@@ -111,9 +112,28 @@ Deno.test("deriveQuickBooksInvoiceStatus treats zero balance invoices as paid", 
   );
 });
 
+Deno.test("deriveQuickBooksInvoiceStatus does not mark paid when Balance is missing despite TotalAmt > 0", () => {
+  assertEquals(deriveQuickBooksInvoiceStatus({ TotalAmt: 100 }), "draft");
+  assertEquals(
+    deriveQuickBooksInvoiceStatus({ TotalAmt: 100, EmailStatus: "EmailSent" }),
+    "sent",
+  );
+});
+
+Deno.test("deriveQuickBooksInvoiceStatus does not use overdue when monetary fields are incomplete", () => {
+  assertEquals(
+    deriveQuickBooksInvoiceStatus(
+      { DueDate: "2026-01-01" },
+      undefined,
+      new Date("2026-05-17T00:00:00Z"),
+    ),
+    "draft",
+  );
+});
+
 Deno.test("updateMirroredWorkOrders omits invoice timestamps from main payload and null-guards paid_at", async () => {
   const { from, updates } = createWorkOrderUpdateMock();
-  await updateMirroredWorkOrders({ from }, {
+  await updateMirroredWorkOrders({ from } as unknown as SupabaseClient, {
     organizationId: "org-1",
     realmId: "realm-1",
     invoice: {
@@ -134,7 +154,7 @@ Deno.test("updateMirroredWorkOrders omits invoice timestamps from main payload a
 
 Deno.test("updateMirroredWorkOrders null-guards invoice_sent_at when status is sent", async () => {
   const { from, updates } = createWorkOrderUpdateMock();
-  await updateMirroredWorkOrders({ from }, {
+  await updateMirroredWorkOrders({ from } as unknown as SupabaseClient, {
     organizationId: "org-1",
     realmId: "realm-1",
     invoice: {
@@ -152,7 +172,7 @@ Deno.test("updateMirroredWorkOrders null-guards invoice_sent_at when status is s
 
 Deno.test("updateMirroredWorkOrders first-writes invoice_sent_at for emailed paid invoices", async () => {
   const { from, updates } = createWorkOrderUpdateMock();
-  await updateMirroredWorkOrders({ from }, {
+  await updateMirroredWorkOrders({ from } as unknown as SupabaseClient, {
     organizationId: "org-1",
     realmId: "realm-1",
     invoice: {
@@ -170,7 +190,7 @@ Deno.test("updateMirroredWorkOrders first-writes invoice_sent_at for emailed pai
 
 Deno.test("updateMirroredWorkOrders does not write invoice_sent_at for voided emailed invoices", async () => {
   const { from, updates } = createWorkOrderUpdateMock();
-  await updateMirroredWorkOrders({ from }, {
+  await updateMirroredWorkOrders({ from } as unknown as SupabaseClient, {
     organizationId: "org-1",
     realmId: "realm-1",
     invoice: {
@@ -292,7 +312,7 @@ Deno.test("refreshTokenIfNeeded returns current access_token without refresh whe
   };
   const fakeClient = { from: () => ({ update: () => ({ eq: () => Promise.resolve({ error: null }) }) }) };
 
-  const result = await refreshTokenIfNeeded(credential, fakeClient, "client-id", "client-secret");
+  const result = await refreshTokenIfNeeded(credential, fakeClient as unknown as SupabaseClient, "client-id", "client-secret");
   assertEquals(result.accessToken, "current-access-token");
   assertEquals(result.credential, credential);
 });
@@ -328,7 +348,7 @@ Deno.test("refreshTokenIfNeeded returns rotated tokens and updated in-memory cre
         ),
       );
 
-    const result = await refreshTokenIfNeeded(credential, mock, "client-id", "client-secret");
+    const result = await refreshTokenIfNeeded(credential, mock as unknown as SupabaseClient, "client-id", "client-secret");
 
     assertEquals(result.accessToken, "new-access-token");
     assertEquals(result.credential.access_token, "new-access-token");
@@ -376,7 +396,8 @@ Deno.test("refreshTokenIfNeeded throws when QuickBooks token refresh succeeds bu
       );
 
     await assertRejects(
-      async () => await refreshTokenIfNeeded(credential, mock, "client-id", "client-secret"),
+      async () =>
+        await refreshTokenIfNeeded(credential, mock as unknown as SupabaseClient, "client-id", "client-secret"),
       Error,
       "QuickBooks credential persistence failed:",
     );
@@ -410,7 +431,7 @@ Deno.test("claimInvoiceEvents calls claim RPC with EVENT_BATCH_SIZE and returns 
     },
   };
 
-  const rows = await claimInvoiceEvents(fakeClient);
+  const rows = await claimInvoiceEvents(fakeClient as unknown as SupabaseClient);
   assertEquals(rpcName, "claim_quickbooks_invoice_status_events");
   assertEquals(rpcArgs.p_batch_size, EVENT_BATCH_SIZE);
   assertEquals(rows.length, 1);
@@ -427,7 +448,7 @@ Deno.test("claimInvoiceEvents throws when RPC returns an error", async () => {
   };
 
   await assertRejects(
-    async () => await claimInvoiceEvents(fakeClient),
+    async () => await claimInvoiceEvents(fakeClient as unknown as SupabaseClient),
     Error,
     "simulated claim failure",
   );

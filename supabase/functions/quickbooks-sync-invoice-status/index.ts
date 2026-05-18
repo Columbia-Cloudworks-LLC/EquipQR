@@ -1,4 +1,7 @@
-import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import {
+  createClient,
+  type SupabaseClient,
+} from "npm:@supabase/supabase-js@2.45.0";
 import {
   QBO_API_BASE,
   QBO_TOKEN_URL,
@@ -76,7 +79,7 @@ function validateServiceRoleAuth(req: Request, expected: string): boolean {
 
 async function refreshTokenIfNeeded(
   credential: QuickBooksCredential,
-  supabaseClient: any,
+  supabaseClient: SupabaseClient,
   clientId: string,
   clientSecret: string,
 ): Promise<{ accessToken: string; credential: QuickBooksCredential }> {
@@ -178,7 +181,7 @@ function credentialKey(organizationId: string, realmId: string): string {
 }
 
 async function loadCredentialsByOrgRealm(
-  supabaseClient: any,
+  supabaseClient: SupabaseClient,
   pairs: Array<{ organizationId: string; realmId: string }>,
 ): Promise<Map<string, QuickBooksCredential>> {
   if (pairs.length === 0) return new Map<string, QuickBooksCredential>();
@@ -201,7 +204,7 @@ async function loadCredentialsByOrgRealm(
 }
 
 async function markEvent(
-  supabaseClient: any,
+  supabaseClient: SupabaseClient,
   eventId: string,
   status: "processed" | "error",
   lastError?: string,
@@ -217,7 +220,7 @@ async function markEvent(
 }
 
 /** Atomically claim queued events in Postgres (SKIP LOCKED) so workers cannot duplicate work. */
-async function claimInvoiceEvents(supabaseClient: any): Promise<InvoiceEvent[]> {
+async function claimInvoiceEvents(supabaseClient: SupabaseClient): Promise<InvoiceEvent[]> {
   const { data, error } = await supabaseClient.rpc("claim_quickbooks_invoice_status_events", {
     p_batch_size: EVENT_BATCH_SIZE,
   });
@@ -230,7 +233,7 @@ async function claimInvoiceEvents(supabaseClient: any): Promise<InvoiceEvent[]> 
 }
 
 async function processInvoiceEvents(
-  supabaseClient: any,
+  supabaseClient: SupabaseClient,
   clientId: string,
   clientSecret: string,
 ): Promise<{ processed: number; failed: number }> {
@@ -305,7 +308,7 @@ async function processInvoiceEvents(
 }
 
 async function reconcileOpenInvoices(
-  supabaseClient: any,
+  supabaseClient: SupabaseClient,
   clientId: string,
   clientSecret: string,
 ): Promise<{ reconciled: number; failed: number }> {
