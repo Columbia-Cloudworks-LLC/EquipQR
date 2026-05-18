@@ -257,6 +257,9 @@ async function processInvoiceEvents(
   let failed = 0;
 
   for (const event of typedEvents) {
+    // Business-logic block: credential lookup, token refresh, QuickBooks API calls,
+    // and work-order mirroring. A failure here marks the event as error so it can be
+    // retried on the next run (up to the attempts ceiling).
     try {
       const credential = credentialsByKey.get(credentialKey(event.organization_id, event.realm_id));
       if (!credential) throw new Error("No QuickBooks credentials for event realm and organization");
@@ -300,17 +303,41 @@ async function processInvoiceEvents(
       } else {
         throw new Error(`Unsupported QuickBooks event entity_name: ${(event as InvoiceEvent).entity_name}`);
       }
+    } catch (eventError) {
+      // Business logic failed. Attempt to persist the error status so the event
+      // becomes eligible for retry. If error-status persistence itself fails,
+      // log and continue; stale-processing recovery will reclaim the row after
+      // the 15-minute window.
+      failed += 1;
+      try {
+        await markEvent(
+          supabaseClient,
+          event,
+          "error",
+          eventError instanceof Error ? eventError.message : String(eventError),
+        );
+      } catch (markError) {
+        logStep("Failed to persist error status for invoice event; row stays in processing", {
+          event_id: event.id,
+          mark_error: markError instanceof Error ? markError.message : String(markError),
+        });
+      }
+      continue;
+    }
 
+    // Business logic succeeded. Mark the event processed in its own try/catch so
+    // a transient bookkeeping failure does not re-mark the event as error after
+    // side effects have already been applied. The row stays in `processing` and
+    // stale-processing recovery will reclaim it after 15 minutes.
+    try {
       await markEvent(supabaseClient, event, "processed");
       processed += 1;
-    } catch (eventError) {
+    } catch (markError) {
       failed += 1;
-      await markEvent(
-        supabaseClient,
-        event,
-        "error",
-        eventError instanceof Error ? eventError.message : String(eventError),
-      );
+      logStep("Failed to mark invoice event as processed; leaving in processing for stale recovery", {
+        event_id: event.id,
+        error: markError instanceof Error ? markError.message : String(markError),
+      });
     }
   }
 
@@ -433,5 +460,6 @@ export const __syncTestables = {
   extractLinkedInvoiceIdsFromPayment,
   claimInvoiceEvents,
   markEvent,
+  processInvoiceEvents,
   EVENT_BATCH_SIZE,
 };

@@ -12,7 +12,7 @@ import {
 } from "./payment-linked-invoices.ts";
 import { __syncTestables } from "./index.ts";
 
-const { refreshTokenIfNeeded, claimInvoiceEvents, EVENT_BATCH_SIZE, markEvent } = __syncTestables;
+const { refreshTokenIfNeeded, claimInvoiceEvents, EVENT_BATCH_SIZE, markEvent, processInvoiceEvents } = __syncTestables;
 
 /** Records update payload and chained `.eq()` filters for service-role credential writes. */
 function createQuickBooksCredentialUpdateMock(opts?: { persistError?: { message: string } }) {
@@ -498,4 +498,147 @@ Deno.test("markEvent throws when quickbooks_invoice_status_events update fails",
     "Failed to mark invoice status event evt-mark-1:",
   );
   assertEquals(mock.eqFilters, [["id", "evt-mark-1"], ["organization_id", "org-1"]]);
+});
+
+// ---------------------------------------------------------------------------
+// processInvoiceEvents: bookkeeping isolation tests
+// ---------------------------------------------------------------------------
+
+/** Build a fake SupabaseClient sufficient to exercise processInvoiceEvents.
+ * The single event is an Invoice. Business logic succeeds when opts.businessFail
+ * is false (default); a valid QBO Invoice response must be set via globalThis.fetch.
+ */
+function createProcessEventsClient(opts: {
+  markProcessedError?: string;
+  markErrorError?: string;
+  businessFail?: boolean;
+}): { client: SupabaseClient; statusUpdates: string[] } {
+  const statusUpdates: string[] = [];
+
+  const workOrderBuilder: Record<string, unknown> = {};
+  const noopFn = () => workOrderBuilder;
+  workOrderBuilder["update"] = noopFn;
+  workOrderBuilder["eq"] = noopFn;
+  workOrderBuilder["is"] = noopFn;
+  workOrderBuilder["select"] = () => Promise.resolve({ data: [{ id: "wo-1" }], error: null });
+  (workOrderBuilder as Record<string, unknown>)["then"] = (fn: (v: unknown) => unknown) =>
+    Promise.resolve({ error: null }).then(fn);
+
+  const credentialsData = opts.businessFail
+    ? []
+    : [
+        {
+          id: "cred-1",
+          organization_id: "org-1",
+          realm_id: "realm-1",
+          access_token: "valid-token",
+          refresh_token: "rt",
+          access_token_expires_at: new Date(Date.now() + 3_600_000).toISOString(),
+          refresh_token_expires_at: new Date(Date.now() + 3_600_000).toISOString(),
+        },
+      ];
+
+  const client = {
+    rpc: (_name: string, _args: unknown) =>
+      Promise.resolve({
+        data: [
+          {
+            id: "evt-pi-test",
+            organization_id: "org-1",
+            realm_id: "realm-1",
+            entity_name: "Invoice",
+            entity_id: "inv-pi-test",
+            operation: "Update",
+            attempts: 1,
+          },
+        ],
+        error: null,
+      }),
+    from: (table: string) => {
+      if (table === "work_orders") return workOrderBuilder;
+      if (table === "quickbooks_credentials") {
+        return {
+          select: () => ({
+            in: () => ({
+              in: () => Promise.resolve({ data: credentialsData, error: null }),
+            }),
+          }),
+        };
+      }
+      if (table === "quickbooks_invoice_status_events") {
+        return {
+          update: (payload: { status: string }) => {
+            statusUpdates.push(payload.status);
+            const shouldFail =
+              (payload.status === "processed" && opts.markProcessedError) ||
+              (payload.status === "error" && opts.markErrorError);
+            return {
+              eq: () => ({
+                eq: () =>
+                  Promise.resolve({
+                    error: shouldFail ? { message: shouldFail } : null,
+                  }),
+              }),
+            };
+          },
+        };
+      }
+      return {};
+    },
+  };
+
+  return { client: client as unknown as SupabaseClient, statusUpdates };
+}
+
+Deno.test("processInvoiceEvents: processed-mark failure does not re-mark event as error", async () => {
+  const { client, statusUpdates } = createProcessEventsClient({
+    markProcessedError: "simulated DB error on processed update",
+  });
+
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = () =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({ Invoice: { Id: "inv-pi-test", Balance: 50, TotalAmt: 100 } }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+
+    const result = await processInvoiceEvents(client, "cid", "csecret");
+
+    assertEquals(result.processed, 0, "no events should count as processed");
+    assertEquals(result.failed, 1, "failed count should reflect the bookkeeping failure");
+    assertEquals(
+      statusUpdates.includes("error"),
+      false,
+      "should NOT write error status after successful side effects",
+    );
+    assertEquals(
+      statusUpdates.includes("processed"),
+      true,
+      "should have attempted to write processed status",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("processInvoiceEvents: error-mark persistence failure is swallowed and does not propagate", async () => {
+  // businessFail=true → credentials return empty → business logic throws
+  const { client, statusUpdates } = createProcessEventsClient({
+    businessFail: true,
+    markErrorError: "simulated DB error on error update",
+  });
+
+  const result = await processInvoiceEvents(client, "cid", "csecret");
+
+  assertEquals(result.processed, 0);
+  assertEquals(result.failed, 1, "business failure still increments failed count");
+  assertEquals(
+    statusUpdates.includes("error"),
+    true,
+    "should have attempted to write error status",
+  );
+  // The function must return normally; the mark-error DB failure must be swallowed.
 });
