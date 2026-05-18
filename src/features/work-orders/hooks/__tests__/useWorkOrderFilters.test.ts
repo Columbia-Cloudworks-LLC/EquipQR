@@ -75,4 +75,82 @@ describe('useWorkOrderFilters', () => {
       expect(result.current.getActiveFilterCount()).toBe(1);
     });
   });
+
+  describe('invoiceFilter', () => {
+    const workOrders: WorkOrderData[] = [
+      baseWorkOrder({
+        id: 'wo-paid',
+        title: 'Paid WO',
+        quickbooksInvoiceId: 'inv-paid',
+        invoiceStatus: 'paid',
+      }),
+      baseWorkOrder({
+        id: 'wo-overdue',
+        title: 'Overdue invoice WO',
+        quickbooksInvoiceId: 'inv-overdue',
+        invoiceStatus: 'overdue',
+      }),
+      baseWorkOrder({
+        id: 'wo-draft',
+        title: 'Draft invoice WO',
+        quickbooksInvoiceId: 'inv-draft',
+        invoiceStatus: 'draft',
+      }),
+      baseWorkOrder({
+        id: 'wo-voided',
+        title: 'Voided invoice WO',
+        quickbooksInvoiceId: 'inv-voided',
+        invoiceStatus: 'voided',
+      }),
+      baseWorkOrder({
+        id: 'wo-unexported',
+        title: 'Not exported WO',
+        quickbooksInvoiceId: null,
+        invoiceStatus: null,
+      }),
+      baseWorkOrder({
+        id: 'wo-exported-null-status',
+        title: 'Exported but not yet synced WO',
+        quickbooksInvoiceId: 'inv-pending-sync',
+        invoiceStatus: null,
+      }),
+    ];
+
+    it('filters paid, unpaid, overdue, and not exported invoice states', () => {
+      const { result } = renderHook(() => useWorkOrderFilters(workOrders, 'user-1'));
+
+      act(() => result.current.updateFilter('invoiceFilter', 'paid'));
+      expect(result.current.filteredWorkOrders.map((o) => o.id)).toEqual(['wo-paid']);
+
+      act(() => result.current.updateFilter('invoiceFilter', 'overdue'));
+      expect(result.current.filteredWorkOrders.map((o) => o.id)).toEqual(['wo-overdue']);
+
+      act(() => result.current.updateFilter('invoiceFilter', 'unpaid'));
+      expect(result.current.filteredWorkOrders.map((o) => o.id).sort()).toEqual([
+        'wo-draft',
+        'wo-exported-null-status',
+        'wo-overdue',
+      ]);
+
+      act(() => result.current.updateFilter('invoiceFilter', 'not_exported'));
+      expect(result.current.filteredWorkOrders.map((o) => o.id)).toEqual(['wo-unexported']);
+    });
+
+    it('includes exported-but-not-yet-synced invoices (null status) in the unpaid filter', () => {
+      const { result } = renderHook(() => useWorkOrderFilters(workOrders, 'user-1'));
+
+      act(() => result.current.updateFilter('invoiceFilter', 'unpaid'));
+      const ids = result.current.filteredWorkOrders.map((o) => o.id);
+      expect(ids).toContain('wo-exported-null-status');
+      expect(ids).not.toContain('wo-unexported');
+    });
+
+    it('counts invoiceFilter as a page-local active filter', () => {
+      const { result } = renderHook(() => useWorkOrderFilters(workOrders, 'user-1'));
+
+      act(() => result.current.updateFilter('invoiceFilter', 'unpaid'));
+
+      expect(result.current.getActiveFilterCount()).toBe(1);
+    });
+  });
 });

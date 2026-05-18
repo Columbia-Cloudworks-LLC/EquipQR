@@ -14,6 +14,7 @@ import type { EffectiveLocation } from '@/utils/effectiveLocation';
 
 export type WorkOrderStatus = 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
 export type WorkOrderPriority = 'low' | 'medium' | 'high';
+export type QuickBooksInvoiceStatus = 'draft' | 'sent' | 'viewed' | 'paid' | 'partially_paid' | 'overdue' | 'voided';
 
 // ============================================
 // Base Database Type
@@ -91,6 +92,15 @@ export interface WorkOrderEmbeddedEquipment {
 }
 
 export interface WorkOrder extends WorkOrderRow {
+  quickbooksInvoiceId?: string | null;
+  quickbooksInvoiceNumber?: string | null;
+  quickbooksInvoiceEnvironment?: 'sandbox' | 'production' | null;
+  invoiceStatus?: QuickBooksInvoiceStatus | null;
+  invoiceSentAt?: string | null;
+  invoicePaidAt?: string | null;
+  invoiceBalanceCents?: number | null;
+  invoiceDueDate?: string | null;
+  invoiceLastSyncedAt?: string | null;
   // Computed fields from joins (camelCase for React conventions)
   assigneeName?: string;
   teamName?: string;
@@ -149,6 +159,7 @@ export interface WorkOrderServiceFilters {
   teamId?: string | 'all';
   equipmentId?: string;
   dueDateFilter?: 'overdue' | 'today' | 'this_week';
+  invoiceFilter?: 'paid' | 'unpaid' | 'overdue' | 'not_exported' | 'all';
   search?: string;
   // Team-based access control
   userTeamIds?: string[];
@@ -169,6 +180,7 @@ export interface WorkOrderFilters {
   teamFilter: string;
   priorityFilter: string;
   dueDateFilter: string;
+  invoiceFilter: string;
 }
 
 // ============================================
@@ -212,6 +224,17 @@ export interface WorkOrderData {
   hasPM?: boolean;
   pmRequired?: boolean;
   isHistorical?: boolean;
+  quickbooksInvoiceId?: string | null;
+  quickbooksInvoiceNumber?: string | null;
+  quickbooksInvoiceEnvironment?: 'sandbox' | 'production' | null;
+  invoiceStatus?: QuickBooksInvoiceStatus | null;
+  invoiceSentAt?: string | null;
+  invoicePaidAt?: string | null;
+  invoiceBalanceCents?: number | null;
+  invoiceDueDate?: string | null;
+  invoiceLastSyncedAt?: string | null;
+  quickbooks_invoice_id?: string | null;
+  invoice_status?: QuickBooksInvoiceStatus | null;
 }
 
 // ============================================
@@ -334,7 +357,16 @@ export function toWorkOrderData(row: WorkOrder): WorkOrderData {
     equipmentTeamName: row.equipmentTeamName ?? undefined,
     hasPM: row.has_pm,
     pmRequired: row.pm_required,
-    isHistorical: row.is_historical
+    isHistorical: row.is_historical,
+    quickbooksInvoiceId: row.quickbooks_invoice_id,
+    quickbooksInvoiceNumber: row.quickbooks_invoice_number,
+    quickbooksInvoiceEnvironment: row.quickbooks_invoice_environment as 'sandbox' | 'production' | null,
+    invoiceStatus: row.invoice_status,
+    invoiceSentAt: row.invoice_sent_at,
+    invoicePaidAt: row.invoice_paid_at,
+    invoiceBalanceCents: row.invoice_balance_cents,
+    invoiceDueDate: row.invoice_due_date,
+    invoiceLastSyncedAt: row.invoice_last_synced_at
   };
 }
 

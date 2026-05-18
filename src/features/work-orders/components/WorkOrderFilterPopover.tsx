@@ -152,6 +152,26 @@ const WorkOrderFilterPopover: React.FC<WorkOrderFilterPopoverProps> = ({
             </Select>
           </div>
 
+          {/* Invoice */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs text-muted-foreground">Invoice</label>
+            <Select
+              value={filters.invoiceFilter}
+              onValueChange={(v) => onFilterChange('invoiceFilter', v)}
+            >
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue placeholder="All invoices" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Invoices</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="unpaid">Unpaid</SelectItem>
+                <SelectItem value="overdue">Overdue</SelectItem>
+                <SelectItem value="not_exported">Not Exported</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <Separator />
 
           {/* Quick filters */}

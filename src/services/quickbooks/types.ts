@@ -156,6 +156,7 @@ export type QuickBooksExportInvoiceRequest = {
  * QuickBooks environment type
  */
 export type QuickBooksEnvironment = 'sandbox' | 'production';
+export type QuickBooksInvoiceStatus = 'draft' | 'sent' | 'viewed' | 'paid' | 'partially_paid' | 'overdue' | 'voided';
 
 /**
  * Response from quickbooks-export-invoice Edge Function

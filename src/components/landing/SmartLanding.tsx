@@ -44,10 +44,9 @@ const SmartLanding = () => {
   return (
     <>
       <PageSEO
-        title="EquipQR | Heavy Equipment Repair Work Order Software with QR Tracking"
+        title="EquipQR | Free Work Order Software for Heavy Equipment Repair Shops"
         description="Stop losing money to lost work orders. EquipQR gives heavy equipment repair shops secure QR code equipment tracking, team-based access, and one-click QuickBooks work order invoicing."
         path="/"
-        keywords="heavy equipment repair work order software, QR code equipment tracking, QuickBooks work order integration, equipment maintenance software, shop work order management, fleet management, CMMS"
       />
       <Suspense
         fallback={

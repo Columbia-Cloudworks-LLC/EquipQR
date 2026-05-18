@@ -77,6 +77,9 @@ export interface QuickBooksExportLog {
   created_at: string;
   updated_at: string;
   intuit_tid: string | null;
+  invoice_status?: 'draft' | 'sent' | 'viewed' | 'paid' | 'partially_paid' | 'overdue' | 'voided' | null;
+  invoice_balance_cents?: number | null;
+  invoice_last_synced_at?: string | null;
 }
 
 /**
@@ -452,6 +455,7 @@ export async function exportInvoice(
     invoiceId: result.invoice_id,
     invoiceNumber: result.invoice_number,
     isUpdate: result.is_update,
+    environment: result.environment,
   };
 }
 

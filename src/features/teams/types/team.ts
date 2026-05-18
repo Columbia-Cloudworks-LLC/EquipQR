@@ -112,6 +112,7 @@ export interface CustomerAccountSummary {
   email?: string | null;
   phone?: string | null;
   is_tax_exempt?: boolean | null;
+  quickbooks_tax_status_synced_at?: string | null;
   quickbooks_customer_id?: string | null;
   quickbooks_synced_at?: string | null;
 }
