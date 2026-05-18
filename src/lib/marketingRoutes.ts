@@ -24,7 +24,7 @@ export type MarketingRoute = {
 const BASE = 'https://equipqr.app';
 
 export function resolveFullDocumentTitle(route: MarketingRoute): string {
-  return route.path === '/' ? route.title : `${route.title} | EquipQR`;
+  return resolveCanonicalPath(route) === '/' ? route.title : `${route.title} | EquipQR`;
 }
 
 export function resolveCanonicalPath(route: MarketingRoute): string {

@@ -1,4 +1,3 @@
-#!/usr/bin/env npx tsx
 /**
  * After `vite build`, emit route-specific static HTML under `dist/` for marketing URLs
  * so crawlers and non-JS clients receive substantive body content inside `#root`.

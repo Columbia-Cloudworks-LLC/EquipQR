@@ -1,4 +1,3 @@
-#!/usr/bin/env npx tsx
 /**
  * Generate sitemap.xml for EquipQR marketing pages (source: `src/lib/marketingRoutes.ts`).
  *

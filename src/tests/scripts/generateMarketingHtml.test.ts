@@ -44,4 +44,23 @@ describe('prerenderMarketingHtmlTemplate', () => {
     expect(html).toContain('<meta name="keywords"');
     expect(html).toMatch(/work order management, maintenance work orders/);
   });
+
+  it('uses canonical home metadata for the /landing compatibility route', () => {
+    const route = MARKETING_ROUTES.find((r) => r.path === '/landing');
+    expect(route).toBeDefined();
+
+    const html = prerenderMarketingHtmlTemplate(MINIMAL_DIST_TEMPLATE, route!);
+
+    expect(html).toContain(
+      '<title>EquipQR | Free Work Order Software for Heavy Equipment Repair Shops</title>'
+    );
+    expect(html).toContain('<link rel="canonical" href="https://equipqr.app/" />');
+    expect(html).toContain(
+      '<meta property="og:title" content="EquipQR | Free Work Order Software for Heavy Equipment Repair Shops" />'
+    );
+    expect(html).toContain(
+      '<meta name="twitter:title" content="EquipQR | Free Work Order Software for Heavy Equipment Repair Shops" />'
+    );
+    expect(html).not.toContain('| EquipQR | EquipQR');
+  });
 });

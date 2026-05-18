@@ -3,6 +3,7 @@ import {
   MARKETING_ROUTES,
   EXPECTED_MARKETING_ROUTE_COUNT,
   resolveCanonicalPath,
+  resolveFullDocumentTitle,
 } from '../marketingRoutes';
 
 describe('MARKETING_ROUTES', () => {
@@ -25,5 +26,15 @@ describe('MARKETING_ROUTES', () => {
     const landing = MARKETING_ROUTES.find((r) => r.path === '/landing');
     expect(landing).toBeDefined();
     expect(resolveCanonicalPath(landing!)).toBe('/');
+  });
+
+  it('uses the canonical home title for /landing without adding a duplicate suffix', () => {
+    const home = MARKETING_ROUTES.find((r) => r.path === '/');
+    const landing = MARKETING_ROUTES.find((r) => r.path === '/landing');
+
+    expect(home).toBeDefined();
+    expect(landing).toBeDefined();
+    expect(resolveFullDocumentTitle(landing!)).toBe(resolveFullDocumentTitle(home!));
+    expect(resolveFullDocumentTitle(landing!)).not.toMatch(/\| EquipQR \| EquipQR$/);
   });
 });
