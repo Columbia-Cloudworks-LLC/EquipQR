@@ -29,8 +29,20 @@ const footerSections: FooterSection[] = [
   {
     title: 'Product',
     links: [
-      { href: '#features', label: 'Features', type: 'hash' },
-      { href: '#pricing', label: 'Pricing', type: 'hash' },
+      { href: '/#features', label: 'All features', type: 'route' },
+      {
+        href: '/features/qr-code-integration',
+        label: 'QR equipment tracking',
+        type: 'route',
+      },
+      {
+        href: '/features/work-order-management',
+        label: 'Work order management',
+        type: 'route',
+      },
+      { href: '/features/quickbooks', label: 'QuickBooks export', type: 'route' },
+      { href: '/features/inventory', label: 'Parts inventory', type: 'route' },
+      { href: '/#pricing', label: 'Pricing', type: 'route' },
     ],
   },
   {
