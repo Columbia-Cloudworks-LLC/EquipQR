@@ -205,7 +205,7 @@ async function loadCredentialsByOrgRealm(
 
 async function markEvent(
   supabaseClient: SupabaseClient,
-  eventId: string,
+  event: Pick<InvoiceEvent, "id" | "organization_id">,
   status: "processed" | "error",
   lastError?: string,
 ): Promise<void> {
@@ -216,15 +216,16 @@ async function markEvent(
       processed_at: status === "processed" ? new Date().toISOString() : null,
       last_error: lastError ? lastError.substring(0, 1000) : null,
     })
-    .eq("id", eventId);
+    .eq("id", event.id)
+    .eq("organization_id", event.organization_id);
 
   if (error) {
     logStep("Failed to mark invoice status event", {
-      event_id: eventId,
+      event_id: event.id,
       status,
       error: error.message,
     });
-    throw new Error(`Failed to mark invoice status event ${eventId}: ${error.message}`);
+    throw new Error(`Failed to mark invoice status event ${event.id}: ${error.message}`);
   }
 }
 
@@ -300,13 +301,13 @@ async function processInvoiceEvents(
         throw new Error(`Unsupported QuickBooks event entity_name: ${(event as InvoiceEvent).entity_name}`);
       }
 
-      await markEvent(supabaseClient, event.id, "processed");
+      await markEvent(supabaseClient, event, "processed");
       processed += 1;
     } catch (eventError) {
       failed += 1;
       await markEvent(
         supabaseClient,
-        event.id,
+        event,
         "error",
         eventError instanceof Error ? eventError.message : String(eventError),
       );

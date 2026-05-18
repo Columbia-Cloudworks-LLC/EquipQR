@@ -454,19 +454,48 @@ Deno.test("claimInvoiceEvents throws when RPC returns an error", async () => {
   );
 });
 
-Deno.test("markEvent throws when quickbooks_invoice_status_events update fails", async () => {
-  const fakeClient = {
+function createInvoiceStatusEventMarkMock(opts?: { persistError?: { message: string } }) {
+  const eqFilters: Array<[string, unknown]> = [];
+  return {
     from: (_table: string) => ({
       update: (_payload: Record<string, unknown>) => ({
-        eq: (_col: string, _val: unknown) =>
-          Promise.resolve({ error: { message: "simulated mark failure" } }),
+        eq: (col: string, val: unknown) => {
+          eqFilters.push([col, val]);
+          return {
+            eq: (col2: string, val2: unknown) => {
+              eqFilters.push([col2, val2]);
+              return Promise.resolve({
+                error: opts?.persistError ?? null,
+              });
+            },
+          };
+        },
       }),
     }),
+    get eqFilters() {
+      return eqFilters;
+    },
   };
+}
+
+Deno.test("markEvent scopes update by id and organization_id", async () => {
+  const mock = createInvoiceStatusEventMarkMock();
+
+  await markEvent(mock as unknown as SupabaseClient, { id: "evt-mark-1", organization_id: "org-mark-1" }, "processed");
+
+  assertEquals(mock.eqFilters, [["id", "evt-mark-1"], ["organization_id", "org-mark-1"]]);
+});
+
+Deno.test("markEvent throws when quickbooks_invoice_status_events update fails", async () => {
+  const mock = createInvoiceStatusEventMarkMock({
+    persistError: { message: "simulated mark failure" },
+  });
 
   await assertRejects(
-    async () => await markEvent(fakeClient as unknown as SupabaseClient, "evt-mark-1", "processed"),
+    async () =>
+      await markEvent(mock as unknown as SupabaseClient, { id: "evt-mark-1", organization_id: "org-1" }, "processed"),
     Error,
     "Failed to mark invoice status event evt-mark-1:",
   );
+  assertEquals(mock.eqFilters, [["id", "evt-mark-1"], ["organization_id", "org-1"]]);
 });
