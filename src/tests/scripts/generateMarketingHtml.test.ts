@@ -1,6 +1,15 @@
 import { describe, it, expect } from 'vitest';
+import type { MarketingRoute } from '../../lib/marketingRoutes';
 import { MARKETING_ROUTES } from '../../lib/marketingRoutes';
 import { prerenderMarketingHtmlTemplate } from '../../../scripts/generate-marketing-html';
+
+function requireMarketingRoute(path: string): MarketingRoute {
+  const route = MARKETING_ROUTES.find((r) => r.path === path);
+  if (!route) {
+    throw new Error(`Expected marketing route ${path} to exist`);
+  }
+  return route;
+}
 
 const MINIMAL_DIST_TEMPLATE = `<!DOCTYPE html>
 <html lang="en" class="dark">
@@ -27,10 +36,9 @@ const MINIMAL_DIST_TEMPLATE = `<!DOCTYPE html>
 
 describe('prerenderMarketingHtmlTemplate', () => {
   it('injects work order route copy, nav, metadata, and preserves Vite script', () => {
-    const route = MARKETING_ROUTES.find((r) => r.path === '/features/work-order-management');
-    expect(route).toBeDefined();
+    const route = requireMarketingRoute('/features/work-order-management');
 
-    const html = prerenderMarketingHtmlTemplate(MINIMAL_DIST_TEMPLATE, route!);
+    const html = prerenderMarketingHtmlTemplate(MINIMAL_DIST_TEMPLATE, route);
 
     expect(html).toContain('<title>Work Order Management | EquipQR</title>');
     expect(html).toContain(
@@ -46,10 +54,9 @@ describe('prerenderMarketingHtmlTemplate', () => {
   });
 
   it('uses canonical home metadata for the /landing compatibility route', () => {
-    const route = MARKETING_ROUTES.find((r) => r.path === '/landing');
-    expect(route).toBeDefined();
+    const route = requireMarketingRoute('/landing');
 
-    const html = prerenderMarketingHtmlTemplate(MINIMAL_DIST_TEMPLATE, route!);
+    const html = prerenderMarketingHtmlTemplate(MINIMAL_DIST_TEMPLATE, route);
 
     expect(html).toContain(
       '<title>EquipQR | Free Work Order Software for Heavy Equipment Repair Shops</title>'

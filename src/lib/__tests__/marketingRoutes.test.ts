@@ -1,10 +1,19 @@
 import { describe, it, expect } from 'vitest';
+import type { MarketingRoute } from '../marketingRoutes';
 import {
   MARKETING_ROUTES,
   EXPECTED_MARKETING_ROUTE_COUNT,
   resolveCanonicalPath,
   resolveFullDocumentTitle,
 } from '../marketingRoutes';
+
+function requireMarketingRoute(path: string): MarketingRoute {
+  const route = MARKETING_ROUTES.find((r) => r.path === path);
+  if (!route) {
+    throw new Error(`Expected marketing route ${path} to exist`);
+  }
+  return route;
+}
 
 describe('MARKETING_ROUTES', () => {
   it('lists exactly 16 indexable marketing URLs', () => {
@@ -23,18 +32,15 @@ describe('MARKETING_ROUTES', () => {
   });
 
   it('canonicalizes /landing to /', () => {
-    const landing = MARKETING_ROUTES.find((r) => r.path === '/landing');
-    expect(landing).toBeDefined();
-    expect(resolveCanonicalPath(landing!)).toBe('/');
+    const landing = requireMarketingRoute('/landing');
+    expect(resolveCanonicalPath(landing)).toBe('/');
   });
 
   it('uses the canonical home title for /landing without adding a duplicate suffix', () => {
-    const home = MARKETING_ROUTES.find((r) => r.path === '/');
-    const landing = MARKETING_ROUTES.find((r) => r.path === '/landing');
+    const home = requireMarketingRoute('/');
+    const landing = requireMarketingRoute('/landing');
 
-    expect(home).toBeDefined();
-    expect(landing).toBeDefined();
-    expect(resolveFullDocumentTitle(landing!)).toBe(resolveFullDocumentTitle(home!));
-    expect(resolveFullDocumentTitle(landing!)).not.toMatch(/\| EquipQR \| EquipQR$/);
+    expect(resolveFullDocumentTitle(landing)).toBe(resolveFullDocumentTitle(home));
+    expect(resolveFullDocumentTitle(landing)).not.toMatch(/\| EquipQR \| EquipQR$/);
   });
 });
