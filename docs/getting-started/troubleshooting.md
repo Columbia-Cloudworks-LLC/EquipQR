@@ -577,9 +577,9 @@ console.log('Environment:', {
 
 ### Documentation Resources
 
-- **API Reference**: `docs/api-reference.md`
-- **Developer Guide**: `docs/developer-onboarding.md`
-- **Architecture**: `docs/architecture.md`
+- **API Reference**: `docs/technical/api-reference.md`
+- **Developer Guide**: `docs/getting-started/developer-onboarding.md`
+- **Architecture**: `docs/technical/architecture.md`
 - **Development Lifecycle**: `./development-lifecycle.md`
 
 ### Community Support
