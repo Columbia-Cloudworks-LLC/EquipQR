@@ -28,8 +28,8 @@ permissions:
   checks: write
 
 env:
-  # Node 24.x matches Vercel preview/production (package.json engines) and
-  # .npmrc engine-strict=true. @types/node may track a newer line for typings only.
+  # Node 24.x LTS is the supported runtime (aligned with @types/node 24.x). See
+  # https://nodejs.org/en/about/releases/ for the current release line status.
   NODE_VERSION: 24.x
   CACHE_VERSION: v3
 

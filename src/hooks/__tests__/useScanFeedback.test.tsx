@@ -32,7 +32,10 @@ describe('useScanFeedback', () => {
     result.current.markPendingFeedback();
     expect(hoisted.markScanFeedbackPending).toHaveBeenCalledTimes(1);
 
-    result.current.triggerPendingFeedback();
+    result.current.triggerFeedback();
     expect(hoisted.triggerPendingScanFeedback).toHaveBeenCalledTimes(1);
+
+    result.current.triggerPendingFeedback();
+    expect(hoisted.triggerPendingScanFeedback).toHaveBeenCalledTimes(2);
   });
 });

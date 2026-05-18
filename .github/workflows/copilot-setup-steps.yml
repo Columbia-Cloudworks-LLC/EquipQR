@@ -9,11 +9,13 @@ on:
       - .github/workflows/copilot-setup-steps.yml
       - .github/actions/load-1p-secrets/**
       - scripts/agent-bootstrap.sh
+      - scripts/cloud-agent-frontend-setup.sh
   pull_request:
     paths:
       - .github/workflows/copilot-setup-steps.yml
       - .github/actions/load-1p-secrets/**
       - scripts/agent-bootstrap.sh
+      - scripts/cloud-agent-frontend-setup.sh
 
 jobs:
   # MUST be named exactly `copilot-setup-steps` to be picked up by the agent.
@@ -29,7 +31,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       # ── Node / npm ──────────────────────────────────────────────────────────
-      # Node 24.x matches Vercel and root package.json engines (engine-strict).
+      # Node 24.x LTS is the supported runtime (aligned with @types/node 24.x).
       - name: Set up Node.js 24
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:

@@ -6,7 +6,7 @@ This guide covers setting up your local environment to work with Supabase, inclu
 
 ### Required Software
 
-- **Node.js** — must satisfy `engines.node` in the root [`package.json`](../../package.json) (currently **Node 24.x**). We recommend the latest **24.x** LTS release. [Download here](https://nodejs.org/)
+- **Node.js** — must satisfy `engines.node` in the root [`package.json`](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/package.json) (currently **Node 24.x LTS**). We recommend the latest **24.x** LTS release. [Download here](https://nodejs.org/)
 - **npm** (comes with Node.js) - We use npm exclusively
 - **Docker Desktop** — required for local Supabase ([Download here](https://www.docker.com/products/docker-desktop)); keep it updated for compatibility with the Supabase CLI stack
 - **Git** - [Download here](https://git-scm.com/)
@@ -546,4 +546,3 @@ node scripts/check-missing-migrations.mjs    # Check for missing migrations
 - [Database Migrations Guide](./migrations.md)
 
 This workflow ensures your migrations stay in sync with production and allows you to test edge functions locally before committing changes.
-

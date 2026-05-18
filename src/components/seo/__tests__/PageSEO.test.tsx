@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
+import { StrictMode } from 'react';
 import { render, cleanup, waitFor } from '@testing-library/react';
 import { PageSEO } from '../PageSEO';
 
@@ -24,12 +25,6 @@ function seedStaticShellSeo(): void {
   desc.content = 'Static shell description';
   mark(desc);
   document.head.appendChild(desc);
-
-  const kw = document.createElement('meta');
-  kw.name = 'keywords';
-  kw.content = 'static,shell,keywords';
-  mark(kw);
-  document.head.appendChild(kw);
 
   const canonical = document.createElement('link');
   canonical.rel = 'canonical';
@@ -86,7 +81,6 @@ describe('PageSEO', () => {
         description="A great feature"
         path="/features/foo"
         ogImage="https://equipqr.app/custom.png"
-        keywords="a,b"
       />
     );
 
@@ -99,11 +93,8 @@ describe('PageSEO', () => {
         'content'
       )
     ).toBe('A great feature');
-    expect(
-      document.querySelector('meta[name="keywords"][data-equipqr-page-seo]')?.getAttribute(
-        'content'
-      )
-    ).toBe('a,b');
+
+    expect(document.querySelector('meta[name="keywords"]')).toBeNull();
 
     const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     expect(canonical?.getAttribute('href')).toBe('https://equipqr.app/features/foo');
@@ -135,18 +126,39 @@ describe('PageSEO', () => {
 
   it('uses the marketing title without suffix on /', async () => {
     render(
-      <PageSEO title="EquipQR" description="Home" path="/" />
+      <PageSEO
+        title="EquipQR | Free Work Order Software for Heavy Equipment Repair Shops"
+        description="Home"
+        path="/"
+      />
     );
 
     await waitFor(() => {
-      expect(document.title).toBe('EquipQR');
+      expect(document.title).toBe(
+        'EquipQR | Free Work Order Software for Heavy Equipment Repair Shops'
+      );
     });
   });
 
-  it('updates metadata on rerender without duplicating managed nodes', async () => {
-    const { rerender } = render(
-      <PageSEO title="A" description="d1" path="/a" />
+  it('restores original title after StrictMode mount/unmount cycle', async () => {
+    document.title = 'StrictOriginal';
+
+    const { unmount } = render(
+      <StrictMode>
+        <PageSEO title="Strict" description="d" path="/strict" />
+      </StrictMode>
     );
+
+    await waitFor(() => {
+      expect(document.title).toBe('Strict | EquipQR');
+    });
+
+    unmount();
+    expect(document.title).toBe('StrictOriginal');
+  });
+
+  it('updates metadata on rerender without duplicating managed nodes', async () => {
+    const { rerender } = render(<PageSEO title="A" description="d1" path="/a" />);
 
     await waitFor(() => {
       expect(document.title).toBe('A | EquipQR');
@@ -169,16 +181,13 @@ describe('PageSEO', () => {
     expect(managedCount()).toBe(firstCount);
   });
 
-  it('removes keywords meta when keywords prop is cleared', async () => {
-    const { rerender } = render(
-      <PageSEO title="T" description="d" path="/x" keywords="one,two" />
-    );
+  it('removes legacy keywords meta tags while mounted (never writes keywords)', async () => {
+    const kw = document.createElement('meta');
+    kw.name = 'keywords';
+    kw.content = 'legacy,keywords';
+    document.head.appendChild(kw);
 
-    await waitFor(() => {
-      expect(document.querySelector('meta[name="keywords"]')).not.toBeNull();
-    });
-
-    rerender(<PageSEO title="T" description="d" path="/x" />);
+    render(<PageSEO title="T" description="d" path="/x" />);
 
     await waitFor(() => {
       expect(document.querySelector('meta[name="keywords"]')).toBeNull();
@@ -188,9 +197,7 @@ describe('PageSEO', () => {
   it('removes managed head nodes and restores title on unmount', async () => {
     document.title = 'Before';
 
-    const { unmount } = render(
-      <PageSEO title="During" description="d" path="/p" />
-    );
+    const { unmount } = render(<PageSEO title="During" description="d" path="/p" />);
 
     await waitFor(() => {
       expect(document.title).toBe('During | EquipQR');
@@ -212,7 +219,6 @@ describe('PageSEO', () => {
         description="Route description"
         path="/features/bar"
         ogImage="https://equipqr.app/route.png"
-        keywords="route,kw"
       />
     );
 
@@ -221,9 +227,9 @@ describe('PageSEO', () => {
     });
 
     expect(document.head.querySelectorAll('meta[name="description"]').length).toBe(1);
-    expect(
-      document.querySelector('meta[name="description"]')?.getAttribute('content')
-    ).toBe('Route description');
+    expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toBe(
+      'Route description'
+    );
 
     expect(document.head.querySelectorAll('link[rel="canonical"]').length).toBe(1);
     expect(
@@ -234,11 +240,7 @@ describe('PageSEO', () => {
     expect(document.head.querySelectorAll('meta[name="twitter:card"]').length).toBe(1);
 
     rerender(
-      <PageSEO
-        title="Feature2"
-        description="Route description 2"
-        path="/features/baz"
-      />
+      <PageSEO title="Feature2" description="Route description 2" path="/features/baz" />
     );
 
     await waitFor(() => {
@@ -246,23 +248,13 @@ describe('PageSEO', () => {
     });
 
     expect(document.head.querySelectorAll('meta[name="description"]').length).toBe(1);
-    expect(
-      document.querySelector('meta[name="description"]')?.getAttribute('content')
-    ).toBe('Route description 2');
+    expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toBe(
+      'Route description 2'
+    );
     expect(document.head.querySelectorAll('link[rel="canonical"]').length).toBe(1);
     expect(
       document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.getAttribute('href')
     ).toBe('https://equipqr.app/features/baz');
-    await waitFor(() => {
-      expect(document.querySelector('meta[name="keywords"]')).toBeNull();
-    });
-  });
-
-  it('removes static shell keywords meta when keywords prop is omitted', async () => {
-    seedStaticShellSeo();
-
-    render(<PageSEO title="P" description="d" path="/no-kw" />);
-
     await waitFor(() => {
       expect(document.querySelector('meta[name="keywords"]')).toBeNull();
     });
@@ -278,7 +270,6 @@ describe('PageSEO', () => {
         description="Route description"
         path="/features/route"
         ogImage="https://equipqr.app/route-og.png"
-        keywords="route,kw"
       />
     );
 
@@ -292,9 +283,18 @@ describe('PageSEO', () => {
     expect(
       document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.getAttribute('href')
     ).toBe('https://equipqr.app/features/route');
-    expect(
-      document.querySelector('meta[property="og:title"]')?.getAttribute('content')
-    ).toBe('Route | EquipQR');
+    expect(document.querySelector('meta[property="og:title"]')?.getAttribute('content')).toBe(
+      'Route | EquipQR'
+    );
+    expect(document.querySelector('meta[property="og:image"]')?.getAttribute('content')).toBe(
+      'https://equipqr.app/route-og.png'
+    );
+    expect(document.querySelector('meta[name="twitter:title"]')?.getAttribute('content')).toBe(
+      'Route | EquipQR'
+    );
+    expect(document.querySelector('meta[name="twitter:image"]')?.getAttribute('content')).toBe(
+      'https://equipqr.app/route-og.png'
+    );
 
     unmount();
 
@@ -306,30 +306,17 @@ describe('PageSEO', () => {
     expect(
       document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.getAttribute('href')
     ).toBe('https://equipqr.app');
-    expect(
-      document.querySelector('meta[property="og:title"]')?.getAttribute('content')
-    ).toBe('Static OG title');
-    expect(document.querySelector('meta[name="keywords"]')?.getAttribute('content')).toBe(
-      'static,shell,keywords'
+    expect(document.querySelector('meta[property="og:title"]')?.getAttribute('content')).toBe(
+      'Static OG title'
     );
-  });
-
-  it('restores static shell keywords after unmount when keywords prop was omitted during route', async () => {
-    seedStaticShellSeo();
-    document.title = 'ShellTitle';
-
-    const { unmount } = render(<PageSEO title="P" description="d" path="/no-kw" />);
-
-    await waitFor(() => {
-      expect(document.querySelector('meta[name="keywords"]')).toBeNull();
-    });
-
-    unmount();
-
-    expect(document.title).toBe('ShellTitle');
-    expect(document.querySelector('meta[name="keywords"]')?.getAttribute('content')).toBe(
-      'static,shell,keywords'
+    expect(document.querySelector('meta[property="og:image"]')?.getAttribute('content')).toBe(
+      'https://equipqr.app/og-static.png'
     );
-    expect(document.head.querySelectorAll(MANAGED).length).toBe(0);
+    expect(document.querySelector('meta[name="twitter:title"]')?.getAttribute('content')).toBe(
+      'Static Twitter title'
+    );
+    expect(document.querySelector('meta[name="twitter:image"]')?.getAttribute('content')).toBe(
+      'https://equipqr.app/og-static.png'
+    );
   });
 });
