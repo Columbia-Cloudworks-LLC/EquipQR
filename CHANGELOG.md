@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 <!-- markdownlint-disable MD024 -->
 
@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Changed
+
+- **Public marketing prerender HTML** ([#971](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/971)) — Build-time static HTML for each sitemap-listed marketing URL (`dist` nested `index.html` files) with route-specific headings, copy, and crawlable nav inside `#root` for non-JS crawlers; `src/lib/marketingRoutes.ts` is the single source for sitemap + prerender.
 
 - **Public marketing SEO & accessibility** ([#934](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/934)) — Static JSON-LD graph and noscript shell; runtime PageSEO strips legacy keywords; feature pages use centralized SEO copy with breadcrumbs, visible FAQ, and matching FAQ/HowTo/BreadcrumbList JSON-LD; SPA route announcer and route-heading focus; public/llms.txt.
 
