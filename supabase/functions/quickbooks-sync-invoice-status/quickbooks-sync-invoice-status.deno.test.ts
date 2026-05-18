@@ -11,7 +11,7 @@ import {
 } from "./payment-linked-invoices.ts";
 import { __syncTestables } from "./index.ts";
 
-const { refreshTokenIfNeeded } = __syncTestables;
+const { refreshTokenIfNeeded, claimInvoiceEvents, EVENT_BATCH_SIZE } = __syncTestables;
 
 /** Records update payload and chained `.eq()` filters for service-role credential writes. */
 function createQuickBooksCredentialUpdateMock(opts?: { persistError?: { message: string } }) {
@@ -384,4 +384,51 @@ Deno.test("refreshTokenIfNeeded throws when QuickBooks token refresh succeeds bu
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+Deno.test("claimInvoiceEvents calls claim RPC with EVENT_BATCH_SIZE and returns rows", async () => {
+  let rpcName = "";
+  let rpcArgs: Record<string, unknown> = {};
+  const fakeClient = {
+    rpc: (name: string, args: Record<string, unknown>) => {
+      rpcName = name;
+      rpcArgs = args;
+      return Promise.resolve({
+        data: [
+          {
+            id: "evt-1",
+            organization_id: "org-1",
+            realm_id: "realm-1",
+            entity_name: "Invoice",
+            entity_id: "inv-1",
+            operation: "Update",
+            attempts: 1,
+          },
+        ],
+        error: null,
+      });
+    },
+  };
+
+  const rows = await claimInvoiceEvents(fakeClient);
+  assertEquals(rpcName, "claim_quickbooks_invoice_status_events");
+  assertEquals(rpcArgs.p_batch_size, EVENT_BATCH_SIZE);
+  assertEquals(rows.length, 1);
+  assertEquals(rows[0]!.id, "evt-1");
+});
+
+Deno.test("claimInvoiceEvents throws when RPC returns an error", async () => {
+  const fakeClient = {
+    rpc: () =>
+      Promise.resolve({
+        data: null,
+        error: { message: "simulated claim failure" },
+      }),
+  };
+
+  await assertRejects(
+    async () => await claimInvoiceEvents(fakeClient),
+    Error,
+    "simulated claim failure",
+  );
 });

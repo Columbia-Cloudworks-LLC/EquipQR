@@ -216,21 +216,25 @@ async function markEvent(
     .eq("id", eventId);
 }
 
+/** Atomically claim queued events in Postgres (SKIP LOCKED) so workers cannot duplicate work. */
+async function claimInvoiceEvents(supabaseClient: any): Promise<InvoiceEvent[]> {
+  const { data, error } = await supabaseClient.rpc("claim_quickbooks_invoice_status_events", {
+    p_batch_size: EVENT_BATCH_SIZE,
+  });
+  if (error) {
+    throw new Error(
+      typeof error.message === "string" ? error.message : "claim_quickbooks_invoice_status_events failed",
+    );
+  }
+  return (data ?? []) as InvoiceEvent[];
+}
+
 async function processInvoiceEvents(
   supabaseClient: any,
   clientId: string,
   clientSecret: string,
 ): Promise<{ processed: number; failed: number }> {
-  const { data: events, error } = await supabaseClient
-    .from("quickbooks_invoice_status_events")
-    .select("id, organization_id, realm_id, entity_name, entity_id, operation, attempts")
-    .in("status", ["pending", "error"])
-    .lt("attempts", 5)
-    .order("created_at", { ascending: true })
-    .limit(EVENT_BATCH_SIZE);
-
-  if (error) throw error;
-  const typedEvents = (events ?? []) as InvoiceEvent[];
+  const typedEvents = await claimInvoiceEvents(supabaseClient);
   const credentialsByKey = await loadCredentialsByOrgRealm(
     supabaseClient,
     typedEvents.map((event) => ({ organizationId: event.organization_id, realmId: event.realm_id })),
@@ -241,11 +245,6 @@ async function processInvoiceEvents(
 
   for (const event of typedEvents) {
     try {
-      await supabaseClient
-        .from("quickbooks_invoice_status_events")
-        .update({ status: "processing", attempts: event.attempts + 1 })
-        .eq("id", event.id);
-
       const credential = credentialsByKey.get(credentialKey(event.organization_id, event.realm_id));
       if (!credential) throw new Error("No QuickBooks credentials for event realm and organization");
 
@@ -419,4 +418,6 @@ export const __syncTestables = {
   updateMirroredWorkOrders,
   refreshTokenIfNeeded,
   extractLinkedInvoiceIdsFromPayment,
+  claimInvoiceEvents,
+  EVENT_BATCH_SIZE,
 };
