@@ -8,6 +8,7 @@ import WorkOrderFilterPopover from './WorkOrderFilterPopover';
 import WorkOrderSortPopover from './WorkOrderSortPopover';
 import { WorkOrderFilters } from '@/features/work-orders/types/workOrder';
 import type { QuickFilterPreset, SortField, SortDirection } from '@/features/work-orders/hooks/useWorkOrderFilters';
+import { formatInvoiceFilterLabel } from '@/features/work-orders/utils/invoiceFilterLabels';
 
 interface WorkOrderToolbarProps {
   filters: WorkOrderFilters;
@@ -156,7 +157,7 @@ const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
 
           {filters.invoiceFilter !== 'all' && (
             <Badge variant="secondary" className="flex items-center gap-1 text-xs h-5 px-2">
-              Invoice: {filters.invoiceFilter.replace('_', ' ')}
+              Invoice: {formatInvoiceFilterLabel(filters.invoiceFilter)}
               <button
                 onClick={() => onFilterChange('invoiceFilter', 'all')}
                 className="ml-0.5 hover:text-foreground"

@@ -14,8 +14,23 @@ import {
   type MarketingRoute,
 } from '../src/lib/marketingRoutes';
 
-const DIST_DIR = join(process.cwd(), 'dist');
-const SOURCE_INDEX = join(DIST_DIR, 'index.html');
+/** Empty Vite shell for SPA deep links; marketing prerender must not overwrite this file. */
+export const APP_SHELL_HTML_BASENAME = 'app-shell.html';
+
+export function resolveDistDir(cwd: string = process.cwd()): string {
+  return join(cwd, 'dist');
+}
+
+export function getAppShellDistPath(distDir: string = resolveDistDir()): string {
+  return join(distDir, APP_SHELL_HTML_BASENAME);
+}
+
+/** Persists the pre-prerender Vite template so Vercel can rewrite app routes to an empty `#root`. */
+export function writeAppShellHtml(distDir: string, template: string): string {
+  const outPath = getAppShellDistPath(distDir);
+  writeFileSync(outPath, template, 'utf-8');
+  return outPath;
+}
 
 function escapeHtml(text: string): string {
   return text
@@ -170,29 +185,35 @@ export function prerenderMarketingHtmlTemplate(template: string, route: Marketin
   return out;
 }
 
-function distPathForRoute(pathname: string): string {
+function distPathForRoute(pathname: string, distDir: string): string {
   if (pathname === '/') {
-    return join(DIST_DIR, 'index.html');
+    return join(distDir, 'index.html');
   }
   const trimmed = pathname.startsWith('/') ? pathname.slice(1) : pathname;
-  return join(DIST_DIR, trimmed, 'index.html');
+  return join(distDir, trimmed, 'index.html');
 }
 
-export function writeMarketingHtmlFiles(): void {
-  if (!existsSync(SOURCE_INDEX)) {
-    throw new Error(`Missing Vite output at ${SOURCE_INDEX}. Run vite build first.`);
+export function writeMarketingHtmlFiles(cwd: string = process.cwd()): void {
+  const distDir = resolveDistDir(cwd);
+  const sourceIndex = join(distDir, 'index.html');
+
+  if (!existsSync(sourceIndex)) {
+    throw new Error(`Missing Vite output at ${sourceIndex}. Run vite build first.`);
   }
 
-  const template = readFileSync(SOURCE_INDEX, 'utf-8');
+  const template = readFileSync(sourceIndex, 'utf-8');
+  writeAppShellHtml(distDir, template);
 
   for (const route of MARKETING_ROUTES) {
-    const outPath = distPathForRoute(route.path);
+    const outPath = distPathForRoute(route.path, distDir);
     mkdirSync(dirname(outPath), { recursive: true });
     const html = prerenderMarketingHtmlTemplate(template, route);
     writeFileSync(outPath, html, 'utf-8');
   }
 
-  console.log(`✓ Wrote ${MARKETING_ROUTES.length} marketing HTML files under dist/`);
+  console.log(
+    `✓ Wrote ${MARKETING_ROUTES.length} marketing HTML files and ${APP_SHELL_HTML_BASENAME} under dist/`
+  );
 }
 
 const invokedDirectly =

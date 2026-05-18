@@ -1,7 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import type { MarketingRoute } from '../../lib/marketingRoutes';
 import { MARKETING_ROUTES } from '../../lib/marketingRoutes';
-import { prerenderMarketingHtmlTemplate } from '../../../scripts/generate-marketing-html';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import {
+  prerenderMarketingHtmlTemplate,
+  writeAppShellHtml,
+  writeMarketingHtmlFiles,
+} from '../../../scripts/generate-marketing-html';
 
 function requireMarketingRoute(path: string): MarketingRoute {
   const route = MARKETING_ROUTES.find((r) => r.path === path);
@@ -83,5 +90,52 @@ describe('prerenderMarketingHtmlTemplate', () => {
 
     expect(html).not.toContain('href="/landing"');
     expect(html).not.toMatch(/<a href="\/">Home<\/a>/);
+  });
+
+  it('injects marketing body for canonical home while the Vite template keeps an empty root', () => {
+    const route = requireMarketingRoute('/');
+    const homeHtml = prerenderMarketingHtmlTemplate(MINIMAL_DIST_TEMPLATE, route);
+
+    expect(homeHtml).toContain('data-prerendered-marketing-route="/"');
+    expect(MINIMAL_DIST_TEMPLATE).toMatch(/<div id="root">\s*<\/div>/);
+    expect(homeHtml).not.toMatch(/<div id="root">\s*<\/div>/);
+  });
+});
+
+describe('writeAppShellHtml', () => {
+  it('writes the untouched Vite template with an empty root for SPA fallback', () => {
+    const distDir = mkdtempSync(join(tmpdir(), 'equipqr-marketing-'));
+    try {
+      const outPath = writeAppShellHtml(distDir, MINIMAL_DIST_TEMPLATE);
+      const shell = readFileSync(outPath, 'utf-8');
+
+      expect(shell).toBe(MINIMAL_DIST_TEMPLATE);
+      expect(shell).toMatch(/<div id="root">\s*<\/div>/);
+      expect(shell).not.toContain('data-prerendered-marketing-route');
+    } finally {
+      rmSync(distDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('writeMarketingHtmlFiles', () => {
+  it('preserves app-shell.html before prerendering marketing routes', () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), 'equipqr-marketing-dist-'));
+    const distDir = join(projectRoot, 'dist');
+    try {
+      mkdirSync(distDir, { recursive: true });
+      writeFileSync(join(distDir, 'index.html'), MINIMAL_DIST_TEMPLATE, 'utf-8');
+
+      writeMarketingHtmlFiles(projectRoot);
+
+      const appShell = readFileSync(join(distDir, 'app-shell.html'), 'utf-8');
+      const marketingHome = readFileSync(join(distDir, 'index.html'), 'utf-8');
+
+      expect(appShell).toBe(MINIMAL_DIST_TEMPLATE);
+      expect(appShell).not.toContain('data-prerendered-marketing-route');
+      expect(marketingHome).toContain('data-prerendered-marketing-route="/"');
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
   });
 });
