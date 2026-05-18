@@ -112,7 +112,7 @@ VITE_GOOGLE_PICKER_APP_ID=your-google-cloud-project-number
 
 Edge Functions require secrets configured in the Supabase Dashboard. See the complete reference:
 
-👉 **[Supabase Branch Secrets Configuration](../ops/supabase-branch-secrets.md)**
+👉 **[Supabase Branch Secrets Configuration](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/supabase-branch-secrets.md)**
 
 Key secrets include:
 
@@ -138,13 +138,13 @@ SUPABASE_ANON_KEY=<local-anon-key>
 # Add integration secrets as needed (see .env.example for full list)
 ```
 
-See **[Local Supabase Development Guide](../ops/local-supabase-development.md)** for complete setup instructions.
+See **[Local Supabase Development Guide](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/local-supabase-development.md)** for complete setup instructions.
 
 ### Setting Up Supabase
 
 > **⚠️ IMPORTANT: Local Supabase is the standard development method.**
 > 
-> All database development should be done locally first, then deployed to production. See [Local Supabase Development Guide](../ops/local-supabase-development.md) for complete setup instructions.
+> All database development should be done locally first, then deployed to production. See [Local Supabase Development Guide](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/local-supabase-development.md) for complete setup instructions.
 
 **For local development (recommended):**
 
@@ -186,7 +186,7 @@ Before you begin, ensure you have the following installed on your development ma
 
 ### Required Software
 
-- **Node.js** — must satisfy `engines.node` in the root [`package.json`](../../package.json) (currently **Node 24.x**, matching Vercel). We recommend the latest **24.x** LTS release for local development. [Download here](https://nodejs.org/)
+- **Node.js** — must satisfy `engines.node` in the root [`package.json`](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/package.json) (currently **Node 24.x LTS**). We recommend the latest **24.x** LTS release for local development. [Download here](https://nodejs.org/)
 - **npm** (comes with Node.js) - We use npm exclusively (no yarn/pnpm/bun)
 - **Docker Desktop** — required for local Supabase ([download here](https://www.docker.com/products/docker-desktop)); `dev-start.ps1` checks `docker` on `PATH` and that the daemon is reachable
 - **Git** - [Download here](https://git-scm.com/)
@@ -550,7 +550,7 @@ describe('EquipmentCard', () => {
    npx supabase db push --linked
    ```
 
-**Note**: See [Local Supabase Development Guide](../ops/local-supabase-development.md) for detailed setup instructions.
+**Note**: See [Local Supabase Development Guide](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/local-supabase-development.md) for detailed setup instructions.
 
 ## Troubleshooting Common Issues
 

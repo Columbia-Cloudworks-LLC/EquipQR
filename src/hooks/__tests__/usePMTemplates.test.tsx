@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import {
   usePMTemplates,
+  usePMTemplatesForOrganization,
   usePMTemplate,
   useCreatePMTemplate,
   useUpdatePMTemplate,
@@ -127,6 +128,28 @@ describe('usePMTemplates', () => {
     );
     vi.mocked(toast.success).mockImplementation(() => '1');
     vi.mocked(toast.error).mockImplementation(() => '1');
+  });
+
+  describe('usePMTemplatesForOrganization', () => {
+    it('fetches and transforms template list for explicit org', async () => {
+      const { result } = renderHook(() => usePMTemplatesForOrganization('org-1'), {
+        wrapper,
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(result.current.data).toEqual(mockTemplateSummaries);
+    });
+
+    it('is disabled when no organization id is provided', async () => {
+      const { result } = renderHook(() => usePMTemplatesForOrganization(undefined), {
+        wrapper,
+      });
+
+      expect(result.current.fetchStatus).toBe('idle');
+    });
   });
 
   describe('usePMTemplates', () => {

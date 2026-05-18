@@ -7,18 +7,25 @@ import * as useWorkOrderDetailsActionsModule from '@/features/work-orders/hooks/
 
 const mockWorkOrderDetailsMobile = vi.fn();
 
-const { mockUseIsMobile, mockWorkOrderImagesSectionProps, mockSetSearchParams, mockUseSearchParams } = vi.hoisted(
-  () => {
-    const mockSetSearchParamsInner = vi.fn();
-    const mockUseSearchParamsInner = vi.fn(() => [new URLSearchParams(), mockSetSearchParamsInner]);
-    return {
-      mockUseIsMobile: vi.fn(() => true),
-      mockWorkOrderImagesSectionProps: vi.fn(),
-      mockSetSearchParams: mockSetSearchParamsInner,
-      mockUseSearchParams: mockUseSearchParamsInner,
-    };
-  }
-);
+const {
+  mockUseIsMobile,
+  mockWorkOrderImagesSectionProps,
+  mockWorkOrderNotesSectionProps,
+  mockSetSearchParams,
+  mockUseSearchParams,
+  mockMobileWorkOrderActionFooterProps,
+} = vi.hoisted(() => {
+  const mockSetSearchParamsInner = vi.fn();
+  const mockUseSearchParamsInner = vi.fn(() => [new URLSearchParams(), mockSetSearchParamsInner]);
+  return {
+    mockUseIsMobile: vi.fn(() => true),
+    mockWorkOrderImagesSectionProps: vi.fn(),
+    mockWorkOrderNotesSectionProps: vi.fn(),
+    mockSetSearchParams: mockSetSearchParamsInner,
+    mockUseSearchParams: mockUseSearchParamsInner,
+    mockMobileWorkOrderActionFooterProps: vi.fn(),
+  };
+});
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
@@ -144,7 +151,10 @@ vi.mock('@/features/work-orders/components/WorkOrderTimeline', () => ({
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderNotesSection', () => ({
-  default: () => <div>Notes section</div>,
+  default: (props: Record<string, unknown>) => {
+    mockWorkOrderNotesSectionProps(props);
+    return <div>Notes section</div>;
+  },
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderImagesSection', () => ({
@@ -218,12 +228,17 @@ vi.mock('@/features/work-orders/components/MobileWorkOrderActionSheet', () => ({
 }));
 
 vi.mock('@/features/work-orders/components/MobileWorkOrderActionFooter', () => ({
-  MobileWorkOrderActionFooter: () => null,
+  MobileWorkOrderActionFooter: (props: Record<string, unknown>) => {
+    mockMobileWorkOrderActionFooterProps(props);
+    return <div data-testid="mobile-work-order-action-footer-marker">Mobile action footer</div>;
+  },
 }));
 
 describe('WorkOrderDetails', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockMobileWorkOrderActionFooterProps.mockClear();
+    mockWorkOrderNotesSectionProps.mockClear();
     mockUseIsMobile.mockReturnValue(true);
     mockSetSearchParams.mockReset();
     mockUseSearchParams.mockReturnValue([new URLSearchParams(), mockSetSearchParams]);
@@ -311,6 +326,94 @@ describe('WorkOrderDetails', () => {
     };
 
     expect(latestProps.onDeleteRequest).toBeUndefined();
+
+    await waitFor(() => {
+      expect(screen.getByText('Next action')).toBeInTheDocument();
+    });
+  });
+
+  it('shows mobile action footer with onAddNote for submitted work orders created by current user (suppresses Next action)', async () => {
+    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue({
+      workOrder: {
+        id: 'wo-1',
+        title: 'Replace hydraulic line',
+        description: 'Repair leak',
+        status: 'submitted',
+        priority: 'medium',
+        created_date: '2024-01-01T00:00:00Z',
+        createdDate: '2024-01-01T00:00:00Z',
+        dueDate: null,
+        equipment_id: 'eq-1',
+        has_pm: false,
+        teamName: null,
+        assigneeName: null,
+        effectiveLocation: null,
+        created_by: 'user-1',
+        organization_id: 'org-1',
+      },
+      equipment: {
+        id: 'eq-1',
+        name: 'Excavator 1',
+        manufacturer: 'Caterpillar',
+        model: '320',
+        serial_number: null,
+        status: 'active',
+        location: null,
+        team_id: 'team-1',
+        custom_attributes: null,
+        image_url: null,
+        default_pm_template_id: null,
+      },
+      pmData: null,
+      workOrderLoading: false,
+      pmLoading: false,
+      pmError: null,
+      permissionLevels: {
+        isManager: false,
+        isTechnician: false,
+        isRequestor: true,
+      },
+      formMode: 'requestor',
+      isWorkOrderLocked: false,
+      canAddCosts: false,
+      canEditCosts: false,
+      canAddNotes: true,
+      canUpload: false,
+      canEdit: false,
+      baseCanAddNotes: true,
+      currentOrganization: {
+        id: 'org-1',
+        name: 'Test Org',
+      },
+    } as unknown as ReturnType<typeof useWorkOrderDetailsDataModule.useWorkOrderDetailsData>);
+
+    render(<WorkOrderDetails />);
+
+    await waitFor(() => {
+      expect(mockMobileWorkOrderActionFooterProps).toHaveBeenCalled();
+    });
+
+    expect(screen.queryByText('Next action')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mobile-work-order-action-footer-marker')).toBeInTheDocument();
+
+    const footerProps = mockMobileWorkOrderActionFooterProps.mock.calls.at(-1)?.[0] as {
+      workOrder: { status: string };
+      canAddNotes: boolean;
+      onAddNote?: () => void;
+    };
+    expect(footerProps.workOrder.status).toBe('submitted');
+    expect(footerProps.canAddNotes).toBe(true);
+    expect(typeof footerProps.onAddNote).toBe('function');
+
+    await waitFor(() => {
+      expect(mockWorkOrderNotesSectionProps).toHaveBeenCalled();
+    });
+    const notesProps = mockWorkOrderNotesSectionProps.mock.calls.at(-1)?.[0] as {
+      canAddNotes?: boolean;
+      hideInlineAddButton?: boolean;
+    };
+    expect(notesProps.canAddNotes).toBe(true);
+    expect(notesProps.hideInlineAddButton).toBe(false);
   });
 
   it('renders the mobile field-first order with office details collapsed by default', async () => {
@@ -383,9 +486,11 @@ describe('WorkOrderDetails', () => {
 
     render(<WorkOrderDetails />);
 
+    expect(screen.queryByText('Next action')).not.toBeInTheDocument();
+
     const pageText = document.body.textContent ?? '';
-    expect(pageText.indexOf('Compact summary')).toBeLessThan(pageText.indexOf('Next action'));
-    expect(pageText.indexOf('PM checklist')).toBeLessThan(pageText.indexOf('Images section'));
+    expect(pageText.indexOf('Compact summary')).toBeLessThan(pageText.indexOf('Job card'));
+    expect(pageText.indexOf('Job card')).toBeLessThan(pageText.indexOf('PM checklist'));
     expect(pageText.indexOf('Images section')).toBeLessThan(pageText.indexOf('Notes section'));
     expect(pageText.indexOf('Notes section')).toBeLessThan(pageText.indexOf('Costs section'));
     expect(pageText.indexOf('Costs section')).toBeLessThan(pageText.indexOf('Review & office details'));
@@ -394,6 +499,14 @@ describe('WorkOrderDetails', () => {
     expect(screen.getByText('Costs section')).toBeInTheDocument();
     expect(screen.queryByText('Timeline section')).not.toBeInTheDocument();
     expect(screen.queryByText('Audit history')).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(mockWorkOrderNotesSectionProps).toHaveBeenCalled();
+    });
+    const notesProps = mockWorkOrderNotesSectionProps.mock.calls.at(-1)?.[0] as {
+      hideInlineAddButton?: boolean;
+    };
+    expect(notesProps.hideInlineAddButton).toBe(true);
 
     await waitFor(() => {
       expect(mockWorkOrderImagesSectionProps).toHaveBeenCalled();

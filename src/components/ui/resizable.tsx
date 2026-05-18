@@ -12,7 +12,8 @@ import { cn } from "@/lib/utils"
 
 type ResizablePanelGroupProps = Omit<GroupProps, "orientation"> & {
   /** @deprecated Prefer `orientation` — kept for shadcn-style call sites */
-  direction?: "horizontal" | "vertical"
+  direction?: GroupProps["orientation"]
+  /** Alias for `direction` / library `orientation` */
   orientation?: GroupProps["orientation"]
 }
 
@@ -21,13 +22,17 @@ const ResizablePanelGroup = ({
   direction,
   orientation,
   ...props
-}: ResizablePanelGroupProps) => (
-  <Group
-    className={cn("flex h-full w-full", className)}
-    orientation={orientation ?? direction ?? "horizontal"}
-    {...props}
-  />
-)
+}: ResizablePanelGroupProps) => {
+  const resolvedOrientation = direction ?? orientation ?? "horizontal"
+
+  return (
+    <Group
+      className={cn("h-full w-full min-h-0", className)}
+      orientation={resolvedOrientation}
+      {...props}
+    />
+  )
+}
 
 /** Alias of `Panel` — preserves primitive identity and ref behavior. */
 const ResizablePanel = Panel
@@ -35,11 +40,11 @@ const ResizablePanel = Panel
 type ResizableHandleProps = SeparatorProps & { withHandle?: boolean }
 
 const ResizableHandle = React.forwardRef<
-  React.ComponentRef<typeof Separator>,
+  HTMLDivElement,
   ResizableHandleProps
 >(({ withHandle, className, ...props }, ref) => (
   <Separator
-    ref={ref}
+    elementRef={ref}
     className={cn(
       "relative flex items-center justify-center bg-border focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-1",
       "aria-[orientation=vertical]:h-full aria-[orientation=vertical]:w-px",

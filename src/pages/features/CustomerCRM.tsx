@@ -12,21 +12,19 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
 import { landingImage } from '@/lib/landingImage';
+import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
+
+const seo = getFeatureSeoByPath('/features/customer-crm')!;
 
 const CustomerCRMFeature = () => {
   return (
     <>
-      <PageSEO
-        title="Customer CRM"
-        description="Link equipment to specific customers. Maintain a permanent service history for every client asset."
-        path="/features/customer-crm"
-        keywords="customer CRM, equipment customer tracking, service history, customer equipment management, repair shop CRM"
-      />
+      <PageSEO title={seo.pageTitle} description={seo.description} path={seo.path} />
       <FeaturePageLayout>
       <FeatureHero
         icon={UserCircle}
-        title="Customer CRM"
-        description="Link equipment to specific customers. Maintain a permanent service history for every client asset."
+        title={seo.heroTitle}
+        description={seo.heroDescription}
         ctaText="Start Using Customer CRM Free"
       />
 

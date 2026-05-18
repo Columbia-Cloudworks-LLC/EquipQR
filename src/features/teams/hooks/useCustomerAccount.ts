@@ -47,6 +47,13 @@ export function useCustomer(customerId: string | undefined) {
 // Customer Account Mutations
 // ============================================
 
+function requireOrganizationId(organizationId: string | undefined): string {
+  if (!organizationId) {
+    throw new Error('Select an organization before syncing QuickBooks customers.');
+  }
+  return organizationId;
+}
+
 export function useCustomerMutations(organizationId: string | undefined) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -87,9 +94,10 @@ export function useCustomerMutations(organizationId: string | undefined) {
 
   const importFromQB = useMutation({
     mutationFn: ({ qb }: { qb: QBCustomerPayload }) =>
-      importCustomerFromQB(organizationId!, qb),
-    onSuccess: () => {
+      importCustomerFromQB(requireOrganizationId(organizationId), qb),
+    onSuccess: (data) => {
       toast({ title: 'Imported', description: 'Customer imported from QuickBooks' });
+      queryClient.invalidateQueries({ queryKey: ['external-contacts', data.id] });
       invalidate();
     },
     onError: (err: Error) => {
@@ -99,10 +107,11 @@ export function useCustomerMutations(organizationId: string | undefined) {
 
   const refreshFromQB = useMutation({
     mutationFn: ({ customerId, qb }: { customerId: string; qb: QBCustomerPayload }) =>
-      refreshCustomerFromQB(customerId, qb),
+      refreshCustomerFromQB(requireOrganizationId(organizationId), customerId, qb),
     onSuccess: (_data, vars) => {
       toast({ title: 'Refreshed', description: 'Customer data refreshed from QuickBooks' });
       queryClient.invalidateQueries({ queryKey: ['customer', vars.customerId] });
+      queryClient.invalidateQueries({ queryKey: ['external-contacts', vars.customerId] });
       invalidate();
     },
     onError: (err: Error) => {

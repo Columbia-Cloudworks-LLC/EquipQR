@@ -45,8 +45,16 @@ vi.mock('../AuditTimelineHistogram', () => ({
 // Stub the resizable panels so the layout renders even without a real layout
 // engine; we just want to verify the panels are present.
 vi.mock('@/components/ui/resizable', () => ({
-  ResizablePanelGroup: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="resizable-panel-group">{children}</div>
+  ResizablePanelGroup: ({
+    children,
+    id,
+  }: {
+    children: React.ReactNode;
+    id?: string;
+  }) => (
+    <div data-testid="resizable-panel-group" data-resizable-group-id={id}>
+      {children}
+    </div>
   ),
   ResizablePanel: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="resizable-panel">{children}</div>
@@ -138,6 +146,10 @@ describe('AuditExplorer', () => {
     expect(screen.getByTestId('histogram-stub')).toBeInTheDocument();
     expect(screen.getByTestId('audit-log-toolbar')).toBeInTheDocument();
     expect(screen.getByTestId('resizable-panel-group')).toBeInTheDocument();
+    expect(screen.getByTestId('resizable-panel-group')).toHaveAttribute(
+      'data-resizable-group-id',
+      'audit-explorer-split'
+    );
     expect(screen.getAllByTestId('resizable-panel')).toHaveLength(2);
     expect(screen.getByTestId('audit-detail-empty')).toBeInTheDocument();
   });
