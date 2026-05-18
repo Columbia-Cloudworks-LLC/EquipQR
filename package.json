@@ -1,7 +1,7 @@
 {
   "name": "equipqr",
   "private": true,
-  "version": "3.4.0",
+  "version": "3.5.3",
   "type": "module",
   "engines": {
     "node": "24.x"
@@ -15,12 +15,13 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/generate-sitemap.mjs && vite build",
+    "build": "tsx scripts/generate-sitemap.ts && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
     "verify:preview-access": "node scripts/verify-preview-access.mjs",
     "test": "node scripts/test-runner.mjs",
+    "test:itil-scripts": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/itil/tests/Run-ItilWorkflowTests.ps1",
     "test:coverage": "node scripts/test-runner.mjs --coverage",
     "test:watch": "vitest --watch",
     "test:ui": "vitest --ui",
@@ -34,6 +35,9 @@
     "size-check": "npx size-limit",
     "type-check": "tsc --noEmit",
     "deploy:vercel": "npx --yes vercel@51.6.1 --prod",
+    "docs:dev": "npm --prefix docs run docs:dev",
+    "docs:build": "npm --prefix docs run docs:build",
+    "docs:preview": "npm --prefix docs run docs:preview",
     "deploy:netlify": "netlify deploy --prod",
     "generate:vapid-keys": "node scripts/generate-vapid-keys.mjs",
     "generate:large-inventory": "npx tsx scripts/generate-large-inventory-seed.ts > supabase/seeds/26_large_inventory.sql",

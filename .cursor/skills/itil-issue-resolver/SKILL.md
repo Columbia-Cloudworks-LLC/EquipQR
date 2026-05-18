@@ -150,6 +150,12 @@ Do not commit if there are no meaningful changes. Do not stage documented CRLF d
 
 ### 6. Local Verification Gates
 
+**Script (recommended, EquipQR repo root):**
+
+```powershell
+.\scripts\pr-feedback\Invoke-PrVerification.ps1
+```
+
 Run gates in this order, stopping at the first failure:
 
 ```powershell
@@ -240,7 +246,7 @@ gh pr ready <number>
 After the PR is open:
 
 - Watch initial CI only long enough to catch immediate failures unless the user asks to babysit.
-- For reviewer comments, use `address-pr-feedback`; pre-filter unresolved threads only.
+- For reviewer comments, use `address-pr-feedback` with the script helpers in [`scripts/pr-feedback/README.md`](../../../scripts/pr-feedback/README.md) (`Get-PrFeedbackThreads`, `Publish-PrFeedbackResponses`, etc.) to avoid long manual `gh` chains; pre-filter unresolved threads only.
 - Do not squash-rewrite review history unless the user asks.
 - If CI or review exposes a real blocker, comment on the issue or PR with state, exact failure, and the direct question.
 

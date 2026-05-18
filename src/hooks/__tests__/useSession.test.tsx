@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook } from '@testing-library/react';
 import { render, screen } from '@/test/utils/test-utils';
-import { render as rtlRender } from '@testing-library/react';
 import { SessionContext, type SessionData } from '@/contexts/SessionContext';
 import { useSession } from '../useSession';
 
@@ -102,18 +102,16 @@ describe('useSession', () => {
   });
 
   it('should throw error when used without SessionProvider', () => {
-    // Mock console.error to prevent test output noise
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    expect(() => {
-      rtlRender(
-        <div>
-          <TestComponent />
-        </div>
-      );
-    }).toThrow('useSession must be used within a SessionProvider');
-
-    consoleSpy.mockRestore();
+    // React 18 does not reliably surface useContext guard throws via rtl render + expect().toThrow();
+    // renderHook invokes the hook body synchronously and preserves the contract.
+    try {
+      expect(() => {
+        renderHook(() => useSession());
+      }).toThrow('useSession must be used within a SessionProvider');
+    } finally {
+      consoleSpy.mockRestore();
+    }
   });
 
   it('should call refreshSession when button is clicked', () => {

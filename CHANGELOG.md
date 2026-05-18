@@ -8,6 +8,61 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+
+- **Public marketing prerender HTML** ([#971](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/971)) — Build-time static HTML for each sitemap-listed marketing URL (`dist` nested `index.html` files) with route-specific headings, copy, and crawlable nav inside `#root` for non-JS crawlers; `src/lib/marketingRoutes.ts` is the single source for sitemap + prerender.
+
+- **Public marketing SEO & accessibility** ([#934](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/934)) — Static JSON-LD graph and noscript shell; runtime PageSEO strips legacy keywords; feature pages use centralized SEO copy with breadcrumbs, visible FAQ, and matching FAQ/HowTo/BreadcrumbList JSON-LD; SPA route announcer and route-heading focus; public/llms.txt.
+
+## [3.5.3] - 2026-05-17
+
+### Fixed
+
+- **QuickBooks invoice export** — Summarized **Parts** line includes every non-labor work-order cost (manual and inventory-backed rows; previously separate truck/fee-style amounts roll into Parts). Only cost items matching **Labor** / **Labor - …** (no inventory link) count as labor; customer-facing invoices are Labor and Parts lines only. Private memo still lists the full itemized breakdown.
+
+## [3.5.2] - 2026-05-16
+
+### Changed
+
+- **QuickBooks invoice export** ([#913](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/913)) — Draft invoices use summarized Labor and non-inventory Parts lines, PM-aware customer-facing line descriptions, and optional Edge secrets for item names and income accounts; `QBO_INVOICE_PARTS_ITEM_PREFIX` is deprecated for invoice behavior. Private memo still includes the full itemized cost breakdown.
+
+### Fixed
+
+- **Local test runner** — `useSession` missing-provider coverage uses `renderHook` so React 18 does not leave the Vitest process wedged; raise the default `scripts/test-runner.mjs` hard wall-clock timeout (`8m` standard runs, `10m` with coverage cap) so full `npm test` can finish on Windows after lint/typecheck without false `⏰ Test runner timeout` exits.
+
+## [3.5.1] - 2026-05-16
+
+### Added
+
+- **QuickBooks customer contact sync** ([#914](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/914), [#960](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/960)) — QuickBooks customer imports and refreshes now capture email, phone, mobile, and fax contacts, show their QuickBooks provenance, and surface tap-to-call / tap-to-email actions on linked work orders without adding write-back to QuickBooks.
+- **Public documentation site bootstrap (VitePress)** ([#908](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/908), [#956](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/956)) — `docs/` builds as a standalone static site (VitePress) for deployment to `equipqr.info`; runbook updates in deployment and CI/CD docs; app footer links to published docs.
+- **PR feedback PowerShell helpers** — `scripts/pr-feedback/` drivers for PR context preflight, GraphQL review threads/reviews, local verification gates, deferred-issue + thread-reply + summary publishing, and `gh pr checks`, with `scripts/pr-feedback/tests/Run-PrFeedbackSmoke.ps1` and skill doc references via `scripts/pr-feedback/README.md`.
+
+### Changed
+
+- **Public docs security** ([#956](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/956)) — Exclude `docs/ops/**` from the equipqr.info VitePress build; remove Operations from public nav; README ops links use GitHub `blob/main`; tighten `Content-Security-Policy` `script-src` to `'self'` only (no `unsafe-inline` / `unsafe-eval`); add public vs internal authoring guidance; fix PM/RCA README links for GitHub.
+
+### Fixed
+
+- **Mobile work order details UX** ([#829](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/829), [#958](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/958)) — Sticky footer owns primary actions with PM checklist completion gating; hides duplicate Next action when the footer is visible; trims duplicate compact-summary rows from mobile details; mobile admin delete requires typing DELETE.
+- **Mobile work order cost editor** ([#903](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/903), [#957](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/957)) — Touch-friendly stacked actions for labor, inventory, and manual lines; duplicate Cost Items chrome suppressed on small screens; inline validation deferred until Save or row edits; overflow clamps on notes/timeline/image carousel regions.
+
+## [3.5.0] - 2026-05-15
+
+### Added
+
+- **QR PM template picker for untemplated equipment** ([#916](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/916), [#941](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/941)) — QR work-order creation now surfaces a template chooser when scanned equipment has no default PM template, preserving the fast QR flow while preventing empty-template submissions.
+
+### Changed
+
+- **Dependabot update cadence** — GitHub dependency update runs are reduced to monthly to lower churn and keep supply-chain updates bundled into deliberate review windows.
+- **ITIL workflow guidance for issue-tied implementation** — Internal skill/rule docs now require triage before Change Records and enforce PR-based delivery for issue-tracked implementation flows.
+
+### Fixed
+
+- **QR organization context handoff** — QR redirect and downstream flows keep organization switching synchronized across providers/contexts so QR users land in the expected org-scoped state.
+- **Desktop sidebar layout regression** — Restored sidebar content offset behavior to prevent visual overlap/misalignment in desktop dashboard navigation.
+- **QR PM template submit hardening** ([#941](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/941)) — Added validation and label-association guardrails to improve template selection reliability in QR PM work-order creation.
 
 ## [3.4.0] - 2026-05-14
 
@@ -104,6 +159,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Public marketing refresh** — `FeaturesSection` restructured from 11 flat cards into three buyer-oriented product pillars (Field Operations, Back Office, Control & Trust) with nested feature links for a coherent homepage story without losing discoverability; "Get Started Free" CTA and friction reducer ("No credit card. First scan in 20 minutes.") added directly below the hero animation. `FleetVisualization` feature page copy corrected: "Real-Time Tracking" → "Last Confirmed Location", "Route Optimization" → "Location-Aware Planning", GPS-tracking language removed to accurately reflect EquipQR's hardware-free, scan-based model. `TeamCollaboration` page adds a complete two-tier roles/permissions matrix (Org: Owner / Admin / Member; Team: Manager / Technician / Requestor / Viewer). `RepairShops` solution page gains a 3-A Equipment testimonial, proof metrics strip, and QuickBooks workflow card plus a hero friction reducer. 16 fresh authenticated product screenshots uploaded to `landing-page-images` Supabase Storage and wired across `QRCodeIntegration`, `InventoryManagement`, `WorkOrderManagement`, `TeamCollaboration`, `CustomerCRM`, `PMTemplates`, `GoogleWorkspace`, `MobileFirstDesign`, `QuickBooks`, `FleetVisualization`, and `PartLookupAlternates`; first screenshot sections added to `QuickBooks`, `FleetVisualization`, and `PartLookupAlternates` (previously screenless).
 
 ### Fixed
+
+- **Cursor Cloud Agent environment bootstrap failures** — `.nvmrc` now matches the Node 24 runtime required by `package.json`; `scripts/cloud-agent-frontend-setup.sh` loads/installs Node 24 through `nvm` before `npm ci` so cold VMs no longer fail with `EBADENGINE`; Linux `scripts/agent-bootstrap.sh` now reads the populated `gcp-read/SERVICE_ACCOUNT_JSON` field before legacy credential fields and validates service-account JSON before writing the gcloud MCP key.
 
 - **Slow 4G P0/P1 performance bottlenecks** ([#708](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/708)) — `Dashboard` prefetches Equipment, Work Orders, and Inventory List chunks 1.5 s after mount so SPA navigation is instant on constrained links; lazy-route `<Suspense>` fallbacks replaced with `PageSkeleton` shimmer cards for perceived-progress feedback during chunk hydration; `SimpleOrganizationProvider` short-circuits a duplicate `organization_members` fetch when `SessionProvider` has already resolved org data (saves 2 Supabase round-trips per dashboard mount); `teamBasedWorkOrderService.getTeamBasedWorkOrders` skips `getAccessibleEquipmentIds` + `IN()` filter for org-admin sessions (eliminates 3 KB URL bloat and a redundant equipment table scan); `useWorkOrders` default stale time raised 30 s → 2 min and extended stale time 1 min → 5 min to prevent refetch on every SPA hop.
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,7 +16,7 @@ const CURRENT_ORG_STORAGE_KEY = 'equipqr_current_organization';
 export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [currentOrganizationId, setCurrentOrganizationId] = useState<string | null>(null);
-  const [syncWarningCount, setSyncWarningCount] = useState(0);
+  const lastMismatchSyncAttemptRef = useRef<string | null>(null);
   
   // Get session context to keep them synchronized
   const sessionContext = useSession();
@@ -154,34 +154,43 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     return prioritized[0].id;
   }, []);
 
-  // Synchronization monitoring and recovery
+  // Synchronization monitoring and recovery — session org is authoritative when it diverges
+  // from equipqr_current_organization (e.g. QR redirect switched session without updating this key).
   const syncWithSession = useCallback(() => {
     if (!sessionContext?.sessionData?.currentOrganizationId || !currentOrganizationId) {
-      return; // Don't sync if either context is not ready
+      return;
     }
 
     const sessionOrgId = sessionContext.sessionData.currentOrganizationId;
-    
-    if (sessionOrgId !== currentOrganizationId) {
-      setSyncWarningCount(prev => prev + 1);
-      // Sync mismatch detected between contexts
 
-      // Auto-recover after a few warnings by syncing to session context
-      if (syncWarningCount >= 2) {
-        // Auto-recovering sync with session
-        setCurrentOrganizationId(sessionOrgId);
-        try {
-          localStorage.setItem(CURRENT_ORG_STORAGE_KEY, sessionOrgId);
-        } catch (error) {
-          logger.warn('Failed to save synced organization to storage', error);
-        }
-        setSyncWarningCount(0);
-      }
-    } else if (syncWarningCount > 0) {
-      // Reset warning count when sync is restored
-      setSyncWarningCount(0);
+    if (sessionOrgId === currentOrganizationId) {
+      lastMismatchSyncAttemptRef.current = null;
+      return;
     }
-  }, [sessionContext, currentOrganizationId, syncWarningCount]);
+
+    if (organizations.length === 0) {
+      return;
+    }
+
+    const sessionOrgKnown = organizations.some(org => org.id === sessionOrgId);
+    if (!sessionOrgKnown) {
+      return;
+    }
+
+    const syncAttemptKey = `follow-session:${sessionOrgId}`;
+    if (lastMismatchSyncAttemptRef.current === syncAttemptKey) {
+      return;
+    }
+
+    lastMismatchSyncAttemptRef.current = syncAttemptKey;
+    setCurrentOrganizationId(sessionOrgId);
+    try {
+      localStorage.setItem(CURRENT_ORG_STORAGE_KEY, sessionOrgId);
+    } catch (error) {
+      logger.warn('Failed to save current organization to storage', error);
+      lastMismatchSyncAttemptRef.current = null;
+    }
+  }, [sessionContext, currentOrganizationId, organizations]);
 
   // Auto-select prioritized organization if none selected and organizations are available
   useEffect(() => {

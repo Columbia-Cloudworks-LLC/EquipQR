@@ -78,6 +78,7 @@ describe('WorkOrderDetailsDesktopHeader', () => {
     formMode: 'manager',
     permissionLevels: {
       isManager: true,
+      isTechnician: false,
       isRequestor: false,
       canEdit: true,
       canDelete: true,
