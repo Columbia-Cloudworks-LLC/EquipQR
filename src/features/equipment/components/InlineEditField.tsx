@@ -70,13 +70,13 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
 
     setIsSaving(true);
     try {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         logger.debug('InlineEditField saving', { type, oldValue: value, newValue: editValue });
       }
       await onSave(editValue);
       setIsEditing(false);
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         logger.error('Error saving field', error);
       }
       setEditValue(value); // Reset to original value on error

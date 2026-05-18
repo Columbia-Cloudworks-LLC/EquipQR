@@ -1,23 +1,51 @@
 name: Schema Drift Check
 
-# Detects when supabase/migrations/ has files whose NAME is not present in the
-# production schema_migrations table. Fails the build on PRs targeting `main`
-# (the preview -> main release gate); warns on PRs targeting `preview` and on
-# pushes (drift is expected during day-to-day work).
+# Detects migration drift between supabase/migrations/ and the production
+# schema_migrations table. Three categories are checked:
+#
+#   pending       - local migration NAMES absent from production. SQL has not run
+#                   yet. Blocks release PRs (preview -> main).
+#   versionMismatch - production VERSION timestamps that have no matching local file
+#                   by version, but the migration NAME exists locally under a
+#                   different timestamp. Caused by Supabase MCP apply_migration or
+#                   Dashboard recording wall-clock timestamps. supabase db push
+#                   --include-all fails at release time until repaired with:
+#                     supabase migration repair --status reverted <remoteVersions>
+#                     supabase db push --include-all --yes
+#                   Blocks release PRs and SCHEMA_DRIFT_STRICT runs.
+#   orphanRemote  - production versions with no local match by name OR version.
+#                   Genuinely unknown remote migrations; operator must create a
+#                   placeholder file or repair the history entry. Blocks release PRs.
+#
+# On PRs targeting `main` (preview -> main release), all three categories fail the
+# check — production must be fully aligned before merge.
+# SCHEMA_DRIFT_STRICT=true hard-fails on all three categories (used after db push
+# in production-release-readiness.yml).
+# Warn-only on PRs targeting `preview` and on pushes (drift is expected during
+# day-to-day preview work).
+#
+# Why match pending by NAME, not VERSION:
+#   The Supabase MCP apply_migration tool records wall-clock timestamps instead of
+#   file timestamps. Name-matching avoids false-positives for those historical entries
+#   (e.g. remote_schema, disable_rls_temporarily_test). The versionMismatch category
+#   handles the version-drift failure separately so supabase db push failures are
+#   caught before the release workflow runs.
 #
 # Why this exists: PR #729 promoted client code that depended on
 # 20260416120000_add_machine_hours_to_notes.sql to production at
 # 2026-05-08T04:00:17Z, but the matching migration had never been applied.
 # Every user's note creation broke until the migration deploy in #735.
-# This gate catches that exact failure mode at PR time.
+# The version-mismatch category was added after a follow-up incident (2026-05-16)
+# where 18 migrations applied via MCP had wall-clock timestamps not present locally,
+# causing supabase db push --include-all to fail post-merge on main.
 #
 # Operator-facing requirements (mirrors edge-functions-smoke-test.yml):
 #   1. OP_SERVICE_ACCOUNT_TOKEN must be a REPO-LEVEL secret. This workflow
 #      does not declare environment:, so environment-scoped secrets won't
 #      resolve.
 #   2. The 1Password item `supabase-write` in the EquipQR Agents vault must
-#      contain a populated `SUPABASE_ACCESS_TOKEN` field (Supabase access
-#      token with Management API read access on the production project).
+#      contain a populated `SUPABASE_ACCESS_TOKEN` field (Supabase Management
+#      API access token with read access on the production project).
 #   3. When OP_SERVICE_ACCOUNT_TOKEN is empty (fork PRs, pre-token-plant),
 #      the load step degrades gracefully and the script skips with a
 #      ::warning:: + exit 0. A missing operator credential should not
@@ -37,7 +65,10 @@ on:
     paths:
       - 'supabase/migrations/**'
       - '.github/scripts/check-schema-drift.js'
+      - '.github/scripts/schema-drift-lib.js'
       - '.github/workflows/schema-drift-check.yml'
+      - '.github/workflows/production-release-readiness.yml'
+      - 'scripts/release/wait-for-vercel-deployment.mjs'
       - '.github/actions/load-1p-secrets/**'
   workflow_dispatch:
 
@@ -55,7 +86,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Load Supabase access token from 1Password
         uses: ./.github/actions/load-1p-secrets

@@ -48,6 +48,7 @@ vi.mock('qr-scanner', () => ({
 const scanFeedbackHookMock = vi.hoisted(() => ({
   prepareFeedback: vi.fn(),
   markPendingFeedback: vi.fn(),
+  triggerFeedback: vi.fn(),
   triggerPendingFeedback: vi.fn(),
 }));
 
@@ -107,6 +108,7 @@ describe('EquipmentScanner', () => {
   beforeEach(() => {
     scanFeedbackHookMock.prepareFeedback.mockClear();
     scanFeedbackHookMock.markPendingFeedback.mockClear();
+    scanFeedbackHookMock.triggerFeedback.mockClear();
     scanFeedbackHookMock.triggerPendingFeedback.mockClear();
 
     // Radix Select expects Pointer Capture APIs; jsdom does not implement them.

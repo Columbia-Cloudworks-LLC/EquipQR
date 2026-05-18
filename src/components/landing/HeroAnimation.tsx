@@ -220,7 +220,11 @@ export default function HeroAnimation() {
       </p>
 
       <div className="relative z-10 text-center mb-8 px-4">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">
+        <h1
+          data-route-heading="true"
+          tabIndex={-1}
+          className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
           QR-tracked work orders for heavy equipment repair shops
         </h1>
       </div>

@@ -12,21 +12,19 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
 import { landingImage } from '@/lib/landingImage';
+import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
+
+const seo = getFeatureSeoByPath('/features/google-workspace')!;
 
 const GoogleWorkspaceFeature = () => {
   return (
     <>
-      <PageSEO
-        title="Google Workspace Integration"
-        description="Connect your Google Workspace to import users from your directory. Sync members, assign roles, and let users sign in with Google for seamless access."
-        path="/features/google-workspace"
-        keywords="Google Workspace integration, Google Workspace SSO, Google Workspace directory sync, enterprise SSO, Google sign in"
-      />
+      <PageSEO title={seo.pageTitle} description={seo.description} path={seo.path} />
       <FeaturePageLayout>
       <FeatureHero
         icon={Building2}
-        title="Google Workspace"
-        description="Connect your Google Workspace to import users from your directory. Sync members, assign roles, and let users sign in with Google for seamless access."
+        title={seo.heroTitle}
+        description={seo.heroDescription}
         ctaText="Start Using Google Workspace Integration Free"
       />
 

@@ -18,7 +18,7 @@ This repository treats ITIL roles as follows:
 | **Incident Record** | **Output of *this* skill** — verified live-site reproduction with screenshot evidence and cross-system logs, posted on a GitHub issue |
 | Service Request | Output of [`itil-service-request`](../itil-service-request/SKILL.md) — feasibility, dollar-cost, and market-viability evaluation of a feature / enhancement |
 | Problem Record | Output of [`itil-problem-record`](../itil-problem-record/SKILL.md) — local-dev reproduction + root cause analysis on top of an Incident Record |
-| Change Record | Output of [`itil-change-record`](../itil-change-record/SKILL.md) — implementation plan, in Plan mode, awaiting user approval |
+| Change Record | Output of [`itil-change-record`](../itil-change-record/SKILL.md) — implementation plan drafted in Plan mode after pre-plan triage, awaiting user approval |
 | Change Implementation | What runs after the user approves the Change Record ("clicks build") |
 
 **Bug flow:** `itil-incident-record` → `itil-problem-record` → `itil-change-record` → implementation.

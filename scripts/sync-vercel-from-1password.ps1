@@ -142,10 +142,10 @@ Write-Ok "Using Vercel CLI: $vercelCmdLabel"
 
 $OP_VAULT = 'tgo2m6qbct5otqeqirjocn3joa'  # EquipQR Agents
 $vercelTokenItem = 'vercel-write'
-$vercelToken = & op read "op://$OP_VAULT/$vercelTokenItem/credential" 2>$null
+$vercelToken = & op read "op://$OP_VAULT/$vercelTokenItem/VERCEL_TOKEN" 2>$null
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($vercelToken)) {
     Write-Warn "1Password item '$vercelTokenItem' not found. Falling back to existing Vercel CLI session."
-    Write-Warn "  To enable headless sync, create item: op://$OP_VAULT/$vercelTokenItem/credential"
+    Write-Warn "  To enable headless sync, create item: op://$OP_VAULT/$vercelTokenItem/VERCEL_TOKEN"
     $env:VERCEL_TOKEN = $null
 } else {
     $env:VERCEL_TOKEN = $vercelToken.Trim()

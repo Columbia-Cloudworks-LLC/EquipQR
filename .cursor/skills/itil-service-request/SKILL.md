@@ -1,6 +1,6 @@
 ---
 name: itil-service-request
-description: Mandates an ITIL-style Service Request for exactly ONE GitHub issue (a feature request, enhancement, or capability gap) in EquipQR — the agent reads the issue, researches the cost (in dollars only, never time or effort) and feasibility of the requested feature, and when warranted scans the market for similar implementations to model the build on (preferring open-source projects). The agent makes NO code changes; it produces a Service Request comment on the issue and prints it in chat as the authorization context for a subsequent itil-change-record. Includes research-driven sections — Short Description, Description, Scope, External Dependencies, Potential Costs, Market Viability, Examples, and Vendor-side Setup Procedures (researched click-by-click steps for every vendor dashboard action the request implies, with "could not confirm" callouts when a feature can't be verified live). Use whenever the user asks the agent to "evaluate", "scope the cost of", "research", "draft a service request for", "look at this feature request", or "is this feasible" against a GitHub issue tagged feature / enhancement / chore-with-vendor-cost, references an issue number (#NNN) or issue URL framed as a feature ask, or starts the ITIL flow on a non-bug request. One prompt, one issue, one Service Request.
+description: Mandates an ITIL-style Service Request for exactly ONE GitHub issue (a feature request, enhancement, or capability gap) in EquipQR — the agent reads the issue, researches the cost (in dollars only, never time or effort) and feasibility of the requested feature, and when warranted scans the market for similar implementations to model the build on (preferring open-source projects). The agent makes NO code changes; it produces a Service Request comment on the issue and prints it in chat as the authorization context for a subsequent itil-change-record (which plans implementation; after approval, post-approval execution follows that skill — issue-tied work uses a branch off origin/preview, a PR into preview, and closure when merged into preview). Includes research-driven sections — Short Description, Description, Scope, External Dependencies, Potential Costs, Market Viability, Examples, and Vendor-side Setup Procedures (researched click-by-click steps for every vendor dashboard action the request implies, with "could not confirm" callouts when a feature can't be verified live). Use whenever the user asks the agent to "evaluate", "scope the cost of", "research", "draft a service request for", "look at this feature request", or "is this feasible" against a GitHub issue tagged feature / enhancement / chore-with-vendor-cost, references an issue number (#NNN) or issue URL framed as a feature ask, or starts the ITIL flow on a non-bug request. One prompt, one issue, one Service Request.
 ---
 
 # ITIL Service Request (EquipQR)
@@ -18,10 +18,10 @@ This repository treats ITIL roles as follows:
 | Incident Record | A GitHub Issue reporting a bug / regression / defect |
 | Problem Record | Output of [`itil-problem-record`](../itil-problem-record/SKILL.md) — root cause + reproduction posted on a bug issue |
 | **Service Request** | **Output of *this* skill** — feasibility, cost, and market evaluation of a feature / enhancement issue |
-| Change Record | Output of [`itil-change-record`](../itil-change-record/SKILL.md) — the implementation plan, in Plan mode, awaiting user approval |
-| Change Implementation | What runs after the user approves the Change Record ("clicks build") |
+| Change Record | Output of [`itil-change-record`](../itil-change-record/SKILL.md) — implementation plan drafted in Plan mode after pre-plan triage, awaiting user approval |
+| Change Implementation | What runs after the user approves the Change Record ("clicks build") — post-approval execution is defined in [`itil-change-record`](../itil-change-record/SKILL.md): issue-tied work uses a branch off `origin/preview`, **always** opens a **PR into `preview`**, and treats the issue as **fixed** only when that **PR merges into `preview`**. |
 
-A bug issue runs `itil-problem-record` → `itil-change-record`. A **feature** / **enhancement** / **vendor-cost** issue runs **`itil-service-request` → `itil-change-record`**. The Service Request answers: *"Is this worth building, what will it cost in dollars, and how have others done it well?"* It does **not** plan the implementation — that is the Change Record's job.
+A bug issue runs `itil-problem-record` → `itil-change-record`. A **feature** / **enhancement** / **vendor-cost** issue runs **`itil-service-request` → `itil-change-record`**. The Service Request answers: *"Is this worth building, what will it cost in dollars, and how have others done it well?"* It does **not** plan the implementation — that is the Change Record's job. This skill also does **not** create branches or PRs; it only sets context for the downstream Change Record and implementation workflow above.
 
 ## Mandatory rule
 
@@ -31,7 +31,7 @@ For **this repository only**, when the user asks the agent to evaluate or scope 
 2. Research the request — never fabricate cost numbers, never invent vendor names, never guess pricing.
 3. Produce the Service Request using the **exact** structure below.
 4. Post it as a comment on the GitHub issue **and** print it in chat.
-5. **Stop** after posting. Do not draft the Change Record, do not branch, do not modify code — that is `itil-change-record`'s job.
+5. **Stop** after posting. Do not draft the Change Record, do not branch, do not open PRs, do not modify code — that is `itil-change-record`'s job (and post-approval execution there), which follows that skill's **Branch & Commit Plan** together with [branching rule](../../rules/branching.mdc) (issue-tied paths require a PR into `preview` under `itil-change-record`).
 
 ## One prompt, one issue, one Service Request
 
@@ -71,9 +71,15 @@ If the issue is a bug / regression / defect (or labeled as such), use [`itil-pro
 
 ### Step 1 — Pull the request
 
-1. Fetch the issue and **all** its comments:
-   `gh issue view <number> --json number,title,body,labels,state,assignees,comments,url`
-2. Note: type signal from labels, reporter, business context, attached mockups, links to vendors / docs / competitors that the reporter already cited.
+1. **Preferred:** from the repo root, fetch an ITIL-aware JSON bundle (slug, labels, upstream-artifact hints, comments):
+   ```powershell
+   .\scripts\itil\Get-ItilIssueContext.ps1 -Issue <number> -Json
+   ```
+   Fallback (equivalent manual pull if the script is unavailable):
+   ```powershell
+   gh issue view <number> --json number,title,body,labels,state,assignees,comments,url
+   ```
+2. Note: type signal from labels, reporter/body context, attached mockups, links to vendors / docs / competitors that the reporter already cited.
 
 ### Step 2 — Right-skill check
 
@@ -277,8 +283,8 @@ End with a final subsection "I. Vendor-side actions that this Service Request do
 ## Recommended Next Step
 
 [One of:
-- **Proceed to Change Record** — request is feasible, costs are bounded and acceptable, examples exist. Recommend the user invoke `itil-change-record` next.
-- **Proceed to Change Record with conditions** — feasible but requires the user to (a) approve the recurring cost, (b) sign a vendor contract, (c) provision keys in Vercel + Supabase before build. List the conditions.
+- **Proceed to Change Record** — request is feasible, costs are bounded and acceptable, examples exist. Recommend the user invoke `itil-change-record` next. After approval, implementation follows that skill: branch `<type>/issue-<number>-<kebab-slug>` off `origin/preview`, push, **open a PR into `preview`** (mandatory for issue-tied work, including main worktree), and treat the issue as **fixed** only when that **PR merges into `preview`**.
+- **Proceed to Change Record with conditions** — feasible but requires the user to (a) approve the recurring cost, (b) sign a vendor contract, (c) provision keys in Vercel + Supabase before build. List the conditions. Same downstream integration path as **Proceed to Change Record** once those conditions are met.
 - **Return to reporter** — request is too vague to scope; list the exact clarifications needed.
 - **Decline** — request is infeasible against the current stack or market viability is too weak to justify the cost. Explain succinctly.]
 
@@ -288,18 +294,30 @@ End with a final subsection "I. Vendor-side actions that this Service Request do
 
 ## Authorization to Proceed
 
-Status: **Awaiting user approval to draft the Change Record (or to take the recommended alternative action above).**
+Status: **Awaiting user approval to draft the Change Record (or to take the recommended alternative action above).** Approving the Change Record path implies the subsequent implementation will follow [`itil-change-record`](../itil-change-record/SKILL.md) — issue-tied work tracks the issue on a branch and **opens a PR into `preview`** — this Service Request itself performs no git or PR actions.
 ```
 
 ### Step 8 — Post the Service Request
 
 1. Print the full Service Request in chat.
-2. Post it as a comment on the GitHub issue:
+2. **Preferred:** validate required markdown headings, open the GitHub comment, and attach an evaluation label **only when it already exists** (suppresses cleanly if missing—the same safeguard as bullet #303):
+   ```powershell
+   .\scripts\itil\Publish-ItilArtifact.ps1 `
+     -Issue <number> `
+     -ArtifactType ServiceRequest `
+     -BodyFile <temp-file.md> `
+     [-ApplyExistingLabel service-request-posted] `
+     -Json
+   ```
+   Capture `commentUrl` from JSON before deleting `<temp-file.md>`.
+   Fallback (manual two-step equivalence):
    ```powershell
    gh issue comment <number> --body-file <temp-file.md>
+   gh label list
+   gh issue edit <number> --add-label service-request-posted   # ONLY if gh label list already contains that literal label text
    ```
    Write the body to a temp file first to preserve markdown formatting, then delete the temp file. Do **not** use `--body "..."` for multi-line content on PowerShell.
-3. Apply a label that signals evaluation is complete (e.g. `triage:scoped` or `service-request-posted`) **only if** such a label already exists in the repo (`gh label list`). Do not create new labels.
+3. When you relied on the manual fallback (not `Publish-ItilArtifact.ps1`), also satisfy the standalone label safeguard: evaluation-complete labels attach **only when** already present (`gh label list`; never mint new GitHub labels). **When `-ApplyExistingLabel` was used successfully, omit the redundant `gh issue edit` pass.**
 4. **STOP.** Tell the user the Service Request is posted, then ask the next-step question via `AskQuestion` (buttons — never freeform text — they are deterministic and trivial to act on):
 
    ```json
@@ -323,7 +341,7 @@ Treat the user's response strictly: only an explicit button selection moves to t
 
 ## Strict guardrails
 
-- **Read-only on code.** This skill must not modify production code, run migrations, push branches, or open PRs. Discovery (Grep / Glob / Read) is allowed; edits are not.
+- **Read-only on code.** This skill must not modify production code, run migrations, create branches, push branches, or open PRs. Discovery (Grep / Glob / Read) is allowed; edits are not. Downstream `itil-change-record` post-approval execution owns branch / PR / integration to `preview` per that skill (issue-tied: always PR into `preview`) and [branching rule](../../rules/branching.mdc).
 - **No engineering-effort estimates.** Cost = dollars only, per the user's explicit direction. Never estimate hours, days, story points, sprints, or "level of effort." If a vendor's cost depends on usage you cannot estimate, write a sensitivity range and cite the rate, not a guess at duration.
 - **No fabricated pricing.** Every dollar figure in **Potential Costs** must trace to a live URL pulled this session via `firecrawl`, with the date noted. If pricing is hidden behind "Contact Sales", say so — do not invent a number.
 - **No fabricated vendors.** If you cannot name a real product on a real URL, do not name one. The Service Request is a research artifact; its credibility is the only thing it has.
@@ -346,11 +364,12 @@ Treat the user's response strictly: only an explicit button selection moves to t
 - **Market Viability**: Required when feasibility from Step 5 is "vague" or "infeasible" or when **Potential Costs → Recurring cost** is non-trivial. Optional otherwise — but write at least one sentence even when optional, so the reader knows you considered it.
 - **Examples**: 2–4 real, citable products. Open-source first. License noted for OSS. Skip only when the request is trivially small AND you note that explicitly.
 - **Vendor-side Setup Procedures**: Mandatory whenever the request implies any 3rd-party dashboard action (see Step 6c trigger list). Each subsection must lead with a status line ("Confirmed exists." / "Confirmed exists in the EquipQR setup but currently <state>." / "Could not confirm — feature may not exist in the form the issue assumes."), include the live source URL + date pulled, use real UI labels in numbered steps, surface vendor-specific gotchas inline, end with a verification step, and cross-link cost-implication subsections back to **Potential Costs**. Always include a final "actions this Service Request does NOT trigger" subsection when pre-existing vendor resources might be misread as needing re-creation.
-- **Recommended Next Step**: Pick exactly one of the four options. No "it depends" — make the call so the user has something to react to. When **Vendor-side Setup Procedures** has subsections, cross-reference them by letter (e.g. "see **Section G**") in the conditions list so the user can act on the next step without scrolling.
+- **Recommended Next Step**: Pick exactly one of the four options. No "it depends" — make the call so the user has something to react to. When the next step is Proceed to Change Record (with or without conditions), briefly name the downstream preview-integration path (issue branch → PR into `preview` in linked worktrees, or main-worktree fast path per rule 8) and that **fix = integrated into `preview`**. When **Vendor-side Setup Procedures** has subsections, cross-reference them by letter (e.g. "see **Section G**") in the conditions list so the user can act on the next step without scrolling.
 - **Recommended Execution Model (for the upcoming Change Record)**: Mandatory whenever **Recommended Next Step** is **Proceed to Change Record** or **Proceed to Change Record with conditions** (i.e. a Change Record will follow). Load the [model-recommender](../model-recommender/SKILL.md) skill and pass the work shape inferred from **Scope** + **External Dependencies**. Embed the standardized block verbatim. This pre-stages the recommendation so the subsequent `itil-change-record` invocation can lift it directly into the Change Record's own **Recommended Execution Model** section. Skip ONLY when **Recommended Next Step** is **Return to reporter** or **Decline** — no implementation will follow, so no model is needed.
 
 ## Progressive disclosure
 
+- EquipQR ITIL helper scripts (`Get-ItilIssueContext.ps1`, `Publish-ItilArtifact.ps1`, etc.) ship under [`scripts/itil/`](../../scripts/itil/) whenever you prefer a compact, JSON-friendly invocation over juggling multiple `gh` flags.
 - For research tools (`firecrawl`, `plugin-context7-plugin-context7`, `gh`) and how to call them in EquipQR, follow [toolbelt](../toolbelt/SKILL.md).
 - For the prior ITIL step on bug issues (reproducing and root-causing), follow [itil-problem-record](../itil-problem-record/SKILL.md).
 - For the next ITIL step (the implementation plan), follow [itil-change-record](../itil-change-record/SKILL.md).

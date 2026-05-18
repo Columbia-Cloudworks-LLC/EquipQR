@@ -15,6 +15,7 @@ import {
   countEquipmentMatchingRules,
   getMatchingTemplatesForEquipment
 } from '@/features/pm-templates/services/pmTemplateCompatibilityRulesService';
+import { queryKeys } from '@/lib/queryKeys';
 
 // ============================================
 // Query Keys
@@ -59,7 +60,34 @@ export const usePMTemplateCompatibilityRules = (
 /**
  * Hook to fetch PM templates that match a given equipment.
  * Returns templates with match type info (model vs manufacturer match).
+ * Uses org-scoped [`pm-template-matching`, orgId, equipmentId] keys — for QR PM picker and similar.
  */
+export const useMatchingPMTemplatesForEquipment = (
+  organizationId: string | undefined,
+  equipmentId: string | undefined,
+  options?: {
+    staleTime?: number;
+    gcTime?: number;
+    enabled?: boolean;
+  }
+) => {
+  const staleTime = options?.staleTime ?? 10 * 60 * 1000;
+  const gcTime = options?.gcTime ?? 30 * 60 * 1000;
+  const enabled = options?.enabled ?? true;
+
+  return useQuery({
+    queryKey: queryKeys.pmTemplateMatching.forEquipment(organizationId ?? '', equipmentId ?? ''),
+    queryFn: async (): Promise<MatchingPMTemplateResult[]> => {
+      if (!organizationId || !equipmentId) return [];
+      return await getMatchingTemplatesForEquipment(organizationId, equipmentId);
+    },
+    enabled: !!organizationId && !!equipmentId && enabled,
+    staleTime,
+    gcTime,
+  });
+};
+
+/** Dashboard context: matching templates for current organization (distinct query cache from QR org-scoped key). */
 export const useMatchingPMTemplates = (
   equipmentId: string | undefined,
   options?: {

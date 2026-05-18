@@ -186,7 +186,7 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
                 ) : null}
               </div>
             ) : (
-              <div className="relative px-10 pb-2">
+              <div className="relative px-2 pb-2 sm:px-10">
                 <Carousel opts={{ loop: false }} className="w-full">
                   <CarouselContent>
                     {visibleImages.map((image) => (

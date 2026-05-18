@@ -441,6 +441,8 @@ function normalizeAllowlistedErrorMessage(error: string): string {
       return "title and description are required";
     case "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.":
       return "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.";
+    case "QuickBooks tax status could not be confirmed. Please refresh the customer from QuickBooks and try again.":
+      return "QuickBooks tax status could not be confirmed. Please refresh the customer from QuickBooks and try again.";
     case "Not a user-reported issue":
       return "Not a user-reported issue";
     case "No issue in payload":

@@ -1,11 +1,10 @@
-import { useEffect, useRef, type FC } from 'react';
+import { useEffect, type FC } from 'react';
 
 interface PageSEOProps {
   title: string;
   description: string;
   path: string;
   ogImage?: string;
-  keywords?: string;
 }
 
 const BASE_URL = 'https://equipqr.app';
@@ -35,29 +34,33 @@ function restoreAttributes(el: Element, attrs: AttrSnapshot): void {
   }
 }
 
+function removeAllKeywordsMetas(head: HTMLHeadElement): void {
+  head.querySelectorAll<HTMLMetaElement>('meta[name="keywords"]').forEach((n) => n.remove());
+}
+
 /**
  * PageSEO component for managing per-route metadata
  *
  * Provides unique title, description, canonical URL, and Open Graph tags
  * for each marketing page to improve SEO and social sharing.
  * Uses direct document updates (no react-helmet-async) for React 18 compatibility.
+ *
+ * Deprecated meta keywords are never written; any existing keywords tags are removed while mounted.
  */
 export const PageSEO: FC<PageSEOProps> = ({
   title,
   description,
   path,
   ogImage = DEFAULT_OG_IMAGE,
-  keywords,
 }) => {
   const canonicalUrl = `${BASE_URL}${path}`;
   const fullTitle = path === '/' ? title : `${title} | EquipQR`;
-  const previousTitleRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
+    const previousTitle = document.title;
     const head = document.head;
     const createdNodes: Element[] = [];
     const reusedRestores: Array<{ el: Element; snapshot: AttrSnapshot }> = [];
-    const removedKeywordSnapshots: AttrSnapshot[] = [];
 
     function upsertMeta(
       selector: string,
@@ -101,15 +104,9 @@ export const PageSEO: FC<PageSEOProps> = ({
       return el;
     }
 
-    function removeAllKeywordsMetas(): void {
-      head.querySelectorAll<HTMLMetaElement>('meta[name="keywords"]').forEach((n) => {
-        removedKeywordSnapshots.push(captureAttributes(n));
-        n.remove();
-      });
-    }
-
-    previousTitleRef.current = document.title;
     document.title = fullTitle;
+
+    removeAllKeywordsMetas(head);
 
     upsertMeta('meta[name="description"]', () => {
       const m = document.createElement('meta');
@@ -118,18 +115,6 @@ export const PageSEO: FC<PageSEOProps> = ({
     }, (el) => {
       el.content = description;
     });
-
-    if (keywords) {
-      upsertMeta('meta[name="keywords"]', () => {
-        const m = document.createElement('meta');
-        m.name = 'keywords';
-        return m;
-      }, (el) => {
-        el.content = keywords;
-      });
-    } else {
-      removeAllKeywordsMetas();
-    }
 
     upsertLink('link[rel="canonical"]', () => document.createElement('link'), (el) => {
       el.rel = 'canonical';
@@ -186,9 +171,7 @@ export const PageSEO: FC<PageSEOProps> = ({
     }
 
     return () => {
-      if (previousTitleRef.current !== undefined) {
-        document.title = previousTitleRef.current;
-      }
+      document.title = previousTitle;
 
       for (const el of createdNodes) {
         el.remove();
@@ -198,14 +181,8 @@ export const PageSEO: FC<PageSEOProps> = ({
         restoreAttributes(el, snapshot);
         el.removeAttribute(MANAGED_ATTR);
       }
-
-      for (const attrs of removedKeywordSnapshots) {
-        const m = document.createElement('meta');
-        restoreAttributes(m, attrs);
-        head.appendChild(m);
-      }
     };
-  }, [title, description, path, ogImage, keywords, canonicalUrl, fullTitle]);
+  }, [title, description, path, ogImage, canonicalUrl, fullTitle]);
 
   return null;
 };

@@ -1,6 +1,7 @@
 import React from 'react';
+import { fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@/test/utils/test-utils';
 import EquipmentQRQuickActions from '@/features/equipment/components/qr/EquipmentQRQuickActions';
 import {
@@ -10,6 +11,26 @@ import {
 } from '@/features/equipment/services/equipmentQRActionService';
 import { fetchQRActionTeamMemberships } from '@/features/equipment/services/equipmentQRPermissions';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
+
+const mockListPmTemplates = vi.hoisted(() => vi.fn());
+const mockGetMatchingPmTemplates = vi.hoisted(() => vi.fn());
+
+vi.mock('@/features/pm-templates/services/pmChecklistTemplatesService', async () => {
+  const actual = await vi.importActual<typeof import('@/features/pm-templates/services/pmChecklistTemplatesService')>(
+    '@/features/pm-templates/services/pmChecklistTemplatesService'
+  );
+  return {
+    ...actual,
+    pmChecklistTemplatesService: {
+      ...actual.pmChecklistTemplatesService,
+      listTemplates: mockListPmTemplates,
+    },
+  };
+});
+
+vi.mock('@/features/pm-templates/services/pmTemplateCompatibilityRulesService', () => ({
+  getMatchingTemplatesForEquipment: mockGetMatchingPmTemplates,
+}));
 
 vi.mock('@/features/equipment/services/equipmentQRActionService', async () => {
   const actual = await vi.importActual<typeof import('@/features/equipment/services/equipmentQRActionService')>(
@@ -64,6 +85,13 @@ const mockCreateWorkOrder = vi.mocked(createQRWorkOrder);
 const mockUpdateHours = vi.mocked(updateQRWorkingHours);
 const mockCreateNote = vi.mocked(createQREquipmentNote);
 
+const POINTER_CAPTURE_KEYS = ['hasPointerCapture', 'setPointerCapture', 'releasePointerCapture'] as const;
+
+/** Snapshot real jsdom/native descriptors once; restore after each test to avoid pollution. */
+const originalPointerCaptureDescriptors: Partial<
+  Record<(typeof POINTER_CAPTURE_KEYS)[number], PropertyDescriptor | undefined>
+> = {};
+
 const baseEquipment = {
   id: 'equipment-1',
   name: 'Forklift 17',
@@ -85,8 +113,57 @@ function renderQuickActions(overrides?: Partial<React.ComponentProps<typeof Equi
 }
 
 describe('EquipmentQRQuickActions', () => {
+  beforeAll(() => {
+    for (const key of POINTER_CAPTURE_KEYS) {
+      originalPointerCaptureDescriptors[key] = Object.getOwnPropertyDescriptor(Element.prototype, key);
+    }
+  });
+
   beforeEach(() => {
+    // Radix Select expects Pointer Capture APIs; jsdom does not implement them.
+    Object.defineProperty(Element.prototype, 'hasPointerCapture', {
+      configurable: true,
+      value: vi.fn(() => false),
+    });
+    Object.defineProperty(Element.prototype, 'setPointerCapture', {
+      configurable: true,
+      value: vi.fn(),
+    });
+    Object.defineProperty(Element.prototype, 'releasePointerCapture', {
+      configurable: true,
+      value: vi.fn(),
+    });
+
     vi.clearAllMocks();
+    mockListPmTemplates.mockResolvedValue([
+      {
+        id: 'pm-option-1',
+        organization_id: null,
+        name: 'Forklift PM',
+        description: null,
+        is_protected: false,
+        template_data: [],
+        interval_value: null,
+        interval_type: null,
+        created_by: 'user-1',
+        updated_by: null,
+        created_at: '2020-01-01T00:00:00Z',
+        updated_at: '2020-01-01T00:00:00Z',
+      },
+    ]);
+    mockGetMatchingPmTemplates.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    const proto = Element.prototype as unknown as Record<string, unknown>;
+    for (const key of POINTER_CAPTURE_KEYS) {
+      const descriptor = originalPointerCaptureDescriptors[key];
+      if (descriptor) {
+        Object.defineProperty(Element.prototype, key, descriptor);
+      } else {
+        delete proto[key];
+      }
+    }
   });
 
   it('denies work order and note actions when the user is only a team viewer', async () => {
@@ -231,9 +308,16 @@ describe('EquipmentQRQuickActions', () => {
     expect(await screen.findByText(/note added to equipment/i)).toBeInTheDocument();
   });
 
-  it('shows a clear PM fallback message when no default PM template is assigned', async () => {
+  it('opens PM dialog and requires a PM template when equipment has no default template', async () => {
     const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
+    mockCreateWorkOrder.mockResolvedValue({
+      workOrder: {
+        id: 'wo-pm-pick',
+        title: 'Preventative maintenance - Forklift 17',
+      } as WorkOrder,
+      creationPhotosAttached: true,
+    } as Awaited<ReturnType<typeof createQRWorkOrder>>);
 
     renderQuickActions({
       equipment: {
@@ -243,9 +327,141 @@ describe('EquipmentQRQuickActions', () => {
     });
 
     await user.click(screen.getByRole('button', { name: /new pm work order/i }));
+    await screen.findByRole('dialog', undefined, { timeout: 5000 });
 
-    expect(await screen.findByText(/does not have a default pm template assigned/i)).toBeInTheDocument();
+    const createBtn = screen.getByRole('button', { name: /create work order/i });
+    expect(createBtn).toBeDisabled();
+
+    await user.click(screen.getByLabelText(/pm checklist template/i));
+    await user.click(await screen.findByRole('option', { name: /forklift pm/i }));
+
+    expect(createBtn).not.toBeDisabled();
+    await user.click(createBtn);
+
+    await waitFor(() => {
+      expect(mockCreateWorkOrder).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attachPM: true,
+          pmTemplateId: 'pm-option-1',
+          equipment: expect.objectContaining({
+            id: 'equipment-1',
+            defaultPmTemplateId: null,
+          }),
+        })
+      );
+    });
+  });
+
+  it('blocks submit with a loading message when PM templates are still loading', async () => {
+    const user = userEvent.setup();
+    mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
+    mockListPmTemplates.mockImplementation(() => new Promise(() => {}));
+
+    renderQuickActions({
+      equipment: {
+        ...baseEquipment,
+        defaultPmTemplateId: null,
+      },
+    });
+
+    await user.click(screen.getByRole('button', { name: /new pm work order/i }));
+    await screen.findByRole('dialog', undefined, { timeout: 5000 });
+
+    expect(screen.queryByLabelText(/pm checklist template/i)).not.toBeInTheDocument();
+    expect(await screen.findByText(/loading templates/i)).toBeInTheDocument();
+
+    const form = screen.getByRole('dialog').querySelector('form');
+    expect(form).toBeTruthy();
+    fireEvent.submit(form as HTMLFormElement);
+
+    expect(
+      await screen.findByText(/templates are still loading\. please wait a moment and try again\./i),
+    ).toBeInTheDocument();
     expect(mockCreateWorkOrder).not.toHaveBeenCalled();
+  });
+
+  it('renders PM checklist template label only after templates load', async () => {
+    const user = userEvent.setup();
+    let resolveList: (value: unknown) => void = () => {};
+    const listPromise = new Promise(resolve => {
+      resolveList = resolve;
+    });
+    mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
+    mockListPmTemplates.mockImplementation(() => listPromise as Promise<unknown>);
+
+    renderQuickActions({
+      equipment: {
+        ...baseEquipment,
+        defaultPmTemplateId: null,
+      },
+    });
+
+    await user.click(screen.getByRole('button', { name: /new pm work order/i }));
+    await screen.findByRole('dialog', undefined, { timeout: 5000 });
+
+    expect(screen.queryByLabelText(/pm checklist template/i)).not.toBeInTheDocument();
+
+    resolveList([
+      {
+        id: 'pm-option-1',
+        organization_id: null,
+        name: 'Forklift PM',
+        description: null,
+        is_protected: false,
+        template_data: [],
+        interval_value: null,
+        interval_type: null,
+        created_by: 'user-1',
+        updated_by: null,
+        created_at: '2020-01-01T00:00:00Z',
+        updated_at: '2020-01-01T00:00:00Z',
+      },
+    ]);
+
+    expect(await screen.findByLabelText(/pm checklist template/i)).toBeInTheDocument();
+  });
+
+  it('still creates a PM work order when recommendation matching fails but templates load', async () => {
+    const user = userEvent.setup();
+    mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
+    mockGetMatchingPmTemplates.mockRejectedValue(new Error('Access denied'));
+    mockCreateWorkOrder.mockResolvedValue({
+      workOrder: {
+        id: 'wo-pm-no-rec',
+        title: 'Preventative maintenance - Forklift 17',
+      } as WorkOrder,
+      creationPhotosAttached: true,
+    } as Awaited<ReturnType<typeof createQRWorkOrder>>);
+
+    renderQuickActions({
+      equipment: {
+        ...baseEquipment,
+        defaultPmTemplateId: null,
+      },
+    });
+
+    await user.click(screen.getByRole('button', { name: /new pm work order/i }));
+    await screen.findByRole('dialog', undefined, { timeout: 5000 });
+
+    expect(await screen.findByText(/recommendations unavailable/i)).toBeInTheDocument();
+
+    const createBtn = screen.getByRole('button', { name: /create work order/i });
+    expect(createBtn).toBeDisabled();
+
+    await user.click(screen.getByLabelText(/pm checklist template/i));
+    await user.click(await screen.findByRole('option', { name: /forklift pm/i }));
+
+    expect(createBtn).not.toBeDisabled();
+    await user.click(createBtn);
+
+    await waitFor(() => {
+      expect(mockCreateWorkOrder).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attachPM: true,
+          pmTemplateId: 'pm-option-1',
+        })
+      );
+    });
   });
 
   it('passes attached jpeg files through to createQRWorkOrder', async () => {
