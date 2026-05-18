@@ -34,21 +34,31 @@ function replaceOne(html: string, pattern: RegExp, replacement: string, label: s
 }
 
 function buildNavHtml(currentPath: string): string {
-  const currentCanonical = resolveCanonicalPath(
-    MARKETING_ROUTES.find((r) => r.path === currentPath) ?? { path: currentPath, canonicalPath: currentPath } as MarketingRoute,
-  );
-  const seen = new Set<string>();
-  const links = [...MARKETING_ROUTES]
-    .filter((r) => {
-      const canonical = resolveCanonicalPath(r);
-      if (canonical === currentCanonical) return false;
-      if (seen.has(canonical)) return false;
-      seen.add(canonical);
+  const currentRoute =
+    MARKETING_ROUTES.find((r) => r.path === currentPath) ??
+    ({ path: currentPath, canonicalPath: currentPath } as MarketingRoute);
+  const currentCanonical = resolveCanonicalPath(currentRoute);
+  const isCurrentCanonical = currentPath === currentCanonical;
+
+  const canonicalRepresentatives = new Map<string, MarketingRoute>();
+  for (const route of MARKETING_ROUTES) {
+    const canonical = resolveCanonicalPath(route);
+    const existing = canonicalRepresentatives.get(canonical);
+    const isCanonicalRoute = route.path === canonical;
+    if (!existing || (isCanonicalRoute && existing.path !== canonical)) {
+      canonicalRepresentatives.set(canonical, route);
+    }
+  }
+
+  const links = [...canonicalRepresentatives.entries()]
+    .filter(([canonical, route]) => {
+      if (route.path === currentPath) return false;
+      if (isCurrentCanonical && canonical === currentCanonical) return false;
       return true;
     })
-    .map((r) => {
-      const label = escapeHtml(r.navLabel ?? r.heading);
-      const href = escapeHtml(resolveCanonicalPath(r));
+    .map(([, route]) => {
+      const label = escapeHtml(route.navLabel ?? route.heading);
+      const href = escapeHtml(resolveCanonicalPath(route));
       return `          <li><a href="${href}">${label}</a></li>`;
     })
     .join('\n');

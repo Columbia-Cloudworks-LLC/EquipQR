@@ -23,10 +23,9 @@ BEGIN
       SET search_path = '';
     EXECUTE $c$
       COMMENT ON FUNCTION public.claim_quickbooks_invoice_status_events(integer) IS
-        'SECURITY DEFINER with SET search_path = empty string. Returns slim columns (no raw_event) '
-        'for up to p_batch_size eligible invoice status events '
-        '(pending/error, plus processing rows stale >15 minutes for crash recovery), '
-        'marking them processing and bumping attempts. Callable only by service_role.'
+        'SECURITY DEFINER with SET search_path = empty string for search_path hardening. '
+        'Claim RPC behavior is defined by the latest applied claim migration. '
+        'Callable only by service_role.'
     $c$;
   END IF;
 END;

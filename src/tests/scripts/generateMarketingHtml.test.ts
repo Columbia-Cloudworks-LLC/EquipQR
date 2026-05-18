@@ -71,5 +71,17 @@ describe('prerenderMarketingHtmlTemplate', () => {
       '<meta name="twitter:title" content="EquipQR | Free Work Order Software for Heavy Equipment Repair Shops" />'
     );
     expect(html).not.toContain('| EquipQR | EquipQR');
+    // Nav must include canonical Home and must not include the /landing alias as a separate link
+    expect(html).toContain('href="/"');
+    expect(html).not.toContain('href="/landing"');
+  });
+
+  it('excludes self-link and /landing alias when prerendering canonical home', () => {
+    const route = requireMarketingRoute('/');
+
+    const html = prerenderMarketingHtmlTemplate(MINIMAL_DIST_TEMPLATE, route);
+
+    expect(html).not.toContain('href="/landing"');
+    expect(html).not.toMatch(/<a href="\/">Home<\/a>/);
   });
 });
