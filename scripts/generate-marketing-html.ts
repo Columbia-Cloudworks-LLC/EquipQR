@@ -8,6 +8,7 @@ import { dirname, join } from 'path';
 import { pathToFileURL } from 'node:url';
 import {
   MARKETING_ROUTES,
+  resolveCanonicalPath,
   resolveCanonicalUrl,
   resolveFullDocumentTitle,
   type MarketingRoute,
@@ -33,11 +34,21 @@ function replaceOne(html: string, pattern: RegExp, replacement: string, label: s
 }
 
 function buildNavHtml(currentPath: string): string {
+  const currentCanonical = resolveCanonicalPath(
+    MARKETING_ROUTES.find((r) => r.path === currentPath) ?? { path: currentPath, canonicalPath: currentPath } as MarketingRoute,
+  );
+  const seen = new Set<string>();
   const links = [...MARKETING_ROUTES]
-    .filter((r) => r.path !== currentPath)
+    .filter((r) => {
+      const canonical = resolveCanonicalPath(r);
+      if (canonical === currentCanonical) return false;
+      if (seen.has(canonical)) return false;
+      seen.add(canonical);
+      return true;
+    })
     .map((r) => {
       const label = escapeHtml(r.navLabel ?? r.heading);
-      const href = escapeHtml(r.path);
+      const href = escapeHtml(resolveCanonicalPath(r));
       return `          <li><a href="${href}">${label}</a></li>`;
     })
     .join('\n');

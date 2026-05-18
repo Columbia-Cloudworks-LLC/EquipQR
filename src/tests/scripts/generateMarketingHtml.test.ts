@@ -50,6 +50,9 @@ describe('prerenderMarketingHtmlTemplate', () => {
     expect(html).toContain('Public marketing pages');
     expect(html).toContain('<script type="module" crossorigin src="/assets/index-TESTHASH.js"></script>');
     expect(html).not.toContain('<meta name="keywords"');
+    // Nav must use canonical hrefs and must not include the /landing alias as a separate link
+    expect(html).toContain('href="/"');
+    expect(html).not.toContain('href="/landing"');
   });
 
   it('uses canonical home metadata for the /landing compatibility route', () => {
