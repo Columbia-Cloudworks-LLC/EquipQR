@@ -586,20 +586,21 @@ CREATE TABLE work_orders (
     title TEXT NOT NULL,
     description TEXT,
     status work_order_status NOT NULL DEFAULT 'submitted',
-    priority priority_level NOT NULL DEFAULT 'medium',
+    priority work_order_priority NOT NULL DEFAULT 'medium',
     assignee_id UUID REFERENCES auth.users(id),
     team_id UUID REFERENCES teams(id),
     created_by UUID REFERENCES auth.users(id),
     due_date TIMESTAMPTZ,
     estimated_hours DECIMAL,
-    completed_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
+    acceptance_date TIMESTAMPTZ,
+    completed_date TIMESTAMPTZ,
+    created_date TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
 **Work Order Status**: `submitted`, `accepted`, `assigned`, `in_progress`, `on_hold`, `completed`, `cancelled`
-**Priority Levels**: `low`, `medium`, `high`
+**Priority Levels** (`work_order_priority` enum): `low`, `medium`, `high`
 
 ### Custom Types (Enums)
 
@@ -612,7 +613,7 @@ CREATE TYPE member_status AS ENUM ('pending', 'active', 'inactive');
 -- Equipment and work order statuses
 CREATE TYPE equipment_status AS ENUM ('active', 'maintenance', 'inactive');
 CREATE TYPE work_order_status AS ENUM ('submitted', 'accepted', 'assigned', 'in_progress', 'on_hold', 'completed', 'cancelled');
-CREATE TYPE priority_level AS ENUM ('low', 'medium', 'high');
+CREATE TYPE work_order_priority AS ENUM ('low', 'medium', 'high');
 
 -- Notes and costs
 CREATE TYPE note_type AS ENUM ('general', 'maintenance', 'inspection', 'repair', 'issue');

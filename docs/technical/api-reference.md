@@ -75,11 +75,12 @@ interface WorkOrder {
   assignee_id: string | null;
   team_id: string | null;
   created_by: string;
-  created_at: string;
+  created_date: string;
   updated_at: string;
   due_date: string | null;
   estimated_hours: number | null;
-  completed_at: string | null;
+  acceptance_date: string | null;
+  completed_date: string | null;
 }
 ```
 
