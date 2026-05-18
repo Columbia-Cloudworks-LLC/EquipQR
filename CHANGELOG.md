@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.6.0] - 2026-05-17
+
+### Added
+
+- **QuickBooks invoice payment visibility** ([#915](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/915)) — Work Orders now retain mirrored QuickBooks invoice identifiers, lifecycle status, sent/paid timestamps, balance, and due date so managers can see awaiting-payment, overdue, and paid work without leaving EquipQR. The Work Orders list and details surfaces show invoice status badges and add invoice filters for Paid, Unpaid, Overdue, and Not Exported states.
+
+### Changed
+
+- **QuickBooks invoice reliability** ([#600](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/600), [#624](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/624)) — Invoice exports now align with the CJ invoice template using QBO custom fields, customer-facing memo timelines, summarized Labor/Parts lines, fresh QBO tax-status confirmation with cache fallback controls, and safer export/update handling that preserves successful invoice creation even when mirror updates need attention.
+
+- **Public marketing prerender HTML** ([#971](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/971)) — Build-time static HTML for each sitemap-listed marketing URL now returns route-specific headings, descriptive copy, and crawlable navigation inside `#root` for non-JS crawlers, with marketing routes shared by sitemap and prerender generation.
+
+- **Public marketing SEO & accessibility** ([#934](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/934)) — Marketing pages now ship static JSON-LD, a noscript shell, centralized feature SEO copy, breadcrumbs, visible FAQs, matching FAQ/HowTo/BreadcrumbList structured data, SPA route announcements, and route-heading focus handling.
+
+### Fixed
+
+- **Cursor Cloud Agent environment bootstrap failures** — `.nvmrc` now matches the Node 24 runtime required by `package.json`; `scripts/cloud-agent-frontend-setup.sh` loads or installs Node 24 through `nvm` before `npm ci`; Linux `scripts/agent-bootstrap.sh` reads the populated `gcp-read/SERVICE_ACCOUNT_JSON` field before legacy credential fields and validates service-account JSON before writing the gcloud MCP key.
 
 ## [3.5.3] - 2026-05-17
 

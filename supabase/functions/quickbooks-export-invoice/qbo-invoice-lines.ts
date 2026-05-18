@@ -82,6 +82,7 @@ export type InvoiceSalesLines = Array<{
     ItemRef: { value: string; name?: string };
     Qty?: number;
     UnitPrice?: number;
+    TaxCodeRef?: { value: string };
   };
 }>;
 

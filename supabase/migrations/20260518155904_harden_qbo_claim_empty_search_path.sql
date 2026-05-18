@@ -1,0 +1,34 @@
+-- Forward-fix for 20260518120000 which created claim_quickbooks_invoice_status_events
+-- with SET search_path = public, pg_temp instead of the project hardening convention
+-- SET search_path = ''. All referenced objects are already schema-qualified so an
+-- empty search_path is safe and eliminates the function_search_path_mutable advisory.
+--
+-- Idempotent: the DO block skips both the ALTER and the COMMENT when the function does
+-- not exist (or its signature differs), so this migration is safe on any environment
+-- regardless of migration subset applied.
+
+BEGIN;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname = 'claim_quickbooks_invoice_status_events'
+      AND pg_catalog.pg_get_function_identity_arguments(p.oid) = 'p_batch_size integer'
+  ) THEN
+    ALTER FUNCTION public.claim_quickbooks_invoice_status_events(integer)
+      SET search_path = '';
+    EXECUTE $c$
+      COMMENT ON FUNCTION public.claim_quickbooks_invoice_status_events(integer) IS
+        'SECURITY DEFINER with SET search_path = empty string for search_path hardening. '
+        'Claim RPC behavior is defined by the latest applied claim migration. '
+        'Callable only by service_role.'
+    $c$;
+  END IF;
+END;
+$$;
+
+COMMIT;
