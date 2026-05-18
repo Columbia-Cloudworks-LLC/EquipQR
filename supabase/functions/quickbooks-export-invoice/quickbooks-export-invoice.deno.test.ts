@@ -4,6 +4,8 @@
 import { assertEquals, assertMatch, assertRejects } from "jsr:@std/assert@1";
 import { QBO_INVOICE_ITEM_NAMES } from "../_shared/quickbooks-config.ts";
 import { __testables } from "./qbo-invoice-lines.ts";
+import { __payloadTestables, type QuickBooksInvoice } from "./qbo-invoice-payload.ts";
+import { updateWorkOrderInvoiceMirror } from "./work-order-invoice-mirror.ts";
 
 const {
   buildInvoiceLines,
@@ -12,6 +14,12 @@ const {
   escapeQuickBooksQueryValue,
   resolveIncomeAccountRef,
 } = __testables;
+const {
+  applyInvoiceTaxState,
+  buildCustomerMemo,
+  buildInvoiceCustomFields,
+  deriveQuickBooksInvoiceStatus,
+} = __payloadTestables;
 
 const REALM = "realm-test-1";
 
@@ -120,6 +128,83 @@ Deno.test("buildPrivateNote keeps itemized per-cost lines", () => {
   assertMatch(memo, /Hydraulic hose/);
   assertMatch(memo, /Labor/);
   assertMatch(memo, /Cost Breakdown/);
+});
+
+Deno.test("buildInvoiceCustomFields maps equipment and machine hours", () => {
+  const fields = buildInvoiceCustomFields(
+    {
+      ...minimalWorkOrder,
+      equipment_working_hours_at_creation: 123,
+      equipment: {
+        name: "Forklift 7",
+        manufacturer: "Toyota",
+        model: "8FGCU25",
+        serial_number: "SER-7",
+        team_id: "team-1",
+      },
+    },
+    [{
+      content: "checkout",
+      is_private: false,
+      author_name: "Tech",
+      created_at: new Date().toISOString(),
+      machine_hours: 130,
+    }],
+  );
+
+  assertEquals(fields.find((f) => f.Name === "Make/Model")?.StringValue, "Toyota 8FGCU25");
+  assertEquals(fields.find((f) => f.Name === "Serial")?.StringValue, "SER-7");
+  assertEquals(fields.find((f) => f.Name === "Machine Hours")?.StringValue, "Intake 123 / Checkout 130");
+});
+
+Deno.test("buildCustomerMemo formats public timeline entries with z timestamps", () => {
+  const memo = buildCustomerMemo(
+    { ...minimalWorkOrder, title: "Hydraulic repair", description: "Lift leaking" },
+    [{
+      content: "Replaced seal kit",
+      is_private: false,
+      author_name: "Tech",
+      created_at: "2026-05-17T12:34:56.000Z",
+    }],
+    [{
+      id: "hist-1",
+      old_status: "in_progress",
+      new_status: "completed",
+      changed_at: "2026-05-17T13:45:00.000Z",
+      reason: "Ready for pickup",
+    }],
+  );
+
+  assertMatch(memo, /Initial request: Lift leaking\./);
+  assertMatch(memo, /2026-05-17T12:34z - \[Replaced seal kit\]/);
+  assertMatch(memo, /2026-05-17T13:45z - \[Status changed to Completed - Ready for pickup\]/);
+});
+
+Deno.test("applyInvoiceTaxState applies NON tax code to tax-exempt sales lines", () => {
+  const lines = applyInvoiceTaxState(
+    [{
+      Amount: 100,
+      DetailType: "SalesItemLineDetail",
+      SalesItemLineDetail: {
+        ItemRef: { value: "labor", name: "Labor" },
+        Qty: 1,
+        UnitPrice: 100,
+      },
+    }],
+    { isTaxExempt: true, verified: true, source: "quickbooks" },
+  );
+
+  assertEquals(lines[0]!.SalesItemLineDetail.TaxCodeRef?.value, "NON");
+});
+
+Deno.test("deriveQuickBooksInvoiceStatus classifies paid, partial, overdue, and sent invoices", () => {
+  assertEquals(deriveQuickBooksInvoiceStatus({ Balance: 0, TotalAmt: 50 }), "paid");
+  assertEquals(deriveQuickBooksInvoiceStatus({ Balance: 25, TotalAmt: 50 }), "partially_paid");
+  assertEquals(
+    deriveQuickBooksInvoiceStatus({ Balance: 50, TotalAmt: 50, DueDate: "2026-01-01" }, undefined, new Date("2026-05-17T00:00:00Z")),
+    "overdue",
+  );
+  assertEquals(deriveQuickBooksInvoiceStatus({ Balance: 50, TotalAmt: 50, EmailStatus: "EmailSent" }), "sent");
 });
 
 Deno.test("resolveIncomeAccountRef throws actionable message when no Income account exists", async () => {
@@ -1208,4 +1293,151 @@ Deno.test("buildInvoiceLines final line Description stays within QBO field limit
   } finally {
     restoreFetch(originalFetch);
   }
+});
+
+// ────────────────────────────────────────────────────────────────
+// Invoice mirror timestamps (PR #968)
+// ────────────────────────────────────────────────────────────────
+
+type MirrorUpdateCapture = {
+  payload: Record<string, unknown>;
+  hasSentNullGuard: boolean;
+  hasPaidNullGuard: boolean;
+};
+
+function createExportMirrorMock() {
+  const updates: MirrorUpdateCapture[] = [];
+  function from(_table: string) {
+    let payload: Record<string, unknown> = {};
+    let sentGuard = false;
+    let paidGuard = false;
+    let recorded = false;
+    const capture = () => {
+      if (recorded) return;
+      recorded = true;
+      updates.push({
+        payload: { ...payload },
+        hasSentNullGuard: sentGuard,
+        hasPaidNullGuard: paidGuard,
+      });
+    };
+    const builder: any = {
+      update(p: Record<string, unknown>) {
+        payload = { ...p };
+        recorded = false;
+        sentGuard = false;
+        paidGuard = false;
+        return builder;
+      },
+      eq(_c: string, _v: unknown) {
+        return builder;
+      },
+      is(col: string, val: unknown) {
+        if (col === "invoice_sent_at" && val === null) sentGuard = true;
+        if (col === "invoice_paid_at" && val === null) paidGuard = true;
+        return builder;
+      },
+    };
+    builder.then = (resolve: (v: unknown) => unknown) => {
+      capture();
+      return Promise.resolve({ error: null }).then(resolve);
+    };
+    return builder;
+  }
+  return { from, updates };
+}
+
+Deno.test("updateWorkOrderInvoiceMirror omits timestamps from main payload and null-guards paid_at", async () => {
+  const { from, updates } = createExportMirrorMock();
+  await updateWorkOrderInvoiceMirror({ from }, {
+    workOrderId: "wo-1",
+    organizationId: "org-1",
+    realmId: "realm-1",
+    invoice: {
+      Id: "inv-1",
+      Balance: 0,
+      TotalAmt: 100,
+      EmailStatus: "EmailSent",
+    } as QuickBooksInvoice,
+  });
+
+  assertEquals(updates.length >= 2, true);
+  assertEquals("invoice_paid_at" in updates[0]!.payload, false);
+  assertEquals("invoice_sent_at" in updates[0]!.payload, false);
+  const paidFollowUp = updates.find((u) => "invoice_paid_at" in u.payload);
+  assertEquals(paidFollowUp !== undefined, true);
+  assertEquals(paidFollowUp!.hasPaidNullGuard, true);
+});
+
+Deno.test("updateWorkOrderInvoiceMirror null-guards invoice_sent_at for sent invoices", async () => {
+  const { from, updates } = createExportMirrorMock();
+  await updateWorkOrderInvoiceMirror({ from }, {
+    workOrderId: "wo-2",
+    organizationId: "org-1",
+    realmId: "realm-1",
+    invoice: {
+      Id: "inv-2",
+      Balance: 50,
+      TotalAmt: 50,
+      EmailStatus: "EmailSent",
+    } as QuickBooksInvoice,
+  });
+
+  const sentFollowUp = updates.find((u) => "invoice_sent_at" in u.payload);
+  assertEquals(sentFollowUp !== undefined, true);
+  assertEquals(sentFollowUp!.hasSentNullGuard, true);
+});
+
+Deno.test("updateWorkOrderInvoiceMirror first-writes invoice_sent_at for emailed paid invoices", async () => {
+  const { from, updates } = createExportMirrorMock();
+  await updateWorkOrderInvoiceMirror({ from }, {
+    workOrderId: "wo-3",
+    organizationId: "org-1",
+    realmId: "realm-1",
+    invoice: {
+      Id: "inv-3",
+      Balance: 0,
+      TotalAmt: 100,
+      EmailStatus: "EmailSent",
+    } as QuickBooksInvoice,
+  });
+
+  const sentFollowUp = updates.find((u) => "invoice_sent_at" in u.payload);
+  assertEquals(sentFollowUp !== undefined, true, "invoice_sent_at should be first-written for emailed paid invoices");
+  assertEquals(sentFollowUp!.hasSentNullGuard, true);
+});
+
+Deno.test("updateWorkOrderInvoiceMirror resolves without throwing when the main work_orders update fails", async () => {
+  function from(_table: string) {
+    const builder: any = {
+      update(_p: Record<string, unknown>) { return builder; },
+      eq(_c: string, _v: unknown) { return builder; },
+      is(_c: string, _v: unknown) { return builder; },
+    };
+    builder.then = (resolve: (v: unknown) => unknown) =>
+      Promise.resolve({ error: { message: "simulated DB error" } }).then(resolve);
+    return builder;
+  }
+
+  let threw = false;
+  try {
+    await updateWorkOrderInvoiceMirror({ from }, {
+      workOrderId: "wo-fail",
+      organizationId: "org-1",
+      realmId: "realm-1",
+      invoice: {
+        Id: "inv-fail",
+        Balance: 50,
+        TotalAmt: 100,
+        EmailStatus: "NotSent",
+      } as QuickBooksInvoice,
+    });
+  } catch {
+    threw = true;
+  }
+  assertEquals(
+    threw,
+    false,
+    "mirror failures are secondary side effects — export outcome must not propagate them as failures",
+  );
 });

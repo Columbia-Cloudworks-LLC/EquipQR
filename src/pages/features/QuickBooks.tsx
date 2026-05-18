@@ -12,21 +12,19 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
 import { landingImage } from '@/lib/landingImage';
+import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
+
+const seo = getFeatureSeoByPath('/features/quickbooks')!;
 
 const QuickBooksFeature = () => {
   return (
     <>
-      <PageSEO
-        title="QuickBooks Integration"
-        description="Connect QuickBooks Online and export completed work orders as draft invoices. Map teams to customers and streamline billing from EquipQR™."
-        path="/features/quickbooks"
-        keywords="QuickBooks integration, work order billing, invoice export, QuickBooks Online, equipment management billing, CMMS QuickBooks"
-      />
+      <PageSEO title={seo.pageTitle} description={seo.description} path={seo.path} />
       <FeaturePageLayout>
       <FeatureHero
         icon={Receipt}
-        title="QuickBooks"
-        description="Connect QuickBooks Online and export completed work orders as draft invoices. Map teams to customers and streamline billing from EquipQR™."
+        title={seo.heroTitle}
+        description={seo.heroDescription}
         ctaText="Start Using QuickBooks Integration Free"
       />
 

@@ -8,7 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
 
+- **Public marketing prerender HTML** ([#971](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/971)) — Build-time static HTML for each sitemap-listed marketing URL (`dist` nested `index.html` files) with route-specific headings, copy, and crawlable nav inside `#root` for non-JS crawlers; `src/lib/marketingRoutes.ts` is the single source for sitemap + prerender.
+
+- **Public marketing SEO & accessibility** ([#934](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/934)) — Static JSON-LD graph and noscript shell; runtime PageSEO strips legacy keywords; feature pages use centralized SEO copy with breadcrumbs, visible FAQ, and matching FAQ/HowTo/BreadcrumbList JSON-LD; SPA route announcer and route-heading focus; public/llms.txt.
 
 ## [3.5.3] - 2026-05-17
 
@@ -155,6 +159,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Public marketing refresh** — `FeaturesSection` restructured from 11 flat cards into three buyer-oriented product pillars (Field Operations, Back Office, Control & Trust) with nested feature links for a coherent homepage story without losing discoverability; "Get Started Free" CTA and friction reducer ("No credit card. First scan in 20 minutes.") added directly below the hero animation. `FleetVisualization` feature page copy corrected: "Real-Time Tracking" → "Last Confirmed Location", "Route Optimization" → "Location-Aware Planning", GPS-tracking language removed to accurately reflect EquipQR's hardware-free, scan-based model. `TeamCollaboration` page adds a complete two-tier roles/permissions matrix (Org: Owner / Admin / Member; Team: Manager / Technician / Requestor / Viewer). `RepairShops` solution page gains a 3-A Equipment testimonial, proof metrics strip, and QuickBooks workflow card plus a hero friction reducer. 16 fresh authenticated product screenshots uploaded to `landing-page-images` Supabase Storage and wired across `QRCodeIntegration`, `InventoryManagement`, `WorkOrderManagement`, `TeamCollaboration`, `CustomerCRM`, `PMTemplates`, `GoogleWorkspace`, `MobileFirstDesign`, `QuickBooks`, `FleetVisualization`, and `PartLookupAlternates`; first screenshot sections added to `QuickBooks`, `FleetVisualization`, and `PartLookupAlternates` (previously screenless).
 
 ### Fixed
+
+- **Cursor Cloud Agent environment bootstrap failures** — `.nvmrc` now matches the Node 24 runtime required by `package.json`; `scripts/cloud-agent-frontend-setup.sh` loads/installs Node 24 through `nvm` before `npm ci` so cold VMs no longer fail with `EBADENGINE`; Linux `scripts/agent-bootstrap.sh` now reads the populated `gcp-read/SERVICE_ACCOUNT_JSON` field before legacy credential fields and validates service-account JSON before writing the gcloud MCP key.
 
 - **Slow 4G P0/P1 performance bottlenecks** ([#708](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/708)) — `Dashboard` prefetches Equipment, Work Orders, and Inventory List chunks 1.5 s after mount so SPA navigation is instant on constrained links; lazy-route `<Suspense>` fallbacks replaced with `PageSkeleton` shimmer cards for perceived-progress feedback during chunk hydration; `SimpleOrganizationProvider` short-circuits a duplicate `organization_members` fetch when `SessionProvider` has already resolved org data (saves 2 Supabase round-trips per dashboard mount); `teamBasedWorkOrderService.getTeamBasedWorkOrders` skips `getAccessibleEquipmentIds` + `IN()` filter for org-admin sessions (eliminates 3 KB URL bloat and a redundant equipment table scan); `useWorkOrders` default stale time raised 30 s → 2 min and extended stale time 1 min → 5 min to prevent refetch on every SPA hop.
 
