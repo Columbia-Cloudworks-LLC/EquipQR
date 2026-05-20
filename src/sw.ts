@@ -232,8 +232,11 @@ registerRoute(
   })
 );
 
-// Supabase Storage public objects (equipment images, team images, etc.).
-// Safe to cache because the URL path encodes the bucket + object id.
+// Supabase Storage public objects (organization logos, landing-page images).
+// Most application image buckets are private and served via signed URLs — see
+// the signed-URL route below.  This route handles only the two remaining public
+// buckets (organization-logos, landing-page-images) whose paths never change for
+// a given object, making long-lived CacheFirst safe.
 registerRoute(
   ({ url }) =>
     url.hostname.endsWith('.supabase.co') &&
@@ -244,6 +247,29 @@ registerRoute(
       new ExpirationPlugin({
         maxEntries: 200,
         maxAgeSeconds: 7 * 24 * 60 * 60,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  })
+);
+
+// Signed storage URLs for private buckets (equipment-note-images,
+// work-order-images, team-images, user-avatars, inventory-item-images).
+// Signed URLs expire after 900 s (15 min); we cache responses for at most
+// 600 s so a cached entry is guaranteed to still be valid for ≥ 5 minutes
+// when served.  NetworkFirst is used so fresh tokens are preferred on fast
+// connections while cached images remain available on slow or offline networks.
+registerRoute(
+  ({ url }) =>
+    url.hostname.endsWith('.supabase.co') &&
+    url.pathname.startsWith('/storage/v1/object/sign/'),
+  new NetworkFirst({
+    cacheName: 'equipqr-supabase-signed-v1',
+    networkTimeoutSeconds: 3,
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 200,
+        maxAgeSeconds: 600,
         purgeOnQuotaError: true,
       }),
     ],
