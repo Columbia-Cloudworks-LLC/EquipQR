@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Removed bridgemind tooling from the project
+- Updated .vscode\extensions.json with better recommendations
+
 ## [3.6.0] - 2026-05-17
 
 ### Added
