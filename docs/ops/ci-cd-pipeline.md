@@ -108,6 +108,8 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 
 **Purpose:** Log deployment success/failure from external services (Vercel)
 
+**Scope:** The job runs only for deployments whose environment name does **not** contain `equipqr-docs`, so the separate documentation Vercel project (see [Public documentation site](#public-documentation-site-equipqrinfo) below) does not fail preview checks when the main app deploy succeeds.
+
 ### 6. Export Database Schema (`export-schema.yml`)
 
 **Trigger:** Push to `main` branch, or manual dispatch

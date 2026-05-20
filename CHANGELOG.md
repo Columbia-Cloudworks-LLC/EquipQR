@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **deployment-status workflow** — `deployment_status` events for the separate `equipqr-docs` Vercel project (environments whose name contains `equipqr-docs`) no longer fail the `preview` branch check suite when the main SPA deployment is healthy.
 - Removed bridgemind tooling from the project
 - Updated .vscode\extensions.json with better recommendations
 
