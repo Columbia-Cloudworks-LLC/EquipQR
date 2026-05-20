@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { MarketingRoute } from '../../lib/marketingRoutes';
 import { MARKETING_ROUTES } from '../../lib/marketingRoutes';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import {
@@ -134,6 +134,29 @@ describe('writeMarketingHtmlFiles', () => {
       expect(appShell).toBe(MINIMAL_DIST_TEMPLATE);
       expect(appShell).not.toContain('data-prerendered-marketing-route');
       expect(marketingHome).toContain('data-prerendered-marketing-route="/"');
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps app-shell empty, marketing paths prerendered, and no static dashboard file', () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), 'equipqr-spa-routing-'));
+    const distDir = join(projectRoot, 'dist');
+    try {
+      mkdirSync(distDir, { recursive: true });
+      writeFileSync(join(distDir, 'index.html'), MINIMAL_DIST_TEMPLATE, 'utf-8');
+
+      writeMarketingHtmlFiles(projectRoot);
+
+      const appShell = readFileSync(join(distDir, 'app-shell.html'), 'utf-8');
+      const inventoryHtml = readFileSync(join(distDir, 'features', 'inventory', 'index.html'), 'utf-8');
+      const dashboardStatic = join(distDir, 'dashboard', 'index.html');
+
+      expect(appShell).toMatch(/<div id="root">\s*<\/div>/);
+      expect(appShell).not.toContain('data-prerendered-marketing-route');
+      expect(inventoryHtml).toContain('data-prerendered-marketing-route="/features/inventory"');
+      expect(inventoryHtml).not.toMatch(/<div id="root">\s*<\/div>/);
+      expect(existsSync(dashboardStatic)).toBe(false);
     } finally {
       rmSync(projectRoot, { recursive: true, force: true });
     }

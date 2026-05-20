@@ -171,7 +171,7 @@ npx --yes vercel@51.6.1 --prod
 #### `vercel.json` Configuration
 The project includes a complete `vercel.json` configuration file with:
 - **Build Configuration**: Uses Vite framework with `npm run build`
-- **SPA Routing**: All routes rewritten to `/index.html` for React Router
+- **SPA Routing**: Non-static app routes rewritten to `/app-shell` (empty SPA shell); marketing routes served from prerendered `index.html` files
 - **Security Headers**: X-Content-Type-Options, X-Frame-Options, Referrer-Policy
 - **Performance Headers**: Long-term caching for static assets
 - **Branch Deployment**: Automatic deployment for main and preview branches
