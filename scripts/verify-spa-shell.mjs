@@ -19,6 +19,45 @@ function fail(message) {
   process.exit(1);
 }
 
+const CATCH_ALL_REDIRECT_RULE = '/* /app-shell.html 200';
+
+/** @param {string} content */
+function assertCatchAllRedirectsRule(content, label) {
+  const hasRule = content.split(/\r?\n/).some((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) {
+      return false;
+    }
+    return trimmed === CATCH_ALL_REDIRECT_RULE;
+  });
+
+  if (!hasRule) {
+    fail(
+      `${label} must include a catch-all SPA rule '${CATCH_ALL_REDIRECT_RULE}' (blank lines and # comments are ignored).`
+    );
+  }
+}
+
+/** @param {string} block */
+function blockHasCatchAllRedirect(block) {
+  const hasFrom = /\bfrom\s*=\s*["']\/\*["']/.test(block);
+  const hasTo = /\bto\s*=\s*["']\/app-shell\.html["']/.test(block);
+  const hasStatus = /\bstatus\s*=\s*200\b/.test(block);
+  return hasFrom && hasTo && hasStatus;
+}
+
+/** @param {string} content */
+function assertNetlifyCatchAllRedirect(content) {
+  const blocks = content.split(/\[\[redirects\]\]/).slice(1);
+  const hasCatchAll = blocks.some((block) => blockHasCatchAllRedirect(block));
+
+  if (!hasCatchAll) {
+    fail(
+      'netlify.toml must contain a [[redirects]] block with from="/*", to="/app-shell.html", and status=200 (key order and extra keys are allowed).'
+    );
+  }
+}
+
 const distAppShell = path.join(repoRoot, 'dist', 'app-shell.html');
 if (!fs.existsSync(distAppShell)) {
   fail('Missing dist/app-shell.html. Run npm run build first.');
@@ -60,44 +99,21 @@ if (!fs.existsSync(redirectsPath)) {
   fail('Missing public/_redirects.');
 }
 
-const redirectLine =
-  fs
-    .readFileSync(redirectsPath, 'utf8')
-    .split(/\r?\n/)
-    .find((line) => line.trim().length > 0)
-    ?.trim() ?? '';
-if (redirectLine !== '/* /app-shell.html 200') {
-  fail(`public/_redirects must be '/* /app-shell.html 200' (found: ${redirectLine}).`);
-}
+assertCatchAllRedirectsRule(fs.readFileSync(redirectsPath, 'utf8'), 'public/_redirects');
 
 const distRedirectsPath = path.join(repoRoot, 'dist', '_redirects');
 if (!fs.existsSync(distRedirectsPath)) {
   fail('Missing dist/_redirects. Run npm run build first.');
 }
 
-const distRedirectLine =
-  fs
-    .readFileSync(distRedirectsPath, 'utf8')
-    .split(/\r?\n/)
-    .find((line) => line.trim().length > 0)
-    ?.trim() ?? '';
-if (distRedirectLine !== '/* /app-shell.html 200') {
-  fail(`dist/_redirects must be '/* /app-shell.html 200' (found: ${distRedirectLine}).`);
-}
+assertCatchAllRedirectsRule(fs.readFileSync(distRedirectsPath, 'utf8'), 'dist/_redirects');
 
 const netlifyPath = path.join(repoRoot, 'netlify.toml');
 if (!fs.existsSync(netlifyPath)) {
   fail('Missing netlify.toml at repo root.');
 }
 
-const netlifyContent = fs.readFileSync(netlifyPath, 'utf8');
-const catchAllRedirect =
-  /\[\[redirects\]\]\s*\n\s*from\s*=\s*"\/\*"\s*\n\s*to\s*=\s*"\/app-shell\.html"\s*\n\s*status\s*=\s*200/;
-if (!catchAllRedirect.test(netlifyContent)) {
-  fail(
-    'netlify.toml must contain a [[redirects]] block with from="/*", to="/app-shell.html", status=200.'
-  );
-}
+assertNetlifyCatchAllRedirect(fs.readFileSync(netlifyPath, 'utf8'));
 
 console.log(
   '[OK] SPA routing contract: dist/app-shell.html; Vercel -> /app-shell (extensionless source, cleanUrls); public/_redirects and dist/_redirects -> /app-shell.html; netlify.toml catch-all -> /app-shell.html.'
