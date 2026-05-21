@@ -9,12 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Removed bridgemind tooling from the project
-- Updated .vscode\extensions.json with better recommendations
+## [3.6.1] - 2026-05-21
 
 ### Fixed
 
+- **SPA route hard reload** ([#982](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/982)) — Hard reloads and deep links to authenticated app routes such as `/dashboard` and `/auth` no longer return Vercel's platform 404; routing fallback restored to the empty app shell after the v3.6.0 marketing prerender split.
+
 - **equipqr-docs CI on preview PRs** — Scope `equipqr-docs` Vercel builds to `main` via `docs/vercel.json` `ignoreCommand`; add `docs/postcss.config.js` so production docs builds resolve Tailwind PostCSS under `docs/`; filter `deployment-status` workflow to ignore `equipqr-docs` deployment events.
+
+### Changed
+
+- Updated `.vscode/extensions.json` with improved extension recommendations.
+
+### Removed
+
+- Bridgemind tooling removed from the project.
+
 ## [3.6.0] - 2026-05-17
 
 ### Added
