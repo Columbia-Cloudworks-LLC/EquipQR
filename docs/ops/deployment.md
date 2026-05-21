@@ -325,7 +325,7 @@ netlify deploy --prod --dir=dist
 
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to = "/app-shell.html"
   status = 200
 
 [[headers]]
@@ -333,6 +333,8 @@ netlify deploy --prod --dir=dist
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 ```
+
+> **Netlify vs Vercel:** Netlify has no `cleanUrls` equivalent, so the catch-all redirect must target the literal build artifact `/app-shell.html`. Vercel uses `cleanUrls: true` and rewrites extensionless paths to `/app-shell`. Marketing routes are prerendered to per-route `index.html` files on both hosts; only authenticated/app routes fall through to the empty SPA shell.
 
 ### AWS S3 + CloudFront
 ```bash
