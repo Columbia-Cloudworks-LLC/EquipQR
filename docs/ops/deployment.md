@@ -172,7 +172,7 @@ npx --yes vercel@51.6.1 --prod
 #### `vercel.json` Configuration
 The project includes a complete `vercel.json` configuration file with:
 - **Build Configuration**: Uses Vite framework with `npm run build`
-- **SPA Routing**: Non-static app routes rewritten to `/app-shell` (empty SPA shell); marketing routes served from prerendered `index.html` files
+- **SPA Routing**: Non-static app routes rewritten to the empty SPA shell (`dist/app-shell.html`); marketing routes served from prerendered `index.html` files. Vercel (`vercel.json` + `cleanUrls`) rewrites extensionless paths to `/app-shell`; Netlify (`netlify.toml`, `public/_redirects`) targets `/app-shell.html` because that host lacks Vercel cleanUrls behavior.
 - **Security Headers**: X-Content-Type-Options, X-Frame-Options, Referrer-Policy
 - **Performance Headers**: Long-term caching for static assets
 - **Branch Deployment**: Automatic deployment for main and preview branches

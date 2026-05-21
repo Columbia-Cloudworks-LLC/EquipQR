@@ -4,8 +4,9 @@
   Verify SPA deep-link routing artifacts after npm run build.
 
 .DESCRIPTION
-  Ensures dist/app-shell.html exists and vercel.json / public/_redirects
-  both target /app-shell (not stale /index.html fallback).
+  Ensures dist/app-shell.html exists and platform configs target the correct
+  SPA fallback: Vercel uses cleanUrls /app-shell; Netlify/_redirects use
+  /app-shell.html (literal build artifact).
 #>
 param(
     [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
@@ -43,9 +44,19 @@ if (-not (Test-Path -LiteralPath $redirectsPath)) {
 }
 
 $redirectLine = (Get-Content -LiteralPath $redirectsPath -Encoding UTF8 | Select-Object -First 1).Trim()
-if ($redirectLine -ne '/* /app-shell 200') {
-    Fail "public/_redirects must be '/* /app-shell 200' (found: $redirectLine)."
+if ($redirectLine -ne '/* /app-shell.html 200') {
+    Fail "public/_redirects must be '/* /app-shell.html 200' (found: $redirectLine)."
 }
 
-Write-Host '[OK] SPA routing contract: dist/app-shell.html, vercel.json, public/_redirects aligned on /app-shell.'
+$netlifyPath = Join-Path $RepoRoot 'netlify.toml'
+if (-not (Test-Path -LiteralPath $netlifyPath)) {
+    Fail "Missing netlify.toml at repo root."
+}
+
+$netlifyContent = Get-Content -LiteralPath $netlifyPath -Raw -Encoding UTF8
+if ($netlifyContent -notmatch 'to\s*=\s*"/app-shell\.html"') {
+    Fail "netlify.toml SPA redirect must target /app-shell.html."
+}
+
+Write-Host '[OK] SPA routing contract: dist/app-shell.html; Vercel -> /app-shell; Netlify/_redirects -> /app-shell.html.'
 exit 0
