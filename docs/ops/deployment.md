@@ -18,10 +18,11 @@ Developer and operator documentation is published from this repository’s [`doc
 | Docs project ID | `prj_6QicTVywixyyAYc7sxCRDLnqwbM9` |
 | Production branch | `main` (same branch gate as `equipqr.app`) |
 | Domains on docs project | `equipqr.info` (apex), `www.equipqr.info` → apex redirect |
+| Preview deploys | Disabled — [`docs/vercel.json`](../vercel.json) `ignoreCommand` skips non-`main` builds |
 
 Keep **`equipqr.info` off the SPA project (`equipqr`)** — only the docs project should attach that hostname.
 
-**Build note:** Vercel installs dependencies from `docs/package.json` only. Because the monorepo root still has [`postcss.config.js`](../../postcss.config.js), the docs site pins `@tailwindcss/postcss`, `tailwindcss`, and `postcss` under [`docs/package.json`](../package.json) and applies Tailwind via [`docs/.vitepress/config.ts`](../.vitepress/config.ts) so Production builds do not try to resolve `@tailwindcss/postcss` from an uninstalled repo-root tree.
+**Build note:** Vercel installs dependencies from `docs/package.json` only. Because the monorepo root still has [`postcss.config.js`](../../postcss.config.js), PostCSS can walk up and load the root config unless a scoped file exists. The docs project ships [`docs/postcss.config.js`](../postcss.config.js) (same plugin list as root) and pins `@tailwindcss/postcss`, `tailwindcss`, and `postcss` under [`docs/package.json`](../package.json). Tailwind is also wired in [`docs/.vitepress/config.ts`](../.vitepress/config.ts) for local dev.
 
 **Related domains:** During domain migration, **`equipqr.support`** / **`www.equipqr.support`** on the SPA project may temporarily redirect to **`equipqr.app`** instead of **`equipqr.info`** because Vercel only allows same-project redirect targets; revisit in the dashboard if those URLs should land on the public docs site again.
 
