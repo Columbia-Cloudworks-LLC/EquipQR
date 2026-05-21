@@ -39,10 +39,22 @@ function assertCatchAllRedirectsRule(content, label) {
 }
 
 /** @param {string} block */
-function blockHasCatchAllRedirect(block) {
-  const hasFrom = /\bfrom\s*=\s*["']\/\*["']/.test(block);
-  const hasTo = /\bto\s*=\s*["']\/app-shell\.html["']/.test(block);
-  const hasStatus = /\bstatus\s*=\s*200\b/.test(block);
+function stripFullLineComments(block) {
+  return block
+    .split(/\r?\n/)
+    .filter((line) => {
+      const trimmed = line.trim();
+      return trimmed.length > 0 && !trimmed.startsWith('#');
+    })
+    .join('\n');
+}
+
+/** @param {string} block */
+export function blockHasCatchAllRedirect(block) {
+  const activeBlock = stripFullLineComments(block);
+  const hasFrom = /\bfrom\s*=\s*["']\/\*["']/.test(activeBlock);
+  const hasTo = /\bto\s*=\s*["']\/app-shell\.html["']/.test(activeBlock);
+  const hasStatus = /\bstatus\s*=\s*200\b/.test(activeBlock);
   return hasFrom && hasTo && hasStatus;
 }
 
@@ -58,63 +70,73 @@ function assertNetlifyCatchAllRedirect(content) {
   }
 }
 
-const distAppShell = path.join(repoRoot, 'dist', 'app-shell.html');
-if (!fs.existsSync(distAppShell)) {
-  fail('Missing dist/app-shell.html. Run npm run build first.');
-}
+export function verifySpaShellRouting() {
+  const distAppShell = path.join(repoRoot, 'dist', 'app-shell.html');
+  if (!fs.existsSync(distAppShell)) {
+    fail('Missing dist/app-shell.html. Run npm run build first.');
+  }
 
-const vercelPath = path.join(repoRoot, 'vercel.json');
-if (!fs.existsSync(vercelPath)) {
-  fail('Missing vercel.json at repo root.');
-}
+  const vercelPath = path.join(repoRoot, 'vercel.json');
+  if (!fs.existsSync(vercelPath)) {
+    fail('Missing vercel.json at repo root.');
+  }
 
-/** @type {{ rewrites?: Array<{ source?: string; destination?: string }>; cleanUrls?: boolean }} */
-let vercel;
-try {
-  vercel = JSON.parse(fs.readFileSync(vercelPath, 'utf8'));
-} catch {
-  fail('vercel.json is not valid JSON.');
-}
+  /** @type {{ rewrites?: Array<{ source?: string; destination?: string }>; cleanUrls?: boolean }} */
+  let vercel;
+  try {
+    vercel = JSON.parse(fs.readFileSync(vercelPath, 'utf8'));
+  } catch {
+    fail('vercel.json is not valid JSON.');
+  }
 
-const CANONICAL_REWRITE_SOURCE = '/((?!.*\\.).*)';
-const CANONICAL_REWRITE_DEST = '/app-shell';
+  const CANONICAL_REWRITE_SOURCE = '/((?!.*\\.).*)';
+  const CANONICAL_REWRITE_DEST = '/app-shell';
 
-const rewrite = (vercel.rewrites ?? []).find(
-  (entry) => entry.destination === CANONICAL_REWRITE_DEST
-);
-if (!rewrite) {
-  fail('vercel.json has no SPA fallback rewrite to /app-shell.');
-}
-if (rewrite.source !== CANONICAL_REWRITE_SOURCE) {
-  fail(
-    `vercel.json rewrite source must be ${CANONICAL_REWRITE_SOURCE} (found: ${rewrite.source ?? 'missing'}).`
+  const rewrite = (vercel.rewrites ?? []).find(
+    (entry) => entry.destination === CANONICAL_REWRITE_DEST
+  );
+  if (!rewrite) {
+    fail('vercel.json has no SPA fallback rewrite to /app-shell.');
+  }
+  if (rewrite.source !== CANONICAL_REWRITE_SOURCE) {
+    fail(
+      `vercel.json rewrite source must be ${CANONICAL_REWRITE_SOURCE} (found: ${rewrite.source ?? 'missing'}).`
+    );
+  }
+  if (vercel.cleanUrls !== true) {
+    fail('vercel.json must set cleanUrls: true so /app-shell resolves to app-shell.html.');
+  }
+
+  const redirectsPath = path.join(repoRoot, 'public', '_redirects');
+  if (!fs.existsSync(redirectsPath)) {
+    fail('Missing public/_redirects.');
+  }
+
+  assertCatchAllRedirectsRule(fs.readFileSync(redirectsPath, 'utf8'), 'public/_redirects');
+
+  const distRedirectsPath = path.join(repoRoot, 'dist', '_redirects');
+  if (!fs.existsSync(distRedirectsPath)) {
+    fail('Missing dist/_redirects. Run npm run build first.');
+  }
+
+  assertCatchAllRedirectsRule(fs.readFileSync(distRedirectsPath, 'utf8'), 'dist/_redirects');
+
+  const netlifyPath = path.join(repoRoot, 'netlify.toml');
+  if (!fs.existsSync(netlifyPath)) {
+    fail('Missing netlify.toml at repo root.');
+  }
+
+  assertNetlifyCatchAllRedirect(fs.readFileSync(netlifyPath, 'utf8'));
+
+  console.log(
+    '[OK] SPA routing contract: dist/app-shell.html; Vercel -> /app-shell (extensionless source, cleanUrls); public/_redirects and dist/_redirects -> /app-shell.html; netlify.toml catch-all -> /app-shell.html.'
   );
 }
-if (vercel.cleanUrls !== true) {
-  fail('vercel.json must set cleanUrls: true so /app-shell resolves to app-shell.html.');
+
+const isMain =
+  process.argv[1] &&
+  path.resolve(fileURLToPath(import.meta.url)) === path.resolve(process.argv[1]);
+
+if (isMain) {
+  verifySpaShellRouting();
 }
-
-const redirectsPath = path.join(repoRoot, 'public', '_redirects');
-if (!fs.existsSync(redirectsPath)) {
-  fail('Missing public/_redirects.');
-}
-
-assertCatchAllRedirectsRule(fs.readFileSync(redirectsPath, 'utf8'), 'public/_redirects');
-
-const distRedirectsPath = path.join(repoRoot, 'dist', '_redirects');
-if (!fs.existsSync(distRedirectsPath)) {
-  fail('Missing dist/_redirects. Run npm run build first.');
-}
-
-assertCatchAllRedirectsRule(fs.readFileSync(distRedirectsPath, 'utf8'), 'dist/_redirects');
-
-const netlifyPath = path.join(repoRoot, 'netlify.toml');
-if (!fs.existsSync(netlifyPath)) {
-  fail('Missing netlify.toml at repo root.');
-}
-
-assertNetlifyCatchAllRedirect(fs.readFileSync(netlifyPath, 'utf8'));
-
-console.log(
-  '[OK] SPA routing contract: dist/app-shell.html; Vercel -> /app-shell (extensionless source, cleanUrls); public/_redirects and dist/_redirects -> /app-shell.html; netlify.toml catch-all -> /app-shell.html.'
-);
