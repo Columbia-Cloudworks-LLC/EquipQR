@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 
 // Mock the reduced-motion hook so each test can flip its return value.
@@ -11,6 +11,10 @@ import { DemoVideo } from './DemoVideo';
 
 const buildUrl = (filename: string) => `https://test.example/landing-page-videos/${filename}`;
 
+const mediaProto = window.HTMLMediaElement.prototype;
+const originalPlayDescriptor = Object.getOwnPropertyDescriptor(mediaProto, 'play');
+const originalPauseDescriptor = Object.getOwnPropertyDescriptor(mediaProto, 'pause');
+
 describe('DemoVideo', () => {
   beforeEach(() => {
     cleanup();
@@ -19,16 +23,29 @@ describe('DemoVideo', () => {
 
     // jsdom does not implement HTMLMediaElement.play; stub it so the
     // autoplay effect does not throw.
-    Object.defineProperty(window.HTMLMediaElement.prototype, 'play', {
+    Object.defineProperty(mediaProto, 'play', {
       configurable: true,
       writable: true,
       value: vi.fn().mockResolvedValue(undefined),
     });
-    Object.defineProperty(window.HTMLMediaElement.prototype, 'pause', {
+    Object.defineProperty(mediaProto, 'pause', {
       configurable: true,
       writable: true,
       value: vi.fn(),
     });
+  });
+
+  afterEach(() => {
+    if (originalPlayDescriptor) {
+      Object.defineProperty(mediaProto, 'play', originalPlayDescriptor);
+    } else {
+      delete (mediaProto as unknown as Record<string, unknown>).play;
+    }
+    if (originalPauseDescriptor) {
+      Object.defineProperty(mediaProto, 'pause', originalPauseDescriptor);
+    } else {
+      delete (mediaProto as unknown as Record<string, unknown>).pause;
+    }
   });
 
   it('renders a <video> with WebM and MP4 sources and a poster image', () => {
