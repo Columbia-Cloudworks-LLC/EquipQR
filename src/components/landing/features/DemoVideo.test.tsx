@@ -1,0 +1,108 @@
+import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { render, screen, cleanup } from '@testing-library/react';
+
+// Mock the reduced-motion hook so each test can flip its return value.
+const mockUsePrefersReducedMotion = vi.fn<[], boolean>();
+vi.mock('@/hooks/use-prefers-reduced-motion', () => ({
+  usePrefersReducedMotion: () => mockUsePrefersReducedMotion(),
+}));
+
+import { DemoVideo } from './DemoVideo';
+
+const buildUrl = (filename: string) => `https://test.example/landing-page-videos/${filename}`;
+
+describe('DemoVideo', () => {
+  beforeEach(() => {
+    cleanup();
+    mockUsePrefersReducedMotion.mockReset();
+    mockUsePrefersReducedMotion.mockReturnValue(false);
+
+    // jsdom does not implement HTMLMediaElement.play; stub it so the
+    // autoplay effect does not throw.
+    Object.defineProperty(window.HTMLMediaElement.prototype, 'play', {
+      configurable: true,
+      writable: true,
+      value: vi.fn().mockResolvedValue(undefined),
+    });
+    Object.defineProperty(window.HTMLMediaElement.prototype, 'pause', {
+      configurable: true,
+      writable: true,
+      value: vi.fn(),
+    });
+  });
+
+  it('renders a <video> with WebM and MP4 sources and a poster image', () => {
+    const { container } = render(
+      <DemoVideo baseName="mobile_create_pm" buildUrl={buildUrl} alt="Create a PM template demo" />,
+    );
+
+    const video = container.querySelector('video');
+    expect(video).not.toBeNull();
+    expect(video?.getAttribute('poster')).toBe(
+      'https://test.example/landing-page-videos/mobile_create_pm.jpg',
+    );
+
+    const sources = container.querySelectorAll('video > source');
+    expect(sources).toHaveLength(2);
+    // WebM listed first so VP9-capable browsers pick the smaller payload.
+    expect(sources[0].getAttribute('type')).toBe('video/webm');
+    expect(sources[0].getAttribute('src')).toBe(
+      'https://test.example/landing-page-videos/mobile_create_pm.webm',
+    );
+    expect(sources[1].getAttribute('type')).toBe('video/mp4');
+    expect(sources[1].getAttribute('src')).toBe(
+      'https://test.example/landing-page-videos/mobile_create_pm.mp4',
+    );
+  });
+
+  it('exposes the alt text as an accessible label on the video', () => {
+    render(
+      <DemoVideo
+        baseName="mobile_export_to_quickbooks"
+        buildUrl={buildUrl}
+        alt="Export work order to QuickBooks demo"
+      />,
+    );
+
+    expect(
+      screen.getByLabelText(/Export work order to QuickBooks demo/i),
+    ).toBeInTheDocument();
+  });
+
+  it('autoplays muted and inline when reduced-motion is off', () => {
+    const { container } = render(
+      <DemoVideo baseName="demo" buildUrl={buildUrl} alt="demo" />,
+    );
+
+    const video = container.querySelector('video');
+    expect(video?.autoplay).toBe(true);
+    expect(video?.muted).toBe(true);
+    expect(video?.loop).toBe(true);
+    expect(video?.hasAttribute('playsinline')).toBe(true);
+    expect(video?.controls).toBe(false);
+  });
+
+  it('disables autoplay and shows controls when reduced-motion is on', () => {
+    mockUsePrefersReducedMotion.mockReturnValue(true);
+
+    const { container } = render(
+      <DemoVideo baseName="demo" buildUrl={buildUrl} alt="demo" />,
+    );
+
+    const video = container.querySelector('video');
+    expect(video?.autoplay).toBe(false);
+    expect(video?.controls).toBe(true);
+    // Still muted/loop so a manual play stays silent and repeats.
+    expect(video?.muted).toBe(true);
+    expect(video?.loop).toBe(true);
+  });
+
+  it('provides a download fallback for browsers without <video> support', () => {
+    render(<DemoVideo baseName="demo" buildUrl={buildUrl} alt="demo" />);
+
+    expect(screen.getByRole('link', { name: /Download the demo \(MP4\)/i })).toHaveAttribute(
+      'href',
+      'https://test.example/landing-page-videos/demo.mp4',
+    );
+  });
+});
