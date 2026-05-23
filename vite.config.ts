@@ -59,6 +59,7 @@ export default defineConfig(({ mode }) => ({
         // but labels degrade and the console floods with CSP violations.
         "connect-src 'self' data: https://hcaptcha.com https://*.hcaptcha.com https://*.sentry.io https://*.supabase.co https://*.equipqr.app https://*.vercel.app https://maps.googleapis.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com wss://*.supabase.co wss://*.equipqr.app wss://*.vercel.app wss://localhost:* ws://localhost:* ws://127.0.0.1:* http://localhost:* http://127.0.0.1:*",
         "img-src 'self' data: blob: https: http://localhost:* http://127.0.0.1:* https://*.googleapis.com https://*.gstatic.com",
+        "media-src 'self' blob: https: http://localhost:* http://127.0.0.1:*",
         "font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com",
         "worker-src 'self' blob:"
       ].join("; ")

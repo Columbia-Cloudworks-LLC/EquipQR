@@ -79,7 +79,7 @@ describe('DemoVideo', () => {
     expect(video?.muted).toBe(true);
     expect(video?.loop).toBe(true);
     expect(video?.hasAttribute('playsinline')).toBe(true);
-    expect(video?.controls).toBe(false);
+    expect(video?.controls).toBe(true);
   });
 
   it('disables autoplay and shows controls when reduced-motion is on', () => {

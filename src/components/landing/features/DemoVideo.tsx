@@ -32,9 +32,10 @@ export interface DemoVideoProps {
  *
  * Accessibility:
  *  - Muted + playsInline + autoPlay + loop = browser-allowed mobile autoplay.
+ *  - Native controls are always exposed so every user can pause, seek, or stop
+ *    the looping motion without relying on a global reduced-motion setting.
  *  - When `prefers-reduced-motion: reduce` is set, autoplay is suppressed and
- *    the poster image is shown instead. We still render the `<video>` so the
- *    user can manually press play (controls are exposed in that case).
+ *    the poster image is shown instead while controls remain available.
  *  - `aria-label` on the `<video>` provides a text alternative for the moving
  *    content.
  */
@@ -84,7 +85,7 @@ export const DemoVideo: React.FC<DemoVideoProps> = ({
         muted
         playsInline
         preload="metadata"
-        controls={prefersReducedMotion}
+        controls
         aria-label={alt}
       >
         <source src={webmSrc} type="video/webm" />
