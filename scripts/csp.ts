@@ -18,7 +18,7 @@ export const CSP_DIRECTIVES: readonly string[] = [
   // (shared-label-worker.js) loads inline label sprite assets via
   // fetch('data:image/png;base64,...'). Without it the map renders
   // but labels degrade and the console floods with CSP violations.
-  "connect-src 'self' data: https://hcaptcha.com https://*.hcaptcha.com https://*.sentry.io https://*.supabase.co https://*.equipqr.app https://*.vercel.app https://maps.googleapis.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com wss://*.supabase.co wss://*.equipqr.app wss://*.vercel.app",
+  "connect-src 'self' data: https://hcaptcha.com https://*.hcaptcha.com https://api.pwnedpasswords.com https://*.sentry.io https://*.supabase.co https://*.equipqr.app https://*.vercel.app https://maps.googleapis.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com wss://*.supabase.co wss://*.equipqr.app wss://*.vercel.app",
   "img-src 'self' data: blob: https: https://*.googleapis.com https://*.gstatic.com",
   "media-src 'self' blob: https://*.supabase.co https://*.equipqr.app",
   "font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com",
