@@ -4,6 +4,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Auth from '../Auth';
 import * as useAuthModule from '@/hooks/useAuth';
 
+const mockErrorToast = vi.hoisted(() => vi.fn());
+const mockSuccessToast = vi.hoisted(() => vi.fn());
+const mockLocation = vi.hoisted(() => ({ search: '' }));
+
 // Mock hooks
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({
@@ -19,8 +23,8 @@ vi.mock('@/hooks/usePendingRedirectHandler', () => ({
 
 vi.mock('@/hooks/useAppToast', () => ({
   useAppToast: () => ({
-    error: vi.fn(),
-    success: vi.fn(),
+    error: mockErrorToast,
+    success: mockSuccessToast,
     info: vi.fn(),
     warning: vi.fn(),
     toast: vi.fn(),
@@ -77,7 +81,7 @@ vi.mock('react-router-dom', async () => {
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-    useLocation: () => ({ search: '' })
+    useLocation: () => mockLocation
   };
 });
 
@@ -85,6 +89,7 @@ describe('Auth Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    mockLocation.search = '';
   });
 
   describe('Core Rendering', () => {
@@ -149,6 +154,25 @@ describe('Auth Page', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Invalid credentials')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Success Handling', () => {
+    it('shows a prominent check-your-email confirmation after signup succeeds', async () => {
+      mockLocation.search = '?tab=signup';
+      render(<Auth />);
+
+      fireEvent.click(screen.getByText('Submit SignUp'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-success-alert')).toHaveTextContent('Check your email');
+        expect(screen.getByTestId('auth-success-alert')).toHaveTextContent('Account created');
+      });
+      expect(mockSuccessToast).toHaveBeenCalledWith({
+        title: 'Check your email',
+        description: 'Account created',
+        duration: 10000,
       });
     });
   });

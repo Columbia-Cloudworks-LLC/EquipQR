@@ -4,9 +4,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, QrCode } from 'lucide-react';
+import { CheckCircle, Loader2, QrCode } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMFA } from '@/hooks/useMFA';
 import { isMFAEnabled } from '@/lib/flags';
@@ -28,7 +28,7 @@ const Auth = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [pendingQRScan, setPendingQRScan] = useState(false);
   const [showMFAVerification, setShowMFAVerification] = useState(false);
-  const { error: showErrorToast } = useAppToast();
+  const { error: showErrorToast, success: showSuccessToast } = useAppToast();
 
   // Check if user came here from a QR scan (read-only check, doesn't clear)
   useEffect(() => {
@@ -71,6 +71,11 @@ const Auth = () => {
   const handleSuccess = (message: string) => {
     setSuccess(message);
     setError(null);
+    showSuccessToast({
+      title: 'Check your email',
+      description: message,
+      duration: 10000,
+    });
   };
 
   const handleError = (errorMessage: string) => {
@@ -142,7 +147,7 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-info/10 to-primary/20">
+    <div className="min-h-screen flex flex-col bg-linear-to-br from-info/10 to-primary/20">
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
@@ -164,6 +169,17 @@ const Auth = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {success ? (
+              <Alert
+                className="mb-4 border-success/40 bg-success/10 text-success-foreground"
+                data-testid="auth-success-alert"
+              >
+                <CheckCircle className="h-4 w-4 text-success" />
+                <AlertTitle>Check your email</AlertTitle>
+                <AlertDescription>{success}</AlertDescription>
+              </Alert>
+            ) : null}
+
             {/* MFA Verification Screen — shown after password or OAuth sign-in when MFA is required */}
             {showMFAVerification ? (
               <MFAVerification
@@ -263,12 +279,6 @@ const Auth = () => {
             {error ? (
               <Alert className="mt-4" variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            ) : null}
-            
-            {success ? (
-              <Alert className="mt-4">
-                <AlertDescription>{success}</AlertDescription>
               </Alert>
             ) : null}
           </CardContent>
