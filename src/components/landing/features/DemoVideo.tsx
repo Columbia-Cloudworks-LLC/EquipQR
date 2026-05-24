@@ -58,13 +58,37 @@ export const DemoVideo: React.FC<DemoVideoProps> = ({
 
     if (prefersReducedMotion) {
       video.pause();
-      video.currentTime = 0;
-    } else {
-      // Best-effort autoplay; some browsers reject the promise silently.
-      const playPromise = video.play();
-      if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(() => undefined);
+
+      const resetToStart = () => {
+        try {
+          video.currentTime = 0;
+        } catch {
+          // Seeking can throw InvalidStateError before metadata is available.
+        }
+      };
+
+      // HAVE_METADATA (1) is required before currentTime can be set safely.
+      if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+        resetToStart();
+        return;
       }
+
+      let cancelled = false;
+      const onLoadedMetadata = () => {
+        if (!cancelled) resetToStart();
+      };
+      video.addEventListener('loadedmetadata', onLoadedMetadata, { once: true });
+
+      return () => {
+        cancelled = true;
+        video.removeEventListener('loadedmetadata', onLoadedMetadata);
+      };
+    }
+
+    // Best-effort autoplay; some browsers reject the promise silently.
+    const playPromise = video.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise.catch(() => undefined);
     }
   }, [prefersReducedMotion]);
 

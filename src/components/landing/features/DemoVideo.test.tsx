@@ -14,6 +14,8 @@ const buildUrl = (filename: string) => `https://test.example/landing-page-videos
 const mediaProto = window.HTMLMediaElement.prototype;
 const originalPlayDescriptor = Object.getOwnPropertyDescriptor(mediaProto, 'play');
 const originalPauseDescriptor = Object.getOwnPropertyDescriptor(mediaProto, 'pause');
+const originalReadyStateDescriptor = Object.getOwnPropertyDescriptor(mediaProto, 'readyState');
+const originalCurrentTimeDescriptor = Object.getOwnPropertyDescriptor(mediaProto, 'currentTime');
 
 describe('DemoVideo', () => {
   beforeEach(() => {
@@ -45,6 +47,16 @@ describe('DemoVideo', () => {
       Object.defineProperty(mediaProto, 'pause', originalPauseDescriptor);
     } else {
       delete (mediaProto as unknown as Record<string, unknown>).pause;
+    }
+    if (originalReadyStateDescriptor) {
+      Object.defineProperty(mediaProto, 'readyState', originalReadyStateDescriptor);
+    } else {
+      delete (mediaProto as unknown as Record<string, unknown>).readyState;
+    }
+    if (originalCurrentTimeDescriptor) {
+      Object.defineProperty(mediaProto, 'currentTime', originalCurrentTimeDescriptor);
+    } else {
+      delete (mediaProto as unknown as Record<string, unknown>).currentTime;
     }
   });
 
@@ -112,6 +124,50 @@ describe('DemoVideo', () => {
     // Still muted/loop so a manual play stays silent and repeats.
     expect(video?.muted).toBe(true);
     expect(video?.loop).toBe(true);
+  });
+
+  it('does not throw when resetting playback before metadata loads under reduced-motion', () => {
+    mockUsePrefersReducedMotion.mockReturnValue(true);
+
+    Object.defineProperty(mediaProto, 'readyState', {
+      configurable: true,
+      get: () => 0,
+    });
+    Object.defineProperty(mediaProto, 'currentTime', {
+      configurable: true,
+      get: () => 0,
+      set: () => {
+        throw new DOMException('InvalidStateError');
+      },
+    });
+
+    expect(() => {
+      render(<DemoVideo baseName="demo" buildUrl={buildUrl} alt="demo" />);
+    }).not.toThrow();
+
+    expect(mediaProto.pause).toHaveBeenCalled();
+  });
+
+  it('resets playback to the start when metadata is already loaded under reduced-motion', () => {
+    mockUsePrefersReducedMotion.mockReturnValue(true);
+
+    let currentTime = 12;
+    Object.defineProperty(mediaProto, 'readyState', {
+      configurable: true,
+      get: () => HTMLMediaElement.HAVE_METADATA,
+    });
+    Object.defineProperty(mediaProto, 'currentTime', {
+      configurable: true,
+      get: () => currentTime,
+      set: (value: number) => {
+        currentTime = value;
+      },
+    });
+
+    render(<DemoVideo baseName="demo" buildUrl={buildUrl} alt="demo" />);
+
+    expect(currentTime).toBe(0);
+    expect(mediaProto.pause).toHaveBeenCalled();
   });
 
   it('provides a download fallback for browsers without <video> support', () => {
