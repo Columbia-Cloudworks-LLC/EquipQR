@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.6.3] - 2026-05-24
+
+### Fixed
+
+- **Sign-up password breach check** ([#989](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/989), [#991](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/991)) — Content Security Policy now allows the Have I Been Pwned k-anonymity range API so sign-up can detect compromised passwords instead of failing silently behind CSP.
+
 ## [3.6.2] - 2026-05-23
 
 ### Added
@@ -1902,7 +1908,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.2...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.3...HEAD
+[3.6.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.2...v3.6.3
 [3.6.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.1...v3.6.2
 [2.8.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.7.1...v2.8.0
 [2.7.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.7.0...v2.7.1
