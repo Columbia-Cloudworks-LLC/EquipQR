@@ -11,7 +11,7 @@
 /** Production CSP directives — canonical list for vercel.json. */
 export const CSP_DIRECTIVES: readonly string[] = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://hcaptcha.com https://*.hcaptcha.com https://js.sentry-cdn.com https://maps.googleapis.com https://apis.google.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com",
+  "script-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com https://js.sentry-cdn.com https://maps.googleapis.com https://apis.google.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com",
   "style-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com https://*.googleapis.com https://*.gstatic.com",
   "frame-src 'self' https://hcaptcha.com https://*.hcaptcha.com https://accounts.google.com https://docs.google.com https://drive.google.com",
   // `data:` is required because Google Maps' vector basemap worker
@@ -27,6 +27,8 @@ export const CSP_DIRECTIVES: readonly string[] = [
 
 /** Extra sources appended to matching directives in Vite dev mode only. */
 const DEV_SOURCE_EXTENSIONS: Readonly<Record<string, readonly string[]>> = {
+  // Vite dev server / HMR may rely on eval; keep it out of production CSP.
+  'script-src': ["'unsafe-eval'"],
   'connect-src': [
     'wss://localhost:*',
     'ws://localhost:*',

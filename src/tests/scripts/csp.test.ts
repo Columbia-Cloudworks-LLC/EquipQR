@@ -24,4 +24,12 @@ describe('csp', () => {
     expect(devCsp).toContain('wss://localhost:*');
     expect(devCsp).not.toBe(buildCsp());
   });
+
+  it('production CSP omits unsafe-eval while dev CSP includes it for Vite HMR', () => {
+    const productionCsp = buildCsp();
+    const devCsp = buildCsp({ dev: true });
+
+    expect(productionCsp).not.toContain("'unsafe-eval'");
+    expect(devCsp).toContain("'unsafe-eval'");
+  });
 });
