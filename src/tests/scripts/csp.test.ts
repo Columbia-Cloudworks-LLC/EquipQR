@@ -32,4 +32,12 @@ describe('csp', () => {
     expect(productionCsp).not.toContain("'unsafe-eval'");
     expect(devCsp).toContain("'unsafe-eval'");
   });
+
+  it('production and dev CSP allow HIBP password range checks', () => {
+    const productionCsp = buildCsp();
+    const devCsp = buildCsp({ dev: true });
+
+    expect(productionCsp).toContain('https://api.pwnedpasswords.com');
+    expect(devCsp).toContain('https://api.pwnedpasswords.com');
+  });
 });
