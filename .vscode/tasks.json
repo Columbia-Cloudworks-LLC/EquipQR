@@ -109,6 +109,26 @@
         "showReuseMessage": false
       },
       "problemMatcher": []
+    },
+    {
+      "label": "EquipQR: Stop Dev Stack (Force)",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\dev-stop.ps1",
+        "-Force"
+      ],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-stop",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
     }
   ]
 }
