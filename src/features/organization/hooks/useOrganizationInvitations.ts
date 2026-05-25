@@ -347,11 +347,35 @@ export const useResendInvitation = (organizationId: string) => {
         })
         .eq('id', invitationId)
         .eq('organization_id', organizationId)
-        .select('id, organization_id, email, role, status, expires_at, accepted_at, updated_at');
+        .select('id, organization_id, email, role, status, expires_at, accepted_at, updated_at, message');
 
       const updatedInvitation = Array.isArray(data) ? data[0] : data;
 
       if (error) throw error;
+      if (!updatedInvitation) {
+        throw new Error('Invitation not found');
+      }
+
+      const [profileResult, organizationResult] = await Promise.all([
+        supabase.from('profiles').select('name').eq('id', claims.sub).single(),
+        supabase.from('organizations').select('name').eq('id', organizationId).single()
+      ]);
+
+      const { error: emailError } = await supabase.functions.invoke('send-invitation-email', {
+        body: {
+          invitationId: updatedInvitation.id,
+          email: updatedInvitation.email.toLowerCase().trim(),
+          role: updatedInvitation.role,
+          organizationName: organizationResult.data?.name || 'Your Organization',
+          inviterName: profileResult.data?.name || 'Team Member',
+          message: updatedInvitation.message ?? undefined
+        }
+      });
+
+      if (emailError) {
+        throw new Error('Failed to send invitation email');
+      }
+
       return updatedInvitation;
     },
     onSuccess: () => {
@@ -360,7 +384,11 @@ export const useResendInvitation = (organizationId: string) => {
     },
     onError: (error) => {
       logger.error('Error resending invitation', error);
-      toast.error('Failed to resend invitation');
+      if (error instanceof Error && error.message === 'Failed to send invitation email') {
+        toast.error('Invitation was updated but the email could not be sent');
+      } else {
+        toast.error('Failed to resend invitation');
+      }
     }
   });
 };
