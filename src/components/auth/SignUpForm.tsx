@@ -23,7 +23,7 @@ import {
 import { PRIVACY_VERSION_HASH, TERMS_VERSION_HASH } from '@/lib/legalPolicyVersions';
 
 interface SignUpFormProps {
-  onSuccess: (message: string) => void;
+  onSuccess: (message: string, email?: string) => void;
   onError: (error: string) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
@@ -188,6 +188,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       }
 
       const redirectUrl = `${window.location.origin}/`;
+      const submittedEmail = formData.email.trim();
 
       const signUpData: Record<string, string> = {
         name: formData.name,
@@ -210,7 +211,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       signUpData.terms_accepted_at = new Date().toISOString();
 
       const { data, error } = await supabase.auth.signUp({
-        email: formData.email,
+        email: submittedEmail,
         password: formData.password,
         options: {
           emailRedirectTo: redirectUrl,
@@ -260,6 +261,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
         accessToken
           ? 'Account created successfully! Please check your email to verify your account and complete organization setup.'
           : 'Account created successfully! After you verify your email, your first sign-in will save your Terms acceptance record automatically. Please check your inbox to verify your account.',
+        submittedEmail,
       );
     } catch (error) {
       onError(error instanceof Error ? error.message : 'An error occurred during sign up');

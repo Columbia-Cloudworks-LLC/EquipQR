@@ -50,9 +50,15 @@ vi.mock('@/hooks/useMFA', () => ({
 
 // Mock components
 vi.mock('@/components/auth/SignUpForm', () => ({
-  default: ({ onSuccess, onError }: { onSuccess: (msg: string) => void; onError: (msg: string) => void }) => (
+  default: ({
+    onSuccess,
+    onError,
+  }: {
+    onSuccess: (msg: string, email?: string) => void;
+    onError: (msg: string) => void;
+  }) => (
     <div data-testid="signup-form">
-      <button onClick={() => onSuccess('Account created')}>Submit SignUp</button>
+      <button onClick={() => onSuccess('Account created', 'viralarchitect@yahoo.com')}>Submit SignUp</button>
       <button onClick={() => onError('Signup failed')}>Trigger SignUp Error</button>
     </div>
   )
@@ -159,16 +165,19 @@ describe('Auth Page', () => {
   });
 
   describe('Success Handling', () => {
-    it('shows a prominent check-your-email confirmation after signup succeeds', async () => {
+    it('shows a dedicated check-your-email confirmation after signup succeeds', async () => {
       mockLocation.search = '?tab=signup';
       render(<Auth />);
 
       fireEvent.click(screen.getByText('Submit SignUp'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('auth-success-alert')).toHaveTextContent('Check your email');
-        expect(screen.getByTestId('auth-success-alert')).toHaveTextContent('Account created');
+        expect(screen.getByTestId('signup-success-page')).toHaveTextContent('Check your email');
+        expect(screen.getByTestId('signup-success-page')).toHaveTextContent('viralarchitect@yahoo.com');
+        expect(screen.getByTestId('signup-success-page')).toHaveTextContent('Account created');
       });
+      expect(screen.queryByTestId('signup-form')).not.toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /open email inbox/i })).toHaveAttribute('href', 'https://mail.yahoo.com/');
       expect(mockSuccessToast).toHaveBeenCalledWith({
         title: 'Check your email',
         description: 'Account created',

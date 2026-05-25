@@ -427,7 +427,8 @@ describe('SignUpForm', () => {
       });
       
       expect(onSuccess).toHaveBeenCalledWith(
-        'Account created successfully! Please check your email to verify your account and complete organization setup.'
+        'Account created successfully! Please check your email to verify your account and complete organization setup.',
+        'john@example.com',
       );
     });
 
