@@ -7,6 +7,8 @@ ALTER TABLE public.google_workspace_credentials
 COMMENT ON COLUMN public.google_workspace_credentials.connected_email IS
   'Primary email of the Google Workspace admin who authorized the connection.';
 
+DROP FUNCTION IF EXISTS public.get_google_workspace_connection_status(uuid);
+
 CREATE OR REPLACE FUNCTION public.get_google_workspace_connection_status(
   p_organization_id uuid
 )
@@ -76,3 +78,5 @@ $$;
 
 COMMENT ON FUNCTION public.get_google_workspace_connection_status(uuid) IS
   'Returns Google Workspace connection metadata for an organization, including connected admin email.';
+
+GRANT ALL ON FUNCTION public.get_google_workspace_connection_status(uuid) TO authenticated, service_role;

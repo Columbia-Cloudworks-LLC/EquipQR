@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(18);
+SELECT plan(17);
 
 -- ============================================
 -- Account deletion RPC existence
