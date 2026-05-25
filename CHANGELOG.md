@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.6.4] - 2026-05-24
+
+### Changed
+
+- **Internal ITIL workflow guidance** — Simplified agent-facing incident, problem, service request, change record, and issue resolver guidance so routine EquipQR work can move through lightweight triage and focused implementation without unnecessary process ceremony.
+
+### Fixed
+
+- **Signup database repair** — New account creation no longer fails when checking Google OAuth verification; the Supabase helper now reads provider identities from the supported auth identity table and keeps execution limited to authenticated and service-role callers.
+- **Post-signup confirmation UX** — After signup succeeds, users now see a dedicated check-your-email page with the submitted email address, email-provider inbox shortcut when available, a return-to-sign-in action, and a longer success toast so the verification step is clear.
+
 ## [3.6.3] - 2026-05-24
 
 ### Fixed
@@ -1908,7 +1919,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.3...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.4...HEAD
+[3.6.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.3...v3.6.4
 [3.6.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.2...v3.6.3
 [3.6.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.1...v3.6.2
 [2.8.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.7.1...v2.8.0
