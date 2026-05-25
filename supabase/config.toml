@@ -197,6 +197,10 @@ verify_jwt = false
 # Internal admin endpoint for DSR lifecycle management. Requires authenticated admin/owner.
 # JWT verification handled inside the function via supabase.auth.getUser().
 
+[functions.delete-account]
+verify_jwt = false
+# Authenticated self-service account deletion. JWT verification handled via requireUser().
+
 [functions.record-terms-acceptance]
 verify_jwt = true
 
