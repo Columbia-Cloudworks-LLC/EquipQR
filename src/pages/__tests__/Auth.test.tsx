@@ -59,6 +59,7 @@ vi.mock('@/components/auth/SignUpForm', () => ({
   }) => (
     <div data-testid="signup-form">
       <button onClick={() => onSuccess('Account created', 'viralarchitect@yahoo.com')}>Submit SignUp</button>
+      <button onClick={() => onSuccess('Legal acceptance recorded successfully.')}>Retry Acceptance Success</button>
       <button onClick={() => onError('Signup failed')}>Trigger SignUp Error</button>
     </div>
   )
@@ -184,6 +185,23 @@ describe('Auth Page', () => {
         description: 'Account created',
         duration: 10000,
       });
+    });
+
+    it('shows a generic success toast for non-signup success without email confirmation page', async () => {
+      mockLocation.search = '?tab=signup';
+      render(<Auth />);
+
+      fireEvent.click(screen.getByText('Retry Acceptance Success'));
+
+      await waitFor(() => {
+        expect(mockSuccessToast).toHaveBeenCalledWith({
+          title: 'Success',
+          description: 'Legal acceptance recorded successfully.',
+          duration: 10000,
+        });
+      });
+      expect(screen.queryByTestId('signup-success-page')).not.toBeInTheDocument();
+      expect(screen.getByTestId('signup-form')).toBeInTheDocument();
     });
   });
 

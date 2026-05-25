@@ -100,10 +100,20 @@ const Auth = () => {
   }, [user, authLoading, navigate, needsVerification, showMFAVerification]);
 
   const handleSuccess = (message: string, email?: string) => {
-    setSuccess({ message, email });
     setError(null);
+    if (email) {
+      setSuccess({ message, email });
+      showSuccessToast({
+        title: 'Check your email',
+        description: message,
+        duration: 10000,
+      });
+      return;
+    }
+
+    setSuccess(null);
     showSuccessToast({
-      title: 'Check your email',
+      title: 'Success',
       description: message,
       duration: 10000,
     });
