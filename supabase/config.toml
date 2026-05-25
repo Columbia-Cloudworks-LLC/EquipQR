@@ -152,6 +152,10 @@ verify_jwt = false
 verify_jwt = false
 # JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()
 
+[functions.list-google-drive-destinations]
+verify_jwt = false
+# JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()
+
 [functions.export-work-orders-to-google-docs]
 verify_jwt = false
 # JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()

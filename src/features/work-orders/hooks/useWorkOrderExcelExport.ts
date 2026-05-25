@@ -292,26 +292,35 @@ export function useWorkOrderExcelExport(
       window.open(result.spreadsheetUrl, '_blank', 'noopener,noreferrer');
       toast({
         title: 'Export Complete',
-        description: `Created Google Sheet for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName} (${result.workOrderCount} work orders).`,
+        description: `Created Google Sheet in your organization Drive folder for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName} (${result.workOrderCount} work orders).`,
       });
     },
     onError: (error: Error & { code?: string }) => {
       logger.error('Google Sheets export error', error);
-      
-      // Check if this is an insufficient scopes error
+
       if (error.code === 'insufficient_scopes' || error.code === 'not_connected') {
         toast({
           title: 'Google Workspace Permissions Required',
           description: 'Please reconnect Google Workspace in Organization Settings to enable this feature.',
           variant: 'error',
         });
-      } else {
+        return;
+      }
+
+      if (error.code === 'missing_destination') {
         toast({
-          title: 'Export Failed',
-          description: error.message || `Failed to export ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName.toLowerCase()} to Google Sheets.`,
+          title: 'Organization Drive Folder Required',
+          description: 'Set an organization Drive folder in Organization Settings before exporting.',
           variant: 'error',
         });
+        return;
       }
+
+      toast({
+        title: 'Export Failed',
+        description: error.message || `Failed to export ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName.toLowerCase()} to Google Sheets.`,
+        variant: 'error',
+      });
     },
   });
 
@@ -329,8 +338,8 @@ export function useWorkOrderExcelExport(
         });
       }
       const desc = result.replacedPrevious
-        ? `Updated Google Doc for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`
-        : `Created Google Doc for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`;
+        ? `Updated Google Doc in your organization Drive folder for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`
+        : `Created Google Doc in your organization Drive folder for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`;
       sonnerToast.success('Export Complete', {
         description: desc,
         action: {
@@ -360,8 +369,8 @@ export function useWorkOrderExcelExport(
 
       if (error.code === 'missing_destination') {
         toast({
-          title: 'Destination Required',
-          description: 'Set a Google Docs export destination in Organization Settings before exporting.',
+          title: 'Organization Drive Folder Required',
+          description: 'Set an organization Drive folder in Organization Settings before exporting.',
           variant: 'error',
         });
         return;
@@ -467,8 +476,8 @@ export function useWorkOrderExcelExport(
           queryKey: exportArtifacts.byRecord(organizationId, 'work_order', workOrderId),
         });
         const desc = result.replacedPrevious
-          ? `Updated Google Doc for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`
-          : `Created Google Doc for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`;
+          ? `Updated Google Doc in your organization Drive folder for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`
+          : `Created Google Doc in your organization Drive folder for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`;
         sonnerToast.success('Export Complete', {
           description: desc,
           action: {
@@ -487,8 +496,8 @@ export function useWorkOrderExcelExport(
         const typedError = error as Error & { code?: string };
         if (typedError.code === 'missing_destination') {
           toast({
-            title: 'Destination Required',
-            description: 'Set a Google Docs export destination in Organization Settings before exporting.',
+            title: 'Organization Drive Folder Required',
+            description: 'Set an organization Drive folder in Organization Settings before exporting.',
             variant: 'error',
           });
         } else if (typedError.code === 'insufficient_scopes' || typedError.code === 'not_connected') {
