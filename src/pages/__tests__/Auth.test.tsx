@@ -178,6 +178,7 @@ describe('Auth Page', () => {
       });
       expect(screen.queryByTestId('signup-form')).not.toBeInTheDocument();
       expect(screen.getByRole('link', { name: /open email inbox/i })).toHaveAttribute('href', 'https://mail.yahoo.com/');
+      expect(screen.getByRole('link', { name: /open email inbox/i })).toHaveAttribute('rel', 'noopener noreferrer');
       expect(mockSuccessToast).toHaveBeenCalledWith({
         title: 'Check your email',
         description: 'Account created',

@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import HCaptchaComponent from '@/components/ui/HCaptcha';
-import { supabase } from '@/integrations/supabase/client';
+import { getCurrentAuthSession, signUpWithEmail } from '@/services/authSignupService';
 import {
   PASSWORD_POLICY,
   validatePasswordComplexity,
@@ -210,14 +210,12 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       signUpData.privacy_version_hash = PRIVACY_VERSION_HASH;
       signUpData.terms_accepted_at = new Date().toISOString();
 
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await signUpWithEmail({
         email: submittedEmail,
         password: formData.password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: signUpData,
-          ...(hcaptchaEnabled && hcaptchaToken ? { captchaToken: hcaptchaToken } : {}),
-        },
+        emailRedirectTo: redirectUrl,
+        data: signUpData,
+        ...(hcaptchaEnabled && hcaptchaToken ? { captchaToken: hcaptchaToken } : {}),
       });
 
       if (error) {
@@ -274,8 +272,8 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
   const handleRetryAcceptance = async () => {
     setIsLoading(true);
     try {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
+      const { session } = await getCurrentAuthSession();
+      const token = session?.access_token;
       if (!token) {
         onError('Sign in first, then retry saving acceptance.');
         setIsLoading(false);
@@ -284,7 +282,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       const ok = await recordTermsAcceptance(token);
       if (ok) {
         setShowRetryAcceptance(false);
-        const uid = data.session?.user?.id;
+        const uid = session?.user?.id;
         if (uid) clearPendingTermsAcceptanceForUser(uid);
         onSuccess('Legal acceptance recorded successfully.');
       } else {

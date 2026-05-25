@@ -185,7 +185,7 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-linear-to-br from-info/10 to-primary/20">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-info/10 to-primary/20">
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
@@ -234,7 +234,7 @@ const Auth = () => {
                 <div className="space-y-2">
                   {inboxUrl ? (
                     <Button asChild className="w-full">
-                      <a href={inboxUrl} target="_blank" rel="noreferrer">
+                      <a href={inboxUrl} target="_blank" rel="noopener noreferrer">
                         Open email inbox
                         <ExternalLink className="h-4 w-4" aria-hidden />
                       </a>

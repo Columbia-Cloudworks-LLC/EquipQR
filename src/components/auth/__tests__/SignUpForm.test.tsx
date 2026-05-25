@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import SignUpForm from '../SignUpForm';
 
-import { supabase } from '@/integrations/supabase/client';
+import * as authSignupService from '@/services/authSignupService';
 import { PRIVACY_VERSION_HASH, TERMS_VERSION_HASH } from '@/lib/legalPolicyVersions';
 import type { AuthError } from '@supabase/supabase-js';
 
@@ -16,14 +16,9 @@ vi.mock('@/lib/hibpPasswordCheck', () => ({
   checkPasswordBreachedHibp: vi.fn(() => Promise.resolve({ status: 'ok' as const, breached: false })),
 }));
 
-// Mock Supabase
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    auth: {
-      signUp: vi.fn(),
-      getSession: vi.fn(),
-    },
-  },
+vi.mock('@/services/authSignupService', () => ({
+  signUpWithEmail: vi.fn(),
+  getCurrentAuthSession: vi.fn(),
 }));
 
 // Mock HCaptcha component
@@ -61,8 +56,8 @@ vi.mock('@/components/ui/HCaptcha', () => ({
   )
 }));
 
-const mockSignUp = vi.mocked(supabase.auth.signUp);
-const mockGetSession = vi.mocked(supabase.auth.getSession);
+const mockSignUpWithEmail = vi.mocked(authSignupService.signUpWithEmail);
+const mockGetCurrentAuthSession = vi.mocked(authSignupService.getCurrentAuthSession);
 
 const withRouter = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
@@ -122,16 +117,15 @@ describe('SignUpForm', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSignUp.mockResolvedValue({
+    mockSignUpWithEmail.mockResolvedValue({
       error: null,
       data: {
         user: { id: 'u1' } as never,
         session: { access_token: 'test-access-token' } as never,
       },
     });
-    mockGetSession.mockResolvedValue({
-      data: { session: { access_token: 'test-access-token' } as never },
-      error: null,
+    mockGetCurrentAuthSession.mockResolvedValue({
+      session: { access_token: 'test-access-token' } as never,
     });
     vi.stubGlobal(
       'fetch',
@@ -408,21 +402,19 @@ describe('SignUpForm', () => {
       fireEvent.click(screen.getByRole('button', { name: /create account & organization/i }));
       
       await waitFor(() => {
-        expect(mockSignUp).toHaveBeenCalledWith({
+        expect(mockSignUpWithEmail).toHaveBeenCalledWith({
           email: 'john@example.com',
           password: 'SecurePass1!',
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              name: 'John Doe',
-              organization_name: 'Test Organization',
-              terms_accepted: 'true',
-              terms_version_hash: TERMS_VERSION_HASH,
-              privacy_version_hash: PRIVACY_VERSION_HASH,
-              terms_accepted_at: expect.any(String),
-            },
-            captchaToken: 'mock-captcha-token'
-          }
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            name: 'John Doe',
+            organization_name: 'Test Organization',
+            terms_accepted: 'true',
+            terms_version_hash: TERMS_VERSION_HASH,
+            privacy_version_hash: PRIVACY_VERSION_HASH,
+            terms_accepted_at: expect.any(String),
+          },
+          captchaToken: 'mock-captcha-token',
         });
       });
       
@@ -449,14 +441,14 @@ describe('SignUpForm', () => {
       expect(onError).toHaveBeenCalledWith(
         'Please accept the Terms of Service and Privacy Policy to continue.',
       );
-      expect(mockSignUp).not.toHaveBeenCalled();
+      expect(mockSignUpWithEmail).not.toHaveBeenCalled();
     });
 
     it('should handle Supabase signup error', async () => {
       const onError = vi.fn();
       const setIsLoading = vi.fn();
       
-      mockSignUp.mockResolvedValue({ 
+      mockSignUpWithEmail.mockResolvedValue({ 
         error: {
           message: 'Email already registered',
           code: 'user_already_exists',
@@ -484,7 +476,7 @@ describe('SignUpForm', () => {
       const onError = vi.fn();
       const setIsLoading = vi.fn();
       
-      mockSignUp.mockRejectedValue(new Error('Network error'));
+      mockSignUpWithEmail.mockRejectedValue(new Error('Network error'));
       
       withRouter(<SignUpForm {...defaultProps} onError={onError} setIsLoading={setIsLoading} />);
       
@@ -504,7 +496,7 @@ describe('SignUpForm', () => {
       const setIsLoading = vi.fn();
       
       // Use instant resolution instead of setTimeout
-      mockSignUp.mockResolvedValue({ error: null, data: { user: null, session: null } });
+      mockSignUpWithEmail.mockResolvedValue({ error: null, data: { user: null, session: null } });
       
       withRouter(<SignUpForm {...defaultProps} setIsLoading={setIsLoading} />);
       
@@ -522,7 +514,7 @@ describe('SignUpForm', () => {
     });
 
     it('should reset captcha token on error', async () => {
-      mockSignUp.mockResolvedValue({ 
+      mockSignUpWithEmail.mockResolvedValue({ 
         error: {
           message: 'Signup failed',
           code: 'signup_error',
@@ -570,7 +562,7 @@ describe('SignUpForm', () => {
       let resolveSignUp!: (value: SignUpResolution) => void;
       
       // Mock signUp with a controlled promise that doesn't resolve immediately
-      mockSignUp.mockImplementation(() => 
+      mockSignUpWithEmail.mockImplementation(() => 
         new Promise(resolve => {
           resolveSignUp = resolve;
         })
@@ -615,7 +607,7 @@ describe('SignUpForm', () => {
       fireEvent.click(submitButton);
       
       // Verify only ONE call was made despite multiple click attempts
-      expect(mockSignUp).toHaveBeenCalledTimes(1);
+      expect(mockSignUpWithEmail).toHaveBeenCalledTimes(1);
       
       // Resolve the promise to clean up
       resolveSignUp({
@@ -649,7 +641,7 @@ describe('SignUpForm', () => {
     it('should handle non-Error exceptions', async () => {
       const onError = vi.fn();
       
-      mockSignUp.mockRejectedValue('String error');
+      mockSignUpWithEmail.mockRejectedValue('String error');
       
       withRouter(<SignUpForm {...defaultProps} onError={onError} />);
       
@@ -953,24 +945,22 @@ describe('SignUpForm', () => {
       fireEvent.click(submitButton);
       
       await waitFor(() => {
-        expect(mockSignUp).toHaveBeenCalledWith({
+        expect(mockSignUpWithEmail).toHaveBeenCalledWith({
           email: 'john@example.com',
           password: 'SecurePass1!',
-          options: {
-            emailRedirectTo: expect.any(String),
-            data: {
-              name: 'John Doe',
-              organization_name: 'My Company',
-              invited_organization_id: 'org-123',
-              invited_organization_name: 'Acme Corporation',
-              signup_source: 'invite',
-              terms_accepted: 'true',
-              terms_version_hash: TERMS_VERSION_HASH,
-              privacy_version_hash: PRIVACY_VERSION_HASH,
-              terms_accepted_at: expect.any(String),
-            },
-            captchaToken: 'mock-captcha-token'
-          }
+          emailRedirectTo: expect.any(String),
+          data: {
+            name: 'John Doe',
+            organization_name: 'My Company',
+            invited_organization_id: 'org-123',
+            invited_organization_name: 'Acme Corporation',
+            signup_source: 'invite',
+            terms_accepted: 'true',
+            terms_version_hash: TERMS_VERSION_HASH,
+            privacy_version_hash: PRIVACY_VERSION_HASH,
+            terms_accepted_at: expect.any(String),
+          },
+          captchaToken: 'mock-captcha-token',
         });
       });
     });
