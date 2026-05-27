@@ -1,10 +1,12 @@
 @echo off
-REM One-click local Playwright user regression (headed critical suite by default).
+REM One-click local Playwright user regression (headless critical suite by default).
 setlocal
 set "SCRIPT_DIR=%~dp0"
 set "SUITE=critical"
-set "HEADED=1"
-set "HEADLESS=0"
+set "HEADED=0"
+set "HEADLESS=1"
+set "WATCH=0"
+set "RECORD_VIDEO=0"
 set "DEBUG=0"
 set "RESET_DB=0"
 
@@ -14,16 +16,21 @@ if /I "%~1"=="critical" set "SUITE=critical" & shift & goto parse_args
 if /I "%~1"=="full" set "SUITE=full" & shift & goto parse_args
 if /I "%~1"=="headed" set "HEADED=1" & set "HEADLESS=0" & shift & goto parse_args
 if /I "%~1"=="headless" set "HEADED=0" & set "HEADLESS=1" & shift & goto parse_args
+if /I "%~1"=="watch" set "WATCH=1" & set "HEADED=1" & set "HEADLESS=0" & shift & goto parse_args
+if /I "%~1"=="record" set "RECORD_VIDEO=1" & shift & goto parse_args
+if /I "%~1"=="video" set "RECORD_VIDEO=1" & shift & goto parse_args
 if /I "%~1"=="debug" set "DEBUG=1" & shift & goto parse_args
 if /I "%~1"=="reset-db" set "RESET_DB=1" & shift & goto parse_args
 echo Unknown argument: %~1
-echo Usage: dev-test.bat [critical^|full] [headed^|headless] [debug] [reset-db]
+echo Usage: dev-test.bat [critical^|full] [headed^|headless^|watch] [record^|video] [debug] [reset-db]
 exit /b 2
 
 :run
 set "PS_ARGS=-Suite %SUITE%"
 if "%HEADED%"=="1" if "%HEADLESS%"=="0" set "PS_ARGS=%PS_ARGS% -Headed"
 if "%HEADLESS%"=="1" set "PS_ARGS=%PS_ARGS% -Headless"
+if "%WATCH%"=="1" set "PS_ARGS=%PS_ARGS% -Watch"
+if "%RECORD_VIDEO%"=="1" set "PS_ARGS=%PS_ARGS% -RecordVideo"
 if "%DEBUG%"=="1" set "PS_ARGS=%PS_ARGS% -PlaywrightDebug"
 if "%RESET_DB%"=="1" set "PS_ARGS=%PS_ARGS% -ResetDb"
 

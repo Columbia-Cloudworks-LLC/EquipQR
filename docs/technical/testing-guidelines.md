@@ -219,7 +219,8 @@ it('navigates to details on row click', async () => {
 Local browser tests against `http://localhost:8080` with seeded Dev Quick Login users. See [e2e-user-regression.md](./e2e-user-regression.md).
 
 ```powershell
-.\dev-test.bat              # headed critical (default)
+.\dev-test.bat              # headless critical (default)
+.\dev-test.bat watch        # visible, slowed, non-interactive
 npm run test:e2e:critical     # headless critical
 npm run test:e2e:full         # headless full suite
 ```

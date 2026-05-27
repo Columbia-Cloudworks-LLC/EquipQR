@@ -5,6 +5,9 @@ import { defineConfig, devices } from '@playwright/test';
 const repoRoot = process.cwd();
 const baseURL = (process.env.E2E_BASE_URL || 'http://localhost:8080').replace(/\/+$/, '');
 const authDir = path.join(repoRoot, 'tmp', 'playwright', 'auth');
+const slowMo = Number.parseInt(process.env.E2E_SLOW_MO_MS || '0', 10);
+const recordAllVideos = process.env.E2E_RECORD_VIDEO === '1';
+const annotateVideos = process.env.E2E_VIDEO_ANNOTATIONS === '1';
 
 function storageStateFor(persona: string): string | undefined {
   const filePath = path.join(authDir, `${persona}.json`);
@@ -30,7 +33,29 @@ export default defineConfig({
     baseURL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    video: annotateVideos
+      ? {
+          mode: recordAllVideos ? 'on' : 'retain-on-failure',
+          size: { width: 1280, height: 720 },
+          show: {
+            actions: {
+              duration: 900,
+              position: 'top-right',
+              fontSize: 14,
+            },
+            test: {
+              level: 'title',
+              position: 'top-left',
+              fontSize: 12,
+            },
+          },
+        }
+      : recordAllVideos
+        ? 'on'
+        : 'retain-on-failure',
+    ...(Number.isFinite(slowMo) && slowMo > 0
+      ? { launchOptions: { slowMo } }
+      : {}),
     ...devices['Desktop Chrome'],
   },
   projects: [

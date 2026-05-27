@@ -26,7 +26,9 @@ test.describe('public routes @critical', () => {
 
   test('auth page shows dev quick login on localhost', async ({ page }) => {
     await page.goto('/auth');
-    await expect(page.getByText(/dev quick login/i)).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('span', { hasText: /^Dev Quick Login$/ })).toBeVisible({
+      timeout: 30_000,
+    });
     await expect(page.getByRole('button', { name: /quick login/i })).toBeVisible();
   });
 

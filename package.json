@@ -31,6 +31,8 @@
     "test:e2e:critical": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-user-regression.ps1 -Suite critical -Headless",
     "test:e2e:full": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-user-regression.ps1 -Suite full -Headless",
     "test:e2e:headed": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-user-regression.ps1 -Suite critical -Headed",
+    "test:e2e:watch": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-user-regression.ps1 -Suite critical -Watch",
+    "test:e2e:record": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-user-regression.ps1 -Suite critical -RecordVideo",
     "test:db": "supabase test db",
     "db:start": "supabase start",
     "test:ci": "npm run test:coverage && node scripts/coverage-ratchet.mjs",

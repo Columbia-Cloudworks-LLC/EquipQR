@@ -12,6 +12,12 @@
 .PARAMETER Headless
   Force headless mode (overrides Headed default from dev-test.bat).
 
+.PARAMETER Watch
+  Show the browser with an in-page status overlay and slow motion for passive observation.
+
+.PARAMETER RecordVideo
+  Save video for every test instead of only retaining videos on failure.
+
 .PARAMETER PlaywrightDebug
   Run Playwright in debug mode.
 
@@ -33,6 +39,8 @@ param(
 
     [switch]$Headed,
     [switch]$Headless,
+    [switch]$Watch,
+    [switch]$RecordVideo,
     [switch]$PlaywrightDebug,
     [switch]$ResetDb,
     [switch]$SkipStackStart
@@ -134,11 +142,36 @@ if ($Headed -and -not $Headless) {
     $playwrightArgs += '--headed'
 }
 
+if ($Watch) {
+    $env:E2E_ACTION_OVERLAY = '1'
+    $env:E2E_VIDEO_ANNOTATIONS = '1'
+    if (-not $env:E2E_SLOW_MO_MS) {
+        $env:E2E_SLOW_MO_MS = '800'
+    }
+    if (-not $env:E2E_WATCH_PAUSE_MS) {
+        $env:E2E_WATCH_PAUSE_MS = '1000'
+    }
+    if (-not $Headless -and -not ($playwrightArgs -contains '--headed')) {
+        $playwrightArgs += '--headed'
+    }
+}
+
+if ($RecordVideo) {
+    $env:E2E_RECORD_VIDEO = '1'
+    $env:E2E_VIDEO_ANNOTATIONS = '1'
+}
+
 if ($PlaywrightDebug) {
     $playwrightArgs += '--debug'
 }
 
 Write-Host "[EquipQR E2E] Running suite: $Suite"
+if ($Watch) {
+    Write-Host "[EquipQR E2E] Watch mode: overlay enabled, slowMo=$env:E2E_SLOW_MO_MS ms, pause=$env:E2E_WATCH_PAUSE_MS ms"
+}
+if ($RecordVideo) {
+    Write-Host "[EquipQR E2E] Recording videos for every test under tmp\playwright\test-results"
+}
 Write-Host "[EquipQR E2E] Command: npx $($playwrightArgs -join ' ')"
 
 & npx @playwrightArgs
