@@ -59,6 +59,8 @@ deno.lock
 # Playwright Files
 .playwright-mcp/*
 .playwright-cli/*
+playwright-report/
+test-results/
 
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md

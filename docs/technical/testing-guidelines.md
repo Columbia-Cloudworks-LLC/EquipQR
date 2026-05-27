@@ -17,7 +17,7 @@ As a fast-moving codebase with a solo/small team:
 
 ```
          /\
-        /  \      ← Rare: Smoke E2E (future Playwright, if needed)
+         /  \      ← Playwright user regression (`dev-test.bat`, `e2e/user/`)
        /----\
       /      \    ← Default: Journey tests (RTL + user-event + Vitest)
      /--------\
@@ -212,6 +212,16 @@ it('navigates to details on row click', async () => {
 
   expect(history.location.pathname).toBe(`/dashboard/equipment/${equipment.forklift1.id}`);
 });
+```
+
+## Playwright User Regression
+
+Local browser tests against `http://localhost:8080` with seeded Dev Quick Login users. See [e2e-user-regression.md](./e2e-user-regression.md).
+
+```powershell
+.\dev-test.bat              # headed critical (default)
+npm run test:e2e:critical     # headless critical
+npm run test:e2e:full         # headless full suite
 ```
 
 ## Running Tests
