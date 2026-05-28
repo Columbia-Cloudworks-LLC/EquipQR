@@ -63,21 +63,28 @@ Demo recording still uses `playwright.config.ts` and `e2e/demo-smoke.spec.ts`.
 
 ## Watch And Recording Modes
 
-`watch` mode is non-interactive. It opens Chromium, injects an EquipQR status overlay into pages, and pauses after each visible step for recording readability. It is for observing the regression flow, not for clicking around manually. By default the overlay uses `debug` mode, which is intended for internal regression review.
+`watch` mode is non-interactive. It opens Chromium and pauses after each navigation step for recording readability. It is for observing the regression flow, not for clicking around manually. By default no overlay is shown, so the recorded UI stays uncluttered.
 
-`record` mode saves video for every test under `tmp/playwright/test-results/`. Default `record` videos include Playwright action/test annotations when supported, so they are best for engineering evidence and debugging.
+`record` mode saves video for every test under a named run folder inside `tmp/playwright/test-results/`. The folder name includes the viewport and recording context, such as `mobile-record-work-orders` or `desktop-record-debug`.
 
-Use `marketing` overlay mode for support, training, or customer-facing footage. It renders a branded lower-third caption with the EquipQR icon and human-readable step text only; URLs, route details, test names, and Playwright action/test annotations are suppressed. The shorthand `support-record` runs the full suite with `watch`, `record`, and `marketing` enabled.
+Use `marketing` overlay mode only when you explicitly want a branded lower-third. When a recording title is provided, that title stays on-screen so the clip can be reused on the relevant support page. URLs, route details, test names, and Playwright action/test annotations are suppressed. The shorthand `support-record` runs the full suite with `watch`, `record`, and `marketing` enabled.
 
 ```powershell
-.\dev-test.bat full watch record marketing
+.\dev-test.bat full watch record marketing "title=Work Orders"
 .\dev-test.bat support-record
 ```
 
-Use `debug-overlay` when you want the technical overlay explicitly:
+Use `mobile` to force the suite into an iPhone-sized viewport for mobile UI review and mobile demo recordings:
 
 ```powershell
-.\dev-test.bat full watch record debug-overlay
+.\dev-test.bat mobile watch record marketing "title=Work Orders"
+.\scripts\run-user-regression.ps1 -Suite full -Watch -RecordVideo -ViewportMode mobile -OverlayMode marketing -RecordingTitle "Work Orders"
+```
+
+Use `debug` when you want Playwright's built-in video annotations:
+
+```powershell
+.\dev-test.bat full watch record debug
 ```
 
 Watch mode defaults to a one-second pause after each visible overlay step and a five-second final review. On scrollable final pages, the final review gently scrolls from the top of the page to the bottom over that duration; shorter pages simply hold. You can tune those values without remembering environment variables by calling the runner directly:

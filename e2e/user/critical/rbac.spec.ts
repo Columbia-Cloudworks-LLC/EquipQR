@@ -1,7 +1,11 @@
 import path from 'path';
 import type { BrowserContext } from '@playwright/test';
 import { test, expect } from '../fixtures/equipqr-test';
-import { pauseForWatchMode } from '../shared/page-helpers';
+import {
+  expectNavigationLinkHidden,
+  expectNavigationLinkVisible,
+  pauseForWatchMode,
+} from '../shared/page-helpers';
 import { apexOrgId, authStatePath } from '../shared/seed-data';
 
 async function pinContextToApex(context: BrowserContext) {
@@ -20,10 +24,8 @@ async function pinContextToApex(context: BrowserContext) {
 test.describe('RBAC @critical', () => {
   test('owner sees admin-only sidebar items', async ({ page }) => {
     await page.goto('/dashboard');
-    await expect(page.getByRole('link', { name: /pm templates/i })).toBeVisible({
-      timeout: 30_000,
-    });
-    await expect(page.getByRole('link', { name: /audit log/i })).toBeVisible();
+    await expectNavigationLinkVisible(page, /pm templates/i);
+    await expectNavigationLinkVisible(page, /audit log/i);
   });
 
   test('technician does not see admin-only PM Templates link', async ({ browser }) => {
@@ -32,8 +34,8 @@ test.describe('RBAC @critical', () => {
     await pinContextToApex(context);
     const page = await context.newPage();
     await page.goto('/dashboard');
-    await expect(page.getByRole('link', { name: /pm templates/i })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: /audit log/i })).toHaveCount(0);
+    await expectNavigationLinkHidden(page, /pm templates/i);
+    await expectNavigationLinkHidden(page, /audit log/i);
     await pauseForWatchMode(page);
     await context.close();
   });

@@ -19,7 +19,13 @@
   Save video for every test instead of only retaining videos on failure.
 
 .PARAMETER OverlayMode
-  debug keeps technical status details; marketing uses a branded lower-third caption.
+  none shows no overlay; debug uses Playwright's built-in annotations; marketing uses the branded lower-third caption.
+
+.PARAMETER ViewportMode
+  desktop uses the normal browser viewport; mobile uses an iPhone-sized viewport.
+
+.PARAMETER RecordingTitle
+  Static marketing overlay title for reusable support recordings.
 
 .PARAMETER BaseUrl
   App URL to test. Defaults to http://localhost:8080.
@@ -56,8 +62,11 @@ param(
     [switch]$Headless,
     [switch]$Watch,
     [switch]$RecordVideo,
-    [ValidateSet('debug', 'marketing')]
+    [ValidateSet('none', 'debug', 'marketing')]
     [string]$OverlayMode,
+    [ValidateSet('desktop', 'mobile')]
+    [string]$ViewportMode,
+    [string]$RecordingTitle,
     [string]$BaseUrl = 'http://localhost:8080',
     [int]$SlowMoMs = -1,
     [int]$StagePauseMs = -1,
@@ -162,7 +171,9 @@ function Read-RunConfigDefaults {
         recordAllVideos = $false
         annotateVideos = $false
         actionOverlay = $false
-        overlayMode = 'debug'
+        overlayMode = 'none'
+        viewportMode = 'desktop'
+        recordingTitle = ''
         slowMoMs = 0
         stagePauseMs = 1000
         watchPauseMs = 5000
@@ -178,7 +189,9 @@ function Read-RunConfigDefaults {
         if ($null -ne $raw.recordAllVideos) { $fallback.recordAllVideos = [bool]$raw.recordAllVideos }
         if ($null -ne $raw.annotateVideos) { $fallback.annotateVideos = [bool]$raw.annotateVideos }
         if ($null -ne $raw.actionOverlay) { $fallback.actionOverlay = [bool]$raw.actionOverlay }
-        if ($raw.overlayMode -eq 'marketing' -or $raw.overlayMode -eq 'debug') { $fallback.overlayMode = [string]$raw.overlayMode }
+        if ($raw.overlayMode -eq 'none' -or $raw.overlayMode -eq 'marketing' -or $raw.overlayMode -eq 'debug') { $fallback.overlayMode = [string]$raw.overlayMode }
+        if ($raw.viewportMode -eq 'mobile' -or $raw.viewportMode -eq 'desktop') { $fallback.viewportMode = [string]$raw.viewportMode }
+        if ($null -ne $raw.recordingTitle) { $fallback.recordingTitle = ([string]$raw.recordingTitle).Trim() }
         if ($null -ne $raw.slowMoMs -and [int]$raw.slowMoMs -ge 0) { $fallback.slowMoMs = [int]$raw.slowMoMs }
         if ($null -ne $raw.stagePauseMs -and [int]$raw.stagePauseMs -ge 0) { $fallback.stagePauseMs = [int]$raw.stagePauseMs }
         if ($null -ne $raw.watchPauseMs -and [int]$raw.watchPauseMs -ge 0) { $fallback.watchPauseMs = [int]$raw.watchPauseMs }
@@ -190,6 +203,8 @@ function Read-RunConfigDefaults {
 }
 
 $defaultRunConfig = Read-RunConfigDefaults
+$resolvedViewportMode = if ($ViewportMode) { $ViewportMode } else { $defaultRunConfig.viewportMode }
+$resolvedRecordingTitle = if ($RecordingTitle) { $RecordingTitle.Trim() } else { $defaultRunConfig.recordingTitle }
 
 $playwrightArgs = @(
     'playwright', 'test',
@@ -228,19 +243,47 @@ if ($Watch) {
 } else {
     $resolvedOverlayMode = if ($OverlayMode) { $OverlayMode } else { $defaultRunConfig.overlayMode }
     $resolvedSlowMoMs = if ($SlowMoMs -gt 0) { $SlowMoMs } else { $defaultRunConfig.slowMoMs }
-    $resolvedStagePauseMs = if ($StagePauseMs -gt 0) { $StagePauseMs } else { $defaultRunConfig.stagePauseMs }
+    $resolvedStagePauseMs = if ($StagePauseMs -gt 0) { $StagePauseMs } else { 0 }
     $resolvedWatchPauseMs = if ($WatchPauseMs -gt 0) { $WatchPauseMs } else { $defaultRunConfig.watchPauseMs }
 }
 
-$actionOverlay = [bool]($Watch -or $resolvedOverlayMode -eq 'marketing' -or $defaultRunConfig.actionOverlay)
-$annotateVideos = [bool]($RecordVideo -or $Watch -or $defaultRunConfig.annotateVideos)
+$actionOverlay = [bool]($resolvedOverlayMode -eq 'marketing')
+$annotateVideos = [bool]($resolvedOverlayMode -eq 'debug')
+$recordAllVideos = [bool]($RecordVideo -or $defaultRunConfig.recordAllVideos)
+
+function ConvertTo-ArtifactToken {
+    param([string]$Value)
+    $token = $Value.ToLowerInvariant().Trim()
+    $token = [regex]::Replace($token, '[^a-z0-9-]+', '-')
+    $token = [regex]::Replace($token, '-+', '-')
+    return $token.Trim('-')
+}
+
+$artifactParts = @(
+    (ConvertTo-ArtifactToken $resolvedViewportMode),
+    $(if ($recordAllVideos) { 'record' } else { 'test' })
+)
+if ($resolvedRecordingTitle) {
+    $artifactParts += (ConvertTo-ArtifactToken $resolvedRecordingTitle)
+} elseif ($resolvedOverlayMode -ne 'none') {
+    $artifactParts += (ConvertTo-ArtifactToken $resolvedOverlayMode)
+}
+$artifactContext = ($artifactParts | Where-Object { $_ }) -join '-'
+if (-not $artifactContext) {
+    $artifactContext = 'desktop-test'
+}
+$relativeOutputDir = "tmp/playwright/test-results/$artifactContext"
+$absoluteOutputDir = Join-Path $repoRoot ($relativeOutputDir -replace '/', '\')
 
 $runConfig = [ordered]@{
     baseURL = $appUrl
-    recordAllVideos = [bool]($RecordVideo -or $defaultRunConfig.recordAllVideos)
+    recordAllVideos = $recordAllVideos
     annotateVideos = $annotateVideos
     actionOverlay = $actionOverlay
     overlayMode = $resolvedOverlayMode
+    viewportMode = $resolvedViewportMode
+    recordingTitle = $resolvedRecordingTitle
+    outputDir = $relativeOutputDir
     slowMoMs = $resolvedSlowMoMs
     stagePauseMs = $resolvedStagePauseMs
     watchPauseMs = $resolvedWatchPauseMs
@@ -255,6 +298,8 @@ if ($PlaywrightDebug) {
 
 Write-Host "[EquipQR E2E] Running suite: $Suite"
 Write-Host "[EquipQR E2E] Effective config: $runConfigPath"
+Write-Host "[EquipQR E2E] Viewport mode: $resolvedViewportMode"
+Write-Host "[EquipQR E2E] Output folder: $absoluteOutputDir"
 if ($Watch) {
     Write-Host "[EquipQR E2E] Watch mode: overlay=$resolvedOverlayMode, stagePause=$resolvedStagePauseMs ms, finalPause=$resolvedWatchPauseMs ms, slowMo=$resolvedSlowMoMs ms"
 }
@@ -263,6 +308,13 @@ if ($RecordVideo) {
 }
 if ($resolvedOverlayMode -eq 'marketing') {
     Write-Host "[EquipQR E2E] Marketing overlay enabled; Playwright video annotations are suppressed."
+    if ($resolvedRecordingTitle) {
+        Write-Host "[EquipQR E2E] Recording title: $resolvedRecordingTitle"
+    }
+} elseif ($resolvedOverlayMode -eq 'debug') {
+    Write-Host "[EquipQR E2E] Debug overlay enabled; Playwright video annotations are enabled."
+} else {
+    Write-Host "[EquipQR E2E] Overlay disabled."
 }
 Write-Host "[EquipQR E2E] Command: npx $($playwrightArgs -join ' ')"
 
@@ -277,8 +329,7 @@ if ($exitCode -ne 0) {
 }
 
 if ($RecordVideo) {
-    $videoRoot = Join-Path $repoRoot 'tmp\playwright\test-results'
-    $videoFiles = @(Get-ChildItem -LiteralPath $videoRoot -Recurse -Filter 'video.webm' -File -ErrorAction SilentlyContinue)
+    $videoFiles = @(Get-ChildItem -LiteralPath $absoluteOutputDir -Recurse -Filter 'video.webm' -File -ErrorAction SilentlyContinue)
     Write-Host "[EquipQR E2E] Video files retained: $($videoFiles.Count)"
     if ($videoFiles.Count -gt 0) {
         Write-Host "[EquipQR E2E] First video: $($videoFiles[0].FullName)"

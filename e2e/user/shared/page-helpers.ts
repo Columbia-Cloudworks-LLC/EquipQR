@@ -18,10 +18,49 @@ export async function assertRouteHealthy(page: Page, route: string): Promise<voi
 
 export async function openSidebarLink(page: Page, linkName: RegExp | string): Promise<void> {
   await setActionOverlay(page, `Opening ${String(linkName)}`);
-  const link = page.getByRole('link', { name: linkName });
-  await expect(link.first()).toBeVisible({ timeout: 30_000 });
-  await link.first().click();
+  const link = await getVisibleNavigationLink(page, linkName);
+  await link.click();
   await setActionOverlay(page, `Loaded ${String(linkName)}`);
+}
+
+async function openMobileNavigationIfAvailable(page: Page): Promise<boolean> {
+  const mobileMenuButton = page.getByRole('button', { name: /open menu/i }).first();
+  if (!(await mobileMenuButton.isVisible({ timeout: 750 }).catch(() => false))) {
+    return false;
+  }
+
+  await mobileMenuButton.click();
+  await expect(page.locator('[data-mobile="true"][data-sidebar="sidebar"]')).toBeVisible({
+    timeout: 10_000,
+  });
+  return true;
+}
+
+async function getVisibleNavigationLink(page: Page, linkName: RegExp | string) {
+  const link = page.getByRole('link', { name: linkName }).first();
+  if (await link.isVisible({ timeout: 1_000 }).catch(() => false)) {
+    return link;
+  }
+
+  await openMobileNavigationIfAvailable(page);
+  await expect(link).toBeVisible({ timeout: 30_000 });
+  return link;
+}
+
+export async function expectNavigationLinkVisible(
+  page: Page,
+  linkName: RegExp | string,
+): Promise<void> {
+  const link = await getVisibleNavigationLink(page, linkName);
+  await expect(link).toBeVisible({ timeout: 30_000 });
+}
+
+export async function expectNavigationLinkHidden(
+  page: Page,
+  linkName: RegExp | string,
+): Promise<void> {
+  await openMobileNavigationIfAvailable(page);
+  await expect(page.getByRole('link', { name: linkName })).toHaveCount(0);
 }
 
 export async function pauseForWatchMode(page: Page): Promise<void> {
@@ -75,7 +114,7 @@ export async function installActionOverlay(page: Page, title: string): Promise<v
 
   const mode = runConfig.overlayMode;
 
-  await page.addInitScript(({ initialTitle, overlayMode }) => {
+  await page.addInitScript(({ initialTitle, overlayMode, recordingTitle }) => {
     const overlayId = 'equipqr-e2e-action-overlay';
     const ensureOverlay = () => {
       let overlay = document.getElementById(overlayId);
@@ -106,7 +145,7 @@ export async function installActionOverlay(page: Page, title: string): Promise<v
 
         const label = document.createElement('div');
         label.setAttribute('data-eqr-overlay-label', 'true');
-        label.textContent = overlayMode === 'marketing' ? 'EquipQR walkthrough' : 'EquipQR E2E';
+        label.textContent = overlayMode === 'marketing' ? 'EquipQR demo' : 'EquipQR E2E';
 
         const message = document.createElement('div');
         message.setAttribute('data-eqr-overlay-message', 'true');
@@ -208,6 +247,10 @@ export async function installActionOverlay(page: Page, title: string): Promise<v
     };
 
     const marketingMessage = (message: string) => {
+      if (recordingTitle) {
+        return recordingTitle;
+      }
+
       const line =
         message
           .split('\n')
@@ -242,7 +285,7 @@ export async function installActionOverlay(page: Page, title: string): Promise<v
     } else {
       setStatus(initialTitle);
     }
-  }, { initialTitle: title, overlayMode: mode });
+  }, { initialTitle: title, overlayMode: mode, recordingTitle: runConfig.recordingTitle });
 
   await setActionOverlay(page, title);
 
@@ -261,15 +304,16 @@ export async function setActionOverlay(
   message: string,
   options: ActionOverlayOptions = {},
 ): Promise<void> {
-  if (!runConfig.actionOverlay) return;
-  await page
-    .evaluate((status) => {
-      const setter = (window as Window & {
-        __equipqrE2ESetStatus?: (message: string) => void;
-      }).__equipqrE2ESetStatus;
-      setter?.(status);
-    }, message)
-    .catch(() => undefined);
+  if (runConfig.actionOverlay) {
+    await page
+      .evaluate((status) => {
+        const setter = (window as Window & {
+          __equipqrE2ESetStatus?: (message: string) => void;
+        }).__equipqrE2ESetStatus;
+        setter?.(status);
+      }, message)
+      .catch(() => undefined);
+  }
 
   if (options.pauseAfter === false) return;
   const pauseMs = runConfig.stagePauseMs;

@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 
-export type ActionOverlayMode = 'debug' | 'marketing';
+export type ActionOverlayMode = 'none' | 'debug' | 'marketing';
+export type UserRegressionViewportMode = 'desktop' | 'mobile';
 
 export type UserRegressionRunConfig = {
   baseURL: string;
@@ -9,6 +10,9 @@ export type UserRegressionRunConfig = {
   annotateVideos: boolean;
   actionOverlay: boolean;
   overlayMode: ActionOverlayMode;
+  viewportMode: UserRegressionViewportMode;
+  recordingTitle: string;
+  outputDir: string;
   slowMoMs: number;
   stagePauseMs: number;
   watchPauseMs: number;
@@ -19,7 +23,10 @@ const DEFAULT_CONFIG: UserRegressionRunConfig = {
   recordAllVideos: false,
   annotateVideos: false,
   actionOverlay: false,
-  overlayMode: 'debug',
+  overlayMode: 'none',
+  viewportMode: 'desktop',
+  recordingTitle: '',
+  outputDir: '',
   slowMoMs: 0,
   stagePauseMs: 0,
   watchPauseMs: 0,
@@ -40,7 +47,16 @@ function nonNegativeNumberOrDefault(value: unknown, fallback: number): number {
 }
 
 function overlayModeOrDefault(value: unknown): ActionOverlayMode {
-  return value === 'marketing' ? 'marketing' : 'debug';
+  if (value === 'marketing' || value === 'debug') return value;
+  return 'none';
+}
+
+function viewportModeOrDefault(value: unknown): UserRegressionViewportMode {
+  return value === 'mobile' ? 'mobile' : 'desktop';
+}
+
+function stringOrDefault(value: unknown, fallback: string): string {
+  return typeof value === 'string' ? value.trim() : fallback;
 }
 
 function baseUrlOrDefault(value: unknown): string {
@@ -55,6 +71,9 @@ function normalizeRunConfig(raw: Record<string, unknown>, fallback: UserRegressi
     annotateVideos: boolOrDefault(raw.annotateVideos, fallback.annotateVideos),
     actionOverlay: boolOrDefault(raw.actionOverlay, fallback.actionOverlay),
     overlayMode: overlayModeOrDefault(raw.overlayMode ?? fallback.overlayMode),
+    viewportMode: viewportModeOrDefault(raw.viewportMode ?? fallback.viewportMode),
+    recordingTitle: stringOrDefault(raw.recordingTitle, fallback.recordingTitle),
+    outputDir: stringOrDefault(raw.outputDir, fallback.outputDir),
     slowMoMs: nonNegativeNumberOrDefault(raw.slowMoMs, fallback.slowMoMs),
     stagePauseMs: nonNegativeNumberOrDefault(raw.stagePauseMs, fallback.stagePauseMs),
     watchPauseMs: nonNegativeNumberOrDefault(raw.watchPauseMs, fallback.watchPauseMs),
