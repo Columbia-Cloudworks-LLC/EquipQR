@@ -43,7 +43,7 @@ echo   critical          Run the critical suite (default).
 echo   full              Run the full user regression suite.
 echo   headed            Show the browser.
 echo   headless          Hide the browser (default).
-echo   watch             Headed passive-observation mode with slow motion.
+echo   watch             Headed passive-observation mode with step pauses.
 echo   record, video     Save videos for successful and failed tests.
 echo   marketing         Use the branded lower-third recording overlay.
 echo   debug-overlay     Use the technical overlay explicitly.

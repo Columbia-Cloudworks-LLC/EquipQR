@@ -10,6 +10,7 @@ export type UserRegressionRunConfig = {
   actionOverlay: boolean;
   overlayMode: ActionOverlayMode;
   slowMoMs: number;
+  stagePauseMs: number;
   watchPauseMs: number;
 };
 
@@ -20,9 +21,11 @@ const DEFAULT_CONFIG: UserRegressionRunConfig = {
   actionOverlay: false,
   overlayMode: 'debug',
   slowMoMs: 0,
+  stagePauseMs: 0,
   watchPauseMs: 0,
 };
 
+const DEFAULT_CONFIG_PATH = path.join(process.cwd(), 'e2e', 'user', 'run-config.defaults.json');
 const RUN_CONFIG_PATH = path.join(process.cwd(), 'tmp', 'playwright', 'run-config.json');
 const MAX_CONFIG_AGE_MS = 6 * 60 * 60 * 1000;
 
@@ -45,24 +48,44 @@ function baseUrlOrDefault(value: unknown): string {
   return value.trim().replace(/\/+$/, '');
 }
 
+function normalizeRunConfig(raw: Record<string, unknown>, fallback: UserRegressionRunConfig): UserRegressionRunConfig {
+  return {
+    baseURL: baseUrlOrDefault(raw.baseURL ?? fallback.baseURL),
+    recordAllVideos: boolOrDefault(raw.recordAllVideos, fallback.recordAllVideos),
+    annotateVideos: boolOrDefault(raw.annotateVideos, fallback.annotateVideos),
+    actionOverlay: boolOrDefault(raw.actionOverlay, fallback.actionOverlay),
+    overlayMode: overlayModeOrDefault(raw.overlayMode ?? fallback.overlayMode),
+    slowMoMs: nonNegativeNumberOrDefault(raw.slowMoMs, fallback.slowMoMs),
+    stagePauseMs: nonNegativeNumberOrDefault(raw.stagePauseMs, fallback.stagePauseMs),
+    watchPauseMs: nonNegativeNumberOrDefault(raw.watchPauseMs, fallback.watchPauseMs),
+  };
+}
+
+function loadDefaultConfig(): UserRegressionRunConfig {
+  try {
+    const raw = JSON.parse(
+      fs.readFileSync(DEFAULT_CONFIG_PATH, 'utf8').replace(/^\uFEFF/, ''),
+    ) as Record<string, unknown>;
+    return normalizeRunConfig(raw, DEFAULT_CONFIG);
+  } catch {
+    return DEFAULT_CONFIG;
+  }
+}
+
 export function loadUserRegressionRunConfig(): UserRegressionRunConfig {
+  const defaults = loadDefaultConfig();
+
   try {
     const stat = fs.statSync(RUN_CONFIG_PATH);
     if (Date.now() - stat.mtimeMs > MAX_CONFIG_AGE_MS) {
-      return DEFAULT_CONFIG;
+      return defaults;
     }
 
-    const raw = JSON.parse(fs.readFileSync(RUN_CONFIG_PATH, 'utf8')) as Record<string, unknown>;
-    return {
-      baseURL: baseUrlOrDefault(raw.baseURL),
-      recordAllVideos: boolOrDefault(raw.recordAllVideos, DEFAULT_CONFIG.recordAllVideos),
-      annotateVideos: boolOrDefault(raw.annotateVideos, DEFAULT_CONFIG.annotateVideos),
-      actionOverlay: boolOrDefault(raw.actionOverlay, DEFAULT_CONFIG.actionOverlay),
-      overlayMode: overlayModeOrDefault(raw.overlayMode),
-      slowMoMs: nonNegativeNumberOrDefault(raw.slowMoMs, DEFAULT_CONFIG.slowMoMs),
-      watchPauseMs: nonNegativeNumberOrDefault(raw.watchPauseMs, DEFAULT_CONFIG.watchPauseMs),
-    };
+    const raw = JSON.parse(
+      fs.readFileSync(RUN_CONFIG_PATH, 'utf8').replace(/^\uFEFF/, ''),
+    ) as Record<string, unknown>;
+    return normalizeRunConfig(raw, defaults);
   } catch {
-    return DEFAULT_CONFIG;
+    return defaults;
   }
 }

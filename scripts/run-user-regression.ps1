@@ -25,10 +25,13 @@
   App URL to test. Defaults to http://localhost:8080.
 
 .PARAMETER SlowMoMs
-  Slow motion delay for Watch mode. Defaults to 800 when Watch is set.
+  Playwright low-level slow motion delay. Defaults to 0.
+
+.PARAMETER StagePauseMs
+  Pause after each visible overlay step. Defaults to 1000 when Watch is set.
 
 .PARAMETER WatchPauseMs
-  Final-state pause for Watch mode. Defaults to 1000 when Watch is set.
+  Final-state pause for Watch mode. Defaults to 5000 when Watch is set.
 
 .PARAMETER PlaywrightDebug
   Run Playwright in debug mode.
@@ -57,6 +60,7 @@ param(
     [string]$OverlayMode,
     [string]$BaseUrl = 'http://localhost:8080',
     [int]$SlowMoMs = -1,
+    [int]$StagePauseMs = -1,
     [int]$WatchPauseMs = -1,
     [switch]$PlaywrightDebug,
     [switch]$ResetDb,
@@ -149,7 +153,43 @@ if (-not (Test-Path -LiteralPath $authDir)) {
     New-Item -ItemType Directory -Path $authDir -Force | Out-Null
 }
 
+$defaultRunConfigPath = Join-Path $repoRoot 'e2e\user\run-config.defaults.json'
 $runConfigPath = Join-Path $repoRoot 'tmp\playwright\run-config.json'
+
+function Read-RunConfigDefaults {
+    $fallback = [ordered]@{
+        baseURL = 'http://localhost:8080'
+        recordAllVideos = $false
+        annotateVideos = $false
+        actionOverlay = $false
+        overlayMode = 'debug'
+        slowMoMs = 0
+        stagePauseMs = 1000
+        watchPauseMs = 5000
+    }
+
+    if (-not (Test-Path -LiteralPath $defaultRunConfigPath)) {
+        return $fallback
+    }
+
+    try {
+        $raw = Get-Content -LiteralPath $defaultRunConfigPath -Raw | ConvertFrom-Json
+        if ($raw.baseURL) { $fallback.baseURL = [string]$raw.baseURL }
+        if ($null -ne $raw.recordAllVideos) { $fallback.recordAllVideos = [bool]$raw.recordAllVideos }
+        if ($null -ne $raw.annotateVideos) { $fallback.annotateVideos = [bool]$raw.annotateVideos }
+        if ($null -ne $raw.actionOverlay) { $fallback.actionOverlay = [bool]$raw.actionOverlay }
+        if ($raw.overlayMode -eq 'marketing' -or $raw.overlayMode -eq 'debug') { $fallback.overlayMode = [string]$raw.overlayMode }
+        if ($null -ne $raw.slowMoMs -and [int]$raw.slowMoMs -ge 0) { $fallback.slowMoMs = [int]$raw.slowMoMs }
+        if ($null -ne $raw.stagePauseMs -and [int]$raw.stagePauseMs -ge 0) { $fallback.stagePauseMs = [int]$raw.stagePauseMs }
+        if ($null -ne $raw.watchPauseMs -and [int]$raw.watchPauseMs -ge 0) { $fallback.watchPauseMs = [int]$raw.watchPauseMs }
+    } catch {
+        Write-Host "[EquipQR E2E] WARNING: Could not read $defaultRunConfigPath; using built-in defaults."
+    }
+
+    return $fallback
+}
+
+$defaultRunConfig = Read-RunConfigDefaults
 
 $playwrightArgs = @(
     'playwright', 'test',
@@ -165,15 +205,20 @@ if ($Watch) {
     if ($OverlayMode) {
         $resolvedOverlayMode = $OverlayMode
     } else {
-        $resolvedOverlayMode = 'debug'
+        $resolvedOverlayMode = $defaultRunConfig.overlayMode
     }
     if ($SlowMoMs -lt 0) {
-        $resolvedSlowMoMs = 800
+        $resolvedSlowMoMs = $defaultRunConfig.slowMoMs
     } else {
         $resolvedSlowMoMs = $SlowMoMs
     }
+    if ($StagePauseMs -lt 0) {
+        $resolvedStagePauseMs = if ($defaultRunConfig.stagePauseMs -gt 0) { $defaultRunConfig.stagePauseMs } else { 1000 }
+    } else {
+        $resolvedStagePauseMs = $StagePauseMs
+    }
     if ($WatchPauseMs -lt 0) {
-        $resolvedWatchPauseMs = 1000
+        $resolvedWatchPauseMs = if ($defaultRunConfig.watchPauseMs -gt 0) { $defaultRunConfig.watchPauseMs } else { 5000 }
     } else {
         $resolvedWatchPauseMs = $WatchPauseMs
     }
@@ -181,32 +226,37 @@ if ($Watch) {
         $playwrightArgs += '--headed'
     }
 } else {
-    $resolvedOverlayMode = if ($OverlayMode) { $OverlayMode } else { 'debug' }
-    $resolvedSlowMoMs = if ($SlowMoMs -gt 0) { $SlowMoMs } else { 0 }
-    $resolvedWatchPauseMs = if ($WatchPauseMs -gt 0) { $WatchPauseMs } else { 0 }
+    $resolvedOverlayMode = if ($OverlayMode) { $OverlayMode } else { $defaultRunConfig.overlayMode }
+    $resolvedSlowMoMs = if ($SlowMoMs -gt 0) { $SlowMoMs } else { $defaultRunConfig.slowMoMs }
+    $resolvedStagePauseMs = if ($StagePauseMs -gt 0) { $StagePauseMs } else { $defaultRunConfig.stagePauseMs }
+    $resolvedWatchPauseMs = if ($WatchPauseMs -gt 0) { $WatchPauseMs } else { $defaultRunConfig.watchPauseMs }
 }
 
-$actionOverlay = [bool]($Watch -or $resolvedOverlayMode -eq 'marketing')
-$annotateVideos = [bool]($RecordVideo -or $Watch)
+$actionOverlay = [bool]($Watch -or $resolvedOverlayMode -eq 'marketing' -or $defaultRunConfig.actionOverlay)
+$annotateVideos = [bool]($RecordVideo -or $Watch -or $defaultRunConfig.annotateVideos)
 
 $runConfig = [ordered]@{
     baseURL = $appUrl
-    recordAllVideos = [bool]$RecordVideo
+    recordAllVideos = [bool]($RecordVideo -or $defaultRunConfig.recordAllVideos)
     annotateVideos = $annotateVideos
     actionOverlay = $actionOverlay
     overlayMode = $resolvedOverlayMode
     slowMoMs = $resolvedSlowMoMs
+    stagePauseMs = $resolvedStagePauseMs
     watchPauseMs = $resolvedWatchPauseMs
+    generatedAt = (Get-Date).ToUniversalTime().ToString('o')
+    source = 'scripts/run-user-regression.ps1'
 }
-$runConfig | ConvertTo-Json -Depth 3 | Set-Content -Path $runConfigPath -Encoding utf8
+$runConfig | ConvertTo-Json -Depth 3 | Set-Content -Path $runConfigPath -Encoding ascii
 
 if ($PlaywrightDebug) {
     $playwrightArgs += '--debug'
 }
 
 Write-Host "[EquipQR E2E] Running suite: $Suite"
+Write-Host "[EquipQR E2E] Effective config: $runConfigPath"
 if ($Watch) {
-    Write-Host "[EquipQR E2E] Watch mode: overlay=$resolvedOverlayMode, slowMo=$resolvedSlowMoMs ms, pause=$resolvedWatchPauseMs ms"
+    Write-Host "[EquipQR E2E] Watch mode: overlay=$resolvedOverlayMode, stagePause=$resolvedStagePauseMs ms, finalPause=$resolvedWatchPauseMs ms, slowMo=$resolvedSlowMoMs ms"
 }
 if ($RecordVideo) {
     Write-Host "[EquipQR E2E] Recording videos for every test under tmp\playwright\test-results"
@@ -216,19 +266,22 @@ if ($resolvedOverlayMode -eq 'marketing') {
 }
 Write-Host "[EquipQR E2E] Command: npx $($playwrightArgs -join ' ')"
 
-try {
-    & npx @playwrightArgs
-    $exitCode = $LASTEXITCODE
-} finally {
-    if (Test-Path -LiteralPath $runConfigPath) {
-        Remove-Item -LiteralPath $runConfigPath -Force -ErrorAction SilentlyContinue
-    }
-}
+& npx @playwrightArgs
+$exitCode = $LASTEXITCODE
 
 if ($exitCode -ne 0) {
     $report = Join-Path $repoRoot 'tmp\playwright\report\index.html'
     if (Test-Path -LiteralPath $report) {
         Write-Host "[EquipQR E2E] HTML report: $report"
+    }
+}
+
+if ($RecordVideo) {
+    $videoRoot = Join-Path $repoRoot 'tmp\playwright\test-results'
+    $videoFiles = @(Get-ChildItem -LiteralPath $videoRoot -Recurse -Filter 'video.webm' -File -ErrorAction SilentlyContinue)
+    Write-Host "[EquipQR E2E] Video files retained: $($videoFiles.Count)"
+    if ($videoFiles.Count -gt 0) {
+        Write-Host "[EquipQR E2E] First video: $($videoFiles[0].FullName)"
     }
 }
 

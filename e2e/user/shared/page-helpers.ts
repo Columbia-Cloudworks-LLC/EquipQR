@@ -4,6 +4,10 @@ import { loadUserRegressionRunConfig } from './run-config';
 
 const runConfig = loadUserRegressionRunConfig();
 
+type ActionOverlayOptions = {
+  pauseAfter?: boolean;
+};
+
 export async function assertRouteHealthy(page: Page, route: string): Promise<void> {
   await setActionOverlay(page, `Opening ${route}`);
   await page.goto(route.startsWith('/') ? route : `/${route}`);
@@ -24,7 +28,7 @@ export async function pauseForWatchMode(page: Page): Promise<void> {
   const pauseMs = runConfig.watchPauseMs;
   if (!Number.isFinite(pauseMs) || pauseMs <= 0) return;
 
-  await setActionOverlay(page, 'Reviewing final state before closing');
+  await setActionOverlay(page, 'Reviewing final state before closing', { pauseAfter: false });
   await page.waitForTimeout(pauseMs);
 }
 
@@ -214,7 +218,11 @@ export async function installActionOverlay(page: Page, title: string): Promise<v
   });
 }
 
-export async function setActionOverlay(page: Page, message: string): Promise<void> {
+export async function setActionOverlay(
+  page: Page,
+  message: string,
+  options: ActionOverlayOptions = {},
+): Promise<void> {
   if (!runConfig.actionOverlay) return;
   await page
     .evaluate((status) => {
@@ -224,6 +232,12 @@ export async function setActionOverlay(page: Page, message: string): Promise<voi
       setter?.(status);
     }, message)
     .catch(() => undefined);
+
+  if (options.pauseAfter === false) return;
+  const pauseMs = runConfig.stagePauseMs;
+  if (Number.isFinite(pauseMs) && pauseMs > 0) {
+    await page.waitForTimeout(pauseMs);
+  }
 }
 
 export function attachConsoleErrorCollector(page: Page): string[] {

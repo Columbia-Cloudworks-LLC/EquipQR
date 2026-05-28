@@ -29,6 +29,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   timeout: 120_000,
   expect: { timeout: 20_000 },
+  preserveOutput: 'always',
   reporter: [
     ['list'],
     ['html', { open: 'never', outputFolder: 'tmp/playwright/report' }],
@@ -38,27 +39,24 @@ export default defineConfig({
     baseURL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: showPlaywrightAnnotations
-      ? {
-          mode: recordAllVideos ? 'on' : 'retain-on-failure',
-          size: videoSize,
-          show: {
-            actions: {
-              duration: 900,
-              position: 'top-right',
-              fontSize: 14,
-            },
-            test: {
-              level: 'title',
-              position: 'top-left',
-              fontSize: 12,
-            },
-          },
-        }
-      : recordAllVideos
+    video: recordAllVideos
+      ? 'on'
+      : showPlaywrightAnnotations
         ? {
-            mode: 'on',
+            mode: 'retain-on-failure',
             size: videoSize,
+            show: {
+              actions: {
+                duration: 900,
+                position: 'top-right',
+                fontSize: 14,
+              },
+              test: {
+                level: 'title',
+                position: 'top-left',
+                fontSize: 12,
+              },
+            },
           }
         : 'retain-on-failure',
     ...(Number.isFinite(slowMo) && slowMo > 0
