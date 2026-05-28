@@ -80,7 +80,7 @@ Use `debug-overlay` when you want the technical overlay explicitly:
 .\dev-test.bat full watch record debug-overlay
 ```
 
-Watch mode defaults to a one-second pause after each visible overlay step and a five-second hold on the final screen. You can tune those values without remembering environment variables by calling the runner directly:
+Watch mode defaults to a one-second pause after each visible overlay step and a five-second final review. On scrollable final pages, the final review gently scrolls from the top of the page to the bottom over that duration; shorter pages simply hold. You can tune those values without remembering environment variables by calling the runner directly:
 
 ```powershell
 .\scripts\run-user-regression.ps1 -Suite critical -Watch -StagePauseMs 1000 -WatchPauseMs 5000

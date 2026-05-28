@@ -29,7 +29,45 @@ export async function pauseForWatchMode(page: Page): Promise<void> {
   if (!Number.isFinite(pauseMs) || pauseMs <= 0) return;
 
   await setActionOverlay(page, 'Reviewing final state before closing', { pauseAfter: false });
-  await page.waitForTimeout(pauseMs);
+  const scrolled = await page
+    .evaluate(async (durationMs) => {
+      const root = document.scrollingElement ?? document.documentElement;
+      const maxScroll = Math.max(0, root.scrollHeight - window.innerHeight);
+      if (maxScroll < 24) return false;
+
+      root.scrollTop = 0;
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
+
+      const startedAt = performance.now();
+      await new Promise<void>((resolve) => {
+        const step = (now: number) => {
+          const elapsed = now - startedAt;
+          const progress = Math.min(1, elapsed / durationMs);
+          const eased = progress < 0.5
+            ? 2 * progress * progress
+            : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+          root.scrollTo(0, maxScroll * eased);
+
+          if (progress < 1) {
+            requestAnimationFrame(step);
+          } else {
+            resolve();
+          }
+        };
+
+        requestAnimationFrame(step);
+      });
+
+      return true;
+    }, pauseMs)
+    .catch(() => false);
+
+  if (!scrolled) {
+    await page.waitForTimeout(pauseMs);
+  }
 }
 
 export async function installActionOverlay(page: Page, title: string): Promise<void> {
