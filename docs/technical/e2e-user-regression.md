@@ -19,6 +19,8 @@ Browser end-to-end tests exercise the real local dev stack (Vite + Supabase seed
 .\dev-test.bat record
 .\dev-test.bat full record
 .\dev-test.bat full watch record
+.\dev-test.bat full watch record marketing
+.\dev-test.bat support-record
 
 # Plain headed, normal speed
 .\dev-test.bat headed
@@ -41,7 +43,7 @@ npm run test:e2e:record
 
 - Node 24.x and `npm ci`
 - Playwright Chromium: `npx playwright install chromium`
-- Local secrets via 1Password (`OP_SERVICE_ACCOUNT_TOKEN` or interactive `op`) so `dev-start.bat` can render `.env`
+- Local secrets via 1Password. `OP_SERVICE_ACCOUNT_TOKEN` is the only machine-level environment variable this test path should require; `dev-start.bat` uses it to render `.env` files.
 - Seeded users from `supabase/seeds/` (password `password123` unless `VITE_DEV_TEST_PASSWORD` overrides)
 
 ## Layout
@@ -59,16 +61,34 @@ Demo recording still uses `playwright.config.ts` and `e2e/demo-smoke.spec.ts`.
 
 ## Watch And Recording Modes
 
-`watch` mode is non-interactive. It opens Chromium, slows actions down with Playwright `slowMo`, and injects a small EquipQR E2E status overlay into pages. It is for observing the regression flow, not for clicking around manually.
+`watch` mode is non-interactive. It opens Chromium, slows actions down with Playwright `slowMo`, and injects an EquipQR status overlay into pages. It is for observing the regression flow, not for clicking around manually. By default the overlay uses `debug` mode, which is intended for internal regression review.
 
-`record` mode saves video for every test under `tmp/playwright/test-results/`. Videos include Playwright action/test annotations when supported, so they are easier to reuse for support documentation. Use `full record` when you want broad product footage, or `full watch record` when you want slower footage with the in-page EquipQR E2E overlay visible in the recording.
+`record` mode saves video for every test under `tmp/playwright/test-results/`. Default `record` videos include Playwright action/test annotations when supported, so they are best for engineering evidence and debugging.
 
-You can tune watch speed without editing files:
+Use `marketing` overlay mode for support, training, or customer-facing footage. It renders a branded lower-third caption with the EquipQR icon and human-readable step text only; URLs, route details, test names, and Playwright action/test annotations are suppressed. The shorthand `support-record` runs the full suite with `watch`, `record`, and `marketing` enabled.
 
 ```powershell
-$env:E2E_SLOW_MO_MS = "800"
-$env:E2E_WATCH_PAUSE_MS = "1000"
-.\dev-test.bat watch
+.\dev-test.bat full watch record marketing
+.\dev-test.bat support-record
+```
+
+Use `debug-overlay` when you want the technical overlay explicitly:
+
+```powershell
+.\dev-test.bat full watch record debug-overlay
+```
+
+You can tune watch speed without remembering environment variables by calling the runner directly:
+
+```powershell
+.\scripts\run-user-regression.ps1 -Suite critical -Watch -SlowMoMs 800 -WatchPauseMs 1000
+.\scripts\run-user-regression.ps1 -Suite full -Watch -RecordVideo -OverlayMode marketing -SlowMoMs 900 -WatchPauseMs 1500
+```
+
+To target a non-default app URL, pass `-BaseUrl`:
+
+```powershell
+.\scripts\run-user-regression.ps1 -Suite critical -Headed -BaseUrl http://localhost:8080
 ```
 
 ## Reports

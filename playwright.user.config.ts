@@ -1,13 +1,18 @@
 import fs from 'fs';
 import path from 'path';
 import { defineConfig, devices } from '@playwright/test';
+import { loadUserRegressionRunConfig } from './e2e/user/shared/run-config';
 
 const repoRoot = process.cwd();
-const baseURL = (process.env.E2E_BASE_URL || 'http://localhost:8080').replace(/\/+$/, '');
+const runConfig = loadUserRegressionRunConfig();
+const baseURL = runConfig.baseURL;
 const authDir = path.join(repoRoot, 'tmp', 'playwright', 'auth');
-const slowMo = Number.parseInt(process.env.E2E_SLOW_MO_MS || '0', 10);
-const recordAllVideos = process.env.E2E_RECORD_VIDEO === '1';
-const annotateVideos = process.env.E2E_VIDEO_ANNOTATIONS === '1';
+const slowMo = runConfig.slowMoMs;
+const recordAllVideos = runConfig.recordAllVideos;
+const annotateVideos = runConfig.annotateVideos;
+const overlayMode = runConfig.overlayMode;
+const showPlaywrightAnnotations = annotateVideos && overlayMode !== 'marketing';
+const videoSize = { width: 1280, height: 720 };
 
 function storageStateFor(persona: string): string | undefined {
   const filePath = path.join(authDir, `${persona}.json`);
@@ -33,10 +38,10 @@ export default defineConfig({
     baseURL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: annotateVideos
+    video: showPlaywrightAnnotations
       ? {
           mode: recordAllVideos ? 'on' : 'retain-on-failure',
-          size: { width: 1280, height: 720 },
+          size: videoSize,
           show: {
             actions: {
               duration: 900,
@@ -51,7 +56,10 @@ export default defineConfig({
           },
         }
       : recordAllVideos
-        ? 'on'
+        ? {
+            mode: 'on',
+            size: videoSize,
+          }
         : 'retain-on-failure',
     ...(Number.isFinite(slowMo) && slowMo > 0
       ? { launchOptions: { slowMo } }

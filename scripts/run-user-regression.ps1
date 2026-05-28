@@ -18,6 +18,18 @@
 .PARAMETER RecordVideo
   Save video for every test instead of only retaining videos on failure.
 
+.PARAMETER OverlayMode
+  debug keeps technical status details; marketing uses a branded lower-third caption.
+
+.PARAMETER BaseUrl
+  App URL to test. Defaults to http://localhost:8080.
+
+.PARAMETER SlowMoMs
+  Slow motion delay for Watch mode. Defaults to 800 when Watch is set.
+
+.PARAMETER WatchPauseMs
+  Final-state pause for Watch mode. Defaults to 1000 when Watch is set.
+
 .PARAMETER PlaywrightDebug
   Run Playwright in debug mode.
 
@@ -41,6 +53,11 @@ param(
     [switch]$Headless,
     [switch]$Watch,
     [switch]$RecordVideo,
+    [ValidateSet('debug', 'marketing')]
+    [string]$OverlayMode,
+    [string]$BaseUrl = 'http://localhost:8080',
+    [int]$SlowMoMs = -1,
+    [int]$WatchPauseMs = -1,
     [switch]$PlaywrightDebug,
     [switch]$ResetDb,
     [switch]$SkipStackStart
@@ -50,7 +67,7 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $repoRoot
 
-$appUrl = if ($env:E2E_BASE_URL) { $env:E2E_BASE_URL.TrimEnd('/') } else { 'http://localhost:8080' }
+$appUrl = $BaseUrl.TrimEnd('/')
 $supabaseRest = 'http://127.0.0.1:54321/rest/v1/'
 
 function Test-AppReady {
@@ -132,6 +149,8 @@ if (-not (Test-Path -LiteralPath $authDir)) {
     New-Item -ItemType Directory -Path $authDir -Force | Out-Null
 }
 
+$runConfigPath = Join-Path $repoRoot 'tmp\playwright\run-config.json'
+
 $playwrightArgs = @(
     'playwright', 'test',
     '--config=playwright.user.config.ts',
@@ -143,23 +162,43 @@ if ($Headed -and -not $Headless) {
 }
 
 if ($Watch) {
-    $env:E2E_ACTION_OVERLAY = '1'
-    $env:E2E_VIDEO_ANNOTATIONS = '1'
-    if (-not $env:E2E_SLOW_MO_MS) {
-        $env:E2E_SLOW_MO_MS = '800'
+    if ($OverlayMode) {
+        $resolvedOverlayMode = $OverlayMode
+    } else {
+        $resolvedOverlayMode = 'debug'
     }
-    if (-not $env:E2E_WATCH_PAUSE_MS) {
-        $env:E2E_WATCH_PAUSE_MS = '1000'
+    if ($SlowMoMs -lt 0) {
+        $resolvedSlowMoMs = 800
+    } else {
+        $resolvedSlowMoMs = $SlowMoMs
+    }
+    if ($WatchPauseMs -lt 0) {
+        $resolvedWatchPauseMs = 1000
+    } else {
+        $resolvedWatchPauseMs = $WatchPauseMs
     }
     if (-not $Headless -and -not ($playwrightArgs -contains '--headed')) {
         $playwrightArgs += '--headed'
     }
+} else {
+    $resolvedOverlayMode = if ($OverlayMode) { $OverlayMode } else { 'debug' }
+    $resolvedSlowMoMs = if ($SlowMoMs -gt 0) { $SlowMoMs } else { 0 }
+    $resolvedWatchPauseMs = if ($WatchPauseMs -gt 0) { $WatchPauseMs } else { 0 }
 }
 
-if ($RecordVideo) {
-    $env:E2E_RECORD_VIDEO = '1'
-    $env:E2E_VIDEO_ANNOTATIONS = '1'
+$actionOverlay = [bool]($Watch -or $resolvedOverlayMode -eq 'marketing')
+$annotateVideos = [bool]($RecordVideo -or $Watch)
+
+$runConfig = [ordered]@{
+    baseURL = $appUrl
+    recordAllVideos = [bool]$RecordVideo
+    annotateVideos = $annotateVideos
+    actionOverlay = $actionOverlay
+    overlayMode = $resolvedOverlayMode
+    slowMoMs = $resolvedSlowMoMs
+    watchPauseMs = $resolvedWatchPauseMs
 }
+$runConfig | ConvertTo-Json -Depth 3 | Set-Content -Path $runConfigPath -Encoding utf8
 
 if ($PlaywrightDebug) {
     $playwrightArgs += '--debug'
@@ -167,15 +206,24 @@ if ($PlaywrightDebug) {
 
 Write-Host "[EquipQR E2E] Running suite: $Suite"
 if ($Watch) {
-    Write-Host "[EquipQR E2E] Watch mode: overlay enabled, slowMo=$env:E2E_SLOW_MO_MS ms, pause=$env:E2E_WATCH_PAUSE_MS ms"
+    Write-Host "[EquipQR E2E] Watch mode: overlay=$resolvedOverlayMode, slowMo=$resolvedSlowMoMs ms, pause=$resolvedWatchPauseMs ms"
 }
 if ($RecordVideo) {
     Write-Host "[EquipQR E2E] Recording videos for every test under tmp\playwright\test-results"
 }
+if ($resolvedOverlayMode -eq 'marketing') {
+    Write-Host "[EquipQR E2E] Marketing overlay enabled; Playwright video annotations are suppressed."
+}
 Write-Host "[EquipQR E2E] Command: npx $($playwrightArgs -join ' ')"
 
-& npx @playwrightArgs
-$exitCode = $LASTEXITCODE
+try {
+    & npx @playwrightArgs
+    $exitCode = $LASTEXITCODE
+} finally {
+    if (Test-Path -LiteralPath $runConfigPath) {
+        Remove-Item -LiteralPath $runConfigPath -Force -ErrorAction SilentlyContinue
+    }
+}
 
 if ($exitCode -ne 0) {
     $report = Join-Path $repoRoot 'tmp\playwright\report\index.html'
