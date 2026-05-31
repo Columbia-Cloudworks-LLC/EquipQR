@@ -11,7 +11,9 @@ import {
 import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
+import { DemoVideo } from '@/components/landing/features/DemoVideo';
 import { landingImage } from '@/lib/landingImage';
+import { landingVideo } from '@/lib/landingVideo';
 import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
 
 const seo = getFeatureSeoByPath('/features/quickbooks')!;
@@ -216,6 +218,20 @@ const QuickBooksFeature = () => {
             </div>
 
             <div className="max-w-5xl mx-auto space-y-12">
+              <div className="bg-muted/50 rounded-xl p-8 border border-border">
+                <div className="mb-4">
+                  <DemoVideo
+                    baseName="mobile_export_to_quickbooks"
+                    buildUrl={landingVideo}
+                    alt="Animated mobile demo showing a completed EquipQR work order being exported to QuickBooks Online as a draft invoice"
+                  />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Export a Work Order to QuickBooks on Mobile</h3>
+                <p className="text-muted-foreground">
+                  Watch a completed work order flow from EquipQR into a QuickBooks Online draft invoice in a few taps. Labor, parts, and customer mapping carry over so you can review and send the invoice from QuickBooks.
+                </p>
+              </div>
+
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
                   <img

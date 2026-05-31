@@ -1,7 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import type { MarketingRoute } from '../../lib/marketingRoutes';
 import { MARKETING_ROUTES } from '../../lib/marketingRoutes';
-import { prerenderMarketingHtmlTemplate } from '../../../scripts/generate-marketing-html';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import {
+  prerenderMarketingHtmlTemplate,
+  writeAppShellHtml,
+  writeMarketingHtmlFiles,
+} from '../../../scripts/generate-marketing-html';
 
 function requireMarketingRoute(path: string): MarketingRoute {
   const route = MARKETING_ROUTES.find((r) => r.path === path);
@@ -10,6 +17,9 @@ function requireMarketingRoute(path: string): MarketingRoute {
   }
   return route;
 }
+
+/** Matches scripts/generate-marketing-html.ts empty-root contract (attributes allowed). */
+const EMPTY_ROOT_DIV_RE = /<div id="root"[^>]*>\s*<\/div>/;
 
 const MINIMAL_DIST_TEMPLATE = `<!DOCTYPE html>
 <html lang="en" class="dark">
@@ -49,8 +59,10 @@ describe('prerenderMarketingHtmlTemplate', () => {
     expect(html).toContain('aria-label="Public marketing pages"');
     expect(html).toContain('Public marketing pages');
     expect(html).toContain('<script type="module" crossorigin src="/assets/index-TESTHASH.js"></script>');
-    expect(html).toContain('<meta name="keywords"');
-    expect(html).toMatch(/work order management, maintenance work orders/);
+    expect(html).not.toContain('<meta name="keywords"');
+    // Nav must use canonical hrefs and must not include the /landing alias as a separate link
+    expect(html).toContain('href="/"');
+    expect(html).not.toContain('href="/landing"');
   });
 
   it('uses canonical home metadata for the /landing compatibility route', () => {
@@ -69,5 +81,109 @@ describe('prerenderMarketingHtmlTemplate', () => {
       '<meta name="twitter:title" content="EquipQR | Free Work Order Software for Heavy Equipment Repair Shops" />'
     );
     expect(html).not.toContain('| EquipQR | EquipQR');
+    // Nav must include canonical Home and must not include the /landing alias as a separate link
+    expect(html).toContain('href="/"');
+    expect(html).not.toContain('href="/landing"');
+  });
+
+  it('excludes self-link and /landing alias when prerendering canonical home', () => {
+    const route = requireMarketingRoute('/');
+
+    const html = prerenderMarketingHtmlTemplate(MINIMAL_DIST_TEMPLATE, route);
+
+    expect(html).not.toContain('href="/landing"');
+    expect(html).not.toMatch(/<a href="\/">Home<\/a>/);
+  });
+
+  it('injects marketing body for canonical home while the Vite template keeps an empty root', () => {
+    const route = requireMarketingRoute('/');
+    const homeHtml = prerenderMarketingHtmlTemplate(MINIMAL_DIST_TEMPLATE, route);
+
+    expect(homeHtml).toContain('data-prerendered-marketing-route="/"');
+    expect(MINIMAL_DIST_TEMPLATE).toMatch(EMPTY_ROOT_DIV_RE);
+    expect(homeHtml).not.toMatch(EMPTY_ROOT_DIV_RE);
+  });
+});
+
+describe('writeAppShellHtml', () => {
+  it('writes the untouched Vite template with an empty root for SPA fallback', () => {
+    const distDir = mkdtempSync(join(tmpdir(), 'equipqr-marketing-'));
+    try {
+      const outPath = writeAppShellHtml(distDir, MINIMAL_DIST_TEMPLATE);
+      const shell = readFileSync(outPath, 'utf-8');
+
+      expect(shell).toBe(MINIMAL_DIST_TEMPLATE);
+      expect(shell).toMatch(EMPTY_ROOT_DIV_RE);
+      expect(shell).not.toContain('data-prerendered-marketing-route');
+    } finally {
+      rmSync(distDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('writeMarketingHtmlFiles', () => {
+  it('preserves app-shell.html before prerendering marketing routes', () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), 'equipqr-marketing-dist-'));
+    const distDir = join(projectRoot, 'dist');
+    try {
+      mkdirSync(distDir, { recursive: true });
+      writeFileSync(join(distDir, 'index.html'), MINIMAL_DIST_TEMPLATE, 'utf-8');
+
+      writeMarketingHtmlFiles(projectRoot);
+
+      const appShell = readFileSync(join(distDir, 'app-shell.html'), 'utf-8');
+      const marketingHome = readFileSync(join(distDir, 'index.html'), 'utf-8');
+
+      expect(appShell).toBe(MINIMAL_DIST_TEMPLATE);
+      expect(appShell).not.toContain('data-prerendered-marketing-route');
+      expect(marketingHome).toContain('data-prerendered-marketing-route="/"');
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps app-shell empty, marketing paths prerendered, and no static dashboard file', () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), 'equipqr-spa-routing-'));
+    const distDir = join(projectRoot, 'dist');
+    try {
+      mkdirSync(distDir, { recursive: true });
+      writeFileSync(join(distDir, 'index.html'), MINIMAL_DIST_TEMPLATE, 'utf-8');
+
+      writeMarketingHtmlFiles(projectRoot);
+
+      const appShell = readFileSync(join(distDir, 'app-shell.html'), 'utf-8');
+      const inventoryHtml = readFileSync(join(distDir, 'features', 'inventory', 'index.html'), 'utf-8');
+      const dashboardStatic = join(distDir, 'dashboard', 'index.html');
+
+      expect(appShell).toMatch(EMPTY_ROOT_DIV_RE);
+      expect(appShell).not.toContain('data-prerendered-marketing-route');
+      expect(inventoryHtml).toContain('data-prerendered-marketing-route="/features/inventory"');
+      expect(inventoryHtml).not.toMatch(EMPTY_ROOT_DIV_RE);
+      expect(existsSync(dashboardStatic)).toBe(false);
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves app-shell when Vite emits a root div with attributes', () => {
+    const templateWithRootAttrs = MINIMAL_DIST_TEMPLATE.replace(
+      '<div id="root"></div>',
+      '<div id="root" data-vite-root></div>'
+    );
+    const projectRoot = mkdtempSync(join(tmpdir(), 'equipqr-root-attrs-'));
+    const distDir = join(projectRoot, 'dist');
+    try {
+      mkdirSync(distDir, { recursive: true });
+      writeFileSync(join(distDir, 'index.html'), templateWithRootAttrs, 'utf-8');
+
+      writeMarketingHtmlFiles(projectRoot);
+
+      const appShell = readFileSync(join(distDir, 'app-shell.html'), 'utf-8');
+      expect(appShell).toBe(templateWithRootAttrs);
+      expect(appShell).toMatch(EMPTY_ROOT_DIV_RE);
+      expect(appShell).not.toContain('data-prerendered-marketing-route');
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
   });
 });

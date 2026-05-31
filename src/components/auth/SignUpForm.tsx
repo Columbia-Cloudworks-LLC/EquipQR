@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import HCaptchaComponent from '@/components/ui/HCaptcha';
-import { supabase } from '@/integrations/supabase/client';
+import { getCurrentAuthSession, signUpWithEmail } from '@/services/authSignupService';
 import {
   PASSWORD_POLICY,
   validatePasswordComplexity,
@@ -23,7 +23,7 @@ import {
 import { PRIVACY_VERSION_HASH, TERMS_VERSION_HASH } from '@/lib/legalPolicyVersions';
 
 interface SignUpFormProps {
-  onSuccess: (message: string) => void;
+  onSuccess: (message: string, email?: string) => void;
   onError: (error: string) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
@@ -188,6 +188,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       }
 
       const redirectUrl = `${window.location.origin}/`;
+      const submittedEmail = formData.email.trim();
 
       const signUpData: Record<string, string> = {
         name: formData.name,
@@ -209,14 +210,12 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       signUpData.privacy_version_hash = PRIVACY_VERSION_HASH;
       signUpData.terms_accepted_at = new Date().toISOString();
 
-      const { data, error } = await supabase.auth.signUp({
-        email: formData.email,
+      const { data, error } = await signUpWithEmail({
+        email: submittedEmail,
         password: formData.password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: signUpData,
-          ...(hcaptchaEnabled && hcaptchaToken ? { captchaToken: hcaptchaToken } : {}),
-        },
+        emailRedirectTo: redirectUrl,
+        data: signUpData,
+        ...(hcaptchaEnabled && hcaptchaToken ? { captchaToken: hcaptchaToken } : {}),
       });
 
       if (error) {
@@ -260,6 +259,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
         accessToken
           ? 'Account created successfully! Please check your email to verify your account and complete organization setup.'
           : 'Account created successfully! After you verify your email, your first sign-in will save your Terms acceptance record automatically. Please check your inbox to verify your account.',
+        submittedEmail,
       );
     } catch (error) {
       onError(error instanceof Error ? error.message : 'An error occurred during sign up');
@@ -272,8 +272,8 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
   const handleRetryAcceptance = async () => {
     setIsLoading(true);
     try {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
+      const { session } = await getCurrentAuthSession();
+      const token = session?.access_token;
       if (!token) {
         onError('Sign in first, then retry saving acceptance.');
         setIsLoading(false);
@@ -282,7 +282,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       const ok = await recordTermsAcceptance(token);
       if (ok) {
         setShowRetryAcceptance(false);
-        const uid = data.session?.user?.id;
+        const uid = session?.user?.id;
         if (uid) clearPendingTermsAcceptanceForUser(uid);
         onSuccess('Legal acceptance recorded successfully.');
       } else {
