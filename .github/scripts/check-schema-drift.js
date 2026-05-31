@@ -19,7 +19,8 @@
 //
 // Failure semantics:
 //   - SCHEMA_DRIFT_STRICT=true (or SCHEMA_DRIFT_MODE=strict): all three categories exit 1.
-//   - Release PR (base=main): pending, versionMismatch, and orphanRemote all exit 1.
+//   - Release PR (base=main): versionMismatch and orphanRemote exit 1. pending is warn-only
+//     because migrations are applied post-merge by the release workflow.
 //   - PR targeting preview or push: exit 0 with ::warning:: for pending; ::warning:: for
 //     versionMismatch and orphanRemote (logged but not blocking on day-to-day preview work).
 //   - Missing SUPABASE_ACCESS_TOKEN on non-release context: ::warning:: + exit 0.
@@ -246,24 +247,23 @@ async function main() {
   await appendStepSummary(summaryParts.join('\n'));
 
   // Determine whether to fail or warn for each category.
-  const shouldFail = strict || isReleasePR;
+  const shouldFailOnDrift = strict || isReleasePR;
 
   if (pending.length > 0) {
     const md = pendingSummary(pending);
-    if (shouldFail) {
-      const reason = strict
-        ? 'Strict drift check failed'
-        : 'Release PR (preview -> main) blocked';
+    // pending migrations are applied post-merge by the release workflow;
+    // they are expected on release PRs and must not block the merge.
+    if (strict) {
       ghError(
         'schema-drift-check',
-        `${reason}: ${pending.length} local migration(s) not yet present in production schema_migrations.`,
+        `Strict drift check failed: ${pending.length} local migration(s) not yet present in production schema_migrations.`,
       );
       step('');
       step(md);
     } else {
       ghWarning(
         'schema-drift-check',
-        `${pending.length} local migration(s) not yet applied to production.`,
+        `${pending.length} local migration(s) not yet applied to production (will be applied post-merge by the release workflow).`,
       );
       step('');
       step(md);
@@ -272,7 +272,7 @@ async function main() {
 
   if (versionMismatch.length > 0) {
     const md = formatVersionMismatchRepair(versionMismatch);
-    if (shouldFail) {
+    if (shouldFailOnDrift) {
       const reason = strict
         ? 'Strict drift check failed'
         : 'Release PR (preview -> main) blocked';
@@ -294,7 +294,7 @@ async function main() {
 
   if (orphanRemote.length > 0) {
     const md = formatOrphanRemoteRepair(orphanRemote);
-    if (shouldFail) {
+    if (shouldFailOnDrift) {
       const reason = strict
         ? 'Strict drift check failed'
         : 'Release PR (preview -> main) blocked';
@@ -314,7 +314,11 @@ async function main() {
     }
   }
 
-  if (shouldFail && hasAnyDrift) {
+  const hasBlockingDrift = versionMismatch.length > 0 || orphanRemote.length > 0;
+  if (strict && (hasBlockingDrift || pending.length > 0)) {
+    process.exit(1);
+  }
+  if (isReleasePR && hasBlockingDrift) {
     process.exit(1);
   }
 }
