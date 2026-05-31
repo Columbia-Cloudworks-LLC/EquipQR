@@ -23,6 +23,7 @@ import { useUser } from '@/contexts/useUser';
 import { useResolvedAvatarUrl } from '@/hooks/useResolvedAvatarUrl';
 import Page from '@/components/layout/Page';
 import { AlertTriangle, ExternalLink, Loader2 } from 'lucide-react';
+import DeleteAccountDialog from '@/components/settings/DeleteAccountDialog';
 
 
 const SettingsContent = () => {
@@ -31,6 +32,7 @@ const SettingsContent = () => {
   const { currentUser } = useUser();
   const { data: headerAvatarUrl, isPending: isHeaderAvatarPending } = useResolvedAvatarUrl(currentUser?.avatar_url);
   const appToast = useAppToast();
+  const [deleteAccountOpen, setDeleteAccountOpen] = React.useState(false);
 
   const { data: profile, refetch: refetchProfile } = useQuery({
     queryKey: ['profile', user?.id],
@@ -224,7 +226,27 @@ const SettingsContent = () => {
                   </Button>
                 </div>
               </div>
+              <div className="border-t border-destructive/30 px-4 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Delete Account</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Permanently delete your EquipQR login and personal data. Organization work history
+                    you contributed stays with those organizations.
+                  </p>
+                </div>
+                <div className="shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDeleteAccountOpen(true)}
+                    className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground w-full sm:w-auto"
+                  >
+                    Delete account
+                  </Button>
+                </div>
+              </div>
             </div>
+            <DeleteAccountDialog open={deleteAccountOpen} onOpenChange={setDeleteAccountOpen} />
           </div>
         </div>
       </div>
