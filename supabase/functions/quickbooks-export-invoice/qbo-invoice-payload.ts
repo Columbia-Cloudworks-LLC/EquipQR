@@ -231,8 +231,13 @@ export function deriveQuickBooksInvoiceStatus(
     return "voided";
   }
 
-  const balanceCents = amountToCents(invoice.Balance) ?? 0;
-  const totalCents = amountToCents(invoice.TotalAmt) ?? 0;
+  const balanceCents = amountToCents(invoice.Balance);
+  const totalCents = amountToCents(invoice.TotalAmt);
+
+  if (balanceCents === null || totalCents === null) {
+    const emailStatusFallback = invoice.EmailStatus?.toLowerCase();
+    return emailStatusFallback === "emailsent" ? "sent" : "draft";
+  }
 
   if (balanceCents <= 0 && totalCents > 0) {
     return "paid";

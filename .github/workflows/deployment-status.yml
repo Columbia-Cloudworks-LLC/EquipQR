@@ -10,7 +10,10 @@ permissions:
 jobs:
   deployment-status:
     runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
-    if: contains(fromJson('["success","failure"]'), github.event.deployment_status.state)
+    # The repo has a second Vercel project (equipqr-docs / equipqr.info) rooted at docs/.
+    # Its deployment_status events must not fail this workflow or preview branch checks
+    # when the main SPA deployment is healthy.
+    if: ${{ contains(fromJson('["success","failure"]'), github.event.deployment_status.state) && !contains(github.event.deployment_status.environment, 'equipqr-docs') }}
     steps:
       - name: Deployment Status Update (Windows)
         if: runner.os == 'Windows'

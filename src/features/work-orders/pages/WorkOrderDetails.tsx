@@ -971,6 +971,7 @@ const WorkOrderDetails = () => {
         isExporting={isMobilePDFGenerating}
         showCostsOption={permissionLevels.isManager}
         isGoogleWorkspaceConnected={isGoogleWorkspaceConnected}
+        hasOrganizationDriveDestination={Boolean(googleDocsDestination)}
         onSaveToDrive={handleMobileSaveToDrive}
         isSavingToDrive={isMobileSavingToDrive}
       />
