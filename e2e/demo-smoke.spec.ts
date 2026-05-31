@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import fs from 'fs';
 
 const personaName = process.env.DEMO_PERSONA_NAME || 'Alex Apex';
@@ -8,9 +8,8 @@ const hasStorageState = Boolean(storageStatePath && fs.existsSync(storageStatePa
 
 /**
  * Keep actions resilient: try useful interactions, but don't fail if one selector is absent.
- * @param {import('@playwright/test').Page} page
  */
-async function performVisibleDashboardActions(page) {
+async function performVisibleDashboardActions(page: Page) {
   await expect(page.locator('body')).toBeVisible({ timeout: 20_000 });
   const startedAt = Date.now();
 
@@ -53,7 +52,7 @@ test.describe('demo-smoke', () => {
       return;
     }
 
-    const url = new URL(baseURL);
+    const url = new URL(baseURL ?? 'http://localhost:8080');
     test.skip(
       url.hostname !== 'localhost' && url.hostname !== '127.0.0.1',
       'Set DEMO_STORAGE_STATE for non-localhost runs, or use localhost with dev quick login.'

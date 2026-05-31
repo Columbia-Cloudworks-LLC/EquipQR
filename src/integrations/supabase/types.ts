@@ -1032,6 +1032,7 @@ export type Database = {
       google_workspace_credentials: {
         Row: {
           access_token_expires_at: string
+          connected_email: string | null
           created_at: string
           customer_id: string | null
           domain: string
@@ -1043,6 +1044,7 @@ export type Database = {
         }
         Insert: {
           access_token_expires_at: string
+          connected_email?: string | null
           created_at?: string
           customer_id?: string | null
           domain: string
@@ -1054,6 +1056,7 @@ export type Database = {
         }
         Update: {
           access_token_expires_at?: string
+          connected_email?: string | null
           created_at?: string
           customer_id?: string | null
           domain?: string
@@ -4511,6 +4514,7 @@ export type Database = {
         Returns: {
           access_token_expires_at: string
           connected_at: string
+          connected_email: string
           domain: string
           is_connected: boolean
           scopes: string

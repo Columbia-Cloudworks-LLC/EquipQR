@@ -22,7 +22,9 @@ interface WorkOrderPDFExportDialogProps {
   showCostsOption?: boolean;
   /** Whether the organization has Google Workspace connected */
   isGoogleWorkspaceConnected?: boolean;
-  /** Handler for saving to Google Drive (only called if isGoogleWorkspaceConnected) */
+  /** Whether the organization has a configured Drive folder */
+  hasOrganizationDriveDestination?: boolean;
+  /** Handler for saving to Google Drive (only called when connected and folder configured) */
   onSaveToDrive?: (options: { includeCosts: boolean }) => Promise<void>;
   /** Whether saving to Google Drive is in progress */
   isSavingToDrive?: boolean;
@@ -39,6 +41,7 @@ export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> =
   isExporting,
   showCostsOption = true,
   isGoogleWorkspaceConnected = false,
+  hasOrganizationDriveDestination = false,
   onSaveToDrive,
   isSavingToDrive = false,
 }) => {
@@ -118,8 +121,8 @@ export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> =
             Cancel
           </Button>
           
-          {/* Google Drive button - only shown when connected */}
-          {isGoogleWorkspaceConnected && onSaveToDrive && (
+          {/* Google Drive button - only shown when connected and folder configured */}
+          {isGoogleWorkspaceConnected && hasOrganizationDriveDestination && onSaveToDrive && (
             <Button
               variant="outline"
               onClick={handleSaveToDrive}
@@ -133,7 +136,7 @@ export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> =
               ) : (
                 <>
                   <CloudUpload className="h-4 w-4 mr-2" />
-                  Save Service Report PDF to Drive
+                  Save Service Report PDF to organization Drive
                 </>
               )}
             </Button>

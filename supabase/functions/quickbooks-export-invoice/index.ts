@@ -1,5 +1,8 @@
 // Using Deno.serve (built-in)
-import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import {
+  createClient,
+  type SupabaseClient,
+} from "npm:@supabase/supabase-js@2.45.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   QBO_API_BASE,
@@ -94,7 +97,7 @@ interface TeamCustomerMapping {
  */
 async function refreshTokenIfNeeded(
   credential: QuickBooksCredential,
-  supabaseClient: any,
+  supabaseClient: SupabaseClient,
   clientId: string,
   clientSecret: string
 ): Promise<string> {
@@ -167,7 +170,7 @@ const isCacheFresh = (syncedAt: string | null, maxAgeHours: number): boolean => 
 };
 
 async function logTaxStatusAudit(
-  supabaseClient: any,
+  supabaseClient: SupabaseClient,
   params: {
     organizationId: string;
     customerAccountId: string | null;
@@ -208,7 +211,7 @@ async function logTaxStatusAudit(
 }
 
 async function confirmCustomerTaxStatus(
-  supabaseClient: any,
+  supabaseClient: SupabaseClient,
   params: {
     accessToken: string;
     realmId: string;
