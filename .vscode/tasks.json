@@ -1,0 +1,134 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "EquipQR: Prepare Dev Stack",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\dev-start.ps1",
+        "-PrepareOnly"
+      ],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-dev",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "EquipQR: Edge Functions",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\dev-edge-functions.ps1"
+      ],
+      "isBackground": true,
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-edge",
+        "showReuseMessage": false
+      },
+      "problemMatcher": {
+        "owner": "equipqr-edge",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\\[EquipQR\\] Edge Functions serve starting",
+          "endsPattern": "^\\[EquipQR\\] Edge Functions ready"
+        }
+      }
+    },
+    {
+      "label": "EquipQR: Vite",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\dev-vite.ps1"
+      ],
+      "isBackground": true,
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-vite",
+        "showReuseMessage": false
+      },
+      "problemMatcher": {
+        "owner": "equipqr-vite",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\\[EquipQR\\] Vite dev server starting",
+          "endsPattern": "^\\[EquipQR\\] Vite ready"
+        }
+      }
+    },
+    {
+      "label": "EquipQR: Start Full Dev Stack",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "EquipQR: Prepare Dev Stack",
+        "EquipQR: Edge Functions",
+        "EquipQR: Vite"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "EquipQR: Stop Dev Stack",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\dev-stop.ps1"
+      ],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-stop",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "EquipQR: Stop Dev Stack (Force)",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\dev-stop.ps1",
+        "-Force"
+      ],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-stop",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    }
+  ]
+}

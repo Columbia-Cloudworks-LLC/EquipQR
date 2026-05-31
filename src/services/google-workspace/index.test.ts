@@ -98,6 +98,7 @@ describe('Google Workspace Service Functions', () => {
         connected_at: '2026-01-18T00:00:00Z',
         access_token_expires_at: '2026-01-18T01:00:00Z',
         scopes: 'admin.directory.user.readonly',
+        connected_email: 'admin@example.com',
       };
       rpcMock.mockResolvedValue({ data: [mockStatus], error: null });
 
@@ -120,6 +121,7 @@ describe('Google Workspace Service Functions', () => {
         connected_at: null,
         access_token_expires_at: null,
         scopes: null,
+        connected_email: null,
       });
     });
   });

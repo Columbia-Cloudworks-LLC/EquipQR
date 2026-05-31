@@ -146,3 +146,56 @@ export async function batchUpdateGoogleDoc(
     throw new Error(`batchUpdate failed: ${response.status} ${errorBody}`);
   }
 }
+
+/**
+ * Moves a Drive file into the configured organization folder.
+ */
+export async function moveGoogleDriveFileToParent(
+  accessToken: string,
+  fileId: string,
+  parentId: string,
+): Promise<void> {
+  const metadataResponse = await googleApiFetch(
+    `${DRIVE_FILES_URL}/${encodeURIComponent(fileId)}?supportsAllDrives=true&fields=parents`,
+    {
+      method: "GET",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+    { label: "drive-get-parents" },
+  );
+
+  if (!metadataResponse.ok) {
+    const errorBody = await metadataResponse.text().catch(() => "");
+    throw new Error(`Failed to read Drive file parents: ${metadataResponse.status} ${errorBody}`);
+  }
+
+  const metadata: { parents?: string[] } = await metadataResponse.json();
+  const removeParents = (metadata.parents ?? []).join(",");
+
+  const params = new URLSearchParams({
+    addParents: parentId,
+    supportsAllDrives: "true",
+    fields: "id,parents",
+  });
+  if (removeParents) {
+    params.set("removeParents", removeParents);
+  }
+
+  const moveResponse = await googleApiFetch(
+    `${DRIVE_FILES_URL}/${encodeURIComponent(fileId)}?${params.toString()}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+    },
+    { label: "drive-move-file" },
+  );
+
+  if (!moveResponse.ok) {
+    const errorBody = await moveResponse.text().catch(() => "");
+    throw new Error(`Failed to move Drive file into organization folder: ${moveResponse.status} ${errorBody}`);
+  }
+}

@@ -1,4 +1,7 @@
-import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import {
+  createClient,
+  type SupabaseClient,
+} from "npm:@supabase/supabase-js@2.45.0";
 import {
   QBO_API_BASE,
   QBO_TOKEN_URL,
@@ -76,7 +79,7 @@ function validateServiceRoleAuth(req: Request, expected: string): boolean {
 
 async function refreshTokenIfNeeded(
   credential: QuickBooksCredential,
-  supabaseClient: any,
+  supabaseClient: SupabaseClient,
   clientId: string,
   clientSecret: string,
 ): Promise<{ accessToken: string; credential: QuickBooksCredential }> {
@@ -178,7 +181,7 @@ function credentialKey(organizationId: string, realmId: string): string {
 }
 
 async function loadCredentialsByOrgRealm(
-  supabaseClient: any,
+  supabaseClient: SupabaseClient,
   pairs: Array<{ organizationId: string; realmId: string }>,
 ): Promise<Map<string, QuickBooksCredential>> {
   if (pairs.length === 0) return new Map<string, QuickBooksCredential>();
@@ -201,36 +204,50 @@ async function loadCredentialsByOrgRealm(
 }
 
 async function markEvent(
-  supabaseClient: any,
-  eventId: string,
+  supabaseClient: SupabaseClient,
+  event: Pick<InvoiceEvent, "id" | "organization_id">,
   status: "processed" | "error",
   lastError?: string,
 ): Promise<void> {
-  await supabaseClient
+  const { error } = await supabaseClient
     .from("quickbooks_invoice_status_events")
     .update({
       status,
       processed_at: status === "processed" ? new Date().toISOString() : null,
       last_error: lastError ? lastError.substring(0, 1000) : null,
     })
-    .eq("id", eventId);
+    .eq("id", event.id)
+    .eq("organization_id", event.organization_id);
+
+  if (error) {
+    logStep("Failed to mark invoice status event", {
+      event_id: event.id,
+      status,
+      error: error.message,
+    });
+    throw new Error(`Failed to mark invoice status event ${event.id}: ${error.message}`);
+  }
+}
+
+/** Atomically claim queued events in Postgres (SKIP LOCKED) so workers cannot duplicate work. */
+async function claimInvoiceEvents(supabaseClient: SupabaseClient): Promise<InvoiceEvent[]> {
+  const { data, error } = await supabaseClient.rpc("claim_quickbooks_invoice_status_events", {
+    p_batch_size: EVENT_BATCH_SIZE,
+  });
+  if (error) {
+    throw new Error(
+      typeof error.message === "string" ? error.message : "claim_quickbooks_invoice_status_events failed",
+    );
+  }
+  return (data ?? []) as InvoiceEvent[];
 }
 
 async function processInvoiceEvents(
-  supabaseClient: any,
+  supabaseClient: SupabaseClient,
   clientId: string,
   clientSecret: string,
 ): Promise<{ processed: number; failed: number }> {
-  const { data: events, error } = await supabaseClient
-    .from("quickbooks_invoice_status_events")
-    .select("id, organization_id, realm_id, entity_name, entity_id, operation, attempts")
-    .in("status", ["pending", "error"])
-    .lt("attempts", 5)
-    .order("created_at", { ascending: true })
-    .limit(EVENT_BATCH_SIZE);
-
-  if (error) throw error;
-  const typedEvents = (events ?? []) as InvoiceEvent[];
+  const typedEvents = await claimInvoiceEvents(supabaseClient);
   const credentialsByKey = await loadCredentialsByOrgRealm(
     supabaseClient,
     typedEvents.map((event) => ({ organizationId: event.organization_id, realmId: event.realm_id })),
@@ -240,12 +257,10 @@ async function processInvoiceEvents(
   let failed = 0;
 
   for (const event of typedEvents) {
+    // Business-logic block: credential lookup, token refresh, QuickBooks API calls,
+    // and work-order mirroring. A failure here marks the event as error so it can be
+    // retried on the next run (up to the attempts ceiling).
     try {
-      await supabaseClient
-        .from("quickbooks_invoice_status_events")
-        .update({ status: "processing", attempts: event.attempts + 1 })
-        .eq("id", event.id);
-
       const credential = credentialsByKey.get(credentialKey(event.organization_id, event.realm_id));
       if (!credential) throw new Error("No QuickBooks credentials for event realm and organization");
 
@@ -288,17 +303,41 @@ async function processInvoiceEvents(
       } else {
         throw new Error(`Unsupported QuickBooks event entity_name: ${(event as InvoiceEvent).entity_name}`);
       }
-
-      await markEvent(supabaseClient, event.id, "processed");
-      processed += 1;
     } catch (eventError) {
+      // Business logic failed. Attempt to persist the error status so the event
+      // becomes eligible for retry. If error-status persistence itself fails,
+      // log and continue; stale-processing recovery will reclaim the row after
+      // the 15-minute window.
       failed += 1;
-      await markEvent(
-        supabaseClient,
-        event.id,
-        "error",
-        eventError instanceof Error ? eventError.message : String(eventError),
-      );
+      try {
+        await markEvent(
+          supabaseClient,
+          event,
+          "error",
+          eventError instanceof Error ? eventError.message : String(eventError),
+        );
+      } catch (markError) {
+        logStep("Failed to persist error status for invoice event; row stays in processing", {
+          event_id: event.id,
+          mark_error: markError instanceof Error ? markError.message : String(markError),
+        });
+      }
+      continue;
+    }
+
+    // Business logic succeeded. Mark the event processed in its own try/catch so
+    // a transient bookkeeping failure does not re-mark the event as error after
+    // side effects have already been applied. The row stays in `processing` and
+    // stale-processing recovery will reclaim it after 15 minutes.
+    try {
+      await markEvent(supabaseClient, event, "processed");
+      processed += 1;
+    } catch (markError) {
+      failed += 1;
+      logStep("Failed to mark invoice event as processed; leaving in processing for stale recovery", {
+        event_id: event.id,
+        error: markError instanceof Error ? markError.message : String(markError),
+      });
     }
   }
 
@@ -306,7 +345,7 @@ async function processInvoiceEvents(
 }
 
 async function reconcileOpenInvoices(
-  supabaseClient: any,
+  supabaseClient: SupabaseClient,
   clientId: string,
   clientSecret: string,
 ): Promise<{ reconciled: number; failed: number }> {
@@ -419,4 +458,8 @@ export const __syncTestables = {
   updateMirroredWorkOrders,
   refreshTokenIfNeeded,
   extractLinkedInvoiceIdsFromPayment,
+  claimInvoiceEvents,
+  markEvent,
+  processInvoiceEvents,
+  EVENT_BATCH_SIZE,
 };

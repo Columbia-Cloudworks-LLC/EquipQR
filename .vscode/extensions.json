@@ -1,18 +1,35 @@
 {
   "recommendations": [
-    "bradlc.vscode-tailwindcss",
+    // ── Linting & Formatting ──────────────────────────────────────────────
+    "dbaeumer.vscode-eslint",
     "esbenp.prettier-vscode",
-    "ms-vscode.vscode-typescript-next",
-    "ms-vscode.vscode-eslint",
-    "ms-vscode.vscode-json",
+
+    // ── Tailwind CSS ──────────────────────────────────────────────────────
+    "bradlc.vscode-tailwindcss",
+
+    // ── React / HTML Authoring ────────────────────────────────────────────
     "formulahendry.auto-rename-tag",
+
+    // ── Path Resolution ───────────────────────────────────────────────────
     "christian-kohler.path-intellisense",
-    "ms-vscode.vscode-todo-highlight",
-    "ms-vscode.vscode-thunder-client",
-    "supabase.supabase",
-    "ms-vscode.vscode-jest",
+
+    // ── Error Diagnostics ─────────────────────────────────────────────────
     "usernamehw.errorlens",
-    "ms-vscode.vscode-json5",
+
+    // ── TODO / Code Annotations ───────────────────────────────────────────
+    "Gruntfuggly.todo-tree",
+
+    // ── Testing ───────────────────────────────────────────────────────────
+    "vitest.explorer",
+    "ms-playwright.playwright",
+
+    // ── Supabase ──────────────────────────────────────────────────────────
+    "Supabase.vscode-supabase-extension",
+
+    // ── HTTP / API Client ─────────────────────────────────────────────────
+    "rangav.vscode-thunder-client",
+
+    // ── Markdown ──────────────────────────────────────────────────────────
     "yzhang.markdown-all-in-one"
   ]
 }
