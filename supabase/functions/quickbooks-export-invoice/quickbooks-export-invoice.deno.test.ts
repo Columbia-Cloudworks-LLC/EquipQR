@@ -2,6 +2,7 @@
  * Deno unit tests for QuickBooks invoice line builders (summarized Labor/Parts, PM copy).
  */
 import { assertEquals, assertMatch, assertRejects } from "jsr:@std/assert@1";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import { QBO_INVOICE_ITEM_NAMES } from "../_shared/quickbooks-config.ts";
 import { __testables } from "./qbo-invoice-lines.ts";
 import { __payloadTestables, type QuickBooksInvoice } from "./qbo-invoice-payload.ts";
@@ -205,6 +206,26 @@ Deno.test("deriveQuickBooksInvoiceStatus classifies paid, partial, overdue, and 
     "overdue",
   );
   assertEquals(deriveQuickBooksInvoiceStatus({ Balance: 50, TotalAmt: 50, EmailStatus: "EmailSent" }), "sent");
+});
+
+Deno.test("deriveQuickBooksInvoiceStatus avoids paid/partial/overdue when Balance or TotalAmt is absent", () => {
+  assertEquals(deriveQuickBooksInvoiceStatus({ TotalAmt: 100 }), "draft");
+  assertEquals(
+    deriveQuickBooksInvoiceStatus({
+      TotalAmt: 100,
+      EmailStatus: "EmailSent",
+    }),
+    "sent",
+  );
+  assertEquals(deriveQuickBooksInvoiceStatus({ Balance: 0 }), "draft");
+  assertEquals(
+    deriveQuickBooksInvoiceStatus(
+      { DueDate: "2026-01-01" },
+      undefined,
+      new Date("2026-05-17T00:00:00Z"),
+    ),
+    "draft",
+  );
 });
 
 Deno.test("resolveIncomeAccountRef throws actionable message when no Income account exists", async () => {
@@ -1349,7 +1370,7 @@ function createExportMirrorMock() {
 
 Deno.test("updateWorkOrderInvoiceMirror omits timestamps from main payload and null-guards paid_at", async () => {
   const { from, updates } = createExportMirrorMock();
-  await updateWorkOrderInvoiceMirror({ from }, {
+  await updateWorkOrderInvoiceMirror({ from } as unknown as SupabaseClient, {
     workOrderId: "wo-1",
     organizationId: "org-1",
     realmId: "realm-1",
@@ -1371,7 +1392,7 @@ Deno.test("updateWorkOrderInvoiceMirror omits timestamps from main payload and n
 
 Deno.test("updateWorkOrderInvoiceMirror null-guards invoice_sent_at for sent invoices", async () => {
   const { from, updates } = createExportMirrorMock();
-  await updateWorkOrderInvoiceMirror({ from }, {
+  await updateWorkOrderInvoiceMirror({ from } as unknown as SupabaseClient, {
     workOrderId: "wo-2",
     organizationId: "org-1",
     realmId: "realm-1",
@@ -1390,7 +1411,7 @@ Deno.test("updateWorkOrderInvoiceMirror null-guards invoice_sent_at for sent inv
 
 Deno.test("updateWorkOrderInvoiceMirror first-writes invoice_sent_at for emailed paid invoices", async () => {
   const { from, updates } = createExportMirrorMock();
-  await updateWorkOrderInvoiceMirror({ from }, {
+  await updateWorkOrderInvoiceMirror({ from } as unknown as SupabaseClient, {
     workOrderId: "wo-3",
     organizationId: "org-1",
     realmId: "realm-1",
@@ -1421,7 +1442,7 @@ Deno.test("updateWorkOrderInvoiceMirror resolves without throwing when the main 
 
   let threw = false;
   try {
-    await updateWorkOrderInvoiceMirror({ from }, {
+    await updateWorkOrderInvoiceMirror({ from } as unknown as SupabaseClient, {
       workOrderId: "wo-fail",
       organizationId: "org-1",
       realmId: "realm-1",

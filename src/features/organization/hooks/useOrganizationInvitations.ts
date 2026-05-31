@@ -237,39 +237,31 @@ export const useCreateInvitation = (organizationId: string) => {
           })();
         }
 
-        // Send invitation email via edge function (non-blocking)
-        setTimeout(async () => {
-          try {
-            // Get profile and organization data for email
-            const [profileResult, organizationResult] = await Promise.all([
-              supabase.from('profiles').select('name').eq('id', claims.sub).single(),
-              supabase.from('organizations').select('name').eq('id', organizationId).single()
-            ]);
+        // Send invitation email via edge function (awaited — success toast depends on delivery)
+        const [profileResult, organizationResult] = await Promise.all([
+          supabase.from('profiles').select('name').eq('id', claims.sub).single(),
+          supabase.from('organizations').select('name').eq('id', organizationId).single()
+        ]);
 
-            const { error: emailError } = await supabase.functions.invoke('send-invitation-email', {
-              body: {
-                invitationId: createdInvitation.id,
-                email: requestData.email.toLowerCase().trim(),
-                role: requestData.role,
-                organizationName: organizationResult.data?.name || 'Your Organization',
-                inviterName: profileResult.data?.name || 'Team Member',
-                message: requestData.message
-              }
-            });
-
-            if (emailError) {
-              if (import.meta.env.DEV) {
-                logger.error('[INVITATION] Failed to send invitation email', emailError);
-              }
-            } else if (import.meta.env.DEV) {
-              logger.info('[INVITATION] Email sent successfully', { email: requestData.email });
-            }
-          } catch (emailError) {
-            if (import.meta.env.DEV) {
-              logger.error('[INVITATION] Error calling email function', emailError);
-            }
+        const { error: emailError } = await supabase.functions.invoke('send-invitation-email', {
+          body: {
+            invitationId: createdInvitation.id,
+            email: requestData.email.toLowerCase().trim(),
+            role: requestData.role,
+            organizationName: organizationResult.data?.name || 'Your Organization',
+            inviterName: profileResult.data?.name || 'Team Member',
+            message: requestData.message
           }
-        }, 0);
+        });
+
+        if (emailError) {
+          logger.error('[INVITATION] Failed to send invitation email', emailError);
+          throw new Error('INVITATION_EMAIL_SEND_FAILED');
+        }
+
+        if (import.meta.env.DEV) {
+          logger.info('[INVITATION] Email sent successfully', { email: requestData.email });
+        }
 
         if (import.meta.env.DEV) {
           logger.info('[INVITATION] Successfully created invitation', {
@@ -312,6 +304,12 @@ export const useCreateInvitation = (organizationId: string) => {
         toast.error('You do not have permission to invite members');
       } else if (error.message?.includes('DUPLICATE_INVITATION')) {
         toast.error('An invitation to this email already exists');
+      } else if (error.message?.includes('INVITATION_EMAIL_SEND_FAILED')) {
+        queryClient.invalidateQueries({ queryKey: ['organization-invitations', organizationId] });
+        queryClient.invalidateQueries({ queryKey: ['slot-availability', organizationId] });
+        toast.error(
+          'Invitation was created but the email could not be sent. Use Resend after checking the address.'
+        );
       } else if (error.message?.includes('INVITATION_ERROR')) {
         toast.error('Failed to send invitation - please try again');
       } else {
@@ -347,11 +345,35 @@ export const useResendInvitation = (organizationId: string) => {
         })
         .eq('id', invitationId)
         .eq('organization_id', organizationId)
-        .select('id, organization_id, email, role, status, expires_at, accepted_at, updated_at');
+        .select('id, organization_id, email, role, status, expires_at, accepted_at, updated_at, message');
 
       const updatedInvitation = Array.isArray(data) ? data[0] : data;
 
       if (error) throw error;
+      if (!updatedInvitation) {
+        throw new Error('Invitation not found');
+      }
+
+      const [profileResult, organizationResult] = await Promise.all([
+        supabase.from('profiles').select('name').eq('id', claims.sub).single(),
+        supabase.from('organizations').select('name').eq('id', organizationId).single()
+      ]);
+
+      const { error: emailError } = await supabase.functions.invoke('send-invitation-email', {
+        body: {
+          invitationId: updatedInvitation.id,
+          email: updatedInvitation.email.toLowerCase().trim(),
+          role: updatedInvitation.role,
+          organizationName: organizationResult.data?.name || 'Your Organization',
+          inviterName: profileResult.data?.name || 'Team Member',
+          message: updatedInvitation.message ?? undefined
+        }
+      });
+
+      if (emailError) {
+        throw new Error('Failed to send invitation email');
+      }
+
       return updatedInvitation;
     },
     onSuccess: () => {
@@ -360,7 +382,11 @@ export const useResendInvitation = (organizationId: string) => {
     },
     onError: (error) => {
       logger.error('Error resending invitation', error);
-      toast.error('Failed to resend invitation');
+      if (error instanceof Error && error.message === 'Failed to send invitation email') {
+        toast.error('Invitation was updated but the email could not be sent');
+      } else {
+        toast.error('Failed to resend invitation');
+      }
     }
   });
 };

@@ -10,7 +10,6 @@ export type MarketingRoute = {
   /** Same `title` prop as `PageSEO` for this path (see `src/components/seo/PageSEO.tsx`). */
   title: string;
   description: string;
-  keywords?: string;
   /** Primary visible heading in prerendered HTML. */
   heading: string;
   /** Short label for crawlable nav links (defaults to `heading` in generator). */
@@ -81,8 +80,6 @@ export const MARKETING_ROUTES: readonly MarketingRoute[] = [
     title: 'Built for Repair Shops',
     description:
       'Streamline your repair operations with QR code tracking, photo documentation, and customer management—all completely free. Built specifically for repair shops.',
-    keywords:
-      'repair shop software, equipment repair tracking, customer management, QR code tracking, repair shop management, free repair shop software',
     heading: 'Built for Repair Shops',
     navLabel: 'Repair shops',
     bodyParagraphs: [
@@ -97,8 +94,6 @@ export const MARKETING_ROUTES: readonly MarketingRoute[] = [
     title: 'PM Templates',
     description:
       'Create reusable preventative maintenance templates with checklists, schedules, and equipment compatibility rules. Standardize maintenance procedures across your fleet.',
-    keywords:
-      'PM templates, preventative maintenance, maintenance checklists, equipment maintenance, CMMS templates, maintenance scheduling',
     heading: 'PM Templates',
     bodyParagraphs: [
       'Create reusable preventative maintenance templates with checklists, schedules, and equipment compatibility rules. Standardize maintenance procedures across your fleet.',
@@ -112,8 +107,6 @@ export const MARKETING_ROUTES: readonly MarketingRoute[] = [
     title: 'Inventory Management',
     description:
       'Track parts, materials, and supplies with real-time stock levels, location management, and equipment compatibility rules. Never run out of critical parts.',
-    keywords:
-      'inventory management, parts tracking, equipment parts, stock management, CMMS inventory, parts inventory software',
     heading: 'Inventory Management',
     bodyParagraphs: [
       'Track parts and supplies with real-time stock levels, low stock alerts, and transaction history. Link inventory to equipment for compatibility tracking and streamlined work order workflows.',
@@ -127,8 +120,6 @@ export const MARKETING_ROUTES: readonly MarketingRoute[] = [
     title: 'Part Lookup & Alternates',
     description:
       'Find compatible parts quickly with intelligent search. Discover OEM, aftermarket, and cross-reference alternatives. Link parts to equipment for instant compatibility.',
-    keywords:
-      'part lookup, part alternates, OEM parts, aftermarket parts, part compatibility, parts search, equipment parts',
     heading: 'Part Lookup & Alternates',
     navLabel: 'Part lookup',
     bodyParagraphs: [
@@ -143,8 +134,6 @@ export const MARKETING_ROUTES: readonly MarketingRoute[] = [
     title: 'QR Code Integration',
     description:
       'Instantly access equipment details, work orders, and maintenance history with QR code scanning. Generate labels and streamline field operations from any device.',
-    keywords:
-      'QR code tracking, equipment QR codes, QR code scanning, asset tracking QR codes, maintenance QR codes',
     heading: 'QR Code Integration',
     navLabel: 'QR codes',
     bodyParagraphs: [
@@ -159,8 +148,6 @@ export const MARKETING_ROUTES: readonly MarketingRoute[] = [
     title: 'Google Workspace Integration',
     description:
       'Connect your Google Workspace to import users from your directory. Sync members, assign roles, and let users sign in with Google for seamless access.',
-    keywords:
-      'Google Workspace integration, Google Workspace SSO, Google Workspace directory sync, enterprise SSO, Google sign in',
     heading: 'Google Workspace Integration',
     navLabel: 'Google Workspace',
     bodyParagraphs: [
@@ -175,8 +162,6 @@ export const MARKETING_ROUTES: readonly MarketingRoute[] = [
     title: 'QuickBooks Integration',
     description:
       'Connect QuickBooks Online and export completed work orders as draft invoices. Map teams to customers and streamline billing from EquipQR™.',
-    keywords:
-      'QuickBooks integration, work order billing, invoice export, QuickBooks Online, equipment management billing, CMMS QuickBooks',
     heading: 'QuickBooks Integration',
     navLabel: 'QuickBooks',
     bodyParagraphs: [
@@ -191,8 +176,6 @@ export const MARKETING_ROUTES: readonly MarketingRoute[] = [
     title: 'Work Order Management',
     description:
       'Create, assign, and track work orders with intelligent workflows. Monitor progress and ensure nothing falls through the cracks—from request to completion.',
-    keywords:
-      'work order management, maintenance work orders, CMMS work orders, equipment repair tracking, work order software',
     heading: 'Work Order Management',
     navLabel: 'Work orders',
     bodyParagraphs: [
@@ -207,8 +190,6 @@ export const MARKETING_ROUTES: readonly MarketingRoute[] = [
     title: 'Team Collaboration',
     description:
       'Organize teams across multiple organizations with role-based access control. Track performance and distribute workload efficiently.',
-    keywords:
-      'team collaboration, role-based access control, equipment management teams, fleet management teams, CMMS collaboration',
     heading: 'Team Collaboration',
     navLabel: 'Teams',
     bodyParagraphs: [
@@ -223,8 +204,6 @@ export const MARKETING_ROUTES: readonly MarketingRoute[] = [
     title: 'Fleet Visualization',
     description:
       'Interactive map showing equipment last confirmed locations, status, and PM clusters. Plan maintenance routes and see your fleet at a glance.',
-    keywords:
-      'fleet visualization, equipment map, fleet location tracking, equipment location, fleet mapping, location-aware maintenance planning',
     heading: 'Fleet Visualization',
     navLabel: 'Fleet map',
     bodyParagraphs: [
@@ -238,8 +217,6 @@ export const MARKETING_ROUTES: readonly MarketingRoute[] = [
     changefreq: 'monthly',
     title: 'Customer CRM',
     description: 'Link equipment to specific customers. Maintain a permanent service history for every client asset.',
-    keywords:
-      'customer CRM, equipment customer tracking, service history, customer equipment management, repair shop CRM',
     heading: 'Customer CRM',
     navLabel: 'Customer CRM',
     bodyParagraphs: [
@@ -254,8 +231,6 @@ export const MARKETING_ROUTES: readonly MarketingRoute[] = [
     title: 'Mobile-First Design',
     description:
       'Native mobile experience for field technicians. Work offline and sync when connected. Optimized for all devices.',
-    keywords:
-      'mobile CMMS, mobile equipment management, offline mobile app, field service mobile, mobile maintenance software',
     heading: 'Mobile-First Design',
     navLabel: 'Mobile',
     bodyParagraphs: [
