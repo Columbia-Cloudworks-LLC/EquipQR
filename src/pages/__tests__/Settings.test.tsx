@@ -77,6 +77,10 @@ vi.mock('@/components/settings/NotificationSettings', () => ({
   default: () => <div data-testid="notification-settings">Notification Settings</div>
 }));
 
+vi.mock('@/components/settings/DeleteAccountDialog', () => ({
+  default: () => null,
+}));
+
 describe('Settings Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();

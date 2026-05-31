@@ -6,7 +6,9 @@ import type { LucideIcon } from 'lucide-react';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
+import { DemoVideo } from '@/components/landing/features/DemoVideo';
 import { landingImage } from '@/lib/landingImage';
+import { landingVideo } from '@/lib/landingVideo';
 import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
 
 interface BuiltInTemplate {
@@ -306,6 +308,21 @@ const PMTemplatesFeature = () => {
             </div>
 
             <div className="max-w-5xl mx-auto space-y-12">
+              {/* Demo: Create a PM template on mobile */}
+              <div className="bg-muted/50 rounded-xl p-8 border border-border">
+                <div className="mb-4">
+                  <DemoVideo
+                    baseName="mobile_create_pm"
+                    buildUrl={landingVideo}
+                    alt="Animated mobile demo showing a technician creating a preventative maintenance checklist in EquipQR"
+                  />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Create a PM Checklist from a Phone</h3>
+                <p className="text-muted-foreground">
+                  Build a preventative maintenance checklist on a phone from the field. Pick a template, attach it to a work order, and start ticking off items with large touch-friendly controls — no laptop required.
+                </p>
+              </div>
+
               {/* Screenshot 1: PM Templates List */}
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">
