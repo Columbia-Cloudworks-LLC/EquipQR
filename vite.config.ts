@@ -38,6 +38,50 @@ function marketingPrerenderPlugin(): PluginOption {
 const pkg = JSON.parse(fs.readFileSync(new URL("./package.json", import.meta.url), "utf-8"));
 const PKG_VERSION = pkg.version || "0.0.0";
 
+const vendorChunkModules: Record<string, string[]> = {
+  'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+  'vendor-query': ['@tanstack/react-query'],
+  'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
+  'vendor-radix-core': [
+    '@radix-ui/react-dialog',
+    '@radix-ui/react-popover',
+    '@radix-ui/react-dropdown-menu',
+    '@radix-ui/react-select',
+    '@radix-ui/react-tooltip',
+  ],
+  'vendor-radix-form': [
+    '@radix-ui/react-checkbox',
+    '@radix-ui/react-radio-group',
+    '@radix-ui/react-switch',
+    '@radix-ui/react-slider',
+    '@radix-ui/react-label',
+  ],
+  'vendor-radix-layout': [
+    '@radix-ui/react-accordion',
+    '@radix-ui/react-collapsible',
+    '@radix-ui/react-tabs',
+    '@radix-ui/react-scroll-area',
+    '@radix-ui/react-separator',
+  ],
+  'vendor-supabase': ['@supabase/supabase-js'],
+  'vendor-date': ['date-fns', 'date-fns-tz'],
+  'vendor-charts': ['recharts'],
+};
+
+function resolveManualChunk(id: string): string | undefined {
+  if (!id.includes('node_modules')) {
+    return undefined;
+  }
+
+  for (const [chunkName, modules] of Object.entries(vendorChunkModules)) {
+    if (modules.some((moduleName) => id.includes(`/node_modules/${moduleName}/`))) {
+      return chunkName;
+    }
+  }
+
+  return undefined;
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   define: {
@@ -98,44 +142,8 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Core React ecosystem - cached long-term, rarely changes
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          // TanStack Query - server state management
-          'vendor-query': ['@tanstack/react-query'],
-          // Form handling
-          'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
-          // Radix UI primitives - split into logical groups
-          'vendor-radix-core': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-popover',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-select',
-            '@radix-ui/react-tooltip',
-          ],
-          'vendor-radix-form': [
-            '@radix-ui/react-checkbox',
-            '@radix-ui/react-radio-group',
-            '@radix-ui/react-switch',
-            '@radix-ui/react-slider',
-            '@radix-ui/react-label',
-          ],
-          'vendor-radix-layout': [
-            '@radix-ui/react-accordion',
-            '@radix-ui/react-collapsible',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-scroll-area',
-            '@radix-ui/react-separator',
-          ],
-          // Supabase client
-          'vendor-supabase': ['@supabase/supabase-js'],
-          // Date utilities
-          'vendor-date': ['date-fns', 'date-fns-tz'],
-          // Charting (recharts) — vendor-charts splits here; loads when a dynamic import
-          // pulls a module that depends on recharts (Reports, AuditTimelineHistogram,
-          // lazy dashboard widgets + FleetEfficiencyScatterPlotCard, StatsCardSparkline via
-          // React.lazy, or any future `ChartContainer` consumer).
-          'vendor-charts': ['recharts'],
+        manualChunks(id) {
+          return resolveManualChunk(id);
         },
       },
     },
