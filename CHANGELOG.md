@@ -9,6 +9,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.7.0] - 2026-05-25
+
+### Added
+
+- **Organization Google Drive export destination** — Organization admins can browse Google Drive with a server-backed folder picker and choose one shared folder for work-order PDF, Google Docs, and Google Sheets exports so exports land in a consistent place instead of scattered personal drives.
+
+### Changed
+
+- **Google Workspace connection status** — Shows the connected admin email so organizations can see which account authorized Workspace and Drive access.
+- **Google Workspace member import** — Directory sync now requires member email addresses from the synced Workspace directory, reducing incomplete or ambiguous imports.
+
+### Fixed
+
+- **Team invitation emails** — New invitations wait for the email send to finish before showing success, refresh the invite list when delivery fails so admins can resend, and surface Resend API errors instead of silently succeeding.
+
+## [3.6.4] - 2026-05-24
+
+### Changed
+
+- **Internal ITIL workflow guidance** — Simplified agent-facing incident, problem, service request, change record, and issue resolver guidance so routine EquipQR work can move through lightweight triage and focused implementation without unnecessary process ceremony.
+
+### Fixed
+
+- **Signup database repair** — New account creation no longer fails when checking Google OAuth verification; the Supabase helper now reads provider identities from the supported auth identity table and keeps execution limited to authenticated and service-role callers.
+- **Post-signup confirmation UX** — After signup succeeds, users now see a dedicated check-your-email page with the submitted email address, email-provider inbox shortcut when available, a return-to-sign-in action, and a longer success toast so the verification step is clear.
+
+## [3.6.3] - 2026-05-24
+
+### Fixed
+
+- **Sign-up password breach check** ([#989](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/989), [#991](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/991)) — Content Security Policy now allows the Have I Been Pwned k-anonymity range API so sign-up can detect compromised passwords instead of failing silently behind CSP.
+
+## [3.6.2] - 2026-05-23
+
+### Added
+
+- **Marketing mobile demo videos** ([#987](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/987)) — PM Templates and QuickBooks feature pages now show autoplaying, looping mobile screen demos above existing screenshots, served from Supabase storage as compact MP4/WebM with poster fallbacks, native controls, and `prefers-reduced-motion` respect.
+
+### Changed
+
+- **Content Security Policy** — Added `media-src` allowances for Supabase-hosted landing demo videos in production and local dev CSP headers.
+
+## [3.6.1] - 2026-05-21
+
+### Fixed
+
+- **SPA route hard reload** ([#982](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/982)) — Hard reloads and deep links to authenticated app routes such as `/dashboard` and `/auth` no longer return Vercel's platform 404; routing fallback restored to the empty app shell after the v3.6.0 marketing prerender split.
+
+- **equipqr-docs CI on preview PRs** — Scope `equipqr-docs` Vercel builds to `main` via `docs/vercel.json` `ignoreCommand`; add `docs/postcss.config.js` so production docs builds resolve Tailwind PostCSS under `docs/`; filter `deployment-status` workflow to ignore `equipqr-docs` deployment events.
+
+### Changed
+
+- Updated `.vscode/extensions.json` with improved extension recommendations.
+
+### Removed
+
+- Bridgemind tooling removed from the project.
+
 ## [3.6.0] - 2026-05-17
 
 ### Added
@@ -1876,7 +1934,11 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.8.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.7.0...HEAD
+[3.7.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.4...v3.7.0
+[3.6.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.3...v3.6.4
+[3.6.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.2...v3.6.3
+[3.6.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.1...v3.6.2
 [2.8.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.7.1...v2.8.0
 [2.7.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.7.0...v2.7.1
 [2.7.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.6.0...v2.7.0

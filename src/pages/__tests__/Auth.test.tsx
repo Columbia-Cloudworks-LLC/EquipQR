@@ -4,6 +4,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Auth from '../Auth';
 import * as useAuthModule from '@/hooks/useAuth';
 
+const mockErrorToast = vi.hoisted(() => vi.fn());
+const mockSuccessToast = vi.hoisted(() => vi.fn());
+const mockLocation = vi.hoisted(() => ({ search: '' }));
+
 // Mock hooks
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({
@@ -19,8 +23,8 @@ vi.mock('@/hooks/usePendingRedirectHandler', () => ({
 
 vi.mock('@/hooks/useAppToast', () => ({
   useAppToast: () => ({
-    error: vi.fn(),
-    success: vi.fn(),
+    error: mockErrorToast,
+    success: mockSuccessToast,
     info: vi.fn(),
     warning: vi.fn(),
     toast: vi.fn(),
@@ -46,9 +50,16 @@ vi.mock('@/hooks/useMFA', () => ({
 
 // Mock components
 vi.mock('@/components/auth/SignUpForm', () => ({
-  default: ({ onSuccess, onError }: { onSuccess: (msg: string) => void; onError: (msg: string) => void }) => (
+  default: ({
+    onSuccess,
+    onError,
+  }: {
+    onSuccess: (msg: string, email?: string) => void;
+    onError: (msg: string) => void;
+  }) => (
     <div data-testid="signup-form">
-      <button onClick={() => onSuccess('Account created')}>Submit SignUp</button>
+      <button onClick={() => onSuccess('Account created', 'viralarchitect@yahoo.com')}>Submit SignUp</button>
+      <button onClick={() => onSuccess('Legal acceptance recorded successfully.')}>Retry Acceptance Success</button>
       <button onClick={() => onError('Signup failed')}>Trigger SignUp Error</button>
     </div>
   )
@@ -77,7 +88,7 @@ vi.mock('react-router-dom', async () => {
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-    useLocation: () => ({ search: '' })
+    useLocation: () => mockLocation
   };
 });
 
@@ -85,6 +96,7 @@ describe('Auth Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    mockLocation.search = '';
   });
 
   describe('Core Rendering', () => {
@@ -150,6 +162,46 @@ describe('Auth Page', () => {
       await waitFor(() => {
         expect(screen.getByText('Invalid credentials')).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('Success Handling', () => {
+    it('shows a dedicated check-your-email confirmation after signup succeeds', async () => {
+      mockLocation.search = '?tab=signup';
+      render(<Auth />);
+
+      fireEvent.click(screen.getByText('Submit SignUp'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('signup-success-page')).toHaveTextContent('Check your email');
+        expect(screen.getByTestId('signup-success-page')).toHaveTextContent('viralarchitect@yahoo.com');
+        expect(screen.getByTestId('signup-success-page')).toHaveTextContent('Account created');
+      });
+      expect(screen.queryByTestId('signup-form')).not.toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /open email inbox/i })).toHaveAttribute('href', 'https://mail.yahoo.com/');
+      expect(screen.getByRole('link', { name: /open email inbox/i })).toHaveAttribute('rel', 'noopener noreferrer');
+      expect(mockSuccessToast).toHaveBeenCalledWith({
+        title: 'Check your email',
+        description: 'Account created',
+        duration: 10000,
+      });
+    });
+
+    it('shows a generic success toast for non-signup success without email confirmation page', async () => {
+      mockLocation.search = '?tab=signup';
+      render(<Auth />);
+
+      fireEvent.click(screen.getByText('Retry Acceptance Success'));
+
+      await waitFor(() => {
+        expect(mockSuccessToast).toHaveBeenCalledWith({
+          title: 'Success',
+          description: 'Legal acceptance recorded successfully.',
+          duration: 10000,
+        });
+      });
+      expect(screen.queryByTestId('signup-success-page')).not.toBeInTheDocument();
+      expect(screen.getByTestId('signup-form')).toBeInTheDocument();
     });
   });
 

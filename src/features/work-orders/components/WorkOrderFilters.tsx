@@ -10,6 +10,7 @@ import { HorizontalChipRow } from '@/components/layout/HorizontalChipRow';
 import { WorkOrderFilters as FiltersType } from '@/features/work-orders/types/workOrder';
 import type { QuickFilterPreset, SortField, SortDirection } from '@/features/work-orders/hooks/useWorkOrderFilters';
 import WorkOrderToolbar from './WorkOrderToolbar';
+import { formatInvoiceFilterLabel } from '@/features/work-orders/utils/invoiceFilterLabels';
 
 interface WorkOrderFiltersProps {
   filters: FiltersType;
@@ -281,8 +282,11 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
             )}
             {filters.invoiceFilter !== 'all' && (
               <Badge variant="secondary" className="flex max-w-full items-center gap-1">
-                <span className="truncate" title={`Invoice: ${filters.invoiceFilter}`}>
-                  Invoice: {filters.invoiceFilter}
+                <span
+                  className="truncate"
+                  title={`Invoice: ${formatInvoiceFilterLabel(filters.invoiceFilter)}`}
+                >
+                  Invoice: {formatInvoiceFilterLabel(filters.invoiceFilter)}
                 </span>
                 <button
                   type="button"

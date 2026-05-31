@@ -273,6 +273,15 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       html: emailHtml,
     });
 
+    if (emailResponse.error) {
+      logStep("Resend API rejected send", {
+        invitationId,
+        errorName: emailResponse.error.name,
+        errorMessage: emailResponse.error.message,
+      });
+      return createErrorResponse("Failed to send invitation email", 500);
+    }
+
     logStep("Email sent successfully", { emailId: emailResponse.data?.id });
 
     return createJsonResponse({
