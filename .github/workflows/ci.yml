@@ -509,6 +509,9 @@ jobs:
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         VITE_APP_VERSION: ${{ env.VITE_APP_VERSION }}
 
+    - name: Verify SPA routing contract
+      run: npm run verify:spa-routing
+
     - name: Analyze bundle size
       run: npx size-limit --json || echo "Size limit check completed with warnings"
       continue-on-error: true
