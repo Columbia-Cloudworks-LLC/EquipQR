@@ -679,6 +679,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
           refresh_token: encryptedRefreshToken,
           access_token_expires_at: accessTokenExpiresAt.toISOString(),
           scopes: tokenData.scope || null,
+          connected_email: userEmail,
           updated_at: now.toISOString(),
         })
         .eq("id", existingRecord.id);
@@ -692,6 +693,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
           refresh_token: encryptedRefreshToken,
           access_token_expires_at: accessTokenExpiresAt.toISOString(),
           scopes: tokenData.scope || null,
+          connected_email: userEmail,
           updated_at: now.toISOString(),
         });
       upsertError = error;

@@ -16,10 +16,27 @@ export interface WorkspaceConnectionStatus {
   connected_at: string | null;
   access_token_expires_at: string | null;
   scopes: string | null;
+  connected_email: string | null;
 }
 
 export type GoogleExportDocumentType = 'work-orders-internal-packet';
 export type GoogleExportSelectionKind = 'folder' | 'shared_drive';
+
+export interface GoogleDriveDestinationBrowseItem {
+  id: string;
+  name: string;
+  kind: 'shared_drive' | 'folder';
+  driveId: string | null;
+  selectable: boolean;
+  parentId: string | null;
+}
+
+export interface GoogleDriveDestinationBrowseResponse {
+  items: GoogleDriveDestinationBrowseItem[];
+  parentId: string | null;
+  driveId: string | null;
+  workspaceDomain: string;
+}
 
 export interface GoogleExportDestination {
   id: string;
@@ -104,6 +121,7 @@ export async function getGoogleWorkspaceConnectionStatus(
       connected_at: null,
       access_token_expires_at: null,
       scopes: null,
+      connected_email: null,
     };
   }
 
@@ -190,6 +208,45 @@ export async function setGoogleExportDestination(input: {
   }
 
   return data.destination as GoogleExportDestination;
+}
+
+export async function listGoogleDriveDestinations(input: {
+  organizationId: string;
+  parentId?: string | null;
+  driveId?: string | null;
+}): Promise<GoogleDriveDestinationBrowseResponse> {
+  const { data, error } = await supabase.functions.invoke('list-google-drive-destinations', {
+    body: {
+      organizationId: input.organizationId,
+      parentId: input.parentId ?? null,
+      driveId: input.driveId ?? null,
+    },
+  });
+
+  if (error) {
+    const httpError = error as Error & { context?: unknown };
+    const response = httpError.context instanceof Response ? httpError.context : null;
+    if (response) {
+      const errorPayload = await response
+        .clone()
+        .json()
+        .catch(() => null) as { error?: string; code?: string } | null;
+      if (errorPayload?.error) {
+        const typedError = new Error(errorPayload.error) as Error & { code?: string };
+        typedError.code = errorPayload.code;
+        throw typedError;
+      }
+    }
+    throw new Error(error.message);
+  }
+
+  if (data?.error) {
+    const typedError = new Error(data.error) as Error & { code?: string };
+    typedError.code = data.code;
+    throw typedError;
+  }
+
+  return data as GoogleDriveDestinationBrowseResponse;
 }
 
 /**
