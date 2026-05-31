@@ -18,6 +18,8 @@ dist-ssr
 .vscode/*
 .vs/*
 !.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
 .idea
 .DS_Store
 *.suo
@@ -57,6 +59,8 @@ deno.lock
 # Playwright Files
 .playwright-mcp/*
 .playwright-cli/*
+playwright-report/
+test-results/
 
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md

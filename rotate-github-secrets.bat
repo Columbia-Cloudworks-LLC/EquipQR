@@ -1,6 +1,11 @@
 @echo off
 setlocal EnableExtensions
 
+if /I "%~1"=="-help" goto help
+if /I "%~1"=="--help" goto help
+if /I "%~1"=="/help" goto help
+if /I "%~1"=="/?" goto help
+
 set "ROOT=%~dp0"
 set "SCRIPT=%ROOT%scripts\op-to-github.ps1"
 
@@ -33,3 +38,17 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT%" %*
 set "EXITCODE=%ERRORLEVEL%"
 
 exit /b %EXITCODE%
+
+:help
+echo Usage: rotate-github-secrets.bat [op-to-github.ps1 options]
+echo.
+echo Syncs selected 1Password-backed secrets into GitHub using scripts\op-to-github.ps1.
+echo Requires the 1Password CLI and GitHub CLI for non-help runs.
+echo.
+echo Options:
+echo   -help, --help, /help, /?
+echo                     Show this help.
+echo.
+echo Examples:
+echo   rotate-github-secrets.bat
+exit /b 0

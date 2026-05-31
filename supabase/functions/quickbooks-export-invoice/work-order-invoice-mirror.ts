@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
+
 import { QBO_ENVIRONMENT } from "../_shared/quickbooks-config.ts";
 import {
   amountToCents,
@@ -18,7 +20,7 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
 };
 
 export async function updateWorkOrderInvoiceMirror(
-  supabaseClient: any,
+  supabaseClient: SupabaseClient,
   params: {
     workOrderId: string;
     organizationId: string;
