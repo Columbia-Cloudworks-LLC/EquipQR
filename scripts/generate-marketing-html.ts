@@ -8,13 +8,29 @@ import { dirname, join } from 'path';
 import { pathToFileURL } from 'node:url';
 import {
   MARKETING_ROUTES,
+  resolveCanonicalPath,
   resolveCanonicalUrl,
   resolveFullDocumentTitle,
   type MarketingRoute,
 } from '../src/lib/marketingRoutes';
 
-const DIST_DIR = join(process.cwd(), 'dist');
-const SOURCE_INDEX = join(DIST_DIR, 'index.html');
+/** Empty Vite shell for SPA deep links; marketing prerender must not overwrite this file. */
+export const APP_SHELL_HTML_BASENAME = 'app-shell.html';
+
+export function resolveDistDir(cwd: string = process.cwd()): string {
+  return join(cwd, 'dist');
+}
+
+export function getAppShellDistPath(distDir: string = resolveDistDir()): string {
+  return join(distDir, APP_SHELL_HTML_BASENAME);
+}
+
+/** Persists the pre-prerender Vite template so Vercel can rewrite app routes to an empty `#root`. */
+export function writeAppShellHtml(distDir: string, template: string): string {
+  const outPath = getAppShellDistPath(distDir);
+  writeFileSync(outPath, template, 'utf-8');
+  return outPath;
+}
 
 function escapeHtml(text: string): string {
   return text
@@ -32,31 +48,32 @@ function replaceOne(html: string, pattern: RegExp, replacement: string, label: s
   return html.replace(pattern, replacement);
 }
 
-function upsertMetaKeywords(html: string, kw: string | undefined): string {
-  const line = kw ? `    <meta name="keywords" content="${escapeHtml(kw)}" />` : '';
-  const metaRe = /\n?\s*<meta name="keywords" content="[^"]*" \/>/;
+function buildNavHtml(currentPath: string): string {
+  const currentRoute =
+    MARKETING_ROUTES.find((r) => r.path === currentPath) ??
+    ({ path: currentPath, canonicalPath: currentPath } as MarketingRoute);
+  const currentCanonical = resolveCanonicalPath(currentRoute);
+  const isCurrentCanonical = currentPath === currentCanonical;
 
-  if (kw) {
-    if (metaRe.test(html)) {
-      return html.replace(metaRe, `\n${line}`);
+  const canonicalRepresentatives = new Map<string, MarketingRoute>();
+  for (const route of MARKETING_ROUTES) {
+    const canonical = resolveCanonicalPath(route);
+    const existing = canonicalRepresentatives.get(canonical);
+    const isCanonicalRoute = route.path === canonical;
+    if (!existing || (isCanonicalRoute && existing.path !== canonical)) {
+      canonicalRepresentatives.set(canonical, route);
     }
-    return replaceOne(
-      html,
-      /(<meta name="description" content="[^"]*" \/>)/,
-      `$1\n${line}`,
-      'meta description (for keywords insert)'
-    );
   }
 
-  return html.replace(metaRe, '');
-}
-
-function buildNavHtml(currentPath: string): string {
-  const links = [...MARKETING_ROUTES]
-    .filter((r) => r.path !== currentPath)
-    .map((r) => {
-      const label = escapeHtml(r.navLabel ?? r.heading);
-      const href = escapeHtml(r.path);
+  const links = [...canonicalRepresentatives.entries()]
+    .filter(([canonical, route]) => {
+      if (route.path === currentPath) return false;
+      if (isCurrentCanonical && canonical === currentCanonical) return false;
+      return true;
+    })
+    .map(([, route]) => {
+      const label = escapeHtml(route.navLabel ?? route.heading);
+      const href = escapeHtml(resolveCanonicalPath(route));
       return `          <li><a href="${href}">${label}</a></li>`;
     })
     .join('\n');
@@ -103,8 +120,6 @@ export function prerenderMarketingHtmlTemplate(template: string, route: Marketin
     `<meta name="description" content="${escapeHtml(desc)}" />`,
     'meta description'
   );
-
-  out = upsertMetaKeywords(out, route.keywords);
 
   out = replaceOne(
     out,
@@ -170,29 +185,35 @@ export function prerenderMarketingHtmlTemplate(template: string, route: Marketin
   return out;
 }
 
-function distPathForRoute(pathname: string): string {
+function distPathForRoute(pathname: string, distDir: string): string {
   if (pathname === '/') {
-    return join(DIST_DIR, 'index.html');
+    return join(distDir, 'index.html');
   }
   const trimmed = pathname.startsWith('/') ? pathname.slice(1) : pathname;
-  return join(DIST_DIR, trimmed, 'index.html');
+  return join(distDir, trimmed, 'index.html');
 }
 
-export function writeMarketingHtmlFiles(): void {
-  if (!existsSync(SOURCE_INDEX)) {
-    throw new Error(`Missing Vite output at ${SOURCE_INDEX}. Run vite build first.`);
+export function writeMarketingHtmlFiles(cwd: string = process.cwd()): void {
+  const distDir = resolveDistDir(cwd);
+  const sourceIndex = join(distDir, 'index.html');
+
+  if (!existsSync(sourceIndex)) {
+    throw new Error(`Missing Vite output at ${sourceIndex}. Run vite build first.`);
   }
 
-  const template = readFileSync(SOURCE_INDEX, 'utf-8');
+  const template = readFileSync(sourceIndex, 'utf-8');
+  writeAppShellHtml(distDir, template);
 
   for (const route of MARKETING_ROUTES) {
-    const outPath = distPathForRoute(route.path);
+    const outPath = distPathForRoute(route.path, distDir);
     mkdirSync(dirname(outPath), { recursive: true });
     const html = prerenderMarketingHtmlTemplate(template, route);
     writeFileSync(outPath, html, 'utf-8');
   }
 
-  console.log(`✓ Wrote ${MARKETING_ROUTES.length} marketing HTML files under dist/`);
+  console.log(
+    `✓ Wrote ${MARKETING_ROUTES.length} marketing HTML files and ${APP_SHELL_HTML_BASENAME} under dist/`
+  );
 }
 
 const invokedDirectly =

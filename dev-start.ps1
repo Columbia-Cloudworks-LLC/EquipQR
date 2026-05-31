@@ -7,14 +7,20 @@
   After Supabase is up: reset local DB, regenerate TypeScript types, seed equipment images, then ensure Edge + Vite are running.
   Does not call dev-stop. If Vite or Edge Functions serve is already running, exits with an error - run dev-stop first.
 
+.PARAMETER PrepareOnly
+  Run setup through env sync (steps 1-7) and exit before launching Edge Functions or Vite.
+  Used by Cursor/VS Code tasks so long-running servers start in integrated terminals.
+
 .EXAMPLE
   .\dev-start.ps1
   .\dev-start.ps1 -Force
+  .\dev-start.ps1 -PrepareOnly
 #>
 [CmdletBinding()]
 param(
     [switch]$Force,
     [switch]$ResetDocker,
+    [switch]$PrepareOnly,
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$Rest = @()
 )
@@ -29,6 +35,8 @@ foreach ($r in $Rest) {
         $Force = $true
     } elseif ($r -match '^(?i)(/ResetDocker|--reset-docker)$') {
         $ResetDocker = $true
+    } elseif ($r -match '^(?i)(/PrepareOnly|--prepare-only)$') {
+        $PrepareOnly = $true
     } else {
         [void]$unknown.Add($r)
     }
@@ -37,7 +45,7 @@ $Rest = @($unknown)
 
 if ($Rest.Count -gt 0) {
     Write-Host "FAIL: Unknown argument(s): $($Rest -join ', ')"
-    Write-Host 'Usage: .\dev-start.ps1 [-Force] [-ResetDocker]'
+    Write-Host 'Usage: .\dev-start.ps1 [-Force] [-ResetDocker] [-PrepareOnly]'
     exit 2
 }
 
@@ -173,6 +181,9 @@ Write-Host "  EquipQR Dev Environment - Startup"
 Write-Host "  Mode: full (Supabase + Edge Functions + Vite)"
 if ($Force) {
     Write-Host '  Flag: -Force (DB reset + type generation + full verification)'
+}
+if ($PrepareOnly) {
+    Write-Host '  Flag: -PrepareOnly (setup only; Edge + Vite via Cursor tasks)'
 }
 Write-Host " ============================================"
 Write-Host ""
@@ -614,6 +625,14 @@ Write-Host " [7/10] Syncing local Supabase URLs in env files..."
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\sync-local-supabase-env.ps1') -ApiPort $SUPABASE_API_PORT
 if ($LASTEXITCODE -ne 0) {
     Write-Host "        WARNING: Could not sync local Supabase URLs. Update .env.local manually if needed."
+}
+
+if ($PrepareOnly) {
+    Write-Host ""
+    Write-Host " [PrepareOnly] Stack prepared through step 7."
+    Write-Host "        Start Edge Functions and Vite via Cursor tasks (F5 or Tasks: Run Task)."
+    Write-Host ""
+    exit 0
 }
 
 # ---------- 8. Edge Functions ----------

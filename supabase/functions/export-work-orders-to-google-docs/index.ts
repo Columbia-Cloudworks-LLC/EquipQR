@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
     if (!destination?.parent_id) {
       return new Response(
         JSON.stringify({
-          error: "Google Docs destination is not configured. Set a destination in Organization Settings before exporting.",
+          error: "Organization Drive folder is not configured. Set an organization folder in Organization Settings before exporting.",
           code: "missing_destination",
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
