@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { MarketingRoute } from '../../lib/marketingRoutes';
 import { MARKETING_ROUTES } from '../../lib/marketingRoutes';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import {
@@ -17,6 +17,9 @@ function requireMarketingRoute(path: string): MarketingRoute {
   }
   return route;
 }
+
+/** Matches scripts/generate-marketing-html.ts empty-root contract (attributes allowed). */
+const EMPTY_ROOT_DIV_RE = /<div id="root"[^>]*>\s*<\/div>/;
 
 const MINIMAL_DIST_TEMPLATE = `<!DOCTYPE html>
 <html lang="en" class="dark">
@@ -97,8 +100,8 @@ describe('prerenderMarketingHtmlTemplate', () => {
     const homeHtml = prerenderMarketingHtmlTemplate(MINIMAL_DIST_TEMPLATE, route);
 
     expect(homeHtml).toContain('data-prerendered-marketing-route="/"');
-    expect(MINIMAL_DIST_TEMPLATE).toMatch(/<div id="root">\s*<\/div>/);
-    expect(homeHtml).not.toMatch(/<div id="root">\s*<\/div>/);
+    expect(MINIMAL_DIST_TEMPLATE).toMatch(EMPTY_ROOT_DIV_RE);
+    expect(homeHtml).not.toMatch(EMPTY_ROOT_DIV_RE);
   });
 });
 
@@ -110,7 +113,7 @@ describe('writeAppShellHtml', () => {
       const shell = readFileSync(outPath, 'utf-8');
 
       expect(shell).toBe(MINIMAL_DIST_TEMPLATE);
-      expect(shell).toMatch(/<div id="root">\s*<\/div>/);
+      expect(shell).toMatch(EMPTY_ROOT_DIV_RE);
       expect(shell).not.toContain('data-prerendered-marketing-route');
     } finally {
       rmSync(distDir, { recursive: true, force: true });
@@ -134,6 +137,51 @@ describe('writeMarketingHtmlFiles', () => {
       expect(appShell).toBe(MINIMAL_DIST_TEMPLATE);
       expect(appShell).not.toContain('data-prerendered-marketing-route');
       expect(marketingHome).toContain('data-prerendered-marketing-route="/"');
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps app-shell empty, marketing paths prerendered, and no static dashboard file', () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), 'equipqr-spa-routing-'));
+    const distDir = join(projectRoot, 'dist');
+    try {
+      mkdirSync(distDir, { recursive: true });
+      writeFileSync(join(distDir, 'index.html'), MINIMAL_DIST_TEMPLATE, 'utf-8');
+
+      writeMarketingHtmlFiles(projectRoot);
+
+      const appShell = readFileSync(join(distDir, 'app-shell.html'), 'utf-8');
+      const inventoryHtml = readFileSync(join(distDir, 'features', 'inventory', 'index.html'), 'utf-8');
+      const dashboardStatic = join(distDir, 'dashboard', 'index.html');
+
+      expect(appShell).toMatch(EMPTY_ROOT_DIV_RE);
+      expect(appShell).not.toContain('data-prerendered-marketing-route');
+      expect(inventoryHtml).toContain('data-prerendered-marketing-route="/features/inventory"');
+      expect(inventoryHtml).not.toMatch(EMPTY_ROOT_DIV_RE);
+      expect(existsSync(dashboardStatic)).toBe(false);
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves app-shell when Vite emits a root div with attributes', () => {
+    const templateWithRootAttrs = MINIMAL_DIST_TEMPLATE.replace(
+      '<div id="root"></div>',
+      '<div id="root" data-vite-root></div>'
+    );
+    const projectRoot = mkdtempSync(join(tmpdir(), 'equipqr-root-attrs-'));
+    const distDir = join(projectRoot, 'dist');
+    try {
+      mkdirSync(distDir, { recursive: true });
+      writeFileSync(join(distDir, 'index.html'), templateWithRootAttrs, 'utf-8');
+
+      writeMarketingHtmlFiles(projectRoot);
+
+      const appShell = readFileSync(join(distDir, 'app-shell.html'), 'utf-8');
+      expect(appShell).toBe(templateWithRootAttrs);
+      expect(appShell).toMatch(EMPTY_ROOT_DIV_RE);
+      expect(appShell).not.toContain('data-prerendered-marketing-route');
     } finally {
       rmSync(projectRoot, { recursive: true, force: true });
     }

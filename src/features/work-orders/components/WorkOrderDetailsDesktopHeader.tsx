@@ -307,6 +307,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           isExporting={isGenerating}
           showCostsOption={permissionLevels.isManager}
           isGoogleWorkspaceConnected={isGoogleWorkspaceConnected}
+          hasOrganizationDriveDestination={Boolean(googleDocsDestination)}
           onSaveToDrive={handleSaveToDrive}
           isSavingToDrive={isSavingToDrive}
         />
