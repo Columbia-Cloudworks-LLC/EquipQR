@@ -124,9 +124,9 @@
     "papaparse": "^5.5.3",
     "qr-scanner": "1.4.2",
     "qrcode": "^1.5.4",
-    "react": "^18.3.1",
+    "react": "^19.2.6",
     "react-day-picker": "^10.0.1",
-    "react-dom": "^18.3.1",
+    "react-dom": "^19.2.6",
     "react-hook-form": "^7.76.0",
     "react-resizable-panels": "^4.11.1",
     "react-router-dom": "^7.15.1",
@@ -159,8 +159,8 @@
     "@types/file-saver": "^2.0.7",
     "@types/node": "^24.10.1",
     "@types/papaparse": "^5.3.16",
-    "@types/react": "^18.3.28",
-    "@types/react-dom": "^18.3.7",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@types/topojson-client": "3.1.5",
     "@vitejs/plugin-react-swc": "^4.3.0",
     "@vitest/coverage-v8": "4.1.6",
@@ -193,4 +193,5 @@
     "workbox-strategies": "7.4.1"
   }
 }
+
 
