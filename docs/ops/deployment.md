@@ -18,10 +18,11 @@ Developer and operator documentation is published from this repository’s [`doc
 | Docs project ID | `prj_6QicTVywixyyAYc7sxCRDLnqwbM9` |
 | Production branch | `main` (same branch gate as `equipqr.app`) |
 | Domains on docs project | `equipqr.info` (apex), `www.equipqr.info` → apex redirect |
+| Preview deploys | Disabled — [`docs/vercel.json`](../vercel.json) `ignoreCommand` skips non-`main` builds |
 
 Keep **`equipqr.info` off the SPA project (`equipqr`)** — only the docs project should attach that hostname.
 
-**Build note:** Vercel installs dependencies from `docs/package.json` only. Because the monorepo root still has [`postcss.config.js`](../../postcss.config.js), the docs site pins `@tailwindcss/postcss`, `tailwindcss`, and `postcss` under [`docs/package.json`](../package.json) and applies Tailwind via [`docs/.vitepress/config.ts`](../.vitepress/config.ts) so Production builds do not try to resolve `@tailwindcss/postcss` from an uninstalled repo-root tree.
+**Build note:** Vercel installs dependencies from `docs/package.json` only. Because the monorepo root still has [`postcss.config.js`](../../postcss.config.js), PostCSS can walk up and load the root config unless a scoped file exists. The docs project ships [`docs/postcss.config.js`](../postcss.config.js) (same plugin list as root) and pins `@tailwindcss/postcss`, `tailwindcss`, and `postcss` under [`docs/package.json`](../package.json). Tailwind is also wired in [`docs/.vitepress/config.ts`](../.vitepress/config.ts) for local dev.
 
 **Related domains:** During domain migration, **`equipqr.support`** / **`www.equipqr.support`** on the SPA project may temporarily redirect to **`equipqr.app`** instead of **`equipqr.info`** because Vercel only allows same-project redirect targets; revisit in the dashboard if those URLs should land on the public docs site again.
 
@@ -171,7 +172,7 @@ npx --yes vercel@51.6.1 --prod
 #### `vercel.json` Configuration
 The project includes a complete `vercel.json` configuration file with:
 - **Build Configuration**: Uses Vite framework with `npm run build`
-- **SPA Routing**: All routes rewritten to `/index.html` for React Router
+- **SPA Routing**: Non-static app routes rewritten to the empty SPA shell (`dist/app-shell.html`); marketing routes served from prerendered `index.html` files. Vercel (`vercel.json` + `cleanUrls`) rewrites extensionless paths to `/app-shell`; Netlify (`netlify.toml`, `public/_redirects`) targets `/app-shell.html` because that host lacks Vercel cleanUrls behavior.
 - **Security Headers**: X-Content-Type-Options, X-Frame-Options, Referrer-Policy
 - **Performance Headers**: Long-term caching for static assets
 - **Branch Deployment**: Automatic deployment for main and preview branches
@@ -324,7 +325,7 @@ netlify deploy --prod --dir=dist
 
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to = "/app-shell.html"
   status = 200
 
 [[headers]]
@@ -332,6 +333,8 @@ netlify deploy --prod --dir=dist
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 ```
+
+> **Netlify vs Vercel:** Netlify has no `cleanUrls` equivalent, so the catch-all redirect must target the literal build artifact `/app-shell.html`. Vercel uses `cleanUrls: true` and rewrites extensionless paths to `/app-shell`. Marketing routes are prerendered to per-route `index.html` files on both hosts; only authenticated/app routes fall through to the empty SPA shell.
 
 ### AWS S3 + CloudFront
 ```bash
