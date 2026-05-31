@@ -6,7 +6,10 @@ import type { LucideIcon } from 'lucide-react';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
+import { DemoVideo } from '@/components/landing/features/DemoVideo';
 import { landingImage } from '@/lib/landingImage';
+import { landingVideo } from '@/lib/landingVideo';
+import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
 
 interface BuiltInTemplate {
   name: string;
@@ -61,24 +64,20 @@ const builtInTemplates: BuiltInTemplate[] = [
   },
 ];
 
+const seo = getFeatureSeoByPath('/features/pm-templates')!;
+
 const PMTemplatesFeature = () => {
   return (
     <>
-      <PageSEO
-        title="PM Templates"
-        description="Create reusable preventative maintenance templates with checklists, schedules, and equipment compatibility rules. Standardize maintenance procedures across your fleet."
-        path="/features/pm-templates"
-        keywords="PM templates, preventative maintenance, maintenance checklists, equipment maintenance, CMMS templates, maintenance scheduling"
-      />
+      <PageSEO title={seo.pageTitle} description={seo.description} path={seo.path} />
       <FeaturePageLayout>
       <FeatureHero
         icon={FileCheck}
-        title="PM Templates"
-        description="Standardize preventative maintenance across your fleet with pre-built checklists for common equipment types, or create custom templates tailored to your specific needs."
+        title={seo.heroTitle}
+        description={seo.heroDescription}
         ctaText="Start Using PM Templates Free"
       />
 
-        {/* Key Benefits Section */}
         <section className="py-24 bg-muted/30">
           <div className="container px-4 mx-auto">
             <div className="text-center mb-16">
@@ -309,6 +308,21 @@ const PMTemplatesFeature = () => {
             </div>
 
             <div className="max-w-5xl mx-auto space-y-12">
+              {/* Demo: Create a PM template on mobile */}
+              <div className="bg-muted/50 rounded-xl p-8 border border-border">
+                <div className="mb-4">
+                  <DemoVideo
+                    baseName="mobile_create_pm"
+                    buildUrl={landingVideo}
+                    alt="Animated mobile demo showing a technician creating a preventative maintenance checklist in EquipQR"
+                  />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Create a PM Checklist from a Phone</h3>
+                <p className="text-muted-foreground">
+                  Build a preventative maintenance checklist on a phone from the field. Pick a template, attach it to a work order, and start ticking off items with large touch-friendly controls — no laptop required.
+                </p>
+              </div>
+
               {/* Screenshot 1: PM Templates List */}
               <div className="bg-muted/50 rounded-xl p-8 border border-border">
                 <div className="rounded-lg overflow-hidden mb-4 border border-border">

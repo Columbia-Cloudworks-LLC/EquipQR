@@ -120,6 +120,30 @@ export function resolveQboDefaultLaborRateCents(): number {
 /** @deprecated Prefer {@link resolveQboDefaultLaborRateCents} — reads env at call time (tests, late injection). */
 export const QBO_DEFAULT_LABOR_RATE_CENTS = resolveQboDefaultLaborRateCents();
 
+/** Maximum age for cached QuickBooks Customer.Taxable before export must re-confirm. */
+export function resolveQboTaxStatusMaxCacheAgeHours(): number {
+  return Math.max(
+    0,
+    envNumberOrDefault(Deno.env.get("QBO_TAX_STATUS_MAX_CACHE_AGE_HOURS"), 24),
+  );
+}
+
+/** Export behavior when QuickBooks tax status cannot be confirmed and cache is stale/missing. */
+export function resolveQboTaxStatusUnconfirmedMode(): "block" | "warn" {
+  const raw = Deno.env.get("QBO_TAX_STATUS_UNCONFIRMED_MODE")?.trim().toLowerCase();
+  return raw === "warn" ? "warn" : "block";
+}
+
+/** QBO tax code used for customer-level tax-exempt invoices. */
+export const QBO_NON_TAXABLE_TAX_CODE_REF = envOrDefault(
+  Deno.env.get("QBO_NON_TAXABLE_TAX_CODE_REF"),
+  "NON",
+);
+
+/** Optional explicit QBO tax code for taxable invoices; empty means let QBO defaults apply. */
+export const QBO_TAXABLE_TAX_CODE_REF =
+  Deno.env.get("QBO_TAXABLE_TAX_CODE_REF")?.trim() ?? "";
+
 /**
  * Extracts the `intuit_tid` header from a QuickBooks API response.
  *

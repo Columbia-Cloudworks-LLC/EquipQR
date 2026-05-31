@@ -12,21 +12,19 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
 import { landingImage } from '@/lib/landingImage';
+import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
+
+const seo = getFeatureSeoByPath('/features/fleet-visualization')!;
 
 const FleetVisualizationFeature = () => {
   return (
     <>
-      <PageSEO
-        title="Fleet Visualization"
-        description="Interactive map showing equipment last confirmed locations, status, and PM clusters. Plan maintenance routes and see your fleet at a glance."
-        path="/features/fleet-visualization"
-        keywords="fleet visualization, equipment map, fleet location tracking, equipment location, fleet mapping, location-aware maintenance planning"
-      />
+      <PageSEO title={seo.pageTitle} description={seo.description} path={seo.path} />
       <FeaturePageLayout>
       <FeatureHero
         icon={Map}
-        title="Fleet Visualization"
-        description="Interactive map showing each machine's last confirmed location, status, and open work. Plan maintenance routes and dispatch technicians where they're needed most."
+        title={seo.heroTitle}
+        description={seo.heroDescription}
         ctaText="Start Using Fleet Map Free"
       />
 

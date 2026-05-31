@@ -1,0 +1,13 @@
+{
+  "baseURL": "http://localhost:8080",
+  "recordAllVideos": false,
+  "annotateVideos": false,
+  "actionOverlay": false,
+  "overlayMode": "none",
+  "viewportMode": "desktop",
+  "recordingTitle": "",
+  "outputDir": "",
+  "slowMoMs": 0,
+  "stagePauseMs": 1000,
+  "watchPauseMs": 5000
+}
