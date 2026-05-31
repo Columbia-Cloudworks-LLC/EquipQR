@@ -127,9 +127,6 @@
     "react": "^18.3.1",
     "react-day-picker": "^10.0.1",
     "react-dom": "^18.3.1",
-    "react-hook-form": "^7.76.0",
-    "react-resizable-panels": "^4.11.1",
-    "react-router-dom": "^6.30.3",
     "react-window": "^2.2.7",
     "recharts": "^3.8.1",
     "sonner": "^2.0.7",
@@ -193,3 +190,4 @@
     "workbox-strategies": "7.4.1"
   }
 }
+
