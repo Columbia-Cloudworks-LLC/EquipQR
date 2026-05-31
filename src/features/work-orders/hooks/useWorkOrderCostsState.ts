@@ -12,31 +12,44 @@ export interface WorkOrderCostItem extends Omit<WorkOrderCost, 'id' | 'created_a
   original_quantity?: number | null;
 }
 
+function mapPropsCostsToItems(newCosts: WorkOrderCost[]): WorkOrderCostItem[] {
+  return newCosts.map((cost) => ({
+    id: cost.id,
+    work_order_id: cost.work_order_id,
+    description: cost.description,
+    quantity: cost.quantity,
+    unit_price_cents: cost.unit_price_cents,
+    total_price_cents: cost.total_price_cents,
+    inventory_item_id: cost.inventory_item_id,
+    original_quantity: cost.original_quantity,
+  }));
+}
+
+function createPlaceholderRowId(): string {
+  const cryptoObj = globalThis.crypto;
+  if (cryptoObj && typeof cryptoObj.randomUUID === 'function') {
+    return cryptoObj.randomUUID();
+  }
+  return `new-cost-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
+function createEmptyPlaceholderCost(): WorkOrderCostItem {
+  return {
+    id: createPlaceholderRowId(),
+    work_order_id: '',
+    description: '',
+    quantity: 1,
+    unit_price_cents: 0,
+    total_price_cents: 0,
+    isNew: true,
+  };
+}
+
 export const useWorkOrderCostsState = (initialCosts: WorkOrderCost[] = []) => {
-  const [costs, setCosts] = useState<WorkOrderCostItem[]>(() => 
-    initialCosts.map(cost => ({
-      id: cost.id,
-      work_order_id: cost.work_order_id,
-      description: cost.description,
-      quantity: cost.quantity,
-      unit_price_cents: cost.unit_price_cents,
-      total_price_cents: cost.total_price_cents,
-      inventory_item_id: cost.inventory_item_id,
-      original_quantity: cost.original_quantity
-    }))
-  );
+  const [costs, setCosts] = useState<WorkOrderCostItem[]>(() => mapPropsCostsToItems(initialCosts));
 
   const addCost = useCallback(() => {
-    const newCost: WorkOrderCostItem = {
-      id: crypto.randomUUID(),
-      work_order_id: '',
-      description: '',
-      quantity: 1,
-      unit_price_cents: 0,
-      total_price_cents: 0,
-      isNew: true
-    };
-    setCosts(prev => [...prev, newCost]);
+    setCosts((prev) => [...prev, createEmptyPlaceholderCost()]);
   }, []);
 
   /**
@@ -138,24 +151,17 @@ export const useWorkOrderCostsState = (initialCosts: WorkOrderCost[] = []) => {
   }, [costs]);
 
   const resetCosts = useCallback((newCosts: WorkOrderCost[]) => {
-    setCosts(newCosts.map(cost => ({
-      id: cost.id,
-      work_order_id: cost.work_order_id,
-      description: cost.description,
-      quantity: cost.quantity,
-      unit_price_cents: cost.unit_price_cents,
-      total_price_cents: cost.total_price_cents,
-      inventory_item_id: cost.inventory_item_id,
-      original_quantity: cost.original_quantity
-    })));
+    setCosts(mapPropsCostsToItems(newCosts));
   }, []);
 
-  const ensureMinimumCosts = useCallback(() => {
-    const visibleCosts = costs.filter(cost => !cost.isDeleted);
-    if (visibleCosts.length === 0) {
-      addCost();
-    }
-  }, [costs, addCost]);
+  /**
+   * Replace editing state from props and ensure at least one editable row when props are empty,
+   * in a single setState (avoids reading stale `costs` after resetCosts + ensureMinimumCosts).
+   */
+  const resetCostsWithMinimum = useCallback((newCosts: WorkOrderCost[]) => {
+    const mapped = mapPropsCostsToItems(newCosts);
+    setCosts(mapped.length === 0 ? [createEmptyPlaceholderCost()] : mapped);
+  }, []);
 
   /**
    * Check if a specific cost has an inventory source
@@ -193,6 +199,6 @@ export const useWorkOrderCostsState = (initialCosts: WorkOrderCost[] = []) => {
     getInventoryInfo,
     validateCosts,
     resetCosts,
-    ensureMinimumCosts
+    resetCostsWithMinimum
   };
 };

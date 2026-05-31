@@ -8,6 +8,7 @@ import WorkOrderFilterPopover from './WorkOrderFilterPopover';
 import WorkOrderSortPopover from './WorkOrderSortPopover';
 import { WorkOrderFilters } from '@/features/work-orders/types/workOrder';
 import type { QuickFilterPreset, SortField, SortDirection } from '@/features/work-orders/hooks/useWorkOrderFilters';
+import { formatInvoiceFilterLabel } from '@/features/work-orders/utils/invoiceFilterLabels';
 
 interface WorkOrderToolbarProps {
   filters: WorkOrderFilters;
@@ -148,6 +149,19 @@ const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
                 onClick={() => onFilterChange('dueDateFilter', 'all')}
                 className="ml-0.5 hover:text-foreground"
                 aria-label="Clear due date filter"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+
+          {filters.invoiceFilter !== 'all' && (
+            <Badge variant="secondary" className="flex items-center gap-1 text-xs h-5 px-2">
+              Invoice: {formatInvoiceFilterLabel(filters.invoiceFilter)}
+              <button
+                onClick={() => onFilterChange('invoiceFilter', 'all')}
+                className="ml-0.5 hover:text-foreground"
+                aria-label="Clear invoice filter"
               >
                 <X className="h-3 w-3" />
               </button>

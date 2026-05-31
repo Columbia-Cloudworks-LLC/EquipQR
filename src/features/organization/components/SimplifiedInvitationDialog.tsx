@@ -53,8 +53,7 @@ export const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProp
         email: email.trim(),
         role,
       });
-      
-      toast.success('Invitation sent successfully');
+
       setEmail('');
       setRole('member');
       onOpenChange(false);

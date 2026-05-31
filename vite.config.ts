@@ -3,6 +3,8 @@ import react from "@vitejs/plugin-react-swc";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 import fs from "fs";
+import { writeMarketingHtmlFiles } from "./scripts/generate-marketing-html";
+import { buildCsp } from "./scripts/csp";
 
 // HTTP request logger plugin for dev server
 function httpLogger(): PluginOption {
@@ -22,6 +24,16 @@ function httpLogger(): PluginOption {
   };
 }
 
+function marketingPrerenderPlugin(): PluginOption {
+  return {
+    name: 'equipqr-marketing-prerender',
+    apply: 'build',
+    closeBundle() {
+      writeMarketingHtmlFiles();
+    },
+  };
+}
+
 // Read package.json version safely at config time
 const pkg = JSON.parse(fs.readFileSync(new URL("./package.json", import.meta.url), "utf-8"));
 const PKG_VERSION = pkg.version || "0.0.0";
@@ -37,25 +49,13 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     headers: {
       "Permissions-Policy": "camera=(self), microphone=(), geolocation=(self)",
-      "Content-Security-Policy": [
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://hcaptcha.com https://*.hcaptcha.com https://js.sentry-cdn.com https://maps.googleapis.com https://apis.google.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com",
-        "style-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com https://*.googleapis.com https://*.gstatic.com",
-        "frame-src 'self' https://hcaptcha.com https://*.hcaptcha.com https://accounts.google.com https://docs.google.com https://drive.google.com",
-        // `data:` is required because Google Maps' vector basemap worker
-        // (shared-label-worker.js) loads inline label sprite assets via
-        // fetch('data:image/png;base64,...'). Without it the map renders
-        // but labels degrade and the console floods with CSP violations.
-        "connect-src 'self' data: https://hcaptcha.com https://*.hcaptcha.com https://*.sentry.io https://*.supabase.co https://*.equipqr.app https://*.vercel.app https://maps.googleapis.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com wss://*.supabase.co wss://*.equipqr.app wss://*.vercel.app wss://localhost:* ws://localhost:* ws://127.0.0.1:* http://localhost:* http://127.0.0.1:*",
-        "img-src 'self' data: blob: https: http://localhost:* http://127.0.0.1:* https://*.googleapis.com https://*.gstatic.com",
-        "font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com",
-        "worker-src 'self' blob:"
-      ].join("; ")
+      "Content-Security-Policy": buildCsp({ dev: true }),
     }
   },
   plugins: [
     mode === 'development' && httpLogger(),
     react(),
+    marketingPrerenderPlugin(),
     // PWA / service worker. We use `injectManifest` mode so we can keep our
     // own custom Push notification handlers (see `src/sw.ts`); generateSW
     // would overwrite them. The output filename MUST stay `sw.js` because

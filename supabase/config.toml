@@ -122,6 +122,18 @@ verify_jwt = true
 verify_jwt = true
 # Exports work order to QuickBooks as a draft invoice. Requires authenticated admin/owner.
 
+[functions.quickbooks-webhook-receiver]
+verify_jwt = false
+# Public Intuit webhook endpoint. Security is handled by HMAC-SHA256
+# verification of the raw body against QBO_WEBHOOK_VERIFIER_TOKEN.
+
+[functions.quickbooks-sync-invoice-status]
+verify_jwt = true
+# Cron-triggered QuickBooks invoice-status reconciler.
+# Invoked hourly by public.invoke_quickbooks_invoice_status_sync() using the
+# Supabase service role key from Vault; the function also enforces a literal
+# service-role Bearer token match before processing.
+
 [functions.export-report]
 verify_jwt = false
 # JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()
@@ -137,6 +149,10 @@ verify_jwt = false
 # JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()
 
 [functions.set-google-export-destination]
+verify_jwt = false
+# JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()
+
+[functions.list-google-drive-destinations]
 verify_jwt = false
 # JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()
 
@@ -180,6 +196,10 @@ verify_jwt = false
 verify_jwt = false
 # Internal admin endpoint for DSR lifecycle management. Requires authenticated admin/owner.
 # JWT verification handled inside the function via supabase.auth.getUser().
+
+[functions.delete-account]
+verify_jwt = false
+# Authenticated self-service account deletion. JWT verification handled via requireUser().
 
 [functions.record-terms-acceptance]
 verify_jwt = true

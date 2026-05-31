@@ -28,9 +28,9 @@ permissions:
   checks: write
 
 env:
-  # Node 25.x is the supported runtime (aligned with @types/node 25.x). See
+  # Node 24.x LTS is the supported runtime (aligned with @types/node 24.x). See
   # https://nodejs.org/en/about/releases/ for the current release line status.
-  NODE_VERSION: 25.x
+  NODE_VERSION: 24.x
   CACHE_VERSION: v3
 
 jobs:
@@ -341,13 +341,13 @@ jobs:
       continue-on-error: true
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@68bde559dea0fdcac2102bfdf6230c5f70eb485e
+      uses: github/codeql-action/init@9e0d7b8d25671d64c341c19c0152d693099fb5ba
       with:
         languages: javascript
         queries: security-and-quality
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@68bde559dea0fdcac2102bfdf6230c5f70eb485e
+      uses: github/codeql-action/analyze@9e0d7b8d25671d64c341c19c0152d693099fb5ba
       with:
         category: "/language:javascript"
 
@@ -508,6 +508,9 @@ jobs:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         VITE_APP_VERSION: ${{ env.VITE_APP_VERSION }}
+
+    - name: Verify SPA routing contract
+      run: npm run verify:spa-routing
 
     - name: Analyze bundle size
       run: npx size-limit --json || echo "Size limit check completed with warnings"

@@ -9,18 +9,155 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.7.0] - 2026-05-25
+
 ### Added
 
-- **Preview Edge secret sync (CI)** ([#906](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/906)) — `scripts/sync-supabase-secrets-from-1password.ps1` reads `ProjectRef` from each edge 1Password item, uses `supabase-write` / `SUPABASE_ACCESS_TOKEN`, validates placeholders and TOKEN_ENCRYPTION_KEY / KDF_SALT strength, compares SHA-256 digests in `-Check` mode (JSON list output trimmed for CLI banners), and applies via `supabase secrets set --env-file`. Non-prod **Secrets Fan-Out** Supabase job calls this script for `edge-env-preview-secrets`; auth probe loads the Supabase PAT from 1Password. Drift preflight helper simplified to `scope` + op item args. The `supabase-write` PAT is stored in 1Password as field `SUPABASE_ACCESS_TOKEN` (replacing legacy `credential`); `schema-drift-check` uses the same op:// reference. **Secrets Fan-Out (Non-Prod)** applies on `push` to `preview` when this workflow or the sync script changes; a 6-hour UTC `schedule` is defined (GitHub evaluates scheduled workflows from `main`, so the cron runs after this file exists on the default branch). Manual `workflow_dispatch` unchanged; production remains drift-check only until a future apply workflow.
+- **Organization Google Drive export destination** — Organization admins can browse Google Drive with a server-backed folder picker and choose one shared folder for work-order PDF, Google Docs, and Google Sheets exports so exports land in a consistent place instead of scattered personal drives.
+
+### Changed
+
+- **Google Workspace connection status** — Shows the connected admin email so organizations can see which account authorized Workspace and Drive access.
+- **Google Workspace member import** — Directory sync now requires member email addresses from the synced Workspace directory, reducing incomplete or ambiguous imports.
+
+### Fixed
+
+- **Team invitation emails** — New invitations wait for the email send to finish before showing success, refresh the invite list when delivery fails so admins can resend, and surface Resend API errors instead of silently succeeding.
+
+## [3.6.4] - 2026-05-24
+
+### Changed
+
+- **Internal ITIL workflow guidance** — Simplified agent-facing incident, problem, service request, change record, and issue resolver guidance so routine EquipQR work can move through lightweight triage and focused implementation without unnecessary process ceremony.
+
+### Fixed
+
+- **Signup database repair** — New account creation no longer fails when checking Google OAuth verification; the Supabase helper now reads provider identities from the supported auth identity table and keeps execution limited to authenticated and service-role callers.
+- **Post-signup confirmation UX** — After signup succeeds, users now see a dedicated check-your-email page with the submitted email address, email-provider inbox shortcut when available, a return-to-sign-in action, and a longer success toast so the verification step is clear.
+
+## [3.6.3] - 2026-05-24
+
+### Fixed
+
+- **Sign-up password breach check** ([#989](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/989), [#991](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/991)) — Content Security Policy now allows the Have I Been Pwned k-anonymity range API so sign-up can detect compromised passwords instead of failing silently behind CSP.
+
+## [3.6.2] - 2026-05-23
+
+### Added
+
+- **Marketing mobile demo videos** ([#987](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/987)) — PM Templates and QuickBooks feature pages now show autoplaying, looping mobile screen demos above existing screenshots, served from Supabase storage as compact MP4/WebM with poster fallbacks, native controls, and `prefers-reduced-motion` respect.
+
+### Changed
+
+- **Content Security Policy** — Added `media-src` allowances for Supabase-hosted landing demo videos in production and local dev CSP headers.
+
+## [3.6.1] - 2026-05-21
+
+### Fixed
+
+- **SPA route hard reload** ([#982](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/982)) — Hard reloads and deep links to authenticated app routes such as `/dashboard` and `/auth` no longer return Vercel's platform 404; routing fallback restored to the empty app shell after the v3.6.0 marketing prerender split.
+
+- **equipqr-docs CI on preview PRs** — Scope `equipqr-docs` Vercel builds to `main` via `docs/vercel.json` `ignoreCommand`; add `docs/postcss.config.js` so production docs builds resolve Tailwind PostCSS under `docs/`; filter `deployment-status` workflow to ignore `equipqr-docs` deployment events.
+
+### Changed
+
+- Updated `.vscode/extensions.json` with improved extension recommendations.
+
+### Removed
+
+- Bridgemind tooling removed from the project.
+
+## [3.6.0] - 2026-05-17
+
+### Added
+
+- **QuickBooks invoice payment visibility** ([#915](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/915)) — Work Orders now retain mirrored QuickBooks invoice identifiers, lifecycle status, sent/paid timestamps, balance, and due date so managers can see awaiting-payment, overdue, and paid work without leaving EquipQR. The Work Orders list and details surfaces show invoice status badges and add invoice filters for Paid, Unpaid, Overdue, and Not Exported states.
+
+### Changed
+
+- **QuickBooks invoice reliability** ([#600](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/600), [#624](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/624)) — Invoice exports now align with the CJ invoice template using QBO custom fields, customer-facing memo timelines, summarized Labor/Parts lines, fresh QBO tax-status confirmation with cache fallback controls, and safer export/update handling that preserves successful invoice creation even when mirror updates need attention.
+
+- **Public marketing prerender HTML** ([#971](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/971)) — Build-time static HTML for each sitemap-listed marketing URL now returns route-specific headings, descriptive copy, and crawlable navigation inside `#root` for non-JS crawlers, with marketing routes shared by sitemap and prerender generation.
+
+- **Public marketing SEO & accessibility** ([#934](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/934)) — Marketing pages now ship static JSON-LD, a noscript shell, centralized feature SEO copy, breadcrumbs, visible FAQs, matching FAQ/HowTo/BreadcrumbList structured data, SPA route announcements, and route-heading focus handling.
+
+### Fixed
+
+- **Cursor Cloud Agent environment bootstrap failures** — `.nvmrc` now matches the Node 24 runtime required by `package.json`; `scripts/cloud-agent-frontend-setup.sh` loads or installs Node 24 through `nvm` before `npm ci`; Linux `scripts/agent-bootstrap.sh` reads the populated `gcp-read/SERVICE_ACCOUNT_JSON` field before legacy credential fields and validates service-account JSON before writing the gcloud MCP key.
+
+## [3.5.3] - 2026-05-17
+
+### Fixed
+
+- **QuickBooks invoice export** — Summarized **Parts** line includes every non-labor work-order cost (manual and inventory-backed rows; previously separate truck/fee-style amounts roll into Parts). Only cost items matching **Labor** / **Labor - …** (no inventory link) count as labor; customer-facing invoices are Labor and Parts lines only. Private memo still lists the full itemized breakdown.
+
+## [3.5.2] - 2026-05-16
+
+### Changed
+
+- **QuickBooks invoice export** ([#913](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/913)) — Draft invoices use summarized Labor and non-inventory Parts lines, PM-aware customer-facing line descriptions, and optional Edge secrets for item names and income accounts; `QBO_INVOICE_PARTS_ITEM_PREFIX` is deprecated for invoice behavior. Private memo still includes the full itemized cost breakdown.
+
+### Fixed
+
+- **Local test runner** — `useSession` missing-provider coverage uses `renderHook` so React 18 does not leave the Vitest process wedged; raise the default `scripts/test-runner.mjs` hard wall-clock timeout (`8m` standard runs, `10m` with coverage cap) so full `npm test` can finish on Windows after lint/typecheck without false `⏰ Test runner timeout` exits.
+
+## [3.5.1] - 2026-05-16
+
+### Added
+
+- **QuickBooks customer contact sync** ([#914](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/914), [#960](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/960)) — QuickBooks customer imports and refreshes now capture email, phone, mobile, and fax contacts, show their QuickBooks provenance, and surface tap-to-call / tap-to-email actions on linked work orders without adding write-back to QuickBooks.
+- **Public documentation site bootstrap (VitePress)** ([#908](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/908), [#956](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/956)) — `docs/` builds as a standalone static site (VitePress) for deployment to `equipqr.info`; runbook updates in deployment and CI/CD docs; app footer links to published docs.
+- **PR feedback PowerShell helpers** — `scripts/pr-feedback/` drivers for PR context preflight, GraphQL review threads/reviews, local verification gates, deferred-issue + thread-reply + summary publishing, and `gh pr checks`, with `scripts/pr-feedback/tests/Run-PrFeedbackSmoke.ps1` and skill doc references via `scripts/pr-feedback/README.md`.
+
+### Changed
+
+- **Public docs security** ([#956](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/956)) — Exclude `docs/ops/**` from the equipqr.info VitePress build; remove Operations from public nav; README ops links use GitHub `blob/main`; tighten `Content-Security-Policy` `script-src` to `'self'` only (no `unsafe-inline` / `unsafe-eval`); add public vs internal authoring guidance; fix PM/RCA README links for GitHub.
+
+### Fixed
+
+- **Mobile work order details UX** ([#829](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/829), [#958](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/958)) — Sticky footer owns primary actions with PM checklist completion gating; hides duplicate Next action when the footer is visible; trims duplicate compact-summary rows from mobile details; mobile admin delete requires typing DELETE.
+- **Mobile work order cost editor** ([#903](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/903), [#957](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/957)) — Touch-friendly stacked actions for labor, inventory, and manual lines; duplicate Cost Items chrome suppressed on small screens; inline validation deferred until Save or row edits; overflow clamps on notes/timeline/image carousel regions.
+
+## [3.5.0] - 2026-05-15
+
+### Added
+
+- **QR PM template picker for untemplated equipment** ([#916](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/916), [#941](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/941)) — QR work-order creation now surfaces a template chooser when scanned equipment has no default PM template, preserving the fast QR flow while preventing empty-template submissions.
+
+### Changed
+
+- **Dependabot update cadence** — GitHub dependency update runs are reduced to monthly to lower churn and keep supply-chain updates bundled into deliberate review windows.
+- **ITIL workflow guidance for issue-tied implementation** — Internal skill/rule docs now require triage before Change Records and enforce PR-based delivery for issue-tracked implementation flows.
+
+### Fixed
+
+- **QR organization context handoff** — QR redirect and downstream flows keep organization switching synchronized across providers/contexts so QR users land in the expected org-scoped state.
+- **Desktop sidebar layout regression** — Restored sidebar content offset behavior to prevent visual overlap/misalignment in desktop dashboard navigation.
+- **QR PM template submit hardening** ([#941](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/941)) — Added validation and label-association guardrails to improve template selection reliability in QR PM work-order creation.
+
+## [3.4.0] - 2026-05-14
+
+### Added
+
+- **Preview Edge secret sync (CI)** ([#906](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/906)) — `scripts/sync-supabase-secrets-from-1password.ps1` reads `ProjectRef` from each edge 1Password item, uses `supabase-write` / `SUPABASE_ACCESS_TOKEN`, validates placeholders and TOKEN_ENCRYPTION_KEY / KDF_SALT strength, compares SHA-256 digests in `-Check` mode (JSON list output trimmed for CLI banners), and applies via `supabase secrets set --env-file`. Non-prod **Secrets Fan-Out** Supabase job calls this script for `edge-env-preview-secrets`; auth probe loads the Supabase PAT from 1Password. Drift preflight helper simplified to `scope` + op item args. The `supabase-write` PAT is stored in 1Password as field `SUPABASE_ACCESS_TOKEN` (replacing legacy `credential`); `schema-drift-check` uses the same op:// reference. **Secrets Fan-Out (Non-Prod)** runs digest-only (`-Check`) on `push` to `preview` when this workflow or the sync script changes; the 6-hour UTC `schedule` applies preview Edge secrets (GitHub evaluates scheduled workflows from `main`, so the cron runs after this file exists on the default branch). Manual `workflow_dispatch` unchanged; production remains drift-check only until a future apply workflow.
 
 - **QR scan feedback** ([#839](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/839)) — Live camera scans on `/dashboard/scan` prepare Web Audio on the Start camera gesture, set a short-lived session marker on successful decode, and play a synthesized ping plus vibration when `/qr/*` redirect access resolution completes. Upload-based decodes and direct QR opens stay silent. Development builds only: `/debug-scan-feedback` to audition the tone.
 
 ### Changed
 
-- **Node.js 25 runtime matrix** ([#931](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/931)) — `engines.node` is `^25.0.0` (aligned with `@types/node` 25.x). GitHub Actions default to Node **25.x**; setup and CI docs describe the same supported line.
+- **Node.js 24 LTS runtime matrix** ([#931](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/931)) — `engines.node` is `24.x` (aligned with `@types/node` 24.x). GitHub Actions default to Node **24.x**; setup and CI docs describe the same supported line.
 
 - **PageSEO / document metadata** — Removed the `react-helmet-async` dependency; `PageSEO` now updates `document.title` and head tags via a small scoped effect (tags marked `data-equipqr-page-seo` for cleanup). `HelmetProvider` was dropped from app and test providers.
+- **GitHub Actions supply-chain hardening** ([#871](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/871)) — Third-party workflow actions and the shared 1Password composite action are pinned to full commit SHAs; the stale repository snapshot artifact workflow and Repomix configuration were removed.
+- **Frontend platform dependency sweep** — Tailwind CSS now runs through `@tailwindcss/postcss` v4 with the new import/config entrypoint; `react-resizable-panels` v4 keeps the shadcn wrapper API stable; `react-window` v2 migrations update the virtualized audit and generic list paths; hCaptcha, Vitest, jsdom, Workbox, React Query, React Hook Form, lucide-react, and related build/test packages are refreshed.
 - **Agent docs: local Windows 1Password** — Documented optional User-scope `OP_SERVICE_ACCOUNT_TOKEN` for read-only `op` access; aligned vault item names (`vercel-write`, `gcp-read`, `github-read` in doctor), `render-mcp-config.ps1` GCP JSON resolution, and workflow README `op://` examples with current `app-env-*-public` field labels.
+
+### Fixed
+
+- **QR redirect provider coverage** — Public `/qr/*` routes now include `SessionProvider` in the QR-specific provider chain, preserving organization-switch redirects while keeping the lightweight QR entry path; QR redirect completion consumes the scan-feedback marker only after access resolution succeeds.
+- **CodeQL release gate reliability** ([#873](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/873)) — CI grants the Security Scan job `actions: read` so CodeQL can read workflow-run metadata instead of failing with `Resource not accessible by integration`.
+
+- **Resizable panels shadcn wrapper** — `ResizablePanelGroup` and `ResizableHandle` wrap `react-resizable-panels` v4 `Group` and `Separator` (with `ResizablePanel` aliasing `Panel`), preserving the shadcn-style `direction` prop and ref forwarding via `Separator`'s `elementRef`. Audit log explorer layout persistence uses `useDefaultLayout` + stable panel `id`s (v4 replaces v2 `autoSaveId` on the group).
 
 ## [3.3.2] - 2026-05-10
 
@@ -1797,7 +1934,11 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.8.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.7.0...HEAD
+[3.7.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.4...v3.7.0
+[3.6.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.3...v3.6.4
+[3.6.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.2...v3.6.3
+[3.6.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.1...v3.6.2
 [2.8.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.7.1...v2.8.0
 [2.7.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.7.0...v2.7.1
 [2.7.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v2.6.0...v2.7.0

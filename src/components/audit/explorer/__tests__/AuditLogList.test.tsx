@@ -180,6 +180,18 @@ describe('AuditLogList', () => {
     expect(screen.queryByTestId('audit-log-list-static')).not.toBeInTheDocument();
   });
 
+  it('virtual rows use listbox option semantics (no react-window listitem role bleed)', () => {
+    const entries = Array.from({ length: VIRTUALIZATION_THRESHOLD }, (_, i) =>
+      makeEntry(String(i))
+    );
+    render(<AuditLogList entries={entries} onSelect={() => {}} height={400} />);
+
+    const listbox = screen.getByRole('listbox');
+    const options = screen.getAllByRole('option');
+    expect(options.length).toBeGreaterThan(0);
+    expect(listbox.querySelectorAll('[role="listitem"]')).toHaveLength(0);
+  });
+
   it('moves selection on ArrowDown / ArrowUp / Enter', () => {
     const entries = [makeEntry('a'), makeEntry('b'), makeEntry('c')];
     const onSelect = vi.fn();

@@ -227,6 +227,7 @@ export type Database = {
           quickbooks_customer_id: string | null
           quickbooks_display_name: string | null
           quickbooks_synced_at: string | null
+          quickbooks_tax_status_synced_at: string | null
           shipping_address: Json | null
           status: string
           updated_at: string | null
@@ -245,6 +246,7 @@ export type Database = {
           quickbooks_customer_id?: string | null
           quickbooks_display_name?: string | null
           quickbooks_synced_at?: string | null
+          quickbooks_tax_status_synced_at?: string | null
           shipping_address?: Json | null
           status?: string
           updated_at?: string | null
@@ -263,6 +265,7 @@ export type Database = {
           quickbooks_customer_id?: string | null
           quickbooks_display_name?: string | null
           quickbooks_synced_at?: string | null
+          quickbooks_tax_status_synced_at?: string | null
           shipping_address?: Json | null
           status?: string
           updated_at?: string | null
@@ -929,10 +932,15 @@ export type Database = {
           customer_id: string
           email: string | null
           id: string
+          last_synced_at: string | null
           name: string
           notes: string | null
           phone: string | null
           role: string | null
+          source: string
+          source_external_id: string | null
+          source_field: string | null
+          source_payload: Json | null
           updated_at: string | null
         }
         Insert: {
@@ -940,10 +948,15 @@ export type Database = {
           customer_id: string
           email?: string | null
           id?: string
+          last_synced_at?: string | null
           name: string
           notes?: string | null
           phone?: string | null
           role?: string | null
+          source?: string
+          source_external_id?: string | null
+          source_field?: string | null
+          source_payload?: Json | null
           updated_at?: string | null
         }
         Update: {
@@ -951,10 +964,15 @@ export type Database = {
           customer_id?: string
           email?: string | null
           id?: string
+          last_synced_at?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
           role?: string | null
+          source?: string
+          source_external_id?: string | null
+          source_field?: string | null
+          source_payload?: Json | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1014,6 +1032,7 @@ export type Database = {
       google_workspace_credentials: {
         Row: {
           access_token_expires_at: string
+          connected_email: string | null
           created_at: string
           customer_id: string | null
           domain: string
@@ -1025,6 +1044,7 @@ export type Database = {
         }
         Insert: {
           access_token_expires_at: string
+          connected_email?: string | null
           created_at?: string
           customer_id?: string | null
           domain: string
@@ -1036,6 +1056,7 @@ export type Database = {
         }
         Update: {
           access_token_expires_at?: string
+          connected_email?: string | null
           created_at?: string
           customer_id?: string | null
           domain?: string
@@ -2838,6 +2859,65 @@ export type Database = {
           },
         ]
       }
+      quickbooks_invoice_status_events: {
+        Row: {
+          attempts: number
+          created_at: string
+          entity_id: string
+          entity_name: string
+          event_time: string
+          id: string
+          last_error: string | null
+          operation: string
+          organization_id: string
+          processed_at: string | null
+          raw_event: Json
+          realm_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          entity_id: string
+          entity_name: string
+          event_time: string
+          id?: string
+          last_error?: string | null
+          operation: string
+          organization_id: string
+          processed_at?: string | null
+          raw_event: Json
+          realm_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          entity_id?: string
+          entity_name?: string
+          event_time?: string
+          id?: string
+          last_error?: string | null
+          operation?: string
+          organization_id?: string
+          processed_at?: string | null
+          raw_event?: Json
+          realm_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quickbooks_invoice_status_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quickbooks_team_customers: {
         Row: {
           created_at: string
@@ -3640,11 +3720,22 @@ export type Database = {
           historical_notes: string | null
           historical_start_date: string | null
           id: string
+          invoice_balance_cents: number | null
+          invoice_due_date: string | null
+          invoice_last_synced_at: string | null
+          invoice_paid_at: string | null
+          invoice_sent_at: string | null
+          invoice_status: string | null
+          invoice_sync_error: string | null
           is_historical: boolean
           organization_id: string
           pm_required: boolean
           primary_image_id: string | null
           priority: Database["public"]["Enums"]["work_order_priority"]
+          quickbooks_invoice_environment: string | null
+          quickbooks_invoice_id: string | null
+          quickbooks_invoice_number: string | null
+          quickbooks_realm_id: string | null
           status: Database["public"]["Enums"]["work_order_status"]
           team_id: string | null
           title: string
@@ -3668,11 +3759,22 @@ export type Database = {
           historical_notes?: string | null
           historical_start_date?: string | null
           id?: string
+          invoice_balance_cents?: number | null
+          invoice_due_date?: string | null
+          invoice_last_synced_at?: string | null
+          invoice_paid_at?: string | null
+          invoice_sent_at?: string | null
+          invoice_status?: string | null
+          invoice_sync_error?: string | null
           is_historical?: boolean
           organization_id: string
           pm_required?: boolean
           primary_image_id?: string | null
           priority?: Database["public"]["Enums"]["work_order_priority"]
+          quickbooks_invoice_environment?: string | null
+          quickbooks_invoice_id?: string | null
+          quickbooks_invoice_number?: string | null
+          quickbooks_realm_id?: string | null
           status?: Database["public"]["Enums"]["work_order_status"]
           team_id?: string | null
           title: string
@@ -3696,11 +3798,22 @@ export type Database = {
           historical_notes?: string | null
           historical_start_date?: string | null
           id?: string
+          invoice_balance_cents?: number | null
+          invoice_due_date?: string | null
+          invoice_last_synced_at?: string | null
+          invoice_paid_at?: string | null
+          invoice_sent_at?: string | null
+          invoice_status?: string | null
+          invoice_sync_error?: string | null
           is_historical?: boolean
           organization_id?: string
           pm_required?: boolean
           primary_image_id?: string | null
           priority?: Database["public"]["Enums"]["work_order_priority"]
+          quickbooks_invoice_environment?: string | null
+          quickbooks_invoice_id?: string | null
+          quickbooks_invoice_number?: string | null
+          quickbooks_realm_id?: string | null
           status?: Database["public"]["Enums"]["work_order_status"]
           team_id?: string | null
           title?: string
@@ -4401,6 +4514,7 @@ export type Database = {
         Returns: {
           access_token_expires_at: string
           connected_at: string
+          connected_email: string
           domain: string
           is_connected: boolean
           scopes: string

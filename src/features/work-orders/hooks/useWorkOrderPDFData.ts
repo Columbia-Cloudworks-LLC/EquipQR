@@ -328,6 +328,13 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
           });
           throw new Error(errorData.error);
         }
+
+        if (errorData.code === 'missing_destination') {
+          toast.error('Organization Drive Folder Required', {
+            description: 'Set an organization Drive folder in Organization Settings before saving to Drive.',
+          });
+          throw new Error(errorData.error);
+        }
         
         throw new Error(errorData.error || `HTTP ${response.status}`);
       }
@@ -335,7 +342,7 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
       const result: GoogleDriveUploadResponse = await response.json();
       
       // Show success toast with link to open the file
-      toast.success(`${SERVICE_REPORT_EXPORT_POLICY.exportName} saved to Google Drive`, {
+      toast.success(`${SERVICE_REPORT_EXPORT_POLICY.exportName} saved to organization Drive folder`, {
         description: 'Click to open in Drive',
         action: result.webViewLink ? {
           label: 'Open',

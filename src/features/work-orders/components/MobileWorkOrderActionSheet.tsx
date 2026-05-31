@@ -20,6 +20,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Download,
   ClipboardList,
@@ -78,6 +80,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
   isExportingGoogleDoc = false,
 }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const navigate = useNavigate();
 
   // Check if user has QuickBooks access (billing admin permission)
@@ -100,6 +103,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
   const handleDeleteConfirm = async () => {
     try {
       await deleteWorkOrderMutation.mutateAsync(workOrderId);
+      setDeleteConfirmText('');
       setShowDeleteDialog(false);
       onOpenChange(false);
       navigate('/dashboard/work-orders');
@@ -235,7 +239,10 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
                     <Button
                       variant="outline"
                       className="h-12 w-full border-destructive/50 justify-start gap-2 text-destructive hover:bg-destructive/10"
-                      onClick={() => setShowDeleteDialog(true)}
+                      onClick={() => {
+                        setDeleteConfirmText('');
+                        setShowDeleteDialog(true);
+                      }}
                       disabled={deleteWorkOrderMutation.isPending}
                     >
                       <Trash2 className="h-5 w-5" aria-hidden />
@@ -250,7 +257,10 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
       </Sheet>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialog open={showDeleteDialog} onOpenChange={(open) => {
+        setShowDeleteDialog(open);
+        if (!open) setDeleteConfirmText('');
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Work Order</AlertDialogTitle>
@@ -271,6 +281,17 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
                   </li>
                 )}
               </ul>
+              <div className="mt-4 space-y-2">
+                <Label htmlFor="mobile-work-order-delete-confirm">Type DELETE to confirm</Label>
+                <Input
+                  id="mobile-work-order-delete-confirm"
+                  autoComplete="off"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="DELETE"
+                  className="font-mono"
+                />
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -279,7 +300,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
-              disabled={deleteWorkOrderMutation.isPending}
+              disabled={deleteWorkOrderMutation.isPending || deleteConfirmText.trim() !== 'DELETE'}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteWorkOrderMutation.isPending ? 'Deleting...' : 'Delete Permanently'}
