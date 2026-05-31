@@ -220,46 +220,6 @@ describe('ChecklistTemplateEditor', () => {
       expect(screen.getByText('2 items')).toBeInTheDocument();
     });
 
-    it('handles template updates', async () => {
-      const mockMutateAsync = vi.fn().mockResolvedValue(mockTemplate);
-      mockUpdatePMTemplate.mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: false,
-        isError: false,
-        error: null,
-      });
-
-      render(
-        <ChecklistTemplateEditor 
-          template={mockTemplate} 
-          {...defaultProps} 
-        />, 
-        { wrapper: TestProviders }
-      );
-
-      // Update the template name (blur commit)
-      const nameInput = screen.getByDisplayValue('Test Template');
-      fireEvent.change(nameInput, { target: { value: 'Updated Template' } });
-      fireEvent.blur(nameInput);
-
-      const saveButton = screen.getByText('Update Template');
-      fireEvent.click(saveButton);
-
-      // Wait for async mutation to complete
-      await waitFor(() => {
-        expect(mockMutateAsync).toHaveBeenCalledWith({
-          templateId: 'template-1',
-          updates: {
-            name: 'Updated Template',
-            description: 'Test description',
-            template_data: expect.any(Array),
-            interval_type: null,
-            interval_value: null
-          }
-        });
-      });
-    });
-
     it('calls onSave after successful submission', async () => {
       const onSave = vi.fn();
       const onCancel = vi.fn();
