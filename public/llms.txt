@@ -11,7 +11,7 @@ Do not infer tenant data, customer names, or credentials from this file.
 
 ## Public indexable routes (marketing)
 
-These paths are intended for public indexing (see sitemap.xml):
+These canonical URLs match `sitemap.xml` (same paths as the marketing route registry). The compatibility URL `https://equipqr.app/landing` still resolves for old bookmarks but canonicalizes to `https://equipqr.app/` and is intentionally omitted from this canonical list.
 
 - https://equipqr.app/
 - https://equipqr.app/solutions/repair-shops

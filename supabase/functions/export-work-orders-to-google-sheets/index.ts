@@ -24,6 +24,7 @@ import {
   hasScope,
 } from "../_shared/google-workspace-token.ts";
 import { googleApiFetch } from "../_shared/google-api-retry.ts";
+import { moveGoogleDriveFileToParent } from "../_shared/google-docs-api.ts";
 import {
   fetchWorkOrdersWithData,
   buildAllRows,
@@ -386,6 +387,30 @@ Deno.serve(async (req) => {
       );
     }
 
+    const { data: orgDestination, error: destinationError } = await supabase
+      .from("organization_google_export_destinations")
+      .select("parent_id")
+      .eq("organization_id", organizationId)
+      .eq("document_type", "work-orders-internal-packet")
+      .maybeSingle();
+
+    if (destinationError) {
+      console.error("[EXPORT-TO-GOOGLE-SHEETS] Failed to load organization folder:", destinationError);
+      return createErrorResponse("An internal error occurred", 500);
+    }
+
+    if (!orgDestination?.parent_id) {
+      return new Response(
+        JSON.stringify({
+          error: "Organization Drive folder is not configured. Set an organization folder in Organization Settings before exporting.",
+          code: "missing_destination",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const organizationFolderId = orgDestination.parent_id;
+
     // Log export request
     const { data: exportLog } = await supabase
       .from("export_request_log")
@@ -442,6 +467,12 @@ Deno.serve(async (req) => {
         tokenResult.accessToken,
         spreadsheetTitle,
         sheetNames
+      );
+
+      await moveGoogleDriveFileToParent(
+        tokenResult.accessToken,
+        spreadsheetId,
+        organizationFolderId,
       );
 
       // Populate all sheets with data
