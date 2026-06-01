@@ -1,6 +1,7 @@
 
 import { Link } from 'react-router-dom';
 import { ExternalLink } from '@/components/ui/external-link';
+import { DOCUMENTATION_URL } from '@/lib/documentationUrl';
 import { APP_VERSION } from '@/lib/version';
 
 export default function LegalFooter() {
@@ -52,7 +53,7 @@ export default function LegalFooter() {
             <span className="hidden sm:inline text-muted-foreground/50">·</span>
 
             <ExternalLink
-              href="https://equipqr.info"
+              href={DOCUMENTATION_URL}
               className="text-muted-foreground/70 hover:text-foreground transition-colors no-underline hover:underline"
               showIcon={false}
             >
