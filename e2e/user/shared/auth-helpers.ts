@@ -1,8 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import { authStatePath, personas, type PersonaKey } from './seed-data';
 
-const devPassword = process.env.VITE_DEV_TEST_PASSWORD ?? 'password123';
-
 export async function quickLogin(page: Page, persona: PersonaKey): Promise<void> {
   const { displayName } = personas[persona];
 

@@ -94,17 +94,29 @@ function loadDefaultConfig(): UserRegressionRunConfig {
 export function loadUserRegressionRunConfig(): UserRegressionRunConfig {
   const defaults = loadDefaultConfig();
 
+  // Use a single file descriptor for the freshness check and the read so the
+  // file cannot change between stat and read (avoids a TOCTOU race).
+  let fd: number | undefined;
   try {
-    const stat = fs.statSync(RUN_CONFIG_PATH);
+    fd = fs.openSync(RUN_CONFIG_PATH, 'r');
+    const stat = fs.fstatSync(fd);
     if (Date.now() - stat.mtimeMs > MAX_CONFIG_AGE_MS) {
       return defaults;
     }
 
     const raw = JSON.parse(
-      fs.readFileSync(RUN_CONFIG_PATH, 'utf8').replace(/^\uFEFF/, ''),
+      fs.readFileSync(fd, 'utf8').replace(/^\uFEFF/, ''),
     ) as Record<string, unknown>;
     return normalizeRunConfig(raw, defaults);
   } catch {
     return defaults;
+  } finally {
+    if (fd !== undefined) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        /* ignore close failures */
+      }
+    }
   }
 }
