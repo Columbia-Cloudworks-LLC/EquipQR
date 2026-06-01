@@ -17,6 +17,7 @@ export const ROUTE_LABELS: Record<string, string> = {
   '/dashboard/alternate-groups': 'Part Alternates',
   '/dashboard/teams': 'Teams',
   '/dashboard/organization': 'Organization',
+  '/dashboard/organization/integrations': 'Integrations',
   '/dashboard/pm-templates': 'PM Templates',
   '/dashboard/reports': 'Reports',
   '/dashboard/audit-log': 'Audit Log',
@@ -43,6 +44,7 @@ export const ROUTES_WITH_PAGE_H1 = new Set([
   '/dashboard/settings',
   '/dashboard/support',
   '/dashboard/organization',
+  '/dashboard/organization/integrations',
 ]);
 
 const MOBILE_DETAIL_PREFIXES = [

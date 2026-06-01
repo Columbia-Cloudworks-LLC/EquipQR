@@ -168,7 +168,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
       expect(mockToast).toHaveBeenCalledWith({
         title: 'Reconnect Google Workspace',
         description:
-          'Google Workspace needs updated Drive permissions. Reconnect Google Workspace in Organization Settings, then try again.',
+          'Google Workspace needs updated Drive permissions. Reconnect Google Workspace on the Integrations page, then try again.',
         variant: 'error',
       });
     });
@@ -201,7 +201,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
       expect(mockToast).toHaveBeenCalledWith({
         title: 'Google Workspace Connection Expired',
         description:
-          'Your Google Workspace connection expired or was revoked. Reconnect Google Workspace in Organization Settings, then try again.',
+          'Your Google Workspace connection expired or was revoked. Reconnect Google Workspace on the Integrations page, then try again.',
         variant: 'error',
       });
     });

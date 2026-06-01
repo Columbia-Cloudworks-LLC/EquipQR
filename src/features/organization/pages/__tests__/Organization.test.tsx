@@ -1,5 +1,6 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { screen } from '@testing-library/react';
 import { customRender } from '@/test/utils/renderUtils';
 
 const {
@@ -26,7 +27,8 @@ vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
     ...actual,
-    useSearchParams: () => [new URLSearchParams('gw_connected=true'), mockSetSearchParams],
+    useSearchParams: () => [new URLSearchParams('qb_connected=true&realm_id=123'), mockSetSearchParams],
+    useNavigate: () => vi.fn(),
   };
 });
 
@@ -92,17 +94,24 @@ describe('Organization page OAuth callbacks', () => {
     mockToastSuccess.mockReset();
   });
 
-  it('handles gw_connected callbacks by showing success feedback and refreshing Google Workspace queries', () => {
+  it('handles qb_connected callbacks via shared integration OAuth hook', () => {
     customRender(<Organization />);
 
-    expect(mockToastSuccess).toHaveBeenCalledWith('Google Workspace reconnected successfully!');
+    expect(mockToastSuccess).toHaveBeenCalledWith('QuickBooks connected successfully!');
     expect(mockInvalidateQueries).toHaveBeenCalledWith({
-      queryKey: ['google-workspace'],
+      queryKey: ['quickbooks', 'connection'],
     });
 
     const [updatedParams, options] = mockSetSearchParams.mock.calls[0];
     expect(updatedParams).toBeInstanceOf(URLSearchParams);
-    expect(updatedParams.get('gw_connected')).toBeNull();
+    expect(updatedParams.get('qb_connected')).toBeNull();
+    expect(updatedParams.get('realm_id')).toBeNull();
     expect(options).toEqual({ replace: true });
+  });
+
+  it('renders organization tabs for admin users', () => {
+    customRender(<Organization />);
+
+    expect(screen.getByText('Organization Tabs')).toBeInTheDocument();
   });
 });

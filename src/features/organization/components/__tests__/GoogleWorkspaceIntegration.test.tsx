@@ -118,7 +118,7 @@ describe('GoogleWorkspaceIntegration', () => {
     await waitFor(() => {
       expect(mockGenerateAuthUrl).toHaveBeenCalledWith({
         organizationId: 'org-123',
-        redirectUrl: '/dashboard/organization',
+        redirectUrl: '/dashboard/organization/integrations',
       });
     });
 
@@ -150,7 +150,7 @@ describe('GoogleWorkspaceIntegration', () => {
     await waitFor(() => {
       expect(mockGenerateAuthUrl).toHaveBeenCalledWith({
         organizationId: 'org-123',
-        redirectUrl: '/dashboard/organization',
+        redirectUrl: '/dashboard/organization/integrations',
       });
     });
 

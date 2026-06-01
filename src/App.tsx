@@ -60,6 +60,7 @@ const Teams = lazy(() => import('@/features/teams/pages/Teams'));
 const TeamDetails = lazy(() => import('@/features/teams/pages/TeamDetails'));
 const FleetMap = lazy(() => import('@/features/fleet-map/pages/FleetMap'));
 const Organization = lazy(() => import('@/features/organization/pages/Organization'));
+const OrganizationIntegrations = lazy(() => import('@/features/organization/pages/OrganizationIntegrations'));
 const EquipmentQRScan = lazy(() => import('@/features/equipment/pages/EquipmentQRScan'));
 const EquipmentScanner = lazy(() => import('@/features/equipment/pages/EquipmentScanner'));
 const InventoryQRRedirect = lazy(() => import('@/pages/InventoryQRRedirect'));
@@ -254,6 +255,7 @@ function App() {
                                 <Route path="/teams/:teamId" element={<TeamDetails />} />
                                 <Route path="/fleet-map" element={<FleetMap />} />
                                 <Route path="/organization" element={<Organization />} />
+                                <Route path="/organization/integrations" element={<OrganizationIntegrations />} />
                                 {/* Billing route removed - billing is now free */}
                                 {/* <Route path="/billing" element={<Billing />} /> */}
                                 <Route path="/pm-templates" element={<PMTemplates />} />

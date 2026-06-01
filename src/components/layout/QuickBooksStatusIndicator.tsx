@@ -11,12 +11,13 @@ import {
 } from '@/components/ui/tooltip';
 import { useQuickBooksConnection } from '@/hooks/useQuickBooksConnection';
 import { isQuickBooksEnabled } from '@/lib/flags';
+import { ORGANIZATION_INTEGRATIONS_PATH } from '@/features/organization/constants/routes';
 
 interface QuickBooksStatusIndicatorProps {
   organizationId: string;
 }
 
-const INTEGRATIONS_HREF = '/dashboard/organization#integrations';
+const INTEGRATIONS_HREF = ORGANIZATION_INTEGRATIONS_PATH;
 
 /**
  * Compact QuickBooks integration health indicator rendered in the global TopBar.
@@ -31,7 +32,7 @@ const INTEGRATIONS_HREF = '/dashboard/organization#integrations';
  * - Red (`bg-destructive`) — connected but access token has expired (the user
  *   must re-authorize on the integrations page).
  *
- * Click navigates to `/dashboard/organization#integrations` so the user can
+ * Click navigates to the organization Integrations page so the user can
  * inspect or repair the connection.
  */
 const QuickBooksStatusIndicator: React.FC<QuickBooksStatusIndicatorProps> = ({
