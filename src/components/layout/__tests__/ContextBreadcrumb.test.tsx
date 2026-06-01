@@ -230,27 +230,26 @@ describe('ContextBreadcrumb', () => {
     ).toBeInTheDocument();
   });
 
-  it('keeps the team switcher reachable on mobile and stacks the breadcrumb vertically', () => {
+  it('renders a unified mobile workspace control with full org and team labels', () => {
     mockIsMobileRef.current = true;
 
-    const { container } = renderWithTeamContext({
+    renderWithTeamContext({
       teamMemberships: [
         { team_id: 't1', team_name: 'Service', role: 'manager', joined_date: '2026-01-01' },
       ],
       initialEntries: ['/dashboard'],
     });
 
-    // The team switcher must still be present on mobile (regression guard for
-    // the bug where !isMobile gated the segment off entirely on phones).
+    expect(screen.getByText('Test Org')).toBeInTheDocument();
+    expect(screen.getByText('All teams')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /switch team/i }),
+      screen.getByRole('button', {
+        name: /workspace: test org, all teams/i,
+      }),
     ).toBeInTheDocument();
-
-    // The breadcrumb list should stack vertically on mobile so the team row
-    // sits directly below the org row.
-    const list = container.querySelector('ol');
-    expect(list).not.toBeNull();
-    expect(list?.className).toContain('flex-col');
+    expect(
+      screen.queryByRole('button', { name: /switch organization/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('omits the brand-icon row on mobile H1 routes (logo lives in the sidebar trigger slot now)', () => {

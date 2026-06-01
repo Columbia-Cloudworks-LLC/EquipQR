@@ -93,18 +93,20 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
 
   return (
     <Card
-      className={cn("hover:shadow-lg transition-all duration-normal cursor-pointer", statusBorderClass)}
+      className={cn(
+        "min-w-0 w-full max-w-full overflow-hidden hover:shadow-lg transition-all duration-normal cursor-pointer",
+        statusBorderClass
+      )}
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
       role="button"
       tabIndex={0}
       aria-label={`Open details for ${equipment.name}`}
     >
-      {/* Mobile: compact horizontal list item */}
-      <div className="md:hidden overflow-hidden">
-        <div className="flex min-w-0 items-stretch">
-          {/* Thumbnail — slightly taller to give content breathing room */}
-          <div className="relative h-[88px] w-[88px] flex-shrink-0 overflow-hidden rounded-l-md bg-muted self-center">
+      {/* Mobile: compact list row — no side action rail so content stays within viewport */}
+      <div className="md:hidden">
+        <div className="flex min-w-0 items-start gap-2.5 p-3">
+          <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-md bg-muted">
             {equipment.image_url ? (
               <img
                 src={equipment.image_url}
@@ -118,51 +120,49 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
-                <Forklift className="h-8 w-8 text-muted-foreground/50" />
+                <Forklift className="h-6 w-6 text-muted-foreground/50" />
               </div>
             )}
           </div>
 
-          {/* Content */}
-          <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-3 py-3 overflow-hidden">
-            {/* Title row */}
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="truncate text-sm font-semibold leading-tight">{equipment.name}</div>
-              {(equipment as MergedEquipment)._isPendingSync && <PendingSyncBadge className="flex-shrink-0" />}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start gap-1 min-w-0">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="truncate text-sm font-semibold leading-tight">{equipment.name}</span>
+                  {(equipment as MergedEquipment)._isPendingSync && (
+                    <PendingSyncBadge className="flex-shrink-0" />
+                  )}
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 flex-shrink-0 -mr-1 text-muted-foreground hover:text-foreground"
+                onClick={handleQRClick}
+                aria-label={`Show QR code for ${equipment.name}`}
+              >
+                <QrCode className="h-4 w-4" />
+              </Button>
             </div>
-            {/* Status + PM indicator row */}
-            <div className="flex items-center gap-2 min-w-0">
-              <Badge className={`${display.statusClassName} rounded-full px-2 py-0.5 text-xs flex-shrink-0`} variant="outline">
+
+            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+              <Badge
+                className={`${display.statusClassName} rounded-full px-2 py-0.5 text-xs flex-shrink-0`}
+                variant="outline"
+              >
                 {display.statusLabel}
               </Badge>
               <PMStatusIndicator status={pmStatus} size="sm" />
-            </div>
-            {/* Metadata row — bumped to 13px and higher contrast for field legibility */}
-            <div className="flex items-center gap-3 min-w-0 text-[13px] text-foreground/65">
-              <span className="flex items-center gap-1 min-w-0 truncate">
-                <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="truncate">{equipment.location}</span>
-              </span>
-              <span className="flex items-center gap-1 flex-shrink-0">
-                <Clock className="h-3.5 w-3.5" />
+              <span className="inline-flex flex-shrink-0 items-center gap-0.5 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" />
                 {display.workingHoursShortText}
               </span>
             </div>
-          </div>
 
-          {/* Actions — QR separated from chevron by a border to prevent mis-taps */}
-          <div className="flex flex-shrink-0 items-center self-stretch border-l">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-full w-12 rounded-none flex-shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/60"
-              onClick={handleQRClick}
-              aria-label={`Show QR code for ${equipment.name}`}
-            >
-              <QrCode className="h-4.5 w-4.5" />
-            </Button>
-            <div className="flex h-full w-10 items-center justify-center text-muted-foreground/60" aria-hidden="true">
-              <ChevronRight className="h-4 w-4" />
+            <div className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+              <MapPin className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{equipment.location}</span>
             </div>
           </div>
         </div>

@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import OrganizationSwitcher from '@/features/organization/components/OrganizationSwitcher';
+import MobileWorkspaceSwitcher from '@/components/layout/MobileWorkspaceSwitcher';
 import CreateTeamDialog from '@/features/teams/components/CreateTeamDialog';
 import { useTeam } from '@/features/teams/hooks/useTeam';
 import { useSelectedTeam } from '@/hooks/useSelectedTeam';
@@ -32,9 +33,9 @@ import { getPageLabel, shouldSuppressLabelOnMobile } from './topBarRouteLabels';
  *
  * - **Desktop (≥sm)**: items render inline as `Org > Team > Section` with
  *   chevron separators between them.
- * - **Mobile (<sm)**: items stack vertically — Org on top, Team directly
- *   below it, Section last — with chevron separators hidden because they
- *   only make sense in a horizontal layout.
+ * - **Mobile (<sm)**: A single workspace control shows the full org name
+ *   (up to two lines) plus the team filter; a bottom sheet holds pickers.
+ *   Section label is omitted on routes that already show a page H1.
  * - **Team**: renders when the user belongs to ≥1 team, or when the user can
  *   create teams (so admins/owners with zero memberships can still reach
  *   quick-create). Selecting a team updates `useSelectedTeam` (persisted
@@ -67,25 +68,49 @@ const ContextBreadcrumb: React.FC = () => {
     selectedTeam?.team_name ??
     (selectedTeamId === UNASSIGNED_TEAM_ID ? 'Unassigned' : 'All teams');
 
+  if (isMobile) {
+    return (
+      <>
+        <MobileWorkspaceSwitcher
+          showTeamSegment={showTeamSegment}
+          teamLabel={teamLabel}
+          onRequestCreateTeam={() => setShowCreateTeamDialog(true)}
+        />
+        {showCreateTeamDialog && currentOrganization?.id && (
+          <CreateTeamDialog
+            open={showCreateTeamDialog}
+            onClose={() => setShowCreateTeamDialog(false)}
+            organizationId={currentOrganization.id}
+          />
+        )}
+      </>
+    );
+  }
+
   return (
     <>
-      <Breadcrumb>
-        <BreadcrumbList className="flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:flex-nowrap sm:gap-1.5">
-          <BreadcrumbItem className="text-foreground">
+      <Breadcrumb className="w-full min-w-0 sm:w-auto">
+        <BreadcrumbList className="w-full flex-nowrap items-center justify-center gap-1 sm:w-auto sm:justify-start sm:gap-1.5">
+          <BreadcrumbItem className="min-w-0 flex-1 sm:flex-initial flex justify-end sm:justify-start text-foreground">
             <OrganizationSwitcher variant="topbar" />
           </BreadcrumbItem>
 
           {showTeamSegment && (
             <>
+              <BreadcrumbSeparator className="inline-flex shrink-0 items-center px-0.5 text-muted-foreground/70 sm:hidden">
+                <span aria-hidden="true" className="text-sm leading-none">
+                  ·
+                </span>
+              </BreadcrumbSeparator>
               <BreadcrumbSeparator className="hidden sm:inline-flex" />
-              <BreadcrumbItem>
+              <BreadcrumbItem className="min-w-0 flex-1 sm:flex-initial flex justify-start">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
                       size="sm"
                       aria-label={`Switch team (current: ${teamLabel})`}
-                      className="inline-flex items-center gap-1 h-8 px-2 max-w-[10rem] text-muted-foreground hover:text-foreground"
+                      className="inline-flex max-w-full items-center justify-center gap-1 h-8 px-2 sm:max-w-[10rem] text-muted-foreground hover:text-foreground sm:justify-start"
                     >
                       <UsersIcon className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
                       <span className="text-sm truncate">{teamLabel}</span>
@@ -152,9 +177,14 @@ const ContextBreadcrumb: React.FC = () => {
 
           {!suppressSectionOnMobile && sectionLabel && (
             <>
+              <BreadcrumbSeparator className="inline-flex shrink-0 items-center px-0.5 text-muted-foreground/70 sm:hidden">
+                <span aria-hidden="true" className="text-sm leading-none">
+                  ·
+                </span>
+              </BreadcrumbSeparator>
               <BreadcrumbSeparator className="hidden sm:inline-flex" />
-              <BreadcrumbItem>
-                <BreadcrumbPage className="text-sm sm:text-base font-medium truncate max-w-[12rem] sm:max-w-none">
+              <BreadcrumbItem className="min-w-0">
+                <BreadcrumbPage className="text-sm sm:text-base font-medium truncate max-w-[8rem] sm:max-w-none text-center sm:text-left">
                   {sectionLabel}
                 </BreadcrumbPage>
               </BreadcrumbItem>

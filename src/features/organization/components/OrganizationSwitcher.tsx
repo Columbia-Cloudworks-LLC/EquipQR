@@ -80,7 +80,7 @@ const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({
             size="sm"
             aria-label={`Switch organization (current: ${currentOrganization.name})`}
             className={cn(
-              'inline-flex items-center gap-1 h-8 px-2 -ml-2 max-w-[14rem] text-foreground hover:text-foreground',
+              'inline-flex max-w-full items-center justify-center sm:justify-start gap-1 h-8 px-2 sm:max-w-[14rem] text-foreground hover:text-foreground',
               className
             )}
           >

@@ -37,7 +37,7 @@ const TopBar: React.FC = () => {
         <SidebarTrigger className="-ml-1 flex-shrink-0 hidden sm:inline-flex" />
         <Separator orientation="vertical" className="mr-2 h-4 hidden sm:block border-border" />
 
-        <div className="flex-1 min-w-0 flex items-center gap-2">
+        <div className="flex-1 min-w-0 flex items-center justify-center sm:justify-start gap-2">
           <ContextBreadcrumb />
         </div>
 
