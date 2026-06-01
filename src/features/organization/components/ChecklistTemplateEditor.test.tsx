@@ -13,6 +13,15 @@ vi.mock('@/features/pm-templates/hooks/usePMTemplates', () => ({
   useUpdatePMTemplate: () => mockUpdatePMTemplate(),
 }));
 
+vi.mock('@/features/pm-templates/components/PMTemplateSectionToc', () => ({
+  PMTemplateSectionToc: () => <nav data-testid="mock-section-toc" aria-label="Template sections table of contents" />,
+}));
+
+vi.mock('@/features/pm-templates/hooks/usePMTemplateCompatibility', () => ({
+  usePMTemplateCompatibilityRules: () => ({ data: [], isLoading: false }),
+  useBulkSetPMTemplateRules: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}));
+
 // Mock toast
 vi.mock('sonner', () => ({
   toast: {
@@ -223,8 +232,7 @@ describe('ChecklistTemplateEditor', () => {
     it('calls onSave after successful submission', async () => {
       const onSave = vi.fn();
       const onCancel = vi.fn();
-      
-      // Mock successful mutation
+
       const mockMutateAsync = vi.fn().mockResolvedValue({ id: 'new-template-1' });
       mockCreatePMTemplate.mockReturnValue({
         mutateAsync: mockMutateAsync,
@@ -233,38 +241,90 @@ describe('ChecklistTemplateEditor', () => {
         error: null,
       });
 
-      // Mock window.prompt to add a section
-      window.prompt = vi.fn().mockReturnValue('Engine');
-      
       render(
-        <ChecklistTemplateEditor 
-          onSave={onSave} 
-          onCancel={onCancel} 
-        />, 
+        <ChecklistTemplateEditor onSave={onSave} onCancel={onCancel} />,
         { wrapper: TestProviders }
       );
-      
-      // Fill in the form
+
       fireEvent.change(screen.getByLabelText('Template Name'), {
-        target: { value: 'Test Template' }
+        target: { value: 'Test Template' },
       });
 
-      // Add a section via inline form
       fireEvent.click(screen.getByRole('button', { name: /add section/i }));
       const sectionNameInput = screen.getByPlaceholderText('New section name');
       fireEvent.change(sectionNameInput, { target: { value: 'Engine' } });
       fireEvent.click(screen.getByRole('button', { name: 'Add' }));
-      
-      const saveButton = screen.getByText('Create Template');
-      fireEvent.click(saveButton);
-      
+
+      fireEvent.click(screen.getByText('Create Template'));
+
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalled();
       });
 
       await waitFor(() => {
-        expect(onSave).toHaveBeenCalled();
+        expect(onSave).toHaveBeenCalledWith('new-template-1');
       }, { timeout: 3000 });
+    });
+  });
+
+  describe('Structure-first UX', () => {
+    const largeTemplate = {
+      id: 'large-template',
+      name: 'Large Template',
+      description: 'Many items',
+      template_data: Array.from({ length: 21 }, (_, index) => ({
+        id: `item-${index}`,
+        title: `Item ${index + 1}`,
+        description: '',
+        section: index < 10 ? 'Section A' : 'Section B',
+        condition: null,
+        required: true,
+        notes: '',
+      })),
+    };
+
+    it('collapses to first section only for large templates on load', async () => {
+      render(
+        <ChecklistTemplateEditor template={largeTemplate} {...defaultProps} />,
+        { wrapper: TestProviders }
+      );
+
+      fireEvent.click(screen.getByRole('tab', { name: /checklist items/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Show all sections')).toBeInTheDocument();
+        expect(document.getElementById('section-Section%20A')).toBeInTheDocument();
+        expect(document.getElementById('section-Section%20B')).not.toBeInTheDocument();
+      });
+    });
+
+    it('renders compact item rows by default', () => {
+      render(
+        <ChecklistTemplateEditor template={mockTemplate} {...defaultProps} />,
+        { wrapper: TestProviders }
+      );
+
+      fireEvent.click(screen.getByRole('tab', { name: /checklist items/i }));
+
+      expect(screen.getByLabelText('Item 1 title')).toBeInTheDocument();
+      expect(screen.getByLabelText('Item 2 title')).toBeInTheDocument();
+    });
+
+    it('adds a new item below when pressing Enter in the title field', async () => {
+      render(
+        <ChecklistTemplateEditor template={mockTemplate} {...defaultProps} />,
+        { wrapper: TestProviders }
+      );
+
+      fireEvent.click(screen.getByRole('tab', { name: /checklist items/i }));
+
+      const titleInput = screen.getByLabelText('Item 1 title');
+      fireEvent.change(titleInput, { target: { value: 'Check oil updated' } });
+      fireEvent.keyDown(titleInput, { key: 'Enter', code: 'Enter' });
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Item 2 title')).toBeInTheDocument();
+      });
     });
   });
 

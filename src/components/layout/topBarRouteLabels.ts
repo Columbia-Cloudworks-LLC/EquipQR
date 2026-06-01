@@ -19,6 +19,7 @@ export const ROUTE_LABELS: Record<string, string> = {
   '/dashboard/organization': 'Organization',
   '/dashboard/organization/integrations': 'Integrations',
   '/dashboard/pm-templates': 'PM Templates',
+  '/dashboard/pm-templates/new': 'New PM Template',
   '/dashboard/reports': 'Reports',
   '/dashboard/audit-log': 'Audit Log',
   '/dashboard/settings': 'Settings',
@@ -60,6 +61,9 @@ export function shouldSuppressLabelOnMobile(pathname: string): boolean {
 
 export function getPageLabel(pathname: string): string {
   if (ROUTE_LABELS[pathname]) return ROUTE_LABELS[pathname];
+  if (pathname.endsWith('/edit') && pathname.includes('/pm-templates/')) {
+    return 'Edit PM Template';
+  }
   // Match dynamic routes, e.g. /dashboard/equipment/:id
   const segments = pathname.split('/').filter(Boolean);
   if (segments.length >= 2) {

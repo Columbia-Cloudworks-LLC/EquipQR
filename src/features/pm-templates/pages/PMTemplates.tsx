@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSimplifiedOrganizationRestrictions } from '@/features/organization/hooks/useSimplifiedOrganizationRestrictions';
-import { usePMTemplates, usePMTemplate, useClonePMTemplate, useDeletePMTemplate } from '@/features/pm-templates/hooks/usePMTemplates';
+import { usePMTemplates, useClonePMTemplate, useDeletePMTemplate } from '@/features/pm-templates/hooks/usePMTemplates';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,10 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, Copy, Edit, Trash2, Wrench, Users, Shield, Globe, Lock, Settings2, Timer, Calendar, Search, ExternalLink } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { TemplateAssignmentDialog } from '@/features/pm-templates/components/TemplateAssignmentDialog';
 import { PMTemplateRulesDialog } from '@/features/pm-templates/components/PMTemplateRulesDialog';
-import { ChecklistTemplateEditor } from '@/features/organization/components/ChecklistTemplateEditor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Page from '@/components/layout/Page';
@@ -236,22 +235,18 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
 };
 
 const PMTemplates = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { currentOrganization } = useOrganization();
   const { hasRole } = usePermissions();
   const { restrictions } = useSimplifiedOrganizationRestrictions();
   const { data: templates, isLoading } = usePMTemplates();
-  
-  const [editingTemplate, setEditingTemplate] = useState<string | null>(searchParams.get('edit'));
+
   const [templateToApply, setTemplateToApply] = useState<string | null>(null);
   const [cloneDialogOpen, setCloneDialogOpen] = useState<string | null>(null);
   const [cloneName, setCloneName] = useState('');
   const [rulesDialogTemplate, setRulesDialogTemplate] = useState<{ id: string; name: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch the template being edited
-  const { data: templateToEdit } = usePMTemplate(editingTemplate || '');
-  
   // Mutations
   const cloneTemplateMutation = useClonePMTemplate();
   const deleteTemplateMutation = useDeletePMTemplate();
@@ -291,19 +286,11 @@ const PMTemplates = () => {
   }
 
   const handleCreateTemplate = () => {
-    setEditingTemplate('new');
+    navigate('/dashboard/pm-templates/new');
   };
 
   const handleEditTemplate = (templateId: string) => {
-    setEditingTemplate(templateId);
-  };
-
-  const handleCloseEditor = () => {
-    setEditingTemplate(null);
-    if (searchParams.get('edit')) {
-      searchParams.delete('edit');
-      setSearchParams(searchParams, { replace: true });
-    }
+    navigate(`/dashboard/pm-templates/${templateId}/edit`);
   };
 
   const handleApplyTemplate = (templateId: string) => {
@@ -497,26 +484,6 @@ const PMTemplates = () => {
             )}
           </CardContent>
         </Card>
-      )}
-
-      {editingTemplate && (
-        <Dialog open={!!editingTemplate} onOpenChange={(open) => !open && handleCloseEditor()}>
-          <DialogContent className="max-w-6xl max-h-[calc(100dvh-2rem)] overflow-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingTemplate === 'new' ? 'Create PM Template' : 'Edit PM Template'}
-              </DialogTitle>
-              <DialogDescription>
-                {editingTemplate === 'new' ? 'Create a new PM template' : 'Edit existing PM template'}
-              </DialogDescription>
-            </DialogHeader>
-            <ChecklistTemplateEditor
-              template={editingTemplate === 'new' ? undefined : templateToEdit}
-              onSave={handleCloseEditor}
-              onCancel={handleCloseEditor}
-            />
-          </DialogContent>
-        </Dialog>
       )}
 
       {templateToApply && (
