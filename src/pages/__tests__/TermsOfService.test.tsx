@@ -36,11 +36,11 @@ describe('TermsOfService', () => {
       expect(screen.getByText('Last Updated: 10/24/2025')).toBeInTheDocument();
     });
 
-    it('includes back to dashboard link', () => {
+    it('includes a back navigation control', () => {
       render(<TermsOfService />);
       
-      const backLink = screen.getByRole('link', { name: /back to dashboard/i });
-      expect(backLink).toHaveAttribute('href', '/');
+      const backButton = screen.getByRole('button', { name: /^back$/i });
+      expect(backButton).toBeInTheDocument();
     });
   });
 
@@ -203,11 +203,11 @@ describe('TermsOfService', () => {
       expect(sectionHeadings.length).toBeGreaterThan(1);
     });
 
-    it('includes aria-labels and proper link text', () => {
+    it('renders an accessible back navigation control', () => {
       render(<TermsOfService />);
       
-      const backLink = screen.getByRole('link', { name: /back to dashboard/i });
-      expect(backLink).toBeInTheDocument();
+      const backButton = screen.getByRole('button', { name: /^back$/i });
+      expect(backButton).toBeInTheDocument();
     });
   });
 
