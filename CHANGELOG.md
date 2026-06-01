@@ -9,10 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.7.0] - 2026-05-25
+## [3.8.0] - 2026-06-01
 
 ### Added
 
+- **Equipment Scan History timeline** — Equipment records now have a single "Scan History" tab that replaces the separate "Scans" and "History" tabs. It shows each QR scan — who scanned, when, and where — alongside the follow-up actions taken in that scan session: work orders created, working hours updated, notes and images added, and opening the full dashboard record. Legacy deep links to the old Scans and History tabs continue to work.
 - **Organization Google Drive export destination** — Organization admins can browse Google Drive with a server-backed folder picker and choose one shared folder for work-order PDF, Google Docs, and Google Sheets exports so exports land in a consistent place instead of scattered personal drives.
 
 ### Changed
@@ -1934,8 +1935,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.7.0...HEAD
-[3.7.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.4...v3.7.0
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.0...HEAD
+[3.8.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.4...v3.8.0
 [3.6.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.3...v3.6.4
 [3.6.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.2...v3.6.3
 [3.6.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.1...v3.6.2
