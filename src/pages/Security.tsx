@@ -1,4 +1,5 @@
 import Page from '@/components/layout/Page';
+import { PageBackButton } from '@/components/layout/PageBackButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, Lock, Database, AlertTriangle } from 'lucide-react';
 
@@ -6,6 +7,8 @@ export default function Security() {
   return (
     <Page maxWidth="4xl" padding="responsive">
       <div className="space-y-6">
+        <PageBackButton />
+
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Shield className="h-8 w-8 text-primary" />

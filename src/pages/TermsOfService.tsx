@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { PageBackButton } from '@/components/layout/PageBackButton';
 import { PageSEO } from '@/components/seo/PageSEO';
 
 export default function TermsOfService() {
@@ -12,12 +12,7 @@ export default function TermsOfService() {
         path="/terms-of-service"
       />
       <div className="mb-8">
-        <Button variant="ghost" asChild className="mb-4">
-          <Link to="/">
-            <span aria-hidden="true" className="mr-2">←</span>
-            Back to Dashboard
-          </Link>
-        </Button>
+        <PageBackButton className="mb-4" />
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-4">Terms of Service</h1>
           <p className="text-muted-foreground">

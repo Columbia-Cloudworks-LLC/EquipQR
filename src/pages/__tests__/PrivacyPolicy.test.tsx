@@ -38,11 +38,10 @@ describe('PrivacyPolicy', () => {
       expect(screen.getByText(/March \d{1,2}, \d{4}/)).toBeInTheDocument();
     });
 
-    it('includes back to dashboard link', () => {
+    it('includes a back button', () => {
       render(<PrivacyPolicy />);
       
-      const backLink = screen.getByRole('link', { name: /back to dashboard/i });
-      expect(backLink).toHaveAttribute('href', '/');
+      expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
     });
   });
 
@@ -276,11 +275,10 @@ describe('PrivacyPolicy', () => {
       expect(sectionHeadings.length).toBeGreaterThan(1);
     });
 
-    it('includes proper link accessibility', () => {
+    it('includes proper back navigation accessibility', () => {
       render(<PrivacyPolicy />);
       
-      const backLink = screen.getByRole('link', { name: /back to dashboard/i });
-      expect(backLink).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
     });
   });
 

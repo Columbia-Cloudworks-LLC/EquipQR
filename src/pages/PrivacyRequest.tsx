@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { PageBackButton } from '@/components/layout/PageBackButton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -108,12 +108,7 @@ export default function PrivacyRequest() {
       />
 
       <div className="mb-8">
-        <Button variant="ghost" asChild className="mb-4">
-          <Link to="/">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Home
-          </Link>
-        </Button>
+        <PageBackButton className="mb-4" />
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-4">Privacy Request</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
