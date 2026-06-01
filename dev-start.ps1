@@ -1,14 +1,14 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Start the full EquipQR local stack: Supabase, Edge Functions serve, and Vite.
+  Start the full EquipQR local stack: Supabase, Edge Functions serve, Vite, and docs.
 
 .PARAMETER Force
-  After Supabase is up: reset local DB, regenerate TypeScript types, seed equipment images, then ensure Edge + Vite are running.
-  Does not call dev-stop. If Vite or Edge Functions serve is already running, exits with an error - run dev-stop first.
+  After Supabase is up: reset local DB, regenerate TypeScript types, seed equipment images, then ensure Edge, docs, and Vite are running.
+  Does not call dev-stop. If Vite, docs, or Edge Functions serve is already running, exits with an error - run dev-stop first.
 
 .PARAMETER PrepareOnly
-  Run setup through env sync (steps 1-7) and exit before launching Edge Functions or Vite.
+  Run setup through env sync (steps 1-7) and exit before launching Edge Functions, docs, or Vite.
   Used by Cursor/VS Code tasks so long-running servers start in integrated terminals.
 
 .EXAMPLE
@@ -99,14 +99,29 @@ function Test-ViteResponding {
     }
 }
 
+function Test-DocsResponding {
+    try {
+        $r = Invoke-WebRequest -Uri 'http://localhost:5174' -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop
+        return ($r.StatusCode -eq 200)
+    } catch {
+        return $false
+    }
+}
+
 function Test-Port8080Listening {
     $conns = Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue
+    return [bool]$conns
+}
+
+function Test-Port5174Listening {
+    $conns = Get-NetTCPConnection -LocalPort 5174 -State Listen -ErrorAction SilentlyContinue
     return [bool]$conns
 }
 
 function Test-DevStackAlreadyRunningForForce {
     if (Test-EdgeFunctionsServeRunning) { return $true }
     if (Test-Port8080Listening -and (Test-ViteResponding)) { return $true }
+    if (Test-Port5174Listening -and (Test-DocsResponding)) { return $true }
     return $false
 }
 
@@ -178,19 +193,19 @@ function Invoke-DockerRecovery {
 Write-Host ""
 Write-Host " ============================================"
 Write-Host "  EquipQR Dev Environment - Startup"
-Write-Host "  Mode: full (Supabase + Edge Functions + Vite)"
+Write-Host "  Mode: full (Supabase + Edge Functions + Docs + Vite)"
 if ($Force) {
     Write-Host '  Flag: -Force (DB reset + type generation + full verification)'
 }
 if ($PrepareOnly) {
-    Write-Host '  Flag: -PrepareOnly (setup only; Edge + Vite via Cursor tasks)'
+    Write-Host '  Flag: -PrepareOnly (setup only; Edge + Docs + Vite via Cursor tasks)'
 }
 Write-Host " ============================================"
 Write-Host ""
 
 if ($Force) {
     if (Test-DevStackAlreadyRunningForForce) {
-        Write-Host "FAIL: A dev server is already running (Vite on port 8080 and/or Edge Functions serve)."
+        Write-Host "FAIL: A dev server is already running (Vite on 8080, docs on 5174, and/or Edge Functions serve)."
         Write-Host '       Stop the stack first, then run with -Force:'
         Write-Host '         .\dev-stop.bat'
         Write-Host '         .\dev-start.bat -Force'
@@ -199,7 +214,7 @@ if ($Force) {
 }
 
 # ---------- 1. Pre-flight ----------
-Write-Host " [1/10] Pre-flight checks..."
+Write-Host " [1/11] Pre-flight checks..."
 
 foreach ($cmd in @('node', 'npm', 'npx', 'docker')) {
     $found = Get-Command $cmd -ErrorAction SilentlyContinue
@@ -249,7 +264,7 @@ Write-Host "        All pre-flight checks passed."
 
 # ---------- 1b. 1Password sync ----------
 Write-Host ""
-Write-Host " [1b/10] Syncing 1Password environments early..."
+Write-Host " [1b/11] Syncing 1Password environments early..."
 $OP_APP_ENV_ID = $env:EQUIPQR_OP_APP_ENVIRONMENT_ID
 if (-not $OP_APP_ENV_ID) { $OP_APP_ENV_ID = $DEFAULT_OP_APP_ENV_ID }
 $OP_ENV_ID = $env:EQUIPQR_OP_ENVIRONMENT_ID
@@ -289,7 +304,7 @@ if ($opCli) {
 
 # ---------- 2. node_modules ----------
 Write-Host ""
-Write-Host " [2/10] Checking node_modules..."
+Write-Host " [2/11] Checking node_modules..."
 if (Test-Path -LiteralPath (Join-Path $repoRoot 'node_modules')) {
     Write-Host "        node_modules exists - skipping npm ci."
 } else {
@@ -302,9 +317,22 @@ if (Test-Path -LiteralPath (Join-Path $repoRoot 'node_modules')) {
     Write-Host "        npm ci completed successfully."
 }
 
+$docsNodeModules = Join-Path $repoRoot 'docs\node_modules'
+if (Test-Path -LiteralPath $docsNodeModules) {
+    Write-Host "        docs/node_modules exists - skipping docs npm ci."
+} else {
+    Write-Host "        docs/node_modules not found - running npm --prefix docs ci..."
+    & npm --prefix docs ci
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "        FAIL: npm --prefix docs ci failed."
+        exit 1
+    }
+    Write-Host "        docs npm ci completed successfully."
+}
+
 # ---------- 3. Stale containers ----------
 Write-Host ""
-Write-Host " [3/10] Cleaning up stale Supabase containers..."
+Write-Host " [3/11] Cleaning up stale Supabase containers..."
 $cleaned = $false
 foreach ($status in @('exited', 'dead', 'created')) {
     $out = docker ps -aq --filter "name=supabase_" --filter "status=$status" 2>$null
@@ -352,7 +380,7 @@ if (-not $cleaned) { Write-Host "        No stale containers found." }
 
 # ---------- 4. Supabase start ----------
 Write-Host ""
-Write-Host " [4/10] Starting Supabase local stack..."
+Write-Host " [4/11] Starting Supabase local stack..."
 
 $needStart = $true
 $oldSupaEap = $ErrorActionPreference
@@ -535,9 +563,9 @@ Write-Host "        -----------------------"
 # ---------- 5. DB reset (Force only) ----------
 Write-Host ""
 if (-not $Force) {
-    Write-Host ' [5/10] DB Reset - skipped (use -Force to reset).'
+    Write-Host ' [5/11] DB Reset - skipped (use -Force to reset).'
 } else {
-    Write-Host ' [5/10] Resetting local database (-Force)...'
+    Write-Host ' [5/11] Resetting local database (-Force)...'
     $oldResetEap = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     & npx supabase db reset
@@ -560,9 +588,9 @@ if (-not $Force) {
 # ---------- 6. Types (Force only) ----------
 Write-Host ""
 if (-not $Force) {
-    Write-Host ' [6/10] Type generation - skipped (use -Force to regenerate types).'
+    Write-Host ' [6/11] Type generation - skipped (use -Force to regenerate types).'
 } else {
-    Write-Host " [6/10] Regenerating Supabase TypeScript types..."
+    Write-Host " [6/11] Regenerating Supabase TypeScript types..."
     # Why this is more involved than `Set-Content $cliOutput`:
     # The Supabase CLI (~v2.77 on Windows) interleaves status text with the
     # generated TypeScript on the same streams it uses for the module body.
@@ -621,7 +649,7 @@ if (-not $Force) {
 
 # ---------- 7. Sync local env ----------
 Write-Host ""
-Write-Host " [7/10] Syncing local Supabase URLs in env files..."
+Write-Host " [7/11] Syncing local Supabase URLs in env files..."
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\sync-local-supabase-env.ps1') -ApiPort $SUPABASE_API_PORT
 if ($LASTEXITCODE -ne 0) {
     Write-Host "        WARNING: Could not sync local Supabase URLs. Update .env.local manually if needed."
@@ -630,14 +658,14 @@ if ($LASTEXITCODE -ne 0) {
 if ($PrepareOnly) {
     Write-Host ""
     Write-Host " [PrepareOnly] Stack prepared through step 7."
-    Write-Host "        Start Edge Functions and Vite via Cursor tasks (F5 or Tasks: Run Task)."
+    Write-Host "        Start Edge Functions, docs, and Vite via Cursor tasks (F5 or Tasks: Run Task)."
     Write-Host ""
     exit 0
 }
 
 # ---------- 8. Edge Functions ----------
 Write-Host ""
-Write-Host " [8/10] Starting Supabase Edge Functions serve..."
+Write-Host " [8/11] Starting Supabase Edge Functions serve..."
 $EDGE_ENV_FILE = $DEFAULT_EDGE_ENV_FILE
 Write-Host "        Using edge env file: $EDGE_ENV_FILE"
 Write-Host "        Validating edge env file..."
@@ -708,7 +736,7 @@ if (Test-EdgeFunctionsServeRunning) {
 # occupies the stale IP. Restarting kong forces it to re-resolve the
 # upstream hostname and refresh its pool. No-op if kong isn't running.
 Write-Host ""
-Write-Host " [8b/10] Refreshing kong upstream pool for new edge_runtime IP..."
+Write-Host " [8b/11] Refreshing kong upstream pool for new edge_runtime IP..."
 $kongName = (docker ps --filter 'name=supabase_kong_' --format '{{.Names}}' 2>$null | Select-Object -First 1)
 if ($kongName) {
     $oldKongEap = $ErrorActionPreference
@@ -745,9 +773,46 @@ if ($kongName) {
     Write-Host "        WARNING: kong container not found - skipping refresh."
 }
 
-# ---------- 9. Vite ----------
+# ---------- 9. Docs ----------
 Write-Host ""
-Write-Host " [9/10] Starting Vite dev server (port 8080)..."
+Write-Host " [9/11] Starting documentation dev server (port 5174)..."
+
+$listen5174 = Get-NetTCPConnection -LocalPort 5174 -State Listen -ErrorAction SilentlyContinue
+if ($listen5174) {
+    Write-Host "        Port 5174 in use - verifying docs..."
+    if (Test-DocsResponding) {
+        Write-Host "        Docs already running - skipped."
+    } else {
+        Write-Host "        FAIL: Port 5174 is not serving EquipQR docs. Free the port or stop the other process."
+        exit 1
+    }
+} else {
+    Write-Host "        Launching docs in a new window..."
+    Start-Process cmd -ArgumentList @('/k', "cd /d `"$repoRoot`" && npm run docs:dev") -WindowStyle Normal
+
+    Write-Host "        Waiting for docs (up to 45s)..."
+    $timeout = 45
+    $elapsed = 0
+    $docsUp = $false
+    while ($elapsed -lt $timeout) {
+        if (Test-DocsResponding) {
+            Write-Host "        Documentation dev server is ready."
+            $docsUp = $true
+            break
+        }
+        Start-Sleep -Seconds 2
+        $elapsed += 2
+        Write-Host "        Waiting... ${elapsed}s"
+    }
+    if (-not $docsUp) {
+        Write-Host "        FAIL: Docs health check timed out."
+        exit 1
+    }
+}
+
+# ---------- 10. Vite ----------
+Write-Host ""
+Write-Host " [10/11] Starting Vite dev server (port 8080)..."
 
 $listen8080 = Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue
 if ($listen8080) {
@@ -792,6 +857,7 @@ Write-Host ""
 $API_STATUS = '[UNKNOWN]'
 $DB_STATUS = '[UNKNOWN]'
 $FUNCTIONS_STATUS = '[UNKNOWN]'
+$DOCS_STATUS = '[UNKNOWN]'
 $FRONTEND_STATUS = '[UNKNOWN]'
 
 try {
@@ -811,6 +877,13 @@ if (Test-EdgeFunctionsServeRunning) {
     $fail = $true
 }
 
+if (Test-DocsResponding) {
+    $DOCS_STATUS = '[OK]'
+} else {
+    $DOCS_STATUS = '[FAILED]'
+    $fail = $true
+}
+
 if (Test-ViteResponding) {
     $FRONTEND_STATUS = '[OK]'
 } else {
@@ -821,6 +894,7 @@ if (Test-ViteResponding) {
 Write-Host "  Supabase API:   http://localhost:$SUPABASE_API_PORT      $API_STATUS"
 Write-Host "  Database:       localhost:54322                $DB_STATUS"
 Write-Host "  Frontend:       http://localhost:8080          $FRONTEND_STATUS"
+Write-Host "  Docs:           http://localhost:5174          $DOCS_STATUS"
 Write-Host "  Edge Functions: (via Supabase API)             $FUNCTIONS_STATUS"
 Write-Host ""
 Write-Host " ============================================"

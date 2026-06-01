@@ -52,6 +52,36 @@
       }
     },
     {
+      "label": "EquipQR: Docs",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\dev-docs.ps1"
+      ],
+      "isBackground": true,
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-docs",
+        "showReuseMessage": false
+      },
+      "problemMatcher": {
+        "owner": "equipqr-docs",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\\[EquipQR\\] Docs dev server starting",
+          "endsPattern": "^\\[EquipQR\\] Docs ready"
+        }
+      }
+    },
+    {
       "label": "EquipQR: Vite",
       "type": "shell",
       "command": "powershell.exe",
@@ -87,6 +117,7 @@
       "dependsOn": [
         "EquipQR: Prepare Dev Stack",
         "EquipQR: Edge Functions",
+        "EquipQR: Docs",
         "EquipQR: Vite"
       ],
       "problemMatcher": []

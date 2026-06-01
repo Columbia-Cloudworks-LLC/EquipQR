@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Shut down the EquipQR local development stack (Vite, Edge Functions serve, Supabase Docker).
+  Shut down the EquipQR local development stack (Vite, docs, Edge Functions serve, Supabase Docker).
 
 .PARAMETER Force
   Also stop Docker Desktop after tearing down dev services.
@@ -86,6 +86,30 @@ try {
     $stopFail = $true
 }
 
+# --- Docs (port 5174) ---
+Write-Host ""
+Write-Host " [Docs] Stopping documentation dev server (port 5174)..."
+try {
+    $pids = @(Get-NetTCPConnection -LocalPort 5174 -State Listen -ErrorAction SilentlyContinue |
+        Select-Object -ExpandProperty OwningProcess -Unique)
+    if (-not $pids -or $pids.Count -eq 0) {
+        Write-Host '        Nothing listening on port 5174 - skipped.'
+    } else {
+        foreach ($p in $pids) {
+            try {
+                Stop-Process -Id $p -Force -ErrorAction Stop
+                Write-Host "        Killed PID $p"
+            } catch {
+                Write-Host "        Could not kill PID $p"
+                $stopFail = $true
+            }
+        }
+    }
+} catch {
+    Write-Host "        Docs stop step error: $_"
+    $stopFail = $true
+}
+
 # --- Edge Functions serve ---
 Write-Host ""
 Write-Host " [Edge] Stopping Supabase Edge Functions serve..."
@@ -160,7 +184,7 @@ $ErrorActionPreference = $oldPruneEap
 # --- Port sweep (full stack) ---
 Write-Host ""
 Write-Host " [Ports] Cleaning up orphan listeners..."
-$ports = @(8080, 54321, 54322, 54323, 54324, 54325, 54326, 54327, 54328, 58220, 58221, 58222, 58223, 58224, 58225, 58226, 58227)
+$ports = @(8080, 5174, 54321, 54322, 54323, 54324, 54325, 54326, 54327, 54328, 58220, 58221, 58222, 58223, 58224, 58225, 58226, 58227)
 $portFail = $false
 foreach ($port in $ports) {
     $pids = @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue |
