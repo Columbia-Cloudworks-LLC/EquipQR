@@ -16,6 +16,7 @@ interface QRNoteImageDialogProps {
   organizationId: string;
   equipmentTeamId: string | null;
   permissionContext: QRActionPermissionContext | null;
+  scanId?: string | null;
   userDisplayName: string;
   onSuccess: (message: string) => void;
 }
@@ -28,6 +29,7 @@ const QRNoteImageDialog: React.FC<QRNoteImageDialogProps> = ({
   organizationId,
   equipmentTeamId,
   permissionContext,
+  scanId,
   userDisplayName,
   onSuccess,
 }) => {
@@ -80,6 +82,7 @@ const QRNoteImageDialog: React.FC<QRNoteImageDialogProps> = ({
         images: data.images,
         isPrivate: data.isPrivate || false,
         machineHours: data.machineHours,
+        scanId,
       });
       onSuccess('Note added to equipment.');
       resetAndClose();

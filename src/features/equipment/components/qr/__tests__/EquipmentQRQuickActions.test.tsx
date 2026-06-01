@@ -496,4 +496,28 @@ describe('EquipmentQRQuickActions', () => {
     expect(call?.attachPM).toBe(false);
     expect(call?.images?.some((f) => f.name === 'site-photo.jpg')).toBe(true);
   });
+
+  it('forwards the scanId to createQRWorkOrder so the action is attributed to the scan', async () => {
+    const user = userEvent.setup();
+    mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
+    mockCreateWorkOrder.mockResolvedValue({
+      workOrder: {
+        id: 'wo-scan',
+        title: 'Work order - Forklift 17',
+      } as WorkOrder,
+      creationPhotosAttached: true,
+    } as Awaited<ReturnType<typeof createQRWorkOrder>>);
+
+    renderQuickActions({ scanId: 'scan-123' });
+
+    await user.click(screen.getByRole('button', { name: /create generic work order/i }));
+    await screen.findByRole('dialog', undefined, { timeout: 3000 });
+    await user.click(screen.getByRole('button', { name: /create work order/i }));
+
+    await waitFor(() => {
+      expect(mockCreateWorkOrder).toHaveBeenCalledWith(
+        expect.objectContaining({ scanId: 'scan-123' })
+      );
+    });
+  });
 });

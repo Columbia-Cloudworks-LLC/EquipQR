@@ -24,6 +24,8 @@ interface EquipmentQRQuickActionsProps {
   equipment: QRActionEquipment;
   userRole: Role;
   userDisplayName: string;
+  /** Scan that this action set originated from; used to attribute follow-up events. */
+  scanId?: string | null;
   onWorkingHoursUpdated?: (newHours: number) => void;
 }
 
@@ -48,6 +50,7 @@ export default function EquipmentQRQuickActions({
   equipment,
   userRole,
   userDisplayName,
+  scanId,
   onWorkingHoursUpdated,
 }: EquipmentQRQuickActionsProps) {
   const [dialog, setDialog] = useState<DialogState>(null);
@@ -186,6 +189,7 @@ export default function EquipmentQRQuickActions({
               open
               equipment={equipment}
               permissionContext={activePermissionContext}
+              scanId={scanId}
               mode={dialog.attachPM ? 'pm' : 'generic'}
               onOpenChange={(open) => {
                 if (!open) {
@@ -208,6 +212,7 @@ export default function EquipmentQRQuickActions({
               open
               equipment={equipment}
               permissionContext={activePermissionContext}
+              scanId={scanId}
               onOpenChange={(open) => {
                 if (!open) {
                   setDialog(null);
@@ -236,6 +241,7 @@ export default function EquipmentQRQuickActions({
               organizationId={equipment.organizationId}
               equipmentTeamId={equipment.teamId}
               permissionContext={activePermissionContext}
+              scanId={scanId}
               userDisplayName={userDisplayName}
               onSuccess={(message) => {
                 setDialog(null);

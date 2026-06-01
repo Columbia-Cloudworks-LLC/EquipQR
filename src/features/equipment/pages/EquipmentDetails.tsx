@@ -26,10 +26,7 @@ const EquipmentNotesTab = lazy(() => import('@/features/equipment/components/Equ
 const EquipmentWorkOrdersTab = lazy(() => import('@/features/equipment/components/EquipmentWorkOrdersTab'));
 const EquipmentPartsTab = lazy(() => import('@/features/equipment/components/EquipmentPartsTab'));
 const EquipmentImagesTab = lazy(() => import('@/features/equipment/components/EquipmentImagesTab'));
-const EquipmentScansTab = lazy(() => import('@/features/equipment/components/EquipmentScansTab'));
-const HistoryTab = lazy(() =>
-  import('@/components/audit').then(m => ({ default: m.HistoryTab }))
-);
+const EquipmentScanHistoryTab = lazy(() => import('@/features/equipment/components/EquipmentScanHistoryTab'));
 
 // Lazy: modals/forms — deferred until opened
 const WorkOrderForm = lazy(() => import('@/features/work-orders/components/WorkOrderForm'));
@@ -55,6 +52,20 @@ const TabContentSkeleton = () => (
   </div>
 );
 
+const EQUIPMENT_TAB_VALUES = ['details', 'work-orders', 'notes', 'parts', 'images', 'scan-history'] as const;
+
+/**
+ * Resolve the `?tab=` query param to a valid tab value. Legacy `scans` and
+ * `history` deep links are normalized to the combined `scan-history` tab so old
+ * links (e.g. EquipmentCard quick actions) keep working. Unknown values fall
+ * back to `details`.
+ */
+function normalizeTabParam(tab: string | null): string {
+  if (!tab) return 'details';
+  if (tab === 'scans' || tab === 'history') return 'scan-history';
+  return (EQUIPMENT_TAB_VALUES as readonly string[]).includes(tab) ? tab : 'details';
+}
+
 const EquipmentDetails = () => {
   const { equipmentId } = useParams<{ equipmentId: string }>();
   const [searchParams] = useSearchParams();
@@ -65,7 +76,7 @@ const EquipmentDetails = () => {
   const isMobile = useIsMobile();
   const isQRScan = searchParams.get('qr') === 'true';
   
-  const [activeTab, setActiveTab] = useState('details');
+  const [activeTab, setActiveTab] = useState(() => normalizeTabParam(searchParams.get('tab')));
   const [isWorkOrderFormOpen, setIsWorkOrderFormOpen] = useState(false);
   const [isQRCodeOpen, setIsQRCodeOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -73,6 +84,16 @@ const EquipmentDetails = () => {
   const [scanLogged, setScanLogged] = useState(false);
 
   const { user } = useAuth();
+
+  // Sync the active tab when the `?tab=` deep link changes during in-app
+  // navigation (e.g. EquipmentCard quick actions). Legacy `scans`/`history`
+  // values normalize to the combined `scan-history` tab.
+  const tabParam = searchParams.get('tab');
+  useEffect(() => {
+    if (tabParam) {
+      setActiveTab(normalizeTabParam(tabParam));
+    }
+  }, [tabParam]);
 
   // isPending (not isLoading) correctly blocks logScan during the brief window
   // where the query just became enabled but hasn't started fetching yet.
@@ -628,23 +649,11 @@ const EquipmentDetails = () => {
           )}
         </TabsContent>
 
-        <TabsContent value="scans">
-          {activeTab === 'scans' && (
+        <TabsContent value="scan-history">
+          {activeTab === 'scan-history' && (
             <Suspense fallback={<TabContentSkeleton />}>
-              <EquipmentScansTab 
+              <EquipmentScanHistoryTab 
                 equipmentId={equipment.id} 
-                organizationId={currentOrganization.id}
-              />
-            </Suspense>
-          )}
-        </TabsContent>
-
-        <TabsContent value="history">
-          {activeTab === 'history' && (
-            <Suspense fallback={<TabContentSkeleton />}>
-              <HistoryTab 
-                entityType="equipment"
-                entityId={equipment.id} 
                 organizationId={currentOrganization.id}
               />
             </Suspense>

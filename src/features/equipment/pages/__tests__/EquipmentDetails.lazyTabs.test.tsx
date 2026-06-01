@@ -46,11 +46,8 @@ function GatedTabContents({ activeTab }: { activeTab: string }) {
       <TabsContent value="images">
         {activeTab === 'images' && <div data-testid="images-content">Images panel</div>}
       </TabsContent>
-      <TabsContent value="scans">
-        {activeTab === 'scans' && <div data-testid="scans-content">Scans panel</div>}
-      </TabsContent>
-      <TabsContent value="history">
-        {activeTab === 'history' && <div data-testid="history-content">History panel</div>}
+      <TabsContent value="scan-history">
+        {activeTab === 'scan-history' && <div data-testid="scan-history-content">Scan History panel</div>}
       </TabsContent>
     </Tabs>
   );
@@ -68,8 +65,7 @@ describe('EquipmentDetails lazy-tab gating (issue #694)', () => {
     expect(screen.queryByTestId('work-orders-content')).not.toBeInTheDocument();
     expect(screen.queryByTestId('parts-content')).not.toBeInTheDocument();
     expect(screen.queryByTestId('images-content')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('scans-content')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('history-content')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('scan-history-content')).not.toBeInTheDocument();
   });
 
   it('mounts notes content and not others when activeTab changes to notes', () => {
@@ -103,16 +99,10 @@ describe('EquipmentDetails lazy-tab gating (issue #694)', () => {
     expect(screen.queryByTestId('notes-content')).not.toBeInTheDocument();
   });
 
-  it('mounts scans content only when activeTab is scans', () => {
+  it('mounts scan-history content only when activeTab is scan-history', () => {
     const { rerender } = render(<GatedTabContents activeTab="details" />);
-    rerender(<GatedTabContents activeTab="scans" />);
-    expect(screen.getByTestId('scans-content')).toBeInTheDocument();
-  });
-
-  it('mounts history content only when activeTab is history', () => {
-    const { rerender } = render(<GatedTabContents activeTab="details" />);
-    rerender(<GatedTabContents activeTab="history" />);
-    expect(screen.getByTestId('history-content')).toBeInTheDocument();
+    rerender(<GatedTabContents activeTab="scan-history" />);
+    expect(screen.getByTestId('scan-history-content')).toBeInTheDocument();
     expect(screen.queryByTestId('notes-content')).not.toBeInTheDocument();
   });
 

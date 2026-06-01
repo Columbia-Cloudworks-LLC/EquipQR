@@ -334,7 +334,7 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
               variant="ghost"
               size="sm"
               className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-              onClick={(e) => handleQuickAction(e, `/dashboard/equipment/${equipment.id}?tab=history`)}
+              onClick={(e) => handleQuickAction(e, `/dashboard/equipment/${equipment.id}?tab=scan-history`)}
             >
               <History className="h-3.5 w-3.5" />
               History

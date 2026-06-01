@@ -30,7 +30,18 @@ describe('ResponsiveEquipmentTabs', () => {
       expect(screen.getByText('Notes')).toBeInTheDocument();
       expect(screen.getByText('Parts')).toBeInTheDocument();
       expect(screen.getByText('Images')).toBeInTheDocument();
-      expect(screen.getByText('Scans')).toBeInTheDocument();
+      expect(screen.getByText('Scan History')).toBeInTheDocument();
+    });
+
+    it('no longer renders separate Scans and History tabs', () => {
+      render(
+        <ResponsiveEquipmentTabs activeTab="details" onTabChange={mockOnTabChange}>
+          <div>Tab Content</div>
+        </ResponsiveEquipmentTabs>
+      );
+
+      expect(screen.queryByText('Scans')).not.toBeInTheDocument();
+      expect(screen.queryByText('History')).not.toBeInTheDocument();
     });
 
     it('applies desktop grid layout', () => {
@@ -40,8 +51,8 @@ describe('ResponsiveEquipmentTabs', () => {
         </ResponsiveEquipmentTabs>
       );
       
-      // Desktop uses grid-cols-7 (Details, Work Orders, Notes, Parts, Images, Scans, History)
-      const tabsList = container.querySelector('[class*="grid-cols-7"]');
+      // Desktop uses grid-cols-6 (Details, Work Orders, Notes, Parts, Images, Scan History)
+      const tabsList = container.querySelector('[class*="grid-cols-6"]');
       expect(tabsList).toBeInTheDocument();
     });
   });
@@ -61,7 +72,7 @@ describe('ResponsiveEquipmentTabs', () => {
       expect(screen.getByText('Orders')).toBeInTheDocument(); // Shortened on mobile
       expect(screen.getByText('Notes')).toBeInTheDocument();
       expect(screen.getByText('Images')).toBeInTheDocument();
-      expect(screen.getByText('Scans')).toBeInTheDocument();
+      expect(screen.getByText('Scan History')).toBeInTheDocument();
     });
 
     it('applies mobile grid layout', async () => {
@@ -74,13 +85,10 @@ describe('ResponsiveEquipmentTabs', () => {
         </ResponsiveEquipmentTabs>
       );
       
-      // Mobile first row uses grid-cols-3 (Details, Orders, Notes)
-      const firstRow = container.querySelector('[class*="grid-cols-3"]');
-      expect(firstRow).toBeInTheDocument();
-      
-      // Mobile second row uses grid-cols-4 (Parts, Images, Scans, History)
-      const secondRow = container.querySelector('[class*="grid-cols-4"]');
-      expect(secondRow).toBeInTheDocument();
+      // Mobile rows both use grid-cols-3 (row 1: Details, Orders, Notes;
+      // row 2: Parts, Images, Scan History)
+      const rows = container.querySelectorAll('[class*="grid-cols-3"]');
+      expect(rows.length).toBeGreaterThanOrEqual(2);
     });
 
     it('shortens work orders label on mobile', async () => {

@@ -3028,6 +3028,67 @@ export type Database = {
           },
         ]
       }
+      scan_follow_up_events: {
+        Row: {
+          entity_id: string | null
+          entity_type: string | null
+          equipment_id: string
+          event_type: string
+          id: string
+          metadata: Json
+          performed_at: string
+          performed_by: string
+          performed_by_name: string | null
+          scan_id: string
+        }
+        Insert: {
+          entity_id?: string | null
+          entity_type?: string | null
+          equipment_id: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          performed_at?: string
+          performed_by: string
+          performed_by_name?: string | null
+          scan_id: string
+        }
+        Update: {
+          entity_id?: string | null
+          entity_type?: string | null
+          equipment_id?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          performed_at?: string
+          performed_by?: string
+          performed_by_name?: string | null
+          scan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scan_follow_up_events_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scan_follow_up_events_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scan_follow_up_events_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scans: {
         Row: {
           equipment_id: string

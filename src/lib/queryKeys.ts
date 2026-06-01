@@ -44,6 +44,12 @@ export const equipment = {
             : ['equipment', orgId] as const,
   listOptimized: (orgId: string) => ['equipment', orgId, 'optimized'] as const,
   byId: (orgId: string, equipmentId: string) => ['equipment', orgId, equipmentId] as const,
+  scans: (orgId: string, equipmentId: string) =>
+    ['equipment', orgId, equipmentId, 'scans'] as const,
+  scanFollowUps: (orgId: string, equipmentId: string) =>
+    ['equipment', orgId, equipmentId, 'scan-follow-ups'] as const,
+  scanHistory: (orgId: string, equipmentId: string) =>
+    ['equipment', orgId, equipmentId, 'scan-history'] as const,
   notes: (equipmentId: string, orgId?: string) => 
     orgId ? ['equipment', equipmentId, 'notes', orgId] as const
           : ['equipment', equipmentId, 'notes'] as const,
