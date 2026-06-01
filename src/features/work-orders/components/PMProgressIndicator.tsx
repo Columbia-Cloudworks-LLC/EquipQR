@@ -10,9 +10,16 @@ interface PMProgressIndicatorProps {
   workOrderId: string;
   hasPM: boolean;
   showCount?: boolean;
+  /** compact: count-only chip in list cards; hides segment bar until progress starts */
+  variant?: 'default' | 'compact';
 }
 
-const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({ workOrderId, hasPM, showCount = false }) => {
+const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({
+  workOrderId,
+  hasPM,
+  showCount = false,
+  variant = 'default',
+}) => {
   const { data: pmData } = usePMByWorkOrderId(workOrderId);
 
   // Parse checklist data and create segments for all items
@@ -42,8 +49,19 @@ const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({ workOrderId, 
 
   const isCompleted = pmData?.status === 'completed';
 
-  const completedCount = segments.filter(s => s.status === 'pass').length;
+  const completedCount = segments.filter((s) => s.status !== 'not_rated').length;
   const totalCount = segments.length;
+  const isCompact = variant === 'compact';
+  const showSegmentBar = segments.length > 0 && (!isCompact || completedCount > 0);
+
+  if (isCompact && totalCount > 0 && completedCount === 0) {
+    return (
+      <div className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 text-xs text-muted-foreground">
+        <Wrench className="h-3 w-3 shrink-0" aria-hidden />
+        <span className="tabular-nums">PM {completedCount}/{totalCount}</span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-2">
@@ -60,7 +78,7 @@ const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({ workOrderId, 
       </Tooltip>
 
       {/* Segment bar */}
-      {segments.length > 0 && (
+      {showSegmentBar && (
         <div className="min-w-0 flex-1">
           <SegmentedProgress segments={segments} className="h-2" />
         </div>
@@ -72,7 +90,8 @@ const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({ workOrderId, 
         </span>
       )}
 
-      {/* Right-side completion icon */}
+      {/* Right-side completion icon — hidden in compact list mode */}
+      {!isCompact && (
       <Tooltip>
         <TooltipTrigger asChild>
           <span
@@ -93,6 +112,7 @@ const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({ workOrderId, 
           </p>
         </TooltipContent>
       </Tooltip>
+      )}
     </div>
   );
 };

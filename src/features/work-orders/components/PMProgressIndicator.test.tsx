@@ -187,6 +187,50 @@ describe('PMProgressIndicator', () => {
     });
   });
 
+  describe('Compact variant', () => {
+    it('shows count-only chip when no checklist items are complete', () => {
+      const noRatedData = {
+        ...mockPMData,
+        checklist_data: [
+          { id: '1', section: 'Engine', title: 'Check oil', condition: null, required: true },
+          { id: '2', section: 'Engine', title: 'Check filter', condition: null, required: true },
+        ],
+      };
+      (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(
+        createMockQueryResult(noRatedData),
+      );
+
+      render(
+        <PMProgressIndicator workOrderId="wo-1" hasPM={true} variant="compact" />,
+        { wrapper: TestProviders },
+      );
+
+      expect(screen.getByText('PM 0/2')).toBeInTheDocument();
+    });
+
+    it('shows segment bar in compact mode once progress has started', () => {
+      const partialData = {
+        ...mockPMData,
+        checklist_data: [
+          { id: '1', section: 'Engine', title: 'Check oil', condition: 1, required: true },
+          { id: '2', section: 'Engine', title: 'Check filter', condition: null, required: true },
+        ],
+      };
+      (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(
+        createMockQueryResult(partialData),
+      );
+
+      const { container } = render(
+        <PMProgressIndicator workOrderId="wo-1" hasPM={true} variant="compact" showCount />,
+        { wrapper: TestProviders },
+      );
+
+      const { segmentBar } = pmRowIcons(container);
+      expect(segmentBar).toBeInTheDocument();
+      expect(screen.getByText('1/2')).toBeInTheDocument();
+    });
+  });
+
   describe('Edge Cases', () => {
     it('handles null checklist data', () => {
       const nullChecklistData = {

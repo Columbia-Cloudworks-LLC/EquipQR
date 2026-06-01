@@ -24,6 +24,8 @@ interface PageHeaderProps {
   className?: string;
   /** Hide the description on mobile to save vertical space */
   hideDescriptionOnMobile?: boolean;
+  /** Show meta badges inline with the title on mobile (default: below title) */
+  inlineMetaOnMobile?: boolean;
   /** Vertical gap between breadcrumbs and title row.
    *  'default' = space-y-4 everywhere.
    *  'compact' = space-y-4 on mobile, space-y-2 on lg+. Ideal for detail pages with breadcrumbs. */
@@ -44,6 +46,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   actions,
   className,
   hideDescriptionOnMobile = false,
+  inlineMetaOnMobile = false,
   density = 'default',
 }) => {
   useDocumentTitle(title);
@@ -95,16 +98,16 @@ const PageHeader: React.FC<PageHeaderProps> = ({
             <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
               {title}
             </h1>
-            {/* Meta badges/labels - shown inline with title on desktop */}
+            {/* Meta badges/labels - inline with title on desktop (and mobile when inlineMetaOnMobile) */}
             {meta && (
-              <div className="hidden sm:flex items-center gap-2">
+              <div className={cn('flex items-center gap-2', !inlineMetaOnMobile && 'hidden sm:flex')}>
                 {meta}
               </div>
             )}
           </div>
           
-          {/* Meta badges/labels - shown below title on mobile for better spacing */}
-          {meta && (
+          {/* Meta badges/labels - below title on mobile unless inlineMetaOnMobile */}
+          {meta && !inlineMetaOnMobile && (
             <div className="flex items-center gap-2 sm:hidden">
               {meta}
             </div>
