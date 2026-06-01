@@ -91,13 +91,3 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
-
-// Hook version for functional components
-export const useErrorHandler = () => {
-  const handleError = (error: Error, context?: string) => {
-    console.error(`Error${context ? ` in ${context}` : ''}:`, error);
-    // In a real app, you might want to send this to an error reporting service
-  };
-
-  return { handleError };
-};

@@ -1,7 +1,8 @@
-import { useNavigate, type To } from 'react-router-dom';
+import type { To } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { usePageBackNavigation } from './usePageBackNavigation';
 
 export interface PageBackButtonProps {
   /** Route when there is no browser history to go back to. @default '/' */
@@ -9,19 +10,6 @@ export interface PageBackButtonProps {
   /** Visible label. @default 'Back' */
   label?: string;
   className?: string;
-}
-
-export function usePageBackNavigation(fallbackTo: To = '/') {
-  const navigate = useNavigate();
-
-  return () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-      return;
-    }
-
-    navigate(fallbackTo);
-  };
 }
 
 export function PageBackButton({

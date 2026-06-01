@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   DEFAULT_VISIBLE_COLUMNS,
   EQUIPMENT_TABLE_COLUMN_META,
-} from '@/features/equipment/components/EquipmentTable';
+} from '@/features/equipment/components/equipmentTableColumns';
 import { useEquipmentTableColumns } from '../useEquipmentTableColumns';
 
 const STORAGE_KEY = (orgId: string) => `equipqr:equipment-table-columns:${orgId}`;
