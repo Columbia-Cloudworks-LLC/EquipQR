@@ -23,7 +23,7 @@ export const ROUTE_LABELS: Record<string, string> = {
   '/dashboard/reports': 'Reports',
   '/dashboard/audit-log': 'Audit Log',
   '/dashboard/settings': 'Settings',
-  '/dashboard/support': 'Support',
+  '/dashboard/support': 'Support & tickets',
 };
 
 /**

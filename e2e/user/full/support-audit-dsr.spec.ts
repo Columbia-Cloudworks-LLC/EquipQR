@@ -1,10 +1,10 @@
 import { test, expect } from '../fixtures/equipqr-test';
 
 test.describe('support audit dsr @full', () => {
-  test('in-app support library loads', async ({ gotoDashboard, page, assertHealthyShell }) => {
+  test('dashboard support ticket hub loads', async ({ gotoDashboard, page, assertHealthyShell }) => {
     await gotoDashboard('/support');
     await assertHealthyShell();
-    await expect(page.getByText(/support|start here|technician/i).first()).toBeVisible({
+    await expect(page.getByText(/help center|get help|report an issue/i).first()).toBeVisible({
       timeout: 60_000,
     });
   });

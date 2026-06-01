@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Settings, HelpCircle, Bug, LogOut, User } from 'lucide-react';
+import { Settings, HelpCircle, Bug, LogOut, User, BookOpen } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +15,7 @@ import { useUser } from '@/contexts/useUser';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useBugReport } from '@/features/tickets/context/BugReportContext';
 import { cn } from '@/lib/utils';
+import { SUPPORT_DOCS_URL } from '@/lib/documentationUrl';
 
 interface UserProfileMenuProps {
   className?: string;
@@ -72,9 +73,20 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ className }) => {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
+          <a
+            href={SUPPORT_DOCS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm cursor-pointer flex items-center"
+          >
+            <BookOpen className="mr-2 h-4 w-4" />
+            Help Center
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
           <Link to="/dashboard/support" className="text-sm cursor-pointer">
             <HelpCircle className="mr-2 h-4 w-4" />
-            Support
+            Support & tickets
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem

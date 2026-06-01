@@ -1,17 +1,183 @@
 import tailwindcssPostcss from "@tailwindcss/postcss";
 import { defineConfig } from "vitepress";
+import type { DefaultTheme } from "vitepress";
+
+const supportSidebarArticles: Record<string, { text: string; link: string }[]> =
+  {
+    "start-here": [
+      { text: "Welcome to EquipQR", link: "/support/start-here/welcome-to-equipqr" },
+      { text: "Navigation tour", link: "/support/start-here/navigation-tour" },
+      { text: "Invite your team", link: "/support/start-here/invite-team-members" },
+      { text: "Role overview", link: "/support/start-here/role-overview" },
+    ],
+    "technician-field-work": [
+      {
+        text: "Scan equipment QR",
+        link: "/support/technician-field-work/scan-equipment-qr",
+      },
+      {
+        text: "Create work order from equipment",
+        link: "/support/technician-field-work/create-work-order-from-equipment",
+      },
+      {
+        text: "Update work order status",
+        link: "/support/technician-field-work/update-work-order-status",
+      },
+      {
+        text: "Add notes and photos",
+        link: "/support/technician-field-work/add-notes-and-photos",
+      },
+      { text: "PM checklist", link: "/support/technician-field-work/pm-checklist" },
+      {
+        text: "Consume inventory on work order",
+        link: "/support/technician-field-work/consume-inventory-on-wo",
+      },
+    ],
+    "work-orders": [
+      {
+        text: "Work order lifecycle",
+        link: "/support/work-orders/work-order-lifecycle",
+      },
+      {
+        text: "Triage submitted requests",
+        link: "/support/work-orders/triage-submitted-requests",
+      },
+      { text: "Assign a work order", link: "/support/work-orders/assign-work-order" },
+      { text: "Reports overview", link: "/support/work-orders/reports-overview" },
+      {
+        text: "Submit request as Requestor",
+        link: "/support/work-orders/submit-request-as-requestor",
+      },
+    ],
+    "equipment-qr": [
+      { text: "Add equipment", link: "/support/equipment-qr/add-equipment" },
+      { text: "Print equipment QR", link: "/support/equipment-qr/print-equipment-qr" },
+      {
+        text: "Set display image",
+        link: "/support/equipment-qr/set-equipment-display-image",
+      },
+      { text: "Bulk edit equipment", link: "/support/equipment-qr/bulk-import-equipment" },
+      { text: "Fleet map", link: "/support/equipment-qr/fleet-map-basics" },
+    ],
+    "inventory-parts": [
+      { text: "Add inventory item", link: "/support/inventory-parts/add-inventory-item" },
+      {
+        text: "Adjust quantity",
+        link: "/support/inventory-parts/adjust-inventory-quantity",
+      },
+      {
+        text: "Parts Managers",
+        link: "/support/inventory-parts/parts-managers-setup",
+      },
+      {
+        text: "Alternate part groups",
+        link: "/support/inventory-parts/alternate-groups-setup",
+      },
+      {
+        text: "Bulk edit inventory",
+        link: "/support/inventory-parts/bulk-import-inventory",
+      },
+      { text: "Part lookup", link: "/support/inventory-parts/part-lookup-search" },
+    ],
+    "teams-roles": [
+      {
+        text: "Organization roles",
+        link: "/support/teams-roles/organization-roles",
+      },
+      { text: "Team role matrix", link: "/support/teams-roles/team-role-matrix" },
+      {
+        text: "Example: Apex Repair",
+        link: "/support/teams-roles/apex-example-hierarchy",
+      },
+      { text: "Add team members", link: "/support/teams-roles/add-team-member" },
+      {
+        text: "Teams & roles FAQ",
+        link: "/support/teams-roles/multi-team-questions",
+      },
+    ],
+    "admin-integrations": [
+      {
+        text: "Organization settings",
+        link: "/support/admin-integrations/organization-settings",
+      },
+      {
+        text: "Connect QuickBooks",
+        link: "/support/admin-integrations/connect-quickbooks",
+      },
+      {
+        text: "Map teams to QB customers",
+        link: "/support/admin-integrations/map-teams-to-qb-customers",
+      },
+      {
+        text: "Export work order to QB",
+        link: "/support/admin-integrations/export-work-order-to-qb",
+      },
+      {
+        text: "Connect Google Workspace",
+        link: "/support/admin-integrations/google-workspace-connect",
+      },
+    ],
+    "privacy-support": [
+      { text: "Report an issue (in app)", link: "/support/privacy-support/report-an-issue" },
+      {
+        text: "Track reported issues (in app)",
+        link: "/support/privacy-support/track-my-tickets",
+      },
+      {
+        text: "Submit privacy request",
+        link: "/support/privacy-support/submit-privacy-request",
+      },
+      { text: "Audit log", link: "/support/privacy-support/audit-log-basics" },
+      { text: "DSR cockpit", link: "/support/privacy-support/dsr-cockpit-overview" },
+      { text: "System status", link: "/support/privacy-support/system-status" },
+    ],
+  };
+
+function supportSidebar(): DefaultTheme.SidebarItem[] {
+  const categories: { id: string; label: string }[] = [
+    { id: "start-here", label: "Start Here" },
+    { id: "technician-field-work", label: "Technician Field Work" },
+    { id: "work-orders", label: "Work Orders" },
+    { id: "equipment-qr", label: "Equipment & QR Codes" },
+    { id: "inventory-parts", label: "Inventory & Parts" },
+    { id: "teams-roles", label: "Teams & Roles" },
+    { id: "admin-integrations", label: "Admin & Integrations" },
+    { id: "privacy-support", label: "Privacy & Support" },
+  ];
+
+  return categories.map(({ id, label }) => ({
+    text: label,
+    collapsed: id !== "start-here",
+    items: [
+      { text: "Overview", link: `/support/${id}/` },
+      ...supportSidebarArticles[id],
+    ],
+  }));
+}
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "EquipQR Documentation",
+  title: "EquipQR Help Center",
   description:
-    "Public technical guides, support how-tos, and references for the EquipQR fleet equipment management platform.",
+    "User guides, workflows, and how-tos for EquipQR fleet equipment management — technicians, managers, admins, and equipment owners.",
   lang: "en-US",
   lastUpdated: true,
   cleanUrls: true,
   srcDir: ".",
-  // Internal ops runbooks stay in-repo only (not published on equipqr.info).
-  srcExclude: ["ops/**"],
+  srcExclude: [
+    "ops/**",
+    "getting-started/**",
+    "technical/**",
+    "edge-functions/**",
+    "database/**",
+    "maintenance/**",
+    "compliance/**",
+    "rca/**",
+    "archive/**",
+    "audit-readiness/**",
+    "features/**",
+    "README.md",
+  ],
   sitemap: {
     hostname: "https://equipqr.info",
   },
@@ -29,89 +195,46 @@ export default defineConfig({
       {
         name: "keywords",
         content:
-          "EquipQR,documentation,fleet management,work orders,CMMS,QR codes",
+          "EquipQR,help center,support,fleet management,work orders,QR codes,CMMS",
       },
     ],
   ],
   themeConfig: {
-    siteTitle: "EquipQR Docs",
+    siteTitle: "EquipQR Help",
 
     search: {
       provider: "local",
     },
 
-    editLink: {
-      pattern:
-        "https://github.com/Columbia-Cloudworks-LLC/EquipQR/edit/main/docs/:path",
-      text: "Edit this page on GitHub",
-    },
-
     nav: [
       { text: "Home", link: "/" },
-      { text: "Getting started", link: "/getting-started/developer-onboarding" },
-      { text: "Technical", link: "/technical/setup" },
-      { text: "Guides", link: "/guides/workflows" },
+      { text: "Help Center", link: "/support/" },
+      { text: "Permissions", link: "/guides/permissions" },
+      { text: "PM Templates", link: "/pm-templates/" },
       {
-        text: "App",
+        text: "Open App",
         link: "https://equipqr.app",
       },
     ],
 
     sidebar: {
-      "/getting-started/": [
+      "/support/": [
         {
-          text: "Getting started",
-          items: [
-            {
-              text: "Developer onboarding",
-              link: "/getting-started/developer-onboarding",
-            },
-            {
-              text: "Development lifecycle",
-              link: "/getting-started/development-lifecycle",
-            },
-            { text: "Troubleshooting", link: "/getting-started/troubleshooting" },
-          ],
+          text: "Help Center",
+          link: "/support/",
         },
-      ],
-
-      "/technical/": [
+        ...supportSidebar(),
         {
-          text: "Technical",
-          items: [
-            { text: "Setup", link: "/technical/setup" },
-            { text: "Architecture", link: "/technical/architecture" },
-            { text: "Standards", link: "/technical/standards" },
-            {
-              text: "Testing guidelines",
-              link: "/technical/testing-guidelines",
-            },
-            { text: "API reference", link: "/technical/api-reference" },
-            {
-              text: "Inventory mobile QA",
-              link: "/technical/inventory-detail-mobile-qa",
-            },
-          ],
-        },
-        {
-          text: "Edge functions",
+          text: "More guides",
           collapsed: true,
           items: [
-            { text: "Auth patterns", link: "/edge-functions/auth-patterns" },
+            { text: "Workflows", link: "/guides/workflows" },
+            { text: "Image upload (overview)", link: "/how-to/image-upload/" },
             {
-              text: "RLS audit checklist",
-              link: "/edge-functions/rls-audit-checklist",
+              text: "Technician image upload",
+              link: "/how-to/image-upload/technician-image-upload-guide",
             },
-          ],
-        },
-        {
-          text: "Database",
-          collapsed: true,
-          items: [
-            {
-              text: "Migration squashing",
-              link: "/database/migration-squashing",
-            },
+            { text: "QuickBooks", link: "/integrations/quickbooks" },
           ],
         },
       ],
@@ -150,42 +273,6 @@ export default defineConfig({
         },
       ],
 
-      "/features/": [
-        {
-          text: "Features",
-          items: [{ text: "Bug reporting", link: "/features/bug-reporting" }],
-        },
-      ],
-
-      "/maintenance/": [
-        {
-          text: "Maintenance",
-          items: [
-            { text: "Security fixes", link: "/maintenance/security-fixes" },
-            {
-              text: "Performance optimization",
-              link: "/maintenance/performance-optimization",
-            },
-          ],
-        },
-      ],
-
-      "/compliance/": [
-        {
-          text: "Compliance",
-          items: [
-            {
-              text: "Texas audit questionnaire",
-              link: "/compliance/texas-audit-questionnaire",
-            },
-            {
-              text: "Compliance audit summary",
-              link: "/compliance/compliance-audit-summary",
-            },
-          ],
-        },
-      ],
-
       "/pm-templates/": [
         {
           text: "PM templates",
@@ -206,53 +293,11 @@ export default defineConfig({
           ],
         },
       ],
-
-      "/rca/": [
-        {
-          text: "Root cause analysis",
-          items: [
-            { text: "Overview", link: "/rca/" },
-            {
-              text: "2026-01-25 local Supabase",
-              link: "/rca/RCA-2026-01-25-local-supabase-infrastructure-failures",
-            },
-            {
-              text: "2025-11-28 PM template migration",
-              link: "/rca/RCA-2025-11-28-pm-template-migration-rls-bypass-failure",
-            },
-          ],
-        },
-      ],
-
-      "/archive/": [
-        {
-          text: "Archive",
-          items: [
-            { text: "Historical fixes", link: "/archive/historical-fixes/" },
-          ],
-        },
-      ],
-
-      "/audit-readiness/": [
-        {
-          text: "Audit readiness",
-          items: [
-            { text: "2026-04 research", link: "/audit-readiness/2026-04/RESEARCH" },
-          ],
-        },
-      ],
     },
-
-    socialLinks: [
-      {
-        icon: "github",
-        link: "https://github.com/Columbia-Cloudworks-LLC/EquipQR",
-      },
-    ],
 
     footer: {
       message:
-        "Released documentation for EquipQR™. Product app: equipqr.app",
+        "EquipQR Help Center — product app at equipqr.app · status at status.equipqr.app",
       copyright: "Copyright © Columbia Cloudworks LLC",
     },
   },

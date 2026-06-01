@@ -5,14 +5,11 @@ description: Equipment image upload guides, quick reference, and links to field 
 
 # Equipment Image Upload Documentation
 
-> **Primary source of truth:** The in-app support library at
-> `/dashboard/support` — look for the **Technician Field Work** category and
-> specifically the "Add notes and photos to a work order" and "Complete a PM
-> checklist" articles. Those articles are kept current alongside the app UI.
+> **Primary source of truth:** The [Help Center](/support/technician-field-work/)
+> — see **Add notes and photos to a work order** and **Complete a PM checklist**.
 
-This directory holds the longer-form technical reference and the quick
-reference card that a new technician can keep on their phone. It is intentionally
-lightweight and should not diverge from the in-app articles.
+This directory holds the quick reference card and a printable technician guide.
+Keep these aligned with the Help Center articles.
 
 ## Documentation files
 
@@ -31,7 +28,7 @@ lightweight and should not diverge from the in-app articles.
 
 - [Workflows](/guides/workflows) — work order lifecycle and permission details.
 - [Permissions (RBAC)](/guides/permissions) — the canonical RBAC matrix.
-- In-app support at `/dashboard/support` — authoritative step-by-step guides.
+- [Help Center](/support/) — authoritative step-by-step guides.
 
 ---
 

@@ -3,16 +3,16 @@ import { render, screen } from '@/test/utils/test-utils';
 import LegalFooter from '../LegalFooter';
 
 vi.mock('@/lib/documentationUrl', () => ({
-  DOCUMENTATION_URL: 'http://localhost:5174',
+  SUPPORT_DOCS_URL: 'http://localhost:5174/support',
 }));
 
 describe('LegalFooter', () => {
-  it('uses the configured documentation URL for the Documentation link', () => {
+  it('uses the Help Center URL for the documentation link', () => {
     render(<LegalFooter />);
 
-    expect(screen.getByRole('link', { name: 'Documentation' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Help Center' })).toHaveAttribute(
       'href',
-      'http://localhost:5174',
+      'http://localhost:5174/support',
     );
   });
 });

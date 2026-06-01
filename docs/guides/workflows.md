@@ -2,14 +2,14 @@
 
 This document is the canonical technical reference for EquipQR's work-order
 lifecycle, role capabilities, and status-transition rules. It is not the
-step-by-step walkthrough for end users — those live in the **in-app Support Library** on the product host,
-**`https://equipqr.app/dashboard/support`** (signed in) or **`https://equipqr.app/support`** (public).
-Technical and operations documentation for developers is published at **`https://equipqr.info`** (this repository’s `docs/` tree, built with VitePress).
+step-by-step walkthrough for end users — those live in the **EquipQR Help Center** at
+**`https://equipqr.info/support/`**. Signed-in users report issues at
+**`https://equipqr.app/dashboard/support`**.
 
 ## Where to find user-facing walkthroughs
 
-- **In-app support library** — `https://equipqr.app/dashboard/support` (primary
-  source of truth for step-by-step guides, organized by role and workflow).
+- **Help Center** — `https://equipqr.info/support/` (primary source of truth for
+  step-by-step guides, organized by role and workflow).
 - **[Image upload quick reference](../how-to/image-upload/quick-reference-card.md)**
   — single-page cheat sheet for technicians in the field.
 - **[Image upload technician guide](../how-to/image-upload/technician-image-upload-guide.md)**
@@ -123,8 +123,8 @@ management) see [Permissions](./permissions.md).
 
 ## Image Upload
 
-Image upload is documented step-by-step in the in-app Support library under
-"Add notes and photos to a work order" (Technician Field Work category). The
+Image upload is documented step-by-step in the [Help Center](https://equipqr.info/support/technician-field-work/add-notes-and-photos)
+under Technician Field Work. The
 technical contract for developers is:
 
 - Images are attached to work order notes (or equipment notes).
@@ -158,14 +158,13 @@ technical contract for developers is:
   the device steady.
 
 For user-facing troubleshooting that the support team can send to customers,
-point them to the in-app Support library (`https://equipqr.app/dashboard/support`) or the status
-page (`status.equipqr.app`).
+point them to the [Help Center](https://equipqr.info/support/) or the status
+page (`status.equipqr.app`). Signed-in users can report issues at
+`https://equipqr.app/dashboard/support`.
 
 ## Related Documentation
 
 - [Permissions](./permissions.md) — full RBAC matrix and RLS policy guidance.
-- [Architecture](../technical/architecture.md) — database schema and system
-  architecture.
 - [Image Upload Technician Guide](../how-to/image-upload/technician-image-upload-guide.md)
   — numbered-step guide with screenshots.
 - [QuickBooks Integration](../integrations/quickbooks.md) — integration
@@ -173,5 +172,5 @@ page (`status.equipqr.app`).
 
 ---
 
-*Last reviewed: 2026-05-01. This document is technical reference. Step-by-step
-user-facing walkthroughs live in the in-app Support library.*
+*Last reviewed: 2026-05-01. This document is a technical reference. Step-by-step
+user-facing walkthroughs live in the [Help Center](https://equipqr.info/support/).*

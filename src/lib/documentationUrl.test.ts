@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveDocumentationUrl } from './documentationUrl';
+import { resolveDocumentationUrl, resolveSupportDocsUrl } from './documentationUrl';
 
 describe('resolveDocumentationUrl', () => {
   it('uses the local VitePress dev server in local dev', () => {
@@ -17,5 +17,20 @@ describe('resolveDocumentationUrl', () => {
         VITE_DOCUMENTATION_URL: ' http://localhost:4173 ',
       }),
     ).toBe('http://localhost:4173');
+  });
+});
+
+describe('resolveSupportDocsUrl', () => {
+  it('appends /support to the documentation base URL', () => {
+    expect(resolveSupportDocsUrl({ DEV: false })).toBe('https://equipqr.info/support');
+  });
+
+  it('respects a configured documentation URL override', () => {
+    expect(
+      resolveSupportDocsUrl({
+        DEV: false,
+        VITE_DOCUMENTATION_URL: 'http://localhost:4173',
+      }),
+    ).toBe('http://localhost:4173/support');
   });
 });

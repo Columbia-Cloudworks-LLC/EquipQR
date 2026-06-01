@@ -57,7 +57,8 @@ describe('UserProfileMenu', () => {
     expect(await screen.findByText('Test User')).toBeInTheDocument();
     expect(screen.getByText('test@example.com')).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: /settings/i })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: /support/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /help center/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /support & tickets/i })).toBeInTheDocument();
     expect(
       screen.getByRole('menuitem', { name: /report an issue/i }),
     ).toBeInTheDocument();

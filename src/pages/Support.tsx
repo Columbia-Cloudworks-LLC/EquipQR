@@ -8,15 +8,16 @@ import {
   ArrowRight,
   Bug,
   Activity,
+  BookOpen,
 } from "lucide-react";
 import { ExternalLink } from "@/components/ui/external-link";
 import LandingHeader from "@/components/landing/LandingHeader";
 import LegalFooter from "@/components/layout/LegalFooter";
-import SupportTabs from "@/components/support/SupportTabs";
 import Page from "@/components/layout/Page";
 import PageHeader from "@/components/layout/PageHeader";
 import MyTickets from "@/features/tickets/components/MyTickets";
 import { useBugReport } from "@/features/tickets/context/BugReportContext";
+import { SUPPORT_DOCS_URL } from "@/lib/documentationUrl";
 
 interface ContactSectionProps {
   /**
@@ -91,9 +92,36 @@ const ContactSection: React.FC<ContactSectionProps> = ({
   </Card>
 );
 
+const HelpCenterCard: React.FC = () => (
+  <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2">
+        <BookOpen className="h-5 w-5" />
+        EquipQR Help Center
+      </CardTitle>
+      <CardDescription>
+        Step-by-step guides for technicians, managers, admins, and equipment
+        owners — organized by role and workflow.
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <Button asChild>
+        <ExternalLink
+          href={SUPPORT_DOCS_URL}
+          className="inline-flex items-center gap-2"
+          showIcon={false}
+        >
+          Browse guides
+          <ArrowRight className="h-4 w-4" />
+        </ExternalLink>
+      </Button>
+    </CardContent>
+  </Card>
+);
+
 /**
- * Dashboard variant. Rendered inside the authenticated dashboard shell, so we
- * also render `MyTickets` and the bug report CTA.
+ * Dashboard variant. Ticket hub for signed-in users (report issue, my tickets).
+ * Documentation lives on equipqr.info.
  */
 export const DashboardSupport: React.FC = () => {
   const { openBugReport } = useBugReport();
@@ -102,24 +130,23 @@ export const DashboardSupport: React.FC = () => {
     <Page maxWidth="7xl" padding="responsive">
       <div className="space-y-6">
         <PageHeader
-          title="Support & Documentation"
-          description="Step-by-step guides, role references, and direct support — organized by role and workflow."
+          title="Support"
+          description="Report issues, track your tickets, and reach the EquipQR team. Product guides live on the Help Center."
         />
+
+        <HelpCenterCard />
 
         <ContactSection withBugReport onReportIssue={openBugReport} />
 
-        {/* My Tickets renders conditionally only when the user has tickets. */}
         <MyTickets />
-
-        <SupportTabs includeDashboardOnly={true} />
       </div>
     </Page>
   );
 };
 
 /**
- * Public variant at /support. No dashboard shell, no ticket controls; we show
- * only content that applies to visitors and users who are not signed in.
+ * Public variant at /support. Contact channels and link to the Help Center;
+ * no ticket controls (those require a signed-in account).
  */
 const Support: React.FC = () => {
   return (
@@ -128,17 +155,16 @@ const Support: React.FC = () => {
       <div className="container mx-auto p-6 max-w-4xl mt-16">
         <div className="space-y-6">
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold">Support & Documentation</h1>
+            <h1 className="text-3xl font-bold">Support</h1>
             <p className="text-muted-foreground">
-              Step-by-step guides and role references for everyone using
-              EquipQR — technicians in the field, managers in the shop, and
-              customers who own the equipment.
+              Contact the EquipQR team or browse the Help Center for guides
+              covering field work, work orders, equipment, inventory, and roles.
             </p>
           </div>
 
-          <ContactSection />
+          <HelpCenterCard />
 
-          <SupportTabs includeDashboardOnly={false} />
+          <ContactSection />
 
           <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
             <CardContent className="p-6 text-center">

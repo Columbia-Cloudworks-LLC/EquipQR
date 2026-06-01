@@ -2,47 +2,64 @@
 layout: home
 
 hero:
-  name: EquipQR Documentation
-  text: Guides, how-tos & technical reference
-  tagline: Public documentation for EquipQR—support guides, technical reference, and field workflows—hosted at equipqr.info.
+  name: EquipQR Help Center
+  text: Guides for your fleet, work orders, and field teams
+  tagline: Step-by-step help for technicians, managers, admins, and equipment owners — hosted at equipqr.info.
   actions:
     - theme: brand
-      text: Developer onboarding
-      link: /getting-started/developer-onboarding
+      text: Browse Help Center
+      link: /support/
     - theme: alt
-      text: Workflows
-      link: /guides/workflows
+      text: Open EquipQR
+      link: https://equipqr.app
 
 features:
-  - title: Getting started
-    details: Set up your environment and understand the preview-first workflow.
-    link: /getting-started/developer-onboarding
-    linkText: Start here
-  - title: Technical reference
-    details: Architecture, API patterns, standards, and testing expectations.
-    link: /technical/architecture
-    linkText: Explore technical docs
-  - title: Guides
-    details: Workflows and the full RBAC permissions matrix.
-    link: /guides/workflows
-    linkText: Read guides
-  - title: How-to
-    details: Field image upload guides and printable quick references.
-    link: /how-to/image-upload/
-    linkText: Image upload guides
+  - title: Start Here
+    details: New to EquipQR? Orientation, navigation, invitations, and role overview.
+    link: /support/start-here/
+    linkText: Get oriented
+  - title: Technician Field Work
+    details: QR scans, work orders, notes, photos, PM checklists, and parts on the job.
+    link: /support/technician-field-work/
+    linkText: Field workflows
+  - title: Work Orders
+    details: Lifecycle, triage, assignment, reports, and Requestor submissions.
+    link: /support/work-orders/
+    linkText: Work order guides
+  - title: Equipment & QR Codes
+    details: Add equipment, print QR codes, fleet map, and display images.
+    link: /support/equipment-qr/
+    linkText: Equipment guides
+  - title: Inventory & Parts
+    details: Stock, Parts Managers, alternate groups, bulk edit, and part lookup.
+    link: /support/inventory-parts/
+    linkText: Inventory guides
+  - title: Teams & Roles
+    details: Organization and team roles — Manager, Technician, Requestor, Viewer.
+    link: /support/teams-roles/
+    linkText: Roles & teams
+  - title: Admin & Integrations
+    details: Organization settings, QuickBooks, and Google Workspace.
+    link: /support/admin-integrations/
+    linkText: Admin guides
+  - title: Privacy & Support
+    details: Privacy requests, audit log, system status, and in-app ticket help.
+    link: /support/privacy-support/
+    linkText: Privacy & status
 ---
 
-## Browse the library
+## Need help inside the app?
 
-The same markdown sources live under the repository `docs/` tree. Use the sidebar or search to jump to a topic.
+Signed-in users can **report issues and track tickets** on the EquipQR app support page:
 
-### Support & user-facing documentation
+**[equipqr.app/dashboard/support](https://equipqr.app/dashboard/support)**
 
-Published support and how-to documentation (including workflows, permissions, and
-field guides from this library) lives on **`https://equipqr.info`**. The in-app
-**Support Library** (`/support` when signed out, `/dashboard/support` when signed
-in on `equipqr.app`) complements this site for contextual help while using the product.
+For service availability, check **[status.equipqr.app](https://status.equipqr.app)**.
 
-### Repository index
+## Reference guides
 
-For a flat table-of-contents style overview, see [Documentation README](./README).
+- [Permissions (RBAC)](/guides/permissions) — full role matrix
+- [Work order workflows](/guides/workflows) — status rules and lifecycle
+- [Technician image upload](/how-to/image-upload/technician-image-upload-guide)
+- [QuickBooks integration](/integrations/quickbooks)
+- [PM checklist templates](/pm-templates/)
