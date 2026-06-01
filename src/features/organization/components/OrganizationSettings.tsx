@@ -15,9 +15,6 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { updateOrganization, uploadOrganizationLogo, deleteOrganizationLogo } from '@/features/organization/services/organizationService';
 import type { OrganizationUpdatePayload } from '@/features/organization/types/organization';
 import { organizationFormSchema, OrganizationFormData } from './organizationSettingsSchema';
-import { QuickBooksIntegration } from './QuickBooksIntegration';
-import { GoogleWorkspaceIntegration } from './GoogleWorkspaceIntegration';
-import { GoogleWorkspaceExportDestinationCard } from './GoogleWorkspaceExportDestinationCard';
 import { DangerZoneSection } from './DangerZoneSection';
 import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
 import SingleImageUpload from '@/components/common/SingleImageUpload';
@@ -289,23 +286,6 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
                 />
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Integrations */}
-      <div id="integrations" className="py-8 scroll-mt-20">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
-          <div className="pt-0.5">
-            <h2 className="text-sm font-semibold">Integrations</h2>
-            <p className="text-xs text-muted-foreground mt-1">
-              Connected third-party services
-            </p>
-          </div>
-          <div className="md:col-span-2 space-y-3">
-            <QuickBooksIntegration currentUserRole={currentUserRole} />
-            <GoogleWorkspaceIntegration currentUserRole={currentUserRole} />
-            <GoogleWorkspaceExportDestinationCard currentUserRole={currentUserRole} />
           </div>
         </div>
       </div>

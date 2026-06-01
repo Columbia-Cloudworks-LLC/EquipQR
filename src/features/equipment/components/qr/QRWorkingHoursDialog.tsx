@@ -25,6 +25,7 @@ interface QRWorkingHoursDialogProps {
   onOpenChange: (open: boolean) => void;
   equipment: QRActionEquipment;
   permissionContext: QRActionPermissionContext | null;
+  scanId?: string | null;
   onSuccess: (newHours: number) => void;
 }
 
@@ -33,6 +34,7 @@ const QRWorkingHoursDialog: React.FC<QRWorkingHoursDialogProps> = ({
   onOpenChange,
   equipment,
   permissionContext,
+  scanId,
   onSuccess,
 }) => {
   const [newHours, setNewHours] = useState(
@@ -63,9 +65,11 @@ const QRWorkingHoursDialog: React.FC<QRWorkingHoursDialogProps> = ({
     setIsSubmitting(true);
     try {
       await updateQRWorkingHours({
+        organizationId: equipment.organizationId,
         equipmentId: equipment.id,
         newHours: parsedHours,
         notes: reason.trim() || undefined,
+        scanId,
       });
 
       onSuccess(parsedHours);

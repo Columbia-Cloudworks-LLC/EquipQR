@@ -16,6 +16,8 @@ export { MemberLimitWarning } from './components/MemberLimitWarning';
 export { AdminsTabContent } from './components/AdminsTabContent';
 export { UnifiedMembersList } from './components/UnifiedMembersList';
 export { QuickBooksIntegration } from './components/QuickBooksIntegration';
+export { OrganizationIntegrationsPanel } from './components/OrganizationIntegrationsPanel';
+export { ORGANIZATION_INTEGRATIONS_PATH } from './constants/routes';
 export { RestrictedOrganizationAccess } from './components/RestrictedOrganizationAccess';
 export { SimplifiedInvitationDialog } from './components/SimplifiedInvitationDialog';
 export { ChecklistTemplateEditor } from './components/ChecklistTemplateEditor';

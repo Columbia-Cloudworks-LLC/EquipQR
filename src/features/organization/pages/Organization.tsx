@@ -1,12 +1,11 @@
 import { useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
 import { usePendingWorkspaceMergeRequests } from '@/features/organization/hooks/useWorkspacePersonalOrgMerge';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
-import { useSearchParams } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { googleWorkspace } from '@/lib/queryKeys';
+import { useOrganizationIntegrationOAuthCallbacks } from '@/features/organization/hooks/useOrganizationIntegrationOAuthCallbacks';
+import { ORGANIZATION_INTEGRATIONS_PATH } from '@/features/organization/constants/routes';
 
 import OrganizationHeader from '@/features/organization/components/OrganizationHeader';
 import OrganizationTabs from '@/features/organization/components/OrganizationTabs';
@@ -16,47 +15,14 @@ import Page from '@/components/layout/Page';
 
 const Organization = () => {
   const { currentOrganization, isLoading } = useOrganization();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const queryClient = useQueryClient();
-
-  // Handle QuickBooks OAuth callback results at the page level
-  // This ensures the toast is shown even if the Settings tab isn't active
-  useEffect(() => {
-    const error = searchParams.get('qb_error');
-    const errorDescription = searchParams.get('qb_error_description');
-    const success = searchParams.get('qb_connected');
-
-    if (error) {
-      toast.error(errorDescription || 'Failed to connect QuickBooks');
-      // Clear the error params
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete('qb_error');
-      newParams.delete('qb_error_description');
-      setSearchParams(newParams, { replace: true });
-    } else if (success) {
-      toast.success('QuickBooks connected successfully!');
-      // Refresh connection status
-      queryClient.invalidateQueries({ queryKey: ['quickbooks', 'connection'] });
-      // Clear the success param
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete('qb_connected');
-      newParams.delete('realm_id');
-      setSearchParams(newParams, { replace: true });
-    }
-  }, [searchParams, setSearchParams, queryClient]);
+  const navigate = useNavigate();
+  useOrganizationIntegrationOAuthCallbacks();
 
   useEffect(() => {
-    const success = searchParams.get('gw_connected');
-
-    if (success === 'true') {
-      toast.success('Google Workspace reconnected successfully!');
-      queryClient.invalidateQueries({ queryKey: googleWorkspace.root });
-
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete('gw_connected');
-      setSearchParams(newParams, { replace: true });
+    if (window.location.hash === '#integrations') {
+      navigate(ORGANIZATION_INTEGRATIONS_PATH, { replace: true });
     }
-  }, [searchParams, setSearchParams, queryClient]);
+  }, [navigate]);
 
   // Custom hooks for data and business logic
   const { data: members = [], isLoading: membersLoading } = useOrganizationMembersQuery(currentOrganization?.id || '');
@@ -148,4 +114,3 @@ const Organization = () => {
 };
 
 export default Organization;
-

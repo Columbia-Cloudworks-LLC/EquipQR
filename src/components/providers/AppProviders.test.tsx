@@ -172,9 +172,8 @@ describe('AppProviders', () => {
         expect.objectContaining({
           attribute: 'class',
           forcedTheme: 'dark',
-          children: expect.anything(),
         }),
-        expect.anything(),
+        undefined,
       );
     });
   });

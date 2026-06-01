@@ -10,6 +10,7 @@ import { attachWorkOrderCreationImages } from '@/features/work-orders/services/w
 import type { WorkOrder, WorkOrderPriority } from '@/features/work-orders/types/workOrder';
 import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import type { QRActionEquipment } from '@/features/equipment/services/equipmentQRPermissions';
+import { recordScanFollowUpEvent } from '@/features/equipment/services/scanFollowUpEventService';
 import { logger } from '@/utils/logger';
 
 export interface CreateQRWorkOrderInput {
@@ -23,6 +24,8 @@ export interface CreateQRWorkOrderInput {
   pmTemplateId?: string;
   images?: File[];
   creationPhotoNote?: string;
+  /** Scan that this action originated from; used for best-effort follow-up attribution. */
+  scanId?: string | null;
 }
 
 export interface CreateQRWorkOrderResult {
@@ -131,17 +134,52 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
     }
   }
 
+  if (input.scanId) {
+    try {
+      await recordScanFollowUpEvent({
+        organizationId: input.equipment.organizationId,
+        scanId: input.scanId,
+        equipmentId: input.equipment.id,
+        eventType: input.attachPM ? 'pm_work_order_created' : 'generic_work_order_created',
+        entityType: 'work_order',
+        entityId: result.data.id,
+        metadata: { title: result.data.title },
+      });
+    } catch (error) {
+      logger.error('Failed to record work order scan follow-up event', error);
+    }
+  }
+
   return {
     workOrder: result.data,
     creationPhotosAttached,
   };
 }
 
-export async function updateQRWorkingHours(data: UpdateWorkingHoursData): Promise<unknown> {
-  return updateEquipmentWorkingHours({
-    ...data,
+export async function updateQRWorkingHours(
+  data: UpdateWorkingHoursData & { organizationId: string; scanId?: string | null }
+): Promise<unknown> {
+  const { scanId, organizationId, ...workingHoursData } = data;
+  const result = await updateEquipmentWorkingHours({
+    ...workingHoursData,
     updateSource: 'manual',
   });
+
+  if (scanId) {
+    try {
+      await recordScanFollowUpEvent({
+        organizationId,
+        scanId,
+        equipmentId: workingHoursData.equipmentId,
+        eventType: 'working_hours_updated',
+        metadata: { newHours: workingHoursData.newHours },
+      });
+    } catch (error) {
+      logger.error('Failed to record working hours scan follow-up event', error);
+    }
+  }
+
+  return result;
 }
 
 export async function createQREquipmentNote(input: {
@@ -151,8 +189,9 @@ export async function createQREquipmentNote(input: {
   images: File[];
   isPrivate: boolean;
   machineHours?: number | null;
+  scanId?: string | null;
 }): Promise<unknown> {
-  return createEquipmentNoteWithImages(
+  const result = await createEquipmentNoteWithImages(
     input.equipmentId,
     input.content,
     0,
@@ -161,4 +200,21 @@ export async function createQREquipmentNote(input: {
     input.organizationId,
     input.machineHours ?? undefined
   );
+
+  if (input.scanId) {
+    try {
+      await recordScanFollowUpEvent({
+        organizationId: input.organizationId,
+        scanId: input.scanId,
+        equipmentId: input.equipmentId,
+        eventType: 'note_image_added',
+        entityType: 'note',
+        metadata: { imageCount: input.images.length, isPrivate: input.isPrivate },
+      });
+    } catch (error) {
+      logger.error('Failed to record note scan follow-up event', error);
+    }
+  }
+
+  return result;
 }

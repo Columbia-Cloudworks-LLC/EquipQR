@@ -319,7 +319,7 @@ const EquipmentScanner: React.FC = () => {
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 [&>button]:min-h-[44px]">
             {phase === 'ready' && (
               <Button
                 type="button"

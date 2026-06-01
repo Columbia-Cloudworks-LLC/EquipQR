@@ -116,6 +116,9 @@ jobs:
 
         install_with_retry || (rm -f package-lock.json && npm install --package-lock-only --no-audit && install_with_retry)
 
+    - name: Verify Node runtime and @types/node policy
+      run: npm run verify:node-policy
+
     - name: Run ESLint
       run: npx eslint . --format=json --output-file=eslint-report.json
       continue-on-error: true
@@ -341,13 +344,13 @@ jobs:
       continue-on-error: true
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@68bde559dea0fdcac2102bfdf6230c5f70eb485e
+      uses: github/codeql-action/init@9e0d7b8d25671d64c341c19c0152d693099fb5ba
       with:
         languages: javascript
         queries: security-and-quality
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@68bde559dea0fdcac2102bfdf6230c5f70eb485e
+      uses: github/codeql-action/analyze@9e0d7b8d25671d64c341c19c0152d693099fb5ba
       with:
         category: "/language:javascript"
 

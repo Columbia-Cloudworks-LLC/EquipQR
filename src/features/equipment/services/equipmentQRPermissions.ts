@@ -299,16 +299,21 @@ export async function insertScan(
   equipmentId: string,
   location: string | null,
   notes: string
-): Promise<void> {
+): Promise<string> {
   const scannedBy = await requireAuthUserIdFromClaims();
-  const { error } = await supabase.from('scans').insert({
-    equipment_id: equipmentId,
-    scanned_by: scannedBy,
-    location,
-    notes,
-  });
+  const { data, error } = await supabase
+    .from('scans')
+    .insert({
+      equipment_id: equipmentId,
+      scanned_by: scannedBy,
+      location,
+      notes,
+    })
+    .select('id')
+    .single();
 
   if (error) throw new Error(error.message);
+  return data.id;
 }
 
 export type QRActionType = 'pm-work-order' | 'generic-work-order' | 'update-hours' | 'note-image';

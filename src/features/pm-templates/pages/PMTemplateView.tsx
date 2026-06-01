@@ -6,11 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import PageHeader from '@/components/layout/PageHeader';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { TemplateAssignmentDialog } from '@/features/pm-templates/components/TemplateAssignmentDialog';
+import { PMTemplateSectionToc } from '@/features/pm-templates/components/PMTemplateSectionToc';
 import { PMTemplateCompatibilityRulesEditor } from '@/features/pm-templates/components/PMTemplateCompatibilityRulesEditor';
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
-import { Copy, Download, Edit, Globe, ListTree, Lock, Loader2, Save, Shield, Wrench } from 'lucide-react';
+import { Copy, Download, Edit, Globe, Lock, Loader2, Save, Shield, Wrench } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSimplifiedOrganizationRestrictions } from '@/features/organization/hooks/useSimplifiedOrganizationRestrictions';
@@ -95,7 +95,11 @@ const PMTemplateView: React.FC = () => {
   };
   const handleEdit = () => {
     if (!template?.id) return;
-    navigate(`/dashboard/pm-templates?edit=${template.id}`);
+    navigate(`/dashboard/pm-templates/${template.id}/edit`);
+  };
+
+  const handleTocSectionClick = (sectionName: string) => {
+    setExpanded((prev) => Array.from(new Set([...prev, sectionName])));
   };
 
   const isOrgTemplate = !!template?.organization_id;
@@ -192,34 +196,15 @@ const PMTemplateView: React.FC = () => {
 
       {template && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* TOC */}
           <div className="lg:col-span-3">
-            <Card>
-              <CardContent standalone>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <ListTree className="h-4 w-4" />
-                    Table of Contents
-                  </div>
-                  {expanded.length < sections.length ? (
-                    <Button size="sm" variant="ghost" onClick={expandAll}>Expand all</Button>
-                  ) : (
-                    <Button size="sm" variant="ghost" onClick={collapseAll}>Collapse all</Button>
-                  )}
-                </div>
-                <ScrollArea className="h-[50vh] pr-2">
-                  <ul className="space-y-1 text-sm">
-                    {sections.map((s) => (
-                      <li key={s.name}>
-                        <a href={`#section-${encodeURIComponent(s.name)}`} className="hover:underline">
-                          {s.name} ({s.items.length})
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </ScrollArea>
-              </CardContent>
-            </Card>
+            <PMTemplateSectionToc
+              sections={sections.map((s) => ({ name: s.name, count: s.items.length }))}
+              onSectionClick={handleTocSectionClick}
+              showExpandCollapse
+              onExpandAll={expandAll}
+              onCollapseAll={collapseAll}
+              expandedCount={expanded.length}
+            />
           </div>
 
           {/* Main content */}

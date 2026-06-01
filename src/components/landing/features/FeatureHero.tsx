@@ -1,6 +1,7 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, ArrowLeft, type LucideIcon } from 'lucide-react';
+import { PageBackButton } from '@/components/layout/PageBackButton';
+import { ArrowRight, type LucideIcon } from 'lucide-react';
 
 interface FeatureHeroProps {
   icon: LucideIcon;
@@ -11,28 +12,15 @@ interface FeatureHeroProps {
 }
 
 export const FeatureHero = ({ icon: Icon, title, description, ctaText, ctaLink = '/auth?tab=signup' }: FeatureHeroProps) => {
-  const navigate = useNavigate();
-
-  const handleBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate({ pathname: '/', hash: 'features' });
-    }
-  };
-
   return (
     <section className="relative pt-16 sm:pt-20 pb-24 bg-gradient-to-br from-background via-background to-primary/5">
       <div className="container px-4 mx-auto">
         <div className="max-w-4xl mx-auto">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Features
-          </button>
+          <PageBackButton
+            fallbackTo={{ pathname: '/', hash: 'features' }}
+            label="Back to Features"
+            className="mb-8"
+          />
           
           <div className="flex items-center gap-4 mb-6">
             <div className="p-3 rounded-lg bg-primary/10">

@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import WorkOrderCard from './WorkOrderCard';
 import { WorkOrdersEmptyState } from './WorkOrdersEmptyState';
@@ -65,7 +66,7 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
   const ABOVE_FOLD_COUNT = 6;
 
   return (
-    <div className="space-y-4">
+    <div className={cn('space-y-4', isMobile && 'space-y-2.5 pb-24')}>
       {workOrders.map((order, index) => (
         // Avoid content-visibility (cv-auto): it breaks Radix Tooltip positioning
         // (getBoundingClientRect) for PM segment tooltips on list cards.

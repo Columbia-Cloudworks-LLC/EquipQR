@@ -224,8 +224,8 @@ Two batch files in the project root let you bring the entire local stack up or t
 
 | Script | What it does |
 |--------|-------------|
-| **`dev-start.bat`** | Thin launcher for **`dev-start.ps1`**. Starts the **full** stack: Supabase + Edge Functions serve + Vite. Exits **`0`** only when all three pass health checks. Optional **`-Force`**: after Supabase is up, runs **`supabase db reset`**, seeds equipment images, regenerates **`src/integrations/supabase/types.ts`**, then ensures Edge + Vite are running. **`-Force`** does **not** call **`dev-stop`**; if Vite or Edge Functions serve is already running, the script exits with an error and tells you to run **`dev-stop`** first. |
-| **`dev-stop.bat`** | Thin launcher for **`dev-stop.ps1`**. Stops Vite (port 8080), Edge Functions serve, the Supabase Docker stack, and sweeps dev ports. Exits **`1`** if any attempted stop step fails. Optional **`-Force`** (or **`/Force`**) also quits Docker Desktop. |
+| **`dev-start.bat`** | Thin launcher for **`dev-start.ps1`**. Starts the **full** stack: Supabase + Edge Functions serve + docs + Vite. Exits **`0`** only when all four pass health checks. Optional **`-Force`**: after Supabase is up, runs **`supabase db reset`**, seeds equipment images, regenerates **`src/integrations/supabase/types.ts`**, then ensures Edge, docs, and Vite are running. **`-Force`** does **not** call **`dev-stop`**; if Vite, docs, or Edge Functions serve is already running, the script exits with an error and tells you to run **`dev-stop`** first. |
+| **`dev-stop.bat`** | Thin launcher for **`dev-stop.ps1`**. Stops Vite (port 8080), docs (port 5174), Edge Functions serve, the Supabase Docker stack, and sweeps dev ports. Exits **`1`** if any attempted stop step fails. Optional **`-Force`** (or **`/Force`**) also quits Docker Desktop. |
 | **`dev-setup-cursor-mcp.bat`** | Thin launcher for **`dev-setup-cursor-mcp.ps1`**. Renders `~/.cursor/mcp.json` from 1Password references (via `scripts/render-mcp-config.ps1`) and optionally writes the local gcloud service-account JSON. Does not start or stop the dev stack. |
 
 ```powershell
@@ -240,7 +240,7 @@ Two batch files in the project root let you bring the entire local stack up or t
 .\dev-setup-cursor-mcp.bat -SkipGcp          # Refresh MCP config without gcloud key write
 ```
 
-> **Tip**: `dev-start.bat` exits **`0`** only when Supabase API, Edge Functions serve, and Vite are all healthy — suitable as a Playwright / E2E pre-test step. There is no final `pause`; failures return a non-zero exit code. 1Password env sync runs early when `op` is on PATH. MCP setup is intentionally separate via `dev-setup-cursor-mcp.bat` because Cursor restart is only relevant when MCP config changes. Logic lives in **`dev-start.ps1`** / **`dev-stop.ps1`** so batch stays double-click friendly without parser quirks.
+> **Tip**: `dev-start.bat` exits **`0`** only when Supabase API, Edge Functions serve, docs, and Vite are all healthy — suitable as a Playwright / E2E pre-test step. There is no final `pause`; failures return a non-zero exit code. 1Password env sync runs early when `op` is on PATH. MCP setup is intentionally separate via `dev-setup-cursor-mcp.bat` because Cursor restart is only relevant when MCP config changes. Logic lives in **`dev-start.ps1`** / **`dev-stop.ps1`** so batch stays double-click friendly without parser quirks.
 
 #### Daily Development Commands
 

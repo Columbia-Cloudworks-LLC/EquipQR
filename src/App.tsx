@@ -60,6 +60,7 @@ const Teams = lazy(() => import('@/features/teams/pages/Teams'));
 const TeamDetails = lazy(() => import('@/features/teams/pages/TeamDetails'));
 const FleetMap = lazy(() => import('@/features/fleet-map/pages/FleetMap'));
 const Organization = lazy(() => import('@/features/organization/pages/Organization'));
+const OrganizationIntegrations = lazy(() => import('@/features/organization/pages/OrganizationIntegrations'));
 const EquipmentQRScan = lazy(() => import('@/features/equipment/pages/EquipmentQRScan'));
 const EquipmentScanner = lazy(() => import('@/features/equipment/pages/EquipmentScanner'));
 const InventoryQRRedirect = lazy(() => import('@/pages/InventoryQRRedirect'));
@@ -83,6 +84,7 @@ const WorkspaceOnboarding = lazy(() => import('@/pages/WorkspaceOnboarding'));
 // const DebugBilling = lazy(() => import('@/pages/DebugBilling'));
 // const BillingExemptionsAdmin = lazy(() => import('@/pages/BillingExemptionsAdmin'));
 const PMTemplateView = lazy(() => import('@/features/pm-templates/pages/PMTemplateView'));
+const PMTemplateEditor = lazy(() => import('@/features/pm-templates/pages/PMTemplateEditor'));
 const InventoryList = lazy(() => import('@/features/inventory/pages/InventoryList'));
 const BulkInventory = lazy(() => import('@/features/inventory/pages/BulkInventory'));
 const InventoryItemDetail = lazy(() => import('@/features/inventory/pages/InventoryItemDetail'));
@@ -254,9 +256,12 @@ function App() {
                                 <Route path="/teams/:teamId" element={<TeamDetails />} />
                                 <Route path="/fleet-map" element={<FleetMap />} />
                                 <Route path="/organization" element={<Organization />} />
+                                <Route path="/organization/integrations" element={<OrganizationIntegrations />} />
                                 {/* Billing route removed - billing is now free */}
                                 {/* <Route path="/billing" element={<Billing />} /> */}
                                 <Route path="/pm-templates" element={<PMTemplates />} />
+                                <Route path="/pm-templates/new" element={<PMTemplateEditor />} />
+                                <Route path="/pm-templates/:templateId/edit" element={<PMTemplateEditor />} />
                                 <Route path="/pm-templates/:templateId" element={<PMTemplateView />} />
                                 <Route path="/pm-templates/:templateId/view" element={<PMTemplateView />} />
                                 <Route path="/notifications" element={<Notifications />} />

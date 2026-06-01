@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { PageBackButton } from '@/components/layout/PageBackButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageSEO } from '@/components/seo/PageSEO';
 
@@ -16,12 +15,7 @@ export default function DoNotSellOrShare() {
         path="/do-not-sell-or-share"
       />
       <div className="container max-w-3xl mx-auto px-4 py-10 space-y-6">
-        <Button variant="ghost" size="sm" asChild className="-ml-2">
-          <Link to="/">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to home
-          </Link>
-        </Button>
+        <PageBackButton />
 
         <Card>
           <CardHeader>

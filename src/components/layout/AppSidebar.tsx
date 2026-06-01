@@ -36,6 +36,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "@/components/ui/sidebar-context";
 import Logo from "@/components/ui/Logo";
+import { ORGANIZATION_INTEGRATIONS_PATH } from "@/features/organization/constants/routes";
 
 interface NavigationItem {
   title: string;
@@ -74,7 +75,7 @@ const navigationGroups: NavigationGroup[] = [
     items: [
       { title: "Teams", url: "/dashboard/teams", icon: Users },
       { title: "Organization", url: "/dashboard/organization", icon: Building },
-      { title: "Integrations", url: "/dashboard/organization#integrations", icon: Plug },
+      { title: "Integrations", url: ORGANIZATION_INTEGRATIONS_PATH, icon: Plug, adminOnly: true },
     ],
   },
   {

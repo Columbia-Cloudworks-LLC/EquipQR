@@ -511,92 +511,102 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
         }
       } : undefined}
     >
-      <CardContent standalone className="p-3">
-        {/* Row 1: thumbnail + title/equipment (badges removed from this row) */}
-        <div className="flex items-start gap-2.5">
+      <CardContent standalone className="p-2.5">
+        {/* Row 1: thumbnail + title/status + equipment */}
+        <div className="flex items-start gap-2">
           <EquipmentThumbnail
             imageUrl={workOrder.equipmentImageUrl}
             equipmentName={workOrder.equipmentName}
             equipmentAltContext={workOrder.title}
-            className="h-12 w-12 rounded-lg flex-shrink-0"
-            iconClassName="h-6 w-6"
+            className="h-11 w-11 rounded-lg flex-shrink-0"
+            iconClassName="h-5 w-5"
             isAboveTheFold={isAboveTheFold}
           />
           <div className="min-w-0 flex-1">
-            <CardTitle className="text-[15px] font-semibold leading-snug line-clamp-2">
-              {workOrder.title}
-            </CardTitle>
+            <div className="flex items-start justify-between gap-1.5">
+              <CardTitle className="text-sm font-semibold leading-snug line-clamp-2 min-w-0">
+                {workOrder.title}
+              </CardTitle>
+              <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-1">
+                <Badge
+                  className={cn(getStatusColor(workOrder.status), 'rounded-full px-1.5 py-0 text-[10px] leading-4')}
+                  variant="outline"
+                >
+                  {formatStatus(workOrder.status)}
+                </Badge>
+                {workOrder.priority && workOrder.priority !== 'medium' && (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'rounded-full px-1.5 py-0 text-[10px] leading-4 capitalize',
+                      getPriorityBadgeClass(workOrder.priority)
+                    )}
+                  >
+                    {formatPriorityLabel(workOrder.priority)}
+                  </Badge>
+                )}
+              </div>
+            </div>
             {workOrder.equipmentName && (
               <p className="text-xs text-muted-foreground mt-0.5 truncate">
                 {workOrder.equipmentName}
                 {machineHours && <span className="ml-1">&bull; {machineHours}</span>}
               </p>
             )}
-          </div>
-        </div>
-
-        {/* Row 2: badges + sync indicator on their own line */}
-        <div className="flex items-center gap-1.5 mt-2">
-          <Badge
-            className={cn(getStatusColor(workOrder.status), "rounded-full px-2 py-0.5 text-xs")}
-            variant="outline"
-          >
-            {formatStatus(workOrder.status)}
-          </Badge>
-          <Badge
-            variant="outline"
-            className={cn(
-              'rounded-full px-2 py-0.5 text-xs capitalize',
-              getPriorityBadgeClass(workOrder.priority)
+            {((workOrder.invoiceStatus ?? workOrder.invoice_status) ||
+              (workOrder as MergedWorkOrder)._isPendingSync) && (
+              <div className="mt-1 flex flex-wrap items-center gap-1">
+                <QuickBooksInvoiceStatusBadge
+                  status={workOrder.invoiceStatus ?? workOrder.invoice_status}
+                  invoiceNumber={workOrder.quickbooksInvoiceNumber ?? workOrder.quickbooks_invoice_number}
+                  balanceCents={workOrder.invoiceBalanceCents ?? workOrder.invoice_balance_cents}
+                  paidAt={workOrder.invoicePaidAt ?? workOrder.invoice_paid_at}
+                  className="rounded-full px-1.5 py-0 text-[10px]"
+                />
+                {(workOrder as MergedWorkOrder)._isPendingSync && (
+                  <PendingSyncBadge className="flex-shrink-0 text-[10px]" />
+                )}
+              </div>
             )}
-          >
-            {formatPriorityLabel(workOrder.priority)}
-          </Badge>
-          <QuickBooksInvoiceStatusBadge
-            status={workOrder.invoiceStatus ?? workOrder.invoice_status}
-            invoiceNumber={workOrder.quickbooksInvoiceNumber ?? workOrder.quickbooks_invoice_number}
-            balanceCents={workOrder.invoiceBalanceCents ?? workOrder.invoice_balance_cents}
-            paidAt={workOrder.invoicePaidAt ?? workOrder.invoice_paid_at}
-            className="rounded-full px-2 py-0.5"
-          />
-          {(workOrder as MergedWorkOrder)._isPendingSync && <PendingSyncBadge className="flex-shrink-0" />}
+          </div>
         </div>
 
         {/* PM progress -- hidden for terminal cards */}
         {workOrder.has_pm && !isTerminal && (
-          <div className="mt-2">
+          <div className="mt-1.5">
             <PMProgressIndicator
               workOrderId={workOrder.id}
               hasPM={workOrder.has_pm}
               showCount
+              variant="compact"
             />
           </div>
         )}
 
         {/* Footer: assignee + date/cost + chevron */}
-        <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t">
+        <div className="flex items-center justify-between gap-2 mt-1.5 pt-1.5 border-t">
           <div className="flex items-center gap-1.5 min-w-0">
-            <Avatar className="h-6 w-6 flex-shrink-0">
-              <AvatarFallback className="text-[10px]">
+            <Avatar className="h-5 w-5 flex-shrink-0">
+              <AvatarFallback className="text-[9px]">
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <span className="text-sm text-muted-foreground truncate">
+            <span className="text-xs text-muted-foreground truncate">
               {assigneeName || 'Unassigned'}
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <span className={cn(
-              "text-xs text-muted-foreground inline-flex items-center gap-1",
+              "text-[11px] text-muted-foreground inline-flex items-center gap-0.5",
               isWorkOrderOverdue && 'text-destructive font-medium'
             )}>
               <Calendar className="h-3 w-3" />
               {dateLabel}
             </span>
-            <WorkOrderCostSubtotal workOrderId={workOrder.id} className="text-xs flex-shrink-0" hideWhenEmpty />
+            <WorkOrderCostSubtotal workOrderId={workOrder.id} className="text-[11px] flex-shrink-0" hideWhenEmpty />
             {isInteractive && (
-              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
             )}
           </div>
         </div>

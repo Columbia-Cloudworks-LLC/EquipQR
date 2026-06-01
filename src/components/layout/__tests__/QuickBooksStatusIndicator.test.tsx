@@ -84,7 +84,7 @@ describe('QuickBooksStatusIndicator', () => {
 
     const link = screen.getByRole('link', { name: /quickbooks integration connected/i });
     expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', '/dashboard/organization#integrations');
+    expect(link).toHaveAttribute('href', '/dashboard/organization/integrations');
 
     const dot = link.querySelector('span[aria-hidden="true"].bg-success');
     expect(dot).toBeInTheDocument();

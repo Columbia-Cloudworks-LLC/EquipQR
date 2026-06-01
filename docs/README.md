@@ -30,13 +30,13 @@ permissions, and workflows from this `docs/` tree—is hosted at **`https://equi
 under `docs/ops/` are maintained in this repository for maintainers and are **not**
 included in the public VitePress build.
 
-**In-app shortcuts while using the product:**
+**Product shortcuts while using EquipQR:**
 
-- **Support Library (signed in):** `https://equipqr.app/dashboard/support`
-- **Public app support page:** `https://equipqr.app/support`
+- **Help Center (guides):** `https://equipqr.info/support/`
+- **Support & tickets (signed in):** `https://equipqr.app/dashboard/support`
+- **Public support contact page:** `https://equipqr.app/support`
 
-Use these when you need contextual help inside the app; use **`https://equipqr.info`**
-as the canonical URL to share, bookmark, or index.
+Use **`https://equipqr.info/support/`** as the canonical URL to share, bookmark, or index for documentation.
 
 - **[Image Upload Quick Reference](./how-to/image-upload/quick-reference-card.md)** —
   printable cheat sheet for technicians in the field.
@@ -84,8 +84,8 @@ Browse them on GitHub or in your local checkout:
 
 ### For End Users
 
-1. Start at **`https://equipqr.info`** for published guides, how-tos, and reference material.
-2. For in-app help without leaving the product, use **`https://equipqr.app/dashboard/support`** (signed in) or **`https://equipqr.app/support`**.
+1. Start at **`https://equipqr.info/support/`** for published guides and how-tos.
+2. To report issues while signed in, use **`https://equipqr.app/dashboard/support`**.
 3. For field technicians, print the [Image Upload Quick Reference](./how-to/image-upload/quick-reference-card.md).
 4. For RBAC questions, see [Permissions](./guides/permissions.md).
 
@@ -168,9 +168,9 @@ Use this when authoring or reviewing documentation:
 
 | Surface | Audience | Content |
 |--------|----------|---------|
-| **`https://equipqr.info`** | Customers, technicians, partners, general public | Support how-tos, guides, technical reference, compliance summaries **without** live infrastructure identifiers, privileged command sequences, or step-by-step admin/impersonation procedures. |
-| **Repository `docs/ops/`** | Maintainers, security-reviewed operators | CI/CD, migrations, disaster recovery, observability, cloud admin posture, and similar runbooks. Keep sensitive placeholders out of public pages; link to GitHub for ops detail when needed from public docs. |
-| **In-app Support Library** | Signed-in users | Contextual UI help; complements the public site. |
+| **`https://equipqr.info`** | Customers, technicians, partners, general public | Help Center (`/support/`), guides, how-tos, PM templates, and integrations **without** live infrastructure identifiers or privileged command sequences. |
+| **Repository `docs/ops/`** | Maintainers, security-reviewed operators | CI/CD, migrations, disaster recovery, observability, cloud admin posture, and similar runbooks. Excluded from the public VitePress build. |
+| **`equipqr.app/dashboard/support`** | Signed-in users | Report issues and track tickets only; guides live on equipqr.info. |
 
 Do not add real org IDs, project IDs, tenant domains, service account emails, or copy-paste admin keys to public-facing pages. Prefer placeholders (for example `<GCP_ORG_ID>`) or point readers at internal ops docs in the repo.
 

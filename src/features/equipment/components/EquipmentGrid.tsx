@@ -80,12 +80,13 @@ const EquipmentGrid: React.FC<EquipmentGridProps> = ({
 
   return (
     <div className={cn(
+      'min-w-0 w-full',
       viewMode === 'list'
         ? 'flex flex-col gap-2 md:gap-0 md:divide-y md:rounded-lg md:border'
-        : 'grid gap-2 md:gap-6 md:grid-cols-2 lg:grid-cols-3'
+        : 'flex flex-col gap-2 md:grid md:gap-6 md:grid-cols-2 lg:grid-cols-3'
     )}>
       {equipment.map((item) => (
-        <div key={item.id} className={viewMode === 'grid' ? 'cv-auto-lg' : undefined}>
+        <div key={item.id} className={cn('min-w-0', viewMode === 'grid' && 'md:cv-auto-lg')}>
           <EquipmentCard
             equipment={item}
             onShowQRCode={onShowQRCode}

@@ -18,6 +18,8 @@ import {
   insertScan,
   type EquipmentQRPayload,
 } from '@/features/equipment/services/equipmentQRPermissions';
+import { recordScanFollowUpEvent } from '@/features/equipment/services/scanFollowUpEventService';
+import { logger } from '@/utils/logger';
 import { useLatestCompletedPMDetails } from '@/features/pm-templates/hooks/usePMData';
 import EquipmentQRLastPMCard from '@/features/equipment/components/qr/EquipmentQRLastPMCard';
 
@@ -60,6 +62,7 @@ const EquipmentQRScan = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scanStatus, setScanStatus] = useState<ScanStatus>('idle');
+  const [scanId, setScanId] = useState<string | null>(null);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [heroImageFailed, setHeroImageFailed] = useState(false);
   const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
@@ -151,16 +154,15 @@ const EquipmentQRScan = () => {
     const logWithoutLocation = (notes: string) =>
       insertScan(payload.equipment.id, null, notes);
 
-    const logScan = async () => {
+    const logScan = async (): Promise<string> => {
       const orgAllowsLocation = payload.organization.scan_location_collection_enabled;
       const userLimitedPi = await userLimitsSensitivePi(user.id);
 
       if (!orgAllowsLocation || userLimitedPi || !('geolocation' in navigator)) {
-        await logWithoutLocation('QR code scan');
-        return;
+        return logWithoutLocation('QR code scan');
       }
 
-      await new Promise<void>((resolve, reject) => {
+      return await new Promise<string>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(
           position => {
             const location = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
@@ -183,7 +185,10 @@ const EquipmentQRScan = () => {
     };
 
     logScan()
-      .then(() => setScanStatus('logged'))
+      .then((id) => {
+        setScanId(id);
+        setScanStatus('logged');
+      })
       .catch(() => setScanStatus('failed'));
   }, [payload, user]);
 
@@ -202,8 +207,21 @@ const EquipmentQRScan = () => {
     } catch {
       // ignore storage failures (private mode, quota)
     }
+    // Best-effort scan attribution; never block navigation on it.
+    if (scanId) {
+      try {
+        await recordScanFollowUpEvent({
+          organizationId: payload.organization.id,
+          scanId,
+          equipmentId: payload.equipment.id,
+          eventType: 'dashboard_opened',
+        });
+      } catch (error) {
+        logger.error('Failed to record dashboard_opened scan follow-up event', error);
+      }
+    }
     window.location.assign(`/dashboard/equipment/${payload.equipment.id}`);
-  }, [payload]);
+  }, [payload, scanId]);
 
   if (authLoading || isLoading) {
     return <QrPageLoadingShell />;
@@ -344,6 +362,7 @@ const EquipmentQRScan = () => {
                     workingHours: equipment.workingHours,
                     defaultPmTemplateId: equipment.defaultPmTemplateId,
                   }}
+                  scanId={scanId}
                   userRole={payload.userRole as Role}
                   userDisplayName={
                     (user?.user_metadata?.name as string | undefined) || user?.email?.split('@')[0] || 'User'

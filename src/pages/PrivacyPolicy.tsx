@@ -1,8 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { PageBackButton } from '@/components/layout/PageBackButton';
 import { PageSEO } from '@/components/seo/PageSEO';
 
 export default function PrivacyPolicy() {
@@ -14,12 +13,7 @@ export default function PrivacyPolicy() {
         path="/privacy-policy"
       />
       <div className="mb-8">
-        <Button variant="ghost" asChild className="mb-4">
-          <Link to="/">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Link>
-        </Button>
+        <PageBackButton className="mb-4" />
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-4">Privacy Policy</h1>
           <p className="text-muted-foreground">

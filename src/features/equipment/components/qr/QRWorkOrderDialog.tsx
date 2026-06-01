@@ -45,6 +45,7 @@ interface QRWorkOrderDialogProps {
   onOpenChange: (open: boolean) => void;
   equipment: QRActionEquipment;
   permissionContext: QRActionPermissionContext | null;
+  scanId?: string | null;
   mode: 'pm' | 'generic';
   onCreated: (workOrder: WorkOrder) => void;
 }
@@ -58,6 +59,7 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
   onOpenChange,
   equipment,
   permissionContext,
+  scanId,
   mode,
   onCreated,
 }) => {
@@ -220,6 +222,7 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
         creationPhotoNote: images.length
           ? `Photos from QR work order request: ${title.trim()}`
           : undefined,
+        scanId,
       });
       if (images.length > 0) {
         queryClient.invalidateQueries({ queryKey: workOrders.images(workOrder.id) });

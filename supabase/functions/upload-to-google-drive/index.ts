@@ -14,6 +14,7 @@ import {
   requireUser,
   verifyOrgAdmin,
   createErrorResponse,
+  createJsonResponse,
   handleCorsPreflightIfNeeded,
 } from "../_shared/supabase-clients.ts";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -253,6 +254,30 @@ Deno.serve(async (req) => {
     if (!isAdmin) {
       return createErrorResponse("Forbidden: Only owners and admins can upload to Drive", 403);
     }
+
+    const { data: orgDestination, error: destinationError } = await supabase
+      .from("organization_google_export_destinations")
+      .select("parent_id")
+      .eq("organization_id", organizationId)
+      .eq("document_type", "work-orders-internal-packet")
+      .maybeSingle();
+
+    if (destinationError) {
+      console.error("[UPLOAD-TO-GOOGLE-DRIVE] Failed to load organization folder:", destinationError);
+      return createErrorResponse("An internal error occurred", 500);
+    }
+
+    const destinationParentId = orgDestination?.parent_id ?? parentId ?? null;
+    if (!destinationParentId) {
+      return createJsonResponse(
+        {
+          error: "Organization Drive folder is not configured. Set an organization folder in Organization Settings before saving to Drive.",
+          code: "missing_destination",
+        },
+        400,
+        { req },
+      );
+    }
     
     // Check rate limit to prevent excessive uploads
     let rateLimitOk: boolean;
@@ -347,7 +372,7 @@ Deno.serve(async (req) => {
         sanitizedFilename,
         fileBytes,
         mimeType,
-        parentId,
+        destinationParentId,
       );
     } catch (uploadError) {
       if (uploadError instanceof GoogleWorkspaceTokenError) {

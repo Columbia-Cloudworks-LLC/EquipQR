@@ -12,6 +12,7 @@ import {
 } from '@/services/google-workspace';
 import { generateGoogleWorkspaceAuthUrl, isGoogleWorkspaceConfigured } from '@/services/google-workspace/auth';
 import { googleWorkspace } from '@/lib/queryKeys';
+import { ORGANIZATION_INTEGRATIONS_PATH } from '@/features/organization/constants/routes';
 
 interface GoogleWorkspaceIntegrationProps {
   currentUserRole: 'owner' | 'admin' | 'member';
@@ -40,7 +41,7 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
     try {
       const authUrl = await generateGoogleWorkspaceAuthUrl({
         organizationId: currentOrganization.id,
-        redirectUrl: '/dashboard/organization',
+        redirectUrl: ORGANIZATION_INTEGRATIONS_PATH,
       });
       window.location.href = authUrl;
     } catch (error) {

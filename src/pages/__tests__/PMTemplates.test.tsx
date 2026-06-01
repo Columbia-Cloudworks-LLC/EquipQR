@@ -6,14 +6,23 @@ import { TestProviders } from '@/test/utils/TestProviders';
 import { personas } from '@/test/fixtures/personas';
 import { organizations, pmTemplates as pmFixtures } from '@/test/fixtures/entities';
 
+const mockNavigate = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
 // Mock hooks with named imports
-import { 
-  usePMTemplates, 
-  usePMTemplate, 
-  useCreatePMTemplate, 
-  useUpdatePMTemplate, 
-  useDeletePMTemplate, 
-  useClonePMTemplate 
+import {
+  usePMTemplates,
+  useCreatePMTemplate,
+  useUpdatePMTemplate,
+  useDeletePMTemplate,
+  useClonePMTemplate,
 } from '@/features/pm-templates/hooks/usePMTemplates';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -40,20 +49,8 @@ vi.mock('@/features/organization/hooks/useSimplifiedOrganizationRestrictions', (
   useSimplifiedOrganizationRestrictions: vi.fn(),
 }));
 
-// Mock components - paths must match actual imports in PMTemplates.tsx
-vi.mock('@/features/organization/components/ChecklistTemplateEditor', () => ({
-  ChecklistTemplateEditor: vi.fn(({ template, onSave, onCancel }) => (
-    <div data-testid="template-editor">
-      <div>Template Editor</div>
-      <div>{template ? `Editing: ${template.name}` : 'Creating New Template'}</div>
-      <button onClick={onSave}>Save</button>
-      <button onClick={onCancel}>Cancel</button>
-    </div>
-  )),
-}));
-
 vi.mock('@/features/pm-templates/components/TemplateAssignmentDialog', () => ({
-  TemplateAssignmentDialog: vi.fn(({ templateId, open, onClose }) => 
+  TemplateAssignmentDialog: vi.fn(({ templateId, open, onClose }) =>
     open ? (
       <div data-testid="assignment-dialog">
         <div>Assignment Dialog for {templateId}</div>
@@ -71,7 +68,7 @@ const mockTemplates = [
     is_protected: pmFixtures.forklift.is_protected,
     organization_id: pmFixtures.forklift.organization_id,
     sections: pmFixtures.forklift.sections,
-    itemCount: pmFixtures.forklift.itemCount
+    itemCount: pmFixtures.forklift.itemCount,
   },
   {
     id: pmFixtures.customOrgTemplate.id,
@@ -80,8 +77,8 @@ const mockTemplates = [
     is_protected: pmFixtures.customOrgTemplate.is_protected,
     organization_id: pmFixtures.customOrgTemplate.organization_id,
     sections: pmFixtures.customOrgTemplate.sections,
-    itemCount: pmFixtures.customOrgTemplate.itemCount
-  }
+    itemCount: pmFixtures.customOrgTemplate.itemCount,
+  },
 ];
 
 const mockHooks = {
@@ -109,33 +106,7 @@ const mockHooks = {
     isInitialLoading: false,
     isPaused: false,
     isPlaceholderData: false,
-    isStale: false
-  },
-  usePMTemplate: {
-    data: null,
-    isLoading: false,
-    error: null,
-    isError: false,
-    isPending: false,
-    isSuccess: true,
-    status: 'success' as const,
-    fetchStatus: 'idle' as const,
-    refetch: vi.fn(),
-    isRefetching: false,
-    isLoadingError: false,
-    isRefetchError: false,
-    dataUpdatedAt: Date.now(),
-    errorUpdatedAt: 0,
-    failureCount: 0,
-    failureReason: null,
-    errorUpdateCount: 0,
-    isFetched: true,
-    isFetchedAfterMount: true,
-    isFetching: false,
-    isInitialLoading: false,
-    isPaused: false,
-    isPlaceholderData: false,
-    isStale: false
+    isStale: false,
   },
   useCreatePMTemplate: {
     mutate: vi.fn(),
@@ -153,7 +124,7 @@ const mockHooks = {
     failureCount: 0,
     failureReason: null,
     submittedAt: 0,
-    isPaused: false
+    isPaused: false,
   },
   useUpdatePMTemplate: {
     mutate: vi.fn(),
@@ -171,7 +142,7 @@ const mockHooks = {
     failureCount: 0,
     failureReason: null,
     submittedAt: 0,
-    isPaused: false
+    isPaused: false,
   },
   useDeletePMTemplate: {
     mutate: vi.fn(),
@@ -189,7 +160,7 @@ const mockHooks = {
     failureCount: 0,
     failureReason: null,
     submittedAt: 0,
-    isPaused: false
+    isPaused: false,
   },
   useClonePMTemplate: {
     mutate: vi.fn(),
@@ -207,21 +178,29 @@ const mockHooks = {
     failureCount: 0,
     failureReason: null,
     submittedAt: 0,
-    isPaused: false
-  }
+    isPaused: false,
+  },
 };
 
 describe('PMTemplates Page', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
-    
-    // Setup default mocks using vi.mocked with proper typing
-    vi.mocked(usePMTemplates).mockReturnValue(mockHooks.usePMTemplates as unknown as ReturnType<typeof usePMTemplates>);
-    vi.mocked(usePMTemplate).mockReturnValue(mockHooks.usePMTemplate as unknown as ReturnType<typeof usePMTemplate>);
-    vi.mocked(useCreatePMTemplate).mockReturnValue(mockHooks.useCreatePMTemplate as unknown as ReturnType<typeof useCreatePMTemplate>);
-    vi.mocked(useUpdatePMTemplate).mockReturnValue(mockHooks.useUpdatePMTemplate as unknown as ReturnType<typeof useUpdatePMTemplate>);
-    vi.mocked(useDeletePMTemplate).mockReturnValue(mockHooks.useDeletePMTemplate as unknown as ReturnType<typeof useDeletePMTemplate>);
-    vi.mocked(useClonePMTemplate).mockReturnValue(mockHooks.useClonePMTemplate as unknown as ReturnType<typeof useClonePMTemplate>);
+
+    vi.mocked(usePMTemplates).mockReturnValue(
+      mockHooks.usePMTemplates as unknown as ReturnType<typeof usePMTemplates>
+    );
+    vi.mocked(useCreatePMTemplate).mockReturnValue(
+      mockHooks.useCreatePMTemplate as unknown as ReturnType<typeof useCreatePMTemplate>
+    );
+    vi.mocked(useUpdatePMTemplate).mockReturnValue(
+      mockHooks.useUpdatePMTemplate as unknown as ReturnType<typeof useUpdatePMTemplate>
+    );
+    vi.mocked(useDeletePMTemplate).mockReturnValue(
+      mockHooks.useDeletePMTemplate as unknown as ReturnType<typeof useDeletePMTemplate>
+    );
+    vi.mocked(useClonePMTemplate).mockReturnValue(
+      mockHooks.useClonePMTemplate as unknown as ReturnType<typeof useClonePMTemplate>
+    );
 
     vi.mocked(useOrganization).mockReturnValue({
       currentOrganization: { id: organizations.acme.id, name: organizations.acme.name },
@@ -231,7 +210,7 @@ describe('PMTemplates Page', () => {
       isLoading: false,
       error: null,
       switchToOrganization: vi.fn(),
-      refreshOrganizations: vi.fn()
+      refreshOrganizations: vi.fn(),
     } as unknown as ReturnType<typeof useOrganization>);
 
     vi.mocked(usePermissions).mockReturnValue({
@@ -253,7 +232,7 @@ describe('PMTemplates Page', () => {
       canInviteUsers: vi.fn().mockReturnValue(true),
       isOwner: true,
       isMember: false,
-      isTeamManager: vi.fn().mockReturnValue(false)
+      isTeamManager: vi.fn().mockReturnValue(false),
     } as unknown as ReturnType<typeof usePermissions>);
 
     vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
@@ -261,19 +240,16 @@ describe('PMTemplates Page', () => {
         canCreateCustomTemplates: true,
         canCreateCustomPMTemplates: true,
         hasLicensedUsers: true,
-        upgradeMessage: null
+        upgradeMessage: null,
       },
       checkRestriction: vi.fn(),
       getRestrictionMessage: vi.fn(),
       isSingleUser: false,
       canUpgrade: true,
-      isLoading: false
+      isLoading: false,
     } as unknown as ReturnType<typeof useSimplifiedOrganizationRestrictions>);
   });
 
-  // --------------------------------------------------------
-  // Alice Owner — full admin access to PM templates
-  // --------------------------------------------------------
   describe(`as ${personas.owner.name} (owner with full admin access)`, () => {
     it('renders page title and description', () => {
       render(
@@ -285,12 +261,8 @@ describe('PMTemplates Page', () => {
       expect(screen.getByText('PM Templates')).toBeInTheDocument();
       expect(screen.getByText(/Manage preventative maintenance checklist templates/)).toBeInTheDocument();
     });
-
   });
 
-  // --------------------------------------------------------
-  // Edge case: no organization selected
-  // --------------------------------------------------------
   describe('when no organization is selected', () => {
     it('shows no organization message', () => {
       vi.mocked(useOrganization).mockReturnValue({
@@ -301,7 +273,7 @@ describe('PMTemplates Page', () => {
         isLoading: false,
         error: null,
         switchToOrganization: vi.fn(),
-        refreshOrganizations: vi.fn()
+        refreshOrganizations: vi.fn(),
       } as unknown as ReturnType<typeof useOrganization>);
 
       render(
@@ -312,12 +284,8 @@ describe('PMTemplates Page', () => {
 
       expect(screen.getByText('Please select an organization to manage PM templates.')).toBeInTheDocument();
     });
-
   });
 
-  // --------------------------------------------------------
-  // Dave Technician — non-admin, sees permission denied
-  // --------------------------------------------------------
   describe(`as ${personas.technician.name} (non-admin, permission denied)`, () => {
     it('shows permission denied message', () => {
       vi.mocked(usePermissions).mockReturnValue({
@@ -339,7 +307,7 @@ describe('PMTemplates Page', () => {
         canInviteUsers: vi.fn().mockReturnValue(false),
         isOwner: false,
         isMember: true,
-        isTeamManager: vi.fn().mockReturnValue(false)
+        isTeamManager: vi.fn().mockReturnValue(false),
       } as unknown as ReturnType<typeof usePermissions>);
 
       render(
@@ -352,9 +320,6 @@ describe('PMTemplates Page', () => {
     });
   });
 
-  // --------------------------------------------------------
-  // Loading state
-  // --------------------------------------------------------
   describe('while templates are loading', () => {
     it('displays loading skeleton during data fetch', () => {
       vi.mocked(usePMTemplates).mockReturnValue({
@@ -362,7 +327,7 @@ describe('PMTemplates Page', () => {
         isLoading: true,
         data: undefined,
         isSuccess: false,
-        status: 'pending'
+        status: 'pending',
       } as unknown as ReturnType<typeof usePMTemplates>);
 
       render(
@@ -371,18 +336,13 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
-    expect(screen.getAllByText('PM Templates')).toHaveLength(1);
-    // Check for loading skeleton animations
-    const animatedElements = document.querySelectorAll('.animate-pulse');
-    expect(animatedElements.length).toBeGreaterThan(0);
+      expect(screen.getAllByText('PM Templates')).toHaveLength(1);
+      const animatedElements = document.querySelectorAll('.animate-pulse');
+      expect(animatedElements.length).toBeGreaterThan(0);
     });
   });
 
   it('navigates to details when clicking a template title', () => {
-    vi.mocked(usePMTemplates).mockReturnValue({
-      ...mockHooks.usePMTemplates
-    } as unknown as ReturnType<typeof usePMTemplates>);
-
     render(
       <TestProviders>
         <PMTemplates />
@@ -391,7 +351,6 @@ describe('PMTemplates Page', () => {
 
     const title = screen.getByText(pmFixtures.forklift.name);
     expect(title).toBeInTheDocument();
-    // We can't assert router change easily here; presence is enough for now.
   });
 
   describe('Template Display', () => {
@@ -428,13 +387,13 @@ describe('PMTemplates Page', () => {
           canAssignEquipmentToTeams: false,
           canUploadImages: false,
           canAccessFleetMap: false,
-          upgradeMessage: 'Upgrade required'
+          upgradeMessage: 'Upgrade required',
         },
         checkRestriction: vi.fn(),
         getRestrictionMessage: vi.fn(),
         isSingleUser: true,
         canUpgrade: true,
-        isLoading: false
+        isLoading: false,
       } as unknown as ReturnType<typeof useSimplifiedOrganizationRestrictions>);
 
       render(
@@ -453,15 +412,10 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
-      // Check template name and description
       expect(screen.getByText(pmFixtures.forklift.name)).toBeInTheDocument();
       expect(screen.getByText(pmFixtures.forklift.description)).toBeInTheDocument();
-      
-      // Check sections and item count
       expect(screen.getByText(`Sections (${pmFixtures.forklift.sections.length})`)).toBeInTheDocument();
       expect(screen.getAllByText('Total Items:')[0]).toBeInTheDocument();
-      
-      // Check badges
       expect(screen.getByText('Global')).toBeInTheDocument();
       expect(screen.getByText('Protected')).toBeInTheDocument();
     });
@@ -510,13 +464,13 @@ describe('PMTemplates Page', () => {
           canAssignEquipmentToTeams: false,
           canUploadImages: false,
           canAccessFleetMap: false,
-          upgradeMessage: 'Upgrade required'
+          upgradeMessage: 'Upgrade required',
         },
         checkRestriction: vi.fn(),
         getRestrictionMessage: vi.fn(),
         isSingleUser: true,
         canUpgrade: true,
-        isLoading: false
+        isLoading: false,
       } as unknown as ReturnType<typeof useSimplifiedOrganizationRestrictions>);
 
       render(
@@ -526,12 +480,12 @@ describe('PMTemplates Page', () => {
       );
 
       const cloneButtons = screen.getAllByRole('button', { name: 'Clone' });
-      cloneButtons.forEach(button => {
+      cloneButtons.forEach((button) => {
         expect(button).toBeDisabled();
       });
     });
 
-    it('handles Edit template for organization templates', async () => {
+    it('navigates to edit route for organization templates', async () => {
       render(
         <TestProviders>
           <PMTemplates />
@@ -542,7 +496,9 @@ describe('PMTemplates Page', () => {
       fireEvent.click(editButton);
 
       await waitFor(() => {
-        expect(screen.getByTestId('template-editor')).toBeInTheDocument();
+        expect(mockNavigate).toHaveBeenCalledWith(
+          `/dashboard/pm-templates/${pmFixtures.customOrgTemplate.id}/edit`
+        );
       });
     });
 
@@ -553,18 +509,12 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
-      // This test is currently skipped due to complex dropdown interaction
       expect(screen.getByText(pmFixtures.customOrgTemplate.name)).toBeInTheDocument();
-      
-      // Skip the actual delete test since dropdown interaction is complex
-      // TODO: Implement proper dropdown testing when needed
-
-      // Skip mock assertion since test was simplified
     });
   });
 
   describe('Template Creation', () => {
-    it('opens template editor for new template', async () => {
+    it('navigates to new template editor route', async () => {
       render(
         <TestProviders>
           <PMTemplates />
@@ -575,7 +525,7 @@ describe('PMTemplates Page', () => {
       fireEvent.click(createButton);
 
       await waitFor(() => {
-        expect(screen.getByTestId('template-editor')).toBeInTheDocument();
+        expect(mockNavigate).toHaveBeenCalledWith('/dashboard/pm-templates/new');
       });
     });
   });
@@ -598,15 +548,17 @@ describe('PMTemplates Page', () => {
       const nameInput = screen.getByPlaceholderText('Enter name for cloned template');
       fireEvent.change(nameInput, { target: { value: 'New Template Name' } });
 
-      // Target the submit button specifically within the dialog
       const dialog = screen.getByRole('dialog');
       const submitButton = within(dialog).getByRole('button', { name: /clone template/i });
       fireEvent.click(submitButton);
 
-      expect(mockHooks.useClonePMTemplate.mutate).toHaveBeenCalledWith({
-        sourceId: pmFixtures.forklift.id,
-        newName: 'New Template Name'
-      }, expect.any(Object));
+      expect(mockHooks.useClonePMTemplate.mutate).toHaveBeenCalledWith(
+        {
+          sourceId: pmFixtures.forklift.id,
+          newName: 'New Template Name',
+        },
+        expect.any(Object)
+      );
     });
   });
 
@@ -614,7 +566,7 @@ describe('PMTemplates Page', () => {
     it('shows empty state when no templates available', () => {
       vi.mocked(usePMTemplates).mockReturnValue({
         ...mockHooks.usePMTemplates,
-        data: []
+        data: [],
       } as unknown as ReturnType<typeof usePMTemplates>);
 
       render(

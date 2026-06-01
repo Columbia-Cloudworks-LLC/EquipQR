@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   mockDelete: vi.fn(),
   mockCreatePM: vi.fn(),
   mockMaybeSingle: vi.fn(),
+  mockRecordScanFollowUpEvent: vi.fn(),
 }));
 
 vi.mock('@/lib/authClaims', () => ({
@@ -48,6 +49,10 @@ vi.mock('@/features/work-orders/services/workOrderNotesService', () => ({
   attachWorkOrderCreationImages: vi.fn(),
 }));
 
+vi.mock('@/features/equipment/services/scanFollowUpEventService', () => ({
+  recordScanFollowUpEvent: (...args: unknown[]) => mocks.mockRecordScanFollowUpEvent(...args),
+}));
+
 import { createQRWorkOrder } from '@/features/equipment/services/equipmentQRActionService';
 
 const minimalWorkOrder = { id: 'wo-new', title: 'Test' } as WorkOrder;
@@ -74,6 +79,7 @@ describe('createQRWorkOrder', () => {
       data: { template_data: [], description: 'notes' },
       error: null,
     });
+    mocks.mockRecordScanFollowUpEvent.mockResolvedValue('event-1');
   });
 
   it('uses equipment default PM template when pmTemplateId is omitted', async () => {
@@ -184,5 +190,58 @@ describe('createQRWorkOrder', () => {
     ).rejects.toThrow(/select a pm checklist template/i);
 
     expect(mocks.mockDelete).toHaveBeenCalledWith('wo-new');
+  });
+
+  it('records a pm_work_order_created follow-up event when a scanId is provided', async () => {
+    await createQRWorkOrder({
+      equipment: equipment({ defaultPmTemplateId: 'default-tpl' }),
+      title: 'PM',
+      description: 'D',
+      priority: 'medium',
+      attachPM: true,
+      scanId: 'scan-1',
+    });
+
+    expect(mocks.mockRecordScanFollowUpEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-1',
+        scanId: 'scan-1',
+        equipmentId: 'eq-1',
+        eventType: 'pm_work_order_created',
+        entityType: 'work_order',
+        entityId: 'wo-new',
+      })
+    );
+  });
+
+  it('records a generic_work_order_created follow-up event for a generic work order', async () => {
+    await createQRWorkOrder({
+      equipment: equipment(),
+      title: 'WO',
+      description: 'D',
+      priority: 'medium',
+      attachPM: false,
+      scanId: 'scan-2',
+    });
+
+    expect(mocks.mockRecordScanFollowUpEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-1',
+        scanId: 'scan-2',
+        eventType: 'generic_work_order_created',
+      })
+    );
+  });
+
+  it('does not record a follow-up event when no scanId is provided', async () => {
+    await createQRWorkOrder({
+      equipment: equipment(),
+      title: 'WO',
+      description: 'D',
+      priority: 'medium',
+      attachPM: false,
+    });
+
+    expect(mocks.mockRecordScanFollowUpEvent).not.toHaveBeenCalled();
   });
 });

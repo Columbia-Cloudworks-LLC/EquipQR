@@ -84,9 +84,13 @@ describe('EquipmentGrid', () => {
     it('applies responsive grid classes', () => {
       const { container } = render(<EquipmentGrid {...defaultProps} />);
       
-      const grid = container.querySelector('[class*="grid"]');
-      expect(grid).toHaveClass('grid');
+      const grid = container.querySelector('[class*="md:grid"]');
+      expect(grid).toHaveClass('flex');
+      expect(grid).toHaveClass('flex-col');
       expect(grid).toHaveClass('gap-2');
+      expect(grid).toHaveClass('min-w-0');
+      expect(grid).toHaveClass('w-full');
+      expect(grid).toHaveClass('md:grid');
       expect(grid).toHaveClass('md:gap-6');
       expect(grid).toHaveClass('md:grid-cols-2');
       expect(grid).toHaveClass('lg:grid-cols-3');

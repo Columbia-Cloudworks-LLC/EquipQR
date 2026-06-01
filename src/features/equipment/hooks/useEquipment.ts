@@ -14,6 +14,8 @@ import { useBackgroundSync } from '@/hooks/useCacheInvalidation';
 import { performanceMonitor } from '@/utils/performanceMonitoring';
 import { useAppToast } from '@/hooks/useAppToast';
 import { createScopedQueryPersister } from '@/lib/queryPersistence';
+import { equipment as equipmentKeys } from '@/lib/queryKeys';
+import { getScanFollowUpEventsByEquipmentId } from '@/features/equipment/services/scanFollowUpEventService';
 
 /**
  * Stable references for the empty default arguments used by `useEquipment`.
@@ -243,7 +245,9 @@ export const useEquipmentScans = (
   const staleTime = options?.staleTime ?? 10 * 60 * 1000; // 10 minutes for scans
 
   return useQuery({
-    queryKey: ['equipment-scans', organizationId, equipmentId],
+    queryKey: organizationId && equipmentId
+      ? equipmentKeys.scans(organizationId, equipmentId)
+      : ['equipment', organizationId, equipmentId, 'scans'],
     queryFn: async () => {
       if (!organizationId || !equipmentId) return [];
       const result = await EquipmentService.getScansByEquipmentId(organizationId, equipmentId);
@@ -251,6 +255,33 @@ export const useEquipmentScans = (
         return result.data;
       }
       throw new Error(result.error || 'Failed to fetch scans');
+    },
+    enabled: !!organizationId && !!equipmentId,
+    staleTime,
+  });
+};
+
+/**
+ * Get scan follow-up events for equipment (actions performed from a QR scan
+ * session, e.g. created work order, updated hours, added note). Feeds the
+ * Scan History timeline alongside `useEquipmentScans`.
+ */
+export const useEquipmentScanFollowUps = (
+  organizationId: string | undefined,
+  equipmentId: string | undefined,
+  options?: {
+    staleTime?: number;
+  }
+) => {
+  const staleTime = options?.staleTime ?? 10 * 60 * 1000;
+
+  return useQuery({
+    queryKey: organizationId && equipmentId
+      ? equipmentKeys.scanFollowUps(organizationId, equipmentId)
+      : ['equipment', organizationId, equipmentId, 'scan-follow-ups'],
+    queryFn: async () => {
+      if (!organizationId || !equipmentId) return [];
+      return getScanFollowUpEventsByEquipmentId(organizationId, equipmentId);
     },
     enabled: !!organizationId && !!equipmentId,
     staleTime,
@@ -420,10 +451,15 @@ export const useCreateScan = (organizationId: string | undefined) => {
       throw new Error(result.error || 'Failed to log scan');
     },
     onSuccess: (_data, variables) => {
-      // Invalidate scans queries for this equipment
-      queryClient.invalidateQueries({ 
-        queryKey: ['equipment-scans', organizationId, variables.equipmentId] 
-      });
+      if (organizationId) {
+        // Invalidate scans + scan-history queries for this equipment
+        queryClient.invalidateQueries({
+          queryKey: equipmentKeys.scans(organizationId, variables.equipmentId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: equipmentKeys.scanFollowUps(organizationId, variables.equipmentId),
+        });
+      }
       // Also invalidate legacy query keys for backward compatibility
       queryClient.invalidateQueries({ 
         queryKey: ['scans', 'equipment', organizationId, variables.equipmentId] 

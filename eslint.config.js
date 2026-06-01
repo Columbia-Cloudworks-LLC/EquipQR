@@ -91,6 +91,8 @@ export default tseslint.config(
       ".claude",
       "e2e",
       "playwright.config.ts",
+      // VitePress build cache (generated, vendored deps) must not be linted.
+      "docs/.vitepress/cache",
     ],
   },
   {

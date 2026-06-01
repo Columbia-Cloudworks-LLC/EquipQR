@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, ShieldCheck, Users, ArrowUpDown } from 'lucide-react';
+import { Plus, ShieldCheck, Users } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamBasedWorkOrders, useTeamBasedAccess } from '@/features/teams/hooks/useTeamBasedWorkOrders';
 import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOrderData';
@@ -14,7 +14,6 @@ import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 import { WorkOrderAcceptanceModalState, WorkOrderData } from '@/features/work-orders/types/workOrder';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { SortDirection, SortField } from '@/features/work-orders/hooks/useWorkOrderFilters';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
@@ -276,6 +275,8 @@ const WorkOrders = () => {
           title="Work Orders" 
           description={getSubtitle()}
           meta={getAccessBadge()}
+          hideDescriptionOnMobile
+          inlineMetaOnMobile
           actions={
             !isMobile ? (
               <Button onClick={() => setShowForm(true)} className="w-full sm:w-auto">
@@ -294,57 +295,30 @@ const WorkOrders = () => {
           />
         )}
 
-        <div className="space-y-4">
-          <WorkOrderFilters
-            filters={filters}
-            activeFilterCount={getActiveFilterCount()}
-            activePresets={activePresets}
-            showMobileFilters={showMobileFilters}
-            onShowMobileFiltersChange={setShowMobileFilters}
-            onFilterChange={updateFilter}
-            onClearFilters={clearAllFilters}
-            onQuickFilter={handleQuickFilter}
-            sortField={sortField}
-            sortDirection={sortDirection}
-            onSortChange={updateSort}
-            resultCount={filteredWorkOrders.length}
-            totalCount={totalCount}
-          />
-
-          {/* Mobile-only: result count + sort row */}
-          {isMobile && (
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                {hasActiveFilters
-                  ? `${filteredWorkOrders.length} of ${totalCount} work orders`
-                  : `${totalCount} work orders`}
-              </p>
-              <div className="flex items-center gap-2">
-                <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-                <Select
-                  value={`${sortField}:${sortDirection}`}
-                  onValueChange={(v) => {
-                    const [field, dir] = v.split(':') as [SortField, 'asc' | 'desc'];
-                    updateSort(field, dir);
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-[170px] text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="created:desc">Created (newest)</SelectItem>
-                    <SelectItem value="created:asc">Created (oldest)</SelectItem>
-                    <SelectItem value="due_date:asc">Due Date (soonest)</SelectItem>
-                    <SelectItem value="due_date:desc">Due Date (latest)</SelectItem>
-                    <SelectItem value="priority:desc">Priority (high first)</SelectItem>
-                    <SelectItem value="priority:asc">Priority (low first)</SelectItem>
-                    <SelectItem value="status:asc">Status (earliest)</SelectItem>
-                    <SelectItem value="status:desc">Status (latest)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
+        <div className={isMobile ? 'space-y-2.5' : 'space-y-4'}>
+          <div
+            className={
+              isMobile
+                ? 'sticky top-0 z-sticky -mx-3 bg-background/95 px-3 pb-1 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:-mx-4 sm:px-4'
+                : undefined
+            }
+          >
+            <WorkOrderFilters
+              filters={filters}
+              activeFilterCount={getActiveFilterCount()}
+              activePresets={activePresets}
+              showMobileFilters={showMobileFilters}
+              onShowMobileFiltersChange={setShowMobileFilters}
+              onFilterChange={updateFilter}
+              onClearFilters={clearAllFilters}
+              onQuickFilter={handleQuickFilter}
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSortChange={updateSort}
+              resultCount={filteredWorkOrders.length}
+              totalCount={totalCount}
+            />
+          </div>
 
           <WorkOrdersList
             workOrders={filteredWorkOrders}

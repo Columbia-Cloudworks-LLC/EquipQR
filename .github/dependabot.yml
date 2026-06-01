@@ -13,6 +13,10 @@ updates:
       timezone: America/Chicago
     open-pull-requests-limit: 15
     target-branch: preview
+    ignore:
+      - dependency-name: "@types/node"
+        update-types:
+          - "version-update:semver-major"
 
   - package-ecosystem: github-actions
     directory: /
