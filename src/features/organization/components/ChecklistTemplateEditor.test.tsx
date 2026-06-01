@@ -1,7 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { ChecklistTemplateEditor } from './ChecklistTemplateEditor';
+import {
+  ChecklistTemplateEditor,
+  moveChecklistItemToSectionEdge,
+  reorderChecklistItems,
+} from './ChecklistTemplateEditor';
 import { TestProviders } from '@/test/utils/TestProviders';
 
 // Mock the PM Templates hooks
@@ -306,8 +310,39 @@ describe('ChecklistTemplateEditor', () => {
 
       fireEvent.click(screen.getByRole('tab', { name: /checklist items/i }));
 
-      expect(screen.getByLabelText('Item 1 title')).toBeInTheDocument();
-      expect(screen.getByLabelText('Item 2 title')).toBeInTheDocument();
+      expect(screen.getAllByLabelText('Check name').length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('shows Required label and expand control for checklist items', () => {
+      render(
+        <ChecklistTemplateEditor template={mockTemplate} {...defaultProps} />,
+        { wrapper: TestProviders }
+      );
+
+      fireEvent.click(screen.getByRole('tab', { name: /checklist items/i }));
+
+      expect(screen.getAllByText('Required').length).toBeGreaterThan(0);
+      expect(screen.getByRole('button', { name: /expand description for check oil/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /drag to reorder check oil/i })).toBeInTheDocument();
+    });
+
+    it('keeps description collapsed by default and toggles via chevron', () => {
+      render(
+        <ChecklistTemplateEditor template={mockTemplate} {...defaultProps} />,
+        { wrapper: TestProviders }
+      );
+
+      fireEvent.click(screen.getByRole('tab', { name: /checklist items/i }));
+
+      expect(screen.queryAllByPlaceholderText(/instructions for technicians/i).length).toBe(0);
+
+      fireEvent.click(screen.getByRole('button', { name: /expand description for check oil/i }));
+
+      expect(screen.getAllByPlaceholderText(/instructions for technicians/i).length).toBe(1);
+
+      fireEvent.click(screen.getByRole('button', { name: /collapse description for check oil/i }));
+
+      expect(screen.queryAllByPlaceholderText(/instructions for technicians/i).length).toBe(0);
     });
 
     it('adds a new item below when pressing Enter in the title field', async () => {
@@ -318,13 +353,50 @@ describe('ChecklistTemplateEditor', () => {
 
       fireEvent.click(screen.getByRole('tab', { name: /checklist items/i }));
 
-      const titleInput = screen.getByLabelText('Item 1 title');
+      const titleInput = screen.getAllByLabelText('Check name')[0];
       fireEvent.change(titleInput, { target: { value: 'Check oil updated' } });
       fireEvent.keyDown(titleInput, { key: 'Enter', code: 'Enter' });
 
       await waitFor(() => {
-        expect(screen.getByLabelText('Item 2 title')).toBeInTheDocument();
+        expect(screen.getAllByLabelText('Check name').length).toBeGreaterThanOrEqual(2);
       });
+    });
+  });
+
+  describe('reorderChecklistItems', () => {
+    it('moves an item within the same section', () => {
+      const items = mockTemplate.template_data;
+      const reordered = reorderChecklistItems(items, 'item-2', 'item-1');
+      expect(reordered.map((item) => item.id)).toEqual(['item-2', 'item-1']);
+    });
+
+    it('moves an item to the top of its section', () => {
+      const items = mockTemplate.template_data;
+      const moved = moveChecklistItemToSectionEdge(items, 'item-2', 'top');
+      expect(moved.map((item) => item.id)).toEqual(['item-2', 'item-1']);
+    });
+
+    it('moves an item to the bottom of its section', () => {
+      const items = mockTemplate.template_data;
+      const moved = moveChecklistItemToSectionEdge(items, 'item-1', 'bottom');
+      expect(moved.map((item) => item.id)).toEqual(['item-2', 'item-1']);
+    });
+
+    it('does not reorder across sections', () => {
+      const items = [
+        ...mockTemplate.template_data,
+        {
+          id: 'item-3',
+          title: 'Brake pads',
+          description: '',
+          section: 'Brakes',
+          condition: null,
+          required: false,
+          notes: '',
+        },
+      ];
+      const unchanged = reorderChecklistItems(items, 'item-1', 'item-3');
+      expect(unchanged).toBe(items);
     });
   });
 

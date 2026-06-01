@@ -46,7 +46,9 @@ import {
   ChevronRight,
   HelpCircle,
   Copy,
+  GripVertical,
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { SaveStatus } from '@/components/ui/SaveStatus';
 import { useAutoSave } from '@/hooks/useAutoSave';
@@ -67,7 +69,63 @@ import { cn } from '@/lib/utils';
 export const LARGE_TEMPLATE_THRESHOLD = 20;
 export const SECTION_VIRTUALIZATION_THRESHOLD = 30;
 export const VIRTUALIZATION_THRESHOLD = SECTION_VIRTUALIZATION_THRESHOLD;
-export const COMPACT_ROW_HEIGHT = 48;
+export const COMPACT_ROW_HEIGHT = 72;
+
+/** Reorder items within a flat checklist array (same-section drag-and-drop). */
+export function reorderChecklistItems(
+  items: PMChecklistItem[],
+  activeId: string,
+  overId: string
+): PMChecklistItem[] {
+  if (activeId === overId) return items;
+  const fromIndex = items.findIndex((i) => i.id === activeId);
+  const toIndex = items.findIndex((i) => i.id === overId);
+  if (fromIndex === -1 || toIndex === -1) return items;
+  if (items[fromIndex].section !== items[toIndex].section) return items;
+  const next = [...items];
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, moved);
+  return next;
+}
+
+/** Move one item to the top or bottom of its section while preserving section order. */
+export function moveChecklistItemToSectionEdge(
+  items: PMChecklistItem[],
+  itemId: string,
+  edge: 'top' | 'bottom'
+): PMChecklistItem[] {
+  const item = items.find((i) => i.id === itemId);
+  if (!item) return items;
+
+  const sectionsOrder: string[] = [];
+  const bySection = new Map<string, PMChecklistItem[]>();
+  for (const entry of items) {
+    if (!bySection.has(entry.section)) {
+      sectionsOrder.push(entry.section);
+      bySection.set(entry.section, []);
+    }
+    bySection.get(entry.section)!.push(entry);
+  }
+
+  const sectionItems = bySection.get(item.section);
+  if (!sectionItems) return items;
+
+  const idx = sectionItems.findIndex((i) => i.id === itemId);
+  if (idx === -1) return items;
+  if ((edge === 'top' && idx === 0) || (edge === 'bottom' && idx === sectionItems.length - 1)) {
+    return items;
+  }
+
+  const [moved] = sectionItems.splice(idx, 1);
+  if (edge === 'top') {
+    sectionItems.unshift(moved);
+  } else {
+    sectionItems.push(moved);
+  }
+  bySection.set(item.section, sectionItems);
+
+  return sectionsOrder.flatMap((section) => bySection.get(section)!);
+}
 
 type SaveTrigger = 'text' | 'selection' | 'manual';
 export type ChecklistTemplateEditorLayoutMode = 'standalone' | 'page';
@@ -87,12 +145,19 @@ interface ChecklistItemRowProps {
   onCommit: (itemId: string, updates: Partial<PMChecklistItem>) => void;
   onDuplicate: (itemId: string) => void;
   onMoveToSection: (itemId: string, targetSection: string) => void;
-  onMoveUp: (itemId: string) => void;
-  onMoveDown: (itemId: string) => void;
+  onMoveToTop: (itemId: string) => void;
+  onMoveToBottom: (itemId: string) => void;
   onDelete: (itemId: string) => void;
   onAddBelow: (itemId: string) => void;
   triggerAutoSave: (trigger?: SaveTrigger) => void;
   compactOnly?: boolean;
+  enableDragReorder?: boolean;
+  isDragging?: boolean;
+  isDragOver?: boolean;
+  onDragHandleStart?: (itemId: string) => (event: React.DragEvent<HTMLButtonElement>) => void;
+  onItemDragOver?: (itemId: string) => (event: React.DragEvent<HTMLDivElement>) => void;
+  onItemDrop?: (itemId: string) => (event: React.DragEvent<HTMLDivElement>) => void;
+  onItemDragEnd?: () => void;
 }
 
 export const ChecklistItemRow = memo(function ChecklistItemRow({
@@ -104,12 +169,19 @@ export const ChecklistItemRow = memo(function ChecklistItemRow({
   onCommit,
   onDuplicate,
   onMoveToSection,
-  onMoveUp,
-  onMoveDown,
+  onMoveToTop,
+  onMoveToBottom,
   onDelete,
   onAddBelow,
   triggerAutoSave,
   compactOnly = false,
+  enableDragReorder = false,
+  isDragging = false,
+  isDragOver = false,
+  onDragHandleStart,
+  onItemDragOver,
+  onItemDrop,
+  onItemDragEnd,
 }: ChecklistItemRowProps) {
   const titleRef = useRef<HTMLInputElement>(null);
   const [titleInput, setTitleInput] = useState(item.title);
@@ -165,101 +237,186 @@ export const ChecklistItemRow = memo(function ChecklistItemRow({
   };
 
   const showExpanded = !compactOnly && expanded;
+  const hasDescription = Boolean(descInput.trim());
+  const showDescriptionPreview = !compactOnly && !showExpanded && hasDescription;
+  const checkLabel = titleInput.trim() || item.title.trim() || 'check';
+
+  const requiredControl = (
+    <TooltipProvider delayDuration={300}>
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id={`required-${item.id}`}
+          checked={item.required}
+          onCheckedChange={handleRequiredChange}
+          aria-describedby={`required-help-${item.id}`}
+        />
+        <Label htmlFor={`required-${item.id}`} className="text-xs font-medium cursor-pointer">
+          Required
+        </Label>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 shrink-0"
+              aria-label={`Required check help for ${checkLabel}`}
+            >
+              <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs">
+            <p id={`required-help-${item.id}`}>
+              When enabled, technicians must complete this check on the work order. It cannot be skipped.
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    </TooltipProvider>
+  );
+
+  const actionsMenu = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label={`Actions for ${checkLabel}`}>
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {!compactOnly && (
+          <DropdownMenuItem onClick={() => setExpanded((v) => !v)}>
+            {expanded ? 'Collapse details' : 'Expand details'}
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={() => onDuplicate(item.id)}>
+          <Copy className="mr-2 h-3 w-3" />
+          Duplicate
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onMoveToTop(item.id)} disabled={index === 0}>
+          <ArrowUp className="mr-2 h-3 w-3" />
+          Move to top
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onMoveToBottom(item.id)} disabled={index === totalInSection - 1}>
+          <ArrowDown className="mr-2 h-3 w-3" />
+          Move to bottom
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onDelete(item.id)} className="text-destructive focus:text-destructive">
+          <Trash2 className="mr-2 h-3 w-3" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   return (
     <div
       className={cn(
-        'border rounded-md',
-        showExpanded ? 'p-3 space-y-3' : 'px-2 flex flex-col justify-center',
-        !showExpanded && 'h-12'
+        'border rounded-md transition-colors',
+        'p-3',
+        isDragging && 'opacity-50',
+        isDragOver && 'border-primary ring-1 ring-primary/40'
       )}
       data-item-id={item.id}
+      onDragOver={onItemDragOver?.(item.id)}
+      onDrop={onItemDrop?.(item.id)}
+      onDragEnd={onItemDragEnd}
     >
-      <div className={cn('flex items-center gap-2', showExpanded && 'items-start')}>
-        <span className="text-xs text-muted-foreground w-6 shrink-0 text-right tabular-nums">
-          {index + 1}
-        </span>
-        <Input
-          ref={titleRef}
-          value={titleInput}
-          onChange={(e) => setTitleInput(e.target.value)}
-          onBlur={commitTitle}
-          onKeyDown={handleTitleKeyDown}
-          placeholder="Item title"
-          className="h-8 flex-1 min-w-0"
-          aria-label={`Item ${index + 1} title`}
-        />
-        <div className="flex items-center gap-1 shrink-0">
-          <Checkbox
-            id={`required-${item.id}`}
-            checked={item.required}
-            onCheckedChange={handleRequiredChange}
-            aria-label={`Item ${index + 1} required`}
-          />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Actions for item ${index + 1}`}>
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {!compactOnly && (
-                <DropdownMenuItem onClick={() => setExpanded((v) => !v)}>
-                  {expanded ? 'Collapse details' : 'Expand details'}
-                </DropdownMenuItem>
+      <div className="flex gap-2">
+        <div className="flex shrink-0 flex-col items-center gap-0.5 pt-0.5">
+          {enableDragReorder && onDragHandleStart ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 cursor-grab text-muted-foreground active:cursor-grabbing"
+              draggable
+              onDragStart={onDragHandleStart(item.id)}
+              aria-label={`Drag to reorder ${checkLabel}`}
+            >
+              <GripVertical className="h-4 w-4" aria-hidden />
+            </Button>
+          ) : null}
+          {!compactOnly && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setExpanded((v) => !v)}
+              aria-expanded={showExpanded}
+              aria-label={
+                showExpanded ? `Collapse description for ${checkLabel}` : `Expand description for ${checkLabel}`
+              }
+            >
+              {showExpanded ? (
+                <ChevronDown className="h-4 w-4" aria-hidden />
+              ) : (
+                <ChevronRight className="h-4 w-4" aria-hidden />
               )}
-              <DropdownMenuItem onClick={() => onDuplicate(item.id)}>
-                <Copy className="mr-2 h-3 w-3" />
-                Duplicate
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onMoveUp(item.id)} disabled={index === 0}>
-                <ArrowUp className="mr-2 h-3 w-3" />
-                Move up
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onMoveDown(item.id)} disabled={index === totalInSection - 1}>
-                <ArrowDown className="mr-2 h-3 w-3" />
-                Move down
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onDelete(item.id)} className="text-destructive focus:text-destructive">
-                <Trash2 className="mr-2 h-3 w-3" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </Button>
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex items-start gap-2">
+            <Input
+              ref={titleRef}
+              value={titleInput}
+              onChange={(e) => setTitleInput(e.target.value)}
+              onBlur={commitTitle}
+              onKeyDown={handleTitleKeyDown}
+              placeholder="Check name"
+              className={cn('min-w-0 flex-1', compactOnly ? 'h-8' : 'h-9')}
+              aria-label="Check name"
+            />
+            {actionsMenu}
+          </div>
+
+          {requiredControl}
+
+          {showDescriptionPreview && (
+            <button
+              type="button"
+              className="line-clamp-2 w-full text-left text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setExpanded(true)}
+            >
+              {descInput}
+            </button>
+          )}
+
+          {showExpanded && (
+            <div className="space-y-3 border-t border-border/60 pt-3">
+              <div>
+                <Label className="text-xs">Description (Optional)</Label>
+                <Textarea
+                  value={descInput}
+                  onChange={(e) => setDescInput(e.target.value)}
+                  onBlur={handleDescBlur}
+                  placeholder="Instructions for technicians"
+                  className="mt-1 resize-none"
+                  rows={3}
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Label className="text-xs">Move to section</Label>
+                <Select onValueChange={(v) => onMoveToSection(item.id, v)} value={item.section}>
+                  <SelectTrigger className="h-8 w-full max-w-md">
+                    <SelectValue placeholder="Section" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sections.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {showExpanded && (
-        <div className="pl-8 space-y-3">
-          <div>
-            <Label className="text-xs">Description (Optional)</Label>
-            <Textarea
-              value={descInput}
-              onChange={(e) => setDescInput(e.target.value)}
-              onBlur={handleDescBlur}
-              placeholder="Item description"
-              className="resize-none mt-1"
-              rows={2}
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Label className="text-xs">Move to section</Label>
-            <Select onValueChange={(v) => onMoveToSection(item.id, v)} value={item.section}>
-              <SelectTrigger className="h-8 w-[200px] max-w-[50vw]">
-                <SelectValue placeholder="Section" />
-              </SelectTrigger>
-              <SelectContent>
-                {sections.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      )}
     </div>
   );
 });
@@ -271,8 +428,8 @@ type VirtualRowProps = {
   onCommit: (itemId: string, updates: Partial<PMChecklistItem>) => void;
   onDuplicate: (itemId: string) => void;
   onMoveToSection: (itemId: string, targetSection: string) => void;
-  onMoveUp: (itemId: string) => void;
-  onMoveDown: (itemId: string) => void;
+  onMoveToTop: (itemId: string) => void;
+  onMoveToBottom: (itemId: string) => void;
   onDelete: (itemId: string) => void;
   onAddBelow: (itemId: string) => void;
   triggerAutoSave: (trigger?: SaveTrigger) => void;
@@ -287,8 +444,8 @@ function VirtualItemRow({
   onCommit,
   onDuplicate,
   onMoveToSection,
-  onMoveUp,
-  onMoveDown,
+  onMoveToTop,
+  onMoveToBottom,
   onDelete,
   onAddBelow,
   triggerAutoSave,
@@ -309,8 +466,8 @@ function VirtualItemRow({
         onCommit={onCommit}
         onDuplicate={onDuplicate}
         onMoveToSection={onMoveToSection}
-        onMoveUp={onMoveUp}
-        onMoveDown={onMoveDown}
+        onMoveToTop={onMoveToTop}
+        onMoveToBottom={onMoveToBottom}
         onDelete={onDelete}
         onAddBelow={onAddBelow}
         triggerAutoSave={triggerAutoSave}
@@ -328,8 +485,9 @@ interface SectionItemsListProps {
   onCommit: (itemId: string, updates: Partial<PMChecklistItem>) => void;
   onDuplicate: (itemId: string) => void;
   onMoveToSection: (itemId: string, targetSection: string) => void;
-  onMoveUp: (itemId: string) => void;
-  onMoveDown: (itemId: string) => void;
+  onMoveToTop: (itemId: string) => void;
+  onMoveToBottom: (itemId: string) => void;
+  onReorderItems: (activeId: string, overId: string) => void;
   onDelete: (itemId: string) => void;
   onAddBelow: (itemId: string) => void;
   triggerAutoSave: (trigger?: SaveTrigger) => void;
@@ -343,12 +501,56 @@ function SectionItemsList({
   onCommit,
   onDuplicate,
   onMoveToSection,
-  onMoveUp,
-  onMoveDown,
+  onMoveToTop,
+  onMoveToBottom,
+  onReorderItems,
   onDelete,
   onAddBelow,
   triggerAutoSave,
 }: SectionItemsListProps) {
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const enableDragReorder =
+    !previewMode && sectionItems.length <= SECTION_VIRTUALIZATION_THRESHOLD;
+
+  const handleDragHandleStart = useCallback(
+    (itemId: string) => (event: React.DragEvent<HTMLButtonElement>) => {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', itemId);
+      setDraggingId(itemId);
+    },
+    []
+  );
+
+  const handleItemDragOver = useCallback(
+    (itemId: string) => (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'move';
+      if (draggingId && draggingId !== itemId) {
+        setDragOverId(itemId);
+      }
+    },
+    [draggingId]
+  );
+
+  const handleItemDrop = useCallback(
+    (itemId: string) => (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      const activeId = event.dataTransfer.getData('text/plain') || draggingId;
+      if (activeId && activeId !== itemId) {
+        onReorderItems(activeId, itemId);
+        triggerAutoSave('manual');
+      }
+      setDraggingId(null);
+      setDragOverId(null);
+    },
+    [draggingId, onReorderItems, triggerAutoSave]
+  );
+
+  const handleItemDragEnd = useCallback(() => {
+    setDraggingId(null);
+    setDragOverId(null);
+  }, []);
   const rowProps: VirtualRowProps = useMemo(
     () => ({
       items: sectionItems,
@@ -357,8 +559,8 @@ function SectionItemsList({
       onCommit,
       onDuplicate,
       onMoveToSection,
-      onMoveUp,
-      onMoveDown,
+      onMoveToTop,
+      onMoveToBottom,
       onDelete,
       onAddBelow,
       triggerAutoSave,
@@ -370,8 +572,8 @@ function SectionItemsList({
       onCommit,
       onDuplicate,
       onMoveToSection,
-      onMoveUp,
-      onMoveDown,
+      onMoveToTop,
+      onMoveToBottom,
       onDelete,
       onAddBelow,
       triggerAutoSave,
@@ -389,9 +591,7 @@ function SectionItemsList({
         {sectionItems.map((item, idx) => (
           <div key={item.id} className="rounded border p-3">
             <div className="flex items-center justify-between gap-2">
-              <div className="font-medium truncate min-w-0">
-                {idx + 1}. {item.title}
-              </div>
+              <div className="font-medium min-w-0 break-words">{item.title}</div>
               <Badge variant={item.required ? 'default' : 'outline'} className="flex-shrink-0">
                 {item.required ? 'Required' : 'Optional'}
               </Badge>
@@ -435,11 +635,18 @@ function SectionItemsList({
             onCommit={onCommit}
             onDuplicate={onDuplicate}
             onMoveToSection={onMoveToSection}
-            onMoveUp={onMoveUp}
-            onMoveDown={onMoveDown}
+            onMoveToTop={onMoveToTop}
+            onMoveToBottom={onMoveToBottom}
             onDelete={onDelete}
             onAddBelow={onAddBelow}
             triggerAutoSave={triggerAutoSave}
+            enableDragReorder={enableDragReorder}
+            isDragging={draggingId === item.id}
+            isDragOver={dragOverId === item.id}
+            onDragHandleStart={enableDragReorder ? handleDragHandleStart : undefined}
+            onItemDragOver={enableDragReorder ? handleItemDragOver : undefined}
+            onItemDrop={enableDragReorder ? handleItemDrop : undefined}
+            onItemDragEnd={enableDragReorder ? handleItemDragEnd : undefined}
           />
         );
       })}
@@ -747,29 +954,13 @@ export const ChecklistTemplateEditor = forwardRef<ChecklistTemplateEditorHandle,
       setHasUnsavedChanges(true);
     }, []);
 
-    const moveItem = useCallback((itemId: string, direction: 'up' | 'down') => {
-      setChecklistItems((prev) => {
-        const item = prev.find((i) => i.id === itemId);
-        if (!item) return prev;
+    const moveItemToSectionEdge = useCallback((itemId: string, edge: 'top' | 'bottom') => {
+      setChecklistItems((prev) => moveChecklistItemToSectionEdge(prev, itemId, edge));
+      setHasUnsavedChanges(true);
+    }, []);
 
-        const sectionItems = prev.filter((i) => i.section === item.section);
-        const itemIndex = sectionItems.findIndex((i) => i.id === itemId);
-
-        let targetId: string | undefined;
-        if (direction === 'up' && itemIndex > 0) {
-          targetId = sectionItems[itemIndex - 1].id;
-        } else if (direction === 'down' && itemIndex < sectionItems.length - 1) {
-          targetId = sectionItems[itemIndex + 1].id;
-        }
-
-        if (!targetId) return prev;
-
-        const newItems = [...prev];
-        const a = newItems.findIndex((i) => i.id === itemId);
-        const b = newItems.findIndex((i) => i.id === targetId);
-        [newItems[a], newItems[b]] = [newItems[b], newItems[a]];
-        return newItems;
-      });
+    const reorderItems = useCallback((activeId: string, overId: string) => {
+      setChecklistItems((prev) => reorderChecklistItems(prev, activeId, overId));
       setHasUnsavedChanges(true);
     }, []);
 
@@ -1309,8 +1500,9 @@ export const ChecklistTemplateEditor = forwardRef<ChecklistTemplateEditorHandle,
                           onCommit={updateItem}
                           onDuplicate={duplicateItem}
                           onMoveToSection={moveItemToSection}
-                          onMoveUp={(id) => moveItem(id, 'up')}
-                          onMoveDown={(id) => moveItem(id, 'down')}
+                          onMoveToTop={(id) => moveItemToSectionEdge(id, 'top')}
+                          onMoveToBottom={(id) => moveItemToSectionEdge(id, 'bottom')}
+                          onReorderItems={reorderItems}
                           onDelete={deleteItem}
                           onAddBelow={addItemBelow}
                           triggerAutoSave={triggerAutoSave}
