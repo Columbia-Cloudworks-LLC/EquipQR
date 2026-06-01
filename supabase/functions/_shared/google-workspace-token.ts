@@ -178,7 +178,7 @@ export async function getGoogleWorkspaceAccessToken(
   // Fetch credentials for the organization
   const { data: creds, error: credsError } = await adminClient
     .from("google_workspace_credentials")
-    .select("domain, refresh_token")
+    .select("domain, refresh_token, scopes")
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -223,16 +223,13 @@ export async function getGoogleWorkspaceAccessToken(
   // Refresh the access token
   const tokenData = await refreshAccessToken(decryptedRefreshToken);
   const accessTokenExpiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
+  const resolvedScopes = resolveGoogleWorkspaceScopes(tokenData.scope, creds.scopes);
 
   // Optionally update credentials with new expiry
   if (updateCredentials) {
     await adminClient
       .from("google_workspace_credentials")
-      .update({
-        access_token_expires_at: accessTokenExpiresAt.toISOString(),
-        scopes: tokenData.scope || null,
-        updated_at: new Date().toISOString(),
-      })
+      .update(buildCredentialsRefreshUpdate(tokenData, accessTokenExpiresAt))
       .eq("organization_id", organizationId)
       .eq("domain", creds.domain);
   }
@@ -243,8 +240,39 @@ export async function getGoogleWorkspaceAccessToken(
     accessToken: tokenData.access_token,
     domain: creds.domain,
     expiresAt: accessTokenExpiresAt,
-    scopes: tokenData.scope,
+    scopes: resolvedScopes,
   };
+}
+
+/**
+ * Prefer refreshed OAuth scope string; fall back to stored credentials when Google
+ * omits scope on refresh (common for refresh-token grants).
+ */
+export function resolveGoogleWorkspaceScopes(
+  refreshedScope: string | undefined,
+  storedScopes: string | null | undefined,
+): string | undefined {
+  return refreshedScope ?? storedScopes ?? undefined;
+}
+
+/**
+ * Build the credentials-row update after a successful token refresh.
+ * Only overwrites stored scopes when the refresh response includes scope.
+ */
+export function buildCredentialsRefreshUpdate(
+  tokenData: Pick<GoogleRefreshResponse, "scope">,
+  accessTokenExpiresAt: Date,
+): { access_token_expires_at: string; updated_at: string; scopes?: string } {
+  const update: { access_token_expires_at: string; updated_at: string; scopes?: string } = {
+    access_token_expires_at: accessTokenExpiresAt.toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  if (tokenData.scope) {
+    update.scopes = tokenData.scope;
+  }
+
+  return update;
 }
 
 /**
@@ -271,3 +299,8 @@ export const GOOGLE_SCOPES = {
   DRIVE_READONLY: "https://www.googleapis.com/auth/drive.readonly",
   DOCUMENTS: "https://www.googleapis.com/auth/documents",
 } as const;
+
+export const __testables = {
+  resolveGoogleWorkspaceScopes,
+  buildCredentialsRefreshUpdate,
+};

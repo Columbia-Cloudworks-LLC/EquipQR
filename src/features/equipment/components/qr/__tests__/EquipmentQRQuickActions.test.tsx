@@ -275,11 +275,15 @@ describe('EquipmentQRQuickActions', () => {
     await user.click(screen.getByRole('button', { name: /^update hours$/i }));
 
     await waitFor(() => {
-      expect(mockUpdateHours).toHaveBeenCalledWith({
-        equipmentId: 'equipment-1',
-        newHours: 125.5,
-        notes: 'Meter reading',
-      });
+      expect(mockUpdateHours).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: 'org-1',
+          equipmentId: 'equipment-1',
+          newHours: 125.5,
+          notes: 'Meter reading',
+          scanId: undefined,
+        })
+      );
     });
     expect(await screen.findByText(/working hours updated to 125.5 hours/i)).toBeInTheDocument();
   });
