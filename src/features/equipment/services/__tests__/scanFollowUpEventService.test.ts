@@ -24,6 +24,24 @@ import {
   getScanFollowUpEventsByEquipmentId,
 } from '@/features/equipment/services/scanFollowUpEventService';
 
+function mockEquipmentLookup(found = true) {
+  const maybeSingle = vi.fn().mockResolvedValue({
+    data: found ? { id: 'eq-1' } : null,
+    error: null,
+  });
+  const eqOrg = vi.fn(() => ({ maybeSingle }));
+  const eqId = vi.fn(() => ({ eq: eqOrg }));
+  const select = vi.fn(() => ({ eq: eqId }));
+  return { select, eqId, eqOrg, maybeSingle };
+}
+
+function mockEventInsert(result: { data?: { id: string } | null; error?: { message: string } | null }) {
+  const single = vi.fn().mockResolvedValue(result);
+  const select = vi.fn(() => ({ single }));
+  const insert = vi.fn(() => ({ select }));
+  return { insert, select, single };
+}
+
 describe('recordScanFollowUpEvent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -31,12 +49,17 @@ describe('recordScanFollowUpEvent', () => {
 
   it('derives performed_by from auth claims and inserts the event', async () => {
     mocks.getAuthClaims.mockResolvedValue({ sub: 'user-1' });
-    const single = vi.fn().mockResolvedValue({ data: { id: 'evt-1' }, error: null });
-    const select = vi.fn(() => ({ single }));
-    const insert = vi.fn(() => ({ select }));
-    mocks.from.mockReturnValue({ insert });
+    const equipmentLookup = mockEquipmentLookup();
+    const eventInsert = mockEventInsert({ data: { id: 'evt-1' }, error: null });
+
+    mocks.from.mockImplementation((table: string) => {
+      if (table === 'equipment') return equipmentLookup;
+      if (table === 'scan_follow_up_events') return eventInsert;
+      throw new Error(`Unexpected table: ${table}`);
+    });
 
     const id = await recordScanFollowUpEvent({
+      organizationId: 'org-1',
       scanId: 'scan-1',
       equipmentId: 'eq-1',
       eventType: 'generic_work_order_created',
@@ -46,8 +69,9 @@ describe('recordScanFollowUpEvent', () => {
     });
 
     expect(id).toBe('evt-1');
-    expect(mocks.from).toHaveBeenCalledWith('scan_follow_up_events');
-    expect(insert).toHaveBeenCalledWith(
+    expect(equipmentLookup.eqId).toHaveBeenCalledWith('id', 'eq-1');
+    expect(equipmentLookup.eqOrg).toHaveBeenCalledWith('organization_id', 'org-1');
+    expect(eventInsert.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         scan_id: 'scan-1',
         equipment_id: 'eq-1',
@@ -59,11 +83,31 @@ describe('recordScanFollowUpEvent', () => {
     );
   });
 
+  it('throws when equipment is not in the organization', async () => {
+    mocks.getAuthClaims.mockResolvedValue({ sub: 'user-1' });
+    const equipmentLookup = mockEquipmentLookup(false);
+
+    mocks.from.mockImplementation((table: string) => {
+      if (table === 'equipment') return equipmentLookup;
+      throw new Error(`Unexpected table: ${table}`);
+    });
+
+    await expect(
+      recordScanFollowUpEvent({
+        organizationId: 'org-1',
+        scanId: 'scan-1',
+        equipmentId: 'eq-1',
+        eventType: 'dashboard_opened',
+      })
+    ).rejects.toThrow(/not found in organization/i);
+  });
+
   it('throws when the user is not authenticated', async () => {
     mocks.getAuthClaims.mockResolvedValue(null);
 
     await expect(
       recordScanFollowUpEvent({
+        organizationId: 'org-1',
         scanId: 'scan-1',
         equipmentId: 'eq-1',
         eventType: 'dashboard_opened',
@@ -73,13 +117,18 @@ describe('recordScanFollowUpEvent', () => {
 
   it('throws when the insert returns an error', async () => {
     mocks.getAuthClaims.mockResolvedValue({ sub: 'user-1' });
-    const single = vi.fn().mockResolvedValue({ data: null, error: { message: 'insert denied' } });
-    const select = vi.fn(() => ({ single }));
-    const insert = vi.fn(() => ({ select }));
-    mocks.from.mockReturnValue({ insert });
+    const equipmentLookup = mockEquipmentLookup();
+    const eventInsert = mockEventInsert({ data: null, error: { message: 'insert denied' } });
+
+    mocks.from.mockImplementation((table: string) => {
+      if (table === 'equipment') return equipmentLookup;
+      if (table === 'scan_follow_up_events') return eventInsert;
+      throw new Error(`Unexpected table: ${table}`);
+    });
 
     await expect(
       recordScanFollowUpEvent({
+        organizationId: 'org-1',
         scanId: 'scan-1',
         equipmentId: 'eq-1',
         eventType: 'dashboard_opened',

@@ -204,6 +204,7 @@ describe('createQRWorkOrder', () => {
 
     expect(mocks.mockRecordScanFollowUpEvent).toHaveBeenCalledWith(
       expect.objectContaining({
+        organizationId: 'org-1',
         scanId: 'scan-1',
         equipmentId: 'eq-1',
         eventType: 'pm_work_order_created',
@@ -225,6 +226,7 @@ describe('createQRWorkOrder', () => {
 
     expect(mocks.mockRecordScanFollowUpEvent).toHaveBeenCalledWith(
       expect.objectContaining({
+        organizationId: 'org-1',
         scanId: 'scan-2',
         eventType: 'generic_work_order_created',
       })

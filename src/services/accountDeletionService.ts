@@ -59,9 +59,12 @@ function getDeleteAccountUrl(): string {
   return `${supabaseUrl}/functions/v1/delete-account`;
 }
 
-async function parseDeleteAccountResponse<T>(res: Response): Promise<T> {
+async function parseDeleteAccountResponse<T>(
+  res: Response,
+  options?: { allowStatuses?: number[] },
+): Promise<T> {
   const body = (await res.json().catch(() => ({}))) as T & { error?: string; message?: string };
-  if (!res.ok) {
+  if (!res.ok && !options?.allowStatuses?.includes(res.status)) {
     throw new Error(body.error || body.message || 'Account deletion request failed.');
   }
   return body;
@@ -94,11 +97,7 @@ export async function executeAccountDeletion(input: {
     }),
   });
 
-  if (res.status === 409) {
-    return parseDeleteAccountResponse<AccountDeletionExecuteResponse>(res);
-  }
-
-  return parseDeleteAccountResponse<AccountDeletionExecuteResponse>(res);
+  return parseDeleteAccountResponse<AccountDeletionExecuteResponse>(res, { allowStatuses: [409] });
 }
 
 export async function requestManualDeletionReview(
@@ -115,9 +114,5 @@ export async function requestManualDeletionReview(
     }),
   });
 
-  if (res.status === 409) {
-    return parseDeleteAccountResponse<AccountDeletionExecuteResponse>(res);
-  }
-
-  return parseDeleteAccountResponse<AccountDeletionExecuteResponse>(res);
+  return parseDeleteAccountResponse<AccountDeletionExecuteResponse>(res, { allowStatuses: [409] });
 }

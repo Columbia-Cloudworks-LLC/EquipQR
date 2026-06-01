@@ -27,12 +27,8 @@ vi.mock('@/hooks/useAccountDeletion', () => ({
   useRequestManualDeletionReview: () => ({ mutateAsync: manualReviewMock, isPending: false }),
 }));
 
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    auth: {
-      signOut: vi.fn().mockResolvedValue({ error: null }),
-    },
-  },
+vi.mock('@/services/authSessionService', () => ({
+  signOutGlobally: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('react-router-dom', async () => {

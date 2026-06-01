@@ -137,6 +137,7 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
   if (input.scanId) {
     try {
       await recordScanFollowUpEvent({
+        organizationId: input.equipment.organizationId,
         scanId: input.scanId,
         equipmentId: input.equipment.id,
         eventType: input.attachPM ? 'pm_work_order_created' : 'generic_work_order_created',
@@ -156,9 +157,9 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
 }
 
 export async function updateQRWorkingHours(
-  data: UpdateWorkingHoursData & { scanId?: string | null }
+  data: UpdateWorkingHoursData & { organizationId: string; scanId?: string | null }
 ): Promise<unknown> {
-  const { scanId, ...workingHoursData } = data;
+  const { scanId, organizationId, ...workingHoursData } = data;
   const result = await updateEquipmentWorkingHours({
     ...workingHoursData,
     updateSource: 'manual',
@@ -167,6 +168,7 @@ export async function updateQRWorkingHours(
   if (scanId) {
     try {
       await recordScanFollowUpEvent({
+        organizationId,
         scanId,
         equipmentId: workingHoursData.equipmentId,
         eventType: 'working_hours_updated',
@@ -202,6 +204,7 @@ export async function createQREquipmentNote(input: {
   if (input.scanId) {
     try {
       await recordScanFollowUpEvent({
+        organizationId: input.organizationId,
         scanId: input.scanId,
         equipmentId: input.equipmentId,
         eventType: 'note_image_added',

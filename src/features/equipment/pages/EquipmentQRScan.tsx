@@ -211,6 +211,7 @@ const EquipmentQRScan = () => {
     if (scanId) {
       try {
         await recordScanFollowUpEvent({
+          organizationId: payload.organization.id,
           scanId,
           equipmentId: payload.equipment.id,
           eventType: 'dashboard_opened',

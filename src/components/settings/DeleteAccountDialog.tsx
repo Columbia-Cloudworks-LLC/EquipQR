@@ -24,7 +24,7 @@ import {
   DELETE_ACCOUNT_CONFIRMATION_PHRASE,
   type AccountDeletionBlocker,
 } from '@/services/accountDeletionService';
-import { supabase } from '@/integrations/supabase/client';
+import { signOutGlobally } from '@/services/authSessionService';
 
 type DeleteAccountDialogProps = {
   open: boolean;
@@ -97,7 +97,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
       });
 
       try {
-        await supabase.auth.signOut({ scope: 'global' });
+        await signOutGlobally();
       } catch {
         // fall through to app signOut cleanup
       }

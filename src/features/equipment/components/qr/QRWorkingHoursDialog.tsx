@@ -65,6 +65,7 @@ const QRWorkingHoursDialog: React.FC<QRWorkingHoursDialogProps> = ({
     setIsSubmitting(true);
     try {
       await updateQRWorkingHours({
+        organizationId: equipment.organizationId,
         equipmentId: equipment.id,
         newHours: parsedHours,
         notes: reason.trim() || undefined,

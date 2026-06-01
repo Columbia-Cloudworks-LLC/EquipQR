@@ -130,7 +130,7 @@ export function GoogleDriveDestinationPickerDialog({
     setStack((prev) => [
       ...prev,
       {
-        parentId: item.id,
+        parentId: item.kind === 'shared_drive' ? 'root' : item.id,
         driveId: item.kind === 'shared_drive' ? item.id : item.driveId,
         label: item.name,
       },

@@ -14,6 +14,7 @@ import {
   requireUser,
   verifyOrgAdmin,
   createErrorResponse,
+  createJsonResponse,
   handleCorsPreflightIfNeeded,
 } from "../_shared/supabase-clients.ts";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -268,12 +269,13 @@ Deno.serve(async (req) => {
 
     const destinationParentId = orgDestination?.parent_id ?? parentId ?? null;
     if (!destinationParentId) {
-      return new Response(
-        JSON.stringify({
+      return createJsonResponse(
+        {
           error: "Organization Drive folder is not configured. Set an organization folder in Organization Settings before saving to Drive.",
           code: "missing_destination",
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        },
+        400,
+        { req },
       );
     }
     

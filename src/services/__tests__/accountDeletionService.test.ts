@@ -52,6 +52,7 @@ describe('accountDeletionService', () => {
   it('executeAccountDeletion surfaces API errors', async () => {
     fetchMock.mockResolvedValue({
       ok: false,
+      status: 400,
       json: async () => ({ error: 'Confirmation text must exactly match "DELETE MY ACCOUNT"' }),
     });
 
@@ -61,5 +62,26 @@ describe('accountDeletionService', () => {
         expectedUserEmail: 'user@example.com',
       }),
     ).rejects.toThrow('Confirmation text must exactly match "DELETE MY ACCOUNT"');
+  });
+
+  it('executeAccountDeletion returns blocked payload on 409 without throwing', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({
+        success: false,
+        blocked: true,
+        message: 'Manual review is required before deletion.',
+        preview: { eligible_for_self_service: false, blockers: [] },
+      }),
+    });
+
+    const result = await executeAccountDeletion({
+      confirmationText: 'DELETE MY ACCOUNT',
+      expectedUserEmail: 'user@example.com',
+    });
+
+    expect(result.blocked).toBe(true);
+    expect(result.message).toMatch(/manual review/i);
   });
 });

@@ -19,6 +19,7 @@ export interface ScanFollowUpEvent extends Tables<'scan_follow_up_events'> {
 }
 
 export interface RecordScanFollowUpEventInput {
+  organizationId: string;
   scanId: string;
   equipmentId: string;
   eventType: ScanFollowUpEventType;
@@ -44,6 +45,17 @@ export async function recordScanFollowUpEvent(
   const performedBy = (await getAuthClaims())?.sub;
   if (!performedBy) {
     throw new Error('User not authenticated');
+  }
+
+  const { data: equipment, error: equipmentError } = await supabase
+    .from('equipment')
+    .select('id')
+    .eq('id', input.equipmentId)
+    .eq('organization_id', input.organizationId)
+    .maybeSingle();
+
+  if (equipmentError || !equipment) {
+    throw new Error('Equipment not found in organization');
   }
 
   const { data, error } = await supabase
