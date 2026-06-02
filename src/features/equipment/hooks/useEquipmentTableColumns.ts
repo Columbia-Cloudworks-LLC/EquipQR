@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   DEFAULT_VISIBLE_COLUMNS,
   EQUIPMENT_TABLE_COLUMN_META,
-} from '@/features/equipment/components/EquipmentTable';
+} from '@/features/equipment/components/equipmentTableColumns';
 
 const STORAGE_PREFIX = 'equipqr:equipment-table-columns:';
 

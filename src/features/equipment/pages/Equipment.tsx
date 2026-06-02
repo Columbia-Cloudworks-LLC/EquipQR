@@ -32,7 +32,7 @@ import EquipmentLoadingState from '@/features/equipment/components/EquipmentLoad
 // list page slim on Slow 4G.
 const ImportCsvWizard = lazy(() => import('@/features/equipment/components/ImportCsvWizard'));
 import EquipmentColumnPicker from '@/features/equipment/components/EquipmentColumnPicker';
-import { EQUIPMENT_TABLE_COLUMN_META } from '@/features/equipment/components/EquipmentTable';
+import { EQUIPMENT_TABLE_COLUMN_META } from '@/features/equipment/components/equipmentTableColumns';
 import { useEquipmentTableColumns } from '@/features/equipment/hooks/useEquipmentTableColumns';
 import { useOfflineMergedEquipment } from '@/features/equipment/hooks/useOfflineMergedEquipment';
 import { useOrgEquipmentPMStatuses } from '@/features/equipment/hooks/useEquipmentPMStatus';

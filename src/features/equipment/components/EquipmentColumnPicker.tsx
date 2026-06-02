@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-import type { EquipmentTableColumnMeta } from './EquipmentTable';
+import type { EquipmentTableColumnMeta } from './equipmentTableColumns';
 
 export interface EquipmentColumnPickerProps {
   allColumns: readonly EquipmentTableColumnMeta[];

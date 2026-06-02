@@ -1,11 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { ChecklistTemplateEditor } from './ChecklistTemplateEditor';
 import {
-  ChecklistTemplateEditor,
   moveChecklistItemToSectionEdge,
   reorderChecklistItems,
-} from './ChecklistTemplateEditor';
+} from './checklistTemplateEditorUtils';
 import { TestProviders } from '@/test/utils/TestProviders';
 
 // Mock the PM Templates hooks

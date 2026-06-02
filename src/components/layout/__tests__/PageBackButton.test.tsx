@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@/test/utils/test-utils';
 import userEvent from '@testing-library/user-event';
-import { PageBackButton, usePageBackNavigation } from '../PageBackButton';
+import { PageBackButton } from '../PageBackButton';
+import { usePageBackNavigation } from '../usePageBackNavigation';
 
 const navigateMock = vi.fn();
 
