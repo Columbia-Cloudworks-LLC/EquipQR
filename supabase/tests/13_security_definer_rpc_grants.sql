@@ -1,7 +1,9 @@
 -- pgTAP: SECURITY DEFINER EXECUTE grant lockdown (issue #762)
+-- Allowlist names must match scripts/security-definer-rpc-allowlists.json
+-- (validated by scripts/validate-security-definer-allowlist-sync.mjs).
 
 BEGIN;
-SELECT plan(7);
+SELECT plan(14);
 
 -- 1. Only the pre-auth invitation RPC remains callable by anon.
 SELECT is(
@@ -25,7 +27,7 @@ SELECT is(
   'anon may execute get_invitation_by_token_secure'
 );
 
--- 2. Representative internal trigger is not REST-callable.
+-- 2. Representative internal helpers are not REST-callable.
 SELECT is(
   (SELECT has_function_privilege(
             'anon',
@@ -42,6 +44,42 @@ SELECT is(
             'EXECUTE')),
   false,
   'authenticated cannot execute audit_equipment_changes trigger helper'
+);
+
+SELECT is(
+  (SELECT has_function_privilege(
+            'authenticated',
+            'public.preview_account_deletion(uuid)',
+            'EXECUTE')),
+  false,
+  'authenticated cannot execute preview_account_deletion'
+);
+
+SELECT is(
+  (SELECT has_function_privilege(
+            'authenticated',
+            'public.is_user_google_oauth_verified(uuid)',
+            'EXECUTE')),
+  false,
+  'authenticated cannot execute is_user_google_oauth_verified'
+);
+
+SELECT is(
+  (SELECT has_function_privilege(
+            'authenticated',
+            'public.invoke_queue_worker()',
+            'EXECUTE')),
+  false,
+  'authenticated cannot execute invoke_queue_worker'
+);
+
+SELECT is(
+  (SELECT has_function_privilege(
+            'authenticated',
+            'public.is_valid_work_order_assignee(uuid, uuid, uuid)',
+            'EXECUTE')),
+  false,
+  'authenticated cannot execute is_valid_work_order_assignee'
 );
 
 -- 3. Dashboard RPC is authenticated-only.
@@ -63,7 +101,7 @@ SELECT is(
   'authenticated can execute get_dashboard_trends'
 );
 
--- 4. RBAC helper stays off the REST surface.
+-- 4. RBAC helper: anon blocked, authenticated allowed for policy evaluation.
 SELECT is(
   (SELECT has_function_privilege(
             'anon',
@@ -71,6 +109,113 @@ SELECT is(
             'EXECUTE')),
   false,
   'anon cannot execute is_org_member helper'
+);
+
+SELECT is(
+  (SELECT has_function_privilege(
+            'authenticated',
+            'public.is_org_member(uuid, uuid)',
+            'EXECUTE')),
+  true,
+  'authenticated may execute is_org_member for RLS policies'
+);
+
+-- 5. Every authenticated-executable public SECURITY DEFINER is allowlisted.
+SELECT is(
+  (SELECT count(*)::integer
+     FROM pg_proc p
+     JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.prokind = 'f'
+      AND p.prosecdef
+      AND has_function_privilege('authenticated', p.oid, 'EXECUTE')
+      AND p.proname NOT IN (
+        SELECT unnest(ARRAY[
+          'accept_invitation_atomic',
+          'adjust_inventory_quantity',
+          'apply_pending_admin_grants_for_user',
+          'bulk_set_compatibility_rules',
+          'bulk_set_pm_template_rules',
+          'cancel_ownership_transfer',
+          'can_manage_invitation_atomic',
+          'can_user_manage_quickbooks',
+          'check_admin_permission_safe',
+          'check_org_access_secure',
+          'check_storage_limit',
+          'count_equipment_matching_rules',
+          'count_equipment_matching_pm_rules',
+          'create_google_workspace_oauth_session',
+          'create_historical_work_order_with_pm',
+          'create_invitation_atomic',
+          'create_quickbooks_oauth_session',
+          'create_workspace_organization_for_domain',
+          'delete_organization',
+          'disconnect_google_workspace',
+          'disconnect_quickbooks',
+          'get_alternates_for_inventory_item',
+          'get_alternates_for_part_number',
+          'get_audit_log_timeline',
+          'get_compatible_parts_for_equipment',
+          'get_compatible_parts_for_make_model',
+          'get_dashboard_trends',
+          'get_equipment_for_inventory_item_rules',
+          'get_equipment_pm_status',
+          'get_google_workspace_connection_status',
+          'get_invitation_by_token_secure',
+          'get_invitations_atomic',
+          'get_latest_completed_pm',
+          'get_matching_pm_templates',
+          'get_org_equipment_pm_statuses',
+          'get_organization_deletion_stats',
+          'get_organization_storage_mb',
+          'get_pending_transfer_requests',
+          'get_pending_workspace_personal_org_merge_requests',
+          'get_personal_org_merge_preview',
+          'get_quickbooks_connection_status',
+          'get_user_invitations_safe',
+          'get_user_org_role_direct',
+          'get_user_quickbooks_permission',
+          'get_user_team_memberships',
+          'get_user_teams_for_notifications',
+          'get_workspace_onboarding_state',
+          'initiate_ownership_transfer',
+          'is_org_admin',
+          'is_org_member',
+          'latest_scans_for_equipment_ids',
+          'leave_organization',
+          'log_audit_export_notification',
+          'log_equipment_location_change',
+          'log_invitation_performance',
+          'refresh_quickbooks_tokens_manual',
+          'request_workspace_personal_org_merge',
+          'reserve_slot_for_invitation',
+          'respond_to_ownership_transfer',
+          'respond_to_workspace_personal_org_merge',
+          'revert_pm_completion',
+          'revert_work_order_status',
+          'select_google_workspace_members',
+          'update_equipment_working_hours',
+          'update_member_quickbooks_permission',
+          'user_is_org_admin',
+          'user_is_org_member',
+          'validate_quickbooks_oauth_session'
+        ])
+      )),
+  0,
+  'no unexpected authenticated EXECUTE on public SECURITY DEFINER functions'
+);
+
+-- 6. Expected SECURITY DEFINER allowlist size (excludes INVOKER client RPCs in JSON).
+SELECT is(
+  (SELECT count(DISTINCT p.proname)::integer
+     FROM pg_proc p
+     JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.prokind = 'f'
+      AND p.prosecdef
+      AND has_function_privilege('authenticated', p.oid, 'EXECUTE')),
+  57,
+  'authenticated may execute exactly 57 public SECURITY DEFINER functions after lockdown'
 );
 
 SELECT * FROM finish();

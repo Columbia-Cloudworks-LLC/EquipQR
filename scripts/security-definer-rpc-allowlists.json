@@ -36,7 +36,6 @@
     "get_dashboard_trends",
     "get_equipment_for_inventory_item_rules",
     "get_equipment_pm_status",
-    "get_fleet_efficiency",
     "get_google_workspace_connection_status",
     "get_invitation_by_token_secure",
     "get_invitations_atomic",

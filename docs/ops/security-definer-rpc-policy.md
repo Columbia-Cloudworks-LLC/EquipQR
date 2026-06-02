@@ -38,7 +38,35 @@ Output: `docs/ops/security-definer-rpc-inventory.md`
 
 ## CI regression guard
 
-`.github/scripts/validate-migrations.js` fails **new** migrations that `GRANT EXECUTE` on functions to `anon` unless the migration includes `-- rpc-anon-grant-allowed: <function_name>` on the same statement block.
+`.github/scripts/validate-migrations.js` fails **new** migrations that:
+
+- `GRANT EXECUTE` on functions to `anon` unless the migration includes `-- rpc-anon-grant-allowed: <function_name>`
+- `GRANT EXECUTE` on functions to `authenticated` unless the migration includes `-- rpc-authenticated-grant-allowed: <function_name>` (or uses the bulk lockdown migration)
+
+Keep allowlists aligned:
+
+```powershell
+node scripts/validate-security-definer-allowlist-sync.mjs
+```
+
+## Supabase Advisor lint 0029
+
+Lint `authenticated_security_definer_function_executable` reports every public `SECURITY DEFINER` function still granted to `authenticated`. After lockdown, that set is **intentional** (~51 client DEFINER RPCs + 6 RLS helpers = 57 rows in a typical advisor export). Additional client RPCs in `security-definer-rpc-allowlists.json` may be `SECURITY INVOKER` and are not advisor DEFINER warnings. Pre-lockdown blast radius was ~160 definers callable by `anon`/`authenticated`.
+
+1. Deploy `20260602120000_lockdown_security_definer_rpc_grants.sql` (and follow-ups) to preview/production.
+2. Regenerate inventory and confirm only allowlisted names have `authenticated EXECUTE = yes`.
+3. Reconcile advisor exports: `node scripts/reconcile-advisor-rpc-warnings.mjs advisor-functions.txt`
+4. Authorization evidence for high-risk RPCs: [security-definer-rpc-audit.md](./security-definer-rpc-audit.md)
+
+## Future refactor (zero advisor warnings)
+
+To clear advisor rows entirely (optional, larger effort):
+
+1. Move privileged bodies to a non-exposed schema (for example `private` / `app_internal`).
+2. Expose thin `SECURITY INVOKER` public wrappers, or route mutations through Edge Functions with `service_role`.
+3. Keep RLS predicate helpers as definers but outside the API-exposed schema, or replace with `SECURITY INVOKER` helpers once RLS recursion is ruled out.
+
+Do this domain-by-domain (invitations, QuickBooks, org lifecycle) to avoid breaking PostgREST contracts.
 
 ## Verification
 

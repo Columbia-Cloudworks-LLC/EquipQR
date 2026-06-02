@@ -16,17 +16,28 @@ import { execFileSync } from 'child_process';
 const NAMING_REGEX = /^\d{14}_[a-z0-9_]+\.sql$/;
 
 /** Exact reserved names only (avoids prefix matches like authentication_logs vs auth). */
-const RPC_ANON_ALLOWLIST_PATH = path.join('scripts', 'security-definer-rpc-allowlists.json');
+const RPC_ALLOWLIST_PATH = path.join('scripts', 'security-definer-rpc-allowlists.json');
 let rpcAnonAllowlist = null;
+let rpcAuthenticatedAllowlist = null;
 try {
-  rpcAnonAllowlist = JSON.parse(fs.readFileSync(RPC_ANON_ALLOWLIST_PATH, 'utf8')).anonPublicRpc ?? [];
+  const rpcAllowlists = JSON.parse(fs.readFileSync(RPC_ALLOWLIST_PATH, 'utf8'));
+  rpcAnonAllowlist = rpcAllowlists.anonPublicRpc ?? [];
+  rpcAuthenticatedAllowlist = [
+    ...(rpcAllowlists.authenticatedPublicRpc ?? []),
+    ...(rpcAllowlists.rlsPredicateHelpers ?? []),
+  ];
 } catch {
   rpcAnonAllowlist = ['get_invitation_by_token_secure'];
+  rpcAuthenticatedAllowlist = [];
 }
 
 /** Grants EXECUTE/ALL on functions to anon widen the PostgREST attack surface. */
 const grantFunctionToAnonRegex =
   /GRANT\s+(?:ALL|EXECUTE)\s+ON\s+FUNCTION\s+[^;]+\s+TO\s+[^;]*\banon\b/gi;
+
+/** Grants EXECUTE/ALL on SECURITY DEFINER functions to authenticated widen REST RPC surface. */
+const grantFunctionToAuthenticatedRegex =
+  /GRANT\s+(?:ALL|EXECUTE)\s+ON\s+FUNCTION\s+[^;]+\s+TO\s+[^;]*\bauthenticated\b/gi;
 
 const RESERVED_SCHEMA_TABLE_NAMES = new Set([
   'auth',
@@ -421,6 +432,23 @@ for (const filePath of changedFiles) {
     );
   } else if (grantFunctionToAnonRegex.test(analysisContent)) {
     console.log('  ✅ Anon function grant has rpc-anon-grant-allowed marker OK');
+  }
+
+  // ── 1c. AUTHENTICATED FUNCTION GRANT GUARD (issue #762) ───────────────────
+  const hasAuthenticatedGrantMarker =
+    /--\s*rpc-authenticated-grant-allowed:/i.test(content) ||
+    /--\s*rpc-anon-grant-allowed:.*bulk lockdown/i.test(content);
+  grantFunctionToAuthenticatedRegex.lastIndex = 0;
+  if (grantFunctionToAuthenticatedRegex.test(analysisContent) && !hasAuthenticatedGrantMarker) {
+    errors.push(
+      `[RPC SECURITY] "${fileName}" grants EXECUTE on a function to role authenticated.\n` +
+        `  Add the function to scripts/security-definer-rpc-allowlists.json and include\n` +
+        `  "-- rpc-authenticated-grant-allowed: <function_name>" in this migration, or rely on\n` +
+        `  the bulk lockdown migration instead of per-function GRANTs.\n` +
+        `  Reviewed authenticated/RLS helper names: ${[...new Set(rpcAuthenticatedAllowlist)].slice(0, 8).join(', ')}${rpcAuthenticatedAllowlist.length > 8 ? ', ...' : ''}`,
+    );
+  } else if (grantFunctionToAuthenticatedRegex.test(analysisContent)) {
+    console.log('  ✅ Authenticated function grant has rpc-authenticated-grant-allowed marker OK');
   }
 
   // ── 2. DROP COLUMN SAFETY CHECK ─────────────────────────────────────────

@@ -1,4 +1,5 @@
 -- rpc-anon-grant-allowed: get_invitation_by_token_secure (bulk lockdown migration #762)
+-- rpc-authenticated-grant-allowed: bulk-lockdown (see scripts/security-definer-rpc-allowlists.json)
 -- ============================================================================
 -- Migration: Lock down SECURITY DEFINER function EXECUTE grants (issue #762)
 --
@@ -49,7 +50,6 @@ DECLARE
     'get_dashboard_trends',
     'get_equipment_for_inventory_item_rules',
     'get_equipment_pm_status',
-    'get_fleet_efficiency',
     'get_google_workspace_connection_status',
     'get_invitation_by_token_secure',
     'get_invitations_atomic',

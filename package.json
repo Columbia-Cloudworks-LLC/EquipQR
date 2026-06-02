@@ -36,6 +36,7 @@
     "test:e2e:record": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-user-regression.ps1 -Suite critical -RecordVideo",
     "test:db": "supabase test db",
     "db:rpc-inventory": "node scripts/generate-security-definer-rpc-inventory.mjs",
+    "verify:rpc-allowlists": "node scripts/validate-security-definer-allowlist-sync.mjs",
     "db:start": "supabase start",
     "test:ci": "npm run test:coverage && node scripts/coverage-ratchet.mjs",
     "test:shard": "node scripts/test-ci-shard.mjs",
