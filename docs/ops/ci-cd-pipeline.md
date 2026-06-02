@@ -116,8 +116,9 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 
 **What it does:**
 - Uses Supabase CLI to dump schema from preview project
-- Exports `public`, `storage`, and `auth` schemas
-- Commits `supabase/schema.sql` if changed
+- Exports `public`, `storage`, `auth`, and `pgmq_public` schemas to `supabase/schema.sql`
+- Queries `pg_policies` / table RLS posture into `supabase/rls-policies.sql`
+- Commits both reference files if changed
 - Uses `paths-ignore` and bot-actor guard to prevent workflow loops
 
 **Benefits:**
