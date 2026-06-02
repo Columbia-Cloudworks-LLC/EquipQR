@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.8.1] - 2026-06-01
+
+### Changed
+
+- **Dependency maintenance** — Routine updates to application, development, and CI dependencies (including TanStack Query, Supabase client, Vitest, ESLint, Lucide, date-fns, and GitHub Actions workflow pins) with no intended user-facing behavior changes.
+- **React Fast Refresh compliance** — Internal module splits for page back navigation, equipment table columns, and checklist template editor utilities to resolve Fast Refresh lint warnings; no customer-visible workflow changes.
+
 ## [3.8.0] - 2026-06-01
 
 ### Added
@@ -1935,7 +1942,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.1...HEAD
+[3.8.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.0...v3.8.1
 [3.8.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.4...v3.8.0
 [3.6.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.3...v3.6.4
 [3.6.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.2...v3.6.3
