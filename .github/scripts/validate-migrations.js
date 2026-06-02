@@ -16,6 +16,18 @@ import { execFileSync } from 'child_process';
 const NAMING_REGEX = /^\d{14}_[a-z0-9_]+\.sql$/;
 
 /** Exact reserved names only (avoids prefix matches like authentication_logs vs auth). */
+const RPC_ANON_ALLOWLIST_PATH = path.join('scripts', 'security-definer-rpc-allowlists.json');
+let rpcAnonAllowlist = null;
+try {
+  rpcAnonAllowlist = JSON.parse(fs.readFileSync(RPC_ANON_ALLOWLIST_PATH, 'utf8')).anonPublicRpc ?? [];
+} catch {
+  rpcAnonAllowlist = ['get_invitation_by_token_secure'];
+}
+
+/** Grants EXECUTE/ALL on functions to anon widen the PostgREST attack surface. */
+const grantFunctionToAnonRegex =
+  /GRANT\s+(?:ALL|EXECUTE)\s+ON\s+FUNCTION\s+[^;]+\s+TO\s+[^;]*\banon\b/gi;
+
 const RESERVED_SCHEMA_TABLE_NAMES = new Set([
   'auth',
   'storage',
@@ -395,6 +407,20 @@ for (const filePath of changedFiles) {
     );
     console.log('  ⚠️  Existing migration detected in baseline; skipping content checks (DROP COLUMN / RLS).');
     continue;
+  }
+
+  // ── 1b. ANON FUNCTION GRANT GUARD (issue #762) ───────────────────────────
+  const hasAnonGrantMarker = /--\s*rpc-anon-grant-allowed:/i.test(content);
+  grantFunctionToAnonRegex.lastIndex = 0;
+  if (grantFunctionToAnonRegex.test(analysisContent) && !hasAnonGrantMarker) {
+    errors.push(
+      `[RPC SECURITY] "${fileName}" grants EXECUTE on a function to role anon.\n` +
+        `  Add a reviewed allowlist entry to scripts/security-definer-rpc-allowlists.json and include\n` +
+        `  "-- rpc-anon-grant-allowed: <function_name>" in this migration, or revoke anon instead.\n` +
+        `  Allowed anon RPC names: ${rpcAnonAllowlist.join(', ')}`,
+    );
+  } else if (grantFunctionToAnonRegex.test(analysisContent)) {
+    console.log('  ✅ Anon function grant has rpc-anon-grant-allowed marker OK');
   }
 
   // ── 2. DROP COLUMN SAFETY CHECK ─────────────────────────────────────────
