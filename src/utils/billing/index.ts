@@ -166,7 +166,7 @@ export function shouldBlockInvitation(_slotAvailability?: SlotAvailability): boo
  * Check if can upgrade from free (always false when billing is disabled)
  * @param _members - Unused, kept for backward compatibility with existing API
  */
-export function canUpgradeFromFree(_members: RealOrganizationMember[]): boolean {
+function canUpgradeFromFree(_members: RealOrganizationMember[]): boolean {
   void _members;
   // Billing is disabled - no upgrades needed
   return false;
@@ -176,7 +176,7 @@ export function canUpgradeFromFree(_members: RealOrganizationMember[]): boolean 
  * Check if can upgrade slots (always false when billing is disabled)
  * @param members - Unused, kept for backward compatibility with existing API
  */
-export function canUpgradeSlots(_members: RealOrganizationMember[]): boolean {
+function canUpgradeSlots(_members: RealOrganizationMember[]): boolean {
   void _members;
   // Billing is disabled - no upgrades needed
   return false;
@@ -187,7 +187,7 @@ export function canUpgradeSlots(_members: RealOrganizationMember[]): boolean {
  * @param _slotAvailability - Unused, kept for backward compatibility with existing API
  * @returns Message indicating all features are free
  */
-export function getUpgradeMessage(_slotAvailability?: SlotAvailability): string {
+function getUpgradeMessage(_slotAvailability?: SlotAvailability): string {
   void _slotAvailability;
   return 'All features are free and unlimited.';
 }
@@ -195,7 +195,7 @@ export function getUpgradeMessage(_slotAvailability?: SlotAvailability): string 
 /**
  * @deprecated Billing is disabled. Always returns unlimited.
  */
-export function getLicenseStatus(_slotAvailability?: SlotAvailability) {
+function getLicenseStatus(_slotAvailability?: SlotAvailability) {
   void _slotAvailability;
   return {
     status: 'unlimited' as const,
@@ -205,7 +205,7 @@ export function getLicenseStatus(_slotAvailability?: SlotAvailability) {
 }
 
 // Legacy compatibility functions - return free values
-export function calculateUserLicenseCost(members: RealOrganizationMember[]): { totalUsers: number; billableUsers: number; cost: number } {
+function calculateUserLicenseCost(members: RealOrganizationMember[]): { totalUsers: number; billableUsers: number; cost: number } {
   const billing = calculateBilling({ members, storageGB: 0, fleetMapEnabled: false });
   return {
     totalUsers: billing.userSlots.totalUsers,
@@ -214,17 +214,17 @@ export function calculateUserLicenseCost(members: RealOrganizationMember[]): { t
   };
 }
 
-export function calculateStorageCost(usageGB: number): { usedGB: number; freeGB: number; overageGB: number; cost: number } {
+function calculateStorageCost(usageGB: number): { usedGB: number; freeGB: number; overageGB: number; cost: number } {
   const billing = calculateBilling({ members: [], storageGB: usageGB, fleetMapEnabled: false });
   return billing.storage;
 }
 
-export function calculateFleetMapCost(enabled: boolean): { enabled: boolean; cost: number } {
+function calculateFleetMapCost(enabled: boolean): { enabled: boolean; cost: number } {
   const billing = calculateBilling({ members: [], storageGB: 0, fleetMapEnabled: enabled });
   return billing.features.fleetMap;
 }
 
-export function calculateTotalBilling(
+function calculateTotalBilling(
   members: RealOrganizationMember[],
   storageGB: number,
   fleetMapEnabled: boolean
@@ -242,7 +242,7 @@ export function calculateTotalBilling(
   };
 }
 
-export function calculateSimplifiedBilling(
+function calculateSimplifiedBilling(
   members: RealOrganizationMember[],
   storageGB: number = 0,
   fleetMapEnabled: boolean = false
@@ -264,7 +264,7 @@ export function calculateSimplifiedBilling(
 /**
  * @deprecated Billing is disabled. Returns free values.
  */
-export function calculateLicenseBilling(
+function calculateLicenseBilling(
   members: RealOrganizationMember[],
   _slotAvailability?: SlotAvailability,
   storageGB: number = 0,
@@ -290,7 +290,7 @@ export function calculateLicenseBilling(
 /**
  * @deprecated Billing is disabled. Returns free values.
  */
-export function calculateEnhancedBilling(
+function calculateEnhancedBilling(
   members: RealOrganizationMember[],
   _slotAvailability?: SlotAvailability,
   storageGB: number = 0,

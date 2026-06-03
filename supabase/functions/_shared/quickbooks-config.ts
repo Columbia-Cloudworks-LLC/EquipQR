@@ -89,13 +89,13 @@ export const QBO_INVOICE_ITEM_NAMES = {
  * `QBO_INVOICE_PARTS_ITEM_PREFIX` is no longer used by `quickbooks-export-invoice`;
  * configure {@link QBO_INVOICE_ITEM_NAMES.parts} via `QBO_INVOICE_PARTS_ITEM_NAME` instead.
  */
-export const QBO_INVOICE_PARTS_ITEM_PREFIX = envOrDefault(
+const QBO_INVOICE_PARTS_ITEM_PREFIX = envOrDefault(
   Deno.env.get("QBO_INVOICE_PARTS_ITEM_PREFIX"),
   "Part",
 );
 
 /** Optional Income account Id for auto-created invoice items (chart of accounts). */
-export const QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID =
+const QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID =
   Deno.env.get("QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID")?.trim() ?? "";
 
 /** Optional exact Income account Name for auto-created invoice items. */
@@ -118,7 +118,7 @@ export function resolveQboDefaultLaborRateCents(): number {
 }
 
 /** @deprecated Prefer {@link resolveQboDefaultLaborRateCents} — reads env at call time (tests, late injection). */
-export const QBO_DEFAULT_LABOR_RATE_CENTS = resolveQboDefaultLaborRateCents();
+const QBO_DEFAULT_LABOR_RATE_CENTS = resolveQboDefaultLaborRateCents();
 
 /** Maximum age for cached QuickBooks Customer.Taxable before export must re-confirm. */
 export function resolveQboTaxStatusMaxCacheAgeHours(): number {

@@ -38,7 +38,7 @@ export const useCreateWorkOrderCost = () => {
   });
 };
 
-export const useUpdateWorkOrderCost = () => {
+const useUpdateWorkOrderCost = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -55,7 +55,7 @@ export const useUpdateWorkOrderCost = () => {
   });
 };
 
-export const useDeleteWorkOrderCost = () => {
+const useDeleteWorkOrderCost = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -180,7 +180,7 @@ export const useUpdateWorkOrderCostWithInventory = () => {
 /**
  * Get a single cost by ID (for checking inventory_item_id before deletion)
  */
-export const useWorkOrderCostById = (costId: string | undefined) => {
+const useWorkOrderCostById = (costId: string | undefined) => {
   return useQuery({
     queryKey: ['work-order-cost', costId],
     queryFn: () => costId ? getWorkOrderCostById(costId) : null,

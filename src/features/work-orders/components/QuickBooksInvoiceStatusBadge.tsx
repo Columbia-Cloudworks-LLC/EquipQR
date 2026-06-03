@@ -43,7 +43,7 @@ function formatStatusLabel(status: QuickBooksInvoiceStatus): string {
   }
 }
 
-export const QuickBooksInvoiceStatusBadge: React.FC<QuickBooksInvoiceStatusBadgeProps> = ({
+const QuickBooksInvoiceStatusBadge: React.FC<QuickBooksInvoiceStatusBadgeProps> = ({
   status,
   invoiceNumber,
   balanceCents,

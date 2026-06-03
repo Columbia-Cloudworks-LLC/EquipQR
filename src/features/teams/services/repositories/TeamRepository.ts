@@ -26,7 +26,7 @@ export type { TeamMember as OptimizedTeamMember };
  * Unified Team Repository using optimized queries for better performance
  * Provides a single interface for all team-related operations
  */
-export class TeamRepository {
+class TeamRepository {
   /**
    * Get teams by organization ID using optimized query with member counts
    * Converts OptimizedTeam to TeamWithMembers format for compatibility

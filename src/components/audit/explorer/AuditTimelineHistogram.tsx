@@ -158,4 +158,3 @@ export function AuditTimelineHistogram({
   );
 }
 
-export default AuditTimelineHistogram;

@@ -72,7 +72,7 @@ class QueryMonitor {
 export const queryMonitor = new QueryMonitor();
 
 // Utility to wrap Supabase queries with monitoring
-export function monitorQuery<T>(
+function monitorQuery<T>(
   queryName: string,
   queryFn: () => Promise<T>,
   expectedIndexes?: string[]

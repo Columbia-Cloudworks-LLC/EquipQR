@@ -355,7 +355,7 @@ export const getAllWorkOrdersByOrganization = async (organizationId: string): Pr
 };
 
 // @deprecated Use WorkOrderService.getById() instead. Will be removed in Phase 2.
-export const getWorkOrderById = async (organizationId: string, workOrderId: string): Promise<WorkOrder | undefined> => {
+const getWorkOrderById = async (organizationId: string, workOrderId: string): Promise<WorkOrder | undefined> => {
   try {
     const { data, error } = await supabase
       .from('work_orders')
@@ -427,7 +427,7 @@ export const getScansByEquipmentId = async (organizationId: string, equipmentId:
 };
 
 // Create scan function
-export const createScan = async (
+const createScan = async (
   organizationId: string,
   equipmentId: string,
   location?: string,
@@ -475,7 +475,7 @@ export const createScan = async (
 
 // Mutation functions
 // @deprecated Use WorkOrderService.updateStatus() instead. Will be removed in Phase 2.
-export const updateWorkOrderStatus = async (
+const updateWorkOrderStatus = async (
   organizationId: string,
   workOrderId: string,
   newStatus: WorkOrder['status']
@@ -508,7 +508,7 @@ export const updateWorkOrderStatus = async (
 
 // Create equipment
 // @deprecated Use EquipmentService.create() instead. Will be removed in Phase 2.
-export const createEquipment = async (
+const createEquipment = async (
   organizationId: string,
   equipmentData: Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>
 ): Promise<Equipment | null> => {
@@ -536,7 +536,7 @@ export const createEquipment = async (
 
 // Create work order
 // @deprecated Use WorkOrderService.create() instead. Will be removed in Phase 2.
-export const createWorkOrder = async (
+const createWorkOrder = async (
   organizationId: string,
   workOrderData: Omit<WorkOrder, 'id' | 'created_date' | 'updated_at' | 'organization_id' | 'assigneeName' | 'teamName' | 'completed_date' | 'created_by'>
 ): Promise<WorkOrder | null> => {
@@ -579,7 +579,7 @@ export const createWorkOrder = async (
 };
 
 // Create note
-export const createNote = async (
+const createNote = async (
   organizationId: string,
   equipmentId: string,
   content: string,
@@ -627,7 +627,7 @@ export const createNote = async (
 
 // Update equipment
 // @deprecated Use EquipmentService.update() instead. Will be removed in Phase 2.
-export const updateEquipment = async (
+const updateEquipment = async (
   organizationId: string,
   equipmentId: string,
   equipmentData: Partial<Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>>
@@ -661,7 +661,7 @@ export const updateEquipment = async (
  * OPTIMIZED: Single query with joins instead of multiple calls
  * Fetches all teams for an organization with member info and work order counts
  */
-export const getOptimizedTeamsByOrganization = async (organizationId: string): Promise<Team[]> => {
+const getOptimizedTeamsByOrganization = async (organizationId: string): Promise<Team[]> => {
   try {
     // Single query to get teams with members using joins
     const { data: teamsWithMembers, error } = await supabase
@@ -723,7 +723,7 @@ export const getOptimizedTeamsByOrganization = async (organizationId: string): P
  * OPTIMIZED: Batch queries for dashboard stats
  * Fetches equipment and work order stats in parallel
  */
-export const getOptimizedDashboardStats = async (organizationId: string): Promise<DashboardStats> => {
+const getOptimizedDashboardStats = async (organizationId: string): Promise<DashboardStats> => {
   try {
     // Batch both queries at once
     const [equipmentResult, workOrderResult] = await Promise.all([

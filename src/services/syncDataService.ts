@@ -138,7 +138,7 @@ export interface DashboardStats {
 /**
  * @deprecated Use useEquipment from '@/features/equipment/hooks/useEquipment' instead.
  */
-export const useSyncEquipmentByOrganization = (organizationId?: string) => {
+const useSyncEquipmentByOrganization = (organizationId?: string) => {
   return useQuery({
     queryKey: ['equipment', organizationId],
     queryFn: () => organizationId ? getEquipmentByOrganization(organizationId) : [],
@@ -150,7 +150,7 @@ export const useSyncEquipmentByOrganization = (organizationId?: string) => {
 /**
  * @deprecated Use useEquipmentById from '@/features/equipment/hooks/useEquipment' instead.
  */
-export const useSyncEquipmentById = (organizationId: string, equipmentId: string) => {
+const useSyncEquipmentById = (organizationId: string, equipmentId: string) => {
   return useQuery({
     queryKey: ['equipment', organizationId, equipmentId],
     queryFn: () => getEquipmentById(organizationId, equipmentId),
@@ -162,7 +162,7 @@ export const useSyncEquipmentById = (organizationId: string, equipmentId: string
 /**
  * @deprecated Use useWorkOrders from '@/hooks/useWorkOrders' instead.
  */
-export const useSyncWorkOrdersByOrganization = (organizationId?: string) => {
+const useSyncWorkOrdersByOrganization = (organizationId?: string) => {
   return useQuery({
     queryKey: ['workOrders', organizationId],
     queryFn: () => organizationId ? getAllWorkOrdersByOrganization(organizationId) : [],
@@ -174,7 +174,7 @@ export const useSyncWorkOrdersByOrganization = (organizationId?: string) => {
 /**
  * @deprecated Use useWorkOrderById from '@/hooks/useWorkOrders' instead.
  */
-export const useSyncWorkOrderById = (organizationId: string, workOrderId: string) => {
+const useSyncWorkOrderById = (organizationId: string, workOrderId: string) => {
   return useQuery({
     queryKey: ['workOrder', organizationId, workOrderId],
     queryFn: async () => {
@@ -193,7 +193,7 @@ export const useSyncWorkOrderById = (organizationId: string, workOrderId: string
 /**
  * @deprecated Use useEquipmentWorkOrders from '@/features/equipment/hooks/useEquipment' instead.
  */
-export const useSyncWorkOrdersByEquipment = (organizationId: string, equipmentId: string) => {
+const useSyncWorkOrdersByEquipment = (organizationId: string, equipmentId: string) => {
   return useQuery({
     queryKey: ['workOrders', 'equipment', organizationId, equipmentId],
     queryFn: () => getWorkOrdersByEquipmentId(organizationId, equipmentId),
@@ -217,7 +217,7 @@ export const useSyncTeamsByOrganization = (organizationId?: string) => {
 /**
  * @deprecated Use useTeams from '@/features/teams/hooks/useTeamManagement' instead.
  */
-export const useSyncTeamById = (organizationId: string, teamId: string) => {
+const useSyncTeamById = (organizationId: string, teamId: string) => {
   return useQuery({
     queryKey: ['team', organizationId, teamId],
     queryFn: async () => {
@@ -232,7 +232,7 @@ export const useSyncTeamById = (organizationId: string, teamId: string) => {
 /**
  * @deprecated Use useTeams from '@/features/teams/hooks/useTeamManagement' instead.
  */
-export const useSyncTeamMembersByTeam = (organizationId: string, teamId: string) => {
+const useSyncTeamMembersByTeam = (organizationId: string, teamId: string) => {
   return useQuery({
     queryKey: ['teamMembers', organizationId, teamId],
     queryFn: async () => {
@@ -248,7 +248,7 @@ export const useSyncTeamMembersByTeam = (organizationId: string, teamId: string)
 /**
  * @deprecated Use useEquipmentScans from '@/features/equipment/hooks/useEquipment' instead.
  */
-export const useSyncScansByEquipment = (organizationId: string, equipmentId: string) => {
+const useSyncScansByEquipment = (organizationId: string, equipmentId: string) => {
   return useQuery({
     queryKey: ['scans', organizationId, equipmentId],
     queryFn: () => getScansByEquipmentId(organizationId, equipmentId),
@@ -260,7 +260,7 @@ export const useSyncScansByEquipment = (organizationId: string, equipmentId: str
 /**
  * @deprecated Use useEquipmentNotes from '@/features/equipment/hooks/useEquipment' instead.
  */
-export const useSyncNotesByEquipment = (organizationId: string, equipmentId: string) => {
+const useSyncNotesByEquipment = (organizationId: string, equipmentId: string) => {
   return useQuery({
     queryKey: ['notes', organizationId, equipmentId],
     queryFn: () => getNotesByEquipmentId(organizationId, equipmentId),
@@ -272,7 +272,7 @@ export const useSyncNotesByEquipment = (organizationId: string, equipmentId: str
 /**
  * @deprecated Use useDashboard from '@/hooks/useQueries' instead.
  */
-export const useSyncDashboardStats = (organizationId?: string) => {
+const useSyncDashboardStats = (organizationId?: string) => {
   return useQuery({
     queryKey: ['dashboardStats', organizationId],
     queryFn: () => organizationId ? getDashboardStatsByOrganization(organizationId) : null,
@@ -284,7 +284,7 @@ export const useSyncDashboardStats = (organizationId?: string) => {
 /**
  * @deprecated Use useWorkOrderById from '@/hooks/useWorkOrders' instead.
  */
-export const useSyncWorkOrderByIdEnhanced = (organizationId: string, workOrderId: string) => {
+const useSyncWorkOrderByIdEnhanced = (organizationId: string, workOrderId: string) => {
   return useQuery({
     queryKey: ['workOrder', 'enhanced', organizationId, workOrderId],
     queryFn: async () => {

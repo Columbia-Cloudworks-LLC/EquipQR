@@ -2,7 +2,7 @@ import type { PMChecklistItem } from '@/features/pm-templates/services/preventat
 
 export const LARGE_TEMPLATE_THRESHOLD = 20;
 export const SECTION_VIRTUALIZATION_THRESHOLD = 30;
-export const VIRTUALIZATION_THRESHOLD = SECTION_VIRTUALIZATION_THRESHOLD;
+const VIRTUALIZATION_THRESHOLD = SECTION_VIRTUALIZATION_THRESHOLD;
 export const COMPACT_ROW_HEIGHT = 72;
 
 /** Reorder items within a flat checklist array (same-section drag-and-drop). */

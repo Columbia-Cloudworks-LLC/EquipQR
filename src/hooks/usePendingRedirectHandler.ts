@@ -6,7 +6,7 @@ import { getSafeRedirectPath } from '@/utils/redirectValidation';
 /**
  * Hook to handle pending redirects after authentication
  */
-export const usePendingRedirectHandler = () => {
+const usePendingRedirectHandler = () => {
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
 

@@ -82,7 +82,7 @@ export const toSnakeCase = (header: string): string => {
 /**
  * Normalize canonical key for matching (manufacturer, model, serial)
  */
-export const normalizeCanonicalKey = (value: string): string => {
+const normalizeCanonicalKey = (value: string): string => {
   return value
     .trim()
     .replace(/\s+/g, ' ')
@@ -211,7 +211,7 @@ export const resolveDuplicateHeaders = (
 /**
  * Map a row according to column mappings with duplicate resolution
  */
-export const mapRowData = (
+const mapRowData = (
   row: Record<string, string>,
   mappings: ColumnMapping[],
   rowIndex: number
@@ -296,7 +296,7 @@ export const parseDate = (dateStr: string): Date | null => {
 /**
  * Check if a date is newer than another
  */
-export const isNewerDate = (newDate: string, existingDate: string | null): boolean => {
+const isNewerDate = (newDate: string, existingDate: string | null): boolean => {
   if (!existingDate) return true;
   
   const newParsed = parseDate(newDate);
@@ -310,7 +310,7 @@ export const isNewerDate = (newDate: string, existingDate: string | null): boole
 /**
  * Validate equipment creation rules
  */
-export const validateCreateRule = (row: MappedRow): { valid: boolean; error?: string } => {
+const validateCreateRule = (row: MappedRow): { valid: boolean; error?: string } => {
   const hasSerial = !isEmptyCell(row.serial);
   const hasManufacturer = !isEmptyCell(row.manufacturer);
   const hasModel = !isEmptyCell(row.model);

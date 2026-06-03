@@ -248,7 +248,7 @@ export async function getTeamRecentWorkOrders(
 /**
  * Get all team stats in a single call (equipment + work orders)
  */
-export async function getTeamStats(
+async function getTeamStats(
   organizationId: string,
   teamId: string
 ): Promise<TeamStats> {

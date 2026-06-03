@@ -318,7 +318,7 @@ export const useEquipmentWorkOrders = (
 /**
  * Create equipment mutation
  */
-export const useCreateEquipment = (organizationId: string | undefined) => {
+const useCreateEquipment = (organizationId: string | undefined) => {
   const queryClient = useQueryClient();
   const { toast } = useAppToast();
 
@@ -393,7 +393,7 @@ export const useUpdateEquipment = (organizationId: string | undefined) => {
 /**
  * Delete equipment mutation
  */
-export const useDeleteEquipment = (organizationId: string | undefined) => {
+const useDeleteEquipment = (organizationId: string | undefined) => {
   const queryClient = useQueryClient();
   const { toast } = useAppToast();
 
@@ -485,7 +485,7 @@ export const useCreateScan = (organizationId: string | undefined) => {
  * Creates a basic note for equipment (without images)
  * For notes with images, use the equipmentNotesService directly
  */
-export const useCreateNote = (organizationId: string | undefined) => {
+const useCreateNote = (organizationId: string | undefined) => {
   const queryClient = useQueryClient();
   const { toast } = useAppToast();
 

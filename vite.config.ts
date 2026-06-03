@@ -53,7 +53,6 @@ const vendorChunkModules: Record<string, string[]> = {
     '@radix-ui/react-checkbox',
     '@radix-ui/react-radio-group',
     '@radix-ui/react-switch',
-    '@radix-ui/react-slider',
     '@radix-ui/react-label',
   ],
   'vendor-radix-layout': [

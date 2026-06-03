@@ -90,7 +90,7 @@ export async function checkStorageQuota(
 /**
  * Get current storage usage for an organization
  */
-export async function getCurrentStorage(organizationId: string): Promise<number> {
+async function getCurrentStorage(organizationId: string): Promise<number> {
   try {
     const { data, error } = await supabase.rpc('get_organization_storage_mb', {
       org_id: organizationId

@@ -4,16 +4,16 @@ import { renderHook, act } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// Create stable mock objects
-const mockCreateMutateAsync = vi.fn();
-const mockUpdateMutateAsync = vi.fn();
+vi.mock('@/services/offlineAwareService', () => ({
+  OfflineAwareWorkOrderService: vi.fn().mockImplementation(() => ({
+    createEquipmentFull: vi.fn().mockResolvedValue({ data: { id: 'eq-new' }, queuedOffline: false }),
+    updateEquipment: vi.fn().mockResolvedValue({ data: { id: 'eq-1' }, queuedOffline: false }),
+  })),
+}));
 
-vi.mock('@/hooks/useSupabaseData', () => {
-  return {
-    useCreateEquipment: vi.fn(() => ({ mutateAsync: mockCreateMutateAsync, isPending: false })),
-    useUpdateEquipment: vi.fn(() => ({ mutateAsync: mockUpdateMutateAsync, isPending: false })),
-  };
-});
+vi.mock('@/features/equipment/services/equipmentLocationHistoryService', () => ({
+  logEquipmentLocationChange: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock('sonner', () => ({
   toast: {
@@ -96,8 +96,6 @@ const baseValues: EquipmentFormData = {
 describe('useEquipmentForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockCreateMutateAsync.mockClear();
-    mockUpdateMutateAsync.mockClear();
   });
 
   it('creates equipment successfully', async () => {

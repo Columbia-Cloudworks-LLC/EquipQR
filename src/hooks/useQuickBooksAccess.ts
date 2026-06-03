@@ -93,4 +93,3 @@ export function useUpdateQuickBooksPermission(organizationId: string) {
   });
 }
 
-export default useQuickBooksAccess;

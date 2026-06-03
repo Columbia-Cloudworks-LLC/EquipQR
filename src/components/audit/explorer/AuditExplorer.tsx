@@ -387,4 +387,3 @@ export function AuditExplorer({ organizationId }: AuditExplorerProps) {
   );
 }
 
-export default AuditExplorer;

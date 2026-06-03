@@ -1,7 +1,171 @@
 {
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
   "ignoreDependencies": [
     "@size-limit/file",
     "tailwindcss-animate",
-    "us-atlas"
+    "us-atlas",
+    "xlsx"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "entry": [
+    "playwright.user.config.ts",
+    "src/sw.ts",
+    "scripts/check-main-branch-migrations.mjs",
+    "scripts/check-missing-migrations.mjs",
+    "scripts/create-missing-migrations.mjs",
+    "scripts/fix-main-branch-migrations.mjs",
+    "scripts/reconcile-advisor-rpc-warnings.mjs",
+    "scripts/supabase-fix-migrations.mjs",
+    "scripts/test-ci.mjs",
+    "scripts/upload-screenshot.ts"
+  ],
+  "ignoreExports": [
+    {
+      "file": "src/components/ui/**",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/components/landing/features/CapabilitiesGrid.tsx",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/pages/features/data/inventoryManagementData.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/services/supabaseDataService.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/services/syncDataService.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/features/equipment/components/EquipmentFilters.tsx",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/features/equipment/hooks/useEquipmentFiltering.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/features/equipment/services/EquipmentService.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/features/equipment/types/equipment.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/features/equipment/types/equipmentNotes.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/features/inventory/schemas/inventorySchema.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/features/inventory/types/inventory.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/features/work-orders/types/workOrder.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/services/quickbooks/types.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/features/organization/components/UnifiedMembersList.tsx",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/features/organization/hooks/useOrganizationMembers.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/features/organization/types/organization.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/features/work-orders/services/workOrderNotesService.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/services/google-workspace/index.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/utils/google-workspace.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "supabase/functions/_shared/google-drive-destination-browser.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "supabase/functions/_shared/google-drive-folder-routing.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "supabase/functions/_shared/google-workspace-token.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "supabase/functions/_shared/work-order-google-docs-single-data.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/pages/features/data/qrCodeIntegrationData.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/features/work-orders/utils/workOrderHelpers.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/utils/dateFormatter.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/features/equipment/utils/equipmentHelpers.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/features/equipment/hooks/useEquipment.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/features/work-orders/hooks/useWorkOrders.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/features/teams/hooks/useTeam.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/features/teams/hooks/useTeamManagement.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/integrations/supabase/types.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "src/test/**",
+      "exports": ["*"]
+    }
+  ],
+  "usedClassMembers": [
+    "getFailedCount",
+    "peek",
+    "getFailedItems",
+    "clear",
+    "updatePayload",
+    "getById",
+    "retryFailedItems",
+    "invalidateOrganizationMemberRelated",
+    "invalidateOrganizationInvitationRelated"
   ]
 }

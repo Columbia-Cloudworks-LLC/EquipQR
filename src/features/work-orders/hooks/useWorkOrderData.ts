@@ -44,7 +44,7 @@ export interface Notification {
 }
 
 // Work Order Notes hooks - using WorkOrderService
-export const useWorkOrderNotes = (workOrderId: string, organizationId?: string) => {
+const useWorkOrderNotes = (workOrderId: string, organizationId?: string) => {
   return useQuery({
     queryKey: workOrderQueryKeys.notes(workOrderId),
     queryFn: async () => {
@@ -72,7 +72,7 @@ export const useWorkOrderNotes = (workOrderId: string, organizationId?: string) 
   });
 };
 
-export const useCreateWorkOrderNote = () => {
+const useCreateWorkOrderNote = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -125,7 +125,7 @@ export const useCreateWorkOrderNote = () => {
 };
 
 // Work Order Images hooks - using WorkOrderService
-export const useWorkOrderImages = (workOrderId: string, organizationId?: string) => {
+const useWorkOrderImages = (workOrderId: string, organizationId?: string) => {
   return useQuery({
     queryKey: workOrderQueryKeys.images(workOrderId),
     queryFn: async () => {
@@ -152,7 +152,7 @@ export const useWorkOrderImages = (workOrderId: string, organizationId?: string)
   });
 };
 
-export const useUploadWorkOrderImage = () => {
+const useUploadWorkOrderImage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({

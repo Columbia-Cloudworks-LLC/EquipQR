@@ -43,19 +43,18 @@ vi.mock('@/hooks/useMFA', () => ({
 }));
 
 // Mock all page components
-vi.mock('@/pages/Dashboard', () => ({ default: () => <div data-testid="dashboard-page">Dashboard</div> }));
+vi.mock('@/features/dashboard/pages/Dashboard', () => ({ default: () => <div data-testid="dashboard-page">Dashboard</div> }));
 vi.mock('@/features/equipment/pages/Equipment', () => ({ default: () => <div data-testid="equipment-page">Equipment</div> }));
 vi.mock('@/features/equipment/pages/EquipmentDetails', () => ({ default: () => <div data-testid="equipment-details-page">Equipment Details</div> }));
 vi.mock('@/features/equipment/pages/EquipmentQRScan', () => ({ default: () => <div data-testid="equipment-qr-scan-page">Equipment QR Scan</div> }));
 vi.mock('@/features/equipment/pages/EquipmentScanner', () => ({
   default: () => <div data-testid="equipment-scanner-page">Equipment Scanner</div>,
 }));
-vi.mock('@/pages/WorkOrders', () => ({ default: () => <div data-testid="work-orders-page">Work Orders</div> }));
-vi.mock('@/pages/WorkOrderDetails', () => ({ default: () => <div data-testid="work-order-details-page">Work Order Details</div> }));
+vi.mock('@/features/work-orders/pages/WorkOrders', () => ({ default: () => <div data-testid="work-orders-page">Work Orders</div> }));
+vi.mock('@/features/work-orders/pages/WorkOrderDetails', () => ({ default: () => <div data-testid="work-order-details-page">Work Order Details</div> }));
 vi.mock('@/features/teams/pages/Teams', () => ({ default: () => <div data-testid="teams-page">Teams</div> }));
-vi.mock('@/pages/FleetMap', () => ({ default: () => <div data-testid="fleet-map-page">Fleet Map</div> }));
-vi.mock('@/pages/Organization', () => ({ default: () => <div data-testid="organization-page">Organization</div> }));
-vi.mock('@/pages/Billing', () => ({ default: () => <div data-testid="billing-page">Billing</div> }));
+vi.mock('@/features/fleet-map/pages/FleetMap', () => ({ default: () => <div data-testid="fleet-map-page">Fleet Map</div> }));
+vi.mock('@/features/organization/pages/Organization', () => ({ default: () => <div data-testid="organization-page">Organization</div> }));
 vi.mock('@/pages/Settings', () => ({ default: () => <div data-testid="settings-page">Settings</div> }));
 vi.mock('@/pages/Support', () => ({ default: () => <div data-testid="support-page">Support</div> }));
 vi.mock('@/components/landing/SmartLanding', () => ({ default: () => <div data-testid="landing-page">Landing</div> }));

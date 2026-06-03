@@ -14,14 +14,14 @@ export const logNavigationEvent = (event: string, data?: unknown) => {
   }
 };
 
-export const getNavigationStats = () => {
+const getNavigationStats = () => {
   return {
     lastEvent: lastNavigationEvent,
     eventCount: navigationEventCount
   };
 };
 
-export const resetNavigationStats = () => {
+const resetNavigationStats = () => {
   lastNavigationEvent = null;
   navigationEventCount = 0;
 };

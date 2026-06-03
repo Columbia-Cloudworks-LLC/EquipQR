@@ -369,7 +369,7 @@ export const useAdjustInventoryQuantity = () => {
   });
 };
 
-export const useLinkItemToEquipment = () => {
+const useLinkItemToEquipment = () => {
   const queryClient = useQueryClient();
   const { toast } = useAppToast();
 
@@ -565,7 +565,7 @@ export const useEquipmentMatchingItemRules = (
 /**
  * Hook to add a single compatibility rule.
  */
-export const useAddCompatibilityRule = () => {
+const useAddCompatibilityRule = () => {
   const queryClient = useQueryClient();
   const { toast } = useAppToast();
 
@@ -608,7 +608,7 @@ export const useAddCompatibilityRule = () => {
 /**
  * Hook to remove a compatibility rule.
  */
-export const useRemoveCompatibilityRule = () => {
+const useRemoveCompatibilityRule = () => {
   const queryClient = useQueryClient();
   const { toast } = useAppToast();
 

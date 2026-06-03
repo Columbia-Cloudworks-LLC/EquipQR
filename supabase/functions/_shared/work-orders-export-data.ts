@@ -220,7 +220,7 @@ export function truncateId(id: string): string {
   return `${id.slice(0, 4)}...${id.slice(-4)}`;
 }
 
-export function getExportDateStamp(date: Date = new Date()): string {
+function getExportDateStamp(date: Date = new Date()): string {
   return date.toISOString().split("T")[0];
 }
 

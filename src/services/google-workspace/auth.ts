@@ -184,7 +184,7 @@ export interface GooglePickerConfig {
   scope: string;
 }
 
-export function getGooglePickerConfig(): GooglePickerConfig {
+function getGooglePickerConfig(): GooglePickerConfig {
   const apiKey = import.meta.env.VITE_GOOGLE_PICKER_API_KEY;
   const appId = import.meta.env.VITE_GOOGLE_PICKER_APP_ID;
   const clientId = import.meta.env.VITE_GOOGLE_WORKSPACE_CLIENT_ID;
@@ -203,7 +203,7 @@ export function getGooglePickerConfig(): GooglePickerConfig {
   };
 }
 
-export function isGooglePickerConfigured(): boolean {
+function isGooglePickerConfigured(): boolean {
   return Boolean(
     import.meta.env.VITE_GOOGLE_PICKER_API_KEY &&
     import.meta.env.VITE_GOOGLE_PICKER_APP_ID &&

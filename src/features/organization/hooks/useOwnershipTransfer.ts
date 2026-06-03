@@ -81,7 +81,7 @@ export const usePendingTransferForUser = () => {
 /**
  * Get pending transfer requests for a specific organization
  */
-export const useOrganizationTransferRequests = (organizationId: string | undefined) => {
+const useOrganizationTransferRequests = (organizationId: string | undefined) => {
   return useQuery({
     queryKey: ['ownership-transfers', 'organization', organizationId],
     queryFn: async (): Promise<PendingTransferRequest[]> => {

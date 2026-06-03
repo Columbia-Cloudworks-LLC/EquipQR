@@ -106,7 +106,7 @@ export const useCreateHistoricalWorkOrder = (options?: { onSuccess?: (workOrder:
   });
 };
 
-export const useUpdateHistoricalWorkOrder = () => {
+const useUpdateHistoricalWorkOrder = () => {
   const queryClient = useQueryClient();
 
   return useMutation({

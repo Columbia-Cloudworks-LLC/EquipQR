@@ -86,7 +86,7 @@ export function isMFAEnabled(): boolean {
  * Check if the offline queue feature is enabled
  * @returns true if offline queue features should be active
  */
-export function isOfflineQueueEnabled(): boolean {
+function isOfflineQueueEnabled(): boolean {
   return OFFLINE_QUEUE_ENABLED;
 }
 

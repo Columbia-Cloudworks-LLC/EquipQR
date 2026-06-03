@@ -62,7 +62,7 @@ export const PRODUCTION_ORIGIN = "https://equipqr.app";
  * Returns the request's Origin header if it matches an allowed origin,
  * otherwise falls back to the PRODUCTION_URL env var or the production domain.
  */
-export function getValidatedOrigin(req: Request): string {
+function getValidatedOrigin(req: Request): string {
   const origin = req.headers.get("origin");
 
   if (origin && isAllowedOrigin(origin)) {

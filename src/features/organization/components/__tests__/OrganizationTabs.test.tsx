@@ -48,20 +48,6 @@ vi.mock('@/integrations/supabase/client', () => {
   };
 });
 
-// Mock seat availability hook used inside OrganizationTabs
-vi.mock('@/hooks/useOrganizationSlots', () => ({
-  useSlotAvailability: vi.fn().mockReturnValue({
-    data: {
-      total_purchased: 2,
-      used_slots: 2,
-      available_slots: 0,
-      exempted_slots: 0,
-      current_period_start: '2024-01-01T00:00:00Z',
-      current_period_end: '2024-02-01T00:00:00Z',
-    },
-  }),
-}));
-
 // Billing components removed - no longer needed
 
 // Stub SimplifiedInvitationDialog to avoid provider dependency in tests

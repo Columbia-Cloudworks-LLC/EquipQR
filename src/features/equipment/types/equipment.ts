@@ -168,7 +168,7 @@ export const generateEquipmentName = (manufacturer: string, model: string): stri
 /**
  * Generate default equipment description from manufacturer, model, and serial number
  */
-export const generateEquipmentDescription = (
+const generateEquipmentDescription = (
   manufacturer: string,
   model: string,
   serialNumber: string

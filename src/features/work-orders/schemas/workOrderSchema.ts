@@ -163,7 +163,7 @@ export type WorkOrderFiltersData = z.infer<typeof workOrderFiltersSchema>;
 /**
  * Validate work order form data
  */
-export const validateWorkOrderForm = (data: unknown): { 
+const validateWorkOrderForm = (data: unknown): { 
   success: boolean; 
   data?: WorkOrderFormData; 
   errors?: z.ZodError 
@@ -208,14 +208,14 @@ export const getDefaultWorkOrderFormValues = (
 /**
  * Type guard to check if a string is a valid WorkOrderStatus
  */
-export const isValidStatus = (value: string): value is WorkOrderStatus => {
+const isValidStatus = (value: string): value is WorkOrderStatus => {
   return workOrderStatusSchema.safeParse(value).success;
 };
 
 /**
  * Type guard to check if a string is a valid WorkOrderPriority
  */
-export const isValidPriority = (value: string): value is WorkOrderPriority => {
+const isValidPriority = (value: string): value is WorkOrderPriority => {
   return workOrderPrioritySchema.safeParse(value).success;
 };
 

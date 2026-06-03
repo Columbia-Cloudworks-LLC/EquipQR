@@ -191,4 +191,3 @@ export function AuditLogTimeRangePicker({
   );
 }
 
-export default AuditLogTimeRangePicker;

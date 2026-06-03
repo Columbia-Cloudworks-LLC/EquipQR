@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { WorkOrderData } from '@/types/workOrder';
+import { WorkOrderData } from '@/features/work-orders/types/workOrder';
 import WorkOrders from '@/features/work-orders/pages/WorkOrders';
 import { personas } from '@/test/fixtures/personas';
 import { workOrders as woFixtures, organizations } from '@/test/fixtures/entities';
@@ -82,21 +82,21 @@ vi.mock('@/hooks/useSelectedTeam', () => ({
   }),
 }));
 
-vi.mock('@/hooks/useWorkOrderData', () => ({
+vi.mock('@/features/work-orders/hooks/useWorkOrderData', () => ({
   useUpdateWorkOrderStatus: vi.fn(() => ({
     mutateAsync: vi.fn(),
     isPending: false
   }))
 }));
 
-vi.mock('@/hooks/useWorkOrderAcceptance', () => ({
+vi.mock('@/features/work-orders/hooks/useWorkOrderAcceptance', () => ({
   useWorkOrderAcceptance: vi.fn(() => ({
     mutateAsync: vi.fn(),
     isPending: false
   }))
 }));
 
-vi.mock('@/hooks/useBatchAssignUnassignedWorkOrders', () => ({
+vi.mock('@/features/work-orders/hooks/useBatchAssignUnassignedWorkOrders', () => ({
   useBatchAssignUnassignedWorkOrders: vi.fn(() => ({
     mutate: vi.fn(),
     isPending: false
@@ -118,13 +118,6 @@ vi.mock('@/features/work-orders/hooks/useWorkOrderFilters', () => ({
     clearAllFilters: vi.fn(),
     applyQuickFilter: vi.fn(),
     updateFilter: vi.fn()
-  }))
-}));
-
-vi.mock('@/hooks/useWorkOrderReopening', () => ({
-  useWorkOrderReopening: vi.fn(() => ({
-    mutateAsync: vi.fn(),
-    isPending: false
   }))
 }));
 

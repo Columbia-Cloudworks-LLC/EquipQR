@@ -274,4 +274,3 @@ export const useWorkTimer = (workOrderId: string | undefined): UseWorkTimerResul
   };
 };
 
-export default useWorkTimer;

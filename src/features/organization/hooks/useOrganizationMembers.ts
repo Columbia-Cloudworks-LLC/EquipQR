@@ -104,7 +104,7 @@ export const useOrganizationMembers = useOrganizationMembersQuery;
 /**
  * Hook for computed organization member statistics
  */
-export const useOrganizationMemberStats = (organizationId: string) => {
+const useOrganizationMemberStats = (organizationId: string) => {
   const { data: members = [] } = useOrganizationMembersQuery(organizationId);
   
   return useMemo(() => {

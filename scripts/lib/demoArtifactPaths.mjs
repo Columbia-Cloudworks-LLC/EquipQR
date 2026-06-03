@@ -117,6 +117,6 @@ export async function ensureDemoDirectory() {
 /**
  * @returns {string}
  */
-export function getDemoDirectoryRelativePath() {
+function getDemoDirectoryRelativePath() {
   return DEMO_DIR;
 }

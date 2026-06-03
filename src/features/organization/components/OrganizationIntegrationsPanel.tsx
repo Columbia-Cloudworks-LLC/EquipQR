@@ -7,7 +7,7 @@ interface OrganizationIntegrationsPanelProps {
   currentUserRole: 'owner' | 'admin' | 'member';
 }
 
-export const OrganizationIntegrationsPanel: React.FC<OrganizationIntegrationsPanelProps> = ({
+const OrganizationIntegrationsPanel: React.FC<OrganizationIntegrationsPanelProps> = ({
   currentUserRole,
 }) => {
   return (

@@ -241,4 +241,3 @@ export function useSpeechToText(options: UseSpeechToTextOptions): UseSpeechToTex
   };
 }
 
-export default useSpeechToText;

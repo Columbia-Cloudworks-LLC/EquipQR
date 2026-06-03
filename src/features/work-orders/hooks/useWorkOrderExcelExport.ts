@@ -547,4 +547,3 @@ export function useWorkOrderExcelExport(
   };
 }
 
-export default useWorkOrderExcelExport;
