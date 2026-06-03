@@ -187,7 +187,19 @@ export async function assignPmTemplateOnEquipmentDetail(
 export async function openWorkOrderCreateDialog(page: Page, gotoDashboard: (route: string) => Promise<void>): Promise<Locator> {
   await gotoDashboard('/work-orders');
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: /create work order/i }).click();
+
+  await expect(page.getByRole('heading', { name: /^Work Orders$/i })).toBeVisible({
+    timeout: 60_000,
+  });
+  await expect(
+    page.getByText(/^(Showing all|Showing \d+|No team assignments)/i),
+  ).toBeVisible({ timeout: 60_000 });
+
+  const createButton = page.getByTestId('create-work-order-button');
+  await expect(createButton).toBeVisible({ timeout: 15_000 });
+  await expect(createButton).toBeEnabled();
+  await createButton.click();
+
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByRole('heading', { name: /create work order/i })).toBeVisible({
     timeout: 15_000,

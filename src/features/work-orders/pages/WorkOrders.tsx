@@ -279,7 +279,12 @@ const WorkOrders = () => {
           inlineMetaOnMobile
           actions={
             !isMobile ? (
-              <Button onClick={() => setShowForm(true)} className="w-full sm:w-auto">
+              <Button
+                type="button"
+                data-testid="create-work-order-button"
+                onClick={() => setShowForm(true)}
+                className="w-full sm:w-auto"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 <span>Create Work Order</span>
               </Button>
