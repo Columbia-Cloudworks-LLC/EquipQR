@@ -162,6 +162,45 @@
       "problemMatcher": []
     },
     {
+      "label": "EquipQR: Stop E2E Tests and Dev Stack",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\stop-dev-and-e2e.ps1"
+      ],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-stop",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "EquipQR: Stop E2E Tests and Dev Stack (Force)",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\stop-dev-and-e2e.ps1",
+        "-Force"
+      ],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-stop",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "EquipQR: E2E Critical (headless)",
       "type": "shell",
       "command": "cmd",
