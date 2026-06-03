@@ -153,12 +153,6 @@ export const googleWorkspace = {
     ['google-workspace', 'destination', orgId, documentType] as const,
 };
 
-// User organization list keys
-export const organizations = {
-  root: ['organizations'] as const,
-  byUser: (userId: string) => ['organizations', userId] as const,
-};
-
 // Work-order equipment keys
 export const workOrderEquipment = {
   byWorkOrder: (workOrderId: string) => ['work-order-equipment', workOrderId] as const,
