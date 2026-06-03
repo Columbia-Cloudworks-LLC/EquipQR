@@ -9,4 +9,3 @@ export const useSelectedTeam = () => {
   return ctx;
 };
 
-export default useSelectedTeam;

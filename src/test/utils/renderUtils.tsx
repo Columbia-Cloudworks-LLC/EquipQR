@@ -63,7 +63,7 @@ export const renderAsPersona = (
  * Render a component with a custom persona object.
  * Use this for edge cases where the predefined personas don't fit.
  */
-export const renderWithCustomPersona = (
+const renderWithCustomPersona = (
   ui: ReactElement,
   persona: UserPersona,
   options?: RenderAsPersonaOptions
@@ -109,7 +109,7 @@ export interface RenderHookAsPersonaOptions<TProps> extends Omit<RenderHookOptio
  * });
  * ```
  */
-export const renderHookAsPersona = <TResult, TProps>(
+const renderHookAsPersona = <TResult, TProps>(
   hook: (props: TProps) => TResult,
   personaKey: PersonaKey,
   options?: RenderHookAsPersonaOptions<TProps>
@@ -126,7 +126,7 @@ export const renderHookAsPersona = <TResult, TProps>(
 /**
  * Render a hook with a custom persona object.
  */
-export const renderHookWithCustomPersona = <TResult, TProps>(
+const renderHookWithCustomPersona = <TResult, TProps>(
   hook: (props: TProps) => TResult,
   persona: UserPersona,
   options?: RenderHookAsPersonaOptions<TProps>

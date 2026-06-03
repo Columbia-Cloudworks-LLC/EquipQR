@@ -34,4 +34,3 @@ export function useQuickBooksConnection(
   });
 }
 
-export default useQuickBooksConnection;

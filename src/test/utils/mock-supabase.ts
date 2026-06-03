@@ -117,7 +117,7 @@ export const createMockSupabaseClient = () => {
 };
 
 // Mock data
-export const mockEquipment = {
+const mockEquipment = {
   id: '1',
   name: 'Test Equipment',
   manufacturer: 'Test Manufacturer',
@@ -129,7 +129,7 @@ export const mockEquipment = {
   default_pm_template_id: null,
 };
 
-export const mockWorkOrder = {
+const mockWorkOrder = {
   id: '1',
   title: 'Test Work Order',
   description: 'Test Description',
@@ -139,7 +139,7 @@ export const mockWorkOrder = {
   organization_id: 'org-1',
 };
 
-export const mockUser = {
+const mockUser = {
   id: '1',
   email: 'test@example.com',
   user_metadata: {

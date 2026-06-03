@@ -196,7 +196,7 @@ export interface WorkOrderExcelData {
 /**
  * Map PM condition number to human-readable text
  */
-export function getConditionText(condition: PMCondition): string {
+function getConditionText(condition: PMCondition): string {
   if (condition === null) return 'Not Rated';
   switch (condition) {
     case 1: return 'OK';
@@ -223,7 +223,7 @@ export const WORKSHEET_NAMES = {
 /**
  * Column headers for each worksheet
  */
-export const WORKSHEET_HEADERS = {
+const WORKSHEET_HEADERS = {
   SUMMARY: [
     'Work Order ID',
     'Title',

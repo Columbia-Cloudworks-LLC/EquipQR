@@ -206,7 +206,7 @@ export function useOrganizationAuditLog(
 /**
  * Hook for paginated organization audit log with infinite scroll
  */
-export function useOrganizationAuditLogInfinite(
+function useOrganizationAuditLogInfinite(
   organizationId: string | undefined,
   filters?: AuditLogFilters,
   options?: {
@@ -295,7 +295,7 @@ export function useAuditTimeline(
 /**
  * Hook to fetch activity for a specific user
  */
-export function useUserActivity(
+function useUserActivity(
   organizationId: string | undefined,
   userId: string | undefined,
   pagination?: AuditLogPagination,
@@ -335,7 +335,7 @@ export function useUserActivity(
 /**
  * Hook to fetch recent activity for dashboard widgets
  */
-export function useRecentActivity(
+function useRecentActivity(
   organizationId: string | undefined,
   limit: number = 10,
   options?: {
@@ -501,7 +501,7 @@ export function useAuditExport(organizationId: string | undefined) {
 /**
  * Combined hook for the Audit Log page with filtering and pagination
  */
-export function useAuditLogPage(organizationId: string | undefined) {
+function useAuditLogPage(organizationId: string | undefined) {
   const { exportToCsv } = useAuditExport(organizationId);
 
   // Memoized filter state helpers

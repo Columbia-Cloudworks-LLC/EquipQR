@@ -77,7 +77,7 @@ export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<
 };
 
 // Legacy function for backward compatibility
-export const getEquipmentNotes = async (equipmentId: string) => {
+const getEquipmentNotes = async (equipmentId: string) => {
   return getEquipmentNotesWithImages(equipmentId);
 };
 
@@ -213,7 +213,7 @@ export const createEquipmentNoteWithImages = async (
 };
 
 // Legacy function for backward compatibility
-export const createEquipmentNote = async (data: {
+const createEquipmentNote = async (data: {
   equipmentId: string;
   organizationId: string;
   content: string;
@@ -233,7 +233,7 @@ export const createEquipmentNote = async (data: {
 };
 
 // Update note
-export const updateEquipmentNote = async (noteId: string, data: {
+const updateEquipmentNote = async (noteId: string, data: {
   content?: string;
   hoursWorked?: number;
   isPrivate?: boolean;
@@ -250,7 +250,7 @@ export const updateEquipmentNote = async (noteId: string, data: {
 };
 
 // Delete note
-export const deleteEquipmentNote = async (noteId: string) => {
+const deleteEquipmentNote = async (noteId: string) => {
   const { error } = await supabase
     .from('equipment_notes')
     .delete()
@@ -260,7 +260,7 @@ export const deleteEquipmentNote = async (noteId: string) => {
 };
 
 // Upload image to existing note
-export const uploadEquipmentNoteImage = async (
+const uploadEquipmentNoteImage = async (
   noteId: string,
   file: File,
   description?: string
@@ -460,7 +460,7 @@ export const updateEquipmentDisplayImage = async (
 };
 
 // Legacy function name
-export const setEquipmentDisplayImage = updateEquipmentDisplayImage;
+const setEquipmentDisplayImage = updateEquipmentDisplayImage;
 
 // ============================================
 // Optimized Query Functions (merged from optimizedEquipmentNotesService)
@@ -470,7 +470,7 @@ export const setEquipmentDisplayImage = updateEquipmentDisplayImage;
  * Get equipment notes using idx_equipment_notes_equipment_created
  * Optimized version without images for faster loading
  */
-export const getEquipmentNotesOptimized = async (equipmentId: string): Promise<EquipmentNote[]> => {
+const getEquipmentNotesOptimized = async (equipmentId: string): Promise<EquipmentNote[]> => {
   try {
     const { data, error } = await supabase
       .from('equipment_notes')
@@ -508,7 +508,7 @@ export const getEquipmentNotesOptimized = async (equipmentId: string): Promise<E
 /**
  * Get user's private notes using idx_equipment_notes_equipment_author
  */
-export const getUserEquipmentNotes = async (equipmentId: string, userId: string): Promise<EquipmentNote[]> => {
+const getUserEquipmentNotes = async (equipmentId: string, userId: string): Promise<EquipmentNote[]> => {
   try {
     const { data, error } = await supabase
       .from('equipment_notes')
@@ -547,7 +547,7 @@ export const getUserEquipmentNotes = async (equipmentId: string, userId: string)
 /**
  * Get recent notes across organization using equipment organization index
  */
-export const getRecentOrganizationNotes = async (organizationId: string, limit: number = 50): Promise<EquipmentNote[]> => {
+const getRecentOrganizationNotes = async (organizationId: string, limit: number = 50): Promise<EquipmentNote[]> => {
   try {
     const { data, error } = await supabase
       .from('equipment_notes')

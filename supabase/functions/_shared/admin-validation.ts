@@ -7,7 +7,7 @@ import { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 /**
  * Check if an organization ID matches the super admin organization
  */
-export function isSuperAdminOrg(orgId: string): boolean {
+function isSuperAdminOrg(orgId: string): boolean {
   const superAdminOrgId = Deno.env.get("SUPER_ADMIN_ORG_ID");
   
   if (!superAdminOrgId) {

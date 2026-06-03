@@ -146,7 +146,7 @@ export interface WorkspaceOnboardingState {
  * 2. They are NOT using a consumer domain (gmail.com, googlemail.com)
  * 3. Their domain is not claimed OR Workspace is not connected
  */
-export function needsWorkspaceOnboarding(
+function needsWorkspaceOnboarding(
   user: User | null,
   onboardingState: WorkspaceOnboardingState | null | undefined
 ): boolean {

@@ -123,5 +123,3 @@ export const DemoVideo: React.FC<DemoVideoProps> = ({
     </div>
   );
 };
-
-export default DemoVideo;

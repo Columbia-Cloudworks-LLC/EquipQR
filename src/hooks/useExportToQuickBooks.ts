@@ -131,4 +131,3 @@ export function useExportToQuickBooks() {
   };
 }
 
-export default useExportToQuickBooks;

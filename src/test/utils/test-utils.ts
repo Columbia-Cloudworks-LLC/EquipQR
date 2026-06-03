@@ -4,6 +4,5 @@ export * from '@testing-library/react';
 export { customRender as render } from './renderUtils';
 
 // Re-export persona utilities
-export { renderAsPersona, renderHookAsPersona } from './renderUtils';
-export { createPersonaWrapper, TestProviders } from './TestProviders';
+export { renderAsPersona } from './renderUtils';
 export type { TestProvidersProps } from './TestProviders';

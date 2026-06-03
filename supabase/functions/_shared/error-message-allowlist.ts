@@ -195,6 +195,6 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
  * @param errorMessage - The error message to validate
  * @returns true if the message matches an allowlisted pattern, false otherwise
  */
-export function isErrorAllowlisted(errorMessage: string): boolean {
+function isErrorAllowlisted(errorMessage: string): boolean {
   return SAFE_ERROR_PATTERNS.some((pattern) => pattern.test(errorMessage));
 }

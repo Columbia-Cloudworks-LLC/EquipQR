@@ -81,23 +81,4 @@ export class EquipmentTemplateService {
   static async bulkChangeTemplate(equipmentIds: string[], newTemplateId: string): Promise<{ successCount: number; errorCount: number }> {
     return this.bulkAssignTemplate(equipmentIds, newTemplateId);
   }
-
-  /**
-   * Get equipment records with their assigned PM templates
-   */
-  static async getEquipmentWithTemplates(organizationId: string) {
-    const { data, error } = await supabase
-      .from('equipment')
-      .select(`
-        *,
-        pm_template:pm_checklist_templates(id, name, description)
-      `)
-      .eq('organization_id', organizationId);
-
-    if (error) {
-      throw new Error(`Failed to fetch equipment with templates: ${error.message}`);
-    }
-
-    return data;
-  }
 }

@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { queryKeys } from '@/lib/queryKeys';
 
 // Hook for assigning template to single equipment
-export const useAssignTemplateToEquipment = () => {
+const useAssignTemplateToEquipment = () => {
   const queryClient = useQueryClient();
   const { currentOrganization } = useOrganization();
 
@@ -85,7 +85,7 @@ export const useBulkAssignTemplate = () => {
 };
 
 // Hook for bulk template removal
-export const useBulkRemoveTemplates = () => {
+const useBulkRemoveTemplates = () => {
   const queryClient = useQueryClient();
   const { currentOrganization } = useOrganization();
 
@@ -119,7 +119,7 @@ export const useBulkRemoveTemplates = () => {
 };
 
 // Hook for bulk template change
-export const useBulkChangeTemplate = () => {
+const useBulkChangeTemplate = () => {
   const queryClient = useQueryClient();
   const { currentOrganization } = useOrganization();
 

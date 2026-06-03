@@ -126,7 +126,7 @@ export class PerformanceMonitor {
 }
 
 // React hook for performance monitoring
-export function usePerformanceTimer(name: string, enabled = true) {
+function usePerformanceTimer(name: string, enabled = true) {
   const monitor = PerformanceMonitor.getInstance();
   
   return {

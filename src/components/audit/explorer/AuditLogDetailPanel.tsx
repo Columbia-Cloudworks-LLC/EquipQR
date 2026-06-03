@@ -271,4 +271,3 @@ export function AuditLogDetailPanel({ entry }: AuditLogDetailPanelProps) {
   );
 }
 
-export default AuditLogDetailPanel;

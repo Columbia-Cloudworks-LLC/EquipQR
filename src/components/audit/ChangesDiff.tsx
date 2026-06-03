@@ -178,5 +178,4 @@ export function ChangesSummary({ changes }: { changes: AuditChanges }) {
   return <span>{labels[0]}, {labels[1]}, and {entries.length - 2} other fields</span>;
 }
 
-export default ChangesDiff;
 

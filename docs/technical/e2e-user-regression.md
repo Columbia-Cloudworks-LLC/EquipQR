@@ -4,6 +4,8 @@ Browser end-to-end tests exercise the real local dev stack (Vite + Supabase seed
 
 ## Quick start
 
+From Cursor / VS Code, open **Tasks: Run Task** (`Ctrl+Shift+P` → “Run Task”) and pick any **EquipQR: E2E …** entry (critical, full, watch, record, support-record, reset-db, inspector, or Chromium install). These wrap `dev-test.bat` with the same flags as the examples below. To cancel a run and tear down the stack, use **EquipQR: Stop E2E Tests and Dev Stack** (or `.\dev-stop-all.bat`).
+
 ```powershell
 # Default: headless critical suite, starts dev stack if needed
 .\dev-test.bat

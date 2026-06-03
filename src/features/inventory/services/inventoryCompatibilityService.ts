@@ -54,7 +54,7 @@ export const getCompatibleEquipmentForItem = async (
 // Get Compatible Items for Equipment
 // ============================================
 
-export const getCompatibleItemsForEquipment = async (
+const getCompatibleItemsForEquipment = async (
   organizationId: string,
   equipmentId: string
 ): Promise<InventoryItem[]> => {
@@ -289,7 +289,7 @@ export const bulkLinkEquipmentToItem = async (
 // Bulk Link Items to Equipment
 // ============================================
 
-export const bulkLinkItemsToEquipment = async (
+const bulkLinkItemsToEquipment = async (
   organizationId: string,
   itemIds: string[],
   equipmentId: string

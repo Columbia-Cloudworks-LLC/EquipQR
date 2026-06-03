@@ -1,22 +1,11 @@
 import { createContext } from 'react';
+import type { SessionOrganization } from '@/types/session';
 
-export interface SimpleOrganization {
-  id: string;
-  name: string;
-  plan: 'free' | 'premium';
-  memberCount: number;
-  maxMembers: number;
-  features: string[];
-  billingCycle?: 'monthly' | 'yearly';
-  nextBillingDate?: string;
-  logo?: string;
-  backgroundColor?: string;
-  scanLocationCollectionEnabled: boolean;
-  userRole: 'owner' | 'admin' | 'member';
-  userStatus: 'active' | 'pending' | 'inactive';
+/** Session org shape plus personal-workspace flag used by SimpleOrganizationProvider. */
+export type SimpleOrganization = SessionOrganization & {
   /** True if this is the user's personal (default) organization */
   isPersonal?: boolean;
-}
+};
 
 export interface SimpleOrganizationContextType {
   organizations: SimpleOrganization[];

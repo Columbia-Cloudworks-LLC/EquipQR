@@ -343,5 +343,4 @@ export function HistoryTab({ entityType, entityId, organizationId }: HistoryTabP
   );
 }
 
-export default HistoryTab;
 

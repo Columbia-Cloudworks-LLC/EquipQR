@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Fallow codebase intelligence** — Repository npm scripts (`fallow:scan`, `fallow:audit`, `fallow:dupes`, `fallow:health`, `fallow:fix:preview`) and `.fallowrc.json` entrypoint modeling for verified scripts, tests, and public surfaces.
+- **Local dev and E2E ergonomics** — `dev-stop-all.bat`, `scripts/stop-dev-and-e2e.ps1`, and VS Code tasks to stop the full dev stack and Playwright E2E runners together.
+
+### Changed
+
+- **Dead-code cleanup** — Evidence-backed removal of obsolete modules, duplicate feature barrels, unused exports, and legacy organization/session scaffolding identified by Fallow (check findings reduced from 776 to 77); session types consolidated with expanded `useSessionManager` test coverage.
+- **Dependencies** — Trimmed unused npm packages surfaced during the audit.
+
+### Removed
+
+- Obsolete one-off PM seed/generator scripts, unused shadcn UI primitives with no import paths, duplicate work-order/organization/report components, and deprecated enhanced-organization hook layers superseded by current feature services.
+
+### Fixed
+
+- **E2E user regression** — Scoped the work order create-button locator to avoid ambiguous matches during creation flows.
+
 ## [3.8.1] - 2026-06-01
 
 ### Changed

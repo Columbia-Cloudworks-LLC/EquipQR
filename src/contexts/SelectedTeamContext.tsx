@@ -103,5 +103,4 @@ export const SelectedTeamProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
-export { SelectedTeamContext };
 export type { SelectedTeamContextType };

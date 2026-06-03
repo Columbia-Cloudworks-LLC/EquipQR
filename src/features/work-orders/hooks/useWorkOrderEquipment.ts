@@ -32,7 +32,7 @@ export const useWorkOrderEquipment = (workOrderId: string) => {
 /**
  * Hook to fetch primary equipment for a work order
  */
-export const usePrimaryEquipment = (workOrderId: string) => {
+const usePrimaryEquipment = (workOrderId: string) => {
   return useQuery({
     queryKey: workOrderEquipment.primary(workOrderId),
     queryFn: () => getPrimaryEquipment(workOrderId),
@@ -44,7 +44,7 @@ export const usePrimaryEquipment = (workOrderId: string) => {
 /**
  * Hook to fetch available equipment from the same team
  */
-export const useTeamEquipmentForWorkOrder = (
+const useTeamEquipmentForWorkOrder = (
   workOrderId: string,
   teamId: string | undefined,
   excludeIds: string[] = []
@@ -60,7 +60,7 @@ export const useTeamEquipmentForWorkOrder = (
 /**
  * Hook to get count of equipment linked to a work order
  */
-export const useWorkOrderEquipmentCount = (workOrderId: string) => {
+const useWorkOrderEquipmentCount = (workOrderId: string) => {
   return useQuery({
     queryKey: workOrderEquipment.count(workOrderId),
     queryFn: () => getWorkOrderEquipmentCount(workOrderId),
@@ -72,7 +72,7 @@ export const useWorkOrderEquipmentCount = (workOrderId: string) => {
 /**
  * Hook to add equipment to a work order
  */
-export const useAddEquipmentToWorkOrder = () => {
+const useAddEquipmentToWorkOrder = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -101,7 +101,7 @@ export const useAddEquipmentToWorkOrder = () => {
 /**
  * Hook to remove equipment from a work order
  */
-export const useRemoveEquipmentFromWorkOrder = () => {
+const useRemoveEquipmentFromWorkOrder = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -130,7 +130,7 @@ export const useRemoveEquipmentFromWorkOrder = () => {
 /**
  * Hook to set primary equipment for a work order
  */
-export const useSetPrimaryEquipment = () => {
+const useSetPrimaryEquipment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({

@@ -316,7 +316,7 @@ interface MobileActionSheetTriggerProps {
   onClick: () => void;
 }
 
-export const MobileActionSheetTrigger: React.FC<MobileActionSheetTriggerProps> = ({
+const MobileActionSheetTrigger: React.FC<MobileActionSheetTriggerProps> = ({
   onClick,
 }) => {
   return (

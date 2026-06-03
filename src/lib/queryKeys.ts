@@ -64,7 +64,7 @@ export const equipment = {
   pmStatus: (equipmentId: string) => ['equipment', equipmentId, 'pm-status'] as const,
 };
 
-export const pmStatus = {
+const pmStatus = {
   root: ['pm-status'] as const,
   byEquipment: (equipmentId: string) => ['pm-status', equipmentId] as const,
   byOrg: (orgId: string) => ['pm-status', 'org', orgId] as const,
@@ -123,7 +123,7 @@ export const pmTemplates = {
 };
 
 /** PM template compatibility matching for an equipment record (org-scoped). */
-export const pmTemplateMatching = {
+const pmTemplateMatching = {
   forEquipment: (orgId: string, equipmentId: string) =>
     ['pm-template-matching', orgId, equipmentId] as const,
 };
@@ -151,12 +151,6 @@ export const googleWorkspace = {
   connection: (orgId: string) => ['google-workspace', 'connection', orgId] as const,
   destination: (orgId: string, documentType: string) =>
     ['google-workspace', 'destination', orgId, documentType] as const,
-};
-
-// User organization list keys
-export const organizations = {
-  root: ['organizations'] as const,
-  byUser: (userId: string) => ['organizations', userId] as const,
 };
 
 // Work-order equipment keys
@@ -210,12 +204,6 @@ export const tickets = {
   mine: () => ['tickets', 'mine'] as const,
 };
 
-// Offline queue keys
-export const offlineQueue = {
-  root: ['offline-queue'] as const,
-  byOrg: (orgId: string) => ['offline-queue', orgId] as const,
-};
-
 // Dashboard preference keys
 export const dashboardPreferences = {
   root: ['dashboard-preferences'] as const,
@@ -238,14 +226,12 @@ export const queryKeys = {
   inventory,
   quickBooks,
   googleWorkspace,
-  organizations,
   workOrderEquipment,
   workOrderMetrics,
   equipmentWorkingHours,
   workspacePersonalOrgMerge,
   tickets,
   dashboardPreferences,
-  offlineQueue,
   pmStatus,
   exportArtifacts,
 };

@@ -31,7 +31,7 @@ export interface EquipmentColumnPickerProps {
  * and the frozen first column) render as disabled checkbox items so the user
  * can see they exist but cannot turn them off.
  */
-export const EquipmentColumnPicker: React.FC<EquipmentColumnPickerProps> = ({
+const EquipmentColumnPicker: React.FC<EquipmentColumnPickerProps> = ({
   allColumns,
   visibleColumns,
   onToggle,

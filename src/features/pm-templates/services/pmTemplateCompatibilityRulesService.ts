@@ -86,7 +86,7 @@ export const getRulesForTemplate = async (
  * @param rule - Rule data (manufacturer, model)
  * @returns The created rule
  */
-export const addRule = async (
+const addRule = async (
   organizationId: string,
   templateId: string,
   rule: PMTemplateCompatibilityRuleFormData
@@ -153,7 +153,7 @@ export const addRule = async (
  * @param organizationId - Organization ID (must match rule's organization)
  * @param ruleId - Rule ID to remove
  */
-export const removeRule = async (
+const removeRule = async (
   organizationId: string,
   ruleId: string
 ): Promise<void> => {

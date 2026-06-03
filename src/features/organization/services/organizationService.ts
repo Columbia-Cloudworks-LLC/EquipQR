@@ -33,7 +33,7 @@ export type {
 /**
  * Get organization by ID
  */
-export const getOrganizationById = async (organizationId: string) => {
+const getOrganizationById = async (organizationId: string) => {
   try {
     const { data, error } = await supabase
       .from('organizations')
@@ -96,7 +96,7 @@ export const getUserOrganizations = async (userId: string): Promise<Organization
 /**
  * @deprecated Use getUserOrganizations instead
  */
-export const getUserOrganizationsOptimized = getUserOrganizations;
+const getUserOrganizationsOptimized = getUserOrganizations;
 
 // ============================================
 // Organization Member Functions
@@ -143,7 +143,7 @@ export const getOrganizationMembers = async (organizationId: string): Promise<Or
 /**
  * @deprecated Use getOrganizationMembers instead
  */
-export const getOrganizationMembersOptimized = getOrganizationMembers;
+const getOrganizationMembersOptimized = getOrganizationMembers;
 
 /**
  * Get organization admins efficiently
@@ -187,7 +187,7 @@ export const getOrganizationAdmins = async (organizationId: string): Promise<Org
 /**
  * @deprecated Use getOrganizationAdmins instead
  */
-export const getOrganizationAdminsOptimized = getOrganizationAdmins;
+const getOrganizationAdminsOptimized = getOrganizationAdmins;
 
 // ============================================
 // Organization Permission Functions
@@ -196,7 +196,7 @@ export const getOrganizationAdminsOptimized = getOrganizationAdmins;
 /**
  * Check user permissions efficiently using idx_organization_members_user_status
  */
-export const checkUserOrgAccess = async (userId: string, organizationId: string): Promise<{ hasAccess: boolean; role?: string }> => {
+const checkUserOrgAccess = async (userId: string, organizationId: string): Promise<{ hasAccess: boolean; role?: string }> => {
   try {
     const { data, error } = await supabase
       .from('organization_members')

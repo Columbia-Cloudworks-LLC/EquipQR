@@ -434,7 +434,7 @@ export const useCancelInvitation = (organizationId: string) => {
 };
 
 // Direct invitation creation utility using atomic function
-export const createInvitationDirectly = async (
+const createInvitationDirectly = async (
   organizationId: string,
   email: string,
   role: 'admin' | 'member',

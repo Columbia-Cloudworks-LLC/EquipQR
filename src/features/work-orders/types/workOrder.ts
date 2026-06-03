@@ -328,7 +328,7 @@ export interface WorkOrderImage {
 /**
  * Converts WorkOrder (database format) to WorkOrderData (UI format)
  */
-export function toWorkOrderData(row: WorkOrder): WorkOrderData {
+function toWorkOrderData(row: WorkOrder): WorkOrderData {
   return {
     id: row.id,
     title: row.title,
@@ -374,7 +374,7 @@ export function toWorkOrderData(row: WorkOrder): WorkOrderData {
  * Converts WorkOrderData (UI format) back to partial WorkOrder format
  * Useful for update operations
  */
-export function fromWorkOrderData(data: Partial<WorkOrderData>): Partial<WorkOrderUpdateData> {
+function fromWorkOrderData(data: Partial<WorkOrderData>): Partial<WorkOrderUpdateData> {
   const result: Partial<WorkOrderUpdateData> = {};
   
   if (data.title !== undefined) result.title = data.title;
