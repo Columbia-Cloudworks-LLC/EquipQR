@@ -1,6 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  GOOGLE_MAPS_AUTH_REQUIRED_MESSAGE,
   invokePublicGoogleMapsKey,
   resolveAuthenticatedSession,
   useGoogleMapsKey,
@@ -108,10 +109,31 @@ describe('useGoogleMapsKey', () => {
   it('does not invoke the edge function before a session access token exists', async () => {
     mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
 
-    renderHook(() => useGoogleMapsKey());
+    const { result } = renderHook(() => useGoogleMapsKey());
 
     await waitFor(() => {
       expect(mockGetSession).toHaveBeenCalled();
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(mockFunctionsInvoke).not.toHaveBeenCalled();
+    expect(result.current.error).toBeNull();
+  });
+
+  it('sets an auth error when retry is called without a session', async () => {
+    mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
+
+    const { result } = renderHook(() => useGoogleMapsKey());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await result.current.retry();
+
+    await waitFor(() => {
+      expect(result.current.error).toBe(GOOGLE_MAPS_AUTH_REQUIRED_MESSAGE);
+      expect(result.current.isLoading).toBe(false);
     });
 
     expect(mockFunctionsInvoke).not.toHaveBeenCalled();

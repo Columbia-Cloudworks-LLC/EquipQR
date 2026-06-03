@@ -29,6 +29,10 @@ interface UseGoogleMapsKeyResult {
   retry: () => void;
 }
 
+/** @internal Exported for unit tests and Fleet Map error copy */
+export const GOOGLE_MAPS_AUTH_REQUIRED_MESSAGE =
+  'Sign in required to load Google Maps.';
+
 /** @internal Exported for unit tests */
 export async function resolveAuthenticatedSession(): Promise<Session | null> {
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -122,6 +126,8 @@ export const useGoogleMapsKey = (options: UseGoogleMapsKeyOptions = {}): UseGoog
 
     const session = await resolveAuthenticatedSession();
     if (!session?.access_token) {
+      setIsLoading(false);
+      setError(GOOGLE_MAPS_AUTH_REQUIRED_MESSAGE);
       return;
     }
 
@@ -188,9 +194,16 @@ export const useGoogleMapsKey = (options: UseGoogleMapsKeyOptions = {}): UseGoog
     authListenerRef.current = () => subscription.unsubscribe();
 
     void resolveAuthenticatedSession().then((session) => {
-      if (!cancelled && session?.access_token) {
-        scheduleFetch();
+      if (cancelled) {
+        return;
       }
+
+      if (session?.access_token) {
+        scheduleFetch();
+        return;
+      }
+
+      setIsLoading(false);
     });
 
     return () => {
