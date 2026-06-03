@@ -4,6 +4,8 @@ Browser end-to-end tests exercise the real local dev stack (Vite + Supabase seed
 
 ## Quick start
 
+From Cursor / VS Code, open **Tasks: Run Task** (`Ctrl+Shift+P` → “Run Task”) and pick any **EquipQR: E2E …** entry (critical, full, watch, record, support-record, reset-db, inspector, or Chromium install). These wrap `dev-test.bat` with the same flags as the examples below.
+
 ```powershell
 # Default: headless critical suite, starts dev stack if needed
 .\dev-test.bat

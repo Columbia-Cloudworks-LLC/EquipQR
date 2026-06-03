@@ -160,6 +160,175 @@
         "showReuseMessage": false
       },
       "problemMatcher": []
+    },
+    {
+      "label": "EquipQR: E2E Critical (headless)",
+      "type": "shell",
+      "command": "cmd",
+      "args": ["/c", "${workspaceFolder}\\dev-test.bat"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-e2e",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "EquipQR: E2E Full (headless)",
+      "type": "shell",
+      "command": "cmd",
+      "args": ["/c", "${workspaceFolder}\\dev-test.bat", "full"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-e2e",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "EquipQR: E2E Critical (headed)",
+      "type": "shell",
+      "command": "cmd",
+      "args": ["/c", "${workspaceFolder}\\dev-test.bat", "headed"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-e2e",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "EquipQR: E2E Critical Watch",
+      "type": "shell",
+      "command": "cmd",
+      "args": ["/c", "${workspaceFolder}\\dev-test.bat", "watch"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-e2e",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "EquipQR: E2E Full Watch",
+      "type": "shell",
+      "command": "cmd",
+      "args": ["/c", "${workspaceFolder}\\dev-test.bat", "full", "watch"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-e2e",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "EquipQR: E2E Full Watch + Record (marketing)",
+      "type": "shell",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "${workspaceFolder}\\dev-test.bat",
+        "full",
+        "watch",
+        "record",
+        "marketing"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-e2e",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "EquipQR: E2E Support Record",
+      "type": "shell",
+      "command": "cmd",
+      "args": ["/c", "${workspaceFolder}\\dev-test.bat", "support-record"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-e2e",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "EquipQR: E2E Mobile Watch + Record (marketing)",
+      "type": "shell",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "${workspaceFolder}\\dev-test.bat",
+        "full",
+        "mobile",
+        "watch",
+        "record",
+        "marketing"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-e2e",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "EquipQR: E2E Critical Reset DB",
+      "type": "shell",
+      "command": "cmd",
+      "args": ["/c", "${workspaceFolder}\\dev-test.bat", "reset-db"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-e2e",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "EquipQR: E2E Inspector (Playwright debug)",
+      "type": "shell",
+      "command": "cmd",
+      "args": ["/c", "${workspaceFolder}\\dev-test.bat", "inspector"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-e2e",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "EquipQR: Install Playwright Chromium",
+      "type": "shell",
+      "command": "npx",
+      "args": ["playwright", "install", "chromium"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-e2e",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
     }
   ]
 }
