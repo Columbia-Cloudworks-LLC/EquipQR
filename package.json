@@ -31,6 +31,7 @@
     "test:e2e": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-user-regression.ps1 -Suite critical -Headless",
     "test:e2e:critical": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-user-regression.ps1 -Suite critical -Headless",
     "test:e2e:full": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-user-regression.ps1 -Suite full -Headless",
+    "test:e2e:local-full": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-user-regression.ps1 -Suite all -Headless -ResetDb",
     "test:e2e:headed": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-user-regression.ps1 -Suite critical -Headed",
     "test:e2e:watch": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-user-regression.ps1 -Suite critical -Watch",
     "test:e2e:record": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-user-regression.ps1 -Suite critical -RecordVideo",

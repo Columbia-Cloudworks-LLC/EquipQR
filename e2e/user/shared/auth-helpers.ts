@@ -1,5 +1,12 @@
-import { expect, type Page } from '@playwright/test';
-import { authStatePath, personas, type PersonaKey } from './seed-data';
+import path from 'path';
+import { expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
+import {
+  apexOrgId,
+  authStatePath,
+  devPassword,
+  personas,
+  type PersonaKey,
+} from './seed-data';
 
 export async function quickLogin(page: Page, persona: PersonaKey): Promise<void> {
   const { displayName } = personas[persona];
@@ -20,6 +27,35 @@ export async function quickLogin(page: Page, persona: PersonaKey): Promise<void>
   await expect(page).toHaveURL(/\/dashboard/i);
 }
 
+export async function signInWithEmailPassword(
+  page: Page,
+  email: string,
+  password: string = devPassword,
+): Promise<void> {
+  await page.goto('/auth?tab=signin');
+  await expect(page).toHaveURL(/\/auth/i, { timeout: 30_000 });
+
+  const emailField = page.getByLabel(/email/i).or(page.locator('input[type="email"]')).first();
+  const passwordField = page
+    .getByLabel(/password/i)
+    .or(page.locator('input[type="password"]'))
+    .first();
+
+  await emailField.fill(email);
+  await passwordField.fill(password);
+  await page.getByRole('button', { name: /sign in|log in/i }).click();
+
+  await page.waitForURL(/\/dashboard/i, { timeout: 60_000 });
+}
+
+export async function logoutFromApp(page: Page): Promise<void> {
+  const userMenu = page.getByRole('button', { name: /user menu/i }).first();
+  await expect(userMenu).toBeVisible({ timeout: 30_000 });
+  await userMenu.click();
+  await page.getByRole('menuitem', { name: /^sign out$/i }).click();
+  await expect(page).toHaveURL(/\/auth|\/$/i, { timeout: 60_000 });
+}
+
 export async function savePersonaStorageState(
   page: Page,
   persona: PersonaKey,
@@ -35,12 +71,47 @@ export async function loginAndPersistStorageState(
   await savePersonaStorageState(page, persona);
 }
 
+export async function pinContextToOrg(
+  context: BrowserContext,
+  organizationId: string,
+): Promise<void> {
+  await context.addInitScript((orgId) => {
+    localStorage.setItem('equipqr_current_organization', orgId);
+    localStorage.setItem(
+      'equipqr_current_org',
+      JSON.stringify({
+        selectedOrgId: orgId,
+        selectionTimestamp: new Date().toISOString(),
+      }),
+    );
+  }, organizationId);
+}
+
+export async function pinContextToApex(context: BrowserContext): Promise<void> {
+  await pinContextToOrg(context, apexOrgId);
+}
+
+export async function newPersonaPage(
+  browser: Browser,
+  persona: PersonaKey,
+  options?: { pinOrgId?: string },
+): Promise<{ context: BrowserContext; page: Page }> {
+  const statePath = path.resolve(authStatePath(persona));
+  const context = await browser.newContext({ storageState: statePath });
+  const pinOrg = options?.pinOrgId ?? personas[persona].defaultOrgId;
+  if (pinOrg) {
+    await pinContextToOrg(context, pinOrg);
+  }
+  const page = await context.newPage();
+  return { context, page };
+}
+
 export async function gotoDashboardRoute(page: Page, route: string): Promise<void> {
   const normalized = route.startsWith('/') ? route : `/${route}`;
-  const path = normalized.startsWith('/dashboard')
+  const pathName = normalized.startsWith('/dashboard')
     ? normalized
     : `/dashboard${normalized}`;
-  await page.goto(path);
+  await page.goto(pathName);
   await expect(page.locator('#main-content, main#main-content, main').first()).toBeVisible({
     timeout: 60_000,
   });

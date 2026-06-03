@@ -1,6 +1,16 @@
 /** Local Supabase seed constants for deterministic Playwright assertions. */
 
 export const apexOrgId = '660e8400-e29b-41d4-a716-446655440000';
+export const metroOrgId = '660e8400-e29b-41d4-a716-446655440001';
+export const valleyOrgId = '660e8400-e29b-41d4-a716-446655440002';
+export const industrialOrgId = '660e8400-e29b-41d4-a716-446655440003';
+
+export const orgIds = {
+  apex: apexOrgId,
+  metro: metroOrgId,
+  valley: valleyOrgId,
+  industrial: industrialOrgId,
+} as const;
 
 export const seedEquipment = {
   cat320: {
@@ -22,6 +32,30 @@ export const seedWorkOrders = {
     id: 'a00e8400-e29b-41d4-a716-446655440002',
     title: 'Replace Hydraulic Filter',
   },
+  submitted: {
+    id: 'a00e8400-e29b-41d4-a716-446655440002',
+    title: 'Replace Hydraulic Filter',
+  },
+  onHold: {
+    id: 'a00e8400-e29b-41d4-a716-446655440003',
+    title: 'Light Tower Bulb Replacement',
+  },
+  completed: {
+    id: 'a00e8400-e29b-41d4-a716-446655440004',
+    title: 'Track Tension Adjustment',
+  },
+  cancelled: {
+    id: 'a00e8400-e29b-41d4-a716-446655440005',
+    title: 'Generator Fuel System Check',
+  },
+  accepted: {
+    id: 'a00e8400-e29b-41d4-a716-446655440012',
+    title: 'Scissor Lift Hydraulic Repair',
+  },
+  assigned: {
+    id: 'a00e8400-e29b-41d4-a716-446655440010',
+    title: 'Pre-Rental Inspection - Skid Steer',
+  },
 } as const;
 
 export const seedInventory = {
@@ -37,28 +71,112 @@ export const seedInventory = {
   },
 } as const;
 
-export type PersonaKey = 'owner' | 'admin' | 'technician';
+export const seedTeams = {
+  apexHeavyEquipment: {
+    id: '880e8400-e29b-41d4-a716-446655440000',
+    name: /heavy equipment/i,
+  },
+} as const;
+
+export const seedPmTemplates = {
+  forklift: {
+    id: 'cc0e8400-e29b-41d4-a716-446655440001',
+    name: /forklift pm/i,
+  },
+  excavator: {
+    id: 'cc0e8400-e29b-41d4-a716-446655440005',
+    name: /excavator pm/i,
+  },
+} as const;
+
+export const seedInvitations = {
+  pendingApex: {
+    token: 'e2e00000-e29b-41d4-a716-446655440001',
+    email: 'e2e.invitee.pending@apex.test',
+  },
+} as const;
+
+export const seedDsr = {
+  processingCase: {
+    id: 'f00e8400-e29b-41d4-a716-446655440001',
+  },
+} as const;
+
+export const devPassword = 'password123';
+
+export type PersonaKey =
+  | 'owner'
+  | 'admin'
+  | 'technician'
+  | 'metroOwner'
+  | 'metroTech'
+  | 'valleyOwner'
+  | 'industrialOwner'
+  | 'multiOrg';
 
 export const personas: Record<
   PersonaKey,
-  { displayName: string; email: string; orgLabel: string }
+  { displayName: string; email: string; orgLabel: string; defaultOrgId?: string }
 > = {
   owner: {
     displayName: 'Alex Apex',
     email: 'owner@apex.test',
     orgLabel: 'Apex Construction',
+    defaultOrgId: apexOrgId,
   },
   admin: {
     displayName: 'Amanda Admin',
     email: 'admin@apex.test',
     orgLabel: 'Apex Construction',
+    defaultOrgId: apexOrgId,
   },
   technician: {
     displayName: 'Tom Technician',
     email: 'tech@apex.test',
     orgLabel: 'Apex Construction',
+    defaultOrgId: apexOrgId,
+  },
+  metroOwner: {
+    displayName: 'Marcus Metro',
+    email: 'owner@metro.test',
+    orgLabel: 'Metro Equipment',
+    defaultOrgId: metroOrgId,
+  },
+  metroTech: {
+    displayName: 'Mike Mechanic',
+    email: 'tech@metro.test',
+    orgLabel: 'Metro Equipment',
+    defaultOrgId: metroOrgId,
+  },
+  valleyOwner: {
+    displayName: 'Victor Valley',
+    email: 'owner@valley.test',
+    orgLabel: 'Valley Landscaping',
+    defaultOrgId: valleyOrgId,
+  },
+  industrialOwner: {
+    displayName: 'Irene Industrial',
+    email: 'owner@industrial.test',
+    orgLabel: 'Industrial Rentals',
+    defaultOrgId: industrialOrgId,
+  },
+  multiOrg: {
+    displayName: 'Multi Org User',
+    email: 'multi@equipqr.test',
+    orgLabel: 'ALL Organizations',
   },
 };
+
+export const setupPersonas: PersonaKey[] = [
+  'owner',
+  'admin',
+  'technician',
+  'metroOwner',
+  'metroTech',
+  'valleyOwner',
+  'industrialOwner',
+  'multiOrg',
+];
 
 export function authStatePath(persona: PersonaKey): string {
   return `tmp/playwright/auth/${persona}.json`;

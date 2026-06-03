@@ -21,6 +21,8 @@ if /I "%~1"=="/help" goto help
 if /I "%~1"=="/?" goto help
 if /I "%~1"=="critical" set "SUITE=critical" & shift & goto parse_args
 if /I "%~1"=="full" set "SUITE=full" & shift & goto parse_args
+if /I "%~1"=="all" set "SUITE=all" & shift & goto parse_args
+if /I "%~1"=="local-full" set "SUITE=all" & set "RESET_DB=1" & shift & goto parse_args
 if /I "%~1"=="headed" set "HEADED=1" & set "HEADLESS=0" & shift & goto parse_args
 if /I "%~1"=="headless" set "HEADED=0" & set "HEADLESS=1" & shift & goto parse_args
 if /I "%~1"=="desktop" set "VIEWPORT_MODE=desktop" & shift & goto parse_args

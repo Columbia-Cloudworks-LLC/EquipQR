@@ -8,11 +8,18 @@ type ActionOverlayOptions = {
   pauseAfter?: boolean;
 };
 
-export async function assertRouteHealthy(page: Page, route: string): Promise<void> {
+export async function assertRouteHealthy(
+  page: Page,
+  route: string,
+  expectedText?: RegExp | string,
+): Promise<void> {
   await setActionOverlay(page, `Opening ${route}`);
   await page.goto(route.startsWith('/') ? route : `/${route}`);
   await expect(page.locator('body')).toBeVisible({ timeout: 30_000 });
   await expectNoAppErrorBoundary(page);
+  if (expectedText) {
+    await expect(page.getByText(expectedText).first()).toBeVisible({ timeout: 30_000 });
+  }
   await setActionOverlay(page, `Loaded ${route}`);
 }
 
@@ -339,9 +346,19 @@ export function attachConsoleErrorCollector(page: Page): string[] {
   return errors;
 }
 
-export function assertNoCriticalConsoleErrors(errors: string[]): void {
-  const critical = errors.filter(
-    (e) => !/Failed to load resource.*(404|406)/i.test(e),
-  );
+export function assertNoCriticalConsoleErrors(
+  errors: string[],
+  options?: { allowResourceNotFound?: boolean },
+): void {
+  const allow404 = options?.allowResourceNotFound === true;
+  const critical = errors.filter((e) => {
+    if (/favicon|hcaptcha|google.*maps|ResizeObserver/i.test(e)) {
+      return false;
+    }
+    if (allow404 && /Failed to load resource.*(404|406)/i.test(e)) {
+      return false;
+    }
+    return true;
+  });
   expect(critical, `Unexpected console errors: ${critical.join('\n')}`).toEqual([]);
 }

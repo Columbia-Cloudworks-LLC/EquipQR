@@ -44,6 +44,7 @@ This folder contains modular seed data files for local development. The files ar
 | `24_part_compatibility_rules.sql` | Part-equipment compatibility rules (~40 rules) |
 | `25_part_alternate_groups.sql` | Part alternate/interchange groups (10 groups, 30+ identifiers) |
 | `26_large_inventory.sql` | **Large-scale load testing data** (900 items, 150 groups, 623 identifiers) |
+| `29_e2e_playwright_fixtures.sql` | Playwright fixtures: requestor team member, pending invitation token, DSR case |
 
 ## Test Accounts
 

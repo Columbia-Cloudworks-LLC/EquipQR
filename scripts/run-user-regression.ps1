@@ -55,7 +55,7 @@
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('critical', 'full')]
+    [ValidateSet('critical', 'full', 'all')]
     [string]$Suite = 'critical',
 
     [switch]$Headed,
@@ -149,6 +149,11 @@ if (-not $SkipStackStart -and (-not $appReady -or -not $supabaseReady)) {
     exit 1
 }
 
+if (($Suite -eq 'full' -or $Suite -eq 'all') -and -not $ResetDb) {
+    Write-Host '[EquipQR E2E] WARNING: full/all suites mutate data; auto-enabling -ResetDb for repeatable runs.'
+    $ResetDb = $true
+}
+
 if ($ResetDb) {
     Write-Host '[EquipQR E2E] Resetting local database (supabase db reset)...'
     npx supabase db reset
@@ -206,11 +211,16 @@ $defaultRunConfig = Read-RunConfigDefaults
 $resolvedViewportMode = if ($ViewportMode) { $ViewportMode } else { $defaultRunConfig.viewportMode }
 $resolvedRecordingTitle = if ($RecordingTitle) { $RecordingTitle.Trim() } else { $defaultRunConfig.recordingTitle }
 
+$projectArgs = if ($Suite -eq 'all') {
+    @('--project=setup', '--project=critical', '--project=full')
+} else {
+    @("--project=$Suite")
+}
+
 $playwrightArgs = @(
     'playwright', 'test',
-    '--config=playwright.user.config.ts',
-    "--project=$Suite"
-)
+    '--config=playwright.user.config.ts'
+) + $projectArgs
 
 if ($Headed -and -not $Headless) {
     $playwrightArgs += '--headed'
