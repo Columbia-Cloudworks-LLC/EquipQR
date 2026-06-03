@@ -6,7 +6,7 @@
  */
 
 // Work Order Status Border Colors
-export const getWorkOrderStatusBorderClass = (status: string): string => {
+const getWorkOrderStatusBorderClass = (status: string): string => {
   const statusLower = status?.toLowerCase() ?? '';
   
   switch (statusLower) {
@@ -38,25 +38,6 @@ export const getWorkOrderStatusBorderWithOverdue = (
   return getWorkOrderStatusBorderClass(status);
 };
 
-// Priority Border Colors
-export const getPriorityBorderClass = (priority: string): string => {
-  const priorityLower = priority?.toLowerCase() ?? '';
-  
-  switch (priorityLower) {
-    case 'low':
-      return 'border-l-4 border-l-priority-low';
-    case 'medium':
-      return 'border-l-4 border-l-priority-medium';
-    case 'high':
-      return 'border-l-4 border-l-priority-high';
-    case 'critical':
-    case 'urgent':
-      return 'border-l-4 border-l-priority-critical';
-    default:
-      return 'border-l-4 border-l-muted';
-  }
-};
-
 // Equipment Status Border Colors
 export const getEquipmentStatusBorderClass = (status: string): string => {
   const statusLower = status?.toLowerCase() ?? '';
@@ -76,28 +57,6 @@ export const getEquipmentStatusBorderClass = (status: string): string => {
       return 'border-l-4 border-l-equipment-retired';
     default:
       return 'border-l-4 border-l-muted';
-  }
-};
-
-// Status Badge Background Colors (for status badges)
-export const getStatusBadgeClass = (status: string): string => {
-  const statusLower = status?.toLowerCase() ?? '';
-  
-  switch (statusLower) {
-    case 'open':
-      return 'bg-status-open text-primary-foreground';
-    case 'assigned':
-      return 'bg-status-assigned text-primary-foreground';
-    case 'in_progress':
-    case 'in-progress':
-      return 'bg-status-in-progress text-foreground';
-    case 'completed':
-      return 'bg-status-completed text-primary-foreground';
-    case 'cancelled':
-    case 'canceled':
-      return 'bg-status-cancelled text-primary-foreground';
-    default:
-      return 'bg-muted text-muted-foreground';
   }
 };
 

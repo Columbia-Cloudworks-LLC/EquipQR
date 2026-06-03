@@ -1,5 +1,5 @@
 import { logger } from '@/utils/logger';
-import { SessionData } from '@/contexts/SessionContext';
+import type { SessionData } from '@/types/session';
 import { 
   getSessionStorageKey, 
   getSessionVersion,

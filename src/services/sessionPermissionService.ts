@@ -1,4 +1,4 @@
-import { SessionData, SessionOrganization } from '@/contexts/SessionContext';
+import type { SessionData, SessionOrganization } from '@/types/session';
 
 export class SessionPermissionService {
   static hasTeamRole(

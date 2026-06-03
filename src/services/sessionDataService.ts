@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { SessionOrganization, SessionTeamMembership } from '@/contexts/SessionContext';
+import type { SessionOrganization, SessionTeamMembership } from '@/types/session';
 
 import { logger } from '@/utils/logger';
 

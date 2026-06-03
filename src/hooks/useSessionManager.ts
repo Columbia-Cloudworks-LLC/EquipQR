@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
-import { SessionData, SessionTeamMembership, SessionOrganization } from '@/contexts/SessionContext';
+import type { SessionData, SessionTeamMembership, SessionOrganization } from '@/types/session';
 import { SessionDataService } from '@/services/sessionDataService';
 import { SessionStorageService } from '@/services/sessionStorageService';
 import { getOrganizationPreference, saveOrganizationPreference, shouldRefreshSession, getSessionVersion } from '@/utils/sessionPersistence';
@@ -13,7 +13,7 @@ interface UseSessionManagerProps {
   onError: (error: string) => void;
 }
 
-export interface InitializeSessionResult {
+interface InitializeSessionResult {
   waitForAuth?: boolean;
   shouldLoadFromCache?: boolean;
   cachedData?: SessionData | null;
