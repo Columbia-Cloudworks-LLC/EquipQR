@@ -55,12 +55,6 @@ export class SessionStorageService {
     clearOrganizationPreference();
   }
 
-  static isSessionExpired(sessionData: SessionData): boolean {
-    const lastUpdated = new Date(sessionData.lastUpdated);
-    const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
-    return lastUpdated < fourHoursAgo;
-  }
-
   static isSessionVersionValid(sessionData: SessionData): boolean {
     return sessionData.version === SESSION_VERSION;
   }

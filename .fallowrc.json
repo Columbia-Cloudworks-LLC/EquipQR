@@ -1,0 +1,6 @@
+{
+  "ignoreDependencies": [
+    "@size-limit/file",
+    "us-atlas"
+  ]
+}

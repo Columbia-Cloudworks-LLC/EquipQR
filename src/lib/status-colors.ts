@@ -1,102 +1,84 @@
 /**
  * Status Color Utilities
- * 
+ *
  * Provides consistent status-based color classes for work orders, equipment,
  * and other entities throughout the application.
  */
 
-// Work Order Status Border Colors
-const getWorkOrderStatusBorderClass = (status: string): string => {
-  const statusLower = status?.toLowerCase() ?? '';
-  
-  switch (statusLower) {
-    case 'open':
-      return 'border-l-4 border-l-status-open';
-    case 'assigned':
-      return 'border-l-4 border-l-status-assigned';
-    case 'in_progress':
-    case 'in-progress':
-      return 'border-l-4 border-l-status-in-progress';
-    case 'completed':
-      return 'border-l-4 border-l-status-completed';
-    case 'cancelled':
-    case 'canceled':
-      return 'border-l-4 border-l-status-cancelled';
-    default:
-      return 'border-l-4 border-l-muted';
-  }
+const BORDER_LEFT = 'border-l-4 ';
+
+const lookupBorderClass = (status: string, tokens: Record<string, string>): string => {
+  const key = status?.toLowerCase() ?? '';
+  return BORDER_LEFT + (tokens[key] ?? 'border-l-muted');
 };
+
+const WORK_ORDER_STATUS_BORDER: Record<string, string> = {
+  open: 'border-l-status-open',
+  assigned: 'border-l-status-assigned',
+  in_progress: 'border-l-status-in-progress',
+  'in-progress': 'border-l-status-in-progress',
+  completed: 'border-l-status-completed',
+  cancelled: 'border-l-status-cancelled',
+  canceled: 'border-l-status-cancelled',
+};
+
+const EQUIPMENT_STATUS_BORDER: Record<string, string> = {
+  active: 'border-l-equipment-operational',
+  operational: 'border-l-equipment-operational',
+  maintenance: 'border-l-equipment-maintenance',
+  repair: 'border-l-equipment-repair',
+  broken: 'border-l-equipment-repair',
+  out_of_service: 'border-l-equipment-repair',
+  retired: 'border-l-equipment-retired',
+  inactive: 'border-l-equipment-retired',
+};
+
+const PRIORITY_BADGE: Record<string, string> = {
+  low: 'bg-priority-low/10 text-priority-low border-priority-low',
+  medium: 'bg-priority-medium/10 text-priority-medium border-priority-medium',
+  high: 'bg-priority-high/10 text-priority-high border-priority-high',
+  critical: 'bg-priority-critical/10 text-priority-critical border-priority-critical',
+  urgent: 'bg-priority-critical/10 text-priority-critical border-priority-critical',
+};
+
+const STATUS_BACKGROUND_TINT: Record<string, string> = {
+  in_progress: 'bg-status-in-progress/[0.03]',
+  'in-progress': 'bg-status-in-progress/[0.03]',
+  on_hold: 'bg-warning/[0.03]',
+  submitted: 'bg-info/[0.03]',
+  accepted: 'bg-primary/[0.03]',
+  assigned: 'bg-primary/[0.03]',
+};
+
+const getWorkOrderStatusBorderClass = (status: string): string =>
+  lookupBorderClass(status, WORK_ORDER_STATUS_BORDER);
 
 // Work Order Status with Overdue Check
 export const getWorkOrderStatusBorderWithOverdue = (
-  status: string, 
+  status: string,
   isOverdue: boolean
 ): string => {
   if (isOverdue && status?.toLowerCase() !== 'completed') {
-    return 'border-l-4 border-l-status-overdue';
+    return `${BORDER_LEFT}border-l-status-overdue`;
   }
   return getWorkOrderStatusBorderClass(status);
 };
 
 // Equipment Status Border Colors
-export const getEquipmentStatusBorderClass = (status: string): string => {
-  const statusLower = status?.toLowerCase() ?? '';
-  
-  switch (statusLower) {
-    case 'active':
-    case 'operational':
-      return 'border-l-4 border-l-equipment-operational';
-    case 'maintenance':
-      return 'border-l-4 border-l-equipment-maintenance';
-    case 'repair':
-    case 'broken':
-    case 'out_of_service':
-      return 'border-l-4 border-l-equipment-repair';
-    case 'retired':
-    case 'inactive':
-      return 'border-l-4 border-l-equipment-retired';
-    default:
-      return 'border-l-4 border-l-muted';
-  }
-};
+export const getEquipmentStatusBorderClass = (status: string): string =>
+  lookupBorderClass(status, EQUIPMENT_STATUS_BORDER);
 
 // Work Order Status Background Tints (subtle card fills for active states)
 export const getStatusBackgroundTint = (status: string, isOverdue: boolean): string => {
   if (isOverdue && status?.toLowerCase() !== 'completed') {
     return 'bg-destructive/[0.03]';
   }
-  switch (status?.toLowerCase()) {
-    case 'in_progress':
-    case 'in-progress':
-      return 'bg-status-in-progress/[0.03]';
-    case 'on_hold':
-      return 'bg-warning/[0.03]';
-    case 'submitted':
-      return 'bg-info/[0.03]';
-    case 'accepted':
-    case 'assigned':
-      return 'bg-primary/[0.03]';
-    default:
-      return '';
-  }
+  const key = status?.toLowerCase() ?? '';
+  return STATUS_BACKGROUND_TINT[key] ?? '';
 };
 
 // Priority Badge Colors
 export const getPriorityBadgeClass = (priority: string): string => {
-  const priorityLower = priority?.toLowerCase() ?? '';
-  
-  switch (priorityLower) {
-    case 'low':
-      return 'bg-priority-low/10 text-priority-low border-priority-low';
-    case 'medium':
-      return 'bg-priority-medium/10 text-priority-medium border-priority-medium';
-    case 'high':
-      return 'bg-priority-high/10 text-priority-high border-priority-high';
-    case 'critical':
-    case 'urgent':
-      return 'bg-priority-critical/10 text-priority-critical border-priority-critical';
-    default:
-      return 'bg-muted text-muted-foreground';
-  }
+  const key = priority?.toLowerCase() ?? '';
+  return PRIORITY_BADGE[key] ?? 'bg-muted text-muted-foreground';
 };
-

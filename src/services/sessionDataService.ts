@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { SessionOrganization, SessionTeamMembership } from '@/types/session';
+import { mapOrganizationRowsToSessionOrganizations } from '@/utils/mapOrganizationToSession';
 
 import { logger } from '@/utils/logger';
 
@@ -40,25 +41,7 @@ export class SessionDataService {
       throw new Error(`Failed to fetch organizations: ${orgError.message}`);
     }
 
-    // Combine organization data with user roles
-    return (orgData || []).map(org => {
-      const membership = orgMemberData.find(om => om.organization_id === org.id);
-      return {
-        id: org.id,
-        name: org.name,
-        plan: org.plan as 'free' | 'premium',
-        memberCount: org.member_count,
-        maxMembers: org.max_members,
-        features: org.features,
-        billingCycle: org.billing_cycle as 'monthly' | 'yearly' | undefined,
-        nextBillingDate: org.next_billing_date || undefined,
-        logo: org.logo || undefined,
-        backgroundColor: org.background_color || undefined,
-        scanLocationCollectionEnabled: org.scan_location_collection_enabled ?? true,
-        userRole: membership?.role as 'owner' | 'admin' | 'member' || 'member',
-        userStatus: membership?.status as 'active' | 'pending' | 'inactive' || 'active'
-      };
-    });
+    return mapOrganizationRowsToSessionOrganizations(orgData || [], orgMemberData);
   }
 
   static async fetchTeamMemberships(
