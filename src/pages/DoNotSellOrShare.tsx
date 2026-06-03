@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { PageBackButton } from '@/components/layout/PageBackButton';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageSEO } from '@/components/seo/PageSEO';
 

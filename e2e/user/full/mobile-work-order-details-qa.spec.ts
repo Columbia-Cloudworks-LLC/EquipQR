@@ -1,6 +1,7 @@
 import { type BrowserContext, type Locator, type Page } from '@playwright/test';
 import { test, expect } from '../fixtures/equipqr-test';
 import { seedWorkOrders } from '../shared/seed-data';
+import { clickWithDemoCue } from '../shared/page-helpers';
 
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
 const MOBILE_USER_AGENT =
@@ -91,7 +92,7 @@ test.describe('mobile work order details field QA @full', () => {
         page.getByText(/offline - text and status changes save locally|you are currently offline/i).first(),
       ).toBeVisible({ timeout: 10_000 });
 
-      await page.getByRole('button', { name: /^note$/i }).first().click();
+      await clickWithDemoCue(page.getByRole('button', { name: /^note$/i }).first(), 'Add mobile note');
       await expect(page.getByText(/you're offline/i).first()).toBeVisible({ timeout: 10_000 });
       await expect(page.getByRole('textbox', { name: /note content/i })).toBeVisible();
     } finally {

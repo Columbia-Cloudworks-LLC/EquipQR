@@ -1,6 +1,5 @@
 import path from 'path';
 import { test, expect } from '../fixtures/equipqr-test';
-import { pauseForWatchMode } from '../shared/page-helpers';
 import { authStatePath } from '../shared/seed-data';
 
 test.describe('authentication @critical', () => {
@@ -11,7 +10,6 @@ test.describe('authentication @critical', () => {
     await page.goto('/dashboard');
     await expect(page).toHaveURL(/\/dashboard/i, { timeout: 60_000 });
     await expect(page.locator('#main-content, main').first()).toBeVisible();
-    await pauseForWatchMode(page);
     await context.close();
   });
 
@@ -21,7 +19,6 @@ test.describe('authentication @critical', () => {
     const page = await context.newPage();
     await page.goto('/dashboard');
     await expect(page).toHaveURL(/\/dashboard/i, { timeout: 60_000 });
-    await pauseForWatchMode(page);
     await context.close();
   });
 
@@ -31,7 +28,6 @@ test.describe('authentication @critical', () => {
     const page = await context.newPage();
     await page.goto('/dashboard');
     await expect(page).toHaveURL(/\/dashboard/i, { timeout: 60_000 });
-    await pauseForWatchMode(page);
     await context.close();
   });
 });

@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -28,76 +29,174 @@ interface UseGoogleMapsKeyResult {
   retry: () => void;
 }
 
+/** @internal Exported for unit tests */
+export async function resolveAuthenticatedSession(): Promise<Session | null> {
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || !session?.access_token) {
+    return null;
+  }
+
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (!userError && user) {
+    return session;
+  }
+
+  const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError || !refreshed.session?.access_token) {
+    return null;
+  }
+
+  return refreshed.session;
+}
+
+function isUnauthorizedFunctionError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const candidate = error as { message?: string; status?: number; context?: { status?: number } };
+  const status = candidate.status ?? candidate.context?.status;
+  if (status === 401) {
+    return true;
+  }
+
+  const message = candidate.message?.toLowerCase() ?? '';
+  return message.includes('401') || message.includes('unauthorized');
+}
+
+/** @internal Exported for unit tests */
+export async function invokePublicGoogleMapsKey(): Promise<GoogleMapsKeyResponse> {
+  const cacheKey = `cache_bust_${Date.now()}`;
+
+  const call = () =>
+    supabase.functions.invoke<GoogleMapsKeyResponse>('public-google-maps-key', {
+      body: { cache_bust: cacheKey },
+    });
+
+  let { data, error } = await call();
+
+  if (error && isUnauthorizedFunctionError(error)) {
+    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+    if (!refreshError && refreshed.session?.access_token) {
+      ({ data, error } = await call());
+    }
+  }
+
+  if (error) {
+    console.error('[FleetMap] Edge function error object:', error);
+    interface ErrorWithError {
+      message?: string;
+      error?: string;
+    }
+    const errorWithError = error as ErrorWithError;
+    const errorMsg = error.message || errorWithError.error || JSON.stringify(error);
+    throw new Error(`Edge function failed: ${errorMsg}`);
+  }
+
+  if (data?.error) {
+    const errorMsg = data.details ? `${data.error}: ${data.details}` : data.error;
+    console.error('[FleetMap] Edge function returned error in data:', errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  if (!data?.key) {
+    console.error('[FleetMap] No API key in response. Full response:', JSON.stringify(data, null, 2));
+    throw new Error('Google Maps API key not found in response');
+  }
+
+  return data;
+}
+
 export const useGoogleMapsKey = (options: UseGoogleMapsKeyOptions = {}): UseGoogleMapsKeyResult => {
   const enabled = options.enabled ?? true;
   const [googleMapsKey, setGoogleMapsKey] = useState<string>('');
   const [mapId, setMapId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
+  const inFlightRef = useRef(false);
 
   const fetchGoogleMapsKey = useCallback(async () => {
-    if (!enabled) return;
+    if (!enabled || inFlightRef.current) {
+      return;
+    }
+
+    const session = await resolveAuthenticatedSession();
+    if (!session?.access_token) {
+      return;
+    }
+
+    inFlightRef.current = true;
     setIsLoading(true);
     setError(null);
-    
-    try {
-      // Add cache busting parameter to force fresh request
-      const cacheKey = `cache_bust_${Date.now()}`;
 
-      const { data, error } = await supabase.functions.invoke<GoogleMapsKeyResponse>(
-        'public-google-maps-key',
-        {
-          body: { cache_bust: cacheKey }
-        }
-      );
-      
-      if (error) {
-        console.error('[FleetMap] Edge function error object:', error);
-        // Extract error message from various possible locations
-        interface ErrorWithError {
-          message?: string;
-          error?: string;
-        }
-        const errorWithError = error as ErrorWithError;
-        const errorMsg = error.message || errorWithError.error || JSON.stringify(error);
-        throw new Error(`Edge function failed: ${errorMsg}`);
-      }
-      
-      // Check if the response contains an error (edge function returned error in data)
-      if (data?.error) {
-        const errorMsg = data.details ? `${data.error}: ${data.details}` : data.error;
-        console.error('[FleetMap] Edge function returned error in data:', errorMsg);
-        throw new Error(errorMsg);
-      }
-      
-      if (!data?.key) {
-        console.error('[FleetMap] No API key in response. Full response:', JSON.stringify(data, null, 2));
-        throw new Error('Google Maps API key not found in response');
-      }
-      
-      setGoogleMapsKey(data.key);
+    try {
+      const data = await invokePublicGoogleMapsKey();
+      setGoogleMapsKey(data.key!);
       setMapId(data.mapId ?? null);
       setError(null);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch Google Maps key';
-      console.error('[FleetMap] Failed to fetch Google Maps key:', error);
+    } catch (fetchError) {
+      const errorMessage =
+        fetchError instanceof Error ? fetchError.message : 'Failed to fetch Google Maps key';
+      console.error('[FleetMap] Failed to fetch Google Maps key:', fetchError);
       setError(errorMessage);
-      
-      // Show detailed error to help with debugging
+
       toast.error('Map Configuration Error', {
         description: `${errorMessage}. Check that the GOOGLE_MAPS_BROWSER_KEY secret is configured on the Supabase project (legacy: VITE_GOOGLE_MAPS_BROWSER_KEY).`,
       });
     } finally {
+      inFlightRef.current = false;
       setIsLoading(false);
     }
   }, [enabled]);
+
+  const authListenerRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (!enabled) {
       setIsLoading(false);
       return;
     }
-    fetchGoogleMapsKey();
+
+    let cancelled = false;
+
+    const cleanupAuthListener = () => {
+      authListenerRef.current?.();
+      authListenerRef.current = null;
+    };
+
+    const scheduleFetch = () => {
+      queueMicrotask(() => {
+        if (!cancelled) {
+          void fetchGoogleMapsKey();
+        }
+      });
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (cancelled) {
+        return;
+      }
+
+      if (
+        (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') &&
+        session?.access_token
+      ) {
+        scheduleFetch();
+      }
+    });
+
+    authListenerRef.current = () => subscription.unsubscribe();
+
+    void resolveAuthenticatedSession().then((session) => {
+      if (!cancelled && session?.access_token) {
+        scheduleFetch();
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      cleanupAuthListener();
+    };
   }, [enabled, fetchGoogleMapsKey]);
 
   return {

@@ -1,9 +1,14 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import type { EquipmentCreationData } from './create-flow-data';
+import { clickWithDemoCue, fillWithDemoCue, spotlightLocator } from './page-helpers';
 
 function patternToSearchText(name: string | RegExp): string {
   if (typeof name === 'string') return name;
   return name.source.replace(/\\(.)/g, '$1').replace(/[\\^$.*+?()[\]{}|]/g, '').trim();
+}
+
+function labelText(name: string | RegExp): string {
+  return patternToSearchText(name) || String(name);
 }
 
 export async function selectRadixOption(
@@ -11,10 +16,10 @@ export async function selectRadixOption(
   trigger: Locator,
   optionName: string | RegExp,
 ): Promise<void> {
-  await trigger.click();
+  await clickWithDemoCue(trigger, `Open ${labelText(optionName)} options`);
   const option = page.getByRole('option', { name: optionName }).last();
   await expect(option).toBeVisible({ timeout: 15_000 });
-  await option.click();
+  await clickWithDemoCue(option, `Select ${labelText(optionName)}`);
 }
 
 async function pickComboboxOption(
@@ -22,16 +27,16 @@ async function pickComboboxOption(
   trigger: Locator,
   optionName: string | RegExp,
 ): Promise<boolean> {
-  await trigger.click();
+  await clickWithDemoCue(trigger, `Open ${labelText(optionName)} picker`);
   const searchText = patternToSearchText(optionName);
   const commandInput = page.getByPlaceholder(/search equipment|search by name or sku/i);
   if (await commandInput.isVisible({ timeout: 2_000 }).catch(() => false)) {
-    await commandInput.fill(searchText);
+    await fillWithDemoCue(commandInput, `Search for ${searchText}`, searchText);
   }
 
   const option = page.getByRole('option').filter({ hasText: optionName }).first();
   if (await option.isVisible({ timeout: 10_000 }).catch(() => false)) {
-    await option.click();
+    await clickWithDemoCue(option, `Select ${labelText(optionName)}`);
     return true;
   }
 
@@ -57,7 +62,7 @@ export async function fillInputByLabel(
 ): Promise<void> {
   const field = pageOrLocator.getByLabel(label, { exact: false });
   await expect(field.first()).toBeVisible({ timeout: 15_000 });
-  await field.first().fill(value);
+  await fillWithDemoCue(field.first(), `Fill ${labelText(label)}`, value);
 }
 
 async function fillTextControlByLabel(
@@ -67,6 +72,7 @@ async function fillTextControlByLabel(
 ): Promise<void> {
   const field = pageOrLocator.getByLabel(label, { exact: false }).first();
   await expect(field).toBeVisible({ timeout: 15_000 });
+  await spotlightLocator(field, `Fill ${labelText(label)}`);
   await field.click();
   await field.fill('');
   await field.fill(value);
@@ -82,7 +88,7 @@ export async function expectToastOrRecordVisible(
 
   const search = page.getByPlaceholder(/search equipment|search inventory|search parts/i).first();
   if (await search.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await search.fill(searchText);
+    await fillWithDemoCue(search, `Search for ${searchText}`, searchText);
   }
 
   const openDetails = page
@@ -100,11 +106,11 @@ export async function expectToastOrRecordVisible(
 export async function openAddEquipmentDialog(page: Page): Promise<Locator> {
   const addButton = page.getByRole('button', { name: /add equipment/i }).first();
   await expect(addButton).toBeVisible({ timeout: 30_000 });
-  await addButton.click();
+  await clickWithDemoCue(addButton, 'Add equipment');
 
   const singleItem = page.getByRole('menuitem', { name: /add single equipment/i });
   if (await singleItem.isVisible({ timeout: 2_000 }).catch(() => false)) {
-    await singleItem.click();
+    await clickWithDemoCue(singleItem, 'Add single equipment');
   }
 
   const dialog = page.getByRole('dialog');
@@ -131,7 +137,7 @@ export async function fillEquipmentDialog(
   if (data.notes) {
     const notes = dialog.getByLabel(/^Notes/i);
     if (await notes.isVisible({ timeout: 1_000 }).catch(() => false)) {
-      await notes.fill(data.notes);
+      await fillWithDemoCue(notes, 'Fill notes', data.notes);
     }
   }
 }
@@ -147,7 +153,7 @@ export async function createEquipmentFromEquipmentPage(
   await expect(dialog.getByRole('button', { name: /create equipment/i })).toBeEnabled({
     timeout: 15_000,
   });
-  await dialog.getByRole('button', { name: /create equipment/i }).click();
+  await clickWithDemoCue(dialog.getByRole('button', { name: /create equipment/i }), 'Create equipment');
   await expect(dialog).toBeHidden({ timeout: 60_000 });
   await expectToastOrRecordVisible(page, data.name);
   return data.name;
@@ -157,14 +163,14 @@ export async function openEquipmentDetailByName(page: Page, equipmentName: strin
   const escaped = equipmentName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const search = page.getByPlaceholder(/search equipment/i).first();
   if (await search.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await search.fill(equipmentName);
+    await fillWithDemoCue(search, `Search for ${equipmentName}`, equipmentName);
   }
 
   const openButton = page
     .getByRole('button', { name: new RegExp(`Open details for ${escaped}`, 'i') })
     .first();
   await expect(openButton).toBeVisible({ timeout: 60_000 });
-  await openButton.click();
+  await clickWithDemoCue(openButton, `Open ${equipmentName}`);
   await expect(page).toHaveURL(/\/dashboard\/equipment\//, { timeout: 60_000 });
 }
 
@@ -172,14 +178,16 @@ export async function assignPmTemplateOnEquipmentDetail(
   page: Page,
   templateName: string | RegExp,
 ): Promise<void> {
-  await page.getByRole('button', { name: /edit pm template/i }).click({ force: true });
+  await clickWithDemoCue(page.getByRole('button', { name: /edit pm template/i }), 'Edit PM template', {
+    force: true,
+  });
 
   const templateTrigger = page.getByLabel(/^PM Template$/i);
   await expect(templateTrigger).toBeVisible({ timeout: 15_000 });
   await selectRadixOption(page, templateTrigger, templateName);
 
   const pmRow = page.locator('label').filter({ hasText: /^PM Template$/ }).locator('..');
-  await pmRow.getByRole('button', { name: /^Save$/i }).click();
+  await clickWithDemoCue(pmRow.getByRole('button', { name: /^Save$/i }), 'Save PM template');
 
   await expect(page.getByText(templateName).first()).toBeVisible({ timeout: 30_000 });
 }
@@ -199,7 +207,7 @@ export async function openWorkOrderCreateDialog(page: Page, gotoDashboard: (rout
   const createButton = stableCreateButton.or(page.getByRole('button', { name: /^Create Work Order$/i })).first();
   await expect(createButton).toBeVisible({ timeout: 15_000 });
   await expect(createButton).toBeEnabled();
-  await createButton.click();
+  await clickWithDemoCue(createButton, 'Create work order');
 
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByRole('heading', { name: /create work order/i })).toBeVisible({
@@ -216,13 +224,13 @@ export async function fillWorkOrderBasics(
   if (data.description) {
     const description = dialog.getByLabel(/^Description/i);
     if (await description.isVisible({ timeout: 2_000 }).catch(() => false)) {
-      await description.fill(data.description);
+      await fillWithDemoCue(description, 'Fill description', data.description);
     }
   }
   if (data.dueDate) {
     const dueDate = dialog.getByLabel(/^Due Date/i);
     if (await dueDate.isVisible({ timeout: 2_000 }).catch(() => false)) {
-      await dueDate.fill(data.dueDate);
+      await fillWithDemoCue(dueDate, 'Fill due date', data.dueDate);
     }
   }
 }
@@ -239,7 +247,7 @@ export async function selectWorkOrderEquipment(
 ): Promise<void> {
   const selectExistingTab = dialog.getByRole('tab', { name: /select existing/i });
   if (await selectExistingTab.isVisible({ timeout: 2_000 }).catch(() => false)) {
-    await selectExistingTab.click();
+    await clickWithDemoCue(selectExistingTab, 'Select existing equipment');
   }
 
   const trigger = getWorkOrderEquipmentTrigger(dialog);
@@ -263,7 +271,7 @@ export async function setWorkOrderType(
   type: 'standard' | 'pm',
 ): Promise<void> {
   const label = type === 'pm' ? /With PM Checklist/i : /Standard Work Order/i;
-  await dialog.getByRole('radio', { name: label }).click();
+  await clickWithDemoCue(dialog.getByRole('radio', { name: label }), `Choose ${labelText(label)}`);
 }
 
 export async function selectPmTemplateIfAvailable(
@@ -286,11 +294,11 @@ export async function selectPmTemplateIfAvailable(
 
 export async function submitWorkOrderForm(page: Page, dialog: Locator): Promise<void> {
   const submit = dialog.getByTestId('submit-button').or(dialog.getByRole('button', { name: /create work order/i }));
-  await submit.click();
+  await clickWithDemoCue(submit, 'Submit work order');
 
   const confirmHours = page.getByRole('button', { name: /yes, create without hours/i });
   if (await confirmHours.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await confirmHours.click();
+    await clickWithDemoCue(confirmHours, 'Create without hours');
   }
 
   await expect(dialog).toBeHidden({ timeout: 60_000 });
@@ -300,10 +308,10 @@ export async function submitWorkOrderForm(page: Page, dialog: Locator): Promise<
 export async function openInventoryCreateDialog(page: Page, gotoDashboard: (route: string) => Promise<void>): Promise<Locator> {
   await gotoDashboard('/inventory');
   const addItem = page.getByRole('button', { name: /add item/i }).first();
-  await addItem.click();
+  await clickWithDemoCue(addItem, 'Add inventory item');
   const singleItem = page.getByRole('menuitem', { name: /add single item/i });
   if (await singleItem.isVisible({ timeout: 2_000 }).catch(() => false)) {
-    await singleItem.click();
+    await clickWithDemoCue(singleItem, 'Add single inventory item');
   }
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByText(/create inventory item/i)).toBeVisible({ timeout: 15_000 });
@@ -321,7 +329,7 @@ export async function addInventoryCompatibilityRule(
 
   let manufacturerTrigger = dialog.getByRole('combobox').filter({ hasText: /Select manufacturer/i }).first();
   if ((await manufacturerTrigger.count()) === 0) {
-    await dialog.getByRole('button', { name: /add rule/i }).click();
+    await clickWithDemoCue(dialog.getByRole('button', { name: /add rule/i }), 'Add compatibility rule');
     manufacturerTrigger = dialog.getByRole('combobox').filter({ hasText: /Select manufacturer/i }).first();
   }
   await expect(manufacturerTrigger).toBeVisible({ timeout: 15_000 });
@@ -347,6 +355,6 @@ export async function addInventoryCompatibilityRule(
 }
 
 export async function submitInventoryItemDialog(page: Page, dialog: Locator): Promise<void> {
-  await dialog.getByRole('button', { name: /create item/i }).click();
+  await clickWithDemoCue(dialog.getByRole('button', { name: /create item/i }), 'Create inventory item');
   await expect(dialog).toBeHidden({ timeout: 60_000 });
 }

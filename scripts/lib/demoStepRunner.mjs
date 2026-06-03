@@ -21,6 +21,72 @@ function regexLiteral(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+const DESKTOP_DEMO_VIEWPORT = { width: 1920, height: 1080 };
+const DEMO_CUE_PAUSE_MS = 900;
+const DEMO_POST_ACTION_PAUSE_MS = 450;
+
+/**
+ * @param {string} label
+ */
+function demoCuePrelude(label) {
+  const safeLabel = jsString(label);
+  return `
+      const __equipqrDemoCue = async (element) => {
+        const ringId = 'equipqr-demo-action-spotlight';
+        const labelId = 'equipqr-demo-action-spotlight-label';
+        document.getElementById(ringId)?.remove();
+        document.getElementById(labelId)?.remove();
+        element.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+        await new Promise((resolve) => setTimeout(resolve, 250));
+        const rect = element.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+        const ring = document.createElement('div');
+        ring.id = ringId;
+        ring.setAttribute('aria-hidden', 'true');
+        Object.assign(ring.style, {
+          position: 'fixed',
+          pointerEvents: 'none',
+          zIndex: '2147483646',
+          left: Math.max(8, rect.left - 8) + 'px',
+          top: Math.max(8, rect.top - 8) + 'px',
+          width: rect.width + 16 + 'px',
+          height: rect.height + 16 + 'px',
+          border: '4px solid #7B3EE7',
+          borderRadius: '14px',
+          boxShadow: '0 0 0 8px rgba(123, 62, 231, 0.18), 0 16px 45px rgba(15, 23, 42, 0.28)',
+          background: 'rgba(123, 62, 231, 0.06)'
+        });
+        const caption = document.createElement('div');
+        caption.id = labelId;
+        caption.setAttribute('aria-hidden', 'true');
+        caption.textContent = '${safeLabel}';
+        Object.assign(caption.style, {
+          position: 'fixed',
+          pointerEvents: 'none',
+          zIndex: '2147483647',
+          left: Math.max(8, rect.left - 8) + 'px',
+          top: Math.max(8, rect.top - 42) + 'px',
+          maxWidth: 'min(520px, calc(100vw - 24px))',
+          padding: '7px 10px',
+          borderRadius: '999px',
+          background: '#7B3EE7',
+          color: 'white',
+          font: '700 12px/1.25 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          boxShadow: '0 10px 30px rgba(15, 23, 42, 0.26)',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        });
+        document.documentElement.append(ring, caption);
+        window.setTimeout(() => {
+          ring.remove();
+          caption.remove();
+        }, ${DEMO_CUE_PAUSE_MS + 1200});
+        await new Promise((resolve) => setTimeout(resolve, ${DEMO_CUE_PAUSE_MS}));
+      };
+  `;
+}
+
 /**
  * @param {string} baseUrl
  * @param {string} route
@@ -103,6 +169,21 @@ export function createDemoStepRunner(opts) {
   /**
    * @param {string} sceneId
    * @param {number} stepIndex
+   * @param {string} action
+   */
+  function recordSpotlight(sceneId, stepIndex, action) {
+    opts.diagnostics.spotlightCount = Number(opts.diagnostics.spotlightCount || 0) + 1;
+    opts.diagnostics.sceneEvents.push({
+      type: 'spotlight-shown',
+      sceneId,
+      stepIndex,
+      action
+    });
+  }
+
+  /**
+   * @param {string} sceneId
+   * @param {number} stepIndex
    * @param {Record<string, unknown>} step
    * @param {() => Promise<void>} fn
    */
@@ -143,11 +224,13 @@ export function createDemoStepRunner(opts) {
     const roleEscaped = jsString(role);
     const nameEscaped = jsString(regexLiteral(name));
     const fallbackJson = JSON.stringify(fallbackSelectors || []);
-    const script = `() => {
+    const script = `async () => {
+      ${demoCuePrelude(`Click ${name}`)}
       const needle = new RegExp('${nameEscaped}', 'i');
       const byRole = Array.from(document.querySelectorAll('[role=\\'${roleEscaped}\\']')).find((el) => needle.test(el.textContent || '') && !el.hasAttribute('disabled'));
       if (byRole) {
         console.log('${markerPrimary}');
+        await __equipqrDemoCue(byRole);
         byRole.click();
         return;
       }
@@ -156,6 +239,7 @@ export function createDemoStepRunner(opts) {
         const fallbackMatch = Array.from(document.querySelectorAll(selector)).find((el) => needle.test(el.textContent || '') && !el.hasAttribute('disabled'));
         if (fallbackMatch) {
           console.log('${markerFallback}:' + selector);
+          await __equipqrDemoCue(fallbackMatch);
           fallbackMatch.click();
           return;
         }
@@ -165,6 +249,7 @@ export function createDemoStepRunner(opts) {
 
     try {
       const output = await runPlaywrightEval(script);
+      recordSpotlight(context.sceneId, context.stepIndex, context.actionName);
       if (markerSeen(output, markerFallback)) {
         const used = output
           .split('\n')
@@ -254,9 +339,10 @@ export function createDemoStepRunner(opts) {
         const selector = jsString(String(step.selector || 'button,[role="button"],a'));
         await withRetries(context.sceneId, context.stepIndex, step, async () => {
           await runPlaywrightEval(
-            `() => { const el = Array.from(document.querySelectorAll('${selector}')).find((node) => new RegExp('${text}', 'i').test(node.textContent || '') && !node.hasAttribute('disabled')); if (!el) throw new Error('clickText missing element'); el.click(); }`
+            `async () => { ${demoCuePrelude(`Click ${rawText}`)} const el = Array.from(document.querySelectorAll('${selector}')).find((node) => new RegExp('${text}', 'i').test(node.textContent || '') && !node.hasAttribute('disabled')); if (!el) throw new Error('clickText missing element'); await __equipqrDemoCue(el); el.click(); }`
           );
         });
+        recordSpotlight(context.sceneId, context.stepIndex, actionName);
         context.actionCountRef.value += 1;
         return;
       }
@@ -268,7 +354,8 @@ export function createDemoStepRunner(opts) {
           : ['input[type="search"]', 'input', 'textarea'];
         const fallbackJson = JSON.stringify(fallbackSelectors);
         await withRetries(context.sceneId, context.stepIndex, step, async () => {
-          const output = await runPlaywrightEval(`() => {
+          const output = await runPlaywrightEval(`async () => {
+            ${demoCuePrelude(`Fill ${String(step.name || '')}`)}
             const needle = new RegExp('${name}', 'i');
             let input = Array.from(document.querySelectorAll('label')).map((label) => {
               const t = label.textContent || '';
@@ -289,6 +376,7 @@ export function createDemoStepRunner(opts) {
               }
             }
             if (!input) throw new Error('fillRole missing input');
+            await __equipqrDemoCue(input);
             input.focus();
             input.value = '${value}';
             input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -306,6 +394,7 @@ export function createDemoStepRunner(opts) {
             });
           }
         });
+        recordSpotlight(context.sceneId, context.stepIndex, actionName);
         context.actionCountRef.value += 1;
         return;
       }
@@ -313,8 +402,9 @@ export function createDemoStepRunner(opts) {
         const selector = jsString(String(step.selector || 'select'));
         const value = jsString(String(step.value || ''));
         await runPlaywrightEval(
-          `() => { const el = document.querySelector('${selector}'); if (!el) throw new Error('selectOption missing select'); el.value = '${value}'; el.dispatchEvent(new Event('change', { bubbles: true })); }`
+          `async () => { ${demoCuePrelude(`Select ${String(step.value || '')}`)} const el = document.querySelector('${selector}'); if (!el) throw new Error('selectOption missing select'); await __equipqrDemoCue(el); el.value = '${value}'; el.dispatchEvent(new Event('change', { bubbles: true })); }`
         );
+        recordSpotlight(context.sceneId, context.stepIndex, actionName);
         context.actionCountRef.value += 1;
         return;
       }
@@ -323,8 +413,9 @@ export function createDemoStepRunner(opts) {
       case 'openDialog': {
         const selector = jsString(String(step.selector || 'button,[role="button"]'));
         await runPlaywrightEval(
-          `() => { const el = document.querySelector('${selector}'); if (!el) throw new Error('open action missing selector'); el.click(); }`
+          `async () => { ${demoCuePrelude(actionName.replace(/^open/i, 'Open '))} const el = document.querySelector('${selector}'); if (!el) throw new Error('open action missing selector'); await __equipqrDemoCue(el); el.click(); }`
         );
+        recordSpotlight(context.sceneId, context.stepIndex, actionName);
         context.actionCountRef.value += 1;
         return;
       }
@@ -347,16 +438,18 @@ export function createDemoStepRunner(opts) {
       case 'focusElement': {
         const selector = jsString(String(step.selector || 'input,button,[tabindex]'));
         await runPlaywrightEval(
-          `() => { const el = document.querySelector('${selector}'); if (!el) throw new Error('focusElement missing selector'); el.focus(); }`
+          `async () => { ${demoCuePrelude('Focus field')} const el = document.querySelector('${selector}'); if (!el) throw new Error('focusElement missing selector'); await __equipqrDemoCue(el); el.focus(); }`
         );
+        recordSpotlight(context.sceneId, context.stepIndex, actionName);
         context.actionCountRef.value += 1;
         return;
       }
       case 'hoverReveal': {
         const selector = jsString(String(step.selector || 'button,a,[role="button"]'));
         await runPlaywrightEval(
-          `() => { const el = document.querySelector('${selector}'); if (!el) throw new Error('hoverReveal missing selector'); el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); }`
+          `async () => { ${demoCuePrelude('Reveal actions')} const el = document.querySelector('${selector}'); if (!el) throw new Error('hoverReveal missing selector'); await __equipqrDemoCue(el); el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); }`
         );
+        recordSpotlight(context.sceneId, context.stepIndex, actionName);
         context.actionCountRef.value += 1;
         return;
       }
@@ -374,13 +467,16 @@ export function createDemoStepRunner(opts) {
         const label = jsString(regexLiteral(String(step.label || '')));
         if (!label) throw new Error('clickByLabel requires "label".');
         await withRetries(context.sceneId, context.stepIndex, step, async () => {
-          await runPlaywrightEval(`() => {
+          await runPlaywrightEval(`async () => {
+            ${demoCuePrelude(`Click ${String(step.label || '')}`)}
             const needle = new RegExp('${label}', 'i');
             const el = Array.from(document.querySelectorAll('[aria-label]')).find((node) => needle.test(node.getAttribute('aria-label') || '') && !node.hasAttribute('disabled'));
             if (!el) throw new Error('clickByLabel missing element for label');
+            await __equipqrDemoCue(el);
             el.click();
           }`);
         });
+        recordSpotlight(context.sceneId, context.stepIndex, actionName);
         context.actionCountRef.value += 1;
         return;
       }
@@ -389,7 +485,8 @@ export function createDemoStepRunner(opts) {
         const parentSelector = jsString(String(step.parentSelector || ''));
         if (!label) throw new Error('clickHiddenButton requires "label".');
         await withRetries(context.sceneId, context.stepIndex, step, async () => {
-          await runPlaywrightEval(`() => {
+          await runPlaywrightEval(`async () => {
+            ${demoCuePrelude(`Click ${String(step.label || '')}`)}
             const needle = new RegExp('${label}', 'i');
             const parentSelector = '${parentSelector}';
             const button = Array.from(document.querySelectorAll('[aria-label]')).find((node) => needle.test(node.getAttribute('aria-label') || '') && !node.hasAttribute('disabled'));
@@ -401,9 +498,11 @@ export function createDemoStepRunner(opts) {
               parent.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
               parent.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
             }
+            await __equipqrDemoCue(button);
             button.click();
           }`);
         });
+        recordSpotlight(context.sceneId, context.stepIndex, actionName);
         context.actionCountRef.value += 1;
         return;
       }
@@ -412,7 +511,8 @@ export function createDemoStepRunner(opts) {
         const value = jsString(String(step.value ?? ''));
         if (!name) throw new Error('fillNumberInput requires "name" or "label".');
         await withRetries(context.sceneId, context.stepIndex, step, async () => {
-          await runPlaywrightEval(`() => {
+          await runPlaywrightEval(`async () => {
+            ${demoCuePrelude(`Fill ${String(step.name || step.label || '')}`)}
             const needle = new RegExp('${name}', 'i');
             let input = null;
             const labels = Array.from(document.querySelectorAll('label'));
@@ -433,6 +533,7 @@ export function createDemoStepRunner(opts) {
               input = Array.from(document.querySelectorAll('input[type=\\'number\\'],[role=\\'spinbutton\\']')).find((el) => needle.test(el.getAttribute('aria-label') || ''));
             }
             if (!input) throw new Error('fillNumberInput missing number input');
+            await __equipqrDemoCue(input);
             input.focus();
             const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
             setter.call(input, '${value}');
@@ -441,6 +542,7 @@ export function createDemoStepRunner(opts) {
             input.blur();
           }`);
         });
+        recordSpotlight(context.sceneId, context.stepIndex, actionName);
         context.actionCountRef.value += 1;
         return;
       }
@@ -448,10 +550,12 @@ export function createDemoStepRunner(opts) {
         const name = jsString(regexLiteral(String(step.name || '')));
         if (!name) throw new Error('clickTab requires "name".');
         await withRetries(context.sceneId, context.stepIndex, step, async () => {
-          await runPlaywrightEval(`() => {
+          await runPlaywrightEval(`async () => {
+            ${demoCuePrelude(`Open ${String(step.name || '')} tab`)}
             const needle = new RegExp('${name}', 'i');
             const tab = Array.from(document.querySelectorAll('[role=\\'tab\\']')).find((el) => needle.test(el.textContent || '') && !el.hasAttribute('disabled'));
             if (!tab) throw new Error('clickTab missing tab');
+            await __equipqrDemoCue(tab);
             tab.click();
           }`);
           const deadline = Date.now() + 2000;
@@ -469,6 +573,7 @@ export function createDemoStepRunner(opts) {
             }
           }
         });
+        recordSpotlight(context.sceneId, context.stepIndex, actionName);
         context.actionCountRef.value += 1;
         return;
       }
@@ -485,7 +590,11 @@ export function createDemoStepRunner(opts) {
   return {
     async openSession() {
       await runPlaywright(['open', 'about:blank']);
-      await runPlaywright(['resize', '1366', '900']);
+      await runPlaywright([
+        'resize',
+        String(DESKTOP_DEMO_VIEWPORT.width),
+        String(DESKTOP_DEMO_VIEWPORT.height)
+      ]);
       await runPlaywright(['video-start']);
     },
     async stopVideo(videoRelativePath) {
@@ -504,7 +613,11 @@ export function createDemoStepRunner(opts) {
         if (step.type !== 'action') {
           throw new Error(`Expanded step must be action; received "${step.type}".`);
         }
+        const actionCountBefore = actionCountRef.value;
         await runAction(step, { sceneId: scene.id, stepIndex: index, actionCountRef });
+        if (actionCountRef.value > actionCountBefore && step.action !== 'waitForNetworkIdle') {
+          await sleep(DEMO_POST_ACTION_PAUSE_MS);
+        }
       }
 
       let passedCheckpoints = 0;

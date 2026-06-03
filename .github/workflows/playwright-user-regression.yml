@@ -53,6 +53,10 @@ jobs:
         shell: pwsh
         run: npm run test:e2e:local-full
 
+      - name: Run mobile critical Playwright regression
+        shell: pwsh
+        run: npm run test:e2e:mobile-critical
+
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

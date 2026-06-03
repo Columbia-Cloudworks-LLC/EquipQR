@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/equipqr-test';
+import { clickWithDemoCue } from '../shared/page-helpers';
 
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
 
@@ -22,7 +23,7 @@ test.describe('mobile bottom navigation @full', () => {
       await page.goto('/dashboard');
       await assertHealthyShell();
       const link = page.getByRole('link', { name: target.label }).last();
-      await link.click();
+      await clickWithDemoCue(link, `Open mobile ${String(target.label)}`);
       await expect(page).toHaveURL(target.url, { timeout: 60_000 });
     });
   }

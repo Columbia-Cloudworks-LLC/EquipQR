@@ -22,6 +22,8 @@ describe('demo-record-v2 planning smoke', () => {
 
     expect(plan.length).toBeGreaterThan(0);
     expect(plan[0].scenes.length).toBeGreaterThan(0);
+    expect(plan[0].viewport).toEqual({ width: 1920, height: 1080 });
+    expect(plan[0].videoSize).toEqual({ width: 1920, height: 1080 });
   });
 
   it('resolves and expands the equipmentLifecycleE2E scenario end-to-end', async () => {

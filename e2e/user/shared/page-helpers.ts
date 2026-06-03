@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { expectNoAppErrorBoundary } from './auth-helpers';
 import { loadUserRegressionRunConfig } from './run-config';
 
@@ -7,6 +7,139 @@ const runConfig = loadUserRegressionRunConfig();
 type ActionOverlayOptions = {
   pauseAfter?: boolean;
 };
+
+type LocatorClickOptions = Parameters<Locator['click']>[0];
+type LocatorFillOptions = Parameters<Locator['fill']>[1];
+
+function shouldShowActionCue(): boolean {
+  return runConfig.actionCue || runConfig.runProfile === 'demo';
+}
+
+function cuePauseMs(): number {
+  if (!shouldShowActionCue()) return 0;
+  const configured = Number.isFinite(runConfig.stagePauseMs) ? runConfig.stagePauseMs : 0;
+  return Math.min(1400, Math.max(450, Math.floor(configured * 0.55)));
+}
+
+function postActionPauseMs(): number {
+  if (!shouldShowActionCue()) return 0;
+  const configured = Number.isFinite(runConfig.stagePauseMs) ? runConfig.stagePauseMs : 0;
+  return Math.min(900, Math.max(300, Math.floor(configured * 0.35)));
+}
+
+function labelFromTarget(target: string | RegExp): string {
+  return typeof target === 'string'
+    ? target
+    : target.source.replace(/\\(.)/g, '$1').replace(/[\\^$.*+?()[\]{}|]/g, ' ').trim();
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+export async function spotlightLocator(locator: Locator, label: string): Promise<void> {
+  if (!shouldShowActionCue()) return;
+
+  const pauseMs = cuePauseMs();
+  await locator.scrollIntoViewIfNeeded().catch(() => undefined);
+  await locator
+    .evaluate(
+      async (element, options) => {
+        const ringId = 'equipqr-e2e-action-spotlight';
+        const labelId = 'equipqr-e2e-action-spotlight-label';
+        document.getElementById(ringId)?.remove();
+        document.getElementById(labelId)?.remove();
+
+        const rect = element.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+
+        const ring = document.createElement('div');
+        ring.id = ringId;
+        ring.setAttribute('aria-hidden', 'true');
+        Object.assign(ring.style, {
+          position: 'fixed',
+          pointerEvents: 'none',
+          zIndex: '2147483646',
+          left: `${Math.max(8, rect.left - 8)}px`,
+          top: `${Math.max(8, rect.top - 8)}px`,
+          width: `${rect.width + 16}px`,
+          height: `${rect.height + 16}px`,
+          border: '4px solid #7B3EE7',
+          borderRadius: '14px',
+          boxShadow: '0 0 0 8px rgba(123, 62, 231, 0.18), 0 16px 45px rgba(15, 23, 42, 0.28)',
+          background: 'rgba(123, 62, 231, 0.06)',
+          transition: 'opacity 220ms ease',
+        });
+
+        const caption = document.createElement('div');
+        caption.id = labelId;
+        caption.setAttribute('aria-hidden', 'true');
+        caption.textContent = options.label;
+        Object.assign(caption.style, {
+          position: 'fixed',
+          pointerEvents: 'none',
+          zIndex: '2147483647',
+          left: `${Math.max(8, rect.left - 8)}px`,
+          top: `${Math.max(8, rect.top - 42)}px`,
+          maxWidth: 'min(520px, calc(100vw - 24px))',
+          padding: '7px 10px',
+          borderRadius: '999px',
+          background: '#7B3EE7',
+          color: 'white',
+          font: '700 12px/1.25 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          boxShadow: '0 10px 30px rgba(15, 23, 42, 0.26)',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        });
+
+        document.documentElement.append(ring, caption);
+        window.setTimeout(() => {
+          ring.style.opacity = '0';
+          caption.style.opacity = '0';
+          window.setTimeout(() => {
+            ring.remove();
+            caption.remove();
+          }, 260);
+        }, options.pauseMs + 1200);
+
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, options.pauseMs);
+        });
+      },
+      { label, pauseMs },
+    )
+    .catch(() => undefined);
+}
+
+export async function clickWithDemoCue(
+  locator: Locator,
+  label: string,
+  options?: LocatorClickOptions,
+): Promise<void> {
+  await spotlightLocator(locator, label);
+  await locator.click(options);
+  const pauseMs = postActionPauseMs();
+  if (pauseMs > 0) {
+    await wait(pauseMs);
+  }
+}
+
+export async function fillWithDemoCue(
+  locator: Locator,
+  label: string,
+  value: string,
+  options?: LocatorFillOptions,
+): Promise<void> {
+  await spotlightLocator(locator, label);
+  await locator.fill(value, options);
+  const pauseMs = postActionPauseMs();
+  if (pauseMs > 0) {
+    await wait(pauseMs);
+  }
+}
 
 export async function assertRouteHealthy(
   page: Page,
@@ -26,7 +159,7 @@ export async function assertRouteHealthy(
 export async function openSidebarLink(page: Page, linkName: RegExp | string): Promise<void> {
   await setActionOverlay(page, `Opening ${String(linkName)}`);
   const link = await getVisibleNavigationLink(page, linkName);
-  await link.click();
+  await clickWithDemoCue(link, `Open ${labelFromTarget(linkName)}`);
   await setActionOverlay(page, `Loaded ${String(linkName)}`);
 }
 
@@ -36,7 +169,7 @@ async function openMobileNavigationIfAvailable(page: Page): Promise<boolean> {
     return false;
   }
 
-  await mobileMenuButton.click();
+  await clickWithDemoCue(mobileMenuButton, 'Open mobile navigation');
   await expect(page.locator('[data-mobile="true"][data-sidebar="sidebar"]')).toBeVisible({
     timeout: 10_000,
   });
