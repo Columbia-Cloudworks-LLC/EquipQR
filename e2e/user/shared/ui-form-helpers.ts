@@ -195,7 +195,8 @@ export async function openWorkOrderCreateDialog(page: Page, gotoDashboard: (rout
     page.getByText(/^(Showing all|Showing \d+|No team assignments)/i),
   ).toBeVisible({ timeout: 60_000 });
 
-  const createButton = page.getByTestId('create-work-order-button');
+  const stableCreateButton = page.getByTestId('create-work-order-button');
+  const createButton = stableCreateButton.or(page.getByRole('button', { name: /^Create Work Order$/i })).first();
   await expect(createButton).toBeVisible({ timeout: 15_000 });
   await expect(createButton).toBeEnabled();
   await createButton.click();
