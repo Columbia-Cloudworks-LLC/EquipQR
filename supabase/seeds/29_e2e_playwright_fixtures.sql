@@ -18,6 +18,30 @@ INSERT INTO public.team_members (
 )
 ON CONFLICT (id) DO NOTHING;
 
+-- Multi-org E2E user: team access for org-switching and equipment visibility assertions
+INSERT INTO public.team_members (
+  id,
+  team_id,
+  user_id,
+  role,
+  joined_date
+) VALUES
+  (
+    'dd0e8400-e29b-41d4-a716-446655440014'::uuid,
+    '880e8400-e29b-41d4-a716-446655440000'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440008'::uuid,
+    'technician',
+    '2024-01-05 00:00:00+00'
+  ),
+  (
+    'dd0e8400-e29b-41d4-a716-446655440015'::uuid,
+    '880e8400-e29b-41d4-a716-446655440002'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440008'::uuid,
+    'technician',
+    '2024-01-06 00:00:00+00'
+  )
+ON CONFLICT (id) DO NOTHING;
+
 INSERT INTO public.organization_invitations (
   id,
   organization_id,

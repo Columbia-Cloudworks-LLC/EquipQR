@@ -36,7 +36,7 @@ export const PMTemplateCompatibilityRulesEditor: React.FC<PMTemplateCompatibilit
   // Get match count for current rules
   const { data: matchCount = 0 } = useEquipmentMatchCountForPMRules(
     currentOrganization?.id,
-    rules.filter(r => r.manufacturer.trim().length > 0)
+    rules.filter((r) => (r.manufacturer ?? '').trim().length > 0)
   );
 
   // Create a map for quick model lookup by manufacturer
@@ -101,7 +101,9 @@ export const PMTemplateCompatibilityRulesEditor: React.FC<PMTemplateCompatibilit
   };
 
   // Count valid rules (non-empty manufacturer)
-  const validRulesCount = rules.filter(r => r.manufacturer.trim().length > 0).length;
+  const validRulesCount = rules.filter(
+    (r) => (r.manufacturer ?? '').trim().length > 0,
+  ).length;
 
   return (
     <Card>
@@ -141,8 +143,10 @@ export const PMTemplateCompatibilityRulesEditor: React.FC<PMTemplateCompatibilit
             <div className="space-y-3">
               {rules.map((rule, index) => {
                 const availableModels = getModelsForManufacturer(rule.manufacturer);
-                const isDuplicate = rule.manufacturer.trim().length > 0 && 
-                  isDuplicateRule(rule.manufacturer, rule.model, index);
+                const manufacturer = rule.manufacturer ?? '';
+                const isDuplicate =
+                  manufacturer.trim().length > 0 &&
+                  isDuplicateRule(manufacturer, rule.model, index);
 
                 return (
                   <div 

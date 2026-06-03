@@ -12,6 +12,10 @@ export const orgIds = {
   industrial: industrialOrgId,
 } as const;
 
+export const orgNames = {
+  metro: /metro equipment services/i,
+} as const;
+
 export const seedEquipment = {
   cat320: {
     id: 'aa0e8400-e29b-41d4-a716-446655440000',
@@ -47,6 +51,10 @@ export const seedWorkOrders = {
   cancelled: {
     id: 'a00e8400-e29b-41d4-a716-446655440005',
     title: 'Generator Fuel System Check',
+  },
+  bobcatPm: {
+    id: 'a00e8400-e29b-41d4-a716-446655440114',
+    title: '200-Hour PM - Bobcat S770 Skid Steer',
   },
   accepted: {
     id: 'a00e8400-e29b-41d4-a716-446655440012',
@@ -164,6 +172,7 @@ export const personas: Record<
     displayName: 'Multi Org User',
     email: 'multi@equipqr.test',
     orgLabel: 'ALL Organizations',
+    defaultOrgId: apexOrgId,
   },
 };
 

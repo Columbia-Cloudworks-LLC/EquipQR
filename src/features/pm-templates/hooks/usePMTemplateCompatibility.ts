@@ -81,7 +81,10 @@ function useMatchingTemplatesQuery(
 function buildRulesCacheKey(rules: PMTemplateCompatibilityRuleFormData[]): string {
   if (rules.length === 0) return '';
   return rules
-    .map(r => `${r.manufacturer.toLowerCase().trim()}|${r.model?.toLowerCase().trim() ?? ''}`)
+    .map(
+      (r) =>
+        `${(r.manufacturer ?? '').toLowerCase().trim()}|${r.model?.toLowerCase().trim() ?? ''}`,
+    )
     .sort()
     .join(',');
 }

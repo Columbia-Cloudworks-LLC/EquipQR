@@ -76,14 +76,40 @@ export async function pinContextToOrg(
   organizationId: string,
 ): Promise<void> {
   await context.addInitScript((orgId) => {
+    if (sessionStorage.getItem('equipqr_e2e_org_pin_applied') === 'true') {
+      return;
+    }
+    sessionStorage.setItem('equipqr_e2e_org_pin_applied', 'true');
+
+    const selectionTimestamp = new Date().toISOString();
     localStorage.setItem('equipqr_current_organization', orgId);
     localStorage.setItem(
       'equipqr_current_org',
       JSON.stringify({
         selectedOrgId: orgId,
-        selectionTimestamp: new Date().toISOString(),
+        selectionTimestamp,
       }),
     );
+
+    const sessionKey = 'equipqr_session_data';
+    const rawSession = localStorage.getItem(sessionKey);
+    if (rawSession) {
+      try {
+        const session = JSON.parse(rawSession) as {
+          currentOrganizationId?: string | null;
+          userPreference?: { selectedOrgId?: string | null; selectionTimestamp?: string };
+        };
+        session.currentOrganizationId = orgId;
+        session.userPreference = {
+          ...session.userPreference,
+          selectedOrgId: orgId,
+          selectionTimestamp,
+        };
+        localStorage.setItem(sessionKey, JSON.stringify(session));
+      } catch {
+        // Ignore corrupt session cache; org preference keys above still apply.
+      }
+    }
   }, organizationId);
 }
 

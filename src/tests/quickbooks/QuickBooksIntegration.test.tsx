@@ -90,20 +90,12 @@ describe('QuickBooksIntegration Component', () => {
     });
   });
 
-  describe('Feature Flag', () => {
-    it('should not render when feature is disabled', () => {
-      vi.mocked(isQuickBooksEnabled).mockReturnValueOnce(false);
-      
-      const { container } = renderComponent();
-      
-      expect(container).toBeEmptyDOMElement();
-    });
+  describe('Visibility', () => {
+    it('should render for users with manage permission regardless of feature flag', async () => {
+      vi.mocked(isQuickBooksEnabled).mockReturnValue(false);
 
-    it('should render when feature is enabled', async () => {
-      vi.mocked(isQuickBooksEnabled).mockReturnValue(true);
-      
       renderComponent();
-      
+
       await waitFor(() => {
         expect(screen.getByText('QuickBooks Online')).toBeInTheDocument();
       });

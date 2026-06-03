@@ -113,17 +113,19 @@ describe('useQuickBooksAccess', () => {
     });
   });
 
-  it('should not fetch when feature is disabled', async () => {
+  it('should fetch permissions even when legacy feature flag is disabled', async () => {
     vi.mocked(isQuickBooksEnabled).mockReturnValue(false);
+    mockRpc.mockResolvedValue({ data: true, error: null });
 
-    renderHook(() => useQuickBooksAccess(), {
+    const { result } = renderHook(() => useQuickBooksAccess(), {
       wrapper: createWrapper(),
     });
 
-    // Wait a tick to ensure no query was triggered
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await waitFor(() => {
+      expect(result.current.data).toBe(true);
+    });
 
-    expect(mockRpc).not.toHaveBeenCalled();
+    expect(mockRpc).toHaveBeenCalled();
   });
 
   it('should not fetch when no organization is available', async () => {

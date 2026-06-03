@@ -12,4 +12,10 @@ export async function switchOrganizationFromSwitcher(
   await switcher.click();
   await page.getByRole('menuitem', { name: organizationName }).click();
   await expect(page).toHaveURL(/\/dashboard/i, { timeout: 60_000 });
+
+  const orgMatcher =
+    organizationName instanceof RegExp ? organizationName : new RegExp(organizationName, 'i');
+  await expect(
+    page.getByRole('button', { name: /switch organization/i }).filter({ hasText: orgMatcher }),
+  ).toBeVisible({ timeout: 60_000 });
 }

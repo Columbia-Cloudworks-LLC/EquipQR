@@ -33,11 +33,17 @@ export const TemplateAssignmentDialog: React.FC<TemplateAssignmentDialogProps> =
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredEquipment = equipment.filter(eq => 
-    eq.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    eq.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    eq.serial_number.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const normalizedQuery = searchQuery.toLowerCase();
+  const filteredEquipment = equipment.filter((eq) => {
+    const name = (eq.name ?? '').toLowerCase();
+    const model = (eq.model ?? '').toLowerCase();
+    const serial = (eq.serial_number ?? '').toLowerCase();
+    return (
+      name.includes(normalizedQuery) ||
+      model.includes(normalizedQuery) ||
+      serial.includes(normalizedQuery)
+    );
+  });
 
   const equipmentWithExistingTemplates = filteredEquipment.filter(eq => eq.default_pm_template_id);
 

@@ -27,7 +27,6 @@ import {
   disconnectQuickBooks,
   manualTokenRefresh,
 } from '@/services/quickbooks';
-import { isQuickBooksEnabled } from '@/lib/flags';
 import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
 import { toast } from 'sonner';
 
@@ -46,7 +45,6 @@ export const QuickBooksIntegration = ({
 
   const { data: canManage = false, isLoading: permissionLoading } = useQuickBooksAccess();
 
-  const featureEnabled = isQuickBooksEnabled();
   const isConfigured = isQuickBooksConfigured();
 
   const {
@@ -56,7 +54,7 @@ export const QuickBooksIntegration = ({
   } = useQuery({
     queryKey: ['quickbooks', 'connection', currentOrganization?.id],
     queryFn: () => getConnectionStatus(currentOrganization!.id),
-    enabled: !!currentOrganization?.id && canManage && featureEnabled,
+    enabled: !!currentOrganization?.id && canManage && isConfigured,
     staleTime: 60 * 1000,
   });
 
@@ -105,7 +103,7 @@ export const QuickBooksIntegration = ({
     }
   };
 
-  if (!featureEnabled || (!permissionLoading && !canManage)) {
+  if (!permissionLoading && !canManage) {
     return null;
   }
 
