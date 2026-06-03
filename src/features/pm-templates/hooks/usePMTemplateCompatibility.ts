@@ -9,8 +9,6 @@ import type {
 } from '@/features/pm-templates/types/pmTemplateCompatibility';
 import {
   getRulesForTemplate,
-  addRule,
-  removeRule,
   bulkSetRules,
   countEquipmentMatchingRules,
   getMatchingTemplatesForEquipment
@@ -156,83 +154,6 @@ export const useEquipmentMatchCountForPMRules = (
 // ============================================
 // Mutation Hooks
 // ============================================
-
-/**
- * Hook to add a single compatibility rule to a PM template.
- */
-export const useAddPMTemplateRule = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useAppToast();
-  const { currentOrganization } = useOrganization();
-
-  return useMutation({
-    mutationFn: async ({
-      templateId,
-      rule
-    }: {
-      templateId: string;
-      rule: PMTemplateCompatibilityRuleFormData;
-    }) => {
-      if (!currentOrganization?.id) throw new Error('No organization selected');
-      return await addRule(currentOrganization.id, templateId, rule);
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: pmTemplateCompatibilityKeys.rules(variables.templateId)
-      });
-      toast({
-        title: 'Rule added',
-        description: 'Compatibility rule added successfully'
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error adding rule',
-        description: error instanceof Error ? error.message : 'Failed to add rule',
-        variant: 'error'
-      });
-    }
-  });
-};
-
-/**
- * Hook to remove a compatibility rule from a PM template.
- */
-export const useRemovePMTemplateRule = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useAppToast();
-  const { currentOrganization } = useOrganization();
-
-  return useMutation({
-    mutationFn: async ({
-      templateId,
-      ruleId
-    }: {
-      templateId: string;
-      ruleId: string;
-    }) => {
-      if (!currentOrganization?.id) throw new Error('No organization selected');
-      await removeRule(currentOrganization.id, ruleId);
-      return { templateId };
-    },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({
-        queryKey: pmTemplateCompatibilityKeys.rules(result.templateId)
-      });
-      toast({
-        title: 'Rule removed',
-        description: 'Compatibility rule removed successfully'
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error removing rule',
-        description: error instanceof Error ? error.message : 'Failed to remove rule',
-        variant: 'error'
-      });
-    }
-  });
-};
 
 /**
  * Hook to bulk set (replace) all compatibility rules for a PM template.
