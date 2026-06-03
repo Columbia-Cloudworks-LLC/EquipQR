@@ -1,6 +1,7 @@
 {
   "ignoreDependencies": [
     "@size-limit/file",
+    "tailwindcss-animate",
     "us-atlas"
   ]
 }
