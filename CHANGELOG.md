@@ -13,11 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Fallow codebase intelligence** — Repository npm scripts (`fallow:scan`, `fallow:audit`, `fallow:dupes`, `fallow:health`, `fallow:fix:preview`) and `.fallowrc.json` entrypoint modeling for verified scripts, tests, and public surfaces.
 - **Local dev and E2E ergonomics** — `dev-stop-all.bat`, `scripts/stop-dev-and-e2e.ps1`, and VS Code tasks to stop the full dev stack and Playwright E2E runners together.
+- **Playwright user regression expansion** — New `@full` workflow specs (auth lifecycle, signup success, org switching, team roles, equipment detail tabs, scan history, PM template editor, privacy request, PWA offline, fleet map, reports, and related flows), a `e2e/user/COVERAGE.md` matrix, GitHub Actions `playwright-user-regression` workflow, dedicated E2E seed fixtures, and npm scripts for full, local-full, mobile-critical, and dual-viewport critical runs.
+- **Playwright demo and viewport modes** — `dev-test.bat` / `run-user-regression.ps1` support a demo run profile, desktop/mobile/both viewport modes, and auto database reset for `@full` suites.
 
 ### Changed
 
 - **Dead-code cleanup** — Evidence-backed removal of obsolete modules, duplicate feature barrels, unused exports, and legacy organization/session scaffolding identified by Fallow (check findings reduced from 776 to 77); session types consolidated with expanded `useSessionManager` test coverage.
 - **Dependencies** — Trimmed unused npm packages surfaced during the audit.
+- **Playwright shared helpers** — Expanded auth, org, page, seed-data, and UI form helpers plus run-config defaults for multi-org and mobile flows.
+- **Demo marketing recorder** — Quality gate, diagnostics, and step-runner improvements for demo GIF/video capture.
 
 ### Removed
 
@@ -25,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+
+- **Post-signup success view** — Auth no longer auto-redirects away from the check-your-email success screen before the user chooses return to sign-in.
+- **Fleet map Google Maps key** — Session refresh and retry when the public maps key edge function returns unauthorized.
+- **PM template and QuickBooks UI** — Stable selectors and test hooks for Playwright full-suite coverage.
 - **E2E user regression** — Scoped the work order create-button locator to avoid ambiguous matches during creation flows.
 
 ## [3.8.1] - 2026-06-01
