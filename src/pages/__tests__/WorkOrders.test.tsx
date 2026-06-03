@@ -8,6 +8,7 @@ import { workOrders as woFixtures, organizations } from '@/test/fixtures/entitie
 import * as useTeamBasedWorkOrdersModule from '@/features/teams/hooks/useTeamBasedWorkOrders';
 import '@/contexts/OrganizationContext';
 import * as useWorkOrderFiltersModule from '@/features/work-orders/hooks/useWorkOrderFilters';
+import * as useMobileModule from '@/hooks/use-mobile';
 
 // ============================================
 // Mocks
@@ -220,6 +221,7 @@ function setWorkOrders(workOrders: WorkOrderData[]) {
 describe('WorkOrders Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useMobileModule.useIsMobile).mockReturnValue(false);
     configureAccess({ hasTeamAccess: true, isManager: false, userTeamIds: ['team-maintenance'] });
   });
 
@@ -307,6 +309,17 @@ describe('WorkOrders Page', () => {
       render(<WorkOrders />);
       const createButtons = screen.getAllByText(/create/i);
       fireEvent.click(createButtons[0]);
+      await waitFor(() => {
+        expect(screen.getByTestId('work-order-form')).toBeInTheDocument();
+      });
+    });
+
+    it('opens the create form from the mobile create action', async () => {
+      vi.mocked(useMobileModule.useIsMobile).mockReturnValue(true);
+
+      render(<WorkOrders />);
+      fireEvent.click(screen.getByTestId('create-work-order-button'));
+
       await waitFor(() => {
         expect(screen.getByTestId('work-order-form')).toBeInTheDocument();
       });
