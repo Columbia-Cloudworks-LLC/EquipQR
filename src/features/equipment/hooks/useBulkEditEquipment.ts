@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -12,6 +12,7 @@ import {
   equipmentFormSchema,
   type EquipmentRecord,
 } from '@/features/equipment/types/equipment';
+import { useBulkEditRowState } from '@/hooks/useBulkEditRowState';
 
 /**
  * Field-level delta for a single equipment row. Only the fields the user has
@@ -74,92 +75,19 @@ export const useBulkEditEquipment = (
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
 
-  const [dirtyRows, setDirtyRows] = useState<Map<string, EquipmentRowDelta>>(
-    () => new Map()
-  );
-  const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(
-    () => new Set()
-  );
-
-  const initialById = useMemo(() => {
-    const map = new Map<string, EquipmentRecord>();
-    for (const row of initialRows) {
-      map.set(row.id, row);
-    }
-    return map;
-  }, [initialRows]);
-
-  const setCellValue = useCallback(
-    <K extends keyof EquipmentRecord>(
-      id: string,
-      field: K,
-      value: EquipmentRecord[K]
-    ) => {
-      setDirtyRows((prev) => {
-        const next = new Map(prev);
-        const initial = initialById.get(id);
-        const originalValue = initial?.[field];
-        const existing = next.get(id) ?? {};
-        // Match `BulkEditableCell.isDirty`: '' and null are treated as
-        // equivalent for diff purposes (both render as the em-dash placeholder).
-        // Without this, "clearing" a nullable field that was already null would
-        // record a '' delta the cell shows as clean — invisible dirty state
-        // that surprises users at commit time.
-        const normalize = (v: unknown): unknown => (v === '' ? null : v);
-        if (Object.is(normalize(value), normalize(originalValue))) {
-          // Revert: drop the field from the delta; drop the row entirely if it has no other deltas.
-          if (field in existing) {
-            const rest: Record<string, unknown> = { ...(existing as Record<string, unknown>) };
-            delete rest[field as string];
-            if (Object.keys(rest).length === 0) {
-              next.delete(id);
-            } else {
-              next.set(id, rest as EquipmentRowDelta);
-            }
-          }
-        } else {
-          next.set(id, { ...existing, [field]: normalize(value) } as EquipmentRowDelta);
-        }
-        return next;
-      });
-    },
-    [initialById]
-  );
-
-  const setCellValueOnRows = useCallback(
-    <K extends keyof EquipmentRecord>(
-      ids: string[],
-      field: K,
-      value: EquipmentRecord[K]
-    ) => {
-      ids.forEach((id) => setCellValue(id, field, value));
-    },
-    [setCellValue]
-  );
-
-  const clearDirty = useCallback(() => {
-    setDirtyRows(new Map());
-  }, []);
-
-  const toggleSelected = useCallback((id: string) => {
-    setSelectedRowIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
-
-  const selectAll = useCallback((ids: string[]) => {
-    setSelectedRowIds(new Set(ids));
-  }, []);
-
-  const clearSelection = useCallback(() => {
-    setSelectedRowIds(new Set());
-  }, []);
+  const {
+    dirtyRows,
+    selectedRowIds,
+    dirtyCount,
+    selectedCount,
+    setCellValue,
+    setCellValueOnRows,
+    clearDirty,
+    toggleSelected,
+    selectAll,
+    clearSelection,
+    clearSucceededDirtyFields,
+  } = useBulkEditRowState<EquipmentRecord, EquipmentRowDelta>(initialRows);
 
   const partialSchema = useMemo(() => equipmentFormSchema.partial(), []);
 
@@ -221,42 +149,7 @@ export const useBulkEditEquipment = (
       }
 
       if (succeeded.length > 0) {
-        // Drop only the field-level edits that were actually committed.
-        // The grid stays interactive during isPending (only Save/Discard are
-        // disabled), so the user can edit additional cells — including new
-        // fields on a row that's currently being committed — while the
-        // mutation is in flight. Removing the entire row entry would silently
-        // discard those concurrent edits. Instead, for each succeeded row,
-        // strip only the specific fields whose current dirty value still
-        // matches what was submitted; any field the user has since edited
-        // (or any new field added after submission) stays dirty for the next
-        // commit.
-        setDirtyRows((prev) => {
-          const next = new Map(prev);
-          for (const id of succeeded) {
-            const submitted = submittedById.get(id);
-            const current = next.get(id) as Record<string, unknown> | undefined;
-            if (!submitted || !current) {
-              next.delete(id);
-              continue;
-            }
-            const remaining: Record<string, unknown> = { ...current };
-            for (const [field, submittedValue] of Object.entries(submitted)) {
-              if (
-                field in remaining &&
-                Object.is(remaining[field], submittedValue)
-              ) {
-                delete remaining[field];
-              }
-            }
-            if (Object.keys(remaining).length === 0) {
-              next.delete(id);
-            } else {
-              next.set(id, remaining as EquipmentRowDelta);
-            }
-          }
-          return next;
-        });
+        clearSucceededDirtyFields(succeeded, submittedById);
       }
 
       const orgId = currentOrganization?.id;
@@ -280,8 +173,8 @@ export const useBulkEditEquipment = (
   return {
     dirtyRows,
     selectedRowIds,
-    dirtyCount: dirtyRows.size,
-    selectedCount: selectedRowIds.size,
+    dirtyCount,
+    selectedCount,
     isPending: commitMutation.isPending,
     setCellValue,
     setCellValueOnRows,
