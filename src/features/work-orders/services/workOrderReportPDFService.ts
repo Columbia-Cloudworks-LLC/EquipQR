@@ -17,6 +17,7 @@ import {
   formatWorkOrderIdForPdf,
   type WorkOrderPdfPageLayout,
 } from './workOrderPdfChrome';
+import { WorkOrderPdfTextLayout } from './workOrderPdfTextLayout';
 
 export type WorkOrderExportDateSettings = Pick<UserSettings, 'timezone' | 'dateFormat'>;
 
@@ -96,7 +97,7 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
  */
 export class WorkOrderReportPDFGenerator {
   private doc!: jsPDF;
-  private yPosition: number = 20;
+  private textLayout!: WorkOrderPdfTextLayout;
   private readonly lineHeight = 6;
   private readonly pageHeight = 252;
   private readonly margin = 20;
@@ -126,6 +127,13 @@ export class WorkOrderReportPDFGenerator {
   private async init(): Promise<void> {
     const { default: jsPDF } = await import('jspdf');
     this.doc = new jsPDF();
+    this.textLayout = new WorkOrderPdfTextLayout(this.doc, {
+      margin: this.margin,
+      pageHeight: this.pageHeight,
+      lineHeight: this.lineHeight,
+      pageWidth: this.pageWidth,
+      defaultMultilineMaxWidth: 170,
+    });
   }
 
   static async create(): Promise<WorkOrderReportPDFGenerator> {
@@ -135,69 +143,24 @@ export class WorkOrderReportPDFGenerator {
   }
 
   /**
-   * Check and handle page break if needed
-   */
-  private checkPageBreak(requiredSpace: number = 20): void {
-    if (this.yPosition + requiredSpace > this.pageHeight) {
-      this.doc.addPage();
-      this.yPosition = 20;
-    }
-  }
-
-  /**
-   * Add text with optional styling
-   */
-  private addText(
-    text: string,
-    x: number = this.margin,
-    fontSize: number = 10,
-    style: 'normal' | 'bold' = 'normal'
-  ): void {
-    this.checkPageBreak();
-    this.doc.setFontSize(fontSize);
-    this.doc.setFont('helvetica', style);
-    this.doc.text(text, x, this.yPosition);
-    this.yPosition += this.lineHeight;
-  }
-
-  /**
-   * Add multi-line text with word wrapping
-   */
-  private addMultilineText(
-    text: string,
-    x: number = this.margin,
-    maxWidth: number = 170,
-    fontSize: number = 10
-  ): void {
-    this.doc.setFontSize(fontSize);
-    const lines = this.doc.splitTextToSize(text, maxWidth);
-
-    for (const line of lines) {
-      this.checkPageBreak();
-      this.doc.text(line, x, this.yPosition);
-      this.yPosition += this.lineHeight;
-    }
-  }
-
-  /**
    * Add a horizontal separator line
    */
   private addSeparator(): void {
-    this.yPosition += 3;
-    this.checkPageBreak(10);
+    this.textLayout.yPosition += 3;
+    this.textLayout.checkPageBreak(10);
     this.doc.setDrawColor(200, 200, 200);
-    this.doc.line(this.margin, this.yPosition, this.pageWidth - this.margin, this.yPosition);
-    this.yPosition += 6;
+    this.doc.line(this.margin, this.textLayout.yPosition, this.pageWidth - this.margin, this.textLayout.yPosition);
+    this.textLayout.yPosition += 6;
   }
 
   /**
    * Add section header
    */
   private addSectionHeader(title: string): void {
-    this.checkPageBreak(15);
-    this.yPosition += 2;
-    this.addText(title.toUpperCase(), this.margin, 11, 'bold');
-    this.yPosition += 2;
+    this.textLayout.checkPageBreak(15);
+    this.textLayout.yPosition += 2;
+    this.textLayout.addText(title.toUpperCase(), this.margin, 11, 'bold');
+    this.textLayout.yPosition += 2;
   }
 
   /**
@@ -263,8 +226,8 @@ export class WorkOrderReportPDFGenerator {
       this.doc.setFontSize(14);
       this.doc.setFont('helvetica', 'bold');
       const orgWidth = this.doc.getTextWidth(organizationName);
-      this.doc.text(organizationName, (this.pageWidth - orgWidth) / 2, this.yPosition);
-      this.yPosition += 8;
+      this.doc.text(organizationName, (this.pageWidth - orgWidth) / 2, this.textLayout.yPosition);
+      this.textLayout.yPosition += 8;
     }
 
     // Work Order Title (centered)
@@ -272,16 +235,16 @@ export class WorkOrderReportPDFGenerator {
     this.doc.setFont('helvetica', 'bold');
     const title = `Work Order: ${workOrder.title}`;
     const titleWidth = this.doc.getTextWidth(title);
-    this.doc.text(title, (this.pageWidth - titleWidth) / 2, this.yPosition);
-    this.yPosition += 8;
+    this.doc.text(title, (this.pageWidth - titleWidth) / 2, this.textLayout.yPosition);
+    this.textLayout.yPosition += 8;
 
     // ID and Status line (first4...last4 format)
     this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'normal');
     const statusLine = `ID: ${formatWorkOrderIdForPdf(workOrder.id)} | Status: ${formatStatus(workOrder.status)}`;
     const statusWidth = this.doc.getTextWidth(statusLine);
-    this.doc.text(statusLine, (this.pageWidth - statusWidth) / 2, this.yPosition);
-    this.yPosition += 6;
+    this.doc.text(statusLine, (this.pageWidth - statusWidth) / 2, this.textLayout.yPosition);
+    this.textLayout.yPosition += 6;
 
     this.addSeparator();
   }
@@ -297,21 +260,21 @@ export class WorkOrderReportPDFGenerator {
     this.doc.setFont('helvetica', 'normal');
 
     // Created date
-    this.addText(`Created: ${this.pdfFormatDate(workOrder.created_date)}`, this.margin, 10);
+    this.textLayout.addText(`Created: ${this.pdfFormatDate(workOrder.created_date)}`, this.margin, 10);
 
     // Priority
-    this.addText(`Priority: ${formatPriority(workOrder.priority)}`, this.margin, 10);
+    this.textLayout.addText(`Priority: ${formatPriority(workOrder.priority)}`, this.margin, 10);
 
     // Due date with delta from created
     const dueDelta = this.calculateDaysDelta(workOrder.created_date, workOrder.due_date);
     const dueDeltaStr = dueDelta !== null ? ` (${dueDelta} days from created)` : '';
-    this.addText(`Due: ${this.pdfFormatDate(workOrder.due_date)}${dueDeltaStr}`, this.margin, 10);
+    this.textLayout.addText(`Due: ${this.pdfFormatDate(workOrder.due_date)}${dueDeltaStr}`, this.margin, 10);
 
     // Completed date with delta from created (if completed)
     if (workOrder.completed_date) {
       const completedDelta = this.calculateDaysDelta(workOrder.created_date, workOrder.completed_date);
       const completedDeltaStr = completedDelta !== null ? ` (${completedDelta} days from created)` : '';
-      this.addText(`Completed: ${this.pdfFormatDate(workOrder.completed_date)}${completedDeltaStr}`, this.margin, 10);
+      this.textLayout.addText(`Completed: ${this.pdfFormatDate(workOrder.completed_date)}${completedDeltaStr}`, this.margin, 10);
     }
 
     this.addSeparator();
@@ -323,7 +286,7 @@ export class WorkOrderReportPDFGenerator {
   private generateEquipmentSection(equipment: EquipmentForPDF): void {
     this.addSectionHeader('Equipment');
 
-    this.addText(`${equipment.name} - ${equipment.status}`, this.margin, 11, 'bold');
+    this.textLayout.addText(`${equipment.name} - ${equipment.status}`, this.margin, 11, 'bold');
     
     const details: string[] = [];
     if (equipment.manufacturer) details.push(`Mfr: ${equipment.manufacturer}`);
@@ -332,14 +295,14 @@ export class WorkOrderReportPDFGenerator {
     if (serialNumber) details.push(`S/N: ${serialNumber}`);
     
     if (details.length > 0) {
-      this.addText(details.join(' | '), this.margin, 10);
+      this.textLayout.addText(details.join(' | '), this.margin, 10);
     }
 
     if (equipment.location) {
-      this.addText(`Location: ${equipment.location}`, this.margin, 10);
+      this.textLayout.addText(`Location: ${equipment.location}`, this.margin, 10);
     }
     if (equipment.customerName) {
-      this.addText(`Customer: ${equipment.customerName}`, this.margin, 10);
+      this.textLayout.addText(`Customer: ${equipment.customerName}`, this.margin, 10);
     }
 
     this.addSeparator();
@@ -355,8 +318,8 @@ export class WorkOrderReportPDFGenerator {
     const assigneeName = workOrder.assigneeName || workOrder.assignee_name || 'Unassigned';
 
     // "Serviced By" label - this is the team performing the work, not the customer
-    this.addText(`Serviced By: ${teamName}`, this.margin, 10, 'bold');
-    this.addText(`Assigned To: ${assigneeName}`, this.margin, 10);
+    this.textLayout.addText(`Serviced By: ${teamName}`, this.margin, 10, 'bold');
+    this.textLayout.addText(`Assigned To: ${assigneeName}`, this.margin, 10);
 
     this.addSeparator();
   }
@@ -366,7 +329,7 @@ export class WorkOrderReportPDFGenerator {
    */
   private generateDescriptionSection(description: string): void {
     this.addSectionHeader('Description');
-    this.addMultilineText(description || 'No description provided.', this.margin, 170, 10);
+    this.textLayout.addMultilineText(description || 'No description provided.', this.margin, 170, 10);
     this.addSeparator();
   }
 
@@ -424,9 +387,9 @@ export class WorkOrderReportPDFGenerator {
         }
       } else {
         // Notes without images: render in-flow (can share pages)
-        this.checkPageBreak(30);
+        this.textLayout.checkPageBreak(30);
         this.generateNoteText(note, dateStr, author);
-        this.yPosition += 6;
+        this.textLayout.yPosition += 6;
       }
     }
 
@@ -473,17 +436,17 @@ export class WorkOrderReportPDFGenerator {
     imageCache?: Map<string, { data: string; format: 'JPEG' | 'PNG' } | null>
   ): Promise<void> {
     // Note header
-    this.addText(`${dateStr} - ${author}`, this.margin, 9, 'bold');
+    this.textLayout.addText(`${dateStr} - ${author}`, this.margin, 9, 'bold');
     
     // Note content
-    this.addMultilineText(note.content, this.margin, 170, 9);
+    this.textLayout.addMultilineText(note.content, this.margin, 170, 9);
     
     // Hours worked if available
     if (note.hours_worked && note.hours_worked > 0) {
-      this.addText(`Hours worked: ${note.hours_worked}`, this.margin, 8);
+      this.textLayout.addText(`Hours worked: ${note.hours_worked}`, this.margin, 8);
     }
     
-    this.yPosition += 6;
+    this.textLayout.yPosition += 6;
     
     // Embed the actual image (using cache if available)
     await this.addEmbeddedImage(image.file_url, image.file_name, imageCache);
@@ -556,7 +519,7 @@ export class WorkOrderReportPDFGenerator {
     fileName: string,
     imageCache?: Map<string, { data: string; format: 'JPEG' | 'PNG' } | null>
   ): Promise<void> {
-    const availableHeight = this.pageHeight - this.yPosition - 20;
+    const availableHeight = this.pageHeight - this.textLayout.yPosition - 20;
     const availableWidth = this.pageWidth - (2 * this.margin);
     const maxImageHeight = Math.min(availableHeight, 180);
     
@@ -596,16 +559,16 @@ export class WorkOrderReportPDFGenerator {
         const xOffset = this.margin + (availableWidth - imgWidth) / 2;
         
         // Add the image to the PDF
-        this.doc.addImage(imageData.data, imageData.format, xOffset, this.yPosition, imgWidth, imgHeight);
-        this.yPosition += imgHeight + 10;
+        this.doc.addImage(imageData.data, imageData.format, xOffset, this.textLayout.yPosition, imgWidth, imgHeight);
+        this.textLayout.yPosition += imgHeight + 10;
         
         // Add filename caption below image
         this.doc.setFontSize(8);
         this.doc.setFont('helvetica', 'italic');
         this.doc.setTextColor(100, 100, 100);
-        this.doc.text(fileName, this.margin, this.yPosition);
+        this.doc.text(fileName, this.margin, this.textLayout.yPosition);
         this.doc.setTextColor(0, 0, 0);
-        this.yPosition += 6;
+        this.textLayout.yPosition += 6;
         
         return;
       } catch (error) {
@@ -617,17 +580,17 @@ export class WorkOrderReportPDFGenerator {
     // Fallback: Draw a bordered box with image reference
     this.doc.setDrawColor(150, 150, 150);
     this.doc.setLineWidth(0.5);
-    this.doc.rect(this.margin, this.yPosition, availableWidth, 40);
+    this.doc.rect(this.margin, this.textLayout.yPosition, availableWidth, 40);
     
     this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'normal');
-    this.doc.text(`Photo: ${fileName}`, this.margin + 5, this.yPosition + 15);
+    this.doc.text(`Photo: ${fileName}`, this.margin + 5, this.textLayout.yPosition + 15);
     this.doc.setFontSize(8);
     this.doc.setTextColor(100, 100, 100);
-    this.doc.text('(Image could not be loaded)', this.margin + 5, this.yPosition + 25);
+    this.doc.text('(Image could not be loaded)', this.margin + 5, this.textLayout.yPosition + 25);
     this.doc.setTextColor(0, 0, 0);
     
-    this.yPosition += 50;
+    this.textLayout.yPosition += 50;
   }
 
   /**
@@ -635,14 +598,14 @@ export class WorkOrderReportPDFGenerator {
    */
   private generateNoteText(note: WorkOrderNote, dateStr: string, author: string): void {
     // Note header
-    this.addText(`${dateStr} - ${author}`, this.margin, 9, 'bold');
+    this.textLayout.addText(`${dateStr} - ${author}`, this.margin, 9, 'bold');
     
     // Note content
-    this.addMultilineText(note.content, this.margin + 5, 165, 9);
+    this.textLayout.addMultilineText(note.content, this.margin + 5, 165, 9);
     
     // Hours worked if available
     if (note.hours_worked && note.hours_worked > 0) {
-      this.addText(`Hours worked: ${note.hours_worked}`, this.margin + 5, 8);
+      this.textLayout.addText(`Hours worked: ${note.hours_worked}`, this.margin + 5, 8);
     }
   }
 
@@ -659,22 +622,22 @@ export class WorkOrderReportPDFGenerator {
     let totalCents = 0;
 
     for (const cost of costs) {
-      this.checkPageBreak(15);
+      this.textLayout.checkPageBreak(15);
       
       const unitPrice = this.formatCurrency(cost.unit_price_cents);
       const totalPrice = this.formatCurrency(cost.total_price_cents);
       
       // Cost line: Description x Qty @ Price = Total
       const costLine = `${cost.description} x${cost.quantity} @ ${unitPrice} = ${totalPrice}`;
-      this.addText(costLine, this.margin, 10);
+      this.textLayout.addText(costLine, this.margin, 10);
       
       totalCents += cost.total_price_cents;
     }
 
     // Total line
-    this.yPosition += 3;
+    this.textLayout.yPosition += 3;
     this.doc.setFont('helvetica', 'bold');
-    this.addText(`TOTAL: ${this.formatCurrency(totalCents)}`, this.margin, 11, 'bold');
+    this.textLayout.addText(`TOTAL: ${this.formatCurrency(totalCents)}`, this.margin, 11, 'bold');
 
     this.addSeparator();
   }
@@ -687,12 +650,12 @@ export class WorkOrderReportPDFGenerator {
 
     // PM Status
     const pmStatus = pmData.status.replace(/_/g, ' ').toUpperCase();
-    this.addText(`Status: ${pmStatus}`, this.margin, 10, 'bold');
+    this.textLayout.addText(`Status: ${pmStatus}`, this.margin, 10, 'bold');
     
     if (pmData.completed_at) {
-      this.addText(`Completed: ${this.pdfFormatDateTime(pmData.completed_at)}`, this.margin, 9);
+      this.textLayout.addText(`Completed: ${this.pdfFormatDateTime(pmData.completed_at)}`, this.margin, 9);
     }
-    this.yPosition += 3;
+    this.textLayout.yPosition += 3;
 
     // Parse checklist data
     let checklist: PMChecklistItem[] = [];
@@ -705,12 +668,12 @@ export class WorkOrderReportPDFGenerator {
       }
     } catch (error) {
       logger.error('Error parsing PM checklist data:', error);
-      this.addText('Unable to parse checklist data.', this.margin, 10);
+      this.textLayout.addText('Unable to parse checklist data.', this.margin, 10);
       return;
     }
 
     if (checklist.length === 0) {
-      this.addText('No checklist items.', this.margin, 10);
+      this.textLayout.addText('No checklist items.', this.margin, 10);
       return;
     }
 
@@ -718,13 +681,13 @@ export class WorkOrderReportPDFGenerator {
     const sections = Array.from(new Set(checklist.map(item => item.section)));
 
     for (const section of sections) {
-      this.checkPageBreak(15);
-      this.addText(section, this.margin, 10, 'bold');
+      this.textLayout.checkPageBreak(15);
+      this.textLayout.addText(section, this.margin, 10, 'bold');
       
       const sectionItems = checklist.filter(item => item.section === section);
       
       for (const item of sectionItems) {
-        this.checkPageBreak(12);
+        this.textLayout.checkPageBreak(12);
         
         const hasCondition = item.condition !== null && item.condition !== undefined;
         const checkmark = hasCondition ? '☑' : '☐';
@@ -732,22 +695,22 @@ export class WorkOrderReportPDFGenerator {
         
         // Item line: [X] Title - Condition
         const itemLine = `${checkmark} ${item.title} - ${conditionText}`;
-        this.addText(itemLine, this.margin + 5, 9);
+        this.textLayout.addText(itemLine, this.margin + 5, 9);
         
         // Notes if available
         if (item.notes) {
-          this.addMultilineText(`Notes: ${item.notes}`, this.margin + 10, 155, 8);
+          this.textLayout.addMultilineText(`Notes: ${item.notes}`, this.margin + 10, 155, 8);
         }
       }
       
-      this.yPosition += 2;
+      this.textLayout.yPosition += 2;
     }
 
     // General PM notes
     if (pmData.notes) {
-      this.checkPageBreak(15);
-      this.addText('General Notes:', this.margin, 10, 'bold');
-      this.addMultilineText(pmData.notes, this.margin, 170, 9);
+      this.textLayout.checkPageBreak(15);
+      this.textLayout.addText('General Notes:', this.margin, 10, 'bold');
+      this.textLayout.addMultilineText(pmData.notes, this.margin, 170, 9);
     }
 
     this.addSeparator();
@@ -758,7 +721,7 @@ export class WorkOrderReportPDFGenerator {
    */
   private addNewPage(): void {
     this.doc.addPage();
-    this.yPosition = 20;
+    this.textLayout.yPosition = 20;
   }
 
   /**

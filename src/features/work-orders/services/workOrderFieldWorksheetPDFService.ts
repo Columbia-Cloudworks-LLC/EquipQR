@@ -15,6 +15,7 @@ import {
   formatWorkOrderIdForPdf,
   type WorkOrderPdfPageLayout,
 } from './workOrderPdfChrome';
+import { WorkOrderPdfTextLayout } from './workOrderPdfTextLayout';
 
 const CONDITION_LEGEND = [
   { value: 1, label: 'OK' },
@@ -44,7 +45,7 @@ interface PreloadedImage {
  */
 export class WorkOrderFieldWorksheetPDFGenerator {
   private doc!: jsPDF;
-  private yPosition: number = 20;
+  private textLayout!: WorkOrderPdfTextLayout;
   private readonly lineHeight = 6;
   private readonly writeLineHeight = 8;
   private readonly pageHeight = 252;
@@ -67,6 +68,13 @@ export class WorkOrderFieldWorksheetPDFGenerator {
   private async init(): Promise<void> {
     const { default: jsPDF } = await import('jspdf');
     this.doc = new jsPDF();
+    this.textLayout = new WorkOrderPdfTextLayout(this.doc, {
+      margin: this.margin,
+      pageHeight: this.pageHeight,
+      lineHeight: this.lineHeight,
+      pageWidth: this.pageWidth,
+      contentWidth: this.contentWidth,
+    });
   }
 
   static async create(): Promise<WorkOrderFieldWorksheetPDFGenerator> {
@@ -77,62 +85,25 @@ export class WorkOrderFieldWorksheetPDFGenerator {
 
   // ===================== UTILITY METHODS =====================
 
-  private checkPageBreak(requiredSpace: number = 20): void {
-    if (this.yPosition + requiredSpace > this.pageHeight) {
-      this.doc.addPage();
-      this.yPosition = 20;
-    }
-  }
-
-  private addText(
-    text: string,
-    x: number = this.margin,
-    fontSize: number = 10,
-    style: 'normal' | 'bold' = 'normal'
-  ): void {
-    this.checkPageBreak();
-    this.doc.setFontSize(fontSize);
-    this.doc.setFont('helvetica', style);
-    this.doc.text(text, x, this.yPosition);
-    this.yPosition += this.lineHeight;
-  }
-
-  private addMultilineText(
-    text: string,
-    x: number = this.margin,
-    maxWidth?: number,
-    fontSize: number = 10
-  ): void {
-    const width = maxWidth ?? this.contentWidth;
-    this.doc.setFontSize(fontSize);
-    this.doc.setFont('helvetica', 'normal');
-    const lines = this.doc.splitTextToSize(text, width);
-    for (const line of lines) {
-      this.checkPageBreak();
-      this.doc.text(line, x, this.yPosition);
-      this.yPosition += this.lineHeight;
-    }
-  }
-
   private addSectionHeader(title: string): void {
-    this.checkPageBreak(15);
-    this.yPosition += 3;
+    this.textLayout.checkPageBreak(15);
+    this.textLayout.yPosition += 3;
     this.doc.setFillColor(240, 240, 240);
-    this.doc.rect(this.margin, this.yPosition - 4.5, this.contentWidth, 7, 'F');
+    this.doc.rect(this.margin, this.textLayout.yPosition - 4.5, this.contentWidth, 7, 'F');
     this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(0, 0, 0);
-    this.doc.text(title.toUpperCase(), this.margin + 2, this.yPosition);
-    this.yPosition += 6;
+    this.doc.text(title.toUpperCase(), this.margin + 2, this.textLayout.yPosition);
+    this.textLayout.yPosition += 6;
   }
 
   private addSeparator(): void {
-    this.yPosition += 2;
-    this.checkPageBreak(6);
+    this.textLayout.yPosition += 2;
+    this.textLayout.checkPageBreak(6);
     this.doc.setDrawColor(180, 180, 180);
     this.doc.setLineWidth(0.3);
-    this.doc.line(this.margin, this.yPosition, this.pageWidth - this.margin, this.yPosition);
-    this.yPosition += 4;
+    this.doc.line(this.margin, this.textLayout.yPosition, this.pageWidth - this.margin, this.textLayout.yPosition);
+    this.textLayout.yPosition += 4;
   }
 
   private addWriteLines(count: number, x: number = this.margin, width?: number): void {
@@ -140,14 +111,14 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     this.doc.setDrawColor(200, 200, 200);
     this.doc.setLineWidth(0.2);
     for (let i = 0; i < count; i++) {
-      this.checkPageBreak(this.writeLineHeight);
-      this.doc.line(x, this.yPosition, x + lineWidth, this.yPosition);
-      this.yPosition += this.writeLineHeight;
+      this.textLayout.checkPageBreak(this.writeLineHeight);
+      this.doc.line(x, this.textLayout.yPosition, x + lineWidth, this.textLayout.yPosition);
+      this.textLayout.yPosition += this.writeLineHeight;
     }
   }
 
   private addLabeledField(label: string, x: number, lineEndX: number, y?: number): void {
-    const drawY = y ?? this.yPosition;
+    const drawY = y ?? this.textLayout.yPosition;
     this.doc.setFontSize(8);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(0, 0, 0);
@@ -228,7 +199,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
       default: x = (this.pageWidth - w) / 2; break;
     }
 
-    const drawY = y ?? this.yPosition;
+    const drawY = y ?? this.textLayout.yPosition;
 
     try {
       this.doc.addImage(image.data, image.format, x, drawY, w, h);
@@ -249,45 +220,45 @@ export class WorkOrderFieldWorksheetPDFGenerator {
   ): void {
     // Team image in top-right corner (drawn first so header text doesn't overlap)
     if (teamImage) {
-      this.embedImage(teamImage, 22, 16, 'right', this.yPosition);
+      this.embedImage(teamImage, 22, 16, 'right', this.textLayout.yPosition);
     }
 
     // Organization logo centered
     if (orgLogo) {
       const { height } = this.embedImage(orgLogo, 50, 18, 'center');
-      this.yPosition += height + 3;
+      this.textLayout.yPosition += height + 3;
     }
 
     if (organizationName) {
       this.doc.setFontSize(14);
       this.doc.setFont('helvetica', 'bold');
       const orgWidth = this.doc.getTextWidth(organizationName);
-      this.doc.text(organizationName, (this.pageWidth - orgWidth) / 2, this.yPosition);
-      this.yPosition += 7;
+      this.doc.text(organizationName, (this.pageWidth - orgWidth) / 2, this.textLayout.yPosition);
+      this.textLayout.yPosition += 7;
     }
 
     this.doc.setFontSize(12);
     this.doc.setFont('helvetica', 'bold');
     const subtitle = 'FIELD WORKSHEET';
     const subtitleWidth = this.doc.getTextWidth(subtitle);
-    this.doc.text(subtitle, (this.pageWidth - subtitleWidth) / 2, this.yPosition);
-    this.yPosition += 7;
+    this.doc.text(subtitle, (this.pageWidth - subtitleWidth) / 2, this.textLayout.yPosition);
+    this.textLayout.yPosition += 7;
 
     this.doc.setFontSize(11);
     this.doc.setFont('helvetica', 'bold');
     const titleLines = this.doc.splitTextToSize(workOrder.title, this.contentWidth - 20);
     for (const line of titleLines) {
       const lineWidth = this.doc.getTextWidth(line);
-      this.doc.text(line, (this.pageWidth - lineWidth) / 2, this.yPosition);
-      this.yPosition += 6;
+      this.doc.text(line, (this.pageWidth - lineWidth) / 2, this.textLayout.yPosition);
+      this.textLayout.yPosition += 6;
     }
 
     this.doc.setFontSize(9);
     this.doc.setFont('helvetica', 'normal');
     const statusLine = `WO: ${formatWorkOrderIdForPdf(workOrder.id)}  |  ${formatStatus(workOrder.status)}  |  Generated: ${this.pdfFormatDate(new Date())}`;
     const statusWidth = this.doc.getTextWidth(statusLine);
-    this.doc.text(statusLine, (this.pageWidth - statusWidth) / 2, this.yPosition);
-    this.yPosition += 4;
+    this.doc.text(statusLine, (this.pageWidth - statusWidth) / 2, this.textLayout.yPosition);
+    this.textLayout.yPosition += 4;
 
     this.addSeparator();
   }
@@ -298,28 +269,28 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     const col1x = this.margin + 2;
     const col2x = this.margin + this.contentWidth / 2;
 
-    this.addText(`Created: ${this.pdfFormatDate(workOrder.created_date)}`, col1x, 9);
-    this.yPosition -= this.lineHeight;
-    this.addText(`Due: ${this.pdfFormatDate(workOrder.due_date)}`, col2x, 9);
+    this.textLayout.addText(`Created: ${this.pdfFormatDate(workOrder.created_date)}`, col1x, 9);
+    this.textLayout.yPosition -= this.lineHeight;
+    this.textLayout.addText(`Due: ${this.pdfFormatDate(workOrder.due_date)}`, col2x, 9);
 
-    this.addText(`Priority: ${formatPriority(workOrder.priority)}`, col1x, 9);
-    this.yPosition -= this.lineHeight;
+    this.textLayout.addText(`Priority: ${formatPriority(workOrder.priority)}`, col1x, 9);
+    this.textLayout.yPosition -= this.lineHeight;
     const assignee = workOrder.assigneeName || workOrder.assignee_name || 'Unassigned';
-    this.addText(`Assigned To: ${assignee}`, col2x, 9);
+    this.textLayout.addText(`Assigned To: ${assignee}`, col2x, 9);
 
     if (workOrder.teamName) {
-      this.addText(`Team: ${workOrder.teamName}`, col1x, 9);
+      this.textLayout.addText(`Team: ${workOrder.teamName}`, col1x, 9);
     }
     if (workOrder.estimated_hours) {
       if (!workOrder.teamName) {
-        this.addText(`Est. Hours: ${workOrder.estimated_hours}`, col1x, 9);
+        this.textLayout.addText(`Est. Hours: ${workOrder.estimated_hours}`, col1x, 9);
       } else {
-        this.yPosition -= this.lineHeight;
-        this.addText(`Est. Hours: ${workOrder.estimated_hours}`, col2x, 9);
+        this.textLayout.yPosition -= this.lineHeight;
+        this.textLayout.addText(`Est. Hours: ${workOrder.estimated_hours}`, col2x, 9);
       }
     }
 
-    this.yPosition += 2;
+    this.textLayout.yPosition += 2;
   }
 
   private generateEquipmentSection(equipment: EquipmentForPDF): void {
@@ -328,60 +299,60 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     const col1x = this.margin + 2;
     const col2x = this.margin + this.contentWidth / 2;
 
-    this.addText(equipment.name, col1x, 10, 'bold');
+    this.textLayout.addText(equipment.name, col1x, 10, 'bold');
 
     if (equipment.manufacturer || equipment.model) {
       if (equipment.manufacturer) {
-        this.addText(`Mfr: ${equipment.manufacturer}`, col1x, 9);
+        this.textLayout.addText(`Mfr: ${equipment.manufacturer}`, col1x, 9);
         if (equipment.model) {
-          this.yPosition -= this.lineHeight;
-          this.addText(`Model: ${equipment.model}`, col2x, 9);
+          this.textLayout.yPosition -= this.lineHeight;
+          this.textLayout.addText(`Model: ${equipment.model}`, col2x, 9);
         }
       } else if (equipment.model) {
-        this.addText(`Model: ${equipment.model}`, col1x, 9);
+        this.textLayout.addText(`Model: ${equipment.model}`, col1x, 9);
       }
     }
 
     if (equipment.serial_number) {
-      this.addText(`S/N: ${equipment.serial_number}`, col1x, 9);
+      this.textLayout.addText(`S/N: ${equipment.serial_number}`, col1x, 9);
     }
 
     if (equipment.location) {
-      this.addText(`Location: ${equipment.location}`, col1x, 9);
+      this.textLayout.addText(`Location: ${equipment.location}`, col1x, 9);
     }
 
-    this.yPosition += 2;
+    this.textLayout.yPosition += 2;
   }
 
   private generateDescriptionSection(description: string): void {
     this.addSectionHeader('Description');
     if (description) {
-      this.addMultilineText(description, this.margin + 2, this.contentWidth - 4, 9);
+      this.textLayout.addMultilineText(description, this.margin + 2, this.contentWidth - 4, 9);
     } else {
-      this.addText('No description provided.', this.margin + 2, 9);
+      this.textLayout.addText('No description provided.', this.margin + 2, 9);
     }
-    this.yPosition += 2;
+    this.textLayout.yPosition += 2;
   }
 
   // ===================== PM CHECKLIST =====================
 
   private generateConditionLegend(): void {
-    this.checkPageBreak(16);
+    this.textLayout.checkPageBreak(16);
     this.doc.setDrawColor(100, 100, 100);
     this.doc.setLineWidth(0.4);
     this.doc.setFillColor(250, 250, 245);
-    this.doc.rect(this.margin, this.yPosition - 3, this.contentWidth, 12, 'FD');
+    this.doc.rect(this.margin, this.textLayout.yPosition - 3, this.contentWidth, 12, 'FD');
 
     this.doc.setFontSize(7);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(0, 0, 0);
-    this.doc.text('CONDITION SCALE:', this.margin + 3, this.yPosition);
+    this.doc.text('CONDITION SCALE:', this.margin + 3, this.textLayout.yPosition);
 
     this.doc.setFont('helvetica', 'normal');
     const legendText = CONDITION_LEGEND.map(c => `${c.value} = ${c.label}`).join('   |   ');
-    this.doc.text(legendText, this.margin + 3, this.yPosition + 5);
+    this.doc.text(legendText, this.margin + 3, this.textLayout.yPosition + 5);
 
-    this.yPosition += 14;
+    this.textLayout.yPosition += 14;
   }
 
   private drawConditionBoxes(x: number, y: number): void {
@@ -421,7 +392,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
    */
   private generatePMSummaryPage(checklist: PMChecklistItem[]): void {
     this.doc.addPage();
-    this.yPosition = 20;
+    this.textLayout.yPosition = 20;
 
     this.addSectionHeader('PM Checklist \u2014 Summary');
     this.generateConditionLegend();
@@ -429,23 +400,23 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     const sections = Array.from(new Set(checklist.map(item => item.section)));
 
     for (const section of sections) {
-      this.checkPageBreak(16);
+      this.textLayout.checkPageBreak(16);
       this.doc.setFillColor(235, 235, 235);
-      this.doc.rect(this.margin, this.yPosition - 3.5, this.contentWidth, 6, 'F');
+      this.doc.rect(this.margin, this.textLayout.yPosition - 3.5, this.contentWidth, 6, 'F');
       this.doc.setFontSize(9);
       this.doc.setFont('helvetica', 'bold');
       this.doc.setTextColor(0, 0, 0);
-      this.doc.text(section, this.margin + 2, this.yPosition);
-      this.yPosition += 5;
+      this.doc.text(section, this.margin + 2, this.textLayout.yPosition);
+      this.textLayout.yPosition += 5;
 
       const sectionItems = checklist.filter(item => item.section === section);
 
       for (const item of sectionItems) {
-        this.checkPageBreak(10);
+        this.textLayout.checkPageBreak(10);
 
         this.doc.setDrawColor(120, 120, 120);
         this.doc.setLineWidth(0.3);
-        this.doc.rect(this.margin + 2, this.yPosition - 3.5, 4, 4);
+        this.doc.rect(this.margin + 2, this.textLayout.yPosition - 3.5, 4, 4);
 
         this.doc.setFontSize(8);
         this.doc.setFont('helvetica', 'normal');
@@ -453,14 +424,14 @@ export class WorkOrderFieldWorksheetPDFGenerator {
 
         const maxTitleWidth = this.contentWidth - 55;
         const truncatedTitle = this.doc.splitTextToSize(item.title, maxTitleWidth)[0] ?? item.title;
-        this.doc.text(truncatedTitle, this.margin + 8, this.yPosition);
+        this.doc.text(truncatedTitle, this.margin + 8, this.textLayout.yPosition);
 
-        this.drawConditionBoxes(this.pageWidth - this.margin - 42, this.yPosition);
+        this.drawConditionBoxes(this.pageWidth - this.margin - 42, this.textLayout.yPosition);
 
-        this.yPosition += 6;
+        this.textLayout.yPosition += 6;
       }
 
-      this.yPosition += 1;
+      this.textLayout.yPosition += 1;
     }
   }
 
@@ -470,7 +441,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
    */
   private generatePMDetailPages(checklist: PMChecklistItem[]): void {
     this.doc.addPage();
-    this.yPosition = 20;
+    this.textLayout.yPosition = 20;
 
     this.addSectionHeader('PM Checklist \u2014 Detail');
     this.generateConditionLegend();
@@ -480,24 +451,24 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     const itemHeight = 10 + 7 + notesLineCount * this.writeLineHeight + 4;
 
     for (const section of sections) {
-      this.checkPageBreak(itemHeight + 8);
+      this.textLayout.checkPageBreak(itemHeight + 8);
       this.doc.setFillColor(235, 235, 235);
-      this.doc.rect(this.margin, this.yPosition - 3.5, this.contentWidth, 6, 'F');
+      this.doc.rect(this.margin, this.textLayout.yPosition - 3.5, this.contentWidth, 6, 'F');
       this.doc.setFontSize(9);
       this.doc.setFont('helvetica', 'bold');
       this.doc.setTextColor(0, 0, 0);
-      this.doc.text(section, this.margin + 2, this.yPosition);
-      this.yPosition += 6;
+      this.doc.text(section, this.margin + 2, this.textLayout.yPosition);
+      this.textLayout.yPosition += 6;
 
       const sectionItems = checklist.filter(item => item.section === section);
 
       for (const item of sectionItems) {
-        this.checkPageBreak(itemHeight);
+        this.textLayout.checkPageBreak(itemHeight);
 
         // Checkbox + title
         this.doc.setDrawColor(120, 120, 120);
         this.doc.setLineWidth(0.3);
-        this.doc.rect(this.margin + 2, this.yPosition - 3.5, 4, 4);
+        this.doc.rect(this.margin + 2, this.textLayout.yPosition - 3.5, 4, 4);
 
         this.doc.setFontSize(9);
         this.doc.setFont('helvetica', 'normal');
@@ -505,8 +476,8 @@ export class WorkOrderFieldWorksheetPDFGenerator {
 
         const titleLines = this.doc.splitTextToSize(item.title, this.contentWidth - 12);
         for (const titleLine of titleLines) {
-          this.doc.text(titleLine, this.margin + 8, this.yPosition);
-          this.yPosition += 5;
+          this.doc.text(titleLine, this.margin + 8, this.textLayout.yPosition);
+          this.textLayout.yPosition += 5;
         }
 
         // Condition boxes
@@ -514,26 +485,26 @@ export class WorkOrderFieldWorksheetPDFGenerator {
         this.doc.setFontSize(7);
         this.doc.setFont('helvetica', 'bold');
         this.doc.setTextColor(0, 0, 0);
-        this.doc.text('Condition:', conditionX, this.yPosition);
-        this.drawConditionBoxes(conditionX + 18, this.yPosition);
-        this.yPosition += 7;
+        this.doc.text('Condition:', conditionX, this.textLayout.yPosition);
+        this.drawConditionBoxes(conditionX + 18, this.textLayout.yPosition);
+        this.textLayout.yPosition += 7;
 
         // 5 blank writing lines
         this.addWriteLines(notesLineCount, this.margin + 8, this.contentWidth - 12);
 
-        this.yPosition += 4;
+        this.textLayout.yPosition += 4;
       }
 
-      this.yPosition += 2;
+      this.textLayout.yPosition += 2;
     }
 
     // General PM notes
-    this.checkPageBreak(35);
+    this.textLayout.checkPageBreak(35);
     this.doc.setFontSize(9);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(0, 0, 0);
-    this.doc.text('General PM Notes:', this.margin + 2, this.yPosition);
-    this.yPosition += 5;
+    this.doc.text('General PM Notes:', this.margin + 2, this.textLayout.yPosition);
+    this.textLayout.yPosition += 5;
     this.addWriteLines(3, this.margin + 2, this.contentWidth - 4);
   }
 
@@ -541,7 +512,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     const checklist = this.parsePMChecklist(pmData);
 
     if (checklist.length === 0) {
-      this.addText('No checklist items configured.', this.margin, 10);
+      this.textLayout.addText('No checklist items configured.', this.margin, 10);
       return;
     }
 
@@ -557,16 +528,16 @@ export class WorkOrderFieldWorksheetPDFGenerator {
    */
   private generateLaborSummaryPage(): void {
     this.doc.addPage();
-    this.yPosition = 20;
+    this.textLayout.yPosition = 20;
 
     this.addSectionHeader('Labor Summary');
 
     const rowHeight = 15;
-    const availableHeight = this.pageHeight - this.yPosition;
+    const availableHeight = this.pageHeight - this.textLayout.yPosition;
     const rowCount = Math.floor(availableHeight / rowHeight);
 
     for (let i = 0; i < rowCount; i++) {
-      const y = this.yPosition;
+      const y = this.textLayout.yPosition;
       const col1 = this.margin + 2;
       const col2 = this.margin + 60;
       const col3 = this.margin + 110;
@@ -575,9 +546,9 @@ export class WorkOrderFieldWorksheetPDFGenerator {
       this.addLabeledField('Hours:', col2, col2 + 40, y);
       this.addLabeledField('Date:', col3, this.pageWidth - this.margin, y);
 
-      this.yPosition = y + 7;
-      this.addLabeledField('Task:', col1, this.pageWidth - this.margin, this.yPosition);
-      this.yPosition += 8;
+      this.textLayout.yPosition = y + 7;
+      this.addLabeledField('Task:', col1, this.pageWidth - this.margin, this.textLayout.yPosition);
+      this.textLayout.yPosition += 8;
     }
   }
 
@@ -587,16 +558,16 @@ export class WorkOrderFieldWorksheetPDFGenerator {
    */
   private generatePartsMaterialsPage(): void {
     this.doc.addPage();
-    this.yPosition = 20;
+    this.textLayout.yPosition = 20;
 
     this.addSectionHeader('Parts / Materials Used');
 
     const rowHeight = this.writeLineHeight;
-    const availableHeight = this.pageHeight - this.yPosition;
+    const availableHeight = this.pageHeight - this.textLayout.yPosition;
     const rowCount = Math.floor(availableHeight / rowHeight);
 
     for (let i = 0; i < rowCount; i++) {
-      const y = this.yPosition;
+      const y = this.textLayout.yPosition;
       const partEnd = this.margin + 95;
       const qtyEnd = this.margin + 125;
 
@@ -604,7 +575,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
       this.addLabeledField('Qty:', partEnd + 3, qtyEnd, y);
       this.addLabeledField('Part#:', qtyEnd + 3, this.pageWidth - this.margin, y);
 
-      this.yPosition = y + rowHeight;
+      this.textLayout.yPosition = y + rowHeight;
     }
   }
 
@@ -622,33 +593,33 @@ export class WorkOrderFieldWorksheetPDFGenerator {
    */
   private generateNotesPage(workOrder: WorkOrderForPDF): void {
     this.doc.addPage();
-    this.yPosition = 20;
+    this.textLayout.yPosition = 20;
 
     this.addSectionHeader('Notes');
 
     // Reserve space at the bottom for the certification/signature block + re-entry footer.
     const signatureBlockHeight = 58;
-    const availableForLines = this.pageHeight - this.yPosition - signatureBlockHeight;
+    const availableForLines = this.pageHeight - this.textLayout.yPosition - signatureBlockHeight;
     const lineCount = Math.floor(availableForLines / this.writeLineHeight);
 
     this.addWriteLines(lineCount, this.margin + 2, this.contentWidth - 4);
 
     // ── Signature line + Date ──
-    this.yPosition += 4;
+    this.textLayout.yPosition += 4;
     const sigLineEnd = this.margin + this.contentWidth * 0.5;
     this.doc.setDrawColor(60, 60, 60);
     this.doc.setLineWidth(0.5);
-    this.doc.line(this.margin + 2, this.yPosition, sigLineEnd, this.yPosition);
+    this.doc.line(this.margin + 2, this.textLayout.yPosition, sigLineEnd, this.textLayout.yPosition);
 
     const dateStartX = sigLineEnd + 12;
-    this.addLabeledField('Date Signed:', dateStartX, this.pageWidth - this.margin, this.yPosition);
+    this.addLabeledField('Date Signed:', dateStartX, this.pageWidth - this.margin, this.textLayout.yPosition);
 
     this.doc.setFontSize(7);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(100, 100, 100);
-    this.doc.text('Technician Signature', this.margin + 2, this.yPosition + 4);
+    this.doc.text('Technician Signature', this.margin + 2, this.textLayout.yPosition + 4);
     this.doc.setTextColor(0, 0, 0);
-    this.yPosition += 8;
+    this.textLayout.yPosition += 8;
 
     // ── Printed Name ──
     const assigneeName = workOrder.assigneeName ?? workOrder.assignee_name ?? null;
@@ -656,14 +627,14 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     if (assigneeName) {
       this.doc.setFontSize(8);
       this.doc.setFont('helvetica', 'bold');
-      this.doc.text('Technician Printed Name:', this.margin + 2, this.yPosition);
+      this.doc.text('Technician Printed Name:', this.margin + 2, this.textLayout.yPosition);
       const labelWidth = this.doc.getTextWidth('Technician Printed Name:') + 2;
       this.doc.setFont('helvetica', 'normal');
-      this.doc.text(assigneeName, this.margin + 2 + labelWidth, this.yPosition);
+      this.doc.text(assigneeName, this.margin + 2 + labelWidth, this.textLayout.yPosition);
     } else {
-      this.addLabeledField('Technician Printed Name:', this.margin + 2, sigLineEnd, this.yPosition);
+      this.addLabeledField('Technician Printed Name:', this.margin + 2, sigLineEnd, this.textLayout.yPosition);
     }
-    this.yPosition += 6;
+    this.textLayout.yPosition += 6;
 
     // ── Certification attestation ──
     this.doc.setFontSize(6.5);
@@ -672,16 +643,16 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     this.doc.text(
       'I certify that the foregoing work and observations are accurate to the best of my knowledge.',
       this.margin + 2,
-      this.yPosition,
+      this.textLayout.yPosition,
     );
     this.doc.setTextColor(0, 0, 0);
-    this.yPosition += 6;
+    this.textLayout.yPosition += 6;
 
     // ── Divider before re-entry section ──
     this.doc.setDrawColor(180, 180, 180);
     this.doc.setLineWidth(0.3);
-    this.doc.line(this.margin, this.yPosition, this.pageWidth - this.margin, this.yPosition);
-    this.yPosition += 12;
+    this.doc.line(this.margin, this.textLayout.yPosition, this.pageWidth - this.margin, this.textLayout.yPosition);
+    this.textLayout.yPosition += 12;
 
     // ── Re-entry fields (same line, wider split for more writing room) ──
     this.doc.setFontSize(7);
@@ -689,8 +660,8 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     this.doc.setTextColor(120, 120, 120);
 
     const reentryNameEnd = this.margin + this.contentWidth * 0.6;
-    this.addLabeledField('Entered into EquipQR By:', this.margin + 2, reentryNameEnd, this.yPosition);
-    this.addLabeledField('Entry Date:', reentryNameEnd + 4, this.pageWidth - this.margin, this.yPosition);
+    this.addLabeledField('Entered into EquipQR By:', this.margin + 2, reentryNameEnd, this.textLayout.yPosition);
+    this.addLabeledField('Entry Date:', reentryNameEnd + 4, this.pageWidth - this.margin, this.textLayout.yPosition);
 
     this.doc.setTextColor(0, 0, 0);
   }

@@ -14,9 +14,10 @@ import {
   type SortingState,
 } from '@tanstack/react-table';
 import { List, type RowComponentProps } from 'react-window';
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
-
-import { Button } from '@/components/ui/button';
+import { BulkGridSortableHeader } from '@/components/bulk-edit/BulkGridSortableHeader';
+import { getBulkDisplayValue } from '@/hooks/bulkGridDisplayValue';
+import { useBulkGridClickToSelect } from '@/hooks/useBulkGridClickToSelect';
+import { useBulkGridPendingApply } from '@/hooks/useBulkGridPendingApply';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
@@ -177,13 +178,6 @@ function InventoryBulkListRow({
 // Props
 // ============================================
 
-interface PendingApply {
-  rowId: string;
-  field: BulkEditableField;
-  fieldLabel: string;
-  value: string | number | null;
-}
-
 export interface InventoryBulkGridProps {
   rows: InventoryItem[];
   dirtyRows: Map<string, InventoryRowDelta>;
@@ -204,33 +198,6 @@ export interface InventoryBulkGridProps {
 }
 
 // ============================================
-// Sortable header helper
-// ============================================
-
-interface SortableHeaderProps {
-  column: { getIsSorted: () => false | 'asc' | 'desc'; toggleSorting: (desc?: boolean) => void };
-  title: string;
-  align?: 'left' | 'right';
-}
-
-const SortableHeader: React.FC<SortableHeaderProps> = ({ column, title, align = 'left' }) => {
-  const sorted = column.getIsSorted();
-  const Icon = sorted === 'asc' ? ArrowUp : sorted === 'desc' ? ArrowDown : ArrowUpDown;
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      onClick={() => column.toggleSorting(sorted === 'asc')}
-      className={cn('h-7 px-1 text-xs font-medium w-full', align === 'right' ? 'justify-end' : 'justify-start')}
-    >
-      {title}
-      <Icon className="ml-1 h-3 w-3 shrink-0" aria-hidden />
-    </Button>
-  );
-};
-
-// ============================================
 // Main component
 // ============================================
 
@@ -245,28 +212,23 @@ export const InventoryBulkGrid: React.FC<InventoryBulkGridProps> = ({
   onClearSelection,
 }) => {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
-  const [pendingApply, setPendingApply] = useState<PendingApply | null>(null);
 
-  // Debounce timer for click-to-select (mirrors equipment grid behaviour)
-  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingSelectIdRef = useRef<string | null>(null);
+  const { cancelPendingSelection, handleRowClick } = useBulkGridClickToSelect(onToggleSelected);
 
-  const cancelPendingSelection = useCallback(() => {
-    if (clickTimerRef.current) {
-      clearTimeout(clickTimerRef.current);
-      clickTimerRef.current = null;
-    }
-    pendingSelectIdRef.current = null;
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (clickTimerRef.current) {
-        clearTimeout(clickTimerRef.current);
-        clickTimerRef.current = null;
-      }
-    };
-  }, []);
+  const {
+    pendingApply,
+    handleCellChange,
+    handleApplyAll,
+    handleApplyOne,
+    clearPendingApply,
+  } = useBulkGridPendingApply<BulkEditableField>({
+    selectedRowIds,
+    fieldLabels: FIELD_LABELS,
+    onSetCellValue: (rowId, field, value) =>
+      onSetCellValue(rowId, field, value as InventoryItem[BulkEditableField]),
+    onSetCellValueOnRows: (ids, field, value) =>
+      onSetCellValueOnRows(ids, field, value as never),
+  });
 
   // Container width measurement for react-window
   const containerRef = useRef<HTMLDivElement>(null);
@@ -290,43 +252,43 @@ export const InventoryBulkGrid: React.FC<InventoryBulkGridProps> = ({
       {
         id: 'name',
         accessorKey: 'name',
-        header: ({ column }) => <SortableHeader column={column} title="Name" />,
+        header: ({ column }) => <BulkGridSortableHeader column={column} title="Name" fullWidth />,
         enableSorting: true,
       },
       {
         id: 'sku',
         accessorKey: 'sku',
-        header: ({ column }) => <SortableHeader column={column} title="SKU" />,
+        header: ({ column }) => <BulkGridSortableHeader column={column} title="SKU" fullWidth />,
         enableSorting: true,
       },
       {
         id: 'external_id',
         accessorKey: 'external_id',
-        header: ({ column }) => <SortableHeader column={column} title="External ID" />,
+        header: ({ column }) => <BulkGridSortableHeader column={column} title="External ID" fullWidth />,
         enableSorting: true,
       },
       {
         id: 'location',
         accessorKey: 'location',
-        header: ({ column }) => <SortableHeader column={column} title="Location" />,
+        header: ({ column }) => <BulkGridSortableHeader column={column} title="Location" fullWidth />,
         enableSorting: true,
       },
       {
         id: 'quantity_on_hand',
         accessorKey: 'quantity_on_hand',
-        header: ({ column }) => <SortableHeader column={column} title="Qty on Hand" align="right" />,
+        header: ({ column }) => <BulkGridSortableHeader column={column} title="Qty on Hand" align="right" fullWidth />,
         enableSorting: true,
       },
       {
         id: 'low_stock_threshold',
         accessorKey: 'low_stock_threshold',
-        header: ({ column }) => <SortableHeader column={column} title="Low Stock" align="right" />,
+        header: ({ column }) => <BulkGridSortableHeader column={column} title="Low Stock" align="right" fullWidth />,
         enableSorting: true,
       },
       {
         id: 'default_unit_cost',
         accessorKey: 'default_unit_cost',
-        header: ({ column }) => <SortableHeader column={column} title="Unit Cost ($)" align="right" />,
+        header: ({ column }) => <BulkGridSortableHeader column={column} title="Unit Cost ($)" align="right" fullWidth />,
         enableSorting: true,
       },
     ],
@@ -348,59 +310,10 @@ export const InventoryBulkGrid: React.FC<InventoryBulkGridProps> = ({
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   const getDisplayValue = useCallback(
-    <K extends BulkEditableField>(row: InventoryItem, field: K): InventoryItem[K] => {
-      const delta = dirtyRows.get(row.id);
-      if (delta && field in delta) {
-        return delta[field] as InventoryItem[K];
-      }
-      return row[field];
-    },
+    <K extends BulkEditableField>(row: InventoryItem, field: K): InventoryItem[K] =>
+      getBulkDisplayValue(row, field, dirtyRows),
     [dirtyRows]
   );
-
-  const handleCellChange = useCallback(
-    <K extends BulkEditableField>(rowId: string, field: K, value: InventoryItem[K]) => {
-      if (selectedRowIds.has(rowId) && selectedRowIds.size > 1) {
-        setPendingApply({
-          rowId,
-          field,
-          fieldLabel: FIELD_LABELS[field] ?? String(field),
-          value: value as string | number | null,
-        });
-        return;
-      }
-      onSetCellValue(rowId, field, value);
-    },
-    [selectedRowIds, onSetCellValue]
-  );
-
-  const handleRowClick = useCallback(
-    (rowId: string, e: React.MouseEvent<HTMLDivElement>) => {
-      if (e.detail > 1) return;
-      cancelPendingSelection();
-      pendingSelectIdRef.current = rowId;
-      clickTimerRef.current = setTimeout(() => {
-        const id = pendingSelectIdRef.current;
-        clickTimerRef.current = null;
-        pendingSelectIdRef.current = null;
-        if (id) onToggleSelected(id);
-      }, 250);
-    },
-    [cancelPendingSelection, onToggleSelected]
-  );
-
-  const handleApplyAll = () => {
-    if (!pendingApply) return;
-    const ids = Array.from(selectedRowIds);
-    onSetCellValueOnRows(ids, pendingApply.field, pendingApply.value as never);
-    setPendingApply(null);
-  };
-
-  const handleApplyOne = () => {
-    if (!pendingApply) return;
-    onSetCellValue(pendingApply.rowId, pendingApply.field, pendingApply.value as never);
-    setPendingApply(null);
-  };
 
   // ── Editable cell builder ──────────────────────────────────────────────────
 
@@ -584,7 +497,7 @@ export const InventoryBulkGrid: React.FC<InventoryBulkGridProps> = ({
         selectedCount={selectedRowIds.size}
         onApplyAll={handleApplyAll}
         onApplyOne={handleApplyOne}
-        onCancel={() => setPendingApply(null)}
+        onCancel={clearPendingApply}
       />
     </>
   );
