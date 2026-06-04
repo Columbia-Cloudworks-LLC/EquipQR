@@ -8,7 +8,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { isQuickBooksEnabled } from '@/lib/flags';
 import { toast } from 'sonner';
 
 /**
@@ -20,7 +19,6 @@ import { toast } from 'sonner';
 export function useQuickBooksAccess(organizationId?: string) {
   const { currentOrganization } = useOrganization();
   const orgId = organizationId || currentOrganization?.id;
-  const featureEnabled = isQuickBooksEnabled();
 
   return useQuery({
     queryKey: ['quickbooks', 'access', orgId],
@@ -41,7 +39,7 @@ export function useQuickBooksAccess(organizationId?: string) {
 
       return !!data;
     },
-    enabled: !!orgId && featureEnabled,
+    enabled: !!orgId,
     staleTime: 60 * 1000, // 1 minute
     gcTime: 5 * 60 * 1000, // 5 minutes
   });

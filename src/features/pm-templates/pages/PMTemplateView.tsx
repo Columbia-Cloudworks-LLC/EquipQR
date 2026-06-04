@@ -346,7 +346,7 @@ const PMTemplateView: React.FC = () => {
         </div>
       )}
 
-      {template && (
+      {applyOpen && template && (
         <TemplateAssignmentDialog
           templateId={template.id}
           open={applyOpen}

@@ -1,24 +1,28 @@
 import { test, expect } from '../fixtures/equipqr-test';
 import { assertRouteHealthy } from '../shared/page-helpers';
+import { PUBLIC_MARKETING_PATHS } from '../shared/marketing-routes';
 import { seedEquipment } from '../shared/seed-data';
 
 test.describe('public routes @critical', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
-  test('landing and marketing pages render', async ({ page, consoleErrors }) => {
+  test('landing and all marketing routes render', async ({ page, consoleErrors }) => {
     void consoleErrors;
     await assertRouteHealthy(page, '/');
     await expect(page.locator('body')).not.toBeEmpty();
 
-    await page.goto('/landing');
-    await expect(page).toHaveURL(/\/?$/);
+    await page.goto('/landing?e2e=1#features');
+    await expect(page).toHaveURL(/\/(\?e2e=1)?#features$/);
+
+    for (const route of PUBLIC_MARKETING_PATHS) {
+      await assertRouteHealthy(page, route);
+    }
 
     for (const route of [
-      '/privacy-policy',
-      '/privacy-request',
-      '/terms-of-service',
+      '/do-not-sell-or-share',
       '/security',
       '/support',
+      '/privacy-request',
     ]) {
       await assertRouteHealthy(page, route);
     }
@@ -36,5 +40,14 @@ test.describe('public routes @critical', () => {
     await page.goto(`/qr/equipment/${seedEquipment.cat320.id}`);
     await expect(page.locator('body')).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText(/something went wrong/i)).toHaveCount(0);
+  });
+
+  test('signed-in owner visiting landing redirects to dashboard', async ({ browser }) => {
+    const state = await browser.newContext({ storageState: 'tmp/playwright/auth/owner.json' });
+    const page = await state.newPage();
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/dashboard/i, { timeout: 60_000 });
+    await expect(page.locator('body')).not.toBeEmpty();
+    await state.close();
   });
 });

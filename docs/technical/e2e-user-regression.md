@@ -4,7 +4,7 @@ Browser end-to-end tests exercise the real local dev stack (Vite + Supabase seed
 
 ## Quick start
 
-From Cursor / VS Code, open **Tasks: Run Task** (`Ctrl+Shift+P` → “Run Task”) and pick any **EquipQR: E2E …** entry (critical, full, watch, record, support-record, reset-db, inspector, or Chromium install). These wrap `dev-test.bat` with the same flags as the examples below. To cancel a run and tear down the stack, use **EquipQR: Stop E2E Tests and Dev Stack** (or `.\dev-stop-all.bat`).
+From Cursor / VS Code, open **Tasks: Run Task** (`Ctrl+Shift+P` -> "Run Task") and pick any **EquipQR: E2E ...** entry (critical, full, watch, record, support-record, reset-db, inspector, or Chromium install). These wrap `dev-test.bat` with the same flags as the examples below. To cancel a run and tear down the stack, use **EquipQR: Stop E2E Tests and Dev Stack** (or `.\dev-stop-all.bat`).
 
 ```powershell
 # Default: headless critical suite, starts dev stack if needed
@@ -13,11 +13,20 @@ From Cursor / VS Code, open **Tasks: Run Task** (`Ctrl+Shift+P` → “Run Task�
 # Full regression (headless)
 .\dev-test.bat full
 
+# Critical suite in both desktop and mobile viewports
+.\dev-test.bat critical both
+
 # Watch the browser without interacting
 .\dev-test.bat watch
 .\dev-test.bat full watch
 
-# Record reusable support-documentation videos
+# Customer-quality demo recordings (1080p desktop, paced, highlighted targets)
+.\dev-test.bat critical demo
+.\dev-test.bat full demo desktop "title=Work Orders"
+.\dev-test.bat critical demo mobile "title=Mobile Field Work"
+.\dev-test.bat critical demo both "title=Critical Smoke"
+
+# Record reusable support-documentation videos with the older explicit flags
 .\dev-test.bat record
 .\dev-test.bat full record
 .\dev-test.bat full watch record
@@ -36,9 +45,12 @@ From Cursor / VS Code, open **Tasks: Run Task** (`Ctrl+Shift+P` → “Run Task�
 # npm equivalents (headless, stack auto-start)
 npm run test:e2e:critical
 npm run test:e2e:full
+npm run test:e2e:mobile-critical
+npm run test:e2e:both-critical
 npm run test:e2e:headed
 npm run test:e2e:watch
 npm run test:e2e:record
+npm run test:e2e:demo
 ```
 
 ## Prerequisites
@@ -59,41 +71,48 @@ npm run test:e2e:record
 | `e2e/user/critical/*.spec.ts` | Fast suite (`@critical`) — run after most changes |
 | `e2e/user/full/*.spec.ts` | Broader suite (`@full`) — before push/release |
 | `scripts/run-user-regression.ps1` | Stack probe, optional `dev-start`, Playwright runner |
-| `dev-test.bat` | One-click wrapper (headless critical by default; `watch` and `record` modes available) |
+| `dev-test.bat` | One-click wrapper (headless critical by default; `watch`, `demo`, `mobile`, `both`, and `record` modes available) |
 
-Demo recording still uses `playwright.config.ts` and `e2e/demo-smoke.spec.ts`.
+Legacy smoke demo recording still uses `playwright.config.ts` and `e2e/demo-smoke.spec.ts`. User-regression demo recording uses `playwright.user.config.ts` through the `demo` profile.
 
 ## Watch And Recording Modes
 
-`watch` mode is non-interactive. It opens Chromium and pauses after each navigation step for recording readability. It is for observing the regression flow, not for clicking around manually. By default no overlay is shown, so the recorded UI stays uncluttered.
+`watch` mode is non-interactive. It opens Chromium and pauses after visible helper steps for recording readability. It is for observing the regression flow, not for clicking around manually. By default no overlay is shown, so the recorded UI stays uncluttered.
 
 `record` mode saves video for every test under a named run folder inside `tmp/playwright/test-results/`. The folder name includes the viewport and recording context, such as `mobile-record-work-orders` or `desktop-record-debug`.
+
+`demo` mode is the polished recording profile. It implies headed watch recording, `record`, the marketing lower-third, visible target spotlights for shared clicks/fills, deliberate slow motion, and a 1920x1080 desktop viewport/video. Use this for customer-facing demos and support clips where the clicked control needs to be obvious.
 
 Use `marketing` overlay mode only when you explicitly want a branded lower-third. When a recording title is provided, that title stays on-screen so the clip can be reused on the relevant support page. URLs, route details, test names, and Playwright action/test annotations are suppressed. The shorthand `support-record` runs the full suite with `watch`, `record`, and `marketing` enabled.
 
 ```powershell
 .\dev-test.bat full watch record marketing "title=Work Orders"
+.\dev-test.bat full demo desktop "title=Work Orders"
 .\dev-test.bat support-record
 ```
 
-Use `mobile` to force the suite into an iPhone-sized viewport for mobile UI review and mobile demo recordings:
+Use `mobile` to force the suite into an iPhone-sized viewport for mobile UI review and mobile demo recordings. Use `both` to run desktop first and then mobile with separate artifact folders:
 
 ```powershell
 .\dev-test.bat mobile watch record marketing "title=Work Orders"
+.\dev-test.bat critical both
+.\dev-test.bat critical demo both "title=Critical Smoke"
 .\scripts\run-user-regression.ps1 -Suite full -Watch -RecordVideo -ViewportMode mobile -OverlayMode marketing -RecordingTitle "Work Orders"
+.\scripts\run-user-regression.ps1 -Suite critical -RunProfile demo -ViewportMode both -RecordingTitle "Critical Smoke"
 ```
 
-Use `debug` when you want Playwright's built-in video annotations:
+Use `debug` when you want Playwright's built-in video annotations for engineering review. Use `demo` for polished clips; marketing/demo spotlights are designed to show the clicked target without Playwright's debug bubbles:
 
 ```powershell
 .\dev-test.bat full watch record debug
 ```
 
-Watch mode defaults to a one-second pause after each visible overlay step and a five-second final review. On scrollable final pages, the final review gently scrolls from the top of the page to the bottom over that duration; shorter pages simply hold. You can tune those values without remembering environment variables by calling the runner directly:
+Watch mode defaults to a one-second pause after each visible overlay step and a five-second final review. Demo mode defaults to a longer 1.5-second step pause, a 6-second final review, 200 ms Playwright slow motion, and target spotlights. Non-watch test mode keeps final review at 0 ms so CI/headless runs do not pay a hidden pause tax. On scrollable final pages, the final review gently scrolls from the top of the page to the bottom over that duration; shorter pages simply hold. You can tune those values without remembering environment variables by calling the runner directly:
 
 ```powershell
 .\scripts\run-user-regression.ps1 -Suite critical -Watch -StagePauseMs 1000 -WatchPauseMs 5000
 .\scripts\run-user-regression.ps1 -Suite full -Watch -RecordVideo -OverlayMode marketing -StagePauseMs 1200 -WatchPauseMs 6000
+.\scripts\run-user-regression.ps1 -Suite critical -RunProfile demo -StagePauseMs 1800 -WatchPauseMs 7000 -SlowMoMs 250
 ```
 
 To target a non-default app URL, pass `-BaseUrl`:

@@ -24,6 +24,7 @@ import { PRIVACY_VERSION_HASH, TERMS_VERSION_HASH } from '@/lib/legalPolicyVersi
 
 interface SignUpFormProps {
   onSuccess: (message: string, email?: string) => void;
+  onBeforeSignupSubmit?: () => void;
   onError: (error: string) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
@@ -34,6 +35,7 @@ interface SignUpFormProps {
 
 const SignUpForm: React.FC<SignUpFormProps> = ({
   onSuccess,
+  onBeforeSignupSubmit,
   onError,
   isLoading,
   setIsLoading,
@@ -169,6 +171,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
     }
 
     setIsLoading(true);
+    onBeforeSignupSubmit?.();
 
     try {
       const hibp = await checkPasswordBreachedHibp(formData.password);

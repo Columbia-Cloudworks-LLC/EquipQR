@@ -14,19 +14,20 @@ const overlayMode = runConfig.overlayMode;
 const viewportMode = runConfig.viewportMode;
 const showPlaywrightAnnotations = annotateVideos && overlayMode === 'debug';
 const desktopDevice = devices['Desktop Chrome'];
-const videoSize = viewportMode === 'mobile'
-  ? { width: 390, height: 844 }
-  : { width: 1280, height: 720 };
+const effectiveViewportMode = viewportMode === 'mobile' ? 'mobile' : 'desktop';
+const videoSize = runConfig.videoSize;
 const viewportOverrides = viewportMode === 'mobile'
   ? {
-      viewport: { width: 390, height: 844 },
+      viewport: runConfig.mobileViewport,
       deviceScaleFactor: 3,
       isMobile: true,
       hasTouch: true,
       userAgent:
         'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36',
     }
-  : {};
+  : {
+      viewport: runConfig.desktopViewport,
+    };
 const videoAnnotations = {
   actions: {
     duration: 900,
@@ -41,7 +42,8 @@ const videoAnnotations = {
 };
 const artifactTitle = runConfig.recordingTitle || overlayMode;
 const artifactContext = [
-  viewportMode,
+  effectiveViewportMode,
+  runConfig.runProfile !== 'test' ? runConfig.runProfile : '',
   runConfig.recordAllVideos ? 'record' : 'test',
   artifactTitle !== 'none' ? artifactTitle : '',
 ]
@@ -85,21 +87,16 @@ export default defineConfig({
     baseURL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: recordAllVideos
-      ? showPlaywrightAnnotations
-        ? {
-            mode: 'on',
-            size: videoSize,
-            show: videoAnnotations,
-          }
-        : 'on'
-      : showPlaywrightAnnotations
-        ? {
-            mode: 'retain-on-failure',
-            size: videoSize,
-            show: videoAnnotations,
-          }
-        : 'retain-on-failure',
+    video: showPlaywrightAnnotations
+      ? {
+          mode: recordAllVideos ? 'on' : 'retain-on-failure',
+          size: videoSize,
+          show: videoAnnotations,
+        }
+      : {
+          mode: recordAllVideos ? 'on' : 'retain-on-failure',
+          size: videoSize,
+        },
     ...(Number.isFinite(slowMo) && slowMo > 0
       ? { launchOptions: { slowMo } }
       : {}),

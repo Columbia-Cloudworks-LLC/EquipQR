@@ -1,12 +1,26 @@
 {
   "baseURL": "http://localhost:8080",
+  "runProfile": "test",
   "recordAllVideos": false,
   "annotateVideos": false,
   "actionOverlay": false,
+  "actionCue": false,
   "overlayMode": "none",
   "viewportMode": "desktop",
   "recordingTitle": "",
   "outputDir": "",
+  "desktopViewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "mobileViewport": {
+    "width": 390,
+    "height": 844
+  },
+  "videoSize": {
+    "width": 1280,
+    "height": 720
+  },
   "slowMoMs": 0,
   "stagePauseMs": 1000,
   "watchPauseMs": 5000

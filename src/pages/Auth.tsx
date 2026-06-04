@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -59,6 +59,7 @@ const Auth = () => {
   const [success, setSuccess] = useState<SignupSuccessState | null>(null);
   const [pendingQRScan, setPendingQRScan] = useState(false);
   const [showMFAVerification, setShowMFAVerification] = useState(false);
+  const suppressAuthRedirectRef = useRef(false);
   const { error: showErrorToast, success: showSuccessToast } = useAppToast();
 
   // Check if user came here from a QR scan (read-only check, doesn't clear)
@@ -77,6 +78,9 @@ const Auth = () => {
   // This replaces usePendingRedirectHandler to avoid race conditions with duplicate effects
   useEffect(() => {
     if (user && !authLoading) {
+      // Keep the post-signup success view visible until the user continues to sign-in.
+      if (suppressAuthRedirectRef.current || success) return;
+
       // If MFA is enabled and user needs verification (e.g., after Google OAuth),
       // show the MFA verification screen instead of redirecting
       if (isMFAEnabled() && needsVerification && !showMFAVerification) {
@@ -97,11 +101,12 @@ const Auth = () => {
         navigate('/');
       }
     }
-  }, [user, authLoading, navigate, needsVerification, showMFAVerification]);
+  }, [user, authLoading, navigate, needsVerification, showMFAVerification, success]);
 
   const handleSuccess = (message: string, email?: string) => {
     setError(null);
     if (email) {
+      suppressAuthRedirectRef.current = true;
       setSuccess({ message, email });
       showSuccessToast({
         title: 'Check your email',
@@ -120,11 +125,13 @@ const Auth = () => {
   };
 
   const handleReturnToSignIn = () => {
+    suppressAuthRedirectRef.current = false;
     setSuccess(null);
     navigate('/auth?tab=signin', { replace: true });
   };
 
   const handleError = (errorMessage: string) => {
+    suppressAuthRedirectRef.current = false;
     setError(errorMessage);
     setSuccess(null);
     showErrorToast({
@@ -307,7 +314,10 @@ const Auth = () => {
               </TabsContent>
               
               <TabsContent value="signup">
-                <SignUpForm 
+                <SignUpForm
+                  onBeforeSignupSubmit={() => {
+                    suppressAuthRedirectRef.current = true;
+                  }}
                   onSuccess={handleSuccess}
                   onError={handleError}
                   isLoading={isLoading}

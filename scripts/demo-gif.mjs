@@ -19,7 +19,7 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 const scenariosPath = path.join(__dirname, 'demo-scenarios.json');
 const defaultViewportByProfile = {
-  desktop: { width: 1366, height: 900 },
+  desktop: { width: 1920, height: 1080 },
   mobile: { width: 390, height: 844 }
 };
 

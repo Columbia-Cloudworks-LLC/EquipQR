@@ -19,6 +19,8 @@ export function buildOrchestratorPlan(opts) {
       scenarioId: expanded.id,
       title: expanded.title,
       flowToken: expanded.flowToken,
+      viewport: { width: 1920, height: 1080 },
+      videoSize: { width: 1920, height: 1080 },
       sceneCount: expanded.scenes.length,
       scenes: expanded.scenes.map((scene) => ({
         sceneId: scene.id,
