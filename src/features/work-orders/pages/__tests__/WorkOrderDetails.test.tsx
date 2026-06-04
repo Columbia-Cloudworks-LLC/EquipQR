@@ -7,6 +7,7 @@ import * as useWorkOrderDetailsActionsModule from '@/features/work-orders/hooks/
 import {
   createWorkOrderDetailsActionsMock,
   createWorkOrderDetailsDataMock,
+  createManagerWorkOrderDetailsDataMock,
 } from './workOrderDetailsTestFixtures';
 
 const mockWorkOrderDetailsMobile = vi.fn();
@@ -359,72 +360,34 @@ describe('WorkOrderDetails', () => {
   });
 
   it('renders the mobile field-first order with office details collapsed by default', async () => {
-    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue({
-      workOrder: {
-        id: 'wo-1',
-        title: 'Replace hydraulic line',
-        description: 'Repair leak',
-        status: 'in_progress',
-        priority: 'high',
-        created_date: '2024-01-01T00:00:00Z',
-        createdDate: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-02T00:00:00Z',
-        dueDate: '2024-01-05T00:00:00Z',
-        equipment_id: 'eq-1',
-        has_pm: true,
-        assignee_id: 'user-1',
-        created_by: 'requestor-1',
-        teamName: 'Field Team',
-        assigneeName: 'Matt Technician',
-        effectiveLocation: null,
-        team: null,
-        assignee: null,
-        primary_image_id: 'primary-img-1',
-      },
-      equipment: {
-        id: 'eq-1',
-        name: 'Excavator 1',
-        manufacturer: 'Caterpillar',
-        model: '320',
-        serial_number: null,
-        status: 'active',
-        location: null,
-        team_id: 'team-1',
-        custom_attributes: null,
-        image_url: null,
-        default_pm_template_id: null,
-      },
-      pmData: {
-        id: 'pm-1',
-        work_order_id: 'wo-1',
-        equipment_id: 'eq-1',
-        status: 'in_progress',
-        checklist_data: [
-          { id: 'item-1', condition: 'ok' },
-          { id: 'item-2', condition: null },
-        ],
-      },
-      workOrderLoading: false,
-      pmLoading: false,
-      pmError: null,
-      permissionLevels: {
-        isManager: true,
-        isTechnician: true,
-        isRequestor: false,
-      },
-      formMode: 'manager',
-      isWorkOrderLocked: false,
-      canAddCosts: true,
-      canEditCosts: true,
-      canAddNotes: true,
-      canUpload: true,
-      canEdit: true,
-      baseCanAddNotes: true,
-      currentOrganization: {
-        id: 'org-1',
-        name: 'Test Org',
-      },
-    } as unknown as ReturnType<typeof useWorkOrderDetailsDataModule.useWorkOrderDetailsData>);
+    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue(
+      createManagerWorkOrderDetailsDataMock({
+        workOrder: {
+          status: 'in_progress',
+          priority: 'high',
+          updated_at: '2024-01-02T00:00:00Z',
+          dueDate: '2024-01-05T00:00:00Z',
+          has_pm: true,
+          assignee_id: 'user-1',
+          created_by: 'requestor-1',
+          teamName: 'Field Team',
+          assigneeName: 'Matt Technician',
+          team: null,
+          assignee: null,
+          primary_image_id: 'primary-img-1',
+        },
+        pmData: {
+          id: 'pm-1',
+          work_order_id: 'wo-1',
+          equipment_id: 'eq-1',
+          status: 'in_progress',
+          checklist_data: [
+            { id: 'item-1', condition: 'ok' },
+            { id: 'item-2', condition: null },
+          ],
+        },
+      }),
+    );
 
     render(<WorkOrderDetails />);
 
@@ -473,63 +436,25 @@ describe('WorkOrderDetails', () => {
   it('renders desktop layout with images before notes and passes showPrivateNotes to WorkOrderImagesSection', async () => {
     mockUseIsMobile.mockReturnValue(false);
 
-    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue({
-      workOrder: {
-        id: 'wo-1',
-        title: 'Replace hydraulic line',
-        description: 'Repair leak',
-        status: 'in_progress',
-        priority: 'high',
-        created_date: '2024-01-01T00:00:00Z',
-        createdDate: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-02T00:00:00Z',
-        dueDate: '2024-01-05T00:00:00Z',
-        equipment_id: 'eq-1',
-        has_pm: false,
-        assignee_id: 'user-1',
-        created_by: 'requestor-1',
-        teamName: 'Field Team',
-        assigneeName: 'Matt Technician',
-        effectiveLocation: null,
-        team: null,
-        assignee: null,
-        primary_image_id: 'primary-desktop-1',
-      },
-      equipment: {
-        id: 'eq-1',
-        name: 'Excavator 1',
-        manufacturer: 'Caterpillar',
-        model: '320',
-        serial_number: null,
-        status: 'active',
-        location: null,
-        team_id: 'team-1',
-        custom_attributes: null,
-        image_url: null,
-        default_pm_template_id: null,
-      },
-      pmData: null,
-      workOrderLoading: false,
-      pmLoading: false,
-      pmError: null,
-      permissionLevels: {
-        isManager: true,
-        isTechnician: true,
-        isRequestor: false,
-      },
-      formMode: 'manager',
-      isWorkOrderLocked: false,
-      canAddCosts: true,
-      canEditCosts: true,
-      canAddNotes: true,
-      canUpload: true,
-      canEdit: true,
-      baseCanAddNotes: true,
-      currentOrganization: {
-        id: 'org-1',
-        name: 'Test Org',
-      },
-    } as unknown as ReturnType<typeof useWorkOrderDetailsDataModule.useWorkOrderDetailsData>);
+    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue(
+      createManagerWorkOrderDetailsDataMock({
+        workOrder: {
+          status: 'in_progress',
+          priority: 'high',
+          updated_at: '2024-01-02T00:00:00Z',
+          dueDate: '2024-01-05T00:00:00Z',
+          has_pm: false,
+          assignee_id: 'user-1',
+          created_by: 'requestor-1',
+          teamName: 'Field Team',
+          assigneeName: 'Matt Technician',
+          team: null,
+          assignee: null,
+          primary_image_id: 'primary-desktop-1',
+        },
+        pmData: null,
+      }),
+    );
 
     render(<WorkOrderDetails />);
 
@@ -551,65 +476,32 @@ describe('WorkOrderDetails', () => {
     const scrollSpy = vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(() => {});
     mockUseSearchParams.mockReturnValue([new URLSearchParams('action=pm'), mockSetSearchParams]);
 
-    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue({
-      workOrder: {
-        id: 'wo-1',
-        title: 'PM job',
-        description: 'PM',
-        status: 'in_progress',
-        priority: 'high',
-        created_date: '2024-01-01T00:00:00Z',
-        createdDate: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-02T00:00:00Z',
-        dueDate: null,
-        equipment_id: 'eq-1',
-        has_pm: true,
-        teamName: null,
-        assigneeName: null,
-        effectiveLocation: null,
-        primary_image_id: null,
-      },
-      equipment: {
-        id: 'eq-1',
-        name: 'Excavator 1',
-        manufacturer: 'Cat',
-        model: '320',
-        serial_number: null,
-        status: 'active',
-        location: null,
-        team_id: 'team-1',
-        custom_attributes: null,
-        image_url: null,
-        default_pm_template_id: null,
-      },
-      pmData: {
-        id: 'pm-1',
-        work_order_id: 'wo-1',
-        equipment_id: 'eq-1',
-        status: 'in_progress',
-        checklist_data: [],
-      },
-      workOrderLoading: false,
-      pmLoading: false,
-      pmError: null,
-      permissionLevels: {
-        isManager: true,
-        isTechnician: true,
-        isRequestor: false,
-      },
-      formMode: 'manager',
-      isWorkOrderLocked: false,
-      canAddCosts: true,
-      canEditCosts: true,
-      canAddNotes: true,
-      canUpload: true,
-      canEdit: true,
-      baseCanAddNotes: true,
-      currentOrganization: {
-        id: 'org-1',
-        name: 'Test Org',
-      },
-    } as unknown as ReturnType<typeof useWorkOrderDetailsDataModule.useWorkOrderDetailsData>);
+    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue(
+      createManagerWorkOrderDetailsDataMock({
+        workOrder: {
+          title: 'PM job',
+          description: 'PM',
+          status: 'in_progress',
+          priority: 'high',
+          updated_at: '2024-01-02T00:00:00Z',
+          dueDate: null,
+          has_pm: true,
+          teamName: null,
+          assigneeName: null,
+          primary_image_id: null,
+        },
+        equipment: {
+          manufacturer: 'Cat',
+        },
+        pmData: {
+          id: 'pm-1',
+          work_order_id: 'wo-1',
+          equipment_id: 'eq-1',
+          status: 'in_progress',
+          checklist_data: [],
+        },
+      }),
+    );
 
     render(<WorkOrderDetails />);
 
@@ -634,65 +526,32 @@ describe('WorkOrderDetails', () => {
     const scrollSpy = vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(() => {});
     mockUseSearchParams.mockReturnValue([new URLSearchParams('action=pm'), mockSetSearchParams]);
 
-    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue({
-      workOrder: {
-        id: 'wo-1',
-        title: 'PM job',
-        description: 'PM',
-        status: 'in_progress',
-        priority: 'high',
-        created_date: '2024-01-01T00:00:00Z',
-        createdDate: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-02T00:00:00Z',
-        dueDate: null,
-        equipment_id: 'eq-1',
-        has_pm: true,
-        teamName: null,
-        assigneeName: null,
-        effectiveLocation: null,
-        primary_image_id: null,
-      },
-      equipment: {
-        id: 'eq-1',
-        name: 'Excavator 1',
-        manufacturer: 'Cat',
-        model: '320',
-        serial_number: null,
-        status: 'active',
-        location: null,
-        team_id: 'team-1',
-        custom_attributes: null,
-        image_url: null,
-        default_pm_template_id: null,
-      },
-      pmData: {
-        id: 'pm-1',
-        work_order_id: 'wo-1',
-        equipment_id: 'eq-1',
-        status: 'in_progress',
-        checklist_data: [],
-      },
-      workOrderLoading: false,
-      pmLoading: false,
-      pmError: null,
-      permissionLevels: {
-        isManager: true,
-        isTechnician: true,
-        isRequestor: false,
-      },
-      formMode: 'manager',
-      isWorkOrderLocked: false,
-      canAddCosts: true,
-      canEditCosts: true,
-      canAddNotes: true,
-      canUpload: true,
-      canEdit: true,
-      baseCanAddNotes: true,
-      currentOrganization: {
-        id: 'org-1',
-        name: 'Test Org',
-      },
-    } as unknown as ReturnType<typeof useWorkOrderDetailsDataModule.useWorkOrderDetailsData>);
+    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue(
+      createManagerWorkOrderDetailsDataMock({
+        workOrder: {
+          title: 'PM job',
+          description: 'PM',
+          status: 'in_progress',
+          priority: 'high',
+          updated_at: '2024-01-02T00:00:00Z',
+          dueDate: null,
+          has_pm: true,
+          teamName: null,
+          assigneeName: null,
+          primary_image_id: null,
+        },
+        equipment: {
+          manufacturer: 'Cat',
+        },
+        pmData: {
+          id: 'pm-1',
+          work_order_id: 'wo-1',
+          equipment_id: 'eq-1',
+          status: 'in_progress',
+          checklist_data: [],
+        },
+      }),
+    );
 
     render(<WorkOrderDetails />);
 

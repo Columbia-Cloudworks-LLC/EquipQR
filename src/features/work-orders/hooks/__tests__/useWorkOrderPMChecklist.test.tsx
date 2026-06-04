@@ -3,6 +3,7 @@ import { vi, beforeEach, describe, it, expect } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { useWorkOrderPMChecklist } from '../useWorkOrderPMChecklist';
+import * as usePMTemplatesModule from '@/features/pm-templates/hooks/usePMTemplates';
 
 // Mock Supabase client first (before any imports that might use it)
 vi.mock('@/integrations/supabase/client', () => ({
@@ -69,6 +70,41 @@ const wrapper = ({ children }: { children: React.ReactNode }) => {
   });
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 };
+
+function mockPMTemplatesResult(
+  overrides: Partial<ReturnType<typeof usePMTemplatesModule.usePMTemplates>> = {},
+): ReturnType<typeof usePMTemplatesModule.usePMTemplates> {
+  return {
+    data: mockTemplates,
+    isLoading: false,
+    isSuccess: true,
+    isError: false,
+    error: null,
+    status: 'success',
+    fetchStatus: 'idle',
+    ...overrides,
+  } as ReturnType<typeof usePMTemplatesModule.usePMTemplates>;
+}
+
+type PMChecklistHookOptions = {
+  values?: { hasPM: boolean; pmTemplateId?: string };
+  selectedEquipment?: Parameters<typeof useWorkOrderPMChecklist>[0]['selectedEquipment'];
+};
+
+function renderPMChecklistHook(options: PMChecklistHookOptions = {}) {
+  const setValue = vi.fn();
+  const values = options.values ?? { hasPM: false, pmTemplateId: undefined };
+  const hook = renderHook(
+    () =>
+      useWorkOrderPMChecklist({
+        values,
+        setValue,
+        selectedEquipment: options.selectedEquipment,
+      }),
+    { wrapper },
+  );
+  return { result: hook.result, setValue };
+}
 
 describe('useWorkOrderPMChecklist', () => {
   beforeEach(async () => {
@@ -339,75 +375,41 @@ describe('useWorkOrderPMChecklist', () => {
   describe('edge cases', () => {
     it('handles missing templates gracefully', async () => {
       const { usePMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplates');
-      
-      vi.mocked(usePMTemplates).mockReturnValue({
-        data: [],
-        isLoading: false,
-        isSuccess: true,
-        isError: false,
-        error: null,
-        status: 'success',
-        fetchStatus: 'idle'
-      } as ReturnType<typeof usePMTemplates>);
 
-      const setValue = vi.fn();
-      const { result } = renderHook(
-        () => useWorkOrderPMChecklist({
-          values: { hasPM: false, pmTemplateId: undefined },
-          setValue,
-          selectedEquipment: undefined
-        }),
-        { wrapper }
+      vi.mocked(usePMTemplates).mockReturnValue(
+        mockPMTemplatesResult({ data: [] }),
       );
+
+      const { result } = renderPMChecklistHook();
 
       expect(result.current.templates).toHaveLength(0);
       expect(result.current.selectedTemplate).toBeNull();
     });
 
     it('handles invalid template ID in values gracefully', async () => {
-      const setValue = vi.fn();
-      const { result } = renderHook(
-        () => useWorkOrderPMChecklist({
-          values: { hasPM: true, pmTemplateId: 'non-existent-template' },
-          setValue,
-          selectedEquipment: undefined
-        }),
-        { wrapper }
-      );
+      const { result } = renderPMChecklistHook({
+        values: { hasPM: true, pmTemplateId: 'non-existent-template' },
+      });
 
       // Should fall back to default template
       expect(result.current.selectedTemplate?.id).toBe('template-1');
     });
 
     it('handles null selectedEquipment', () => {
-      const setValue = vi.fn();
-      const { result } = renderHook(
-        () => useWorkOrderPMChecklist({
-          values: { hasPM: false, pmTemplateId: undefined },
-          setValue,
-          selectedEquipment: null
-        }),
-        { wrapper }
-      );
+      const { result } = renderPMChecklistHook({ selectedEquipment: null });
 
       expect(result.current.hasAssignedTemplate).toBeUndefined();
       expect(result.current.assignedTemplate).toBeNull();
     });
 
     it('handles equipment with null default_pm_template_id', () => {
-      const setValue = vi.fn();
-      const { result } = renderHook(
-        () => useWorkOrderPMChecklist({
-          values: { hasPM: false, pmTemplateId: undefined },
-          setValue,
-          selectedEquipment: {
-            id: 'equipment-1',
-            name: 'Test Equipment',
-            default_pm_template_id: null
-          }
-        }),
-        { wrapper }
-      );
+      const { result } = renderPMChecklistHook({
+        selectedEquipment: {
+          id: 'equipment-1',
+          name: 'Test Equipment',
+          default_pm_template_id: null,
+        },
+      });
 
       expect(result.current.hasAssignedTemplate).toBeNull();
       expect(result.current.assignedTemplate).toBeNull();
@@ -438,26 +440,18 @@ describe('useWorkOrderPMChecklist', () => {
   describe('loading state', () => {
     it('returns isLoading true when templates are loading', async () => {
       const { usePMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplates');
-      
-      vi.mocked(usePMTemplates).mockReturnValue({
-        data: undefined,
-        isLoading: true,
-        isSuccess: false,
-        isError: false,
-        error: null,
-        status: 'pending',
-        fetchStatus: 'fetching'
-      } as unknown as ReturnType<typeof usePMTemplates>);
 
-      const setValue = vi.fn();
-      const { result } = renderHook(
-        () => useWorkOrderPMChecklist({
-          values: { hasPM: false, pmTemplateId: undefined },
-          setValue,
-          selectedEquipment: undefined
-        }),
-        { wrapper }
+      vi.mocked(usePMTemplates).mockReturnValue(
+        mockPMTemplatesResult({
+          data: undefined,
+          isLoading: true,
+          isSuccess: false,
+          status: 'pending',
+          fetchStatus: 'fetching',
+        }) as unknown as ReturnType<typeof usePMTemplates>,
       );
+
+      const { result } = renderPMChecklistHook();
 
       expect(result.current.isLoading).toBe(true);
     });
@@ -465,42 +459,20 @@ describe('useWorkOrderPMChecklist', () => {
 
   describe('default template selection', () => {
     it('selects Forklift PM template when no template is specified', () => {
-      const setValue = vi.fn();
-      const { result } = renderHook(
-        () => useWorkOrderPMChecklist({
-          values: { hasPM: false, pmTemplateId: undefined },
-          setValue,
-          selectedEquipment: undefined
-        }),
-        { wrapper }
-      );
+      const { result } = renderPMChecklistHook();
 
       expect(result.current.selectedTemplate?.name).toBe('Forklift PM');
     });
 
     it('falls back to first template if Forklift PM is not available', async () => {
       const { usePMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplates');
-      
-      const templatesWithoutDefault = mockTemplates.filter(t => t.name !== 'Forklift PM');
-      vi.mocked(usePMTemplates).mockReturnValue({
-        data: templatesWithoutDefault,
-        isLoading: false,
-        isSuccess: true,
-        isError: false,
-        error: null,
-        status: 'success',
-        fetchStatus: 'idle'
-      } as ReturnType<typeof usePMTemplates>);
 
-      const setValue = vi.fn();
-      const { result } = renderHook(
-        () => useWorkOrderPMChecklist({
-          values: { hasPM: false, pmTemplateId: undefined },
-          setValue,
-          selectedEquipment: undefined
-        }),
-        { wrapper }
+      const templatesWithoutDefault = mockTemplates.filter(t => t.name !== 'Forklift PM');
+      vi.mocked(usePMTemplates).mockReturnValue(
+        mockPMTemplatesResult({ data: templatesWithoutDefault }),
       );
+
+      const { result } = renderPMChecklistHook();
 
       // Should select first available template
       expect(result.current.selectedTemplate?.id).toBe('template-2');

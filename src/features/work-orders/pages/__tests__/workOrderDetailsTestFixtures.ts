@@ -85,11 +85,39 @@ export function createWorkOrderDetailsDataMock(
     equipment: overrides.equipment === undefined
       ? defaultWorkOrderDetailsDataMock.equipment
       : overrides.equipment,
+    pmData: overrides.pmData === undefined
+      ? defaultWorkOrderDetailsDataMock.pmData
+      : overrides.pmData,
     permissionLevels: {
       ...defaultWorkOrderDetailsDataMock.permissionLevels,
       ...(overrides.permissionLevels ?? {}),
     },
   } as ReturnType<typeof useWorkOrderDetailsDataModule.useWorkOrderDetailsData>;
+}
+
+export function createManagerWorkOrderDetailsDataMock(
+  overrides: Partial<ReturnType<typeof useWorkOrderDetailsDataModule.useWorkOrderDetailsData>> = {},
+): ReturnType<typeof useWorkOrderDetailsDataModule.useWorkOrderDetailsData> {
+  return createWorkOrderDetailsDataMock({
+    permissionLevels: {
+      isManager: true,
+      isTechnician: true,
+      isRequestor: false,
+    },
+    formMode: 'manager',
+    isWorkOrderLocked: false,
+    canAddCosts: true,
+    canEditCosts: true,
+    canAddNotes: true,
+    canUpload: true,
+    canEdit: true,
+    baseCanAddNotes: true,
+    currentOrganization: {
+      id: 'org-1',
+      name: 'Test Org',
+    },
+    ...overrides,
+  });
 }
 
 export function createWorkOrderDetailsActionsMock(
