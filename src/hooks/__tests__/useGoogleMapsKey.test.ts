@@ -131,23 +131,39 @@ describe('useGoogleMapsKey', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('sets an auth error when retry is called without a session', async () => {
-    mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
+  it('clears stale key state and sets an auth error when retry is called without a session', async () => {
+    installAuthListenerWithInitialSession();
+    mockGetSession.mockResolvedValue({
+      data: { session: validSession },
+      error: null,
+    });
+    mockFunctionsInvoke.mockResolvedValue({
+      data: { key: 'maps-key', mapId: 'map-id' },
+      error: null,
+    });
 
     const { result } = renderHook(() => useGoogleMapsKey());
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.googleMapsKey).toBe('maps-key');
+      expect(result.current.mapId).toBe('map-id');
+      expect(result.current.error).toBeNull();
     });
+
+    expect(mockFunctionsInvoke).toHaveBeenCalledTimes(1);
+
+    mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
 
     await result.current.retry();
 
     await waitFor(() => {
       expect(result.current.error).toBe(GOOGLE_MAPS_AUTH_REQUIRED_MESSAGE);
+      expect(result.current.googleMapsKey).toBe('');
+      expect(result.current.mapId).toBeNull();
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(mockFunctionsInvoke).not.toHaveBeenCalled();
+    expect(mockFunctionsInvoke).toHaveBeenCalledTimes(1);
   });
 
   it('invokes the edge function after INITIAL_SESSION provides an access token', async () => {
@@ -177,13 +193,18 @@ describe('useGoogleMapsKey', () => {
   });
 
   it('dedupes concurrent fetch schedules when multiple auth events race', async () => {
-    let resolveGetSession: (value: { data: { session: typeof validSession }; error: null }) => void;
-    const getSessionDeferred = new Promise<{
-      data: { session: typeof validSession };
-      error: null;
-    }>((resolve) => {
+    type GetSessionResult = { data: { session: typeof validSession }; error: null };
+    let resolveGetSession: ((value: GetSessionResult) => void) | undefined;
+    const getSessionDeferred = new Promise<GetSessionResult>((resolve) => {
       resolveGetSession = resolve;
     });
+
+    const completeGetSession = (value: GetSessionResult) => {
+      if (!resolveGetSession) {
+        throw new Error('getSession deferred resolver was not initialized');
+      }
+      resolveGetSession(value);
+    };
 
     mockGetSession.mockImplementation(() => getSessionDeferred);
     mockOnAuthStateChange.mockImplementation((listener) => {
@@ -200,7 +221,7 @@ describe('useGoogleMapsKey', () => {
 
     renderHook(() => useGoogleMapsKey());
 
-    resolveGetSession!({ data: { session: validSession }, error: null });
+    completeGetSession({ data: { session: validSession }, error: null });
 
     await waitFor(() => {
       expect(mockFunctionsInvoke).toHaveBeenCalledTimes(1);

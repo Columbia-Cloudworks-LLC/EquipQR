@@ -129,6 +129,8 @@ export const useGoogleMapsKey = (options: UseGoogleMapsKeyOptions = {}): UseGoog
     try {
       const session = await resolveAuthenticatedSession();
       if (!session?.access_token) {
+        setGoogleMapsKey('');
+        setMapId(null);
         setIsLoading(false);
         setError(GOOGLE_MAPS_AUTH_REQUIRED_MESSAGE);
         return;
