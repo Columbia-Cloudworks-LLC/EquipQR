@@ -8,7 +8,19 @@
 
 import type { WorkOrder, WorkOrderStatus, WorkOrderPriority } from '@/features/work-orders/types/workOrder';
 import type { EquipmentStatus } from '@/features/equipment/types/equipment';
+import type {
+  ModelMatchType,
+  VerificationStatus,
+  PartIdentifierType,
+  PartCompatibilityRule,
+  PartAlternateGroup,
+  PartIdentifier,
+} from '@/features/inventory/types/inventory';
 import { personas } from './personas';
+
+export type { ModelMatchType, VerificationStatus, PartIdentifierType };
+export type TestPartCompatibilityRule = PartCompatibilityRule;
+export type TestPartAlternateGroup = PartAlternateGroup;
 
 // ============================================
 // Organization Fixtures
@@ -557,29 +569,6 @@ export const inventoryTransactions = {
   }
 } as const;
 
-export type ModelMatchType = 'any' | 'exact' | 'prefix' | 'wildcard';
-export type VerificationStatus = 'unverified' | 'verified' | 'deprecated';
-
-export interface TestPartCompatibilityRule {
-  id: string;
-  inventory_item_id: string;
-  manufacturer: string;
-  model: string | null;
-  manufacturer_norm: string;
-  model_norm: string | null;
-  match_type: ModelMatchType;
-  model_pattern_raw: string | null;
-  model_pattern_norm: string | null;
-  status: VerificationStatus;
-  notes: string | null;
-  evidence_url: string | null;
-  created_by: string | null;
-  verified_by: string | null;
-  verified_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 export const partCompatibilityRules = {
   oilFilterToyota: {
     id: 'rule-oil-toyota',
@@ -702,35 +691,7 @@ export const partCompatibilityRules = {
 // Part Alternate Groups (for interchangeable parts)
 // ============================================
 
-export type PartIdentifierType = 'oem' | 'aftermarket' | 'sku' | 'mpn' | 'upc' | 'cross_ref';
-
-export interface TestPartAlternateGroup {
-  id: string;
-  organization_id: string;
-  name: string;
-  description: string | null;
-  status: VerificationStatus;
-  notes: string | null;
-  evidence_url: string | null;
-  created_by: string;
-  verified_by: string | null;
-  verified_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface TestPartIdentifier {
-  id: string;
-  organization_id: string;
-  identifier_type: PartIdentifierType;
-  raw_value: string;
-  norm_value: string;
-  inventory_item_id: string | null;
-  manufacturer: string | null;
-  notes: string | null;
-  created_by: string;
-  created_at: string;
-}
+export type TestPartIdentifier = PartIdentifier;
 
 export const partAlternateGroups: Record<string, TestPartAlternateGroup> = {
   oilFilterGroup: {

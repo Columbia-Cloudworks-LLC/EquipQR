@@ -1,12 +1,7 @@
 // Using Deno.serve (built-in)
 import { QBO_TOKEN_URL, getIntuitTid } from "../_shared/quickbooks-config.ts";
-import { withCorrelationId } from "../_shared/supabase-clients.ts";
 import { MissingSecretError } from "../_shared/require-secret.ts";
-import {
-  createQuickBooksServiceSupabaseClient,
-  handleQuickBooksCorsPreflight,
-  loadQuickBooksFunctionSecrets,
-} from "../_shared/quickbooks-function-bootstrap.ts";
+import { serveQuickBooksFunction } from "../_shared/quickbooks-serve.ts";
 
 const FUNCTION_NAME = "quickbooks-refresh-tokens";
 
@@ -121,17 +116,15 @@ async function refreshToken(
   }
 }
 
-Deno.serve(withCorrelationId(async (req, ctx) => {
-  const { corsHeaders, preflightResponse } = handleQuickBooksCorsPreflight(req);
-  if (preflightResponse) {
-    return preflightResponse;
-  }
-
+serveQuickBooksFunction(FUNCTION_NAME, logStep, async ({
+  req,
+  ctx,
+  corsHeaders,
+  secrets,
+  supabaseClient,
+}) => {
   try {
-    logStep("Function started", { correlation_id: ctx.correlationId });
-
-    const { clientId, clientSecret, supabaseUrl, supabaseServiceKey } =
-      loadQuickBooksFunctionSecrets(FUNCTION_NAME);
+    const { clientId, clientSecret, supabaseServiceKey } = secrets;
 
     // Validate authorization
     const authHeader = req.headers.get("Authorization");
@@ -147,8 +140,6 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       logStep("ERROR", { message: "Invalid authorization header format" });
       return createUnauthorizedResponse("Unauthorized: Invalid authorization header format", corsHeaders);
     }
-
-    const supabaseClient = createQuickBooksServiceSupabaseClient(supabaseUrl, supabaseServiceKey);
 
     // Extract token after 'bearer ' prefix (7 characters)
     const token = authHeader.substring(7).trim();
@@ -388,4 +379,4 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-}));
+});

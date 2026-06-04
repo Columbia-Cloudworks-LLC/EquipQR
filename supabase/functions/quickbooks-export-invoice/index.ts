@@ -12,15 +12,10 @@ import {
 import {
   createErrorResponse,
   requireBearerUserJsonUnauthorized,
-  withCorrelationId,
 } from "../_shared/supabase-clients.ts";
 import { createRedactedLogStep } from "../_shared/redacted-logger.ts";
 import { MissingSecretError } from "../_shared/require-secret.ts";
-import {
-  createQuickBooksServiceSupabaseClient,
-  handleQuickBooksCorsPreflight,
-  loadQuickBooksFunctionSecrets,
-} from "../_shared/quickbooks-function-bootstrap.ts";
+import { serveQuickBooksFunction } from "../_shared/quickbooks-serve.ts";
 import {
   buildInvoiceLines,
   buildPrivateNote,
@@ -243,18 +238,15 @@ async function confirmCustomerTaxStatus(
   }
 }
 
-Deno.serve(withCorrelationId(async (req, ctx) => {
-  const { corsHeaders, preflightResponse } = handleQuickBooksCorsPreflight(req);
-  if (preflightResponse) {
-    return preflightResponse;
-  }
-
+serveQuickBooksFunction(FUNCTION_NAME, logStep, async ({
+  req,
+  ctx,
+  corsHeaders,
+  secrets,
+  supabaseClient,
+}) => {
   try {
-    logStep("Function started", { correlation_id: ctx.correlationId });
-
-    const { clientId, clientSecret, supabaseUrl, supabaseServiceKey } =
-      loadQuickBooksFunctionSecrets(FUNCTION_NAME);
-    const supabaseClient = createQuickBooksServiceSupabaseClient(supabaseUrl, supabaseServiceKey);
+    const { clientId, clientSecret } = secrets;
 
     const authResult = await requireBearerUserJsonUnauthorized(
       req,
@@ -858,4 +850,4 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
 
     return createErrorResponse("An internal error occurred", 500, { req });
   }
-}));
+});

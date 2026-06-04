@@ -1,8 +1,11 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
+import { screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import PMChecklistComponent from '../PMChecklistComponent';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import {
+  openPmSection,
+  openPmSectionAndWaitForItem,
+  renderPMChecklist,
+} from './pm-checklist-test-helpers';
 
 // Mock hooks
 vi.mock('@/features/pm-templates/hooks/usePMData', () => ({
@@ -66,7 +69,6 @@ const createMockPM = (overrides?: Partial<PreventativeMaintenance>): Preventativ
 });
 
 const mockOnUpdate = vi.fn();
-const defaultOrg = { id: 'org-1', name: 'Test Org' };
 
 describe('PMChecklistComponent', () => {
   beforeEach(() => {
@@ -76,24 +78,10 @@ describe('PMChecklistComponent', () => {
   describe('notes auto-expand behavior', () => {
     it('auto-expands notes when selecting a negative condition (2-5) and shows existing notes', async () => {
       const pm = createMockPM();
+      renderPMChecklist(pm, { onUpdate: mockOnUpdate });
 
-      render(
-        <PMChecklistComponent
-          pm={pm}
-          onUpdate={mockOnUpdate}
-          readOnly={false}
-          organization={defaultOrg}
-        />
-      );
+      await openPmSectionAndWaitForItem('Engine', 'Check oil level');
 
-      // Open the Engine section
-      fireEvent.click(screen.getByText('Engine'));
-
-      await waitFor(() => {
-        expect(screen.getByText('Check oil level')).toBeInTheDocument();
-      });
-
-      // Select "Adjusted" (condition 2 - negative)
       const selectTrigger = screen.getByRole('combobox');
       fireEvent.click(selectTrigger);
 
@@ -103,7 +91,6 @@ describe('PMChecklistComponent', () => {
 
       fireEvent.click(screen.getByText('Adjusted'));
 
-      // Notes textarea should now be visible (auto-expanded)
       await waitFor(() => {
         expect(screen.getByPlaceholderText('Add notes for this item...')).toBeInTheDocument();
       });
@@ -116,16 +103,8 @@ describe('PMChecklistComponent', () => {
         ] as unknown as PreventativeMaintenance['checklist_data']
       });
 
-      render(
-        <PMChecklistComponent
-          pm={pm}
-          onUpdate={mockOnUpdate}
-          readOnly={false}
-          organization={defaultOrg}
-        />
-      );
-
-      fireEvent.click(screen.getByText('Engine'));
+      renderPMChecklist(pm, { onUpdate: mockOnUpdate });
+      openPmSection('Engine');
 
       await waitFor(() => {
         const notesTextarea = screen.getByPlaceholderText('Add notes for this item...');
@@ -142,36 +121,19 @@ describe('PMChecklistComponent', () => {
         ] as unknown as PreventativeMaintenance['checklist_data']
       });
 
-      render(
-        <PMChecklistComponent
-          pm={pm}
-          onUpdate={mockOnUpdate}
-          readOnly={false}
-          organization={defaultOrg}
-        />
-      );
+      renderPMChecklist(pm, { onUpdate: mockOnUpdate });
+      await openPmSectionAndWaitForItem('Engine', 'Check oil level');
 
-      fireEvent.click(screen.getByText('Engine'));
-
-      await waitFor(() => {
-        expect(screen.getByText('Check oil level')).toBeInTheDocument();
-      });
-
-      // Toggle button should be visible
       const toggleButton = screen.getByRole('button', { name: /add notes/i });
       expect(toggleButton).toBeInTheDocument();
 
-      // Click to show notes
       fireEvent.click(toggleButton);
 
       await waitFor(() => {
         expect(screen.getByPlaceholderText('Add notes for this item...')).toBeInTheDocument();
       });
 
-      // Click again to hide
       fireEvent.click(screen.getByRole('button', { name: /hide notes/i }));
-
-      // Toggle again to verify it still works
       fireEvent.click(screen.getByRole('button', { name: /add notes/i }));
 
       await waitFor(() => {
@@ -186,30 +148,15 @@ describe('PMChecklistComponent', () => {
         ] as unknown as PreventativeMaintenance['checklist_data']
       });
 
-      render(
-        <PMChecklistComponent
-          pm={pm}
-          onUpdate={mockOnUpdate}
-          readOnly={false}
-          organization={defaultOrg}
-        />
-      );
+      renderPMChecklist(pm, { onUpdate: mockOnUpdate });
+      await openPmSectionAndWaitForItem('Engine', 'Check oil level');
 
-      fireEvent.click(screen.getByText('Engine'));
-
-      await waitFor(() => {
-        expect(screen.getByText('Check oil level')).toBeInTheDocument();
-      });
-
-      // Notes should be auto-expanded due to negative condition
       const notesTextarea = screen.getByPlaceholderText('Add notes for this item...');
       const notesContainer = notesTextarea.closest('.grid');
       expect(notesContainer).toHaveClass('opacity-100');
 
-      // User manually collapses
       fireEvent.click(screen.getByRole('button', { name: /hide notes/i }));
 
-      // Notes container should now be hidden
       await waitFor(() => {
         expect(notesContainer).toHaveClass('opacity-0');
       });
@@ -229,39 +176,20 @@ describe('PMChecklistComponent', () => {
         ] as unknown as PreventativeMaintenance['checklist_data']
       });
 
-      render(
-        <PMChecklistComponent
-          pm={pm}
-          onUpdate={mockOnUpdate}
-          readOnly={false}
-          organization={defaultOrg}
-        />
-      );
+      renderPMChecklist(pm, { onUpdate: mockOnUpdate });
 
-      // Check Engine section (negative conditions)
-      fireEvent.click(screen.getByText('Engine'));
+      await openPmSectionAndWaitForItem('Engine', 'Adjusted item');
 
-      await waitFor(() => {
-        expect(screen.getByText('Adjusted item')).toBeInTheDocument();
-      });
-
-      // All 4 negative condition items should have visible notes
       const engineNotes = screen.getAllByPlaceholderText('Add notes for this item...');
-      const visibleEngineNotes = engineNotes.filter(textarea => 
+      const visibleEngineNotes = engineNotes.filter(textarea =>
         textarea.closest('.grid')?.classList.contains('opacity-100')
       );
       expect(visibleEngineNotes.length).toBe(4);
 
-      // Check Safety section (OK and unrated)
-      fireEvent.click(screen.getByText('Safety'));
+      await openPmSectionAndWaitForItem('Safety', 'OK item');
 
-      await waitFor(() => {
-        expect(screen.getByText('OK item')).toBeInTheDocument();
-      });
-
-      // OK and unrated items should have hidden notes containers
       const allNotes = screen.getAllByPlaceholderText('Add notes for this item...');
-      const hiddenNotes = allNotes.filter(textarea => 
+      const hiddenNotes = allNotes.filter(textarea =>
         textarea.closest('.grid')?.classList.contains('opacity-0')
       );
       expect(hiddenNotes.length).toBeGreaterThanOrEqual(2);
@@ -276,25 +204,10 @@ describe('PMChecklistComponent', () => {
         ] as unknown as PreventativeMaintenance['checklist_data']
       });
 
-      render(
-        <PMChecklistComponent
-          pm={pm}
-          onUpdate={mockOnUpdate}
-          readOnly={true}
-          organization={defaultOrg}
-        />
-      );
+      renderPMChecklist(pm, { onUpdate: mockOnUpdate, readOnly: true });
+      await openPmSectionAndWaitForItem('Engine', 'Check oil level');
 
-      fireEvent.click(screen.getByText('Engine'));
-
-      await waitFor(() => {
-        expect(screen.getByText('Check oil level')).toBeInTheDocument();
-      });
-
-      // No toggle button in read-only mode
       expect(screen.queryByRole('button', { name: /add notes/i })).not.toBeInTheDocument();
-      
-      // Notes should be displayed as text
       expect(screen.getByText('This is a note')).toBeInTheDocument();
     });
 
@@ -306,20 +219,8 @@ describe('PMChecklistComponent', () => {
         ] as unknown as PreventativeMaintenance['checklist_data']
       });
 
-      render(
-        <PMChecklistComponent
-          pm={pm}
-          onUpdate={mockOnUpdate}
-          readOnly={false}
-          organization={defaultOrg}
-        />
-      );
-
-      fireEvent.click(screen.getByText('Engine'));
-
-      await waitFor(() => {
-        expect(screen.getByText('Check oil level')).toBeInTheDocument();
-      });
+      renderPMChecklist(pm, { onUpdate: mockOnUpdate });
+      await openPmSectionAndWaitForItem('Engine', 'Check oil level');
 
       expect(screen.queryByRole('button', { name: /add notes/i })).not.toBeInTheDocument();
     });

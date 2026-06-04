@@ -5,11 +5,9 @@
  * These tests validate permission checks, data fetching, and mutation behaviors.
  */
 
-import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
+import { createRouterQueryClientWrapper } from '@/test/utils/query-client-wrapper';
 
 // Mock dependencies
 vi.mock('@/hooks/useAuth', () => ({
@@ -44,21 +42,7 @@ import {
 import { personas } from '@/test/fixtures/personas';
 import { organizations } from '@/test/fixtures/entities';
 
-// Test wrapper with QueryClient
-const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-
-  return ({ children }: { children: React.ReactNode }) => (
-    <MemoryRouter>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </MemoryRouter>
-  );
-};
+const createWrapper = () => createRouterQueryClientWrapper();
 
 // Mock toast implementation
 const mockToast = vi.fn();

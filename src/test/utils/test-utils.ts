@@ -8,6 +8,11 @@ export {
 export { createSettingsTestWrapper, SYDNEY_USER_SETTINGS } from './settings-test-wrapper';
 export { ensureElementFromPointMock } from './mfa-test-setup';
 export { createSupabaseQueryMock, createSupabaseOrderQueryMock } from './supabase-mock-query';
+export {
+  createTestQueryClient,
+  createQueryClientWrapper,
+  createRouterQueryClientWrapper,
+} from './query-client-wrapper';
 // Re-export custom render
 export { customRender as render } from './renderUtils';
 

@@ -30,7 +30,11 @@ import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWo
 import { useWorkOrderContextualAssignment, type AssignmentWorkOrderContext } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
 import { useAuth } from '@/hooks/useAuth';
 
-import { isOverdue as checkIsOverdue } from '@/features/work-orders/utils/workOrderHelpers';
+import {
+  formatStatus,
+  getStatusColor,
+  isOverdue as checkIsOverdue,
+} from '@/features/work-orders/utils/workOrderHelpers';
 import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
 import WorkOrderAssigneeDisplay from './WorkOrderAssigneeDisplay';
 import ClickableAddress from '@/components/ui/ClickableAddress';
@@ -311,23 +315,6 @@ const getStatusActions = (): StatusAction[] => {
       default:
         return [];
     }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'submitted': return 'bg-info/20 text-info';
-      case 'accepted': return 'bg-primary/20 text-primary';
-      case 'assigned': return 'bg-warning/20 text-warning';
-      case 'in_progress': return 'bg-warning/20 text-warning';
-      case 'on_hold': return 'bg-muted text-foreground';
-      case 'completed': return 'bg-success/20 text-success';
-      case 'cancelled': return 'bg-destructive/20 text-destructive';
-      default: return 'bg-muted text-foreground';
-    }
-  };
-
-  const formatStatus = (status: string) => {
-    return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   const statusActions = getStatusActions();
