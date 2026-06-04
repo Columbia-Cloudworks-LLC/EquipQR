@@ -89,6 +89,12 @@ export interface AuthError {
   status: number;
 }
 
+export interface AuthenticatedPostContext {
+  supabase: SupabaseClient;
+  user: User;
+  token: string;
+}
+
 // =============================================================================
 // Client Creation
 // =============================================================================
@@ -254,6 +260,30 @@ export async function requireUser(
   }
 
   return { user, token: credentials };
+}
+
+/**
+ * Enforce POST, create a user-scoped Supabase client, and validate the caller.
+ * Returns an error Response when the method or auth check fails.
+ */
+export async function requireAuthenticatedPost(
+  req: Request,
+): Promise<AuthenticatedPostContext | Response> {
+  if (req.method !== "POST") {
+    return createErrorResponse("Method not allowed", 405);
+  }
+
+  const supabase = createUserSupabaseClient(req);
+  const auth = await requireUser(req, supabase);
+  if ("error" in auth) {
+    return createErrorResponse(auth.error, auth.status);
+  }
+
+  return {
+    supabase,
+    user: auth.user,
+    token: auth.token,
+  };
 }
 
 /**

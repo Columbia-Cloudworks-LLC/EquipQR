@@ -157,6 +157,25 @@ describe('InlineEditWorkOrderCosts labor preset', () => {
   });
 });
 
+const mobileInlineEditDefaults = {
+  costs: [] as WorkOrderCost[],
+  workOrderId: 'wo-1',
+  equipmentIds: ['eq-1'],
+  canEdit: true,
+  compactMobile: true,
+};
+
+function renderMobileInlineEditCosts(overrides?: Partial<typeof mobileInlineEditDefaults>) {
+  return render(
+    <InlineEditWorkOrderCosts {...mobileInlineEditDefaults} {...overrides} />,
+  );
+}
+
+async function enterMobileCostEditMode(user: ReturnType<typeof userEvent.setup>) {
+  renderMobileInlineEditCosts();
+  await user.click(screen.getByRole('button', { name: /add cost/i }));
+}
+
 describe('InlineEditWorkOrderCosts mobile edit UX', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -178,17 +197,7 @@ describe('InlineEditWorkOrderCosts mobile edit UX', () => {
 
   it('does not show inline validation on entering mobile edit mode', async () => {
     const user = userEvent.setup();
-    render(
-      <InlineEditWorkOrderCosts
-        costs={[]}
-        workOrderId="wo-1"
-        equipmentIds={['eq-1']}
-        canEdit
-        compactMobile
-      />,
-    );
-
-    await user.click(screen.getByRole('button', { name: /add cost/i }));
+    await enterMobileCostEditMode(user);
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.queryByText('Cost Items')).not.toBeInTheDocument();
@@ -197,17 +206,7 @@ describe('InlineEditWorkOrderCosts mobile edit UX', () => {
 
   it('does not show validation alert immediately after Add cost line', async () => {
     const user = userEvent.setup();
-    render(
-      <InlineEditWorkOrderCosts
-        costs={[]}
-        workOrderId="wo-1"
-        equipmentIds={['eq-1']}
-        canEdit
-        compactMobile
-      />,
-    );
-
-    await user.click(screen.getByRole('button', { name: /add cost/i }));
+    await enterMobileCostEditMode(user);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /add cost line/i }));
@@ -216,17 +215,7 @@ describe('InlineEditWorkOrderCosts mobile edit UX', () => {
 
   it('shows validation after Save with invalid rows', async () => {
     const user = userEvent.setup();
-    render(
-      <InlineEditWorkOrderCosts
-        costs={[]}
-        workOrderId="wo-1"
-        equipmentIds={['eq-1']}
-        canEdit
-        compactMobile
-      />,
-    );
-
-    await user.click(screen.getByRole('button', { name: /add cost/i }));
+    await enterMobileCostEditMode(user);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /^save$/i }));
@@ -236,17 +225,7 @@ describe('InlineEditWorkOrderCosts mobile edit UX', () => {
 
   it('shows validation after first field interaction while still invalid', async () => {
     const user = userEvent.setup();
-    render(
-      <InlineEditWorkOrderCosts
-        costs={[]}
-        workOrderId="wo-1"
-        equipmentIds={['eq-1']}
-        canEdit
-        compactMobile
-      />,
-    );
-
-    await user.click(screen.getByRole('button', { name: /add cost/i }));
+    await enterMobileCostEditMode(user);
     await user.type(screen.getByPlaceholderText('Qty'), '2');
 
     expect(screen.getByRole('alert')).toHaveTextContent(/valid quantities/i);

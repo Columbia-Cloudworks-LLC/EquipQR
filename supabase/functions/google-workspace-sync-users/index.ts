@@ -1,11 +1,10 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import {
   createAdminSupabaseClient,
-  createUserSupabaseClient,
   createErrorResponse,
-  requireUser,
   verifyOrgAdmin,
   withCorrelationId,
+  requireAuthenticatedPost,
 } from "../_shared/supabase-clients.ts";
 import {
   getGoogleWorkspaceAccessToken,
@@ -63,15 +62,12 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
   }
 
   try {
-    if (req.method !== "POST") {
-      return createErrorResponse("Method not allowed", 405);
+    const authContext = await requireAuthenticatedPost(req);
+    if (authContext instanceof Response) {
+      return authContext;
     }
 
-    const supabase = createUserSupabaseClient(req);
-    const auth = await requireUser(req, supabase);
-    if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status);
-    }
+    const { supabase, user } = authContext;
 
     const body: SyncRequest = await req.json();
     const { organizationId } = body;
@@ -79,7 +75,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       return createErrorResponse("organizationId is required", 400);
     }
 
-    const isAdmin = await verifyOrgAdmin(supabase, auth.user.id, organizationId);
+    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
     if (!isAdmin) {
       return createErrorResponse("Only organization administrators can sync Workspace users", 403);
     }
@@ -90,7 +86,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     // 2. google_workspace_directory_users is a sync target that requires bulk upserts
     //
     // Authorization is enforced at the application layer:
-    // - User authentication verified via requireUser() above
+    // - User authentication verified via requireAuthenticatedPost() above
     // - Org admin status verified via verifyOrgAdmin() above
     // - organizationId is validated against the user's membership
     //

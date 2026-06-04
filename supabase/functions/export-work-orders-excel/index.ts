@@ -10,11 +10,10 @@ import { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 // @deno-types="https://cdn.sheetjs.com/xlsx-0.20.3/package/types/index.d.ts"
 import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
 import {
-  createUserSupabaseClient,
-  requireUser,
   verifyOrgAdmin,
   createErrorResponse,
   handleCorsPreflightIfNeeded,
+  requireAuthenticatedPost,
 } from "../_shared/supabase-clients.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
@@ -755,20 +754,12 @@ Deno.serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    if (req.method !== 'POST') {
-      return createErrorResponse('Method not allowed', 405);
+    const authContext = await requireAuthenticatedPost(req);
+    if (authContext instanceof Response) {
+      return authContext;
     }
 
-    // Create user-scoped client (RLS enforced)
-    const supabase = createUserSupabaseClient(req);
-
-    // Validate user authentication
-    const auth = await requireUser(req, supabase);
-    if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status);
-    }
-
-    const { user } = auth;
+    const { supabase, user } = authContext;
 
     const body: ExportRequest = await req.json();
     const { organizationId, filters } = body;

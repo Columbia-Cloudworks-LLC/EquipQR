@@ -34,6 +34,31 @@ import {
   getLastSuccessfulExport,
 } from '@/services/quickbooks/quickbooksService';
 
+function createMockAuthSession(overrides?: { access_token?: string; refresh_token?: string }) {
+  return {
+    access_token: overrides?.access_token ?? 'test-token',
+    refresh_token: overrides?.refresh_token ?? 'refresh-token',
+    expires_in: 3600,
+    expires_at: Date.now() + 3600000,
+    token_type: 'bearer',
+    user: {
+      id: 'user-123',
+      email: 'test@test.com',
+      app_metadata: {},
+      user_metadata: {},
+      aud: 'test',
+      created_at: '',
+    },
+  };
+}
+
+function mockAuthenticatedSession(session = createMockAuthSession()) {
+  vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
+    data: { session },
+    error: null,
+  });
+}
+
 describe('QuickBooks Service', () => {
   const mockOrganizationId = 'org-123';
   const mockTeamId = 'team-456';
@@ -472,19 +497,7 @@ describe('QuickBooks Service', () => {
     });
 
     it('should return customers on successful search', async () => {
-      const mockSession = {
-        access_token: 'test-token',
-        refresh_token: 'refresh-token',
-        expires_in: 3600,
-        expires_at: Date.now() + 3600000,
-        token_type: 'bearer',
-        user: { id: 'user-123', email: 'test@test.com', app_metadata: {}, user_metadata: {}, aud: 'test', created_at: '' },
-      };
-
-      vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
-        data: { session: mockSession },
-        error: null,
-      });
+      mockAuthenticatedSession();
 
       const mockCustomers = [
         { Id: '1', DisplayName: 'Customer A' },
@@ -520,19 +533,7 @@ describe('QuickBooks Service', () => {
     });
 
     it('should export invoice successfully', async () => {
-      const mockSession = {
-        access_token: 'test-token',
-        refresh_token: 'refresh-token',
-        expires_in: 3600,
-        expires_at: Date.now() + 3600000,
-        token_type: 'bearer',
-        user: { id: 'user-123', email: 'test@test.com', app_metadata: {}, user_metadata: {}, aud: 'test', created_at: '' },
-      };
-
-      vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
-        data: { session: mockSession },
-        error: null,
-      });
+      mockAuthenticatedSession();
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
@@ -553,18 +554,9 @@ describe('QuickBooks Service', () => {
     });
 
     it('should return error when fetch returns non-200 response', async () => {
-      const mockSession = {
-        access_token: 'mock-token',
-        refresh_token: 'mock-refresh',
-        expires_at: Date.now() + 3600000,
-        token_type: 'bearer',
-        user: { id: 'user-123', email: 'test@test.com', app_metadata: {}, user_metadata: {}, aud: 'test', created_at: '' },
-      };
-
-      vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
-        data: { session: mockSession },
-        error: null,
-      });
+      mockAuthenticatedSession(
+        createMockAuthSession({ access_token: 'mock-token', refresh_token: 'mock-refresh' }),
+      );
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
@@ -582,18 +574,9 @@ describe('QuickBooks Service', () => {
     });
 
     it('should return generic error when fetch response has no error message', async () => {
-      const mockSession = {
-        access_token: 'mock-token',
-        refresh_token: 'mock-refresh',
-        expires_at: Date.now() + 3600000,
-        token_type: 'bearer',
-        user: { id: 'user-123', email: 'test@test.com', app_metadata: {}, user_metadata: {}, aud: 'test', created_at: '' },
-      };
-
-      vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
-        data: { session: mockSession },
-        error: null,
-      });
+      mockAuthenticatedSession(
+        createMockAuthSession({ access_token: 'mock-token', refresh_token: 'mock-refresh' }),
+      );
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
@@ -664,18 +647,9 @@ describe('QuickBooks Service', () => {
   // -----------------------------------------------------------------------
   describe('searchCustomers - error paths', () => {
     it('should return error when fetch returns non-200', async () => {
-      const mockSession = {
-        access_token: 'mock-token',
-        refresh_token: 'mock-refresh',
-        expires_at: Date.now() + 3600000,
-        token_type: 'bearer',
-        user: { id: 'user-123', email: 'test@test.com', app_metadata: {}, user_metadata: {}, aud: 'test', created_at: '' },
-      };
-
-      vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
-        data: { session: mockSession },
-        error: null,
-      });
+      mockAuthenticatedSession(
+        createMockAuthSession({ access_token: 'mock-token', refresh_token: 'mock-refresh' }),
+      );
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
@@ -693,18 +667,9 @@ describe('QuickBooks Service', () => {
     });
 
     it('should return generic error when fetch response has no error message', async () => {
-      const mockSession = {
-        access_token: 'mock-token',
-        refresh_token: 'mock-refresh',
-        expires_at: Date.now() + 3600000,
-        token_type: 'bearer',
-        user: { id: 'user-123', email: 'test@test.com', app_metadata: {}, user_metadata: {}, aud: 'test', created_at: '' },
-      };
-
-      vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
-        data: { session: mockSession },
-        error: null,
-      });
+      mockAuthenticatedSession(
+        createMockAuthSession({ access_token: 'mock-token', refresh_token: 'mock-refresh' }),
+      );
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,

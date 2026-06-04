@@ -7,12 +7,11 @@
  */
 
 import {
-  createUserSupabaseClient,
-  requireUser,
   verifyOrgAdmin,
   createErrorResponse,
   handleCorsPreflightIfNeeded,
   withCorrelationId,
+  requireAuthenticatedPost,
 } from "../_shared/supabase-clients.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { buildCsvTable, escapeCSVValue } from "../_shared/csv-export.ts";
@@ -47,20 +46,12 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
   if (corsResponse) return corsResponse;
 
   try {
-    if (req.method !== 'POST') {
-      return createErrorResponse('Method not allowed', 405);
+    const authContext = await requireAuthenticatedPost(req);
+    if (authContext instanceof Response) {
+      return authContext;
     }
 
-    // Create user-scoped client (RLS enforced)
-    const supabase = createUserSupabaseClient(req);
-
-    // Validate user authentication
-    const auth = await requireUser(req, supabase);
-    if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status);
-    }
-
-    const { user } = auth;
+    const { supabase, user } = authContext;
 
     const body: ExportRequest = await req.json();
     const { reportType, organizationId, filters, columns, format } = body;

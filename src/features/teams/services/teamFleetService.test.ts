@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { getTeamFleetData, getTeamEquipmentWithLocations } from './teamFleetService';
+import {
+  createMockEquipmentQuery,
+  createMockScansQueryEmpty,
+  createMockScansQueryWithData,
+  createMockTeamsQuery,
+  mockSupabaseFromTables,
+} from './teamFleetService.test-helpers';
 // Mock the supabase client
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -85,32 +92,9 @@ describe('teamFleetService', () => {
         return null;
       });
 
-      // Mock equipment query
-      const mockEquipmentQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        in: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
-        or: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
-        is: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
-      };
-
-      // Mock scans query (no scans for any equipment)
-      const mockScansQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        not: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({ data: [], error: null })
-      };
-
-      (supabase.from as Mock).mockImplementation((table: string) => {
-        if (table === 'equipment') {
-          return mockEquipmentQuery;
-        }
-        if (table === 'scans') {
-          return mockScansQuery;
-        }
-        return mockEquipmentQuery;
+      mockSupabaseFromTables(supabase.from as Mock, {
+        equipment: createMockEquipmentQuery(mockEquipment),
+        scans: createMockScansQueryEmpty(),
       });
 
       const result = await getTeamEquipmentWithLocations('org-1', ['team-1']);
@@ -170,31 +154,11 @@ describe('teamFleetService', () => {
         return null;
       });
 
-      const mockEquipmentQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        in: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
-        or: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
-        is: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
-      };
-
       (supabase.rpc as Mock).mockResolvedValue({ data: mockScans, error: null });
 
-      const mockScansQuery = {
-        select: vi.fn().mockReturnThis(),
-        in: vi.fn().mockReturnThis(),
-        not: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: mockScans, error: null }),
-      };
-
-      (supabase.from as Mock).mockImplementation((table: string) => {
-        if (table === 'equipment') {
-          return mockEquipmentQuery;
-        }
-        if (table === 'scans') {
-          return mockScansQuery;
-        }
-        return mockEquipmentQuery;
+      mockSupabaseFromTables(supabase.from as Mock, {
+        equipment: createMockEquipmentQuery(mockEquipment),
+        scans: createMockScansQueryWithData(mockScans),
       });
 
       const result = await getTeamEquipmentWithLocations('org-1', ['team-1']);
@@ -258,43 +222,10 @@ describe('teamFleetService', () => {
         return null;
       });
 
-      // Mock teams query
-      const mockTeamsQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        in: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: mockTeams, error: null })
-      };
-
-      // Mock equipment query
-      const mockEquipmentQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        in: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
-        or: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
-        is: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
-      };
-
-      // Mock scans query (no scans)
-      const mockScansQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        not: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({ data: [], error: null })
-      };
-
-      (supabase.from as Mock).mockImplementation((table: string) => {
-        if (table === 'teams') {
-          return mockTeamsQuery;
-        }
-        if (table === 'equipment') {
-          return mockEquipmentQuery;
-        }
-        if (table === 'scans') {
-          return mockScansQuery;
-        }
-        return mockTeamsQuery;
+      mockSupabaseFromTables(supabase.from as Mock, {
+        teams: createMockTeamsQuery(mockTeams),
+        equipment: createMockEquipmentQuery(mockEquipment),
+        scans: createMockScansQueryEmpty(),
       });
 
       const result = await getTeamFleetData('org-1', [], true);
@@ -357,40 +288,10 @@ describe('teamFleetService', () => {
         return null;
       });
 
-      const mockTeamsQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        in: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: mockTeams, error: null })
-      };
-
-      const mockEquipmentQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        in: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
-        or: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
-        is: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
-      };
-
-      const mockScansQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        not: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({ data: [], error: null })
-      };
-
-      (supabase.from as Mock).mockImplementation((table: string) => {
-        if (table === 'teams') {
-          return mockTeamsQuery;
-        }
-        if (table === 'equipment') {
-          return mockEquipmentQuery;
-        }
-        if (table === 'scans') {
-          return mockScansQuery;
-        }
-        return mockTeamsQuery;
+      mockSupabaseFromTables(supabase.from as Mock, {
+        teams: createMockTeamsQuery(mockTeams),
+        equipment: createMockEquipmentQuery(mockEquipment),
+        scans: createMockScansQueryEmpty(),
       });
 
       const result = await getTeamFleetData('org-1', [], true);
@@ -438,40 +339,10 @@ describe('teamFleetService', () => {
       // Mock parseLatLng to return null for all
       (mockParseLatLng as Mock).mockReturnValue(null);
 
-      const mockTeamsQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        in: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: mockTeams, error: null })
-      };
-
-      const mockEquipmentQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        in: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
-        or: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
-        is: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
-      };
-
-      const mockScansQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        not: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({ data: [], error: null })
-      };
-
-      (supabase.from as Mock).mockImplementation((table: string) => {
-        if (table === 'teams') {
-          return mockTeamsQuery;
-        }
-        if (table === 'equipment') {
-          return mockEquipmentQuery;
-        }
-        if (table === 'scans') {
-          return mockScansQuery;
-        }
-        return mockTeamsQuery;
+      mockSupabaseFromTables(supabase.from as Mock, {
+        teams: createMockTeamsQuery(mockTeams),
+        equipment: createMockEquipmentQuery(mockEquipment),
+        scans: createMockScansQueryEmpty(),
       });
 
       const result = await getTeamFleetData('org-1', [], true);
