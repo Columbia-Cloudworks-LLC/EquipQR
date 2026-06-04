@@ -21,6 +21,11 @@ import { OfflineFormBanner } from '@/features/offline-queue/components/OfflineFo
 import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyncBadge';
 import { useOfflineMergedNotes } from '@/features/offline-queue/hooks/useOfflineMergedNotes';
 import InlineNoteComposer from '@/components/common/InlineNoteComposer';
+import NotesLoadingSkeleton from '@/components/common/NotesLoadingSkeleton';
+import { resolveNoteContentFromSubmit } from '@/components/common/noteContentHelpers';
+import { formatNoteHoursWorked, formatNoteMachineHours } from '@/components/common/noteFormatHelpers';
+import { isQueuedNoteCreateResult } from '@/components/common/noteSubmitTypes';
+import type { NoteSubmitPayload } from '@/components/common/noteSubmitTypes';
 import { logger } from '@/utils/logger';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
@@ -110,9 +115,8 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
       );
     },
     onSuccess: (result) => {
-      const queuedOffline = result && typeof result === 'object' && 'queuedOffline' in result && result.queuedOffline;
-      if (queuedOffline) {
-        const hadImages = result && typeof result === 'object' && 'hadImages' in result && result.hadImages;
+      if (isQueuedNoteCreateResult(result) && result.queuedOffline) {
+        const hadImages = result.hadImages;
         toast.success('Note saved offline — will sync when you reconnect.');
         if (hadImages) {
           toast.warning(offlinePhotoMessage);
@@ -134,13 +138,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
     }
   });
 
-  const handleNoteSubmit = async (data: {
-    content: string;
-    images: File[];
-    hoursWorked?: number;
-    machineHours?: number;
-    isPrivate?: boolean;
-  }) => {
+  const handleNoteSubmit = async (data: NoteSubmitPayload) => {
     if (import.meta.env.DEV) {
       logger.debug('handleNoteSubmit called', { 
         contentLength: data.content.length,
@@ -151,31 +149,23 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
       });
     }
     
+    let submitData = data;
     if (!navigator.onLine && data.images.length > 0) {
       toast.error(offlinePhotoMessage);
       setAttachedImages([]);
       if (!data.content.trim()) {
         return;
       }
-      data = { ...data, images: [] };
+      submitData = { ...data, images: [] };
     }
 
-    // Generate content if none provided but images are uploaded
-    let finalContent = data.content.trim();
-    if (!finalContent && data.images.length > 0) {
-      const userName = user?.email?.split('@')[0] || 'User';
-      if (data.images.length === 1) {
-        finalContent = `${userName} uploaded: ${data.images[0].name}`;
-      } else {
-        const fileNames = data.images.map(f => f.name).join(', ');
-        finalContent = `${userName} uploaded ${data.images.length} images: ${fileNames}`;
-      }
-      if (import.meta.env.DEV) {
-        logger.debug('Auto-generated note content', { finalContent });
-      }
+    const userName = user?.email?.split('@')[0] || 'User';
+    const finalContent = resolveNoteContentFromSubmit(submitData, userName, 'filenames');
+    if (import.meta.env.DEV && finalContent && !submitData.content.trim() && submitData.images.length > 0) {
+      logger.debug('Auto-generated note content', { finalContent });
     }
     
-    if (!finalContent && data.images.length === 0) {
+    if (!finalContent && submitData.images.length === 0) {
       if (import.meta.env.DEV) {
         logger.debug('No content or images provided for note creation');
       }
@@ -186,10 +176,10 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
     try {
       await createNoteMutation.mutateAsync({
         content: finalContent,
-        hoursWorked: data.hoursWorked || 0,
-        isPrivate: data.isPrivate || false,
-        images: data.images,
-        machineHours: data.machineHours
+        hoursWorked: submitData.hoursWorked || 0,
+        isPrivate: submitData.isPrivate || false,
+        images: submitData.images,
+        machineHours: submitData.machineHours
       });
       
       if (import.meta.env.DEV) {
@@ -213,15 +203,6 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
     setAttachedImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const formatHours = (hours: number) => {
-    return hours > 0 ? `${hours}h` : '';
-  };
-
-  const formatMachineHours = (hours: number | null | undefined) => {
-    const n = Number(hours);
-    return Number.isFinite(n) && n > 0 ? `${n}h` : '';
-  };
-
   // Filter notes based on privacy settings
   const visibleNotes = notes.filter(note => {
     if (!note.is_private) return true;
@@ -233,17 +214,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   const userDisplayName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
 
   if (isLoading) {
-    return (
-      <Card className="shadow-elevation-2">
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-24 bg-muted animate-pulse rounded" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <NotesLoadingSkeleton cardClassName="shadow-elevation-2" />;
   }
 
   return (
@@ -329,7 +300,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
             <div className="space-y-4">
               {visibleNotes.map((note) => {
                 const typedNote = note as WorkOrderNote & { _isPendingSync?: boolean };
-                const machineLabel = formatMachineHours(typedNote.machine_hours);
+                const machineLabel = formatNoteMachineHours(typedNote.machine_hours);
                 return (
                 <Card key={note.id}>
                   <CardContent standalone>
@@ -342,11 +313,11 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
                           {typedNote._isPendingSync && <PendingSyncBadge />}
                           <span>•</span>
                           <span>{formatDate(note.created_at)}</span>
-                          {formatHours(note.hours_worked) && (
+                          {formatNoteHoursWorked(note.hours_worked) && (
                             <>
                               <span>•</span>
                               <Clock className="h-4 w-4" />
-                              <span title="Hours worked">{formatHours(note.hours_worked)} worked</span>
+                              <span title="Hours worked">{formatNoteHoursWorked(note.hours_worked)} worked</span>
                             </>
                           )}
                           {machineLabel && (

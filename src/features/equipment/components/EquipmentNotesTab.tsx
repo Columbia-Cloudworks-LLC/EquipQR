@@ -22,6 +22,11 @@ import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyn
 import { useOfflineMergedNotes } from '@/features/offline-queue/hooks/useOfflineMergedNotes';
 import InlineNoteComposer from '@/components/common/InlineNoteComposer';
 import ImageGallery from '@/components/common/ImageGallery';
+import NotesLoadingSkeleton from '@/components/common/NotesLoadingSkeleton';
+import { resolveNoteContentFromSubmit } from '@/components/common/noteContentHelpers';
+import { formatNoteHoursWorked, formatNoteMachineHours } from '@/components/common/noteFormatHelpers';
+import { isQueuedNoteCreateResult } from '@/components/common/noteSubmitTypes';
+import type { NoteSubmitPayload } from '@/components/common/noteSubmitTypes';
 import { OfflineFormBanner } from '@/features/offline-queue/components/OfflineFormBanner';
 import { logger } from '@/utils/logger';
 import { useEquipmentNotesPermissions } from '@/features/equipment/hooks/useEquipmentNotesPermissions';
@@ -110,9 +115,8 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
       );
     },
     onSuccess: (result) => {
-      const queuedOffline = result && typeof result === 'object' && 'queuedOffline' in result && result.queuedOffline;
-      if (queuedOffline) {
-        const hadImages = result && typeof result === 'object' && 'hadImages' in result && result.hadImages;
+      if (isQueuedNoteCreateResult(result) && result.queuedOffline) {
+        const hadImages = result.hadImages;
         toast.success(
           hadImages
             ? 'Note saved offline. Attach images when you reconnect.'
@@ -166,24 +170,10 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
     }
   });
 
-  const handleNoteSubmit = async (data: {
-    content: string;
-    images: File[];
-    hoursWorked?: number;
-    machineHours?: number;
-    isPrivate?: boolean;
-  }) => {
-    // Generate content if none provided but images are uploaded
-    let finalContent = data.content.trim();
-    if (!finalContent && data.images.length > 0) {
-      const userName = user?.email?.split('@')[0] || 'User';
-      if (data.images.length === 1) {
-        finalContent = `${userName} uploaded 1 image.`;
-      } else {
-        finalContent = `${userName} uploaded ${data.images.length} images.`;
-      }
-    }
-    
+  const handleNoteSubmit = async (data: NoteSubmitPayload) => {
+    const userName = user?.email?.split('@')[0] || 'User';
+    const finalContent = resolveNoteContentFromSubmit(data, userName, 'count');
+
     await createNoteMutation.mutateAsync({
       content: finalContent,
       hoursWorked: data.hoursWorked || 0,
@@ -205,31 +195,11 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
     return image.uploaded_by === user?.id;
   };
 
-  const formatHours = (hours: number | null | undefined) => {
-    const numHours = Number(hours) || 0;
-    return numHours > 0 ? `${numHours}h` : '';
-  };
-
-  const formatMachineHours = (hours: number | null | undefined) => {
-    const n = Number(hours);
-    return Number.isFinite(n) && n > 0 ? `${n}h` : '';
-  };
-
   // Derive user display name for clipboard paste fallback
   const userDisplayName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
 
   if (notesLoading) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-24 bg-muted animate-pulse rounded" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <NotesLoadingSkeleton />;
   }
 
   return (
@@ -303,19 +273,19 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
                     {(note as { _isPendingSync?: boolean })._isPendingSync && <PendingSyncBadge />}
                     <span>•</span>
                     <span>{formatNoteDate(note.created_at)}</span>
-                    {formatHours(note.hours_worked) && (
+                    {formatNoteHoursWorked(note.hours_worked) && (
                       <>
                         <span>•</span>
                         <Clock className="h-4 w-4" />
-                        <span title="Hours worked">{formatHours(note.hours_worked)} worked</span>
+                        <span title="Hours worked">{formatNoteHoursWorked(note.hours_worked)} worked</span>
                       </>
                     )}
-                    {formatMachineHours(note.machine_hours) && (
+                    {formatNoteMachineHours(note.machine_hours) && (
                       <>
                         <span>•</span>
                         <Gauge className="h-4 w-4" />
                         <span title="Machine hours">
-                          {formatMachineHours(note.machine_hours)} machine
+                          {formatNoteMachineHours(note.machine_hours)} machine
                         </span>
                       </>
                     )}
