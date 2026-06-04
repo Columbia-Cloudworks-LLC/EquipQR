@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -12,6 +12,11 @@ import {
   equipmentFormSchema,
   type EquipmentRecord,
 } from '@/features/equipment/types/equipment';
+import {
+  bulkEditMutationOnError,
+  useBulkEditCommitResult,
+  type BulkEditCommitHookResult,
+} from '@/hooks/useBulkEditCommitResult';
 import { useBulkEditRowState } from '@/hooks/useBulkEditRowState';
 
 /**
@@ -20,42 +25,10 @@ import { useBulkEditRowState } from '@/hooks/useBulkEditRowState';
  */
 export type EquipmentRowDelta = Partial<EquipmentRecord>;
 
-export interface UseBulkEditEquipmentResult {
-  /** Map of equipment id -> field-level delta. Entries are removed when the
-   *  user reverts every changed field on a row back to its original value. */
-  dirtyRows: Map<string, EquipmentRowDelta>;
-  /** Currently checkbox-selected row ids. */
-  selectedRowIds: Set<string>;
-  /** Number of rows with at least one dirty field. */
-  dirtyCount: number;
-  /** Number of selected rows. */
-  selectedCount: number;
-  /** True while the batch commit mutation is in flight. */
-  isPending: boolean;
-
-  /** Set a single field on a single row. Reverting to the initial value clears the delta. */
-  setCellValue: <K extends keyof EquipmentRecord>(
-    id: string,
-    field: K,
-    value: EquipmentRecord[K]
-  ) => void;
-  /** Apply the same field/value to many rows at once (used by the bulk-apply confirmation dialog). */
-  setCellValueOnRows: <K extends keyof EquipmentRecord>(
-    ids: string[],
-    field: K,
-    value: EquipmentRecord[K]
-  ) => void;
-  /** Discard every dirty edit. */
-  clearDirty: () => void;
-  /** Toggle whether a single row is selected. */
-  toggleSelected: (id: string) => void;
-  /** Replace the selection with the given ids. */
-  selectAll: (ids: string[]) => void;
-  /** Clear the row selection (does not affect dirty state). */
-  clearSelection: () => void;
-  /** Commit every dirty row to Supabase via `EquipmentService.batchUpdate`. */
-  commit: () => Promise<void>;
-}
+export type UseBulkEditEquipmentResult = BulkEditCommitHookResult<
+  EquipmentRecord,
+  EquipmentRowDelta
+>;
 
 /**
  * Local state + commit logic for the bulk-edit equipment grid (#627).
@@ -75,19 +48,8 @@ export const useBulkEditEquipment = (
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
 
-  const {
-    dirtyRows,
-    selectedRowIds,
-    dirtyCount,
-    selectedCount,
-    setCellValue,
-    setCellValueOnRows,
-    clearDirty,
-    toggleSelected,
-    selectAll,
-    clearSelection,
-    clearSucceededDirtyFields,
-  } = useBulkEditRowState<EquipmentRecord, EquipmentRowDelta>(initialRows);
+  const rowState = useBulkEditRowState<EquipmentRecord, EquipmentRowDelta>(initialRows);
+  const { dirtyRows, clearSucceededDirtyFields } = rowState;
 
   const partialSchema = useMemo(() => equipmentFormSchema.partial(), []);
 
@@ -160,28 +122,8 @@ export const useBulkEditEquipment = (
         }
       }
     },
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Bulk update failed');
-    },
+    onError: bulkEditMutationOnError,
   });
 
-  const commit = useCallback(async () => {
-    if (dirtyRows.size === 0) return;
-    await commitMutation.mutateAsync();
-  }, [commitMutation, dirtyRows.size]);
-
-  return {
-    dirtyRows,
-    selectedRowIds,
-    dirtyCount,
-    selectedCount,
-    isPending: commitMutation.isPending,
-    setCellValue,
-    setCellValueOnRows,
-    clearDirty,
-    toggleSelected,
-    selectAll,
-    clearSelection,
-    commit,
-  };
+  return useBulkEditCommitResult(rowState, commitMutation);
 };

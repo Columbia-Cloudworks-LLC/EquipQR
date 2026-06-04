@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -6,6 +5,11 @@ import { z } from 'zod';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { inventory as inventoryKeys } from '@/lib/queryKeys';
 import { usePermissions } from '@/hooks/usePermissions';
+import {
+  bulkEditMutationOnError,
+  useBulkEditCommitResult,
+  type BulkEditCommitHookResult,
+} from '@/hooks/useBulkEditCommitResult';
 import { useBulkEditRowState } from '@/hooks/useBulkEditRowState';
 import {
   batchUpdateInventoryItems,
@@ -31,29 +35,10 @@ export type BulkEditableField =
 /** Per-row, per-field delta. Only fields the user actually changed are present. */
 export type InventoryRowDelta = Partial<Pick<InventoryItem, BulkEditableField>>;
 
-export interface UseBulkEditInventoryResult {
-  dirtyRows: Map<string, InventoryRowDelta>;
-  selectedRowIds: Set<string>;
-  dirtyCount: number;
-  selectedCount: number;
-  isPending: boolean;
-
-  setCellValue: <K extends BulkEditableField>(
-    id: string,
-    field: K,
-    value: InventoryItem[K]
-  ) => void;
-  setCellValueOnRows: <K extends BulkEditableField>(
-    ids: string[],
-    field: K,
-    value: InventoryItem[K]
-  ) => void;
-  clearDirty: () => void;
-  toggleSelected: (id: string) => void;
-  selectAll: (ids: string[]) => void;
-  clearSelection: () => void;
-  commit: () => Promise<void>;
-}
+export type UseBulkEditInventoryResult = BulkEditCommitHookResult<
+  InventoryItem,
+  InventoryRowDelta
+>;
 
 // ============================================
 // Validation schema for bulk-editable scalar fields
@@ -84,19 +69,8 @@ export const useBulkEditInventory = (
   const { canManageInventory } = usePermissions();
   const queryClient = useQueryClient();
 
-  const {
-    dirtyRows,
-    selectedRowIds,
-    dirtyCount,
-    selectedCount,
-    setCellValue,
-    setCellValueOnRows,
-    clearDirty,
-    toggleSelected,
-    selectAll,
-    clearSelection,
-    clearSucceededDirtyFields,
-  } = useBulkEditRowState<InventoryItem, InventoryRowDelta>(initialRows);
+  const rowState = useBulkEditRowState<InventoryItem, InventoryRowDelta>(initialRows);
+  const { dirtyRows, clearSucceededDirtyFields } = rowState;
 
   const commitMutation = useMutation({
     mutationFn: async () => {
@@ -295,28 +269,8 @@ export const useBulkEditInventory = (
       }
     },
 
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Bulk update failed');
-    },
+    onError: bulkEditMutationOnError,
   });
 
-  const commit = useCallback(async () => {
-    if (dirtyRows.size === 0) return;
-    await commitMutation.mutateAsync();
-  }, [commitMutation, dirtyRows.size]);
-
-  return {
-    dirtyRows,
-    selectedRowIds,
-    dirtyCount,
-    selectedCount,
-    isPending: commitMutation.isPending,
-    setCellValue,
-    setCellValueOnRows,
-    clearDirty,
-    toggleSelected,
-    selectAll,
-    clearSelection,
-    commit,
-  };
+  return useBulkEditCommitResult(rowState, commitMutation);
 };
