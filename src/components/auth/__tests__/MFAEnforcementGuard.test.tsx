@@ -1,11 +1,10 @@
+import '@/test/utils/mock-use-app-toast';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
+import { ensureElementFromPointMock } from '@/test/utils/test-utils';
 import MFAEnforcementGuard from '../MFAEnforcementGuard';
 
-// Mock document.elementFromPoint used by input-otp internal PWM badge
-if (!document.elementFromPoint) {
-  document.elementFromPoint = vi.fn().mockReturnValue(null);
-}
+ensureElementFromPointMock();
 
 // Mock state
 let mockMFAState = {
@@ -40,17 +39,6 @@ vi.mock('@/hooks/useSimpleOrganization', () => ({
 let mockMFAEnabled = true;
 vi.mock('@/lib/flags', () => ({
   isMFAEnabled: () => mockMFAEnabled,
-}));
-
-// Mock useAppToast for MFAEnrollment
-vi.mock('@/hooks/useAppToast', () => ({
-  useAppToast: () => ({
-    toast: vi.fn(),
-    success: vi.fn(),
-    error: vi.fn(),
-    info: vi.fn(),
-    warning: vi.fn(),
-  }),
 }));
 
 describe('MFAEnforcementGuard', () => {

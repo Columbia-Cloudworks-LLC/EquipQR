@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { CcpaRightsList } from '@/components/legal/CcpaRightsList';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { supabase } from '@/integrations/supabase/client';
@@ -250,30 +251,7 @@ export default function PrivacyRequest() {
             <p>
               Under the CCPA/CPRA, California residents have the right to:
             </p>
-            <ul>
-              <li>
-                <strong>Know and access</strong> the personal information we have collected
-                about you.
-              </li>
-              <li>
-                <strong>Delete</strong> your personal information, subject to certain
-                exceptions.
-              </li>
-              <li>
-                <strong>Correct</strong> inaccurate personal information we hold about you.
-              </li>
-              <li>
-                <strong>Opt out</strong> of the sale or sharing of your personal information
-                for cross-context behavioral advertising.
-              </li>
-              <li>
-                <strong>Limit the use</strong> of your sensitive personal information to
-                purposes necessary to provide the services you requested.
-              </li>
-              <li>
-                <strong>Non-discrimination</strong> for exercising your privacy rights.
-              </li>
-            </ul>
+            <CcpaRightsList variant="summary" />
             <p>
               We do not sell or share personal information for cross-context behavioral
               advertising. For full details about our data practices, see our{' '}

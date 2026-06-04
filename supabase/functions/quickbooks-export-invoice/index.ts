@@ -62,23 +62,10 @@ const getClientIpAddress = (req: Request): string | null => {
 // QuickBooks API endpoints and environment imported from _shared/quickbooks-config.ts
 // QBO_API_BASE, QBO_ENVIRONMENT, QBO_TOKEN_URL, withMinorVersion
 
-interface QuickBooksCredential {
-  id: string;
-  organization_id: string;
-  realm_id: string;
-  access_token: string;
-  refresh_token: string;
-  access_token_expires_at: string;
-  refresh_token_expires_at: string;
-}
-
-interface IntuitTokenResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-  expires_in: number;
-  x_refresh_token_expires_in: number;
-}
+import {
+  refreshQuickBooksAccessTokenIfNeeded,
+  type QuickBooksCredential,
+} from "../_shared/quickbooks-token.ts";
 
 interface TeamCustomerMapping {
   quickbooks_customer_id: string;
@@ -86,69 +73,6 @@ interface TeamCustomerMapping {
   customer_account_id: string | null;
   cached_is_tax_exempt: boolean | null;
   tax_status_synced_at: string | null;
-}
-
-/**
- * Refresh the access token if needed
- */
-async function refreshTokenIfNeeded(
-  credential: QuickBooksCredential,
-  supabaseClient: SupabaseClient,
-  clientId: string,
-  clientSecret: string
-): Promise<string> {
-  const now = new Date();
-  const accessTokenExpiresAt = new Date(credential.access_token_expires_at);
-  
-  if (accessTokenExpiresAt > new Date(now.getTime() + 5 * 60 * 1000)) {
-    return credential.access_token;
-  }
-
-  logStep("Access token expired, refreshing...");
-
-  const refreshTokenExpiresAt = new Date(credential.refresh_token_expires_at);
-  if (refreshTokenExpiresAt <= now) {
-    throw new Error("Refresh token has expired. Please reconnect QuickBooks.");
-  }
-
-  const tokenRequestBody = new URLSearchParams({
-    grant_type: "refresh_token",
-    refresh_token: credential.refresh_token,
-  });
-
-  const basicAuth = btoa(`${clientId}:${clientSecret}`);
-  
-  const tokenResponse = await fetch(QBO_TOKEN_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Authorization": `Basic ${basicAuth}`,
-      "Accept": "application/json",
-    },
-    body: tokenRequestBody.toString(),
-  });
-
-  if (!tokenResponse.ok) {
-    throw new Error("Failed to refresh QuickBooks access token");
-  }
-
-  const tokenData: IntuitTokenResponse = await tokenResponse.json();
-
-  const newAccessExpiresAt = new Date(now.getTime() + tokenData.expires_in * 1000);
-  const newRefreshExpiresAt = new Date(now.getTime() + tokenData.x_refresh_token_expires_in * 1000);
-
-  await supabaseClient
-    .from('quickbooks_credentials')
-    .update({
-      access_token: tokenData.access_token,
-      refresh_token: tokenData.refresh_token,
-      access_token_expires_at: newAccessExpiresAt.toISOString(),
-      refresh_token_expires_at: newRefreshExpiresAt.toISOString(),
-      updated_at: now.toISOString(),
-    })
-    .eq('id', credential.id);
-
-  return tokenData.access_token;
 }
 
 class TaxStatusUnconfirmedError extends Error {
@@ -598,12 +522,12 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       .limit(1)
       .maybeSingle();
 
-    // Get valid access token
-    const accessToken = await refreshTokenIfNeeded(
-      credentials,
+    const { accessToken } = await refreshQuickBooksAccessTokenIfNeeded(
+      credentials as QuickBooksCredential,
       supabaseClient,
       clientId,
-      clientSecret
+      clientSecret,
+      { onPersistError: "silent", log: logStep },
     );
 
     const taxState = await confirmCustomerTaxStatus(supabaseClient, {

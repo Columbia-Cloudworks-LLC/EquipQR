@@ -1,5 +1,6 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { verifyInventoryItemInOrganization } from '@/features/inventory/services/inventoryItemAccess';
 import type { PartCompatibilityRule, PartCompatibilityRuleFormData, EquipmentMatchedByRules, ModelMatchType, VerificationStatus } from '@/features/inventory/types/inventory';
 
 // ============================================
@@ -30,17 +31,7 @@ export const getCompatibilityRulesForItem = async (
   itemId: string
 ): Promise<PartCompatibilityRule[]> => {
   try {
-    // Verify item belongs to organization as a failsafe
-    const { data: item, error: itemError } = await supabase
-      .from('inventory_items')
-      .select('id')
-      .eq('id', itemId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (itemError || !item) {
-      throw new Error('Inventory item not found or access denied');
-    }
+    await verifyInventoryItemInOrganization(organizationId, itemId);
 
     const { data, error } = await supabase
       .from('part_compatibility_rules')
@@ -76,17 +67,7 @@ export const addCompatibilityRule = async (
   rule: PartCompatibilityRuleFormData
 ): Promise<PartCompatibilityRule> => {
   try {
-    // Verify item belongs to organization
-    const { data: item, error: itemError } = await supabase
-      .from('inventory_items')
-      .select('id')
-      .eq('id', itemId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (itemError || !item) {
-      throw new Error('Inventory item not found or access denied');
-    }
+    await verifyInventoryItemInOrganization(organizationId, itemId);
 
     // Normalize values for matching
     const manufacturerNorm = normalizeValue(rule.manufacturer);

@@ -1,73 +1,15 @@
-import { QrCode } from 'lucide-react';
-import { PageSEO } from '@/components/seo/PageSEO';
-import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
-import { FeatureHero } from '@/components/landing/features/FeatureHero';
-import { FeatureSection } from '@/components/landing/features/FeatureSection';
-import { BenefitCard } from '@/components/landing/features/BenefitCard';
-import { StepList } from '@/components/landing/features/StepList';
-import { FeatureShowcaseList } from '@/components/landing/features/FeatureShowcaseList';
-import { FeatureCTA } from '@/components/landing/features/FeatureCTA';
-import { benefits, steps, screenshots } from './data/qrCodeIntegrationData';
-import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
+import { StandardFeaturePage } from '@/components/landing/features/StandardFeaturePage';
+import { benefits, content, heroIcon, showcases, steps } from './data/qrCodeIntegrationData';
 
-const seo = getFeatureSeoByPath('/features/qr-code-integration')!;
-
-const QRCodeIntegrationFeature = () => {
-  return (
-    <>
-      <PageSEO title={seo.pageTitle} description={seo.description} path={seo.path} />
-      <FeaturePageLayout>
-      <FeatureHero
-        icon={QrCode}
-        title={seo.heroTitle}
-        description={seo.heroDescription}
-        ctaText="Start Using QR Codes Free"
-      />
-
-      <FeatureSection
-        title="Why Use QR Code Integration?"
-        description="Eliminate manual lookup and data entry. Technicians scan a code and land directly on the right equipment or work order—no typing, no lost time."
-        className="bg-muted/30"
-      >
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 max-w-6xl mx-auto">
-          {benefits.map((benefit) => (
-            <BenefitCard
-              key={benefit.title}
-              icon={benefit.icon}
-              iconColor={benefit.iconColor}
-              title={benefit.title}
-              subtitle={benefit.subtitle}
-              description={benefit.description}
-              benefits={benefit.benefits}
-              benefitColor={benefit.benefitColor}
-            />
-          ))}
-        </div>
-      </FeatureSection>
-
-      <FeatureSection
-        title="How It Works"
-        description="QR codes connect your physical assets to EquipQR™ in seconds."
-      >
-        <StepList steps={steps} />
-      </FeatureSection>
-
-      <FeatureSection
-        title="See QR Code Integration in Action"
-        description="Here's what QR scanning and label generation look like in the EquipQR™ app."
-        className="bg-muted/30"
-      >
-        <FeatureShowcaseList items={screenshots} />
-      </FeatureSection>
-
-      <FeatureCTA
-        title="Ready to Speed Up Field Operations?"
-        description="Start using QR Code Integration today—completely free. Create your account, generate labels, and scan your way to faster workflows."
-        primaryCtaText="Create Free Account"
-      />
-      </FeaturePageLayout>
-    </>
-  );
-};
+const QRCodeIntegrationFeature = () => (
+  <StandardFeaturePage
+    seoPath="/features/qr-code-integration"
+    content={content}
+    benefits={benefits}
+    steps={steps}
+    showcases={showcases}
+    heroIcon={heroIcon}
+  />
+);
 
 export default QRCodeIntegrationFeature;

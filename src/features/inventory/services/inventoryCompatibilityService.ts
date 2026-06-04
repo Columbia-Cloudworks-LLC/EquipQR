@@ -1,5 +1,6 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { verifyInventoryItemInOrganization } from '@/features/inventory/services/inventoryItemAccess';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
 import type { Equipment } from '@/features/equipment/services/EquipmentService';
 
@@ -12,17 +13,7 @@ export const getCompatibleEquipmentForItem = async (
   itemId: string
 ): Promise<Equipment[]> => {
   try {
-    // Verify item belongs to organization as a failsafe
-    const { data: item, error: itemError } = await supabase
-      .from('inventory_items')
-      .select('id')
-      .eq('id', itemId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (itemError || !item) {
-      throw new Error('Inventory item not found or access denied');
-    }
+    await verifyInventoryItemInOrganization(organizationId, itemId);
 
     const { data, error } = await supabase
       .from('equipment_part_compatibility')
@@ -105,17 +96,7 @@ export const linkItemToEquipment = async (
       throw new Error('Equipment not found or access denied');
     }
 
-    // Verify item belongs to organization
-    const { data: item, error: itemError } = await supabase
-      .from('inventory_items')
-      .select('id')
-      .eq('id', itemId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (itemError || !item) {
-      throw new Error('Inventory item not found or access denied');
-    }
+    await verifyInventoryItemInOrganization(organizationId, itemId);
 
     // Insert compatibility link (ignore if already exists)
     const { error } = await supabase
@@ -155,17 +136,7 @@ export const unlinkItemFromEquipment = async (
       throw new Error('Equipment not found or access denied');
     }
 
-    // Verify item belongs to organization
-    const { data: item, error: itemError } = await supabase
-      .from('inventory_items')
-      .select('id')
-      .eq('id', itemId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (itemError || !item) {
-      throw new Error('Inventory item not found or access denied');
-    }
+    await verifyInventoryItemInOrganization(organizationId, itemId);
 
     // Delete compatibility link
     const { error } = await supabase
@@ -191,17 +162,7 @@ export const bulkLinkEquipmentToItem = async (
   equipmentIds: string[]
 ): Promise<{ added: number; removed: number }> => {
   try {
-    // Verify item belongs to organization FIRST (before any operations)
-    const { data: item, error: itemError } = await supabase
-      .from('inventory_items')
-      .select('id')
-      .eq('id', itemId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (itemError || !item) {
-      throw new Error('Inventory item not found or access denied');
-    }
+    await verifyInventoryItemInOrganization(organizationId, itemId);
 
     if (equipmentIds.length === 0) {
       // If no equipment selected, remove all links

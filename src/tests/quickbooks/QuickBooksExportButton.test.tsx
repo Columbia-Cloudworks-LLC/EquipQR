@@ -7,8 +7,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
 
 // Mock the feature flags
 vi.mock('@/lib/flags', () => ({
@@ -79,14 +77,7 @@ vi.mock('sonner', () => ({
 
 import { QuickBooksExportButton } from '@/features/work-orders/components/QuickBooksExportButton';
 import { isQuickBooksEnabled } from '@/lib/flags';
-
-const createTestQueryClient = () => new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
+import { renderWithQuickBooksProviders } from '@/tests/quickbooks/testUtils';
 
 const renderComponent = (props = {
   workOrderId: 'wo-123',
@@ -94,17 +85,7 @@ const renderComponent = (props = {
   workOrderStatus: 'completed' as const,
   asMenuItem: false,
   showStatusDetails: false,
-}) => {
-  const queryClient = createTestQueryClient();
-  
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <QuickBooksExportButton {...props} />
-      </MemoryRouter>
-    </QueryClientProvider>
-  );
-};
+}) => renderWithQuickBooksProviders(<QuickBooksExportButton {...props} />);
 
 describe('QuickBooksExportButton Component', () => {
   beforeEach(() => {

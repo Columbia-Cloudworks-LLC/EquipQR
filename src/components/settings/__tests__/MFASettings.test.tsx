@@ -1,12 +1,11 @@
+import '@/test/utils/mock-use-app-toast';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { ensureElementFromPointMock } from '@/test/utils/test-utils';
 import MFASettings from '../MFASettings';
 
-// Mock document.elementFromPoint used by input-otp internal PWM badge
-if (!document.elementFromPoint) {
-  document.elementFromPoint = vi.fn().mockReturnValue(null);
-}
+ensureElementFromPointMock();
 
 // Mock data
 const mockUnenrollFactor = vi.fn();
@@ -38,17 +37,6 @@ let mockOrgContext: { currentOrganization: { userRole: string } | null } | null 
 
 vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganizationSafe: () => mockOrgContext,
-}));
-
-// Mock useAppToast
-vi.mock('@/hooks/useAppToast', () => ({
-  useAppToast: () => ({
-    toast: vi.fn(),
-    success: vi.fn(),
-    error: vi.fn(),
-    info: vi.fn(),
-    warning: vi.fn(),
-  }),
 }));
 
 describe('MFASettings', () => {

@@ -4,6 +4,10 @@ import { render, screen, waitFor } from '@/test/utils/test-utils';
 import WorkOrderDetails from '../WorkOrderDetails';
 import * as useWorkOrderDetailsDataModule from '@/features/work-orders/components/hooks/useWorkOrderDetailsData';
 import * as useWorkOrderDetailsActionsModule from '@/features/work-orders/hooks/useWorkOrderDetailsActions';
+import {
+  createWorkOrderDetailsActionsMock,
+  createWorkOrderDetailsDataMock,
+} from './workOrderDetailsTestFixtures';
 
 const mockWorkOrderDetailsMobile = vi.fn();
 
@@ -243,75 +247,13 @@ describe('WorkOrderDetails', () => {
     mockSetSearchParams.mockReset();
     mockUseSearchParams.mockReturnValue([new URLSearchParams(), mockSetSearchParams]);
 
-    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue({
-      workOrder: {
-        id: 'wo-1',
-        title: 'Replace hydraulic line',
-        description: 'Repair leak',
-        status: 'submitted',
-        priority: 'medium',
-        created_date: '2024-01-01T00:00:00Z',
-        createdDate: '2024-01-01T00:00:00Z',
-        dueDate: null,
-        equipment_id: 'eq-1',
-        has_pm: false,
-        teamName: null,
-        assigneeName: null,
-        effectiveLocation: null,
-      },
-      equipment: {
-        id: 'eq-1',
-        name: 'Excavator 1',
-        manufacturer: 'Caterpillar',
-        model: '320',
-        serial_number: null,
-        status: 'active',
-        location: null,
-        team_id: 'team-1',
-        custom_attributes: null,
-        image_url: null,
-        default_pm_template_id: null,
-      },
-      pmData: null,
-      workOrderLoading: false,
-      pmLoading: false,
-      pmError: null,
-      permissionLevels: {
-        isManager: false,
-        isTechnician: false,
-        isRequestor: true,
-      },
-      formMode: 'requestor',
-      isWorkOrderLocked: false,
-      canAddCosts: false,
-      canEditCosts: false,
-      canAddNotes: false,
-      canUpload: false,
-      canEdit: false,
-      baseCanAddNotes: false,
-      currentOrganization: {
-        id: 'org-1',
-        name: 'Test Org',
-      },
-    } as unknown as ReturnType<typeof useWorkOrderDetailsDataModule.useWorkOrderDetailsData>);
+    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue(
+      createWorkOrderDetailsDataMock(),
+    );
 
-    vi.mocked(useWorkOrderDetailsActionsModule.useWorkOrderDetailsActions).mockReturnValue({
-      isEditFormOpen: false,
-      showMobileSidebar: false,
-      setShowMobileSidebar: vi.fn(),
-      handleEditWorkOrder: vi.fn(),
-      handleCloseEditForm: vi.fn(),
-      handleUpdateWorkOrder: vi.fn(),
-      handleStatusUpdate: vi.fn(),
-      handlePMUpdate: vi.fn(),
-      showPMWarning: false,
-      setShowPMWarning: vi.fn(),
-      pmChangeType: null,
-      handleConfirmPMChange: vi.fn(),
-      handleCancelPMChange: vi.fn(),
-      getPMDataDetails: () => ({ hasNotes: false, hasCompletedItems: false }),
-      isUpdating: false,
-    } as unknown as ReturnType<typeof useWorkOrderDetailsActionsModule.useWorkOrderDetailsActions>);
+    vi.mocked(useWorkOrderDetailsActionsModule.useWorkOrderDetailsActions).mockReturnValue(
+      createWorkOrderDetailsActionsMock(),
+    );
   });
 
   it('does not pass a delete request handler to mobile details for non-managers', async () => {

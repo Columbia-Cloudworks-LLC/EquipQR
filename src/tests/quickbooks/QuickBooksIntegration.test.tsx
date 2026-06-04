@@ -8,8 +8,6 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { clickButtonWhenReady } from '@/test/utils/rtl-helpers';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
 
 // Mock the feature flags
 vi.mock('@/lib/flags', () => ({
@@ -56,26 +54,10 @@ vi.mock('@/services/quickbooks', () => ({
 
 import { QuickBooksIntegration } from '@/features/organization/components/QuickBooksIntegration';
 import { isQuickBooksEnabled } from '@/lib/flags';
+import { renderWithQuickBooksProviders } from '@/tests/quickbooks/testUtils';
 
-const createTestQueryClient = () => new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
-
-const renderComponent = (props = { currentUserRole: 'admin' as const }) => {
-  const queryClient = createTestQueryClient();
-  
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <QuickBooksIntegration {...props} />
-      </MemoryRouter>
-    </QueryClientProvider>
-  );
-};
+const renderComponent = (props = { currentUserRole: 'admin' as const }) =>
+  renderWithQuickBooksProviders(<QuickBooksIntegration {...props} />);
 
 describe('QuickBooksIntegration Component', () => {
   beforeEach(() => {

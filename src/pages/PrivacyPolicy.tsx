@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ExternalLink } from '@/components/ui/external-link';
+import { CcpaRightsList } from '@/components/legal/CcpaRightsList';
 import { LegalPolicySection } from '@/components/legal/LegalPolicySection';
 import { PageBackButton } from '@/components/layout/PageBackButton';
 import { PageSEO } from '@/components/seo/PageSEO';
@@ -1063,38 +1064,7 @@ export default function PrivacyPolicy() {
             <p>
               As a California resident, you have the following rights under CCPA/CPRA:
             </p>
-            <ul>
-              <li>
-                <strong>Right to Know / Access:</strong> You may request that we disclose the
-                categories and specific pieces of personal information we have collected about
-                you.
-              </li>
-              <li>
-                <strong>Right to Delete:</strong> You may request that we delete personal
-                information we have collected from you, subject to certain exceptions
-                (e.g., audit log retention for regulatory compliance).
-              </li>
-              <li>
-                <strong>Right to Correct:</strong> You may request that we correct inaccurate
-                personal information.
-              </li>
-              <li>
-                <strong>Right to Opt-Out of Sale/Sharing:</strong> Because we do not sell or
-                share personal information for cross-context behavioral advertising, no
-                opt-out action is required. If this changes, we will provide a conspicuous
-                opt-out mechanism.
-              </li>
-              <li>
-                <strong>Right to Limit Use of Sensitive PI:</strong> You may limit our use of
-                your Sensitive Personal Information. You can disable GPS data collection for
-                your scans in your account settings under &quot;Privacy.&quot;
-              </li>
-              <li>
-                <strong>Right to Non-Discrimination:</strong> We will not discriminate against
-                you for exercising any of your CCPA/CPRA rights. You will not receive
-                different pricing, quality of service, or access levels.
-              </li>
-            </ul>
+            <CcpaRightsList variant="policy" />
 
             <h3>How to Submit a Request</h3>
             <p>

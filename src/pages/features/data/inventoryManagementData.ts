@@ -5,12 +5,34 @@ import {
   ListChecks,
   History,
   Settings2,
+  Warehouse,
 } from 'lucide-react';
 import { landingImage } from '@/lib/landingImage';
-import type { Benefit, Capability, ImageScreenshot, Step } from './featurePageTypes';
+import type { Benefit, Capability, FeaturePageContent, ImageScreenshot, Step } from './featurePageTypes';
 
 export type { Benefit, Capability, Step } from './featurePageTypes';
 export type Screenshot = ImageScreenshot;
+
+export const heroIcon = Warehouse;
+
+export const content: FeaturePageContent = {
+  benefitsTitle: 'Why Use Inventory Management?',
+  benefitsDescription:
+    'Keep parts organized, avoid stockouts, and ensure the right components are available when your technicians need them. Full visibility and audit trails for every transaction.',
+  capabilitiesTitle: 'Key Capabilities',
+  capabilitiesDescription:
+    'Everything you need to manage parts and supplies: catalog, transactions, compatibility, and alerts—all in one place.',
+  stepsTitle: 'How It Works',
+  stepsDescription:
+    'Inventory Management fits into your existing workflow—from receiving parts to consuming them on work orders.',
+  stepsClassName: 'bg-muted/30',
+  showcaseTitle: 'See Inventory Management in Action',
+  showcaseDescription: "Here's what Inventory Management looks like in the EquipQR™ app.",
+  ctaTitle: 'Ready to Organize Your Parts & Supplies?',
+  ctaDescription:
+    'Start using Inventory Management today—completely free. Create your account and begin tracking stock right away.',
+  ctaPrimaryText: 'Start Using Inventory Management Free',
+};
 
 export const capabilities: Capability[] = [
   {
@@ -100,7 +122,7 @@ export const steps: Step[] = [
   },
 ];
 
-export const screenshots: Screenshot[] = [
+export const showcases: Screenshot[] = [
   {
     kind: 'image',
     imageUrl: landingImage('inventory-list-2026-04.png'),

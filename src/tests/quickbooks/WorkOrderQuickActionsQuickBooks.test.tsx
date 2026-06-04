@@ -8,8 +8,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 
 // Mock the feature flags
@@ -46,30 +44,13 @@ vi.mock('react-router-dom', async () => {
 });
 
 import { WorkOrderQuickActions } from '@/features/work-orders/components/WorkOrderQuickActions';
-
-const createTestQueryClient = () => new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
+import { renderWithQuickBooksProviders } from '@/tests/quickbooks/testUtils';
 
 const renderComponent = (props = {
   workOrderId: 'wo-123',
   workOrderStatus: 'completed' as const,
   equipmentTeamId: 'team-456',
-}) => {
-  const queryClient = createTestQueryClient();
-  
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <WorkOrderQuickActions {...props} />
-      </MemoryRouter>
-    </QueryClientProvider>
-  );
-};
+}) => renderWithQuickBooksProviders(<WorkOrderQuickActions {...props} />);
 
 describe('WorkOrderQuickActions QuickBooks Menu Item Visibility', () => {
   let user: ReturnType<typeof userEvent.setup>;

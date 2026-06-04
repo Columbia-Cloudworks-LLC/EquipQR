@@ -1,8 +1,26 @@
-import { ScanLine, Smartphone, Tags } from 'lucide-react';
+import { QrCode, ScanLine, Smartphone, Tags } from 'lucide-react';
 import { landingImage } from '@/lib/landingImage';
-import type { Benefit, ImageScreenshot, Step } from './featurePageTypes';
+import type { Benefit, FeaturePageContent, ImageScreenshot, Step } from './featurePageTypes';
 
 type Screenshot = ImageScreenshot;
+
+export const heroIcon = QrCode;
+
+export const content: FeaturePageContent = {
+  benefitsTitle: 'Why Use QR Code Integration?',
+  benefitsDescription:
+    'Eliminate manual lookup and data entry. Technicians scan a code and land directly on the right equipment or work order—no typing, no lost time.',
+  stepsTitle: 'How It Works',
+  stepsDescription: 'QR codes connect your physical assets to EquipQR™ in seconds.',
+  showcaseTitle: 'See QR Code Integration in Action',
+  showcaseDescription:
+    "Here's what QR scanning and label generation look like in the EquipQR™ app.",
+  showcaseClassName: 'bg-muted/30',
+  ctaTitle: 'Ready to Speed Up Field Operations?',
+  ctaDescription:
+    'Start using QR Code Integration today—completely free. Create your account, generate labels, and scan your way to faster workflows.',
+  ctaPrimaryText: 'Start Using QR Codes Free',
+};
 
 export const benefits: Benefit[] = [
   {
@@ -64,7 +82,7 @@ export const steps: Step[] = [
   },
 ];
 
-export const screenshots: Screenshot[] = [
+export const showcases: Screenshot[] = [
   {
     kind: 'image',
     imageUrl: landingImage('equipment-qr-code-modal-2026-04.png'),

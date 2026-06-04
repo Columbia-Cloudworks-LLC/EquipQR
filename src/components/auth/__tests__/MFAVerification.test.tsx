@@ -1,11 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { ensureElementFromPointMock } from '@/test/utils/test-utils';
 import MFAVerification from '../MFAVerification';
 
-// Mock document.elementFromPoint used by input-otp internal PWM badge
-if (!document.elementFromPoint) {
-  document.elementFromPoint = vi.fn().mockReturnValue(null);
-}
+ensureElementFromPointMock();
 
 // Mock useMFA hook
 const mockChallengeAndVerify = vi.fn();
