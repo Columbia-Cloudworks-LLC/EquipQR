@@ -8,7 +8,11 @@
   ],
   "ignoreExportsUsedInFile": true,
   "duplicates": {
-    "ignore": ["src/integrations/supabase/types.ts"]
+    "ignore": [
+      "src/integrations/supabase/types.ts",
+      "src/pages/PrivacyPolicy.tsx",
+      "src/pages/TermsOfService.tsx"
+    ]
   },
   "entry": [
     "playwright.user.config.ts",
