@@ -97,6 +97,17 @@ describe('invokePublicGoogleMapsKey', () => {
   });
 });
 
+function installAuthListenerWithInitialSession(
+  session: typeof validSession | null = validSession,
+): void {
+  mockOnAuthStateChange.mockImplementation((listener) => {
+    queueMicrotask(() => {
+      listener('INITIAL_SESSION', session);
+    });
+    return { data: { subscription: { unsubscribe: vi.fn() } } };
+  });
+}
+
 describe('useGoogleMapsKey', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -139,7 +150,8 @@ describe('useGoogleMapsKey', () => {
     expect(mockFunctionsInvoke).not.toHaveBeenCalled();
   });
 
-  it('invokes the edge function after getSession returns an access token', async () => {
+  it('invokes the edge function after INITIAL_SESSION provides an access token', async () => {
+    installAuthListenerWithInitialSession();
     mockGetSession.mockResolvedValue({
       data: { session: validSession },
       error: null,
@@ -161,6 +173,37 @@ describe('useGoogleMapsKey', () => {
       expect(result.current.googleMapsKey).toBe('maps-key');
       expect(result.current.mapId).toBe('map-id');
       expect(result.current.error).toBeNull();
+    });
+  });
+
+  it('dedupes concurrent fetch schedules when multiple auth events race', async () => {
+    let resolveGetSession: (value: { data: { session: typeof validSession }; error: null }) => void;
+    const getSessionDeferred = new Promise<{
+      data: { session: typeof validSession };
+      error: null;
+    }>((resolve) => {
+      resolveGetSession = resolve;
+    });
+
+    mockGetSession.mockImplementation(() => getSessionDeferred);
+    mockOnAuthStateChange.mockImplementation((listener) => {
+      queueMicrotask(() => {
+        listener('INITIAL_SESSION', validSession);
+        listener('INITIAL_SESSION', validSession);
+      });
+      return { data: { subscription: { unsubscribe: vi.fn() } } };
+    });
+    mockFunctionsInvoke.mockResolvedValue({
+      data: { key: 'maps-key', mapId: null },
+      error: null,
+    });
+
+    renderHook(() => useGoogleMapsKey());
+
+    resolveGetSession!({ data: { session: validSession }, error: null });
+
+    await waitFor(() => {
+      expect(mockFunctionsInvoke).toHaveBeenCalledTimes(1);
     });
   });
 

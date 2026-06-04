@@ -124,18 +124,19 @@ export const useGoogleMapsKey = (options: UseGoogleMapsKeyOptions = {}): UseGoog
       return;
     }
 
-    const session = await resolveAuthenticatedSession();
-    if (!session?.access_token) {
-      setIsLoading(false);
-      setError(GOOGLE_MAPS_AUTH_REQUIRED_MESSAGE);
-      return;
-    }
-
     inFlightRef.current = true;
-    setIsLoading(true);
-    setError(null);
 
     try {
+      const session = await resolveAuthenticatedSession();
+      if (!session?.access_token) {
+        setIsLoading(false);
+        setError(GOOGLE_MAPS_AUTH_REQUIRED_MESSAGE);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
       const data = await invokePublicGoogleMapsKey();
       setGoogleMapsKey(data.key!);
       setMapId(data.mapId ?? null);
@@ -193,17 +194,16 @@ export const useGoogleMapsKey = (options: UseGoogleMapsKeyOptions = {}): UseGoog
 
     authListenerRef.current = () => subscription.unsubscribe();
 
+    // Session-backed fetch is scheduled only via onAuthStateChange (INITIAL_SESSION,
+    // SIGNED_IN, TOKEN_REFRESHED) to avoid duplicate mounts with resolveAuthenticatedSession.
     void resolveAuthenticatedSession().then((session) => {
       if (cancelled) {
         return;
       }
 
-      if (session?.access_token) {
-        scheduleFetch();
-        return;
+      if (!session?.access_token) {
+        setIsLoading(false);
       }
-
-      setIsLoading(false);
     });
 
     return () => {
