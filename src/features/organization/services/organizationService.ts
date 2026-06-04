@@ -20,11 +20,7 @@ import {
 } from '@/services/imageUploadService';
 
 // Re-export types for backward compatibility
-export type { 
-  OrganizationMemberRecord as OptimizedOrganizationMember,
-  OrganizationWithMembership as OptimizedOrganization,
-  OrganizationUpdatePayload
-};
+export type { OrganizationUpdatePayload };
 
 // ============================================
 // Organization Query Functions

@@ -225,5 +225,4 @@ export const ReportExportDialog: React.FC<ReportExportDialogProps> = ({
   );
 };
 
-export default ReportExportDialog;
 

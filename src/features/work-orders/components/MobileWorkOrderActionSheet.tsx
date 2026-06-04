@@ -332,4 +332,3 @@ const MobileActionSheetTrigger: React.FC<MobileActionSheetTriggerProps> = ({
   );
 };
 
-export default MobileWorkOrderActionSheet;

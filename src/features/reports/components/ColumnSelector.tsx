@@ -132,4 +132,3 @@ export const ColumnSelector: React.FC<ColumnSelectorProps> = ({
   );
 };
 
-export default ColumnSelector;

@@ -171,4 +171,3 @@ export const DangerZoneSection: React.FC<DangerZoneSectionProps> = ({
   );
 };
 
-export default DangerZoneSection;

@@ -114,4 +114,3 @@ export const HorizontalChipRow: React.FC<HorizontalChipRowProps> = ({
   );
 };
 
-export default HorizontalChipRow;

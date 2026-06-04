@@ -207,4 +207,3 @@ export const TransferOwnershipDialog: React.FC<TransferOwnershipDialogProps> = (
   );
 };
 
-export default TransferOwnershipDialog;

@@ -7,11 +7,6 @@ import { supabase } from '@/integrations/supabase/client';
 
 // ─── PM Compliance ──────────────────────────────────────────────────────────
 
-export interface PMComplianceRow {
-  id: string;
-  status: string;
-}
-
 export interface PMOverdueRow {
   id: string;
 }

@@ -5,7 +5,6 @@ import type {
   TeamInsert, 
   TeamUpdate, 
   TeamMemberInsert,
-  TeamMemberRole,
   Team,
   TeamMember,
   TeamWithMembers
@@ -21,17 +20,7 @@ import {
 } from '@/services/imageUploadService';
 
 // Re-export types for backward compatibility
-export type { Team, TeamMember, TeamWithMembers, TeamMemberRole };
-
-/**
- * @deprecated Use Team from @/types/team instead
- */
-export type OptimizedTeam = Team;
-
-/**
- * @deprecated Use TeamMember from @/types/team instead
- */
-export type OptimizedTeamMember = TeamMember;
+export type { Team, TeamMember, TeamWithMembers };
 
 // Create a new team
 const createTeam = async (teamData: TeamInsert): Promise<Team> => {

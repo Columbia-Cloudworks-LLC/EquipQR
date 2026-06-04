@@ -16,19 +16,3 @@ export interface WidgetDefinition {
   requiredPermission?: string;
   featureFlag?: string;
 }
-
-/** Serialized dashboard preferences stored in localStorage and Supabase */
-export interface DashboardPreferences {
-  activeWidgets: string[];
-  updatedAt: string;
-}
-
-/** Supabase row shape for user_dashboard_preferences table */
-export interface DashboardPreferencesRow {
-  id: string;
-  user_id: string;
-  organization_id: string;
-  layouts: Record<string, unknown> | null;
-  active_widgets: string[];
-  updated_at: string;
-}

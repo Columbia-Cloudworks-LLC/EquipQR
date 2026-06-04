@@ -308,4 +308,3 @@ export function GoogleWorkspaceExportDestinationCard({
   );
 }
 
-export default GoogleWorkspaceExportDestinationCard;

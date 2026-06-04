@@ -34,13 +34,6 @@ export interface ImportDryRunResult {
   errors: Array<{ row: number; reason: string }>;
 }
 
-export interface ImportChunkResult {
-  created: number;
-  merged: number;
-  failed: number;
-  failures: Array<{ row: number; reason: string }>;
-}
-
 export interface ColumnMapping {
   header: string;
   mappedTo: 'name' | 'manufacturer' | 'model' | 'serial' | 'location' | 'last_maintenance' | 'custom' | 'skip';

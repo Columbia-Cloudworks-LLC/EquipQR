@@ -1,11 +1,6 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 
-export interface EquipmentTemplateAssignment {
-  equipmentId: string;
-  templateId: string | null;
-}
-
 export class EquipmentTemplateService {
   /**
    * Assign a PM template to a single equipment record

@@ -17,23 +17,6 @@ export interface WorkOrderEquipmentWithDetails extends WorkOrderEquipment {
   } | null;
 }
 
-export interface WorkOrderWithMultipleEquipment {
-  work_order_id: string;
-  equipment: Array<{
-    id: string;
-    equipment_id: string;
-    name: string;
-    manufacturer?: string;
-    model?: string;
-    serial_number?: string;
-    team_id?: string | null;
-    is_primary: boolean;
-    location?: string;
-    status?: string;
-  }>;
-  primary_equipment_id?: string;
-}
-
 export interface CreateWorkOrderEquipmentData {
   work_order_id: string;
   equipment_id: string;

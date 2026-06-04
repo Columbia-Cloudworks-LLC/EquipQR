@@ -423,4 +423,3 @@ export const GoogleWorkspaceMemberImportSheet = ({
   );
 };
 
-export default GoogleWorkspaceMemberImportSheet;

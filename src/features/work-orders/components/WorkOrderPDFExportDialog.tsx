@@ -164,4 +164,3 @@ export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> =
   );
 };
 
-export default WorkOrderPDFExportDialog;

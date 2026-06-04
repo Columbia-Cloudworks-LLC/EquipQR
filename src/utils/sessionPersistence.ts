@@ -5,15 +5,6 @@ const SESSION_STORAGE_KEY = 'equipqr_session_data';
 const ORGANIZATION_PREFERENCE_KEY = 'equipqr_current_org';
 const SESSION_VERSION = 2;
 
-export interface SessionPersistenceData {
-  currentOrganizationId: string | null;
-  lastSessionRefresh: string;
-  userPreference: {
-    selectedOrgId: string | null;
-    selectionTimestamp: string;
-  };
-}
-
 export const saveOrganizationPreference = (organizationId: string | null) => {
   try {
     const preference = {

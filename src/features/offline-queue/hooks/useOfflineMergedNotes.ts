@@ -18,21 +18,6 @@ export const OFFLINE_NOTE_ID_PREFIX = 'offline-note-';
 
 // ─── Generic note shape that covers both WO and equipment notes ─────────────
 
-export interface MergedNote {
-  id: string;
-  content: string;
-  hours_worked: number;
-  machine_hours?: number | null;
-  is_private: boolean;
-  created_at: string;
-  updated_at: string;
-  author_id: string;
-  author_name?: string;
-  images?: unknown[];
-  /** True when the note exists only in the offline queue. */
-  _isPendingSync?: boolean;
-}
-
 // ─── Hook ───────────────────────────────────────────────────────────────────
 
 /**

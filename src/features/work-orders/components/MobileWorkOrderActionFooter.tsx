@@ -354,4 +354,3 @@ function formatFooterStatusBadge(status: FooterWorkOrder['status']): string {
   }
 }
 
-export default MobileWorkOrderActionFooter;
