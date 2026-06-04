@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   GOOGLE_MAPS_AUTH_REQUIRED_MESSAGE,
@@ -221,7 +221,9 @@ describe('useGoogleMapsKey', () => {
 
     renderHook(() => useGoogleMapsKey());
 
-    completeGetSession({ data: { session: validSession }, error: null });
+    await act(async () => {
+      completeGetSession({ data: { session: validSession }, error: null });
+    });
 
     await waitFor(() => {
       expect(mockFunctionsInvoke).toHaveBeenCalledTimes(1);
