@@ -1,14 +1,6 @@
 import { toast } from 'sonner';
 import type { QueuedNoteCreateResult } from '@/components/common/noteSubmitTypes';
 
-export type NoteCreateMutationInput = {
-  content: string;
-  hoursWorked: number;
-  isPrivate: boolean;
-  images: File[];
-  machineHours?: number;
-};
-
 /** Whether note creation should use the offline queue path (text-only when offline). */
 export function shouldUseOfflineNotePath(images: File[]): boolean {
   return !navigator.onLine || images.length === 0;

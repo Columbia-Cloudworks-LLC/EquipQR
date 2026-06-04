@@ -110,16 +110,3 @@ export function toEquipmentUpdateData(data: EquipmentFormData): EquipmentUpdateD
     assigned_location_lng: data.assigned_location_lng ?? null,
   };
 }
-
-/** Supabase insert row for the legacy direct-create equipment form hook. */
-export function toEquipmentSupabaseInsertRow(
-  data: EquipmentFormData,
-  organizationId: string,
-) {
-  const create = toEquipmentCreateData(data);
-  return {
-    ...create,
-    organization_id: organizationId,
-    last_maintenance_work_order_id: null,
-  };
-}

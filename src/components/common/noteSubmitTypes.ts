@@ -11,9 +11,3 @@ export interface NoteSubmitPayload {
 export type QueuedNoteCreateResult =
   | { queuedOffline: true; hadImages: boolean }
   | { queuedOffline: false; data?: unknown };
-
-export function isQueuedNoteCreateResult(
-  result: unknown,
-): result is QueuedNoteCreateResult {
-  return typeof result === 'object' && result !== null && 'queuedOffline' in result;
-}
