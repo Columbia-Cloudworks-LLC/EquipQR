@@ -7,6 +7,9 @@
     "xlsx"
   ],
   "ignoreExportsUsedInFile": true,
+  "duplicates": {
+    "ignore": ["src/integrations/supabase/types.ts"]
+  },
   "entry": [
     "playwright.user.config.ts",
     "src/sw.ts",
