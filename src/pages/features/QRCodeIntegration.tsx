@@ -5,7 +5,7 @@ import { FeatureHero } from '@/components/landing/features/FeatureHero';
 import { FeatureSection } from '@/components/landing/features/FeatureSection';
 import { BenefitCard } from '@/components/landing/features/BenefitCard';
 import { StepList } from '@/components/landing/features/StepList';
-import { ScreenshotBlock } from '@/components/landing/features/ScreenshotBlock';
+import { FeatureShowcaseList } from '@/components/landing/features/FeatureShowcaseList';
 import { FeatureCTA } from '@/components/landing/features/FeatureCTA';
 import { benefits, steps, screenshots } from './data/qrCodeIntegrationData';
 import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
@@ -57,17 +57,7 @@ const QRCodeIntegrationFeature = () => {
         description="Here's what QR scanning and label generation look like in the EquipQR™ app."
         className="bg-muted/30"
       >
-        <div className="max-w-5xl mx-auto space-y-12">
-          {screenshots.map((screenshot) => (
-            <ScreenshotBlock
-              key={screenshot.title}
-              imageUrl={screenshot.imageUrl}
-              imageAlt={screenshot.imageAlt}
-              title={screenshot.title}
-              description={screenshot.description}
-            />
-          ))}
-        </div>
+        <FeatureShowcaseList items={screenshots} />
       </FeatureSection>
 
       <FeatureCTA

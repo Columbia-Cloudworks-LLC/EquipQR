@@ -5,7 +5,7 @@ import { FeatureHero } from '@/components/landing/features/FeatureHero';
 import { FeatureSection } from '@/components/landing/features/FeatureSection';
 import { BenefitCard } from '@/components/landing/features/BenefitCard';
 import { StepList } from '@/components/landing/features/StepList';
-import { ScreenshotBlock } from '@/components/landing/features/ScreenshotBlock';
+import { FeatureShowcaseList } from '@/components/landing/features/FeatureShowcaseList';
 import { FeatureCTA } from '@/components/landing/features/FeatureCTA';
 import { CapabilitiesGrid } from '@/components/landing/features/CapabilitiesGrid';
 import {
@@ -70,17 +70,7 @@ const InventoryManagementFeature = () => {
         title="See Inventory Management in Action"
         description="Here's what Inventory Management looks like in the EquipQR™ app."
       >
-        <div className="max-w-5xl mx-auto space-y-12">
-          {screenshots.map((screenshot) => (
-            <ScreenshotBlock
-              key={screenshot.title}
-              imageUrl={screenshot.imageUrl}
-              imageAlt={screenshot.imageAlt}
-              title={screenshot.title}
-              description={screenshot.description}
-            />
-          ))}
-        </div>
+        <FeatureShowcaseList items={screenshots} />
       </FeatureSection>
 
       <FeatureCTA

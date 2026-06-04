@@ -6,7 +6,8 @@
 
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import { clickButtonWhenReady } from '@/test/utils/rtl-helpers';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -184,12 +185,7 @@ describe('QuickBooksIntegration Component', () => {
       
       renderComponent();
       
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /^Connect$/ })).toBeInTheDocument();
-      });
-      
-      const connectButton = screen.getByRole('button', { name: /^Connect$/ });
-      fireEvent.click(connectButton);
+      await clickButtonWhenReady(/^Connect$/);
       
       await waitFor(() => {
         expect(mockGenerateQuickBooksAuthUrl).toHaveBeenCalled();

@@ -1,4 +1,3 @@
-import type { LucideIcon } from 'lucide-react';
 import {
   PackageCheck,
   AlertTriangle,
@@ -8,35 +7,10 @@ import {
   Settings2,
 } from 'lucide-react';
 import { landingImage } from '@/lib/landingImage';
+import type { Benefit, Capability, ImageScreenshot, Step } from './featurePageTypes';
 
-export interface Capability {
-  name: string;
-  description: string;
-  icon: LucideIcon;
-}
-
-export interface Benefit {
-  icon: LucideIcon;
-  iconColor: 'success' | 'warning' | 'info';
-  title: string;
-  subtitle: string;
-  description: string;
-  benefits: string[];
-  benefitColor: 'success' | 'warning' | 'info';
-}
-
-export interface Step {
-  number: number;
-  title: string;
-  description: string;
-}
-
-export interface Screenshot {
-  imageUrl: string;
-  imageAlt: string;
-  title: string;
-  description: string;
-}
+export type { Benefit, Capability, Step } from './featurePageTypes';
+export type Screenshot = ImageScreenshot;
 
 export const capabilities: Capability[] = [
   {
@@ -128,6 +102,7 @@ export const steps: Step[] = [
 
 export const screenshots: Screenshot[] = [
   {
+    kind: 'image',
     imageUrl: landingImage('inventory-list-2026-04.png'),
     imageAlt: 'Inventory list view showing parts with stock levels, SKUs, and low stock indicators',
     title: 'Inventory List View',
@@ -135,6 +110,7 @@ export const screenshots: Screenshot[] = [
       'Browse all inventory items with part numbers, descriptions, current stock levels, and low-stock indicators. Filter, sort, and search to find what you need quickly.',
   },
   {
+    kind: 'image',
     imageUrl: landingImage('inventory-item-detail-2026-04.png'),
     imageAlt: 'Inventory item detail page showing stock quantity, threshold, unit cost, and transaction history tabs',
     title: 'Item Detail & Stock Information',

@@ -1,6 +1,8 @@
 import { ScanLine, Smartphone, Tags } from 'lucide-react';
 import { landingImage } from '@/lib/landingImage';
-import type { Benefit, Step, Screenshot } from './inventoryManagementData';
+import type { Benefit, ImageScreenshot, Step } from './featurePageTypes';
+
+type Screenshot = ImageScreenshot;
 
 export const benefits: Benefit[] = [
   {
@@ -64,6 +66,7 @@ export const steps: Step[] = [
 
 export const screenshots: Screenshot[] = [
   {
+    kind: 'image',
     imageUrl: landingImage('equipment-qr-code-modal-2026-04.png'),
     imageAlt: 'EquipQR Equipment QR Code modal showing scannable QR code with equipment URL and download options',
     title: 'Equipment QR Codes',
@@ -71,6 +74,7 @@ export const screenshots: Screenshot[] = [
       'Each piece of equipment gets its own unique QR code. Technicians scan the code with any smartphone camera to instantly access equipment details, maintenance history, and active work orders—no app download required.',
   },
   {
+    kind: 'image',
     imageUrl: landingImage('equipment-list-2026-04.png'),
     imageAlt: 'EquipQR Equipment list showing QR code buttons on each equipment card with team assignments and last maintenance dates',
     title: 'Quick Access from Equipment List',

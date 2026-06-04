@@ -1,284 +1,58 @@
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  ArrowRight,
-  Smartphone,
-  WifiOff,
-  Hand,
-  MonitorSmartphone,
-} from 'lucide-react';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { FeaturePageLayout } from '@/components/landing/features/FeaturePageLayout';
 import { FeatureHero } from '@/components/landing/features/FeatureHero';
-import { landingImage } from '@/lib/landingImage';
+import { FeatureSection } from '@/components/landing/features/FeatureSection';
+import { BenefitCard } from '@/components/landing/features/BenefitCard';
+import { StepList } from '@/components/landing/features/StepList';
+import { FeatureShowcaseList } from '@/components/landing/features/FeatureShowcaseList';
+import { FeatureCTA } from '@/components/landing/features/FeatureCTA';
 import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
+import { benefits, content, heroIcon, showcases, steps } from './data/mobileFirstDesignData';
 
 const seo = getFeatureSeoByPath('/features/mobile-first-design')!;
 
-const MobileFirstDesignFeature = () => {
-  return (
-    <>
-      <PageSEO title={seo.pageTitle} description={seo.description} path={seo.path} />
-      <FeaturePageLayout>
+const MobileFirstDesignFeature = () => (
+  <>
+    <PageSEO title={seo.pageTitle} description={seo.description} path={seo.path} />
+    <FeaturePageLayout>
       <FeatureHero
-        icon={Smartphone}
+        icon={heroIcon}
         title={seo.heroTitle}
         description={seo.heroDescription}
-        ctaText="Start Using EquipQR on Mobile Free"
+        ctaText={content.ctaPrimaryText!}
       />
 
-        {/* Key Benefits Section */}
-        <section className="py-24 bg-muted/30">
-          <div className="container px-4 mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-                Why Use Mobile-First Design?
-              </h2>
-              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-                EquipQR™ is built for the field. Technicians get a fast, touch-friendly experience on phones and tablets—even when connectivity is spotty.
-              </p>
-            </div>
+      <FeatureSection
+        title={content.benefitsTitle}
+        description={content.benefitsDescription}
+        className="bg-muted/30"
+      >
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 max-w-6xl mx-auto">
+          {benefits.map((benefit) => (
+            <BenefitCard key={benefit.title} {...benefit} />
+          ))}
+        </div>
+      </FeatureSection>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 max-w-6xl mx-auto">
-              <Card className="border-border bg-card shadow-sm hover:border-primary/30 hover:bg-muted/40 transition-colors">
-                <CardHeader className="pb-4">
-                  <div className="mb-4">
-                    <WifiOff className="h-10 w-10 text-success" />
-                  </div>
-                  <CardTitle className="text-2xl">Offline Capability</CardTitle>
-                  <CardDescription className="text-base">
-                    Work without connectivity
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground leading-relaxed">
-                    View equipment, work orders, and PM checklists when you’re offline. Capture updates and complete inspections; data syncs automatically when you’re back online.
-                  </p>
-                  <ul className="mt-4 space-y-2">
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-success rounded-full mr-2 flex-shrink-0" />
-                      Offline access to key data
-                    </li>
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-success rounded-full mr-2 flex-shrink-0" />
-                      Sync when connected
-                    </li>
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-success rounded-full mr-2 flex-shrink-0" />
-                      No lost work
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
+      <FeatureSection title={content.stepsTitle} description={content.stepsDescription}>
+        <StepList steps={steps} />
+      </FeatureSection>
 
-              <Card className="border-border bg-card shadow-sm hover:border-primary/30 hover:bg-muted/40 transition-colors">
-                <CardHeader className="pb-4">
-                  <div className="mb-4">
-                    <Hand className="h-10 w-10 text-info" />
-                  </div>
-                  <CardTitle className="text-2xl">Touch-Optimized UI</CardTitle>
-                  <CardDescription className="text-base">
-                    Designed for small screens
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Buttons, lists, and forms are sized for touch. Navigate quickly between equipment, work orders, and PM checklists. QR scanning, form entry, and checklist completion feel natural on a phone.
-                  </p>
-                  <ul className="mt-4 space-y-2">
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-info rounded-full mr-2 flex-shrink-0" />
-                      Tap-friendly controls
-                    </li>
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-info rounded-full mr-2 flex-shrink-0" />
-                      Mobile-friendly forms
-                    </li>
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-info rounded-full mr-2 flex-shrink-0" />
-                      Fast navigation
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
+      <FeatureSection
+        title={content.showcaseTitle}
+        description={content.showcaseDescription}
+        className={content.showcaseClassName}
+      >
+        <FeatureShowcaseList items={showcases} />
+      </FeatureSection>
 
-              <Card className="border-border bg-card shadow-sm hover:border-primary/30 hover:bg-muted/40 transition-colors">
-                <CardHeader className="pb-4">
-                  <div className="mb-4">
-                    <MonitorSmartphone className="h-10 w-10 text-warning" />
-                  </div>
-                  <CardTitle className="text-2xl">Cross-Platform</CardTitle>
-                  <CardDescription className="text-base">
-                    Phone, tablet, desktop
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Use EquipQR on any device—iOS, Android, or desktop. The same account and data everywhere. Technicians work on phones in the field; admins manage from larger screens.
-                  </p>
-                  <ul className="mt-4 space-y-2">
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-warning rounded-full mr-2 flex-shrink-0" />
-                      Works on all devices
-                    </li>
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-warning rounded-full mr-2 flex-shrink-0" />
-                      Responsive layout
-                    </li>
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-warning rounded-full mr-2 flex-shrink-0" />
-                      One app, any screen
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
-
-        {/* How It Works Section */}
-        <section className="py-24">
-          <div className="container px-4 mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-                How It Works
-              </h2>
-              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-                EquipQR™ adapts to how you work—in the shop, in the field, or at a desk.
-              </p>
-            </div>
-
-            <div className="max-w-4xl mx-auto">
-              <div className="space-y-8">
-                <div className="flex gap-6">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xl">
-                    1
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-foreground mb-2">Access Anywhere</h3>
-                    <p className="text-muted-foreground">
-                      Log in from your phone, tablet, or computer. The same data and features are available—responsive layout ensures a good experience on any screen size.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-6">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xl">
-                    2
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-foreground mb-2">Work Offline When Needed</h3>
-                    <p className="text-muted-foreground">
-                      In low-signal areas, continue viewing equipment and work orders, and complete PM checklists. Changes sync automatically when you’re back online so nothing is lost.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-6">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xl">
-                    3
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-foreground mb-2">Use Touch-Optimized Flows</h3>
-                    <p className="text-muted-foreground">
-                      Scan QR codes, fill forms, complete checklists, and add parts from your phone. Large tap targets and simple navigation keep field use quick and error-free.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-6">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xl">
-                    4
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-foreground mb-2">Switch Devices Seamlessly</h3>
-                    <p className="text-muted-foreground">
-                      Start on a phone in the field and pick up on a tablet or desktop later. Your account, org, and data stay in sync across all devices.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Screenshots Section */}
-        <section className="py-24 bg-muted/30">
-          <div className="container px-4 mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-                See Mobile-First Design in Action
-              </h2>
-              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-                Here&apos;s what the EquipQR™ app looks like on mobile and across devices.
-              </p>
-            </div>
-
-            <div className="max-w-5xl mx-auto space-y-12">
-              <div className="bg-muted/50 rounded-xl p-8 border border-border">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div className="rounded-lg overflow-hidden border border-border">
-                    <img
-                      src={landingImage('mobile-work-orders-2026-04.png')}
-                      alt="Mobile work orders list showing scan-created and in-progress work orders"
-                      className="w-full h-auto"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="rounded-lg overflow-hidden border border-border">
-                    <img
-                      src={landingImage('mobile-work-order-detail-2026-04.png')}
-                      alt="Mobile work order detail showing equipment, location, team, and PM checklist status"
-                      className="w-full h-auto"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="rounded-lg overflow-hidden border border-border">
-                    <img
-                      src={landingImage('mobile-pm-checklist-2026-04.png')}
-                      alt="Mobile PM checklist with completed sections for excavator preventative maintenance"
-                      className="w-full h-auto"
-                      loading="lazy"
-                    />
-                  </div>
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Mobile Work Orders & PM Checklists</h3>
-                <p className="text-muted-foreground">
-                  View and complete work orders on any phone. PM checklists are easy to work through with large touch-friendly controls. See work order status, equipment details, team assignment, and checklist progress — all on one screen.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-24">
-          <div className="container px-4 mx-auto">
-            <div className="text-center max-w-3xl mx-auto">
-              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-                Ready to Work Better in the Field?
-              </h2>
-              <p className="text-xl text-muted-foreground mb-8">
-                Start using EquipQR™ today—completely free. Create your account and use it on any device, with offline support and a touch-optimized experience built for technicians.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button asChild size="lg" className="text-lg px-8 py-6">
-                  <Link to="/auth?tab=signup">
-                    Create Free Account
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6">
-                  <Link to="/#features">Explore More Features</Link>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </section>
-      </FeaturePageLayout>
-    </>
-  );
-};
+      <FeatureCTA
+        title={content.ctaTitle}
+        description={content.ctaDescription}
+        primaryCtaText="Create Free Account"
+      />
+    </FeaturePageLayout>
+  </>
+);
 
 export default MobileFirstDesignFeature;

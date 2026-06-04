@@ -257,6 +257,44 @@ export async function requireUser(
 }
 
 /**
+ * Validate a Bearer JWT using a service-role client and return the user, or a
+ * JSON `{ success: false, error: "Unauthorized" }` response (QuickBooks-style).
+ */
+export async function requireBearerUserJsonUnauthorized(
+  req: Request,
+  supabaseClient: SupabaseClient,
+  corsHeaders: Record<string, string>,
+): Promise<{ user: User } | Response> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader || !authHeader.toLowerCase().startsWith("bearer ")) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: "Unauthorized",
+    }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const token = authHeader.substring(7).trim();
+  const { data: { user }, error: userError } = await supabaseClient.auth.getUser(
+    token,
+  );
+
+  if (userError || !user) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: "Unauthorized",
+    }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  return { user };
+}
+
+/**
  * Verify the user is a member of the specified organization.
  *
  * @param supabaseClient - A Supabase client (should be user-scoped for RLS)

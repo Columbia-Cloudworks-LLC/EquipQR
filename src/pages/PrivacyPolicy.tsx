@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ExternalLink } from '@/components/ui/external-link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LegalPolicySection } from '@/components/legal/LegalPolicySection';
 import { PageBackButton } from '@/components/layout/PageBackButton';
 import { PageSEO } from '@/components/seo/PageSEO';
 
@@ -26,11 +26,7 @@ export default function PrivacyPolicy() {
         {/* ---------------------------------------------------------------- */}
         {/* Section 1 — Introduction                                         */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>1. Introduction</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="1. Introduction">
             <p>
               EquipQR™ (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;), developed and operated by{' '}
               <ExternalLink href="https://columbiacloudworks.com" className="hover:text-foreground">
@@ -55,18 +51,12 @@ export default function PrivacyPolicy() {
                 Terms of Service
               </Link>
               . Capitalized terms not defined in this policy have the meanings given in the Terms.
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 2 — Individual-Level Data Collection                     */}
         {/* ---------------------------------------------------------------- */}
-        <Card id="notice-at-collection" className="scroll-mt-24">
-          <CardHeader>
-            <CardTitle>2. Information We Collect — Individual User Level (Notice at Collection)</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="2. Information We Collect — Individual User Level (Notice at Collection)" id="notice-at-collection" className="scroll-mt-24">
             <p>
               When you create an account or interact with EquipQR, we collect information tied to you
               personally. The table below lists every category of individual-level data and exactly
@@ -159,18 +149,12 @@ export default function PrivacyPolicy() {
                   </tr>
                 </tbody>
               </table>
-            </div>
-          </CardContent>
-        </Card>
+            </div></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 3 — Organization-Level Data Collection                   */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>3. Information We Collect — Organization Level</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="3. Information We Collect — Organization Level">
             <p>
               Organizations that use EquipQR store business data within the platform. This data
               belongs to the organization and is isolated from other organizations through strict
@@ -282,18 +266,12 @@ export default function PrivacyPolicy() {
                   </tr>
                 </tbody>
               </table>
-            </div>
-          </CardContent>
-        </Card>
+            </div></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 4 — External Service Providers (Subprocessors)           */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>4. External Service Providers (Subprocessors)</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="4. External Service Providers (Subprocessors)">
             <p>
               We use the following third-party service providers to operate EquipQR. For each
               provider we disclose the purpose, what data flows to them, what data flows back, and
@@ -554,18 +532,12 @@ export default function PrivacyPolicy() {
                 <strong>Data stored in EquipQR:</strong> Your push subscription endpoint URL,
                 encryption keys (required by the Web Push protocol), and browser user agent string.
               </li>
-            </ul>
-          </CardContent>
-        </Card>
+            </ul></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 5 — Cookies, Local Storage, and Session Data             */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>5. Cookies, Local Storage, and Session Data</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="5. Cookies, Local Storage, and Session Data">
             <p>
               EquipQR uses minimal browser storage, exclusively for application functionality. We do
               not use any third-party tracking cookies, advertising pixels, or browser
@@ -623,18 +595,12 @@ export default function PrivacyPolicy() {
               Supabase Auth stores a JWT access token and refresh token in your browser. These
               tokens are used solely to authenticate your requests to EquipQR and are managed
               entirely by the Supabase Auth SDK. They are not accessible to third-party scripts.
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 6 — How We Use Your Information                          */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>6. How We Use Your Information</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="6. How We Use Your Information">
             <p>
               We use the information described above for the following specific purposes:
             </p>
@@ -678,18 +644,12 @@ export default function PrivacyPolicy() {
                 <strong>Legal obligations:</strong> To comply with applicable laws, regulations,
                 legal processes, or enforceable governmental requests.
               </li>
-            </ul>
-          </CardContent>
-        </Card>
+            </ul></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 7 — How We Share Your Information                        */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>7. How We Share Your Information</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="7. How We Share Your Information">
             <p>
               We do not sell your personal information. We share data only in the following
               circumstances:
@@ -732,18 +692,12 @@ export default function PrivacyPolicy() {
             <p>
               We do not share data with advertising networks, data brokers, or any parties for
               marketing purposes.
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 8 — Data Security                                        */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>8. Data Security</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="8. Data Security">
             <p>
               We implement multiple layers of technical and organizational security measures to
               protect your data:
@@ -816,18 +770,12 @@ export default function PrivacyPolicy() {
                 Terms of Service
               </Link>
               .
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 9 — Data Retention, Export, and Deletion                  */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>9. Data Retention, Export, and Deletion</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="9. Data Retention, Export, and Deletion">
             <p>
               We retain your information for the specific periods described in Section 10A
               (Retention Periods). In general, data is kept for as long as necessary to fulfill
@@ -866,18 +814,12 @@ export default function PrivacyPolicy() {
                 Terms of Service
               </Link>
               .
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 10 — Your Rights                                         */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>10. Your Rights and Choices</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="10. Your Rights and Choices">
             <p>
               Depending on your jurisdiction, you may have some or all of the following rights
               regarding your personal information:
@@ -959,18 +901,12 @@ export default function PrivacyPolicy() {
               If you are a California resident, please see Section 10A below for additional
               rights available to you under the California Consumer Privacy Act (CCPA) and
               the California Privacy Rights Act (CPRA).
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 10A — California Privacy Rights (CCPA/CPRA)              */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>10A. Your California Privacy Rights (CCPA/CPRA)</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="10A. Your California Privacy Rights (CCPA/CPRA)">
             <p>
               This section applies to California residents and supplements the rest of this
               Privacy Policy with disclosures required by the California Consumer Privacy Act
@@ -1202,18 +1138,12 @@ export default function PrivacyPolicy() {
               We will respond to verified requests within 45 calendar days. If we need
               additional time, we will notify you before the initial deadline and may take up
               to 45 additional days (90 days total).
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 11 — Children's Privacy                                  */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>11. Children&apos;s Privacy</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="11. Children&apos;s Privacy">
             <p>
               EquipQR is a business-to-business platform designed for use by organizations and their
               employees. Our Service is not directed to individuals under the age of 16, and we do
@@ -1221,18 +1151,12 @@ export default function PrivacyPolicy() {
               have inadvertently collected data from a child under 16, we will take steps to delete
               that information promptly. If you believe a child has provided us with personal data,
               please contact us immediately.
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 12 — International Data Transfers                        */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>12. International Data Transfers</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="12. International Data Transfers">
             <p>
               EquipQR is operated from the United States. Your data is processed and stored in the
               United States through our infrastructure providers (Supabase on AWS and Vercel). If you
@@ -1244,18 +1168,12 @@ export default function PrivacyPolicy() {
               By using the Service, you consent to the transfer of your information to the United
               States. If your organization requires specific transfer mechanisms (such as Standard
               Contractual Clauses), please contact us to discuss available options.
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 13 — Changes to This Policy                              */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>13. Changes to This Privacy Policy</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="13. Changes to This Privacy Policy">
             <p>
               We may update this Privacy Policy from time to time to reflect changes in our practices,
               technologies, legal requirements, or for other operational reasons. When we make
@@ -1277,18 +1195,12 @@ export default function PrivacyPolicy() {
             </ul>
             <p>
               We encourage you to review this Privacy Policy periodically.
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 14 — Contact Us                                          */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>14. Contact Us</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="14. Contact Us">
             <p>
               If you have any questions about this Privacy Policy, want to exercise your data rights,
               or have concerns about our data practices, please contact us:
@@ -1318,9 +1230,7 @@ export default function PrivacyPolicy() {
             </ul>
             <p>
               We aim to respond to all privacy-related inquiries within 45 calendar days.
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
       </div>
     </div>
   );

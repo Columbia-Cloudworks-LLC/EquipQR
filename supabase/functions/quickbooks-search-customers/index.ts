@@ -7,21 +7,16 @@ import {
   getIntuitTid,
   withMinorVersion,
 } from "../_shared/quickbooks-config.ts";
-import { withCorrelationId } from "../_shared/supabase-clients.ts";
+import {
+  requireBearerUserJsonUnauthorized,
+  withCorrelationId,
+} from "../_shared/supabase-clients.ts";
 import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
+import { createRedactedLogStep } from "../_shared/redacted-logger.ts";
 
 const FUNCTION_NAME = "quickbooks-search-customers";
 
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  // Avoid logging sensitive data
-  const safeDetails = details ? { ...details } : undefined;
-  if (safeDetails) {
-    delete safeDetails.access_token;
-    delete safeDetails.refresh_token;
-  }
-  const detailsStr = safeDetails ? ` - ${JSON.stringify(safeDetails)}` : '';
-  console.log(`[QUICKBOOKS-SEARCH-CUSTOMERS] ${step}${detailsStr}`);
-};
+const logStep = createRedactedLogStep("QUICKBOOKS-SEARCH-CUSTOMERS");
 
 // getIntuitTid imported from _shared/quickbooks-config.ts
 
@@ -176,37 +171,19 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: FUNCTION_NAME });
     const supabaseServiceKey = requireSecret("SUPABASE_SERVICE_ROLE_KEY", { functionName: FUNCTION_NAME });
 
-    // Validate authorization
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader || !authHeader.toLowerCase().startsWith("bearer ")) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Unauthorized" 
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Create Supabase client with service role
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false }
+      auth: { persistSession: false },
     });
 
-    // Verify the user's token
-    const token = authHeader.substring(7).trim();
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-    
-    if (userError || !user) {
-      logStep("Authentication failed", { error: userError?.message });
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Unauthorized" 
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const authResult = await requireBearerUserJsonUnauthorized(
+      req,
+      supabaseClient,
+      corsHeaders,
+    );
+    if (authResult instanceof Response) {
+      return authResult;
     }
+    const { user } = authResult;
 
     // Parse request body
     const body = await req.json();
