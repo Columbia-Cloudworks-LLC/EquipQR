@@ -116,6 +116,26 @@ describe('SessionContext', () => {
   const renderSessionHook = () =>
     renderHook(() => React.useContext(SessionContext), { wrapper: createWrapper() });
 
+  const mockCachedSession = (overrides: {
+    needsRefresh?: boolean;
+    cachedData?: SessionData | null;
+  } = {}) => {
+    mockSessionManager.initializeSession.mockReturnValue({
+      shouldLoadFromCache: true,
+      cachedData: mockSessionData,
+      needsRefresh: false,
+      ...overrides,
+    });
+  };
+
+  const renderLoadedSessionHook = async () => {
+    const hook = renderSessionHook();
+    await waitFor(() => {
+      expect(hook.result.current?.isLoading).toBe(false);
+    });
+    return hook;
+  };
+
   it('should initialize with loading state', () => {
     const { result } = renderSessionHook();
 
@@ -125,34 +145,18 @@ describe('SessionContext', () => {
   });
 
   it('should load from cache when available', async () => {
-    mockSessionManager.initializeSession.mockReturnValue({
-      shouldLoadFromCache: true,
-      cachedData: mockSessionData,
-      needsRefresh: false,
-    });
+    mockCachedSession();
 
-    const { result } = renderSessionHook();
-
-    await waitFor(() => {
-      expect(result.current?.isLoading).toBe(false);
-    });
+    const { result } = await renderLoadedSessionHook();
 
     expect(result.current?.sessionData).toEqual(mockSessionData);
     expect(mockSessionManager.refreshSession).not.toHaveBeenCalled();
   });
 
   it('should refresh in background when cache needs update', async () => {
-    mockSessionManager.initializeSession.mockReturnValue({
-      shouldLoadFromCache: true,
-      cachedData: mockSessionData,
-      needsRefresh: true,
-    });
+    mockCachedSession({ needsRefresh: true });
 
-    const { result } = renderSessionHook();
-
-    await waitFor(() => {
-      expect(result.current?.isLoading).toBe(false);
-    });
+    const { result } = await renderLoadedSessionHook();
 
     expect(result.current?.sessionData).toEqual(mockSessionData);
     expect(mockSessionManager.refreshSession).toHaveBeenCalledWith(false);
@@ -186,17 +190,9 @@ describe('SessionContext', () => {
   });
 
   it('should provide session management functions', async () => {
-    mockSessionManager.initializeSession.mockReturnValue({
-      shouldLoadFromCache: true,
-      cachedData: mockSessionData,
-      needsRefresh: false,
-    });
+    mockCachedSession();
 
-    const { result } = renderSessionHook();
-
-    await waitFor(() => {
-      expect(result.current?.isLoading).toBe(false);
-    });
+    const { result } = await renderLoadedSessionHook();
 
     expect(typeof result.current?.getCurrentOrganization).toBe('function');
     expect(typeof result.current?.switchOrganization).toBe('function');
@@ -240,17 +236,9 @@ describe('SessionContext', () => {
   });
 
   it('should switch organization', async () => {
-    mockSessionManager.initializeSession.mockReturnValue({
-      shouldLoadFromCache: true,
-      cachedData: mockSessionData,
-      needsRefresh: false,
-    });
+    mockCachedSession();
 
-    const { result } = renderSessionHook();
-
-    await waitFor(() => {
-      expect(result.current?.isLoading).toBe(false);
-    });
+    const { result } = await renderLoadedSessionHook();
 
     await result.current!.switchOrganization('org-2');
 
@@ -259,18 +247,10 @@ describe('SessionContext', () => {
 
   it('should clear session', async () => {
     const { SessionStorageService } = await import('@/services/sessionStorageService');
-    
-    mockSessionManager.initializeSession.mockReturnValue({
-      shouldLoadFromCache: true,
-      cachedData: mockSessionData,
-      needsRefresh: false,
-    });
 
-    const { result } = renderSessionHook();
+    mockCachedSession();
 
-    await waitFor(() => {
-      expect(result.current?.isLoading).toBe(false);
-    });
+    const { result } = await renderLoadedSessionHook();
 
     act(() => {
       result.current!.clearSession();
