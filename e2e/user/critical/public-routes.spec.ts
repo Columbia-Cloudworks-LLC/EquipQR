@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/equipqr-test';
+import { expectPublicQrRouteHealthy } from '../shared/auth-helpers';
 import { assertRouteHealthy } from '../shared/page-helpers';
 import { PUBLIC_MARKETING_PATHS } from '../shared/marketing-routes';
 import { seedEquipment } from '../shared/seed-data';
@@ -37,9 +38,7 @@ test.describe('public routes @critical', () => {
   });
 
   test('public equipment QR route loads scan shell', async ({ page }) => {
-    await page.goto(`/qr/equipment/${seedEquipment.cat320.id}`);
-    await expect(page.locator('body')).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByText(/something went wrong/i)).toHaveCount(0);
+    await expectPublicQrRouteHealthy(page, `/qr/equipment/${seedEquipment.cat320.id}`);
   });
 
   test('signed-in owner visiting landing redirects to dashboard', async ({ browser }) => {

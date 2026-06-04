@@ -4,6 +4,22 @@ import { verifyInventoryItemInOrganization } from '@/features/inventory/services
 import type { InventoryItem } from '@/features/inventory/types/inventory';
 import type { Equipment } from '@/features/equipment/services/EquipmentService';
 
+async function assertEquipmentInOrganization(
+  organizationId: string,
+  equipmentId: string,
+): Promise<void> {
+  const { data: equipment, error: equipmentError } = await supabase
+    .from('equipment')
+    .select('id')
+    .eq('id', equipmentId)
+    .eq('organization_id', organizationId)
+    .single();
+
+  if (equipmentError || !equipment) {
+    throw new Error('Equipment not found or access denied');
+  }
+}
+
 // ============================================
 // Get Compatible Equipment for Item
 // ============================================
@@ -84,18 +100,7 @@ export const linkItemToEquipment = async (
   equipmentId: string
 ): Promise<void> => {
   try {
-    // Verify equipment belongs to organization
-    const { data: equipment, error: equipmentError } = await supabase
-      .from('equipment')
-      .select('id')
-      .eq('id', equipmentId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (equipmentError || !equipment) {
-      throw new Error('Equipment not found or access denied');
-    }
-
+    await assertEquipmentInOrganization(organizationId, equipmentId);
     await verifyInventoryItemInOrganization(organizationId, itemId);
 
     // Insert compatibility link (ignore if already exists)
@@ -124,18 +129,7 @@ export const unlinkItemFromEquipment = async (
   equipmentId: string
 ): Promise<void> => {
   try {
-    // Verify equipment belongs to organization
-    const { data: equipment, error: equipmentError } = await supabase
-      .from('equipment')
-      .select('id')
-      .eq('id', equipmentId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (equipmentError || !equipment) {
-      throw new Error('Equipment not found or access denied');
-    }
-
+    await assertEquipmentInOrganization(organizationId, equipmentId);
     await verifyInventoryItemInOrganization(organizationId, itemId);
 
     // Delete compatibility link
@@ -258,17 +252,7 @@ const bulkLinkItemsToEquipment = async (
   try {
     if (itemIds.length === 0) return;
 
-    // Verify equipment belongs to organization
-    const { data: equipment, error: equipmentError } = await supabase
-      .from('equipment')
-      .select('id')
-      .eq('id', equipmentId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (equipmentError || !equipment) {
-      throw new Error('Equipment not found or access denied');
-    }
+    await assertEquipmentInOrganization(organizationId, equipmentId);
 
     // Verify all items belong to organization
     const { data: items, error: itemsError } = await supabase

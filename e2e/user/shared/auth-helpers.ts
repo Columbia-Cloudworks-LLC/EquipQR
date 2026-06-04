@@ -150,3 +150,35 @@ export async function expectNoAppErrorBoundary(page: Page): Promise<void> {
   await expect(page.getByText(/something went wrong/i)).toHaveCount(0);
   await expect(page.getByText(/application error/i)).toHaveCount(0);
 }
+
+/** Open /dashboard using a persisted persona storage state file. */
+export async function openDashboardWithStorageState(
+  browser: Browser,
+  storageStatePath: string,
+  options?: { assertMainContent?: boolean },
+): Promise<{ context: BrowserContext; page: Page }> {
+  const resolvedPath = path.resolve(storageStatePath);
+  const context = await browser.newContext({ storageState: resolvedPath });
+  const page = await context.newPage();
+  await page.goto('/dashboard');
+  await expect(page).toHaveURL(/\/dashboard/i, { timeout: 60_000 });
+  if (options?.assertMainContent !== false) {
+    await expect(page.locator('#main-content, main').first()).toBeVisible();
+  }
+  return { context, page };
+}
+
+export async function openDashboardAsPersona(
+  browser: Browser,
+  persona: PersonaKey,
+  options?: { assertMainContent?: boolean },
+): Promise<{ context: BrowserContext; page: Page }> {
+  return openDashboardWithStorageState(browser, authStatePath(persona), options);
+}
+
+/** Assert a public QR route renders without the app error boundary. */
+export async function expectPublicQrRouteHealthy(page: Page, qrPath: string): Promise<void> {
+  await page.goto(qrPath);
+  await expect(page.locator('body')).toBeVisible({ timeout: 60_000 });
+  await expectNoAppErrorBoundary(page);
+}

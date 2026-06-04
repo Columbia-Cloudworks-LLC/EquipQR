@@ -24,6 +24,7 @@ import {
   WorkOrderImage,
   WorkOrderServiceFilters,
 } from '@/features/work-orders/types/workOrder';
+import { applyWorkOrderSupabaseFilters } from '@/features/work-orders/utils/workOrderSupabaseFilters';
 
 // Re-export types for backward compatibility
 export type {
@@ -341,24 +342,9 @@ export class WorkOrderService extends BaseService {
         }
       }
 
-      // Apply status filter (uses idx_work_orders_org_status composite index)
-      if (filters.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status);
-      }
-
-      // Apply priority filter
-      if (filters.priority && filters.priority !== 'all') {
-        query = query.eq('priority', filters.priority);
-      }
-
-      // Apply assignee filter (uses idx_work_orders_assignee_id index)
-      if (filters.assigneeId && filters.assigneeId !== 'all') {
-        if (filters.assigneeId === 'unassigned') {
-          query = query.is('assignee_id', null);
-        } else {
-          query = query.eq('assignee_id', filters.assigneeId);
-        }
-      }
+      query = applyWorkOrderSupabaseFilters(query, filters, {
+        overdueExcludeTerminalStatuses: true,
+      });
 
       // Apply team filter - requires getting equipment IDs first
       if (filters.teamId && filters.teamId !== 'all') {
@@ -385,36 +371,6 @@ export class WorkOrderService extends BaseService {
       // Apply equipment filter (uses idx_work_orders_equipment_id index)
       if (filters.equipmentId) {
         query = query.eq('equipment_id', filters.equipmentId);
-      }
-
-      // Apply due date filter (uses idx_work_orders_org_due_date)
-      if (filters.dueDateFilter) {
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const weekFromNow = new Date(today);
-        weekFromNow.setDate(weekFromNow.getDate() + 7);
-
-        switch (filters.dueDateFilter) {
-          case 'overdue':
-            query = query
-              .lt('due_date', today.toISOString())
-              .not('status', 'eq', 'completed')
-              .not('status', 'eq', 'cancelled');
-            break;
-          case 'today': {
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            query = query
-              .gte('due_date', today.toISOString())
-              .lt('due_date', tomorrow.toISOString());
-            break;
-          }
-          case 'this_week':
-            query = query
-              .gte('due_date', today.toISOString())
-              .lt('due_date', weekFromNow.toISOString());
-            break;
-        }
       }
 
       // Apply text search if provided

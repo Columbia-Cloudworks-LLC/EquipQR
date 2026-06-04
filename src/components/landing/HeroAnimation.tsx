@@ -141,8 +141,7 @@ export default function HeroAnimation() {
     setPhase('dots');
   }, []);
 
-  const handleNationalComplete = useCallback(() => {
-    // National cycles skip Phase 5 — go straight to fade → restart
+  const restartCycleAfterFade = useCallback(() => {
     setOpacity(0);
     holdTimerRef.current = setTimeout(() => {
       cycleRef.current += 1;
@@ -153,6 +152,11 @@ export default function HeroAnimation() {
       setOpacity(1);
     }, 400);
   }, []);
+
+  const handleNationalComplete = useCallback(() => {
+    // National cycles skip Phase 5 — go straight to fade → restart
+    restartCycleAfterFade();
+  }, [restartCycleAfterFade]);
 
   const handleDotsReady = useCallback(() => {
     // After a short hold, start Phase 5 on state cycles
@@ -163,16 +167,8 @@ export default function HeroAnimation() {
 
   const handleChecklistComplete = useCallback(() => {
     // Phase 5 complete → fade out → restart cycle
-    setOpacity(0);
-    holdTimerRef.current = setTimeout(() => {
-      cycleRef.current += 1;
-      const next = pickNextState(prevStateRef.current);
-      prevStateRef.current = next;
-      setStateKey(next);
-      setPhase('qr');
-      setOpacity(1);
-    }, 400);
-  }, []);
+    restartCycleAfterFade();
+  }, [restartCycleAfterFade]);
 
   // Phase 5a: wait one frame so the CSS width transition kicks in, then
   // advance to 'phase5-checklist' after the 600ms transition completes.

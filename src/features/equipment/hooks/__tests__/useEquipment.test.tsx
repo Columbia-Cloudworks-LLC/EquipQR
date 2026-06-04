@@ -7,7 +7,7 @@
 
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createQueryClientWrapper } from '@/test/utils/test-utils';
+import { createQueryClientWrapper, waitForHookSuccess } from '@/test/utils/test-utils';
 import {
   useEquipment,
   useEquipmentById,
@@ -80,9 +80,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(result.current.data).toHaveLength(Object.keys(equipment).length);
       expect(EquipmentService.getAll).toHaveBeenCalledWith(
@@ -110,9 +108,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(EquipmentService.getAll).toHaveBeenCalledWith(
         organizations.acme.id,
@@ -129,9 +125,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(EquipmentService.getAll).toHaveBeenCalledWith(
         organizations.acme.id,
@@ -166,9 +160,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(EquipmentService.getAll).toHaveBeenCalled();
     });
@@ -188,9 +180,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(EquipmentService.getById).toHaveBeenCalledWith(
         organizations.acme.id,
@@ -255,9 +245,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(EquipmentService.getNotesByEquipmentId).toHaveBeenCalledWith(
         organizations.acme.id,
@@ -294,9 +282,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(EquipmentService.getScansByEquipmentId).toHaveBeenCalledWith(
         organizations.acme.id,
@@ -331,9 +317,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(EquipmentService.getStatusCounts).toHaveBeenCalledWith(organizations.acme.id);
       expect(result.current.data).toEqual(mockCounts);
@@ -359,9 +343,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(result.current.data).toEqual({ active: 0, maintenance: 0, inactive: 0 });
     });
@@ -383,9 +365,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       // Should return grouped manufacturers with their models
       expect(result.current.data).toBeDefined();
@@ -417,9 +397,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(result.current.data).toEqual([]);
     });
@@ -441,9 +419,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       // First manufacturer should be Apple (alphabetically)
       expect(result.current.data?.[0]?.manufacturer).toBe('Apple');
@@ -470,9 +446,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       // Should only have Toyota (equipment without manufacturer is skipped)
       expect(result.current.data).toHaveLength(1);
@@ -490,9 +464,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       // The query was called with the right parameters
       expect(EquipmentService.getAll).toHaveBeenCalledWith(
@@ -513,9 +485,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(EquipmentService.getById).toHaveBeenCalledWith(
         organizations.acme.id,

@@ -1,4 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
+import {
+  encodeOAuthState,
+  type OAuthStatePayload,
+} from '@/services/oauthStateEncoding';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 export const GOOGLE_PICKER_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
@@ -63,15 +67,7 @@ export interface GoogleWorkspaceAuthConfig {
   originUrl?: string;
 }
 
-interface OAuthState {
-  sessionToken: string;
-  nonce: string;
-  timestamp: number;
-}
-
-function encodeState(state: OAuthState): string {
-  return btoa(JSON.stringify(state));
-}
+export type OAuthState = OAuthStatePayload;
 
 /**
  * Generates the Google Workspace OAuth authorization URL for the current organization.
@@ -164,7 +160,7 @@ export async function generateGoogleWorkspaceAuthUrl(
     access_type: 'offline',
     prompt: 'consent',
     include_granted_scopes: 'true',
-    state: encodeState(state),
+    state: encodeOAuthState(state),
   });
 
   return `${GOOGLE_AUTH_URL}?${params.toString()}`;

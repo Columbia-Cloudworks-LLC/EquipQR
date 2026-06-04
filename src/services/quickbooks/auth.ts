@@ -8,6 +8,10 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import {
+  encodeOAuthState,
+  type OAuthStatePayload,
+} from '@/services/oauthStateEncoding';
 
 // QuickBooks OAuth endpoints
 const INTUIT_AUTHORIZATION_URL = "https://appcenter.intuit.com/connect/oauth2";
@@ -36,21 +40,7 @@ export interface QuickBooksAuthConfig {
  * SECURITY: Only contains session_token and nonce - actual org/user data is stored server-side
  * This prevents state tampering attacks. The nonce provides additional CSRF protection.
  */
-export interface OAuthState {
-  /** Server-side session token (validated in callback) */
-  sessionToken: string;
-  /** Random nonce for CSRF protection (validated against session) */
-  nonce: string;
-  /** Timestamp when state was created */
-  timestamp: number;
-}
-
-/**
- * Encodes the OAuth state object to a base64 string
- */
-function encodeState(state: OAuthState): string {
-  return btoa(JSON.stringify(state));
-}
+export type OAuthState = OAuthStatePayload;
 
 /**
  * Generates the QuickBooks OAuth authorization URL
@@ -147,7 +137,7 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
     scope: config.scopes || DEFAULT_SCOPES,
     redirect_uri: redirectUri,
     response_type: "code",
-    state: encodeState(state),
+    state: encodeOAuthState(state),
   });
 
   return `${INTUIT_AUTHORIZATION_URL}?${params.toString()}`;

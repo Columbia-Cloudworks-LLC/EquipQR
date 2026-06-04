@@ -9,6 +9,8 @@ import { Image, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { DATE_TIME_DISPLAY_FORMAT } from '@/config/date-formats';
 import { cn } from '@/lib/utils';
+import { handleDragActiveState } from '@/components/common/drag-active-handlers';
+import { useFileObjectUrlPreview } from '@/components/common/useFileObjectUrlPreview';
 import { logger } from '@/utils/logger';
 
 // Image Thumbnail Component with proper cleanup
@@ -17,16 +19,7 @@ const ImageThumbnail: React.FC<{
   onRemove: () => void;
   disabled?: boolean;
 }> = ({ file, onRemove, disabled }) => {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    
-    return () => {
-      URL.revokeObjectURL(url);
-    };
-  }, [file]);
+  const previewUrl = useFileObjectUrlPreview(file);
 
   if (!previewUrl) return null;
 
@@ -172,13 +165,7 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
   }, [handleFilesAdd]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
+    handleDragActiveState(e, setDragActive);
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {

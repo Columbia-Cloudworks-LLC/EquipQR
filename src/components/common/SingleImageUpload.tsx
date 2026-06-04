@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useAppToast } from '@/hooks/useAppToast';
+import { handleDragActiveState } from '@/components/common/drag-active-handlers';
 import { sanitizeBlobUrl } from '@/utils/sanitizeBlobUrl';
 
 interface SingleImageUploadProps {
@@ -101,13 +102,7 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
   };
 
   const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
+    handleDragActiveState(e, setDragActive);
   };
 
   const handleDrop = (e: React.DragEvent) => {

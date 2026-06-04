@@ -1,4 +1,5 @@
-import React, { useEffect, useId, useRef } from 'react';
+import React, { useId, useRef } from 'react';
+import { useFileObjectUrlPreview } from '@/components/common/useFileObjectUrlPreview';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Image, X } from 'lucide-react';
@@ -9,15 +10,7 @@ const Thumbnail: React.FC<{
   onRemove: () => void;
   disabled?: boolean;
 }> = ({ file, onRemove, disabled }) => {
-  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
-
-  useEffect(() => {
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    return () => {
-      URL.revokeObjectURL(url);
-    };
-  }, [file]);
+  const previewUrl = useFileObjectUrlPreview(file);
 
   if (!previewUrl) return null;
 

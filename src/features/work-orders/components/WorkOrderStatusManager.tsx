@@ -23,13 +23,8 @@ import {
   MapPin,
   AlertCircle
 } from 'lucide-react';
-import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOrderData';
-import { useWorkOrderAcceptance } from '@/features/work-orders/hooks/useWorkOrderAcceptance';
-import { usePMByWorkOrderId } from '@/features/pm-templates/hooks/usePMData';
-import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
+import { useWorkOrderStatusChangeHandlers } from '@/features/work-orders/hooks/useWorkOrderStatusChangeHandlers';
 import { useWorkOrderContextualAssignment, type AssignmentWorkOrderContext } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
-import { useAuth } from '@/hooks/useAuth';
-
 import {
   formatStatus,
   getStatusColor,
@@ -99,12 +94,24 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [selectedAssigneeForStart, setSelectedAssigneeForStart] = useState<string>('');
-  const updateStatusMutation = useUpdateWorkOrderStatus();
-  const acceptanceMutation = useWorkOrderAcceptance();
-  const { data: pmData } = usePMByWorkOrderId(workOrder.id);
-  const { isManager, isTechnician } = useWorkOrderPermissionLevels();
-  const { user } = useAuth();
-  
+  const {
+    updateStatusMutation,
+    acceptanceMutation,
+    pmData,
+    isManager,
+    isTechnician,
+    canPerformStatusActions,
+    canCompleteWorkOrder,
+    handleStatusChange,
+    handleAcceptanceComplete,
+  } = useWorkOrderStatusChangeHandlers(
+    workOrder,
+    organizationId,
+    () => setShowAcceptanceModal(true),
+    () => setShowCancelDialog(true),
+    () => setShowCompleteDialog(true),
+  );
+
   // Build context for contextual assignment - needed for accepted status
   const assignmentContext: AssignmentWorkOrderContext = {
     id: workOrder.id,
@@ -114,40 +121,6 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
   };
   const { assignmentOptions, isLoading: assignmentLoading, equipmentHasNoTeam } = useWorkOrderContextualAssignment(assignmentContext);
   const startAssigneeFieldId = `work-order-start-assignee-${workOrder.id}`;
-
-  const handleStatusChange = async (newStatus: WorkOrderStatus) => {
-    // Check if trying to complete work order with incomplete PM
-    if (newStatus === 'completed' && workOrder.has_pm && pmData) {
-      if (pmData.status !== 'completed') {
-        return;
-      }
-    }
-
-    if (newStatus === 'accepted') {
-      setShowAcceptanceModal(true);
-      return;
-    }
-
-    if (newStatus === 'cancelled') {
-      setShowCancelDialog(true);
-      return;
-    }
-
-    if (newStatus === 'completed') {
-      setShowCompleteDialog(true);
-      return;
-    }
-
-    try {
-      await updateStatusMutation.mutateAsync({
-        workOrderId: workOrder.id,
-        status: newStatus,
-        organizationId
-      });
-    } catch (error) {
-      console.error('Error updating work order status:', error);
-    }
-  };
 
   const handleConfirmCancel = async () => {
     try {
@@ -175,21 +148,6 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     }
   };
 
-  const handleAcceptanceComplete = async (assigneeId?: string) => {
-    try {
-      // Use the acceptance mutation which properly handles assignee assignment
-      await acceptanceMutation.mutateAsync({
-        workOrderId: workOrder.id,
-        organizationId,
-        assigneeId
-      });
-      setShowAcceptanceModal(false);
-    } catch (error) {
-      console.error('Error accepting work order:', error);
-      throw error;
-    }
-  };
-
   // Handler for assigning and starting work order from accepted status
   const handleAssignAndStart = async () => {
     if (!selectedAssigneeForStart) return;
@@ -207,18 +165,10 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     }
   };
 
-  // Check if user can perform status actions
-  const canPerformStatusActions = () => {
-    if (isManager) return true;
-    if (isTechnician && (workOrder.assignee_id === user?.id)) return true;
-    if (workOrder.created_by === user?.id && workOrder.status === 'submitted') return true;
-    return false;
-  };
-
 const getStatusActions = (): StatusAction[] => {
     if (!canPerformStatusActions()) return [];
 
-    const canComplete = !workOrder.has_pm || (pmData && pmData.status === 'completed');
+    const canComplete = canCompleteWorkOrder();
     
     switch (workOrder.status) {
       case 'submitted': {
@@ -608,7 +558,10 @@ const getStatusActions = (): StatusAction[] => {
         onClose={() => setShowAcceptanceModal(false)}
         workOrder={workOrder}
         organizationId={organizationId}
-        onAccept={handleAcceptanceComplete}
+        onAccept={async (assigneeId) => {
+          await handleAcceptanceComplete(assigneeId);
+          setShowAcceptanceModal(false);
+        }}
       />
 
       {/* Cancel Confirmation Dialog */}

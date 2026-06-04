@@ -3,15 +3,10 @@ import { render, screen } from '@/test/utils/test-utils';
 import DoNotSellOrShare from '../DoNotSellOrShare';
 
 vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => (
-      <a href={to} {...props}>
-        {children}
-      </a>
-    ),
-  };
+  const { createReactRouterDomTestMock } = await import(
+    '@/test/utils/react-router-dom-test-mock'
+  );
+  return createReactRouterDomTestMock();
 });
 
 describe('DoNotSellOrShare', () => {

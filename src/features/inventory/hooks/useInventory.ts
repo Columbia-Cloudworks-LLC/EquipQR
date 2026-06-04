@@ -41,6 +41,33 @@ import { useAppToast } from '@/hooks/useAppToast';
 
 const DEFAULT_STALE_TIME = 5 * 60 * 1000; // 5 minutes
 
+type ItemScopedQueryOptions = {
+  staleTime?: number;
+  enabled?: boolean;
+};
+
+function useInventoryItemQuery<T>(
+  queryKeyPrefix: string,
+  organizationId: string | undefined,
+  itemId: string | undefined,
+  queryFn: (orgId: string, id: string) => Promise<T>,
+  emptyValue: T,
+  options?: ItemScopedQueryOptions,
+) {
+  const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
+  const enabled = options?.enabled ?? true;
+
+  return useQuery({
+    queryKey: [queryKeyPrefix, organizationId, itemId],
+    queryFn: async () => {
+      if (!organizationId || !itemId) return emptyValue;
+      return await queryFn(organizationId, itemId);
+    },
+    enabled: enabled && !!organizationId && !!itemId,
+    staleTime,
+  });
+}
+
 // ============================================
 // Query Hooks
 // ============================================
@@ -171,24 +198,16 @@ export const useCompatibleInventoryItems = (
 export const useCompatibleEquipmentForItem = (
   organizationId: string | undefined,
   itemId: string | undefined,
-  options?: {
-    staleTime?: number;
-    enabled?: boolean;
-  }
-) => {
-  const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
-  const enabled = options?.enabled ?? true;
-
-  return useQuery({
-    queryKey: ['compatible-equipment', organizationId, itemId],
-    queryFn: async () => {
-      if (!organizationId || !itemId) return [];
-      return await getCompatibleEquipmentForItem(organizationId, itemId);
-    },
-    enabled: enabled && !!organizationId && !!itemId,
-    staleTime
-  });
-};
+  options?: ItemScopedQueryOptions,
+) =>
+  useInventoryItemQuery(
+    'compatible-equipment',
+    organizationId,
+    itemId,
+    getCompatibleEquipmentForItem,
+    [],
+    options,
+  );
 
 // ============================================
 // Mutation Hooks
@@ -515,24 +534,16 @@ export const useBulkLinkEquipmentToItem = () => {
 export const useCompatibilityRulesForItem = (
   organizationId: string | undefined,
   itemId: string | undefined,
-  options?: {
-    staleTime?: number;
-    enabled?: boolean;
-  }
-) => {
-  const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
-  const enabled = options?.enabled ?? true;
-
-  return useQuery({
-    queryKey: ['compatibility-rules', organizationId, itemId],
-    queryFn: async (): Promise<PartCompatibilityRule[]> => {
-      if (!organizationId || !itemId) return [];
-      return await getCompatibilityRulesForItem(organizationId, itemId);
-    },
-    enabled: enabled && !!organizationId && !!itemId,
-    staleTime
-  });
-};
+  options?: ItemScopedQueryOptions,
+) =>
+  useInventoryItemQuery(
+    'compatibility-rules',
+    organizationId,
+    itemId,
+    getCompatibilityRulesForItem,
+    [] as PartCompatibilityRule[],
+    options,
+  );
 
 /**
  * Hook to fetch equipment that matches an inventory item's compatibility rules.
@@ -543,24 +554,16 @@ export const useCompatibilityRulesForItem = (
 export const useEquipmentMatchingItemRules = (
   organizationId: string | undefined,
   itemId: string | undefined,
-  options?: {
-    staleTime?: number;
-    enabled?: boolean;
-  }
-) => {
-  const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
-  const enabled = options?.enabled ?? true;
-
-  return useQuery({
-    queryKey: ['equipment-matching-rules', organizationId, itemId],
-    queryFn: async (): Promise<EquipmentMatchedByRules[]> => {
-      if (!organizationId || !itemId) return [];
-      return await getEquipmentMatchingItemRules(organizationId, itemId);
-    },
-    enabled: enabled && !!organizationId && !!itemId,
-    staleTime
-  });
-};
+  options?: ItemScopedQueryOptions,
+) =>
+  useInventoryItemQuery(
+    'equipment-matching-rules',
+    organizationId,
+    itemId,
+    getEquipmentMatchingItemRules,
+    [] as EquipmentMatchedByRules[],
+    options,
+  );
 
 /**
  * Hook to add a single compatibility rule.

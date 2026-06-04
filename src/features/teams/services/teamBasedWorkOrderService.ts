@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
 import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
+import { applyWorkOrderSupabaseFilters } from '@/features/work-orders/utils/workOrderSupabaseFilters';
 
 /**
  * TeamBasedWorkOrder extends WorkOrder with camelCase aliases for backward compatibility.
@@ -111,49 +112,7 @@ export const getTeamBasedWorkOrders = async (
       query = query.in('equipment_id', accessibleEquipmentIds);
     }
 
-    // Apply additional filters
-    if (filters.status && filters.status !== 'all') {
-      query = query.eq('status', filters.status);
-    }
-
-    if (filters.assigneeId && filters.assigneeId !== 'all') {
-      if (filters.assigneeId === 'unassigned') {
-        query = query.is('assignee_id', null);
-      } else {
-        query = query.eq('assignee_id', filters.assigneeId);
-      }
-    }
-
-    // Team filtering is handled by equipment access - we already filtered by accessible equipment IDs
-    // If filtering by specific team, we would need to get equipment IDs for that team first
-    // For now, filtering by teamId is done at the equipment level in getAccessibleEquipmentIds
-
-    if (filters.priority && filters.priority !== 'all') {
-      query = query.eq('priority', filters.priority);
-    }
-
-    // Due date filtering
-    if (filters.dueDateFilter) {
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const weekFromNow = new Date(today);
-      weekFromNow.setDate(weekFromNow.getDate() + 7);
-
-      switch (filters.dueDateFilter) {
-        case 'overdue':
-          query = query.lt('due_date', today.toISOString());
-          break;
-        case 'today': {
-          const tomorrow = new Date(today);
-          tomorrow.setDate(tomorrow.getDate() + 1);
-          query = query.gte('due_date', today.toISOString()).lt('due_date', tomorrow.toISOString());
-          break;
-        }
-        case 'this_week':
-          query = query.gte('due_date', today.toISOString()).lt('due_date', weekFromNow.toISOString());
-          break;
-      }
-    }
+    query = applyWorkOrderSupabaseFilters(query, filters);
 
     // Order by created_date descending (most recent first)
     query = query.order('created_date', { ascending: false });

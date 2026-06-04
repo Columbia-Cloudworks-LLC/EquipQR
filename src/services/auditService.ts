@@ -9,6 +9,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatIsoZulu } from '@/utils/dateFormatter';
 import { logger } from '@/utils/logger';
 import { buildAuditLogQueryResult, resolveAuditPagination } from '@/services/auditPagination';
+import { applyAuditFilters, normalizeAuditDateTo } from '@/services/auditFilters';
+import type { ApiResponse } from '@/services/base/BaseService';
+import {
+  fetchAuditLogExportEntries,
+  logAuditExportNotification,
+} from '@/services/auditExportPagination';
+import {
+  createServiceErrorResponse,
+  createServiceSuccessResponse,
+} from '@/services/serviceResponseHelpers';
 import {
   AuditLogEntry,
   AuditLogFilters,
@@ -29,96 +39,7 @@ import {
 // Constants
 // ============================================
 
-const AUDIT_EXPORT_BATCH_SIZE = 5000;
-const AUDIT_EXPORT_MAX_RECORDS = 10000;
-
-// ============================================
-// Response Types
-// ============================================
-
-interface ServiceResponse<T> {
-  data: T | null;
-  error: string | null;
-  success: boolean;
-}
-
-// ============================================
-// Helper Functions
-// ============================================
-
-function handleError(error: unknown): ServiceResponse<null> {
-  logger.error('AuditService error:', error);
-  return {
-    data: null,
-    error: error instanceof Error ? error.message : 'Operation failed',
-    success: false
-  };
-}
-
-function handleSuccess<T>(data: T): ServiceResponse<T> {
-  return {
-    data,
-    error: null,
-    success: true
-  };
-}
-
-/**
- * Normalize the dateTo filter into an exclusive upper bound for `created_at`.
- *
- * The legacy popover emitted YYYY-MM-DD strings and expected the entire end
- * date to be included (so we add one day to make the bound exclusive).
- *
- * The audit explorer emits full ISO timestamps for sub-day ranges (e.g.
- * histogram bucket clicks) and an exclusive upper bound for custom calendar
- * ranges (local midnight at the start of the day after the selected end
- * date). Those values are already exact exclusive bounds and must not be
- * inflated.
- */
-function normalizeAuditDateTo(dateTo: string): string {
-  if (dateTo.includes('T')) {
-    return dateTo;
-  }
-  const endDate = new Date(dateTo);
-  endDate.setDate(endDate.getDate() + 1);
-  return endDate.toISOString();
-}
-
-function applyAuditFilters<T>(query: T, filters?: AuditLogFilters): T {
-  let filteredQuery = query as T & {
-    eq: (column: string, value: string) => T;
-    gte: (column: string, value: string) => T;
-    lt: (column: string, value: string) => T;
-    or: (query: string) => T;
-  };
-
-  if (filters?.entityType && filters.entityType !== 'all') {
-    filteredQuery = filteredQuery.eq('entity_type', filters.entityType);
-  }
-
-  if (filters?.action && filters.action !== 'all') {
-    filteredQuery = filteredQuery.eq('action', filters.action);
-  }
-
-  if (filters?.actorId) {
-    filteredQuery = filteredQuery.eq('actor_id', filters.actorId);
-  }
-
-  if (filters?.dateFrom) {
-    filteredQuery = filteredQuery.gte('created_at', filters.dateFrom);
-  }
-
-  if (filters?.dateTo) {
-    filteredQuery = filteredQuery.lt('created_at', normalizeAuditDateTo(filters.dateTo));
-  }
-
-  if (filters?.search) {
-    const searchTerm = `%${filters.search}%`;
-    filteredQuery = filteredQuery.or(`entity_name.ilike.${searchTerm},actor_name.ilike.${searchTerm}`);
-  }
-
-  return filteredQuery;
-}
+type ServiceResponse<T> = ApiResponse<T>;
 
 /**
  * Format changes object into a human-readable description
@@ -226,11 +147,11 @@ export const auditService = {
       
       if (error) throw error;
       
-      return handleSuccess(
+      return createServiceSuccessResponse(
         buildAuditLogQueryResult(data as AuditLogEntry[], count ?? 0, offset, pageSize),
       );
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'AuditService error');
     }
   },
 
@@ -290,11 +211,11 @@ export const auditService = {
       
       if (error) throw error;
       
-      return handleSuccess(
+      return createServiceSuccessResponse(
         buildAuditLogQueryResult(data as AuditLogEntry[], count ?? 0, offset, pageSize),
       );
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'AuditService error');
     }
   },
 
@@ -327,11 +248,11 @@ export const auditService = {
       
       if (error) throw error;
       
-      return handleSuccess(
+      return createServiceSuccessResponse(
         buildAuditLogQueryResult(data as AuditLogEntry[], count ?? 0, offset, pageSize),
       );
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'AuditService error');
     }
   },
 
@@ -352,9 +273,9 @@ export const auditService = {
       
       if (error) throw error;
       
-      return handleSuccess(data as AuditLogEntry[]);
+      return createServiceSuccessResponse(data as AuditLogEntry[]);
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'AuditService error');
     }
   },
 
@@ -367,68 +288,22 @@ export const auditService = {
     onProgress?: (progress: { current: number; total: number }) => void
   ): Promise<ServiceResponse<string>> {
     try {
-      let countQuery = supabase
-        .from('audit_log')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', organizationId);
+      const allEntries = await fetchAuditLogExportEntries({
+        organizationId,
+        filters,
+        select:
+          'id, created_at, entity_type, entity_name, action, actor_name, actor_email, changes',
+        onProgress,
+      });
 
-      countQuery = applyAuditFilters(countQuery, filters);
-      const { count, error: countError } = await countQuery;
-      if (countError) throw countError;
-
-      const matchedRecords = count ?? 0;
-      const totalRecords = Math.min(matchedRecords, AUDIT_EXPORT_MAX_RECORDS);
-      onProgress?.({ current: 0, total: totalRecords });
-
-      if (matchedRecords > AUDIT_EXPORT_MAX_RECORDS) {
-        logger.warn(
-          `Audit CSV export capped at ${AUDIT_EXPORT_MAX_RECORDS.toLocaleString()} records (matched ${matchedRecords.toLocaleString()}).`
-        );
-      }
-
-      const allEntries: AuditLogEntry[] = [];
-      let offset = 0;
-
-      while (offset < totalRecords) {
-        const pageEnd = Math.min(offset + AUDIT_EXPORT_BATCH_SIZE - 1, totalRecords - 1);
-        let pageQuery = supabase
-          .from('audit_log')
-          .select('id, created_at, entity_type, entity_name, action, actor_name, actor_email, changes')
-          .eq('organization_id', organizationId)
-          .order('created_at', { ascending: false })
-          .order('id', { ascending: false })
-          .range(offset, pageEnd);
-
-        pageQuery = applyAuditFilters(pageQuery, filters);
-
-        const { data: pageData, error: pageError } = await pageQuery;
-        if (pageError) throw pageError;
-
-        const pageEntries = (pageData ?? []) as AuditLogEntry[];
-        if (pageEntries.length === 0) break;
-
-        allEntries.push(...pageEntries);
-        offset += pageEntries.length;
-        onProgress?.({ current: Math.min(offset, totalRecords), total: totalRecords });
-      }
-
-      // Best-effort security event notification for export activity.
-      if (allEntries.length > 0) {
-        const { error: notificationError } = await supabase.rpc('log_audit_export_notification', {
-          p_organization_id: organizationId,
-          p_exported_count: allEntries.length,
-        });
-        if (notificationError) {
-          logger.warn('Failed to log audit export notification', notificationError);
-        }
-      }
+      await logAuditExportNotification(organizationId, allEntries.length);
 
       const csvRows = convertToCsvRows(allEntries);
       const csvString = generateCsvString(csvRows);
       
-      return handleSuccess(csvString);
+      return createServiceSuccessResponse(csvString);
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'AuditService error');
     }
   },
 
@@ -443,67 +318,21 @@ export const auditService = {
     try {
       const cutoff = new Date().toISOString();
 
-      let countQuery = supabase
-        .from('audit_log')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', organizationId)
-        .lte('created_at', cutoff);
+      const allEntries = await fetchAuditLogExportEntries({
+        organizationId,
+        filters,
+        select: '*',
+        applyExtraCountFilters: (query) => query.lte('created_at', cutoff),
+        applyExtraPageFilters: (query) => query.lte('created_at', cutoff),
+        onProgress,
+      });
 
-      countQuery = applyAuditFilters(countQuery, filters);
-      const { count, error: countError } = await countQuery;
-      if (countError) throw countError;
-
-      const matchedRecords = count ?? 0;
-      const totalRecords = Math.min(matchedRecords, AUDIT_EXPORT_MAX_RECORDS);
-      onProgress?.({ current: 0, total: totalRecords });
-
-      if (matchedRecords > AUDIT_EXPORT_MAX_RECORDS) {
-        logger.warn(
-          `Audit JSON export capped at ${AUDIT_EXPORT_MAX_RECORDS.toLocaleString()} records (matched ${matchedRecords.toLocaleString()}).`
-        );
-      }
-
-      const allEntries: AuditLogEntry[] = [];
-      let offset = 0;
-
-      while (offset < totalRecords) {
-        const pageEnd = Math.min(offset + AUDIT_EXPORT_BATCH_SIZE - 1, totalRecords - 1);
-        let pageQuery = supabase
-          .from('audit_log')
-          .select('*')
-          .eq('organization_id', organizationId)
-          .lte('created_at', cutoff)
-          .order('created_at', { ascending: false })
-          .order('id', { ascending: false })
-          .range(offset, pageEnd);
-
-        pageQuery = applyAuditFilters(pageQuery, filters);
-
-        const { data: pageData, error: pageError } = await pageQuery;
-        if (pageError) throw pageError;
-
-        const pageEntries = (pageData ?? []) as AuditLogEntry[];
-        if (pageEntries.length === 0) break;
-
-        allEntries.push(...pageEntries);
-        offset += pageEntries.length;
-        onProgress?.({ current: Math.min(offset, totalRecords), total: totalRecords });
-      }
-
-      if (allEntries.length > 0) {
-        const { error: notificationError } = await supabase.rpc('log_audit_export_notification', {
-          p_organization_id: organizationId,
-          p_exported_count: allEntries.length,
-        });
-        if (notificationError) {
-          logger.warn('Failed to log audit export notification', notificationError);
-        }
-      }
+      await logAuditExportNotification(organizationId, allEntries.length);
 
       const jsonString = JSON.stringify(allEntries, null, 2);
-      return handleSuccess(jsonString);
+      return createServiceSuccessResponse(jsonString);
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'AuditService error');
     }
   },
 
@@ -544,9 +373,9 @@ export const auditService = {
       if (error) throw error;
 
       const rows = (data ?? []) as AuditLogTimelineRow[];
-      return handleSuccess(rows);
+      return createServiceSuccessResponse(rows);
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'AuditService error');
     }
   },
 
@@ -601,14 +430,14 @@ export const auditService = {
         .slice(0, 5)
         .map(([name, count]) => ({ name, count }));
       
-      return handleSuccess({
+      return createServiceSuccessResponse({
         totalEntries: entries.length,
         byEntityType: byEntityType as Record<AuditEntityType, number>,
         byAction: byAction as Record<AuditAction, number>,
         topActors,
       });
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'AuditService error');
     }
   },
 };

@@ -13,6 +13,14 @@ export {
   createQueryClientWrapper,
   createRouterQueryClientWrapper,
 } from './query-client-wrapper';
+export {
+  createAdminAuthMockReturn,
+  setupAuthAndToastMocks,
+  waitForHookSuccess,
+  expectHookData,
+  createReactRouterDomTestMock,
+  mockSonnerAndLogger,
+} from './hook-test-helpers';
 // Re-export custom render
 export { customRender as render } from './renderUtils';
 
