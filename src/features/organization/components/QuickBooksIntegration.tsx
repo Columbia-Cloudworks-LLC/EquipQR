@@ -252,4 +252,3 @@ export const QuickBooksIntegration = ({
   );
 };
 
-export default QuickBooksIntegration;

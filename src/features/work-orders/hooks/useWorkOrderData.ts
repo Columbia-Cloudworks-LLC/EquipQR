@@ -1,17 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { 
-  WorkOrderService, 
-  WorkOrderNote, 
-  WorkOrderImage 
-} from '@/features/work-orders/services/workOrderService';
+import { WorkOrderService } from '@/features/work-orders/services/workOrderService';
 import { workOrderKeys } from '@/features/work-orders/hooks/useWorkOrders';
 import { workOrders as workOrderQueryKeys, notifications as notificationQueryKeys } from '@/lib/queryKeys';
 import { getAuthClaims } from '@/lib/authClaims';
-
-// Re-export types from WorkOrderService for backward compatibility
-export type { WorkOrderNote, WorkOrderImage };
 
 export type NotificationData = {
   work_order_id?: string;

@@ -235,5 +235,3 @@ export const useUnifiedPermissions = () => {
     clearPermissionCache: () => permissionEngine.clearCache()
   };
 };
-
-export type UnifiedPermissions = ReturnType<typeof useUnifiedPermissions>;

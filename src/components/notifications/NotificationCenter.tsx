@@ -175,5 +175,4 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
   );
 };
 
-export default NotificationCenter;
 

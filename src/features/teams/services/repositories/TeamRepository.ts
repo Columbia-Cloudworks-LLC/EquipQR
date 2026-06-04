@@ -19,9 +19,6 @@ import type {
   TeamUpdate
 } from '@/features/teams/types/team';
 
-// Re-export for backward compatibility
-export type { TeamMember as OptimizedTeamMember };
-
 /**
  * Unified Team Repository using optimized queries for better performance
  * Provides a single interface for all team-related operations

@@ -363,4 +363,3 @@ export const PartsManagersSheet: React.FC<PartsManagersSheetProps> = ({
   );
 };
 
-export default PartsManagersSheet;

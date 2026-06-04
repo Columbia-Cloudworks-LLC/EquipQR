@@ -37,33 +37,6 @@ export interface TeamMember {
 }
 
 /**
- * Simplified team member for display purposes
- */
-export interface TeamMemberDisplay {
-  id: string;
-  name: string;
-  email: string;
-  role: TeamMemberRole;
-}
-
-// ============================================
-// Team Location Types
-// ============================================
-
-export interface TeamLocation {
-  address?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  lat?: number;
-  lng?: number;
-}
-
-// ============================================
-// Team Types
-// ============================================
-
-/**
  * Team with computed member count
  * Used for list views where full member data isn't needed
  */
@@ -105,18 +78,6 @@ export type ExternalContactUpdate = Database['public']['Tables']['external_custo
 /** Rows returned by list queries that omit debug-only `source_payload`. */
 export type ExternalContactListRow = Omit<ExternalContactRow, 'source_payload'>;
 
-export interface CustomerAccountSummary {
-  id: string;
-  name: string;
-  status: string;
-  email?: string | null;
-  phone?: string | null;
-  is_tax_exempt?: boolean | null;
-  quickbooks_tax_status_synced_at?: string | null;
-  quickbooks_customer_id?: string | null;
-  quickbooks_synced_at?: string | null;
-}
-
 /**
  * Team with full member details
  * Used when displaying team details or editing
@@ -129,26 +90,5 @@ export interface TeamWithMembers extends TeamRow {
     } | null;
   }>;
   member_count: number;
-}
-
-/**
- * @deprecated Use Team instead
- * Alias for backward compatibility
- */
-export type OptimizedTeam = Team;
-
-/**
- * @deprecated Use TeamMember instead  
- * Alias for backward compatibility
- */
-export type OptimizedTeamMember = TeamMember;
-
-// ============================================
-// Team Filter Types
-// ============================================
-
-export interface TeamFilters {
-  search?: string;
-  organizationId?: string;
 }
 

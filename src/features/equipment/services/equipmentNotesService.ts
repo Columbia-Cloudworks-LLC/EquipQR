@@ -11,15 +11,7 @@ import {
   batchResolveEquipmentNoteImageDisplayUrls,
   extractEquipmentDisplayImagePath,
 } from '@/services/imageUploadService';
-import type { EquipmentNote, EquipmentNoteImage } from '@/features/equipment/types/equipmentNotes';
-
-// Re-export types for backward compatibility
-export type { EquipmentNote, EquipmentNoteImage };
-
-/**
- * @deprecated Use EquipmentNote from @/types/equipmentNotes instead
- */
-export type OptimizedEquipmentNote = EquipmentNote;
+import type { EquipmentNote } from '@/features/equipment/types/equipmentNotes';
 
 // Get notes with images for equipment
 export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<EquipmentNote[]> => {

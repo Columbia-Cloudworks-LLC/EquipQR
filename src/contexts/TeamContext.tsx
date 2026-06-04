@@ -46,4 +46,3 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export { TeamContext };
-export type { TeamMembership, TeamMembershipContextType };

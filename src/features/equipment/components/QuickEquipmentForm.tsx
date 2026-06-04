@@ -380,5 +380,4 @@ export const QuickEquipmentForm: React.FC<QuickEquipmentFormProps> = ({
   );
 };
 
-export default QuickEquipmentForm;
 

@@ -480,4 +480,3 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
   );
 };
 
-export default QuickBooksCustomerMapping;

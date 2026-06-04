@@ -28,7 +28,6 @@ import {
 // Re-export types for backward compatibility
 export type {
   WorkOrder,
-  WorkOrderRow,
   WorkOrderCreateData,
   WorkOrderUpdateData,
   WorkOrderNote,

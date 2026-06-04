@@ -171,4 +171,3 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
   );
 };
 
-export default GoogleWorkspaceIntegration;

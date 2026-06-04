@@ -233,4 +233,3 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
   );
 };
 
-export default MobileWorkOrderFieldNextAction;

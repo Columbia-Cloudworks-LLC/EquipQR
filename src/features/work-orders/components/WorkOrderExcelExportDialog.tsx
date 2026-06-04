@@ -447,5 +447,4 @@ export const WorkOrderExcelExportDialog: React.FC<WorkOrderExcelExportDialogProp
   );
 };
 
-export default WorkOrderExcelExportDialog;
 

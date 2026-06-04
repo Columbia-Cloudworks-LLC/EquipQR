@@ -35,8 +35,6 @@ export interface PMTemplateSummary {
   itemCount: number;
 }
 
-export type TemplateItem = PMChecklistItem; // same shape as runtime, but condition always null in storage
-
 // Helper function to generate sections summary from template data
 export const generateSectionsSummary = (templateData: PMChecklistItem[]): { name: string; count: number }[] => {
   const sectionCounts = templateData.reduce((acc, item) => {

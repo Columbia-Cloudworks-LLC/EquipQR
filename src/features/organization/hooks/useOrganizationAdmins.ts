@@ -10,9 +10,6 @@ import type { Database } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
 import type { OrganizationAdmin } from '@/features/organization/types/organization';
 
-// Re-export the type for backward compatibility
-export type { OrganizationAdmin };
-
 /**
  * Hook for fetching organization admins (owners and admins)
  */

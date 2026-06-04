@@ -60,18 +60,3 @@ export interface MatchingPMTemplateResult {
   matched_manufacturer: string;
   matched_model: string | null;
 }
-
-/**
- * PMTemplateWithMatchInfo - Extended template info with match context.
- * 
- * Used in UI to display matching templates with their match reason.
- */
-export interface PMTemplateWithMatchInfo {
-  id: string;
-  name: string;
-  description: string | null;
-  isProtected: boolean;
-  organizationId: string | null;
-  matchType: 'model' | 'manufacturer' | 'direct' | 'none';
-  matchReason?: string;  // Human-readable match reason
-}
