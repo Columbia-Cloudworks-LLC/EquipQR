@@ -1,9 +1,5 @@
 // Using Deno.serve (built-in)
-import {
-  createClient,
-  type SupabaseClient,
-} from "npm:@supabase/supabase-js@2.45.0";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import {
   QBO_API_BASE,
   QBO_ENVIRONMENT,
@@ -19,7 +15,12 @@ import {
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
 import { createRedactedLogStep } from "../_shared/redacted-logger.ts";
-import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
+import { MissingSecretError } from "../_shared/require-secret.ts";
+import {
+  createQuickBooksServiceSupabaseClient,
+  handleQuickBooksCorsPreflight,
+  loadQuickBooksFunctionSecrets,
+} from "../_shared/quickbooks-function-bootstrap.ts";
 import {
   buildInvoiceLines,
   buildPrivateNote,
@@ -243,23 +244,17 @@ async function confirmCustomerTaxStatus(
 }
 
 Deno.serve(withCorrelationId(async (req, ctx) => {
-  const corsHeaders = getCorsHeaders(req);
-
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+  const { corsHeaders, preflightResponse } = handleQuickBooksCorsPreflight(req);
+  if (preflightResponse) {
+    return preflightResponse;
   }
 
   try {
     logStep("Function started", { correlation_id: ctx.correlationId });
 
-    const clientId = requireSecret("INTUIT_CLIENT_ID", { functionName: FUNCTION_NAME });
-    const clientSecret = requireSecret("INTUIT_CLIENT_SECRET", { functionName: FUNCTION_NAME });
-    const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: FUNCTION_NAME });
-    const supabaseServiceKey = requireSecret("SUPABASE_SERVICE_ROLE_KEY", { functionName: FUNCTION_NAME });
-
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false },
-    });
+    const { clientId, clientSecret, supabaseUrl, supabaseServiceKey } =
+      loadQuickBooksFunctionSecrets(FUNCTION_NAME);
+    const supabaseClient = createQuickBooksServiceSupabaseClient(supabaseUrl, supabaseServiceKey);
 
     const authResult = await requireBearerUserJsonUnauthorized(
       req,
