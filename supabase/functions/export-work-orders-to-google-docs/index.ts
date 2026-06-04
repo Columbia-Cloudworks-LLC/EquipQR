@@ -1,7 +1,6 @@
 import {
-  createUserSupabaseClient,
   createAdminSupabaseClient,
-  requireUser,
+  requireAuthenticatedPost,
   verifyOrgAdmin,
   createErrorResponse,
   handleCorsPreflightIfNeeded,
@@ -63,15 +62,11 @@ Deno.serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    if (req.method !== "POST") {
-      return createErrorResponse("Method not allowed", 405);
+    const authContext = await requireAuthenticatedPost(req);
+    if (authContext instanceof Response) {
+      return authContext;
     }
-
-    const supabase = createUserSupabaseClient(req);
-    const auth = await requireUser(req, supabase);
-    if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status);
-    }
+    const { supabase, user } = authContext;
 
     let body: ExportRequest;
     try {
@@ -96,14 +91,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    const isAdmin = await verifyOrgAdmin(supabase, auth.user.id, organizationId);
+    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
     if (!isAdmin) {
       return createErrorResponse("Forbidden: Only owners and admins can export reports", 403);
     }
 
     let rateLimitOk: boolean;
     try {
-      rateLimitOk = await checkRateLimit(supabase, auth.user.id, organizationId);
+      rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
     } catch (rateLimitError) {
       console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Rate limit check error:", rateLimitError);
       return createErrorResponse("An internal error occurred", 500);
@@ -164,7 +159,7 @@ Deno.serve(async (req) => {
     const { data: exportLog, error: exportLogInsertError } = await adminClient
       .from("export_request_log")
       .insert({
-        user_id: auth.user.id,
+        user_id: user.id,
         organization_id: organizationId,
         report_type: "work-orders-google-docs",
         row_count: 0,
@@ -263,7 +258,7 @@ Deno.serve(async (req) => {
           web_view_link: webViewLink,
           provider_parent_id: targetParentId,
           last_exported_at: new Date().toISOString(),
-          last_exported_by: auth.user.id,
+          last_exported_by: user.id,
           status: "current",
         }, {
           onConflict: "organization_id,record_type,record_id,export_channel,artifact_kind",

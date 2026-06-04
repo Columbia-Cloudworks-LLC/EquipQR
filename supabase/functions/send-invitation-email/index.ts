@@ -8,8 +8,7 @@
 
 import { Resend } from "npm:resend@2.0.0";
 import {
-  createUserSupabaseClient,
-  requireUser,
+  requireAuthenticatedPost,
   verifyOrgAdmin,
   createErrorResponse,
   createJsonResponse,
@@ -64,20 +63,11 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
   try {
     logStep("Function started");
 
-    if (req.method !== "POST") {
-      return createErrorResponse("Method not allowed", 405);
+    const authContext = await requireAuthenticatedPost(req);
+    if (authContext instanceof Response) {
+      return authContext;
     }
-
-    // Create user-scoped client (RLS enforced)
-    const supabase = createUserSupabaseClient(req);
-
-    // Validate user authentication
-    const auth = await requireUser(req, supabase);
-    if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status);
-    }
-
-    const { user } = auth;
+    const { supabase, user } = authContext;
     logStep("User authenticated", { userId: user.id });
 
     const {

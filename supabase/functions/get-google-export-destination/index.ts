@@ -1,6 +1,5 @@
 import {
-  createUserSupabaseClient,
-  requireUser,
+  requireAuthenticatedPost,
   verifyOrgAdmin,
   handleCorsPreflightIfNeeded,
   createErrorResponse,
@@ -17,15 +16,11 @@ Deno.serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    if (req.method !== "POST") {
-      return createErrorResponse("Method not allowed", 405);
+    const authContext = await requireAuthenticatedPost(req);
+    if (authContext instanceof Response) {
+      return authContext;
     }
-
-    const supabase = createUserSupabaseClient(req);
-    const auth = await requireUser(req, supabase);
-    if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status);
-    }
+    const { supabase, user } = authContext;
 
     let body: GetDestinationRequest;
     try {
@@ -41,7 +36,7 @@ Deno.serve(async (req) => {
       return createErrorResponse("Missing required field: organizationId", 400);
     }
 
-    const isAdmin = await verifyOrgAdmin(supabase, auth.user.id, organizationId);
+    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
     if (!isAdmin) {
       return createErrorResponse("Forbidden: Only owners and admins can manage export destinations", 403);
     }

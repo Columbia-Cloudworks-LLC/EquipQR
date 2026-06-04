@@ -1,7 +1,6 @@
 import {
-  createUserSupabaseClient,
   createAdminSupabaseClient,
-  requireUser,
+  requireAuthenticatedPost,
   verifyOrgAdmin,
   createErrorResponse,
   handleCorsPreflightIfNeeded,
@@ -24,15 +23,11 @@ Deno.serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    if (req.method !== "POST") {
-      return createErrorResponse("Method not allowed", 405);
+    const authContext = await requireAuthenticatedPost(req);
+    if (authContext instanceof Response) {
+      return authContext;
     }
-
-    const supabase = createUserSupabaseClient(req);
-    const auth = await requireUser(req, supabase);
-    if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status);
-    }
+    const { supabase, user } = authContext;
 
     let body: SetDestinationRequest;
     try {
@@ -59,7 +54,7 @@ Deno.serve(async (req) => {
       return createErrorResponse("Unsupported format", 400);
     }
 
-    const isAdmin = await verifyOrgAdmin(supabase, auth.user.id, organizationId);
+    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
     if (!isAdmin) {
       return createErrorResponse("Forbidden: Only owners and admins can manage export destinations", 403);
     }
@@ -107,7 +102,7 @@ Deno.serve(async (req) => {
       parent_id: destination.parentId,
       display_name: destination.displayName,
       web_view_link: destination.webViewLink,
-      configured_by: auth.user.id,
+      configured_by: user.id,
     };
     if (typeof body.folderByTeam === "boolean") {
       upsertPayload.folder_by_team = body.folderByTeam;
