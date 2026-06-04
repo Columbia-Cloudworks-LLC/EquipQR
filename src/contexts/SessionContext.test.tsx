@@ -113,11 +113,11 @@ describe('SessionContext', () => {
     <SessionProvider>{children}</SessionProvider>
   );
 
+  const renderSessionHook = () =>
+    renderHook(() => React.useContext(SessionContext), { wrapper: createWrapper() });
+
   it('should initialize with loading state', () => {
-    const { result } = renderHook(
-      () => React.useContext(SessionContext),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderSessionHook();
 
     expect(result.current?.isLoading).toBe(true);
     expect(result.current?.sessionData).toBe(null);
@@ -131,10 +131,7 @@ describe('SessionContext', () => {
       needsRefresh: false,
     });
 
-    const { result } = renderHook(
-      () => React.useContext(SessionContext),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderSessionHook();
 
     await waitFor(() => {
       expect(result.current?.isLoading).toBe(false);
@@ -151,10 +148,7 @@ describe('SessionContext', () => {
       needsRefresh: true,
     });
 
-    const { result } = renderHook(
-      () => React.useContext(SessionContext),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderSessionHook();
 
     await waitFor(() => {
       expect(result.current?.isLoading).toBe(false);
@@ -171,10 +165,7 @@ describe('SessionContext', () => {
       needsRefresh: false,
     });
 
-    renderHook(
-      () => React.useContext(SessionContext),
-      { wrapper: createWrapper() }
-    );
+    renderSessionHook();
 
     expect(mockSessionManager.refreshSession).toHaveBeenCalledWith(true);
   });
@@ -183,10 +174,7 @@ describe('SessionContext', () => {
     mockUseAuth.mockReturnValue({ user: null, isLoading: true });
     mockSessionManager.initializeSession.mockReturnValue({ waitForAuth: true });
 
-    const { result } = renderHook(
-      () => React.useContext(SessionContext),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderSessionHook();
 
     await waitFor(() => {
       expect(mockSessionManager.initializeSession).toHaveBeenCalled();
@@ -204,10 +192,7 @@ describe('SessionContext', () => {
       needsRefresh: false,
     });
 
-    const { result } = renderHook(
-      () => React.useContext(SessionContext),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderSessionHook();
 
     await waitFor(() => {
       expect(result.current?.isLoading).toBe(false);
@@ -226,10 +211,7 @@ describe('SessionContext', () => {
   it('should handle page visibility changes', async () => {
     mockSessionManager.shouldRefreshOnVisibility.mockReturnValue(true);
 
-    renderHook(
-      () => React.useContext(SessionContext),
-      { wrapper: createWrapper() }
-    );
+    renderSessionHook();
 
     // Simulate visibility change
     if ((mockUsePageVisibility as MockVisibilityHook).mockVisibilityCallback) {
@@ -243,10 +225,7 @@ describe('SessionContext', () => {
   it('should not refresh on visibility change when not needed', async () => {
     mockSessionManager.shouldRefreshOnVisibility.mockReturnValue(false);
 
-    renderHook(
-      () => React.useContext(SessionContext),
-      { wrapper: createWrapper() }
-    );
+    renderSessionHook();
 
     // Clear previous calls
     mockSessionManager.refreshSession.mockClear();
@@ -267,10 +246,7 @@ describe('SessionContext', () => {
       needsRefresh: false,
     });
 
-    const { result } = renderHook(
-      () => React.useContext(SessionContext),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderSessionHook();
 
     await waitFor(() => {
       expect(result.current?.isLoading).toBe(false);
@@ -290,10 +266,7 @@ describe('SessionContext', () => {
       needsRefresh: false,
     });
 
-    const { result } = renderHook(
-      () => React.useContext(SessionContext),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderSessionHook();
 
     await waitFor(() => {
       expect(result.current?.isLoading).toBe(false);
@@ -311,10 +284,7 @@ describe('SessionContext', () => {
   });
 
   it('should handle user changes', async () => {
-    const { rerender } = renderHook(
-      () => React.useContext(SessionContext),
-      { wrapper: createWrapper() }
-    );
+    const { rerender } = renderSessionHook();
 
     // Clear previous calls
     mockSessionManager.refreshSession.mockClear();

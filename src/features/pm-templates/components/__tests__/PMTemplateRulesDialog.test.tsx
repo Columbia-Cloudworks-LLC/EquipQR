@@ -88,28 +88,32 @@ describe('PMTemplateRulesDialog', () => {
     } as unknown as ReturnType<typeof useBulkSetPMTemplateRules>);
   });
 
+  const renderRulesDialog = (
+    overrides?: Partial<typeof defaultProps>,
+  ) => render(<PMTemplateRulesDialog {...defaultProps} {...overrides} />);
+
   describe('Dialog Rendering', () => {
     it('renders dialog when open is true', () => {
-      render(<PMTemplateRulesDialog {...defaultProps} />);
+      renderRulesDialog();
 
       expect(screen.getByRole('dialog')).toBeInTheDocument();
       expect(screen.getByText('Configure Compatibility Rules')).toBeInTheDocument();
     });
 
     it('shows template name in description', () => {
-      render(<PMTemplateRulesDialog {...defaultProps} />);
+      renderRulesDialog();
 
       expect(screen.getByText(/Forklift PM Checklist/)).toBeInTheDocument();
     });
 
     it('does not render when open is false', () => {
-      render(<PMTemplateRulesDialog {...defaultProps} open={false} />);
+      renderRulesDialog({ open: false });
 
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
     it('renders Cancel and Save Rules buttons', () => {
-      render(<PMTemplateRulesDialog {...defaultProps} />);
+      renderRulesDialog();
 
       expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /save rules/i })).toBeInTheDocument();
@@ -128,7 +132,7 @@ describe('PMTemplateRulesDialog', () => {
         fetchStatus: 'fetching'
       } as ReturnType<typeof usePMTemplateCompatibilityRules>);
 
-      render(<PMTemplateRulesDialog {...defaultProps} />);
+      renderRulesDialog();
 
       // Should show spinner (lucide-loader2 has animate-spin class)
       const spinner = document.querySelector('.animate-spin');
@@ -146,7 +150,7 @@ describe('PMTemplateRulesDialog', () => {
         fetchStatus: 'fetching'
       } as ReturnType<typeof usePMTemplateCompatibilityRules>);
 
-      render(<PMTemplateRulesDialog {...defaultProps} />);
+      renderRulesDialog();
 
       expect(screen.queryByTestId('rules-editor')).not.toBeInTheDocument();
     });
@@ -167,7 +171,7 @@ describe('PMTemplateRulesDialog', () => {
         fetchStatus: 'idle'
       } as unknown as ReturnType<typeof usePMTemplateCompatibilityRules>);
 
-      render(<PMTemplateRulesDialog {...defaultProps} />);
+      renderRulesDialog();
 
       await waitFor(() => {
         expect(screen.getByTestId('rules-count')).toHaveTextContent('2');
@@ -185,7 +189,7 @@ describe('PMTemplateRulesDialog', () => {
         fetchStatus: 'idle'
       } as ReturnType<typeof usePMTemplateCompatibilityRules>);
 
-      render(<PMTemplateRulesDialog {...defaultProps} />);
+      renderRulesDialog();
 
       expect(screen.getByTestId('rules-count')).toHaveTextContent('0');
     });
@@ -193,14 +197,14 @@ describe('PMTemplateRulesDialog', () => {
 
   describe('Save Button State', () => {
     it('disables Save button when no changes made', () => {
-      render(<PMTemplateRulesDialog {...defaultProps} />);
+      renderRulesDialog();
 
       const saveButton = screen.getByRole('button', { name: /save rules/i });
       expect(saveButton).toBeDisabled();
     });
 
     it('enables Save button after modifications', async () => {
-      render(<PMTemplateRulesDialog {...defaultProps} />);
+      renderRulesDialog();
 
       // Simulate a rule change
       const addButton = screen.getByTestId('simulate-change');
@@ -215,7 +219,7 @@ describe('PMTemplateRulesDialog', () => {
 
   describe('Cancel Behavior', () => {
     it('calls onClose when Cancel is clicked', () => {
-      render(<PMTemplateRulesDialog {...defaultProps} />);
+      renderRulesDialog();
 
       const cancelButton = screen.getByRole('button', { name: /cancel/i });
       fireEvent.click(cancelButton);
@@ -224,7 +228,7 @@ describe('PMTemplateRulesDialog', () => {
     });
 
     it('closes dialog even with unsaved changes', async () => {
-      render(<PMTemplateRulesDialog {...defaultProps} />);
+      renderRulesDialog();
 
       // Make changes
       const addButton = screen.getByTestId('simulate-change');
@@ -240,7 +244,7 @@ describe('PMTemplateRulesDialog', () => {
 
   describe('Save Flow', () => {
     it('calls bulkSetRules.mutateAsync when Save is clicked', async () => {
-      render(<PMTemplateRulesDialog {...defaultProps} />);
+      renderRulesDialog();
 
       // Make changes to enable save button
       const addButton = screen.getByTestId('simulate-change');
@@ -261,7 +265,7 @@ describe('PMTemplateRulesDialog', () => {
     it('closes dialog on successful save', async () => {
       mockMutateAsync.mockResolvedValue(undefined);
 
-      render(<PMTemplateRulesDialog {...defaultProps} />);
+      renderRulesDialog();
 
       // Make changes
       const addButton = screen.getByTestId('simulate-change');
@@ -298,7 +302,7 @@ describe('PMTemplateRulesDialog', () => {
         mutate: vi.fn()
       } as unknown as ReturnType<typeof useBulkSetPMTemplateRules>);
 
-      render(<PMTemplateRulesDialog {...defaultProps} />);
+      renderRulesDialog();
 
       const cancelButton = screen.getByRole('button', { name: /cancel/i });
       const saveButton = screen.getByRole('button', { name: /save rules/i });
@@ -327,7 +331,7 @@ describe('PMTemplateRulesDialog', () => {
         mutate: vi.fn()
       } as unknown as ReturnType<typeof useBulkSetPMTemplateRules>);
 
-      render(<PMTemplateRulesDialog {...defaultProps} />);
+      renderRulesDialog();
 
       expect(screen.getByTestId('editor-disabled')).toHaveTextContent('true');
     });
@@ -352,7 +356,7 @@ describe('PMTemplateRulesDialog', () => {
         mutate: vi.fn()
       } as unknown as ReturnType<typeof useBulkSetPMTemplateRules>);
 
-      render(<PMTemplateRulesDialog {...defaultProps} />);
+      renderRulesDialog();
 
       // Check for spinner inside save button
       const saveButton = screen.getByRole('button', { name: /save rules/i });
@@ -363,7 +367,7 @@ describe('PMTemplateRulesDialog', () => {
 
   describe('Dialog Close Behavior', () => {
     it('resets hasChanges when dialog closes', async () => {
-      const { rerender } = render(<PMTemplateRulesDialog {...defaultProps} />);
+      const { rerender } = renderRulesDialog();
 
       // Make changes
       const addButton = screen.getByTestId('simulate-change');
@@ -385,7 +389,7 @@ describe('PMTemplateRulesDialog', () => {
 
   describe('Query Options', () => {
     it('only fetches rules when dialog is open', () => {
-      render(<PMTemplateRulesDialog {...defaultProps} open={false} />);
+      renderRulesDialog({ open: false });
 
       // The hook should be called with enabled: false
       expect(usePMTemplateCompatibilityRules).toHaveBeenCalledWith(
@@ -395,7 +399,7 @@ describe('PMTemplateRulesDialog', () => {
     });
 
     it('fetches rules when dialog opens', () => {
-      render(<PMTemplateRulesDialog {...defaultProps} open={true} />);
+      renderRulesDialog({ open: true });
 
       expect(usePMTemplateCompatibilityRules).toHaveBeenCalledWith(
         'template-123',

@@ -118,11 +118,17 @@ describe('AuthContext', () => {
     <AuthProvider>{children}</AuthProvider>
   );
 
+  const renderAuthHook = () =>
+    renderHook(() => React.useContext(AuthContext), { wrapper: createWrapper() });
+
+  const flushAuthTimers = async () => {
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+  };
+
   it('should initialize with loading state', () => {
-    const { result } = renderHook(
-      () => React.useContext(AuthContext),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderAuthHook();
 
     expect(result.current?.isLoading).toBe(true);
     expect(result.current?.user).toBe(null);
@@ -137,15 +143,10 @@ describe('AuthContext', () => {
       })
     );
 
-    const { result } = renderHook(
-      () => React.useContext(AuthContext),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderAuthHook();
 
     // Wait for initial session check to complete
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await flushAuthTimers();
 
     expect(result.current?.isLoading).toBe(false);
     expect(result.current?.user).toEqual(mockUser);
@@ -153,15 +154,10 @@ describe('AuthContext', () => {
   });
 
   it('should handle sign-in auth state change', async () => {
-    const { result } = renderHook(
-      () => React.useContext(AuthContext),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderAuthHook();
 
     // Wait for initial load
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await flushAuthTimers();
 
     expect(result.current?.isLoading).toBe(false);
 
@@ -179,15 +175,10 @@ describe('AuthContext', () => {
     window.sessionStorage.getItem = vi.fn().mockReturnValue(mockRedirectUrl);
     window.sessionStorage.removeItem = vi.fn();
 
-    const { result } = renderHook(
-      () => React.useContext(AuthContext),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderAuthHook();
 
     // Wait for initial load
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await flushAuthTimers();
 
     expect(result.current?.isLoading).toBe(false);
 
@@ -205,15 +196,10 @@ describe('AuthContext', () => {
   });
 
   it('should handle token refresh without triggering redirect', async () => {
-    const { result } = renderHook(
-      () => React.useContext(AuthContext),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderAuthHook();
 
     // Wait for initial load
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await flushAuthTimers();
 
     expect(result.current?.isLoading).toBe(false);
 
@@ -227,15 +213,10 @@ describe('AuthContext', () => {
   });
 
   it('should handle sign up', async () => {
-    const { result } = renderHook(
-      () => React.useContext(AuthContext),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderAuthHook();
 
     // Wait for initial load
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await flushAuthTimers();
 
     expect(result.current?.isLoading).toBe(false);
 
@@ -258,15 +239,10 @@ describe('AuthContext', () => {
   });
 
   it('should handle sign in', async () => {
-    const { result } = renderHook(
-      () => React.useContext(AuthContext),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderAuthHook();
 
     // Wait for initial load
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await flushAuthTimers();
 
     expect(result.current?.isLoading).toBe(false);
 
@@ -283,15 +259,10 @@ describe('AuthContext', () => {
   });
 
   it('should handle Google sign in', async () => {
-    const { result } = renderHook(
-      () => React.useContext(AuthContext),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderAuthHook();
 
     // Wait for initial load
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await flushAuthTimers();
 
     expect(result.current?.isLoading).toBe(false);
 
@@ -312,10 +283,7 @@ describe('AuthContext', () => {
   it('should handle sign out', async () => {
     vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null });
 
-    const { result } = renderHook(
-      () => React.useContext(AuthContext),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderAuthHook();
 
     // Set up initial state with user
     act(() => {
@@ -341,10 +309,7 @@ describe('AuthContext', () => {
     vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: mockError });
     console.warn = vi.fn();
 
-    const { result } = renderHook(
-      () => React.useContext(AuthContext),
-      { wrapper: createWrapper() }
-    );
+    const { result } = renderAuthHook();
 
     await act(async () => {
       await result.current!.signOut();
@@ -356,10 +321,7 @@ describe('AuthContext', () => {
   });
 
   it('should clean up subscription on unmount', () => {
-    const { unmount } = renderHook(
-      () => React.useContext(AuthContext),
-      { wrapper: createWrapper() }
-    );
+    const { unmount } = renderAuthHook();
 
     unmount();
 

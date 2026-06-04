@@ -5,10 +5,9 @@
  * notes (both work order and equipment) with server-fetched notes.
  */
 
-import React from 'react';
 import { renderHook } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { createQueryClientWrapper } from '@/test/utils/test-utils';
 import {
   useOfflineMergedNotes,
   OFFLINE_NOTE_ID_PREFIX,
@@ -46,17 +45,7 @@ vi.mock('@/utils/logger', () => ({
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-const createTestQueryClient = () =>
-  new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
-
-const createWrapper = () => {
-  const queryClient = createTestQueryClient();
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
-};
+const createWrapper = createQueryClientWrapper;
 
 interface ServerNote {
   id: string;

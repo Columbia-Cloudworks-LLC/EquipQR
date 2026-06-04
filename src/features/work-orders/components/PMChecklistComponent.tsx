@@ -31,6 +31,50 @@ function isItemComplete(item: PMChecklistItem): boolean {
   return item.condition !== undefined && item.condition !== null;
 }
 
+function getChecklistTitle(
+  templateName: string | null | undefined,
+  templateId: string | null | undefined,
+): string {
+  if (templateName) {
+    return `${templateName} - Preventative Maintenance Checklist`;
+  }
+  if (templateId) {
+    return 'Preventative Maintenance Checklist';
+  }
+  return 'Forklift Preventative Maintenance Checklist';
+}
+
+type PMChecklistStatusHeaderProps = {
+  statusIcon: React.ReactNode;
+  title: string;
+  statusLabel: string;
+  statusColorClass: string;
+  titleClassName?: string;
+  badgeRowExtras?: React.ReactNode;
+};
+
+function PMChecklistStatusHeader({
+  statusIcon,
+  title,
+  statusLabel,
+  statusColorClass,
+  titleClassName,
+  badgeRowExtras,
+}: PMChecklistStatusHeaderProps) {
+  return (
+    <>
+      {statusIcon}
+      <div>
+        <CardTitle className={titleClassName}>{title}</CardTitle>
+        <div className="flex items-center gap-2 mt-1">
+          <Badge className={statusColorClass}>{statusLabel}</Badge>
+          {badgeRowExtras}
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ============================================
 // Main Component
 // ============================================
@@ -596,6 +640,9 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }
   };
 
+  const checklistTitle = getChecklistTitle(templateName, pm.template_id);
+  const statusLabel = pm.status.replace('_', ' ').toUpperCase();
+
   // getConditionColor, getConditionText, and isItemComplete are hoisted to module scope
 
   // Memoize expensive calculations — single pass over the checklist array
@@ -717,22 +764,12 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {getStatusIcon()}
-              <div>
-                <CardTitle>
-                  {templateName 
-                    ? `${templateName} - Preventative Maintenance Checklist`
-                    : pm.template_id 
-                      ? 'Preventative Maintenance Checklist' 
-                      : 'Forklift Preventative Maintenance Checklist'
-                  }
-                </CardTitle>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge className={getStatusColor()}>
-                    {pm.status.replace('_', ' ').toUpperCase()}
-                  </Badge>
-                </div>
-              </div>
+              <PMChecklistStatusHeader
+                statusIcon={getStatusIcon()}
+                title={checklistTitle}
+                statusLabel={statusLabel}
+                statusColorClass={getStatusColor()}
+              />
             </div>
           </div>
         </CardHeader>
@@ -750,22 +787,12 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {getStatusIcon()}
-              <div>
-                <CardTitle>
-                  {templateName 
-                    ? `${templateName} - Preventative Maintenance Checklist`
-                    : pm.template_id 
-                      ? 'Preventative Maintenance Checklist' 
-                      : 'Forklift Preventative Maintenance Checklist'
-                  }
-                </CardTitle>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge className={getStatusColor()}>
-                    {pm.status.replace('_', ' ').toUpperCase()}
-                  </Badge>
-                </div>
-              </div>
+              <PMChecklistStatusHeader
+                statusIcon={getStatusIcon()}
+                title={checklistTitle}
+                statusLabel={statusLabel}
+                statusColorClass={getStatusColor()}
+              />
             </div>
           </div>
         </CardHeader>
@@ -800,22 +827,13 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             {/* Title Row */}
             <div className="flex items-center gap-3">
               {getStatusIcon()}
-              <CardTitle className="text-lg leading-tight">
-                {templateName 
-                  ? `${templateName} - Preventative Maintenance Checklist`
-                  : pm.template_id 
-                    ? 'Preventative Maintenance Checklist' 
-                    : 'Forklift Preventative Maintenance Checklist'
-                }
-              </CardTitle>
+              <CardTitle className="text-lg leading-tight">{checklistTitle}</CardTitle>
             </div>
             
             {/* Status and Progress Row */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <Badge className={getStatusColor()}>
-                  {pm.status.replace('_', ' ').toUpperCase()}
-                </Badge>
+                <Badge className={getStatusColor()}>{statusLabel}</Badge>
                 {hasUnsavedChanges && (
                   <Badge variant="outline" className="text-xs">Unsaved changes</Badge>
                 )}
@@ -834,35 +852,29 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         ) : (
           // Desktop: Horizontal layout
           <div className="flex items-center gap-3">
-            {getStatusIcon()}
-            <div>
-              <CardTitle>
-                {templateName 
-                  ? `${templateName} - Preventative Maintenance Checklist`
-                  : pm.template_id 
-                    ? 'Preventative Maintenance Checklist' 
-                    : 'Forklift Preventative Maintenance Checklist'
-                }
-              </CardTitle>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge className={getStatusColor()}>
-                  {pm.status.replace('_', ' ').toUpperCase()}
-                </Badge>
-                {hasUnsavedChanges && (
-                  <Badge variant="outline" className="text-xs">Unsaved changes</Badge>
-                )}
-                <span className="text-sm text-muted-foreground">
-                  Progress: {completedItems.length}/{totalItems} items completed
-                </span>
-                {!readOnly && (
-                  <SaveStatus 
-                    status={saveStatus} 
-                    lastSaved={lastSaved}
-                    className="ml-2"
-                  />
-                )}
-              </div>
-            </div>
+            <PMChecklistStatusHeader
+              statusIcon={getStatusIcon()}
+              title={checklistTitle}
+              statusLabel={statusLabel}
+              statusColorClass={getStatusColor()}
+              badgeRowExtras={
+                <>
+                  {hasUnsavedChanges && (
+                    <Badge variant="outline" className="text-xs">Unsaved changes</Badge>
+                  )}
+                  <span className="text-sm text-muted-foreground">
+                    Progress: {completedItems.length}/{totalItems} items completed
+                  </span>
+                  {!readOnly && (
+                    <SaveStatus
+                      status={saveStatus}
+                      lastSaved={lastSaved}
+                      className="ml-2"
+                    />
+                  )}
+                </>
+              }
+            />
           </div>
         )}
       </CardHeader>

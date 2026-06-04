@@ -38,6 +38,32 @@ interface ExportErrorResponse {
   code?: string;
 }
 
+async function postWorkOrderExport(
+  endpoint: string,
+  organizationId: string,
+  filters: WorkOrderExcelFilters
+): Promise<Response> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+
+  if (!accessToken) {
+    throw new Error('Not authenticated');
+  }
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  return fetch(`${supabaseUrl}/functions/v1/${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      organizationId,
+      filters,
+    }),
+  });
+}
+
 /**
  * Export work orders via edge function (bulk export)
  */
@@ -47,26 +73,11 @@ async function exportWorkOrdersExcel(
 ): Promise<Blob> {
   logger.info('Initiating bulk work order Excel export', { organizationId });
 
-  // Use fetch directly instead of supabase.functions.invoke for binary response
-  const { data: sessionData } = await supabase.auth.getSession();
-  const accessToken = sessionData?.session?.access_token;
-  
-  if (!accessToken) {
-    throw new Error('Not authenticated');
-  }
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const response = await fetch(`${supabaseUrl}/functions/v1/export-work-orders-excel`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({
-      organizationId,
-      filters,
-    }),
-  });
+  const response = await postWorkOrderExport(
+    'export-work-orders-excel',
+    organizationId,
+    filters
+  );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
@@ -90,25 +101,11 @@ async function exportWorkOrdersToGoogleSheets(
 ): Promise<GoogleSheetsExportResponse> {
   logger.info('Initiating Google Sheets export', { organizationId });
 
-  const { data: sessionData } = await supabase.auth.getSession();
-  const accessToken = sessionData?.session?.access_token;
-  
-  if (!accessToken) {
-    throw new Error('Not authenticated');
-  }
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const response = await fetch(`${supabaseUrl}/functions/v1/export-work-orders-to-google-sheets`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({
-      organizationId,
-      filters,
-    }),
-  });
+  const response = await postWorkOrderExport(
+    'export-work-orders-to-google-sheets',
+    organizationId,
+    filters
+  );
 
   if (!response.ok) {
     const errorData: ExportErrorResponse = await response.json().catch(() => ({ error: 'Unknown error' }));
@@ -128,25 +125,11 @@ async function exportWorkOrdersToGoogleDocs(
 ): Promise<GoogleDocsExportResponse> {
   logger.info('Initiating Google Docs export', { organizationId });
 
-  const { data: sessionData } = await supabase.auth.getSession();
-  const accessToken = sessionData?.session?.access_token;
-
-  if (!accessToken) {
-    throw new Error('Not authenticated');
-  }
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const response = await fetch(`${supabaseUrl}/functions/v1/export-work-orders-to-google-docs`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({
-      organizationId,
-      filters,
-    }),
-  });
+  const response = await postWorkOrderExport(
+    'export-work-orders-to-google-docs',
+    organizationId,
+    filters
+  );
 
   if (!response.ok) {
     const errorData: ExportErrorResponse = await response.json().catch(() => ({ error: 'Unknown error' }));

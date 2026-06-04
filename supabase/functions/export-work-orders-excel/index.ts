@@ -19,6 +19,7 @@ import {
   fetchWorkOrdersWithData,
   buildAllRows,
   checkRateLimit,
+  createWorkOrderExportRateLimitResponse,
   WORKSHEET_NAMES,
   WORKSHEET_HEADERS,
   summaryRowToArray,
@@ -157,10 +158,7 @@ Deno.serve(async (req) => {
       return createErrorResponse('An internal error occurred', 500);
     }
     if (!rateLimitOk) {
-      return new Response(
-        JSON.stringify({ error: 'Rate limit exceeded. Please wait before requesting another export.' }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return createWorkOrderExportRateLimitResponse(corsHeaders);
     }
 
     const { data: exportLog } = await supabase

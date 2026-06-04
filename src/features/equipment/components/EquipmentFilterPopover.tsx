@@ -1,18 +1,16 @@
 import React from 'react';
-import { Building, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FilterPopoverClearAllFooter } from '@/components/filters/FilterPopoverClearAllFooter';
 import { FilterPopoverShell } from '@/components/filters/FilterPopoverShell';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { EquipmentFilters } from '@/features/equipment/hooks/useEquipmentFiltering';
+import {
+  EquipmentLocationSelect,
+  EquipmentManufacturerSelect,
+  EquipmentStatusSelect,
+} from '@/features/equipment/components/EquipmentFilterSelects';
+import { EQUIPMENT_QUICK_FILTERS } from '@/features/equipment/components/equipmentFilterConstants';
 
 // Team is intentionally not part of FilterOptions here — the team scope is
 // owned by the global TopBar `useSelectedTeam`. The popover only exposes
@@ -21,13 +19,6 @@ interface FilterOptions {
   manufacturers: string[];
   locations: string[];
 }
-
-const quickFilters = [
-  { label: 'Maintenance Due', value: 'maintenance-due' },
-  { label: 'Warranty Expiring', value: 'warranty-expiring' },
-  { label: 'Recently Added', value: 'recently-added' },
-  { label: 'Active Only', value: 'active-only' },
-];
 
 interface EquipmentFilterPopoverProps {
   filters: EquipmentFilters;
@@ -55,65 +46,47 @@ const EquipmentFilterPopover: React.FC<EquipmentFilterPopoverProps> = ({
           {/* Status */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs text-muted-foreground">Status</label>
-            <Select
+            <EquipmentStatusSelect
               value={filters.status}
               onValueChange={(value) => onFilterChange('status', value)}
-            >
-              <SelectTrigger className="h-8 text-sm" aria-label="Filter by status">
-                <SelectValue placeholder="All statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="maintenance">Maintenance</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="out_of_service">Out of Service</SelectItem>
-              </SelectContent>
-            </Select>
+              placeholder="All statuses"
+              triggerClassName="h-8 text-sm"
+              labels={{
+                all: 'All Statuses',
+                active: 'Active',
+                maintenance: 'Maintenance',
+                inactive: 'Inactive',
+                out_of_service: 'Out of Service',
+              }}
+            />
           </div>
 
           {/* Manufacturer */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs text-muted-foreground">Manufacturer</label>
-            <Select
+            <EquipmentManufacturerSelect
               value={filters.manufacturer}
               onValueChange={(value) => onFilterChange('manufacturer', value)}
-            >
-              <SelectTrigger className="h-8 text-sm" aria-label="Filter by manufacturer">
-                <Building className="h-3.5 w-3.5 mr-1.5 text-muted-foreground shrink-0" />
-                <SelectValue placeholder="All manufacturers" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Manufacturers</SelectItem>
-                {filterOptions.manufacturers.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              manufacturers={filterOptions.manufacturers}
+              placeholder="All manufacturers"
+              ariaLabel="Filter by manufacturer"
+              triggerClassName="h-8 text-sm"
+              showIcon
+            />
           </div>
 
           {/* Location */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs text-muted-foreground">Location</label>
-            <Select
+            <EquipmentLocationSelect
               value={filters.location}
               onValueChange={(value) => onFilterChange('location', value)}
-            >
-              <SelectTrigger className="h-8 text-sm" aria-label="Filter by location">
-                <MapPin className="h-3.5 w-3.5 mr-1.5 text-muted-foreground shrink-0" />
-                <SelectValue placeholder="All locations" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Locations</SelectItem>
-                {filterOptions.locations.map((l) => (
-                  <SelectItem key={l} value={l}>
-                    {l}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              locations={filterOptions.locations}
+              placeholder="All locations"
+              ariaLabel="Filter by location"
+              triggerClassName="h-8 text-sm"
+              showIcon
+            />
           </div>
 
           <Separator />
@@ -122,7 +95,7 @@ const EquipmentFilterPopover: React.FC<EquipmentFilterPopoverProps> = ({
           <div className="flex flex-col gap-1.5">
             <p className="text-xs text-muted-foreground">Quick filters</p>
             <div className="flex flex-wrap gap-1.5">
-              {quickFilters.map((preset) => (
+              {EQUIPMENT_QUICK_FILTERS.map((preset) => (
                 <button
                   key={preset.value}
                   onClick={() => onQuickFilter(preset.value)}

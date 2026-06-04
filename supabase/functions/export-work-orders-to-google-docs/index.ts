@@ -14,6 +14,7 @@ import {
 } from "../_shared/google-workspace-token.ts";
 import {
   checkRateLimit,
+  createWorkOrderExportRateLimitResponse,
   type ExportRequest,
 } from "../_shared/work-orders-export-data.ts";
 import { buildSingleWorkOrderGoogleDocData } from "../_shared/work-order-google-docs-single-data.ts";
@@ -104,10 +105,7 @@ Deno.serve(async (req) => {
       return createErrorResponse("An internal error occurred", 500);
     }
     if (!rateLimitOk) {
-      return new Response(
-        JSON.stringify({ error: "Rate limit exceeded. Please wait before requesting another export." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return createWorkOrderExportRateLimitResponse(corsHeaders);
     }
 
     const { data: destination, error: destinationError } = await supabase

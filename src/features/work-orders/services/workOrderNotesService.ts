@@ -1,6 +1,7 @@
 import { logger } from '@/utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
+import { resolveWorkOrderOrganizationId } from '@/features/work-orders/services/workOrderOrganizationService';
 import { validateStorageQuota } from '@/utils/storageQuota';
 import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import {
@@ -86,17 +87,7 @@ export const createWorkOrderNoteWithImages = async (
 ): Promise<WorkOrderNote> => {
   const userId = await requireAuthUserIdFromClaims();
 
-  // Get organization_id if not provided
-  let orgId = organizationId;
-  if (!orgId) {
-    const { data: workOrder } = await supabase
-      .from('work_orders')
-      .select('organization_id')
-      .eq('id', workOrderId)
-      .single();
-    if (!workOrder) throw new Error('Work order not found');
-    orgId = workOrder.organization_id;
-  }
+  const orgId = await resolveWorkOrderOrganizationId(workOrderId, organizationId);
 
   // Validate storage quota for all files before uploading
   const totalFileSize = images.reduce((sum, file) => sum + file.size, 0);

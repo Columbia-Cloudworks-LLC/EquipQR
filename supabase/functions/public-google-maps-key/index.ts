@@ -40,24 +40,11 @@ import {
   type RequestContext,
 } from "../_shared/supabase-clients.ts";
 import { MissingSecretError, optionalSecret, requireSecret } from "../_shared/require-secret.ts";
+import { createStructuredLogger } from "../_shared/structured-logger.ts";
 
 const FUNCTION_NAME = "public-google-maps-key";
 
-const logStep = (
-  step: string,
-  correlationId: string,
-  details?: Record<string, unknown>,
-) => {
-  console.log(
-    JSON.stringify({
-      level: "info",
-      function: FUNCTION_NAME,
-      correlation_id: correlationId,
-      step,
-      ...details,
-    }),
-  );
-};
+const logStep = createStructuredLogger(FUNCTION_NAME);
 
 /**
  * Inner request handler. Exported via `__testables` so the Deno test can
