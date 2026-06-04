@@ -11,7 +11,7 @@ import { Form } from "@/components/ui/form";
 import { OfflineFormBanner } from '@/features/offline-queue/components/OfflineFormBanner';
 import CustomAttributesSection from './CustomAttributesSection';
 import { useCustomAttributes, type CustomAttribute } from '@/hooks/useCustomAttributes';
-import { useEquipmentForm } from './hooks/useEquipmentForm';
+import { useEquipmentForm } from '@/features/equipment/hooks/useEquipmentForm';
 import { type EquipmentRecord } from '@/features/equipment/types/equipment';
 import EquipmentBasicInfoSection from './form/EquipmentBasicInfoSection';
 import EquipmentStatusLocationSection from './form/EquipmentStatusLocationSection';

@@ -8,6 +8,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { formatIsoZulu } from '@/utils/dateFormatter';
 import { logger } from '@/utils/logger';
+import { buildAuditLogQueryResult, resolveAuditPagination } from '@/services/auditPagination';
 import {
   AuditLogEntry,
   AuditLogFilters,
@@ -203,11 +204,8 @@ export const auditService = {
     pagination?: AuditLogPagination
   ): Promise<ServiceResponse<AuditLogQueryResult>> {
     try {
-      const page = pagination?.page ?? 1;
-      const pageSize = pagination?.pageSize ?? 20;
-      const offset = (page - 1) * pageSize;
-      
-      // Get total count first
+      const { pageSize, offset } = resolveAuditPagination(pagination, 20);
+
       const { count, error: countError } = await supabase
         .from('audit_log')
         .select('*', { count: 'exact', head: true })
@@ -217,7 +215,6 @@ export const auditService = {
       
       if (countError) throw countError;
       
-      // Get paginated data
       const { data, error } = await supabase
         .from('audit_log')
         .select('*')
@@ -229,13 +226,9 @@ export const auditService = {
       
       if (error) throw error;
       
-      const totalCount = count ?? 0;
-      
-      return handleSuccess({
-        data: data as AuditLogEntry[],
-        totalCount,
-        hasMore: offset + pageSize < totalCount,
-      });
+      return handleSuccess(
+        buildAuditLogQueryResult(data as AuditLogEntry[], count ?? 0, offset, pageSize),
+      );
     } catch (error) {
       return handleError(error);
     }
@@ -250,9 +243,7 @@ export const auditService = {
     pagination?: AuditLogPagination
   ): Promise<ServiceResponse<AuditLogQueryResult>> {
     try {
-      const page = pagination?.page ?? 1;
-      const pageSize = pagination?.pageSize ?? 50;
-      const offset = (page - 1) * pageSize;
+      const { pageSize, offset } = resolveAuditPagination(pagination, 50);
       
       // Build query
       let query = supabase
@@ -299,13 +290,9 @@ export const auditService = {
       
       if (error) throw error;
       
-      const totalCount = count ?? 0;
-      
-      return handleSuccess({
-        data: data as AuditLogEntry[],
-        totalCount,
-        hasMore: offset + pageSize < totalCount,
-      });
+      return handleSuccess(
+        buildAuditLogQueryResult(data as AuditLogEntry[], count ?? 0, offset, pageSize),
+      );
     } catch (error) {
       return handleError(error);
     }
@@ -320,11 +307,8 @@ export const auditService = {
     pagination?: AuditLogPagination
   ): Promise<ServiceResponse<AuditLogQueryResult>> {
     try {
-      const page = pagination?.page ?? 1;
-      const pageSize = pagination?.pageSize ?? 20;
-      const offset = (page - 1) * pageSize;
-      
-      // Get total count
+      const { pageSize, offset } = resolveAuditPagination(pagination, 20);
+
       const { count, error: countError } = await supabase
         .from('audit_log')
         .select('*', { count: 'exact', head: true })
@@ -333,7 +317,6 @@ export const auditService = {
       
       if (countError) throw countError;
       
-      // Get paginated data
       const { data, error } = await supabase
         .from('audit_log')
         .select('*')
@@ -344,13 +327,9 @@ export const auditService = {
       
       if (error) throw error;
       
-      const totalCount = count ?? 0;
-      
-      return handleSuccess({
-        data: data as AuditLogEntry[],
-        totalCount,
-        hasMore: offset + pageSize < totalCount,
-      });
+      return handleSuccess(
+        buildAuditLogQueryResult(data as AuditLogEntry[], count ?? 0, offset, pageSize),
+      );
     } catch (error) {
       return handleError(error);
     }

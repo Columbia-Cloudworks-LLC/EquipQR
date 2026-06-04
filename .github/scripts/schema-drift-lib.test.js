@@ -11,6 +11,12 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { classifyDrift, formatVersionMismatchRepair, formatOrphanRemoteRepair } from './schema-drift-lib.js';
 
+function assertNoDrift({ pending, versionMismatch, orphanRemote }) {
+  assert.equal(pending.length, 0);
+  assert.equal(versionMismatch.length, 0);
+  assert.equal(orphanRemote.length, 0);
+}
+
 // ---------------------------------------------------------------------------
 // classifyDrift
 // ---------------------------------------------------------------------------
@@ -19,10 +25,7 @@ describe('classifyDrift - clean state', () => {
   test('single migration, exact version match — no drift', () => {
     const local = [{ filename: '20260101000000_foo.sql', version: '20260101000000', name: 'foo' }];
     const applied = [{ version: '20260101000000', name: 'foo' }];
-    const { pending, versionMismatch, orphanRemote } = classifyDrift(local, applied);
-    assert.equal(pending.length, 0, 'pending should be empty');
-    assert.equal(versionMismatch.length, 0, 'versionMismatch should be empty');
-    assert.equal(orphanRemote.length, 0, 'orphanRemote should be empty');
+    assertNoDrift(classifyDrift(local, applied));
   });
 
   test('multiple migrations, all matched — no drift', () => {
@@ -34,17 +37,11 @@ describe('classifyDrift - clean state', () => {
       { version: '20260101000000', name: 'foo' },
       { version: '20260102000000', name: 'bar' },
     ];
-    const { pending, versionMismatch, orphanRemote } = classifyDrift(local, applied);
-    assert.equal(pending.length, 0);
-    assert.equal(versionMismatch.length, 0);
-    assert.equal(orphanRemote.length, 0);
+    assertNoDrift(classifyDrift(local, applied));
   });
 
   test('empty local and empty applied — no drift', () => {
-    const { pending, versionMismatch, orphanRemote } = classifyDrift([], []);
-    assert.equal(pending.length, 0);
-    assert.equal(versionMismatch.length, 0);
-    assert.equal(orphanRemote.length, 0);
+    assertNoDrift(classifyDrift([], []));
   });
 });
 

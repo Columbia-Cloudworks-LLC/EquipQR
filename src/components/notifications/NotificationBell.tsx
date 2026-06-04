@@ -21,6 +21,11 @@ import {
 } from '@/hooks/useNotificationSettings';
 import { useMarkNotificationAsRead, type Notification } from '@/features/work-orders/hooks/useWorkOrderData';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import {
+  getNotificationEmoji,
+  navigateForNotification,
+  notificationHasNavigableAction,
+} from '@/utils/notifications/notificationDisplay';
 
 interface NotificationBellProps {
   organizationId: string;
@@ -43,7 +48,6 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
   const recentNotifications = notifications.slice(0, 5);
 
   const handleNotificationClick = async (notification: Notification) => {
-    // Mark as read if not already read
     if (!notification.read) {
       try {
         await markAsReadMutation.mutateAsync(notification.id);
@@ -53,42 +57,12 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
     }
 
     setIsOpen(false);
-
-    // Handle ownership transfer and workspace merge notifications - switch to the target org and navigate
-    if (notification.type === 'ownership_transfer_request' || notification.type === 'workspace_merge_request') {
-      const targetOrgId = notification.data?.organization_id || notification.data?.workspace_org_id;
-      if (targetOrgId && targetOrgId !== organizationId) {
-        // Switch to the organization first, then navigate to settings
-        await switchOrganization(targetOrgId);
-      }
-      navigate('/dashboard/organization');
-      return;
-    }
-
-    if (notification.type === 'ownership_transfer_accepted' || 
-        notification.type === 'ownership_transfer_rejected' ||
-        notification.type === 'ownership_transfer_cancelled' ||
-        notification.type === 'workspace_merge_accepted' ||
-        notification.type === 'workspace_merge_rejected' ||
-        notification.type === 'member_added' ||
-        notification.type === 'member_role_changed' ||
-        notification.type === 'team_member_added' ||
-        notification.type === 'team_member_role_changed' ||
-        notification.type === 'audit_export') {
-      // These are informational - navigate to organization page
-      const targetOrgId = notification.data?.organization_id || notification.data?.workspace_org_id;
-      if (targetOrgId && targetOrgId !== organizationId) {
-        await switchOrganization(targetOrgId);
-      }
-      navigate('/dashboard/organization');
-      return;
-    }
-
-    // Navigate to work order if available
-    if (notification.data?.work_order_id) {
-      navigate(`/dashboard/work-orders/${notification.data.work_order_id}`);
-      return;
-    }
+    await navigateForNotification({
+      notification,
+      organizationId,
+      navigate,
+      switchOrganization,
+    });
   };
 
   const handleMarkAllAsRead = async () => {
@@ -102,54 +76,6 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
   const handleViewAllNotifications = () => {
     navigate('/dashboard/notifications');
     setIsOpen(false);
-  };
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'work_order_submitted':
-        return '📝';
-      case 'work_order_accepted':
-        return '✅';
-      case 'work_order_assigned':
-        return '👤';
-      case 'work_order_in_progress':
-        return '⚡';
-      case 'work_order_on_hold':
-        return '⏸️';
-      case 'work_order_completed':
-        return '🎉';
-      case 'work_order_cancelled':
-        return '❌';
-      // Ownership transfer notifications
-      case 'ownership_transfer_request':
-        return '🔄';
-      case 'ownership_transfer_accepted':
-        return '👑';
-      case 'ownership_transfer_rejected':
-        return '🚫';
-      case 'ownership_transfer_cancelled':
-        return '↩️';
-      case 'workspace_merge_request':
-        return '🧩';
-      case 'workspace_merge_accepted':
-        return '✅';
-      case 'workspace_merge_rejected':
-        return '🚫';
-      case 'member_removed':
-        return '👋';
-      case 'member_added':
-        return '➕';
-      case 'member_role_changed':
-        return '🛡️';
-      case 'team_member_added':
-        return '👥';
-      case 'team_member_role_changed':
-        return '🔐';
-      case 'audit_export':
-        return '📤';
-      default:
-        return '📢';
-    }
   };
 
   return (
@@ -195,14 +121,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
           <ScrollArea className="h-96">
             <div className="space-y-1">
               {recentNotifications.map((notification) => {
-                const hasAction = notification.data?.work_order_id || 
-                  notification.type.startsWith('ownership_transfer') ||
-                  notification.type.startsWith('workspace_merge') ||
-                  notification.type === 'member_added' ||
-                  notification.type === 'member_role_changed' ||
-                  notification.type === 'team_member_added' ||
-                  notification.type === 'team_member_role_changed' ||
-                  notification.type === 'audit_export';
+                const hasAction = notificationHasNavigableAction(notification);
                 const isTransferRequest = notification.type === 'ownership_transfer_request' || notification.type === 'workspace_merge_request';
                 
                 return (
@@ -215,7 +134,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
                   >
                     <div className="flex gap-3 w-full">
                       <div className="text-lg flex-shrink-0">
-                        {getNotificationIcon(notification.type)}
+                        {getNotificationEmoji(notification.type)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">

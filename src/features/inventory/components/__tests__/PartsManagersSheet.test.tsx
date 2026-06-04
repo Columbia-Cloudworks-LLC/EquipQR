@@ -137,6 +137,15 @@ const setupMocks = (options: {
   return { mockAddMutateAsync, mockRemoveMutateAsync };
 };
 
+const renderSheet = (
+  props: Partial<React.ComponentProps<typeof PartsManagersSheet>> = {},
+) => {
+  const onOpenChange = props.onOpenChange ?? vi.fn();
+  return render(
+    <PartsManagersSheet open={true} onOpenChange={onOpenChange} {...props} />,
+  );
+};
+
 describe('PartsManagersSheet', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -146,7 +155,7 @@ describe('PartsManagersSheet', () => {
     it('renders the sheet with title and description when open', () => {
       setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       // Use role to find the specific title
       expect(screen.getByRole('heading', { name: /Parts Managers/ })).toBeInTheDocument();
@@ -158,7 +167,7 @@ describe('PartsManagersSheet', () => {
     it('shows loading skeleton while fetching managers', () => {
       setupMocks({ isLoading: true });
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       const skeletons = document.querySelectorAll('[class*="animate-shimmer"], .bg-muted.rounded-md');
       expect(skeletons.length).toBeGreaterThan(0);
@@ -167,7 +176,7 @@ describe('PartsManagersSheet', () => {
     it('shows empty state when no managers exist', () => {
       setupMocks({ managers: [] });
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       expect(screen.getByText('No parts managers assigned yet')).toBeInTheDocument();
       expect(
@@ -178,7 +187,7 @@ describe('PartsManagersSheet', () => {
     it('displays list of parts managers with details', () => {
       setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       expect(screen.getByText(personas.teamManager.name)).toBeInTheDocument();
       expect(screen.getByText(personas.teamManager.email)).toBeInTheDocument();
@@ -188,7 +197,7 @@ describe('PartsManagersSheet', () => {
     it('shows add manager button', () => {
       setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       expect(screen.getByRole('button', { name: /add manager/i })).toBeInTheDocument();
     });
@@ -198,7 +207,7 @@ describe('PartsManagersSheet', () => {
     it('shows access denied message when user cannot manage parts managers', () => {
       setupMocks({ canManage: false });
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       expect(screen.getByText('Access Denied')).toBeInTheDocument();
       expect(
@@ -209,7 +218,7 @@ describe('PartsManagersSheet', () => {
     it('does not show add button when user cannot manage', () => {
       setupMocks({ canManage: false });
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       expect(screen.queryByRole('button', { name: /add manager/i })).not.toBeInTheDocument();
     });
@@ -219,7 +228,7 @@ describe('PartsManagersSheet', () => {
     it('opens add dialog when add button is clicked', async () => {
       setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       const addButton = screen.getByRole('button', { name: /add manager/i });
       fireEvent.click(addButton);
@@ -235,7 +244,7 @@ describe('PartsManagersSheet', () => {
     it('filters out existing managers and admins/owners from available members', async () => {
       setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       const addButton = screen.getByRole('button', { name: /add manager/i });
       fireEvent.click(addButton);
@@ -252,7 +261,7 @@ describe('PartsManagersSheet', () => {
     it('allows selecting multiple members', async () => {
       setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       const addButton = screen.getByRole('button', { name: /add manager/i });
       fireEvent.click(addButton);
@@ -273,7 +282,7 @@ describe('PartsManagersSheet', () => {
     it('calls addPartsManager for each selected member', async () => {
       const { mockAddMutateAsync } = setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       const addButton = screen.getByRole('button', { name: /add manager/i });
       fireEvent.click(addButton);
@@ -298,7 +307,7 @@ describe('PartsManagersSheet', () => {
     it('supports search filtering in add dialog', async () => {
       setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       const addButton = screen.getByRole('button', { name: /add manager/i });
       fireEvent.click(addButton);
@@ -322,7 +331,7 @@ describe('PartsManagersSheet', () => {
     it('has remove mutation hook available', () => {
       const { mockRemoveMutateAsync } = setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       // Verify the remove mutation is available
       expect(useRemovePartsManager).toHaveBeenCalled();
@@ -332,7 +341,7 @@ describe('PartsManagersSheet', () => {
     it('displays manager info with remove capability', () => {
       setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       // Verify managers are displayed with their details
       expect(screen.getByText(personas.teamManager.name)).toBeInTheDocument();
@@ -343,7 +352,7 @@ describe('PartsManagersSheet', () => {
     it('shows remove button for each manager', () => {
       setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       // Find remove buttons by looking for buttons with destructive icon styling
       // The Trash2 icon is inside a button with ghost variant
@@ -359,7 +368,7 @@ describe('PartsManagersSheet', () => {
     it('opens confirmation dialog when remove button is clicked', async () => {
       setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       // Find and click remove button - it's the button with shrink-0 class containing an SVG
       const allButtons = screen.getAllByRole('button');
@@ -380,7 +389,7 @@ describe('PartsManagersSheet', () => {
     it('calls removePartsManager when confirmed', async () => {
       const { mockRemoveMutateAsync } = setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       // Find and click remove button - it's the button with shrink-0 class containing an SVG
       const allButtons = screen.getAllByRole('button');
@@ -411,7 +420,7 @@ describe('PartsManagersSheet', () => {
     it('closes confirmation dialog when cancelled', async () => {
       setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       // Find and click remove button - it's the button with shrink-0 class containing an SVG
       const allButtons = screen.getAllByRole('button');
@@ -441,7 +450,7 @@ describe('PartsManagersSheet', () => {
     it('toggles user selection when checkbox is clicked', async () => {
       setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       // Open add dialog
       const addButton = screen.getByRole('button', { name: /add manager/i });
@@ -470,7 +479,7 @@ describe('PartsManagersSheet', () => {
     it('updates button text based on selection count', async () => {
       setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       // Open add dialog
       const addButton = screen.getByRole('button', { name: /add manager/i });
@@ -503,7 +512,7 @@ describe('PartsManagersSheet', () => {
     it('resets state when add dialog is closed', async () => {
       setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       // Open add dialog
       const addButton = screen.getByRole('button', { name: /add manager/i });
@@ -547,7 +556,7 @@ describe('PartsManagersSheet', () => {
     it('shows permissions info section', () => {
       setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       expect(screen.getByText('About Permissions')).toBeInTheDocument();
       expect(screen.getByText(/Owners & Admins/)).toBeInTheDocument();
@@ -574,7 +583,7 @@ describe('PartsManagersSheet User Journeys', () => {
     it('admin sees list of managers with their details', () => {
       setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       expect(screen.getByText(personas.teamManager.name)).toBeInTheDocument();
       expect(screen.getByText(personas.teamManager.email)).toBeInTheDocument();
@@ -591,7 +600,7 @@ describe('PartsManagersSheet User Journeys', () => {
     it('admin can search for and select a team member to promote', async () => {
       const { mockAddMutateAsync } = setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       // Open add dialog
       fireEvent.click(screen.getByRole('button', { name: /add manager/i }));
@@ -630,7 +639,7 @@ describe('PartsManagersSheet User Journeys', () => {
     it('admin has remove mutation capability available', () => {
       const { mockRemoveMutateAsync } = setupMocks();
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       // Verify managers are displayed
       expect(screen.getByText(personas.teamManager.name)).toBeInTheDocument();
@@ -649,7 +658,7 @@ describe('PartsManagersSheet User Journeys', () => {
     it('member without permissions sees access denied message', () => {
       setupMocks({ canManage: false });
 
-      render(<PartsManagersSheet open={true} onOpenChange={vi.fn()} />);
+      renderSheet();
 
       expect(screen.getByText('Access Denied')).toBeInTheDocument();
       expect(

@@ -1,25 +1,25 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
+import { screen, fireEvent, waitFor } from '@/test/utils/test-utils';
+import { renderPmTemplateCompatibilityRulesEditor } from '@/test/utils/renderCompatibilityRulesEditors';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PMTemplateCompatibilityRulesEditor } from '../PMTemplateCompatibilityRulesEditor';
 import type { PMTemplateCompatibilityRuleFormData } from '@/features/pm-templates/types/pmTemplateCompatibility';
+import {
+  compatibilityRulesEditorOrgFixture,
+  pmTemplateCompatibilityManufacturerFixtures,
+} from '@/test/utils/compatibilityRulesEditorTestFixtures';
 
-// Mock dependencies
 vi.mock('@/contexts/OrganizationContext', () => ({
   useOrganization: vi.fn(() => ({
-    currentOrganization: { id: 'org-1', name: 'Test Org' }
-  }))
+    currentOrganization: compatibilityRulesEditorOrgFixture,
+  })),
 }));
 
 vi.mock('@/features/equipment/hooks/useEquipment', () => ({
   useEquipmentManufacturersAndModels: vi.fn(() => ({
-    data: [
-      { manufacturer: 'Toyota', models: ['8FGU25', '8FGU30', '7FGU35'] },
-      { manufacturer: 'Konecranes', models: ['CXT-10', 'CXT-20'] },
-      { manufacturer: 'Caterpillar', models: ['D6T', 'D8T'] }
-    ],
-    isLoading: false
-  }))
+    data: pmTemplateCompatibilityManufacturerFixtures,
+    isLoading: false,
+  })),
 }));
 
 vi.mock('@/features/pm-templates/hooks/usePMTemplateCompatibility', () => ({
@@ -38,24 +38,14 @@ describe('PMTemplateCompatibilityRulesEditor', () => {
 
   describe('Core Rendering', () => {
     it('renders the component with title and description', () => {
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={defaultRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor(defaultRules, mockOnChange);
 
       expect(screen.getByText('Equipment Compatibility')).toBeInTheDocument();
       expect(screen.getByText(/Define which equipment this PM template applies to/)).toBeInTheDocument();
     });
 
     it('renders add rule button', () => {
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={defaultRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor(defaultRules, mockOnChange);
 
       expect(screen.getByRole('button', { name: /add rule/i })).toBeInTheDocument();
     });
@@ -66,12 +56,7 @@ describe('PMTemplateCompatibilityRulesEditor', () => {
         { manufacturer: 'Konecranes', model: null }
       ];
 
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={existingRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor(existingRules, mockOnChange);
 
       // Should have combobox elements for the rules
       const triggers = screen.getAllByRole('combobox');
@@ -83,23 +68,13 @@ describe('PMTemplateCompatibilityRulesEditor', () => {
         { manufacturer: 'Toyota', model: null }
       ];
 
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor(rules, mockOnChange);
 
       expect(screen.getByText(/Matches 12 equipment/)).toBeInTheDocument();
     });
 
     it('does not show match count badge when no valid rules', () => {
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={[]}
-          onChange={mockOnChange}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor([], mockOnChange);
 
       expect(screen.queryByText(/Matches/)).not.toBeInTheDocument();
     });
@@ -107,12 +82,7 @@ describe('PMTemplateCompatibilityRulesEditor', () => {
 
   describe('Adding Rules', () => {
     it('adds a new empty rule when add button is clicked', () => {
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={defaultRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor(defaultRules, mockOnChange);
 
       const addButton = screen.getByRole('button', { name: /add rule/i });
       fireEvent.click(addButton);
@@ -125,12 +95,7 @@ describe('PMTemplateCompatibilityRulesEditor', () => {
         { manufacturer: 'Toyota', model: '8FGU25' }
       ];
 
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={existingRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor(existingRules, mockOnChange);
 
       const addButton = screen.getByRole('button', { name: /add rule/i });
       fireEvent.click(addButton);
@@ -149,12 +114,7 @@ describe('PMTemplateCompatibilityRulesEditor', () => {
         { manufacturer: 'Konecranes', model: null }
       ];
 
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={existingRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor(existingRules, mockOnChange);
 
       // Find remove buttons (X icons)
       const removeButtons = screen.getAllByRole('button').filter(
@@ -174,12 +134,7 @@ describe('PMTemplateCompatibilityRulesEditor', () => {
         { manufacturer: 'Toyota', model: null }
       ];
 
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={existingRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor(existingRules, mockOnChange);
 
       const removeButtons = screen.getAllByRole('button').filter(
         btn => btn.querySelector('svg.lucide-x')
@@ -193,13 +148,7 @@ describe('PMTemplateCompatibilityRulesEditor', () => {
 
   describe('Disabled State', () => {
     it('disables add button when disabled prop is true', () => {
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={defaultRules}
-          onChange={mockOnChange}
-          disabled={true}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor(defaultRules, mockOnChange, { disabled: true });
 
       const addButton = screen.getByRole('button', { name: /add rule/i });
       expect(addButton).toBeDisabled();
@@ -210,13 +159,7 @@ describe('PMTemplateCompatibilityRulesEditor', () => {
         { manufacturer: 'Toyota', model: '8FGU25' }
       ];
 
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={existingRules}
-          onChange={mockOnChange}
-          disabled={true}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor(existingRules, mockOnChange, { disabled: true });
 
       const removeButtons = screen.getAllByRole('button').filter(
         btn => btn.querySelector('svg.lucide-x')
@@ -232,13 +175,7 @@ describe('PMTemplateCompatibilityRulesEditor', () => {
         { manufacturer: 'Toyota', model: '8FGU25' }
       ];
 
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={existingRules}
-          onChange={mockOnChange}
-          disabled={true}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor(existingRules, mockOnChange, { disabled: true });
 
       const triggers = screen.getAllByRole('combobox');
       triggers.forEach(trigger => {
@@ -258,12 +195,7 @@ describe('PMTemplateCompatibilityRulesEditor', () => {
         refetch: vi.fn()
       } as unknown as ReturnType<typeof useEquipmentModule.useEquipmentManufacturersAndModels>);
 
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={defaultRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor(defaultRules, mockOnChange);
 
       expect(screen.getByText(/No equipment found in your organization/)).toBeInTheDocument();
       expect(screen.getByText(/Add equipment first to define compatibility rules/)).toBeInTheDocument();
@@ -281,12 +213,7 @@ describe('PMTemplateCompatibilityRulesEditor', () => {
         refetch: vi.fn()
       } as unknown as ReturnType<typeof useEquipmentModule.useEquipmentManufacturersAndModels>);
 
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={defaultRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor(defaultRules, mockOnChange);
 
       // Should show loading skeletons
       const skeletons = document.querySelectorAll('.animate-pulse');
@@ -313,12 +240,7 @@ describe('PMTemplateCompatibilityRulesEditor', () => {
         { manufacturer: 'Toyota', model: null }
       ];
 
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor(rules, mockOnChange);
 
       await waitFor(() => {
         expect(screen.getByText(/Rules use case-insensitive matching/)).toBeInTheDocument();
@@ -337,12 +259,7 @@ describe('PMTemplateCompatibilityRulesEditor', () => {
         refetch: vi.fn()
       } as unknown as ReturnType<typeof useEquipmentModule.useEquipmentManufacturersAndModels>);
 
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={[]}
-          onChange={mockOnChange}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor([], mockOnChange);
 
       expect(screen.queryByText(/Rules use case-insensitive matching/)).not.toBeInTheDocument();
     });
@@ -367,12 +284,7 @@ describe('PMTemplateCompatibilityRulesEditor', () => {
         { manufacturer: 'Toyota', model: '8FGU25' }
       ];
 
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={duplicateRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor(duplicateRules, mockOnChange);
 
       // Check for destructive styling on duplicate rules
       await waitFor(() => {
@@ -389,12 +301,7 @@ describe('PMTemplateCompatibilityRulesEditor', () => {
         { manufacturer: '', model: null }
       ];
 
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor(rules, mockOnChange);
 
       const triggers = screen.getAllByRole('combobox');
       // The second combobox (model) should be disabled when manufacturer is empty
@@ -410,12 +317,7 @@ describe('PMTemplateCompatibilityRulesEditor', () => {
         { manufacturer: 'Toyota', model: '8FGU25' }
       ];
 
-      render(
-        <PMTemplateCompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderPmTemplateCompatibilityRulesEditor(rules, mockOnChange);
 
       // The component structure ensures model is reset when manufacturer changes
       // This is validated by checking the handler logic in the component

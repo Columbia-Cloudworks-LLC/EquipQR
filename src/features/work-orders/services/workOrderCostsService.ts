@@ -1,6 +1,10 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
+import {
+  fetchCreatorName,
+  fetchCreatorNameMap,
+} from '@/features/work-orders/services/workOrderCostProfileHelpers';
 import type { 
   WorkOrderCost, 
   CreateWorkOrderCostData, 
@@ -51,20 +55,7 @@ export const getWorkOrderCosts = async (
     const costs = data || [];
     const creatorIds = [...new Set(costs.map(cost => cost.created_by))];
     
-    let profilesMap: Record<string, string> = {};
-    if (creatorIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .in('id', creatorIds);
-      
-      if (profiles) {
-        profilesMap = profiles.reduce((acc, profile) => {
-          acc[profile.id] = profile.name;
-          return acc;
-        }, {} as Record<string, string>);
-      }
-    }
+    const profilesMap = await fetchCreatorNameMap(creatorIds);
 
     return costs.map(cost => ({
       ...cost,
@@ -92,16 +83,9 @@ export const createWorkOrderCost = async (costData: CreateWorkOrderCostData): Pr
 
     if (error) throw error;
 
-    // Get creator name
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('name')
-      .eq('id', userId)
-      .single();
-
     return {
       ...data,
-      created_by_name: profile?.name || 'Unknown'
+      created_by_name: await fetchCreatorName(userId),
     };
   } catch (error) {
     logger.error('Error creating work order cost:', error);
@@ -124,16 +108,9 @@ export const updateWorkOrderCost = async (
 
     if (error) throw error;
 
-    // Get creator name
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('name')
-      .eq('id', data.created_by)
-      .single();
-
     return {
       ...data,
-      created_by_name: profile?.name || 'Unknown'
+      created_by_name: await fetchCreatorName(data.created_by),
     };
   } catch (error) {
     logger.error('Error updating work order cost:', error);
@@ -273,17 +250,10 @@ export const updateWorkOrderCostWithQuantityTracking = async (
 
     if (error) throw error;
 
-    // Get creator name
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('name')
-      .eq('id', data.created_by)
-      .single();
-
     return {
       cost: {
         ...data,
-        created_by_name: profile?.name || 'Unknown'
+        created_by_name: await fetchCreatorName(data.created_by),
       },
       inventoryAdjustment
     };
@@ -321,10 +291,7 @@ export const getMyCosts = async (organizationId: string, userId: string): Promis
 
     // Get creator names separately to avoid relation issues
     const creatorIds = [...new Set(data?.map(cost => cost.created_by) || [])];
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, name')
-      .in('id', creatorIds);
+    const profilesMap = await fetchCreatorNameMap(creatorIds);
 
     return (data || []).map(cost => ({
       id: cost.id,
@@ -336,7 +303,7 @@ export const getMyCosts = async (organizationId: string, userId: string): Promis
       created_by: cost.created_by,
       created_at: cost.created_at,
       updated_at: cost.updated_at,
-      createdByName: profiles?.find(p => p.id === cost.created_by)?.name,
+      createdByName: profilesMap[cost.created_by],
       workOrderTitle: cost.work_orders?.title
     }));
   } catch (error) {
@@ -368,10 +335,7 @@ export const getAllCostsWithCreators = async (organizationId: string): Promise<W
 
     // Get creator names separately
     const creatorIds = [...new Set(data?.map(cost => cost.created_by) || [])];
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, name')
-      .in('id', creatorIds);
+    const profilesMap = await fetchCreatorNameMap(creatorIds);
 
     return (data || []).map(cost => ({
       id: cost.id,
@@ -383,7 +347,7 @@ export const getAllCostsWithCreators = async (organizationId: string): Promise<W
       created_by: cost.created_by,
       created_at: cost.created_at,
       updated_at: cost.updated_at,
-      createdByName: profiles?.find(p => p.id === cost.created_by)?.name,
+      createdByName: profilesMap[cost.created_by],
       workOrderTitle: cost.work_orders?.title
     }));
   } catch (error) {
@@ -414,15 +378,11 @@ export const getCostSummaryByUser = async (organizationId: string): Promise<Cost
 
     // Get creator names separately
     const creatorIds = [...new Set(data?.map(cost => cost.created_by) || [])];
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, name')
-      .in('id', creatorIds);
+    const profilesMap = await fetchCreatorNameMap(creatorIds);
 
-    // Group by user and calculate totals
     const summary = (data || []).reduce((acc, cost) => {
       const userId = cost.created_by;
-      const userName = profiles?.find(p => p.id === userId)?.name || 'Unknown';
+      const userName = profilesMap[userId] || 'Unknown';
       const total = cost.total_price_cents || (cost.quantity * cost.unit_price_cents);
       
       if (!acc[userId]) {

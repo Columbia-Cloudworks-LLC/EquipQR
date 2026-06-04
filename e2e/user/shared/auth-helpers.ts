@@ -10,7 +10,10 @@ import {
 
 export async function quickLogin(page: Page, persona: PersonaKey): Promise<void> {
   const { displayName } = personas[persona];
+  await quickLoginByDisplayName(page, displayName);
+}
 
+export async function quickLoginByDisplayName(page: Page, displayName: string): Promise<void> {
   await page.goto('/auth');
   await expect(page).toHaveURL(/\/auth/i, { timeout: 30_000 });
 

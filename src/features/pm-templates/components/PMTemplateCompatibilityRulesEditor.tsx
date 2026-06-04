@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Plus, X, Settings2, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentManufacturersAndModels } from '@/features/equipment/hooks/useEquipment';
 import { useEquipmentMatchCountForPMRules } from '@/features/pm-templates/hooks/usePMTemplateCompatibility';
 import type { PMTemplateCompatibilityRuleFormData } from '@/features/pm-templates/types/pmTemplateCompatibility';
+import { useManufacturerModelLookup } from '@/features/equipment/utils/manufacturerModelLookup';
 
 interface PMTemplateCompatibilityRulesEditorProps {
   rules: PMTemplateCompatibilityRuleFormData[];
@@ -39,24 +40,7 @@ export const PMTemplateCompatibilityRulesEditor: React.FC<PMTemplateCompatibilit
     rules.filter((r) => (r.manufacturer ?? '').trim().length > 0)
   );
 
-  // Create a map for quick model lookup by manufacturer
-  const manufacturerModelsMap = useMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const mfr of manufacturersData) {
-      map.set(mfr.manufacturer.toLowerCase(), mfr.models);
-    }
-    return map;
-  }, [manufacturersData]);
-
-  // Get list of manufacturers for dropdown
-  const manufacturers = useMemo(() => {
-    return manufacturersData.map(m => m.manufacturer);
-  }, [manufacturersData]);
-
-  // Get models for a specific manufacturer
-  const getModelsForManufacturer = (manufacturer: string): string[] => {
-    return manufacturerModelsMap.get(manufacturer.toLowerCase()) || [];
-  };
+  const { manufacturers, getModelsForManufacturer } = useManufacturerModelLookup(manufacturersData);
 
   // Check if a rule already exists (for duplicate detection)
   const isDuplicateRule = (manufacturer: string, model: string | null, excludeIndex: number): boolean => {

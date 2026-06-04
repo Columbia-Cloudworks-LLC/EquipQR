@@ -1,26 +1,25 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
+import { screen, fireEvent, waitFor } from '@/test/utils/test-utils';
+import { renderInventoryCompatibilityRulesEditor } from '@/test/utils/renderCompatibilityRulesEditors';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CompatibilityRulesEditor } from '../CompatibilityRulesEditor';
 import type { PartCompatibilityRuleFormData } from '@/features/inventory/types/inventory';
+import {
+  compatibilityRulesEditorOrgFixture,
+  inventoryCompatibilityManufacturerFixtures,
+} from '@/test/utils/compatibilityRulesEditorTestFixtures';
 
-// Mock dependencies
 vi.mock('@/contexts/OrganizationContext', () => ({
   useOrganization: vi.fn(() => ({
-    currentOrganization: { id: 'org-1', name: 'Test Org' }
-  }))
+    currentOrganization: compatibilityRulesEditorOrgFixture,
+  })),
 }));
 
 vi.mock('@/features/equipment/hooks/useEquipment', () => ({
   useEquipmentManufacturersAndModels: vi.fn(() => ({
-    data: [
-      { manufacturer: 'Caterpillar', models: ['D6T', 'D8T', '320'] },
-      { manufacturer: 'John Deere', models: ['450J', '650K'] },
-      { manufacturer: 'Komatsu', models: ['PC200', 'PC300'] },
-      { manufacturer: 'JLG', models: ['JL-100', 'JL-200', 'JL-300A'] }
-    ],
-    isLoading: false
-  }))
+    data: inventoryCompatibilityManufacturerFixtures,
+    isLoading: false,
+  })),
 }));
 
 vi.mock('@/features/inventory/hooks/useInventory', () => ({
@@ -39,24 +38,14 @@ describe('CompatibilityRulesEditor', () => {
 
   describe('Core Rendering', () => {
     it('renders the component with title and description', () => {
-      render(
-        <CompatibilityRulesEditor
-          rules={defaultRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(defaultRules, mockOnChange);
 
       expect(screen.getByText('Compatibility Rules')).toBeInTheDocument();
       expect(screen.getByText(/Match parts to equipment by manufacturer and model/)).toBeInTheDocument();
     });
 
     it('renders add rule button', () => {
-      render(
-        <CompatibilityRulesEditor
-          rules={defaultRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(defaultRules, mockOnChange);
 
       expect(screen.getByRole('button', { name: /add rule/i })).toBeInTheDocument();
     });
@@ -67,12 +56,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'John Deere', model: null }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={existingRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(existingRules, mockOnChange);
 
       // The select triggers should show the selected values
       const triggers = screen.getAllByRole('combobox');
@@ -84,12 +68,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'Caterpillar', model: null }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       expect(screen.getByText(/Matches 5 equipment/)).toBeInTheDocument();
     });
@@ -97,12 +76,7 @@ describe('CompatibilityRulesEditor', () => {
 
   describe('Adding Rules', () => {
     it('adds a new empty rule when add button is clicked', () => {
-      render(
-        <CompatibilityRulesEditor
-          rules={defaultRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(defaultRules, mockOnChange);
 
       const addButton = screen.getByRole('button', { name: /add rule/i });
       fireEvent.click(addButton);
@@ -117,12 +91,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={existingRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(existingRules, mockOnChange);
 
       const addButton = screen.getByRole('button', { name: /add rule/i });
       fireEvent.click(addButton);
@@ -141,12 +110,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'John Deere', model: null }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={existingRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(existingRules, mockOnChange);
 
       // Find remove buttons (X icons)
       const removeButtons = screen.getAllByRole('button').filter(
@@ -164,13 +128,7 @@ describe('CompatibilityRulesEditor', () => {
 
   describe('Disabled State', () => {
     it('disables add button when disabled prop is true', () => {
-      render(
-        <CompatibilityRulesEditor
-          rules={defaultRules}
-          onChange={mockOnChange}
-          disabled={true}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(defaultRules, mockOnChange, { disabled: true });
 
       const addButton = screen.getByRole('button', { name: /add rule/i });
       expect(addButton).toBeDisabled();
@@ -181,13 +139,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'Caterpillar', model: 'D6T' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={existingRules}
-          onChange={mockOnChange}
-          disabled={true}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(existingRules, mockOnChange, { disabled: true });
 
       const removeButtons = screen.getAllByRole('button').filter(
         btn => btn.querySelector('svg.lucide-x')
@@ -211,12 +163,7 @@ describe('CompatibilityRulesEditor', () => {
         refetch: vi.fn()
       } as unknown as ReturnType<typeof useEquipmentModule.useEquipmentManufacturersAndModels>);
 
-      render(
-        <CompatibilityRulesEditor
-          rules={defaultRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(defaultRules, mockOnChange);
 
       expect(screen.getByText(/No equipment found in your organization/)).toBeInTheDocument();
     });
@@ -233,12 +180,7 @@ describe('CompatibilityRulesEditor', () => {
         refetch: vi.fn()
       } as unknown as ReturnType<typeof useEquipmentModule.useEquipmentManufacturersAndModels>);
 
-      render(
-        <CompatibilityRulesEditor
-          rules={defaultRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(defaultRules, mockOnChange);
 
       // Should show loading skeletons
       const skeletons = document.querySelectorAll('.animate-pulse');
@@ -265,12 +207,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'Caterpillar', model: null }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       await waitFor(() => {
         expect(screen.getByText(/Rules use case-insensitive matching/)).toBeInTheDocument();
@@ -278,12 +215,7 @@ describe('CompatibilityRulesEditor', () => {
     });
 
     it('does not show help text when no rules', () => {
-      render(
-        <CompatibilityRulesEditor
-          rules={[]}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor([], mockOnChange);
 
       expect(screen.queryByText(/Rules use case-insensitive matching/)).not.toBeInTheDocument();
     });
@@ -291,12 +223,7 @@ describe('CompatibilityRulesEditor', () => {
 
   describe('Match Type Support', () => {
     it('adds rule with match_type and status when add button clicked', () => {
-      render(
-        <CompatibilityRulesEditor
-          rules={defaultRules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(defaultRules, mockOnChange);
 
       const addButton = screen.getByRole('button', { name: /add rule/i });
       fireEvent.click(addButton);
@@ -318,12 +245,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'JLG', model: 'JL-', match_type: 'prefix', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rulesWithMatchTypes}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rulesWithMatchTypes, mockOnChange);
 
       // Should render all rules
       const triggers = screen.getAllByRole('combobox');
@@ -335,12 +257,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'JLG', model: 'JL-', match_type: 'prefix', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       // Should have a text input for the pattern
       const patternInput = screen.getByPlaceholderText(/enter prefix/i);
@@ -352,12 +269,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'Caterpillar', model: 'D*T', match_type: 'wildcard', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       // Should have a text input for the pattern
       const patternInput = screen.getByPlaceholderText(/enter pattern/i);
@@ -369,12 +281,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'verified', notes: 'Tested on job #123' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       // Should show notes input for verified status
       const notesInput = screen.getByPlaceholderText(/verification notes/i);
@@ -386,12 +293,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       // Should NOT show notes input for unverified status
       expect(screen.queryByPlaceholderText(/verification notes/i)).not.toBeInTheDocument();
@@ -404,12 +306,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'JLG', model: 'jl-', match_type: 'prefix', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       // Should show the normalized pattern preview
       expect(screen.getByText(/pattern:/i)).toBeInTheDocument();
@@ -421,12 +318,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'JLG', model: 'JL-*', match_type: 'prefix', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       // Should show error about wildcards
       expect(screen.getByText(/cannot contain wildcards/i)).toBeInTheDocument();
@@ -437,12 +329,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'CAT', model: 'D*T*X*', match_type: 'wildcard', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       // Should show error about too many wildcards
       expect(screen.getByText(/at most 2 wildcards/i)).toBeInTheDocument();
@@ -453,12 +340,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'CAT', model: '*', match_type: 'wildcard', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       // Should show error about needing non-wildcard characters
       expect(screen.getByText(/at least 2 non-wildcard/i)).toBeInTheDocument();
@@ -471,12 +353,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'verified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       // The status dropdown should be present
       const comboboxes = screen.getAllByRole('combobox');
@@ -490,12 +367,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: '', model: null, match_type: 'exact', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       // Find and click the manufacturer select
       const triggers = screen.getAllByRole('combobox');
@@ -517,12 +389,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       // Find match type select (second combobox)
       const triggers = screen.getAllByRole('combobox');
@@ -548,12 +415,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       // Find manufacturer select
       const triggers = screen.getAllByRole('combobox');
@@ -575,12 +437,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'JLG', model: 'JL-', match_type: 'prefix', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       // Find manufacturer select
       const triggers = screen.getAllByRole('combobox');
@@ -606,12 +463,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       // Should have duplicate indicator (destructive border)
       const ruleContainers = document.querySelectorAll('.border-destructive');
@@ -624,12 +476,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       expect(screen.getAllByText(/Duplicate rule/i).length).toBeGreaterThan(0);
     });
@@ -641,12 +488,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'JLG', model: '', match_type: 'prefix', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       const patternInput = screen.getByPlaceholderText(/enter prefix/i);
       fireEvent.change(patternInput, { target: { value: 'JL-' } });
@@ -661,12 +503,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'verified', notes: '' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       const notesInput = screen.getByPlaceholderText(/verification notes/i);
       fireEvent.change(notesInput, { target: { value: 'Verified on field test' } });
@@ -683,12 +520,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'Caterpillar', model: null, match_type: 'exact', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       // Should have a select for model
       const comboboxes = screen.getAllByRole('combobox');
@@ -700,12 +532,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'Caterpillar', model: null, match_type: 'exact', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       // Find model select (should be third combobox or one with "Any Model" placeholder-like text)
       const triggers = screen.getAllByRole('combobox');
@@ -733,12 +560,7 @@ describe('CompatibilityRulesEditor', () => {
         { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'unverified' }
       ];
 
-      render(
-        <CompatibilityRulesEditor
-          rules={rules}
-          onChange={mockOnChange}
-        />
-      );
+      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
       // Find status select (should have "Unverified" text)
       const triggers = screen.getAllByRole('combobox');

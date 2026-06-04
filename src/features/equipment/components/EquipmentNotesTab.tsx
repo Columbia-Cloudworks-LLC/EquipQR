@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Plus, Images, Clock, Gauge, User, EyeOff } from 'lucide-react';
+import { Plus, Images } from 'lucide-react';
+import NoteTimelineEntry from '@/components/common/NoteTimelineEntry';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,15 +17,17 @@ import {
 } from '@/features/equipment/services/equipmentNotesService';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
-import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyncBadge';
 import { useOfflineMergedNotes } from '@/features/offline-queue/hooks/useOfflineMergedNotes';
 import InlineNoteComposer from '@/components/common/InlineNoteComposer';
 import ImageGallery from '@/components/common/ImageGallery';
 import NotesLoadingSkeleton from '@/components/common/NotesLoadingSkeleton';
 import { resolveNoteContentFromSubmit } from '@/components/common/noteContentHelpers';
-import { formatNoteHoursWorked, formatNoteMachineHours } from '@/components/common/noteFormatHelpers';
-import { isQueuedNoteCreateResult } from '@/components/common/noteSubmitTypes';
 import type { NoteSubmitPayload } from '@/components/common/noteSubmitTypes';
+import {
+  handleNoteCreateMutationSuccess,
+  shouldUseOfflineNotePath,
+  showQueuedNoteCreateToasts,
+} from '@/components/common/noteCreateHelpers';
 import { OfflineFormBanner } from '@/features/offline-queue/components/OfflineFormBanner';
 import { logger } from '@/utils/logger';
 import { useEquipmentNotesPermissions } from '@/features/equipment/hooks/useEquipmentNotesPermissions';
@@ -94,9 +95,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
       }
       const orgId = activeOrganizationId;
 
-      // Images require Storage upload (online only), so only text-only notes can go through the offline queue
-      const useOfflinePath = !navigator.onLine || images.length === 0;
-      if (useOfflinePath && user?.id) {
+      if (shouldUseOfflineNotePath(images) && user?.id) {
         const service = new OfflineAwareWorkOrderService(orgId, user.id);
         const result = await service.createEquipmentNote(equipmentId, content, hoursWorked, isPrivate, machineHours);
         if (result.queuedOffline) {
@@ -115,22 +114,22 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
       );
     },
     onSuccess: (result) => {
-      if (isQueuedNoteCreateResult(result) && result.queuedOffline) {
-        const hadImages = result.hadImages;
-        toast.success(
-          hadImages
-            ? 'Note saved offline. Attach images when you reconnect.'
-            : 'Note saved offline — will sync when you reconnect.',
-        );
-        offlineCtx?.refresh();
-      } else {
-        queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.notesWithImages(equipmentId) });
-        queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.images(equipmentId) });
-        toast.success('Note created successfully');
-      }
-      setShowForm(false);
-      setNoteContent('');
-      setAttachedImages([]);
+      handleNoteCreateMutationSuccess(result, {
+        onQueuedOffline: (hadImages) => {
+          showQueuedNoteCreateToasts(hadImages, { combinedOfflineMessage: true });
+          offlineCtx?.refresh();
+        },
+        onOnlineSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.notesWithImages(equipmentId) });
+          queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.images(equipmentId) });
+          toast.success('Note created successfully');
+        },
+        resetForm: () => {
+          setShowForm(false);
+          setNoteContent('');
+          setAttachedImages([]);
+        },
+      });
     },
     onError: (error) => {
       logger.error('Failed to create note', error);
@@ -262,78 +261,14 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
       {/* Notes List */}
       <div className="space-y-4">
         {notes.map((note) => (
-          <Card key={note.id}>
-            <CardContent standalone>
-              <div className="space-y-3">
-                {/* Note Header */}
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
-                    <User className="h-4 w-4" />
-                    <span>{note.author_name}</span>
-                    {(note as { _isPendingSync?: boolean })._isPendingSync && <PendingSyncBadge />}
-                    <span>•</span>
-                    <span>{formatNoteDate(note.created_at)}</span>
-                    {formatNoteHoursWorked(note.hours_worked) && (
-                      <>
-                        <span>•</span>
-                        <Clock className="h-4 w-4" />
-                        <span title="Hours worked">{formatNoteHoursWorked(note.hours_worked)} worked</span>
-                      </>
-                    )}
-                    {formatNoteMachineHours(note.machine_hours) && (
-                      <>
-                        <span>•</span>
-                        <Gauge className="h-4 w-4" />
-                        <span title="Machine hours">
-                          {formatNoteMachineHours(note.machine_hours)} machine
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {note.is_private && (
-                      <Badge variant="outline" className="text-xs">
-                        <EyeOff className="h-3 w-3 mr-1" />
-                        Private
-                      </Badge>
-                    )}
-                    {note.images && note.images.length > 0 && (
-                      <Badge variant="outline" className="text-xs">
-                        <Images className="h-3 w-3 mr-1" />
-                        {note.images.length} image{note.images.length !== 1 ? 's' : ''}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                {/* Note Content */}
-                <div className="prose prose-sm max-w-none">
-                  <p className="whitespace-pre-wrap">{note.content}</p>
-                </div>
-
-                {/* Note Images */}
-                {note.images && note.images.length > 0 && (
-                  <>
-                    <Separator />
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                      {note.images.map((image) => (
-                        <div key={image.id} className="aspect-square bg-muted rounded overflow-hidden">
-                          <img
-                            src={image.file_url}
-                            alt={image.file_name}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            decoding="async"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <NoteTimelineEntry
+            key={note.id}
+            note={{
+              ...note,
+              _isPendingSync: (note as { _isPendingSync?: boolean })._isPendingSync,
+            }}
+            formatDate={formatNoteDate}
+          />
         ))}
       </div>
 

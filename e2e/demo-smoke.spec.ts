@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import fs from 'fs';
+import { quickLoginByDisplayName } from './user/shared/auth-helpers';
 
 const personaName = process.env.DEMO_PERSONA_NAME || 'Alex Apex';
 const postLoginActionWindowMs = Number.parseInt(process.env.DEMO_ACTION_WINDOW_MS || '6500', 10);
@@ -58,19 +59,7 @@ test.describe('demo-smoke', () => {
       'Set DEMO_STORAGE_STATE for non-localhost runs, or use localhost with dev quick login.'
     );
 
-    await page.goto('/auth');
-
-    const personaTrigger = page
-      .getByRole('combobox')
-      .or(page.getByRole('button', { name: /select a test account|persona/i }));
-    await expect(personaTrigger.first()).toBeVisible({ timeout: 30_000 });
-    await personaTrigger.first().click();
-
-    await page.getByRole('option', { name: new RegExp(personaName, 'i') }).click();
-    await page.getByRole('button', { name: /quick login/i }).click();
-
-    await page.waitForURL(/dashboard/i, { timeout: 60_000 });
-    await expect(page).toHaveURL(/dashboard/i);
+    await quickLoginByDisplayName(page, personaName);
     await performVisibleDashboardActions(page);
   });
 });
