@@ -33,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Forklift, X, ChevronDown, ChevronRight, Layers } from 'lucide-react';
+import { Search, Forklift, ChevronDown, ChevronRight, Layers } from 'lucide-react';
 import { InventoryEquipmentPickerRow } from '@/features/inventory/components/InventoryEquipmentPickerRow';
 import { SelectedEquipmentBadgeList } from '@/components/common/SelectedEquipmentBadgeList';
 import { useOrganization } from '@/contexts/OrganizationContext';

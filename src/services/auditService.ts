@@ -10,7 +10,7 @@ import { formatIsoZulu } from '@/utils/dateFormatter';
 import { logger } from '@/utils/logger';
 import { buildAuditLogQueryResult, resolveAuditPagination } from '@/services/auditPagination';
 import { fetchAuditLogPage } from '@/services/auditLogPageQuery';
-import { applyAuditFilters, normalizeAuditDateTo } from '@/services/auditFilters';
+import { normalizeAuditDateTo } from '@/services/auditFilters';
 import type { ApiResponse } from '@/services/base/BaseService';
 import {
   fetchAuditLogExportEntries,

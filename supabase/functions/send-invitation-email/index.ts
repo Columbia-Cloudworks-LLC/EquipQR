@@ -1,9 +1,15 @@
 /**
  * Send Invitation Email Edge Function
- * 
+ *
  * Sends an invitation email to a user being invited to an organization.
  * Requires authenticated user (verify_jwt=true in config.toml).
  * Verifies the caller has permission to invite users to the organization.
+ *
+ * Ordering contract (intentional, depended on by smoke tests):
+ *   1. CORS preflight
+ *   2. Load required secret (RESEND_API_KEY) — fails 500 if missing
+ *   3. Authenticate the caller (requireAuthenticatedPost) — fails 401 if no user JWT
+ *   4. Validate invitation access and send email
  */
 
 import { Resend } from "npm:resend@2.0.0";
@@ -14,22 +20,11 @@ import {
   createJsonResponse,
   handleCorsPreflightIfNeeded,
   withCorrelationId,
+  type RequestContext,
 } from "../_shared/supabase-clients.ts";
 import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
 
 const FUNCTION_NAME = "send-invitation-email";
-
-// Lazy-initialize Resend so a missing RESEND_API_KEY surfaces as a
-// structured MISSING_REQUIRED_SECRET log line on first request rather
-// than an opaque "send" failure deep in the email path.
-let _resend: Resend | null = null;
-function getResend(): Resend {
-  if (!_resend) {
-    const key = requireSecret("RESEND_API_KEY", { functionName: FUNCTION_NAME });
-    _resend = new Resend(key);
-  }
-  return _resend;
-}
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
@@ -55,13 +50,16 @@ const escapeHtml = (unsafe: string): string => {
     .replace(/'/g, "&#039;");
 };
 
-Deno.serve(withCorrelationId(async (req, _ctx) => {
-  // Handle CORS preflight
+async function handle(req: Request, _ctx: RequestContext): Promise<Response> {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
     logStep("Function started");
+
+    const resendApiKey = requireSecret("RESEND_API_KEY", {
+      functionName: FUNCTION_NAME,
+    });
 
     const authContext = await requireAuthenticatedPost(req);
     if (authContext instanceof Response) {
@@ -104,7 +102,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     }
 
     // Defense-in-depth: Verify user has admin/owner role, not just read access.
-    // 
+    //
     // WHY THIS IS NECESSARY (do not remove as "redundant"):
     // RLS on organization_invitations may allow read access to members who can see
     // their own invitations or pending invitations to their org. However, only
@@ -155,14 +153,14 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
           (obj as { logo: unknown }).logo === null)
       );
     };
-    
+
     if (!isValidOrgShape(rawOrg)) {
       logStep("WARNING: Unexpected organizations shape in invitation", {
         invitationId,
         orgType: typeof rawOrg,
       });
     }
-    
+
     const organizationLogo = isValidOrgShape(rawOrg) ? rawOrg.logo : undefined;
 
     // PUBLIC_SITE_URL is the env-specific origin (set per-environment so preview
@@ -256,7 +254,8 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     // Send the email
     logStep("Sending email", { invitationId });
 
-    const emailResponse = await getResend().emails.send({
+    const resend = new Resend(resendApiKey);
+    const emailResponse = await resend.emails.send({
       from: "EquipQR™ <invite@equipqr.app>",
       to: [email],
       subject: `You're invited to join ${safeOrganizationName} on EquipQR™`,
@@ -290,4 +289,8 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     // Return generic message to client - never expose error.message directly
     return createErrorResponse("Failed to send invitation email", 500);
   }
-}));
+}
+
+export const __testables = { handle };
+
+Deno.serve(withCorrelationId(handle));

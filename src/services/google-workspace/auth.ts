@@ -111,7 +111,6 @@ export async function generateGoogleWorkspaceAuthUrl(
   assertValidOAuthRedirectBase(oauthRedirectBaseUrl);
 
   const originUrl = resolveOAuthOriginUrl(config.originUrl, {
-    requireExplicit: true,
     missingMessage:
       'originUrl is required when generating the Google Workspace auth URL in a non-browser context. ' +
       'Provide originUrl in the config parameter when calling from Edge Functions or server-side code.',

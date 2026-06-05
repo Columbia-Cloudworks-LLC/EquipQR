@@ -15,7 +15,7 @@ export function assertValidOAuthRedirectBase(oauthRedirectBaseUrl: string): void
 
 export function resolveOAuthOriginUrl(
   originUrl: string | undefined,
-  options?: { requireExplicit?: boolean; missingMessage?: string },
+  options?: { missingMessage?: string },
 ): string {
   const resolved =
     originUrl ?? (typeof window !== 'undefined' ? window.location.origin : null);

@@ -104,6 +104,7 @@ export function notificationHasNavigableAction(notification: Notification): bool
       notification.type.startsWith('ownership_transfer') ||
       notification.type.startsWith('workspace_merge') ||
       notification.type === 'member_added' ||
+      notification.type === 'member_removed' ||
       notification.type === 'member_role_changed' ||
       notification.type === 'team_member_added' ||
       notification.type === 'team_member_role_changed' ||

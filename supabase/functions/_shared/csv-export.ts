@@ -2,12 +2,22 @@
  * Shared CSV helpers for Edge Function report exports.
  */
 
+const CSV_FORMULA_PREFIX_PATTERN = /^[\s]*[=+\-@]/;
+
+function neutralizeCsvFormulaPrefix(value: string): string {
+  if (CSV_FORMULA_PREFIX_PATTERN.test(value)) {
+    return `'${value}`;
+  }
+
+  return value;
+}
+
 export function escapeCSVValue(value: unknown): string {
   if (value === null || value === undefined) {
     return "";
   }
 
-  const stringValue = String(value);
+  const stringValue = neutralizeCsvFormulaPrefix(String(value));
 
   if (
     stringValue.includes(",") ||

@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { getAuthClaims } from '@/lib/authClaims';
-import { logInvitationPerformance } from '@/features/organization/utils/invitationPerformanceLog';
 import { logInvitationMutationFailure } from '@/features/organization/utils/logInvitationMutationFailure';
 import { logInvitationMutationSuccess } from '@/features/organization/utils/logInvitationMutationSuccess';
 import {

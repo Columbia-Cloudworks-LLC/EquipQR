@@ -52,7 +52,7 @@ export const GoogleWorkspaceMemberImportSheet = ({
   const [isAdding, setIsAdding] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [adminEmails, setAdminEmails] = useState<Set<string>>(new Set());
-  const { toggleEmail, toggleAdmin, toggleSelectAll, clearSelection } =
+  const { toggleEmail, toggleAdmin, toggleSelectAll } =
     useGoogleWorkspaceMemberSelection(setSelectedEmails, setAdminEmails);
   const [searchQuery, setSearchQuery] = useState('');
 
