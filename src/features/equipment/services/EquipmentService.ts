@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
 import { getAuthClaims } from '@/lib/authClaims';
-import { batchResolveEquipmentDisplayImageUrls } from '@/services/imageUploadService';
+import { withResolvedEquipmentImages } from '@/services/imageUploadService';
 import {
   createServiceErrorResponse,
   createServiceSuccessResponse,
@@ -161,16 +161,6 @@ export interface EquipmentScan extends Tables<'scans'> {
 export interface EquipmentWorkOrder extends Tables<'work_orders'> {
   assigneeName?: string;
   equipmentName?: string;
-}
-
-async function withResolvedEquipmentImages<T extends { image_url?: string | null }>(
-  rows: T[]
-): Promise<T[]> {
-  const urls = await batchResolveEquipmentDisplayImageUrls(rows.map(r => r.image_url ?? null));
-  return rows.map((row, i) => ({
-    ...row,
-    image_url: urls[i] ?? null,
-  }));
 }
 
 /**

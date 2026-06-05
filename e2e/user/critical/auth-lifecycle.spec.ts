@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/equipqr-test';
 import {
+  loginAndPersistStorageState,
   logoutFromApp,
   quickLogin,
   signInWithEmailPassword,
@@ -34,5 +35,6 @@ test.describe('auth lifecycle @critical', () => {
     await logoutFromApp(page);
     await page.goto('/dashboard');
     await expect(page).toHaveURL(/\/auth|\/$/i, { timeout: 60_000 });
+    await loginAndPersistStorageState(page, 'owner');
   });
 });

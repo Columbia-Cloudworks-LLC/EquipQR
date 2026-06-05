@@ -191,7 +191,7 @@ export const useCreateInvitation = (organizationId: string) => {
           );
         } catch (emailError) {
           logger.error('[INVITATION] Failed to send invitation email', emailError);
-          throw new Error('INVITATION_EMAIL_SEND_FAILED');
+          throw new Error('INVITATION_EMAIL_SEND_FAILED', { cause: emailError });
         }
 
         if (import.meta.env.DEV) {

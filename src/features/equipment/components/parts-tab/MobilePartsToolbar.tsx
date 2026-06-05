@@ -25,6 +25,7 @@ import {
   PartsFiltersState,
   PartsSortField,
   PartsSortOrder,
+  SORT_OPTIONS,
   StockFilter,
   STOCK_FILTER_OPTIONS,
 } from './types';

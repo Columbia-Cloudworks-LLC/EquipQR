@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,6 @@ import { format } from "date-fns";
 import QRCodeDisplay from "./QRCodeDisplay";
 import InlineEditField from "./InlineEditField";
 import InlineEditCustomAttributes from "./InlineEditCustomAttributes";
-import { WorkingHoursTimelineModal } from "./WorkingHoursTimelineModal";
 import ClickableAddress from "@/components/ui/ClickableAddress";
 import GooglePlacesAutocomplete, { type PlaceLocationData } from "@/components/ui/GooglePlacesAutocomplete";
 import { useGoogleMapsLoader } from "@/hooks/useGoogleMapsLoader";
@@ -40,6 +39,10 @@ import EquipmentPMInfo from "./EquipmentPMInfo";
 import { EquipmentIdentityFields } from "./EquipmentIdentityFields";
 
 type Equipment = Tables<'equipment'>;
+
+const WorkingHoursTimelineModal = lazy(() =>
+  import("./WorkingHoursTimelineModal").then((module) => ({ default: module.WorkingHoursTimelineModal })),
+);
 
 interface EquipmentDetailsTabProps {
   equipment: Equipment;
@@ -149,7 +152,7 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
       <div>
         <span className="text-sm font-medium text-muted-foreground">Location</span>
         <div className="mt-1 flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
           <ClickableAddress
             address={teamAddress || undefined}
             lat={team!.location_lat}
@@ -164,7 +167,7 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
                   className="inline-flex items-center justify-center rounded-full p-0.5 text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring cursor-help"
                   aria-label="This location is set by the team. Edit the team to change it."
                 >
-                  <Info className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                  <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-[260px]">
@@ -235,7 +238,7 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
       <div>
         <span className="text-sm font-medium text-muted-foreground">Location</span>
         <div className="mt-1 flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
           <ClickableAddress
             address={equipmentAddress}
             lat={equipment.assigned_location_lat ?? undefined}
@@ -265,7 +268,7 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
       <div>
         <span className="text-sm font-medium text-muted-foreground">Location</span>
         <div className="mt-1 flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
           <span className="text-base">{legacyLocation}</span>
           {canEdit && (
             <Button
@@ -288,7 +291,7 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
     <div>
       <span className="text-sm font-medium text-muted-foreground">Location</span>
       <div className="mt-1 flex items-center gap-2">
-        <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
         <span className="text-base text-muted-foreground">No location set</span>
         {canEdit && (
           <Button
@@ -902,12 +905,16 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment, as
       />
 
       {/* Working Hours Timeline Modal */}
-      <WorkingHoursTimelineModal
-        open={showWorkingHoursModal}
-        onClose={() => setShowWorkingHoursModal(false)}
-        equipmentId={equipment.id}
-        equipmentName={equipment.name || 'Unknown Equipment'}
-      />
+      {showWorkingHoursModal && (
+        <Suspense fallback={null}>
+          <WorkingHoursTimelineModal
+            open={showWorkingHoursModal}
+            onClose={() => setShowWorkingHoursModal(false)}
+            equipmentId={equipment.id}
+            equipmentName={equipment.name || 'Unknown Equipment'}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

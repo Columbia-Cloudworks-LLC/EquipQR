@@ -1,4 +1,3 @@
-import { format } from 'date-fns';
 import type { AuditLogFilters } from '@/types/audit';
 import { auditService } from '@/services/auditService';
 
@@ -31,7 +30,7 @@ function triggerBrowserDownload(data: string, mimeType: string, extension: 'csv'
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `audit-log-${format(new Date(), 'yyyy-MM-dd')}.${extension}`;
+  link.download = `audit-log-${new Date().toISOString().slice(0, 10)}.${extension}`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

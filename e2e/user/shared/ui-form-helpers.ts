@@ -162,9 +162,9 @@ export async function createEquipmentFromEquipmentPage(
 export async function openEquipmentDetailByName(page: Page, equipmentName: string): Promise<void> {
   const escaped = equipmentName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const search = page.getByPlaceholder(/search equipment/i).first();
-  if (await search.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await fillWithDemoCue(search, `Search for ${equipmentName}`, equipmentName);
-  }
+  await expect(search).toBeVisible({ timeout: 30_000 });
+  await fillWithDemoCue(search, `Search for ${equipmentName}`, equipmentName);
+  await expect(search).toHaveValue(equipmentName, { timeout: 5_000 });
 
   const openButton = page
     .getByRole('button', { name: new RegExp(`Open details for ${escaped}`, 'i') })

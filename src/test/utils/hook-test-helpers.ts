@@ -1,7 +1,6 @@
 import { waitFor, type RenderHookResult } from '@testing-library/react';
 import { expect, vi } from 'vitest';
 import type { useAuth } from '@/hooks/useAuth';
-import type { useAppToast } from '@/hooks/useAppToast';
 import { personas } from '@/test/fixtures/personas';
 import type { UserPersona } from '@/test/fixtures/personas';
 
@@ -51,14 +50,3 @@ export function expectHookData<TData>(
 }
 
 export { createReactRouterDomTestMock } from '@/test/utils/react-router-dom-test-mock';
-
-/** Sonner + logger mocks used by offline queue hook/service tests. */
-export function mockSonnerAndLogger(): void {
-  vi.mock('sonner', () => ({
-    toast: { error: vi.fn(), warning: vi.fn(), success: vi.fn(), info: vi.fn() },
-  }));
-
-  vi.mock('@/utils/logger', () => ({
-    logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
-  }));
-}
