@@ -1,8 +1,8 @@
 import React, { useCallback, useMemo } from 'react';
-import { Plus, X, Settings2, AlertCircle, CheckCircle2, Info } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Plus, X, CheckCircle2, Info } from 'lucide-react';
+import { CompatibilityRulesCardShell } from '@/components/common/CompatibilityRulesCardShell';
+import { CompatibilityManufacturerSelect } from '@/components/common/CompatibilityManufacturerSelect';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -181,40 +181,39 @@ export const CompatibilityRulesEditor: React.FC<CompatibilityRulesEditorProps> =
   const validRulesCount = rules.filter(r => r.manufacturer.trim().length > 0).length;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Settings2 className="h-4 w-4" />
-            Compatibility Rules
-          </div>
-          {validRulesCount > 0 && (
-            <Badge variant="secondary" className="font-normal">
-              Matches {matchCount} equipment
-            </Badge>
+    <CompatibilityRulesCardShell
+      title="Compatibility Rules"
+      description="Match parts to equipment by manufacturer and model pattern. Use different match types for flexible targeting."
+      validRulesCount={validRulesCount}
+      matchCount={matchCount}
+      isLoadingMfrs={isLoadingMfrs}
+      hasManufacturers={manufacturers.length > 0}
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleAddRule}
+            disabled={disabled}
+            className="w-full"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Rule
+          </Button>
+          {rules.length > 0 && (
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>Rules use case-insensitive matching. Duplicate rules are highlighted and will be deduplicated on save.</p>
+              <p className="flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3 text-success" />
+                <span>Verified rules are shown first in part lookup results.</span>
+              </p>
+            </div>
           )}
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Match parts to equipment by manufacturer and model pattern. Use different match types for flexible targeting.
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {isLoadingMfrs ? (
-          <div className="space-y-2">
-            {[...Array(2)].map((_, i) => (
-              <div key={i} className="h-10 bg-muted rounded animate-pulse" />
-            ))}
-          </div>
-        ) : manufacturers.length === 0 ? (
-          <div className="text-sm text-muted-foreground text-center py-4">
-            <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>No equipment found in your organization.</p>
-            <p>Add equipment first to define compatibility rules.</p>
-          </div>
-        ) : (
-          <>
-            {/* Rules List */}
-            <div className="space-y-3">
+        </>
+      }
+    >
+      <div className="space-y-3">
               {rules.map((rule, index) => {
                 const matchType: ModelMatchType = rule.match_type || 'exact';
                 const availableModels = getModelsForManufacturer(rule.manufacturer);
@@ -233,22 +232,12 @@ export const CompatibilityRulesEditor: React.FC<CompatibilityRulesEditorProps> =
                     <div className="flex items-center gap-2 flex-wrap">
                       {/* Manufacturer Select */}
                       <div className="flex-1 min-w-[180px]">
-                        <Select
+                        <CompatibilityManufacturerSelect
                           value={rule.manufacturer}
                           onValueChange={(value) => handleRuleChange(index, { manufacturer: value })}
+                          manufacturers={manufacturers}
                           disabled={disabled}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select manufacturer..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {manufacturers.map((mfr) => (
-                              <SelectItem key={mfr} value={mfr}>
-                                {mfr}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        />
                       </div>
 
                       {/* Match Type Select */}
@@ -412,35 +401,8 @@ export const CompatibilityRulesEditor: React.FC<CompatibilityRulesEditorProps> =
                   </div>
                 );
               })}
-            </div>
-
-            {/* Add Rule Button */}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddRule}
-              disabled={disabled}
-              className="w-full"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Rule
-            </Button>
-
-            {/* Help Text */}
-            {rules.length > 0 && (
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p>Rules use case-insensitive matching. Duplicate rules are highlighted and will be deduplicated on save.</p>
-                <p className="flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3 text-success" />
-                  <span>Verified rules are shown first in part lookup results.</span>
-                </p>
-              </div>
-            )}
-          </>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+    </CompatibilityRulesCardShell>
   );
 };
 

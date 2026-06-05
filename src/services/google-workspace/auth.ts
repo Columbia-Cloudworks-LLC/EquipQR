@@ -3,6 +3,13 @@ import {
   encodeOAuthState,
   type OAuthStatePayload,
 } from '@/services/oauthStateEncoding';
+import {
+  assertValidOAuthRedirectBase,
+  buildOAuthCallbackRedirectUri,
+  createOAuthStatePayload,
+  parseOAuthSessionRpcResult,
+  resolveOAuthOriginUrl,
+} from '@/services/oauthSessionHelpers';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 export const GOOGLE_PICKER_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
@@ -101,20 +108,14 @@ export async function generateGoogleWorkspaceAuthUrl(
     throw new Error('Supabase URL is not configured. Missing VITE_SUPABASE_URL.');
   }
 
-  try {
-    new URL(oauthRedirectBaseUrl);
-  } catch {
-    throw new Error(`Invalid OAuth redirect base URL: "${oauthRedirectBaseUrl}"`);
-  }
+  assertValidOAuthRedirectBase(oauthRedirectBaseUrl);
 
-  const originUrl = config.originUrl ?? (typeof window !== 'undefined' ? window.location.origin : null);
-
-  if (!originUrl) {
-    throw new Error(
+  const originUrl = resolveOAuthOriginUrl(config.originUrl, {
+    requireExplicit: true,
+    missingMessage:
       'originUrl is required when generating the Google Workspace auth URL in a non-browser context. ' +
-      'Provide originUrl in the config parameter when calling from Edge Functions or server-side code.'
-    );
-  }
+      'Provide originUrl in the config parameter when calling from Edge Functions or server-side code.',
+  });
 
   const { data: sessionData, error: sessionError } = await supabase.rpc(
     'create_google_workspace_oauth_session',
@@ -125,32 +126,18 @@ export async function generateGoogleWorkspaceAuthUrl(
     }
   );
 
-  if (sessionError) {
-    throw new Error(
-      `Failed to create OAuth session: ${sessionError.message}. ` +
-      'Make sure you are authenticated.'
-    );
-  }
+  const { sessionToken, nonce } = parseOAuthSessionRpcResult(
+    sessionData,
+    sessionError,
+    'Make sure you are authenticated.',
+  );
 
-  if (!sessionData || sessionData.length === 0 || !sessionData[0]?.session_token) {
-    throw new Error('Failed to create OAuth session: No session token returned');
-  }
+  const redirectUri = buildOAuthCallbackRedirectUri(
+    oauthRedirectBaseUrl,
+    '/functions/v1/google-workspace-oauth-callback',
+  );
 
-  const sessionToken = sessionData[0].session_token;
-  const nonce = sessionData[0].nonce;
-
-  if (!nonce) {
-    throw new Error('Failed to create OAuth session: No nonce returned');
-  }
-
-  const redirectBaseUrl = oauthRedirectBaseUrl.trim().replace(/\/+$/, '');
-  const redirectUri = `${redirectBaseUrl}/functions/v1/google-workspace-oauth-callback`;
-
-  const state: OAuthState = {
-    sessionToken,
-    nonce,
-    timestamp: Date.now(),
-  };
+  const state: OAuthState = createOAuthStatePayload(sessionToken, nonce);
 
   const params = new URLSearchParams({
     client_id: clientId,

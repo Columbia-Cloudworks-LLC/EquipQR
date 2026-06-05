@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { InventoryLocationFilterSelect } from '@/features/inventory/components/InventoryLocationFilterSelect';
 import type { InventoryFilters } from '@/features/inventory/types/inventory';
 
 const SORT_OPTIONS: { value: NonNullable<InventoryFilters['sortBy']>; label: string }[] = [
@@ -206,25 +207,16 @@ const MobileInventoryToolbar: React.FC<MobileInventoryToolbarProps> = ({
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Location
                   </p>
-                  <Select
+                  <InventoryLocationFilterSelect
                     value={filters.location ?? '__all__'}
                     onValueChange={(v) =>
                       onFilterChange({ location: v === '__all__' ? undefined : v })
                     }
-                  >
-                    <SelectTrigger className="h-11" aria-label="Filter by location">
-                      <MapPin className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                      <SelectValue placeholder="All locations" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__all__">All locations</SelectItem>
-                      {uniqueLocations.map((loc) => (
-                        <SelectItem key={loc} value={loc}>
-                          {loc}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    uniqueLocations={uniqueLocations}
+                    triggerClassName="h-11"
+                    iconClassName="mr-2 h-4 w-4 shrink-0 text-muted-foreground"
+                    allLocationsLabel="All locations"
+                  />
                 </div>
               )}
 

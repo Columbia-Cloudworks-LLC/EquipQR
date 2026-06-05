@@ -5,6 +5,8 @@ import {
   fetchCreatorName,
   fetchCreatorNameMap,
 } from '@/features/work-orders/services/workOrderCostProfileHelpers';
+import { mapCostsWithCreatorProfiles } from '@/features/work-orders/services/workOrderCostListHelpers';
+import { verifyWorkOrderOrganizationScope } from '@/features/work-orders/services/workOrderOrganizationGate';
 import type { 
   WorkOrderCost, 
   CreateWorkOrderCostData, 
@@ -23,23 +25,11 @@ export const getWorkOrderCosts = async (
   try {
     // If organization_id is provided, verify the work order belongs to that organization
     // This provides explicit multi-tenancy filtering as a failsafe (per coding guidelines)
-    if (organizationId) {
-      const { data: workOrder, error: workOrderError } = await supabase
-        .from('work_orders')
-        .select('id, organization_id')
-        .eq('id', workOrderId)
-        .eq('organization_id', organizationId)
-        .single();
-
-      if (workOrderError || !workOrder) {
-        // Work order doesn't exist or doesn't belong to the specified organization
-        logger.warn('Work order not found or organization mismatch', {
-          workOrderId,
-          organizationId,
-          error: workOrderError,
-        });
-        return [];
-      }
+    if (
+      organizationId &&
+      !(await verifyWorkOrderOrganizationScope(workOrderId, organizationId))
+    ) {
+      return [];
     }
 
     // Get costs (RLS policies also enforce multi-tenancy)
@@ -289,23 +279,7 @@ export const getMyCosts = async (organizationId: string, userId: string): Promis
 
     if (error) throw error;
 
-    // Get creator names separately to avoid relation issues
-    const creatorIds = [...new Set(data?.map(cost => cost.created_by) || [])];
-    const profilesMap = await fetchCreatorNameMap(creatorIds);
-
-    return (data || []).map(cost => ({
-      id: cost.id,
-      work_order_id: cost.work_order_id,
-      description: cost.description,
-      quantity: cost.quantity,
-      unit_price_cents: cost.unit_price_cents,
-      total_price_cents: cost.total_price_cents || (cost.quantity * cost.unit_price_cents),
-      created_by: cost.created_by,
-      created_at: cost.created_at,
-      updated_at: cost.updated_at,
-      createdByName: profilesMap[cost.created_by],
-      workOrderTitle: cost.work_orders?.title
-    }));
+    return mapCostsWithCreatorProfiles(data);
   } catch (error) {
     logger.error('Error fetching user costs:', error);
     return [];
@@ -333,23 +307,7 @@ export const getAllCostsWithCreators = async (organizationId: string): Promise<W
 
     if (error) throw error;
 
-    // Get creator names separately
-    const creatorIds = [...new Set(data?.map(cost => cost.created_by) || [])];
-    const profilesMap = await fetchCreatorNameMap(creatorIds);
-
-    return (data || []).map(cost => ({
-      id: cost.id,
-      work_order_id: cost.work_order_id,
-      description: cost.description,
-      quantity: cost.quantity,
-      unit_price_cents: cost.unit_price_cents,
-      total_price_cents: cost.total_price_cents || (cost.quantity * cost.unit_price_cents),
-      created_by: cost.created_by,
-      created_at: cost.created_at,
-      updated_at: cost.updated_at,
-      createdByName: profilesMap[cost.created_by],
-      workOrderTitle: cost.work_orders?.title
-    }));
+    return mapCostsWithCreatorProfiles(data);
   } catch (error) {
     logger.error('Error fetching all costs:', error);
     return [];

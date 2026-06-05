@@ -1,5 +1,6 @@
 import React from 'react';
-import { MapPin, AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, X } from 'lucide-react';
+import { InventoryLocationFilterSelect } from '@/features/inventory/components/InventoryLocationFilterSelect';
 import { Button } from '@/components/ui/button';
 import { FilterPopoverShell } from '@/components/filters/FilterPopoverShell';
 import {
@@ -40,25 +41,14 @@ const InventoryFilterPopover: React.FC<InventoryFilterPopoverProps> = ({
           {uniqueLocations.length > 0 && (
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-muted-foreground">Location</label>
-              <Select
+              <InventoryLocationFilterSelect
                 value={filters.location ?? '__all__'}
                 onValueChange={(v) =>
                   onFilterChange({ location: v === '__all__' ? undefined : v })
                 }
-              >
-                <SelectTrigger className="h-8 text-sm" aria-label="Filter by location">
-                  <MapPin className="h-3.5 w-3.5 mr-1.5 text-muted-foreground shrink-0" />
-                  <SelectValue placeholder="All locations" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">All Locations</SelectItem>
-                  {uniqueLocations.map((loc) => (
-                    <SelectItem key={loc} value={loc}>
-                      {loc}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                uniqueLocations={uniqueLocations}
+                triggerClassName="h-8 text-sm"
+              />
             </div>
           )}
 

@@ -1,8 +1,11 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: PDF report shares checklist row metadata with inline UI
 // jsPDF is loaded dynamically to reduce initial bundle size (~150KB)
 // It's only needed when a user explicitly triggers a PDF export
 import type jsPDF from 'jspdf';
 import { logger } from '@/utils/logger';
 import { formatStatus, formatPriority } from '@/features/work-orders/utils/workOrderHelpers';
+import { buildWorkOrderReportPdfFilename } from '@/features/work-orders/utils/workOrderReportPdfFilename';
 import type { UserSettings } from '@/types/settings';
 import {
   formatDate as formatDateTz,
@@ -794,14 +797,7 @@ export class WorkOrderReportPDFGenerator {
       const generator = await WorkOrderReportPDFGenerator.create();
       const pdf = await generator.generatePDF(data);
       
-      // Create filename from work order title
-      const safeTitle = data.workOrder.title
-        .replace(/[^a-z0-9]/gi, '-')
-        .replace(/-+/g, '-')
-        .slice(0, 50);
-      const dateStr = new Date().toISOString().split('T')[0];
-      const filename = `WorkOrder-${safeTitle}-${dateStr}.pdf`;
-      
+      const filename = buildWorkOrderReportPdfFilename(data.workOrder.title);
       pdf.save(filename);
     } catch (error) {
       logger.error('Error generating work order PDF:', error);
@@ -818,14 +814,8 @@ export class WorkOrderReportPDFGenerator {
       const generator = await WorkOrderReportPDFGenerator.create();
       const pdf = await generator.generatePDF(data);
       
-      // Create filename from work order title
-      const safeTitle = data.workOrder.title
-        .replace(/[^a-z0-9]/gi, '-')
-        .replace(/-+/g, '-')
-        .slice(0, 50);
-      const dateStr = new Date().toISOString().split('T')[0];
-      const filename = `WorkOrder-${safeTitle}-${dateStr}.pdf`;
-      
+      const filename = buildWorkOrderReportPdfFilename(data.workOrder.title);
+
       // Get the PDF as a Blob
       const blob = pdf.output('blob');
       

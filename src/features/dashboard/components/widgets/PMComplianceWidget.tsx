@@ -7,15 +7,18 @@ import { useEquipmentByStatus, usePMCompliance } from '@/features/dashboard/hook
 import { useOrgEquipmentPMStatuses } from '@/features/equipment/hooks/useEquipmentPMStatus';
 import { getPMComplianceLevel } from '@/features/equipment/hooks/useEquipmentPMStatus';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useNavigate } from 'react-router-dom';
 
 import {
-  createDonutTooltipContent,
   DonutWidgetChartSkeleton,
   DonutWidgetDesktopChart,
   DonutWidgetMobileBreakdown,
-  type DonutChartDatum,
 } from './dashboardDonutChartShared';
+import {
+  useDonutSliceNavigate,
+  useDonutStatusChartData,
+  useDonutStatusCountTotal,
+  useDonutTooltipFormatter,
+} from './useDonutStatusChartData';
 
 interface CenterLabelProps {
   cx: number;
@@ -47,17 +50,13 @@ const CenterLabel: React.FC<CenterLabelProps> = ({ cx, cy, pct }) => (
 );
 
 const PMComplianceWidget: React.FC = () => {
-  const navigate = useNavigate();
   const { currentOrganization } = useOrganization();
   const organizationId = currentOrganization?.id;
 
   const { data, isLoading } = usePMCompliance(organizationId);
   const { data: equipmentByStatus } = useEquipmentByStatus(organizationId);
   const { data: pmStatuses } = useOrgEquipmentPMStatuses(organizationId);
-  const totalCount = React.useMemo(
-    () => (data ?? []).reduce((sum, item) => sum + item.count, 0),
-    [data]
-  );
+  const totalCount = useDonutStatusCountTotal(data);
 
   const compliancePct = React.useMemo(() => {
     if (!data || totalCount === 0) return 0;
@@ -85,34 +84,13 @@ const PMComplianceWidget: React.FC = () => {
   );
   const nonIntervalTrackedCount = Math.max((totalEquipmentCount || 0) - (intervalSummary?.total || 0), 0);
 
-  const chartData = React.useMemo<DonutChartDatum[] | undefined>(
-    () =>
-      data?.map((entry) => ({
-        status: entry.status,
-        label: entry.label,
-        count: entry.count,
-        color: entry.color,
-      })),
-    [data]
+  const chartData = useDonutStatusChartData(data, (_status, entry) => entry.color ?? 'hsl(var(--muted))');
+  const handleSliceClick = useDonutSliceNavigate((status) =>
+    status === 'overdue' ? '/dashboard/work-orders?date=overdue' : `/dashboard/work-orders?status=${status}`,
   );
-
-  const handleSliceClick = React.useCallback(
-    (status: string) => {
-      if (status === 'overdue') {
-        navigate('/dashboard/work-orders?date=overdue');
-        return;
-      }
-      navigate(`/dashboard/work-orders?status=${status}`);
-    },
-    [navigate]
-  );
-
-  const tooltipContent = React.useMemo(
-    () =>
-      createDonutTooltipContent(totalCount, (count, percentage) =>
-        `${count} work orders (${percentage}%)`
-      ),
-    [totalCount]
+  const tooltipContent = useDonutTooltipFormatter(
+    totalCount,
+    (count, percentage) => `${count} work orders (${percentage}%)`,
   );
 
   return (

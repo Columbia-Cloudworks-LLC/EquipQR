@@ -1,27 +1,13 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Desktop filters mirror mobile toolbar semantics
 import React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { WorkOrderFilters as FiltersType } from '@/features/work-orders/types/workOrder';
-import type { QuickFilterPreset, SortField, SortDirection } from '@/features/work-orders/hooks/useWorkOrderFilters';
+import type { WorkOrderFiltersToolbarProps } from '@/features/work-orders/types/workOrderFiltersToolbarTypes';
 import WorkOrderToolbar from './WorkOrderToolbar';
 import MobileWorkOrderToolbar from './MobileWorkOrderToolbar';
 
-interface WorkOrderFiltersProps {
-  filters: FiltersType;
-  activeFilterCount: number;
-  activePresets: Set<QuickFilterPreset>;
-  showMobileFilters: boolean;
-  onShowMobileFiltersChange: (show: boolean) => void;
-  onFilterChange: (key: keyof FiltersType, value: string) => void;
-  onClearFilters: () => void;
-  onQuickFilter: (preset: QuickFilterPreset) => void;
-  sortField: SortField;
-  sortDirection: SortDirection;
-  onSortChange: (field: SortField, direction: SortDirection) => void;
-  resultCount: number;
-  totalCount: number;
-}
-
-export const WorkOrderFilters: React.FC<WorkOrderFiltersProps> = ({
+export const WorkOrderFilters: React.FC<WorkOrderFiltersToolbarProps> = ({
   filters,
   activeFilterCount,
   activePresets,

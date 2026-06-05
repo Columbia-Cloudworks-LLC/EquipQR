@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Plus, Images } from 'lucide-react';
+import { Images } from 'lucide-react';
 import NoteTimelineEntry from '@/components/common/NoteTimelineEntry';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -18,20 +17,19 @@ import {
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { useOfflineMergedNotes } from '@/features/offline-queue/hooks/useOfflineMergedNotes';
-import InlineNoteComposer from '@/components/common/InlineNoteComposer';
 import ImageGallery from '@/components/common/ImageGallery';
 import NotesLoadingSkeleton from '@/components/common/NotesLoadingSkeleton';
 import { resolveNoteContentFromSubmit } from '@/components/common/noteContentHelpers';
 import type { NoteSubmitPayload } from '@/components/common/noteSubmitTypes';
 import {
-  handleNoteCreateMutationSuccess,
-  shouldUseOfflineNotePath,
+  createNoteCreateMutationCallbacks,
+  runOfflineAwareNoteCreate,
   showQueuedNoteCreateToasts,
 } from '@/components/common/noteCreateHelpers';
-import { OfflineFormBanner } from '@/features/offline-queue/components/OfflineFormBanner';
-import { logger } from '@/utils/logger';
+import { NotesTabAddNoteSection } from '@/components/common/NotesTabAddNoteSection';
 import { useEquipmentNotesPermissions } from '@/features/equipment/hooks/useEquipmentNotesPermissions';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
+import { useAttachedNoteImages } from '@/hooks/useAttachedNoteImages';
 
 interface EquipmentNotesTabProps {
   equipmentId: string;
@@ -59,7 +57,8 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   const offlineCtx = useOfflineQueueOptional();
   const [showForm, setShowForm] = useState(false);
   const [noteContent, setNoteContent] = useState('');
-  const [attachedImages, setAttachedImages] = useState<File[]>([]);
+  const { attachedImages, handleImagesAdd, handleImageRemove, clearAttachedImages } =
+    useAttachedNoteImages();
   const activeOrganizationId = organizationId ?? currentOrganization?.id;
   const permissions = useEquipmentNotesPermissions(equipmentTeamId);
   const { formatDate: formatNoteDate } = useFormatTimestamp();
@@ -83,58 +82,52 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
 
   // Create note mutation — supports offline (text only; images when online)
   const createNoteMutation = useMutation({
-    mutationFn: async ({ content, hoursWorked, isPrivate, images, machineHours }: {
-      content: string;
-      hoursWorked: number;
-      isPrivate: boolean;
-      images: File[];
-      machineHours?: number;
-    }) => {
-      if (!activeOrganizationId) {
-        throw new Error('No active organization selected');
-      }
-      const orgId = activeOrganizationId;
-
-      if (shouldUseOfflineNotePath(images) && user?.id) {
-        const service = new OfflineAwareWorkOrderService(orgId, user.id);
-        const result = await service.createEquipmentNote(equipmentId, content, hoursWorked, isPrivate, machineHours);
-        if (result.queuedOffline) {
-          return { queuedOffline: true, hadImages: images.length > 0 };
-        }
-        return { queuedOffline: false, data: result.data };
-      }
-      return createEquipmentNoteWithImages(
-        equipmentId,
-        content,
-        hoursWorked,
-        isPrivate,
-        images,
-        orgId,
-        machineHours,
-      );
-    },
-    onSuccess: (result) => {
-      handleNoteCreateMutationSuccess(result, {
-        onQueuedOffline: (hadImages) => {
-          showQueuedNoteCreateToasts(hadImages, { combinedOfflineMessage: true });
-          offlineCtx?.refresh();
+    mutationFn: (input) =>
+      runOfflineAwareNoteCreate({
+        input,
+        organizationId: activeOrganizationId,
+        userId: user?.id,
+        offlineCreate: async ({ content, hoursWorked, isPrivate, images, machineHours }) => {
+          const service = new OfflineAwareWorkOrderService(activeOrganizationId!, user!.id);
+          const result = await service.createEquipmentNote(
+            equipmentId,
+            content,
+            hoursWorked,
+            isPrivate,
+            machineHours,
+          );
+          if (result.queuedOffline) {
+            return { queuedOffline: true as const, hadImages: images.length > 0 };
+          }
+          return { queuedOffline: false as const, data: result.data };
         },
-        onOnlineSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.notesWithImages(equipmentId) });
-          queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.images(equipmentId) });
-          toast.success('Note created successfully');
-        },
-        resetForm: () => {
-          setShowForm(false);
-          setNoteContent('');
-          setAttachedImages([]);
-        },
-      });
-    },
-    onError: (error) => {
-      logger.error('Failed to create note', error);
-      toast.error('Failed to create note');
-    }
+        onlineCreate: ({ content, hoursWorked, isPrivate, images, machineHours }) =>
+          createEquipmentNoteWithImages(
+            equipmentId,
+            content,
+            hoursWorked,
+            isPrivate,
+            images,
+            activeOrganizationId!,
+            machineHours,
+          ),
+      }),
+    ...createNoteCreateMutationCallbacks({
+      onQueuedOffline: (hadImages) => {
+        showQueuedNoteCreateToasts(hadImages, { combinedOfflineMessage: true });
+        offlineCtx?.refresh();
+      },
+      onOnlineSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.notesWithImages(equipmentId) });
+        queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.images(equipmentId) });
+        toast.success('Note created successfully');
+      },
+      resetForm: () => {
+        setShowForm(false);
+        setNoteContent('');
+        clearAttachedImages();
+      },
+    }),
   });
 
   // Delete image mutation
@@ -182,14 +175,6 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
     });
   };
 
-  const handleImagesAdd = (files: File[]) => {
-    setAttachedImages(prev => [...prev, ...files]);
-  };
-
-  const handleImageRemove = (index: number) => {
-    setAttachedImages(prev => prev.filter((_, i) => i !== index));
-  };
-
   const canDeleteImage = (image: { uploaded_by: string }) => {
     return image.uploaded_by === user?.id;
   };
@@ -203,60 +188,26 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Add Note Form - Always show if no notes exist */}
-      {(notes.length === 0 || showForm) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>{notes.length === 0 ? 'Add Your First Note' : 'Add Note'}</span>
-              {notes.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setShowForm(false);
-                    setNoteContent('');
-                    setAttachedImages([]);
-                  }}
-                >
-                  Cancel
-                </Button>
-              )}
-            </CardTitle>
-            <OfflineFormBanner />
-          </CardHeader>
-          <CardContent>
-            <InlineNoteComposer
-              value={noteContent}
-              onChange={setNoteContent}
-              onSubmit={handleNoteSubmit}
-              attachedImages={attachedImages}
-              onImagesAdd={handleImagesAdd}
-              onImageRemove={handleImageRemove}
-              showPrivateToggle={true}
-              showHoursWorked={true}
-              showMachineHours={true}
-              disabled={createNoteMutation.isPending}
-              isSubmitting={createNoteMutation.isPending}
-              placeholder="Enter your note..."
-              userDisplayName={userDisplayName}
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Add Note Button - Only show if notes exist and form is not shown */}
-      {notes.length > 0 && !showForm && (
-        <div className="flex justify-center">
-          <Button
-            variant="outline"
-            onClick={() => setShowForm(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Note
-          </Button>
-        </div>
-      )}
+      <NotesTabAddNoteSection
+        noteCount={notes.length}
+        showForm={showForm}
+        onShowForm={() => setShowForm(true)}
+        onCancelForm={() => {
+          setShowForm(false);
+          setNoteContent('');
+          clearAttachedImages();
+        }}
+        noteContent={noteContent}
+        onNoteContentChange={setNoteContent}
+        onSubmit={handleNoteSubmit}
+        attachedImages={attachedImages}
+        onImagesAdd={handleImagesAdd}
+        onImageRemove={handleImageRemove}
+        showPrivateToggle
+        disabled={createNoteMutation.isPending}
+        isSubmitting={createNoteMutation.isPending}
+        userDisplayName={userDisplayName}
+      />
 
       {/* Notes List */}
       <div className="space-y-4">

@@ -3,7 +3,8 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Package, History, Link2, Plus, Minus, QrCode, Search, Check, X, Settings2, CheckCircle2, AlertCircle, RefreshCw, Layers, Cpu, LinkIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useInventoryItem, useInventoryTransactions, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useUnlinkItemFromEquipment, useCompatibleEquipmentForItem, useBulkLinkEquipmentToItem, useCompatibilityRulesForItem, useBulkSetCompatibilityRules, useEquipmentMatchingItemRules } from '@/features/inventory/hooks/useInventory';
+import { useInventoryItem, useInventoryTransactions, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useCompatibleEquipmentForItem, useBulkLinkEquipmentToItem, useCompatibilityRulesForItem, useBulkSetCompatibilityRules, useEquipmentMatchingItemRules } from '@/features/inventory/hooks/useInventory';
+import { useUnlinkItemFromEquipment } from '@/features/inventory/hooks/inventoryEquipmentLinkMutations';
 import { useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
 import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
 import {
@@ -21,7 +22,10 @@ const CompatibilityRulesEditor = lazy(() =>
 );
 import type { PartCompatibilityRuleFormData, ModelMatchType, VerificationStatus, AlternatePartResult } from '@/features/inventory/types/inventory';
 import { getAlternatesForInventoryItem } from '@/features/inventory/services/partAlternatesService';
+import { groupAlternatePartsByGroupId } from '@/features/inventory/utils/groupAlternateParts';
+import { SelectedEquipmentBadgeList } from '@/components/common/SelectedEquipmentBadgeList';
 import { usePermissions } from '@/hooks/usePermissions';
+import { InventoryEquipmentPickerRow } from '@/features/inventory/components/InventoryEquipmentPickerRow';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -158,15 +162,10 @@ const InventoryItemDetail = () => {
   });
   
   // Group alternates by group for display
-  const groupedAlternates = useMemo(() => {
-    const groups = new Map<string, AlternatePartResult[]>();
-    for (const alt of alternates) {
-      const existing = groups.get(alt.group_id) || [];
-      existing.push(alt);
-      groups.set(alt.group_id, existing);
-    }
-    return Array.from(groups.entries());
-  }, [alternates]);
+  const groupedAlternates = useMemo(
+    () => groupAlternatePartsByGroupId(alternates),
+    [alternates],
+  );
   
   const deleteMutation = useDeleteInventoryItem();
   const adjustMutation = useAdjustInventoryQuantity();
@@ -1287,56 +1286,23 @@ const InventoryItemDetail = () => {
                     );
                   }
 
-                  return filteredEquipment.map((equipment) => {
-                    const isSelected = selectedEquipmentIds.includes(equipment.id);
-                    return (
-                      <div
-                        key={equipment.id}
-                        className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded"
-                      >
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={(checked) =>
-                            handleEquipmentToggle(equipment.id, checked as boolean)
-                          }
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium">{equipment.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {equipment.manufacturer} {equipment.model}
-                          </div>
-                        </div>
-                        {isSelected && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Check className="h-3 w-3 mr-1" />
-                            Selected
-                          </Badge>
-                        )}
-                      </div>
-                    );
-                  });
+                  return filteredEquipment.map((equipment) => (
+                    <InventoryEquipmentPickerRow
+                      key={equipment.id}
+                      equipment={equipment}
+                      isSelected={selectedEquipmentIds.includes(equipment.id)}
+                      onToggle={handleEquipmentToggle}
+                      selectedBadgeLabel="Selected"
+                    />
+                  ));
                 })()}
               </div>
-              {selectedEquipmentIds.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {selectedEquipmentIds.map((id) => {
-                    const equipment = allEquipment.find((eq) => eq.id === id);
-                    return equipment ? (
-                      <Badge key={id} variant="secondary" className="gap-1">
-                        {equipment.name}
-                        <button
-                          type="button"
-                          aria-label={`Remove ${equipment.name} from selected equipment`}
-                          onClick={() => handleEquipmentToggle(id, false)}
-                          className="ml-1 inline-flex items-center justify-center rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                        >
-                          <X className="h-3 w-3" aria-hidden="true" />
-                        </button>
-                      </Badge>
-                    ) : null;
-                  })}
-                </div>
-              )}
+              <SelectedEquipmentBadgeList
+                selectedEquipmentIds={selectedEquipmentIds}
+                allEquipment={allEquipment}
+                onRemove={(id) => handleEquipmentToggle(id, false)}
+                removeControl="button"
+              />
               <div className="flex justify-end gap-2 pt-4">
                 <Button
                   variant="outline"

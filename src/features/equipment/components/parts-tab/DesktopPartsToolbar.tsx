@@ -16,9 +16,9 @@ import {
   PartsSortField,
   PartsSortOrder,
   StockFilter,
-  SORT_OPTIONS,
   STOCK_FILTER_OPTIONS,
 } from './types';
+import { createPartsSortChangeHandler, partsToolbarSortValue } from './partsSortHandlers';
 
 interface DesktopPartsToolbarProps {
   filters: PartsFiltersState;
@@ -39,14 +39,8 @@ export const DesktopPartsToolbar: React.FC<DesktopPartsToolbarProps> = ({
   onSortChange,
   onClearFilters,
 }) => {
-  const currentSortValue = `${filters.sortField}-${filters.sortOrder}`;
-
-  const handleSortChange = (value: string) => {
-    const option = SORT_OPTIONS.find(opt => opt.value === value);
-    if (option) {
-      onSortChange(option.field, option.order);
-    }
-  };
+  const currentSortValue = partsToolbarSortValue(filters.sortField, filters.sortOrder);
+  const handleSortChange = createPartsSortChangeHandler(onSortChange);
 
   return (
     <div className="flex flex-wrap items-center gap-3">

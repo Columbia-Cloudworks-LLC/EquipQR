@@ -13,6 +13,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { useNotificationMarkReadOnClick } from '@/hooks/useNotificationMarkReadOnClick';
 import { logger } from '@/utils/logger';
 import { 
   useRealTimeNotifications, 
@@ -47,14 +48,10 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
   const unreadCount = notifications.filter(n => !n.read).length;
   const recentNotifications = notifications.slice(0, 5);
 
+  const markReadIfNeeded = useNotificationMarkReadOnClick(markAsReadMutation);
+
   const handleNotificationClick = async (notification: Notification) => {
-    if (!notification.read) {
-      try {
-        await markAsReadMutation.mutateAsync(notification.id);
-      } catch (error) {
-        logger.error('Error marking notification as read', error);
-      }
-    }
+    await markReadIfNeeded(notification);
 
     setIsOpen(false);
     await navigateForNotification({

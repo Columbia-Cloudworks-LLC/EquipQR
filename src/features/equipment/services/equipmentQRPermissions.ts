@@ -176,6 +176,32 @@ const EQUIPMENT_QR_SELECT = `
  * When omitted (legacy QR links without `?org=`) a multi-org fallback queries
  * all organizations the authenticated user belongs to.
  */
+function buildEquipmentQRPayloadFromRow(
+  row: EquipmentQRRow,
+  userRole: string,
+): EquipmentQRPayload {
+  const organization = firstRelation(row.organizations);
+  if (!organization) throw new Error('Equipment organization not found');
+
+  return {
+    equipment: {
+      id: row.id,
+      name: row.name,
+      manufacturer: row.manufacturer,
+      model: row.model,
+      serialNumber: row.serial_number,
+      status: row.status,
+      location: row.location,
+      workingHours: row.working_hours,
+      imageReference: row.image_url,
+      defaultPmTemplateId: row.default_pm_template_id,
+      team: firstRelation(row.team),
+    },
+    organization,
+    userRole,
+  };
+}
+
 export async function fetchEquipmentQRPayload(
   equipmentId: string,
   organizationId?: string
@@ -206,26 +232,7 @@ export async function fetchEquipmentQRPayload(
     if (!data) throw new Error('Equipment not found');
 
     const row = data as unknown as EquipmentQRRow;
-    const organization = firstRelation(row.organizations);
-    if (!organization) throw new Error('Equipment organization not found');
-
-    return {
-      equipment: {
-        id: row.id,
-        name: row.name,
-        manufacturer: row.manufacturer,
-        model: row.model,
-        serialNumber: row.serial_number,
-        status: row.status,
-        location: row.location,
-        workingHours: row.working_hours,
-        imageReference: row.image_url,
-        defaultPmTemplateId: row.default_pm_template_id,
-        team: firstRelation(row.team),
-      },
-      organization,
-      userRole: membership.role,
-    };
+    return buildEquipmentQRPayloadFromRow(row, membership.role);
   }
 
   // Legacy fallback for QR links that predate the `?org=` parameter.
@@ -256,29 +263,10 @@ export async function fetchEquipmentQRPayload(
   if (!data) throw new Error('Equipment not found');
 
   const row = data as unknown as EquipmentQRRow;
-  const organization = firstRelation(row.organizations);
-  if (!organization) throw new Error('Equipment organization not found');
-
   const scopedRole = membershipByOrganizationId.get(row.organization_id);
   if (!scopedRole) throw new Error('You do not have access to this equipment');
 
-  return {
-    equipment: {
-      id: row.id,
-      name: row.name,
-      manufacturer: row.manufacturer,
-      model: row.model,
-      serialNumber: row.serial_number,
-      status: row.status,
-      location: row.location,
-      workingHours: row.working_hours,
-      imageReference: row.image_url,
-      defaultPmTemplateId: row.default_pm_template_id,
-      team: firstRelation(row.team),
-    },
-    organization,
-    userRole: scopedRole,
-  };
+  return buildEquipmentQRPayloadFromRow(row, scopedRole);
 }
 
 export async function userLimitsSensitivePi(userId: string): Promise<boolean> {

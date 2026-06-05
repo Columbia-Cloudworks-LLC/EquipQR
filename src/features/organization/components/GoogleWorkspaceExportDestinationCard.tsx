@@ -15,42 +15,10 @@ import {
   hasAllGoogleScopes,
 } from '@/services/google-workspace/auth';
 import { GoogleDriveDestinationPickerDialog } from './GoogleDriveDestinationPickerDialog';
+import { getGoogleWorkspaceDestinationSaveErrorToast } from '@/features/organization/utils/googleWorkspaceDestinationSaveError';
 
 interface GoogleWorkspaceExportDestinationCardProps {
   currentUserRole: 'owner' | 'admin' | 'member';
-}
-
-function getDestinationSaveErrorToast(error: Error & { code?: string }) {
-  switch (error.code) {
-    case 'insufficient_scopes':
-      return {
-        title: 'Reconnect Google Workspace',
-        description:
-          'Google Workspace needs updated Drive permissions. Reconnect Google Workspace on the Integrations page, then try again.',
-        variant: 'error' as const,
-      };
-    case 'token_revoked':
-    case 'token_refresh_failed':
-      return {
-        title: 'Google Workspace Connection Expired',
-        description:
-          'Your Google Workspace connection expired or was revoked. Reconnect Google Workspace on the Integrations page, then try again.',
-        variant: 'error' as const,
-      };
-    case 'not_connected':
-      return {
-        title: 'Google Workspace Not Connected',
-        description:
-          'Google Workspace is no longer connected for this organization. Reconnect Google Workspace on the Integrations page, then try again.',
-        variant: 'error' as const,
-      };
-    default:
-      return {
-        title: 'Failed To Save Folder',
-        description: error.message || 'Could not save organization folder.',
-        variant: 'error' as const,
-      };
-  }
 }
 
 export function GoogleWorkspaceExportDestinationCard({
@@ -132,7 +100,10 @@ export function GoogleWorkspaceExportDestinationCard({
             loading: 'Saving folder settings...',
             success: `Organize by ${label} ${action}`,
             error: (err: Error & { code?: string }) => {
-              const errToast = getDestinationSaveErrorToast(err);
+              const errToast = getGoogleWorkspaceDestinationSaveErrorToast(
+                err,
+                'Could not save organization folder.',
+              );
               return errToast.description;
             },
           },

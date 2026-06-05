@@ -7,6 +7,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useDsrQueue } from '@/features/dsr/hooks/useDsrQueue';
 import { DsrQueueRail } from '@/features/dsr/components/DsrQueueRail';
+import { DsrAdminAccessGate } from '@/features/dsr/components/DsrAdminAccessGate';
 
 function DSRCockpitPage() {
   const { currentOrganization } = useOrganization();
@@ -15,31 +16,13 @@ function DSRCockpitPage() {
   const organizationId = canManageDsr ? currentOrganization?.id ?? null : null;
   const queueQuery = useDsrQueue(organizationId);
 
-  if (!currentOrganization) {
-    return (
-      <Page maxWidth="7xl" padding="responsive">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>No Organization Selected</AlertTitle>
-          <AlertDescription>Select an organization to view the DSR cockpit.</AlertDescription>
-        </Alert>
-      </Page>
-    );
-  }
-
-  if (!canManageDsr) {
-    return (
-      <Page maxWidth="7xl" padding="responsive">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Restricted</AlertTitle>
-          <AlertDescription>Only organization owners/admins can access this cockpit.</AlertDescription>
-        </Alert>
-      </Page>
-    );
-  }
-
   return (
+    <DsrAdminAccessGate
+      hasOrganization={Boolean(currentOrganization)}
+      canManageDsr={canManageDsr}
+      noOrganizationDescription="Select an organization to view the DSR cockpit."
+      restrictedDescription="Only organization owners/admins can access this cockpit."
+    >
     <Page maxWidth="7xl" padding="responsive">
       <div className="space-y-6">
         <div className="flex items-center gap-3">
@@ -85,6 +68,7 @@ function DSRCockpitPage() {
         </div>
       </div>
     </Page>
+    </DsrAdminAccessGate>
   );
 }
 

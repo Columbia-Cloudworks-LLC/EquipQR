@@ -10,6 +10,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  WorkOrderStatusFilterSelect,
+  WorkOrderPriorityFilterSelect,
+  WorkOrderDueDateFilterSelect,
+  WorkOrderInvoiceFilterSelect,
+} from '@/features/work-orders/components/WorkOrderFilterSelectFields';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -47,24 +53,10 @@ const WorkOrderFilterPopover: React.FC<WorkOrderFilterPopoverProps> = ({
           {/* Status */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs text-muted-foreground">Status</label>
-            <Select
+            <WorkOrderStatusFilterSelect
               value={filters.statusFilter}
               onValueChange={(v) => onFilterChange('statusFilter', v)}
-            >
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue placeholder="All statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="submitted">Submitted</SelectItem>
-                <SelectItem value="accepted">Accepted</SelectItem>
-                <SelectItem value="assigned">Assigned</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="on_hold">On Hold</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
+            />
           </div>
 
           {/* Assignee */}
@@ -88,59 +80,28 @@ const WorkOrderFilterPopover: React.FC<WorkOrderFilterPopoverProps> = ({
           {/* Priority */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs text-muted-foreground">Priority</label>
-            <Select
+            <WorkOrderPriorityFilterSelect
               value={filters.priorityFilter}
               onValueChange={(v) => onFilterChange('priorityFilter', v)}
-            >
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue placeholder="All priorities" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priorities</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-              </SelectContent>
-            </Select>
+            />
           </div>
 
           {/* Due Date */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs text-muted-foreground">Due Date</label>
-            <Select
+            <WorkOrderDueDateFilterSelect
               value={filters.dueDateFilter}
               onValueChange={(v) => onFilterChange('dueDateFilter', v)}
-            >
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue placeholder="All dates" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Dates</SelectItem>
-                <SelectItem value="overdue">Overdue</SelectItem>
-                <SelectItem value="today">Due Today</SelectItem>
-                <SelectItem value="this_week">This Week</SelectItem>
-              </SelectContent>
-            </Select>
+            />
           </div>
 
           {/* Invoice */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs text-muted-foreground">Invoice</label>
-            <Select
+            <WorkOrderInvoiceFilterSelect
               value={filters.invoiceFilter}
               onValueChange={(v) => onFilterChange('invoiceFilter', v)}
-            >
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue placeholder="All invoices" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Invoices</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="unpaid">Unpaid</SelectItem>
-                <SelectItem value="overdue">Overdue</SelectItem>
-                <SelectItem value="not_exported">Not Exported</SelectItem>
-              </SelectContent>
-            </Select>
+            />
           </div>
 
           <Separator />

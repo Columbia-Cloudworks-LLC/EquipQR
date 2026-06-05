@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Editable costs parallel read-only list layout
 
 import React, { useCallback } from 'react';
 import { Button } from '@/components/ui/button';

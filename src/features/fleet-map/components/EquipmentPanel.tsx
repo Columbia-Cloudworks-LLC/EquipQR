@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { filterFleetEquipmentBySearch } from '@/features/fleet-map/utils/filterFleetEquipmentBySearch';
 import type { EquipmentLocation } from './MapView';
 
 // ── Source badge classes (aligned with MapView SOURCE_TOKEN_CLASSES) ──────────
@@ -75,29 +76,15 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
 
   const lowerSearch = search.toLowerCase();
 
-  const filteredLocated = useMemo(() => {
-    if (!lowerSearch) return locatedEquipment;
-    return locatedEquipment.filter(
-      (e) =>
-        e.name.toLowerCase().includes(lowerSearch) ||
-        e.manufacturer.toLowerCase().includes(lowerSearch) ||
-        e.model.toLowerCase().includes(lowerSearch) ||
-        e.serial_number.toLowerCase().includes(lowerSearch) ||
-        (e.team_name?.toLowerCase().includes(lowerSearch) ?? false),
-    );
-  }, [locatedEquipment, lowerSearch]);
+  const filteredLocated = useMemo(
+    () => filterFleetEquipmentBySearch(locatedEquipment, lowerSearch),
+    [locatedEquipment, lowerSearch],
+  );
 
-  const filteredUnlocated = useMemo(() => {
-    if (!lowerSearch) return unlocatedEquipment;
-    return unlocatedEquipment.filter(
-      (e) =>
-        e.name.toLowerCase().includes(lowerSearch) ||
-        e.manufacturer.toLowerCase().includes(lowerSearch) ||
-        e.model.toLowerCase().includes(lowerSearch) ||
-        e.serial_number.toLowerCase().includes(lowerSearch) ||
-        (e.team_name?.toLowerCase().includes(lowerSearch) ?? false),
-    );
-  }, [unlocatedEquipment, lowerSearch]);
+  const filteredUnlocated = useMemo(
+    () => filterFleetEquipmentBySearch(unlocatedEquipment, lowerSearch),
+    [unlocatedEquipment, lowerSearch],
+  );
 
   const locatedCount = locatedEquipment.length;
   const coveragePct = totalEquipmentCount > 0 ? Math.round((locatedCount / totalEquipmentCount) * 100) : 0;

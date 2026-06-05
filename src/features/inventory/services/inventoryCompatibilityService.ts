@@ -20,6 +20,15 @@ async function assertEquipmentInOrganization(
   }
 }
 
+async function assertInventoryEquipmentLinkScope(
+  organizationId: string,
+  itemId: string,
+  equipmentId: string,
+): Promise<void> {
+  await assertEquipmentInOrganization(organizationId, equipmentId);
+  await verifyInventoryItemInOrganization(organizationId, itemId);
+}
+
 // ============================================
 // Get Compatible Equipment for Item
 // ============================================
@@ -94,43 +103,13 @@ const getCompatibleItemsForEquipment = async (
 // Link/Unlink Items to Equipment
 // ============================================
 
-export const linkItemToEquipment = async (
-  organizationId: string,
-  itemId: string,
-  equipmentId: string
-): Promise<void> => {
-  try {
-    await assertEquipmentInOrganization(organizationId, equipmentId);
-    await verifyInventoryItemInOrganization(organizationId, itemId);
-
-    // Insert compatibility link (ignore if already exists)
-    const { error } = await supabase
-      .from('equipment_part_compatibility')
-      .insert({
-        equipment_id: equipmentId,
-        inventory_item_id: itemId
-      })
-      .select()
-      .single();
-
-    // Ignore duplicate key errors
-    if (error && error.code !== '23505') {
-      throw error;
-    }
-  } catch (error) {
-    logger.error('Error linking item to equipment:', error);
-    throw error;
-  }
-};
-
 export const unlinkItemFromEquipment = async (
   organizationId: string,
   itemId: string,
   equipmentId: string
 ): Promise<void> => {
   try {
-    await assertEquipmentInOrganization(organizationId, equipmentId);
-    await verifyInventoryItemInOrganization(organizationId, itemId);
+    await assertInventoryEquipmentLinkScope(organizationId, itemId, equipmentId);
 
     // Delete compatibility link
     const { error } = await supabase

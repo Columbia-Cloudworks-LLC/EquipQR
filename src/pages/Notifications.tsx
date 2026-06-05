@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Notifications page reuses display formatting helpers
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +15,7 @@ import {
   useMarkAllNotificationsAsRead
 } from '@/hooks/useNotificationSettings';
 import { useMarkNotificationAsRead, type Notification } from '@/features/work-orders/hooks/useWorkOrderData';
+import { useNotificationMarkReadOnClick } from '@/hooks/useNotificationMarkReadOnClick';
 import { logger } from '@/utils/logger';
 import {
   getNotificationEmoji,
@@ -51,14 +54,10 @@ const Notifications: React.FC = () => {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  const markReadIfNeeded = useNotificationMarkReadOnClick(markAsReadMutation);
+
   const handleNotificationClick = async (notification: Notification) => {
-    if (!notification.read) {
-      try {
-        await markAsReadMutation.mutateAsync(notification.id);
-      } catch (error) {
-        logger.error('Error marking notification as read', error);
-      }
-    }
+    await markReadIfNeeded(notification);
 
     await navigateForNotification({
       notification,

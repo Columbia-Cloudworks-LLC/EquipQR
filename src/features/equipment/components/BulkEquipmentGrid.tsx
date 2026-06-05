@@ -1,27 +1,18 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  flexRender,
   getCoreRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table';
+import { BulkTanstackTableShell } from '@/components/bulk-edit/BulkTanstackTableShell';
 import { BulkGridSortableHeader } from '@/components/bulk-edit/BulkGridSortableHeader';
 import { getBulkDisplayValue } from '@/hooks/bulkGridDisplayValue';
 import { useBulkGridClickToSelect } from '@/hooks/useBulkGridClickToSelect';
 import { useBulkGridPendingApply } from '@/hooks/useBulkGridPendingApply';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { cn } from '@/lib/utils';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
 
 import { BulkApplyConfirmDialog } from './BulkApplyConfirmDialog';
@@ -291,51 +282,15 @@ export const BulkEquipmentGrid: React.FC<BulkEquipmentGridProps> = ({
 
   return (
     <>
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((group) => (
-              <TableRow key={group.id}>
-                {group.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                  No equipment to edit.
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => {
-                const isSelected = selectedRowIds.has(row.original.id);
-                const isRowDirty = dirtyRows.has(row.original.id);
-                return (
-                  <TableRow
-                    key={row.id}
-                    data-state={isSelected ? 'selected' : undefined}
-                    className={cn('cursor-pointer', isRowDirty && 'bg-primary/5')}
-                    onClick={(e) => handleRowClick(row.original.id, e)}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="py-1.5">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <BulkTanstackTableShell
+        table={table}
+        columnCount={columns.length}
+        emptyMessage="No equipment to edit."
+        selectedRowIds={selectedRowIds}
+        getRowId={(row) => row.id}
+        isRowDirty={(row) => dirtyRows.has(row.id)}
+        onRowClick={handleRowClick}
+      />
 
       <BulkApplyConfirmDialog
         open={pendingApply !== null}

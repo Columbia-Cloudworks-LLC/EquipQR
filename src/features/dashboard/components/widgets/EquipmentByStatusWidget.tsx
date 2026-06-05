@@ -4,15 +4,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import EmptyState from '@/components/ui/empty-state';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentByStatus } from '@/features/dashboard/hooks/useDashboardWidgets';
-import { useNavigate } from 'react-router-dom';
 
 import {
-  createDonutTooltipContent,
   DonutWidgetChartSkeleton,
   DonutWidgetDesktopChart,
   DonutWidgetMobileBreakdown,
-  type DonutChartDatum,
 } from './dashboardDonutChartShared';
+import {
+  useDonutSliceNavigate,
+  useDonutStatusChartData,
+  useDonutStatusCountTotal,
+  useDonutTooltipFormatter,
+} from './useDonutStatusChartData';
 
 const STATUS_COLORS: Record<string, string> = {
   active: 'hsl(var(--chart-1))',
@@ -60,40 +63,16 @@ const CenterLabel: React.FC<CenterLabelProps> = ({ cx, cy, total }) => (
  * Donut chart showing equipment breakdown by status (active, maintenance, retired, etc.).
  */
 const EquipmentByStatusWidget: React.FC = () => {
-  const navigate = useNavigate();
   const { currentOrganization } = useOrganization();
   const organizationId = currentOrganization?.id;
 
   const { data, isLoading } = useEquipmentByStatus(organizationId);
-  const totalCount = React.useMemo(
-    () => (data ?? []).reduce((sum, item) => sum + item.count, 0),
-    [data]
-  );
-
-  const chartData = React.useMemo<DonutChartDatum[] | undefined>(
-    () =>
-      data?.map((entry) => ({
-        status: entry.status,
-        label: entry.label,
-        count: entry.count,
-        color: getStatusColor(entry.status),
-      })),
-    [data]
-  );
-
-  const handleSliceClick = React.useCallback(
-    (status: string) => {
-      navigate(`/dashboard/equipment?status=${status}`);
-    },
-    [navigate]
-  );
-
-  const tooltipContent = React.useMemo(
-    () =>
-      createDonutTooltipContent(totalCount, (count, percentage) =>
-        `${count} equipment (${percentage}%)`
-      ),
-    [totalCount]
+  const totalCount = useDonutStatusCountTotal(data);
+  const chartData = useDonutStatusChartData(data, (status) => getStatusColor(status));
+  const handleSliceClick = useDonutSliceNavigate((status) => `/dashboard/equipment?status=${status}`);
+  const tooltipContent = useDonutTooltipFormatter(
+    totalCount,
+    (count, percentage) => `${count} equipment (${percentage}%)`,
   );
 
   return (

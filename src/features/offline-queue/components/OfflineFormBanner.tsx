@@ -9,24 +9,12 @@
  * @see https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/536
  */
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { WifiOff } from 'lucide-react';
+import { useBrowserOnline } from '@/hooks/useBrowserOnline';
 
 export const OfflineFormBanner: React.FC = () => {
-  const [isOnline, setIsOnline] = useState(
-    typeof navigator !== 'undefined' ? navigator.onLine : true,
-  );
-
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
+  const isOnline = useBrowserOnline();
 
   if (isOnline) return null;
 

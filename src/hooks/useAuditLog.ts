@@ -21,6 +21,12 @@ import {
 } from '@/types/audit';
 import { useAppToast } from '@/hooks/useAppToast';
 import { runAuditExportDownload } from '@/hooks/auditExportDownload';
+import {
+  AUDIT_QUERY_STALE_MS,
+  auditInfiniteNextPage,
+  mapAuditPage,
+  unwrapAuditResult,
+} from '@/hooks/auditLogQueryHelpers';
 
 // ============================================
 // Helper Functions
@@ -134,25 +140,13 @@ export function useEntityHistory(
         { page: pageParam, pageSize }
       );
       
-      if (!result.success || !result.data) {
-        throw new Error(result.error || 'Failed to fetch entity history');
-      }
-      
-      return {
-        ...result.data,
-        data: result.data.data.map(formatAuditEntry),
-        page: pageParam,
-      };
+      const data = unwrapAuditResult(result, 'Failed to fetch entity history');
+      return mapAuditPage(data, pageParam, formatAuditEntry);
     },
     initialPageParam: 1,
-    getNextPageParam: (lastPage) => {
-      if (lastPage.hasMore) {
-        return lastPage.page + 1;
-      }
-      return undefined;
-    },
+    getNextPageParam: auditInfiniteNextPage,
     enabled,
-    staleTime: 30 * 1000, // 30 seconds - audit data changes with entity updates
+    staleTime: AUDIT_QUERY_STALE_MS,
   });
 }
 
@@ -188,17 +182,14 @@ export function useOrganizationAuditLog(
         pagination
       );
       
-      if (!result.success || !result.data) {
-        throw new Error(result.error || 'Failed to fetch audit log');
-      }
-      
+      const data = unwrapAuditResult(result, 'Failed to fetch audit log');
       return {
-        ...result.data,
-        data: result.data.data.map(formatAuditEntry),
+        ...data,
+        data: data.data.map(formatAuditEntry),
       };
     },
     enabled,
-    staleTime: 30 * 1000,
+    staleTime: AUDIT_QUERY_STALE_MS,
   });
 
   return query;
@@ -227,25 +218,13 @@ function useOrganizationAuditLogInfinite(
         { page: pageParam, pageSize }
       );
       
-      if (!result.success || !result.data) {
-        throw new Error(result.error || 'Failed to fetch audit log');
-      }
-      
-      return {
-        ...result.data,
-        data: result.data.data.map(formatAuditEntry),
-        page: pageParam,
-      };
+      const data = unwrapAuditResult(result, 'Failed to fetch audit log');
+      return mapAuditPage(data, pageParam, formatAuditEntry);
     },
     initialPageParam: 1,
-    getNextPageParam: (lastPage) => {
-      if (lastPage.hasMore) {
-        return lastPage.page + 1;
-      }
-      return undefined;
-    },
+    getNextPageParam: auditInfiniteNextPage,
     enabled,
-    staleTime: 30 * 1000,
+    staleTime: AUDIT_QUERY_STALE_MS,
   });
 }
 
@@ -278,14 +257,10 @@ export function useAuditTimeline(
     queryFn: async () => {
       const result = await auditService.getAuditTimeline(organizationId!, params);
 
-      if (!result.success || !result.data) {
-        throw new Error(result.error || 'Failed to fetch audit timeline');
-      }
-
-      return result.data;
+      return unwrapAuditResult(result, 'Failed to fetch audit timeline');
     },
     enabled,
-    staleTime: 30 * 1000,
+    staleTime: AUDIT_QUERY_STALE_MS,
   });
 }
 

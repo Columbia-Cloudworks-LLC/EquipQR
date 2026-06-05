@@ -5,18 +5,13 @@ import type {
   PMTemplateCompatibilityRuleFormData,
   MatchingPMTemplateResult 
 } from '@/features/pm-templates/types/pmTemplateCompatibility';
-
-// ============================================
-// Normalization Helpers
-// ============================================
-
-/**
- * Normalize a string for case-insensitive + trimmed matching.
- * Matches the database normalization: lower(trim(value))
- */
-const normalizeValue = (value: string): string => {
-  return value.trim().toLowerCase();
-};
+import { assertPmTemplateAccessible } from '@/features/pm-templates/services/pmTemplateAccess';
+import { normalizeCompatibilityRuleValue } from '@/services/compatibilityRuleNormalize';
+import {
+  filterValidCompatibilityRules,
+  mapCompatibilityRulesToJsonb,
+  throwOnCompatibilityRuleDuplicate,
+} from '@/services/compatibilityRulesJsonb';
 
 // ============================================
 // Get Compatibility Rules for Template
@@ -37,21 +32,7 @@ export const getRulesForTemplate = async (
   templateId: string
 ): Promise<PMTemplateCompatibilityRule[]> => {
   try {
-    // Verify template is accessible (org-owned or global)
-    const { data: template, error: templateError } = await supabase
-      .from('pm_checklist_templates')
-      .select('id, organization_id')
-      .eq('id', templateId)
-      .single();
-
-    if (templateError || !template) {
-      throw new Error('PM template not found or access denied');
-    }
-
-    // Check access: template must be global or belong to the organization
-    if (template.organization_id !== null && template.organization_id !== organizationId) {
-      throw new Error('PM template not found or access denied');
-    }
+    await assertPmTemplateAccessible(organizationId, templateId);
 
     // Get rules for this organization and template
     const { data, error } = await supabase
@@ -92,25 +73,11 @@ const addRule = async (
   rule: PMTemplateCompatibilityRuleFormData
 ): Promise<PMTemplateCompatibilityRule> => {
   try {
-    // Verify template is accessible (global or org-owned)
-    const { data: template, error: templateError } = await supabase
-      .from('pm_checklist_templates')
-      .select('id, organization_id')
-      .eq('id', templateId)
-      .single();
-
-    if (templateError || !template) {
-      throw new Error('PM template not found or access denied');
-    }
-
-    // Check access: template must be global or belong to the organization
-    if (template.organization_id !== null && template.organization_id !== organizationId) {
-      throw new Error('PM template not found or access denied');
-    }
+    await assertPmTemplateAccessible(organizationId, templateId);
 
     // Normalize values for matching
-    const manufacturerNorm = normalizeValue(rule.manufacturer);
-    const modelNorm = rule.model ? normalizeValue(rule.model) : null;
+    const manufacturerNorm = normalizeCompatibilityRuleValue(rule.manufacturer);
+    const modelNorm = rule.model ? normalizeCompatibilityRuleValue(rule.model) : null;
 
     const { data, error } = await supabase
       .from('pm_template_compatibility_rules')
@@ -125,11 +92,11 @@ const addRule = async (
       .select()
       .single();
 
-    // Handle duplicate key error gracefully
     if (error) {
-      if (error.code === '23505') {
-        throw new Error('This manufacturer/model combination already exists for this template');
-      }
+      throwOnCompatibilityRuleDuplicate(
+        error,
+        'This manufacturer/model combination already exists for this template',
+      );
       throw error;
     }
 
@@ -209,14 +176,8 @@ export const bulkSetRules = async (
   rules: PMTemplateCompatibilityRuleFormData[]
 ): Promise<{ rulesSet: number }> => {
   try {
-    // Filter out rules with empty manufacturers (invalid/incomplete rules)
-    const validRules = rules.filter(rule => rule.manufacturer.trim().length > 0);
-
-    // Convert rules to JSONB format for the RPC function
-    const rulesJsonb = validRules.map(rule => ({
-      manufacturer: rule.manufacturer.trim(),
-      model: rule.model?.trim() || null
-    }));
+    const validRules = filterValidCompatibilityRules(rules);
+    const rulesJsonb = mapCompatibilityRulesToJsonb(validRules);
 
     // Call the atomic RPC function
     const { data, error } = await supabase.rpc('bulk_set_pm_template_rules', {
@@ -257,18 +218,13 @@ export const countEquipmentMatchingRules = async (
   rules: PMTemplateCompatibilityRuleFormData[]
 ): Promise<number> => {
   try {
-    // Filter out invalid rules with empty manufacturers
-    const validRules = rules.filter(rule => rule.manufacturer.trim().length > 0);
-    
+    const validRules = filterValidCompatibilityRules(rules);
+
     if (validRules.length === 0) {
       return 0;
     }
 
-    // Convert rules to JSONB format for the RPC function
-    const rulesJsonb = validRules.map(rule => ({
-      manufacturer: rule.manufacturer.trim(),
-      model: rule.model?.trim() || null
-    }));
+    const rulesJsonb = mapCompatibilityRulesToJsonb(validRules);
 
     // Call the server-side RPC function for efficient counting
     const { data, error } = await supabase.rpc('count_equipment_matching_pm_rules', {

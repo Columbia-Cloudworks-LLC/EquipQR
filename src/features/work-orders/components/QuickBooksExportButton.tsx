@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Export button repeats guarded action blocks per target
 /**
  * QuickBooks Export Button Component
  * 

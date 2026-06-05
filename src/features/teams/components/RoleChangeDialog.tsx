@@ -7,16 +7,24 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+  Button,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Card,
+  CardContent,
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from '@/features/teams/components/teamManagementDialogUi';
 import { TeamWithMembers } from '@/features/teams/services/teamService';
 import { useTeamMembers } from '@/features/teams/hooks/useTeamManagement';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { logger } from '@/utils/logger';
+import { TeamRoleSelect } from '@/features/teams/components/TeamRoleSelect';
 
 type TeamRole = 'manager' | 'technician' | 'requestor' | 'viewer';
 
@@ -111,24 +119,13 @@ const RoleChangeDialog: React.FC<RoleChangeDialogProps> = ({
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="role">New Team Role *</Label>
-                <Select value={selectedRole} onValueChange={setSelectedRole} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roleOptions.map((role) => (
-                      <SelectItem key={role.value} value={role.value}>
-                        <div>
-                          <div className="font-medium">{role.label}</div>
-                          <div className="text-sm text-muted-foreground">{role.description}</div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <TeamRoleSelect
+                label="New Team Role *"
+                value={selectedRole}
+                onValueChange={setSelectedRole}
+                options={roleOptions}
+                required
+              />
 
               {selectedRole !== member.role && (
                 <div className="p-3 bg-info/10 border border-info/30 rounded-lg">

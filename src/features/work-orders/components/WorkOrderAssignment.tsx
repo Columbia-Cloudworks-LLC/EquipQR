@@ -4,9 +4,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { User, Users, Shield, AlertTriangle, Info } from "lucide-react";
+import { Users, AlertTriangle, Info } from "lucide-react";
 import { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
 import { useWorkOrderAssignmentOptions } from '@/features/work-orders/hooks/useWorkOrderAssignment';
+import { WorkOrderAssigneeSelectItems } from '@/features/work-orders/components/WorkOrderAssigneeSelectItems';
 import { logger } from '@/utils/logger';
 
 interface WorkOrderAssignmentProps {
@@ -105,26 +106,7 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
                   </div>
                 </SelectItem>
                 
-                {/* Assignee options */}
-                {assignmentOptions.map((option) => (
-                  <SelectItem key={option.id} value={option.id}>
-                    <div className="flex items-center gap-2">
-                      {option.role === 'owner' || option.role === 'admin' ? (
-                        <Shield className="h-4 w-4" />
-                      ) : (
-                        <User className="h-4 w-4" />
-                      )}
-                      <div>
-                        <span>{option.name}</span>
-                        {option.role && (
-                          <span className="text-xs text-muted-foreground ml-1">
-                            ({option.role})
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </SelectItem>
-                ))}
+                <WorkOrderAssigneeSelectItems options={assignmentOptions} />
               </SelectContent>
             </Select>
             {errors.assigneeId && (

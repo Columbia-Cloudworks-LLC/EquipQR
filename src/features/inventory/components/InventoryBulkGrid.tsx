@@ -11,18 +11,16 @@ import {
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
-  type SortingState,
 } from '@tanstack/react-table';
 import { List, type RowComponentProps } from 'react-window';
 import { BulkGridSortableHeader } from '@/components/bulk-edit/BulkGridSortableHeader';
-import { getBulkDisplayValue } from '@/hooks/bulkGridDisplayValue';
-import { useBulkGridClickToSelect } from '@/hooks/useBulkGridClickToSelect';
-import { useBulkGridPendingApply } from '@/hooks/useBulkGridPendingApply';
+import { useBulkGridEditorState } from '@/hooks/useBulkGridEditorState';
+import { useBulkGridDisplayValue } from '@/hooks/useBulkGridDisplayValue';
+import { BulkPendingApplyDialog } from '@/components/bulk-edit/BulkPendingApplyDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
 
-import { BulkApplyConfirmDialog } from '@/features/equipment/components/BulkApplyConfirmDialog';
 import {
   BulkEditableCell,
   type BulkEditableCellProps,
@@ -211,23 +209,22 @@ export const InventoryBulkGrid: React.FC<InventoryBulkGridProps> = ({
   onSelectAll,
   onClearSelection,
 }) => {
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
-
-  const { cancelPendingSelection, handleRowClick } = useBulkGridClickToSelect(onToggleSelected);
-
   const {
+    sorting,
+    setSorting,
+    cancelPendingSelection,
+    handleRowClick,
     pendingApply,
     handleCellChange,
     handleApplyAll,
     handleApplyOne,
     clearPendingApply,
-  } = useBulkGridPendingApply<BulkEditableField>({
+  } = useBulkGridEditorState<BulkEditableField, InventoryItem[BulkEditableField]>({
     selectedRowIds,
     fieldLabels: FIELD_LABELS,
-    onSetCellValue: (rowId, field, value) =>
-      onSetCellValue(rowId, field, value as InventoryItem[BulkEditableField]),
-    onSetCellValueOnRows: (ids, field, value) =>
-      onSetCellValueOnRows(ids, field, value as never),
+    onSetCellValue,
+    onSetCellValueOnRows,
+    onToggleSelected,
   });
 
   // Container width measurement for react-window
@@ -309,11 +306,7 @@ export const InventoryBulkGrid: React.FC<InventoryBulkGridProps> = ({
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  const getDisplayValue = useCallback(
-    <K extends BulkEditableField>(row: InventoryItem, field: K): InventoryItem[K] =>
-      getBulkDisplayValue(row, field, dirtyRows),
-    [dirtyRows]
-  );
+  const getDisplayValue = useBulkGridDisplayValue<InventoryItem, BulkEditableField>(dirtyRows);
 
   // ── Editable cell builder ──────────────────────────────────────────────────
 
@@ -491,9 +484,8 @@ export const InventoryBulkGrid: React.FC<InventoryBulkGridProps> = ({
       </div>
 
       {/* Bulk-apply confirmation dialog */}
-      <BulkApplyConfirmDialog
-        open={pendingApply !== null}
-        fieldLabel={pendingApply?.fieldLabel ?? ''}
+      <BulkPendingApplyDialog
+        pendingApply={pendingApply}
         selectedCount={selectedRowIds.size}
         onApplyAll={handleApplyAll}
         onApplyOne={handleApplyOne}

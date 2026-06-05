@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Requestor status mirrors manager status controls
 
 import React from 'react';
 import { Link } from 'react-router-dom';

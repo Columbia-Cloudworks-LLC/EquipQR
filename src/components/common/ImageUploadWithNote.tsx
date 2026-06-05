@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { handleDragActiveState } from '@/components/common/drag-active-handlers';
+import { finishDragDrop, handleDragActiveState } from '@/components/common/drag-active-handlers';
 import { sanitizeBlobUrl } from '@/utils/sanitizeBlobUrl';
 
 const sanitizeForDisplay = (text: string): string =>
@@ -106,10 +106,8 @@ const ImageUploadWithNote: React.FC<ImageUploadWithNoteProps> = ({
   };
 
   const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    
+    finishDragDrop(e, setDragActive);
+
     const files = Array.from(e.dataTransfer.files);
     addFiles(files);
   };

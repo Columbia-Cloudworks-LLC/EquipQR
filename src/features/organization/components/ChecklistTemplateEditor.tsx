@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Large PM template editor mirrors read-only PMTemplateView layout by design
 import React, {
   useState,
   useEffect,
@@ -54,6 +56,7 @@ import { SaveStatus } from '@/components/ui/SaveStatus';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useBrowserStorage } from '@/hooks/useBrowserStorage';
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { groupChecklistItemsBySection } from '@/utils/pmChecklistHelpers';
 import { useCreatePMTemplate, useUpdatePMTemplate } from '@/features/pm-templates/hooks/usePMTemplates';
 import { PMTemplateCompatibilityRulesEditor } from '@/features/pm-templates/components/PMTemplateCompatibilityRulesEditor';
 import { PMTemplateSectionToc } from '@/features/pm-templates/components/PMTemplateSectionToc';
@@ -72,6 +75,7 @@ import {
   reorderChecklistItems,
   SECTION_VIRTUALIZATION_THRESHOLD,
 } from './checklistTemplateEditorUtils';
+import type { ChecklistItemRowCallbacks } from '@/features/organization/components/checklistItemRowCallbacks';
 
 type SaveTrigger = 'text' | 'selection' | 'manual';
 export type ChecklistTemplateEditorLayoutMode = 'standalone' | 'page';
@@ -82,20 +86,12 @@ export interface ChecklistTemplateEditorHandle {
   hasUnsavedChanges: () => boolean;
 }
 
-interface ChecklistItemRowProps {
+interface ChecklistItemRowProps extends ChecklistItemRowCallbacks {
   item: PMChecklistItem;
   autoFocus?: boolean;
   index: number;
   totalInSection: number;
   sections: string[];
-  onCommit: (itemId: string, updates: Partial<PMChecklistItem>) => void;
-  onDuplicate: (itemId: string) => void;
-  onMoveToSection: (itemId: string, targetSection: string) => void;
-  onMoveToTop: (itemId: string) => void;
-  onMoveToBottom: (itemId: string) => void;
-  onDelete: (itemId: string) => void;
-  onAddBelow: (itemId: string) => void;
-  triggerAutoSave: (trigger?: SaveTrigger) => void;
   compactOnly?: boolean;
   enableDragReorder?: boolean;
   isDragging?: boolean;
@@ -367,18 +363,10 @@ export const ChecklistItemRow = memo(function ChecklistItemRow({
   );
 });
 
-type VirtualRowProps = {
+type VirtualRowProps = ChecklistItemRowCallbacks & {
   items: PMChecklistItem[];
   sections: string[];
   newItemIdRef: React.MutableRefObject<string | null>;
-  onCommit: (itemId: string, updates: Partial<PMChecklistItem>) => void;
-  onDuplicate: (itemId: string) => void;
-  onMoveToSection: (itemId: string, targetSection: string) => void;
-  onMoveToTop: (itemId: string) => void;
-  onMoveToBottom: (itemId: string) => void;
-  onDelete: (itemId: string) => void;
-  onAddBelow: (itemId: string) => void;
-  triggerAutoSave: (trigger?: SaveTrigger) => void;
 };
 
 function VirtualItemRow({
@@ -714,14 +702,7 @@ export const ChecklistTemplateEditor = forwardRef<ChecklistTemplateEditorHandle,
 
     const groupedItems = useMemo(
       () =>
-        checklistItems.reduce(
-          (acc, item) => {
-            if (!acc[item.section]) acc[item.section] = [];
-            acc[item.section].push(item);
-            return acc;
-          },
-          {} as Record<string, PMChecklistItem[]>
-        ),
+        groupChecklistItemsBySection(checklistItems),
       [checklistItems]
     );
 

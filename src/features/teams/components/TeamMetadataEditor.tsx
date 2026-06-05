@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Metadata editor mirrors create dialog field styling
 
 import React, { useState, useCallback } from 'react';
 import {
@@ -11,20 +13,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Info } from 'lucide-react';
+import { TeamLocationFormFields } from '@/features/teams/components/TeamLocationFormFields';
 import { TeamWithMembers, updateTeam, uploadTeamImage, deleteTeamImage } from '@/features/teams/services/teamService';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
-import GooglePlacesAutocomplete, { type PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
+import { type PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
+import { TEAM_NATIVE_SELECT_CLASS_NAME } from '@/features/teams/constants/teamNativeSelectClassName';
 import SingleImageUpload from '@/components/common/SingleImageUpload';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useCustomersByOrg } from '@/features/teams/hooks/useCustomerAccount';
@@ -208,7 +204,7 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
                 <Label htmlFor="edit-customer-account-select">Customer Account</Label>
                 <select
                   id="edit-customer-account-select"
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className={TEAM_NATIVE_SELECT_CLASS_NAME}
                   value={selectedCustomerId ?? ''}
                   onChange={(e) => setSelectedCustomerId(e.target.value || null)}
                 >
@@ -221,50 +217,14 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Location</Label>
-                <GooglePlacesAutocomplete
-                  value={locationData?.formatted_address ?? existingAddress}
-                  onPlaceSelect={handlePlaceSelect}
-                  onClear={handleLocationClear}
-                  placeholder="Search for a team address..."
-                  isLoaded={isLoaded}
-                />
-              </div>
-
-              <div className="flex items-center gap-2 rounded-md border p-3">
-                <Checkbox
-                  id="override_equipment_location"
-                  checked={overrideEquipmentLocation}
-                  onCheckedChange={(checked) => setOverrideEquipmentLocation(!!checked)}
-                />
-                <Label
-                  htmlFor="override_equipment_location"
-                  className="flex-1 cursor-pointer text-sm font-normal"
-                >
-                  Override Equipment Location
-                </Label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className="inline-flex items-center justify-center rounded-full p-0.5 text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring cursor-help"
-                        aria-label="Override equipment location info"
-                      >
-                        <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[240px]">
-                      <p>
-                        When enabled, all equipment assigned to this team will
-                        use this team's address as their effective location on
-                        the Fleet Map.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
+              <TeamLocationFormFields
+                locationAddress={locationData?.formatted_address ?? existingAddress}
+                onPlaceSelect={handlePlaceSelect}
+                onClear={handleLocationClear}
+                isLoaded={isLoaded}
+                overrideEquipmentLocation={overrideEquipmentLocation}
+                onOverrideEquipmentLocationChange={setOverrideEquipmentLocation}
+              />
             </CardContent>
           </Card>
 

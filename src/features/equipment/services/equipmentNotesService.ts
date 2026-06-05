@@ -12,6 +12,13 @@ import {
   extractEquipmentDisplayImagePath,
 } from '@/services/imageUploadService';
 import type { EquipmentNote, EquipmentNoteImage } from '@/features/equipment/types/equipmentNotes';
+import { mapEquipmentNoteRows } from '@/features/equipment/utils/mapEquipmentNoteRows';
+import { noteMachineHoursInsertFields } from '@/services/noteMachineHoursInsert';
+import { rollbackNoteImageAfterSigningFailure } from '@/services/noteImageSigningRollback';
+import {
+  assertNoteImageUploader,
+  fetchNoteImageForDeletion,
+} from '@/services/noteImageDeleteAuthorization';
 
 // Get notes with images for equipment
 export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<EquipmentNote[]> => {
@@ -113,11 +120,7 @@ export const createEquipmentNoteWithImages = async (
       content,
       hours_worked: Number(hoursWorked) || 0,
       is_private: isPrivate || false,
-      // Only include machine_hours when the user provided a meaningful value.
-      // See workOrderNotesService for the rationale (issue #735).
-      ...(Number.isFinite(Number(machineHours)) && Number(machineHours) > 0
-        ? { machine_hours: Number(machineHours) }
-        : {}),
+      ...noteMachineHoursInsertFields(machineHours),
     })
     .select()
     .single();
@@ -178,23 +181,12 @@ export const createEquipmentNoteWithImages = async (
       // Signing failed — clean up DB row and storage to avoid orphaned resources.
       // DB delete must succeed before storage delete; otherwise the DB row still
       // exists and would point at a missing storage object, creating broken state.
-      logger.error('Signing failed for uploaded image, rolling back:', record.file_url);
-      const { error: dbDeleteError } = await supabase
-        .from('equipment_note_images')
-        .delete()
-        .eq('id', record.id);
-      if (dbDeleteError) {
-        logger.error(
-          'Failed to delete DB row during signing-failure rollback; skipping storage cleanup to preserve consistency:',
-          { imageId: record.id, error: dbDeleteError }
-        );
-      } else {
-        try {
-          await deleteImageFromStorage('equipment-note-images', storedPath);
-        } catch (cleanupError) {
-          logger.error('Failed to delete orphaned storage object during rollback:', cleanupError);
-        }
-      }
+      await rollbackNoteImageAfterSigningFailure({
+        bucket: 'equipment-note-images',
+        imagesTable: 'equipment_note_images',
+        imageId: record.id,
+        storedPath,
+      });
     }
   }
 
@@ -311,26 +303,13 @@ const uploadEquipmentNoteImage = async (
     // Signing failed — clean up DB row and storage to avoid orphaned resources.
     // DB delete must succeed before storage delete; otherwise the DB row still
     // exists and would point at a missing storage object, creating broken state.
-    logger.error('Signing failed for uploaded equipment note image, rolling back', cleanupCtx);
-    const { error: dbDeleteError } = await supabase
-      .from('equipment_note_images')
-      .delete()
-      .eq('id', imageRecord.id);
-    if (dbDeleteError) {
-      logger.error(
-        'Failed to delete DB row during signing-failure rollback; skipping storage cleanup to preserve consistency',
-        { ...cleanupCtx, error: dbDeleteError },
-      );
-    } else {
-      try {
-        await deleteImageFromStorage('equipment-note-images', storedPath);
-      } catch (cleanupError) {
-        logger.error(
-          'Failed to delete orphaned equipment note storage object during rollback',
-          { ...cleanupCtx, error: cleanupError },
-        );
-      }
-    }
+    await rollbackNoteImageAfterSigningFailure({
+      bucket: 'equipment-note-images',
+      imagesTable: 'equipment_note_images',
+      imageId: imageRecord.id,
+      storedPath,
+      logContext: cleanupCtx,
+    });
     throw new Error('Could not generate a secure link for the uploaded image. Try again.');
   }
 
@@ -389,20 +368,8 @@ export const getEquipmentImages = async (equipmentId: string) => {
 export const deleteEquipmentNoteImage = async (imageId: string): Promise<void> => {
   const userId = await requireAuthUserIdFromClaims();
 
-  // Get image details first
-  const { data: image, error: fetchError } = await supabase
-    .from('equipment_note_images')
-    .select('file_url, uploaded_by')
-    .eq('id', imageId)
-    .single();
-
-  if (fetchError) throw fetchError;
-  if (!image) throw new Error('Image not found');
-
-  // Check if user can delete (must be uploader or admin)
-  if (image.uploaded_by !== userId) {
-    throw new Error('Not authorized to delete this image');
-  }
+  const image = await fetchNoteImageForDeletion('equipment_note_images', imageId);
+  assertNoteImageUploader(image.uploaded_by, userId);
 
   // Delete from database
   const { error: deleteError } = await supabase
@@ -477,20 +444,7 @@ const getEquipmentNotesOptimized = async (equipmentId: string): Promise<Equipmen
 
     if (error) throw error;
 
-    return (data || []).map(note => ({
-      id: note.id,
-      content: note.content,
-      equipment_id: note.equipment_id,
-      author_id: note.author_id,
-      author_name: note.profiles?.name,
-      authorName: note.profiles?.name,
-      is_private: note.is_private,
-      hours_worked: note.hours_worked || 0,
-      created_at: note.created_at,
-      updated_at: note.updated_at,
-      last_modified_at: note.last_modified_at,
-      last_modified_by: note.last_modified_by
-    }));
+    return mapEquipmentNoteRows(data);
   } catch (error) {
     logger.error('Error fetching equipment notes:', error);
     return [];
@@ -516,20 +470,7 @@ const getUserEquipmentNotes = async (equipmentId: string, userId: string): Promi
 
     if (error) throw error;
 
-    return (data || []).map(note => ({
-      id: note.id,
-      content: note.content,
-      equipment_id: note.equipment_id,
-      author_id: note.author_id,
-      author_name: note.profiles?.name,
-      authorName: note.profiles?.name,
-      is_private: note.is_private,
-      hours_worked: note.hours_worked || 0,
-      created_at: note.created_at,
-      updated_at: note.updated_at,
-      last_modified_at: note.last_modified_at,
-      last_modified_by: note.last_modified_by
-    }));
+    return mapEquipmentNoteRows(data);
   } catch (error) {
     logger.error('Error fetching user equipment notes:', error);
     return [];
@@ -561,20 +502,7 @@ const getRecentOrganizationNotes = async (organizationId: string, limit: number 
 
     if (error) throw error;
 
-    return (data || []).map(note => ({
-      id: note.id,
-      content: note.content,
-      equipment_id: note.equipment_id,
-      author_id: note.author_id,
-      author_name: note.profiles?.name,
-      authorName: note.profiles?.name,
-      is_private: note.is_private,
-      hours_worked: note.hours_worked || 0,
-      created_at: note.created_at,
-      updated_at: note.updated_at,
-      last_modified_at: note.last_modified_at,
-      last_modified_by: note.last_modified_by
-    }));
+    return mapEquipmentNoteRows(data);
   } catch (error) {
     logger.error('Error fetching recent organization notes:', error);
     return [];

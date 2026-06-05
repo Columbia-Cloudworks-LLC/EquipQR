@@ -23,6 +23,7 @@ import { useUser } from '@/contexts/useUser';
 import { useResolvedAvatarUrl } from '@/hooks/useResolvedAvatarUrl';
 import Page from '@/components/layout/Page';
 import { AlertTriangle, ExternalLink, Loader2 } from 'lucide-react';
+import { trimmedAvatarPath, userDisplayInitials } from '@/utils/userDisplayInitials';
 import DeleteAccountDialog from '@/components/settings/DeleteAccountDialog';
 
 
@@ -55,15 +56,8 @@ const SettingsContent = () => {
     appToast.success({ description: 'Settings have been reset to default values' });
   };
 
-  const initials = currentUser?.name
-    ? currentUser.name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
-    : '?';
-  const headerAvatarPath = currentUser?.avatar_url?.trim() ?? '';
+  const initials = userDisplayInitials(currentUser?.name);
+  const headerAvatarPath = trimmedAvatarPath(currentUser?.avatar_url);
   const isHeaderAvatarResolving =
     isHeaderAvatarPending && headerAvatarPath.length > 0 && !/^https?:\/\//i.test(headerAvatarPath);
 

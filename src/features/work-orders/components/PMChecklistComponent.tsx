@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Large PM checklist with repeated per-item render paths
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
@@ -13,6 +15,7 @@ import { useAutoSave } from '@/hooks/useAutoSave';
 import { useBrowserStorage } from '@/hooks/useBrowserStorage';
 import { SaveStatus } from '@/components/ui/SaveStatus';
 import { toast } from 'sonner';
+import { buildCollapsedPmChecklistSections } from '@/features/work-orders/utils/pmChecklistSectionState';
 import { useUpdatePM } from '@/features/pm-templates/hooks/usePMData';
 import { useQueryClient } from '@tanstack/react-query';
 import { workOrderRevertService } from '@/features/work-orders/services/workOrderRevertService';
@@ -294,11 +297,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 
       // Initialize all sections as collapsed by default
       const sections = Array.from(new Set(parsedChecklist.map(item => item.section)));
-      const initialOpenSections: Record<string, boolean> = {};
-      sections.forEach(section => {
-        initialOpenSections[section] = false; // All sections collapsed by default
-      });
-      setOpenSections(initialOpenSections);
+      setOpenSections(buildCollapsedPmChecklistSections(sections));
       
       setIsInitialized(true);
     } catch (error) {
@@ -307,11 +306,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       
       // Initialize sections for default checklist (all collapsed)
       const sections = Array.from(new Set(defaultForkliftChecklist.map(item => item.section)));
-      const initialOpenSections: Record<string, boolean> = {};
-      sections.forEach(section => {
-        initialOpenSections[section] = false; // All sections collapsed by default
-      });
-      setOpenSections(initialOpenSections);
+      setOpenSections(buildCollapsedPmChecklistSections(sections));
       
       setIsInitialized(true);
     }

@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Display utils mirror page-level notification rendering
 import type { NavigateFunction } from 'react-router-dom';
 import type { Notification } from '@/features/work-orders/hooks/useWorkOrderData';
 

@@ -47,3 +47,16 @@ export function useManufacturerModelLookup(manufacturersData: ManufacturerModels
 
   return { manufacturerModelsMap, manufacturers, getModelsForManufacturer };
 }
+
+/** Autocomplete manufacturer list + models for the active manufacturer field value. */
+export function useManufacturerModelSuggestions(
+  manufacturersData: ManufacturerModelsEntry[],
+  manufacturer: string | undefined,
+) {
+  const { manufacturers, getModelsForManufacturer } = useManufacturerModelLookup(manufacturersData);
+  const modelsForManufacturer = useMemo(
+    () => (manufacturer ? getModelsForManufacturer(manufacturer) : []),
+    [manufacturer, getModelsForManufacturer],
+  );
+  return { manufacturers, modelsForManufacturer };
+}

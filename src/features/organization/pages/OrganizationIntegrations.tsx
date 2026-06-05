@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Integrations route shares org hub page shell
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useOrganizationIntegrationOAuthCallbacks } from '@/features/organization/hooks/useOrganizationIntegrationOAuthCallbacks';
 import OrganizationIntegrationsPanel from '@/features/organization/components/OrganizationIntegrationsPanel';

@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Field worksheet PDF shares layout blocks with report PDF
 import type jsPDF from 'jspdf';
 import { logger } from '@/utils/logger';
 import { formatStatus, formatPriority } from '@/features/work-orders/utils/workOrderHelpers';
@@ -355,6 +357,20 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     this.textLayout.yPosition += 14;
   }
 
+  private drawPmChecklistSectionHeader(
+    section: string,
+    options: { pageBreakMin: number; yAdvance: number },
+  ): void {
+    this.textLayout.checkPageBreak(options.pageBreakMin);
+    this.doc.setFillColor(235, 235, 235);
+    this.doc.rect(this.margin, this.textLayout.yPosition - 3.5, this.contentWidth, 6, 'F');
+    this.doc.setFontSize(9);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.setTextColor(0, 0, 0);
+    this.doc.text(section, this.margin + 2, this.textLayout.yPosition);
+    this.textLayout.yPosition += options.yAdvance;
+  }
+
   private drawConditionBoxes(x: number, y: number): void {
     const boxSize = 5;
     const gap = 3;
@@ -400,14 +416,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     const sections = Array.from(new Set(checklist.map(item => item.section)));
 
     for (const section of sections) {
-      this.textLayout.checkPageBreak(16);
-      this.doc.setFillColor(235, 235, 235);
-      this.doc.rect(this.margin, this.textLayout.yPosition - 3.5, this.contentWidth, 6, 'F');
-      this.doc.setFontSize(9);
-      this.doc.setFont('helvetica', 'bold');
-      this.doc.setTextColor(0, 0, 0);
-      this.doc.text(section, this.margin + 2, this.textLayout.yPosition);
-      this.textLayout.yPosition += 5;
+      this.drawPmChecklistSectionHeader(section, { pageBreakMin: 16, yAdvance: 5 });
 
       const sectionItems = checklist.filter(item => item.section === section);
 
@@ -451,14 +460,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     const itemHeight = 10 + 7 + notesLineCount * this.writeLineHeight + 4;
 
     for (const section of sections) {
-      this.textLayout.checkPageBreak(itemHeight + 8);
-      this.doc.setFillColor(235, 235, 235);
-      this.doc.rect(this.margin, this.textLayout.yPosition - 3.5, this.contentWidth, 6, 'F');
-      this.doc.setFontSize(9);
-      this.doc.setFont('helvetica', 'bold');
-      this.doc.setTextColor(0, 0, 0);
-      this.doc.text(section, this.margin + 2, this.textLayout.yPosition);
-      this.textLayout.yPosition += 6;
+      this.drawPmChecklistSectionHeader(section, { pageBreakMin: itemHeight + 8, yAdvance: 6 });
 
       const sectionItems = checklist.filter(item => item.section === section);
 

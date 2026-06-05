@@ -22,7 +22,7 @@ export function arrayToCsv(headers: string[], rows: string[][]): string {
  */
 export function downloadCsv(csvString: string, filename: string): void {
   const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-  triggerDownload(blob, filename);
+  downloadBlob(blob, filename);
 }
 
 /**
@@ -32,7 +32,7 @@ export function downloadJson(data: unknown, filename: string): void {
   const blob = new Blob([JSON.stringify(data, null, 2)], {
     type: 'application/json;charset=utf-8;',
   });
-  triggerDownload(blob, filename);
+  downloadBlob(blob, filename);
 }
 
 /**
@@ -43,7 +43,8 @@ export function filenameWithDate(base: string, extension: string): string {
   return `${base}-${format(new Date(), 'yyyy-MM-dd')}.${extension}`;
 }
 
-function triggerDownload(blob: Blob, filename: string): void {
+/** Trigger a browser file download from a Blob (revokes object URL after click). */
+export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;

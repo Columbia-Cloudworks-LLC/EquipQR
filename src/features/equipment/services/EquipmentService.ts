@@ -8,6 +8,13 @@ import {
   createServiceErrorResponse,
   createServiceSuccessResponse,
 } from '@/services/serviceResponseHelpers';
+import { applySupabasePaginationRange } from '@/services/supabaseQueryPagination';
+import {
+  batchUpdateRowResult,
+  collectBatchMutationResults,
+} from '@/services/batchMutationResultHelpers';
+import { queryOrgScopedEquipmentNotes, queryOrgScopedEquipmentScans } from '@/services/equipmentOrgScopedQueries';
+import { flattenAndResolveEquipmentImages } from '@/features/equipment/utils/equipmentTeamFlatten';
 
 // Use Supabase types for Equipment
 export type Equipment = Tables<'equipment'>;
@@ -241,11 +248,7 @@ export class EquipmentService {
         query = query.order('name', { ascending: true });
       }
 
-      // Apply pagination
-      if (pagination.limit) {
-        const startIndex = ((pagination.page || 1) - 1) * pagination.limit;
-        query = query.range(startIndex, startIndex + pagination.limit - 1);
-      }
+      query = applySupabasePaginationRange(query, pagination);
 
       const { data, error } = await query;
 
@@ -254,12 +257,7 @@ export class EquipmentService {
         return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
-      const flattened = (data || []).map(row => ({
-        ...row,
-        team_name: (row.team as { name?: string } | null | undefined)?.name ?? undefined,
-      })) as EquipmentWithTeam[];
-
-      const resolved = await withResolvedEquipmentImages(flattened);
+      const resolved = await flattenAndResolveEquipmentImages(data || []);
       return createServiceSuccessResponse(resolved);
     } catch (error) {
       return createServiceErrorResponse(error, 'EquipmentService error');
@@ -449,12 +447,7 @@ export class EquipmentService {
         return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
-      const flattened = (data || []).map(row => ({
-        ...row,
-        team_name: (row.team as { name?: string } | null | undefined)?.name ?? undefined,
-      })) as EquipmentWithTeam[];
-
-      const resolved = await withResolvedEquipmentImages(flattened);
+      const resolved = await flattenAndResolveEquipmentImages(data || []);
       return createServiceSuccessResponse({ data: resolved, count: count ?? resolved.length });
     } catch (error) {
       return createServiceErrorResponse(error, 'EquipmentService error');
@@ -661,35 +654,18 @@ export class EquipmentService {
               .eq('organization_id', organizationId)
               .select('id');
 
-            if (error) {
-              return { id, error: error.message };
-            }
-            if (!rows || rows.length === 0) {
-              // Either the id is wrong or the row belongs to a different org —
-              // RLS hides the difference, so we surface a generic message.
-              return { id, error: 'Equipment not found or access denied' };
-            }
-            return { id, error: null as string | null };
+            return batchUpdateRowResult(
+              id,
+              error,
+              rows,
+              'Equipment not found or access denied',
+            );
           })
         );
 
-        for (let i = 0; i < results.length; i++) {
-          const result = results[i];
-          if (result.status === 'fulfilled') {
-            const { id, error } = result.value;
-            if (error) {
-              failed.push({ id, error });
-            } else {
-              succeeded.push(id);
-            }
-          } else {
-            // Unexpected promise rejection (network / runtime). Preserve the
-            // original update payload's id so the caller can map back to the row.
-            const id = chunk[i].id;
-            const error = result.reason instanceof Error ? result.reason.message : 'Unknown error';
-            failed.push({ id, error });
-          }
-        }
+        const chunkResults = collectBatchMutationResults(results, chunk);
+        succeeded.push(...chunkResults.succeeded);
+        failed.push(...chunkResults.failed);
       }
 
       return createServiceSuccessResponse({ succeeded, failed });
@@ -771,21 +747,9 @@ export class EquipmentService {
     equipmentId: string
   ): Promise<ApiResponse<EquipmentNote[]>> {
     try {
-      const { data, error } = await supabase
-        .from('notes')
-        .select(`
-          *,
-          author:profiles!notes_author_id_fkey (
-            id,
-            name
-          ),
-          equipment!inner (
-            organization_id
-          )
-        `)
-        .eq('equipment_id', equipmentId)
-        .eq('equipment.organization_id', organizationId)
-        .order('created_at', { ascending: false });
+      const { data, error } = await queryOrgScopedEquipmentNotes(organizationId, equipmentId, {
+        includeAuthor: true,
+      });
 
       if (error) {
         logger.error('Error fetching equipment notes:', error);
@@ -811,21 +775,9 @@ export class EquipmentService {
     equipmentId: string
   ): Promise<ApiResponse<EquipmentScan[]>> {
     try {
-      const { data, error } = await supabase
-        .from('scans')
-        .select(`
-          *,
-          scanned_by_profile:profiles!scans_scanned_by_fkey (
-            id,
-            name
-          ),
-          equipment!inner (
-            organization_id
-          )
-        `)
-        .eq('equipment_id', equipmentId)
-        .eq('equipment.organization_id', organizationId)
-        .order('scanned_at', { ascending: false });
+      const { data, error } = await queryOrgScopedEquipmentScans(organizationId, equipmentId, {
+        includeScannerProfile: true,
+      });
 
       if (error) {
         logger.error('Error fetching equipment scans:', error);

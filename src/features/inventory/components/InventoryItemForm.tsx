@@ -33,7 +33,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Forklift, Check, X, ChevronDown, ChevronRight, Layers } from 'lucide-react';
+import { Search, Forklift, X, ChevronDown, ChevronRight, Layers } from 'lucide-react';
+import { InventoryEquipmentPickerRow } from '@/features/inventory/components/InventoryEquipmentPickerRow';
+import { SelectedEquipmentBadgeList } from '@/components/common/SelectedEquipmentBadgeList';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useCreateInventoryItem, useUpdateInventoryItem } from '@/features/inventory/hooks/useInventory';
 import { useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
@@ -45,6 +47,10 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { inventoryItemFormSchema } from '@/features/inventory/schemas/inventorySchema';
 import type { InventoryItem, PartCompatibilityRuleFormData } from '@/features/inventory/types/inventory';
+import {
+  mapInventoryCompatibilityRules,
+  shouldIgnoreStaleInventoryItemEditingLoad,
+} from '@/features/inventory/utils/inventoryItemEditingLoadHelpers';
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
 import { CompatibilityRulesEditor } from '@/features/inventory/components/CompatibilityRulesEditor';
 import { useAppToast } from '@/hooks/useAppToast';
@@ -234,8 +240,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
             .eq('inventory_items.organization_id', currentOrgId);
 
           // Check for abort and stale item ID after async operation
-          if (abortController.signal.aborted || currentEditingItemIdRef.current !== itemId) {
-            logger.debug('Ignoring stale/aborted editing data load for item:', itemId);
+          if (shouldIgnoreStaleInventoryItemEditingLoad(abortController, currentEditingItemIdRef, itemId)) {
             return;
           }
 
@@ -257,18 +262,11 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
             .eq('inventory_items.organization_id', currentOrgId);
 
           // Final check before updating form state
-          if (abortController.signal.aborted || currentEditingItemIdRef.current !== itemId) {
-            logger.debug('Ignoring stale/aborted editing data load for item:', itemId);
+          if (shouldIgnoreStaleInventoryItemEditingLoad(abortController, currentEditingItemIdRef, itemId)) {
             return;
           }
 
-          const rules: PartCompatibilityRuleFormData[] = (rulesData || []).map(row => ({
-            manufacturer: row.manufacturer,
-            model: row.model,
-            match_type: row.match_type ?? 'exact',
-            status: row.status ?? 'unverified',
-            notes: row.notes ?? null
-          }));
+          const rules = mapInventoryCompatibilityRules(rulesData);
 
           // Update form with loaded data (read RHF api via ref to keep deps stable)
           formRef.current.setValue('compatibleEquipmentIds', equipmentIds);
@@ -650,51 +648,21 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
                           No equipment found
                         </p>
                       ) : (
-                        filteredEquipment.map((equipment) => {
-                          const isSelected = selectedEquipmentIds.includes(equipment.id);
-                          return (
-                            <div
-                              key={equipment.id}
-                              className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded"
-                            >
-                              <Checkbox
-                                checked={isSelected}
-                                onCheckedChange={(checked) =>
-                                  handleEquipmentToggle(equipment.id, checked as boolean)
-                                }
-                              />
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium">{equipment.name}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  {equipment.manufacturer} {equipment.model}
-                                </div>
-                              </div>
-                              {isSelected && (
-                                <Badge variant="secondary" className="text-xs">
-                                  <Check className="h-3 w-3 mr-1" />
-                                </Badge>
-                              )}
-                            </div>
-                          );
-                        })
+                        filteredEquipment.map((equipment) => (
+                          <InventoryEquipmentPickerRow
+                            key={equipment.id}
+                            equipment={equipment}
+                            isSelected={selectedEquipmentIds.includes(equipment.id)}
+                            onToggle={handleEquipmentToggle}
+                          />
+                        ))
                       )}
                     </div>
-                    {selectedEquipmentIds.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {selectedEquipmentIds.map((id) => {
-                          const equipment = allEquipment.find(eq => eq.id === id);
-                          return equipment ? (
-                            <Badge key={id} variant="secondary" className="gap-1">
-                              {equipment.name}
-                              <X
-                                className="h-3 w-3 cursor-pointer"
-                                onClick={() => handleEquipmentToggle(id, false)}
-                              />
-                            </Badge>
-                          ) : null;
-                        })}
-                      </div>
-                    )}
+                    <SelectedEquipmentBadgeList
+                      selectedEquipmentIds={selectedEquipmentIds}
+                      allEquipment={allEquipment}
+                      onRemove={(id) => handleEquipmentToggle(id, false)}
+                    />
                   </CardContent>
                 </CollapsibleContent>
               </Card>

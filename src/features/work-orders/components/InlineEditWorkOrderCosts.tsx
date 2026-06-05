@@ -27,6 +27,7 @@ import { useAdjustInventoryQuantity } from '@/features/inventory/hooks/useInvent
 import { supabase } from '@/integrations/supabase/client';
 import { InventoryPartSelector } from './InventoryPartSelector';
 import WorkOrderCostsEditor from './WorkOrderCostsEditor';
+import { WorkOrderCostReadOnlyList } from './WorkOrderCostReadOnlyList';
 import { useAppToast } from '@/hooks/useAppToast';
 import { cn } from '@/lib/utils';
 import {
@@ -558,38 +559,15 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
     return (
       <div className="space-y-4">
         {costs.length > 0 && (
-          <>
-            {/* Desktop Headers */}
-            {!isMobile && (
-              <div className="grid grid-cols-4 gap-4 text-sm font-medium text-muted-foreground px-3">
-                <div>Description</div>
-                <div>Quantity</div>
-                <div>Unit Price</div>
-                <div className="text-right">Total</div>
-              </div>
-            )}
-
-            {/* Cost Items */}
-            <div className="space-y-3">
-              {costs.map((cost) => (
-                <div key={cost.id}>
-                  {isMobile ? (
-                    <MobileCostDisplay cost={cost} />
-                  ) : (
-                    <DesktopCostDisplay cost={cost} />
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Subtotal */}
-            <div className="border-t pt-4">
-              <div className="flex items-center justify-between text-lg font-semibold">
-                <span>Subtotal:</span>
-                <span>{formatCurrency(calculateSubtotal())}</span>
-              </div>
-            </div>
-          </>
+          <WorkOrderCostReadOnlyList
+            costs={costs}
+            isMobile={isMobile}
+            formatCurrency={formatCurrency}
+            calculateSubtotal={calculateSubtotal}
+            renderMobileCost={(cost) => <MobileCostDisplay cost={cost} />}
+            renderDesktopCost={(cost) => <DesktopCostDisplay cost={cost} />}
+            className="space-y-4"
+          />
         )}
       </div>
     );
@@ -619,38 +597,15 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
         </div>
         
         {costs.length > 0 ? (
-          <div className={cn(compactMobile ? 'space-y-3' : 'space-y-4')}>
-            {/* Desktop Headers */}
-            {!isMobile && (
-              <div className="grid grid-cols-4 gap-4 text-sm font-medium text-muted-foreground px-3">
-                <div>Description</div>
-                <div>Quantity</div>
-                <div>Unit Price</div>
-                <div className="text-right">Total</div>
-              </div>
-            )}
-
-            {/* Cost Items */}
-            <div className="space-y-3">
-              {costs.map((cost) => (
-                <div key={cost.id}>
-                  {isMobile ? (
-                    <MobileCostDisplay cost={cost} />
-                  ) : (
-                    <DesktopCostDisplay cost={cost} />
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Subtotal */}
-            <div className="border-t pt-4">
-              <div className="flex items-center justify-between text-lg font-semibold">
-                <span>Subtotal:</span>
-                <span>{formatCurrency(calculateSubtotal())}</span>
-              </div>
-            </div>
-          </div>
+          <WorkOrderCostReadOnlyList
+            costs={costs}
+            isMobile={isMobile}
+            formatCurrency={formatCurrency}
+            calculateSubtotal={calculateSubtotal}
+            renderMobileCost={(cost) => <MobileCostDisplay cost={cost} />}
+            renderDesktopCost={(cost) => <DesktopCostDisplay cost={cost} />}
+            className={cn(compactMobile ? 'space-y-3' : 'space-y-4')}
+          />
         ) : compactMobile ? (
           <div className="flex flex-wrap gap-2 pt-1">
             <Button type="button" variant="default" size="sm" className="min-h-[44px] flex-1" onClick={handleStartEdit}>

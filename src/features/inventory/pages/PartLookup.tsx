@@ -8,8 +8,6 @@ import {
   ArrowRight,
   Factory,
   Tag,
-  DollarSign,
-  MapPin,
   RefreshCw
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -34,7 +32,9 @@ import {
   getCompatiblePartsForMakeModel 
 } from '@/features/inventory/services/partAlternatesService';
 import type { AlternatePartResult, MakeModelCompatiblePart } from '@/features/inventory/types/inventory';
+import { groupAlternatePartsByGroupId } from '@/features/inventory/utils/groupAlternateParts';
 import { useDebounced } from '@/hooks/useDebounced';
+import { PartLookupPartMeta } from '@/features/inventory/components/PartLookupPartMeta';
 
 // Constant for "Any Model" option value
 const ANY_MODEL_VALUE = '__any__';
@@ -108,15 +108,10 @@ const PartLookup: React.FC = () => {
   });
   
   // Group alternates by group
-  const groupedAlternates = useMemo(() => {
-    const groups = new Map<string, AlternatePartResult[]>();
-    for (const alt of alternates) {
-      const existing = groups.get(alt.group_id) || [];
-      existing.push(alt);
-      groups.set(alt.group_id, existing);
-    }
-    return Array.from(groups.entries());
-  }, [alternates]);
+  const groupedAlternates = useMemo(
+    () => groupAlternatePartsByGroupId(alternates),
+    [alternates],
+  );
   
   const handleViewItem = useCallback((itemId: string) => {
     navigate(`/dashboard/inventory/${itemId}`);
@@ -480,18 +475,10 @@ const AlternateGroupCard: React.FC<AlternateGroupCardProps> = ({
                     {part.inventory_sku && (
                       <span>SKU: {part.inventory_sku}</span>
                     )}
-                    {part.location && (
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {part.location}
-                      </span>
-                    )}
-                    {part.default_unit_cost && (
-                      <span className="flex items-center gap-1">
-                        <DollarSign className="h-3 w-3" />
-                        {part.default_unit_cost.toFixed(2)}
-                      </span>
-                    )}
+                    <PartLookupPartMeta
+                      location={part.location}
+                      defaultUnitCost={part.default_unit_cost}
+                    />
                   </div>
                 )}
               </div>
@@ -568,18 +555,7 @@ const CompatiblePartRow: React.FC<CompatiblePartRowProps> = ({ part, onViewItem 
           {part.sku && (
             <span>SKU: {part.sku}</span>
           )}
-          {part.location && (
-            <span className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              {part.location}
-            </span>
-          )}
-          {part.default_unit_cost && (
-            <span className="flex items-center gap-1">
-              <DollarSign className="h-3 w-3" />
-              {part.default_unit_cost.toFixed(2)}
-            </span>
-          )}
+          <PartLookupPartMeta location={part.location} defaultUnitCost={part.default_unit_cost} />
         </div>
       </div>
       

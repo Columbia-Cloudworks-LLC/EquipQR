@@ -9,6 +9,7 @@ import SingleImageUpload from '@/components/common/SingleImageUpload';
 import { uploadAvatar, deleteAvatar } from '@/services/profileService';
 import { useResolvedAvatarUrl } from '@/hooks/useResolvedAvatarUrl';
 import { Save, Loader2 } from 'lucide-react';
+import { trimmedAvatarPath, userDisplayInitials } from '@/utils/userDisplayInitials';
 
 const ProfileSettings = () => {
   const { currentUser, setCurrentUser } = useUser();
@@ -57,15 +58,8 @@ const ProfileSettings = () => {
 
   if (!currentUser) return null;
 
-  const initials = currentUser.name
-    ? currentUser.name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
-    : '?';
-  const avatarPath = currentUser.avatar_url?.trim() ?? '';
+  const initials = userDisplayInitials(currentUser.name);
+  const avatarPath = trimmedAvatarPath(currentUser.avatar_url);
   const hasCanonicalAvatarPath = avatarPath.length > 0 && !/^https?:\/\//i.test(avatarPath);
 
   return (

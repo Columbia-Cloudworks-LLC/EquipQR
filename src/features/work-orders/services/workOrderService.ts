@@ -1,9 +1,11 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Service repeats org-scoped equipment resolution for filters
 import { BaseService, ApiResponse, PaginationParams, FilterParams } from '@/services/base/BaseService';
+import { applySupabasePaginationRange } from '@/services/supabaseQueryPagination';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { validateStorageQuota } from '@/utils/storageQuota';
 import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
-import { getAuthClaims } from '@/lib/authClaims';
 import {
   uploadImageToStorage,
   resolveImageDisplayUrl,
@@ -25,6 +27,14 @@ import {
   WorkOrderServiceFilters,
 } from '@/features/work-orders/types/workOrder';
 import { applyWorkOrderSupabaseFilters } from '@/features/work-orders/utils/workOrderSupabaseFilters';
+import {
+  fetchWorkOrderImagesWithUploaderProfiles,
+  mapResolvedImagesForNote,
+} from '@/features/work-orders/utils/workOrderNoteImageEnrichment';
+import {
+  fetchWorkOrderInOrganization,
+  requireAuthenticatedClaims,
+} from '@/features/work-orders/services/workOrderServiceAccess';
 
 // Re-export types for backward compatibility
 export type {
@@ -387,11 +397,7 @@ export class WorkOrderService extends BaseService {
         query = query.order('created_date', { ascending: false });
       }
 
-      // Apply pagination
-      if (pagination.limit) {
-        const startIndex = ((pagination.page || 1) - 1) * pagination.limit;
-        query = query.range(startIndex, startIndex + pagination.limit - 1);
-      }
+      query = applySupabasePaginationRange(query, pagination);
 
       const { data, error } = await query;
 
@@ -718,15 +724,8 @@ export class WorkOrderService extends BaseService {
    */
   async getNotes(workOrderId: string): Promise<ApiResponse<WorkOrderNote[]>> {
     try {
-      // Verify work order belongs to organization
-      const { data: workOrder, error: woError } = await supabase
-        .from('work_orders')
-        .select('id')
-        .eq('id', workOrderId)
-        .eq('organization_id', this.organizationId)
-        .single();
-
-      if (woError || !workOrder) {
+      const workOrder = await fetchWorkOrderInOrganization(this.organizationId, workOrderId);
+      if (!workOrder) {
         return this.handleError(new Error('Work order not found'));
       }
 
@@ -753,51 +752,18 @@ export class WorkOrderService extends BaseService {
         .select('id, name')
         .in('id', authorIds);
 
-      // Get all images for this work order
-      const { data: allImages } = await supabase
-        .from('work_order_images')
-        .select('*')
-        .eq('work_order_id', workOrderId)
-        .order('created_at', { ascending: false });
-
-      // Get uploader names for images
-      const uploaderIds = [...new Set((allImages || []).map(img => img.uploaded_by))];
-      let uploaderProfiles: Array<{ id: string; name?: string }> = [];
-      
-      if (uploaderIds.length > 0) {
-        const { data: uploaderData } = await supabase
-          .from('profiles')
-          .select('id, name')
-          .in('id', uploaderIds);
-        uploaderProfiles = uploaderData || [];
-      }
-
-      const imagesList = allImages || [];
-      const signedForImages = await batchResolveWorkOrderImageDisplayUrls(
-        imagesList.map(img => img.file_url),
-      );
-      const resolvedByImageId = new Map<string, string>();
-      imagesList.forEach((img, i) => {
-        const displayUrl = displayUrlForStoredPrivateImage(signedForImages[i], img.file_url);
-        if (displayUrl != null) {
-          resolvedByImageId.set(img.id, displayUrl);
-        }
-      });
+      const { imagesList, uploaderProfiles, displayByImageId: resolvedByImageId } =
+        await fetchWorkOrderImagesWithUploaderProfiles(workOrderId);
 
       // Map notes with authors and images
       const enrichedNotes: WorkOrderNote[] = notes.map(note => {
         const author = (profiles || []).find(p => p.id === note.author_id);
-        const noteImages = imagesList
-          .filter(img => img.note_id === note.id)
-          .filter(img => resolvedByImageId.has(img.id))
-          .map(img => {
-            const uploader = uploaderProfiles.find(p => p.id === img.uploaded_by);
-            return {
-              ...img,
-              file_url: resolvedByImageId.get(img.id)!,
-              uploaded_by_name: uploader?.name || 'Unknown',
-            };
-          });
+        const noteImages = mapResolvedImagesForNote(
+          note.id,
+          imagesList,
+          resolvedByImageId,
+          uploaderProfiles,
+        );
 
         return {
           ...note,
@@ -820,20 +786,14 @@ export class WorkOrderService extends BaseService {
     noteData: WorkOrderNoteCreateData
   ): Promise<ApiResponse<WorkOrderNote>> {
     try {
-      const claims = await getAuthClaims();
-      if (!claims) {
-        return this.handleError(new Error('User not authenticated'));
+      const auth = await requireAuthenticatedClaims();
+      if ('error' in auth) {
+        return this.handleError(auth.error);
       }
+      const claims = auth;
 
-      // Verify work order belongs to organization
-      const { data: workOrder, error: woError } = await supabase
-        .from('work_orders')
-        .select('id')
-        .eq('id', workOrderId)
-        .eq('organization_id', this.organizationId)
-        .single();
-
-      if (woError || !workOrder) {
+      const workOrder = await fetchWorkOrderInOrganization(this.organizationId, workOrderId);
+      if (!workOrder) {
         return this.handleError(new Error('Work order not found'));
       }
 
@@ -880,15 +840,8 @@ export class WorkOrderService extends BaseService {
    */
   async getImages(workOrderId: string): Promise<ApiResponse<WorkOrderImage[]>> {
     try {
-      // Verify work order belongs to organization
-      const { data: workOrder, error: woError } = await supabase
-        .from('work_orders')
-        .select('id')
-        .eq('id', workOrderId)
-        .eq('organization_id', this.organizationId)
-        .single();
-
-      if (woError || !workOrder) {
+      const workOrder = await fetchWorkOrderInOrganization(this.organizationId, workOrderId);
+      if (!workOrder) {
         return this.handleError(new Error('Work order not found'));
       }
 
@@ -943,20 +896,14 @@ export class WorkOrderService extends BaseService {
     description?: string
   ): Promise<ApiResponse<WorkOrderImage>> {
     try {
-      const claims = await getAuthClaims();
-      if (!claims) {
-        return this.handleError(new Error('User not authenticated'));
+      const auth = await requireAuthenticatedClaims();
+      if ('error' in auth) {
+        return this.handleError(auth.error);
       }
+      const claims = auth;
 
-      // Verify work order belongs to organization
-      const { data: workOrder, error: woError } = await supabase
-        .from('work_orders')
-        .select('id')
-        .eq('id', workOrderId)
-        .eq('organization_id', this.organizationId)
-        .single();
-
-      if (woError || !workOrder) {
+      const workOrder = await fetchWorkOrderInOrganization(this.organizationId, workOrderId);
+      if (!workOrder) {
         return this.handleError(new Error('Work order not found'));
       }
 

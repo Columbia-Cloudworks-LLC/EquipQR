@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatIsoZulu } from '@/utils/dateFormatter';
 import { logger } from '@/utils/logger';
 import { buildAuditLogQueryResult, resolveAuditPagination } from '@/services/auditPagination';
+import { fetchAuditLogPage } from '@/services/auditLogPageQuery';
 import { applyAuditFilters, normalizeAuditDateTo } from '@/services/auditFilters';
 import type { ApiResponse } from '@/services/base/BaseService';
 import {
@@ -125,31 +126,13 @@ export const auditService = {
     pagination?: AuditLogPagination
   ): Promise<ServiceResponse<AuditLogQueryResult>> {
     try {
-      const { pageSize, offset } = resolveAuditPagination(pagination, 20);
-
-      const { count, error: countError } = await supabase
-        .from('audit_log')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', organizationId)
-        .eq('entity_type', entityType)
-        .eq('entity_id', entityId);
-      
-      if (countError) throw countError;
-      
-      const { data, error } = await supabase
-        .from('audit_log')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .eq('entity_type', entityType)
-        .eq('entity_id', entityId)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + pageSize - 1);
-      
-      if (error) throw error;
-      
-      return createServiceSuccessResponse(
-        buildAuditLogQueryResult(data as AuditLogEntry[], count ?? 0, offset, pageSize),
+      const page = await fetchAuditLogPage(
+        organizationId,
+        { entity_type: entityType, entity_id: entityId },
+        pagination,
+        20,
       );
+      return createServiceSuccessResponse(page);
     } catch (error) {
       return createServiceErrorResponse(error, 'AuditService error');
     }
@@ -228,29 +211,13 @@ export const auditService = {
     pagination?: AuditLogPagination
   ): Promise<ServiceResponse<AuditLogQueryResult>> {
     try {
-      const { pageSize, offset } = resolveAuditPagination(pagination, 20);
-
-      const { count, error: countError } = await supabase
-        .from('audit_log')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', organizationId)
-        .eq('actor_id', userId);
-      
-      if (countError) throw countError;
-      
-      const { data, error } = await supabase
-        .from('audit_log')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .eq('actor_id', userId)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + pageSize - 1);
-      
-      if (error) throw error;
-      
-      return createServiceSuccessResponse(
-        buildAuditLogQueryResult(data as AuditLogEntry[], count ?? 0, offset, pageSize),
+      const page = await fetchAuditLogPage(
+        organizationId,
+        { actor_id: userId },
+        pagination,
+        20,
       );
+      return createServiceSuccessResponse(page);
     } catch (error) {
       return createServiceErrorResponse(error, 'AuditService error');
     }

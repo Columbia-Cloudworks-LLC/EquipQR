@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { WorkOrderDeleteConfirmDialog } from '@/features/work-orders/components/WorkOrderDeleteConfirmDialog';
 import { Edit, Info, Download, FileSpreadsheet, Loader2, MoreHorizontal, Trash2, FileText, ExternalLink, ClipboardList } from 'lucide-react';
 import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
 import { WorkOrderData, PermissionLevels, EquipmentData, PMData } from '@/features/work-orders/types/workOrderDetails';
@@ -312,43 +312,13 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           isSavingToDrive={isSavingToDrive}
         />
 
-        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Work Order</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete this work order? This action is irreversible and will permanently remove:
-                <ul className="mt-2 space-y-1 text-sm">
-                  <li>• Work order details and description</li>
-                  <li>• All notes and comments</li>
-                  <li>• Cost records and estimates</li>
-                  <li>• Status history</li>
-                  <li>• Preventative maintenance records</li>
-                  {imageData && imageData.count > 0 && (
-                    <li className="flex items-center gap-2">
-                      • All uploaded images
-                      <Badge variant="destructive" className="text-xs">
-                        {imageData.count} image{imageData.count !== 1 ? 's' : ''}
-                      </Badge>
-                    </li>
-                  )}
-                </ul>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={deleteWorkOrderMutation.isPending}>
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDeleteConfirm}
-                disabled={deleteWorkOrderMutation.isPending}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {deleteWorkOrderMutation.isPending ? 'Deleting...' : 'Delete Permanently'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <WorkOrderDeleteConfirmDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          imageData={imageData}
+          isDeleting={deleteWorkOrderMutation.isPending}
+          onConfirm={handleDeleteConfirm}
+        />
       </div>
     </TooltipProvider>
   );

@@ -4,7 +4,8 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useAppToast } from '@/hooks/useAppToast';
-import { handleDragActiveState } from '@/components/common/drag-active-handlers';
+import { finishDragDrop, handleDragActiveState } from '@/components/common/drag-active-handlers';
+import { SingleImagePreviewActions } from '@/components/common/SingleImagePreviewActions';
 import { sanitizeBlobUrl } from '@/utils/sanitizeBlobUrl';
 
 interface SingleImageUploadProps {
@@ -106,9 +107,7 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
   };
 
   const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
+    finishDragDrop(e, setDragActive);
     if (disabled || isProcessing) return;
     const file = e.dataTransfer.files[0];
     if (file) handleFileSelect(file);
@@ -181,30 +180,13 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               {previewFile ? (
-                <>
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={disabled || isProcessing}
-                    onClick={handleUpload}
-                  >
-                    {isUploading ? (
-                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                    ) : (
-                      <Upload className="h-3.5 w-3.5 mr-1.5" />
-                    )}
-                    {isUploading ? 'Uploading...' : 'Upload'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    disabled={isProcessing}
-                    onClick={handleCancelPreview}
-                  >
-                    Cancel
-                  </Button>
-                </>
+                <SingleImagePreviewActions
+                  disabled={disabled}
+                  isProcessing={isProcessing}
+                  isUploading={isUploading}
+                  onUpload={handleUpload}
+                  onCancel={handleCancelPreview}
+                />
               ) : (
                 <>
                   <Button
@@ -267,28 +249,13 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
               </div>
               {previewFile ? (
                 <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={disabled || isProcessing}
-                    onClick={handleUpload}
-                  >
-                    {isUploading ? (
-                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                    ) : (
-                      <Upload className="h-3.5 w-3.5 mr-1.5" />
-                    )}
-                    {isUploading ? 'Uploading...' : 'Upload'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    disabled={isProcessing}
-                    onClick={handleCancelPreview}
-                  >
-                    Cancel
-                  </Button>
+                  <SingleImagePreviewActions
+                    disabled={disabled}
+                    isProcessing={isProcessing}
+                    isUploading={isUploading}
+                    onUpload={handleUpload}
+                    onCancel={handleCancelPreview}
+                  />
                 </div>
               ) : onDelete ? (
                 <button

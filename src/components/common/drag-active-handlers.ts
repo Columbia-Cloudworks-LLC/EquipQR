@@ -13,3 +13,13 @@ export function handleDragActiveState(
     setDragActive(false);
   }
 }
+
+/** Clears drag-active state after a drop (call before reading dataTransfer). */
+export function finishDragDrop(
+  e: React.DragEvent,
+  setDragActive: (active: boolean) => void,
+): void {
+  e.preventDefault();
+  e.stopPropagation();
+  setDragActive(false);
+}

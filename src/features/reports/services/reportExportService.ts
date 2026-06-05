@@ -1,6 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import type { ReportType, ExportFilters, ExportRequest } from '@/features/reports/types/reports';
+import {
+  buildEquipmentExportCountQuery,
+  buildWorkOrderExportCountQuery,
+} from '@/features/reports/utils/exportCountQueries';
 
 /**
  * Export a report by calling the export-report edge function
@@ -71,16 +75,7 @@ export async function exportReport(
  * @param blob - The file content as a Blob
  * @param filename - The desired filename
  */
-export function downloadBlob(blob: Blob, filename: string): void {
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
-}
+export { downloadBlob } from '@/utils/exportUtils';
 
 /**
  * Generate a filename for the export
@@ -111,48 +106,17 @@ export async function getReportRecordCount(
   try {
     switch (reportType) {
       case 'equipment': {
-        let query = supabase
-          .from('equipment')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', organizationId);
-
-        if (filters.status) {
-          query = query.eq('status', filters.status);
-        }
-        if (filters.teamId) {
-          query = query.eq('team_id', filters.teamId);
-        }
-        if (filters.location) {
-          query = query.ilike('location', `%${filters.location}%`);
-        }
-
-        const { count } = await query;
+        const { count } = await buildEquipmentExportCountQuery(organizationId, filters);
         return count ?? 0;
       }
 
       case 'work-orders': {
-        let query = supabase
-          .from('work_orders')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', organizationId);
-
-        if (filters.status) {
-          query = query.eq('status', filters.status);
-        }
-        if (filters.teamId) {
-          query = query.eq('team_id', filters.teamId);
-        }
-        if (filters.priority) {
-          query = query.eq('priority', filters.priority);
-        }
-        if (filters.dateRange?.from) {
-          query = query.gte('created_date', filters.dateRange.from);
-        }
-        if (filters.dateRange?.to) {
-          query = query.lte('created_date', filters.dateRange.to);
-        }
-
-        const { count } = await query;
+        const { count } = await buildWorkOrderExportCountQuery(organizationId, {
+          status: filters.status,
+          teamId: filters.teamId,
+          priority: filters.priority,
+          dateRange: filters.dateRange,
+        });
         return count ?? 0;
       }
 

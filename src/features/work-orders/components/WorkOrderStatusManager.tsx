@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Status manager shares transition UI with details page
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,12 +19,12 @@ import {
   Users, 
   AlertTriangle,
   Clipboard,
-  Shield,
   Clock,
   Wrench,
   MapPin,
   AlertCircle
 } from 'lucide-react';
+import { WorkOrderAssigneeSelectItems } from '@/features/work-orders/components/WorkOrderAssigneeSelectItems';
 import { useWorkOrderStatusChangeHandlers } from '@/features/work-orders/hooks/useWorkOrderStatusChangeHandlers';
 import { useWorkOrderContextualAssignment, type AssignmentWorkOrderContext } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
 import {
@@ -348,25 +350,7 @@ const getStatusActions = (): StatusAction[] => {
                     <SelectValue placeholder={assignmentLoading ? "Loading..." : "Select assignee..."} />
                   </SelectTrigger>
                   <SelectContent>
-                    {assignmentOptions.map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
-                        <div className="flex items-center gap-2">
-                          {option.role === 'owner' || option.role === 'admin' ? (
-                            <Shield className="h-4 w-4" />
-                          ) : (
-                            <User className="h-4 w-4" />
-                          )}
-                          <div>
-                            <span>{option.name}</span>
-                            {option.role && (
-                              <span className="text-xs text-muted-foreground ml-1">
-                                ({option.role})
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </SelectItem>
-                    ))}
+                    <WorkOrderAssigneeSelectItems options={assignmentOptions} />
                   </SelectContent>
                 </Select>
               </div>

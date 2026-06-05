@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { UseFormReturn } from 'react-hook-form';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentManufacturersAndModels } from '@/features/equipment/hooks/useEquipment';
 import { type EquipmentFormData, generateEquipmentName } from '@/features/equipment/types/equipment';
+import { useManufacturerModelSuggestions } from '@/features/equipment/utils/manufacturerModelLookup';
 
 interface EquipmentBasicInfoSectionProps {
   form: UseFormReturn<EquipmentFormData>;
@@ -44,19 +45,10 @@ const EquipmentBasicInfoSection: React.FC<EquipmentBasicInfoSectionProps> = ({ f
     }
   }, [manufacturer, model, nameManuallyEdited, isEdit, form, name]);
 
-  // Get manufacturers list for autocomplete suggestions
-  const manufacturers = useMemo(() => {
-    return manufacturersData.map(m => m.manufacturer);
-  }, [manufacturersData]);
-
-  // Get models for selected manufacturer (for autocomplete suggestions)
-  const modelsForManufacturer = useMemo(() => {
-    if (!manufacturer) return [];
-    const mfrData = manufacturersData.find(
-      m => m.manufacturer.toLowerCase() === manufacturer.toLowerCase()
-    );
-    return mfrData?.models || [];
-  }, [manufacturer, manufacturersData]);
+  const { manufacturers, modelsForManufacturer } = useManufacturerModelSuggestions(
+    manufacturersData,
+    manufacturer,
+  );
 
   // Handle name field focus - mark as manually edited if user types
   const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {

@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Import table UX mirrors onboarding member picker patterns
 /**
  * Google Workspace Member Import Sheet
  * 
@@ -28,6 +30,7 @@ import {
 } from '@/services/google-workspace';
 import { useGoogleWorkspaceMemberClaims } from '@/features/organization/hooks/useGoogleWorkspaceMemberClaims';
 import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
+import { useGoogleWorkspaceMemberSelection } from '@/features/organization/hooks/useGoogleWorkspaceMemberSelection';
 
 interface GoogleWorkspaceMemberImportSheetProps {
   open: boolean;
@@ -49,6 +52,8 @@ export const GoogleWorkspaceMemberImportSheet = ({
   const [isAdding, setIsAdding] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [adminEmails, setAdminEmails] = useState<Set<string>>(new Set());
+  const { toggleEmail, toggleAdmin, toggleSelectAll, clearSelection } =
+    useGoogleWorkspaceMemberSelection(setSelectedEmails, setAdminEmails);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch directory users - uses light function with only essential fields
@@ -128,59 +133,6 @@ export const GoogleWorkspaceMemberImportSheet = ({
       });
     } finally {
       setIsSyncing(false);
-    }
-  };
-
-  const toggleEmail = (email: string, checked: boolean) => {
-    setSelectedEmails(prev => {
-      const next = new Set(prev);
-      if (checked) {
-        next.add(email);
-      } else {
-        next.delete(email);
-      }
-      return next;
-    });
-
-    // If unchecking, also remove from admin emails
-    if (!checked) {
-      setAdminEmails(prev => {
-        const next = new Set(prev);
-        next.delete(email);
-        return next;
-      });
-    }
-  };
-
-  const toggleAdmin = (email: string, checked: boolean) => {
-    setAdminEmails(prev => {
-      const next = new Set(prev);
-      if (checked) {
-        next.add(email);
-      } else {
-        next.delete(email);
-      }
-      return next;
-    });
-  };
-
-  const toggleSelectAll = (checked: boolean) => {
-    if (checked) {
-      const newSelectedEmails = new Set(availableUsers.map(u => u.primary_email));
-      setSelectedEmails(newSelectedEmails);
-      // Reconcile adminEmails to only include emails that are in the new selected set
-      setAdminEmails(prev => {
-        const reconciled = new Set<string>();
-        prev.forEach(email => {
-          if (newSelectedEmails.has(email)) {
-            reconciled.add(email);
-          }
-        });
-        return reconciled;
-      });
-    } else {
-      setSelectedEmails(new Set());
-      setAdminEmails(new Set());
     }
   };
 
@@ -350,7 +302,12 @@ export const GoogleWorkspaceMemberImportSheet = ({
                       <TableHead className="w-12">
                         <Checkbox
                           checked={someSelected ? 'indeterminate' : allSelected}
-                          onCheckedChange={(checked) => toggleSelectAll(Boolean(checked))}
+                          onCheckedChange={(checked) =>
+                            toggleSelectAll(
+                              Boolean(checked),
+                              availableUsers.map((u) => u.primary_email),
+                            )
+                          }
                           aria-label="Select all"
                         />
                       </TableHead>

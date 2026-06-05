@@ -9,43 +9,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import EquipmentFilterPopover from './EquipmentFilterPopover';
 import EquipmentSortPopover from './EquipmentSortPopover';
 import EquipmentActionsMenu from './EquipmentActionsMenu';
-import type { EquipmentFilters, SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
-import type { EquipmentViewMode } from './EquipmentCard';
-import type { EquipmentRecord } from '@/features/equipment/types/equipment';
+import type { EquipmentListToolbarProps } from '@/features/equipment/components/equipmentFilterTypes';
 
-// Team is intentionally not part of FilterOptions here — the team scope is
-// owned by the global TopBar `useSelectedTeam`.
-interface FilterOptions {
-  manufacturers: string[];
-  locations: string[];
-}
-
-interface EquipmentToolbarProps {
-  filters: EquipmentFilters;
-  sortConfig: SortConfig;
-  onFilterChange: (key: keyof EquipmentFilters, value: string) => void;
-  onClearFilters: () => void;
-  onQuickFilter: (preset: string) => void;
-  onSortChange: (field: string, direction?: 'asc' | 'desc') => void;
-  filterOptions: FilterOptions;
-  hasActiveFilters: boolean;
-  activeQuickFilter?: string | null;
-  resultCount: number;
-  totalCount: number;
-  viewMode: EquipmentViewMode;
-  onViewModeChange: (mode: EquipmentViewMode) => void;
-  canImport?: boolean;
-  canExport?: boolean;
-  onImportCsv?: () => void;
-  equipment?: EquipmentRecord[];
-  /**
-   * Optional view-mode-specific control rendered between sort and view-mode
-   * toggle. Currently used by the table view to mount the column picker.
-   * Decoupled via `ReactNode` so the toolbar doesn't depend on equipment-
-   * specific picker components.
-   */
-  columnPicker?: React.ReactNode;
-}
+type EquipmentToolbarProps = EquipmentListToolbarProps;
 
 const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
   filters,
