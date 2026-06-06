@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Package, History, Link2, Plus, Minus, QrCode, Search, Check, X, Settings2, CheckCircle2, AlertCircle, RefreshCw, Layers, Cpu, LinkIcon } from 'lucide-react';
+import { ArrowLeft, Package, History, Link2, Plus, QrCode } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useInventoryItem, useInventoryTransactions, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useCompatibleEquipmentForItem, useBulkLinkEquipmentToItem, useCompatibilityRulesForItem, useBulkSetCompatibilityRules, useEquipmentMatchingItemRules } from '@/features/inventory/hooks/useInventory';
@@ -12,47 +12,21 @@ import {
   useCreateAlternateGroup,
   useAddInventoryItemToGroup,
 } from '@/features/inventory/hooks/useAlternateGroups';
-// Lazy-mount the rules editor only when the dialog is opened. The editor pulls
-// in the full equipment manufacturers/models query (and its own sub-queries),
-// none of which are needed unless the user is actively editing rules.
-const CompatibilityRulesEditor = lazy(() =>
-  import('@/features/inventory/components/CompatibilityRulesEditor').then((m) => ({
-    default: m.CompatibilityRulesEditor,
-  })),
-);
-import type { PartCompatibilityRuleFormData, ModelMatchType, VerificationStatus, AlternatePartResult } from '@/features/inventory/types/inventory';
+import type { PartCompatibilityRuleFormData } from '@/features/inventory/types/inventory';
 import { getAlternatesForInventoryItem } from '@/features/inventory/services/partAlternatesService';
 import { groupAlternatePartsByGroupId } from '@/features/inventory/utils/groupAlternateParts';
-import { SelectedEquipmentBadgeList } from '@/components/common/SelectedEquipmentBadgeList';
 import { usePermissions } from '@/hooks/usePermissions';
-import { InventoryEquipmentPickerRow } from '@/features/inventory/components/InventoryEquipmentPickerRow';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
-import { InventoryItemForm } from '@/features/inventory/components/InventoryItemForm';
-import InventoryQRCodeDisplay from '@/features/inventory/components/InventoryQRCodeDisplay';
-import { useAuth } from '@/hooks/useAuth';
 import { HistoryTab } from '@/components/audit';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { logger } from '@/utils/logger';
-import type { PartAlternateGroup } from '@/features/inventory/types/inventory';
 import { getInventoryItemImages, uploadInventoryItemImages, deleteInventoryItemImage } from '@/features/inventory/services/inventoryService';
 import { useAppToast } from '@/hooks/useAppToast';
 import { inventory as inventoryQueryKeys } from '@/lib/queryKeys';
@@ -62,13 +36,16 @@ import InventoryItemCompatibilityTab from '@/features/inventory/pages/components
 import { HorizontalChipRow } from '@/components/layout/HorizontalChipRow';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getStockHealthPresentation } from '@/features/inventory/utils/stockHealth';
+import { useInventoryItemAdjustQuantity } from '@/features/inventory/hooks/useInventoryItemAdjustQuantity';
+import { useInventoryItemEquipmentDialog } from '@/features/inventory/hooks/useInventoryItemEquipmentDialog';
+import { useInventoryItemAlternateGroupDialogs } from '@/features/inventory/hooks/useInventoryItemAlternateGroupDialogs';
+import { InventoryItemDetailDialogs } from '@/features/inventory/pages/components/InventoryItemDetailDialogs';
 
 const InventoryItemDetail = () => {
   const { itemId } = useParams<{ itemId: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { currentOrganization } = useOrganization();
-  const { user } = useAuth();
   const { canManageInventory } = usePermissions();
   const isMobile = useIsMobile();
   const appToast = useAppToast();
@@ -81,28 +58,12 @@ const InventoryItemDetail = () => {
   const [showEditForm, setShowEditForm] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-  const [showAdjustDialog, setShowAdjustDialog] = useState(false);
-  const [showAddInput, setShowAddInput] = useState(false);
-  const [showSubtractInput, setShowSubtractInput] = useState(false);
-  const [adjustmentAmount, setAdjustmentAmount] = useState(1);
-  const [adjustReason, setAdjustReason] = useState('');
   const [showQRCode, setShowQRCode] = useState(false);
-  const [showAddEquipmentDialog, setShowAddEquipmentDialog] = useState(false);
-  const [equipmentSearch, setEquipmentSearch] = useState('');
-  const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<string[]>([]);
   const [showEditRules, setShowEditRules] = useState(false);
   const [editingRules, setEditingRules] = useState<PartCompatibilityRuleFormData[]>([]);
-  
-  // Alternate group management state
-  const [showCreateGroupDialog, setShowCreateGroupDialog] = useState(false);
+  const [showAddEquipmentDialog, setShowAddEquipmentDialog] = useState(false);
   const [showAddToGroupDialog, setShowAddToGroupDialog] = useState(false);
-  const [newGroupName, setNewGroupName] = useState('');
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
-  const [groupSearch, setGroupSearch] = useState('');
 
-  // Open add-to-group dialog when navigated with ?alternateAction=add.
-  // Guard on canEdit so a crafted URL cannot drop a read-only user into a
-  // write flow they should never see.
   useEffect(() => {
     if (searchParams.get('alternateAction') === 'add' && canEdit) {
       setShowAddToGroupDialog(true);
@@ -126,20 +87,7 @@ const InventoryItemDetail = () => {
     itemId
   );
   const transactions = transactionsData?.transactions ?? [];
-  
-  // Equipment list is only needed when the "Add Equipment Compatibility"
-  // dialog is open. Use the lightweight summaries projection so the dropdown
-  // load stays fast on Slow 4G and avoid even the request until the dialog
-  // is visible.
-  const { data: allEquipment = [] } = useEquipmentSummaries(currentOrganization?.id, {
-    enabled: showAddEquipmentDialog,
-  });
 
-  // Alternate groups list is only used inside the "Add to Existing Group"
-  // dialog. Defer until the user opens it.
-  const { data: allGroups = [] } = useAlternateGroups(currentOrganization?.id, {
-    enabled: showAddToGroupDialog,
-  });
   const { data: compatibleEquipment = [] } = useCompatibleEquipmentForItem(
     currentOrganization?.id,
     itemId
@@ -177,6 +125,41 @@ const InventoryItemDetail = () => {
   const createGroupMutation = useCreateAlternateGroup();
   const addToGroupMutation = useAddInventoryItemToGroup();
 
+  const adjustQuantity = useInventoryItemAdjustQuantity({
+    organizationId: currentOrganization?.id,
+    itemId,
+    adjustMutation,
+  });
+
+  const { data: allEquipment = [] } = useEquipmentSummaries(currentOrganization?.id, {
+    enabled: showAddEquipmentDialog,
+  });
+
+  const { data: allGroups = [] } = useAlternateGroups(currentOrganization?.id, {
+    enabled: showAddToGroupDialog,
+  });
+
+  const equipmentDialog = useInventoryItemEquipmentDialog({
+    organizationId: currentOrganization?.id,
+    itemId,
+    compatibleEquipment,
+    bulkLinkEquipmentMutation,
+    showAddEquipmentDialog,
+    setShowAddEquipmentDialog,
+  });
+
+  const alternateGroups = useInventoryItemAlternateGroupDialogs({
+    organizationId: currentOrganization?.id,
+    itemId,
+    groupedAlternates,
+    allGroups,
+    createGroupMutation,
+    addToGroupMutation,
+    refetchAlternates,
+    showAddToGroupDialog,
+    setShowAddToGroupDialog,
+  });
+
   const handleDelete = async () => {
     if (!currentOrganization || !itemId) return;
     try {
@@ -188,63 +171,6 @@ const InventoryItemDetail = () => {
     } catch {
       // Error handled in mutation
     }
-  };
-
-  const resetAdjustDialog = () => {
-    setShowAddInput(false);
-    setShowSubtractInput(false);
-    setAdjustmentAmount(1);
-    setAdjustReason('');
-  };
-
-  const handleAdjustQuantity = async (delta: number) => {
-    if (!currentOrganization || !itemId || !user || delta === 0) return;
-    try {
-      await adjustMutation.mutateAsync({
-        organizationId: currentOrganization.id,
-        adjustment: {
-          itemId,
-          delta,
-          reason: adjustReason || 'Manual adjustment'
-        }
-      });
-      setShowAdjustDialog(false);
-      resetAdjustDialog();
-    } catch {
-      // Error handled in mutation
-    }
-  };
-
-  const handleQuickAdd = () => {
-    handleAdjustQuantity(1);
-  };
-
-  const handleQuickTake = () => {
-    handleAdjustQuantity(-1);
-  };
-
-  const handleShowAddMore = () => {
-    setShowAddInput(true);
-    setShowSubtractInput(false);
-    setAdjustmentAmount(1);
-  };
-
-  const handleShowTakeMore = () => {
-    setShowSubtractInput(true);
-    setShowAddInput(false);
-    setAdjustmentAmount(1);
-  };
-
-  const handleCancelInput = () => {
-    setShowAddInput(false);
-    setShowSubtractInput(false);
-    setAdjustmentAmount(1);
-  };
-
-  const handleSubmitMore = () => {
-    if (adjustmentAmount <= 0) return;
-    const delta = showAddInput ? adjustmentAmount : -adjustmentAmount;
-    handleAdjustQuantity(delta);
   };
 
   const handleRemoveEquipment = async (equipmentId: string) => {
@@ -260,97 +186,17 @@ const InventoryItemDetail = () => {
     }
   };
 
-  const handleOpenAddEquipmentDialog = () => {
-    const currentEquipmentIds = compatibleEquipment.map(eq => eq.id);
-    setSelectedEquipmentIds(currentEquipmentIds);
-    setEquipmentSearch('');
-    setShowAddEquipmentDialog(true);
-  };
-
-  const handleSaveEquipmentCompatibility = async () => {
+  const handleSaveCompatibilityRules = async () => {
     if (!currentOrganization || !itemId) return;
-
     try {
-      // Use bulk operation to avoid multiple toast notifications
-      await bulkLinkEquipmentMutation.mutateAsync({
+      await bulkSetRulesMutation.mutateAsync({
         organizationId: currentOrganization.id,
         itemId,
-        equipmentIds: selectedEquipmentIds
+        rules: editingRules,
       });
-
-      setShowAddEquipmentDialog(false);
-    } catch {
-      // Errors handled in mutation
-    }
-  };
-
-  const handleEquipmentToggle = (equipmentId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedEquipmentIds(prev => [...prev, equipmentId]);
-    } else {
-      setSelectedEquipmentIds(prev => prev.filter(id => id !== equipmentId));
-    }
-  };
-
-  // Filter groups for the "Add to Group" dialog - exclude groups this item is already in
-  const itemGroupIds = useMemo(() => {
-    return new Set(groupedAlternates.map(([groupId]) => groupId));
-  }, [groupedAlternates]);
-
-  const availableGroups = useMemo(() => {
-    return allGroups.filter((g) => !itemGroupIds.has(g.id));
-  }, [allGroups, itemGroupIds]);
-
-  const filteredGroups = useMemo(() => {
-    if (!groupSearch.trim()) return availableGroups;
-    const needle = groupSearch.toLowerCase();
-    return availableGroups.filter(
-      (g) =>
-        g.name.toLowerCase().includes(needle) ||
-        g.description?.toLowerCase().includes(needle)
-    );
-  }, [availableGroups, groupSearch]);
-
-  // Handlers for alternate group management
-  const handleCreateGroupWithItem = async () => {
-    if (!currentOrganization || !itemId || !newGroupName.trim()) return;
-    try {
-      const newGroup = await createGroupMutation.mutateAsync({
-        organizationId: currentOrganization.id,
-        data: {
-          name: newGroupName.trim(),
-          status: 'unverified',
-        },
-      });
-      // Add this item to the new group
-      await addToGroupMutation.mutateAsync({
-        organizationId: currentOrganization.id,
-        groupId: newGroup.id,
-        inventoryItemId: itemId,
-        isPrimary: true,
-      });
-      setShowCreateGroupDialog(false);
-      setNewGroupName('');
-      refetchAlternates();
+      setShowEditRules(false);
     } catch (error) {
-      logger.error('Error creating group with item', error);
-    }
-  };
-
-  const handleAddToGroup = async () => {
-    if (!currentOrganization || !itemId || !selectedGroupId) return;
-    try {
-      await addToGroupMutation.mutateAsync({
-        organizationId: currentOrganization.id,
-        groupId: selectedGroupId,
-        inventoryItemId: itemId,
-      });
-      setShowAddToGroupDialog(false);
-      setSelectedGroupId(null);
-      setGroupSearch('');
-      refetchAlternates();
-    } catch (error) {
-      logger.error('Error adding item to group', error);
+      logger.error('Error saving compatibility rules', error);
     }
   };
 
@@ -407,158 +253,6 @@ const InventoryItemDetail = () => {
 
   const stockHealth = getStockHealthPresentation(item);
 
-  const handleAdjustOpenChange = (open: boolean) => {
-    setShowAdjustDialog(open);
-    if (!open) {
-      resetAdjustDialog();
-    }
-  };
-
-  const outlineSecondaryClass = isMobile ? 'border-2 border-input bg-muted/25 hover:bg-muted/40' : '';
-
-  const adjustQuantityInner = (
-    <div
-      className={cn(
-        'space-y-6',
-        isMobile
-          ? 'max-h-[min(85dvh,calc(100dvh-8rem))] overflow-y-auto overscroll-contain px-4 pb-2 [-webkit-overflow-scrolling:touch]'
-          : 'max-h-[calc(100dvh-11rem)] overflow-y-auto overscroll-contain pr-1 pb-safe-bottom'
-      )}
-    >
-      <div className="text-center">
-        <p className="text-sm text-muted-foreground mb-2">Current quantity</p>
-        <p className="text-4xl font-bold">{item.quantity_on_hand}</p>
-      </div>
-
-      {!showSubtractInput && (
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Add to inventory</Label>
-          {showAddInput ? (
-            <div className="space-y-3">
-              <Input
-                type="number"
-                min="1"
-                value={adjustmentAmount}
-                onChange={(e) => setAdjustmentAmount(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                placeholder="Enter amount to add"
-                autoFocus
-              />
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleCancelInput} className="flex-1">
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSubmitMore}
-                  disabled={adjustmentAmount <= 0 || adjustMutation.isPending}
-                  className="flex-1"
-                >
-                  {adjustMutation.isPending ? 'Adding...' : 'Add'}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex gap-2">
-              <Button onClick={handleQuickAdd} disabled={adjustMutation.isPending} className="flex-1">
-                <Plus className="h-4 w-4 mr-2" />
-                Add 1
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleShowAddMore}
-                className={cn('flex-1', outlineSecondaryClass)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add More
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {!showAddInput && (
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Take from inventory</Label>
-          {showSubtractInput ? (
-            <div className="space-y-3">
-              <Input
-                type="number"
-                min="1"
-                value={adjustmentAmount}
-                onChange={(e) => setAdjustmentAmount(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                placeholder="Enter amount to take"
-                autoFocus
-              />
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleCancelInput} className="flex-1">
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSubmitMore}
-                  disabled={adjustmentAmount <= 0 || adjustMutation.isPending}
-                  className="flex-1"
-                >
-                  {adjustMutation.isPending ? 'Taking...' : 'Take'}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex gap-2">
-              <Button
-                onClick={handleQuickTake}
-                disabled={adjustMutation.isPending}
-                variant="destructive"
-                className="flex-1"
-              >
-                <Minus className="h-4 w-4 mr-2" />
-                Take 1
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleShowTakeMore}
-                className={cn('flex-1', outlineSecondaryClass)}
-              >
-                <Minus className="h-4 w-4 mr-2" />
-                Take More
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div>
-        <Label htmlFor="adjust-reason" className="text-sm font-medium">
-          Reason <span className="text-muted-foreground font-normal">(optional)</span>
-        </Label>
-        <Textarea
-          id="adjust-reason"
-          value={adjustReason}
-          onChange={(e) => setAdjustReason(e.target.value)}
-          placeholder="Reason for adjustment..."
-          rows={3}
-          className="mt-1"
-        />
-      </div>
-
-      {!showAddInput && !showSubtractInput && (
-        isMobile ? (
-          <Button
-            variant="outline"
-            className="w-full min-h-11 border-border/80 bg-transparent"
-            onClick={() => handleAdjustOpenChange(false)}
-          >
-            Cancel
-          </Button>
-        ) : (
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={() => handleAdjustOpenChange(false)}>
-              Cancel
-            </Button>
-          </div>
-        )
-      )}
-    </div>
-  );
-
   return (
     <Page maxWidth="7xl" padding="responsive">
       <div className="space-y-4 md:space-y-6">
@@ -585,7 +279,7 @@ const InventoryItemDetail = () => {
               {canEdit && (
                 <Button
                   variant="default"
-                  onClick={() => setShowAdjustDialog(true)}
+                  onClick={() => adjustQuantity.setShowAdjustDialog(true)}
                   className="min-h-[44px] flex-1 md:flex-initial"
                   aria-label="Adjust Quantity"
                 >
@@ -715,7 +409,7 @@ const InventoryItemDetail = () => {
               unlinkEquipmentPending={unlinkEquipmentMutation.isPending}
               groupedAlternates={groupedAlternates}
               alternatesLoading={alternatesLoading}
-              availableGroupsCount={availableGroups.length}
+              availableGroupsCount={alternateGroups.availableGroups.length}
               onEditRules={() => {
                 setEditingRules(
                   compatibilityRules.map((r) => ({
@@ -734,7 +428,7 @@ const InventoryItemDetail = () => {
                 ]);
                 setShowEditRules(true);
               }}
-              onOpenManageEquipment={handleOpenAddEquipmentDialog}
+              onOpenManageEquipment={equipmentDialog.handleOpenAddEquipmentDialog}
               onRemoveEquipment={handleRemoveEquipment}
               onNavigateToEquipment={(equipmentId) =>
                 navigate(`/dashboard/equipment/${equipmentId}`)
@@ -742,8 +436,8 @@ const InventoryItemDetail = () => {
               onNavigateToInventoryItem={(inventoryItemId) =>
                 navigate(`/dashboard/inventory/${inventoryItemId}`)
               }
-              onOpenAddToGroup={() => setShowAddToGroupDialog(true)}
-              onOpenCreateGroup={() => setShowCreateGroupDialog(true)}
+              onOpenAddToGroup={() => alternateGroups.setShowAddToGroupDialog(true)}
+              onOpenCreateGroup={() => alternateGroups.setShowCreateGroupDialog(true)}
               onRefetchAlternates={() => refetchAlternates()}
             />
           </TabsContent>
@@ -769,348 +463,34 @@ const InventoryItemDetail = () => {
           </TabsContent>
 
         </Tabs>
-        {/* Edit Form */}
-        {showEditForm && (
-          <InventoryItemForm
-            open={showEditForm}
-            onClose={() => setShowEditForm(false)}
-            editingItem={item}
-          />
-        )}
 
-        {/* Delete Confirmation Dialog - First Step */}
-        <Dialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Delete Inventory Item</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete "{item.name}"? This will permanently delete the item and all its transaction history. This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowDeleteConfirmation(false)}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={() => {
-                setShowDeleteConfirmation(false);
-                setShowDeleteDialog(true);
-              }}>
-                Continue
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Dialog - Final Confirmation */}
-        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Final Confirmation</DialogTitle>
-              <DialogDescription>
-                This will permanently delete "{item.name}" and all {transactions.length} transaction record{transactions.length !== 1 ? 's' : ''}. This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => {
-                setShowDeleteDialog(false);
-                setShowDeleteConfirmation(false);
-              }}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={handleDelete}>
-                Delete Permanently
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* QR Code Display */}
         {itemId && (
-          <InventoryQRCodeDisplay
-            open={showQRCode}
-            onClose={() => setShowQRCode(false)}
+          <InventoryItemDetailDialogs
+            item={item}
             itemId={itemId}
-            itemName={item.name}
+            transactionCount={transactions.length}
+            isMobile={isMobile}
+            showEditForm={showEditForm}
+            setShowEditForm={setShowEditForm}
+            showDeleteConfirmation={showDeleteConfirmation}
+            setShowDeleteConfirmation={setShowDeleteConfirmation}
+            showDeleteDialog={showDeleteDialog}
+            setShowDeleteDialog={setShowDeleteDialog}
+            showQRCode={showQRCode}
+            setShowQRCode={setShowQRCode}
+            adjustQuantity={adjustQuantity}
+            equipmentDialog={equipmentDialog}
+            allEquipment={allEquipment}
+            showEditRules={showEditRules}
+            setShowEditRules={setShowEditRules}
+            editingRules={editingRules}
+            setEditingRules={setEditingRules}
+            bulkSetRulesPending={bulkSetRulesMutation.isPending}
+            onSaveCompatibilityRules={handleSaveCompatibilityRules}
+            alternateGroups={alternateGroups}
+            onDelete={handleDelete}
           />
         )}
-
-        {/* Adjust Quantity: bottom sheet on mobile, centered dialog on desktop */}
-        {isMobile ? (
-          <Drawer open={showAdjustDialog} onOpenChange={handleAdjustOpenChange}>
-            <DrawerContent className="max-h-[92dvh] pb-safe-bottom">
-              <DrawerHeader className="text-left">
-                <DrawerTitle>Adjust Quantity</DrawerTitle>
-                <DrawerDescription className="sr-only">
-                  Add or remove inventory quantity. You can optionally record a reason.
-                </DrawerDescription>
-              </DrawerHeader>
-              {adjustQuantityInner}
-            </DrawerContent>
-          </Drawer>
-        ) : (
-          <Dialog open={showAdjustDialog} onOpenChange={handleAdjustOpenChange}>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Adjust Quantity</DialogTitle>
-                <DialogDescription className="sr-only">
-                  Add or remove inventory quantity. You can optionally record a reason.
-                </DialogDescription>
-              </DialogHeader>
-              {adjustQuantityInner}
-            </DialogContent>
-          </Dialog>
-        )}
-
-        {/* Add/Manage Equipment Compatibility Dialog */}
-        <Dialog open={showAddEquipmentDialog} onOpenChange={setShowAddEquipmentDialog}>
-          <DialogContent className="max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Manage Compatible Equipment</DialogTitle>
-              <DialogDescription>
-                Select equipment that is compatible with this inventory item
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search equipment..."
-                  value={equipmentSearch}
-                  onChange={(e) => setEquipmentSearch(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <div className="border rounded-md p-2 space-y-2 max-h-96 overflow-y-auto">
-                {(() => {
-                  const filteredEquipment = allEquipment.filter(
-                    (eq) =>
-                      eq.name.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
-                      (eq.manufacturer ?? '').toLowerCase().includes(equipmentSearch.toLowerCase()) ||
-                      (eq.model ?? '').toLowerCase().includes(equipmentSearch.toLowerCase())
-                  );
-
-                  if (filteredEquipment.length === 0) {
-                    return (
-                      <p className="text-sm text-muted-foreground text-center py-8">
-                        {allEquipment.length === 0
-                          ? 'No equipment available'
-                          : 'No equipment found matching your search'}
-                      </p>
-                    );
-                  }
-
-                  return filteredEquipment.map((equipment) => (
-                    <InventoryEquipmentPickerRow
-                      key={equipment.id}
-                      equipment={equipment}
-                      isSelected={selectedEquipmentIds.includes(equipment.id)}
-                      onToggle={handleEquipmentToggle}
-                      selectedBadgeLabel="Selected"
-                    />
-                  ));
-                })()}
-              </div>
-              <SelectedEquipmentBadgeList
-                selectedEquipmentIds={selectedEquipmentIds}
-                allEquipment={allEquipment}
-                onRemove={(id) => handleEquipmentToggle(id, false)}
-                removeControl="button"
-              />
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowAddEquipmentDialog(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSaveEquipmentCompatibility}
-                  disabled={bulkLinkEquipmentMutation.isPending}
-                >
-                  {bulkLinkEquipmentMutation.isPending
-                    ? 'Saving...'
-                    : 'Save Changes'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit Compatibility Rules Dialog */}
-        <Dialog open={showEditRules} onOpenChange={setShowEditRules}>
-          <DialogContent className="max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Compatibility Rules</DialogTitle>
-              <DialogDescription>
-                Define manufacturer and model patterns to automatically match this part with compatible equipment.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              {showEditRules && (
-                <Suspense fallback={<Skeleton className="h-32 w-full" />}>
-                  <CompatibilityRulesEditor
-                    rules={editingRules}
-                    onChange={setEditingRules}
-                    disabled={bulkSetRulesMutation.isPending}
-                  />
-                </Suspense>
-              )}
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowEditRules(false)}
-                  disabled={bulkSetRulesMutation.isPending}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={async () => {
-                    if (!currentOrganization || !itemId) return;
-                    try {
-                      await bulkSetRulesMutation.mutateAsync({
-                        organizationId: currentOrganization.id,
-                        itemId,
-                        rules: editingRules
-                      });
-                      setShowEditRules(false);
-                    } catch (error) {
-                      // Error toast is handled by the mutation hook
-                      logger.error('Error saving compatibility rules', error);
-                    }
-                  }}
-                  disabled={bulkSetRulesMutation.isPending}
-                >
-                  {bulkSetRulesMutation.isPending ? 'Saving...' : 'Save Rules'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Create Alternate Group Dialog */}
-        <Dialog open={showCreateGroupDialog} onOpenChange={setShowCreateGroupDialog}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Create Alternate Group</DialogTitle>
-              <DialogDescription>
-                Create a new alternate group with this item as the first member.
-                Other interchangeable parts can be added later.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="group-name">
-                  Group Name <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="group-name"
-                  placeholder="e.g., Oil Filter - CAT D6T Compatible"
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  A descriptive name for this group of interchangeable parts.
-                </p>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowCreateGroupDialog(false);
-                    setNewGroupName('');
-                  }}
-                  disabled={createGroupMutation.isPending || addToGroupMutation.isPending}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleCreateGroupWithItem}
-                  disabled={!newGroupName.trim() || createGroupMutation.isPending || addToGroupMutation.isPending}
-                >
-                  {createGroupMutation.isPending || addToGroupMutation.isPending
-                    ? 'Creating...'
-                    : 'Create Group'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Add to Existing Group Dialog */}
-        <Dialog open={showAddToGroupDialog} onOpenChange={setShowAddToGroupDialog}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Add to Alternate Group</DialogTitle>
-              <DialogDescription>
-                Select an existing alternate group to add this item to.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search groups..."
-                  value={groupSearch}
-                  onChange={(e) => setGroupSearch(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <div className="max-h-60 overflow-y-auto border rounded-md p-2 space-y-1">
-                {filteredGroups.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    {availableGroups.length === 0
-                      ? 'No available groups. Create a new one instead.'
-                      : 'No groups found matching your search'}
-                  </p>
-                ) : (
-                  filteredGroups.map((group: PartAlternateGroup) => (
-                    <div
-                      key={group.id}
-                      className={`p-3 rounded cursor-pointer hover:bg-muted/50 ${
-                        selectedGroupId === group.id ? 'bg-primary/10 border border-primary' : 'border border-transparent'
-                      }`}
-                      onClick={() => setSelectedGroupId(group.id)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{group.name}</p>
-                        {group.status === 'verified' && (
-                          <Badge className="bg-success text-xs">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Verified
-                          </Badge>
-                        )}
-                      </div>
-                      {group.description && (
-                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                          {group.description}
-                        </p>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowAddToGroupDialog(false);
-                    setSelectedGroupId(null);
-                    setGroupSearch('');
-                  }}
-                  disabled={addToGroupMutation.isPending}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleAddToGroup}
-                  disabled={!selectedGroupId || addToGroupMutation.isPending}
-                >
-                  {addToGroupMutation.isPending ? 'Adding...' : 'Add to Group'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </Page>
   );

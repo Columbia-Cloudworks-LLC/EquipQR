@@ -1,6 +1,6 @@
 // fallow-ignore-file code-duplication
 // Duplication rationale: Large details page with repeated section chrome
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { CheckCircle } from 'lucide-react';
@@ -23,18 +23,18 @@ import { useWorkTimer } from '@/features/work-orders/hooks/useWorkTimer';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useInitializePMChecklist } from '@/features/pm-templates/hooks/useInitializePMChecklist';
 import { getPMChecklistStats } from '@/features/work-orders/utils/pmChecklistStats';
-import { toast } from 'sonner';
 import { useWorkOrderPDF } from '@/features/work-orders/hooks/useWorkOrderPDFData';
+import { useWorkOrderDetailsActionQuery } from '@/features/work-orders/hooks/useWorkOrderDetailsActionQuery';
+import { useWorkOrderDetailsStagger } from '@/features/work-orders/hooks/useWorkOrderDetailsStagger';
+import { useWorkOrderDetailsPMInitialization } from '@/features/work-orders/hooks/useWorkOrderDetailsPMInitialization';
+import { useWorkOrderDetailsMobileWorkflow } from '@/features/work-orders/hooks/useWorkOrderDetailsMobileWorkflow';
+import { useWorkOrderDetailsNotesComposer } from '@/features/work-orders/hooks/useWorkOrderDetailsNotesComposer';
 import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
 import { useGoogleWorkspaceExportDestination } from '@/features/organization/hooks/useGoogleWorkspaceExportDestination';
 import { cn } from '@/lib/utils';
 import { canExportWorkOrderGoogleDoc } from '@/features/work-orders/utils/googleDocsExportAvailability';
 import { useAuth } from '@/hooks/useAuth';
-import { isOfflineId } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
-import { useWorkOrderStatusUpdate } from '@/features/work-orders/hooks/useWorkOrderStatusUpdate';
 import { useOfflineQueue } from '@/contexts/OfflineQueueContext';
-import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
-import { useWorkOrderAcceptance } from '@/features/work-orders/hooks/useWorkOrderAcceptance';
 import WorkOrderAcceptanceModal from '@/features/work-orders/components/WorkOrderAcceptanceModal';
 import type { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
 import {
@@ -64,16 +64,8 @@ const WorkOrderDetails = () => {
   const shouldAutoFocusPM = actionParam === 'pm';
   const notesSectionRef = useRef<HTMLDivElement>(null);
   const pmSectionRef = useRef<HTMLDivElement>(null);
-  const actionHandledRef = useRef(false);
 
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>('');
-  const [pmInitializing, setPmInitializing] = useState(false);
-  const [showMobileActionSheet, setShowMobileActionSheet] = useState(false);
-  const [showMobileCompleteDialog, setShowMobileCompleteDialog] = useState(false);
-  const [showFieldAcceptDialog, setShowFieldAcceptDialog] = useState(false);
-  const [openNoteFormTrigger, setOpenNoteFormTrigger] = useState(0);
-  const [openCaptureTrigger, setOpenCaptureTrigger] = useState(0);
-  const [mobileReviewOpen, setMobileReviewOpen] = useState(false);
 
   const { user } = useAuth();
 
@@ -97,7 +89,7 @@ const WorkOrderDetails = () => {
   } = useWorkOrderDetailsData(workOrderId || '', selectedEquipmentId);
 
   const initializePMChecklist = useInitializePMChecklist();
-  const fieldAcceptanceMutation = useWorkOrderAcceptance();
+  const { stagger } = useWorkOrderDetailsStagger();
 
   const documentTitle = workOrder
     ? `${workOrder.title}${equipment ? ` – ${equipment.name}` : ''}`
@@ -122,87 +114,21 @@ const WorkOrderDetails = () => {
     [hasWorkOrder, assigneeName]
   );
 
-  const [hasAnimated, setHasAnimated] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setHasAnimated(true), 500);
-    return () => clearTimeout(t);
-  }, []);
-  const stagger = (i: number) =>
-    !hasAnimated
-      ? { className: 'animate-stagger-in', style: { animationDelay: `${i * 60}ms` } as React.CSSProperties }
-      : {};
-
-  const pmInitializationAttempted = React.useRef<string | null>(null);
-
-  React.useEffect(() => {
-    const workOrderKey = workOrder?.id && workOrder?.equipment_id
-      ? `${workOrder.id}-${selectedEquipmentId || workOrder.equipment_id}`
-      : null;
-
-    const shouldInitializePM =
-      workOrderKey &&
-      workOrderKey !== pmInitializationAttempted.current &&
-      workOrder?.has_pm &&
-      !pmData &&
-      !pmLoading &&
-      !pmError &&
-      !pmInitializing &&
-      !workOrderLoading &&
-      !isOfflineId(workOrder.id) &&
-      workOrder?.equipment_id &&
-      currentOrganization?.id &&
-      (permissionLevels.isManager || permissionLevels.isTechnician);
-
-    if (shouldInitializePM) {
-      pmInitializationAttempted.current = workOrderKey;
-      setPmInitializing(true);
-      const equipmentId = selectedEquipmentId || workOrder.equipment_id;
-
-      initializePMChecklist.mutate(
-        {
-          workOrderId: workOrder.id,
-          equipmentId: equipmentId,
-          organizationId: currentOrganization.id,
-          templateId: equipment?.default_pm_template_id || undefined
-        },
-        {
-          onSuccess: (result) => {
-            if (result !== null) {
-              toast.success('PM checklist initialized');
-            }
-            setPmInitializing(false);
-          },
-          onError: (error) => {
-            console.error('Failed to initialize PM:', error);
-            toast.error('Failed to initialize PM checklist');
-            setPmInitializing(false);
-            pmInitializationAttempted.current = null;
-          }
-        }
-      );
-    }
-
-    if (pmData && pmInitializationAttempted.current === workOrderKey) {
-      if (pmData.work_order_id === workOrder?.id) {
-        pmInitializationAttempted.current = null;
-      }
-    }
-  }, [
-    workOrder?.has_pm,
-    workOrder?.id,
-    workOrder?.equipment_id,
+  const { pmInitializing } = useWorkOrderDetailsPMInitialization({
+    workOrderId: workOrder?.id,
+    workOrderEquipmentId: workOrder?.equipment_id,
+    hasPm: workOrder?.has_pm,
     pmData,
     pmLoading,
-    pmInitializing,
+    pmError,
     workOrderLoading,
     selectedEquipmentId,
-    currentOrganization?.id,
-    permissionLevels.isManager,
-    permissionLevels.isTechnician,
-    equipment?.default_pm_template_id,
+    organizationId: currentOrganization?.id,
+    isManager: permissionLevels.isManager,
+    isTechnician: permissionLevels.isTechnician,
+    defaultPmTemplateId: equipment?.default_pm_template_id,
     initializePMChecklist,
-    pmError
-  ]);
+  });
 
   const { data: linkedEquipment = [] } = useWorkOrderEquipment(workOrderId || '');
 
@@ -224,59 +150,56 @@ const WorkOrderDetails = () => {
     isUpdating,
   } = useWorkOrderDetailsActions(workOrderId || '', currentOrganization?.id || '', pmData);
 
-  const [showMobilePDFDialog, setShowMobilePDFDialog] = useState(false);
+  const workTimer = useWorkTimer(workOrderId);
+  const offlineQueue = useOfflineQueue();
+
+  const {
+    showMobileActionSheet,
+    setShowMobileActionSheet,
+    showMobileCompleteDialog,
+    setShowMobileCompleteDialog,
+    showFieldAcceptDialog,
+    setShowFieldAcceptDialog,
+    showMobilePDFDialog,
+    setShowMobilePDFDialog,
+    mobileReviewOpen,
+    setMobileReviewOpen,
+    mobileStatusMutation,
+    fieldAcceptanceMutation,
+    startMobileWorkOrder,
+    putAssignedMobileWorkOrderOnHold,
+    pauseResumeMobileWorkOrder,
+    handleFieldAcceptComplete,
+    completeMobileWorkOrder,
+  } = useWorkOrderDetailsMobileWorkflow({
+    workOrder,
+    organizationId: currentOrganization?.id,
+    workTimer,
+  });
+
+  const { openNoteFormTrigger, openCaptureTrigger, openNotesComposer, openPhotoCapture } =
+    useWorkOrderDetailsNotesComposer({
+      notesSectionRef,
+      isOnline: offlineQueue.isOnline,
+    });
+
+  useWorkOrderDetailsActionQuery({
+    actionParam,
+    shouldAutoOpenNoteForm,
+    shouldAutoOpenPDFDialog,
+    shouldAutoFocusPM,
+    workOrderLoading,
+    hasWorkOrder: Boolean(workOrder),
+    setSearchParams,
+    notesSectionRef,
+    pmSectionRef,
+    onAutoOpenPDFDialog: () => setShowMobilePDFDialog(true),
+  });
 
   const { exportSingle, isExportingSingle, exportSingleToDocs, isExportingSingleToDocs } = useWorkOrderExcelExport(
     currentOrganization?.id || '',
     currentOrganization?.name || ''
   );
-
-  const mobileStatusMutation = useWorkOrderStatusUpdate();
-  const workTimer = useWorkTimer(workOrderId);
-  const offlineQueue = useOfflineQueue();
-
-  useEffect(() => {
-    if (actionHandledRef.current) return;
-    if (!workOrder || workOrderLoading) return;
-
-    if (shouldAutoOpenPDFDialog) {
-      setShowMobilePDFDialog(true);
-      actionHandledRef.current = true;
-      setSearchParams({}, { replace: true });
-    } else if (shouldAutoOpenNoteForm) {
-      setTimeout(() => {
-        notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-      actionHandledRef.current = true;
-      setSearchParams({}, { replace: true });
-    } else if (shouldAutoFocusPM) {
-      setTimeout(() => {
-        pmSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-      actionHandledRef.current = true;
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          next.delete('action');
-          return next;
-        },
-        { replace: true }
-      );
-    }
-  }, [
-    shouldAutoOpenPDFDialog,
-    shouldAutoOpenNoteForm,
-    shouldAutoFocusPM,
-    workOrder,
-    workOrderLoading,
-    setSearchParams,
-  ]);
-
-  useEffect(() => {
-    if (!actionParam) {
-      actionHandledRef.current = false;
-    }
-  }, [actionParam]);
 
   const {
     downloadPDF: downloadMobilePDF,
@@ -331,59 +254,6 @@ const WorkOrderDetails = () => {
       // Error toast is shown by the hook
     }
   };
-
-  const updateMobileStatus = useCallback((newStatus: WorkOrderStatus, onSuccess?: () => void) => {
-    if (!workOrder) return;
-    mobileStatusMutation.mutate(
-      {
-        workOrderId: workOrder.id,
-        newStatus,
-        serverUpdatedAt: workOrder.updated_at ?? undefined,
-      },
-      { onSuccess },
-    );
-  }, [mobileStatusMutation, workOrder]);
-
-  const startMobileWorkOrder = useCallback(() => {
-    updateMobileStatus('in_progress', () => {
-      workTimer.start();
-    });
-  }, [updateMobileStatus, workTimer]);
-
-  const putAssignedMobileWorkOrderOnHold = useCallback(() => {
-    updateMobileStatus('on_hold');
-  }, [updateMobileStatus]);
-
-  const pauseResumeMobileWorkOrder = useCallback(() => {
-    if (!workOrder) return;
-    const newStatus: WorkOrderStatus = workOrder.status === 'on_hold' ? 'in_progress' : 'on_hold';
-    updateMobileStatus(newStatus, () => {
-      if (newStatus === 'on_hold') {
-        workTimer.pause();
-        toast('Work order paused', {
-          action: {
-            label: 'Undo',
-            onClick: () => {
-              updateMobileStatus('in_progress', () => workTimer.start());
-            },
-          },
-          duration: 5000,
-        });
-      } else {
-        workTimer.start();
-      }
-    });
-  }, [updateMobileStatus, workOrder, workTimer]);
-
-  const handleFieldAcceptComplete = useCallback(async (assigneeId?: string) => {
-    if (!workOrder || !currentOrganization?.id) return;
-    await fieldAcceptanceMutation.mutateAsync({
-      workOrderId: workOrder.id,
-      organizationId: currentOrganization.id,
-      assigneeId,
-    });
-    setShowFieldAcceptDialog(false);
-  }, [currentOrganization?.id, fieldAcceptanceMutation, workOrder]);
 
   if (!workOrderId) {
     logNavigationEvent('REDIRECT_NO_WORK_ORDER_ID');
@@ -450,25 +320,6 @@ const WorkOrderDetails = () => {
 
   const scrollToPMSection = () => {
     pmSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const openNotesComposer = () => {
-    setOpenNoteFormTrigger((prev) => prev + 1);
-    setTimeout(() => {
-      notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 50);
-  };
-
-  const openPhotoCapture = () => {
-    if (!offlineQueue.isOnline) {
-      toast.error('Photos need a connection. Text notes can still be saved offline.');
-      return;
-    }
-    setOpenNoteFormTrigger((prev) => prev + 1);
-    setOpenCaptureTrigger((prev) => prev + 1);
-    setTimeout(() => {
-      notesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 50);
   };
 
   return (
@@ -685,25 +536,7 @@ const WorkOrderDetails = () => {
             </AlertDialogCancel>
             <AlertDialogAction
               disabled={mobileStatusMutation.isPending}
-              onClick={() => {
-                const hoursWorked = Math.round((workTimer.elapsedSeconds / 3600) * 100) / 100;
-                mobileStatusMutation.mutate(
-                  {
-                    workOrderId: workOrder.id,
-                    newStatus: 'completed',
-                    serverUpdatedAt: workOrder.updated_at ?? undefined,
-                  },
-                  {
-                    onSuccess: () => {
-                      workTimer.stopAndGetHours();
-                      setShowMobileCompleteDialog(false);
-                      if (hoursWorked > 0) {
-                        toast.success(`Timer stopped: ${hoursWorked.toFixed(2)} hours worked`);
-                      }
-                    },
-                  }
-                );
-              }}
+              onClick={completeMobileWorkOrder}
             >
               {mobileStatusMutation.isPending ? 'Completing...' : 'Mark as Complete'}
             </AlertDialogAction>
