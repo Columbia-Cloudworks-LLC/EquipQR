@@ -487,6 +487,7 @@ const EXACT_SAFE_ERROR_MESSAGE_BY_INPUT = new Map<string, string>([
     "QuickBooks tax status could not be confirmed. Please refresh the customer from QuickBooks and try again.",
     "QuickBooks tax status could not be confirmed. Please refresh the customer from QuickBooks and try again.",
   ],
+  ["Work order not found", "Work order not found"],
   ["Not a user-reported issue", "Not a user-reported issue"],
   ["No issue in payload", "No issue in payload"],
   ["No matching ticket found", "No matching ticket found"],

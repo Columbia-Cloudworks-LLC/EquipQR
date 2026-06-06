@@ -309,6 +309,7 @@ Deno.test("createErrorResponse preserves important canonical allowlisted message
       "QuickBooks tax status could not be confirmed. Please refresh the customer from QuickBooks and try again.",
       "QuickBooks tax status could not be confirmed. Please refresh the customer from QuickBooks and try again.",
     ],
+    ["Work order not found", "Work order not found"],
   ];
 
   for (const [input, expected] of cases) {

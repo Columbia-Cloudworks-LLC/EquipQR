@@ -100,23 +100,11 @@ export async function handleQuickBooksExportInvoice(
     if (!workOrder) {
       if (notFound) {
         logStep("Work order not found");
-        return new Response(JSON.stringify({
-          success: false,
-          error: "Work order not found",
-        }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return createErrorResponse("Work order not found", 404, { req });
       }
 
       logStep("Error loading work order", { error: woError });
-      return new Response(JSON.stringify({
-        success: false,
-        error: "Failed to load work order",
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createErrorResponse("Failed to load work order", 500, { req });
     }
 
     const organizationId = workOrder.organization_id as string;
