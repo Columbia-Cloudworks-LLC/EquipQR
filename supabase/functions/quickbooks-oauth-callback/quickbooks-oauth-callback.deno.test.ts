@@ -62,7 +62,10 @@ Deno.test("validateOAuthStateTimestamp rejects expired state", () => {
   );
 });
 
-Deno.test("isValidRedirectUrl allows relative paths and production host", () => {
+Deno.test({
+  name: "isValidRedirectUrl allows relative paths and production host",
+  permissions: { env: ["VERCEL_PROJECT_SLUG"] },
+}, () => {
   const productionUrl = "https://equipqr.app";
   assertEquals(isValidRedirectUrl(null, productionUrl), true);
   assertEquals(isValidRedirectUrl("/dashboard/organization", productionUrl), true);
@@ -70,7 +73,10 @@ Deno.test("isValidRedirectUrl allows relative paths and production host", () => 
   assertEquals(isValidRedirectUrl("https://evil.example.com/", productionUrl), false);
 });
 
-Deno.test("buildSuccessRedirectUrl uses default org path when redirect is invalid", () => {
+Deno.test({
+  name: "buildSuccessRedirectUrl uses default org path when redirect is invalid",
+  permissions: { env: ["VERCEL_PROJECT_SLUG"] },
+}, () => {
   const url = buildSuccessRedirectUrl({
     productionUrl: "https://equipqr.app",
     originUrl: null,

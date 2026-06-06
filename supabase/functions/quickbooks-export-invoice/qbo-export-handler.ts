@@ -91,19 +91,30 @@ export async function handleQuickBooksExportInvoice(
       });
     }
 
-    const { workOrder, error: woError } = await loadWorkOrderForExport(
+    const { workOrder, error: woError, notFound } = await loadWorkOrderForExport(
       supabaseClient,
       work_order_id,
       userOrgIds,
     );
 
     if (!workOrder) {
-      logStep("Work order not found", { error: woError });
+      if (notFound) {
+        logStep("Work order not found");
+        return new Response(JSON.stringify({
+          success: false,
+          error: "Work order not found",
+        }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      logStep("Error loading work order", { error: woError });
       return new Response(JSON.stringify({
         success: false,
-        error: "Work order not found",
+        error: "Failed to load work order",
       }), {
-        status: 404,
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

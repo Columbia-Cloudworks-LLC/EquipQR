@@ -33,7 +33,7 @@ export async function loadWorkOrderForExport(
   supabaseClient: SupabaseClient,
   workOrderId: string,
   userOrgIds: string[],
-): Promise<{ workOrder: Record<string, unknown> | null; error: string | null }> {
+): Promise<{ workOrder: Record<string, unknown> | null; error: string | null; notFound: boolean }> {
   const { data: workOrder, error: woError } = await supabaseClient
     .from('work_orders')
     .select(`
@@ -51,11 +51,18 @@ export async function loadWorkOrderForExport(
     .in('organization_id', userOrgIds)
     .single();
 
-  if (woError || !workOrder) {
-    return { workOrder: null, error: woError?.message ?? "not found" };
+  if (woError) {
+    if (woError.code === "PGRST116") {
+      return { workOrder: null, error: null, notFound: true };
+    }
+    return { workOrder: null, error: woError.message, notFound: false };
   }
 
-  return { workOrder, error: null };
+  if (!workOrder) {
+    return { workOrder: null, error: null, notFound: true };
+  }
+
+  return { workOrder, error: null, notFound: false };
 }
 
 export async function verifyQuickBooksManagePermission(
