@@ -25,8 +25,14 @@ export async function fetchWorkOrderImagesForService(
 
   const { data: images, error } = await supabase
     .from('work_order_images')
-    .select('*')
+    .select(`
+      *,
+      work_orders!inner (
+        organization_id
+      )
+    `)
     .eq('work_order_id', workOrderId)
+    .eq('work_orders.organization_id', organizationId)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -47,11 +53,14 @@ export async function fetchWorkOrderImagesForService(
   const signedUrls = await batchResolveWorkOrderImageDisplayUrls(images.map((img) => img.file_url));
   return images
     .map((image, i) => {
-      const uploader = (profiles || []).find((p) => p.id === image.uploaded_by);
-      const displayUrl = displayUrlForStoredPrivateImage(signedUrls[i], image.file_url);
+      const { work_orders: _workOrderScope, ...imageRow } = image as typeof image & {
+        work_orders?: { organization_id: string };
+      };
+      const uploader = (profiles || []).find((p) => p.id === imageRow.uploaded_by);
+      const displayUrl = displayUrlForStoredPrivateImage(signedUrls[i], imageRow.file_url);
       if (displayUrl == null) return null;
       return {
-        ...image,
+        ...imageRow,
         file_url: displayUrl,
         uploaded_by_name: uploader?.name || 'Unknown',
       };

@@ -15,7 +15,6 @@ import { execFileSync } from 'child_process';
 import {
   escapeRegExp,
   stripSqlCommentsPreserveLength,
-  normalizeTableIdentifier,
   parseAlterTableIdentifier,
   tableIdentifiersMatch,
   findLastAlterTableBefore,

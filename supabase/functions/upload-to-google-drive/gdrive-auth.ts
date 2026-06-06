@@ -29,6 +29,8 @@ export async function authorizeDriveUpload(
   organizationId: string | undefined,
   parentId: string | undefined,
 ): Promise<Response | AuthorizedDriveUpload> {
+  const adminClient = createAdminSupabaseClient();
+
   const auth = await requireUser(req, supabase);
   if ("error" in auth) {
     return createErrorResponse(auth.error, auth.status);
@@ -81,7 +83,6 @@ export async function authorizeDriveUpload(
     return rateLimitResponse();
   }
 
-  const adminClient = createAdminSupabaseClient();
   let tokenResult;
   try {
     tokenResult = await getGoogleWorkspaceAccessToken(adminClient, organizationId);

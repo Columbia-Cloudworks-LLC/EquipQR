@@ -9,7 +9,6 @@ import type { AuthError } from '@supabase/supabase-js';
 import {
   defaultSignUpFormProps,
   fillSignUpFormFast,
-  mockGetCurrentAuthSession,
   mockSignUpWithEmail,
   RouterWrapper,
   setupFastUser,

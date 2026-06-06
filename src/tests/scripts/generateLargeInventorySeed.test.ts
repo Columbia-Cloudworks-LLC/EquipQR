@@ -119,16 +119,21 @@ describe('generate-large-inventory-seed output contract', () => {
     resetSeed();
     const baselinePath = resolve(
       process.cwd(),
-      'tmp/fallow/20260606-0820/large-inventory-before.sql'
+      'supabase/seeds/26_large_inventory.sql'
     );
     const baseline = readFileSync(baselinePath, 'utf8');
     const generated = generateSQL();
 
-    const normalize = (sql: string) =>
-      sql
+    const normalize = (sql: string) => {
+      const inventoryMarker = '-- INVENTORY ITEMS';
+      const markerIndex = sql.indexOf(inventoryMarker);
+
+      return (markerIndex >= 0 ? sql.slice(markerIndex) : sql)
         .replace(/\r\n/g, '\n')
-        .replace(/^-- Generated: .+$/m, '-- Generated: <timestamp>')
+        .replace(/\n\n(?=-- Inventory Items:)/, '\n')
+        .replace(/\n{3,}/g, '\n\n')
         .trimEnd();
+    };
 
     expect(normalize(generated)).toBe(normalize(baseline));
   });

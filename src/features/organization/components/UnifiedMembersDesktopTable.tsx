@@ -11,6 +11,7 @@ import {
   getStatusIcon,
   getStatusLabel,
 } from '@/features/organization/utils/unifiedMemberPresentation';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { getRoleBadgeVariant } from '@/utils/badgeVariants';
 
 const thClass = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground';
@@ -56,6 +57,8 @@ export function UnifiedMembersDesktopTable({
   onRequestDataMerge,
   onRemoveMember,
 }: UnifiedMembersDesktopTableProps) {
+  const { formatDate } = useFormatTimestamp();
+
   return (
     <div className="hidden sm:block">
       <Table>
@@ -88,12 +91,12 @@ export function UnifiedMembersDesktopTable({
                     <div className="text-sm font-medium">{member.name}</div>
                     {member.joinedDate && (
                       <div className="text-xs text-muted-foreground">
-                        Joined {new Date(member.joinedDate).toLocaleDateString()}
+                        Joined {formatDate(member.joinedDate)}
                       </div>
                     )}
                     {member.invitedDate && (
                       <div className="text-xs text-muted-foreground">
-                        {member.type === 'gws_claim' ? 'Added' : 'Invited'} {new Date(member.invitedDate).toLocaleDateString()}
+                        {member.type === 'gws_claim' ? 'Added' : 'Invited'} {formatDate(member.invitedDate)}
                       </div>
                     )}
                   </div>

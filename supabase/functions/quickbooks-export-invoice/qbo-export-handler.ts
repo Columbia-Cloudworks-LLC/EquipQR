@@ -45,7 +45,12 @@ export async function handleQuickBooksExportInvoice(
     }
     const { user } = authResult;
 
-    const body = await req.json();
+    let body: { work_order_id?: string };
+    try {
+      body = await req.json();
+    } catch {
+      return createErrorResponse("Invalid JSON body", 400, { req });
+    }
     const { work_order_id } = body;
 
     if (!work_order_id) {
