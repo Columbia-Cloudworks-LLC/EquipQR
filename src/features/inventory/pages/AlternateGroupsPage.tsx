@@ -10,9 +10,7 @@ import {
   Trash2,
   Eye,
 } from 'lucide-react';
-import { useOrganization } from '@/contexts/OrganizationContext';
-import { usePermissions } from '@/hooks/usePermissions';
-import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
+import { useInventoryPartsManagerAccess } from '@/features/inventory/hooks/useInventoryPartsManagerAccess';
 import {
   useAlternateGroups,
   useDeleteAlternateGroup,
@@ -71,10 +69,7 @@ type GroupSortOption = 'name-asc' | 'name-desc' | 'updated-desc' | 'updated-asc'
 const AlternateGroupsPage: React.FC = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { currentOrganization } = useOrganization();
-  const { canManageInventory } = usePermissions();
-  const { data: isPartsManager = false } = useIsPartsManager(currentOrganization?.id);
-  const canEdit = canManageInventory(isPartsManager);
+  const { currentOrganization, canEdit } = useInventoryPartsManagerAccess();
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<GroupStatusFilter>('all');

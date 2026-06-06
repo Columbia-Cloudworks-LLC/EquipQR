@@ -8,9 +8,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Download, FileSpreadsheet, Loader2, AlertCircle } from 'lucide-react';
+import { ExportRecordCountSummary } from '@/components/common/ExportRecordCountSummary';
 import { ColumnSelector } from './ColumnSelector';
 import {
   getSavedColumnPreferences,
@@ -140,27 +139,12 @@ export const ReportExportDialog: React.FC<ReportExportDialogProps> = ({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Record Count and Filters Summary */}
-          <div className="rounded-lg border bg-muted/50 p-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Records to Export</p>
-                {isLoadingCount ? (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm">Counting records...</span>
-                  </div>
-                ) : (
-                  <p className="text-2xl font-bold">{recordCount.toLocaleString()}</p>
-                )}
-              </div>
-              <Badge variant="secondary" className="text-xs">
-                CSV Format
-              </Badge>
-            </div>
-            <Separator className="my-3" />
-            <p className="text-xs text-muted-foreground">{filterSummary}</p>
-          </div>
+          <ExportRecordCountSummary
+            recordCount={recordCount}
+            isLoadingCount={isLoadingCount}
+            filterSummary={filterSummary}
+            formatBadgeLabel="CSV Format"
+          />
 
           {/* Column Selection */}
           <div className="space-y-3">

@@ -23,6 +23,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentManufacturersAndModels } from '@/features/equipment/hooks/useEquipment';
 import { useCreateQuickEquipment } from '@/features/equipment/hooks/useCreateQuickEquipment';
+import { useManufacturerModelSuggestions } from '@/features/equipment/utils/manufacturerModelLookup';
 import { useTeams } from '@/features/teams/hooks/useTeams';
 import {
   quickEquipmentSchema,
@@ -116,19 +117,10 @@ export const QuickEquipmentForm: React.FC<QuickEquipmentFormProps> = ({
     }
   }, [availableTeams, form, setValue]);
 
-  // Get manufacturers list for autocomplete suggestions
-  const manufacturers = useMemo(() => {
-    return manufacturersData.map(m => m.manufacturer);
-  }, [manufacturersData]);
-
-  // Get models for selected manufacturer (for autocomplete suggestions)
-  const modelsForManufacturer = useMemo(() => {
-    if (!manufacturer) return [];
-    const mfrData = manufacturersData.find(
-      m => m.manufacturer.toLowerCase() === manufacturer.toLowerCase()
-    );
-    return mfrData?.models || [];
-  }, [manufacturer, manufacturersData]);
+  const { manufacturers, modelsForManufacturer } = useManufacturerModelSuggestions(
+    manufacturersData,
+    manufacturer,
+  );
 
   // Handle form submission
   const handleSubmit = form.handleSubmit(async (data) => {

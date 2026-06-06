@@ -1,11 +1,12 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowUpDown, LayoutGrid, List, Rows3 } from 'lucide-react';
+import { LayoutGrid, List, Rows3 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { EquipmentViewMode } from './EquipmentCard';
+import { EQUIPMENT_SORT_OPTIONS, equipmentSortLabel } from '@/features/equipment/components/equipmentSortOptions';
+import { EquipmentSortSelect } from '@/features/equipment/components/EquipmentSortSelect';
 
 interface EquipmentSortHeaderProps {
   sortConfig: SortConfig;
@@ -15,20 +16,6 @@ interface EquipmentSortHeaderProps {
   viewMode?: EquipmentViewMode;
   onViewModeChange?: (mode: EquipmentViewMode) => void;
 }
-
-const compositeSortOptions = [
-  { value: 'name:asc', label: 'Name (A\u2013Z)' },
-  { value: 'name:desc', label: 'Name (Z\u2013A)' },
-  { value: 'working_hours:desc', label: 'Hours (High\u2013Low)' },
-  { value: 'working_hours:asc', label: 'Hours (Low\u2013High)' },
-  { value: 'last_maintenance:desc', label: 'Last Maintenance' },
-  { value: 'updated_at:desc', label: 'Last Updated' },
-  { value: 'status:asc', label: 'Status' },
-  { value: 'location:asc', label: 'Location (A\u2013Z)' },
-  { value: 'manufacturer:asc', label: 'Manufacturer (A\u2013Z)' },
-  { value: 'created_at:desc', label: 'Recently Added' },
-  { value: 'warranty_expiration:asc', label: 'Warranty Expiration' },
-];
 
 const EquipmentSortHeader: React.FC<EquipmentSortHeaderProps> = ({
   sortConfig,
@@ -41,9 +28,7 @@ const EquipmentSortHeader: React.FC<EquipmentSortHeaderProps> = ({
   const isMobile = useIsMobile();
 
   const compositeValue = `${sortConfig.field}:${sortConfig.direction}`;
-  const currentLabel = compositeSortOptions.find(o => o.value === compositeValue)?.label
-    ?? compositeSortOptions.find(o => o.value.startsWith(sortConfig.field + ':'))?.label
-    ?? sortConfig.field;
+  const currentLabel = equipmentSortLabel(EQUIPMENT_SORT_OPTIONS, compositeValue, sortConfig.field);
 
   const handleCompositeChange = (value: string) => {
     const [field, direction] = value.split(':') as [string, 'asc' | 'desc'];
@@ -62,22 +47,11 @@ const EquipmentSortHeader: React.FC<EquipmentSortHeaderProps> = ({
           <span className="shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground tabular-nums">
             {resultCount} / {totalCount}
           </span>
-          <Select value={compositeValue} onValueChange={handleCompositeChange}>
-            <SelectTrigger
-              className="h-11 min-w-0 flex-1 gap-1"
-              aria-label="Sort equipment"
-            >
-              <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {compositeSortOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <EquipmentSortSelect
+            compositeValue={compositeValue}
+            onValueChange={handleCompositeChange}
+            triggerClassName="h-11 min-w-0 flex-1 gap-1"
+          />
         </div>
       ) : (
         /* Desktop: original layout */
@@ -87,19 +61,10 @@ const EquipmentSortHeader: React.FC<EquipmentSortHeaderProps> = ({
             <span className="font-medium text-foreground">{totalCount}</span> equipment
           </div>
           <div className="flex items-center gap-2">
-            <Select value={compositeValue} onValueChange={handleCompositeChange}>
-              <SelectTrigger className="w-[200px]" aria-label="Sort equipment">
-                <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {compositeSortOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <EquipmentSortSelect
+              compositeValue={compositeValue}
+              onValueChange={handleCompositeChange}
+            />
 
             {onViewModeChange && (
               <div className="flex items-center rounded-md border" role="radiogroup" aria-label="View mode">

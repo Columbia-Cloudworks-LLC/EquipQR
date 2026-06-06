@@ -1,6 +1,7 @@
 import { logger } from '@/utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
+import { resolveWorkOrderOrganizationId } from '@/features/work-orders/services/workOrderOrganizationService';
 import { validateStorageQuota } from '@/utils/storageQuota';
 import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import {
@@ -10,6 +11,16 @@ import {
   displayUrlForStoredPrivateImage,
   deleteImageFromStorage,
 } from '@/services/imageUploadService';
+import {
+  fetchWorkOrderImagesWithUploaderProfiles,
+  mapResolvedImagesForNote,
+} from '@/features/work-orders/utils/workOrderNoteImageEnrichment';
+import { verifyWorkOrderOrganizationScope } from '@/features/work-orders/services/workOrderOrganizationGate';
+import { noteMachineHoursInsertFields } from '@/services/noteMachineHoursInsert';
+import {
+  assertNoteImageUploader,
+  fetchNoteImageForDeletion,
+} from '@/services/noteImageDeleteAuthorization';
 
 export interface WorkOrderNote {
   id: string;
@@ -86,17 +97,7 @@ export const createWorkOrderNoteWithImages = async (
 ): Promise<WorkOrderNote> => {
   const userId = await requireAuthUserIdFromClaims();
 
-  // Get organization_id if not provided
-  let orgId = organizationId;
-  if (!orgId) {
-    const { data: workOrder } = await supabase
-      .from('work_orders')
-      .select('organization_id')
-      .eq('id', workOrderId)
-      .single();
-    if (!workOrder) throw new Error('Work order not found');
-    orgId = workOrder.organization_id;
-  }
+  const orgId = await resolveWorkOrderOrganizationId(workOrderId, organizationId);
 
   // Validate storage quota for all files before uploading
   const totalFileSize = images.reduce((sum, file) => sum + file.size, 0);
@@ -111,14 +112,7 @@ export const createWorkOrderNoteWithImages = async (
       content,
       hours_worked: hoursWorked,
       is_private: isPrivate,
-      // Only include machine_hours when the user provided a meaningful value.
-      // The form initializes machineHours to 0; including {machine_hours: 0}
-      // unconditionally caused issue #735 on production when the column was
-      // missing, and conveys no information either way. Matches the display
-      // convention in WorkOrderNotesSection (`Number.isFinite(n) && n > 0`).
-      ...(Number.isFinite(Number(machineHours)) && Number(machineHours) > 0
-        ? { machine_hours: Number(machineHours) }
-        : {}),
+      ...noteMachineHoursInsertFields(machineHours),
     })
     .select()
     .single();
@@ -229,23 +223,11 @@ export const getWorkOrderNotesWithImages = async (
   try {
     // If organization_id is provided, verify the work order belongs to that organization
     // This provides explicit multi-tenancy filtering as a failsafe (per coding guidelines)
-    if (organizationId) {
-      const { data: workOrder, error: workOrderError } = await supabase
-        .from('work_orders')
-        .select('id, organization_id')
-        .eq('id', workOrderId)
-        .eq('organization_id', organizationId)
-        .single();
-
-      if (workOrderError || !workOrder) {
-        // Work order doesn't exist or doesn't belong to the specified organization
-        logger.warn('Work order not found or organization mismatch', {
-          workOrderId,
-          organizationId,
-          error: workOrderError,
-        });
-        return [];
-      }
+    if (
+      organizationId &&
+      !(await verifyWorkOrderOrganizationScope(workOrderId, organizationId))
+    ) {
+      return [];
     }
 
     // Get notes (RLS policies also enforce multi-tenancy)
@@ -270,47 +252,18 @@ export const getWorkOrderNotesWithImages = async (
       profiles = profileData || [];
     }
 
-    // Get all images for this work order
-    const { data: allImages } = await supabase
-      .from('work_order_images')
-      .select('*')
-      .eq('work_order_id', workOrderId)
-      .order('created_at', { ascending: false });
-
-    // Get uploader names for images
-    const uploaderIds = [...new Set((allImages || []).map(img => img.uploaded_by))];
-    let uploaderProfiles: Array<{ id: string; name?: string }> = [];
-    
-    if (uploaderIds.length > 0) {
-      const { data: uploaderData } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .in('id', uploaderIds);
-      uploaderProfiles = uploaderData || [];
-    }
-
-    const imagesList = allImages || [];
-    const signedBatch = await batchResolveWorkOrderImageDisplayUrls(imagesList.map(img => img.file_url));
-    const displayByImageId = new Map<string, string>();
-    imagesList.forEach((img, i) => {
-      const url = displayUrlForStoredPrivateImage(signedBatch[i], img.file_url);
-      if (url != null) displayByImageId.set(img.id, url);
-    });
+    const { imagesList, uploaderProfiles, displayByImageId } =
+      await fetchWorkOrderImagesWithUploaderProfiles(workOrderId);
 
     return notes.map(note => {
       const author = profiles.find(p => p.id === note.author_id);
 
-      const noteImages = imagesList
-        .filter(img => img.note_id === note.id)
-        .filter(img => displayByImageId.has(img.id))
-        .map(img => {
-          const uploader = uploaderProfiles.find(p => p.id === img.uploaded_by);
-          return {
-            ...img,
-            file_url: displayByImageId.get(img.id)!,
-            uploaded_by_name: uploader?.name || 'Unknown',
-          };
-        });
+      const noteImages = mapResolvedImagesForNote(
+        note.id,
+        imagesList,
+        displayByImageId,
+        uploaderProfiles,
+      );
 
       return {
         ...note,
@@ -481,20 +434,8 @@ export const getWorkOrderImages = async (
 export const deleteWorkOrderImage = async (imageId: string): Promise<void> => {
   const userId = await requireAuthUserIdFromClaims();
 
-  // Get image details first
-  const { data: image, error: fetchError } = await supabase
-    .from('work_order_images')
-    .select('file_url, uploaded_by')
-    .eq('id', imageId)
-    .single();
-
-  if (fetchError) throw fetchError;
-  if (!image) throw new Error('Image not found');
-
-  // Check if user can delete (must be uploader)
-  if (image.uploaded_by !== userId) {
-    throw new Error('Not authorized to delete this image');
-  }
+  const image = await fetchNoteImageForDeletion('work_order_images', imageId);
+  assertNoteImageUploader(image.uploaded_by, userId);
 
   // Delete from database
   const { error: deleteError } = await supabase

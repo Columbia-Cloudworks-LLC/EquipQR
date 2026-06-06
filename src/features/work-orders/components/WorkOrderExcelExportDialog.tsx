@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Export dialog reuses work order helper copy
 import React, { useState, useMemo } from 'react';
 import {
   Dialog,
@@ -11,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { ExportRecordCountSummary } from '@/components/common/ExportRecordCountSummary';
 import {
   Select,
   SelectContent,
@@ -351,27 +354,12 @@ export const WorkOrderExcelExportDialog: React.FC<WorkOrderExcelExportDialogProp
 
           <Separator />
 
-          {/* Record Count Summary */}
-          <div className="rounded-lg border bg-muted/50 p-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Records to Export</p>
-                {isLoadingCount ? (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm">Counting records...</span>
-                  </div>
-                ) : (
-                  <p className="text-2xl font-bold">{recordCount.toLocaleString()}</p>
-                )}
-              </div>
-              <Badge variant="secondary" className="text-xs">
-                Excel / Sheets / Docs
-              </Badge>
-            </div>
-            <Separator className="my-3" />
-            <p className="text-xs text-muted-foreground">{filterSummary}</p>
-          </div>
+          <ExportRecordCountSummary
+            recordCount={recordCount}
+            isLoadingCount={isLoadingCount}
+            filterSummary={filterSummary}
+            formatBadgeLabel="Excel / Sheets / Docs"
+          />
 
           {/* Error Display */}
           {exportError && (

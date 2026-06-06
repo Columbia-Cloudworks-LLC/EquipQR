@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
 import {
   EquipmentService,
   EquipmentFilters,
@@ -10,8 +9,10 @@ import {
   EquipmentListResult,
 } from '@/features/equipment/services/EquipmentService';
 import { PaginationParams } from '@/services/base/BaseService';
-import { useBackgroundSync } from '@/hooks/useCacheInvalidation';
-import { performanceMonitor } from '@/utils/performanceMonitoring';
+import {
+  resolveEquipmentQuerySyncOptions,
+  useEquipmentOrgBackgroundSync,
+} from '@/hooks/equipmentQuerySync';
 import { useAppToast } from '@/hooks/useAppToast';
 import { createScopedQueryPersister } from '@/lib/queryPersistence';
 import { equipment as equipmentKeys } from '@/lib/queryKeys';
@@ -43,9 +44,7 @@ export const useEquipment = (
     staleTime?: number;
   }
 ) => {
-  const { subscribeToOrganization } = useBackgroundSync();
-  const enableSync = options?.enableBackgroundSync ?? false;
-  const staleTime = options?.staleTime ?? 5 * 60 * 1000; // 5 minutes default
+  const { enableSync, staleTime, gcTime } = resolveEquipmentQuerySyncOptions(options);
 
   const query = useQuery({
     queryKey: ['equipment', organizationId, filters, pagination],
@@ -59,16 +58,10 @@ export const useEquipment = (
     },
     enabled: !!organizationId,
     staleTime,
-    gcTime: staleTime * 2, // Keep in cache for 2x stale time
+    gcTime,
   });
 
-  // Background sync if enabled
-  useEffect(() => {
-    if (organizationId && enableSync) {
-      subscribeToOrganization(organizationId);
-      performanceMonitor.recordMetric('equipment-query-init', 1);
-    }
-  }, [organizationId, enableSync, subscribeToOrganization]);
+  useEquipmentOrgBackgroundSync(organizationId, enableSync);
 
   return query;
 };
@@ -177,9 +170,7 @@ export const useEquipmentById = (
     staleTime?: number;
   }
 ) => {
-  const { subscribeToOrganization } = useBackgroundSync();
-  const enableSync = options?.enableBackgroundSync ?? false;
-  const staleTime = options?.staleTime ?? 5 * 60 * 1000;
+  const { enableSync, staleTime } = resolveEquipmentQuerySyncOptions(options);
 
   const query = useQuery({
     queryKey: ['equipment', organizationId, equipmentId],
@@ -196,11 +187,7 @@ export const useEquipmentById = (
     persister: fieldReadPersister(),
   });
 
-  useEffect(() => {
-    if (organizationId && enableSync) {
-      subscribeToOrganization(organizationId);
-    }
-  }, [organizationId, enableSync, subscribeToOrganization]);
+  useEquipmentOrgBackgroundSync(organizationId, enableSync, false);
 
   return query;
 };

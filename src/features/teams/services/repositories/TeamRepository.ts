@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Repository queries share org-scoped filter prelude
 import {
   getOrganizationTeamsOptimized,
   getTeamMembersOptimized,

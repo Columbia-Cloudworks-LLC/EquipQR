@@ -272,6 +272,17 @@ export async function checkRateLimit(
   return true;
 }
 
+export function createWorkOrderExportRateLimitResponse(
+  corsHeaders: Record<string, string>,
+): Response {
+  return new Response(
+    JSON.stringify({
+      error: "Rate limit exceeded. Please wait before requesting another export.",
+    }),
+    { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  );
+}
+
 // ============================================
 // Data Fetching
 // ============================================

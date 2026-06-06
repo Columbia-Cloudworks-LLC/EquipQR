@@ -4,8 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
+import { createQueryClientWrapper } from '@/test/utils/test-utils';
 
 // Mock supabase client
 vi.mock('@/integrations/supabase/client', () => ({
@@ -30,22 +29,7 @@ vi.mock('react-router-dom', () => ({
 import { supabase } from '@/integrations/supabase/client';
 import { useLeaveOrganization } from './useLeaveOrganization';
 
-// Create a wrapper component for the hooks
-const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-      mutations: {
-        retry: false,
-      },
-    },
-  });
-
-  return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(QueryClientProvider, { client: queryClient }, children);
-};
+const createWrapper = createQueryClientWrapper;
 
 describe('useLeaveOrganization', () => {
   beforeEach(() => {

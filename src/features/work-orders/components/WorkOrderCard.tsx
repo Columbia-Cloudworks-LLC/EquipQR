@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Card layout repeats status and assignee chips across variants
 /**
  * Unified Work Order Card Component
  * 
@@ -28,16 +30,14 @@ import {
   Users,
   UserX,
   AlertTriangle,
-  Cog,
   MapPin,
-  Shovel,
-  Truck,
-  Zap,
-  Lightbulb,
-  Mountain,
-  Construction,
-  type LucideIcon,
 } from 'lucide-react';
+import {
+  formatWorkOrderMachineHours,
+  formatWorkOrderPriorityLabel,
+  getWorkOrderEquipmentFallbackIcon,
+  getWorkOrderEquipmentFallbackTint,
+} from '@/features/work-orders/utils/workOrderEquipmentVisuals';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import ClickableAddress from '@/components/ui/ClickableAddress';
@@ -143,38 +143,6 @@ const getAssignmentContext = (workOrder: WorkOrder): AssignmentWorkOrderContext 
   equipmentTeamId: workOrder.equipmentTeamId ?? workOrder.team_id,
 });
 
-const formatMachineHours = (hours?: number | null): string | null => {
-  if (typeof hours !== 'number') return null;
-  return `${hours.toLocaleString()} hrs`;
-};
-
-const formatPriorityLabel = (priority?: string): string => {
-  if (!priority) return 'Priority';
-  return priority.replace('_', ' ');
-};
-
-const getEquipmentFallbackIcon = (equipmentName?: string): LucideIcon => {
-  const name = equipmentName?.toLowerCase() ?? '';
-  if (name.includes('excavator')) return Shovel;
-  if (name.includes('dozer') || name.includes('bulldozer')) return Mountain;
-  if (name.includes('generator')) return Zap;
-  if (name.includes('light tower') || name.includes('light plant')) return Lightbulb;
-  if (name.includes('loader') || name.includes('truck') || name.includes('hauler')) return Truck;
-  if (name.includes('crane') || name.includes('boom') || name.includes('forklift')) return Construction;
-  return Cog;
-};
-
-const getEquipmentFallbackTint = (equipmentName?: string): string => {
-  const name = equipmentName?.toLowerCase() ?? '';
-  if (name.includes('excavator')) return 'bg-amber-500/10';
-  if (name.includes('dozer') || name.includes('bulldozer')) return 'bg-orange-500/10';
-  if (name.includes('generator')) return 'bg-yellow-500/10';
-  if (name.includes('light tower') || name.includes('light plant')) return 'bg-sky-500/10';
-  if (name.includes('loader') || name.includes('truck') || name.includes('hauler')) return 'bg-emerald-500/10';
-  if (name.includes('crane') || name.includes('boom') || name.includes('forklift')) return 'bg-violet-500/10';
-  return 'bg-muted';
-};
-
 const EquipmentThumbnail: React.FC<EquipmentThumbnailProps> = ({
   imageUrl,
   equipmentName,
@@ -186,8 +154,8 @@ const EquipmentThumbnail: React.FC<EquipmentThumbnailProps> = ({
   const [hasImageError, setHasImageError] = useState(false);
 
   if (!imageUrl || hasImageError) {
-    const FallbackIcon = getEquipmentFallbackIcon(equipmentName ?? equipmentAltContext);
-    const tintClass = getEquipmentFallbackTint(equipmentName ?? equipmentAltContext);
+    const FallbackIcon = getWorkOrderEquipmentFallbackIcon(equipmentName ?? equipmentAltContext);
+    const tintClass = getWorkOrderEquipmentFallbackTint(equipmentName ?? equipmentAltContext);
     return (
       <div className={cn('rounded-xl flex items-center justify-center ring-1 ring-border', tintClass, className)}>
         <FallbackIcon className={cn('text-muted-foreground', iconClassName)} />
@@ -231,7 +199,7 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
   const assignmentContext = getAssignmentContext(workOrder);
 
   const equipmentTeamName = workOrder.equipmentTeamName ?? workOrder.teamName;
-  const machineHours = formatMachineHours(workOrder.equipmentWorkingHours);
+  const machineHours = formatWorkOrderMachineHours(workOrder.equipmentWorkingHours);
   const createdDateValue = workOrder.created_date ?? workOrder.createdDate;
   const dueDateValue = workOrder.due_date ?? workOrder.dueDate;
   const estimatedHoursValue = workOrder.estimated_hours ?? workOrder.estimatedHours;
@@ -309,7 +277,7 @@ const DesktopCard: React.FC<WorkOrderCardProps> = memo(({
               variant="outline"
               className={cn('capitalize', getPriorityBadgeClass(workOrder.priority))}
             >
-              {formatPriorityLabel(workOrder.priority)}
+              {formatWorkOrderPriorityLabel(workOrder.priority)}
             </Badge>
             <QuickBooksInvoiceStatusBadge
               status={workOrder.invoiceStatus ?? workOrder.invoice_status}
@@ -461,7 +429,7 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
   const { formatRelative } = useFormatTimestamp();
   const dueDateValue = workOrder.dueDate ?? workOrder.due_date;
   const createdDateValue = workOrder.createdDate ?? workOrder.created_date;
-  const machineHours = formatMachineHours(workOrder.equipmentWorkingHours);
+  const machineHours = formatWorkOrderMachineHours(workOrder.equipmentWorkingHours);
   const isTerminal = isTerminalStatus(workOrder.status);
 
   const assigneeName =
@@ -542,7 +510,7 @@ const MobileCard: React.FC<MobileCardProps> = memo(({
                       getPriorityBadgeClass(workOrder.priority)
                     )}
                   >
-                    {formatPriorityLabel(workOrder.priority)}
+                    {formatWorkOrderPriorityLabel(workOrder.priority)}
                   </Badge>
                 )}
               </div>

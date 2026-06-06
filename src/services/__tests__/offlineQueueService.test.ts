@@ -45,6 +45,10 @@ function makeCreateInput(overrides?: Partial<OfflineQueueEnqueueInput>): Offline
   };
 }
 
+function enqueueItems(svc: OfflineQueueService, count: number) {
+  return Array.from({ length: count }, () => svc.enqueue(makeCreateInput()));
+}
+
 describe('OfflineQueueService', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -87,8 +91,7 @@ describe('OfflineQueueService', () => {
 
   it('getAll returns all items', () => {
     const svc = createService();
-    svc.enqueue(makeCreateInput());
-    svc.enqueue(makeCreateInput());
+    enqueueItems(svc, 2);
 
     expect(svc.getAll()).toHaveLength(2);
     expect(svc.getCount()).toBe(2);
@@ -96,8 +99,7 @@ describe('OfflineQueueService', () => {
 
   it('peek returns the first pending item', () => {
     const svc = createService();
-    const first = svc.enqueue(makeCreateInput());
-    svc.enqueue(makeCreateInput());
+    const [first] = enqueueItems(svc, 2);
 
     const peeked = svc.peek();
     expect(peeked?.id).toBe(first.id);
@@ -105,8 +107,7 @@ describe('OfflineQueueService', () => {
 
   it('removes an item by id', () => {
     const svc = createService();
-    const item = svc.enqueue(makeCreateInput());
-    svc.enqueue(makeCreateInput());
+    const [item] = enqueueItems(svc, 2);
 
     svc.remove(item.id);
     expect(svc.getCount()).toBe(1);
@@ -115,8 +116,7 @@ describe('OfflineQueueService', () => {
 
   it('clears all items', () => {
     const svc = createService();
-    svc.enqueue(makeCreateInput());
-    svc.enqueue(makeCreateInput());
+    enqueueItems(svc, 2);
 
     svc.clear();
     expect(svc.getCount()).toBe(0);
@@ -153,8 +153,7 @@ describe('OfflineQueueService', () => {
 
   it('retryFailedItems resets all failed items to pending', () => {
     const svc = createService();
-    const item1 = svc.enqueue(makeCreateInput());
-    const item2 = svc.enqueue(makeCreateInput());
+    const [item1, item2] = enqueueItems(svc, 2);
 
     svc.updateStatus(item1.id, 'failed', 'Error 1');
     svc.updateStatus(item2.id, 'failed', 'Error 2');
@@ -171,8 +170,7 @@ describe('OfflineQueueService', () => {
 
   it('getFailedItems returns only failed items', () => {
     const svc = createService();
-    const item1 = svc.enqueue(makeCreateInput());
-    svc.enqueue(makeCreateInput());
+    const [item1] = enqueueItems(svc, 2);
 
     svc.updateStatus(item1.id, 'failed', 'Error');
 

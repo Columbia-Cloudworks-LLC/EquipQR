@@ -38,8 +38,36 @@ import type {
 } from '@/features/inventory/types/inventory';
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
 import { useAppToast } from '@/hooks/useAppToast';
+import { invalidateEquipmentLinkQueries } from '@/features/inventory/hooks/inventoryEquipmentLinkMutations';
 
 const DEFAULT_STALE_TIME = 5 * 60 * 1000; // 5 minutes
+
+type ItemScopedQueryOptions = {
+  staleTime?: number;
+  enabled?: boolean;
+};
+
+function useInventoryItemQuery<T>(
+  queryKeyPrefix: string,
+  organizationId: string | undefined,
+  itemId: string | undefined,
+  queryFn: (orgId: string, id: string) => Promise<T>,
+  emptyValue: T,
+  options?: ItemScopedQueryOptions,
+) {
+  const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
+  const enabled = options?.enabled ?? true;
+
+  return useQuery({
+    queryKey: [queryKeyPrefix, organizationId, itemId],
+    queryFn: async () => {
+      if (!organizationId || !itemId) return emptyValue;
+      return await queryFn(organizationId, itemId);
+    },
+    enabled: enabled && !!organizationId && !!itemId,
+    staleTime,
+  });
+}
 
 // ============================================
 // Query Hooks
@@ -171,24 +199,16 @@ export const useCompatibleInventoryItems = (
 export const useCompatibleEquipmentForItem = (
   organizationId: string | undefined,
   itemId: string | undefined,
-  options?: {
-    staleTime?: number;
-    enabled?: boolean;
-  }
-) => {
-  const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
-  const enabled = options?.enabled ?? true;
-
-  return useQuery({
-    queryKey: ['compatible-equipment', organizationId, itemId],
-    queryFn: async () => {
-      if (!organizationId || !itemId) return [];
-      return await getCompatibleEquipmentForItem(organizationId, itemId);
-    },
-    enabled: enabled && !!organizationId && !!itemId,
-    staleTime
-  });
-};
+  options?: ItemScopedQueryOptions,
+) =>
+  useInventoryItemQuery(
+    'compatible-equipment',
+    organizationId,
+    itemId,
+    getCompatibleEquipmentForItem,
+    [],
+    options,
+  );
 
 // ============================================
 // Mutation Hooks
@@ -369,92 +389,6 @@ export const useAdjustInventoryQuantity = () => {
   });
 };
 
-const useLinkItemToEquipment = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useAppToast();
-
-  return useMutation({
-    mutationFn: async ({
-      organizationId,
-      itemId,
-      equipmentId
-    }: {
-      organizationId: string;
-      itemId: string;
-      equipmentId: string;
-    }) => {
-      return await linkItemToEquipment(organizationId, itemId, equipmentId);
-    },
-    onSuccess: (_, variables) => {
-      // Invalidate queries to refetch compatible equipment
-      queryClient.invalidateQueries({
-        queryKey: ['compatible-equipment', variables.organizationId, variables.itemId]
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['inventory-item', variables.organizationId, variables.itemId]
-      });
-      // Invalidate compatible items queries for equipment detail pages
-      queryClient.invalidateQueries({
-        queryKey: ['compatible-inventory-items', variables.organizationId]
-      });
-      toast({
-        title: 'Equipment linked',
-        description: 'Equipment has been added to compatibility list.'
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error linking equipment',
-        description: error instanceof Error ? error.message : 'Failed to link equipment',
-        variant: 'error'
-      });
-    }
-  });
-};
-
-export const useUnlinkItemFromEquipment = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useAppToast();
-
-  return useMutation({
-    mutationFn: async ({
-      organizationId,
-      itemId,
-      equipmentId
-    }: {
-      organizationId: string;
-      itemId: string;
-      equipmentId: string;
-    }) => {
-      return await unlinkItemFromEquipment(organizationId, itemId, equipmentId);
-    },
-    onSuccess: (_, variables) => {
-      // Invalidate queries to refetch compatible equipment
-      queryClient.invalidateQueries({
-        queryKey: ['compatible-equipment', variables.organizationId, variables.itemId]
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['inventory-item', variables.organizationId, variables.itemId]
-      });
-      // Invalidate compatible items queries for equipment detail pages
-      queryClient.invalidateQueries({
-        queryKey: ['compatible-inventory-items', variables.organizationId]
-      });
-      toast({
-        title: 'Equipment unlinked',
-        description: 'Equipment has been removed from compatibility list.'
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error unlinking equipment',
-        description: error instanceof Error ? error.message : 'Failed to unlink equipment',
-        variant: 'error'
-      });
-    }
-  });
-};
-
 export const useBulkLinkEquipmentToItem = () => {
   const queryClient = useQueryClient();
   const { toast } = useAppToast();
@@ -473,16 +407,7 @@ export const useBulkLinkEquipmentToItem = () => {
     },
     onSuccess: (result, variables) => {
       // Invalidate queries to refetch compatible equipment
-      queryClient.invalidateQueries({
-        queryKey: ['compatible-equipment', variables.organizationId, variables.itemId]
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['inventory-item', variables.organizationId, variables.itemId]
-      });
-      // Invalidate compatible items queries for equipment detail pages
-      queryClient.invalidateQueries({
-        queryKey: ['compatible-inventory-items', variables.organizationId]
-      });
+      invalidateEquipmentLinkQueries(queryClient, variables);
       
       // Show summary toast with counts
       const { added, removed } = result;
@@ -515,24 +440,16 @@ export const useBulkLinkEquipmentToItem = () => {
 export const useCompatibilityRulesForItem = (
   organizationId: string | undefined,
   itemId: string | undefined,
-  options?: {
-    staleTime?: number;
-    enabled?: boolean;
-  }
-) => {
-  const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
-  const enabled = options?.enabled ?? true;
-
-  return useQuery({
-    queryKey: ['compatibility-rules', organizationId, itemId],
-    queryFn: async (): Promise<PartCompatibilityRule[]> => {
-      if (!organizationId || !itemId) return [];
-      return await getCompatibilityRulesForItem(organizationId, itemId);
-    },
-    enabled: enabled && !!organizationId && !!itemId,
-    staleTime
-  });
-};
+  options?: ItemScopedQueryOptions,
+) =>
+  useInventoryItemQuery(
+    'compatibility-rules',
+    organizationId,
+    itemId,
+    getCompatibilityRulesForItem,
+    [] as PartCompatibilityRule[],
+    options,
+  );
 
 /**
  * Hook to fetch equipment that matches an inventory item's compatibility rules.
@@ -543,24 +460,16 @@ export const useCompatibilityRulesForItem = (
 export const useEquipmentMatchingItemRules = (
   organizationId: string | undefined,
   itemId: string | undefined,
-  options?: {
-    staleTime?: number;
-    enabled?: boolean;
-  }
-) => {
-  const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
-  const enabled = options?.enabled ?? true;
-
-  return useQuery({
-    queryKey: ['equipment-matching-rules', organizationId, itemId],
-    queryFn: async (): Promise<EquipmentMatchedByRules[]> => {
-      if (!organizationId || !itemId) return [];
-      return await getEquipmentMatchingItemRules(organizationId, itemId);
-    },
-    enabled: enabled && !!organizationId && !!itemId,
-    staleTime
-  });
-};
+  options?: ItemScopedQueryOptions,
+) =>
+  useInventoryItemQuery(
+    'equipment-matching-rules',
+    organizationId,
+    itemId,
+    getEquipmentMatchingItemRules,
+    [] as EquipmentMatchedByRules[],
+    options,
+  );
 
 /**
  * Hook to add a single compatibility rule.

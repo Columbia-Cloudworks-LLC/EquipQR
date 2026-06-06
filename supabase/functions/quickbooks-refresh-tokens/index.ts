@@ -1,9 +1,7 @@
 // Using Deno.serve (built-in)
-import { createClient } from "npm:@supabase/supabase-js@2.45.0";
-import { getCorsHeaders } from "../_shared/cors.ts";
 import { QBO_TOKEN_URL, getIntuitTid } from "../_shared/quickbooks-config.ts";
-import { withCorrelationId } from "../_shared/supabase-clients.ts";
-import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
+import { MissingSecretError } from "../_shared/require-secret.ts";
+import { serveQuickBooksFunction } from "../_shared/quickbooks-serve.ts";
 
 const FUNCTION_NAME = "quickbooks-refresh-tokens";
 
@@ -118,22 +116,15 @@ async function refreshToken(
   }
 }
 
-Deno.serve(withCorrelationId(async (req, ctx) => {
-  const corsHeaders = getCorsHeaders(req);
-
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+serveQuickBooksFunction(FUNCTION_NAME, logStep, async ({
+  req,
+  ctx,
+  corsHeaders,
+  secrets,
+  supabaseClient,
+}) => {
   try {
-    logStep("Function started", { correlation_id: ctx.correlationId });
-
-    // Required secrets — surface as MISSING_REQUIRED_SECRET via the helper.
-    const clientId = requireSecret("INTUIT_CLIENT_ID", { functionName: FUNCTION_NAME });
-    const clientSecret = requireSecret("INTUIT_CLIENT_SECRET", { functionName: FUNCTION_NAME });
-    const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: FUNCTION_NAME });
-    const supabaseServiceKey = requireSecret("SUPABASE_SERVICE_ROLE_KEY", { functionName: FUNCTION_NAME });
+    const { clientId, clientSecret, supabaseServiceKey } = secrets;
 
     // Validate authorization
     const authHeader = req.headers.get("Authorization");
@@ -149,11 +140,6 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       logStep("ERROR", { message: "Invalid authorization header format" });
       return createUnauthorizedResponse("Unauthorized: Invalid authorization header format", corsHeaders);
     }
-
-    // Create Supabase client with service role (bypasses RLS)
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false }
-    });
 
     // Extract token after 'bearer ' prefix (7 characters)
     const token = authHeader.substring(7).trim();
@@ -393,4 +379,4 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-}));
+});

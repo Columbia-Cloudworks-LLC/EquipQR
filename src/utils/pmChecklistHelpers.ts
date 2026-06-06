@@ -40,6 +40,19 @@ export const getStatusText = (status: 'not_rated' | 'ok' | 'adjusted' | 'recomme
   }
 }
 
+export function groupChecklistItemsBySection<T extends { section: string }>(
+  items: T[],
+): Record<string, T[]> {
+  return items.reduce(
+    (acc, item) => {
+      if (!acc[item.section]) acc[item.section] = [];
+      acc[item.section].push(item);
+      return acc;
+    },
+    {} as Record<string, T[]>,
+  );
+}
+
 export const createSegmentsForSection = (items: PMChecklistItem[]) => {
   return items.map(item => ({
     id: item.id,

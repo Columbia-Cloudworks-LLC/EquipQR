@@ -26,6 +26,7 @@ import { OfflineQueueService, type OfflineQueueItem, type OfflineQueueEnqueueInp
 import { OfflineQueueProcessor, type ProcessResult } from '@/services/offlineQueueProcessor';
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
+import { useBrowserOnline } from '@/hooks/useBrowserOnline';
 
 // ─── Context value ───────────────────────────────────────────────────────────
 
@@ -65,7 +66,7 @@ export const OfflineQueueProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
 
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const isOnline = useBrowserOnline();
   const [isSyncing, setIsSyncing] = useState(false);
   // Bump this to force re-reads from localStorage after mutations
   const [revision, setRevision] = useState(0);
@@ -100,20 +101,6 @@ export const OfflineQueueProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Bump revision to trigger state recalculation
   const refresh = useCallback(() => setRevision(r => r + 1), []);
-
-  // ── Online / offline listeners ─────────────────────────────────────────
-
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
 
   // ── Auto-sync when coming back online ──────────────────────────────────
 

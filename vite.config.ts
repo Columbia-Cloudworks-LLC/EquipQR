@@ -1,5 +1,5 @@
 import { defineConfig, PluginOption } from "vite";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 import fs from "fs";
@@ -28,7 +28,7 @@ function marketingPrerenderPlugin(): PluginOption {
   return {
     name: 'equipqr-marketing-prerender',
     apply: 'build',
-    closeBundle() {
+    writeBundle() {
       writeMarketingHtmlFiles();
     },
   };
@@ -122,6 +122,7 @@ export default defineConfig(({ mode }) => ({
       // validation path for push notification flows).
       devOptions: { enabled: false },
       injectManifest: {
+        rollupFormat: 'iife',
         // Keep precache lean: HTML shell, JS, CSS, fonts, and the small icon
         // set. Excludes large images, source maps, and the OG asset which
         // doesn't need to be cached for the app to run.

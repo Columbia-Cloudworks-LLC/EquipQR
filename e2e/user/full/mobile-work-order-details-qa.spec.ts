@@ -93,7 +93,9 @@ test.describe('mobile work order details field QA @full', () => {
       ).toBeVisible({ timeout: 10_000 });
 
       await clickWithDemoCue(page.getByRole('button', { name: /^note$/i }).first(), 'Add mobile note');
-      await expect(page.getByText(/you're offline/i).first()).toBeVisible({ timeout: 10_000 });
+      await expect(
+        page.getByText(/offline - text and status changes save locally|you are currently offline/i).first(),
+      ).toBeVisible({ timeout: 10_000 });
       await expect(page.getByRole('textbox', { name: /note content/i })).toBeVisible();
     } finally {
       await setOffline(context, page, false);

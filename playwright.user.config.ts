@@ -1,4 +1,3 @@
-import fs from 'fs';
 import path from 'path';
 import { defineConfig, devices } from '@playwright/test';
 import { loadUserRegressionRunConfig } from './e2e/user/shared/run-config';
@@ -60,12 +59,7 @@ const outputDir = runConfig.outputDir || path.join(
   artifactContext || 'desktop-test',
 );
 
-function storageStateFor(persona: string): string | undefined {
-  const filePath = path.join(authDir, `${persona}.json`);
-  return fs.existsSync(filePath) ? filePath : undefined;
-}
-
-const ownerStorage = storageStateFor('owner');
+const ownerStorage = path.join(authDir, 'owner.json');
 
 export default defineConfig({
   testDir: 'e2e/user',
@@ -111,7 +105,7 @@ export default defineConfig({
       dependencies: ['setup'],
       grep: /@critical/,
       use: {
-        ...(ownerStorage ? { storageState: ownerStorage } : {}),
+        storageState: ownerStorage,
       },
     },
     {
@@ -119,7 +113,7 @@ export default defineConfig({
       dependencies: ['setup'],
       grep: /@full/,
       use: {
-        ...(ownerStorage ? { storageState: ownerStorage } : {}),
+        storageState: ownerStorage,
       },
     },
   ],

@@ -7,6 +7,11 @@
 
 import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
+import {
+  setupAuthAndToastMocks,
+  waitForHookSuccess,
+  expectHookData,
+} from '@/test/utils/hook-test-helpers';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
@@ -80,19 +85,7 @@ const mockToast = vi.fn();
 describe('useAlternateGroups', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useAuth).mockReturnValue({
-      user: { id: personas.admin.id, email: personas.admin.email },
-      session: { user: { id: personas.admin.id } },
-      isLoading: false,
-      signUp: vi.fn(),
-      signIn: vi.fn(),
-      signInWithGoogle: vi.fn(),
-      signOut: vi.fn(),
-    } as unknown as ReturnType<typeof useAuth>);
-
-    vi.mocked(useAppToast).mockReturnValue({
-      toast: mockToast,
-    } as unknown as ReturnType<typeof useAppToast>);
+    setupAuthAndToastMocks(useAuth, useAppToast, mockToast);
   });
 
   describe('useAlternateGroups hook', () => {
@@ -105,11 +98,8 @@ describe('useAlternateGroups', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(result.current.data).toEqual(mockGroups);
+      await waitForHookSuccess(result);
+      expectHookData(result, mockGroups);
       expect(getAlternateGroups).toHaveBeenCalledWith(organizations.acme.id);
     });
 
@@ -153,11 +143,8 @@ describe('useAlternateGroups', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(result.current.data).toEqual(mockGroup);
+      await waitForHookSuccess(result);
+      expectHookData(result, mockGroup);
       expect(getAlternateGroupById).toHaveBeenCalledWith(
         organizations.acme.id,
         partAlternateGroups.oilFilterGroup.id
@@ -491,19 +478,7 @@ describe('useAlternateGroups', () => {
 describe('Alternate Groups User Journeys', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useAuth).mockReturnValue({
-      user: { id: personas.admin.id, email: personas.admin.email },
-      session: { user: { id: personas.admin.id } },
-      isLoading: false,
-      signUp: vi.fn(),
-      signIn: vi.fn(),
-      signInWithGoogle: vi.fn(),
-      signOut: vi.fn(),
-    } as unknown as ReturnType<typeof useAuth>);
-
-    vi.mocked(useAppToast).mockReturnValue({
-      toast: mockToast,
-    } as unknown as ReturnType<typeof useAppToast>);
+    setupAuthAndToastMocks(useAuth, useAppToast, mockToast);
   });
 
   /**
@@ -700,9 +675,7 @@ describe('Alternate Groups User Journeys', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(result.current.data?.length).toBe(mockGroups.length);
     });

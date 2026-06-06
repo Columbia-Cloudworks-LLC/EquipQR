@@ -13,8 +13,6 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -78,29 +76,14 @@ vi.mock('sonner', () => ({
 // ---------------------------------------------------------------------------
 
 import { QuickBooksCustomerMapping } from '@/features/teams/components/QuickBooksCustomerMapping';
-
-function createTestQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
-      mutations: { retry: false },
-    },
-  });
-}
+import { renderWithQuickBooksProviders } from '@/tests/quickbooks/testUtils';
 
 function renderComponent(props: {
   teamId: string;
   teamName: string;
   customerId?: string | null;
 } = { teamId: 'team-456', teamName: 'Alpha Team' }) {
-  const queryClient = createTestQueryClient();
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <QuickBooksCustomerMapping {...props} />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
+  return renderWithQuickBooksProviders(<QuickBooksCustomerMapping {...props} />);
 }
 
 // ---------------------------------------------------------------------------

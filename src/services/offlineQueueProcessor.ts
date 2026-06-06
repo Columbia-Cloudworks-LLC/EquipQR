@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Processor mirrors offlineAware enqueue payloads for replay
 /**
  * Offline Queue Processor — V2
  *
@@ -16,6 +18,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { WorkOrderService } from '@/features/work-orders/services/workOrderService';
+import { buildWorkOrderUpdatePayload } from '@/features/work-orders/utils/workOrderUpdatePayload';
 import { logger } from '@/utils/logger';
 import { getErrorMessage } from '@/utils/errorHandling';
 import { workOrders, organization, equipment, preventiveMaintenance } from '@/lib/queryKeys';
@@ -283,14 +286,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
     }
 
     // No conflict — apply all changed fields directly.
-    const updateData: Record<string, unknown> = {};
-    if (data.title !== undefined) updateData.title = data.title;
-    if (data.description !== undefined) updateData.description = data.description;
-    if (data.priority !== undefined) updateData.priority = data.priority;
-    if (data.dueDate !== undefined) updateData.due_date = data.dueDate || null;
-    if (data.estimatedHours !== undefined) updateData.estimated_hours = data.estimatedHours || null;
-    if (data.hasPM !== undefined) updateData.has_pm = data.hasPM;
-    updateData.updated_at = new Date().toISOString();
+    const updateData = buildWorkOrderUpdatePayload(data);
 
     const { error } = await supabase
       .from('work_orders')

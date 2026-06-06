@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Historical filters mirror live filter selects
 import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";

@@ -7,6 +7,7 @@
 
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchOrganizationMembersByRole } from '@/features/organization/services/organizationMemberQueries';
 import type { 
   OrganizationMemberRecord,
   OrganizationWithMembership,
@@ -101,40 +102,8 @@ const getUserOrganizationsOptimized = getUserOrganizations;
 /**
  * Get organization members using organization_id index
  */
-export const getOrganizationMembers = async (organizationId: string): Promise<OrganizationMemberRecord[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('organization_members')
-      .select(`
-        *,
-        profiles!organization_members_user_id_fkey (
-          name,
-          email
-        )
-      `)
-      .eq('organization_id', organizationId)
-      .eq('status', 'active')
-      .order('joined_date', { ascending: true });
-
-    if (error) throw error;
-
-    return (data || []).map(member => ({
-      id: member.id,
-      user_id: member.user_id,
-      organization_id: member.organization_id,
-      role: member.role,
-      status: member.status,
-      joined_date: member.joined_date,
-      user_name: member.profiles?.name,
-      user_email: member.profiles?.email,
-      slot_purchase_id: member.slot_purchase_id,
-      activated_slot_at: member.activated_slot_at
-    }));
-  } catch (error) {
-    logger.error('Error fetching organization members:', error);
-    return [];
-  }
-};
+export const getOrganizationMembers = async (organizationId: string): Promise<OrganizationMemberRecord[]> =>
+  fetchOrganizationMembersByRole(organizationId);
 
 /**
  * @deprecated Use getOrganizationMembers instead
@@ -144,41 +113,8 @@ const getOrganizationMembersOptimized = getOrganizationMembers;
 /**
  * Get organization admins efficiently
  */
-export const getOrganizationAdmins = async (organizationId: string): Promise<OrganizationMemberRecord[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('organization_members')
-      .select(`
-        *,
-        profiles!organization_members_user_id_fkey (
-          name,
-          email
-        )
-      `)
-      .eq('organization_id', organizationId)
-      .eq('status', 'active')
-      .in('role', ['owner', 'admin'])
-      .order('role', { ascending: true });
-
-    if (error) throw error;
-
-    return (data || []).map(member => ({
-      id: member.id,
-      user_id: member.user_id,
-      organization_id: member.organization_id,
-      role: member.role,
-      status: member.status,
-      joined_date: member.joined_date,
-      user_name: member.profiles?.name,
-      user_email: member.profiles?.email,
-      slot_purchase_id: member.slot_purchase_id,
-      activated_slot_at: member.activated_slot_at
-    }));
-  } catch (error) {
-    logger.error('Error fetching organization admins:', error);
-    return [];
-  }
-};
+export const getOrganizationAdmins = async (organizationId: string): Promise<OrganizationMemberRecord[]> =>
+  fetchOrganizationMembersByRole(organizationId, { adminRolesOnly: true });
 
 /**
  * @deprecated Use getOrganizationAdmins instead

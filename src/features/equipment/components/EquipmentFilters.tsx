@@ -2,42 +2,9 @@ import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileEquipmentFilters } from './MobileEquipmentFilters';
 import EquipmentToolbar from './EquipmentToolbar';
-import { EquipmentFilters as EquipmentFiltersType, SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
-import type { EquipmentViewMode } from './EquipmentCard';
-import type { EquipmentRecord } from '@/features/equipment/types/equipment';
+import type { EquipmentListToolbarProps } from '@/features/equipment/components/equipmentFilterTypes';
 
-// Team is intentionally not part of FilterOptions here — the team scope is
-// owned by the global TopBar `useSelectedTeam`, not by the page filters.
-interface FilterOptions {
-  manufacturers: string[];
-  locations: string[];
-}
-
-interface EquipmentFiltersProps {
-  filters: EquipmentFiltersType;
-  sortConfig: SortConfig;
-  onFilterChange: (key: keyof EquipmentFiltersType, value: string) => void;
-  onClearFilters: () => void;
-  onQuickFilter: (preset: string) => void;
-  onSortChange: (field: string, direction?: 'asc' | 'desc') => void;
-  filterOptions: FilterOptions;
-  hasActiveFilters: boolean;
-  activeQuickFilter?: string | null;
-  resultCount: number;
-  totalCount: number;
-  viewMode: EquipmentViewMode;
-  onViewModeChange: (mode: EquipmentViewMode) => void;
-  canImport?: boolean;
-  canExport?: boolean;
-  onImportCsv?: () => void;
-  equipment?: EquipmentRecord[];
-  /**
-   * Desktop-only view-mode-specific control. Mobile branch ignores this prop
-   * because the table view auto-falls-back to list mode on mobile (see
-   * `Equipment.tsx`).
-   */
-  columnPicker?: React.ReactNode;
-}
+type EquipmentFiltersProps = EquipmentListToolbarProps;
 
 export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
   filters,

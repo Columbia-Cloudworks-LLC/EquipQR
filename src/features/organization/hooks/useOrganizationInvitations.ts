@@ -3,6 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { getAuthClaims } from '@/lib/authClaims';
+import { logInvitationMutationFailure } from '@/features/organization/utils/logInvitationMutationFailure';
+import { logInvitationMutationSuccess } from '@/features/organization/utils/logInvitationMutationSuccess';
+import {
+  fetchInvitationEmailContext,
+  sendInvitationEmail,
+} from '@/features/organization/utils/invitationEmailDelivery';
+import { resolveInvitationInviterMaps } from '@/features/organization/utils/invitationInviterMaps';
+import { assertCanManageInvitation } from '@/features/organization/utils/invitationMutationHelpers';
 
 export interface OrganizationInvitation {
   id: string;
@@ -52,56 +60,12 @@ export const useOrganizationInvitations = (organizationId: string) => {
         }
 
         const invitations = invitationsData || [];
+        const { inviterIdMap, inviterNameMap } = await resolveInvitationInviterMaps(
+          organizationId,
+          invitations.map((i) => i.id),
+        );
 
-        // Fetch actual invited_by for each invitation from the table, then resolve names
-        const inviterNameMap: Record<string, string> = {};
-        const inviterIdMap: Record<string, string> = {};
-        if (invitations.length > 0) {
-          const { data: invitationRows, error: invitationRowsError } = await supabase
-            .from('organization_invitations')
-            .select('id, invited_by')
-            .in('id', invitations.map(i => i.id))
-            .eq('organization_id', organizationId);
-
-          if (invitationRowsError) {
-            logger.error('Error fetching invitation inviter ids', invitationRowsError);
-          } else if (invitationRows && invitationRows.length > 0) {
-            const uniqueInviterIds = [...new Set(invitationRows.map(r => r.invited_by).filter(Boolean))];
-            const { data: profileRows, error: profileRowsError } = await supabase
-              .from('profiles')
-              .select('id, name')
-              .in('id', uniqueInviterIds);
-
-            if (profileRowsError) {
-              logger.error('Error fetching inviter profiles', profileRowsError);
-            }
-
-            const profileMap: Record<string, string> = {};
-            for (const p of profileRows || []) {
-              profileMap[p.id] = p.name || 'Unknown';
-            }
-
-            for (const row of invitationRows) {
-              inviterIdMap[row.id] = row.invited_by;
-              inviterNameMap[row.id] = profileRowsError
-                ? 'Unknown'
-                : (profileMap[row.invited_by] || 'Unknown');
-            }
-          }
-        }
-
-        const executionTime = performance.now() - startTime;
-
-        // Log performance
-        try {
-          await supabase.rpc('log_invitation_performance', {
-            function_name: 'get_invitations',
-            execution_time_ms: executionTime,
-            success: true
-          });
-        } catch {
-          // Silently fail - performance logging is non-critical
-        }
+        await logInvitationMutationSuccess('get_invitations', startTime);
 
         return invitations.map(invitation => ({
           id: invitation.id,
@@ -120,22 +84,7 @@ export const useOrganizationInvitations = (organizationId: string) => {
           expired_at: invitation.expired_at || undefined
         }));
       } catch (error) {
-        const executionTime = performance.now() - startTime;
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        logger.error('Failed to fetch invitations', error);
-        
-        // Log performance error
-        try {
-          await supabase.rpc('log_invitation_performance', {
-            function_name: 'get_invitations',
-            execution_time_ms: executionTime,
-            success: false,
-            error_message: errorMessage
-          });
-        } catch {
-          // Silently fail - performance logging is non-critical
-        }
-        
+        await logInvitationMutationFailure('get_invitations', startTime, error, 'Failed to fetch invitations');
         throw error;
       }
     },
@@ -190,16 +139,7 @@ export const useCreateInvitation = (organizationId: string) => {
           });
         }
 
-        // Log performance success
-        try {
-          await supabase.rpc('log_invitation_performance', {
-            function_name: 'create_invitation',
-            execution_time_ms: executionTime,
-            success: true
-          });
-        } catch {
-          // Silently fail - performance logging is non-critical
-        }
+        await logInvitationMutationSuccess('create_invitation', startTime);
 
         // Get the created invitation data for return
         const { data: createdRows, error: fetchError } = await supabase
@@ -237,26 +177,20 @@ export const useCreateInvitation = (organizationId: string) => {
           })();
         }
 
-        // Send invitation email via edge function (awaited — success toast depends on delivery)
-        const [profileResult, organizationResult] = await Promise.all([
-          supabase.from('profiles').select('name').eq('id', claims.sub).single(),
-          supabase.from('organizations').select('name').eq('id', organizationId).single()
-        ]);
-
-        const { error: emailError } = await supabase.functions.invoke('send-invitation-email', {
-          body: {
-            invitationId: createdInvitation.id,
-            email: requestData.email.toLowerCase().trim(),
-            role: requestData.role,
-            organizationName: organizationResult.data?.name || 'Your Organization',
-            inviterName: profileResult.data?.name || 'Team Member',
-            message: requestData.message
-          }
-        });
-
-        if (emailError) {
+        const emailContext = await fetchInvitationEmailContext(organizationId, claims.sub);
+        try {
+          await sendInvitationEmail(
+            {
+              invitationId: createdInvitation.id,
+              email: requestData.email,
+              role: requestData.role,
+              message: requestData.message,
+            },
+            emailContext,
+          );
+        } catch (emailError) {
           logger.error('[INVITATION] Failed to send invitation email', emailError);
-          throw new Error('INVITATION_EMAIL_SEND_FAILED');
+          throw new Error('INVITATION_EMAIL_SEND_FAILED', { cause: emailError });
         }
 
         if (import.meta.env.DEV) {
@@ -272,22 +206,7 @@ export const useCreateInvitation = (organizationId: string) => {
         return createdInvitation;
         
       } catch (error) {
-        const executionTime = performance.now() - startTime;
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        logger.error('Failed to create invitation', error);
-        
-        // Log performance error
-        try {
-          await supabase.rpc('log_invitation_performance', {
-            function_name: 'create_invitation',
-            execution_time_ms: executionTime,
-            success: false,
-            error_message: errorMessage
-          });
-        } catch {
-          // Silently fail - performance logging is non-critical
-        }
-        
+        await logInvitationMutationFailure('create_invitation', startTime, error, 'Failed to create invitation');
         throw error;
       }
     },
@@ -324,18 +243,7 @@ export const useResendInvitation = (organizationId: string) => {
 
   return useMutation({
     mutationFn: async (invitationId: string) => {
-      const claims = await getAuthClaims();
-      if (!claims) throw new Error('User not authenticated');
-
-      // Check if user can manage this invitation using atomic function
-      const { data: canManage } = await supabase.rpc('can_manage_invitation_atomic', {
-        user_uuid: claims.sub,
-        invitation_id: invitationId
-      });
-
-      if (!canManage) {
-        throw new Error('You do not have permission to resend this invitation');
-      }
+      const { sub } = await assertCanManageInvitation(organizationId, invitationId, 'resend');
 
       const { data, error } = await supabase
         .from('organization_invitations')
@@ -354,23 +262,18 @@ export const useResendInvitation = (organizationId: string) => {
         throw new Error('Invitation not found');
       }
 
-      const [profileResult, organizationResult] = await Promise.all([
-        supabase.from('profiles').select('name').eq('id', claims.sub).single(),
-        supabase.from('organizations').select('name').eq('id', organizationId).single()
-      ]);
-
-      const { error: emailError } = await supabase.functions.invoke('send-invitation-email', {
-        body: {
-          invitationId: updatedInvitation.id,
-          email: updatedInvitation.email.toLowerCase().trim(),
-          role: updatedInvitation.role,
-          organizationName: organizationResult.data?.name || 'Your Organization',
-          inviterName: profileResult.data?.name || 'Team Member',
-          message: updatedInvitation.message ?? undefined
-        }
-      });
-
-      if (emailError) {
+      const emailContext = await fetchInvitationEmailContext(organizationId, sub);
+      try {
+        await sendInvitationEmail(
+          {
+            invitationId: updatedInvitation.id,
+            email: updatedInvitation.email,
+            role: updatedInvitation.role,
+            message: updatedInvitation.message,
+          },
+          emailContext,
+        );
+      } catch {
         throw new Error('Failed to send invitation email');
       }
 
@@ -396,18 +299,7 @@ export const useCancelInvitation = (organizationId: string) => {
 
   return useMutation({
     mutationFn: async (invitationId: string) => {
-      const claims = await getAuthClaims();
-      if (!claims) throw new Error('User not authenticated');
-
-      // Check if user can manage this invitation using atomic function
-      const { data: canManage } = await supabase.rpc('can_manage_invitation_atomic', {
-        user_uuid: claims.sub,
-        invitation_id: invitationId
-      });
-
-      if (!canManage) {
-        throw new Error('You do not have permission to cancel this invitation');
-      }
+      await assertCanManageInvitation(organizationId, invitationId, 'cancel');
 
       const { data, error } = await supabase
         .from('organization_invitations')

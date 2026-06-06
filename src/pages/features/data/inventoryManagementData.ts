@@ -1,4 +1,3 @@
-import type { LucideIcon } from 'lucide-react';
 import {
   PackageCheck,
   AlertTriangle,
@@ -6,37 +5,34 @@ import {
   ListChecks,
   History,
   Settings2,
+  Warehouse,
 } from 'lucide-react';
 import { landingImage } from '@/lib/landingImage';
+import type { Benefit, Capability, FeaturePageContent, ImageScreenshot, Step } from './featurePageTypes';
 
-export interface Capability {
-  name: string;
-  description: string;
-  icon: LucideIcon;
-}
+export type { Benefit, Capability, Step } from './featurePageTypes';
+export type Screenshot = ImageScreenshot;
 
-export interface Benefit {
-  icon: LucideIcon;
-  iconColor: 'success' | 'warning' | 'info';
-  title: string;
-  subtitle: string;
-  description: string;
-  benefits: string[];
-  benefitColor: 'success' | 'warning' | 'info';
-}
+export const heroIcon = Warehouse;
 
-export interface Step {
-  number: number;
-  title: string;
-  description: string;
-}
-
-export interface Screenshot {
-  imageUrl: string;
-  imageAlt: string;
-  title: string;
-  description: string;
-}
+export const content: FeaturePageContent = {
+  benefitsTitle: 'Why Use Inventory Management?',
+  benefitsDescription:
+    'Keep parts organized, avoid stockouts, and ensure the right components are available when your technicians need them. Full visibility and audit trails for every transaction.',
+  capabilitiesTitle: 'Key Capabilities',
+  capabilitiesDescription:
+    'Everything you need to manage parts and supplies: catalog, transactions, compatibility, and alerts—all in one place.',
+  stepsTitle: 'How It Works',
+  stepsDescription:
+    'Inventory Management fits into your existing workflow—from receiving parts to consuming them on work orders.',
+  stepsClassName: 'bg-muted/30',
+  showcaseTitle: 'See Inventory Management in Action',
+  showcaseDescription: "Here's what Inventory Management looks like in the EquipQR™ app.",
+  ctaTitle: 'Ready to Organize Your Parts & Supplies?',
+  ctaDescription:
+    'Start using Inventory Management today—completely free. Create your account and begin tracking stock right away.',
+  ctaPrimaryText: 'Start Using Inventory Management Free',
+};
 
 export const capabilities: Capability[] = [
   {
@@ -126,8 +122,9 @@ export const steps: Step[] = [
   },
 ];
 
-export const screenshots: Screenshot[] = [
+export const showcases: Screenshot[] = [
   {
+    kind: 'image',
     imageUrl: landingImage('inventory-list-2026-04.png'),
     imageAlt: 'Inventory list view showing parts with stock levels, SKUs, and low stock indicators',
     title: 'Inventory List View',
@@ -135,6 +132,7 @@ export const screenshots: Screenshot[] = [
       'Browse all inventory items with part numbers, descriptions, current stock levels, and low-stock indicators. Filter, sort, and search to find what you need quickly.',
   },
   {
+    kind: 'image',
     imageUrl: landingImage('inventory-item-detail-2026-04.png'),
     imageAlt: 'Inventory item detail page showing stock quantity, threshold, unit cost, and transaction history tabs',
     title: 'Item Detail & Stock Information',

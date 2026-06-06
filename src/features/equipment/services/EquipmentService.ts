@@ -3,7 +3,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
 import { getAuthClaims } from '@/lib/authClaims';
-import { batchResolveEquipmentDisplayImageUrls } from '@/services/imageUploadService';
+import { withResolvedEquipmentImages } from '@/services/imageUploadService';
+import {
+  createServiceErrorResponse,
+  createServiceSuccessResponse,
+} from '@/services/serviceResponseHelpers';
+import { applySupabasePaginationRange } from '@/services/supabaseQueryPagination';
+import {
+  batchUpdateRowResult,
+  collectBatchMutationResults,
+} from '@/services/batchMutationResultHelpers';
+import { queryOrgScopedEquipmentNotes, queryOrgScopedEquipmentScans } from '@/services/equipmentOrgScopedQueries';
+import { flattenAndResolveEquipmentImages } from '@/features/equipment/utils/equipmentTeamFlatten';
 
 // Use Supabase types for Equipment
 export type Equipment = Tables<'equipment'>;
@@ -153,36 +164,6 @@ export interface EquipmentWorkOrder extends Tables<'work_orders'> {
 }
 
 /**
- * Helper functions for consistent error/success handling
- */
-function handleError(error: unknown): ApiResponse<null> {
-  logger.error('EquipmentService error:', error);
-  return {
-    data: null,
-    error: error instanceof Error ? error.message : 'Operation failed',
-    success: false
-  };
-}
-
-function handleSuccess<T>(data: T): ApiResponse<T> {
-  return {
-    data,
-    error: null,
-    success: true
-  };
-}
-
-async function withResolvedEquipmentImages<T extends { image_url?: string | null }>(
-  rows: T[]
-): Promise<T[]> {
-  const urls = await batchResolveEquipmentDisplayImageUrls(rows.map(r => r.image_url ?? null));
-  return rows.map((row, i) => ({
-    ...row,
-    image_url: urls[i] ?? null,
-  }));
-}
-
-/**
  * Maximum number of concurrent per-row Supabase updates issued by
  * `EquipmentService.batchUpdate`. Bulk saves chunk into batches of this size
  * and run sequentially across chunks to avoid rate limiting and network
@@ -223,7 +204,7 @@ export class EquipmentService {
           query = query.in('team_id', filters.userTeamIds);
         } else {
           // Users with no team memberships see no equipment
-          return handleSuccess([]);
+          return createServiceSuccessResponse([]);
         }
       }
 
@@ -257,28 +238,19 @@ export class EquipmentService {
         query = query.order('name', { ascending: true });
       }
 
-      // Apply pagination
-      if (pagination.limit) {
-        const startIndex = ((pagination.page || 1) - 1) * pagination.limit;
-        query = query.range(startIndex, startIndex + pagination.limit - 1);
-      }
+      query = applySupabasePaginationRange(query, pagination);
 
       const { data, error } = await query;
 
       if (error) {
         logger.error('Error fetching equipment:', error);
-        return handleError(error);
+        return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
-      const flattened = (data || []).map(row => ({
-        ...row,
-        team_name: (row.team as { name?: string } | null | undefined)?.name ?? undefined,
-      })) as EquipmentWithTeam[];
-
-      const resolved = await withResolvedEquipmentImages(flattened);
-      return handleSuccess(resolved);
+      const resolved = await flattenAndResolveEquipmentImages(data || []);
+      return createServiceSuccessResponse(resolved);
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'EquipmentService error');
     }
   }
 
@@ -307,7 +279,7 @@ export class EquipmentService {
 
       if (options.userTeamIds !== undefined && !options.isOrgAdmin) {
         if (options.userTeamIds.length === 0) {
-          return handleSuccess([]);
+          return createServiceSuccessResponse([]);
         }
         query = query.in('team_id', options.userTeamIds);
       }
@@ -316,7 +288,7 @@ export class EquipmentService {
 
       if (error) {
         logger.error('Error fetching equipment summaries:', error);
-        return handleError(error);
+        return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
       const flattened: EquipmentSummary[] = (data || []).map(row => ({
@@ -340,9 +312,9 @@ export class EquipmentService {
         team_name: (row.team as { name?: string } | null | undefined)?.name ?? undefined,
       }));
 
-      return handleSuccess(flattened);
+      return createServiceSuccessResponse(flattened);
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'EquipmentService error');
     }
   }
 
@@ -380,7 +352,7 @@ export class EquipmentService {
       // rows but that still costs a round trip.
       if (filters.userTeamIds !== undefined && !filters.isOrgAdmin) {
         if (filters.userTeamIds.length === 0) {
-          return handleSuccess({ data: [], count: 0 });
+          return createServiceSuccessResponse({ data: [], count: 0 });
         }
         query = query.in('team_id', filters.userTeamIds);
       }
@@ -462,18 +434,13 @@ export class EquipmentService {
 
       if (error) {
         logger.error('Error fetching paginated equipment list:', error);
-        return handleError(error);
+        return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
-      const flattened = (data || []).map(row => ({
-        ...row,
-        team_name: (row.team as { name?: string } | null | undefined)?.name ?? undefined,
-      })) as EquipmentWithTeam[];
-
-      const resolved = await withResolvedEquipmentImages(flattened);
-      return handleSuccess({ data: resolved, count: count ?? resolved.length });
+      const resolved = await flattenAndResolveEquipmentImages(data || []);
+      return createServiceSuccessResponse({ data: resolved, count: count ?? resolved.length });
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'EquipmentService error');
     }
   }
 
@@ -508,11 +475,11 @@ export class EquipmentService {
 
       if (error) {
         logger.error('Error fetching equipment by ID:', error);
-        return handleError(error);
+        return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
       if (!data) {
-        return handleError(new Error('Equipment not found'));
+        return createServiceErrorResponse(new Error('Equipment not found'), 'EquipmentService error');
       }
 
       const flattened: EquipmentWithTeam = {
@@ -521,9 +488,9 @@ export class EquipmentService {
       };
 
       const resolved = await withResolvedEquipmentImages([flattened]);
-      return handleSuccess(resolved[0]);
+      return createServiceSuccessResponse(resolved[0]);
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'EquipmentService error');
     }
   }
 
@@ -537,7 +504,7 @@ export class EquipmentService {
     try {
       // Validate required fields
       if (!data.name || !data.manufacturer || !data.model || !data.serial_number) {
-        return handleError(new Error('Missing required fields'));
+        return createServiceErrorResponse(new Error('Missing required fields'), 'EquipmentService error');
       }
 
       const { data: newEquipment, error } = await supabase
@@ -551,12 +518,12 @@ export class EquipmentService {
 
       if (error) {
         logger.error('Error creating equipment:', error);
-        return handleError(error);
+        return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
-      return handleSuccess(newEquipment);
+      return createServiceSuccessResponse(newEquipment);
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'EquipmentService error');
     }
   }
 
@@ -573,7 +540,7 @@ export class EquipmentService {
     try {
       // Validate required fields
       if (!data.manufacturer || !data.model || !data.serial_number || !data.team_id || !data.name) {
-        return handleError(new Error('Missing required fields for quick equipment creation'));
+        return createServiceErrorResponse(new Error('Missing required fields for quick equipment creation'), 'EquipmentService error');
       }
 
       // Auto-generate description
@@ -599,12 +566,12 @@ export class EquipmentService {
 
       if (error) {
         logger.error('Error creating equipment (quick):', error);
-        return handleError(error);
+        return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
-      return handleSuccess(newEquipment);
+      return createServiceSuccessResponse(newEquipment);
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'EquipmentService error');
     }
   }
 
@@ -627,16 +594,16 @@ export class EquipmentService {
 
       if (error) {
         logger.error('Error updating equipment:', error);
-        return handleError(error);
+        return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
       if (!updated) {
-        return handleError(new Error('Equipment not found'));
+        return createServiceErrorResponse(new Error('Equipment not found'), 'EquipmentService error');
       }
 
-      return handleSuccess(updated);
+      return createServiceSuccessResponse(updated);
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'EquipmentService error');
     }
   }
 
@@ -660,7 +627,7 @@ export class EquipmentService {
   ): Promise<ApiResponse<{ succeeded: string[]; failed: Array<{ id: string; error: string }> }>> {
     try {
       if (updates.length === 0) {
-        return handleSuccess({ succeeded: [], failed: [] });
+        return createServiceSuccessResponse({ succeeded: [], failed: [] });
       }
 
       const succeeded: string[] = [];
@@ -677,44 +644,27 @@ export class EquipmentService {
               .eq('organization_id', organizationId)
               .select('id');
 
-            if (error) {
-              return { id, error: error.message };
-            }
-            if (!rows || rows.length === 0) {
-              // Either the id is wrong or the row belongs to a different org —
-              // RLS hides the difference, so we surface a generic message.
-              return { id, error: 'Equipment not found or access denied' };
-            }
-            return { id, error: null as string | null };
+            return batchUpdateRowResult(
+              id,
+              error,
+              rows,
+              'Equipment not found or access denied',
+            );
           })
         );
 
-        for (let i = 0; i < results.length; i++) {
-          const result = results[i];
-          if (result.status === 'fulfilled') {
-            const { id, error } = result.value;
-            if (error) {
-              failed.push({ id, error });
-            } else {
-              succeeded.push(id);
-            }
-          } else {
-            // Unexpected promise rejection (network / runtime). Preserve the
-            // original update payload's id so the caller can map back to the row.
-            const id = chunk[i].id;
-            const error = result.reason instanceof Error ? result.reason.message : 'Unknown error';
-            failed.push({ id, error });
-          }
-        }
+        const chunkResults = collectBatchMutationResults(results, chunk);
+        succeeded.push(...chunkResults.succeeded);
+        failed.push(...chunkResults.failed);
       }
 
-      return handleSuccess({ succeeded, failed });
+      return createServiceSuccessResponse({ succeeded, failed });
     } catch (error) {
       // Outer catch handles unexpected runtime errors (e.g. `supabase.from()`
       // throwing synchronously, malformed inputs that escape Promise.allSettled)
       // so callers always receive a normalized `ApiResponse` matching the rest
       // of this service — no caller has to handle a different failure shape.
-      return handleError(error);
+      return createServiceErrorResponse(error, 'EquipmentService error');
     }
   }
 
@@ -734,12 +684,12 @@ export class EquipmentService {
 
       if (error) {
         logger.error('Error deleting equipment:', error);
-        return handleError(error);
+        return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
-      return handleSuccess(true);
+      return createServiceSuccessResponse(true);
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'EquipmentService error');
     }
   }
 
@@ -757,7 +707,7 @@ export class EquipmentService {
 
       if (error) {
         logger.error('Error fetching equipment status counts:', error);
-        return handleError(error);
+        return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
       const counts = (data || []).reduce((acc, eq) => {
@@ -773,9 +723,9 @@ export class EquipmentService {
         }
       });
 
-      return handleSuccess(counts);
+      return createServiceSuccessResponse(counts);
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'EquipmentService error');
     }
   }
 
@@ -787,25 +737,13 @@ export class EquipmentService {
     equipmentId: string
   ): Promise<ApiResponse<EquipmentNote[]>> {
     try {
-      const { data, error } = await supabase
-        .from('notes')
-        .select(`
-          *,
-          author:profiles!notes_author_id_fkey (
-            id,
-            name
-          ),
-          equipment!inner (
-            organization_id
-          )
-        `)
-        .eq('equipment_id', equipmentId)
-        .eq('equipment.organization_id', organizationId)
-        .order('created_at', { ascending: false });
+      const { data, error } = await queryOrgScopedEquipmentNotes(organizationId, equipmentId, {
+        includeAuthor: true,
+      });
 
       if (error) {
         logger.error('Error fetching equipment notes:', error);
-        return handleError(error);
+        return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
       const notes: EquipmentNote[] = (data || []).map(note => ({
@@ -813,9 +751,9 @@ export class EquipmentService {
         authorName: (note.author as { name?: string } | null | undefined)?.name || 'Unknown'
       }));
 
-      return handleSuccess(notes);
+      return createServiceSuccessResponse(notes);
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'EquipmentService error');
     }
   }
 
@@ -827,25 +765,13 @@ export class EquipmentService {
     equipmentId: string
   ): Promise<ApiResponse<EquipmentScan[]>> {
     try {
-      const { data, error } = await supabase
-        .from('scans')
-        .select(`
-          *,
-          scanned_by_profile:profiles!scans_scanned_by_fkey (
-            id,
-            name
-          ),
-          equipment!inner (
-            organization_id
-          )
-        `)
-        .eq('equipment_id', equipmentId)
-        .eq('equipment.organization_id', organizationId)
-        .order('scanned_at', { ascending: false });
+      const { data, error } = await queryOrgScopedEquipmentScans(organizationId, equipmentId, {
+        includeScannerProfile: true,
+      });
 
       if (error) {
         logger.error('Error fetching equipment scans:', error);
-        return handleError(error);
+        return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
       const scans: EquipmentScan[] = (data || []).map(scan => ({
@@ -853,9 +779,9 @@ export class EquipmentService {
         scannedByName: (scan.scanned_by_profile as { name?: string } | null | undefined)?.name || 'Unknown'
       }));
 
-      return handleSuccess(scans);
+      return createServiceSuccessResponse(scans);
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'EquipmentService error');
     }
   }
 
@@ -886,7 +812,7 @@ export class EquipmentService {
 
       if (error) {
         logger.error('Error fetching equipment work orders:', error);
-        return handleError(error);
+        return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
       const workOrders: EquipmentWorkOrder[] = (data || []).map(wo => ({
@@ -895,9 +821,9 @@ export class EquipmentService {
         equipmentName: (wo.equipment as { name?: string } | null | undefined)?.name
       }));
 
-      return handleSuccess(workOrders);
+      return createServiceSuccessResponse(workOrders);
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'EquipmentService error');
     }
   }
 
@@ -928,7 +854,7 @@ export class EquipmentService {
           query = query.in('team_id', userTeamIds);
         } else {
           // Users with no team memberships see no equipment
-          return handleSuccess([]);
+          return createServiceSuccessResponse([]);
         }
       }
 
@@ -936,7 +862,7 @@ export class EquipmentService {
 
       if (error) {
         logger.error('Error fetching team-accessible equipment:', error);
-        return handleError(error);
+        return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
       // Note: this query aliases the join as `teams` (not `team`); flatten
@@ -946,9 +872,9 @@ export class EquipmentService {
         team_name: (row.teams as { name?: string } | null | undefined)?.name ?? undefined,
       }));
 
-      return handleSuccess(flattened);
+      return createServiceSuccessResponse(flattened);
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'EquipmentService error');
     }
   }
 
@@ -962,9 +888,9 @@ export class EquipmentService {
   ): Promise<ApiResponse<string[]>> {
     const result = await EquipmentService.getTeamAccessibleEquipment(organizationId, userTeamIds, isOrgAdmin);
     if (result.success && result.data) {
-      return handleSuccess(result.data.map(eq => eq.id));
+      return createServiceSuccessResponse(result.data.map(eq => eq.id));
     }
-    return handleSuccess([]);
+    return createServiceSuccessResponse([]);
   }
 
   /**
@@ -984,7 +910,7 @@ export class EquipmentService {
       // Always derive user identity server-side; never trust caller-provided identity.
       const userId = (await getAuthClaims())?.sub;
       if (!userId) {
-        return handleError(new Error('User not authenticated'));
+        return createServiceErrorResponse(new Error('User not authenticated'), 'EquipmentService error');
       }
 
       // Narrow existence check — avoids a full select('*') + team join just to validate
@@ -996,7 +922,7 @@ export class EquipmentService {
         .eq('organization_id', organizationId)
         .single();
       if (equipError || !equip) {
-        return handleError(new Error('Equipment not found or access denied'));
+        return createServiceErrorResponse(new Error('Equipment not found or access denied'), 'EquipmentService error');
       }
 
       // Create the scan
@@ -1013,11 +939,11 @@ export class EquipmentService {
 
       if (error) {
         logger.error('Error creating scan:', error);
-        return handleError(error);
+        return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
       if (options.includeProfile === false) {
-        return handleSuccess(data);
+        return createServiceSuccessResponse(data);
       }
 
       const { data: profile } = await supabase
@@ -1031,9 +957,9 @@ export class EquipmentService {
         scannedByName: profile?.name || 'Unknown'
       };
 
-      return handleSuccess(scan);
+      return createServiceSuccessResponse(scan);
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'EquipmentService error');
     }
   }
 
@@ -1051,18 +977,18 @@ export class EquipmentService {
       // Get authenticated user
       const claims = await getAuthClaims();
       if (!claims) {
-        return handleError(new Error('User not authenticated'));
+        return createServiceErrorResponse(new Error('User not authenticated'), 'EquipmentService error');
       }
 
       // Validate content
       if (!content || content.trim().length === 0) {
-        return handleError(new Error('Note content is required'));
+        return createServiceErrorResponse(new Error('Note content is required'), 'EquipmentService error');
       }
 
       // Verify equipment belongs to this organization
       const equipmentResult = await EquipmentService.getById(organizationId, equipmentId);
       if (!equipmentResult.success || !equipmentResult.data) {
-        return handleError(new Error('Equipment not found or access denied'));
+        return createServiceErrorResponse(new Error('Equipment not found or access denied'), 'EquipmentService error');
       }
 
       // Create the note
@@ -1079,7 +1005,7 @@ export class EquipmentService {
 
       if (error) {
         logger.error('Error creating note:', error);
-        return handleError(error);
+        return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
       // Get author profile name
@@ -1094,9 +1020,9 @@ export class EquipmentService {
         authorName: profile?.name || 'Unknown'
       };
 
-      return handleSuccess(note);
+      return createServiceSuccessResponse(note);
     } catch (error) {
-      return handleError(error);
+      return createServiceErrorResponse(error, 'EquipmentService error');
     }
   }
 }

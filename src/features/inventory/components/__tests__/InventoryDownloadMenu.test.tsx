@@ -1,9 +1,6 @@
-import React from 'react';
-import { render, screen } from '@/test/utils/test-utils';
+import { render, screen, createSettingsTestWrapper, SYDNEY_USER_SETTINGS } from '@/test/utils/test-utils';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { SettingsContext } from '@/contexts/settings-context';
-import type { UserSettings } from '@/types/settings';
 import { formatDate } from '@/utils/dateFormatter';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
 import * as exportUtils from '@/utils/exportUtils';
@@ -16,25 +13,7 @@ vi.mock('@/utils/logger', () => ({
   },
 }));
 
-const sydneySettings: UserSettings = {
-  timezone: 'Australia/Sydney',
-  dateFormat: 'MM/dd/yyyy',
-};
-
-function SettingsWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <SettingsContext.Provider
-      value={{
-        settings: sydneySettings,
-        updateSetting: vi.fn(),
-        resetSettings: vi.fn(),
-        isLoading: false,
-      }}
-    >
-      {children}
-    </SettingsContext.Provider>
-  );
-}
+const SettingsWrapper = createSettingsTestWrapper();
 
 const UTC_CROSS_CALENDAR = '2023-12-24T15:00:00.000Z';
 
@@ -76,6 +55,6 @@ describe('InventoryDownloadMenu', () => {
 
     expect(exportUtils.downloadCsv).toHaveBeenCalled();
     const csvArg = vi.mocked(exportUtils.downloadCsv).mock.calls[0][0];
-    expect(csvArg).toContain(formatDate(UTC_CROSS_CALENDAR, sydneySettings));
+    expect(csvArg).toContain(formatDate(UTC_CROSS_CALENDAR, SYDNEY_USER_SETTINGS));
   });
 });

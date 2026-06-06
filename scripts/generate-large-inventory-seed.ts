@@ -573,6 +573,26 @@ function escapeSQL(str: string | null): string {
   return `'${str.replace(/'/g, "''")}'`;
 }
 
+function pushSqlSection(lines: string[], title: string): void {
+  lines.push(`-- =====================================================`);
+  lines.push(`-- ${title}`);
+  lines.push(`-- =====================================================`);
+  lines.push(``);
+}
+
+function appendInsertValues(
+  lines: string[],
+  sectionTitle: string,
+  insertHeader: string[],
+  valueRows: string[],
+): void {
+  pushSqlSection(lines, sectionTitle);
+  lines.push(...insertHeader);
+  lines.push(valueRows.join('\n'));
+  lines.push(`ON CONFLICT (id) DO NOTHING;`);
+  lines.push(``);
+}
+
 function generateSQL(): string {
   const lines: string[] = [];
   
@@ -649,17 +669,6 @@ function generateSQL(): string {
     memberCounter += members.length;
   }
   
-  // Generate inventory items INSERT
-  lines.push(`-- =====================================================`);
-  lines.push(`-- INVENTORY ITEMS (${allItems.length} total)`);
-  lines.push(`-- =====================================================`);
-  lines.push(``);
-  lines.push(`INSERT INTO public.inventory_items (`);
-  lines.push(`  id, organization_id, name, description, sku,`);
-  lines.push(`  quantity_on_hand, low_stock_threshold, location,`);
-  lines.push(`  default_unit_cost, created_by, created_at, updated_at`);
-  lines.push(`) VALUES`);
-  
   const itemValues = allItems.map((item, idx) => {
     const comma = idx < allItems.length - 1 ? ',' : '';
     return `  (
@@ -677,21 +686,20 @@ function generateSQL(): string {
     NOW() - INTERVAL '${randomInt(0, 30)} days'
   )${comma}`;
   });
-  
-  lines.push(itemValues.join('\n'));
-  lines.push(`ON CONFLICT (id) DO NOTHING;`);
-  lines.push(``);
-  
-  // Generate alternate groups INSERT
-  lines.push(`-- =====================================================`);
-  lines.push(`-- PART ALTERNATE GROUPS (${allGroups.length} total)`);
-  lines.push(`-- =====================================================`);
-  lines.push(``);
-  lines.push(`INSERT INTO public.part_alternate_groups (`);
-  lines.push(`  id, organization_id, name, description, status,`);
-  lines.push(`  notes, evidence_url, created_by, verified_by, verified_at, created_at`);
-  lines.push(`) VALUES`);
-  
+
+  appendInsertValues(
+    lines,
+    `INVENTORY ITEMS (${allItems.length} total)`,
+    [
+      `INSERT INTO public.inventory_items (`,
+      `  id, organization_id, name, description, sku,`,
+      `  quantity_on_hand, low_stock_threshold, location,`,
+      `  default_unit_cost, created_by, created_at, updated_at`,
+      `) VALUES`,
+    ],
+    itemValues,
+  );
+
   const groupValues = allGroups.map((group, idx) => {
     const comma = idx < allGroups.length - 1 ? ',' : '';
     const verifiedAt = group.verified_by ? `NOW() - INTERVAL '${randomInt(1, 90)} days'` : 'NULL';
@@ -709,21 +717,19 @@ function generateSQL(): string {
     NOW() - INTERVAL '${randomInt(30, 180)} days'
   )${comma}`;
   });
-  
-  lines.push(groupValues.join('\n'));
-  lines.push(`ON CONFLICT (id) DO NOTHING;`);
-  lines.push(``);
-  
-  // Generate part identifiers INSERT
-  lines.push(`-- =====================================================`);
-  lines.push(`-- PART IDENTIFIERS (${allIdentifiers.length} total)`);
-  lines.push(`-- =====================================================`);
-  lines.push(``);
-  lines.push(`INSERT INTO public.part_identifiers (`);
-  lines.push(`  id, organization_id, identifier_type, raw_value, norm_value,`);
-  lines.push(`  inventory_item_id, manufacturer, notes, created_by, created_at`);
-  lines.push(`) VALUES`);
-  
+
+  appendInsertValues(
+    lines,
+    `PART ALTERNATE GROUPS (${allGroups.length} total)`,
+    [
+      `INSERT INTO public.part_alternate_groups (`,
+      `  id, organization_id, name, description, status,`,
+      `  notes, evidence_url, created_by, verified_by, verified_at, created_at`,
+      `) VALUES`,
+    ],
+    groupValues,
+  );
+
   const identifierValues = allIdentifiers.map((ident, idx) => {
     const comma = idx < allIdentifiers.length - 1 ? ',' : '';
     return `  (
@@ -739,20 +745,19 @@ function generateSQL(): string {
     NOW() - INTERVAL '${randomInt(1, 120)} days'
   )${comma}`;
   });
-  
-  lines.push(identifierValues.join('\n'));
-  lines.push(`ON CONFLICT (id) DO NOTHING;`);
-  lines.push(``);
-  
-  // Generate group members INSERT
-  lines.push(`-- =====================================================`);
-  lines.push(`-- PART ALTERNATE GROUP MEMBERS (${allMembers.length} total)`);
-  lines.push(`-- =====================================================`);
-  lines.push(``);
-  lines.push(`INSERT INTO public.part_alternate_group_members (`);
-  lines.push(`  id, group_id, part_identifier_id, inventory_item_id, is_primary, notes, created_at`);
-  lines.push(`) VALUES`);
-  
+
+  appendInsertValues(
+    lines,
+    `PART IDENTIFIERS (${allIdentifiers.length} total)`,
+    [
+      `INSERT INTO public.part_identifiers (`,
+      `  id, organization_id, identifier_type, raw_value, norm_value,`,
+      `  inventory_item_id, manufacturer, notes, created_by, created_at`,
+      `) VALUES`,
+    ],
+    identifierValues,
+  );
+
   const memberValues = allMembers.map((member, idx) => {
     const comma = idx < allMembers.length - 1 ? ',' : '';
     return `  (
@@ -765,15 +770,19 @@ function generateSQL(): string {
     NOW() - INTERVAL '${randomInt(1, 90)} days'
   )${comma}`;
   });
-  
-  lines.push(memberValues.join('\n'));
-  lines.push(`ON CONFLICT (id) DO NOTHING;`);
-  lines.push(``);
-  
-  // Summary
-  lines.push(`-- =====================================================`);
-  lines.push(`-- SUMMARY`);
-  lines.push(`-- =====================================================`);
+
+  appendInsertValues(
+    lines,
+    `PART ALTERNATE GROUP MEMBERS (${allMembers.length} total)`,
+    [
+      `INSERT INTO public.part_alternate_group_members (`,
+      `  id, group_id, part_identifier_id, inventory_item_id, is_primary, notes, created_at`,
+      `) VALUES`,
+    ],
+    memberValues,
+  );
+
+  pushSqlSection(lines, 'SUMMARY');
   lines.push(`-- Inventory Items: ${allItems.length}`);
   lines.push(`--   - Apex Construction: ${CONFIG.itemsPerOrg.apex}`);
   lines.push(`--   - Metro Equipment: ${CONFIG.itemsPerOrg.metro}`);

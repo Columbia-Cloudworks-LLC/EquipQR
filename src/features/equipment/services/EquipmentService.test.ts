@@ -8,6 +8,15 @@ vi.mock('@/integrations/supabase/client', () => ({
   }
 }));
 
+vi.mock('@/services/imageUploadService', () => ({
+  batchResolveEquipmentDisplayImageUrls: vi.fn((refs: (string | null | undefined)[]) =>
+    Promise.resolve(refs.map(ref => ref ?? null))
+  ),
+  withResolvedEquipmentImages: vi.fn(<T extends { image_url?: string | null }>(rows: T[]) =>
+    Promise.resolve(rows)
+  ),
+}));
+
 const { supabase } = await import('@/integrations/supabase/client');
 
 describe('EquipmentService', () => {

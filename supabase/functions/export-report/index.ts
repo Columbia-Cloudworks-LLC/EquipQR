@@ -7,14 +7,14 @@
  */
 
 import {
-  createUserSupabaseClient,
-  requireUser,
   verifyOrgAdmin,
   createErrorResponse,
   handleCorsPreflightIfNeeded,
   withCorrelationId,
+  requireAuthenticatedPost,
 } from "../_shared/supabase-clients.ts";
 import { corsHeaders } from "../_shared/cors.ts";
+import { buildCsvTable, escapeCSVValue } from "../_shared/csv-export.ts";
 
 // Maximum rows per export to prevent abuse
 const MAX_ROWS = 50000;
@@ -46,20 +46,12 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
   if (corsResponse) return corsResponse;
 
   try {
-    if (req.method !== 'POST') {
-      return createErrorResponse('Method not allowed', 405);
+    const authContext = await requireAuthenticatedPost(req);
+    if (authContext instanceof Response) {
+      return authContext;
     }
 
-    // Create user-scoped client (RLS enforced)
-    const supabase = createUserSupabaseClient(req);
-
-    // Validate user authentication
-    const auth = await requireUser(req, supabase);
-    if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status);
-    }
-
-    const { user } = auth;
+    const { supabase, user } = authContext;
 
     const body: ExportRequest = await req.json();
     const { reportType, organizationId, filters, columns, format } = body;
@@ -220,24 +212,6 @@ async function checkRateLimit(supabase: ReturnType<typeof createUserSupabaseClie
   }
 
   return true;
-}
-
-/**
- * Escape a value for CSV format
- */
-function escapeCSVValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return '';
-  }
-  
-  const stringValue = String(value);
-  
-  // If the value contains comma, quote, or newline, wrap in quotes and escape quotes
-  if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-    return `"${stringValue.replace(/"/g, '""')}"`;
-  }
-  
-  return stringValue;
 }
 
 /**
@@ -487,18 +461,9 @@ async function exportWorkOrders(
     'has_pm': 'Has PM Checklist',
   };
 
-  const validColumns = columns.filter(col => col in columnMap);
-  const headers = validColumns.map(col => columnLabels[col] || col);
-  const rows: string[] = [headers.join(',')];
-
-  for (const item of workOrders) {
-    const rowValues = validColumns.map(col => columnMap[col](item as Record<string, unknown>));
-    rows.push(rowValues.join(','));
-  }
-
-  return { 
-    csvContent: rows.join('\n'), 
-    rowCount: workOrders.length 
+  return {
+    csvContent: buildCsvTable(workOrders, columns, columnMap, columnLabels),
+    rowCount: workOrders.length,
   };
 }
 
@@ -580,18 +545,9 @@ async function exportInventory(
     'created_at': 'Created Date',
   };
 
-  const validColumns = columns.filter(col => col in columnMap);
-  const headers = validColumns.map(col => columnLabels[col] || col);
-  const rows: string[] = [headers.join(',')];
-
-  for (const item of inventory) {
-    const rowValues = validColumns.map(col => columnMap[col](item as Record<string, unknown>));
-    rows.push(rowValues.join(','));
-  }
-
-  return { 
-    csvContent: rows.join('\n'), 
-    rowCount: inventory.length 
+  return {
+    csvContent: buildCsvTable(inventory, columns, columnMap, columnLabels),
+    rowCount: inventory.length,
   };
 }
 
@@ -677,18 +633,9 @@ async function exportScans(
     'notes': 'Notes',
   };
 
-  const validColumns = columns.filter(col => col in columnMap);
-  const headers = validColumns.map(col => columnLabels[col] || col);
-  const rows: string[] = [headers.join(',')];
-
-  for (const item of filteredScans) {
-    const rowValues = validColumns.map(col => columnMap[col](item as Record<string, unknown>));
-    rows.push(rowValues.join(','));
-  }
-
-  return { 
-    csvContent: rows.join('\n'), 
-    rowCount: filteredScans.length 
+  return {
+    csvContent: buildCsvTable(filteredScans, columns, columnMap, columnLabels),
+    rowCount: filteredScans.length,
   };
 }
 
@@ -848,17 +795,8 @@ async function exportAlternateGroups(
     'group_notes': 'Notes',
   };
 
-  const validColumns = columns.filter(col => col in columnMap);
-  const headers = validColumns.map(col => columnLabels[col] || col);
-  const rows: string[] = [headers.join(',')];
-
-  for (const item of flattenedMembers) {
-    const rowValues = validColumns.map(col => columnMap[col](item));
-    rows.push(rowValues.join(','));
-  }
-
-  return { 
-    csvContent: rows.join('\n'), 
-    rowCount: flattenedMembers.length 
+  return {
+    csvContent: buildCsvTable(flattenedMembers, columns, columnMap, columnLabels),
+    rowCount: flattenedMembers.length,
   };
 }

@@ -1,23 +1,8 @@
-
 import { useSession } from '@/hooks/useSession';
+import { mapSessionTeamMemberships } from '@/features/teams/utils/sessionTeamMemberships';
+import type { TeamMembershipContextType } from '@/contexts/team-context';
 
-export interface TeamMembership {
-  team_id: string;
-  team_name: string;
-  role: 'manager' | 'technician' | 'requestor' | 'viewer';
-  joined_date: string;
-}
-
-export interface TeamMembershipContextType {
-  teamMemberships: TeamMembership[];
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-  hasTeamRole: (teamId: string, role: string) => boolean;
-  hasTeamAccess: (teamId: string) => boolean;
-  canManageTeam: (teamId: string) => boolean;
-  getUserTeamIds: () => string[];
-}
+export type { TeamMembershipContextType };
 
 export const useTeamMembership = (): TeamMembershipContextType => {
   const { 
@@ -31,13 +16,7 @@ export const useTeamMembership = (): TeamMembershipContextType => {
     refreshSession 
   } = useSession();
 
-  // Convert session team memberships to the expected format
-  const teamMemberships: TeamMembership[] = (sessionData?.teamMemberships || []).map(tm => ({
-    team_id: tm.teamId,
-    team_name: tm.teamName,
-    role: tm.role,
-    joined_date: tm.joinedDate
-  }));
+  const teamMemberships = mapSessionTeamMemberships(sessionData?.teamMemberships);
 
   return {
     teamMemberships,

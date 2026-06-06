@@ -5,13 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Trash2, Package } from 'lucide-react';
 import { WorkOrderCostItem } from '@/features/work-orders/hooks/useWorkOrderCostsState';
 
-// Hoisted formatter — avoids recreating Intl.NumberFormat on every render
-const currencyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  minimumFractionDigits: 2,
-});
-const formatCurrency = (cents: number) => currencyFormatter.format(cents / 100);
+import {
+  formatWorkOrderCostCurrency,
+  parseUnitPriceDollarsToCents,
+} from '@/features/work-orders/utils/workOrderCostFormatters';
 
 interface MobileCostItemProps {
   cost: WorkOrderCostItem;
@@ -93,7 +90,7 @@ const MobileCostItem: React.FC<MobileCostItemProps> = React.memo(({
               step="0.01"
               min="0"
               value={cost.unit_price_cents / 100}
-              onChange={(e) => onUpdateCost(cost.id, 'unit_price_cents', Math.round((parseFloat(e.target.value) || 0) * 100))}
+              onChange={(e) => onUpdateCost(cost.id, 'unit_price_cents', parseUnitPriceDollarsToCents(e.target.value))}
               placeholder="0.00"
               className="h-9 min-w-0"
             />
@@ -104,7 +101,7 @@ const MobileCostItem: React.FC<MobileCostItemProps> = React.memo(({
       <div className="flex items-center justify-between pt-2 border-t">
         <span className="text-sm font-medium text-muted-foreground">Total:</span>
         <span className="font-semibold text-lg">
-          {formatCurrency(cost.total_price_cents)}
+          {formatWorkOrderCostCurrency(cost.total_price_cents)}
         </span>
       </div>
     </div>

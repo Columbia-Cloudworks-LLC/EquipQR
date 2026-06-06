@@ -399,7 +399,7 @@ Deno.test("refreshTokenIfNeeded throws when QuickBooks token refresh succeeds bu
       async () =>
         await refreshTokenIfNeeded(credential, mock as unknown as SupabaseClient, "client-id", "client-secret"),
       Error,
-      "QuickBooks credential persistence failed:",
+      "Failed to update QuickBooks credentials after refresh:",
     );
     assertEquals(mock.eqFilters, [["id", "cred-3"], ["organization_id", "org-3"]]);
   } finally {

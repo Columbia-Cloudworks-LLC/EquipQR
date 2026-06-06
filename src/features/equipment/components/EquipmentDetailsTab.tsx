@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,6 @@ import { format } from "date-fns";
 import QRCodeDisplay from "./QRCodeDisplay";
 import InlineEditField from "./InlineEditField";
 import InlineEditCustomAttributes from "./InlineEditCustomAttributes";
-import { WorkingHoursTimelineModal } from "./WorkingHoursTimelineModal";
 import ClickableAddress from "@/components/ui/ClickableAddress";
 import GooglePlacesAutocomplete, { type PlaceLocationData } from "@/components/ui/GooglePlacesAutocomplete";
 import { useGoogleMapsLoader } from "@/hooks/useGoogleMapsLoader";
@@ -37,8 +36,13 @@ import {
 } from "@/features/equipment/utils/equipmentHelpers";
 import { applyEquipmentUpdateRules } from "@/utils/object-utils";
 import EquipmentPMInfo from "./EquipmentPMInfo";
+import { EquipmentIdentityFields } from "./EquipmentIdentityFields";
 
 type Equipment = Tables<'equipment'>;
+
+const WorkingHoursTimelineModal = lazy(() =>
+  import("./WorkingHoursTimelineModal").then((module) => ({ default: module.WorkingHoursTimelineModal })),
+);
 
 interface EquipmentDetailsTabProps {
   equipment: Equipment;
@@ -148,7 +152,7 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
       <div>
         <span className="text-sm font-medium text-muted-foreground">Location</span>
         <div className="mt-1 flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
           <ClickableAddress
             address={teamAddress || undefined}
             lat={team!.location_lat}
@@ -163,7 +167,7 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
                   className="inline-flex items-center justify-center rounded-full p-0.5 text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring cursor-help"
                   aria-label="This location is set by the team. Edit the team to change it."
                 >
-                  <Info className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                  <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-[260px]">
@@ -234,7 +238,7 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
       <div>
         <span className="text-sm font-medium text-muted-foreground">Location</span>
         <div className="mt-1 flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
           <ClickableAddress
             address={equipmentAddress}
             lat={equipment.assigned_location_lat ?? undefined}
@@ -264,7 +268,7 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
       <div>
         <span className="text-sm font-medium text-muted-foreground">Location</span>
         <div className="mt-1 flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
           <span className="text-base">{legacyLocation}</span>
           {canEdit && (
             <Button
@@ -287,7 +291,7 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
     <div>
       <span className="text-sm font-medium text-muted-foreground">Location</span>
       <div className="mt-1 flex items-center gap-2">
-        <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
         <span className="text-base text-muted-foreground">No location set</span>
         {canEdit && (
           <Button
@@ -305,6 +309,38 @@ const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
 };
 
 // ── Main Component ───────────────────────────────────────────────────
+
+function EquipmentDescriptionField({
+  descriptionFieldId,
+  value,
+  canEdit,
+  onSave,
+}: {
+  descriptionFieldId: string;
+  value: string;
+  canEdit: boolean;
+  onSave: (value: string) => void | Promise<void>;
+}) {
+  return (
+    <div>
+      <label htmlFor={descriptionFieldId} className="text-sm font-medium text-muted-foreground">
+        Description
+      </label>
+      <div className="mt-1">
+        <InlineEditField
+          value={value}
+          onSave={onSave}
+          canEdit={canEdit}
+          fieldId={descriptionFieldId}
+          type="textarea"
+          placeholder="Enter equipment description"
+          className="text-base"
+          editAriaLabel="Edit description"
+        />
+      </div>
+    </div>
+  );
+}
 
 const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment, assignedTeam }) => {
   const [showQRCode, setShowQRCode] = useState(false);
@@ -656,96 +692,29 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment, as
 
             {/* Secondary fields -- collapsed on mobile, always visible on desktop */}
             {!isMobile && (
-              <>
-                <div>
-                  <label htmlFor={manufacturerFieldId} className="text-sm font-medium text-muted-foreground">Manufacturer</label>
-                  <div className="mt-1">
-                    <InlineEditField
-                      value={equipment.manufacturer || ''}
-                      onSave={(value) => handleFieldUpdate('manufacturer', value)}
-                      canEdit={canEdit}
-                      fieldId={manufacturerFieldId}
-                      placeholder="Enter manufacturer"
-                      className="text-base"
-                      editAriaLabel="Edit manufacturer"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor={modelFieldId} className="text-sm font-medium text-muted-foreground">Model</label>
-                  <div className="mt-1">
-                    <InlineEditField
-                      value={equipment.model || ''}
-                      onSave={(value) => handleFieldUpdate('model', value)}
-                      canEdit={canEdit}
-                      fieldId={modelFieldId}
-                      placeholder="Enter model"
-                      className="text-base"
-                      editAriaLabel="Edit model"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor={serialNumberFieldId} className="text-sm font-medium text-muted-foreground">Serial Number</label>
-                  <div className="mt-1">
-                    <InlineEditField
-                      value={equipment.serial_number || ''}
-                      onSave={(value) => handleFieldUpdate('serial_number', value)}
-                      canEdit={canEdit}
-                      fieldId={serialNumberFieldId}
-                      placeholder="Enter serial number"
-                      className="text-base"
-                      editAriaLabel="Edit serial number"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor={pmTemplateFieldId} className="text-sm font-medium text-muted-foreground">PM Template</label>
-                  <div className="mt-1 flex items-center gap-2">
-                    <Wrench className="h-4 w-4 text-muted-foreground" />
-                    {canEdit ? (
-                      <InlineEditField
-                        value={equipment.default_pm_template_id || 'none'}
-                        onSave={handlePMTemplateAssignment}
-                        canEdit={canEdit}
-                        fieldId={pmTemplateFieldId}
-                        type="select"
-                        selectOptions={pmTemplateOptions}
-                        placeholder="Select PM template"
-                        className="text-base"
-                        editAriaLabel="Edit PM template"
-                      />
-                    ) : (
-                      <span className="text-base text-foreground">
-                        {getCurrentPMTemplateDisplay()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </>
+              <EquipmentIdentityFields
+                equipment={equipment}
+                canEdit={canEdit}
+                manufacturerFieldId={manufacturerFieldId}
+                modelFieldId={modelFieldId}
+                serialNumberFieldId={serialNumberFieldId}
+                pmTemplateFieldId={pmTemplateFieldId}
+                pmTemplateOptions={pmTemplateOptions}
+                onFieldUpdate={handleFieldUpdate}
+                onPMTemplateAssignment={handlePMTemplateAssignment}
+                getCurrentPMTemplateDisplay={getCurrentPMTemplateDisplay}
+              />
             )}
           </div>
 
           {/* Desktop description -- always visible */}
           {!isMobile && (
-            <div>
-              <label htmlFor={descriptionFieldId} className="text-sm font-medium text-muted-foreground">Description</label>
-              <div className="mt-1">
-                <InlineEditField
-                  value={equipment.notes || ''}
-                  onSave={(value) => handleFieldUpdate('notes', value)}
-                  canEdit={canEdit}
-                  fieldId={descriptionFieldId}
-                  type="textarea"
-                  placeholder="Enter equipment description"
-                  className="text-base"
-                  editAriaLabel="Edit description"
-                />
-              </div>
-            </div>
+            <EquipmentDescriptionField
+              descriptionFieldId={descriptionFieldId}
+              value={equipment.notes || ''}
+              canEdit={canEdit}
+              onSave={(value) => handleFieldUpdate('notes', value)}
+            />
           )}
 
           {/* Mobile collapsible section for secondary fields */}
@@ -759,90 +728,25 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment, as
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="grid grid-cols-1 gap-4 pt-4 border-t mt-2">
-                  <div>
-                    <label htmlFor={manufacturerFieldId} className="text-sm font-medium text-muted-foreground">Manufacturer</label>
-                    <div className="mt-1">
-                      <InlineEditField
-                        value={equipment.manufacturer || ''}
-                        onSave={(value) => handleFieldUpdate('manufacturer', value)}
-                        canEdit={canEdit}
-                        fieldId={manufacturerFieldId}
-                        placeholder="Enter manufacturer"
-                        className="text-base"
-                        editAriaLabel="Edit manufacturer"
-                      />
-                    </div>
-                  </div>
+                  <EquipmentIdentityFields
+                    equipment={equipment}
+                    canEdit={canEdit}
+                    manufacturerFieldId={manufacturerFieldId}
+                    modelFieldId={modelFieldId}
+                    serialNumberFieldId={serialNumberFieldId}
+                    pmTemplateFieldId={pmTemplateFieldId}
+                    pmTemplateOptions={pmTemplateOptions}
+                    onFieldUpdate={handleFieldUpdate}
+                    onPMTemplateAssignment={handlePMTemplateAssignment}
+                    getCurrentPMTemplateDisplay={getCurrentPMTemplateDisplay}
+                  />
 
-                  <div>
-                    <label htmlFor={modelFieldId} className="text-sm font-medium text-muted-foreground">Model</label>
-                    <div className="mt-1">
-                      <InlineEditField
-                        value={equipment.model || ''}
-                        onSave={(value) => handleFieldUpdate('model', value)}
-                        canEdit={canEdit}
-                        fieldId={modelFieldId}
-                        placeholder="Enter model"
-                        className="text-base"
-                        editAriaLabel="Edit model"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor={serialNumberFieldId} className="text-sm font-medium text-muted-foreground">Serial Number</label>
-                    <div className="mt-1">
-                      <InlineEditField
-                        value={equipment.serial_number || ''}
-                        onSave={(value) => handleFieldUpdate('serial_number', value)}
-                        canEdit={canEdit}
-                        fieldId={serialNumberFieldId}
-                        placeholder="Enter serial number"
-                        className="text-base"
-                        editAriaLabel="Edit serial number"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor={pmTemplateFieldId} className="text-sm font-medium text-muted-foreground">PM Template</label>
-                    <div className="mt-1 flex items-center gap-2">
-                      <Wrench className="h-4 w-4 text-muted-foreground" />
-                      {canEdit ? (
-                        <InlineEditField
-                          value={equipment.default_pm_template_id || 'none'}
-                          onSave={handlePMTemplateAssignment}
-                          canEdit={canEdit}
-                          fieldId={pmTemplateFieldId}
-                          type="select"
-                          selectOptions={pmTemplateOptions}
-                          placeholder="Select PM template"
-                          className="text-base"
-                          editAriaLabel="Edit PM template"
-                        />
-                      ) : (
-                        <span className="text-base text-foreground">
-                          {getCurrentPMTemplateDisplay()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor={descriptionFieldId} className="text-sm font-medium text-muted-foreground">Description</label>
-                    <div className="mt-1">
-                      <InlineEditField
-                        value={equipment.notes || ''}
-                        onSave={(value) => handleFieldUpdate('notes', value)}
-                        canEdit={canEdit}
-                        fieldId={descriptionFieldId}
-                        type="textarea"
-                        placeholder="Enter equipment description"
-                        className="text-base"
-                        editAriaLabel="Edit description"
-                      />
-                    </div>
-                  </div>
+                  <EquipmentDescriptionField
+                    descriptionFieldId={descriptionFieldId}
+                    value={equipment.notes || ''}
+                    canEdit={canEdit}
+                    onSave={(value) => handleFieldUpdate('notes', value)}
+                  />
                 </div>
               </CollapsibleContent>
             </Collapsible>
@@ -1001,12 +905,16 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment, as
       />
 
       {/* Working Hours Timeline Modal */}
-      <WorkingHoursTimelineModal
-        open={showWorkingHoursModal}
-        onClose={() => setShowWorkingHoursModal(false)}
-        equipmentId={equipment.id}
-        equipmentName={equipment.name || 'Unknown Equipment'}
-      />
+      {showWorkingHoursModal && (
+        <Suspense fallback={null}>
+          <WorkingHoursTimelineModal
+            open={showWorkingHoursModal}
+            onClose={() => setShowWorkingHoursModal(false)}
+            equipmentId={equipment.id}
+            equipmentName={equipment.name || 'Unknown Equipment'}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

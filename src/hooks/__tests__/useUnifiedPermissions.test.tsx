@@ -13,6 +13,10 @@ import { MemoryRouter } from 'react-router-dom';
 import { useUnifiedPermissions } from '../useUnifiedPermissions';
 import { personas } from '@/test/fixtures/personas';
 import { teams, workOrders, organizations } from '@/test/fixtures/entities';
+import {
+  createMockAuthForPersona,
+  createMockSessionForPersona,
+} from '@/test/utils/mock-provider-values';
 
 // Mock the session and auth hooks
 vi.mock('@/hooks/useSession', () => ({
@@ -55,66 +59,18 @@ const setupPersonaMocks = (personaKey: keyof typeof personas) => {
   const persona = personas[personaKey];
   
   vi.mocked(useAuth).mockReturnValue({
-    user: {
-      id: persona.id,
-      email: persona.email,
-      user_metadata: { full_name: persona.name }
-    },
-    session: { user: { id: persona.id } },
-    isLoading: false,
+    ...createMockAuthForPersona(persona),
     signUp: vi.fn(),
     signIn: vi.fn(),
     signInWithGoogle: vi.fn(),
-    signOut: vi.fn()
+    signOut: vi.fn(),
   });
 
   vi.mocked(useSession).mockReturnValue({
-    sessionData: {
-      user: { id: persona.id, email: persona.email },
-      organizations: [{
-        id: organizations.acme.id,
-        name: organizations.acme.name,
-        plan: organizations.acme.plan,
-        memberCount: organizations.acme.memberCount,
-        maxMembers: organizations.acme.maxMembers,
-        features: organizations.acme.features,
-        userRole: persona.organizationRole,
-        userStatus: 'active'
-      }],
-      teamMemberships: persona.teamMemberships,
-      currentOrganizationId: organizations.acme.id,
-      lastUpdated: new Date().toISOString(),
-      version: 1
-    },
-    isLoading: false,
-    error: null,
-    getCurrentOrganization: () => ({
-      id: organizations.acme.id,
-      name: organizations.acme.name,
-      plan: organizations.acme.plan,
-      memberCount: organizations.acme.memberCount,
-      maxMembers: organizations.acme.maxMembers,
-      features: organizations.acme.features,
-      userRole: persona.organizationRole,
-      userStatus: 'active'
-    }),
+    ...createMockSessionForPersona(persona),
     switchOrganization: vi.fn(),
-    hasTeamRole: (teamId: string, role: string) => {
-      const membership = persona.teamMemberships.find(tm => tm.teamId === teamId);
-      return membership?.role === role;
-    },
-    hasTeamAccess: (teamId: string) => {
-      return persona.teamMemberships.some(tm => tm.teamId === teamId);
-    },
-    canManageTeam: (teamId: string) => {
-      const membership = persona.teamMemberships.find(tm => tm.teamId === teamId);
-      return membership?.role === 'manager' ||
-             persona.organizationRole === 'owner' ||
-             persona.organizationRole === 'admin';
-    },
-    getUserTeamIds: () => persona.teamMemberships.map(tm => tm.teamId),
     refreshSession: vi.fn(),
-    clearSession: vi.fn()
+    clearSession: vi.fn(),
   });
 
   // Setup permission engine mock based on persona role

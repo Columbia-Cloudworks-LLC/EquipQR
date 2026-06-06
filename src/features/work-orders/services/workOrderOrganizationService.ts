@@ -10,16 +10,40 @@ export interface WorkOrderOrganizationInfo {
   userRole?: string;
 }
 
-export const getWorkOrderOrganization = async (
-  workOrderId: string
-): Promise<WorkOrderOrganizationInfo | null> => {
+/**
+ * Returns the provided organization ID or loads it from the work order row.
+ */
+export async function resolveWorkOrderOrganizationId(
+  workOrderId: string,
+  organizationId?: string,
+): Promise<string> {
+  if (organizationId) {
+    return organizationId;
+  }
+
+  const { data: workOrder } = await supabase
+    .from('work_orders')
+    .select('organization_id')
+    .eq('id', workOrderId)
+    .single();
+
+  if (!workOrder) {
+    throw new Error('Work order not found');
+  }
+
+  return workOrder.organization_id;
+}
+
+export async function getWorkOrderOrganization(
+  workOrderId: string,
+): Promise<WorkOrderOrganizationInfo | null> {
   try {
     const claims = await getAuthClaims();
     if (!claims) {
       return null;
     }
 
-    const { data: workOrder, error: woError } = await supabase
+    const { data: workOrder, error: workOrderError } = await supabase
       .from('work_orders')
       .select(`
         id,
@@ -32,8 +56,8 @@ export const getWorkOrderOrganization = async (
       .eq('id', workOrderId)
       .single();
 
-    if (woError || !workOrder) {
-      logger.error('Error fetching work order for QR redirect:', woError);
+    if (workOrderError || !workOrder) {
+      logger.error('Error fetching work order organization:', workOrderError);
       return null;
     }
 
@@ -63,4 +87,4 @@ export const getWorkOrderOrganization = async (
     logger.error('Error in getWorkOrderOrganization:', error);
     return null;
   }
-};
+}

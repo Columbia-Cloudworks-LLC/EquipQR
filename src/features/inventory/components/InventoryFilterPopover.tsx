@@ -1,12 +1,8 @@
-import React, { useState } from 'react';
-import { Filter, MapPin, AlertTriangle, X } from 'lucide-react';
+import React from 'react';
+import { AlertTriangle, X } from 'lucide-react';
+import { InventoryLocationFilterSelect } from '@/features/inventory/components/InventoryLocationFilterSelect';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { FilterPopoverShell } from '@/components/filters/FilterPopoverShell';
 import {
   Select,
   SelectContent,
@@ -33,58 +29,26 @@ const InventoryFilterPopover: React.FC<InventoryFilterPopoverProps> = ({
   onFilterChange,
   onClearFilters,
 }) => {
-  const [open, setOpen] = useState(false);
-
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 text-sm font-normal"
-          aria-label={`Filter inventory${activeFilterCount > 0 ? `, ${activeFilterCount} active` : ''}`}
-        >
-          <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-          Filter
-          {activeFilterCount > 0 && (
-            <Badge
-              variant="secondary"
-              className="ml-0.5 h-4 min-w-4 rounded-full px-1 py-0 text-[10px] font-semibold leading-none"
-            >
-              {activeFilterCount}
-            </Badge>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-64 p-4" align="start">
-        <div className="flex flex-col gap-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Filters
-          </p>
-
+    <FilterPopoverShell
+      ariaSubject="inventory"
+      activeFilterCount={activeFilterCount}
+      contentClassName="w-64 p-4"
+    >
+      {({ close }) => (
+        <>
           {/* Location */}
           {uniqueLocations.length > 0 && (
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-muted-foreground">Location</label>
-              <Select
+              <InventoryLocationFilterSelect
                 value={filters.location ?? '__all__'}
                 onValueChange={(v) =>
                   onFilterChange({ location: v === '__all__' ? undefined : v })
                 }
-              >
-                <SelectTrigger className="h-8 text-sm" aria-label="Filter by location">
-                  <MapPin className="h-3.5 w-3.5 mr-1.5 text-muted-foreground shrink-0" />
-                  <SelectValue placeholder="All locations" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">All Locations</SelectItem>
-                  {uniqueLocations.map((loc) => (
-                    <SelectItem key={loc} value={loc}>
-                      {loc}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                uniqueLocations={uniqueLocations}
+                triggerClassName="h-8 text-sm"
+              />
             </div>
           )}
 
@@ -115,7 +79,7 @@ const InventoryFilterPopover: React.FC<InventoryFilterPopoverProps> = ({
                 className="h-7 w-full text-xs text-muted-foreground hover:text-foreground"
                 onClick={() => {
                   onClearFilters();
-                  setOpen(false);
+                  close();
                 }}
               >
                 <X className="h-3 w-3 mr-1.5" />
@@ -123,9 +87,9 @@ const InventoryFilterPopover: React.FC<InventoryFilterPopoverProps> = ({
               </Button>
             </>
           )}
-        </div>
-      </PopoverContent>
-    </Popover>
+        </>
+      )}
+    </FilterPopoverShell>
   );
 };
 

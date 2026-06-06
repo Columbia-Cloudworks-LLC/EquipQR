@@ -112,6 +112,27 @@ const setupMocks = (options: {
   return { mockDeleteMutateAsync };
 };
 
+function findCardMenuButton() {
+  const dropdownButtons = screen.getAllByRole('button');
+  return dropdownButtons.find((btn) => btn.querySelector('.lucide-more-horizontal') !== null);
+}
+
+function renderEditableAlternateGroupsPage(
+  options?: Parameters<typeof setupMocks>[0],
+) {
+  setupMocks({ canEdit: true, ...options });
+  render(<AlternateGroupsPage />);
+}
+
+async function openCardMenu(): Promise<boolean> {
+  const menuButton = findCardMenuButton();
+  if (!menuButton) {
+    return false;
+  }
+  fireEvent.click(menuButton);
+  return true;
+}
+
 describe('AlternateGroupsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -376,20 +397,11 @@ describe('AlternateGroupsPage', () => {
     });
 
     it('opens delete confirmation dialog when delete is clicked from dropdown', async () => {
-      setupMocks({ canEdit: true });
+      renderEditableAlternateGroupsPage();
 
-      render(<AlternateGroupsPage />);
-
-      // Find the dropdown trigger button
-      const dropdownButtons = screen.getAllByRole('button');
-      const menuButton = dropdownButtons.find(btn => btn.querySelector('.lucide-more-horizontal') !== null);
-      
-      if (menuButton) {
-        fireEvent.click(menuButton);
-        
+      if (await openCardMenu()) {
         await waitFor(() => {
-          const deleteOption = screen.getByText('Delete');
-          fireEvent.click(deleteOption);
+          fireEvent.click(screen.getByText('Delete'));
         });
 
         await waitFor(() => {
@@ -400,62 +412,41 @@ describe('AlternateGroupsPage', () => {
 
     it('calls delete mutation when confirmed', async () => {
       const { mockDeleteMutateAsync } = setupMocks({ canEdit: true });
-
       render(<AlternateGroupsPage />);
 
-      // Open dropdown menu
-      const dropdownButtons = screen.getAllByRole('button');
-      const menuButton = dropdownButtons.find(btn => btn.querySelector('.lucide-more-horizontal') !== null);
-      
-      if (menuButton) {
-        fireEvent.click(menuButton);
-        
+      if (await openCardMenu()) {
         await waitFor(() => {
-          const deleteOption = screen.getByText('Delete');
-          fireEvent.click(deleteOption);
+          fireEvent.click(screen.getByText('Delete'));
         });
 
         await waitFor(() => {
           expect(screen.getByText(/Are you sure/)).toBeInTheDocument();
         });
 
-        // Confirm deletion
-        const confirmButton = screen.getByRole('button', { name: /delete/i });
-        fireEvent.click(confirmButton);
+        fireEvent.click(screen.getByRole('button', { name: /delete/i }));
 
         await waitFor(() => {
           expect(mockDeleteMutateAsync).toHaveBeenCalledWith({
             organizationId: organizations.acme.id,
-            groupId: expect.any(String)
+            groupId: expect.any(String),
           });
         });
       }
     });
 
     it('closes confirmation dialog when cancelled', async () => {
-      setupMocks({ canEdit: true });
+      renderEditableAlternateGroupsPage();
 
-      render(<AlternateGroupsPage />);
-
-      // Open dropdown menu
-      const dropdownButtons = screen.getAllByRole('button');
-      const menuButton = dropdownButtons.find(btn => btn.querySelector('.lucide-more-horizontal') !== null);
-      
-      if (menuButton) {
-        fireEvent.click(menuButton);
-        
+      if (await openCardMenu()) {
         await waitFor(() => {
-          const deleteOption = screen.getByText('Delete');
-          fireEvent.click(deleteOption);
+          fireEvent.click(screen.getByText('Delete'));
         });
 
         await waitFor(() => {
           expect(screen.getByText(/Are you sure/)).toBeInTheDocument();
         });
 
-        // Cancel deletion
-        const cancelButton = screen.getByRole('button', { name: /cancel/i });
-        fireEvent.click(cancelButton);
+        fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
         await waitFor(() => {
           expect(screen.queryByText(/Are you sure/)).not.toBeInTheDocument();
@@ -466,16 +457,9 @@ describe('AlternateGroupsPage', () => {
 
   describe('Dropdown Menu Actions', () => {
     it('opens dropdown menu when more button is clicked', async () => {
-      setupMocks({ canEdit: true });
+      renderEditableAlternateGroupsPage();
 
-      render(<AlternateGroupsPage />);
-
-      const dropdownButtons = screen.getAllByRole('button');
-      const menuButton = dropdownButtons.find(btn => btn.querySelector('.lucide-more-horizontal') !== null);
-      
-      if (menuButton) {
-        fireEvent.click(menuButton);
-        
+      if (await openCardMenu()) {
         await waitFor(() => {
           expect(screen.getByText('View Details')).toBeInTheDocument();
           expect(screen.getByText('Edit')).toBeInTheDocument();
@@ -485,19 +469,11 @@ describe('AlternateGroupsPage', () => {
     });
 
     it('navigates to detail page when View Details is clicked', async () => {
-      setupMocks({ canEdit: true });
+      renderEditableAlternateGroupsPage();
 
-      render(<AlternateGroupsPage />);
-
-      const dropdownButtons = screen.getAllByRole('button');
-      const menuButton = dropdownButtons.find(btn => btn.querySelector('.lucide-more-horizontal') !== null);
-      
-      if (menuButton) {
-        fireEvent.click(menuButton);
-        
+      if (await openCardMenu()) {
         await waitFor(() => {
-          const viewOption = screen.getByText('View Details');
-          fireEvent.click(viewOption);
+          fireEvent.click(screen.getByText('View Details'));
         });
 
         expect(mockNavigate).toHaveBeenCalled();
@@ -505,19 +481,11 @@ describe('AlternateGroupsPage', () => {
     });
 
     it('opens edit dialog when Edit is clicked', async () => {
-      setupMocks({ canEdit: true });
+      renderEditableAlternateGroupsPage();
 
-      render(<AlternateGroupsPage />);
-
-      const dropdownButtons = screen.getAllByRole('button');
-      const menuButton = dropdownButtons.find(btn => btn.querySelector('.lucide-more-horizontal') !== null);
-      
-      if (menuButton) {
-        fireEvent.click(menuButton);
-        
+      if (await openCardMenu()) {
         await waitFor(() => {
-          const editOption = screen.getByText('Edit');
-          fireEvent.click(editOption);
+          fireEvent.click(screen.getByText('Edit'));
         });
 
         await waitFor(() => {

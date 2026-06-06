@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { ExternalLink } from '@/components/ui/external-link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CcpaRightsList } from '@/components/legal/CcpaRightsList';
+import { LegalPolicySection } from '@/components/legal/LegalPolicySection';
+import { PolicyList, PolicyProviderSection } from '@/components/legal/PolicyList';
 import { PageBackButton } from '@/components/layout/PageBackButton';
 import { PageSEO } from '@/components/seo/PageSEO';
 
@@ -26,11 +28,7 @@ export default function PrivacyPolicy() {
         {/* ---------------------------------------------------------------- */}
         {/* Section 1 — Introduction                                         */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>1. Introduction</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="1. Introduction">
             <p>
               EquipQR™ (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;), developed and operated by{' '}
               <ExternalLink href="https://columbiacloudworks.com" className="hover:text-foreground">
@@ -55,18 +53,12 @@ export default function PrivacyPolicy() {
                 Terms of Service
               </Link>
               . Capitalized terms not defined in this policy have the meanings given in the Terms.
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 2 — Individual-Level Data Collection                     */}
         {/* ---------------------------------------------------------------- */}
-        <Card id="notice-at-collection" className="scroll-mt-24">
-          <CardHeader>
-            <CardTitle>2. Information We Collect — Individual User Level (Notice at Collection)</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="2. Information We Collect — Individual User Level (Notice at Collection)" id="notice-at-collection" className="scroll-mt-24">
             <p>
               When you create an account or interact with EquipQR, we collect information tied to you
               personally. The table below lists every category of individual-level data and exactly
@@ -159,18 +151,12 @@ export default function PrivacyPolicy() {
                   </tr>
                 </tbody>
               </table>
-            </div>
-          </CardContent>
-        </Card>
+            </div></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 3 — Organization-Level Data Collection                   */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>3. Information We Collect — Organization Level</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="3. Information We Collect — Organization Level">
             <p>
               Organizations that use EquipQR store business data within the platform. This data
               belongs to the organization and is isolated from other organizations through strict
@@ -282,18 +268,12 @@ export default function PrivacyPolicy() {
                   </tr>
                 </tbody>
               </table>
-            </div>
-          </CardContent>
-        </Card>
+            </div></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 4 — External Service Providers (Subprocessors)           */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>4. External Service Providers (Subprocessors)</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="4. External Service Providers (Subprocessors)">
             <p>
               We use the following third-party service providers to operate EquipQR. For each
               provider we disclose the purpose, what data flows to them, what data flows back, and
@@ -302,270 +282,308 @@ export default function PrivacyPolicy() {
               them.
             </p>
 
-            {/* 4.1 Supabase */}
-            <h3>4.1 Supabase (Supabase Inc.)</h3>
-            <ul>
-              <li>
-                <strong>Purpose:</strong> Cloud database (PostgreSQL), user authentication, file
-                storage, real-time data subscriptions, and serverless edge functions.
-              </li>
-              <li>
-                <strong>Data sent to Supabase:</strong> All application data described in Sections 2
-                and 3, user credentials for authentication, and uploaded files (images, photos).
-              </li>
-              <li>
-                <strong>Data received from Supabase:</strong> Database query results, authentication
-                tokens (JWTs), real-time event updates, and file download URLs.
-              </li>
-              <li>
-                <strong>Data stored in EquipQR via Supabase:</strong> All application data is
-                persisted in Supabase-managed PostgreSQL databases. Uploaded files are stored in
-                Supabase Storage (S3-compatible).
-              </li>
-              <li>
-                <strong>Data residency:</strong> AWS, United States regions. Supabase maintains SOC 2
-                Type II compliance. See{' '}
-                <ExternalLink href="https://supabase.com/security" className="hover:text-foreground">
-                  supabase.com/security
-                </ExternalLink>{' '}
-                for details.
-              </li>
-            </ul>
+            <PolicyProviderSection
+              title="4.1 Supabase (Supabase Inc.)"
+              items={[
+                {
+                  label: 'Purpose:',
+                  content:
+                    'Cloud database (PostgreSQL), user authentication, file storage, real-time data subscriptions, and serverless edge functions.',
+                },
+                {
+                  label: 'Data sent to Supabase:',
+                  content:
+                    'All application data described in Sections 2 and 3, user credentials for authentication, and uploaded files (images, photos).',
+                },
+                {
+                  label: 'Data received from Supabase:',
+                  content:
+                    'Database query results, authentication tokens (JWTs), real-time event updates, and file download URLs.',
+                },
+                {
+                  label: 'Data stored in EquipQR via Supabase:',
+                  content:
+                    'All application data is persisted in Supabase-managed PostgreSQL databases. Uploaded files are stored in Supabase Storage (S3-compatible).',
+                },
+                {
+                  label: 'Data residency:',
+                  content: (
+                    <>
+                      AWS, United States regions. Supabase maintains SOC 2 Type II compliance. See{' '}
+                      <ExternalLink href="https://supabase.com/security" className="hover:text-foreground">
+                        supabase.com/security
+                      </ExternalLink>{' '}
+                      for details.
+                    </>
+                  ),
+                },
+              ]}
+            />
 
-            {/* 4.2 Google Maps */}
-            <h3>4.2 Google Maps Platform (Google LLC)</h3>
-            <ul>
-              <li>
-                <strong>Purpose:</strong> Fleet map visualization, address autocomplete, and
-                converting addresses to geographic coordinates (geocoding).
-              </li>
-              <li>
-                <strong>Data sent to Google:</strong> Address search queries (text typed into
-                autocomplete fields) and address strings submitted for geocoding. No user identity,
-                email, or account information is sent to Google Maps APIs.
-              </li>
-              <li>
-                <strong>Data received from Google:</strong> Place predictions (autocomplete
-                suggestions), formatted addresses, address components, and latitude/longitude
-                coordinates.
-              </li>
-              <li>
-                <strong>Data stored in EquipQR:</strong> Geocoded results (address-to-coordinate
-                mappings) are cached in our database to reduce redundant API calls and improve
-                performance. Equipment and team location coordinates derived from geocoding are
-                stored as part of those records.
-              </li>
-            </ul>
+            <PolicyProviderSection
+              title="4.2 Google Maps Platform (Google LLC)"
+              items={[
+                {
+                  label: 'Purpose:',
+                  content:
+                    'Fleet map visualization, address autocomplete, and converting addresses to geographic coordinates (geocoding).',
+                },
+                {
+                  label: 'Data sent to Google:',
+                  content:
+                    'Address search queries (text typed into autocomplete fields) and address strings submitted for geocoding. No user identity, email, or account information is sent to Google Maps APIs.',
+                },
+                {
+                  label: 'Data received from Google:',
+                  content:
+                    'Place predictions (autocomplete suggestions), formatted addresses, address components, and latitude/longitude coordinates.',
+                },
+                {
+                  label: 'Data stored in EquipQR:',
+                  content:
+                    'Geocoded results (address-to-coordinate mappings) are cached in our database to reduce redundant API calls and improve performance. Equipment and team location coordinates derived from geocoding are stored as part of those records.',
+                },
+              ]}
+            />
 
-            {/* 4.3 hCaptcha */}
-            <h3>4.3 hCaptcha (Intuition Machines, Inc.)</h3>
-            <ul>
-              <li>
-                <strong>Purpose:</strong> Bot and abuse protection on account signup forms.
-              </li>
-              <li>
-                <strong>Data sent to hCaptcha:</strong> The CAPTCHA response token generated in your
-                browser, plus the originating page URL. hCaptcha may also collect your IP address and
-                browser characteristics as part of its challenge evaluation per its own{' '}
-                <ExternalLink href="https://www.hcaptcha.com/privacy" className="hover:text-foreground">
-                  privacy policy
-                </ExternalLink>
-                .
-              </li>
-              <li>
-                <strong>Data received from hCaptcha:</strong> A pass/fail verification result.
-              </li>
-              <li>
-                <strong>Data stored in EquipQR:</strong> None. The verification is stateless and the
-                token is discarded immediately after validation.
-              </li>
-            </ul>
+            <PolicyProviderSection
+              title="4.3 hCaptcha (Intuition Machines, Inc.)"
+              items={[
+                {
+                  label: 'Purpose:',
+                  content: 'Bot and abuse protection on account signup forms.',
+                },
+                {
+                  label: 'Data sent to hCaptcha:',
+                  content: (
+                    <>
+                      The CAPTCHA response token generated in your browser, plus the originating page URL.
+                      hCaptcha may also collect your IP address and browser characteristics as part of its
+                      challenge evaluation per its own{' '}
+                      <ExternalLink href="https://www.hcaptcha.com/privacy" className="hover:text-foreground">
+                        privacy policy
+                      </ExternalLink>
+                      .
+                    </>
+                  ),
+                },
+                {
+                  label: 'Data received from hCaptcha:',
+                  content: 'A pass/fail verification result.',
+                },
+                {
+                  label: 'Data stored in EquipQR:',
+                  content:
+                    'None. The verification is stateless and the token is discarded immediately after validation.',
+                },
+              ]}
+            />
 
-            {/* 4.4 Resend */}
-            <h3>4.4 Resend (Resend Inc.)</h3>
-            <ul>
-              <li>
-                <strong>Purpose:</strong> Transactional email delivery for organization membership
-                invitations.
-              </li>
-              <li>
-                <strong>Data sent to Resend:</strong> The recipient&apos;s email address, the
-                organization name, the inviter&apos;s name, the invited role, an optional personal
-                message, and the invitation acceptance link.
-              </li>
-              <li>
-                <strong>Data received from Resend:</strong> A delivery confirmation and message ID.
-              </li>
-              <li>
-                <strong>Data stored in EquipQR:</strong> None. Resend is used solely for email
-                delivery and we do not store Resend-specific data.
-              </li>
-            </ul>
+            <PolicyProviderSection
+              title="4.4 Resend (Resend Inc.)"
+              items={[
+                {
+                  label: 'Purpose:',
+                  content: 'Transactional email delivery for organization membership invitations.',
+                },
+                {
+                  label: 'Data sent to Resend:',
+                  content: (
+                    <>
+                      The recipient&apos;s email address, the organization name, the inviter&apos;s name, the
+                      invited role, an optional personal message, and the invitation acceptance link.
+                    </>
+                  ),
+                },
+                {
+                  label: 'Data received from Resend:',
+                  content: 'A delivery confirmation and message ID.',
+                },
+                {
+                  label: 'Data stored in EquipQR:',
+                  content: 'None. Resend is used solely for email delivery and we do not store Resend-specific data.',
+                },
+              ]}
+            />
 
-            {/* 4.5 Vercel */}
-            <h3>4.5 Vercel (Vercel Inc.)</h3>
-            <ul>
-              <li>
-                <strong>Purpose:</strong> Hosting and content delivery network (CDN) for the EquipQR
-                frontend web application.
-              </li>
-              <li>
-                <strong>Data sent to Vercel:</strong> Standard HTTP requests from your browser when
-                you access EquipQR (URL, headers, IP address).
-              </li>
-              <li>
-                <strong>Data received from Vercel:</strong> The application assets (HTML, CSS,
-                JavaScript) that power the EquipQR interface.
-              </li>
-              <li>
-                <strong>Data stored in EquipQR:</strong> None. Vercel is a hosting platform only.
-              </li>
-              <li>
-                <strong>Note:</strong> Vercel may collect standard web server access logs (IP
-                address, user agent, timestamps) under its own{' '}
-                <ExternalLink href="https://vercel.com/legal/privacy-policy" className="hover:text-foreground">
-                  privacy policy
-                </ExternalLink>
-                .
-              </li>
-            </ul>
+            <PolicyProviderSection
+              title="4.5 Vercel (Vercel Inc.)"
+              items={[
+                {
+                  label: 'Purpose:',
+                  content: 'Hosting and content delivery network (CDN) for the EquipQR frontend web application.',
+                },
+                {
+                  label: 'Data sent to Vercel:',
+                  content:
+                    'Standard HTTP requests from your browser when you access EquipQR (URL, headers, IP address).',
+                },
+                {
+                  label: 'Data received from Vercel:',
+                  content: 'The application assets (HTML, CSS, JavaScript) that power the EquipQR interface.',
+                },
+                {
+                  label: 'Data stored in EquipQR:',
+                  content: 'None. Vercel is a hosting platform only.',
+                },
+                {
+                  label: 'Note:',
+                  content: (
+                    <>
+                      Vercel may collect standard web server access logs (IP address, user agent, timestamps)
+                      under its own{' '}
+                      <ExternalLink href="https://vercel.com/legal/privacy-policy" className="hover:text-foreground">
+                        privacy policy
+                      </ExternalLink>
+                      .
+                    </>
+                  ),
+                },
+              ]}
+            />
 
-            {/* 4.6 Stripe (Deprecated) */}
-            <h3>4.6 Stripe (Stripe, Inc.) &mdash; Deprecated</h3>
-            <ul>
-              <li>
-                <strong>Purpose:</strong> Payment processing. This integration is currently disabled
-                and no new data is sent to Stripe.
-              </li>
-              <li>
-                <strong>Data previously sent to Stripe:</strong> Organization billing identity and
-                subscription plan selections.
-              </li>
-              <li>
-                <strong>Data stored in EquipQR:</strong> Historical Stripe customer IDs and
-                subscription IDs remain in organization records for accounting continuity. No
-                payment card numbers or bank account details were ever stored in EquipQR &mdash;
-                those were handled entirely by Stripe.
-              </li>
-            </ul>
+            <PolicyProviderSection
+              title="4.6 Stripe (Stripe, Inc.) — Deprecated"
+              items={[
+                {
+                  label: 'Purpose:',
+                  content:
+                    'Payment processing. This integration is currently disabled and no new data is sent to Stripe.',
+                },
+                {
+                  label: 'Data previously sent to Stripe:',
+                  content: 'Organization billing identity and subscription plan selections.',
+                },
+                {
+                  label: 'Data stored in EquipQR:',
+                  content:
+                    'Historical Stripe customer IDs and subscription IDs remain in organization records for accounting continuity. No payment card numbers or bank account details were ever stored in EquipQR — those were handled entirely by Stripe.',
+                },
+              ]}
+            />
 
-            {/* 4.7 QuickBooks Online */}
-            <h3>4.7 QuickBooks Online (Intuit Inc.) &mdash; Optional Integration</h3>
-            <ul>
-              <li>
-                <strong>Purpose:</strong> Export work order invoices to QuickBooks and synchronize
-                customer lists between EquipQR teams and QuickBooks customers.
-              </li>
-              <li>
-                <strong>Activation:</strong> Only active when an organization administrator
-                explicitly connects their QuickBooks account via OAuth.
-              </li>
-              <li>
-                <strong>Data sent to QuickBooks:</strong> OAuth authorization requests, work order
-                cost and labor data for invoice creation, and customer search queries.
-              </li>
-              <li>
-                <strong>Data received from QuickBooks:</strong> OAuth tokens (access and refresh),
-                the QuickBooks company ID (realm ID), customer lists (names and IDs), and invoice
-                confirmation numbers.
-              </li>
-              <li>
-                <strong>Data stored in EquipQR:</strong> OAuth tokens (encrypted at rest using
-                AES with a server-side encryption key), team-to-QuickBooks-customer mappings, and
-                an export audit log (invoice IDs, export status, timestamps).
-              </li>
-            </ul>
+            <PolicyProviderSection
+              title="4.7 QuickBooks Online (Intuit Inc.) — Optional Integration"
+              items={[
+                {
+                  label: 'Purpose:',
+                  content:
+                    'Export work order invoices to QuickBooks and synchronize customer lists between EquipQR teams and QuickBooks customers.',
+                },
+                {
+                  label: 'Activation:',
+                  content:
+                    'Only active when an organization administrator explicitly connects their QuickBooks account via OAuth.',
+                },
+                {
+                  label: 'Data sent to QuickBooks:',
+                  content:
+                    'OAuth authorization requests, work order cost and labor data for invoice creation, and customer search queries.',
+                },
+                {
+                  label: 'Data received from QuickBooks:',
+                  content:
+                    'OAuth tokens (access and refresh), the QuickBooks company ID (realm ID), customer lists (names and IDs), and invoice confirmation numbers.',
+                },
+                {
+                  label: 'Data stored in EquipQR:',
+                  content:
+                    'OAuth tokens (encrypted at rest using AES with a server-side encryption key), team-to-QuickBooks-customer mappings, and an export audit log (invoice IDs, export status, timestamps).',
+                },
+              ]}
+            />
 
-            {/* 4.8 Google Workspace */}
-            <h3>4.8 Google Workspace (Google LLC) &mdash; Optional Integration</h3>
-            <ul>
-              <li>
-                <strong>Purpose:</strong> Synchronize your Google Workspace directory users with
-                EquipQR memberships, export work order data to Google Sheets, and upload PDF
-                reports to Google Drive.
-              </li>
-              <li>
-                <strong>Activation:</strong> Only active when an organization administrator
-                explicitly connects their Google Workspace account via OAuth.
-              </li>
-              <li>
-                <strong>Data sent to Google:</strong> OAuth authorization requests, directory user
-                listing requests (Admin SDK), spreadsheet creation requests (Sheets API), and
-                file upload requests (Drive API).
-              </li>
-              <li>
-                <strong>Data received from Google:</strong> OAuth tokens (access and refresh),
-                directory user details (name, email, suspended status), spreadsheet and file IDs,
-                and web view links.
-              </li>
-              <li>
-                <strong>Data stored in EquipQR:</strong> OAuth tokens (encrypted at rest using AES
-                with a server-side encryption key), directory user records (name, email, suspended
-                status), domain verification records, and OAuth session metadata.
-              </li>
-              <li>
-                <strong>OAuth scopes requested:</strong>{' '}
-                <code>admin.directory.user.readonly</code> (directory sync),{' '}
-                <code>spreadsheets</code> (Sheets export),{' '}
-                <code>drive.file</code> (Drive uploads &mdash; limited to files created by
-                EquipQR).
-              </li>
-            </ul>
+            <PolicyProviderSection
+              title="4.8 Google Workspace (Google LLC) — Optional Integration"
+              items={[
+                {
+                  label: 'Purpose:',
+                  content:
+                    'Synchronize your Google Workspace directory users with EquipQR memberships, export work order data to Google Sheets, and upload PDF reports to Google Drive.',
+                },
+                {
+                  label: 'Activation:',
+                  content:
+                    'Only active when an organization administrator explicitly connects their Google Workspace account via OAuth.',
+                },
+                {
+                  label: 'Data sent to Google:',
+                  content:
+                    'OAuth authorization requests, directory user listing requests (Admin SDK), spreadsheet creation requests (Sheets API), and file upload requests (Drive API).',
+                },
+                {
+                  label: 'Data received from Google:',
+                  content:
+                    'OAuth tokens (access and refresh), directory user details (name, email, suspended status), spreadsheet and file IDs, and web view links.',
+                },
+                {
+                  label: 'Data stored in EquipQR:',
+                  content:
+                    'OAuth tokens (encrypted at rest using AES with a server-side encryption key), directory user records (name, email, suspended status), domain verification records, and OAuth session metadata.',
+                },
+                {
+                  label: 'OAuth scopes requested:',
+                  content: (
+                    <>
+                      <code>admin.directory.user.readonly</code> (directory sync), <code>spreadsheets</code>{' '}
+                      (Sheets export), <code>drive.file</code> (Drive uploads — limited to files created by
+                      EquipQR).
+                    </>
+                  ),
+                },
+              ]}
+            />
 
-            {/* 4.9 GitHub */}
-            <h3>4.9 GitHub (GitHub, Inc.)</h3>
-            <ul>
-              <li>
-                <strong>Purpose:</strong> Synchronize in-app bug reports with our internal issue
-                tracker so our development team can resolve issues efficiently.
-              </li>
-              <li>
-                <strong>Data sent to GitHub:</strong> A sanitized version of the bug report title
-                and description. Personally identifiable information (email addresses and phone
-                numbers) is automatically redacted before submission. Anonymized session diagnostics
-                (see Section 2) are attached for debugging purposes.
-              </li>
-              <li>
-                <strong>Data received from GitHub:</strong> The issue number, status updates
-                (open/closed), and developer comments.
-              </li>
-              <li>
-                <strong>Data stored in EquipQR:</strong> The GitHub issue number, current issue
-                status, and synced developer comments (displayed to the reporting user within the
-                app).
-              </li>
-            </ul>
+            <PolicyProviderSection
+              title="4.9 GitHub (GitHub, Inc.)"
+              items={[
+                {
+                  label: 'Purpose:',
+                  content:
+                    'Synchronize in-app bug reports with our internal issue tracker so our development team can resolve issues efficiently.',
+                },
+                {
+                  label: 'Data sent to GitHub:',
+                  content:
+                    'A sanitized version of the bug report title and description. Personally identifiable information (email addresses and phone numbers) is automatically redacted before submission. Anonymized session diagnostics (see Section 2) are attached for debugging purposes.',
+                },
+                {
+                  label: 'Data received from GitHub:',
+                  content: 'The issue number, status updates (open/closed), and developer comments.',
+                },
+                {
+                  label: 'Data stored in EquipQR:',
+                  content:
+                    'The GitHub issue number, current issue status, and synced developer comments (displayed to the reporting user within the app).',
+                },
+              ]}
+            />
 
-            {/* 4.10 Web Push */}
-            <h3>4.10 Web Push Services (Browser Vendors)</h3>
-            <ul>
-              <li>
-                <strong>Purpose:</strong> Delivering push notifications to your device when you are
-                not actively using EquipQR (e.g., work order assignments, status changes).
-              </li>
-              <li>
-                <strong>Data sent to browser push services:</strong> Notification title, body text,
-                and an action URL. The push payload is encrypted end-to-end using the VAPID
-                (Voluntary Application Server Identification) protocol. The specific push service
-                depends on your browser (e.g., Firebase Cloud Messaging for Chrome, Apple Push
-                Notification Service for Safari).
-              </li>
-              <li>
-                <strong>Data stored in EquipQR:</strong> Your push subscription endpoint URL,
-                encryption keys (required by the Web Push protocol), and browser user agent string.
-              </li>
-            </ul>
-          </CardContent>
-        </Card>
+            <PolicyProviderSection
+              title="4.10 Web Push Services (Browser Vendors)"
+              items={[
+                {
+                  label: 'Purpose:',
+                  content:
+                    'Delivering push notifications to your device when you are not actively using EquipQR (e.g., work order assignments, status changes).',
+                },
+                {
+                  label: 'Data sent to browser push services:',
+                  content:
+                    'Notification title, body text, and an action URL. The push payload is encrypted end-to-end using the VAPID (Voluntary Application Server Identification) protocol. The specific push service depends on your browser (e.g., Firebase Cloud Messaging for Chrome, Apple Push Notification Service for Safari).',
+                },
+                {
+                  label: 'Data stored in EquipQR:',
+                  content:
+                    'Your push subscription endpoint URL, encryption keys (required by the Web Push protocol), and browser user agent string.',
+                },
+              ]}
+            /></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 5 — Cookies, Local Storage, and Session Data             */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>5. Cookies, Local Storage, and Session Data</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="5. Cookies, Local Storage, and Session Data">
             <p>
               EquipQR uses minimal browser storage, exclusively for application functionality. We do
               not use any third-party tracking cookies, advertising pixels, or browser
@@ -576,36 +594,50 @@ export default function PrivacyPolicy() {
             <p>
               We set one functional cookie:
             </p>
-            <ul>
-              <li>
-                <strong><code>sidebar:state</code></strong> &mdash; Remembers whether the navigation
-                sidebar is expanded or collapsed. Expires after 7 days. This cookie contains no
-                personal information and is not shared with any third party.
-              </li>
-            </ul>
+            <PolicyList
+              items={[
+                {
+                  label: <code>sidebar:state</code>,
+                  content: (
+                    <>
+                      &mdash; Remembers whether the navigation sidebar is expanded or collapsed. Expires after 7
+                      days. This cookie contains no personal information and is not shared with any third party.
+                    </>
+                  ),
+                },
+              ]}
+            />
 
             <h3>Local Storage</h3>
             <p>
               We use your browser&apos;s localStorage for application state only:
             </p>
-            <ul>
-              <li>
-                <strong>Organization preference</strong> &mdash; Remembers which organization you
-                last selected (if you belong to multiple).
-              </li>
-              <li>
-                <strong>Dashboard layout</strong> &mdash; Saves your preferred dashboard card
-                arrangement.
-              </li>
-              <li>
-                <strong>Work timer state</strong> &mdash; Persists an in-progress labor timer so it
-                survives page refreshes.
-              </li>
-              <li>
-                <strong>Admin grant throttling</strong> &mdash; Prevents redundant permission
-                lookups within a short window.
-              </li>
-            </ul>
+            <PolicyList
+              items={[
+                {
+                  label: 'Organization preference',
+                  content: (
+                    <>
+                      &mdash; Remembers which organization you last selected (if you belong to multiple).
+                    </>
+                  ),
+                },
+                {
+                  label: 'Dashboard layout',
+                  content: <> &mdash; Saves your preferred dashboard card arrangement.</>,
+                },
+                {
+                  label: 'Work timer state',
+                  content: (
+                    <> &mdash; Persists an in-progress labor timer so it survives page refreshes.</>
+                  ),
+                },
+                {
+                  label: 'Admin grant throttling',
+                  content: <> &mdash; Prevents redundant permission lookups within a short window.</>,
+                },
+              ]}
+            />
             <p>
               None of this data is sent to any server or third party. It remains in your browser
               and can be cleared at any time through your browser settings.
@@ -623,191 +655,206 @@ export default function PrivacyPolicy() {
               Supabase Auth stores a JWT access token and refresh token in your browser. These
               tokens are used solely to authenticate your requests to EquipQR and are managed
               entirely by the Supabase Auth SDK. They are not accessible to third-party scripts.
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 6 — How We Use Your Information                          */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>6. How We Use Your Information</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="6. How We Use Your Information">
             <p>
               We use the information described above for the following specific purposes:
             </p>
-            <ul>
-              <li>
-                <strong>Providing the Service:</strong> To operate, maintain, and deliver the core
-                EquipQR features &mdash; equipment tracking, work order management, team
-                collaboration, inventory management, QR code scanning, and fleet map visualization.
-              </li>
-              <li>
-                <strong>Authentication and access control:</strong> To verify your identity, manage
-                your session, and enforce role-based permissions within your organization and teams.
-              </li>
-              <li>
-                <strong>Notifications:</strong> To send you in-app notifications, push notifications
-                (if you opted in), and transactional emails (such as organization invitations) about
-                activity relevant to you.
-              </li>
-              <li>
-                <strong>Integration fulfillment:</strong> To export data to QuickBooks or Google
-                Workspace when your organization has explicitly connected those services.
-              </li>
-              <li>
-                <strong>Bug resolution:</strong> To diagnose and resolve issues you report through
-                the in-app bug reporting feature.
-              </li>
-              <li>
-                <strong>Compliance and audit:</strong> To maintain the immutable audit trail that
-                helps your organization meet regulatory requirements (e.g., OSHA, DOT, ISO).
-              </li>
-              <li>
-                <strong>Security and abuse prevention:</strong> To detect and prevent unauthorized
-                access, bot abuse (via hCaptcha), and fraudulent activity.
-              </li>
-              <li>
-                <strong>Service improvement:</strong> To analyze aggregate, de-identified usage
-                patterns to improve platform reliability and user experience. We do not use
-                third-party analytics services.
-              </li>
-              <li>
-                <strong>Legal obligations:</strong> To comply with applicable laws, regulations,
-                legal processes, or enforceable governmental requests.
-              </li>
-            </ul>
-          </CardContent>
-        </Card>
+            <PolicyList
+              items={[
+                {
+                  label: 'Providing the Service:',
+                  content: (
+                    <>
+                      To operate, maintain, and deliver the core EquipQR features &mdash; equipment
+                      tracking, work order management, team collaboration, inventory management, QR code
+                      scanning, and fleet map visualization.
+                    </>
+                  ),
+                },
+                {
+                  label: 'Authentication and access control:',
+                  content:
+                    'To verify your identity, manage your session, and enforce role-based permissions within your organization and teams.',
+                },
+                {
+                  label: 'Notifications:',
+                  content:
+                    'To send you in-app notifications, push notifications (if you opted in), and transactional emails (such as organization invitations) about activity relevant to you.',
+                },
+                {
+                  label: 'Integration fulfillment:',
+                  content:
+                    'To export data to QuickBooks or Google Workspace when your organization has explicitly connected those services.',
+                },
+                {
+                  label: 'Bug resolution:',
+                  content:
+                    'To diagnose and resolve issues you report through the in-app bug reporting feature.',
+                },
+                {
+                  label: 'Compliance and audit:',
+                  content:
+                    'To maintain the immutable audit trail that helps your organization meet regulatory requirements (e.g., OSHA, DOT, ISO).',
+                },
+                {
+                  label: 'Security and abuse prevention:',
+                  content:
+                    'To detect and prevent unauthorized access, bot abuse (via hCaptcha), and fraudulent activity.',
+                },
+                {
+                  label: 'Service improvement:',
+                  content:
+                    'To analyze aggregate, de-identified usage patterns to improve platform reliability and user experience. We do not use third-party analytics services.',
+                },
+                {
+                  label: 'Legal obligations:',
+                  content:
+                    'To comply with applicable laws, regulations, legal processes, or enforceable governmental requests.',
+                },
+              ]}
+            /></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 7 — How We Share Your Information                        */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>7. How We Share Your Information</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="7. How We Share Your Information">
             <p>
               We do not sell your personal information. We share data only in the following
               circumstances:
             </p>
-            <ul>
-              <li>
-                <strong>Subprocessors listed in Section 4:</strong> We share data with the
-                third-party service providers described above, strictly for the purposes stated.
-                Each provider processes data only as necessary to deliver their specific service to
-                EquipQR.
-              </li>
-              <li>
-                <strong>Within your organization:</strong> Other members of your organization can
-                see your name, role, and (unless you have enabled the email privacy setting) your
-                email address. Organization owners and administrators can always see member email
-                addresses for management purposes.
-              </li>
-              <li>
-                <strong>Optional integrations (with your organization&apos;s consent):</strong> When
-                an organization administrator connects QuickBooks Online or Google Workspace,
-                relevant organization data is shared with those services as described in Section 4.
-                Individual users cannot trigger these integrations.
-              </li>
-              <li>
-                <strong>Legal compliance:</strong> We may disclose your information if required by
-                law or in response to a valid legal request, such as a subpoena, court order, or
-                government inquiry.
-              </li>
-              <li>
-                <strong>Business transfers:</strong> In the event of a merger, acquisition, or sale
-                of all or a portion of our assets, your information may be transferred as part of
-                that transaction. We will notify affected users before their data is subject to a
-                different privacy policy.
-              </li>
-              <li>
-                <strong>With your consent:</strong> We may share your information with third parties
-                when we have your explicit consent to do so.
-              </li>
-            </ul>
+            <PolicyList
+              items={[
+                {
+                  label: 'Subprocessors listed in Section 4:',
+                  content:
+                    'We share data with the third-party service providers described above, strictly for the purposes stated. Each provider processes data only as necessary to deliver their specific service to EquipQR.',
+                },
+                {
+                  label: 'Within your organization:',
+                  content:
+                    'Other members of your organization can see your name, role, and (unless you have enabled the email privacy setting) your email address. Organization owners and administrators can always see member email addresses for management purposes.',
+                },
+                {
+                  label: <>Optional integrations (with your organization&apos;s consent):</>,
+                  content: (
+                    <>
+                      When an organization administrator connects QuickBooks Online or Google Workspace,
+                      relevant organization data is shared with those services as described in Section 4.
+                      Individual users cannot trigger these integrations.
+                    </>
+                  ),
+                },
+                {
+                  label: 'Legal compliance:',
+                  content:
+                    'We may disclose your information if required by law or in response to a valid legal request, such as a subpoena, court order, or government inquiry.',
+                },
+                {
+                  label: 'Business transfers:',
+                  content:
+                    'In the event of a merger, acquisition, or sale of all or a portion of our assets, your information may be transferred as part of that transaction. We will notify affected users before their data is subject to a different privacy policy.',
+                },
+                {
+                  label: 'With your consent:',
+                  content:
+                    'We may share your information with third parties when we have your explicit consent to do so.',
+                },
+              ]}
+            />
             <p>
               We do not share data with advertising networks, data brokers, or any parties for
               marketing purposes.
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 8 — Data Security                                        */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>8. Data Security</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="8. Data Security">
             <p>
               We implement multiple layers of technical and organizational security measures to
               protect your data:
             </p>
-            <ul>
-              <li>
-                <strong>Encryption in transit:</strong> All data transmitted between your browser and
-                EquipQR is encrypted using TLS (HTTPS). We enforce HTTP Strict Transport Security
-                (HSTS) with a one-year max-age, including subdomains, with preload.
-              </li>
-              <li>
-                <strong>Encryption at rest:</strong> All database data is encrypted at rest by
-                Supabase-managed PostgreSQL (AES-256). Uploaded files in Supabase Storage are
-                similarly encrypted at rest.
-              </li>
-              <li>
-                <strong>OAuth token encryption:</strong> QuickBooks and Google Workspace OAuth tokens
-                are additionally encrypted using AES with a dedicated server-side encryption key
-                before storage in the database.
-              </li>
-              <li>
-                <strong>Multi-tenant isolation:</strong> PostgreSQL Row Level Security (RLS) policies
-                enforce strict data isolation between organizations at the database level. Every
-                query is automatically scoped to the requesting user&apos;s organization.
-              </li>
-              <li>
-                <strong>Content Security Policy (CSP):</strong> Strict CSP headers limit which
-                external resources the application can load, mitigating cross-site scripting (XSS)
-                attacks.
-              </li>
-              <li>
-                <strong>Additional HTTP security headers:</strong> <code>X-Frame-Options: DENY</code>{' '}
-                (prevents clickjacking), <code>X-Content-Type-Options: nosniff</code>,{' '}
-                <code>Referrer-Policy: strict-origin-when-cross-origin</code>, and a{' '}
-                <code>Permissions-Policy</code> that allows camera access only within EquipQR&apos;s
-                own application pages (same origin) for features such as in-app QR scanning, while
-                keeping microphone access disabled at the policy level.
-              </li>
-              <li>
-                <strong>Bot protection:</strong> hCaptcha protects signup forms against automated
-                abuse.
-              </li>
-              <li>
-                <strong>Rate limiting:</strong> Sensitive operations (geocoding, bug report
-                submission, data exports) are rate-limited to prevent abuse.
-              </li>
-              <li>
-                <strong>Input validation:</strong> All user input is validated on both the client
-                (using Zod schemas) and the server to prevent injection and malformed data.
-              </li>
-              <li>
-                <strong>PII redaction:</strong> Bug reports sent to GitHub are automatically scanned
-                and have email addresses and phone numbers redacted before submission.
-              </li>
-              <li>
-                <strong>Webhook verification:</strong> Inbound webhooks (e.g., from GitHub) are
-                verified using HMAC-SHA256 signatures to ensure authenticity.
-              </li>
-              <li>
-                <strong>Regular security audits:</strong> We run automated dependency vulnerability
-                scanning (npm audit) and static code analysis (CodeQL) as part of our continuous
-                integration pipeline.
-              </li>
-            </ul>
+            <PolicyList
+              items={[
+                {
+                  label: 'Encryption in transit:',
+                  content:
+                    'All data transmitted between your browser and EquipQR is encrypted using TLS (HTTPS). We enforce HTTP Strict Transport Security (HSTS) with a one-year max-age, including subdomains, with preload.',
+                },
+                {
+                  label: 'Encryption at rest:',
+                  content:
+                    'All database data is encrypted at rest by Supabase-managed PostgreSQL (AES-256). Uploaded files in Supabase Storage are similarly encrypted at rest.',
+                },
+                {
+                  label: 'OAuth token encryption:',
+                  content:
+                    'QuickBooks and Google Workspace OAuth tokens are additionally encrypted using AES with a dedicated server-side encryption key before storage in the database.',
+                },
+                {
+                  label: 'Multi-tenant isolation:',
+                  content: (
+                    <>
+                      PostgreSQL Row Level Security (RLS) policies enforce strict data isolation between
+                      organizations at the database level. Every query is automatically scoped to the
+                      requesting user&apos;s organization.
+                    </>
+                  ),
+                },
+                {
+                  label: 'Content Security Policy (CSP):',
+                  content:
+                    'Strict CSP headers limit which external resources the application can load, mitigating cross-site scripting (XSS) attacks.',
+                },
+                {
+                  label: 'Additional HTTP security headers:',
+                  content: (
+                    <>
+                      <code>X-Frame-Options: DENY</code> (prevents clickjacking),{' '}
+                      <code>X-Content-Type-Options: nosniff</code>,{' '}
+                      <code>Referrer-Policy: strict-origin-when-cross-origin</code>, and a{' '}
+                      <code>Permissions-Policy</code> that allows camera access only within EquipQR&apos;s
+                      own application pages (same origin) for features such as in-app QR scanning, while
+                      keeping microphone access disabled at the policy level.
+                    </>
+                  ),
+                },
+                {
+                  label: 'Bot protection:',
+                  content: 'hCaptcha protects signup forms against automated abuse.',
+                },
+                {
+                  label: 'Rate limiting:',
+                  content:
+                    'Sensitive operations (geocoding, bug report submission, data exports) are rate-limited to prevent abuse.',
+                },
+                {
+                  label: 'Input validation:',
+                  content:
+                    'All user input is validated on both the client (using Zod schemas) and the server to prevent injection and malformed data.',
+                },
+                {
+                  label: 'PII redaction:',
+                  content:
+                    'Bug reports sent to GitHub are automatically scanned and have email addresses and phone numbers redacted before submission.',
+                },
+                {
+                  label: 'Webhook verification:',
+                  content:
+                    'Inbound webhooks (e.g., from GitHub) are verified using HMAC-SHA256 signatures to ensure authenticity.',
+                },
+                {
+                  label: 'Regular security audits:',
+                  content:
+                    'We run automated dependency vulnerability scanning (npm audit) and static code analysis (CodeQL) as part of our continuous integration pipeline.',
+                },
+              ]}
+            />
             <p>
               No method of electronic transmission or storage is 100% secure. While we strive to
               protect your information, we cannot guarantee absolute security. For more on our
@@ -816,127 +863,142 @@ export default function PrivacyPolicy() {
                 Terms of Service
               </Link>
               .
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 9 — Data Retention, Export, and Deletion                  */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>9. Data Retention, Export, and Deletion</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="9. Data Retention, Export, and Deletion">
             <p>
               We retain your information for the specific periods described in Section 10A
               (Retention Periods). In general, data is kept for as long as necessary to fulfill
               the purposes described in this Privacy Policy and to comply with our legal
               obligations.
             </p>
-            <ul>
-              <li>
-                <strong>Active accounts:</strong> Your data is retained for the duration of your
-                account and your organization&apos;s active subscription.
-              </li>
-              <li>
-                <strong>Post-termination export window:</strong> Upon termination or expiration of
-                your subscription, you may export your Customer Data for{' '}
-                <strong>30 days</strong>. After that window, we may delete or de-identify Customer
-                Data from active systems.
-              </li>
-              <li>
-                <strong>Audit trail:</strong> Audit log records may be retained for longer periods as
-                required by applicable regulations or for legitimate business record-keeping.
-              </li>
-              <li>
-                <strong>Backup retention:</strong> Database backups managed by Supabase may retain
-                data for a limited period per Supabase&apos;s infrastructure policies, after which
-                they are automatically purged.
-              </li>
-              <li>
-                <strong>Legal holds:</strong> We may retain data beyond the normal retention period
-                where required by law or for the establishment, exercise, or defense of legal
-                claims.
-              </li>
-            </ul>
+            <PolicyList
+              items={[
+                {
+                  label: 'Active accounts:',
+                  content: (
+                    <>
+                      Your data is retained for the duration of your account and your organization&apos;s
+                      active subscription.
+                    </>
+                  ),
+                },
+                {
+                  label: 'Post-termination export window:',
+                  content: (
+                    <>
+                      Upon termination or expiration of your subscription, you may export your Customer
+                      Data for <strong>30 days</strong>. After that window, we may delete or de-identify
+                      Customer Data from active systems.
+                    </>
+                  ),
+                },
+                {
+                  label: 'Audit trail:',
+                  content:
+                    'Audit log records may be retained for longer periods as required by applicable regulations or for legitimate business record-keeping.',
+                },
+                {
+                  label: 'Backup retention:',
+                  content: (
+                    <>
+                      Database backups managed by Supabase may retain data for a limited period per
+                      Supabase&apos;s infrastructure policies, after which they are automatically purged.
+                    </>
+                  ),
+                },
+                {
+                  label: 'Legal holds:',
+                  content:
+                    'We may retain data beyond the normal retention period where required by law or for the establishment, exercise, or defense of legal claims.',
+                },
+              ]}
+            />
             <p>
               For full details on data export and deletion procedures, see the{' '}
               <Link to="/terms-of-service" className="underline">
                 Terms of Service
               </Link>
               .
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 10 — Your Rights                                         */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>10. Your Rights and Choices</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="10. Your Rights and Choices">
             <p>
               Depending on your jurisdiction, you may have some or all of the following rights
               regarding your personal information:
             </p>
-            <ul>
-              <li>
-                <strong>Access:</strong> Request a copy of the personal data we hold about you.
-              </li>
-              <li>
-                <strong>Correction:</strong> Request that we correct inaccurate or incomplete
-                personal data. You can update your display name directly in your profile settings.
-              </li>
-              <li>
-                <strong>Deletion:</strong> Request that we delete your personal data, subject to
-                legal retention requirements.
-              </li>
-              <li>
-                <strong>Data portability:</strong> Request your data in a structured,
-                machine-readable format.
-              </li>
-              <li>
-                <strong>Restriction:</strong> Request that we restrict processing of your personal
-                data under certain conditions.
-              </li>
-              <li>
-                <strong>Objection:</strong> Object to our processing of your personal data where we
-                rely on legitimate interests.
-              </li>
-            </ul>
+            <PolicyList
+              items={[
+                { label: 'Access:', content: 'Request a copy of the personal data we hold about you.' },
+                {
+                  label: 'Correction:',
+                  content:
+                    'Request that we correct inaccurate or incomplete personal data. You can update your display name directly in your profile settings.',
+                },
+                {
+                  label: 'Deletion:',
+                  content:
+                    'Request that we delete your personal data, subject to legal retention requirements.',
+                },
+                {
+                  label: 'Data portability:',
+                  content: 'Request your data in a structured, machine-readable format.',
+                },
+                {
+                  label: 'Restriction:',
+                  content:
+                    'Request that we restrict processing of your personal data under certain conditions.',
+                },
+                {
+                  label: 'Objection:',
+                  content:
+                    'Object to our processing of your personal data where we rely on legitimate interests.',
+                },
+              ]}
+            />
 
             <h3>Controls Available to You</h3>
-            <ul>
-              <li>
-                <strong>Email privacy:</strong> You can toggle your email visibility in your profile
-                settings. When enabled, other organization members (except owners and administrators)
-                will not see your email address.
-              </li>
-              <li>
-                <strong>Push notifications:</strong> You can opt in or out of push notifications at
-                any time through your notification preferences or your browser settings.
-              </li>
-              <li>
-                <strong>Notification preferences:</strong> You can customize which categories of
-                notifications you receive (work orders, equipment alerts, invitations, etc.).
-              </li>
-            </ul>
+            <PolicyList
+              items={[
+                {
+                  label: 'Email privacy:',
+                  content:
+                    'You can toggle your email visibility in your profile settings. When enabled, other organization members (except owners and administrators) will not see your email address.',
+                },
+                {
+                  label: 'Push notifications:',
+                  content:
+                    'You can opt in or out of push notifications at any time through your notification preferences or your browser settings.',
+                },
+                {
+                  label: 'Notification preferences:',
+                  content:
+                    'You can customize which categories of notifications you receive (work orders, equipment alerts, invitations, etc.).',
+                },
+              ]}
+            />
 
             <h3>Controls Available to Organization Administrators</h3>
-            <ul>
-              <li>
-                <strong>GPS location collection:</strong> Organization administrators can enable or
-                disable GPS location collection from QR code scans at any time via organization
-                settings. When disabled, no location data is captured from scans.
-              </li>
-              <li>
-                <strong>Optional integrations:</strong> Organization administrators control whether
-                QuickBooks Online and Google Workspace integrations are connected or disconnected.
-              </li>
-            </ul>
+            <PolicyList
+              items={[
+                {
+                  label: 'GPS location collection:',
+                  content:
+                    'Organization administrators can enable or disable GPS location collection from QR code scans at any time via organization settings. When disabled, no location data is captured from scans.',
+                },
+                {
+                  label: 'Optional integrations:',
+                  content:
+                    'Organization administrators control whether QuickBooks Online and Google Workspace integrations are connected or disconnected.',
+                },
+              ]}
+            />
 
             <h3>Data Processing Agreements</h3>
             <p>
@@ -959,18 +1021,12 @@ export default function PrivacyPolicy() {
               If you are a California resident, please see Section 10A below for additional
               rights available to you under the California Consumer Privacy Act (CCPA) and
               the California Privacy Rights Act (CPRA).
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 10A — California Privacy Rights (CCPA/CPRA)              */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>10A. Your California Privacy Rights (CCPA/CPRA)</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="10A. Your California Privacy Rights (CCPA/CPRA)">
             <p>
               This section applies to California residents and supplements the rest of this
               Privacy Policy with disclosures required by the California Consumer Privacy Act
@@ -1127,38 +1183,7 @@ export default function PrivacyPolicy() {
             <p>
               As a California resident, you have the following rights under CCPA/CPRA:
             </p>
-            <ul>
-              <li>
-                <strong>Right to Know / Access:</strong> You may request that we disclose the
-                categories and specific pieces of personal information we have collected about
-                you.
-              </li>
-              <li>
-                <strong>Right to Delete:</strong> You may request that we delete personal
-                information we have collected from you, subject to certain exceptions
-                (e.g., audit log retention for regulatory compliance).
-              </li>
-              <li>
-                <strong>Right to Correct:</strong> You may request that we correct inaccurate
-                personal information.
-              </li>
-              <li>
-                <strong>Right to Opt-Out of Sale/Sharing:</strong> Because we do not sell or
-                share personal information for cross-context behavioral advertising, no
-                opt-out action is required. If this changes, we will provide a conspicuous
-                opt-out mechanism.
-              </li>
-              <li>
-                <strong>Right to Limit Use of Sensitive PI:</strong> You may limit our use of
-                your Sensitive Personal Information. You can disable GPS data collection for
-                your scans in your account settings under &quot;Privacy.&quot;
-              </li>
-              <li>
-                <strong>Right to Non-Discrimination:</strong> We will not discriminate against
-                you for exercising any of your CCPA/CPRA rights. You will not receive
-                different pricing, quality of service, or access levels.
-              </li>
-            </ul>
+            <CcpaRightsList variant="policy" />
 
             <h3>How to Submit a Request</h3>
             <p>
@@ -1202,18 +1227,12 @@ export default function PrivacyPolicy() {
               We will respond to verified requests within 45 calendar days. If we need
               additional time, we will notify you before the initial deadline and may take up
               to 45 additional days (90 days total).
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 11 — Children's Privacy                                  */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>11. Children&apos;s Privacy</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="11. Children&apos;s Privacy">
             <p>
               EquipQR is a business-to-business platform designed for use by organizations and their
               employees. Our Service is not directed to individuals under the age of 16, and we do
@@ -1221,18 +1240,12 @@ export default function PrivacyPolicy() {
               have inadvertently collected data from a child under 16, we will take steps to delete
               that information promptly. If you believe a child has provided us with personal data,
               please contact us immediately.
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 12 — International Data Transfers                        */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>12. International Data Transfers</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="12. International Data Transfers">
             <p>
               EquipQR is operated from the United States. Your data is processed and stored in the
               United States through our infrastructure providers (Supabase on AWS and Vercel). If you
@@ -1244,18 +1257,12 @@ export default function PrivacyPolicy() {
               By using the Service, you consent to the transfer of your information to the United
               States. If your organization requires specific transfer mechanisms (such as Standard
               Contractual Clauses), please contact us to discuss available options.
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 13 — Changes to This Policy                              */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>13. Changes to This Privacy Policy</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="13. Changes to This Privacy Policy">
             <p>
               We may update this Privacy Policy from time to time to reflect changes in our practices,
               technologies, legal requirements, or for other operational reasons. When we make
@@ -1277,18 +1284,12 @@ export default function PrivacyPolicy() {
             </ul>
             <p>
               We encourage you to review this Privacy Policy periodically.
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
 
         {/* ---------------------------------------------------------------- */}
         {/* Section 14 — Contact Us                                          */}
         {/* ---------------------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>14. Contact Us</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <LegalPolicySection title="14. Contact Us">
             <p>
               If you have any questions about this Privacy Policy, want to exercise your data rights,
               or have concerns about our data practices, please contact us:
@@ -1318,9 +1319,7 @@ export default function PrivacyPolicy() {
             </ul>
             <p>
               We aim to respond to all privacy-related inquiries within 45 calendar days.
-            </p>
-          </CardContent>
-        </Card>
+            </p></LegalPolicySection>
       </div>
     </div>
   );

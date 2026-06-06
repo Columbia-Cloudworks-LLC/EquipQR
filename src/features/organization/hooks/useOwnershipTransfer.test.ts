@@ -4,8 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
+import { createQueryClientWrapper } from '@/test/utils/test-utils';
 
 // Mock supabase client
 vi.mock('@/integrations/supabase/client', () => ({
@@ -54,22 +53,7 @@ import {
   useCancelTransfer,
 } from './useOwnershipTransfer';
 
-// Create a wrapper component for the hooks
-const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-      mutations: {
-        retry: false,
-      },
-    },
-  });
-
-  return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(QueryClientProvider, { client: queryClient }, children);
-};
+const createWrapper = createQueryClientWrapper;
 
 describe('useOwnershipTransfer hooks', () => {
   beforeEach(() => {

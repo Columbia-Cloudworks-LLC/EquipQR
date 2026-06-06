@@ -6,13 +6,10 @@ import { Trash2, Package } from 'lucide-react';
 import { WorkOrderCostItem } from '@/features/work-orders/hooks/useWorkOrderCostsState';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-// Hoisted formatter — avoids recreating Intl.NumberFormat on every render
-const currencyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  minimumFractionDigits: 2,
-});
-const formatCurrency = (cents: number) => currencyFormatter.format(cents / 100);
+import {
+  formatWorkOrderCostCurrency,
+  parseUnitPriceDollarsToCents,
+} from '@/features/work-orders/utils/workOrderCostFormatters';
 
 interface DesktopCostItemProps {
   cost: WorkOrderCostItem;
@@ -65,14 +62,14 @@ const DesktopCostItem: React.FC<DesktopCostItemProps> = React.memo(({
             step="0.01"
             min="0"
             value={cost.unit_price_cents / 100}
-            onChange={(e) => onUpdateCost(cost.id, 'unit_price_cents', Math.round((parseFloat(e.target.value) || 0) * 100))}
+            onChange={(e) => onUpdateCost(cost.id, 'unit_price_cents', parseUnitPriceDollarsToCents(e.target.value))}
             placeholder="0.00"
             className="h-8"
           />
         </div>
         <div className="flex items-center justify-between">
           <span className="font-semibold text-sm">
-            {formatCurrency(cost.total_price_cents)}
+            {formatWorkOrderCostCurrency(cost.total_price_cents)}
           </span>
           <Button
             type="button"

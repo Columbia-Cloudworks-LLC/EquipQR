@@ -13,6 +13,8 @@ import {
 import { generateGoogleWorkspaceAuthUrl, isGoogleWorkspaceConfigured } from '@/services/google-workspace/auth';
 import { googleWorkspace } from '@/lib/queryKeys';
 import { ORGANIZATION_INTEGRATIONS_PATH } from '@/features/organization/constants/routes';
+import { IntegrationLoadingCard } from '@/features/organization/components/IntegrationLoadingCard';
+import { IntegrationNotConfiguredCard } from '@/features/organization/components/IntegrationNotConfiguredCard';
 
 interface GoogleWorkspaceIntegrationProps {
   currentUserRole: 'owner' | 'admin' | 'member';
@@ -81,27 +83,15 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
 
   if (!isConfigured) {
     return (
-      <div className="rounded-lg border p-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-medium">Google Workspace</p>
-            <p className="text-xs text-muted-foreground">Import and manage organization members</p>
-          </div>
-          <Badge variant="secondary" className="self-start sm:self-auto">Not configured</Badge>
-        </div>
-      </div>
+      <IntegrationNotConfiguredCard
+        title="Google Workspace"
+        description="Import and manage organization members"
+      />
     );
   }
 
   if (isLoading) {
-    return (
-      <div className="rounded-lg border p-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading Google Workspace...
-        </div>
-      </div>
-    );
+    return <IntegrationLoadingCard label="Loading Google Workspace..." />;
   }
 
   const isConnected = connectionStatus?.is_connected;

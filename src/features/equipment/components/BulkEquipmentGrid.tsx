@@ -1,26 +1,18 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  flexRender,
   getCoreRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table';
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
-
-import { Button } from '@/components/ui/button';
+import { BulkTanstackTableShell } from '@/components/bulk-edit/BulkTanstackTableShell';
+import { BulkGridSortableHeader } from '@/components/bulk-edit/BulkGridSortableHeader';
+import { getBulkDisplayValue } from '@/hooks/bulkGridDisplayValue';
+import { useBulkGridClickToSelect } from '@/hooks/useBulkGridClickToSelect';
+import { useBulkGridPendingApply } from '@/hooks/useBulkGridPendingApply';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { cn } from '@/lib/utils';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
 
 import { BulkApplyConfirmDialog } from './BulkApplyConfirmDialog';
@@ -54,13 +46,6 @@ const FIELD_LABELS: Partial<Record<keyof EquipmentRecord, string>> = {
   working_hours: 'Hours',
   location: 'Location',
 };
-
-interface PendingApply {
-  rowId: string;
-  field: keyof EquipmentRecord;
-  fieldLabel: string;
-  value: string | number | null;
-}
 
 export interface BulkEquipmentGridProps {
   rows: EquipmentRecord[];
@@ -105,89 +90,28 @@ export const BulkEquipmentGrid: React.FC<BulkEquipmentGridProps> = ({
   onClearSelection,
 }) => {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
-  const [pendingApply, setPendingApply] = useState<PendingApply | null>(null);
-  // Single shared debounce timer for the row-level click-to-select gesture.
-  // The first click of a double-click sequence schedules the toggle; the
-  // dblclick handler on `BulkEditableCell` calls `cancelPendingSelection` to
-  // drop the toggle before the editor mounts. Lifted to the grid (rather than
-  // per-cell) so it covers BOTH cell clicks and dead-zone row clicks (Team
-  // text, padding, etc.) — fixes the "single-click selects only inside cells"
-  // contradiction reported by Copilot.
-  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingSelectIdRef = useRef<string | null>(null);
 
-  const cancelPendingSelection = useCallback(() => {
-    if (clickTimerRef.current) {
-      clearTimeout(clickTimerRef.current);
-      clickTimerRef.current = null;
-    }
-    pendingSelectIdRef.current = null;
-  }, []);
+  const { cancelPendingSelection, handleRowClick } = useBulkGridClickToSelect(onToggleSelected);
 
-  // Cancel any pending toggle on unmount so we never call `onToggleSelected`
-  // against a stale rowId after navigation away from the bulk-edit page.
-  useEffect(() => {
-    return () => {
-      if (clickTimerRef.current) {
-        clearTimeout(clickTimerRef.current);
-        clickTimerRef.current = null;
-      }
-    };
-  }, []);
+  const {
+    pendingApply,
+    handleCellChange,
+    handleApplyAll,
+    handleApplyOne,
+    clearPendingApply,
+  } = useBulkGridPendingApply<keyof EquipmentRecord>({
+    selectedRowIds,
+    fieldLabels: FIELD_LABELS,
+    onSetCellValue: (rowId, field, value) =>
+      onSetCellValue(rowId, field, value as EquipmentRecord[keyof EquipmentRecord]),
+    onSetCellValueOnRows: (ids, field, value) =>
+      onSetCellValueOnRows(ids, field, value as never),
+  });
 
-  const handleRowClick = useCallback(
-    (rowId: string, e: React.MouseEvent<HTMLTableRowElement>) => {
-      // `e.detail` is 1 for a real single-click and increments through a
-      // multi-click sequence. Skip detail > 1 — the dblclick handler on the
-      // cell will cancel the still-pending detail=1 toggle. RTL synthetic
-      // events default to detail=0, so 0 is treated like 1.
-      if (e.detail > 1) return;
-      cancelPendingSelection();
-      pendingSelectIdRef.current = rowId;
-      clickTimerRef.current = setTimeout(() => {
-        const id = pendingSelectIdRef.current;
-        clickTimerRef.current = null;
-        pendingSelectIdRef.current = null;
-        if (id) onToggleSelected(id);
-      }, 250);
-    },
-    [cancelPendingSelection, onToggleSelected]
-  );
-
-  /** Returns the merged value (dirty delta wins over the original row value). */
   const getDisplayValue = useCallback(
-    <K extends keyof EquipmentRecord>(
-      row: EquipmentRecord,
-      field: K
-    ): EquipmentRecord[K] => {
-      const delta = dirtyRows.get(row.id);
-      if (delta && field in delta) {
-        return delta[field] as EquipmentRecord[K];
-      }
-      return row[field];
-    },
+    <K extends keyof EquipmentRecord>(row: EquipmentRecord, field: K): EquipmentRecord[K] =>
+      getBulkDisplayValue(row, field, dirtyRows),
     [dirtyRows]
-  );
-
-  /** Cell-change router: applies directly OR opens the BulkApply dialog. */
-  const handleCellChange = useCallback(
-    <K extends keyof EquipmentRecord>(
-      rowId: string,
-      field: K,
-      value: EquipmentRecord[K]
-    ) => {
-      if (selectedRowIds.has(rowId) && selectedRowIds.size > 1) {
-        setPendingApply({
-          rowId,
-          field,
-          fieldLabel: FIELD_LABELS[field] ?? String(field),
-          value: value as string | number | null,
-        });
-        return;
-      }
-      onSetCellValue(rowId, field, value);
-    },
-    [selectedRowIds, onSetCellValue]
   );
 
   const columns = useMemo<ColumnDef<EquipmentRecord>[]>(() => {
@@ -198,7 +122,7 @@ export const BulkEquipmentGrid: React.FC<BulkEquipmentGridProps> = ({
     ): ColumnDef<EquipmentRecord> => ({
       id: key,
       accessorKey: key,
-      header: ({ column }) => <SortableHeader column={column} title={title} />,
+      header: ({ column }) => <BulkGridSortableHeader column={column} title={title} />,
       cell: ({ row }) => (
         <BulkEditableCell
           rowId={row.original.id}
@@ -250,7 +174,7 @@ export const BulkEquipmentGrid: React.FC<BulkEquipmentGridProps> = ({
       {
         id: 'name',
         accessorKey: 'name',
-        header: ({ column }) => <SortableHeader column={column} title="Name" />,
+        header: ({ column }) => <BulkGridSortableHeader column={column} title="Name" />,
         cell: ({ row }) => (
           <Link
             to={`/dashboard/equipment/${row.original.id}`}
@@ -265,7 +189,7 @@ export const BulkEquipmentGrid: React.FC<BulkEquipmentGridProps> = ({
       {
         id: 'status',
         accessorKey: 'status',
-        header: ({ column }) => <SortableHeader column={column} title="Status" />,
+        header: ({ column }) => <BulkGridSortableHeader column={column} title="Status" />,
         cell: ({ row }) => (
           <BulkEditableCell
             rowId={row.original.id}
@@ -292,7 +216,7 @@ export const BulkEquipmentGrid: React.FC<BulkEquipmentGridProps> = ({
       {
         id: 'working_hours',
         accessorKey: 'working_hours',
-        header: ({ column }) => <SortableHeader column={column} title="Hours" align="right" />,
+        header: ({ column }) => <BulkGridSortableHeader column={column} title="Hours" align="right" />,
         cell: ({ row }) => (
           <BulkEditableCell
             rowId={row.original.id}
@@ -316,7 +240,7 @@ export const BulkEquipmentGrid: React.FC<BulkEquipmentGridProps> = ({
       {
         id: 'team_name',
         accessorKey: 'team_name',
-        header: ({ column }) => <SortableHeader column={column} title="Team" />,
+        header: ({ column }) => <BulkGridSortableHeader column={column} title="Team" />,
         cell: ({ row }) =>
           row.original.team_id && row.original.team_name ? (
             <Link
@@ -356,66 +280,17 @@ export const BulkEquipmentGrid: React.FC<BulkEquipmentGridProps> = ({
     getRowId: (row) => row.id,
   });
 
-  const handleApplyAll = () => {
-    if (!pendingApply) return;
-    const ids = Array.from(selectedRowIds);
-    onSetCellValueOnRows(ids, pendingApply.field, pendingApply.value as never);
-    setPendingApply(null);
-  };
-
-  const handleApplyOne = () => {
-    if (!pendingApply) return;
-    onSetCellValue(pendingApply.rowId, pendingApply.field, pendingApply.value as never);
-    setPendingApply(null);
-  };
-
   return (
     <>
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((group) => (
-              <TableRow key={group.id}>
-                {group.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                  No equipment to edit.
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => {
-                const isSelected = selectedRowIds.has(row.original.id);
-                const isRowDirty = dirtyRows.has(row.original.id);
-                return (
-                  <TableRow
-                    key={row.id}
-                    data-state={isSelected ? 'selected' : undefined}
-                    className={cn('cursor-pointer', isRowDirty && 'bg-primary/5')}
-                    onClick={(e) => handleRowClick(row.original.id, e)}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="py-1.5">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <BulkTanstackTableShell
+        table={table}
+        columnCount={columns.length}
+        emptyMessage="No equipment to edit."
+        selectedRowIds={selectedRowIds}
+        getRowId={(row) => row.id}
+        isRowDirty={(row) => dirtyRows.has(row.id)}
+        onRowClick={handleRowClick}
+      />
 
       <BulkApplyConfirmDialog
         open={pendingApply !== null}
@@ -423,31 +298,8 @@ export const BulkEquipmentGrid: React.FC<BulkEquipmentGridProps> = ({
         selectedCount={selectedRowIds.size}
         onApplyAll={handleApplyAll}
         onApplyOne={handleApplyOne}
-        onCancel={() => setPendingApply(null)}
+        onCancel={clearPendingApply}
       />
     </>
-  );
-};
-
-interface SortableHeaderProps {
-  column: { getIsSorted: () => false | 'asc' | 'desc'; toggleSorting: (desc?: boolean) => void };
-  title: string;
-  align?: 'left' | 'right';
-}
-
-const SortableHeader: React.FC<SortableHeaderProps> = ({ column, title, align = 'left' }) => {
-  const sorted = column.getIsSorted();
-  const Icon = sorted === 'asc' ? ArrowUp : sorted === 'desc' ? ArrowDown : ArrowUpDown;
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      onClick={() => column.toggleSorting(sorted === 'asc')}
-      className={cn('h-7 px-1 text-xs font-medium', align === 'right' && 'ml-auto')}
-    >
-      {title}
-      <Icon className="ml-1 h-3 w-3" aria-hidden />
-    </Button>
   );
 };

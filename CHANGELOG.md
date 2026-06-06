@@ -18,10 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Dead-code cleanup** — Evidence-backed removal of obsolete modules, duplicate feature barrels, unused exports, and legacy organization/session scaffolding identified by Fallow (check findings reduced from 776 to 77); session types consolidated with expanded `useSessionManager` test coverage.
+- **Dead-code cleanup** — Evidence-backed removal of obsolete modules, duplicate feature barrels, unused exports, and legacy organization/session scaffolding identified by Fallow (findings reduced to 0); session types consolidated with expanded `useSessionManager` test coverage.
 - **Dependencies** — Trimmed unused npm packages surfaced during the audit.
 - **Playwright shared helpers** — Expanded auth, org, page, seed-data, and UI form helpers plus run-config defaults for multi-org and mobile flows.
 - **Demo marketing recorder** — Quality gate, diagnostics, and step-runner improvements for demo GIF/video capture.
+- **Vite React plugin** — Switched from the SWC React plugin to the standard Vite React plugin to keep Vitest and production builds quiet under Vite 8/Rolldown.
 
 ### Removed
 
@@ -29,11 +30,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-
 - **Post-signup success view** — Auth no longer auto-redirects away from the check-your-email success screen before the user chooses return to sign-in.
 - **Fleet map Google Maps key** — Session refresh and retry when the public maps key edge function returns unauthorized.
 - **PM template and QuickBooks UI** — Stable selectors and test hooks for Playwright full-suite coverage.
 - **E2E user regression** — Scoped the work order create-button locator to avoid ambiguous matches during creation flows.
+- **E2E auth state stability** — Full-suite Playwright runs now always apply setup-generated owner storage state, and the logout lifecycle test restores shared owner auth so later direct dashboard routes stay signed in.
+- **E2E creation and offline flows** — Equipment creation helpers now wait for the hydrated equipment search box before opening newly created records, and mobile offline note coverage now asserts the actual offline banner/footer feedback.
+- **Verification noise cleanup** — The Vitest wrapper now starts Vitest without Node 24 `shell: true` deprecation warnings, and the PWA service-worker build uses an IIFE output to avoid Vite/Rolldown `inlineDynamicImports` warnings.
 
 ## [3.8.1] - 2026-06-01
 

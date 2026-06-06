@@ -9,6 +9,7 @@ interface FeatureCTAProps {
   primaryCtaLink?: string;
   secondaryCtaText?: string;
   secondaryCtaLink?: string;
+  className?: string;
 }
 
 export const FeatureCTA = ({
@@ -18,9 +19,10 @@ export const FeatureCTA = ({
   primaryCtaLink = '/auth?tab=signup',
   secondaryCtaText = 'Explore More Features',
   secondaryCtaLink = '/#features',
+  className = 'bg-muted/30',
 }: FeatureCTAProps) => {
   return (
-    <section className="py-24 bg-muted/30">
+    <section className={`py-24 ${className}`}>
       <div className="container px-4 mx-auto">
         <div className="text-center max-w-3xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">{title}</h2>

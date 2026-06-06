@@ -1,13 +1,6 @@
 // Performance monitoring utilities for the optimization plan
 import { logger } from '@/utils/logger';
-
-interface MetricSummary {
-  count: number;
-  avg: number;
-  min: number;
-  max: number;
-  latest: number;
-}
+import { summarizeMetricValues, type MetricSummary } from '@/utils/metricSummary';
 
 export class PerformanceMonitor {
   private static instance: PerformanceMonitor;
@@ -88,24 +81,12 @@ export class PerformanceMonitor {
   getMetrics(name?: string): MetricSummary | Record<string, MetricSummary> {
     if (name) {
       const values = this.metrics.get(name) || [];
-      return {
-        count: values.length,
-        avg: values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0,
-        min: values.length > 0 ? Math.min(...values) : 0,
-        max: values.length > 0 ? Math.max(...values) : 0,
-        latest: values[values.length - 1] || 0
-      };
+      return summarizeMetricValues(values);
     }
 
     const result: Record<string, MetricSummary> = {};
     for (const [key, values] of this.metrics.entries()) {
-      result[key] = {
-        count: values.length,
-        avg: values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0,
-        min: values.length > 0 ? Math.min(...values) : 0,
-        max: values.length > 0 ? Math.max(...values) : 0,
-        latest: values[values.length - 1] || 0
-      };
+      result[key] = summarizeMetricValues(values);
     }
     return result;
   }

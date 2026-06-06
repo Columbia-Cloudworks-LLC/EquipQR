@@ -25,10 +25,11 @@ import {
   PartsFiltersState,
   PartsSortField,
   PartsSortOrder,
-  StockFilter,
   SORT_OPTIONS,
+  StockFilter,
   STOCK_FILTER_OPTIONS,
 } from './types';
+import { createPartsSortChangeHandler, partsToolbarSortValue } from './partsSortHandlers';
 
 interface MobilePartsToolbarProps {
   filters: PartsFiltersState;
@@ -52,14 +53,8 @@ export const MobilePartsToolbar: React.FC<MobilePartsToolbarProps> = ({
   onClearFilters,
 }) => {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const currentSortValue = `${filters.sortField}-${filters.sortOrder}`;
-
-  const handleSortChange = (value: string) => {
-    const option = SORT_OPTIONS.find(opt => opt.value === value);
-    if (option) {
-      onSortChange(option.field, option.order);
-    }
-  };
+  const currentSortValue = partsToolbarSortValue(filters.sortField, filters.sortOrder);
+  const handleSortChange = createPartsSortChangeHandler(onSortChange);
 
   const getStockFilterLabel = (value: StockFilter) => {
     return STOCK_FILTER_OPTIONS.find(opt => opt.value === value)?.label || value;

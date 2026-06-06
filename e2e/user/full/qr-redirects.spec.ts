@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/equipqr-test';
+import { expectPublicQrRouteHealthy } from '../shared/auth-helpers';
 import { seedEquipment, seedInventory, seedWorkOrders } from '../shared/seed-data';
 
 test.describe('QR redirects @full', () => {
@@ -49,8 +50,6 @@ test.describe('QR redirects @full', () => {
   });
 
   test('legacy equipment QR path loads', async ({ page }) => {
-    await page.goto(`/qr/${seedEquipment.cat320.id}`);
-    await expect(page.locator('body')).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByText(/something went wrong/i)).toHaveCount(0);
+    await expectPublicQrRouteHealthy(page, `/qr/${seedEquipment.cat320.id}`);
   });
 });

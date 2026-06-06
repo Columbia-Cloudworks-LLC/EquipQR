@@ -1,47 +1,23 @@
 // Using Deno.serve (built-in)
-import { createClient } from "npm:@supabase/supabase-js@2.45.0";
-import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   QBO_API_BASE,
-  QBO_TOKEN_URL,
   getIntuitTid,
   withMinorVersion,
 } from "../_shared/quickbooks-config.ts";
-import { withCorrelationId } from "../_shared/supabase-clients.ts";
-import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
+import { requireBearerUserJsonUnauthorized } from "../_shared/supabase-clients.ts";
+import { MissingSecretError } from "../_shared/require-secret.ts";
+import { serveQuickBooksFunction } from "../_shared/quickbooks-serve.ts";
+import { createRedactedLogStep } from "../_shared/redacted-logger.ts";
+import {
+  refreshQuickBooksAccessTokenIfNeeded,
+  type QuickBooksCredential,
+} from "../_shared/quickbooks-token.ts";
 
 const FUNCTION_NAME = "quickbooks-search-customers";
 
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  // Avoid logging sensitive data
-  const safeDetails = details ? { ...details } : undefined;
-  if (safeDetails) {
-    delete safeDetails.access_token;
-    delete safeDetails.refresh_token;
-  }
-  const detailsStr = safeDetails ? ` - ${JSON.stringify(safeDetails)}` : '';
-  console.log(`[QUICKBOOKS-SEARCH-CUSTOMERS] ${step}${detailsStr}`);
-};
+const logStep = createRedactedLogStep("QUICKBOOKS-SEARCH-CUSTOMERS");
 
 // getIntuitTid imported from _shared/quickbooks-config.ts
-
-interface QuickBooksCredential {
-  id: string;
-  organization_id: string;
-  realm_id: string;
-  access_token: string;
-  refresh_token: string;
-  access_token_expires_at: string;
-  refresh_token_expires_at: string;
-}
-
-interface IntuitTokenResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-  expires_in: number;
-  x_refresh_token_expires_in: number;
-}
 
 interface QuickBooksCustomer {
   Id: string;
@@ -84,129 +60,25 @@ interface CustomerQueryResponse {
   time: string;
 }
 
-/**
- * Refresh the access token if needed
- */
-async function refreshTokenIfNeeded(
-  credential: QuickBooksCredential,
-  supabaseClient: any,
-  clientId: string,
-  clientSecret: string
-): Promise<string> {
-  const now = new Date();
-  const accessTokenExpiresAt = new Date(credential.access_token_expires_at);
-  
-  // If token is still valid for at least 5 minutes, use it
-  if (accessTokenExpiresAt > new Date(now.getTime() + 5 * 60 * 1000)) {
-    return credential.access_token;
-  }
-
-  logStep("Access token expired or expiring soon, refreshing...");
-
-  // Check if refresh token is still valid
-  const refreshTokenExpiresAt = new Date(credential.refresh_token_expires_at);
-  if (refreshTokenExpiresAt <= now) {
-    throw new Error("Refresh token has expired. Please reconnect QuickBooks.");
-  }
-
-  // Refresh the token
-  const tokenRequestBody = new URLSearchParams({
-    grant_type: "refresh_token",
-    refresh_token: credential.refresh_token,
-  });
-
-  const basicAuth = btoa(`${clientId}:${clientSecret}`);
-  
-  const tokenResponse = await fetch(QBO_TOKEN_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Authorization": `Basic ${basicAuth}`,
-      "Accept": "application/json",
-    },
-    body: tokenRequestBody.toString(),
-  });
-
-  if (!tokenResponse.ok) {
-    const errorText = await tokenResponse.text();
-    console.error("Token refresh failed:", tokenResponse.status, errorText);
-    throw new Error("Failed to refresh QuickBooks access token");
-  }
-
-  const tokenData: IntuitTokenResponse = await tokenResponse.json();
-
-  // Update credentials in database
-  const newAccessExpiresAt = new Date(now.getTime() + tokenData.expires_in * 1000);
-  const newRefreshExpiresAt = new Date(now.getTime() + tokenData.x_refresh_token_expires_in * 1000);
-
-  const { error: updateError } = await supabaseClient
-    .from('quickbooks_credentials')
-    .update({
-      access_token: tokenData.access_token,
-      refresh_token: tokenData.refresh_token,
-      access_token_expires_at: newAccessExpiresAt.toISOString(),
-      refresh_token_expires_at: newRefreshExpiresAt.toISOString(),
-      updated_at: now.toISOString(),
-    })
-    .eq('id', credential.id);
-
-  if (updateError) {
-    console.error("Failed to update credentials after refresh:", updateError);
-    // Continue with the new token even if database update fails
-  }
-
-  logStep("Token refreshed successfully");
-  return tokenData.access_token;
-}
-
-Deno.serve(withCorrelationId(async (req, ctx) => {
-  const corsHeaders = getCorsHeaders(req);
-
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+serveQuickBooksFunction(FUNCTION_NAME, logStep, async ({
+  req,
+  ctx,
+  corsHeaders,
+  secrets,
+  supabaseClient,
+}) => {
   try {
-    logStep("Function started", { correlation_id: ctx.correlationId });
+    const { clientId, clientSecret } = secrets;
 
-    // Required secrets — surface as MISSING_REQUIRED_SECRET via the helper.
-    const clientId = requireSecret("INTUIT_CLIENT_ID", { functionName: FUNCTION_NAME });
-    const clientSecret = requireSecret("INTUIT_CLIENT_SECRET", { functionName: FUNCTION_NAME });
-    const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: FUNCTION_NAME });
-    const supabaseServiceKey = requireSecret("SUPABASE_SERVICE_ROLE_KEY", { functionName: FUNCTION_NAME });
-
-    // Validate authorization
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader || !authHeader.toLowerCase().startsWith("bearer ")) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Unauthorized" 
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const authResult = await requireBearerUserJsonUnauthorized(
+      req,
+      supabaseClient,
+      corsHeaders,
+    );
+    if (authResult instanceof Response) {
+      return authResult;
     }
-
-    // Create Supabase client with service role
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false }
-    });
-
-    // Verify the user's token
-    const token = authHeader.substring(7).trim();
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-    
-    if (userError || !user) {
-      logStep("Authentication failed", { error: userError?.message });
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Unauthorized" 
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const { user } = authResult;
 
     // Parse request body
     const body = await req.json();
@@ -271,12 +143,12 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       });
     }
 
-    // Get a valid access token (refresh if needed)
-    const accessToken = await refreshTokenIfNeeded(
-      credentials,
+    const { accessToken } = await refreshQuickBooksAccessTokenIfNeeded(
+      credentials as QuickBooksCredential,
       supabaseClient,
       clientId,
-      clientSecret
+      clientSecret,
+      { onPersistError: "logAndContinue", log: logStep },
     );
 
     // Build the QuickBooks Customer query — include all documented contact fields
@@ -427,4 +299,4 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-}));
+});

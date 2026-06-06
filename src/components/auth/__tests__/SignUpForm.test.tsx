@@ -115,6 +115,24 @@ describe('SignUpForm', () => {
     setIsLoading: vi.fn()
   };
 
+  function setupFastUser() {
+    return userEvent.setup({ delay: null });
+  }
+
+  function renderSignUpWithPasswordFields() {
+    withRouter(<SignUpForm {...defaultProps} />);
+    return {
+      passwordInput: screen.getByLabelText('Password'),
+      confirmPasswordInput: screen.getByLabelText(/confirm password/i),
+    };
+  }
+
+  function setupSignUpPasswordFields() {
+    const user = setupFastUser();
+    const fields = renderSignUpWithPasswordFields();
+    return { user, ...fields };
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockSignUpWithEmail.mockResolvedValue({
@@ -216,10 +234,7 @@ describe('SignUpForm', () => {
     // Using delay: null removes inter-keystroke delays for faster execution
     
     it('should show password length validation error', async () => {
-      const user = userEvent.setup({ delay: null });
-      withRouter(<SignUpForm {...defaultProps} />);
-      
-      const passwordInput = screen.getByLabelText('Password');
+      const { user, passwordInput } = setupSignUpPasswordFields();
       await user.type(passwordInput, '123');
       fireEvent.blur(passwordInput);
 
@@ -230,10 +245,7 @@ describe('SignUpForm', () => {
     });
 
     it('should not show password length error for valid password', async () => {
-      const user = userEvent.setup({ delay: null });
-      withRouter(<SignUpForm {...defaultProps} />);
-      
-      const passwordInput = screen.getByLabelText('Password');
+      const { user, passwordInput } = setupSignUpPasswordFields();
       await user.type(passwordInput, 'SecurePass1!');
 
       const fieldRoot = passwordInput.closest('div.space-y-2');
@@ -241,12 +253,7 @@ describe('SignUpForm', () => {
     });
 
     it('should show password match validation in real-time', async () => {
-      const user = userEvent.setup({ delay: null });
-      withRouter(<SignUpForm {...defaultProps} />);
-      
-      const passwordInput = screen.getByLabelText('Password');
-      const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
-      
+      const { user, passwordInput, confirmPasswordInput } = setupSignUpPasswordFields();
       await user.type(passwordInput, 'SecurePass1!');
       await user.type(confirmPasswordInput, 'SecurePass2!');
       
@@ -255,12 +262,7 @@ describe('SignUpForm', () => {
     });
 
     it('should show success icon when passwords match', async () => {
-      const user = userEvent.setup({ delay: null });
-      withRouter(<SignUpForm {...defaultProps} />);
-      
-      const passwordInput = screen.getByLabelText('Password');
-      const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
-      
+      const { user, passwordInput, confirmPasswordInput } = setupSignUpPasswordFields();
       await user.type(passwordInput, 'SecurePass1!');
       await user.type(confirmPasswordInput, 'SecurePass1!');
       
@@ -269,12 +271,7 @@ describe('SignUpForm', () => {
     });
 
     it('should validate password match when changing password field', async () => {
-      const user = userEvent.setup({ delay: null });
-      withRouter(<SignUpForm {...defaultProps} />);
-      
-      const passwordInput = screen.getByLabelText('Password');
-      const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
-      
+      const { user, passwordInput, confirmPasswordInput } = setupSignUpPasswordFields();
       // Set confirm password first
       await user.type(confirmPasswordInput, 'SecurePass1!');
       // Then set password that doesn't match
@@ -284,12 +281,7 @@ describe('SignUpForm', () => {
     });
 
     it('should clear password match indicator when confirm password is empty', async () => {
-      const user = userEvent.setup({ delay: null });
-      withRouter(<SignUpForm {...defaultProps} />);
-      
-      const passwordInput = screen.getByLabelText('Password');
-      const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
-      
+      const { user, passwordInput, confirmPasswordInput } = setupSignUpPasswordFields();
       await user.type(passwordInput, 'SecurePass1!');
       await user.type(confirmPasswordInput, 'SecurePass1!');
       

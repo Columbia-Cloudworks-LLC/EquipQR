@@ -1,3 +1,4 @@
+import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -16,101 +17,70 @@ const basePermissions = {
   canWork: true,
 };
 
+const noopActionHandlers = {
+  onAcceptWorkOrder: vi.fn(),
+  onStartWork: vi.fn(),
+  onResumeWork: vi.fn(),
+  onContinueChecklist: vi.fn(),
+  onAddNote: vi.fn(),
+  onAddPhoto: vi.fn(),
+  onComplete: vi.fn(),
+};
+
+function renderNextAction(
+  overrides: Partial<React.ComponentProps<typeof MobileWorkOrderFieldNextAction>> = {},
+) {
+  render(
+    <MobileWorkOrderFieldNextAction
+      workOrder={{ id: '1', status: 'submitted' }}
+      pm={{ status: null, progress: 0, total: 0 }}
+      permissions={basePermissions}
+      sync={baseSync}
+      {...noopActionHandlers}
+      {...overrides}
+    />,
+  );
+}
+
 describe('MobileWorkOrderFieldNextAction', () => {
   it('submitted shows Accept work order', () => {
     const onAcceptWorkOrder = vi.fn();
-    render(
-      <MobileWorkOrderFieldNextAction
-        workOrder={{ id: '1', status: 'submitted' }}
-        pm={{ status: null, progress: 0, total: 0 }}
-        permissions={basePermissions}
-        sync={baseSync}
-        onAcceptWorkOrder={onAcceptWorkOrder}
-        onStartWork={vi.fn()}
-        onResumeWork={vi.fn()}
-        onContinueChecklist={vi.fn()}
-        onAddNote={vi.fn()}
-        onAddPhoto={vi.fn()}
-        onComplete={vi.fn()}
-      />,
-    );
+    renderNextAction({
+      workOrder: { id: '1', status: 'submitted' },
+      onAcceptWorkOrder,
+    });
     expect(screen.getByRole('button', { name: /accept work order/i })).toBeInTheDocument();
   });
 
   it('assigned shows Start work', () => {
     const onStartWork = vi.fn();
-    render(
-      <MobileWorkOrderFieldNextAction
-        workOrder={{ id: '1', status: 'assigned' }}
-        pm={{ status: null, progress: 0, total: 0 }}
-        permissions={basePermissions}
-        sync={baseSync}
-        onAcceptWorkOrder={vi.fn()}
-        onStartWork={onStartWork}
-        onResumeWork={vi.fn()}
-        onContinueChecklist={vi.fn()}
-        onAddNote={vi.fn()}
-        onAddPhoto={vi.fn()}
-        onComplete={vi.fn()}
-      />,
-    );
+    renderNextAction({
+      workOrder: { id: '1', status: 'assigned' },
+      onStartWork,
+    });
     expect(screen.getByRole('button', { name: /^start work$/i })).toBeInTheDocument();
   });
 
   it('in_progress with incomplete PM shows Continue checklist', () => {
-    render(
-      <MobileWorkOrderFieldNextAction
-        workOrder={{ id: '1', status: 'in_progress', has_pm: true }}
-        pm={{ status: 'in_progress', progress: 1, total: 3 }}
-        permissions={basePermissions}
-        sync={baseSync}
-        onAcceptWorkOrder={vi.fn()}
-        onStartWork={vi.fn()}
-        onResumeWork={vi.fn()}
-        onContinueChecklist={vi.fn()}
-        onAddNote={vi.fn()}
-        onAddPhoto={vi.fn()}
-        onComplete={vi.fn()}
-      />,
-    );
+    renderNextAction({
+      workOrder: { id: '1', status: 'in_progress', has_pm: true },
+      pm: { status: 'in_progress', progress: 1, total: 3 },
+    });
     expect(screen.getByRole('button', { name: /continue checklist/i })).toBeInTheDocument();
   });
 
   it('in_progress with PM complete shows Complete work order', () => {
-    render(
-      <MobileWorkOrderFieldNextAction
-        workOrder={{ id: '1', status: 'in_progress', has_pm: true }}
-        pm={{ status: 'completed', progress: 3, total: 3 }}
-        permissions={basePermissions}
-        sync={baseSync}
-        onAcceptWorkOrder={vi.fn()}
-        onStartWork={vi.fn()}
-        onResumeWork={vi.fn()}
-        onContinueChecklist={vi.fn()}
-        onAddNote={vi.fn()}
-        onAddPhoto={vi.fn()}
-        onComplete={vi.fn()}
-      />,
-    );
+    renderNextAction({
+      workOrder: { id: '1', status: 'in_progress', has_pm: true },
+      pm: { status: 'completed', progress: 3, total: 3 },
+    });
     expect(screen.getByRole('button', { name: /complete work order/i })).toBeInTheDocument();
   });
 
   it('on_hold shows Resume work', () => {
-    render(
-      <MobileWorkOrderFieldNextAction
-        workOrder={{ id: '1', status: 'on_hold' }}
-        pm={{ status: null, progress: 0, total: 0 }}
-        permissions={basePermissions}
-        sync={baseSync}
-        onAcceptWorkOrder={vi.fn()}
-        onStartWork={vi.fn()}
-        onResumeWork={vi.fn()}
-        onContinueChecklist={vi.fn()}
-        onAddNote={vi.fn()}
-        onAddPhoto={vi.fn()}
-        onComplete={vi.fn()}
-      />,
-    );
+    renderNextAction({
+      workOrder: { id: '1', status: 'on_hold' },
+    });
     expect(screen.getByRole('button', { name: /resume work/i })).toBeInTheDocument();
   });
 

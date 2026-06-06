@@ -401,8 +401,18 @@ function Invoke-PlaywrightViewportRun {
     }
     Write-Host "[EquipQR E2E] Command: npx $($playwrightArgs -join ' ')"
 
-    & npx @playwrightArgs
-    $runExitCode = $LASTEXITCODE
+    $previousNoColor = $env:NO_COLOR
+    try {
+        Remove-Item Env:NO_COLOR -ErrorAction SilentlyContinue
+        & npx @playwrightArgs
+        $runExitCode = $LASTEXITCODE
+    } finally {
+        if ($null -ne $previousNoColor) {
+            $env:NO_COLOR = $previousNoColor
+        } else {
+            Remove-Item Env:NO_COLOR -ErrorAction SilentlyContinue
+        }
+    }
 
     if ($runExitCode -ne 0) {
         $report = Join-Path $repoRoot 'tmp\playwright\report\index.html'

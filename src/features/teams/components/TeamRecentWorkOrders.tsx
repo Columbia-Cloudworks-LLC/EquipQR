@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { TeamRecentListSkeleton } from '@/features/teams/components/TeamRecentListSkeleton';
 import { ClipboardList, ChevronRight, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { RecentWorkOrderItem } from '@/features/teams/services/teamStatsService';
@@ -69,17 +69,7 @@ const TeamRecentWorkOrders: React.FC<TeamRecentWorkOrdersProps> = ({
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="space-y-3">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="flex items-center justify-between p-2">
-                <div className="space-y-2 flex-1">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-1/2" />
-                </div>
-                <Skeleton className="h-5 w-20" />
-              </div>
-            ))}
-          </div>
+          <TeamRecentListSkeleton />
         ) : (
           <div className="space-y-2">
             {workOrders.map((order) => {

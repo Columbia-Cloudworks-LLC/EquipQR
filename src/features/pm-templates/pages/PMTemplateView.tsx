@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Read-only template view intentionally parallels editor compatibility UI
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePMTemplate, useClonePMTemplate } from '@/features/pm-templates/hooks/usePMTemplates';
@@ -10,6 +12,7 @@ import { TemplateAssignmentDialog } from '@/features/pm-templates/components/Tem
 import { PMTemplateSectionToc } from '@/features/pm-templates/components/PMTemplateSectionToc';
 import { PMTemplateCompatibilityRulesEditor } from '@/features/pm-templates/components/PMTemplateCompatibilityRulesEditor';
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { groupChecklistItemsBySection } from '@/utils/pmChecklistHelpers';
 import { Copy, Download, Edit, Globe, Lock, Loader2, Save, Shield, Wrench } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -25,11 +28,7 @@ import {
 import type { PMTemplateCompatibilityRuleFormData } from '@/features/pm-templates/types/pmTemplateCompatibility';
 
 const groupBySection = (items: PMChecklistItem[]) => {
-  const groups = items.reduce((acc, item) => {
-    if (!acc[item.section]) acc[item.section] = [];
-    acc[item.section].push(item);
-    return acc;
-  }, {} as Record<string, PMChecklistItem[]>);
+  const groups = groupChecklistItemsBySection(items);
   // Preserve original section order based on first occurrence in the input
   const sectionOrder: string[] = [];
   for (const item of items) {

@@ -4,7 +4,6 @@ import {
 } from "npm:@supabase/supabase-js@2.45.0";
 import {
   QBO_API_BASE,
-  QBO_TOKEN_URL,
   getIntuitTid,
   withMinorVersion,
 } from "../_shared/quickbooks-config.ts";
@@ -21,6 +20,10 @@ import {
   fetchPayment,
 } from "./payment-linked-invoices.ts";
 import { updateMirroredWorkOrders } from "./mirror-work-orders.ts";
+import {
+  refreshQuickBooksAccessTokenIfNeeded,
+  type QuickBooksCredential,
+} from "../_shared/quickbooks-token.ts";
 
 const FUNCTION_NAME = "quickbooks-sync-invoice-status";
 const EVENT_BATCH_SIZE = 25;
@@ -34,24 +37,6 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   }
   console.log(`[QUICKBOOKS-INVOICE-STATUS] ${step}${safeDetails ? ` - ${JSON.stringify(safeDetails)}` : ""}`);
 };
-
-interface QuickBooksCredential {
-  id: string;
-  organization_id: string;
-  realm_id: string;
-  access_token: string;
-  refresh_token: string;
-  access_token_expires_at: string;
-  refresh_token_expires_at: string;
-}
-
-interface IntuitTokenResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-  expires_in: number;
-  x_refresh_token_expires_in: number;
-}
 
 interface InvoiceEvent {
   id: string;
@@ -83,61 +68,17 @@ async function refreshTokenIfNeeded(
   clientId: string,
   clientSecret: string,
 ): Promise<{ accessToken: string; credential: QuickBooksCredential }> {
-  const now = new Date();
-  if (new Date(credential.access_token_expires_at) > new Date(now.getTime() + 5 * 60 * 1000)) {
-    return { accessToken: credential.access_token, credential };
-  }
-
-  if (new Date(credential.refresh_token_expires_at) <= now) {
-    throw new Error("QuickBooks refresh token expired");
-  }
-
-  const body = new URLSearchParams({
-    grant_type: "refresh_token",
-    refresh_token: credential.refresh_token,
-  });
-
-  const response = await fetch(QBO_TOKEN_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
-      Accept: "application/json",
-    },
-    body: body.toString(),
-  });
-
-  if (!response.ok) {
-    throw new Error(`QuickBooks token refresh failed (${response.status})`);
-  }
-
-  const tokenData: IntuitTokenResponse = await response.json();
-  const newAccessTokenExpiresAt = new Date(now.getTime() + tokenData.expires_in * 1000).toISOString();
-  const newRefreshTokenExpiresAt = new Date(now.getTime() + tokenData.x_refresh_token_expires_in * 1000).toISOString();
-  const { error: credentialUpdateError } = await supabaseClient
-    .from("quickbooks_credentials")
-    .update({
-      access_token: tokenData.access_token,
-      refresh_token: tokenData.refresh_token,
-      access_token_expires_at: newAccessTokenExpiresAt,
-      refresh_token_expires_at: newRefreshTokenExpiresAt,
-      updated_at: now.toISOString(),
-    })
-    .eq("id", credential.id)
-    .eq("organization_id", credential.organization_id);
-
-  if (credentialUpdateError) {
-    throw new Error(`QuickBooks credential persistence failed: ${credentialUpdateError.message}`);
-  }
-
-  const refreshedCredential: QuickBooksCredential = {
-    ...credential,
-    access_token: tokenData.access_token,
-    refresh_token: tokenData.refresh_token,
-    access_token_expires_at: newAccessTokenExpiresAt,
-    refresh_token_expires_at: newRefreshTokenExpiresAt,
+  const result = await refreshQuickBooksAccessTokenIfNeeded(
+    credential,
+    supabaseClient,
+    clientId,
+    clientSecret,
+    { onPersistError: "throw", returnCredential: true, log: logStep },
+  );
+  return {
+    accessToken: result.accessToken,
+    credential: "credential" in result ? result.credential : credential,
   };
-  return { accessToken: tokenData.access_token, credential: refreshedCredential };
 }
 
 async function fetchInvoice(

@@ -45,6 +45,21 @@ describe('DeleteEquipmentDialog', () => {
     });
   });
 
+  async function waitForEnabledContinueAndClick() {
+    await waitFor(() => {
+      const continueButton = screen.getByText('Continue');
+      expect(continueButton).not.toBeDisabled();
+    });
+    fireEvent.click(screen.getByText('Continue'));
+  }
+
+  async function advanceToDeleteConfirmation() {
+    await waitForEnabledContinueAndClick();
+    await waitFor(() => {
+      expect(screen.getByLabelText(/I understand this will permanently delete/i)).toBeInTheDocument();
+    });
+  }
+
   describe('Initial Step - Alert Dialog', () => {
     it('renders alert dialog when open', () => {
       render(<DeleteEquipmentDialog {...defaultProps} />);
@@ -180,24 +195,14 @@ describe('DeleteEquipmentDialog', () => {
       });
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
-      
-      await waitFor(() => {
-        const continueButton = screen.getByText('Continue');
-        expect(continueButton).not.toBeDisabled();
-      });
-      
-      fireEvent.click(screen.getByText('Continue'));
-      
-      await waitFor(() => {
-        expect(screen.getByLabelText(/I understand this will permanently delete/i)).toBeInTheDocument();
-      });
-      
+      await advanceToDeleteConfirmation();
+
       const checkbox = screen.getByLabelText(/I understand this will permanently delete/i);
       fireEvent.click(checkbox);
-      
+
       const deleteButton = screen.getByText(/delete forever/i);
       fireEvent.click(deleteButton);
-      
+
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledWith({ equipmentId: 'eq-1', orgId: 'org-1' });
       });
@@ -211,23 +216,13 @@ describe('DeleteEquipmentDialog', () => {
       });
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
-      
-      await waitFor(() => {
-        const continueButton = screen.getByText('Continue');
-        expect(continueButton).not.toBeDisabled();
-      });
-      
-      fireEvent.click(screen.getByText('Continue'));
-      
-      await waitFor(() => {
-        expect(screen.getByLabelText(/I understand this will permanently delete/i)).toBeInTheDocument();
-      });
-      
+      await advanceToDeleteConfirmation();
+
       const checkbox = screen.getByLabelText(/I understand this will permanently delete/i);
       fireEvent.click(checkbox);
-      
+
       fireEvent.click(screen.getByText(/delete forever/i));
-      
+
       await waitFor(() => {
         expect(mockOnSuccess).toHaveBeenCalled();
       });
@@ -241,23 +236,13 @@ describe('DeleteEquipmentDialog', () => {
       });
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
-      
-      await waitFor(() => {
-        const continueButton = screen.getByText('Continue');
-        expect(continueButton).not.toBeDisabled();
-      });
-      
-      fireEvent.click(screen.getByText('Continue'));
-      
-      await waitFor(() => {
-        expect(screen.getByLabelText(/I understand this will permanently delete/i)).toBeInTheDocument();
-      });
-      
+      await advanceToDeleteConfirmation();
+
       const checkbox = screen.getByLabelText(/I understand this will permanently delete/i);
       fireEvent.click(checkbox);
-      
+
       fireEvent.click(screen.getByText(/delete forever/i));
-      
+
       await waitFor(() => {
         expect(mockOnOpenChange).toHaveBeenCalledWith(false);
       });
@@ -271,14 +256,8 @@ describe('DeleteEquipmentDialog', () => {
       });
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
-      
-      await waitFor(() => {
-        const continueButton = screen.getByText('Continue');
-        expect(continueButton).not.toBeDisabled();
-      });
-      
-      fireEvent.click(screen.getByText('Continue'));
-      
+      await waitForEnabledContinueAndClick();
+
       // When isPending is true, button shows "Deleting..." immediately
       await waitFor(() => {
         expect(screen.getByText('Deleting...')).toBeInTheDocument();

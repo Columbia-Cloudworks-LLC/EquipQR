@@ -1,7 +1,33 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { verifyInventoryItemInOrganization } from '@/features/inventory/services/inventoryItemAccess';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
 import type { Equipment } from '@/features/equipment/services/EquipmentService';
+
+async function assertEquipmentInOrganization(
+  organizationId: string,
+  equipmentId: string,
+): Promise<void> {
+  const { data: equipment, error: equipmentError } = await supabase
+    .from('equipment')
+    .select('id')
+    .eq('id', equipmentId)
+    .eq('organization_id', organizationId)
+    .single();
+
+  if (equipmentError || !equipment) {
+    throw new Error('Equipment not found or access denied');
+  }
+}
+
+async function assertInventoryEquipmentLinkScope(
+  organizationId: string,
+  itemId: string,
+  equipmentId: string,
+): Promise<void> {
+  await assertEquipmentInOrganization(organizationId, equipmentId);
+  await verifyInventoryItemInOrganization(organizationId, itemId);
+}
 
 // ============================================
 // Get Compatible Equipment for Item
@@ -12,17 +38,7 @@ export const getCompatibleEquipmentForItem = async (
   itemId: string
 ): Promise<Equipment[]> => {
   try {
-    // Verify item belongs to organization as a failsafe
-    const { data: item, error: itemError } = await supabase
-      .from('inventory_items')
-      .select('id')
-      .eq('id', itemId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (itemError || !item) {
-      throw new Error('Inventory item not found or access denied');
-    }
+    await verifyInventoryItemInOrganization(organizationId, itemId);
 
     const { data, error } = await supabase
       .from('equipment_part_compatibility')
@@ -87,85 +103,13 @@ const getCompatibleItemsForEquipment = async (
 // Link/Unlink Items to Equipment
 // ============================================
 
-export const linkItemToEquipment = async (
-  organizationId: string,
-  itemId: string,
-  equipmentId: string
-): Promise<void> => {
-  try {
-    // Verify equipment belongs to organization
-    const { data: equipment, error: equipmentError } = await supabase
-      .from('equipment')
-      .select('id')
-      .eq('id', equipmentId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (equipmentError || !equipment) {
-      throw new Error('Equipment not found or access denied');
-    }
-
-    // Verify item belongs to organization
-    const { data: item, error: itemError } = await supabase
-      .from('inventory_items')
-      .select('id')
-      .eq('id', itemId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (itemError || !item) {
-      throw new Error('Inventory item not found or access denied');
-    }
-
-    // Insert compatibility link (ignore if already exists)
-    const { error } = await supabase
-      .from('equipment_part_compatibility')
-      .insert({
-        equipment_id: equipmentId,
-        inventory_item_id: itemId
-      })
-      .select()
-      .single();
-
-    // Ignore duplicate key errors
-    if (error && error.code !== '23505') {
-      throw error;
-    }
-  } catch (error) {
-    logger.error('Error linking item to equipment:', error);
-    throw error;
-  }
-};
-
 export const unlinkItemFromEquipment = async (
   organizationId: string,
   itemId: string,
   equipmentId: string
 ): Promise<void> => {
   try {
-    // Verify equipment belongs to organization
-    const { data: equipment, error: equipmentError } = await supabase
-      .from('equipment')
-      .select('id')
-      .eq('id', equipmentId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (equipmentError || !equipment) {
-      throw new Error('Equipment not found or access denied');
-    }
-
-    // Verify item belongs to organization
-    const { data: item, error: itemError } = await supabase
-      .from('inventory_items')
-      .select('id')
-      .eq('id', itemId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (itemError || !item) {
-      throw new Error('Inventory item not found or access denied');
-    }
+    await assertInventoryEquipmentLinkScope(organizationId, itemId, equipmentId);
 
     // Delete compatibility link
     const { error } = await supabase
@@ -191,17 +135,7 @@ export const bulkLinkEquipmentToItem = async (
   equipmentIds: string[]
 ): Promise<{ added: number; removed: number }> => {
   try {
-    // Verify item belongs to organization FIRST (before any operations)
-    const { data: item, error: itemError } = await supabase
-      .from('inventory_items')
-      .select('id')
-      .eq('id', itemId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (itemError || !item) {
-      throw new Error('Inventory item not found or access denied');
-    }
+    await verifyInventoryItemInOrganization(organizationId, itemId);
 
     if (equipmentIds.length === 0) {
       // If no equipment selected, remove all links
@@ -297,17 +231,7 @@ const bulkLinkItemsToEquipment = async (
   try {
     if (itemIds.length === 0) return;
 
-    // Verify equipment belongs to organization
-    const { data: equipment, error: equipmentError } = await supabase
-      .from('equipment')
-      .select('id')
-      .eq('id', equipmentId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (equipmentError || !equipment) {
-      throw new Error('Equipment not found or access denied');
-    }
+    await assertEquipmentInOrganization(organizationId, equipmentId);
 
     // Verify all items belong to organization
     const { data: items, error: itemsError } = await supabase

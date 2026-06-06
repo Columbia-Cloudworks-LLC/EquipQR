@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: QB service repeats contact sync row mapping blocks
 /**
  * QuickBooks Integration Service
  * 

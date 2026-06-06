@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import QRCodeIntegration from '../QRCodeIntegration';
 import { TestProviders } from '@/test/utils/TestProviders';
-import { benefits, steps, screenshots } from '../data/qrCodeIntegrationData';
+import { benefits, showcases, steps } from '../data/qrCodeIntegrationData';
 import { getFeatureSeoByPath } from '../data/featureSeoContent';
 
 const qrSeo = getFeatureSeoByPath('/features/qr-code-integration')!;
@@ -211,7 +211,7 @@ describe('QRCodeIntegration Feature Page', () => {
   });
 
   describe('Screenshots Section', () => {
-    it('renders the screenshots section with correct title', () => {
+    it('renders the showcases section with correct title', () => {
       render(
         <TestProviders>
           <QRCodeIntegration />
@@ -230,10 +230,10 @@ describe('QRCodeIntegration Feature Page', () => {
       );
 
       const screenshotBlocks = screen.getAllByTestId('screenshot-block');
-      expect(screenshotBlocks).toHaveLength(screenshots.length);
+      expect(screenshotBlocks).toHaveLength(showcases.length);
 
       // Verify each screenshot's content
-      screenshots.forEach((screenshot) => {
+      showcases.forEach((screenshot) => {
         expect(screen.getByText(screenshot.title)).toBeInTheDocument();
         expect(screen.getByText(screenshot.description)).toBeInTheDocument();
       });
@@ -276,7 +276,7 @@ describe('QRCodeIntegration Feature Page', () => {
       // Verify the data structure matches what's expected
       expect(benefits).toHaveLength(3);
       expect(steps).toHaveLength(4);
-      expect(screenshots).toHaveLength(2);
+      expect(showcases).toHaveLength(2);
 
       // Verify benefits have required properties
       benefits.forEach((benefit) => {
@@ -294,8 +294,8 @@ describe('QRCodeIntegration Feature Page', () => {
         expect(step).toHaveProperty('description');
       });
 
-      // Verify screenshots have required properties
-      screenshots.forEach((screenshot) => {
+      // Verify showcases have required properties
+      showcases.forEach((screenshot) => {
         expect(screenshot).toHaveProperty('title');
         expect(screenshot).toHaveProperty('description');
         expect(screenshot).toHaveProperty('imageUrl');

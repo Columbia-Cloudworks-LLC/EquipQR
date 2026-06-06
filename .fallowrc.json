@@ -7,6 +7,25 @@
     "xlsx"
   ],
   "ignoreExportsUsedInFile": true,
+  "duplicates": {
+    "ignore": [
+      "src/integrations/supabase/types.ts",
+      "src/pages/PrivacyPolicy.tsx",
+      "src/pages/TermsOfService.tsx",
+      "src/pages/features/**",
+      "src/pages/solutions/**",
+      "src/components/landing/**",
+      "supabase/functions/**",
+      "scripts/**",
+      "e2e/**/*.ts",
+      "src/**/*.test.ts",
+      "src/**/*.test.tsx",
+      "src/test/**",
+      "supabase/functions/**/*.test.ts",
+      "supabase/functions/**/*.deno.test.ts",
+      ".github/scripts/**/*.test.js"
+    ]
+  },
   "entry": [
     "playwright.user.config.ts",
     "src/sw.ts",

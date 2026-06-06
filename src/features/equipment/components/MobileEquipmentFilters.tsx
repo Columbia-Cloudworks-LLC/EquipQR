@@ -2,12 +2,17 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Filter, X } from 'lucide-react';
 import { HorizontalChipRow } from '@/components/layout/HorizontalChipRow';
 import { EquipmentFilters } from '@/features/equipment/hooks/useEquipmentFiltering';
+import {
+  EquipmentLocationSelect,
+  EquipmentManufacturerSelect,
+  EquipmentStatusSelect,
+} from '@/features/equipment/components/EquipmentFilterSelects';
+import { EQUIPMENT_QUICK_FILTERS } from '@/features/equipment/components/equipmentFilterConstants';
 
 // Team is intentionally not part of FilterOptions here — the team scope is
 // owned by the global TopBar `useSelectedTeam`.
@@ -110,52 +115,35 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
                 <div className="space-y-3">
                   <div>
                     <label htmlFor={mobileStatusFilterId} className="mb-2 block text-sm font-medium">Status</label>
-                    <Select value={filters.status} onValueChange={(value) => onFilterChange('status', value)}>
-                      <SelectTrigger id={mobileStatusFilterId} className="h-12">
-                        <SelectValue placeholder="All Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="maintenance">Maintenance</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                        <SelectItem value="out_of_service">Out of Service</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <EquipmentStatusSelect
+                      value={filters.status}
+                      onValueChange={(value) => onFilterChange('status', value)}
+                      placeholder="All Status"
+                      triggerId={mobileStatusFilterId}
+                      triggerClassName="h-12"
+                    />
                   </div>
 
                   <div>
                     <label htmlFor={mobileManufacturerFilterId} className="mb-2 block text-sm font-medium">Manufacturer</label>
-                    <Select value={filters.manufacturer} onValueChange={(value) => onFilterChange('manufacturer', value)}>
-                      <SelectTrigger id={mobileManufacturerFilterId} className="h-12">
-                        <SelectValue placeholder="All Manufacturers" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Manufacturers</SelectItem>
-                        {filterOptions.manufacturers.map((manufacturer) => (
-                          <SelectItem key={manufacturer} value={manufacturer}>
-                            {manufacturer}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <EquipmentManufacturerSelect
+                      value={filters.manufacturer}
+                      onValueChange={(value) => onFilterChange('manufacturer', value)}
+                      manufacturers={filterOptions.manufacturers}
+                      triggerId={mobileManufacturerFilterId}
+                      triggerClassName="h-12"
+                    />
                   </div>
 
                   <div>
                     <label htmlFor={mobileLocationFilterId} className="mb-2 block text-sm font-medium">Location</label>
-                    <Select value={filters.location} onValueChange={(value) => onFilterChange('location', value)}>
-                      <SelectTrigger id={mobileLocationFilterId} className="h-12">
-                        <SelectValue placeholder="All Locations" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Locations</SelectItem>
-                        {filterOptions.locations.map((location) => (
-                          <SelectItem key={location} value={location}>
-                            {location}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <EquipmentLocationSelect
+                      value={filters.location}
+                      onValueChange={(value) => onFilterChange('location', value)}
+                      locations={filterOptions.locations}
+                      triggerId={mobileLocationFilterId}
+                      triggerClassName="h-12"
+                    />
                   </div>
                 </div>
 
@@ -175,12 +163,7 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
       </div>
 
       <HorizontalChipRow ariaLabel="Quick filter options">
-        {[
-          { label: 'Maintenance Due', value: 'maintenance-due' },
-          { label: 'Warranty Expiring', value: 'warranty-expiring' },
-          { label: 'Recently Added', value: 'recently-added' },
-          { label: 'Active Only', value: 'active-only' }
-        ].map((preset) => (
+        {EQUIPMENT_QUICK_FILTERS.map((preset) => (
           <Button
             key={preset.value}
             size="sm"

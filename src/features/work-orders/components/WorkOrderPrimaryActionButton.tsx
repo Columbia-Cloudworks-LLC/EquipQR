@@ -5,13 +5,9 @@ import {
   Play, 
   AlertTriangle
 } from 'lucide-react';
-import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOrderData';
-import { useWorkOrderAcceptance } from '@/features/work-orders/hooks/useWorkOrderAcceptance';
-import { usePMByWorkOrderId } from '@/features/pm-templates/hooks/usePMData';
-import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
-import { useAuth } from '@/hooks/useAuth';
 import { useSimpleOrganizationSafe } from '@/hooks/useSimpleOrganization';
 import { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
+import { useWorkOrderStatusChangeHandlers } from '@/features/work-orders/hooks/useWorkOrderStatusChangeHandlers';
 import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
 
 interface WorkOrderPrimaryActionButtonProps {
@@ -29,76 +25,34 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
   workOrder,
   organizationId: propOrganizationId
 }) => {
-  // Use safe hook that doesn't throw - maintains backward compatibility
-  // If organizationId is provided via props, it takes precedence
-  // If not provided, we try to get it from context (if available)
   const context = useSimpleOrganizationSafe();
   const contextOrganizationId = context?.organizationId ?? null;
   const organizationId = propOrganizationId || contextOrganizationId || '';
   const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);
-  const updateStatusMutation = useUpdateWorkOrderStatus();
-  const acceptanceMutation = useWorkOrderAcceptance();
-  const { data: pmData } = usePMByWorkOrderId(workOrder.id);
-  const { isManager, isTechnician } = useWorkOrderPermissionLevels();
-  const { user } = useAuth();
+
+  const {
+    updateStatusMutation,
+    acceptanceMutation,
+    isManager,
+    isTechnician,
+    canPerformStatusActions,
+    canCompleteWorkOrder,
+    handleStatusChange,
+    handleAcceptanceComplete,
+  } = useWorkOrderStatusChangeHandlers(
+    workOrder,
+    organizationId,
+    () => setShowAcceptanceModal(true),
+  );
   
-  // Guard: organizationId is required for status updates
-  // Return null if no organization ID is available (component will be disabled/hidden)
-  // This prevents errors when useUpdateWorkOrderStatus is called with empty string
   if (!organizationId) {
     return null;
   }
 
-  const handleStatusChange = async (newStatus: string) => {
-    // Check if trying to complete work order with incomplete PM
-    if (newStatus === 'completed' && workOrder.has_pm && pmData) {
-      if (pmData.status !== 'completed') {
-        return;
-      }
-    }
-
-    if (newStatus === 'accepted') {
-      setShowAcceptanceModal(true);
-      return;
-    }
-
-    try {
-      await updateStatusMutation.mutateAsync({
-        workOrderId: workOrder.id,
-        status: newStatus,
-        organizationId
-      });
-    } catch (error) {
-      console.error('Error updating work order status:', error);
-    }
-  };
-
-  const handleAcceptanceComplete = async (assigneeId?: string) => {
-    try {
-      await acceptanceMutation.mutateAsync({
-        workOrderId: workOrder.id,
-        organizationId,
-        assigneeId,
-      });
-      setShowAcceptanceModal(false);
-    } catch (error) {
-      console.error('Error accepting work order:', error);
-      throw error;
-    }
-  };
-
-  // Check if user can perform status actions
-  const canPerformStatusActions = () => {
-    if (isManager) return true;
-    if (isTechnician && (workOrder.assignee_id === user?.id)) return true;
-    if (workOrder.created_by === user?.id && workOrder.status === 'submitted') return true;
-    return false;
-  };
-
   const getPrimaryAction = () => {
     if (!canPerformStatusActions()) return null;
 
-    const canComplete = !workOrder.has_pm || (pmData && pmData.status === 'completed');
+    const canComplete = canCompleteWorkOrder();
     
     switch (workOrder.status) {
       case 'submitted':
@@ -186,7 +140,6 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
           {primaryAction.label}
         </Button>
         
-        {/* PM Warning Indicator */}
         {primaryAction.disabled && workOrder.has_pm && workOrder.status === 'in_progress' && (
           <div className="absolute -top-1 -right-1">
             <AlertTriangle className="h-3 w-3 text-warning" />
@@ -199,10 +152,11 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
         onClose={() => setShowAcceptanceModal(false)}
         workOrder={workOrder as WorkOrderLike}
         organizationId={organizationId}
-        onAccept={handleAcceptanceComplete}
+        onAccept={async (assigneeId) => {
+          await handleAcceptanceComplete(assigneeId);
+          setShowAcceptanceModal(false);
+        }}
       />
     </>
   );
 };
-
-

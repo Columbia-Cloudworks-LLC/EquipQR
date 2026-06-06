@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
-import { ArrowRight, QrCode, Camera, UserCircle, Receipt } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { BenefitCard } from '@/components/landing/features/BenefitCard';
+import { repairShopWorkflows } from '@/pages/solutions/repairShopsWorkflows';
 import { PageSEO } from '@/components/seo/PageSEO';
 import LandingHeader from '@/components/landing/LandingHeader';
 import LegalFooter from '@/components/layout/LegalFooter';
@@ -84,133 +86,9 @@ const RepairShops = () => {
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 max-w-6xl mx-auto">
-              {/* Instant Intake */}
-              <Card className="border-border bg-card shadow-sm hover:border-primary/30 hover:bg-muted/40 transition-colors">
-                <CardHeader className="pb-4">
-                  <div className="mb-4">
-                    <QrCode className="h-10 w-10 text-primary" />
-                  </div>
-                  <CardTitle className="text-2xl">Instant Intake</CardTitle>
-                  <CardDescription className="text-base">
-                    QR codes for customer equipment
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground leading-relaxed">
-                    When a customer brings in equipment, scan the QR code to instantly access the complete service history. No more searching through paper files or spreadsheets. Every piece of equipment gets a unique QR code that links directly to its full record.
-                  </p>
-                  <ul className="mt-4 space-y-2">
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 flex-shrink-0"></span>
-                      Instant equipment lookup
-                    </li>
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 flex-shrink-0"></span>
-                      Complete service history
-                    </li>
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 flex-shrink-0"></span>
-                      Mobile-optimized scanning
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
-
-              {/* Photo Evidence */}
-              <Card className="border-border bg-card shadow-sm hover:border-primary/30 hover:bg-muted/40 transition-colors">
-                <CardHeader className="pb-4">
-                  <div className="mb-4">
-                    <Camera className="h-10 w-10 text-primary" />
-                  </div>
-                  <CardTitle className="text-2xl">Photo Evidence</CardTitle>
-                  <CardDescription className="text-base">
-                    Technicians uploading damage photos to work orders
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Technicians can capture and upload photos directly to work orders from their mobile devices. Document damage, repairs in progress, and completed work with visual evidence that stays permanently linked to each service record.
-                  </p>
-                  <ul className="mt-4 space-y-2">
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 flex-shrink-0"></span>
-                      Mobile photo uploads
-                    </li>
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 flex-shrink-0"></span>
-                      Permanent documentation
-                    </li>
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 flex-shrink-0"></span>
-                      Visual service history
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
-
-              {/* Customer Profiles */}
-              <Card className="border-border bg-card shadow-sm hover:border-primary/30 hover:bg-muted/40 transition-colors">
-                <CardHeader className="pb-4">
-                  <div className="mb-4">
-                    <UserCircle className="h-10 w-10 text-primary" />
-                  </div>
-                  <CardTitle className="text-2xl">Customer Profiles</CardTitle>
-                  <CardDescription className="text-base">
-                    Linking equipment to owners
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Link every piece of equipment to its owner. Build comprehensive customer profiles that show all equipment serviced, complete service history, and maintenance schedules. Know exactly what you've worked on for each customer.
-                  </p>
-                  <ul className="mt-4 space-y-2">
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 flex-shrink-0"></span>
-                      Customer equipment tracking
-                    </li>
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 flex-shrink-0"></span>
-                      Complete service history
-                    </li>
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 flex-shrink-0"></span>
-                      Relationship management
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
-
-              {/* QuickBooks */}
-              <Card className="border-border bg-card shadow-sm hover:border-primary/30 hover:bg-muted/40 transition-colors">
-                <CardHeader className="pb-4">
-                  <div className="mb-4">
-                    <Receipt className="h-10 w-10 text-primary" />
-                  </div>
-                  <CardTitle className="text-2xl">QuickBooks Invoicing</CardTitle>
-                  <CardDescription className="text-base">
-                    Finished job → invoice in one click
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground leading-relaxed">
-                    When a work order is complete, export it directly to QuickBooks Online as a draft invoice. Work order details, labor, and parts flow in automatically. No re-entering data in your accounting software.
-                  </p>
-                  <ul className="mt-4 space-y-2">
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 flex-shrink-0"></span>
-                      One-click QB export
-                    </li>
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 flex-shrink-0"></span>
-                      Team → customer mapping
-                    </li>
-                    <li className="text-sm text-muted-foreground flex items-center">
-                      <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 flex-shrink-0"></span>
-                      Export history &amp; status
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
+              {repairShopWorkflows.map((workflow) => (
+                <BenefitCard key={workflow.title} {...workflow} />
+              ))}
             </div>
           </div>
         </section>

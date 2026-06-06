@@ -8,9 +8,8 @@
 
 import { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import {
-  createUserSupabaseClient,
-  requireUser,
   verifyOrgAdmin,
+  requireAuthenticatedPost,
   createErrorResponse,
   createJsonResponse,
   handleCorsPreflightIfNeeded,
@@ -57,20 +56,12 @@ Deno.serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    if (req.method !== "POST") {
-      return createErrorResponse("Method not allowed", 405);
+    const authContext = await requireAuthenticatedPost(req);
+    if (authContext instanceof Response) {
+      return authContext;
     }
 
-    // Create user-scoped client (RLS enforced)
-    const supabase = createUserSupabaseClient(req);
-
-    // Validate user authentication
-    const auth = await requireUser(req, supabase);
-    if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status);
-    }
-
-    const { user } = auth;
+    const { supabase, user } = authContext;
 
     const body: ImportRequest = await req.json();
     const { dryRun, rows, mappings, importId, teamId, organizationId } = body;

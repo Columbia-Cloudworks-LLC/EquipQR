@@ -38,6 +38,30 @@ function removeAllKeywordsMetas(head: HTMLHeadElement): void {
   head.querySelectorAll<HTMLMetaElement>('meta[name="keywords"]').forEach((n) => n.remove());
 }
 
+function upsertManagedHeadElement<T extends HTMLElement>(
+  head: HTMLHeadElement,
+  selector: string,
+  create: () => T,
+  apply: (el: T) => void,
+  createdNodes: Element[],
+  reusedRestores: Array<{ el: Element; snapshot: AttrSnapshot }>,
+): T {
+  let el = head.querySelector<T>(`${selector}[${MANAGED_ATTR}]`);
+  if (!el) {
+    el = head.querySelector<T>(selector);
+  }
+  if (!el) {
+    el = create();
+    head.appendChild(el);
+    createdNodes.push(el);
+  } else if (!el.hasAttribute(MANAGED_ATTR)) {
+    reusedRestores.push({ el, snapshot: captureAttributes(el) });
+  }
+  el.setAttribute(MANAGED_ATTR, 'true');
+  apply(el);
+  return el;
+}
+
 /**
  * PageSEO component for managing per-route metadata
  *
@@ -62,47 +86,19 @@ export const PageSEO: FC<PageSEOProps> = ({
     const createdNodes: Element[] = [];
     const reusedRestores: Array<{ el: Element; snapshot: AttrSnapshot }> = [];
 
-    function upsertMeta(
+    const upsertMeta = (
       selector: string,
       create: () => HTMLMetaElement,
-      apply: (el: HTMLMetaElement) => void
-    ): HTMLMetaElement {
-      let el = head.querySelector<HTMLMetaElement>(`${selector}[${MANAGED_ATTR}]`);
-      if (!el) {
-        el = head.querySelector<HTMLMetaElement>(selector);
-      }
-      if (!el) {
-        el = create();
-        head.appendChild(el);
-        createdNodes.push(el);
-      } else if (!el.hasAttribute(MANAGED_ATTR)) {
-        reusedRestores.push({ el, snapshot: captureAttributes(el) });
-      }
-      el.setAttribute(MANAGED_ATTR, 'true');
-      apply(el);
-      return el;
-    }
+      apply: (el: HTMLMetaElement) => void,
+    ) =>
+      upsertManagedHeadElement(head, selector, create, apply, createdNodes, reusedRestores);
 
-    function upsertLink(
+    const upsertLink = (
       selector: string,
       create: () => HTMLLinkElement,
-      apply: (el: HTMLLinkElement) => void
-    ): HTMLLinkElement {
-      let el = head.querySelector<HTMLLinkElement>(`${selector}[${MANAGED_ATTR}]`);
-      if (!el) {
-        el = head.querySelector<HTMLLinkElement>(selector);
-      }
-      if (!el) {
-        el = create();
-        head.appendChild(el);
-        createdNodes.push(el);
-      } else if (!el.hasAttribute(MANAGED_ATTR)) {
-        reusedRestores.push({ el, snapshot: captureAttributes(el) });
-      }
-      el.setAttribute(MANAGED_ATTR, 'true');
-      apply(el);
-      return el;
-    }
+      apply: (el: HTMLLinkElement) => void,
+    ) =>
+      upsertManagedHeadElement(head, selector, create, apply, createdNodes, reusedRestores);
 
     document.title = fullTitle;
 

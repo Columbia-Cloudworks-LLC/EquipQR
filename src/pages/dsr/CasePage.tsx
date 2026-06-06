@@ -1,3 +1,4 @@
+import React from 'react';
 import { useParams } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import Page from '@/components/layout/Page';
@@ -7,6 +8,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useDsrCase, useDsrMutation } from '@/features/dsr/hooks/useDsrCase';
 import { DsrCaseWorkspace } from '@/features/dsr/components/DsrCaseWorkspace';
 import { DsrQueueRail } from '@/features/dsr/components/DsrQueueRail';
+import { DsrAdminAccessGate } from '@/features/dsr/components/DsrAdminAccessGate';
 
 function DSRCasePage() {
   const { requestId } = useParams();
@@ -17,40 +19,16 @@ function DSRCasePage() {
   const caseQuery = useDsrCase(organizationId, requestId ?? null);
   const mutation = useDsrMutation(organizationId, requestId ?? null);
 
-  if (!currentOrganization) {
-    return (
-      <Page maxWidth="7xl" padding="responsive">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>No Organization Selected</AlertTitle>
-          <AlertDescription>Select an organization to open the case workspace.</AlertDescription>
-        </Alert>
-      </Page>
-    );
-  }
-
-  if (!canManageDsr) {
-    return (
-      <Page maxWidth="7xl" padding="responsive">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Restricted</AlertTitle>
-          <AlertDescription>Only organization owners/admins can access this case workspace.</AlertDescription>
-        </Alert>
-      </Page>
-    );
-  }
+  let gateContent: React.ReactNode;
 
   if (caseQuery.isLoading) {
-    return (
+    gateContent = (
       <Page maxWidth="7xl" padding="responsive">
         <p className="text-sm text-muted-foreground">Loading case...</p>
       </Page>
     );
-  }
-
-  if (caseQuery.isError || !caseQuery.data?.request) {
-    return (
+  } else if (caseQuery.isError || !caseQuery.data?.request) {
+    gateContent = (
       <Page maxWidth="7xl" padding="responsive">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -61,30 +39,40 @@ function DSRCasePage() {
         </Alert>
       </Page>
     );
+  } else {
+    const { request, events } = caseQuery.data;
+    const queueRequests = request ? [request] : [];
+    gateContent = (
+      <Page maxWidth="7xl" padding="responsive">
+        <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+          <DsrQueueRail requests={queueRequests} selectedRequestId={request.id} />
+          <DsrCaseWorkspace
+            request={request}
+            events={events}
+            canManageDsr={canManageDsr}
+            pending={mutation.isPending}
+            onMutate={async (action, payload) => {
+              await mutation.mutateAsync({
+                action,
+                expectedUpdatedAt: request.updated_at,
+                payload,
+              });
+            }}
+          />
+        </div>
+      </Page>
+    );
   }
 
-  const { request, events } = caseQuery.data;
-  const queueRequests = request ? [request] : [];
-
   return (
-    <Page maxWidth="7xl" padding="responsive">
-      <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-        <DsrQueueRail requests={queueRequests} selectedRequestId={request.id} />
-        <DsrCaseWorkspace
-          request={request}
-          events={events}
-          canManageDsr={canManageDsr}
-          pending={mutation.isPending}
-          onMutate={async (action, payload) => {
-            await mutation.mutateAsync({
-              action,
-              expectedUpdatedAt: request.updated_at,
-              payload,
-            });
-          }}
-        />
-      </div>
-    </Page>
+    <DsrAdminAccessGate
+      hasOrganization={Boolean(currentOrganization)}
+      canManageDsr={canManageDsr}
+      noOrganizationDescription="Select an organization to open the case workspace."
+      restrictedDescription="Only organization owners/admins can access this case workspace."
+    >
+      {gateContent}
+    </DsrAdminAccessGate>
   );
 }
 

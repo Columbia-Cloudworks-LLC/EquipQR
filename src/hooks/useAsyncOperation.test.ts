@@ -47,11 +47,16 @@ const startExecution = <T>(execute: () => Promise<T>): Promise<T> => {
   return executePromise;
 };
 
+const renderAsyncOp = <T,>(
+  operation: () => Promise<T>,
+  options?: Parameters<typeof useAsyncOperation<T>>[1],
+) => renderHook(() => useAsyncOperation(operation, options));
+
 describe('useAsyncOperation', () => {
   describe('initial state', () => {
     it('starts with idle state', () => {
       const operation = vi.fn<[], Promise<string>>().mockResolvedValue('result');
-      const { result } = renderHook(() => useAsyncOperation(operation));
+      const { result } = renderAsyncOp(operation);
 
       expect(result.current.data).toBeNull();
       expect(result.current.isLoading).toBe(false);
@@ -61,7 +66,7 @@ describe('useAsyncOperation', () => {
 
     it('exposes execute, reset, and setData functions', () => {
       const operation = vi.fn<[], Promise<null>>().mockResolvedValue(null);
-      const { result } = renderHook(() => useAsyncOperation(operation));
+      const { result } = renderAsyncOp(operation);
 
       expect(typeof result.current.execute).toBe('function');
       expect(typeof result.current.reset).toBe('function');
@@ -73,7 +78,7 @@ describe('useAsyncOperation', () => {
     it('sets isLoading true while the operation is pending', async () => {
       const pendingOperation = createDeferred<string>();
       const operation = vi.fn<[], Promise<string>>(() => pendingOperation.promise);
-      const { result } = renderHook(() => useAsyncOperation(operation));
+      const { result } = renderAsyncOp(operation);
 
       const executePromise = startExecution(() => result.current.execute());
 
@@ -90,7 +95,7 @@ describe('useAsyncOperation', () => {
 
     it('sets data and isSuccess after a successful operation', async () => {
       const operation = vi.fn<[], Promise<{ id: string }>>().mockResolvedValue({ id: '1' });
-      const { result } = renderHook(() => useAsyncOperation(operation));
+      const { result } = renderAsyncOp(operation);
 
       await act(async () => {
         await result.current.execute();
@@ -104,7 +109,7 @@ describe('useAsyncOperation', () => {
 
     it('returns the resolved value from execute()', async () => {
       const operation = vi.fn<[], Promise<string>>().mockResolvedValue('hello');
-      const { result } = renderHook(() => useAsyncOperation(operation));
+      const { result } = renderAsyncOp(operation);
 
       let returnedValue: string | null = null;
       await act(async () => {
@@ -116,7 +121,7 @@ describe('useAsyncOperation', () => {
 
     it('passes extra arguments through to the underlying operation', async () => {
       const operation = vi.fn<unknown[], Promise<string>>().mockResolvedValue('ok');
-      const { result } = renderHook(() => useAsyncOperation(operation));
+      const { result } = renderAsyncOp(operation);
 
       await act(async () => {
         await result.current.execute('arg1', 42, { key: 'value' });
@@ -131,7 +136,7 @@ describe('useAsyncOperation', () => {
       const operation = vi.fn<[], Promise<never>>().mockRejectedValue(
         new Error('Something went wrong')
       );
-      const { result } = renderHook(() => useAsyncOperation(operation));
+      const { result } = renderAsyncOp(operation);
 
       await act(async () => {
         await result.current.execute();
@@ -145,7 +150,7 @@ describe('useAsyncOperation', () => {
 
     it('sets "Operation failed" for non-Error thrown values', async () => {
       const operation = vi.fn<[], Promise<never>>().mockRejectedValue('plain string error');
-      const { result } = renderHook(() => useAsyncOperation(operation));
+      const { result } = renderAsyncOp(operation);
 
       await act(async () => {
         await result.current.execute();
@@ -156,7 +161,7 @@ describe('useAsyncOperation', () => {
 
     it('returns null when the operation throws', async () => {
       const operation = vi.fn<[], Promise<never>>().mockRejectedValue(new Error('fail'));
-      const { result } = renderHook(() => useAsyncOperation(operation));
+      const { result } = renderAsyncOp(operation);
 
       let returnedValue: string | null = 'sentinel' as string | null;
       await act(async () => {
@@ -171,9 +176,7 @@ describe('useAsyncOperation', () => {
     it('calls onSuccess with the result after a successful operation', async () => {
       const onSuccess = vi.fn<(data: { id: string }) => void>();
       const operation = vi.fn<[], Promise<{ id: string }>>().mockResolvedValue({ id: '42' });
-      const { result } = renderHook(() =>
-        useAsyncOperation(operation, { onSuccess })
-      );
+      const { result } = renderAsyncOp(operation, { onSuccess });
 
       await act(async () => {
         await result.current.execute();
@@ -186,9 +189,7 @@ describe('useAsyncOperation', () => {
     it('does not call onSuccess when the operation fails', async () => {
       const onSuccess = vi.fn<(data: never) => void>();
       const operation = vi.fn<[], Promise<never>>().mockRejectedValue(new Error('fail'));
-      const { result } = renderHook(() =>
-        useAsyncOperation(operation, { onSuccess })
-      );
+      const { result } = renderAsyncOp(operation, { onSuccess });
 
       await act(async () => {
         await result.current.execute();
@@ -204,9 +205,7 @@ describe('useAsyncOperation', () => {
       const operation = vi.fn<[], Promise<never>>().mockRejectedValue(
         new Error('network down')
       );
-      const { result } = renderHook(() =>
-        useAsyncOperation(operation, { onError })
-      );
+      const { result } = renderAsyncOp(operation, { onError });
 
       await act(async () => {
         await result.current.execute();
@@ -219,9 +218,7 @@ describe('useAsyncOperation', () => {
     it('does not call onError on a successful operation', async () => {
       const onError = vi.fn<(error: string) => void>();
       const operation = vi.fn<[], Promise<string>>().mockResolvedValue('all good');
-      const { result } = renderHook(() =>
-        useAsyncOperation(operation, { onError })
-      );
+      const { result } = renderAsyncOp(operation, { onError });
 
       await act(async () => {
         await result.current.execute();
@@ -239,9 +236,7 @@ describe('useAsyncOperation', () => {
         .mockResolvedValueOnce('first')
         .mockImplementationOnce(() => secondExecution.promise);
 
-      const { result } = renderHook(() =>
-        useAsyncOperation(operation, { resetOnExecute: true })
-      );
+      const { result } = renderAsyncOp(operation, { resetOnExecute: true });
 
       // First execution completes
       await act(async () => {
@@ -270,7 +265,7 @@ describe('useAsyncOperation', () => {
         .mockResolvedValueOnce('first')
         .mockImplementationOnce(() => secondExecution.promise);
 
-      const { result } = renderHook(() => useAsyncOperation(operation));
+      const { result } = renderAsyncOp(operation);
 
       // First execution completes
       await act(async () => {
@@ -294,7 +289,7 @@ describe('useAsyncOperation', () => {
   describe('reset()', () => {
     it('clears data, error, isLoading, and isSuccess back to initial state', async () => {
       const operation = vi.fn<[], Promise<string>>().mockResolvedValue('result');
-      const { result } = renderHook(() => useAsyncOperation(operation));
+      const { result } = renderAsyncOp(operation);
 
       await act(async () => {
         await result.current.execute();
@@ -315,7 +310,7 @@ describe('useAsyncOperation', () => {
 
     it('clears error state after a failed execution', async () => {
       const operation = vi.fn<[], Promise<never>>().mockRejectedValue(new Error('oops'));
-      const { result } = renderHook(() => useAsyncOperation(operation));
+      const { result } = renderAsyncOp(operation);
 
       await act(async () => {
         await result.current.execute();
@@ -334,7 +329,7 @@ describe('useAsyncOperation', () => {
   describe('setData()', () => {
     it('updates data and marks isSuccess true without running the operation', () => {
       const operation = vi.fn<[], Promise<string>>().mockResolvedValue('should-not-be-called');
-      const { result } = renderHook(() => useAsyncOperation(operation));
+      const { result } = renderAsyncOp(operation);
 
       act(() => {
         result.current.setData('manual value');
@@ -347,7 +342,7 @@ describe('useAsyncOperation', () => {
 
     it('can override data even after a prior successful execution', async () => {
       const operation = vi.fn<[], Promise<string>>().mockResolvedValue('original');
-      const { result } = renderHook(() => useAsyncOperation(operation));
+      const { result } = renderAsyncOp(operation);
 
       await act(async () => {
         await result.current.execute();
@@ -370,7 +365,7 @@ describe('useAsyncOperation', () => {
         .mockResolvedValueOnce('first')
         .mockResolvedValueOnce('second');
 
-      const { result } = renderHook(() => useAsyncOperation(operation));
+      const { result } = renderAsyncOp(operation);
 
       await act(async () => {
         await result.current.execute();
@@ -388,7 +383,7 @@ describe('useAsyncOperation', () => {
         .mockRejectedValueOnce(new Error('first fail'))
         .mockResolvedValueOnce('recovered');
 
-      const { result } = renderHook(() => useAsyncOperation(operation));
+      const { result } = renderAsyncOp(operation);
 
       await act(async () => {
         await result.current.execute();
@@ -409,7 +404,7 @@ describe('useAsyncOperation', () => {
         .mockResolvedValueOnce('first ok')
         .mockRejectedValueOnce(new Error('second fail'));
 
-      const { result } = renderHook(() => useAsyncOperation(operation));
+      const { result } = renderAsyncOp(operation);
 
       await act(async () => {
         await result.current.execute();

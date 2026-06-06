@@ -41,6 +41,38 @@ const createWrapper = () => {
   return Wrapper;
 };
 
+const renderBulkEditHook = (rows: EquipmentRecord[]) =>
+  renderHook(() => useBulkEditEquipment(rows), { wrapper: createWrapper() });
+
+const defaultTwoEquipmentRows = () => [mockRow('eq-1'), mockRow('eq-2')];
+
+const renderTwoRowBulkEditHook = () => renderBulkEditHook(defaultTwoEquipmentRows());
+
+const renderCaterpillarManufacturerRow = () =>
+  renderBulkEditHook([mockRow('eq-1', { manufacturer: 'Caterpillar' })]);
+
+const setManufacturer = (
+  result: ReturnType<typeof renderBulkEditHook>['result'],
+  value: string,
+) => {
+  act(() => {
+    result.current.setCellValue('eq-1', 'manufacturer', value);
+  });
+};
+
+const editTwoRowLocations = (result: ReturnType<typeof renderTwoRowBulkEditHook>['result']) => {
+  act(() => {
+    result.current.setCellValue('eq-1', 'location', 'Site B');
+    result.current.setCellValue('eq-2', 'location', 'Site C');
+  });
+};
+
+const commitDirtyEdits = async (result: ReturnType<typeof renderTwoRowBulkEditHook>['result']) => {
+  await act(async () => {
+    await result.current.commit();
+  });
+};
+
 const mockRow = (id: string, overrides: Partial<EquipmentRecord> = {}): EquipmentRecord =>
   ({
     id,
@@ -76,10 +108,7 @@ describe('useBulkEditEquipment', () => {
 
   describe('dirty state tracking', () => {
     it('starts with an empty dirty map and selection set', () => {
-      const rows = [mockRow('eq-1'), mockRow('eq-2')];
-      const { result } = renderHook(() => useBulkEditEquipment(rows), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderTwoRowBulkEditHook();
       expect(result.current.dirtyCount).toBe(0);
       expect(result.current.selectedCount).toBe(0);
       expect(result.current.dirtyRows.size).toBe(0);
@@ -87,31 +116,19 @@ describe('useBulkEditEquipment', () => {
     });
 
     it('setCellValue records a delta against the initial value', () => {
-      const rows = [mockRow('eq-1', { manufacturer: 'Caterpillar' })];
-      const { result } = renderHook(() => useBulkEditEquipment(rows), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderCaterpillarManufacturerRow();
 
-      act(() => {
-        result.current.setCellValue('eq-1', 'manufacturer', 'Komatsu');
-      });
+      setManufacturer(result, 'Komatsu');
 
       expect(result.current.dirtyCount).toBe(1);
       expect(result.current.dirtyRows.get('eq-1')).toEqual({ manufacturer: 'Komatsu' });
     });
 
     it('reverting to the initial value clears the field from the delta', () => {
-      const rows = [mockRow('eq-1', { manufacturer: 'Caterpillar' })];
-      const { result } = renderHook(() => useBulkEditEquipment(rows), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderCaterpillarManufacturerRow();
 
-      act(() => {
-        result.current.setCellValue('eq-1', 'manufacturer', 'Komatsu');
-      });
-      act(() => {
-        result.current.setCellValue('eq-1', 'manufacturer', 'Caterpillar');
-      });
+      setManufacturer(result, 'Komatsu');
+      setManufacturer(result, 'Caterpillar');
 
       expect(result.current.dirtyCount).toBe(0);
       expect(result.current.dirtyRows.has('eq-1')).toBe(false);
@@ -119,9 +136,7 @@ describe('useBulkEditEquipment', () => {
 
     it('setCellValueOnRows applies the same change across many rows', () => {
       const rows = [mockRow('eq-1'), mockRow('eq-2'), mockRow('eq-3')];
-      const { result } = renderHook(() => useBulkEditEquipment(rows), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderBulkEditHook(rows);
 
       act(() => {
         result.current.setCellValueOnRows(['eq-1', 'eq-2', 'eq-3'], 'location', 'Site B');
@@ -134,10 +149,7 @@ describe('useBulkEditEquipment', () => {
     });
 
     it('clearDirty removes every dirty edit', () => {
-      const rows = [mockRow('eq-1'), mockRow('eq-2')];
-      const { result } = renderHook(() => useBulkEditEquipment(rows), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderTwoRowBulkEditHook();
 
       act(() => {
         result.current.setCellValue('eq-1', 'location', 'Site B');
@@ -154,10 +166,7 @@ describe('useBulkEditEquipment', () => {
 
   describe('selection', () => {
     it('toggleSelected adds and removes a row from the selection', () => {
-      const rows = [mockRow('eq-1'), mockRow('eq-2')];
-      const { result } = renderHook(() => useBulkEditEquipment(rows), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderTwoRowBulkEditHook();
 
       act(() => {
         result.current.toggleSelected('eq-1');
@@ -173,9 +182,7 @@ describe('useBulkEditEquipment', () => {
 
     it('selectAll replaces the selection with the supplied ids', () => {
       const rows = [mockRow('eq-1'), mockRow('eq-2'), mockRow('eq-3')];
-      const { result } = renderHook(() => useBulkEditEquipment(rows), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderBulkEditHook(rows);
 
       act(() => {
         result.current.selectAll(['eq-1', 'eq-3']);
@@ -188,9 +195,7 @@ describe('useBulkEditEquipment', () => {
 
     it('clearSelection empties the selection without affecting dirty state', () => {
       const rows = [mockRow('eq-1')];
-      const { result } = renderHook(() => useBulkEditEquipment(rows), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderBulkEditHook(rows);
 
       act(() => {
         result.current.toggleSelected('eq-1');
@@ -207,9 +212,7 @@ describe('useBulkEditEquipment', () => {
   describe('commit()', () => {
     it('is a no-op when there are no dirty rows', async () => {
       const rows = [mockRow('eq-1')];
-      const { result } = renderHook(() => useBulkEditEquipment(rows), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderBulkEditHook(rows);
 
       await act(async () => {
         await result.current.commit();
@@ -225,10 +228,7 @@ describe('useBulkEditEquipment', () => {
         error: null,
       });
 
-      const rows = [mockRow('eq-1'), mockRow('eq-2')];
-      const { result } = renderHook(() => useBulkEditEquipment(rows), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderTwoRowBulkEditHook();
 
       act(() => {
         result.current.setCellValue('eq-1', 'location', 'Site B');
@@ -271,10 +271,7 @@ describe('useBulkEditEquipment', () => {
         );
       });
 
-      const rows = [mockRow('eq-1'), mockRow('eq-2')];
-      const { result } = renderHook(() => useBulkEditEquipment(rows), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderTwoRowBulkEditHook();
 
       act(() => {
         result.current.setCellValue('eq-1', 'location', 'Site B');
@@ -317,19 +314,10 @@ describe('useBulkEditEquipment', () => {
         error: null,
       });
 
-      const rows = [mockRow('eq-1'), mockRow('eq-2')];
-      const { result } = renderHook(() => useBulkEditEquipment(rows), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderTwoRowBulkEditHook();
 
-      act(() => {
-        result.current.setCellValue('eq-1', 'location', 'Site B');
-        result.current.setCellValue('eq-2', 'location', 'Site C');
-      });
-
-      await act(async () => {
-        await result.current.commit();
-      });
+      editTwoRowLocations(result);
+      await commitDirtyEdits(result);
 
       await waitFor(() => {
         expect(toast.warning).toHaveBeenCalledWith('Updated 1 of 2; 1 failed');
@@ -352,19 +340,10 @@ describe('useBulkEditEquipment', () => {
         error: null,
       });
 
-      const rows = [mockRow('eq-1'), mockRow('eq-2')];
-      const { result } = renderHook(() => useBulkEditEquipment(rows), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderTwoRowBulkEditHook();
 
-      act(() => {
-        result.current.setCellValue('eq-1', 'location', 'Site B');
-        result.current.setCellValue('eq-2', 'location', 'Site C');
-      });
-
-      await act(async () => {
-        await result.current.commit();
-      });
+      editTwoRowLocations(result);
+      await commitDirtyEdits(result);
 
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith('Failed to update 2 of 2 equipment');
@@ -379,10 +358,7 @@ describe('useBulkEditEquipment', () => {
         error: null,
       });
 
-      const rows = [mockRow('eq-1'), mockRow('eq-2')];
-      const { result } = renderHook(() => useBulkEditEquipment(rows), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderTwoRowBulkEditHook();
 
       act(() => {
         result.current.setCellValue('eq-1', 'location', 'Site B');
