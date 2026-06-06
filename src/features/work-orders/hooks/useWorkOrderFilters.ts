@@ -1,139 +1,39 @@
 import { useState, useMemo, useCallback } from 'react';
-import { isToday, isThisWeek } from 'date-fns';
-import { WorkOrderFilters, WorkOrderData, type QuickBooksInvoiceStatus } from '@/features/work-orders/types/workOrder';
-import { getPriorityValue, isOverdue } from '@/features/work-orders/utils/workOrderHelpers';
+import { WorkOrderFilters, WorkOrderData } from '@/features/work-orders/types/workOrder';
+import {
+  countActiveWorkOrderFilters,
+  DEFAULT_WORK_ORDER_FILTERS,
+  filterWorkOrders,
+  PRESET_FILTER_MAP,
+  sortWorkOrders,
+} from './workOrderFilterUtils';
 
 export type QuickFilterPreset = 'my-work' | 'urgent' | 'overdue' | 'unassigned';
 export type SortField = 'created' | 'due_date' | 'priority' | 'status';
 export type SortDirection = 'asc' | 'desc';
 
-const STATUS_ORDER: Record<string, number> = {
-  submitted: 0, accepted: 1, assigned: 2, in_progress: 3, on_hold: 4, completed: 5, cancelled: 6,
-};
-
-const PRESET_FILTER_MAP: Record<QuickFilterPreset, { key: keyof WorkOrderFilters; value: string }> = {
-  'my-work':    { key: 'assigneeFilter', value: 'mine' },
-  'urgent':     { key: 'priorityFilter', value: 'high' },
-  'overdue':    { key: 'dueDateFilter',  value: 'overdue' },
-  'unassigned': { key: 'assigneeFilter', value: 'unassigned' },
-};
-
-/**
- * Collectible invoice balances for the Work Orders "Unpaid" filter.
- * Excludes paid, voided, and unknown.
- * A NULL invoice_status with a set quickbooks_invoice_id is also treated as
- * unpaid/collectible: it represents the transitional state where a QBO invoice
- * has been exported but the hourly reconciler has not yet mirrored the status.
- */
-const COLLECTIBLE_UNPAID_INVOICE_STATUSES: ReadonlySet<QuickBooksInvoiceStatus> = new Set([
-  'draft',
-  'sent',
-  'viewed',
-  'partially_paid',
-  'overdue',
-]);
-
 export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?: string) => {
-  const [filters, setFilters] = useState<WorkOrderFilters>({
-    searchQuery: '',
-    statusFilter: 'all',
-    assigneeFilter: 'all',
-    teamFilter: 'all',
-    priorityFilter: 'all',
-    dueDateFilter: 'all',
-    invoiceFilter: 'all'
-  });
+  const [filters, setFilters] = useState<WorkOrderFilters>(DEFAULT_WORK_ORDER_FILTERS);
   const [activePresets, setActivePresets] = useState<Set<QuickFilterPreset>>(new Set());
   const [sortField, setSortField] = useState<SortField>('created');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const filteredWorkOrders = useMemo(() => {
-    return workOrders.filter(order => {
-      const matchesSearch = order.title.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
-                           order.assigneeName?.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
-                           order.teamName?.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
-                           order.equipmentName?.toLowerCase().includes(filters.searchQuery.toLowerCase());
-      
-      const matchesStatus = filters.statusFilter === 'all' || order.status === filters.statusFilter;
-      
-      const matchesAssignee = filters.assigneeFilter === 'all' || 
-                             (filters.assigneeFilter === 'mine' && order.assigneeId === currentUserId) ||
-                             (filters.assigneeFilter === 'unassigned' && !order.assigneeId && !order.teamId) ||
-                             order.assigneeId === filters.assigneeFilter;
-      
-      const matchesTeam =
-        filters.teamFilter === 'all'
-          ? true
-          : filters.teamFilter === 'unassigned'
-            ? !order.teamId
-            : order.teamId === filters.teamFilter;
-      const matchesPriority = filters.priorityFilter === 'all' || order.priority === filters.priorityFilter;
-      
-      const matchesDueDate = filters.dueDateFilter === 'all' || 
-                            (filters.dueDateFilter === 'overdue' && isOverdue(order.dueDate, order.status)) ||
-                            (filters.dueDateFilter === 'today' && order.dueDate && isToday(new Date(order.dueDate))) ||
-                            (filters.dueDateFilter === 'this_week' && order.dueDate && isThisWeek(new Date(order.dueDate)));
-
-      const invoiceStatus = order.invoiceStatus ?? order.invoice_status ?? null;
-      const hasExportedInvoice = Boolean(order.quickbooksInvoiceId ?? order.quickbooks_invoice_id);
-      const matchesInvoice =
-        filters.invoiceFilter === 'all' ||
-        (filters.invoiceFilter === 'paid' && invoiceStatus === 'paid') ||
-        (filters.invoiceFilter === 'overdue' && invoiceStatus === 'overdue') ||
-        (filters.invoiceFilter === 'not_exported' && !hasExportedInvoice) ||
-        (filters.invoiceFilter === 'unpaid' &&
-          hasExportedInvoice &&
-          (invoiceStatus === null || COLLECTIBLE_UNPAID_INVOICE_STATUSES.has(invoiceStatus)));
-
-      return matchesSearch && matchesStatus && matchesAssignee && matchesTeam && matchesPriority && matchesDueDate && matchesInvoice;
-    });
+    return filterWorkOrders(workOrders, filters, currentUserId);
   }, [workOrders, filters, currentUserId]);
 
   const sortedWorkOrders = useMemo(() => {
-    const dir = sortDirection === 'asc' ? 1 : -1;
-    return [...filteredWorkOrders].sort((a, b) => {
-      switch (sortField) {
-        case 'due_date': {
-          const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
-          const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
-          return (aDate - bDate) * dir;
-        }
-        case 'priority':
-          return (getPriorityValue(a.priority) - getPriorityValue(b.priority)) * dir;
-        case 'status':
-          return ((STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99)) * dir;
-        case 'created':
-        default: {
-          const aC = new Date(a.createdDate || a.created_date).getTime();
-          const bC = new Date(b.createdDate || b.created_date).getTime();
-          return (aC - bC) * dir;
-        }
-      }
-    });
+    return sortWorkOrders(filteredWorkOrders, sortField, sortDirection);
   }, [filteredWorkOrders, sortField, sortDirection]);
 
   // `filters.teamFilter` is driven by the global TopBar selection and is
   // intentionally excluded from the page-local active-filter count / chip row.
   const getActiveFilterCount = useCallback(() => {
-    let count = 0;
-    if (filters.statusFilter !== 'all') count++;
-    if (filters.assigneeFilter !== 'all') count++;
-    if (filters.priorityFilter !== 'all') count++;
-    if (filters.dueDateFilter !== 'all') count++;
-    if (filters.invoiceFilter !== 'all') count++;
-    return count;
+    return countActiveWorkOrderFilters(filters);
   }, [filters]);
 
   const clearAllFilters = useCallback(() => {
-    setFilters({
-      searchQuery: '',
-      statusFilter: 'all',
-      assigneeFilter: 'all',
-      teamFilter: 'all',
-      priorityFilter: 'all',
-      dueDateFilter: 'all',
-      invoiceFilter: 'all'
-    });
+    setFilters(DEFAULT_WORK_ORDER_FILTERS);
     setActivePresets(new Set());
   }, []);
 

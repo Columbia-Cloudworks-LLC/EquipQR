@@ -439,303 +439,226 @@ function isErrorMessageSafe(error: string): boolean {
  * - Dynamic allowlist patterns are intentionally collapsed to canonical
  *   messages to keep response bodies free of attacker-controlled substrings.
  */
+const EXACT_SAFE_ERROR_MESSAGE_BY_INPUT = new Map<string, string>([
+  ["No authorization header provided", "No authorization header provided"],
+  ["Invalid authorization header format", "Invalid authorization header format"],
+  ["Invalid or expired token", "Invalid or expired token"],
+  ["Authentication failed", "Authentication failed"],
+  ["Token has expired", "Token has expired"],
+  ["Invalid token format", "Invalid token format"],
+  ["User session not found for provided token", "User session not found for provided token"],
+  ["User not found for provided token", "User not found for provided token"],
+  ["Unauthorized: Empty token", "Unauthorized: Empty token"],
+  ["User email not available", "User email not available"],
+  ["Forbidden", "Forbidden"],
+  ["Google Workspace is not connected", "Google Workspace is not connected"],
+  ["Not found", "Not found"],
+  ["Bad request", "Bad request"],
+  ["Unauthorized", "Unauthorized"],
+  ["Conflict", "Conflict"],
+  ["Gone", "Gone"],
+  ["Method not allowed", "Method not allowed"],
+  ["Invalid JSON body", "Invalid JSON body"],
+  ["Invitation not found", "Invitation not found"],
+  [
+    "Invalid base64 content. The file data may be corrupted or incorrectly encoded.",
+    "Invalid base64 content. The file data may be corrupted or incorrectly encoded.",
+  ],
+  ["An unexpected error occurred", "An unexpected error occurred"],
+  ["An internal error occurred", "An internal error occurred"],
+  ["Internal server error", "Internal server error"],
+  ["Invalid price selected", "Invalid price selected"],
+  ["Google Workspace OAuth is not configured", "Google Workspace OAuth is not configured"],
+  ["Failed to refresh Google access token", "Failed to refresh Google access token"],
+  ["Failed to send push notification", "Failed to send push notification"],
+  ["Failed to fetch push subscriptions", "Failed to fetch push subscriptions"],
+  [
+    "Missing required fields: user_id, title, body",
+    "Missing required fields: user_id, title, body",
+  ],
+  ["Failed to create GitHub issue", "Failed to create GitHub issue"],
+  ["Failed to create ticket record", "Failed to create ticket record"],
+  ["title and description are required", "title and description are required"],
+  [
+    "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.",
+    "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.",
+  ],
+  [
+    "QuickBooks tax status could not be confirmed. Please refresh the customer from QuickBooks and try again.",
+    "QuickBooks tax status could not be confirmed. Please refresh the customer from QuickBooks and try again.",
+  ],
+  ["Not a user-reported issue", "Not a user-reported issue"],
+  ["No issue in payload", "No issue in payload"],
+  ["No matching ticket found", "No matching ticket found"],
+  ["No comment in payload", "No comment in payload"],
+  ["Place not found", "Place not found"],
+  [
+    "Invalid action. Use 'autocomplete' or 'details'.",
+    "Invalid action. Use 'autocomplete' or 'details'.",
+  ],
+  ["CAPTCHA verification is required", "CAPTCHA verification is required"],
+  ["CAPTCHA verification failed", "CAPTCHA verification failed"],
+  ["A valid email address is required", "A valid email address is required"],
+  ["Name is required", "Name is required"],
+  ["Invalid request type", "Invalid request type"],
+  ["Failed to submit privacy request", "Failed to submit privacy request"],
+  ["Failed to record legal acceptance", "Failed to record legal acceptance"],
+  [
+    "Legal policy version mismatch; refresh the app and accept the current Terms and Privacy Policy.",
+    "Legal policy version mismatch; refresh the app and accept the current Terms and Privacy Policy.",
+  ],
+  [
+    "A similar request was already submitted recently. Please wait before submitting again",
+    "A similar request was already submitted recently. Please wait before submitting again",
+  ],
+  ["Invalid action", "Invalid action"],
+  ["Invalid notice action", "Invalid notice action"],
+  ["Invalid verification method", "Invalid verification method"],
+  ["Request is not in a verifiable state", "Request is not in a verifiable state"],
+  ["Request is already closed", "Request is already closed"],
+  ["Required checklist steps are incomplete", "Required checklist steps are incomplete"],
+  ["Denial reason is required", "Denial reason is required"],
+  ["Extension reason is required", "Extension reason is required"],
+  ["Request must be verified before processing", "Request must be verified before processing"],
+  ["Request must be in processing state", "Request must be in processing state"],
+  ["Fulfillment step summary is required", "Fulfillment step summary is required"],
+  [
+    "Request must be in processing state to complete",
+    "Request must be in processing state to complete",
+  ],
+  ["Note text is required", "Note text is required"],
+  ["Export retry limit reached", "Export retry limit reached"],
+  ["scanned_value is required", "scanned_value is required"],
+  ["organizationId and input are required", "organizationId and input are required"],
+  ["organizationId is required", "organizationId is required"],
+  ["expected_updated_at is required", "expected_updated_at is required"],
+  ["Missing required field: dsrRequestId", "Missing required field: dsrRequestId"],
+  [
+    "Fulfillment engine only handles deletion requests",
+    "Fulfillment engine only handles deletion requests",
+  ],
+  [
+    "Fulfillment succeeded but completion update failed",
+    "Fulfillment succeeded but completion update failed",
+  ],
+]);
+
+const CANONICAL_ERROR_MESSAGE_RULES: ReadonlyArray<{
+  pattern: RegExp;
+  message: string;
+}> = [
+  {
+    pattern: /^Only organization (owners|admins|administrators) can /,
+    message: "Forbidden",
+  },
+  { pattern: /^Forbidden: /, message: "Forbidden" },
+  { pattern: /^You are not a member of /, message: "Forbidden" },
+  {
+    pattern: /^Google Workspace is not connected/,
+    message: "Google Workspace is not connected",
+  },
+  { pattern: /^Missing required field/, message: "Missing required field" },
+  {
+    pattern:
+      /^(organizationId|equipmentId|workOrderId|userId|quantity|Quantity|scanned_value|input|name|email|title|description|status) (is|are) required$/,
+    message: "Required field is missing",
+  },
+  {
+    pattern:
+      /^(organizationId|equipmentId|workOrderId|userId|quantity|Quantity|scanned_value|input|name|email|title|description|status) and (organizationId|equipmentId|workOrderId|userId|quantity|Quantity|scanned_value|input|name|email|title|description|status) are required$/,
+    message: "Required fields are missing",
+  },
+  { pattern: /^Unsupported format/, message: "Unsupported format" },
+  {
+    pattern: /^Title must be between \d+ and \d+ characters$/,
+    message: "Title must be between allowed length limits",
+  },
+  {
+    pattern: /^Description must be between \d+ and \d+ characters$/,
+    message: "Description must be between allowed length limits",
+  },
+  {
+    pattern: /^Rate limit exceeded\. You can submit up to \d+ reports per hour$/,
+    message: "Rate limit exceeded. Please try again later",
+  },
+  {
+    pattern: /^Rate limit exceeded\. Maximum \d+ privacy requests per \d+ hours$/,
+    message: "Rate limit exceeded. Please try again later",
+  },
+  { pattern: /^Rate limit exceeded/, message: "Rate limit exceeded" },
+  {
+    pattern: /^Invalid OAuth redirect (base URL )?configuration$/,
+    message: "Invalid OAuth redirect configuration",
+  },
+  { pattern: /^File too large\./, message: "File too large." },
+  { pattern: /^Stripe price .+ not found/, message: "Invalid price selected" },
+  {
+    pattern: /^Google Workspace encryption is not properly configured/,
+    message:
+      "Google Workspace encryption is not properly configured. Please contact your administrator.",
+  },
+  {
+    pattern: /^Failed to decrypt stored credentials\. The stored token may be corrupted/,
+    message:
+      "Failed to decrypt stored credentials. The stored token may be corrupted.",
+  },
+  {
+    pattern: /^Your Google Workspace connection has expired or been revoked\./,
+    message:
+      "Your Google Workspace connection has expired or been revoked. Please reconnect Google Workspace in Organization Settings.",
+  },
+  {
+    pattern: /^Insufficient permissions\. Please reconnect Google Workspace/,
+    message:
+      "Insufficient permissions. Please reconnect Google Workspace to grant the required permissions.",
+  },
+  {
+    pattern: /^Failed to decrypt stored Google Workspace credentials\./,
+    message:
+      "Failed to decrypt stored Google Workspace credentials. Please reconnect Google Workspace to generate new credentials.",
+  },
+  { pattern: /^Invalid request body: /, message: "Invalid request body" },
+  {
+    pattern: /^Failed to fetch Google Workspace users/,
+    message: "Failed to fetch Google Workspace users",
+  },
+  { pattern: /^Failed to store directory users$/, message: "Failed to store directory users" },
+  { pattern: /^Failed to send invitation email$/, message: "Failed to send invitation email" },
+  {
+    pattern: /^Failed to (fetch queue|fetch case details)$/,
+    message: "Failed to fetch privacy request data",
+  },
+  {
+    pattern: /^Failed to (request export|retry export|resend notice)$/,
+    message: "Failed to manage privacy request export",
+  },
+  {
+    pattern:
+      /^Failed to (verify|deny|extend|start processing|complete|manage privacy) request$/,
+    message: "Failed to manage privacy request",
+  },
+  {
+    pattern: /^Failed to (record fulfillment step|extend deadline|add note)/,
+    message: "Failed to update privacy request",
+  },
+  {
+    pattern: /^Failed to execute deletion fulfillment$/,
+    message: "Failed to execute deletion fulfillment",
+  },
+  { pattern: /^Failed to /, message: "Operation failed" },
+];
+
 function normalizeAllowlistedErrorMessage(error: string): string {
-  switch (error) {
-    case "No authorization header provided":
-      return "No authorization header provided";
-    case "Invalid authorization header format":
-      return "Invalid authorization header format";
-    case "Invalid or expired token":
-      return "Invalid or expired token";
-    case "Authentication failed":
-      return "Authentication failed";
-    case "Token has expired":
-      return "Token has expired";
-    case "Invalid token format":
-      return "Invalid token format";
-    case "User session not found for provided token":
-      return "User session not found for provided token";
-    case "User not found for provided token":
-      return "User not found for provided token";
-    case "Unauthorized: Empty token":
-      return "Unauthorized: Empty token";
-    case "User email not available":
-      return "User email not available";
-    case "Forbidden":
-      return "Forbidden";
-    case "Google Workspace is not connected":
-      return "Google Workspace is not connected";
-    case "Not found":
-      return "Not found";
-    case "Bad request":
-      return "Bad request";
-    case "Unauthorized":
-      return "Unauthorized";
-    case "Conflict":
-      return "Conflict";
-    case "Gone":
-      return "Gone";
-    case "Method not allowed":
-      return "Method not allowed";
-    case "Invalid JSON body":
-      return "Invalid JSON body";
-    case "Invitation not found":
-      return "Invitation not found";
-    case "Invalid base64 content. The file data may be corrupted or incorrectly encoded.":
-      return "Invalid base64 content. The file data may be corrupted or incorrectly encoded.";
-    case "An unexpected error occurred":
-      return "An unexpected error occurred";
-    case "An internal error occurred":
-      return "An internal error occurred";
-    case "Internal server error":
-      return "Internal server error";
-    case "Invalid price selected":
-      return "Invalid price selected";
-    case "Google Workspace OAuth is not configured":
-      return "Google Workspace OAuth is not configured";
-    case "Failed to refresh Google access token":
-      return "Failed to refresh Google access token";
-    case "Failed to send push notification":
-      return "Failed to send push notification";
-    case "Failed to fetch push subscriptions":
-      return "Failed to fetch push subscriptions";
-    case "Missing required fields: user_id, title, body":
-      return "Missing required fields: user_id, title, body";
-    case "Failed to create GitHub issue":
-      return "Failed to create GitHub issue";
-    case "Failed to create ticket record":
-      return "Failed to create ticket record";
-    case "title and description are required":
-      return "title and description are required";
-    case "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.":
-      return "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.";
-    case "QuickBooks tax status could not be confirmed. Please refresh the customer from QuickBooks and try again.":
-      return "QuickBooks tax status could not be confirmed. Please refresh the customer from QuickBooks and try again.";
-    case "Not a user-reported issue":
-      return "Not a user-reported issue";
-    case "No issue in payload":
-      return "No issue in payload";
-    case "No matching ticket found":
-      return "No matching ticket found";
-    case "No comment in payload":
-      return "No comment in payload";
-    case "Place not found":
-      return "Place not found";
-    case "Invalid action. Use 'autocomplete' or 'details'.":
-      return "Invalid action. Use 'autocomplete' or 'details'.";
-    case "CAPTCHA verification is required":
-      return "CAPTCHA verification is required";
-    case "CAPTCHA verification failed":
-      return "CAPTCHA verification failed";
-    case "A valid email address is required":
-      return "A valid email address is required";
-    case "Name is required":
-      return "Name is required";
-    case "Invalid request type":
-      return "Invalid request type";
-    case "Failed to submit privacy request":
-      return "Failed to submit privacy request";
-    case "Failed to record legal acceptance":
-      return "Failed to record legal acceptance";
-    case "Legal policy version mismatch; refresh the app and accept the current Terms and Privacy Policy.":
-      return "Legal policy version mismatch; refresh the app and accept the current Terms and Privacy Policy.";
-    case "A similar request was already submitted recently. Please wait before submitting again":
-      return "A similar request was already submitted recently. Please wait before submitting again";
-    case "Invalid action":
-      return "Invalid action";
-    case "Invalid notice action":
-      return "Invalid notice action";
-    case "Invalid verification method":
-      return "Invalid verification method";
-    case "Request is not in a verifiable state":
-      return "Request is not in a verifiable state";
-    case "Request is already closed":
-      return "Request is already closed";
-    case "Required checklist steps are incomplete":
-      return "Required checklist steps are incomplete";
-    case "Denial reason is required":
-      return "Denial reason is required";
-    case "Extension reason is required":
-      return "Extension reason is required";
-    case "Request must be verified before processing":
-      return "Request must be verified before processing";
-    case "Request must be in processing state":
-      return "Request must be in processing state";
-    case "Fulfillment step summary is required":
-      return "Fulfillment step summary is required";
-    case "Request must be in processing state to complete":
-      return "Request must be in processing state to complete";
-    case "Note text is required":
-      return "Note text is required";
-    case "Export retry limit reached":
-      return "Export retry limit reached";
-    case "scanned_value is required":
-      return "scanned_value is required";
-    case "organizationId and input are required":
-      return "organizationId and input are required";
-    case "organizationId is required":
-      return "organizationId is required";
-    case "expected_updated_at is required":
-      return "expected_updated_at is required";
-    case "Missing required field: dsrRequestId":
-      return "Missing required field: dsrRequestId";
-    case "Fulfillment engine only handles deletion requests":
-      return "Fulfillment engine only handles deletion requests";
-    case "Fulfillment succeeded but completion update failed":
-      return "Fulfillment succeeded but completion update failed";
-    default:
-      break;
+  const exactMessage = EXACT_SAFE_ERROR_MESSAGE_BY_INPUT.get(error);
+  if (exactMessage) {
+    return exactMessage;
   }
 
-  if (
-    /^Only organization (owners|admins|administrators) can /.test(error) ||
-    /^Forbidden: /.test(error) ||
-    /^You are not a member of /.test(error)
-  ) {
-    return "Forbidden";
-  }
+  const canonicalRule = CANONICAL_ERROR_MESSAGE_RULES.find(({ pattern }) =>
+    pattern.test(error)
+  );
 
-  if (/^Google Workspace is not connected/.test(error)) {
-    return "Google Workspace is not connected";
-  }
-
-  if (/^Missing required field/.test(error)) {
-    return "Missing required field";
-  }
-
-  if (
-    /^(organizationId|equipmentId|workOrderId|userId|quantity|Quantity|scanned_value|input|name|email|title|description|status) (is|are) required$/
-      .test(error)
-  ) {
-    return "Required field is missing";
-  }
-
-  if (
-    /^(organizationId|equipmentId|workOrderId|userId|quantity|Quantity|scanned_value|input|name|email|title|description|status) and (organizationId|equipmentId|workOrderId|userId|quantity|Quantity|scanned_value|input|name|email|title|description|status) are required$/
-      .test(error)
-  ) {
-    return "Required fields are missing";
-  }
-
-  if (/^Unsupported format/.test(error)) {
-    return "Unsupported format";
-  }
-
-  if (/^Title must be between \d+ and \d+ characters$/.test(error)) {
-    return "Title must be between allowed length limits";
-  }
-
-  if (/^Description must be between \d+ and \d+ characters$/.test(error)) {
-    return "Description must be between allowed length limits";
-  }
-
-  if (
-    /^Rate limit exceeded\. You can submit up to \d+ reports per hour$/.test(
-      error,
-    )
-  ) {
-    return "Rate limit exceeded. Please try again later";
-  }
-
-  if (
-    /^Rate limit exceeded\. Maximum \d+ privacy requests per \d+ hours$/.test(
-      error,
-    )
-  ) {
-    return "Rate limit exceeded. Please try again later";
-  }
-
-  if (/^Rate limit exceeded/.test(error)) {
-    return "Rate limit exceeded";
-  }
-
-  if (/^Invalid OAuth redirect (base URL )?configuration$/.test(error)) {
-    return "Invalid OAuth redirect configuration";
-  }
-
-  if (/^File too large\./.test(error)) {
-    return "File too large.";
-  }
-
-  if (/^Stripe price .+ not found/.test(error)) {
-    return "Invalid price selected";
-  }
-
-  if (/^Google Workspace encryption is not properly configured/.test(error)) {
-    return "Google Workspace encryption is not properly configured. Please contact your administrator.";
-  }
-
-  if (
-    /^Failed to decrypt stored credentials\. The stored token may be corrupted/
-      .test(error)
-  ) {
-    return "Failed to decrypt stored credentials. The stored token may be corrupted.";
-  }
-
-  if (
-    /^Your Google Workspace connection has expired or been revoked\./.test(
-      error,
-    )
-  ) {
-    return "Your Google Workspace connection has expired or been revoked. Please reconnect Google Workspace in Organization Settings.";
-  }
-
-  if (
-    /^Insufficient permissions\. Please reconnect Google Workspace/.test(error)
-  ) {
-    return "Insufficient permissions. Please reconnect Google Workspace to grant the required permissions.";
-  }
-
-  if (/^Failed to decrypt stored Google Workspace credentials\./.test(error)) {
-    return "Failed to decrypt stored Google Workspace credentials. Please reconnect Google Workspace to generate new credentials.";
-  }
-
-  if (/^Invalid request body: /.test(error)) {
-    return "Invalid request body";
-  }
-
-  if (/^Failed to fetch Google Workspace users/.test(error)) {
-    return "Failed to fetch Google Workspace users";
-  }
-
-  if (/^Failed to store directory users$/.test(error)) {
-    return "Failed to store directory users";
-  }
-
-  if (/^Failed to send invitation email$/.test(error)) {
-    return "Failed to send invitation email";
-  }
-
-  if (/^Failed to (fetch queue|fetch case details)$/.test(error)) {
-    return "Failed to fetch privacy request data";
-  }
-
-  if (/^Failed to (request export|retry export|resend notice)$/.test(error)) {
-    return "Failed to manage privacy request export";
-  }
-
-  if (
-    /^Failed to (verify|deny|extend|start processing|complete|manage privacy) request$/
-      .test(error)
-  ) {
-    return "Failed to manage privacy request";
-  }
-
-  if (
-    /^Failed to (record fulfillment step|extend deadline|add note)$/.test(error)
-  ) {
-    return "Failed to update privacy request";
-  }
-
-  if (/^Failed to execute deletion fulfillment$/.test(error)) {
-    return "Failed to execute deletion fulfillment";
-  }
-
-  if (/^Failed to /.test(error)) {
-    return "Operation failed";
-  }
-
-  return GENERIC_ERROR_MESSAGE;
+  return canonicalRule?.message ?? GENERIC_ERROR_MESSAGE;
 }
 
 /**

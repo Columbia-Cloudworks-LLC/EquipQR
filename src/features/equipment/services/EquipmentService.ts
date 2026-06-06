@@ -133,6 +133,109 @@ export interface EquipmentListResult {
  */
 const MAX_LIST_PAGE_SIZE = 200;
 
+type EquipmentListQuery = ReturnType<ReturnType<typeof supabase.from>['select']>;
+type EquipmentListPagination = {
+  page?: number;
+  pageSize?: number;
+  sortField?: string;
+  sortDirection?: 'asc' | 'desc';
+};
+
+function normalizeEquipmentListPagination(pagination: EquipmentListPagination) {
+  const page = Math.max(1, pagination.page ?? 1);
+  const pageSize = Math.min(MAX_LIST_PAGE_SIZE, Math.max(1, pagination.pageSize ?? 10));
+
+  return { page, pageSize };
+}
+
+function hasRestrictedTeamAccess(
+  filters: EquipmentListFilters,
+): filters is EquipmentListFilters & { userTeamIds: string[] } {
+  return filters.userTeamIds !== undefined && !filters.isOrgAdmin;
+}
+
+function hasNoEquipmentListAccess(filters: EquipmentListFilters): boolean {
+  return hasRestrictedTeamAccess(filters) && filters.userTeamIds.length === 0;
+}
+
+function getEquipmentSearchPattern(search: EquipmentListFilters['search']): string | null {
+  const term = search?.trim().replace(/[,()]/g, ' ');
+  return term ? `%${term}%` : null;
+}
+
+function buildEquipmentSearchFilter(pattern: string): string {
+  return [
+    `name.ilike.${pattern}`,
+    `manufacturer.ilike.${pattern}`,
+    `model.ilike.${pattern}`,
+    `serial_number.ilike.${pattern}`,
+    `location.ilike.${pattern}`,
+  ].join(',');
+}
+
+function isSpecificEquipmentFilter(value: string | undefined): value is string {
+  return Boolean(value && value !== 'all');
+}
+
+function applyEquipmentListDateFilters(
+  query: EquipmentListQuery,
+  filters: EquipmentListFilters,
+): EquipmentListQuery {
+  let nextQuery = query;
+
+  if (filters.maintenanceDateFrom) {
+    nextQuery = nextQuery.gte('last_maintenance', filters.maintenanceDateFrom);
+  }
+  if (filters.maintenanceDateTo) {
+    nextQuery = nextQuery.lte('last_maintenance', filters.maintenanceDateTo);
+  }
+  if (filters.installationDateFrom) {
+    nextQuery = nextQuery.gte('installation_date', filters.installationDateFrom);
+  }
+  if (filters.installationDateTo) {
+    nextQuery = nextQuery.lte('installation_date', filters.installationDateTo);
+  }
+
+  return nextQuery;
+}
+
+function getWarrantyExpirationWindow(now = new Date()) {
+  const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  return {
+    todayDate: now.toISOString().slice(0, 10),
+    thirtyDaysDate: thirtyDaysFromNow.toISOString().slice(0, 10),
+  };
+}
+
+function applyWarrantyExpiringFilter(
+  query: EquipmentListQuery,
+  filters: EquipmentListFilters,
+): EquipmentListQuery {
+  if (!filters.warrantyExpiring) {
+    return query;
+  }
+
+  const { todayDate, thirtyDaysDate } = getWarrantyExpirationWindow();
+
+  return query
+    .not('warranty_expiration', 'is', null)
+    .gte('warranty_expiration', todayDate)
+    .lte('warranty_expiration', thirtyDaysDate);
+}
+
+function getEquipmentListSort(pagination: EquipmentListPagination) {
+  return {
+    sortField: pagination.sortField ?? 'name',
+    sortDirection: pagination.sortDirection ?? 'asc',
+  };
+}
+
+function getEquipmentListRange(page: number, pageSize: number) {
+  const from = (page - 1) * pageSize;
+  return { from, to: from + pageSize - 1 };
+}
+
 export type EquipmentCreateData = Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>;
 
 export type EquipmentUpdateData = Partial<Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>>;
@@ -332,11 +435,10 @@ export class EquipmentService {
   static async getFilteredList(
     organizationId: string,
     filters: EquipmentListFilters = {},
-    pagination: { page?: number; pageSize?: number; sortField?: string; sortDirection?: 'asc' | 'desc' } = {}
+    pagination: EquipmentListPagination = {}
   ): Promise<ApiResponse<EquipmentListResult>> {
     try {
-      const page = Math.max(1, pagination.page ?? 1);
-      const pageSize = Math.min(MAX_LIST_PAGE_SIZE, Math.max(1, pagination.pageSize ?? 10));
+      const { page, pageSize } = normalizeEquipmentListPagination(pagination);
 
       let query = supabase
         .from('equipment')
@@ -350,85 +452,49 @@ export class EquipmentService {
       // and has no team memberships, return an empty page short-circuit so
       // we don't issue a query that the DB would happily answer with zero
       // rows but that still costs a round trip.
-      if (filters.userTeamIds !== undefined && !filters.isOrgAdmin) {
-        if (filters.userTeamIds.length === 0) {
-          return createServiceSuccessResponse({ data: [], count: 0 });
-        }
+      if (hasNoEquipmentListAccess(filters)) {
+        return createServiceSuccessResponse({ data: [], count: 0 });
+      }
+      if (hasRestrictedTeamAccess(filters)) {
         query = query.in('team_id', filters.userTeamIds);
       }
 
       // Free-text search: PostgREST `or()` matches across columns. Names,
       // manufacturers, models, serial numbers and locations are all the
       // operator-friendly identifiers a technician will type.
-      if (filters.search && filters.search.trim()) {
-        const term = filters.search.trim().replace(/[,()]/g, ' ');
-        // ilike is case-insensitive substring match. Wrap in % wildcards.
-        const pattern = `%${term}%`;
-        query = query.or(
-          [
-            `name.ilike.${pattern}`,
-            `manufacturer.ilike.${pattern}`,
-            `model.ilike.${pattern}`,
-            `serial_number.ilike.${pattern}`,
-            `location.ilike.${pattern}`,
-          ].join(','),
-        );
+      const searchPattern = getEquipmentSearchPattern(filters.search);
+      if (searchPattern) {
+        query = query.or(buildEquipmentSearchFilter(searchPattern));
       }
 
       // Status: handle the synthetic `out_of_service` sentinel that the UI
       // uses for "anything that's not active" (maintenance OR inactive).
-      if (filters.status && filters.status !== undefined) {
-        if (filters.status === 'out_of_service') {
-          query = query.in('status', ['maintenance', 'inactive']);
-        } else {
-          query = query.eq('status', filters.status);
-        }
+      if (filters.status === 'out_of_service') {
+        query = query.in('status', ['maintenance', 'inactive']);
+      } else if (filters.status) {
+        query = query.eq('status', filters.status);
       }
 
-      if (filters.manufacturer && filters.manufacturer !== 'all') {
+      if (isSpecificEquipmentFilter(filters.manufacturer)) {
         query = query.eq('manufacturer', filters.manufacturer);
       }
-      if (filters.location && filters.location !== 'all') {
+      if (isSpecificEquipmentFilter(filters.location)) {
         query = query.eq('location', filters.location);
       }
-      if (filters.team && filters.team !== 'all') {
-        if (filters.team === 'unassigned') {
-          query = query.is('team_id', null);
-        } else {
-          query = query.eq('team_id', filters.team);
-        }
+      if (filters.team === 'unassigned') {
+        query = query.is('team_id', null);
+      } else if (isSpecificEquipmentFilter(filters.team)) {
+        query = query.eq('team_id', filters.team);
       }
 
-      if (filters.maintenanceDateFrom) {
-        query = query.gte('last_maintenance', filters.maintenanceDateFrom);
-      }
-      if (filters.maintenanceDateTo) {
-        query = query.lte('last_maintenance', filters.maintenanceDateTo);
-      }
-      if (filters.installationDateFrom) {
-        query = query.gte('installation_date', filters.installationDateFrom);
-      }
-      if (filters.installationDateTo) {
-        query = query.lte('installation_date', filters.installationDateTo);
-      }
+      query = applyEquipmentListDateFilters(query, filters);
+      query = applyWarrantyExpiringFilter(query, filters);
 
-      if (filters.warrantyExpiring) {
-        const now = new Date();
-        const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-        const todayDate = now.toISOString().slice(0, 10);
-        const thirtyDaysDate = thirtyDaysFromNow.toISOString().slice(0, 10);
-        query = query
-          .not('warranty_expiration', 'is', null)
-          .gte('warranty_expiration', todayDate)
-          .lte('warranty_expiration', thirtyDaysDate);
-      }
-
-      const sortField = pagination.sortField ?? 'name';
-      const sortDirection = pagination.sortDirection ?? 'asc';
+      const { sortField, sortDirection } = getEquipmentListSort(pagination);
       query = query.order(sortField, { ascending: sortDirection !== 'desc' });
 
-      const from = (page - 1) * pageSize;
-      query = query.range(from, from + pageSize - 1);
+      const { from, to } = getEquipmentListRange(page, pageSize);
+      query = query.range(from, to);
 
       const { data, error, count } = await query;
 
