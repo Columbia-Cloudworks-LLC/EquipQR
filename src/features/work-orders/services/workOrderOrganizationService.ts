@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getAuthClaims } from '@/lib/authClaims';
 import { logger } from '@/utils/logger';
+import { resolveOrganizationAccess } from '@/features/organization/services/organizationMembershipAccess';
 
 export interface WorkOrderOrganizationInfo {
   workOrderId: string;
@@ -61,27 +62,14 @@ export async function getWorkOrderOrganization(
       return null;
     }
 
-    const organization = workOrder.organizations as { id: string; name: string } | null;
-    if (!organization) {
+    const access = await resolveOrganizationAccess(workOrder, claims.sub);
+    if (!access) {
       return null;
     }
 
-    const { data: membership, error: membershipError } = await supabase
-      .from('organization_members')
-      .select('role, status')
-      .eq('organization_id', organization.id)
-      .eq('user_id', claims.sub)
-      .eq('status', 'active')
-      .single();
-
-    const userHasAccess = !membershipError && !!membership;
-
     return {
       workOrderId: workOrder.id,
-      organizationId: organization.id,
-      organizationName: organization.name,
-      userHasAccess,
-      userRole: membership?.role,
+      ...access,
     };
   } catch (error) {
     logger.error('Error in getWorkOrderOrganization:', error);

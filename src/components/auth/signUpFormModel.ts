@@ -1,4 +1,5 @@
 import { PRIVACY_VERSION_HASH, TERMS_VERSION_HASH } from '@/lib/legalPolicyVersions';
+import type { PasswordComplexityResult } from '@/lib/passwordPolicy';
 
 export const SIGNUP_EMAIL_REGEX = /[^\s@]+@[^\s@]+\.[^\s@]+/;
 
@@ -10,11 +11,6 @@ export type SignUpFormFields = {
   password: string;
   confirmPassword: string;
   organizationName: string;
-};
-
-export type PasswordComplexityResult = {
-  valid: boolean;
-  errors: string[];
 };
 
 export type SignUpValidationContext = {

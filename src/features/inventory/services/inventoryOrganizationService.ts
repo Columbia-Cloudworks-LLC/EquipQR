@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { getAuthClaims } from '@/lib/authClaims';
+import { resolveOrganizationAccess } from '@/features/organization/services/organizationMembershipAccess';
 
 export interface InventoryOrganizationInfo {
   inventoryItemId: string;
@@ -42,28 +43,14 @@ export const getInventoryItemOrganization = async (
       return null;
     }
 
-    const organization = inventoryItem.organizations as { id: string; name: string } | null;
-    if (!organization) {
+    const access = await resolveOrganizationAccess(inventoryItem, claims.sub);
+    if (!access) {
       return null;
     }
 
-    // Check if user has access to this organization
-    const { data: membership, error: membershipError } = await supabase
-      .from('organization_members')
-      .select('role, status')
-      .eq('organization_id', organization.id)
-      .eq('user_id', claims.sub)
-      .eq('status', 'active')
-      .single();
-
-    const userHasAccess = !membershipError && !!membership;
-
     return {
       inventoryItemId: inventoryItem.id,
-      organizationId: organization.id,
-      organizationName: organization.name,
-      userHasAccess,
-      userRole: membership?.role
+      ...access,
     };
   } catch (error) {
     logger.error('Error in getInventoryItemOrganization:', error);
