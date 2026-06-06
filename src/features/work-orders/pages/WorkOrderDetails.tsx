@@ -34,7 +34,7 @@ import { MobileWorkOrderFieldNextAction } from '@/features/work-orders/component
 import { useWorkTimer } from '@/features/work-orders/hooks/useWorkTimer';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useInitializePMChecklist } from '@/features/pm-templates/hooks/useInitializePMChecklist';
-import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { getPMChecklistStats } from '@/features/work-orders/utils/pmChecklistStats';
 import { toast } from 'sonner';
 import { useWorkOrderPDF } from '@/features/work-orders/hooks/useWorkOrderPDFData';
 import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
@@ -1105,24 +1105,5 @@ const WorkOrderDetails = () => {
     </div>
   );
 };
-
-function getPMChecklistStats(checklistData: unknown): { progress: number; total: number } {
-  try {
-    const checklist = typeof checklistData === 'string'
-      ? JSON.parse(checklistData)
-      : checklistData;
-
-    if (!Array.isArray(checklist)) {
-      return { progress: 0, total: 0 };
-    }
-
-    return {
-      progress: checklist.filter((item: PMChecklistItem) => item.condition !== null && item.condition !== undefined).length,
-      total: checklist.length,
-    };
-  } catch {
-    return { progress: 0, total: 0 };
-  }
-}
 
 export default WorkOrderDetails;

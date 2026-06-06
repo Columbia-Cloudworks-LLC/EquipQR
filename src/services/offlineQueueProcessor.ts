@@ -21,7 +21,8 @@ import { WorkOrderService } from '@/features/work-orders/services/workOrderServi
 import { buildWorkOrderUpdatePayload } from '@/features/work-orders/utils/workOrderUpdatePayload';
 import { logger } from '@/utils/logger';
 import { getErrorMessage } from '@/utils/errorHandling';
-import { workOrders, organization, equipment, preventiveMaintenance } from '@/lib/queryKeys';
+import { invalidateOfflineSyncQueries } from './offlineQueueInvalidation';
+import { ensureActiveOfflineSession } from './offlineQueueSession';
 import type {
   OfflineQueueItem,
   OfflineQueueEnqueueInput,
@@ -604,32 +605,15 @@ export class OfflineQueueProcessor {
    * 3. Processes each item with conflict detection
    */
   async processAll(): Promise<ProcessResult> {
-    // ── Session refresh guard ──
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      try {
-        const { error } = await supabase.auth.refreshSession();
-        if (error) {
-          logger.error('Session refresh failed during offline sync', error);
-          return {
-            succeeded: 0,
-            failed: 0,
-            remaining: this.queueService.getPendingCount(),
-            conflicts: [],
-          };
-        }
-      } catch {
-        logger.error('Session refresh threw during offline sync');
-        return {
-          succeeded: 0,
-          failed: 0,
-          remaining: this.queueService.getPendingCount(),
-          conflicts: [],
-        };
-      }
+    if (!(await ensureActiveOfflineSession())) {
+      return {
+        succeeded: 0,
+        failed: 0,
+        remaining: this.queueService.getPendingCount(),
+        conflicts: [],
+      };
     }
 
-    // ── Compact queue before processing ──
     this.queueService.compact();
 
     const items = this.queueService.getAll().filter(i => i.status === 'pending');
@@ -638,125 +622,88 @@ export class OfflineQueueProcessor {
     const conflicts: ConflictInfo[] = [];
 
     for (const item of items) {
-      // Skip items whose handler already succeeded earlier in this session.
-      // This guards against same-session replay when localStorage removal
-      // failed and the item's persisted status is still 'processing'.
-      if (this._processedInSession.has(item.id)) {
+      const outcome = await this.processQueueItem(item);
+      if (!outcome) {
         continue;
       }
-
-      this.queueService.updateStatus(item.id, 'processing');
-
-      const handler = HANDLER_MAP[item.type];
-      if (!handler) {
-        logger.error(`No handler for queue item type: ${item.type}`);
-        this.queueService.updateStatus(item.id, 'failed', 'Unknown item type');
-        failed++;
-        continue;
-      }
-
-      try {
-        const result = await handler(item as never);
-
-        // Mark as processed immediately so any subsequent storage failure
-        // cannot cause a duplicate server-side operation within this session.
-        this._processedInSession.add(item.id);
-
-        if (result.followUpItems?.length) {
-          // Atomically remove the processed item and append follow-ups in a
-          // single localStorage write so neither can be lost independently.
-          try {
-            this.queueService.replaceWithFollowUps(item.id, result.followUpItems);
-          } catch (replaceErr) {
-            // Handler already succeeded against the server — never leave the
-            // original item marked retryable or we risk duplicate creates on a
-            // later sync (e.g. work_order_create). Drop the processed item, then
-            // best-effort enqueue follow-ups individually.
-            logger.error('Failed to atomically replace queue item with follow-ups', replaceErr);
-            try {
-              this.queueService.remove(item.id);
-            } catch (removeErr) {
-              // item.id is already in _processedInSession — same-session replay
-              // is blocked regardless of the queue's persisted state.
-              logger.error('Failed to remove processed queue item after follow-up failure', removeErr);
-            }
-            for (const followUp of result.followUpItems) {
-              try {
-                this.queueService.enqueue(followUp);
-              } catch (enqueueErr) {
-                logger.error('Failed to enqueue follow-up item after primary handler succeeded', enqueueErr);
-              }
-            }
-          }
-        } else {
-          this.queueService.remove(item.id);
-        }
+      if (outcome.outcome === 'succeeded') {
         succeeded++;
-
-        if (result.conflict) {
-          conflicts.push(result.conflict);
+        if (outcome.conflict) {
+          conflicts.push(outcome.conflict);
         }
-      } catch (error) {
-        const newRetryCount = item.retryCount + 1;
-        if (newRetryCount >= item.maxRetries) {
-          try {
-            this.queueService.updateStatus(item.id, 'failed', getErrorMessage(error));
-          } catch (persistErr) {
-            logger.error('Failed to persist failed status for queue item', persistErr);
-          }
-          failed++;
-        } else {
-          try {
-            this.queueService.updateRetry(item.id, newRetryCount, getErrorMessage(error));
-          } catch (persistErr) {
-            logger.error('Failed to persist retry state for queue item', persistErr);
-          }
-        }
+      } else if (outcome.outcome === 'failed') {
+        failed++;
       }
     }
 
-    // Bulk cache invalidation after sync
     if (succeeded > 0) {
-      const orgIds = [...new Set(items.map(i => i.organizationId))];
-      const hasWorkOrderItems = items.some(i =>
-        ['work_order_create', 'work_order_update', 'work_order_status', 'work_order_note'].includes(i.type),
-      );
-      const hasEquipmentItems = items.some(i =>
-        ['equipment_create', 'equipment_create_full', 'equipment_update', 'equipment_hours', 'equipment_note'].includes(i.type),
-      );
-      const hasPMItems = items.some(i =>
-        i.type === 'pm_init' ||
-        i.type === 'pm_update' ||
-        i.type === 'pm_delete' ||
-        (i.type === 'work_order_create' && i.payload.hasPM),
-      );
-
-      for (const orgId of orgIds) {
-        if (hasWorkOrderItems) {
-          this.queryClient.invalidateQueries({ queryKey: workOrders.root });
-          this.queryClient.invalidateQueries({ queryKey: workOrders.enhanced(orgId) });
-          this.queryClient.invalidateQueries({ queryKey: workOrders.optimized(orgId) });
-          this.queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', orgId] });
-          this.queryClient.invalidateQueries({ queryKey: ['workOrders', orgId] });
-          this.queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', orgId] });
-          this.queryClient.invalidateQueries({ queryKey: ['team-based-work-orders', orgId] });
-        }
-        if (hasEquipmentItems) {
-          this.queryClient.invalidateQueries({ queryKey: equipment.root });
-          this.queryClient.invalidateQueries({ queryKey: ['equipment', orgId] });
-        }
-        if (hasPMItems) {
-          // Bulk-invalidate the entire `preventativeMaintenance` namespace so
-          // every per-WO and per-WO+equipment cache key picks up the freshly
-          // synced PM record without us having to enumerate them.
-          this.queryClient.invalidateQueries({ queryKey: preventiveMaintenance.root });
-        }
-        this.queryClient.invalidateQueries({ queryKey: organization(orgId).dashboardStats() });
-        this.queryClient.invalidateQueries({ queryKey: ['dashboardStats', orgId] });
-      }
+      invalidateOfflineSyncQueries(this.queryClient, items);
     }
 
     const remaining = this.queueService.getAll().filter(i => i.status === 'pending').length;
     return { succeeded, failed, remaining, conflicts };
+  }
+
+  private async processQueueItem(
+    item: OfflineQueueItem,
+  ): Promise<{ outcome: 'succeeded' | 'failed' | 'retry'; conflict?: ConflictInfo } | null> {
+    if (this._processedInSession.has(item.id)) {
+      return null;
+    }
+
+    this.queueService.updateStatus(item.id, 'processing');
+
+    const handler = HANDLER_MAP[item.type];
+    if (!handler) {
+      logger.error(`No handler for queue item type: ${item.type}`);
+      this.queueService.updateStatus(item.id, 'failed', 'Unknown item type');
+      return { outcome: 'failed' };
+    }
+
+    try {
+      const result = await handler(item as never);
+      this._processedInSession.add(item.id);
+
+      if (result.followUpItems?.length) {
+        try {
+          this.queueService.replaceWithFollowUps(item.id, result.followUpItems);
+        } catch (replaceErr) {
+          logger.error('Failed to atomically replace queue item with follow-ups', replaceErr);
+          try {
+            this.queueService.remove(item.id);
+          } catch (removeErr) {
+            logger.error('Failed to remove processed queue item after follow-up failure', removeErr);
+          }
+          for (const followUp of result.followUpItems) {
+            try {
+              this.queueService.enqueue(followUp);
+            } catch (enqueueErr) {
+              logger.error('Failed to enqueue follow-up item after primary handler succeeded', enqueueErr);
+            }
+          }
+        }
+      } else {
+        this.queueService.remove(item.id);
+      }
+
+      return { outcome: 'succeeded', conflict: result.conflict };
+    } catch (error) {
+      const newRetryCount = item.retryCount + 1;
+      if (newRetryCount >= item.maxRetries) {
+        try {
+          this.queueService.updateStatus(item.id, 'failed', getErrorMessage(error));
+        } catch (persistErr) {
+          logger.error('Failed to persist failed status for queue item', persistErr);
+        }
+        return { outcome: 'failed' };
+      }
+
+      try {
+        this.queueService.updateRetry(item.id, newRetryCount, getErrorMessage(error));
+      } catch (persistErr) {
+        logger.error('Failed to persist retry state for queue item', persistErr);
+      }
+      return { outcome: 'retry' };
+    }
   }
 }
