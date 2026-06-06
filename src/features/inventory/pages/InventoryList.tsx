@@ -241,12 +241,12 @@ const InventoryList = () => {
             groupMembershipCounts={groupMembershipCounts}
             canCreate={canCreate}
             adjustPending={adjustMutation.isPending}
-            onOpen={handleViewItem}
+            onViewDetails={handleViewItem}
             onKeyDown={handleItemKeyDown}
             onQuickAdjust={handleQuickAdjust}
             onShowQR={handleShowQRCode}
             onEdit={handleEditItem}
-            onManageGroups={handleManageAlternateGroups}
+            onManageAlternateGroups={handleManageAlternateGroups}
           />
         ) : (
           <InventoryListDesktopTable

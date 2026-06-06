@@ -12,7 +12,7 @@ export function getStatusIcon(status: UnifiedMember['status']) {
   }
 }
 
-export function getStatusBadgeVariant(status: UnifiedMember['status']) {
+export function getUnifiedMemberStatusBadgeVariant(status: UnifiedMember['status']) {
   switch (status) {
     case 'active':
       return 'default' as const;

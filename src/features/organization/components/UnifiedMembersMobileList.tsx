@@ -4,7 +4,7 @@ import { UnifiedMemberAvatar } from '@/features/organization/components/UnifiedM
 import { UnifiedMemberRowActions } from '@/features/organization/components/UnifiedMemberRowActions';
 import type { UnifiedMember } from '@/features/organization/utils/buildUnifiedMembers';
 import {
-  getStatusBadgeVariant,
+  getUnifiedMemberStatusBadgeVariant,
   getStatusIcon,
   getStatusLabel,
 } from '@/features/organization/utils/unifiedMemberPresentation';
@@ -90,7 +90,7 @@ export function UnifiedMembersMobileList({
                 {member.organizationRole}
               </Badge>
             )}
-            <Badge variant={getStatusBadgeVariant(member.status)} className="capitalize text-xs">
+            <Badge variant={getUnifiedMemberStatusBadgeVariant(member.status)} className="capitalize text-xs">
               <div className="flex items-center gap-1">
                 {getStatusIcon(member.status)}
                 {getStatusLabel(member.status)}

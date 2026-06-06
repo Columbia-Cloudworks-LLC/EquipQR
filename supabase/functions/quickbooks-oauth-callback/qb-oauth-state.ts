@@ -40,8 +40,3 @@ export function validateOAuthStateTimestamp(state: OAuthState, nowMs = Date.now(
     throw new Error("OAuth state has expired. Please try connecting again.");
   }
 }
-
-export const __qbOauthStateTestables = {
-  parseOAuthState,
-  validateOAuthStateTimestamp,
-};

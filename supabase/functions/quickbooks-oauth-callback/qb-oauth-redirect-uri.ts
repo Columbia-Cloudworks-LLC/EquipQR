@@ -15,9 +15,3 @@ export function buildOAuthRedirectUri(qbOAuthRedirectBaseUrl: string): string {
   const redirectBaseUrl = qbOAuthRedirectBaseUrl.trim().replace(/\/+$/, "");
   return `${redirectBaseUrl}${EXPECTED_CALLBACK_PATH}`;
 }
-
-export const __qbOauthRedirectUriTestables = {
-  buildOAuthRedirectUri,
-  validateOAuthRedirectBaseUrl,
-  EXPECTED_CALLBACK_PATH,
-};

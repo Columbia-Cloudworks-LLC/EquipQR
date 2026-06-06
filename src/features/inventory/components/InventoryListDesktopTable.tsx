@@ -2,13 +2,8 @@ import {
   ChevronDown,
   ChevronUp,
   ArrowUpDown,
-  Eye,
   Layers,
-  Minus,
   MoreVertical,
-  Pencil,
-  Plus,
-  QrCode,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,9 +12,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { InventoryItemActionsMenu } from '@/features/inventory/components/InventoryItemActionsMenu';
 import type { InventoryFilters, InventoryItem } from '@/features/inventory/types/inventory';
 import { getStockHealthPresentation } from '@/features/inventory/utils/stockHealth';
 import { getQuantityClassName } from '@/features/inventory/utils/inventoryListPresentation';
@@ -193,48 +188,16 @@ export function InventoryListDesktopTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenuItem onClick={() => onViewItem(item.id)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Details
-                        </DropdownMenuItem>
-                        {canCreate && (
-                          <DropdownMenuItem
-                            onClick={() => {
-                              void onQuickAdjust(item.id, 1);
-                            }}
-                            disabled={adjustPending}
-                          >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add 1
-                          </DropdownMenuItem>
-                        )}
-                        {canCreate && (
-                          <DropdownMenuItem
-                            onClick={() => {
-                              void onQuickAdjust(item.id, -1);
-                            }}
-                            disabled={adjustPending}
-                          >
-                            <Minus className="mr-2 h-4 w-4" />
-                            Take 1
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onClick={() => onShowQR(item)}>
-                          <QrCode className="mr-2 h-4 w-4" />
-                          QR Code
-                        </DropdownMenuItem>
-                        {canCreate && (
-                          <DropdownMenuItem onClick={() => onEditItem(item)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                        )}
-                        {canCreate && (
-                          <DropdownMenuItem onClick={() => onManageAlternateGroups(item.id)}>
-                            <Layers className="mr-2 h-4 w-4" />
-                            Manage Alternate Groups
-                          </DropdownMenuItem>
-                        )}
+                        <InventoryItemActionsMenu
+                          item={item}
+                          canCreate={canCreate}
+                          adjustPending={adjustPending}
+                          onViewDetails={onViewItem}
+                          onQuickAdjust={onQuickAdjust}
+                          onShowQR={onShowQR}
+                          onEdit={onEditItem}
+                          onManageAlternateGroups={onManageAlternateGroups}
+                        />
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

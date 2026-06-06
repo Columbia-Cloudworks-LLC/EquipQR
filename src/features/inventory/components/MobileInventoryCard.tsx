@@ -2,11 +2,6 @@ import React from 'react';
 import {
   MoreVertical,
   MapPin,
-  Eye,
-  QrCode,
-  Pencil,
-  Plus,
-  Minus,
   Layers,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,9 +10,12 @@ import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  InventoryItemActionsMenu,
+  type InventoryItemActionHandlers,
+} from '@/features/inventory/components/InventoryItemActionsMenu';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
 import { getStockHealthListBadgeClassName } from '@/features/inventory/utils/stockHealth';
 import { cn } from '@/lib/utils';
@@ -34,30 +32,23 @@ function getQuantityClassName(item: InventoryItem): string {
   return 'text-foreground';
 }
 
-export interface MobileInventoryCardProps {
+export interface MobileInventoryCardProps extends InventoryItemActionHandlers {
   item: InventoryItem;
-  canCreate: boolean;
-  adjustPending: boolean;
-  onOpen: (itemId: string) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLElement>, itemId: string) => void;
-  onQuickAdjust: (itemId: string, delta: 1 | -1) => void;
-  onShowQR: (item: InventoryItem) => void;
-  onEdit: (item: InventoryItem) => void;
   groupCount?: number;
-  onManageGroups?: (itemId: string) => void;
 }
 
 const MobileInventoryCard: React.FC<MobileInventoryCardProps> = ({
   item,
   canCreate,
   adjustPending,
-  onOpen,
+  onViewDetails,
   onKeyDown,
   onQuickAdjust,
   onShowQR,
   onEdit,
+  onManageAlternateGroups,
   groupCount = 0,
-  onManageGroups,
 }) => {
   const stockBadge = getStockHealthListBadgeClassName(item);
   const shouldShowStockBadge = item.isLowStock ?? item.quantity_on_hand <= item.low_stock_threshold;
@@ -70,7 +61,7 @@ const MobileInventoryCard: React.FC<MobileInventoryCardProps> = ({
         'hover:bg-muted/40 active:bg-muted/65 dark:active:bg-primary/12',
         'motion-reduce:transition-none'
       )}
-      onClick={() => onOpen(item.id)}
+      onClick={() => onViewDetails(item.id)}
       onKeyDown={(e) => onKeyDown(e, item.id)}
       role="button"
       tabIndex={0}
@@ -139,48 +130,16 @@ const MobileInventoryCard: React.FC<MobileInventoryCardProps> = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                <DropdownMenuItem onClick={() => onOpen(item.id)}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  View Details
-                </DropdownMenuItem>
-                {canCreate && (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      void onQuickAdjust(item.id, 1);
-                    }}
-                    disabled={adjustPending}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add 1
-                  </DropdownMenuItem>
-                )}
-                {canCreate && (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      void onQuickAdjust(item.id, -1);
-                    }}
-                    disabled={adjustPending}
-                  >
-                    <Minus className="mr-2 h-4 w-4" />
-                    Take 1
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem onClick={() => onShowQR(item)}>
-                  <QrCode className="mr-2 h-4 w-4" />
-                  QR Code
-                </DropdownMenuItem>
-                {canCreate && (
-                  <DropdownMenuItem onClick={() => onEdit(item)}>
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Edit
-                  </DropdownMenuItem>
-                )}
-                {canCreate && onManageGroups && (
-                  <DropdownMenuItem onClick={() => onManageGroups(item.id)}>
-                    <Layers className="mr-2 h-4 w-4" />
-                    Manage Alternate Groups
-                  </DropdownMenuItem>
-                )}
+                <InventoryItemActionsMenu
+                  item={item}
+                  canCreate={canCreate}
+                  adjustPending={adjustPending}
+                  onViewDetails={onViewDetails}
+                  onQuickAdjust={onQuickAdjust}
+                  onShowQR={onShowQR}
+                  onEdit={onEdit}
+                  onManageAlternateGroups={onManageAlternateGroups}
+                />
               </DropdownMenuContent>
             </DropdownMenu>
             {shouldShowStockBadge && (

@@ -7,7 +7,7 @@ import { UnifiedMemberAvatar } from '@/features/organization/components/UnifiedM
 import { UnifiedMemberRowActions } from '@/features/organization/components/UnifiedMemberRowActions';
 import type { UnifiedMember } from '@/features/organization/utils/buildUnifiedMembers';
 import {
-  getStatusBadgeVariant,
+  getUnifiedMemberStatusBadgeVariant,
   getStatusIcon,
   getStatusLabel,
 } from '@/features/organization/utils/unifiedMemberPresentation';
@@ -124,7 +124,7 @@ export function UnifiedMembersDesktopTable({
                 {member.status === 'pending_gws' ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Badge variant={getStatusBadgeVariant(member.status)} className="capitalize cursor-help">
+                      <Badge variant={getUnifiedMemberStatusBadgeVariant(member.status)} className="capitalize cursor-help">
                         <div className="flex items-center gap-1">
                           {getStatusIcon(member.status)}
                           {getStatusLabel(member.status)}
@@ -136,7 +136,7 @@ export function UnifiedMembersDesktopTable({
                     </TooltipContent>
                   </Tooltip>
                 ) : (
-                  <Badge variant={getStatusBadgeVariant(member.status)} className="capitalize">
+                  <Badge variant={getUnifiedMemberStatusBadgeVariant(member.status)} className="capitalize">
                     <div className="flex items-center gap-1">
                       {getStatusIcon(member.status)}
                       {getStatusLabel(member.status)}

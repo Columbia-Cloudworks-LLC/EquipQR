@@ -64,8 +64,3 @@ export function isValidRedirectUrl(redirectUrl: string | null, productionUrl: st
     return false;
   }
 }
-
-export const __qbOauthValidationTestables = {
-  isValidRedirectUrl,
-  STATE_TTL_MS,
-};

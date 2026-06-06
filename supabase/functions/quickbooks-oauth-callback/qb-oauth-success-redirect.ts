@@ -59,10 +59,3 @@ export function buildSuccessRedirectUrl(params: {
 
   return `${finalBaseUrl}${defaultRedirectPath}?${connectedParams}`;
 }
-
-export const __qbOauthSuccessRedirectTestables = {
-  resolveProductionUrl,
-  buildAccessDeniedRedirectUrl,
-  buildOAuthErrorRedirectUrl,
-  buildSuccessRedirectUrl,
-};

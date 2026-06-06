@@ -59,9 +59,3 @@ export function sanitizeFilename(filename: string): string {
 export function estimateDecodedSize(contentBase64: string): number {
   return Math.ceil(contentBase64.length * 3 / 4);
 }
-
-export const __gdriveValidationTestables = {
-  sanitizeFilename,
-  estimateDecodedSize,
-  MAX_FILE_SIZE_BYTES,
-};

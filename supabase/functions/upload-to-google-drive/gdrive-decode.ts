@@ -9,8 +9,3 @@ export function isDecodedSizeAllowed(contentBase64: string): boolean {
   const estimatedDecodedSize = Math.ceil(contentBase64.length * 3 / 4);
   return estimatedDecodedSize < MAX_FILE_SIZE_BYTES;
 }
-
-export const __gdriveDecodeTestables = {
-  decodeBase64Content,
-  isDecodedSizeAllowed,
-};
