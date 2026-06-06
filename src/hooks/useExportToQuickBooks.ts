@@ -11,6 +11,7 @@ import type {
   InvoiceExportResult,
 } from '@/services/quickbooks/types';
 import { isQuickBooksEnabled } from '@/lib/flags';
+import { getInvokeErrorPayload } from '@/services/google-workspace/invokeError';
 import { toast } from 'sonner';
 
 /**
@@ -91,7 +92,16 @@ export function useExportToQuickBooks() {
 
       // Handle invoke errors (network, non-2xx responses)
       if (invokeError) {
-        throw new Error(invokeError.message || 'Failed to export invoice');
+        const errorPayload = await getInvokeErrorPayload(
+          invokeError as Error & { context?: unknown },
+        );
+        const typedError = new Error(
+          errorPayload?.error || invokeError.message || 'Failed to export invoice',
+        ) as Error & { code?: string };
+        if (errorPayload?.code) {
+          typedError.code = errorPayload.code;
+        }
+        throw typedError;
       }
 
       // Handle function-level errors (success: false in response)
