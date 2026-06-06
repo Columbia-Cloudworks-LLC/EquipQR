@@ -1,6 +1,22 @@
 import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 
 export const LARGE_TEMPLATE_THRESHOLD = 20;
+
+export type IntervalPayload = {
+  interval_value: number | null;
+  interval_type: 'days' | 'hours' | null;
+};
+
+export function buildIntervalPayload(
+  intervalEnabled: boolean,
+  intervalValue: number | null,
+  intervalType: 'days' | 'hours'
+): IntervalPayload {
+  if (intervalEnabled && intervalValue && intervalValue > 0) {
+    return { interval_value: intervalValue, interval_type: intervalType };
+  }
+  return { interval_value: null, interval_type: null };
+}
 export const SECTION_VIRTUALIZATION_THRESHOLD = 30;
 const VIRTUALIZATION_THRESHOLD = SECTION_VIRTUALIZATION_THRESHOLD;
 export const COMPACT_ROW_HEIGHT = 72;
