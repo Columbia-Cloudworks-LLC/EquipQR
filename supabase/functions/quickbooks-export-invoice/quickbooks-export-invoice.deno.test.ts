@@ -1237,9 +1237,21 @@ Deno.test("updateWorkOrderInvoiceMirror resolves without throwing when the main 
 // Work order export gate (PR #1023)
 // ────────────────────────────────────────────────────────────────
 
-function createWorkOrderExportMock(singleResult: { data: unknown; error: { code?: string; message: string } | null }) {
+type WorkOrderExportSingleResult = {
+  data: unknown;
+  error: { code?: string; message: string } | null;
+};
+
+type WorkOrderExportQueryBuilder = {
+  select(_cols: string): WorkOrderExportQueryBuilder;
+  eq(_col: string, _val: unknown): WorkOrderExportQueryBuilder;
+  in(_col: string, _vals: unknown[]): WorkOrderExportQueryBuilder;
+  single(): Promise<WorkOrderExportSingleResult>;
+};
+
+function createWorkOrderExportMock(singleResult: WorkOrderExportSingleResult) {
   function from(_table: string) {
-    const builder: any = {
+    const builder: WorkOrderExportQueryBuilder = {
       select(_cols: string) { return builder; },
       eq(_col: string, _val: unknown) { return builder; },
       in(_col: string, _vals: unknown[]) { return builder; },
