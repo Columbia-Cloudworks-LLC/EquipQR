@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 <!-- markdownlint-disable MD024 -->
 
@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 
-- **Fallow health refactor pass** — Split work-order service mappers/list helpers, alternate-group detail dialogs, work-order details overlays/exports, Google Workspace OAuth and QuickBooks invoice edge handlers, shared export data builders, DSR/export-report CSV modules, script/test harness extractions, and Google Sheets work-order export orchestration; Fallow health score improved from 77.3 (B) to 87.4 (A) with zero dead-code and duplication findings.
+- **Fallow unit-size maintainability pass** — Decomposed large runtime components (PM checklist, inventory item form, equipment details, inventory list, unified members list, Google Places autocomplete, work-order status actions), structured the privacy policy into section modules, thinned QuickBooks OAuth/upload/export edge-function entrypoints with focused helpers, and extracted shared test fixtures; Fallow health score remains 77.3 (B) with the `unit_size` penalty still capped at 10.0 pending further reduction of population-level large-function density.
 
 - **Dead-code cleanup** — Evidence-backed removal of obsolete modules, duplicate feature barrels, unused exports, and legacy organization/session scaffolding identified by Fallow (findings reduced to 0); session types consolidated with expanded `useSessionManager` test coverage.
 - **Dependencies** — Trimmed unused npm packages surfaced during the audit.

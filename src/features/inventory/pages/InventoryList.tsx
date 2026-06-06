@@ -1,48 +1,23 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Package, Users, MoreVertical, Eye, QrCode, Pencil, ChevronUp, ChevronDown, ArrowUpDown, Minus, Layers, Table2 } from 'lucide-react';
+import { Package, Plus } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAdjustInventoryQuantity, useInventoryItems, useInventoryListMetadata } from '@/features/inventory/hooks/useInventory';
 import { useInventoryGroupMembershipCounts } from '@/features/inventory/hooks/useAlternateGroups';
 import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
-import { InventoryItemForm } from '@/features/inventory/components/InventoryItemForm';
-import { PartsManagersSheet } from '@/features/inventory/components/PartsManagersSheet';
 import type { InventoryItem, InventoryFilters } from '@/features/inventory/types/inventory';
 import { useIsMobile } from '@/hooks/use-mobile';
-import InventoryQRCodeDisplay from '@/features/inventory/components/InventoryQRCodeDisplay';
-import InventoryToolbar from '@/features/inventory/components/InventoryToolbar';
-import MobileInventoryToolbar from '@/features/inventory/components/MobileInventoryToolbar';
-import MobileInventoryCard from '@/features/inventory/components/MobileInventoryCard';
-import { getStockHealthPresentation } from '@/features/inventory/utils/stockHealth';
+import { InventoryListPageActions } from '@/features/inventory/components/InventoryListPageActions';
+import { InventoryListFilterToolbar } from '@/features/inventory/components/InventoryListFilterToolbar';
+import { InventoryListDesktopTable } from '@/features/inventory/components/InventoryListDesktopTable';
+import { InventoryListMobileList } from '@/features/inventory/components/InventoryListMobileList';
+import { InventoryListDialogs } from '@/features/inventory/components/InventoryListDialogs';
 import { cn } from '@/lib/utils';
-
-function isLowStockItem(item: InventoryItem): boolean {
-  return item.isLowStock ?? item.quantity_on_hand <= item.low_stock_threshold;
-}
-
-/** Quantity display: out of stock or negative stock vs low-but-available use distinct semantic colors. */
-function getQuantityClassName(item: InventoryItem): string {
-  if (item.quantity_on_hand <= 0) {
-    return 'font-semibold text-destructive';
-  }
-  if (isLowStockItem(item)) {
-    return 'font-semibold text-warning';
-  }
-  return 'font-medium text-foreground';
-}
 
 const InventoryList = () => {
   const navigate = useNavigate();
@@ -134,15 +109,6 @@ const InventoryList = () => {
     }));
   };
 
-  const getSortIcon = (sortBy: NonNullable<InventoryFilters['sortBy']>) => {
-    if (filters.sortBy !== sortBy) {
-      return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />;
-    }
-    return filters.sortOrder === 'asc'
-      ? <ChevronUp className="h-3.5 w-3.5" />
-      : <ChevronDown className="h-3.5 w-3.5" />;
-  };
-
   const handleQuickAdjust = async (itemId: string, delta: 1 | -1) => {
     if (!currentOrganization) return;
     await adjustMutation.mutateAsync({
@@ -153,10 +119,6 @@ const InventoryList = () => {
         reason: delta > 0 ? 'Quick add from inventory list' : 'Quick take from inventory list',
       },
     });
-  };
-
-  const handleMobileFilterChange = (patch: Partial<InventoryFilters>) => {
-    setFilters((prev) => ({ ...prev, ...patch }));
   };
 
   const handleManageAlternateGroups = (itemId: string) => {
@@ -224,86 +186,36 @@ const InventoryList = () => {
           title="Inventory"
           description={`Manage inventory items for ${currentOrganization.name}`}
           actions={
-            <div className="flex items-center gap-2">
-              {canManage && (
-                <Button
-                  variant="outline"
-                  onClick={() => setShowManagersSheet(true)}
-                  className="hidden sm:inline-flex"
-                >
-                  <Users className="mr-2 h-4 w-4" />
-                  Parts Managers
-                </Button>
-              )}
-
-              {canCreate && (
-                <div className="hidden sm:inline-flex">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Item
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={handleAddItem}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Single Item
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate('/dashboard/inventory/bulk')}>
-                        <Table2 className="mr-2 h-4 w-4" />
-                        Bulk Add / Edit (Grid)
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              )}
-
-              {canManage && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowManagersSheet(true)}
-                  className="h-10 gap-2 px-3 sm:hidden touch-manipulation"
-                  data-testid="inventory-mobile-parts-managers"
-                >
-                  <Users className="h-4 w-4 shrink-0" aria-hidden />
-                  <span className="text-sm font-medium">Parts Managers</span>
-                </Button>
-              )}
-            </div>
+            <InventoryListPageActions
+              canCreate={canCreate}
+              canManage={canManage}
+              onOpenManagersSheet={() => setShowManagersSheet(true)}
+              onAddItem={handleAddItem}
+              onNavigateBulk={() => navigate('/dashboard/inventory/bulk')}
+            />
           }
         />
 
-        {isMobile ? (
-          <MobileInventoryToolbar
-            filters={filters}
-            onFilterChange={handleMobileFilterChange}
-            onClearSheetFilters={handleMobileResetSortAndFilters}
-            uniqueLocations={uniqueLocations}
-            resultCount={items.length}
-            lowStockOrgWide={lowStockOrgWide}
-            activeFilterCount={activeFilterCount}
-          />
-        ) : (
-          <InventoryToolbar
-            filters={filters}
-            uniqueLocations={uniqueLocations}
-            resultCount={items.length}
-            onFilterChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
-            onClearFilters={() =>
-              setFilters((prev) => ({
-                ...prev,
-                search: '',
-                lowStockOnly: false,
-                location: undefined,
-              }))
-            }
-            canExport={canCreate}
-            items={items}
-          />
-        )}
+        <InventoryListFilterToolbar
+          isMobile={isMobile}
+          filters={filters}
+          uniqueLocations={uniqueLocations}
+          resultCount={items.length}
+          lowStockOrgWide={lowStockOrgWide}
+          activeFilterCount={activeFilterCount}
+          canExport={canCreate}
+          items={items}
+          onFilterChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
+          onClearFilters={() =>
+            setFilters((prev) => ({
+              ...prev,
+              search: '',
+              lowStockOnly: false,
+              location: undefined,
+            }))
+          }
+          onClearSheetFilters={handleMobileResetSortAndFilters}
+        />
 
         {items.length === 0 ? (
           <Card>
@@ -324,241 +236,51 @@ const InventoryList = () => {
             </CardContent>
           </Card>
         ) : isMobile ? (
-          <div className="space-y-3">
-            {items.map((item) => (
-              <MobileInventoryCard
-                key={item.id}
-                item={item}
-                canCreate={canCreate}
-                adjustPending={adjustMutation.isPending}
-                onOpen={handleViewItem}
-                onKeyDown={handleItemKeyDown}
-                onQuickAdjust={handleQuickAdjust}
-                onShowQR={handleShowQRCode}
-                onEdit={handleEditItem}
-                groupCount={groupMembershipCounts[item.id] ?? 0}
-                onManageGroups={handleManageAlternateGroups}
-              />
-            ))}
-          </div>
+          <InventoryListMobileList
+            items={items}
+            groupMembershipCounts={groupMembershipCounts}
+            canCreate={canCreate}
+            adjustPending={adjustMutation.isPending}
+            onOpen={handleViewItem}
+            onKeyDown={handleItemKeyDown}
+            onQuickAdjust={handleQuickAdjust}
+            onShowQR={handleShowQRCode}
+            onEdit={handleEditItem}
+            onManageGroups={handleManageAlternateGroups}
+          />
         ) : (
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>
-                      <Button variant="ghost" className="-ml-3 h-8 px-3" onClick={() => handleSortChange('name')}>
-                        Name
-                        {getSortIcon('name')}
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button variant="ghost" className="-ml-3 h-8 px-3" onClick={() => handleSortChange('sku')}>
-                        SKU
-                        {getSortIcon('sku')}
-                      </Button>
-                    </TableHead>
-                    <TableHead className="hidden xl:table-cell">
-                      <Button variant="ghost" className="-ml-3 h-8 px-3" onClick={() => handleSortChange('external_id')}>
-                        External ID
-                        {getSortIcon('external_id')}
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button variant="ghost" className="-ml-3 h-8 px-3" onClick={() => handleSortChange('quantity_on_hand')}>
-                        Quantity
-                        {getSortIcon('quantity_on_hand')}
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button variant="ghost" className="-ml-3 h-8 px-3" onClick={() => handleSortChange('location')}>
-                        Location
-                        {getSortIcon('location')}
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button variant="ghost" className="-ml-3 h-8 px-3" onClick={() => handleSortChange('status')}>
-                        Status
-                        {getSortIcon('status')}
-                      </Button>
-                    </TableHead>
-                    <TableHead className="w-[56px]">
-                      <span className="sr-only">Actions</span>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((item) => {
-                    const stockHealth = getStockHealthPresentation(item);
-                    const stockStatusLabel = stockHealth.label === 'Healthy' ? 'In Stock' : stockHealth.label;
-
-                    return (
-                      <TableRow
-                        key={item.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleViewItem(item.id)}
-                        onKeyDown={(e) => handleItemKeyDown(e, item.id)}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`Open inventory item ${item.name}`}
-                      >
-                        <TableCell className="font-medium">
-                          <div className="min-w-0">
-                            <p className="truncate">{item.name}</p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              SKU: {item.sku || '-'}
-                              {item.location ? `  •  ${item.location}` : ''}
-                            </p>
-                            {(groupMembershipCounts[item.id] ?? 0) > 0 && (
-                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                <Layers className="h-3 w-3" aria-hidden />
-                                Part of {groupMembershipCounts[item.id]} alternate group{groupMembershipCounts[item.id] > 1 ? 's' : ''}
-                              </p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {item.sku || '-'}
-                        </TableCell>
-                        <TableCell className="hidden xl:table-cell font-mono text-sm text-muted-foreground">
-                          {item.external_id || '-'}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className={cn('tabular-nums', getQuantityClassName(item))}>
-                              {item.quantity_on_hand}
-                            </span>
-                            {stockHealth.label !== 'Healthy' && (
-                              <Badge
-                                variant="outline"
-                                className={cn('rounded-full px-2 py-0.5 text-xs font-medium', stockHealth.className)}
-                              >
-                                {stockHealth.label}
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {item.location || '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={cn('rounded-full px-2 py-0.5 text-xs font-medium', stockHealth.className)}
-                          >
-                            {stockStatusLabel}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                aria-label={`Actions for ${item.name}`}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                              <DropdownMenuItem onClick={() => handleViewItem(item.id)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </DropdownMenuItem>
-                              {canCreate && (
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    void handleQuickAdjust(item.id, 1);
-                                  }}
-                                  disabled={adjustMutation.isPending}
-                                >
-                                  <Plus className="mr-2 h-4 w-4" />
-                                  Add 1
-                                </DropdownMenuItem>
-                              )}
-                              {canCreate && (
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    void handleQuickAdjust(item.id, -1);
-                                  }}
-                                  disabled={adjustMutation.isPending}
-                                >
-                                  <Minus className="mr-2 h-4 w-4" />
-                                  Take 1
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem onClick={() => handleShowQRCode(item)}>
-                                <QrCode className="mr-2 h-4 w-4" />
-                                QR Code
-                              </DropdownMenuItem>
-                              {canCreate && (
-                                <DropdownMenuItem onClick={() => handleEditItem(item)}>
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Edit
-                                </DropdownMenuItem>
-                              )}
-                              {canCreate && (
-                                <DropdownMenuItem onClick={() => handleManageAlternateGroups(item.id)}>
-                                  <Layers className="mr-2 h-4 w-4" />
-                                  Manage Alternate Groups
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
-
-        {showForm && (
-          <InventoryItemForm
-            open={showForm}
-            onClose={handleCloseForm}
-            editingItem={editingItem}
+          <InventoryListDesktopTable
+            items={items}
+            filters={filters}
+            groupMembershipCounts={groupMembershipCounts}
+            canCreate={canCreate}
+            adjustPending={adjustMutation.isPending}
+            onSortChange={handleSortChange}
+            onViewItem={handleViewItem}
+            onItemKeyDown={handleItemKeyDown}
+            onQuickAdjust={handleQuickAdjust}
+            onShowQR={handleShowQRCode}
+            onEditItem={handleEditItem}
+            onManageAlternateGroups={handleManageAlternateGroups}
           />
         )}
 
-        {selectedQRCodeItem && (
-          <InventoryQRCodeDisplay
-            open={showQRCode}
-            onClose={() => {
-              setShowQRCode(false);
-              setSelectedQRCodeItem(null);
-            }}
-            itemId={selectedQRCodeItem.id}
-            itemName={selectedQRCodeItem.name}
-          />
-        )}
-
-        <PartsManagersSheet
-          open={showManagersSheet}
-          onOpenChange={setShowManagersSheet}
+        <InventoryListDialogs
+          showForm={showForm}
+          showManagersSheet={showManagersSheet}
+          showQRCode={showQRCode}
+          selectedQRCodeItem={selectedQRCodeItem}
+          editingItem={editingItem}
+          isMobile={isMobile}
+          canCreate={canCreate}
+          onCloseForm={handleCloseForm}
+          onCloseQRCode={() => {
+            setShowQRCode(false);
+            setSelectedQRCodeItem(null);
+          }}
+          onManagersSheetOpenChange={setShowManagersSheet}
+          onAddItem={handleAddItem}
         />
-
-        {isMobile && canCreate && (
-          <Button
-            type="button"
-            size="icon"
-            onClick={handleAddItem}
-            aria-label="Add inventory item"
-            className={cn(
-              'fixed bottom-[78px] right-4 z-fixed h-14 w-14 rounded-full shadow-elevation-3',
-              'touch-manipulation transition-transform duration-100 active:scale-[0.97]',
-              'motion-reduce:active:scale-100',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
-            )}
-          >
-            <Plus className="h-6 w-6" aria-hidden />
-          </Button>
-        )}
       </div>
     </Page>
   );

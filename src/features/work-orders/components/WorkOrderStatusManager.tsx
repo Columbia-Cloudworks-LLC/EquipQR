@@ -32,6 +32,7 @@ import {
   getStatusColor,
   isOverdue as checkIsOverdue,
 } from '@/features/work-orders/utils/workOrderHelpers';
+import { buildWorkOrderStatusActions } from '@/features/work-orders/utils/buildWorkOrderStatusActions';
 import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
 import WorkOrderAssigneeDisplay from './WorkOrderAssigneeDisplay';
 import ClickableAddress from '@/components/ui/ClickableAddress';
@@ -52,15 +53,6 @@ type StatusWorkOrder = {
   equipment_id?: string;
   equipmentTeamId?: string | null;
 };
-
-interface StatusAction {
-  label: string;
-  action: () => void;
-  icon: React.ComponentType<{ className?: string }>;
-  variant: 'default' | 'destructive' | 'outline' | 'secondary';
-  description: string;
-  disabled?: boolean;
-}
 
 interface WorkOrderStatusManagerProps {
   workOrder: StatusWorkOrder;
@@ -167,109 +159,14 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     }
   };
 
-const getStatusActions = (): StatusAction[] => {
-    if (!canPerformStatusActions()) return [];
-
-    const canComplete = canCompleteWorkOrder();
-    
-    switch (workOrder.status) {
-      case 'submitted': {
-        const actions: StatusAction[] = [];
-        if (isManager || isTechnician) {
-          actions.push({ 
-            label: 'Accept', 
-            action: () => handleStatusChange('accepted'), 
-            icon: CheckCircle,
-            variant: 'secondary' as const,
-            description: 'Accept this work order and proceed with planning'
-          });
-        }
-        actions.push({ 
-          label: 'Cancel', 
-          action: () => handleStatusChange('cancelled'), 
-          icon: X,
-          variant: 'outline' as const,
-          description: 'Cancel this work order'
-        });
-        return actions;
-      }
-
-      case 'accepted':
-        if (!isManager && !isTechnician) return [];
-        return [
-          { 
-            label: 'Cancel', 
-            action: () => handleStatusChange('cancelled'), 
-            icon: X,
-            variant: 'outline' as const,
-            description: 'Cancel this work order'
-          }
-        ];
-
-      case 'assigned':
-        if (!isManager && !isTechnician) return [];
-        return [
-          { 
-            label: 'Start Work', 
-            action: () => handleStatusChange('in_progress'), 
-            icon: Play,
-            variant: 'secondary' as const,
-            description: 'Begin working on this order'
-          },
-          { 
-            label: 'Put on Hold', 
-            action: () => handleStatusChange('on_hold'), 
-            icon: Pause,
-            variant: 'outline' as const,
-            description: 'Temporarily pause this work order'
-          }
-        ];
-
-      case 'in_progress':
-        if (!isManager && !isTechnician) return [];
-        return [
-          { 
-            label: 'Complete', 
-            action: () => handleStatusChange('completed'), 
-            icon: CheckCircle,
-            variant: 'default' as const,
-            description: canComplete ? 'Mark this work order as completed' : 'Complete PM checklist first',
-            disabled: !canComplete
-          },
-          { 
-            label: 'Put on Hold', 
-            action: () => handleStatusChange('on_hold'), 
-            icon: Pause,
-            variant: 'outline' as const,
-            description: 'Temporarily pause this work order'
-          }
-        ];
-
-      case 'on_hold':
-        if (!isManager && !isTechnician) return [];
-        return [
-          { 
-            label: 'Resume', 
-            action: () => handleStatusChange('in_progress'), 
-            icon: Play,
-            variant: 'secondary' as const,
-            description: 'Resume work on this order'
-          },
-          { 
-            label: 'Cancel', 
-            action: () => handleStatusChange('cancelled'), 
-            icon: X,
-            variant: 'outline' as const,
-            description: 'Cancel this work order'
-          }
-        ];
-
-      default:
-        return [];
-    }
-  };
-
-  const statusActions = getStatusActions();
+  const statusActions = buildWorkOrderStatusActions({
+    status: workOrder.status,
+    canPerformStatusActions: canPerformStatusActions(),
+    isManager,
+    isTechnician,
+    canComplete: canCompleteWorkOrder(),
+    onStatusChange: handleStatusChange,
+  });
 
   return (
     <div className="space-y-4">

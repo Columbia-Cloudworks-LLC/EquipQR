@@ -1,0 +1,15 @@
+export { PrivacyIntroductionSection } from './PrivacyIntroductionSection';
+export { PrivacyIndividualCollectionSection } from './PrivacyIndividualCollectionSection';
+export { PrivacyOrganizationCollectionSection } from './PrivacyOrganizationCollectionSection';
+export { PrivacySubprocessorsSection } from './PrivacySubprocessorsSection';
+export { PrivacyCookiesSection } from './PrivacyCookiesSection';
+export { PrivacyUsageSection } from './PrivacyUsageSection';
+export { PrivacySharingSection } from './PrivacySharingSection';
+export { PrivacySecuritySection } from './PrivacySecuritySection';
+export { PrivacyRetentionSection } from './PrivacyRetentionSection';
+export { PrivacyRightsSection } from './PrivacyRightsSection';
+export { PrivacyCaliforniaSection } from './PrivacyCaliforniaSection';
+export { PrivacyChildrenSection } from './PrivacyChildrenSection';
+export { PrivacyInternationalSection } from './PrivacyInternationalSection';
+export { PrivacyChangesSection } from './PrivacyChangesSection';
+export { PrivacyContactSection } from './PrivacyContactSection';
