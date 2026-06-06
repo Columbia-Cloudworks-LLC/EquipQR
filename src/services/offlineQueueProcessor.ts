@@ -18,7 +18,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { WorkOrderService } from '@/features/work-orders/services/workOrderService';
-import { buildWorkOrderUpdatePayload } from '@/features/work-orders/utils/workOrderUpdatePayload';
+import { syncWorkOrderOfflineUpdate } from './offlineQueueWorkOrderUpdate';
 import { logger } from '@/utils/logger';
 import { getErrorMessage } from '@/utils/errorHandling';
 import { invalidateOfflineSyncQueries } from './offlineQueueInvalidation';
@@ -38,7 +38,6 @@ import type {
   OfflineQueuePMInitItem,
   OfflineQueuePMUpdateItem,
   OfflineQueuePMDeleteItem,
-  WorkOrderServerSnapshot,
 } from './offlineQueueService';
 import { OfflineQueueService } from './offlineQueueService';
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
@@ -190,114 +189,11 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
 
   work_order_update: (async (item: OfflineQueueUpdateItem) => {
     const { workOrderId, data, changedFields, serverUpdatedAt, serverSnapshot } = item.payload;
-
-    // Map of camelCase field names (used in UpdateWorkOrderData / changedFields) to DB column names.
-    // Also used to pull the corresponding value out of serverSnapshot and current server state.
-    const fieldMap: Record<string, keyof WorkOrderServerSnapshot> = {
-      title: 'title',
-      description: 'description',
-      priority: 'priority',
-      dueDate: 'due_date',
-      estimatedHours: 'estimated_hours',
-      hasPM: 'has_pm',
-    };
-
-    // ── Conflict detection (3-way merge) ──────────────────────────────────────
-    // We can only do a proper merge when we have:
-    //   1. The timestamp of the server state when the user started editing (serverUpdatedAt)
-    //   2. The list of fields the user actually changed (changedFields)
-    // serverSnapshot is used when available for per-field server-change detection.
-    if (serverUpdatedAt && changedFields && changedFields.length > 0) {
-      const { data: current, error: fetchErr } = await supabase
-        .from('work_orders')
-        .select('updated_at, title, description, priority, due_date, estimated_hours, has_pm')
-        .eq('id', workOrderId)
-        .single();
-
-      if (fetchErr) throw fetchErr;
-
-      if (current && current.updated_at !== serverUpdatedAt) {
-        // Server state changed while we were offline — perform field-level merge.
-        logger.info(`Conflict detected for WO ${workOrderId}: server updated_at differs`, {
-          serverUpdatedAt,
-          currentUpdatedAt: current.updated_at,
-        });
-
-        const safeUpdate: Record<string, unknown> = {};
-        const conflictingFields: string[] = [];
-
-        for (const field of changedFields) {
-          const dbCol = fieldMap[field];
-          if (!dbCol) continue;
-
-          const ourValue = (data as Record<string, unknown>)[field];
-          if (ourValue === undefined) continue;
-
-          // 3-way merge: determine whether the *server* also changed this field.
-          // If we have a serverSnapshot we can compare precisely; without it we
-          // fall back to server-wins (safe default).
-          let serverChangedThisField: boolean;
-          if (serverSnapshot && dbCol in serverSnapshot) {
-            // Server changed this field iff its current value differs from the baseline.
-            serverChangedThisField =
-              String(current[dbCol] ?? '') !== String(serverSnapshot[dbCol] ?? '');
-          } else {
-            // No per-field baseline available — assume server changed everything
-            // (conservative / server-wins fallback).
-            serverChangedThisField = true;
-          }
-
-          if (serverChangedThisField) {
-            // Server wins — record the conflict but do not overwrite.
-            conflictingFields.push(field);
-            logger.info(
-              `Field-level conflict on WO ${workOrderId}.${field}: ` +
-              `keeping server value "${current[dbCol]}", discarding offline value "${ourValue}"`,
-            );
-          } else {
-            // Server did not touch this field — safe to apply our offline change.
-            safeUpdate[dbCol] =
-              field === 'dueDate' || field === 'estimatedHours' ? (ourValue || null) : ourValue;
-          }
-        }
-
-        if (Object.keys(safeUpdate).length > 0) {
-          safeUpdate.updated_at = new Date().toISOString();
-          const { error } = await supabase
-            .from('work_orders')
-            .update(safeUpdate)
-            .eq('id', workOrderId);
-
-          if (error) throw error;
-        }
-
-        if (conflictingFields.length > 0) {
-          return {
-            success: true,
-            conflict: {
-              workOrderId,
-              type: 'field_conflict' as const,
-              details: `Server-side changes won for: ${conflictingFields.join(', ')}. Your offline edits to these fields were discarded.`,
-            },
-          };
-        }
-
-        return { success: true };
-      }
-    }
-
-    // No conflict — apply all changed fields directly.
-    const updateData = buildWorkOrderUpdatePayload(data);
-
-    const { error } = await supabase
-      .from('work_orders')
-      .update(updateData)
-      .eq('id', workOrderId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return { success: true };
+    return syncWorkOrderOfflineUpdate(workOrderId, data, {
+      changedFields,
+      serverUpdatedAt,
+      serverSnapshot,
+    });
   }) as QueueItemHandler<never>,
 
   work_order_status: (async (item: OfflineQueueStatusItem) => {

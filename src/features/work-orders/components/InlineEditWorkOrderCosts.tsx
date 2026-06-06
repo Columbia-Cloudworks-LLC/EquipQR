@@ -1,19 +1,12 @@
 import React, { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { Edit2, Check, X, DollarSign, Package, Plus, Clock } from 'lucide-react';
 import { WorkOrderCost } from '@/features/work-orders/services/workOrderCostsService';
-import { isLaborCostRow } from '@/features/work-orders/utils/isLaborCostRow';
+import {
+  calculateWorkOrderCostsSubtotal,
+  formatWorkOrderCostCurrency,
+} from '@/features/work-orders/utils/workOrderCostFormatters';
 import { useWorkOrderCostsState, type WorkOrderCostItem } from '@/features/work-orders/hooks/useWorkOrderCostsState';
 import { 
   useCreateWorkOrderCost, 
@@ -28,6 +21,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { InventoryPartSelector } from './InventoryPartSelector';
 import WorkOrderCostsEditor from './WorkOrderCostsEditor';
 import { WorkOrderCostReadOnlyList } from './WorkOrderCostReadOnlyList';
+import { LaborCostDialog } from './LaborCostDialog';
+import {
+  WorkOrderCostDesktopReadOnlyRow,
+  WorkOrderCostMobileReadOnlyRow,
+} from './WorkOrderCostReadOnlyRows';
 import { useAppToast } from '@/hooks/useAppToast';
 import { cn } from '@/lib/utils';
 import {
@@ -40,91 +38,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-
-type LaborCostDialogProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  laborHours: string;
-  laborRate: string;
-  laborNote: string;
-  onLaborHoursChange: (value: string) => void;
-  onLaborRateChange: (value: string) => void;
-  onLaborNoteChange: (value: string) => void;
-  onConfirm: () => void | Promise<void>;
-  isPending: boolean;
-};
-
-function LaborCostDialog({
-  open,
-  onOpenChange,
-  laborHours,
-  laborRate,
-  laborNote,
-  onLaborHoursChange,
-  onLaborRateChange,
-  onLaborNoteChange,
-  onConfirm,
-  isPending,
-}: LaborCostDialogProps) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add labor</DialogTitle>
-          <DialogDescription>
-            Billable hours × hourly rate. Saved as a normal cost line (no inventory change).
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div className="space-y-2">
-            <Label htmlFor="labor-hours">Hours</Label>
-            <Input
-              id="labor-hours"
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="0.25"
-              value={laborHours}
-              onChange={(e) => onLaborHoursChange(e.target.value)}
-              disabled={isPending}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="labor-rate">Hourly rate (USD)</Label>
-            <Input
-              id="labor-rate"
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="0.01"
-              value={laborRate}
-              onChange={(e) => onLaborRateChange(e.target.value)}
-              disabled={isPending}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="labor-note">Note (optional)</Label>
-            <Input
-              id="labor-note"
-              value={laborNote}
-              onChange={(e) => onLaborNoteChange(e.target.value)}
-              placeholder="e.g. Emergency call-out"
-              disabled={isPending}
-            />
-          </div>
-        </div>
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
-            Cancel
-          </Button>
-          <Button type="button" onClick={() => void onConfirm()} disabled={isPending}>
-            {isPending ? 'Saving…' : 'Save labor'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 interface InlineEditWorkOrderCostsProps {
   costs: WorkOrderCost[];
@@ -182,17 +95,8 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
   const updateCostWithInventoryMutation = useUpdateWorkOrderCostWithInventory();
   const deleteCostWithInventoryMutation = useDeleteWorkOrderCostWithInventoryRestore();
 
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
-    }).format(cents / 100);
-  };
-
-  const calculateSubtotal = () => {
-    return costs.reduce((sum, cost) => sum + cost.total_price_cents, 0);
-  };
+  const formatCurrency = formatWorkOrderCostCurrency;
+  const calculateSubtotal = () => calculateWorkOrderCostsSubtotal(costs);
 
   const handleStartEdit = () => {
     resetCostsWithMinimum(costs);
@@ -460,66 +364,6 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
     }
   };
 
-  const MobileCostDisplay = ({ cost }: { cost: WorkOrderCost }) => (
-    <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="font-medium text-sm flex items-center gap-1.5">
-            {cost.inventory_item_id && (
-              <Package className="h-3.5 w-3.5 text-info flex-shrink-0" title="From inventory" />
-            )}
-            {!cost.inventory_item_id && isLaborCostRow(cost) && (
-              <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" title="Labor" aria-hidden />
-            )}
-            {cost.description}
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">
-            Added by {cost.created_by_name} • {formatDate(cost.created_at)}
-            {cost.inventory_item_id && <span className="ml-1 text-info">(Inventory)</span>}
-          </div>
-        </div>
-        <div className="text-right ml-2">
-          <div className="font-semibold text-lg">
-            {formatCurrency(cost.total_price_cents)}
-          </div>
-        </div>
-      </div>
-      
-      <div className="flex items-center justify-between text-sm text-muted-foreground pt-2 border-t">
-        <div>Qty: {cost.quantity}</div>
-        <div>Unit: {formatCurrency(cost.unit_price_cents)}</div>
-      </div>
-    </div>
-  );
-
-  const DesktopCostDisplay = ({ cost }: { cost: WorkOrderCost }) => (
-    <div className="p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors">
-      <div className="grid grid-cols-4 gap-4 items-center">
-        <div>
-          <div className="font-medium flex items-center gap-1.5">
-            {cost.inventory_item_id && (
-              <Package className="h-4 w-4 text-info flex-shrink-0" title="From inventory" />
-            )}
-            {!cost.inventory_item_id && isLaborCostRow(cost) && (
-              <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" title="Labor" aria-hidden />
-            )}
-            {cost.description}
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">
-            Added by {cost.created_by_name} on{' '}
-            {formatDate(cost.created_at)}
-            {cost.inventory_item_id && <span className="ml-1 text-info">(Inventory)</span>}
-          </div>
-        </div>
-        <div className="text-sm">{cost.quantity}</div>
-        <div className="text-sm">{formatCurrency(cost.unit_price_cents)}</div>
-        <div className="font-semibold text-right">
-          {formatCurrency(cost.total_price_cents)}
-        </div>
-      </div>
-    </div>
-  );
-
   // Handle delete with confirmation for inventory-sourced costs
   const handleRemoveCost = (id: string) => {
     const inventoryInfo = getInventoryInfo(id);
@@ -564,8 +408,12 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
             isMobile={isMobile}
             formatCurrency={formatCurrency}
             calculateSubtotal={calculateSubtotal}
-            renderMobileCost={(cost) => <MobileCostDisplay cost={cost} />}
-            renderDesktopCost={(cost) => <DesktopCostDisplay cost={cost} />}
+            renderMobileCost={(cost) => (
+              <WorkOrderCostMobileReadOnlyRow cost={cost} formatDate={formatDate} />
+            )}
+            renderDesktopCost={(cost) => (
+              <WorkOrderCostDesktopReadOnlyRow cost={cost} formatDate={formatDate} />
+            )}
             className="space-y-4"
           />
         )}
@@ -602,8 +450,12 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
             isMobile={isMobile}
             formatCurrency={formatCurrency}
             calculateSubtotal={calculateSubtotal}
-            renderMobileCost={(cost) => <MobileCostDisplay cost={cost} />}
-            renderDesktopCost={(cost) => <DesktopCostDisplay cost={cost} />}
+            renderMobileCost={(cost) => (
+              <WorkOrderCostMobileReadOnlyRow cost={cost} formatDate={formatDate} />
+            )}
+            renderDesktopCost={(cost) => (
+              <WorkOrderCostDesktopReadOnlyRow cost={cost} formatDate={formatDate} />
+            )}
             className={cn(compactMobile ? 'space-y-3' : 'space-y-4')}
           />
         ) : compactMobile ? (

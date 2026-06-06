@@ -11,3 +11,9 @@ export function formatWorkOrderCostCurrency(cents: number): string {
 export function parseUnitPriceDollarsToCents(value: string): number {
   return Math.round((parseFloat(value) || 0) * 100);
 }
+
+export function calculateWorkOrderCostsSubtotal(
+  costs: Array<{ total_price_cents: number }>,
+): number {
+  return costs.reduce((sum, cost) => sum + cost.total_price_cents, 0);
+}

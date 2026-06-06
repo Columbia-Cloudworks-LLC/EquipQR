@@ -67,7 +67,10 @@ import {
 import type { PMTemplateCompatibilityRuleFormData } from '@/features/pm-templates/types/pmTemplateCompatibility';
 import { nanoid } from 'nanoid';
 import { cn } from '@/lib/utils';
-import { LARGE_TEMPLATE_THRESHOLD } from './checklistTemplateEditorUtils';
+import {
+  LARGE_TEMPLATE_THRESHOLD,
+  SECTION_VIRTUALIZATION_THRESHOLD,
+} from './checklistTemplateEditorUtils';
 import { SectionItemsList } from '@/features/organization/components/SectionItemsList';
 import { useChecklistItemMutations } from '@/features/organization/hooks/useChecklistItemMutations';
 import { useChecklistSectionNavigation } from '@/features/organization/hooks/useChecklistSectionNavigation';
@@ -107,11 +110,8 @@ export const ChecklistTemplateEditor = forwardRef<ChecklistTemplateEditorHandle,
     const [intervalValue, setIntervalValue] = useState<number | null>(template?.interval_value ?? null);
     const [intervalType, setIntervalType] = useState<'days' | 'hours'>(template?.interval_type ?? 'days');
     const [intervalEnabled, setIntervalEnabled] = useState(template?.interval_value != null);
-    const [expanded, setExpanded] = useState<string[]>([]);
     const [previewMode, setPreviewMode] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-    const [focusSectionMode, setFocusSectionMode] = useState(false);
-    const [focusedSection, setFocusedSection] = useState<string | null>(null);
     const [settingsOpen, setSettingsOpen] = useState(!template?.id);
 
     const newItemIdRef = useRef<string | null>(null);
@@ -172,25 +172,6 @@ export const ChecklistTemplateEditor = forwardRef<ChecklistTemplateEditorHandle,
       setHasRulesChanges(false);
     };
 
-    useEffect(() => {
-      if (!template) return;
-      setTemplateName(template.name);
-      setTemplateDescription(template.description || '');
-      setChecklistItems(template.template_data);
-      const unique = Array.from(new Set(template.template_data.map((item) => item.section)));
-      if (template.template_data.length >= LARGE_TEMPLATE_THRESHOLD && unique.length > 0) {
-        setFocusSectionMode(true);
-        setFocusedSection(unique[0]);
-        setExpanded([unique[0]]);
-      } else {
-        setFocusSectionMode(false);
-        setFocusedSection(null);
-        setExpanded(unique);
-      }
-      setSettingsOpen(template.template_data.length === 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync keyed on template id only
-    }, [template?.id]);
-
     const groupedItems = useMemo(
       () =>
         groupChecklistItemsBySection(checklistItems),
@@ -201,56 +182,31 @@ export const ChecklistTemplateEditor = forwardRef<ChecklistTemplateEditorHandle,
     const totalItemCount = checklistItems.length;
     const isLargeTemplate = totalItemCount >= LARGE_TEMPLATE_THRESHOLD;
 
-    const visibleSections = useMemo(() => {
-      if (focusSectionMode && focusedSection && sections.includes(focusedSection)) {
-        return [focusedSection];
-      }
-      return sections;
-    }, [sections, focusSectionMode, focusedSection]);
+    const {
+      expanded,
+      focusSectionMode,
+      focusedSection,
+      visibleSections,
+      applyTemplateSectionState,
+      expandAll,
+      collapseAll,
+      enableFocusSectionMode,
+      handleTocSectionClick,
+      handleAccordionChange,
+      expandSection,
+      renameSectionInNavigation,
+      removeSectionFromNavigation,
+    } = useChecklistSectionNavigation(sections);
 
-    const expandAll = useCallback(() => {
-      setFocusSectionMode(false);
-      setExpanded(sections);
-    }, [sections]);
-
-    const collapseAll = useCallback(() => {
-      setExpanded([]);
-    }, []);
-
-    const enableFocusSectionMode = useCallback(() => {
-      setFocusSectionMode(true);
-      const target = focusedSection && sections.includes(focusedSection) ? focusedSection : sections[0];
-      if (target) {
-        setFocusedSection(target);
-        setExpanded([target]);
-      }
-    }, [focusedSection, sections]);
-
-    const handleTocSectionClick = useCallback(
-      (sectionName: string) => {
-        setFocusedSection(sectionName);
-        if (focusSectionMode) {
-          setExpanded([sectionName]);
-        } else {
-          setExpanded((prev) => Array.from(new Set([...prev, sectionName])));
-        }
-      },
-      [focusSectionMode]
-    );
-
-    const handleAccordionChange = useCallback(
-      (value: string[]) => {
-        if (focusSectionMode && value.length > 1) {
-          const newest = value.find((v) => !expanded.includes(v)) ?? value[value.length - 1];
-          setExpanded(newest ? [newest] : []);
-          setFocusedSection(newest ?? null);
-        } else {
-          setExpanded(value);
-          if (value.length === 1) setFocusedSection(value[0]);
-        }
-      },
-      [focusSectionMode, expanded]
-    );
+    useEffect(() => {
+      if (!template) return;
+      setTemplateName(template.name);
+      setTemplateDescription(template.description || '');
+      setChecklistItems(template.template_data);
+      applyTemplateSectionState(template.template_data);
+      setSettingsOpen(template.template_data.length === 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync keyed on template id only
+    }, [template?.id]);
 
     const openAddSection = () => {
       setInlineSectionName('');
@@ -274,8 +230,7 @@ export const ChecklistTemplateEditor = forwardRef<ChecklistTemplateEditorHandle,
         notes: '',
       };
       setChecklistItems((prev) => [...prev, newItem]);
-      setExpanded((prev) => (focusSectionMode ? [newName] : Array.from(new Set([...prev, newName]))));
-      setFocusedSection(newName);
+      expandSection(newName);
       setHasUnsavedChanges(true);
       setAddingSectionInline(false);
       setInlineSectionName('');
@@ -301,10 +256,7 @@ export const ChecklistTemplateEditor = forwardRef<ChecklistTemplateEditorHandle,
           item.section === renameOriginal ? { ...item, section: newName } : item
         );
         setChecklistItems(updatedItems);
-        setExpanded((prev) =>
-          prev.includes(renameOriginal) ? [...prev.filter((s) => s !== renameOriginal), newName] : prev
-        );
-        if (focusedSection === renameOriginal) setFocusedSection(newName);
+        renameSectionInNavigation(renameOriginal, newName);
         setHasUnsavedChanges(true);
       }
       setRenameDialogOpen(false);
@@ -319,83 +271,25 @@ export const ChecklistTemplateEditor = forwardRef<ChecklistTemplateEditorHandle,
       if (!deleteTarget) return;
       const updatedItems = checklistItems.filter((item) => item.section !== deleteTarget);
       setChecklistItems(updatedItems);
-      setExpanded((prev) => prev.filter((s) => s !== deleteTarget));
-      if (focusedSection === deleteTarget) setFocusedSection(null);
+      removeSectionFromNavigation(deleteTarget);
       setHasUnsavedChanges(true);
       setDeleteDialogOpen(false);
     };
 
-    const addItem = (section: string) => {
-      const newId = nanoid();
-      newItemIdRef.current = newId;
-      const newItem: PMChecklistItem = {
-        id: newId,
-        title: 'New item',
-        description: '',
-        section,
-        condition: null,
-        required: true,
-        notes: '',
-      };
-      setChecklistItems((prev) => [...prev, newItem]);
-      setHasUnsavedChanges(true);
-    };
-
-    const addItemBelow = (itemId: string) => {
-      setChecklistItems((prev) => {
-        const index = prev.findIndex((i) => i.id === itemId);
-        if (index === -1) return prev;
-        const section = prev[index].section;
-        const newId = nanoid();
-        newItemIdRef.current = newId;
-        const newItem: PMChecklistItem = {
-          id: newId,
-          title: '',
-          description: '',
-          section,
-          condition: null,
-          required: true,
-          notes: '',
-        };
-        return [...prev.slice(0, index + 1), newItem, ...prev.slice(index + 1)];
-      });
-      setHasUnsavedChanges(true);
-    };
-
-    const updateItem = useCallback((itemId: string, updates: Partial<PMChecklistItem>) => {
-      setChecklistItems((prev) => prev.map((item) => (item.id === itemId ? { ...item, ...updates } : item)));
-      setHasUnsavedChanges(true);
-    }, []);
-
-    const deleteItem = useCallback((itemId: string) => {
-      setChecklistItems((prev) => prev.filter((item) => item.id !== itemId));
-      setHasUnsavedChanges(true);
-    }, []);
-
-    const moveItemToSectionEdge = useCallback((itemId: string, edge: 'top' | 'bottom') => {
-      setChecklistItems((prev) => moveChecklistItemToSectionEdge(prev, itemId, edge));
-      setHasUnsavedChanges(true);
-    }, []);
-
-    const reorderItems = useCallback((activeId: string, overId: string) => {
-      setChecklistItems((prev) => reorderChecklistItems(prev, activeId, overId));
-      setHasUnsavedChanges(true);
-    }, []);
-
-    const duplicateItem = useCallback((itemId: string) => {
-      setChecklistItems((prev) => {
-        const index = prev.findIndex((i) => i.id === itemId);
-        if (index === -1) return prev;
-        const copy: PMChecklistItem = { ...prev[index], id: nanoid() };
-        return [...prev.slice(0, index + 1), copy, ...prev.slice(index + 1)];
-      });
-      setHasUnsavedChanges(true);
-    }, []);
-
-    const moveItemToSection = useCallback((itemId: string, targetSection: string) => {
-      setChecklistItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, section: targetSection } : i)));
-      setHasUnsavedChanges(true);
-    }, []);
+    const {
+      addItem,
+      addItemBelow,
+      updateItem,
+      deleteItem,
+      moveItemToSectionEdge,
+      reorderItems,
+      duplicateItem,
+      moveItemToSection,
+    } = useChecklistItemMutations({
+      setChecklistItems,
+      setHasUnsavedChanges,
+      newItemIdRef,
+    });
 
     const handleSave = useCallback(async (): Promise<string | undefined> => {
       if (!templateName.trim()) {

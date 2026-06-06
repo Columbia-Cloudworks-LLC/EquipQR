@@ -2,6 +2,10 @@
 // Duplication rationale: Editable costs parallel read-only list layout
 
 import React, { useCallback } from 'react';
+import {
+  calculateWorkOrderCostsSubtotal,
+  formatWorkOrderCostCurrency,
+} from '@/features/work-orders/utils/workOrderCostFormatters';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { WorkOrderCostItem } from '@/features/work-orders/hooks/useWorkOrderCostsState';
@@ -32,16 +36,10 @@ const WorkOrderCostsEditor: React.FC<WorkOrderCostsEditorProps> = ({
   const isMobile = useIsMobile();
   const showMobileHeaderStrip = !(isMobile && suppressMobileChrome);
   
-  const formatCurrency = useCallback((cents: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
-    }).format(cents / 100);
-  }, []);
+  const formatCurrency = formatWorkOrderCostCurrency;
 
   const calculateSubtotal = useCallback(() => {
-    return costs.reduce((sum, cost) => sum + cost.total_price_cents, 0);
+    return calculateWorkOrderCostsSubtotal(costs);
   }, [costs]);
 
   const canRemove = costs.length > 1;
