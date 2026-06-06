@@ -1,4 +1,6 @@
 #!/usr/bin/env tsx
+import { pathToFileURL } from 'node:url';
+
 /**
  * Generate Large-Scale Inventory Seed Data
  * 
@@ -451,6 +453,94 @@ function generateInventoryItems(orgKey: keyof typeof ORGS, count: number, startC
   return items;
 }
 
+function selectAlternateGroupStatus(
+  orgUsers: string[]
+): { status: 'verified' | 'unverified' | 'deprecated'; verifiedBy: string | null } {
+  const statusRoll = seededRandom();
+
+  if (statusRoll < 0.60) {
+    return { status: 'verified', verifiedBy: randomChoice(orgUsers) };
+  }
+  if (statusRoll < 0.90) {
+    return { status: 'unverified', verifiedBy: null };
+  }
+  return { status: 'deprecated', verifiedBy: null };
+}
+
+function buildAlternateGroupRecord(
+  org: (typeof ORGS)[keyof typeof ORGS],
+  groupId: string,
+  template: PartTemplate,
+  variation: string
+): GeneratedAlternateGroup {
+  const { status, verifiedBy } = selectAlternateGroupStatus(org.users);
+  const equipment = randomChoice([
+    ...EQUIPMENT_MODELS.excavators,
+    ...EQUIPMENT_MODELS.loaders,
+    ...EQUIPMENT_MODELS.lifts,
+    ...EQUIPMENT_MODELS.forklifts,
+    ...EQUIPMENT_MODELS.mowers
+  ]);
+  const groupName = `${variation} - ${equipment.split(' ')[0]} Compatible`;
+  const groupDescription = `Interchangeable ${variation.toLowerCase()}s verified for ${equipment} and similar models.`;
+
+  return {
+    id: groupId,
+    organization_id: org.id,
+    name: groupName,
+    description: groupDescription,
+    status,
+    notes: status === 'verified' ? 'Cross-referenced with OEM parts catalog.' : null,
+    evidence_url: status === 'verified' && seededRandom() > 0.5 ? 'https://example.com/parts-catalog' : null,
+    created_by: randomChoice(org.users),
+    verified_by: verifiedBy
+  };
+}
+
+function selectLinkedInventoryItem(items: GeneratedInventoryItem[]): GeneratedInventoryItem | null {
+  return seededRandom() > 0.3 ? randomChoice(items) : null;
+}
+
+function buildPartIdentifierRecord(
+  org: (typeof ORGS)[keyof typeof ORGS],
+  identifierId: string,
+  brand: string,
+  isPrimary: boolean,
+  isOEM: boolean,
+  inventoryItemId: string | null
+): GeneratedPartIdentifier {
+  const partNumber = `${brand.substring(0, 3).toUpperCase()}-${randomInt(1000, 9999)}-${randomInt(10, 99)}`;
+
+  return {
+    id: identifierId,
+    organization_id: org.id,
+    identifier_type: isOEM ? 'oem' : 'aftermarket',
+    raw_value: partNumber,
+    norm_value: partNumber.toLowerCase(),
+    inventory_item_id: inventoryItemId,
+    manufacturer: brand,
+    notes: isPrimary ? 'Primary OEM part number' : `${brand} aftermarket alternative`,
+    created_by: randomChoice(org.users)
+  };
+}
+
+function buildGroupMemberRecord(
+  memberId: string,
+  groupId: string,
+  identifierId: string,
+  inventoryItemId: string | null,
+  isPrimary: boolean
+): GeneratedGroupMember {
+  return {
+    id: memberId,
+    group_id: groupId,
+    part_identifier_id: identifierId,
+    inventory_item_id: inventoryItemId,
+    is_primary: isPrimary,
+    notes: isPrimary ? 'OEM reference' : 'Verified alternative'
+  };
+}
+
 function generatePartIdentifiersAndGroups(
   orgKey: keyof typeof ORGS,
   items: GeneratedInventoryItem[],
@@ -467,100 +557,43 @@ function generatePartIdentifiersAndGroups(
   const identifiers: GeneratedPartIdentifier[] = [];
   const groups: GeneratedAlternateGroup[] = [];
   const members: GeneratedGroupMember[] = [];
-  
+
   let identifierCounter = identifierStartCounter;
   let memberCounter = memberStartCounter;
-  
-  // Create groups with associated identifiers
+
   for (let g = 0; g < groupCount; g++) {
     const groupId = generateUUID(UUID_PREFIXES.alternateGroup, groupStartCounter + g);
-    
-    // Pick a random category for this group
     const template = randomChoice(PART_TEMPLATES);
     const variation = template.variations ? randomChoice(template.variations) : template.category;
-    
-    // Determine verification status (60% verified, 30% unverified, 10% deprecated)
-    const statusRoll = seededRandom();
-    let status: 'verified' | 'unverified' | 'deprecated';
-    let verifiedBy: string | null = null;
-    
-    if (statusRoll < 0.60) {
-      status = 'verified';
-      verifiedBy = randomChoice(org.users);
-    } else if (statusRoll < 0.90) {
-      status = 'unverified';
-    } else {
-      status = 'deprecated';
-    }
-    
-    // Group name
-    const equipment = randomChoice([
-      ...EQUIPMENT_MODELS.excavators,
-      ...EQUIPMENT_MODELS.loaders,
-      ...EQUIPMENT_MODELS.lifts,
-      ...EQUIPMENT_MODELS.forklifts,
-      ...EQUIPMENT_MODELS.mowers
-    ]);
-    
-    const groupName = `${variation} - ${equipment.split(' ')[0]} Compatible`;
-    const groupDescription = `Interchangeable ${variation.toLowerCase()}s verified for ${equipment} and similar models.`;
-    
-    groups.push({
-      id: groupId,
-      organization_id: org.id,
-      name: groupName,
-      description: groupDescription,
-      status,
-      notes: status === 'verified' ? 'Cross-referenced with OEM parts catalog.' : null,
-      evidence_url: status === 'verified' && seededRandom() > 0.5 ? 'https://example.com/parts-catalog' : null,
-      created_by: randomChoice(org.users),
-      verified_by: verifiedBy
-    });
-    
-    // Generate 2-6 part identifiers for this group
+
+    groups.push(buildAlternateGroupRecord(org, groupId, template, variation));
+
     const partsInGroup = randomInt(CONFIG.partsPerGroup.min, CONFIG.partsPerGroup.max);
     const brands = shuffleArray([...template.brands]).slice(0, partsInGroup);
-    
-    // Maybe link one to an inventory item
-    const linkedItem = seededRandom() > 0.3 ? randomChoice(items) : null;
-    
+    const linkedItem = selectLinkedInventoryItem(items);
+
     for (let p = 0; p < partsInGroup; p++) {
       const brand = brands[p] || randomChoice(template.brands);
       const isPrimary = p === 0;
       const isOEM = p < 2;
-      
-      // Generate part number
-      const partNumber = `${brand.substring(0, 3).toUpperCase()}-${randomInt(1000, 9999)}-${randomInt(10, 99)}`;
-      
       const identifierId = generateUUID(UUID_PREFIXES.partIdentifier, identifierCounter++);
-      
-      // Link to inventory item for first identifier if available
       const inventoryItemId = (p === 0 && linkedItem) ? linkedItem.id : null;
-      
-      identifiers.push({
-        id: identifierId,
-        organization_id: org.id,
-        identifier_type: isOEM ? 'oem' : 'aftermarket',
-        raw_value: partNumber,
-        norm_value: partNumber.toLowerCase(),
-        inventory_item_id: inventoryItemId,
-        manufacturer: brand,
-        notes: isPrimary ? 'Primary OEM part number' : `${brand} aftermarket alternative`,
-        created_by: randomChoice(org.users)
-      });
-      
-      // Create group member
-      members.push({
-        id: generateUUID(UUID_PREFIXES.groupMember, memberCounter++),
-        group_id: groupId,
-        part_identifier_id: identifierId,
-        inventory_item_id: inventoryItemId,
-        is_primary: isPrimary,
-        notes: isPrimary ? 'OEM reference' : 'Verified alternative'
-      });
+
+      identifiers.push(
+        buildPartIdentifierRecord(org, identifierId, brand, isPrimary, isOEM, inventoryItemId)
+      );
+      members.push(
+        buildGroupMemberRecord(
+          generateUUID(UUID_PREFIXES.groupMember, memberCounter++),
+          groupId,
+          identifierId,
+          inventoryItemId,
+          isPrimary
+        )
+      );
     }
   }
-  
+
   return { identifiers, groups, members };
 }
 
@@ -800,6 +833,21 @@ function generateSQL(): string {
 // Main
 // ============================================================================
 
+function resetSeed(nextSeed = 12345): void {
+  seed = nextSeed;
+}
+
+export const __testables = {
+  resetSeed,
+  selectAlternateGroupStatus,
+  buildAlternateGroupRecord,
+  selectLinkedInventoryItem,
+  buildPartIdentifierRecord,
+  buildGroupMemberRecord,
+  generatePartIdentifiersAndGroups,
+  generateSQL,
+};
+
 function main() {
   const args = process.argv.slice(2);
   
@@ -825,4 +873,6 @@ Configuration (edit script to customize):
   console.log(sql);
 }
 
-main();
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+  main();
+}
