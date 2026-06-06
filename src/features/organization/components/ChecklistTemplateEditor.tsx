@@ -17,7 +17,7 @@ import type {
   ChecklistTemplateEditorTemplate,
 } from '@/features/organization/components/checklistTemplateEditorTypes';
 
-export type { ChecklistTemplateEditorHandle, ChecklistTemplateEditorLayoutMode };
+export type { ChecklistTemplateEditorHandle };
 
 interface ChecklistTemplateEditorProps {
   template?: ChecklistTemplateEditorTemplate | null;
