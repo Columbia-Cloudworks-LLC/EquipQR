@@ -1,207 +1,21 @@
+import './appRoutesTestMocks';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from '@/App';
-
-// Mock auth hook to bypass provider requirement
-vi.mock('@/hooks/useAuth', () => ({
-  useAuth: () => ({ user: {}, isLoading: false })
-}));
-
-// Mock user context hook used by layout components
-vi.mock('@/contexts/useUser', () => ({
-  useUser: () => ({
-    currentUser: { id: '1', email: 'test@example.com', name: 'Test User' },
-    isLoading: false,
-    setCurrentUser: () => {}
-  })
-}));
-
-// Mock simple organization hook used by the sidebar
-vi.mock('@/hooks/useSimpleOrganization', () => ({
-  useSimpleOrganization: () => ({ currentOrganization: null }),
-  useSimpleOrganizationSafe: () => null
-}));
-
-// Mock MFA hook used by MFAEnforcementGuard
-vi.mock('@/hooks/useMFA', () => ({
-  useMFA: () => ({
-    factors: [],
-    currentLevel: null,
-    nextLevel: null,
-    isEnrolled: false,
-    isVerified: false,
-    needsVerification: false,
-    isLoading: false,
-    enrollTOTP: vi.fn(),
-    verifyTOTP: vi.fn(),
-    unenrollFactor: vi.fn(),
-    challengeAndVerify: vi.fn(),
-    refreshMFAStatus: vi.fn(),
-  }),
-}));
-
-// Mock all page components
-vi.mock('@/features/dashboard/pages/Dashboard', () => ({ default: () => <div data-testid="dashboard-page">Dashboard</div> }));
-vi.mock('@/features/equipment/pages/Equipment', () => ({ default: () => <div data-testid="equipment-page">Equipment</div> }));
-vi.mock('@/features/equipment/pages/EquipmentDetails', () => ({ default: () => <div data-testid="equipment-details-page">Equipment Details</div> }));
-vi.mock('@/features/equipment/pages/EquipmentQRScan', () => ({ default: () => <div data-testid="equipment-qr-scan-page">Equipment QR Scan</div> }));
-vi.mock('@/features/equipment/pages/EquipmentScanner', () => ({
-  default: () => <div data-testid="equipment-scanner-page">Equipment Scanner</div>,
-}));
-vi.mock('@/features/work-orders/pages/WorkOrders', () => ({ default: () => <div data-testid="work-orders-page">Work Orders</div> }));
-vi.mock('@/features/work-orders/pages/WorkOrderDetails', () => ({ default: () => <div data-testid="work-order-details-page">Work Order Details</div> }));
-vi.mock('@/features/teams/pages/Teams', () => ({ default: () => <div data-testid="teams-page">Teams</div> }));
-vi.mock('@/features/fleet-map/pages/FleetMap', () => ({ default: () => <div data-testid="fleet-map-page">Fleet Map</div> }));
-vi.mock('@/features/organization/pages/Organization', () => ({ default: () => <div data-testid="organization-page">Organization</div> }));
-vi.mock('@/pages/Settings', () => ({ default: () => <div data-testid="settings-page">Settings</div> }));
-vi.mock('@/pages/Support', () => ({ default: () => <div data-testid="support-page">Support</div> }));
-vi.mock('@/components/landing/SmartLanding', () => ({ default: () => <div data-testid="landing-page">Landing</div> }));
-vi.mock('@/pages/Auth', () => ({ default: () => <div data-testid="auth-page">Auth</div> }));
-vi.mock('@/pages/TermsOfService', () => ({ default: () => <div data-testid="terms-page">Terms</div> }));
-vi.mock('@/pages/PrivacyPolicy', () => ({ default: () => <div data-testid="privacy-page">Privacy</div> }));
-vi.mock('@/pages/PrivacyRequest', () => ({ default: () => <div data-testid="privacy-request-page">Privacy Request</div> }));
-vi.mock('@/pages/DoNotSellOrShare', () => ({
-  default: () => <div data-testid="do-not-sell-or-share-page">Do Not Sell Or Share</div>,
-}));
-vi.mock('@/pages/dsr/CockpitPage', () => ({ default: () => <div data-testid="dsr-cockpit-page">DSR Cockpit</div> }));
-vi.mock('@/pages/dsr/CasePage', () => ({ default: () => <div data-testid="dsr-case-page">DSR Case</div> }));
-vi.mock('@/components/layout/AppSidebar', () => ({ default: () => <div data-testid="app-sidebar">Sidebar</div> }));
-vi.mock('@/lib/flags', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/flags')>();
-  return {
-    ...actual,
-    OFFLINE_QUEUE_ENABLED: false,
-  };
-});
-
-// Mock contexts
-vi.mock('@/contexts/TeamContext', () => ({
-  TeamProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="team-provider">{children}</div>
-}));
-
-vi.mock('@/contexts/SelectedTeamContext', () => ({
-  SelectedTeamProvider: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="selected-team-provider">{children}</div>
-  )
-}));
-
-vi.mock('@/contexts/SimpleOrganizationProvider', () => ({
-  SimpleOrganizationProvider: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="simple-organization-provider">{children}</div>
-  )
-}));
-
-vi.mock('@/contexts/OfflineQueueContext', () => ({
-  OfflineQueueProvider: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="offline-queue-provider">{children}</div>
-  ),
-  useOfflineQueue: () => ({
-    queuedItems: [],
-    pendingCount: 0,
-    failedCount: 0,
-    isOnline: true,
-    isSyncing: false,
-    enqueue: vi.fn(),
-    syncNow: vi.fn(),
-    removeItem: vi.fn(),
-    clearQueue: vi.fn(),
-    retryFailed: vi.fn(),
-  }),
-}));
-
-vi.mock('@/features/offline-queue/components/PendingSyncBanner', () => ({
-  PendingSyncBanner: () => <div data-testid="pending-sync-banner" />
-}));
-
-vi.mock('@/components/ui/sidebar', () => ({
-  SidebarProvider: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="sidebar-provider">{children}</div>
-  ),
-  SidebarInset: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="sidebar-inset">{children}</div>
-  )
-}));
-
-// BottomNav (and TopBar) call useSidebar from sidebar-context; the stub
-// SidebarProvider above does not mount the real context provider.
-vi.mock('@/components/ui/sidebar-context', () => ({
-  useSidebar: () => ({
-    state: 'expanded' as const,
-    open: true,
-    setOpen: vi.fn(),
-    openMobile: false,
-    setOpenMobile: vi.fn(),
-    isMobile: false,
-    toggleSidebar: vi.fn(),
-  }),
-}));
-
-// Mock components
-vi.mock('@/components/layout/TopBar', () => ({
-  default: () => <div data-testid="top-bar">TopBar</div>
-}));
-
-// Factory function to create a fresh QueryClient instance for each test
-// to avoid state leakage and keep test cache isolated
-const createTestQueryClient = () => new QueryClient({
-  defaultOptions: {
-    queries: { retry: false },
-    mutations: { retry: false },
-  },
-});
-
-// Test-scoped QueryClient instance – reset/recreated in beforeEach to avoid cross-test state leakage
-let testQueryClient: QueryClient;
-
-vi.mock('@/components/providers/AppProviders', () => {
-  return {
-    AppProviders: ({ children }: { children: React.ReactNode }) => {
-      // testQueryClient is reset in beforeEach, so it's always available
-      return (
-        <QueryClientProvider client={testQueryClient}>
-          <div data-testid="app-providers">{children}</div>
-        </QueryClientProvider>
-      );
-    },
-  };
-});
-
-// Mock react-router-dom components
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    Navigate: ({
-      to,
-    }: {
-      to: string | { pathname: string; hash?: string; search?: string };
-    }) => (
-      <div data-testid="navigate-to">
-        Navigating to{' '}
-        {typeof to === 'string'
-          ? to
-          : `${to.pathname}${to.search ?? ''}${to.hash ?? ''}`}
-      </div>
-    ),
-    useParams: () => ({ equipmentId: 'test-equipment', workOrderId: 'test-work-order' }),
-    BrowserRouter: ({ children }: { children: React.ReactNode }) => <div data-testid="browser-router">{children}</div>
-  };
-});
+import { resetAppRoutesTestQueryClient } from './appRoutesTestMocks';
 
 describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset QueryClient between tests to prevent state leakage
-    testQueryClient = createTestQueryClient();
+    resetAppRoutesTestQueryClient();
   });
 
   const renderApp = (initialEntries = ['/']) => {
     return render(
       <MemoryRouter initialEntries={initialEntries}>
         <App />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
   };
 
@@ -258,7 +72,7 @@ describe('App', () => {
   it('redirects equipment to equipment list', () => {
     renderApp(['/equipment/test-equipment']);
     expect(screen.getByTestId('navigate-to')).toHaveTextContent(
-      'Navigating to /dashboard/equipment/test-equipment'
+      'Navigating to /dashboard/equipment/test-equipment',
     );
   });
 
@@ -272,7 +86,7 @@ describe('App', () => {
   it('redirects work-orders to work-orders list', () => {
     renderApp(['/work-orders/test-work-order']);
     expect(screen.getByTestId('navigate-to')).toHaveTextContent(
-      'Navigating to /dashboard/work-orders/test-work-order'
+      'Navigating to /dashboard/work-orders/test-work-order',
     );
   });
 

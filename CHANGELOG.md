@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 <!-- markdownlint-disable MD024 -->
 
@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Playwright demo and viewport modes** — `dev-test.bat` / `run-user-regression.ps1` support a demo run profile, desktop/mobile/both viewport modes, and auto database reset for `@full` suites.
 
 ### Changed
+
+
+- **Fallow health refactor pass** — Split work-order service mappers/list helpers, alternate-group detail dialogs, work-order details overlays/exports, Google Workspace OAuth and QuickBooks invoice edge handlers, shared export data builders, DSR/export-report CSV modules, script/test harness extractions, and Google Sheets work-order export orchestration; Fallow health score improved from 77.3 (B) to 87.4 (A) with zero dead-code and duplication findings.
 
 - **Dead-code cleanup** — Evidence-backed removal of obsolete modules, duplicate feature barrels, unused exports, and legacy organization/session scaffolding identified by Fallow (findings reduced to 0); session types consolidated with expanded `useSessionManager` test coverage.
 - **Dependencies** — Trimmed unused npm packages surfaced during the audit.

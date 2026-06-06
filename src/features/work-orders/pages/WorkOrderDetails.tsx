@@ -2,49 +2,34 @@
 // Duplication rationale: Large details page with repeated section chrome
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useSearchParams, Navigate } from 'react-router-dom';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { CheckCircle } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useWorkOrderDetailsData } from '@/features/work-orders/components/hooks/useWorkOrderDetailsData';
 import { useWorkOrderDetailsActions } from '@/features/work-orders/hooks/useWorkOrderDetailsActions';
 import { useWorkOrderEquipment } from '@/features/work-orders/hooks/useWorkOrderEquipment';
-import { useWorkOrderExcelExport } from '@/features/work-orders/hooks/useWorkOrderExcelExport';
 import { logNavigationEvent } from '@/utils/navigationDebug';
-import WorkOrderForm from '@/features/work-orders/components/WorkOrderForm';
 import { WorkOrderEquipmentSelector } from '@/features/work-orders/components/WorkOrderEquipmentSelector';
 import { WorkOrderDetailsMobileHeader } from '@/features/work-orders/components/WorkOrderDetailsMobileHeader';
 import { WorkOrderDetailsDesktopHeader } from '@/features/work-orders/components/WorkOrderDetailsDesktopHeader';
-import { PMChangeWarningDialog } from '@/features/work-orders/components/PMChangeWarningDialog';
 import { WorkOrderDetailsSidebar } from '@/features/work-orders/components/WorkOrderDetailsSidebar';
-import { WorkOrderPDFExportDialog } from '@/features/work-orders/components/WorkOrderPDFExportDialog';
-import { MobileWorkOrderActionSheet } from '@/features/work-orders/components/MobileWorkOrderActionSheet';
-import { MobileWorkOrderActionFooter } from '@/features/work-orders/components/MobileWorkOrderActionFooter';
 import { useWorkTimer } from '@/features/work-orders/hooks/useWorkTimer';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useInitializePMChecklist } from '@/features/pm-templates/hooks/useInitializePMChecklist';
 import { getPMChecklistStats } from '@/features/work-orders/utils/pmChecklistStats';
-import { useWorkOrderPDF } from '@/features/work-orders/hooks/useWorkOrderPDFData';
+import { useWorkOrderDetailsExports } from '@/features/work-orders/hooks/useWorkOrderDetailsExports';
 import { useWorkOrderDetailsActionQuery } from '@/features/work-orders/hooks/useWorkOrderDetailsActionQuery';
 import { useWorkOrderDetailsStagger } from '@/features/work-orders/hooks/useWorkOrderDetailsStagger';
 import { useWorkOrderDetailsPMInitialization } from '@/features/work-orders/hooks/useWorkOrderDetailsPMInitialization';
 import { useWorkOrderDetailsMobileWorkflow } from '@/features/work-orders/hooks/useWorkOrderDetailsMobileWorkflow';
 import { useWorkOrderDetailsNotesComposer } from '@/features/work-orders/hooks/useWorkOrderDetailsNotesComposer';
-import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
-import { useGoogleWorkspaceExportDestination } from '@/features/organization/hooks/useGoogleWorkspaceExportDestination';
 import { cn } from '@/lib/utils';
-import { canExportWorkOrderGoogleDoc } from '@/features/work-orders/utils/googleDocsExportAvailability';
 import { useAuth } from '@/hooks/useAuth';
 import { useOfflineQueue } from '@/contexts/OfflineQueueContext';
-import WorkOrderAcceptanceModal from '@/features/work-orders/components/WorkOrderAcceptanceModal';
-import type { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
 import {
-  buildEquipmentPdfInput,
   buildMobileEquipmentSummary,
   buildMobileWorkOrderAssigneeSummary,
   buildMobileWorkOrderSummary,
   buildOfflineSyncState,
   buildWorkOrderAssigneeSummary,
-  buildWorkOrderPdfInput,
   buildWorkOrderTeamSummary,
   isFooterRoleEligible,
   shouldHideInlineNoteAddButton,
@@ -52,6 +37,7 @@ import {
 } from '@/features/work-orders/utils/workOrderDetailsViewModel';
 import { WorkOrderDetailsMobileContent } from '@/features/work-orders/components/WorkOrderDetailsMobileContent';
 import { WorkOrderDetailsDesktopContent } from '@/features/work-orders/components/WorkOrderDetailsDesktopContent';
+import { WorkOrderDetailsOverlays } from '@/features/work-orders/components/WorkOrderDetailsOverlays';
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
@@ -196,64 +182,14 @@ const WorkOrderDetails = () => {
     onAutoOpenPDFDialog: () => setShowMobilePDFDialog(true),
   });
 
-  const { exportSingle, isExportingSingle, exportSingleToDocs, isExportingSingleToDocs } = useWorkOrderExcelExport(
-    currentOrganization?.id || '',
-    currentOrganization?.name || ''
-  );
-
-  const {
-    downloadPDF: downloadMobilePDF,
-    isGenerating: isMobilePDFGenerating,
-    saveToDrive: saveMobilePDFToDrive,
-    isSavingToDrive: isMobileSavingToDrive,
-    downloadFieldWorksheet: downloadMobileWorksheet,
-    isGeneratingWorksheet: isMobileWorksheetGenerating,
-  } = useWorkOrderPDF({
-    workOrder: buildWorkOrderPdfInput(workOrder),
-    equipment: buildEquipmentPdfInput(
-      equipment
-        ? {
-            id: equipment.id,
-            name: equipment.name,
-            manufacturer: equipment.manufacturer,
-            model: equipment.model,
-            serial_number: equipment.serial_number,
-            status: equipment.status,
-            location: equipment.location,
-            customer_id: equipment.customer_id,
-          }
-        : null,
-    ),
+  const exports = useWorkOrderDetailsExports({
+    workOrder,
+    equipment,
     pmData,
-    organizationName: currentOrganization?.name,
-    teamId: equipment?.team_id,
-  });
-
-  const { isConnected: isGoogleWorkspaceConnected, connectionStatus } = useGoogleWorkspaceConnectionStatus({
     organizationId: currentOrganization?.id,
+    organizationName: currentOrganization?.name,
+    isManager: permissionLevels.isManager,
   });
-  const { destination: googleDocsDestination } = useGoogleWorkspaceExportDestination(currentOrganization?.id, permissionLevels.isManager);
-  const canExportGoogleDoc = canExportWorkOrderGoogleDoc({
-    isConnected: isGoogleWorkspaceConnected,
-    scopes: connectionStatus?.scopes,
-    hasDestination: Boolean(googleDocsDestination),
-  });
-
-  const handleMobilePDFExport = async (options: { includeCosts: boolean }) => {
-    await downloadMobilePDF(options);
-  };
-
-  const handleMobileSaveToDrive = async (options: { includeCosts: boolean }) => {
-    await saveMobilePDFToDrive(options);
-  };
-
-  const handleMobileDownloadWorksheet = async () => {
-    try {
-      await downloadMobileWorksheet();
-    } catch {
-      // Error toast is shown by the hook
-    }
-  };
 
   if (!workOrderId) {
     logNavigationEvent('REDIRECT_NO_WORK_ORDER_ID');
@@ -451,141 +387,70 @@ const WorkOrderDetails = () => {
         />
       </div>
 
-      <WorkOrderForm
-        open={isEditFormOpen}
-        onClose={handleCloseEditForm}
+      <WorkOrderDetailsOverlays
+        isMobile={isMobile}
         workOrder={workOrder}
-        onSubmit={(data) => handleUpdateWorkOrder(data, workOrder.has_pm, workOrder.equipment_id)}
-        isUpdating={isUpdating}
         pmData={pmData}
-      />
-
-      <PMChangeWarningDialog
-        open={showPMWarning}
-        onOpenChange={setShowPMWarning}
-        onConfirm={handleConfirmPMChange}
-        onCancel={handleCancelPMChange}
-        changeType={pmChangeType}
-        hasExistingNotes={getPMDataDetails().hasNotes}
-        hasCompletedItems={getPMDataDetails().hasCompletedItems}
-      />
-
-      <WorkOrderPDFExportDialog
-        open={showMobilePDFDialog}
-        onOpenChange={setShowMobilePDFDialog}
-        onExport={handleMobilePDFExport}
-        isExporting={isMobilePDFGenerating}
-        showCostsOption={permissionLevels.isManager}
-        isGoogleWorkspaceConnected={isGoogleWorkspaceConnected}
-        hasOrganizationDriveDestination={Boolean(googleDocsDestination)}
-        onSaveToDrive={handleMobileSaveToDrive}
-        isSavingToDrive={isMobileSavingToDrive}
-      />
-
-      {isMobile && (
-        <MobileWorkOrderActionSheet
-          open={showMobileActionSheet}
-          onOpenChange={setShowMobileActionSheet}
-          workOrderId={workOrder.id}
-          workOrderStatus={workOrder.status}
-          equipmentTeamId={equipment?.team_id}
-          isManager={permissionLevels.isManager}
-          canEdit={canEdit}
-          onEdit={handleEditWorkOrder}
-          onViewFullDetails={() => {
-            setShowMobileActionSheet(false);
-            setShowMobileSidebar(true);
-          }}
-          onDownloadPDF={() => setShowMobilePDFDialog(true)}
-          onDownloadWorksheet={handleMobileDownloadWorksheet}
-          isGeneratingWorksheet={isMobileWorksheetGenerating}
-          onExportExcel={() => exportSingle(workOrder.id)}
-          isExportingExcel={isExportingSingle}
-          onExportGoogleDoc={canExportGoogleDoc ? () => exportSingleToDocs(workOrder.id) : undefined}
-          isExportingGoogleDoc={isExportingSingleToDocs}
-        />
-      )}
-
-      <AlertDialog open={showMobileCompleteDialog} onOpenChange={setShowMobileCompleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-success" />
-              Complete Work Order
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-2">
-                <p>Are you sure you want to mark this work order as completed?</p>
-                {workTimer.elapsedSeconds > 0 && (
-                  <p className="text-sm">
-                    Timer: <span className="font-medium text-foreground">{workTimer.displayTime}</span> ({(workTimer.elapsedSeconds / 3600).toFixed(2)}h)
-                  </p>
-                )}
-                <p className="text-sm font-medium text-foreground">Before completing, please confirm:</p>
-                <ul className="text-sm space-y-1 list-disc pl-4">
-                  <li>All hours have been logged</li>
-                  <li>All cost items have been recorded</li>
-                  <li>Notes and photos are up to date</li>
-                </ul>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={mobileStatusMutation.isPending}>
-              Go Back
-            </AlertDialogCancel>
-            <AlertDialogAction
-              disabled={mobileStatusMutation.isPending}
-              onClick={completeMobileWorkOrder}
-            >
-              {mobileStatusMutation.isPending ? 'Completing...' : 'Mark as Complete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <WorkOrderAcceptanceModal
-        open={showFieldAcceptDialog}
-        onClose={() => setShowFieldAcceptDialog(false)}
-        workOrder={workOrder as unknown as WorkOrderLike}
         organizationId={currentOrganization.id}
-        onAccept={handleFieldAcceptComplete}
+        equipmentTeamId={equipment?.team_id}
+        permissionLevels={permissionLevels}
+        canEdit={canEdit}
+        canAddNotes={canAddNotes}
+        canCompletePmGate={canCompletePmGate}
+        showMobileActionFooter={showMobileActionFooter}
+        syncState={syncState}
+        workTimer={workTimer}
+        isEditFormOpen={isEditFormOpen}
+        onCloseEditForm={handleCloseEditForm}
+        onUpdateWorkOrder={handleUpdateWorkOrder}
+        isUpdating={isUpdating}
+        showPMWarning={showPMWarning}
+        onPMWarningOpenChange={setShowPMWarning}
+        onConfirmPMChange={handleConfirmPMChange}
+        onCancelPMChange={handleCancelPMChange}
+        pmChangeType={pmChangeType}
+        pmDataDetails={getPMDataDetails()}
+        showMobilePDFDialog={showMobilePDFDialog}
+        onMobilePDFDialogOpenChange={setShowMobilePDFDialog}
+        onMobilePDFExport={exports.handleMobilePDFExport}
+        isMobilePDFGenerating={exports.isMobilePDFGenerating}
+        isGoogleWorkspaceConnected={exports.isGoogleWorkspaceConnected}
+        googleDocsDestination={exports.googleDocsDestination}
+        onMobileSaveToDrive={exports.handleMobileSaveToDrive}
+        isMobileSavingToDrive={exports.isMobileSavingToDrive}
+        showMobileActionSheet={showMobileActionSheet}
+        onMobileActionSheetOpenChange={setShowMobileActionSheet}
+        onEditWorkOrder={handleEditWorkOrder}
+        onViewFullDetails={() => {
+          setShowMobileActionSheet(false);
+          setShowMobileSidebar(true);
+        }}
+        onDownloadWorksheet={exports.handleMobileDownloadWorksheet}
+        isMobileWorksheetGenerating={exports.isMobileWorksheetGenerating}
+        onExportExcel={() => exports.exportSingle(workOrder.id)}
+        isExportingExcel={exports.isExportingSingle}
+        onExportGoogleDoc={
+          exports.canExportGoogleDoc ? () => exports.exportSingleToDocs(workOrder.id) : undefined
+        }
+        isExportingGoogleDoc={exports.isExportingSingleToDocs}
+        showMobileCompleteDialog={showMobileCompleteDialog}
+        onMobileCompleteDialogOpenChange={setShowMobileCompleteDialog}
+        mobileStatusMutation={mobileStatusMutation}
+        onCompleteMobileWorkOrder={completeMobileWorkOrder}
+        showFieldAcceptDialog={showFieldAcceptDialog}
+        onFieldAcceptDialogClose={() => setShowFieldAcceptDialog(false)}
+        onFieldAcceptComplete={handleFieldAcceptComplete}
+        fieldAcceptanceMutation={fieldAcceptanceMutation}
+        onOpenNotesComposer={openNotesComposer}
+        onOpenPhotoCapture={openPhotoCapture}
+        onStartMobileWorkOrder={startMobileWorkOrder}
+        onPutAssignedMobileWorkOrderOnHold={putAssignedMobileWorkOrderOnHold}
+        onPauseResumeMobileWorkOrder={pauseResumeMobileWorkOrder}
+        onOpenCompleteDialog={() => setShowMobileCompleteDialog(true)}
+        onScrollToChecklist={scrollToPMSection}
+        onRequestAccept={() => setShowFieldAcceptDialog(true)}
+        onRetrySync={offlineQueue.retryFailed}
       />
-
-      {showMobileActionFooter && (
-        <MobileWorkOrderActionFooter
-          workOrder={{
-            id: workOrder.id,
-            status: workOrder.status,
-            has_pm: workOrder.has_pm,
-            assignee_id: workOrder.assignee_id,
-            created_by: workOrder.created_by,
-          }}
-          organizationId={currentOrganization.id}
-          canCompletePm={canCompletePmGate}
-          canAddNotes={canAddNotes}
-          isUpdatingStatusExternal={mobileStatusMutation.isPending || fieldAcceptanceMutation.isPending}
-          syncState={syncState}
-          timerDisplay={workTimer.displayTime}
-          isTimerRunning={workTimer.isRunning}
-          onToggleTimer={() => {
-            if (workTimer.isRunning) {
-              workTimer.pause();
-            } else {
-              workTimer.start();
-            }
-          }}
-          onAddNote={openNotesComposer}
-          onAddPhoto={openPhotoCapture}
-          onStartWork={startMobileWorkOrder}
-          onAssignedPutOnHold={putAssignedMobileWorkOrderOnHold}
-          onPauseResume={pauseResumeMobileWorkOrder}
-          onOpenCompleteDialog={() => setShowMobileCompleteDialog(true)}
-          onScrollToChecklist={scrollToPMSection}
-          onRequestAccept={() => setShowFieldAcceptDialog(true)}
-          onRetrySync={offlineQueue.retryFailed}
-        />
-      )}
     </div>
   );
 };

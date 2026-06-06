@@ -12,6 +12,17 @@
 import fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
+import {
+  escapeRegExp,
+  stripSqlCommentsPreserveLength,
+  normalizeTableIdentifier,
+  parseAlterTableIdentifier,
+  tableIdentifiersMatch,
+  findLastAlterTableBefore,
+  findStatementEndSemicolon,
+  collectDropColumnMatches,
+  createTableRegex,
+} from '../../scripts/lib/migrationSqlAnalysis.mjs';
 
 const NAMING_REGEX = /^\d{14}_[a-z0-9_]+\.sql$/;
 
@@ -116,187 +127,6 @@ function fileExistsAtCommit(commitSha, filePath) {
   }
 }
 
-function escapeRegExp(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/**
- * Replace SQL comments with whitespace (preserving newlines and string literals)
- * so downstream regex scans keep stable indices without counting commented SQL.
- */
-function stripSqlCommentsPreserveLength(content) {
-  let result = '';
-  let i = 0;
-  let inSingleQuote = false;
-  let inLineComment = false;
-  let inBlockComment = false;
-
-  while (i < content.length) {
-    const char = content[i];
-    const nextChar = content[i + 1];
-
-    if (inLineComment) {
-      if (char === '\n') {
-        inLineComment = false;
-        result += '\n';
-      } else {
-        result += ' ';
-      }
-      i++;
-      continue;
-    }
-
-    if (inBlockComment) {
-      if (char === '*' && nextChar === '/') {
-        result += '  ';
-        i += 2;
-        inBlockComment = false;
-      } else {
-        result += char === '\n' ? '\n' : ' ';
-        i++;
-      }
-      continue;
-    }
-
-    if (inSingleQuote) {
-      result += char;
-      if (char === "'" && nextChar === "'") {
-        result += nextChar;
-        i += 2;
-        continue;
-      }
-      if (char === "'") {
-        inSingleQuote = false;
-      }
-      i++;
-      continue;
-    }
-
-    // Dollar-quoted string: $$...$$  or  $tag$...$tag$
-    // Blank out the block (preserve newlines) so tokens inside function bodies do not
-    // trigger false-positive RLS / DROP COLUMN checks.
-    if (char === '$') {
-      let j = i + 1;
-      while (j < content.length && /[A-Za-z0-9_]/.test(content[j])) {
-        j++;
-      }
-      if (j < content.length && content[j] === '$') {
-        const dollarTag = content.slice(i, j + 1);
-        const closeIdx = content.indexOf(dollarTag, j + 1);
-        if (closeIdx !== -1) {
-          const endIdx = closeIdx + dollarTag.length;
-          for (let k = i; k < endIdx; k++) {
-            result += content[k] === '\n' ? '\n' : ' ';
-          }
-          i = endIdx;
-          continue;
-        }
-      }
-    }
-
-    if (char === '-' && nextChar === '-') {
-      inLineComment = true;
-      result += '  ';
-      i += 2;
-      continue;
-    }
-
-    if (char === '/' && nextChar === '*') {
-      inBlockComment = true;
-      result += '  ';
-      i += 2;
-      continue;
-    }
-
-    if (char === "'") {
-      inSingleQuote = true;
-    }
-
-    result += char;
-    i++;
-  }
-
-  return result;
-}
-
-/** True if the line containing `index` starts with `--` (SQL line comment). */
-function isLineSqlComment(content, index) {
-  const lineStart = content.lastIndexOf('\n', index - 1) + 1;
-  return content.slice(lineStart, index).trimStart().startsWith('--');
-}
-
-/**
- * Last start index of a case-insensitive `ALTER TABLE` before `beforeIndex`, skipping `--` line comments.
- */
-function findLastAlterTableBefore(content, beforeIndex) {
-  const lower = content.toLowerCase();
-  const needle = 'alter table';
-  let last = -1;
-  let pos = 0;
-  while (pos < beforeIndex) {
-    const idx = lower.indexOf(needle, pos);
-    if (idx === -1 || idx >= beforeIndex) break;
-    if (!isLineSqlComment(content, idx)) {
-      last = idx;
-    }
-    pos = idx + 1;
-  }
-  return last;
-}
-
-/**
- * Index of the first `;` statement terminator at or after `start`, ignoring `--` lines and simple single-quoted literals.
- */
-function findStatementEndSemicolon(content, start) {
-  let i = start;
-  let inSingle = false;
-  while (i < content.length) {
-    if (!inSingle && content.startsWith('--', i)) {
-      const nl = content.indexOf('\n', i);
-      i = nl === -1 ? content.length : nl + 1;
-      continue;
-    }
-    const c = content[i];
-    if (c === "'") {
-      if (inSingle && content[i + 1] === "'") {
-        i += 2;
-        continue;
-      }
-      inSingle = !inSingle;
-      i++;
-      continue;
-    }
-    if (!inSingle && c === ';') return i;
-    i++;
-  }
-  return content.length - 1;
-}
-
-function normalizeTableIdentifier(identifier) {
-  if (!identifier) return null;
-  const parts = identifier
-    .split('.')
-    .map((part) => part.trim().replace(/^"|"$/g, '').toLowerCase())
-    .filter(Boolean);
-  return parts.length > 0 ? parts.join('.') : null;
-}
-
-function parseAlterTableIdentifier(statement) {
-  const match = statement.match(
-    /ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?((?:(?:"[^"]+"|[a-zA-Z_]\w*)\s*\.\s*)?(?:"[^"]+"|[a-zA-Z_]\w*))/i,
-  );
-  return normalizeTableIdentifier(match?.[1] ?? null);
-}
-
-function tableIdentifiersMatch(left, right) {
-  if (!left || !right) return false;
-  if (left === right) return true;
-
-  const leftTable = left.split('.').at(-1);
-  const rightTable = right.split('.').at(-1);
-  return Boolean(leftTable && rightTable && leftTable === rightTable);
-}
-
 if (changedFiles.length === 0) {
   console.log('✅ No migration files changed. Skipping validation.');
   process.exit(0);
@@ -313,23 +143,6 @@ if (comparisonBaseCommit) {
   console.log('ℹ️  No baseline commit resolved; defaulting to content checks for changed files.');
 }
 
-/*
- * CREATE TABLE — optional schema.table; groups [1]/[2] = schema, [3]/[4] = table.
- * Skip RLS enforcement when schema is present and not `public`.
- */
-const createTableRegex =
-  /CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+(?:(?:"([^"]+)"|([a-z_][a-z0-9_]*))\s*\.\s*)?(?:"([^"]+)"|([a-z_][a-z0-9_]*))/gi;
-
-/*
- * DROP COLUMN — supports ALTER TABLE IF EXISTS, quoted/schema-qualified table ids,
- * IF EXISTS on the column, and chained ", DROP COLUMN …" in one statement.
- */
-const dropColumnLeadRegex =
-  /ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:(?:"[^"]+"|[a-zA-Z_]\w*)\s*\.\s*)?(?:"[^"]+"|[a-zA-Z_]\w*)\s+DROP\s+COLUMN\s+(?:IF\s+EXISTS\s+(?:"([^"]+)"|(\w+))|(?:"([^"]+)"|(\w+)))/gi;
-
-const dropColumnChainRegex =
-  /,\s*DROP\s+COLUMN\s+(?:IF\s+EXISTS\s+(?:"([^"]+)"|(\w+))|(?:"([^"]+)"|(\w+)))/gi;
-
 /** Pre-read all migration bodies once for RLS scans (single build for all changed files). */
 let migFileContentsCache = null;
 try {
@@ -341,24 +154,6 @@ try {
   });
 } catch (_) {
   migFileContentsCache = null;
-}
-
-function collectDropColumnMatches(content) {
-  const matches = [];
-
-  dropColumnLeadRegex.lastIndex = 0;
-  let m;
-  while ((m = dropColumnLeadRegex.exec(content)) !== null) {
-    matches.push({ index: m.index, groups: m });
-  }
-
-  dropColumnChainRegex.lastIndex = 0;
-  while ((m = dropColumnChainRegex.exec(content)) !== null) {
-    matches.push({ index: m.index, groups: m });
-  }
-
-  matches.sort((a, b) => a.index - b.index);
-  return matches;
 }
 
 for (const filePath of changedFiles) {
