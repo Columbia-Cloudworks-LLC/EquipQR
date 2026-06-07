@@ -49,6 +49,10 @@ interface QuickBooksCustomer {
 }
 
 import { buildQBOContacts } from "./qbo-contacts.ts";
+import {
+  buildCustomerQueries,
+  sanitizeCustomerSearchQuery,
+} from "./qbo-customer-query.ts";
 export { buildQBOContacts } from "./qbo-contacts.ts";
 
 interface CustomerQueryResponse {
@@ -151,97 +155,86 @@ serveQuickBooksFunction(FUNCTION_NAME, logStep, async ({
       { onPersistError: "logAndContinue", log: logStep },
     );
 
-    // Build the QuickBooks Customer query — include all documented contact fields
-    let customerQuery = "SELECT Id, DisplayName, GivenName, FamilyName, CompanyName, PrimaryEmailAddr, PrimaryPhone, Mobile, Fax, AlternatePhone, BillAddr, ShipAddr, Taxable FROM Customer WHERE Active = true";
-    if (query && query.trim()) {
-      // Whitelist: allow only alphanumeric, spaces, hyphens, periods, commas, apostrophes
-      // This prevents QuickBooks Query Language injection via special characters
-      const sanitizedQuery = query.replace(/[^a-zA-Z0-9\s\-.,']/g, "").trim();
-
-      // Reject excessively long search queries
-      if (sanitizedQuery.length > 100) {
-        return new Response(JSON.stringify({
-          success: false,
-          error: "Search query too long"
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      if (sanitizedQuery.length > 0) {
-        // Escape single quotes for the QuickBooks query (defense-in-depth)
-        const escapedQuery = sanitizedQuery.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-        customerQuery = `SELECT Id, DisplayName, GivenName, FamilyName, CompanyName, PrimaryEmailAddr, PrimaryPhone, Mobile, Fax, AlternatePhone, BillAddr, ShipAddr, Taxable FROM Customer WHERE Active = true AND (DisplayName LIKE '%${escapedQuery}%' OR CompanyName LIKE '%${escapedQuery}%')`;
-      }
-    }
-    customerQuery += " MAXRESULTS 100";
-
-    logStep("Querying QuickBooks customers", { realmId: credentials.realm_id });
-
-    // Call QuickBooks API (with minorversion for full field support)
-    const qbResponse = await fetch(
-      withMinorVersion(`${QBO_API_BASE}/v3/company/${credentials.realm_id}/query?query=${encodeURIComponent(customerQuery)}`),
-      {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    // Capture intuit_tid from response headers for troubleshooting
-    const intuitTid = getIntuitTid(qbResponse);
-
-    if (!qbResponse.ok) {
-      const errorText = await qbResponse.text();
-      console.error("QuickBooks API error:", qbResponse.status, errorText);
-      logStep("QuickBooks API error", { status: qbResponse.status, intuit_tid: intuitTid });
-      
-      // Handle specific error cases
-      if (qbResponse.status === 401) {
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: "QuickBooks authentication failed. Please reconnect QuickBooks." 
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      throw new Error("Failed to query QuickBooks customers");
-    }
-
-    const qbData: CustomerQueryResponse = await qbResponse.json();
-
-    // Check for Fault in 200 OK response (QBO best practice)
-    // QBO can return HTTP 200 with a Fault body instead of query results
-    if ((qbData as unknown as Record<string, unknown>).Fault) {
-      const faultObj = (qbData as unknown as Record<string, unknown>).Fault as Record<string, unknown>;
-      // Only log non-sensitive fault metadata (type + error codes); avoid raw message/detail
-      const errorCodes = Array.isArray(faultObj?.Error)
-        ? (faultObj.Error as Array<Record<string, unknown>>).map(e => ({ code: e?.code }))
-        : [];
-      logStep("Fault in customer query response", { type: faultObj?.type, errorCodes, intuit_tid: intuitTid });
-      // Return 422 instead of throwing to the catch block (which returns 500).
-      // This is a validation/query error from QBO, not an internal server error.
-      // Uses the request-scoped corsHeaders (origin-validated) for consistency
-      // with all other responses in this function — not createErrorResponse,
-      // which applies the wildcard CORS headers.
+    const sanitizedQuery = sanitizeCustomerSearchQuery(query);
+    if (sanitizedQuery.length > 100) {
       return new Response(JSON.stringify({
         success: false,
-        error: "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.",
+        error: "Search query too long"
       }), {
-        status: 422,
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const customers = qbData.QueryResponse.Customer || [];
+    logStep("Querying QuickBooks customers", { realmId: credentials.realm_id });
 
-    logStep("Customers fetched successfully", { count: customers.length, intuit_tid: intuitTid });
+    const customersById = new Map<string, QuickBooksCustomer>();
+    let lastIntuitTid: string | undefined;
+    for (const customerQuery of buildCustomerQueries(sanitizedQuery)) {
+      // Call QuickBooks API (with minorversion for full field support)
+      const qbResponse = await fetch(
+        withMinorVersion(`${QBO_API_BASE}/v3/company/${credentials.realm_id}/query?query=${encodeURIComponent(customerQuery)}`),
+        {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Capture intuit_tid from response headers for troubleshooting
+      const intuitTid = getIntuitTid(qbResponse);
+      lastIntuitTid = intuitTid;
+
+      if (!qbResponse.ok) {
+        const errorText = await qbResponse.text();
+        console.error("QuickBooks API error:", qbResponse.status, errorText);
+        logStep("QuickBooks API error", { status: qbResponse.status, intuit_tid: intuitTid });
+
+        // Handle specific error cases
+        if (qbResponse.status === 401) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: "QuickBooks authentication failed. Please reconnect QuickBooks."
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        throw new Error("Failed to query QuickBooks customers");
+      }
+
+      const qbData: CustomerQueryResponse = await qbResponse.json();
+
+      // Check for Fault in 200 OK response (QBO best practice)
+      // QBO can return HTTP 200 with a Fault body instead of query results
+      if ((qbData as unknown as Record<string, unknown>).Fault) {
+        const faultObj = (qbData as unknown as Record<string, unknown>).Fault as Record<string, unknown>;
+        // Only log non-sensitive fault metadata (type + error codes); avoid raw message/detail
+        const errorCodes = Array.isArray(faultObj?.Error)
+          ? (faultObj.Error as Array<Record<string, unknown>>).map(e => ({ code: e?.code }))
+          : [];
+        logStep("Fault in customer query response", { type: faultObj?.type, errorCodes, intuit_tid: intuitTid });
+        return new Response(JSON.stringify({
+          success: false,
+          error: "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.",
+        }), {
+          status: 422,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      for (const customer of qbData.QueryResponse.Customer || []) {
+        customersById.set(customer.Id, customer);
+      }
+    }
+
+    const customers = Array.from(customersById.values());
+
+    logStep("Customers fetched successfully", { count: customers.length, intuit_tid: lastIntuitTid });
 
     // Return simplified customer list with documented contact fields and normalized contacts
     const simplifiedCustomers = customers.map(c => ({
