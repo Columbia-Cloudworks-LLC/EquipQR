@@ -39,9 +39,10 @@ async function assertIntuitInvoicePage(page: Page, invoiceId: string): Promise<v
   const invoiceUrl = getProductionQuickBooksInvoiceUrl(invoiceId);
   await page.goto(invoiceUrl, { waitUntil: 'domcontentloaded', timeout: 120_000 });
 
-  const url = page.url();
-  expect(url).toMatch(/app\.qbo\.intuit\.com/i);
-  expect(url).not.toMatch(/signin|login|accounts\.intuit\.com/i);
+  const { hostname, pathname } = new URL(page.url());
+  expect(hostname).toBe('app.qbo.intuit.com');
+  expect(pathname).not.toMatch(/signin|login/i);
+  expect(hostname).not.toBe('accounts.intuit.com');
 
   const signInHeading = page.getByRole('heading', { name: /sign in|log in/i });
   if ((await signInHeading.count()) > 0) {

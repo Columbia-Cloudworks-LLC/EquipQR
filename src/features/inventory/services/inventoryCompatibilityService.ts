@@ -189,7 +189,7 @@ export const bulkLinkEquipmentToItem = async (
 // Bulk Link Items to Equipment
 // ============================================
 
-const bulkLinkItemsToEquipment = async (
+export const bulkLinkItemsToEquipment = async (
   organizationId: string,
   itemIds: string[],
   equipmentId: string
