@@ -1,12 +1,12 @@
 import { isTrustedDomain, isValidRedirectUrl } from "./gw-oauth-validation.ts";
+import { resolvePublicSiteUrl } from "../_shared/public-site-url.ts";
 
-export function resolveProductionUrl(productionUrl: string | undefined): string {
-  return productionUrl || "https://equipqr.app";
+export function resolveProductionUrl(productionUrl?: string): string {
+  return productionUrl || resolvePublicSiteUrl();
 }
 
 export function resolveFallbackProductionUrl(): string {
-  const rawProductionUrl = Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
-  // Validate PRODUCTION_URL to prevent open redirect attacks
+  const rawProductionUrl = resolvePublicSiteUrl();
   return isTrustedDomain(rawProductionUrl)
     ? rawProductionUrl
     : "https://equipqr.app";

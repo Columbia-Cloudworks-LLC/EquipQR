@@ -73,9 +73,9 @@ function Sync-AppViteMirrors {
     $mirrorMap = [ordered]@{
         "SUPABASE_URL"             = "VITE_SUPABASE_URL"
         "SUPABASE_ANON_KEY"        = "VITE_SUPABASE_ANON_KEY"
+        "PUBLIC_SITE_URL"          = "VITE_PUBLIC_SITE_URL"
         "PRODUCTION_URL"           = "VITE_PRODUCTION_URL"
         "INTUIT_CLIENT_ID"         = "VITE_INTUIT_CLIENT_ID"
-        "QB_OAUTH_REDIRECT_BASE_URL" = "VITE_QB_OAUTH_REDIRECT_BASE_URL"
         "ENABLE_DEVTOOLS"          = "VITE_ENABLE_DEVTOOLS"
         "ENABLE_QUICKBOOKS"        = "VITE_ENABLE_QUICKBOOKS"
         "VAPID_PUBLIC_KEY"         = "VITE_VAPID_PUBLIC_KEY"
@@ -142,8 +142,9 @@ if ($doEdge) {
         Add-EnvLines -Result $result -Lines $opLines -Overwrite $true
 
         $result['INTUIT_REDIRECT_URI'] = $localQbRedirect
-        $result['QB_OAUTH_REDIRECT_BASE_URL'] = $localSupabaseUrl
-        $result['GW_OAUTH_REDIRECT_BASE_URL'] = $localSupabaseUrl
+        if (-not $result.Contains('PUBLIC_SITE_URL')) {
+            $result['PUBLIC_SITE_URL'] = 'http://localhost:8080'
+        }
 
         $reservedKeys = [System.Collections.Generic.List[string]]::new()
         foreach ($key in $result.Keys) {

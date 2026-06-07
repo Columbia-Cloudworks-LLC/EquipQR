@@ -13,6 +13,7 @@
  */
 
 import { Resend } from "npm:resend@2.0.0";
+import { resolvePublicSiteUrl } from "../_shared/public-site-url.ts";
 import {
   requireAuthenticatedPost,
   verifyOrgAdmin,
@@ -163,13 +164,7 @@ async function handle(req: Request, _ctx: RequestContext): Promise<Response> {
 
     const organizationLogo = isValidOrgShape(rawOrg) ? rawOrg.logo : undefined;
 
-    // PUBLIC_SITE_URL is the env-specific origin (set per-environment so preview
-    // and staging invites link back to the correct host, not production).
-    // PRODUCTION_URL is the legacy fallback; final hardcode covers missing config.
-    const baseUrl =
-      Deno.env.get("PUBLIC_SITE_URL") ??
-      Deno.env.get("PRODUCTION_URL") ??
-      "https://equipqr.app";
+    const baseUrl = resolvePublicSiteUrl();
     const invitationUrl = `${baseUrl}/invitation/${invitation.invitation_token}`;
 
     // Construct absolute URLs for logos

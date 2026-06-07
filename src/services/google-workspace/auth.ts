@@ -81,12 +81,8 @@ export type OAuthState = OAuthStatePayload;
  * Generates the Google Workspace OAuth authorization URL for the current organization.
  *
  * **OAuth Redirect Base URL Resolution:**
- * The redirect URI is constructed using the following precedence:
- * 1. `VITE_GW_OAUTH_REDIRECT_BASE_URL` - Use this when your Edge Functions or OAuth
- *    callback are exposed on a custom domain or behind a gateway different from the
- *    Supabase project URL.
- * 2. `VITE_SUPABASE_URL` - Fallback to the default Supabase project URL where the
- *    Edge Function `google-workspace-oauth-callback` is hosted.
+ * The redirect URI is derived from `VITE_SUPABASE_URL` by default. A deprecated
+ * `VITE_GW_OAUTH_REDIRECT_BASE_URL` override is still normalized for legacy deploys.
  *
  * @param config - Configuration options for OAuth URL generation
  * @returns A fully formed Google OAuth 2.0 authorization URL
@@ -97,9 +93,10 @@ export async function generateGoogleWorkspaceAuthUrl(
 ): Promise<string> {
   const clientId = import.meta.env.VITE_GOOGLE_WORKSPACE_CLIENT_ID;
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  // Prefer explicit OAuth redirect base URL override, otherwise fall back to Supabase project URL
-  const explicitBaseUrl = import.meta.env.VITE_GW_OAUTH_REDIRECT_BASE_URL;
-  const oauthRedirectBaseUrl = resolveOAuthRedirectBaseUrl(explicitBaseUrl, supabaseUrl);
+  const oauthRedirectBaseUrl = resolveOAuthRedirectBaseUrl(
+    import.meta.env.VITE_GW_OAUTH_REDIRECT_BASE_URL,
+    supabaseUrl,
+  );
 
   if (!clientId) {
     throw new Error('Google Workspace integration is not configured. Missing VITE_GOOGLE_WORKSPACE_CLIENT_ID.');

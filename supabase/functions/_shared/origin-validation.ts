@@ -69,5 +69,10 @@ function getValidatedOrigin(req: Request): string {
     return origin;
   }
 
+  const publicSiteUrl = Deno.env.get("PUBLIC_SITE_URL")?.trim();
+  if (publicSiteUrl) {
+    return publicSiteUrl;
+  }
+
   return Deno.env.get("PRODUCTION_URL") || PRODUCTION_ORIGIN;
 }

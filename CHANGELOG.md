@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- Simplified URL configuration: OAuth callback URIs now derive from `VITE_SUPABASE_URL` / `SUPABASE_URL`, and Edge redirects prefer `PUBLIC_SITE_URL` with legacy `PRODUCTION_URL` fallback; deprecated QBO/GW redirect base env vars removed from sync scripts and docs.
 
 ### Added
 
@@ -1976,6 +1977,7 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 ---
 
 [Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.1...HEAD
+- Simplified URL configuration: OAuth callback URIs now derive from `VITE_SUPABASE_URL` / `SUPABASE_URL`, and Edge redirects prefer `PUBLIC_SITE_URL` with legacy `PRODUCTION_URL` fallback; deprecated QBO/GW redirect base env vars removed from sync scripts and docs.
 [3.8.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.0...v3.8.1
 [3.8.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.4...v3.8.0
 [3.6.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.3...v3.6.4

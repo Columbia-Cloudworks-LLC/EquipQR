@@ -1,39 +1,30 @@
 import { logStep } from "./gw-oauth-validation.ts";
+import {
+  buildOAuthCallbackRedirectUri,
+  resolveOAuthRedirectBaseUrl,
+} from "../_shared/oauth-redirect-base.ts";
 
 const EXPECTED_CALLBACK_PATH = "/functions/v1/google-workspace-oauth-callback";
-const RETIRED_OAUTH_REDIRECT_BASE_URLS: Record<string, string> = {
-  "https://supabase.preview.equipqr.app": "https://olsdirkvvfegvclbpgrg.supabase.co",
-};
 
-export function resolveOAuthRedirectBaseUrl(
-  configuredBaseUrl: string | undefined,
-  fallbackBaseUrl: string,
-): string {
-  const rawBaseUrl = (configuredBaseUrl || fallbackBaseUrl).trim().replace(/\/+$/, "");
-  return RETIRED_OAUTH_REDIRECT_BASE_URLS[rawBaseUrl] ?? rawBaseUrl;
-}
+export { resolveOAuthRedirectBaseUrl };
 
 export function buildOAuthRedirectUri(oauthRedirectBaseUrl: string): string {
-  const redirectBaseUrl = oauthRedirectBaseUrl.trim().replace(/\/+$/, "");
-  return `${redirectBaseUrl}${EXPECTED_CALLBACK_PATH}`;
+  return buildOAuthCallbackRedirectUri(oauthRedirectBaseUrl, EXPECTED_CALLBACK_PATH);
 }
 
 /**
- * Validates redirect_uri against allowlist to prevent redirect manipulation attacks.
- * We use exact URL matching with hostname validation to prevent:
- * 1. Path traversal attacks (e.g., "base/callback/../evil")
- * 2. Subdomain attacks (e.g., attacker controls "evil.supabase.co")
+ * Validates redirect_uri against the derived Supabase callback base.
  */
 export function validateOAuthRedirectUri(
   redirectUri: string,
   supabaseUrl: string,
 ): void {
-  const allowedBaseUrls = [
-    supabaseUrl?.trim().replace(/\/+$/, ""),
-    Deno.env.get("GW_OAUTH_REDIRECT_BASE_URL")?.trim().replace(/\/+$/, ""),
-  ].filter(Boolean) as string[];
+  const oauthRedirectBaseUrl = resolveOAuthRedirectBaseUrl(
+    Deno.env.get("GW_OAUTH_REDIRECT_BASE_URL"),
+    supabaseUrl,
+  );
+  const allowedBaseUrls = [oauthRedirectBaseUrl];
 
-  // Parse redirect URI to validate hostname separately
   let parsedRedirectUri: URL;
   try {
     parsedRedirectUri = new URL(redirectUri);
@@ -45,21 +36,18 @@ export function validateOAuthRedirectUri(
     );
   }
 
-  // Build allowlist with both full URIs and parsed hostnames for validation
   const allowedRedirectUris = allowedBaseUrls.map((base) => base + EXPECTED_CALLBACK_PATH);
   const allowedHostnames = new Set<string>();
-  
+
   for (const baseUrl of allowedBaseUrls) {
     try {
       const parsed = new URL(baseUrl);
-      // Store the exact hostname (no subdomains allowed)
       allowedHostnames.add(parsed.hostname);
     } catch (error) {
       logStep("WARNING: Could not parse base URL", { baseUrl, error: String(error) });
     }
   }
 
-  // Ensure at least one valid base URL was configured
   if (allowedHostnames.size === 0) {
     logStep("ERROR: No valid base URLs configured", {
       allowedBaseUrls,
@@ -68,14 +56,11 @@ export function validateOAuthRedirectUri(
     throw new Error("No valid base URLs configured for OAuth redirect validation");
   }
 
-  // Validate: exact URI match AND hostname match (no subdomain attacks)
   const isUriExactMatch = allowedRedirectUris.includes(redirectUri);
   const isHostnameAllowed = allowedHostnames.has(parsedRedirectUri.hostname);
   const isPathCorrect = parsedRedirectUri.pathname === EXPECTED_CALLBACK_PATH;
 
   if (!isUriExactMatch || !isHostnameAllowed || !isPathCorrect) {
-    // Log only hostname and pathname to avoid exposing sensitive query parameters or tokens
-    // that an attacker might inject into the redirectUri
     logStep("ERROR: redirect_uri validation failed", {
       hostname: parsedRedirectUri.hostname,
       pathname: parsedRedirectUri.pathname,

@@ -77,9 +77,8 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
   // Get environment variables
   const clientId = import.meta.env.VITE_INTUIT_CLIENT_ID;
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const explicitOAuthRedirectBaseUrl = import.meta.env.VITE_QB_OAUTH_REDIRECT_BASE_URL;
   const oauthRedirectBaseUrl = resolveOAuthRedirectBaseUrl(
-    explicitOAuthRedirectBaseUrl,
+    import.meta.env.VITE_QB_OAUTH_REDIRECT_BASE_URL,
     supabaseUrl,
   );
 

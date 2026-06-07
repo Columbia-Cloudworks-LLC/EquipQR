@@ -30,6 +30,13 @@ Deno.test("buildOAuthRedirectUri trims trailing slashes and appends callback pat
   );
 });
 
+Deno.test("resolveOAuthRedirectBaseUrl derives from SUPABASE_URL when override unset", () => {
+  assertEquals(
+    resolveOAuthRedirectBaseUrl(undefined, "https://supabase.equipqr.app"),
+    "https://supabase.equipqr.app",
+  );
+});
+
 Deno.test("resolveOAuthRedirectBaseUrl normalizes retired preview Supabase hostname", () => {
   assertEquals(
     resolveOAuthRedirectBaseUrl(

@@ -1,0 +1,32 @@
+import { assertEquals } from "jsr:@std/assert@1";
+import {
+  buildOAuthCallbackRedirectUri,
+  resolveOAuthRedirectBaseUrl,
+} from "./oauth-redirect-base.ts";
+
+Deno.test("resolveOAuthRedirectBaseUrl derives from SUPABASE_URL when override unset", () => {
+  assertEquals(
+    resolveOAuthRedirectBaseUrl(undefined, "https://olsdirkvvfegvclbpgrg.supabase.co"),
+    "https://olsdirkvvfegvclbpgrg.supabase.co",
+  );
+});
+
+Deno.test("resolveOAuthRedirectBaseUrl normalizes retired preview Supabase hostname", () => {
+  assertEquals(
+    resolveOAuthRedirectBaseUrl(
+      "https://supabase.preview.equipqr.app",
+      "https://olsdirkvvfegvclbpgrg.supabase.co",
+    ),
+    "https://olsdirkvvfegvclbpgrg.supabase.co",
+  );
+});
+
+Deno.test("buildOAuthCallbackRedirectUri appends callback path", () => {
+  assertEquals(
+    buildOAuthCallbackRedirectUri(
+      "https://supabase.equipqr.app/",
+      "/functions/v1/quickbooks-oauth-callback",
+    ),
+    "https://supabase.equipqr.app/functions/v1/quickbooks-oauth-callback",
+  );
+});

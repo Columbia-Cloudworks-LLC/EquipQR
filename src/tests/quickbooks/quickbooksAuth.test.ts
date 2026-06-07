@@ -192,6 +192,25 @@ describe('QuickBooks Auth Utilities', () => {
       }));
     });
 
+    it('derives redirect_uri from VITE_SUPABASE_URL when override is unset', async () => {
+      vi.stubEnv('VITE_INTUIT_CLIENT_ID', 'test-client-id');
+      vi.stubEnv('VITE_SUPABASE_URL', 'https://olsdirkvvfegvclbpgrg.supabase.co');
+      vi.stubEnv('VITE_QB_OAUTH_REDIRECT_BASE_URL', '');
+
+      const mockRpc = vi.fn().mockResolvedValue({
+        data: [{ session_token: 'session-token', nonce: 'nonce-token' }],
+        error: null,
+      });
+      vi.mocked(supabase.rpc).mockImplementation(mockRpc);
+
+      const url = await generateQuickBooksAuthUrl({ organizationId: 'org-123' });
+      const parsed = new URL(url);
+
+      expect(parsed.searchParams.get('redirect_uri')).toBe(
+        'https://olsdirkvvfegvclbpgrg.supabase.co/functions/v1/quickbooks-oauth-callback',
+      );
+    });
+
     it('normalizes the retired preview Supabase redirect host', async () => {
       vi.stubEnv('VITE_INTUIT_CLIENT_ID', 'test-client-id');
       vi.stubEnv('VITE_SUPABASE_URL', 'https://olsdirkvvfegvclbpgrg.supabase.co');

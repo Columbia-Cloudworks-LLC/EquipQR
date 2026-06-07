@@ -1,8 +1,9 @@
 import { isValidRedirectUrl } from "./qb-oauth-validation.ts";
 import { logStep } from "./qb-oauth-validation.ts";
+import { resolvePublicSiteUrl } from "../_shared/public-site-url.ts";
 
 export function resolveProductionUrl(): string {
-  return Deno.env.get("PRODUCTION_URL") || "https://equipqr.app";
+  return resolvePublicSiteUrl();
 }
 
 export function buildAccessDeniedRedirectUrl(

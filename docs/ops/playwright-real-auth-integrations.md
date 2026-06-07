@@ -89,7 +89,7 @@ Spec file: `e2e/user/full/real-auth-integrations.spec.ts`
 | `QuickBooks Setup Required` | Team customer mapping missing | Map team in Team Settings |
 | Tests skipped | Missing env vars | Set variables per table above |
 | `VITE_ENABLE_QUICKBOOKS` false on preview | Feature flag off | QuickBooks UI hidden; fix preview public env |
-| QBO OAuth sends the browser to `supabase.preview.equipqr.app` | Retired preview Supabase custom hostname in client or Edge env | Use `https://olsdirkvvfegvclbpgrg.supabase.co` for both `VITE_QB_OAUTH_REDIRECT_BASE_URL` and `QB_OAUTH_REDIRECT_BASE_URL` |
+| QBO OAuth sends the browser to `supabase.preview.equipqr.app` | Stale Vercel build or retired hostname in vendor console | Ensure `VITE_SUPABASE_URL` is `https://olsdirkvvfegvclbpgrg.supabase.co` and Intuit redirect URI matches the derived callback URL |
 
 ## Safety rails
 

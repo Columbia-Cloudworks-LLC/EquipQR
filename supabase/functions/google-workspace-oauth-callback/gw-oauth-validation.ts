@@ -1,3 +1,5 @@
+import { resolvePublicSiteUrl } from "../_shared/public-site-url.ts";
+
 // OAuth state validation constants
 // STATE_TTL_MS: Maximum age of OAuth state parameter (15 minutes)
 // MAX_CLOCK_SKEW_MS: Tolerance for clock drift between servers (2 minutes)
@@ -57,9 +59,8 @@ export function isValidEmail(email: string | null | undefined): boolean {
  * In production, localhost redirects should not be allowed.
  */
 export function isProductionEnvironment(): boolean {
-  const productionUrl = Deno.env.get("PRODUCTION_URL");
-  // If PRODUCTION_URL is set and doesn't contain localhost, we're in production
-  return !!productionUrl && !productionUrl.includes("localhost");
+  const publicSiteUrl = resolvePublicSiteUrl();
+  return !!publicSiteUrl && !publicSiteUrl.includes("localhost");
 }
 
 /**
@@ -67,9 +68,8 @@ export function isProductionEnvironment(): boolean {
  * Preview environments allow additional trusted domains like Vercel preview URLs.
  */
 export function isPreviewEnvironment(): boolean {
-  const productionUrl = Deno.env.get("PRODUCTION_URL") || "";
-  // If PRODUCTION_URL contains "preview" in the hostname, we're in preview/staging
-  return productionUrl.includes("preview.");
+  const publicSiteUrl = resolvePublicSiteUrl();
+  return publicSiteUrl.includes("preview.");
 }
 
 export function isValidRedirectUrl(urlToValidate: string | null, productionUrl: string): boolean {

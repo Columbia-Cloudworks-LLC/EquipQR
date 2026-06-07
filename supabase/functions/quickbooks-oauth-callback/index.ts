@@ -47,7 +47,9 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
 
     logStep("Using OAuth redirect base URL", {
       baseUrl: qbOAuthRedirectBaseUrl,
-      isCustom: !!Deno.env.get("QB_OAUTH_REDIRECT_BASE_URL"),
+      source: Deno.env.get("QB_OAUTH_REDIRECT_BASE_URL")
+        ? "deprecated_QB_OAUTH_REDIRECT_BASE_URL"
+        : "SUPABASE_URL",
     });
 
     const url = new URL(req.url);

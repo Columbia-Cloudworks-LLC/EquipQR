@@ -38,24 +38,25 @@ Configure these secrets in Supabase Dashboard → Edge Functions → Secrets:
 |-------------|-------------|
 | `INTUIT_CLIENT_ID` | Your Intuit app's Client ID |
 | `INTUIT_CLIENT_SECRET` | Your Intuit app's Client Secret |
-| `QB_OAUTH_REDIRECT_BASE_URL` | **CRITICAL**: Must match `VITE_QB_OAUTH_REDIRECT_BASE_URL` (see below) |
+| `PUBLIC_SITE_URL` | Public app origin for OAuth success redirects (`https://equipqr.app` prod, `https://preview.equipqr.app` preview) |
 | `QUICKBOOKS_SANDBOX` | Set to `"true"` for sandbox, `"false"` for production |
 
-**⚠️ Important: OAuth Redirect URL Configuration**
+**OAuth redirect URI (derived — do not set separate redirect base secrets)**
 
-OAuth 2.0 requires that the `redirect_uri` used during authorization **must exactly match** the `redirect_uri` used during token exchange. If you're using a custom domain for Supabase:
+EquipQR derives the QuickBooks OAuth callback from the canonical Supabase URL:
 
-1. Set `VITE_QB_OAUTH_REDIRECT_BASE_URL` in your client environment (e.g., `https://supabase.equipqr.app`)
-2. Set `QB_OAUTH_REDIRECT_BASE_URL` in your Edge Function secrets to the **same value**
-3. Register this URL in the Intuit Developer Portal as a Redirect URI
+- Browser: `VITE_SUPABASE_URL`
+- Edge token exchange: `SUPABASE_URL`
 
-| Environment | `VITE_QB_OAUTH_REDIRECT_BASE_URL` / `QB_OAUTH_REDIRECT_BASE_URL` |
-|-------------|------------------------------------------------------------------|
-| Production | `https://supabase.equipqr.app` |
-| Preview | `https://olsdirkvvfegvclbpgrg.supabase.co` |
-| Local | `http://localhost:54321` (or port from `supabase/config.toml` / `npx supabase status`) |
+Register the derived callback URI in the Intuit Developer Portal:
 
-If these values don't match, OAuth will fail with "oauth_failed" error.
+| Environment | Intuit redirect URI |
+|-------------|---------------------|
+| Production | `https://supabase.equipqr.app/functions/v1/quickbooks-oauth-callback` |
+| Preview | `https://olsdirkvvfegvclbpgrg.supabase.co/functions/v1/quickbooks-oauth-callback` |
+| Local | `http://localhost:54321/functions/v1/quickbooks-oauth-callback` |
+
+Legacy `VITE_QB_OAUTH_REDIRECT_BASE_URL` / `QB_OAUTH_REDIRECT_BASE_URL` overrides are deprecated. See [URL config external cleanup](../ops/url-config-external-cleanup.md).
 
 ### Vault Secrets (Token Refresh Scheduler)
 
@@ -84,7 +85,7 @@ Configure separately for each environment (preview, production).
      - Default: `https://your-project-ref.supabase.co/functions/v1/quickbooks-oauth-callback`
      - Custom domain: `https://supabase.yourdomain.com/functions/v1/quickbooks-oauth-callback`
      - Local dev: `http://localhost:54321/functions/v1/quickbooks-oauth-callback` (or port from `supabase/config.toml` / `npx supabase status`)
-     - Set `VITE_QB_OAUTH_REDIRECT_BASE_URL` to match the base URL
+     - Ensure `VITE_SUPABASE_URL` matches the Supabase project that hosts the callback
    - **Scopes**: `com.intuit.quickbooks.accounting`
 4. Copy the Client ID and Client Secret
 
@@ -199,7 +200,7 @@ Item resolution behavior:
 
 **"Failed to connect QuickBooks" / "oauth_failed" error**
 - **Most common cause**: `redirect_uri` mismatch between client and server
-- Verify `VITE_QB_OAUTH_REDIRECT_BASE_URL` (client) matches `QB_OAUTH_REDIRECT_BASE_URL` (Edge Function secret)
+- Verify `VITE_SUPABASE_URL` (client) matches the Supabase project URL used by the `quickbooks-oauth-callback` Edge Function
 - Ensure both match what's registered in the Intuit Developer Portal
 - Check Edge Function logs for detailed error messages
 

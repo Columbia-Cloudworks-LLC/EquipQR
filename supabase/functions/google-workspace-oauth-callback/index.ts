@@ -49,16 +49,11 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     const clientId = requireSecret("GOOGLE_WORKSPACE_CLIENT_ID", { functionName: FUNCTION_NAME });
     const clientSecret = requireSecret("GOOGLE_WORKSPACE_CLIENT_SECRET", { functionName: FUNCTION_NAME });
     const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: FUNCTION_NAME });
-    const productionUrl = Deno.env.get("PRODUCTION_URL");
     const oauthRedirectBaseUrl = resolveOAuthRedirectBaseUrl(
       Deno.env.get("GW_OAUTH_REDIRECT_BASE_URL"),
       supabaseUrl,
     );
-
-    if (!productionUrl) {
-      logStep("WARNING: PRODUCTION_URL not set, using fallback", { fallback: "https://equipqr.app" });
-    }
-    const resolvedProductionUrl = resolveProductionUrl(productionUrl);
+    const resolvedProductionUrl = resolveProductionUrl();
 
     try {
       new URL(oauthRedirectBaseUrl);

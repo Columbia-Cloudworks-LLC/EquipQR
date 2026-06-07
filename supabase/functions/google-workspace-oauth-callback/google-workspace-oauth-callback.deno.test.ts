@@ -155,9 +155,33 @@ Deno.test("resolveFallbackProductionUrl falls back when PRODUCTION_URL is untrus
   }
 });
 
-Deno.test("isProductionEnvironment and isPreviewEnvironment reflect PRODUCTION_URL", () => {
+Deno.test("isProductionEnvironment and isPreviewEnvironment prefer PUBLIC_SITE_URL", () => {
+  const prevPublic = Deno.env.get("PUBLIC_SITE_URL");
+  const prevProduction = Deno.env.get("PRODUCTION_URL");
+  try {
+    Deno.env.set("PUBLIC_SITE_URL", "https://preview.equipqr.app");
+    Deno.env.set("PRODUCTION_URL", "https://equipqr.app");
+    assertEquals(isProductionEnvironment(), true);
+    assertEquals(isPreviewEnvironment(), true);
+  } finally {
+    if (prevPublic === undefined) {
+      Deno.env.delete("PUBLIC_SITE_URL");
+    } else {
+      Deno.env.set("PUBLIC_SITE_URL", prevPublic);
+    }
+    if (prevProduction === undefined) {
+      Deno.env.delete("PRODUCTION_URL");
+    } else {
+      Deno.env.set("PRODUCTION_URL", prevProduction);
+    }
+  }
+});
+
+Deno.test("isProductionEnvironment and isPreviewEnvironment reflect PRODUCTION_URL fallback", () => {
+  const prevPublic = Deno.env.get("PUBLIC_SITE_URL");
   const prev = Deno.env.get("PRODUCTION_URL");
   try {
+    Deno.env.delete("PUBLIC_SITE_URL");
     Deno.env.set("PRODUCTION_URL", "https://equipqr.app");
     assertEquals(isProductionEnvironment(), true);
     assertEquals(isPreviewEnvironment(), false);
@@ -169,6 +193,11 @@ Deno.test("isProductionEnvironment and isPreviewEnvironment reflect PRODUCTION_U
     Deno.env.set("PRODUCTION_URL", "http://localhost:8080");
     assertEquals(isProductionEnvironment(), false);
   } finally {
+    if (prevPublic === undefined) {
+      Deno.env.delete("PUBLIC_SITE_URL");
+    } else {
+      Deno.env.set("PUBLIC_SITE_URL", prevPublic);
+    }
     if (prev === undefined) {
       Deno.env.delete("PRODUCTION_URL");
     } else {
