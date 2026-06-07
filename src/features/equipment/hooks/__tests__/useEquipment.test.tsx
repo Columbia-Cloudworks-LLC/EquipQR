@@ -31,8 +31,7 @@ vi.mock('@/features/equipment/services/EquipmentService', () => ({
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
-    createScan: vi.fn(),
-    createNote: vi.fn()
+    createScan: vi.fn()
   }
 }));
 

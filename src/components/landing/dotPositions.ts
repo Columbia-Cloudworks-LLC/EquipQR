@@ -60,20 +60,6 @@ function pointInPolygon(point: [number, number], polygon: Array<[number, number]
 }
 
 /**
- * DEPRECATED for new code — use computeDotPositionsInState instead.
- * Original deterministic positions (no polygon constraint).
- * Kept exported for back-compat with existing tests.
- */
-export function computeDotPositions(stateKey: StateCode, dotCount: number): DotPosition[] {
-  const rng = seededRng(strToSeed(stateKey));
-  return Array.from({ length: dotCount }, (_, i) => ({
-    id: i,
-    cx: rng() * VIEWBOX,
-    cy: rng() * VIEWBOX,
-  }));
-}
-
-/**
  * Compute dot positions GUARANTEED to fall inside the state's polygon, using
  * rejection sampling against the parsed STATE_VECTORS path.
  *

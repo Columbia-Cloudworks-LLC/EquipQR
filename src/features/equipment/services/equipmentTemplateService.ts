@@ -50,30 +50,4 @@ export class EquipmentTemplateService {
     return { successCount, errorCount };
   }
 
-  /**
-   * Bulk remove PM templates from multiple equipment records
-   */
-  static async bulkRemoveTemplates(equipmentIds: string[]): Promise<{ successCount: number; errorCount: number }> {
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const equipmentId of equipmentIds) {
-      try {
-        await this.removeTemplateFromEquipment(equipmentId);
-        successCount++;
-      } catch (error) {
-        logger.error(`Failed to remove template from equipment ${equipmentId}:`, error);
-        errorCount++;
-      }
-    }
-
-    return { successCount, errorCount };
-  }
-
-  /**
-   * Change PM template for multiple equipment records
-   */
-  static async bulkChangeTemplate(equipmentIds: string[], newTemplateId: string): Promise<{ successCount: number; errorCount: number }> {
-    return this.bulkAssignTemplate(equipmentIds, newTemplateId);
-  }
 }

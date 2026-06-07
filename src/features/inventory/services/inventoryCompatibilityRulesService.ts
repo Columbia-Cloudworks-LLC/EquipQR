@@ -2,11 +2,9 @@ import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { verifyInventoryItemInOrganization } from '@/features/inventory/services/inventoryItemAccess';
 import type { PartCompatibilityRule, PartCompatibilityRuleFormData, EquipmentMatchedByRules, ModelMatchType, VerificationStatus } from '@/features/inventory/types/inventory';
-import { normalizeCompatibilityRuleValue } from '@/services/compatibilityRuleNormalize';
 import {
   filterValidCompatibilityRules,
   mapCompatibilityRulesToJsonb,
-  throwOnCompatibilityRuleDuplicate,
 } from '@/services/compatibilityRulesJsonb';
 
 // ============================================
@@ -39,104 +37,6 @@ export const getCompatibilityRulesForItem = async (
     return (data || []) as PartCompatibilityRule[];
   } catch (error) {
     logger.error('Error fetching compatibility rules for item:', error);
-    throw error;
-  }
-};
-
-// ============================================
-// Add Compatibility Rule
-// ============================================
-
-/**
- * Add a single compatibility rule for an inventory item.
- * 
- * @param organizationId - Organization ID for access control
- * @param itemId - Inventory item ID
- * @param rule - Rule data (manufacturer, model)
- * @returns The created rule
- */
-export const addCompatibilityRule = async (
-  organizationId: string,
-  itemId: string,
-  rule: PartCompatibilityRuleFormData
-): Promise<PartCompatibilityRule> => {
-  try {
-    await verifyInventoryItemInOrganization(organizationId, itemId);
-
-    // Normalize values for matching
-    const manufacturerNorm = normalizeCompatibilityRuleValue(rule.manufacturer);
-    const modelNorm = rule.model ? normalizeCompatibilityRuleValue(rule.model) : null;
-
-    const { data, error } = await supabase
-      .from('part_compatibility_rules')
-      .insert({
-        inventory_item_id: itemId,
-        manufacturer: rule.manufacturer.trim(),
-        model: rule.model?.trim() || null,
-        manufacturer_norm: manufacturerNorm,
-        model_norm: modelNorm
-      })
-      .select()
-      .single();
-
-    if (error) {
-      throwOnCompatibilityRuleDuplicate(
-        error,
-        'This manufacturer/model combination already exists for this item',
-      );
-      throw error;
-    }
-
-    return data as PartCompatibilityRule;
-  } catch (error) {
-    logger.error('Error adding compatibility rule:', error);
-    throw error;
-  }
-};
-
-// ============================================
-// Remove Compatibility Rule
-// ============================================
-
-/**
- * Remove a compatibility rule by ID.
- * 
- * @param organizationId - Organization ID for access control
- * @param ruleId - Rule ID to remove
- */
-export const removeCompatibilityRule = async (
-  organizationId: string,
-  ruleId: string
-): Promise<void> => {
-  try {
-    // Verify rule belongs to an item in the organization (via RLS + explicit check)
-    const { data: rule, error: ruleError } = await supabase
-      .from('part_compatibility_rules')
-      .select(`
-        id,
-        inventory_items!inner(organization_id)
-      `)
-      .eq('id', ruleId)
-      .single();
-
-    if (ruleError || !rule) {
-      throw new Error('Compatibility rule not found or access denied');
-    }
-
-    // Type assertion for the joined data
-    const ruleData = rule as { id: string; inventory_items: { organization_id: string } };
-    if (ruleData.inventory_items.organization_id !== organizationId) {
-      throw new Error('Compatibility rule not found or access denied');
-    }
-
-    const { error } = await supabase
-      .from('part_compatibility_rules')
-      .delete()
-      .eq('id', ruleId);
-
-    if (error) throw error;
-  } catch (error) {
-    logger.error('Error removing compatibility rule:', error);
     throw error;
   }
 };

@@ -23,8 +23,6 @@ import {
 } from '@/features/inventory/services/inventoryCompatibilityService';
 import {
   getCompatibilityRulesForItem,
-  addCompatibilityRule,
-  removeCompatibilityRule,
   bulkSetCompatibilityRules,
   countEquipmentMatchingRules,
   getEquipmentMatchingItemRules
@@ -470,91 +468,6 @@ export const useEquipmentMatchingItemRules = (
     [] as EquipmentMatchedByRules[],
     options,
   );
-
-/**
- * Hook to add a single compatibility rule.
- */
-export const useAddCompatibilityRule = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useAppToast();
-
-  return useMutation({
-    mutationFn: async ({
-      organizationId,
-      itemId,
-      rule
-    }: {
-      organizationId: string;
-      itemId: string;
-      rule: PartCompatibilityRuleFormData;
-    }) => {
-      return await addCompatibilityRule(organizationId, itemId, rule);
-    },
-    onSuccess: (_, variables) => {
-      // Invalidate rules query
-      queryClient.invalidateQueries({
-        queryKey: ['compatibility-rules', variables.organizationId, variables.itemId]
-      });
-      // Invalidate compatible items queries (rules affect what's compatible)
-      queryClient.invalidateQueries({
-        queryKey: ['compatible-inventory-items', variables.organizationId]
-      });
-      toast({
-        title: 'Compatibility rule added',
-        description: 'The manufacturer/model rule has been added.'
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error adding compatibility rule',
-        description: error instanceof Error ? error.message : 'Failed to add rule',
-        variant: 'error'
-      });
-    }
-  });
-};
-
-/**
- * Hook to remove a compatibility rule.
- */
-export const useRemoveCompatibilityRule = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useAppToast();
-
-  return useMutation({
-    mutationFn: async ({
-      organizationId,
-      ruleId
-    }: {
-      organizationId: string;
-      itemId: string;
-      ruleId: string;
-    }) => {
-      return await removeCompatibilityRule(organizationId, ruleId);
-    },
-    onSuccess: (_, variables) => {
-      // Invalidate rules query
-      queryClient.invalidateQueries({
-        queryKey: ['compatibility-rules', variables.organizationId, variables.itemId]
-      });
-      // Invalidate compatible items queries
-      queryClient.invalidateQueries({
-        queryKey: ['compatible-inventory-items', variables.organizationId]
-      });
-      toast({
-        title: 'Compatibility rule removed',
-        description: 'The manufacturer/model rule has been removed.'
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error removing compatibility rule',
-        description: error instanceof Error ? error.message : 'Failed to remove rule',
-        variant: 'error'
-      });
-    }
-  });
-};
 
 /**
  * Hook to bulk set (replace) all compatibility rules for an item.
