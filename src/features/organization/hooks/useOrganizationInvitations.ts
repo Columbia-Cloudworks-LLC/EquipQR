@@ -324,24 +324,3 @@ export const useCancelInvitation = (organizationId: string) => {
     }
   });
 };
-
-// Direct invitation creation utility using atomic function
-const createInvitationDirectly = async (
-  organizationId: string,
-  email: string,
-  role: 'admin' | 'member',
-  message?: string
-): Promise<string> => {
-  const { data: invitationId, error } = await supabase.rpc('create_invitation_atomic', {
-    p_organization_id: organizationId,
-    p_email: email.toLowerCase().trim(),
-    p_role: role,
-    p_message: message || null
-  });
-
-  if (error) {
-    throw new Error(`Failed to create invitation: ${error.message}`);
-  }
-
-  return invitationId;
-};
