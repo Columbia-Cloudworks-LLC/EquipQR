@@ -240,6 +240,10 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
   const filteredAccounts = (orgCustomers ?? []).filter((a) =>
     a.name.toLowerCase().includes(accountSearchQuery.toLowerCase())
   );
+  const isImportLinkPending =
+    customerMutations.importFromQB.isPending ||
+    customerMutations.link.isPending ||
+    updateLegacyMapping.isPending;
 
   const isLinked = !!customerId && !!linkedCustomer;
 
@@ -414,9 +418,9 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
               </Button>
               <Button
                 onClick={handleImportAndLink}
-                disabled={!selectedCustomer || customerMutations.importFromQB.isPending}
+                disabled={!selectedCustomer || isImportLinkPending}
               >
-                {customerMutations.importFromQB.isPending && (
+                {isImportLinkPending && (
                   <RefreshCw className="h-4 w-4 animate-spin mr-2" />
                 )}
                 Import &amp; Link

@@ -8,6 +8,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 import { supabase } from '@/integrations/supabase/client';
 import {
   importCustomerFromQB,
+  linkTeamToCustomer,
   refreshCustomerFromQB,
   resolveQuickBooksCustomerId,
 } from '@/features/teams/services/customerAccountService';
@@ -458,6 +459,46 @@ describe('QuickBooks Import', () => {
       expect(externalContactsChain.delete).toHaveBeenCalled();
       expect(externalContactsChain.eq).toHaveBeenCalledWith('customer_id', 'cust-1');
       expect(externalContactsChain.eq).toHaveBeenCalledWith('source', 'quickbooks');
+    });
+  });
+
+  describe('linkTeamToCustomer', () => {
+    it('scopes the team link update by organization and verifies the updated row', async () => {
+      const mockChain = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 'team-1', customer_id: 'cust-1' },
+          error: null,
+        }),
+      };
+      mockFrom.mockReturnValue(mockChain as never);
+
+      await linkTeamToCustomer('team-1', 'cust-1', orgId);
+
+      expect(mockFrom).toHaveBeenCalledWith('teams');
+      expect(mockChain.update).toHaveBeenCalledWith({ customer_id: 'cust-1' });
+      expect(mockChain.eq).toHaveBeenCalledWith('id', 'team-1');
+      expect(mockChain.eq).toHaveBeenCalledWith('organization_id', orgId);
+      expect(mockChain.select).toHaveBeenCalledWith('id, customer_id');
+    });
+
+    it('throws when RLS or scoping updates zero team rows', async () => {
+      const mockChain = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: null,
+          error: null,
+        }),
+      };
+      mockFrom.mockReturnValue(mockChain as never);
+
+      await expect(linkTeamToCustomer('team-1', 'cust-1', orgId)).rejects.toThrow(
+        'Team customer account link could not be saved',
+      );
     });
   });
 

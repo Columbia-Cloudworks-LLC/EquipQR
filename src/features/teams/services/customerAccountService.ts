@@ -82,9 +82,14 @@ export async function linkTeamToCustomer(teamId: string, customerId: string | nu
     query = query.eq('organization_id', organizationId);
   }
 
-  const { error } = await query;
+  const { data, error } = await query
+    .select('id, customer_id')
+    .maybeSingle();
 
   if (error) throw error;
+  if (!data || data.customer_id !== customerId) {
+    throw new Error('Team customer account link could not be saved. Confirm you can manage this team and try again.');
+  }
 }
 
 // ============================================
