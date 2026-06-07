@@ -18,7 +18,6 @@ export function buildIntervalPayload(
   return { interval_value: null, interval_type: null };
 }
 export const SECTION_VIRTUALIZATION_THRESHOLD = 30;
-const VIRTUALIZATION_THRESHOLD = SECTION_VIRTUALIZATION_THRESHOLD;
 export const COMPACT_ROW_HEIGHT = 72;
 
 /** Reorder items within a flat checklist array (same-section drag-and-drop). */
