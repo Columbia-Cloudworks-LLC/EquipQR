@@ -23,9 +23,6 @@ The QuickBooks integration provides:
 Add to your `.env` file:
 
 ```env
-# Enable QuickBooks integration (set to 'true' to enable)
-VITE_ENABLE_QUICKBOOKS=false
-
 # Intuit OAuth Client ID (public, for initiating OAuth)
 VITE_INTUIT_CLIENT_ID=your-client-id
 ```
@@ -39,7 +36,6 @@ Configure these secrets in Supabase Dashboard → Edge Functions → Secrets:
 | `INTUIT_CLIENT_ID` | Your Intuit app's Client ID |
 | `INTUIT_CLIENT_SECRET` | Your Intuit app's Client Secret |
 | `PUBLIC_SITE_URL` | Public app origin for OAuth success redirects (`https://equipqr.app` prod, `https://preview.equipqr.app` preview) |
-| `QUICKBOOKS_SANDBOX` | Set to `"true"` for sandbox, `"false"` for production |
 
 **OAuth redirect URI (derived — do not set separate redirect base secrets)**
 
@@ -245,28 +241,14 @@ npm test -- --grep quickbooks
 From `supabase/functions` (uses `deno.json`):
 
 ```bash
-deno test --allow-env --allow-net=quickbooks.api.intuit.com,sandbox-quickbooks.api.intuit.com ./quickbooks-export-invoice/quickbooks-export-invoice.deno.test.ts
+deno test --allow-env --allow-net=quickbooks.api.intuit.com ./quickbooks-export-invoice/quickbooks-export-invoice.deno.test.ts
 ```
 
 ### Local Development
 
-1. Set up a QuickBooks sandbox company
-2. Configure sandbox credentials
-3. Set `QUICKBOOKS_SANDBOX=true` in edge function secrets
-4. Use `ngrok` or similar for local OAuth callback testing
-
-### Feature Flag
-
-The integration is controlled by a client-side feature flag:
-
-**QuickBooks Integration** (`VITE_ENABLE_QUICKBOOKS`):
-```typescript
-import { isQuickBooksEnabled } from '@/lib/flags';
-
-if (isQuickBooksEnabled()) {
-  // Show QuickBooks features
-}
-```
+1. Configure the production Intuit app credentials used by EquipQR.
+2. Register the local callback URI in Intuit if testing OAuth locally.
+3. Use `ngrok` or similar only when Intuit requires a publicly reachable callback for a local test.
 
 ## API Reference
 

@@ -93,7 +93,6 @@ VITE_HCAPTCHA_SITEKEY=your-hcaptcha-site-key
 VITE_SUPER_ADMIN_ORG_ID=your-org-id
 
 # Feature flags
-VITE_ENABLE_QUICKBOOKS=false
 
 # Google Maps (for equipment location features)
 VITE_GOOGLE_MAPS_API_KEY=your-maps-key

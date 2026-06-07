@@ -147,10 +147,9 @@ SUPABASE_SERVICE_ROLE_KEY=<local-service-role-key-from-supabase-start-output>
 SUPABASE_URL=http://localhost:58221
 SUPABASE_ANON_KEY=<local-anon-key>
 
-# QuickBooks (use sandbox credentials for local dev)
-INTUIT_CLIENT_ID=<your-sandbox-client-id>
-INTUIT_CLIENT_SECRET=<your-sandbox-client-secret>
-QUICKBOOKS_SANDBOX=true
+# QuickBooks
+INTUIT_CLIENT_ID=<your-intuit-client-id>
+INTUIT_CLIENT_SECRET=<your-intuit-client-secret>
 PUBLIC_SITE_URL=http://localhost:8080
 
 # Google Workspace Integration (if testing locally)

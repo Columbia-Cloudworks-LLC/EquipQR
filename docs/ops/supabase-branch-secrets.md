@@ -73,7 +73,6 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 |------------|--------------|---------------|-------|
 | `INTUIT_CLIENT_ID` | All QuickBooks functions | `Q0...` | QuickBooks OAuth client ID |
 | `INTUIT_CLIENT_SECRET` | All QuickBooks functions | `...` | QuickBooks OAuth client secret |
-| `QUICKBOOKS_SANDBOX` | All QuickBooks functions | `true` or `false` | Set to `true` for sandbox, `false` for production |
 
 OAuth callback URIs are derived from `SUPABASE_URL` — do **not** set `QB_OAUTH_REDIRECT_BASE_URL` or `GW_OAUTH_REDIRECT_BASE_URL` for normal environments. See [URL config external cleanup](url-config-external-cleanup.md).
 
@@ -121,28 +120,24 @@ OAuth callback URIs are derived from `SUPABASE_URL` — do **not** set `QB_OAUTH
 - `SUPABASE_URL` ✅
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
 - `PUBLIC_SITE_URL` ✅ (or legacy `PRODUCTION_URL`)
-- `QUICKBOOKS_SANDBOX` ✅
 
 #### `quickbooks-refresh-tokens`
 - `INTUIT_CLIENT_ID` ✅
 - `INTUIT_CLIENT_SECRET` ✅
 - `SUPABASE_URL` ✅
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
-- `QUICKBOOKS_SANDBOX` ✅
 
 #### `quickbooks-search-customers`
 - `INTUIT_CLIENT_ID` ✅
 - `INTUIT_CLIENT_SECRET` ✅
 - `SUPABASE_URL` ✅
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
-- `QUICKBOOKS_SANDBOX` ✅
 
 #### `quickbooks-export-invoice`
 - `INTUIT_CLIENT_ID` ✅
 - `INTUIT_CLIENT_SECRET` ✅
 - `SUPABASE_URL` ✅
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
-- `QUICKBOOKS_SANDBOX` ✅
 
 ### Bug Reporting
 
@@ -248,7 +243,6 @@ GITHUB_WEBHOOK_SECRET=<your-github-webhook-secret>
 # QuickBooks (if enabled)
 INTUIT_CLIENT_ID=<your-intuit-client-id>
 INTUIT_CLIENT_SECRET=<your-intuit-client-secret>
-QUICKBOOKS_SANDBOX=true
 
 # Google Workspace Integration (if enabled)
 GOOGLE_WORKSPACE_CLIENT_ID=<your-google-workspace-client-id>
