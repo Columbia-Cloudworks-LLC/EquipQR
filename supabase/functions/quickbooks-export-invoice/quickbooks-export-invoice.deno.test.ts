@@ -7,6 +7,7 @@ import { QBO_INVOICE_ITEM_NAMES } from "../_shared/quickbooks-config.ts";
 import { __testables } from "./qbo-invoice-lines.ts";
 import { __payloadTestables, type QuickBooksInvoice } from "./qbo-invoice-payload.ts";
 import { updateWorkOrderInvoiceMirror } from "./work-order-invoice-mirror.ts";
+import { loadWorkOrderForExport } from "./qbo-work-order-gate.ts";
 
 const {
   buildInvoiceLines,
@@ -1230,4 +1231,61 @@ Deno.test("updateWorkOrderInvoiceMirror resolves without throwing when the main 
     false,
     "mirror failures are secondary side effects — export outcome must not propagate them as failures",
   );
+});
+
+// ────────────────────────────────────────────────────────────────
+// Work order export gate (PR #1023)
+// ────────────────────────────────────────────────────────────────
+
+type WorkOrderExportSingleResult = {
+  data: unknown;
+  error: { code?: string; message: string } | null;
+};
+
+type WorkOrderExportQueryBuilder = {
+  select(_cols: string): WorkOrderExportQueryBuilder;
+  eq(_col: string, _val: unknown): WorkOrderExportQueryBuilder;
+  in(_col: string, _vals: unknown[]): WorkOrderExportQueryBuilder;
+  single(): Promise<WorkOrderExportSingleResult>;
+};
+
+function createWorkOrderExportMock(singleResult: WorkOrderExportSingleResult) {
+  function from(_table: string) {
+    const builder: WorkOrderExportQueryBuilder = {
+      select(_cols: string) { return builder; },
+      eq(_col: string, _val: unknown) { return builder; },
+      in(_col: string, _vals: unknown[]) { return builder; },
+      single() { return Promise.resolve(singleResult); },
+    };
+    return builder;
+  }
+  return { from };
+}
+
+Deno.test("loadWorkOrderForExport returns notFound for PGRST116", async () => {
+  const { from } = createWorkOrderExportMock({
+    data: null,
+    error: { code: "PGRST116", message: "JSON object requested, multiple (or no) rows returned" },
+  });
+  const result = await loadWorkOrderForExport(
+    { from } as unknown as SupabaseClient,
+    "wo-missing",
+    ["org-1"],
+  );
+  assertEquals(result, { workOrder: null, error: null, notFound: true });
+});
+
+Deno.test("loadWorkOrderForExport returns error without notFound for non-PGRST116 failures", async () => {
+  const { from } = createWorkOrderExportMock({
+    data: null,
+    error: { code: "42501", message: "permission denied for table work_orders" },
+  });
+  const result = await loadWorkOrderForExport(
+    { from } as unknown as SupabaseClient,
+    "wo-fail",
+    ["org-1"],
+  );
+  assertEquals(result.workOrder, null);
+  assertEquals(result.error, "permission denied for table work_orders");
+  assertEquals(result.notFound, false);
 });

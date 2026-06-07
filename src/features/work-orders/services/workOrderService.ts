@@ -4,16 +4,6 @@ import { BaseService, ApiResponse, PaginationParams, FilterParams } from '@/serv
 import { applySupabasePaginationRange } from '@/services/supabaseQueryPagination';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { validateStorageQuota } from '@/utils/storageQuota';
-import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
-import {
-  uploadImageToStorage,
-  resolveImageDisplayUrl,
-  normalizeStoredObjectPath,
-  batchResolveWorkOrderImageDisplayUrls,
-  displayUrlForStoredPrivateImage,
-  deleteImageFromStorage,
-} from '@/services/imageUploadService';
 
 // Import and re-export unified types from the single source of truth
 import {
@@ -25,17 +15,26 @@ import {
   WorkOrderNoteCreateData,
   WorkOrderImage,
   WorkOrderServiceFilters,
-  WorkOrderEmbeddedEquipment,
 } from '@/features/work-orders/types/workOrder';
 import { applyWorkOrderSupabaseFilters } from '@/features/work-orders/utils/workOrderSupabaseFilters';
 import {
-  fetchWorkOrderImagesWithUploaderProfiles,
-  mapResolvedImagesForNote,
-} from '@/features/work-orders/utils/workOrderNoteImageEnrichment';
+  WORK_ORDER_SELECT,
+  WORK_ORDER_LIST_SELECT,
+  mapWorkOrderRow,
+} from '@/features/work-orders/services/workOrderRowMapper';
 import {
-  fetchWorkOrderInOrganization,
-  requireAuthenticatedClaims,
-} from '@/features/work-orders/services/workOrderServiceAccess';
+  resolveEquipmentIdsForTeamFilter,
+  resolveEquipmentIdsForUserTeams,
+} from '@/features/work-orders/services/workOrderListQueryHelpers';
+import {
+  createWorkOrderNoteWithImages,
+  getWorkOrderNotesWithImages,
+} from '@/features/work-orders/services/workOrderNotesService';
+import {
+  fetchWorkOrderImagesForService,
+  uploadWorkOrderImageForService,
+} from '@/features/work-orders/services/workOrderServiceImages';
+import { fetchWorkOrderInOrganization } from '@/features/work-orders/services/workOrderServiceAccess';
 
 // Re-export types for backward compatibility
 export type {
@@ -52,334 +51,6 @@ export type {
  * Extends base FilterParams with work order specific filters
  */
 export interface WorkOrderFilters extends FilterParams, WorkOrderServiceFilters {}
-
-// Optimized select query string with all joins.
-//
-// `status`, `default_pm_template_id`, and `customer_id` are intentionally
-// included in the embedded equipment block so the work-order detail page can
-// stop issuing a second `useEquipmentById` round-trip just to read those
-// three fields. The added columns are tiny (uuid + enum), so the per-row
-// payload cost on the work-order list query stays negligible while every WO
-// detail open on Slow 4G saves a full equipment row fetch.
-const WORK_ORDER_SELECT = `
-  *,
-  assignee:profiles!work_orders_assignee_id_fkey (
-    id,
-    name
-  ),
-  equipment:equipment!work_orders_equipment_id_fkey (
-    id,
-    organization_id,
-    name,
-    manufacturer,
-    model,
-    serial_number,
-    status,
-    working_hours,
-    image_url,
-    team_id,
-    location,
-    customer_id,
-    default_pm_template_id,
-    custom_attributes,
-    use_team_location,
-    last_known_location,
-    assigned_location_lat,
-    assigned_location_lng,
-    assigned_location_street,
-    assigned_location_city,
-    assigned_location_state,
-    assigned_location_country,
-    teams:team_id (
-      id,
-      name,
-      description,
-      override_equipment_location,
-      location_lat,
-      location_lng,
-      location_address,
-      location_city,
-      location_state,
-      location_country
-    )
-  ),
-  creator:profiles!work_orders_created_by_fkey (
-    id,
-    name
-  )
-`;
-
-const WORK_ORDER_LIST_SELECT = WORK_ORDER_SELECT.replace(/^ *custom_attributes,\r?\n/m, '');
-
-type WorkOrderJoinedProfile = { id?: string; name?: string } | null;
-type WorkOrderJoinedTeam = {
-  id?: string;
-  name?: string;
-  description?: string;
-  override_equipment_location?: boolean;
-  location_lat?: number | null;
-  location_lng?: number | null;
-  location_address?: string | null;
-  location_city?: string | null;
-  location_state?: string | null;
-  location_country?: string | null;
-} | null;
-type WorkOrderJoinedEquipment = {
-  id?: string;
-  organization_id?: string;
-  name?: string;
-  manufacturer?: string | null;
-  model?: string | null;
-  serial_number?: string | null;
-  status?: string;
-  working_hours?: number | null;
-  image_url?: string | null;
-  team_id?: string;
-  location?: string;
-  customer_id?: string | null;
-  default_pm_template_id?: string | null;
-  custom_attributes?: Record<string, unknown> | null;
-  use_team_location?: boolean;
-  last_known_location?: { latitude?: number; longitude?: number; name?: string } | null;
-  assigned_location_lat?: number | null;
-  assigned_location_lng?: number | null;
-  assigned_location_street?: string | null;
-  assigned_location_city?: string | null;
-  assigned_location_state?: string | null;
-  assigned_location_country?: string | null;
-  teams?: WorkOrderJoinedTeam;
-} | null;
-
-function mapBaseWorkOrderFields(wo: Record<string, unknown>): Partial<WorkOrder> {
-  return {
-    id: wo.id as string,
-    title: wo.title as string,
-    description: wo.description as string,
-    equipment_id: wo.equipment_id as string,
-    organization_id: wo.organization_id as string,
-    priority: wo.priority as WorkOrder['priority'],
-    status: wo.status as WorkOrder['status'],
-    assignee_id: wo.assignee_id as string | null,
-    assignee_name: wo.assignee_name as string | null,
-    team_id: wo.team_id as string | null,
-    created_by: wo.created_by as string,
-    created_by_admin: wo.created_by_admin as string | null,
-    created_by_name: wo.created_by_name as string | null,
-    created_date: wo.created_date as string,
-    due_date: wo.due_date as string | null,
-    estimated_hours: wo.estimated_hours as number | null,
-    completed_date: wo.completed_date as string | null,
-    acceptance_date: wo.acceptance_date as string | null,
-    updated_at: wo.updated_at as string,
-    is_historical: wo.is_historical as boolean,
-    historical_start_date: wo.historical_start_date as string | null,
-    historical_notes: wo.historical_notes as string | null,
-    has_pm: wo.has_pm as boolean,
-    pm_required: wo.pm_required as boolean,
-    primary_image_id: (wo.primary_image_id as string | null | undefined) ?? null,
-  };
-}
-
-function mapQuickBooksInvoiceFields(wo: Record<string, unknown>): Partial<WorkOrder> {
-  const invoiceEnvironment = wo.quickbooks_invoice_environment as 'sandbox' | 'production' | null | undefined;
-  const invoiceStatus = wo.invoice_status as WorkOrder['invoice_status'] | undefined;
-
-  return {
-    quickbooks_invoice_id: (wo.quickbooks_invoice_id as string | null | undefined) ?? null,
-    quickbooks_invoice_number: (wo.quickbooks_invoice_number as string | null | undefined) ?? null,
-    quickbooks_invoice_environment: invoiceEnvironment ?? null,
-    quickbooks_realm_id: (wo.quickbooks_realm_id as string | null | undefined) ?? null,
-    invoice_status: invoiceStatus ?? null,
-    invoice_sent_at: (wo.invoice_sent_at as string | null | undefined) ?? null,
-    invoice_paid_at: (wo.invoice_paid_at as string | null | undefined) ?? null,
-    invoice_balance_cents: (wo.invoice_balance_cents as number | null | undefined) ?? null,
-    invoice_due_date: (wo.invoice_due_date as string | null | undefined) ?? null,
-    invoice_last_synced_at: (wo.invoice_last_synced_at as string | null | undefined) ?? null,
-    invoice_sync_error: (wo.invoice_sync_error as string | null | undefined) ?? null,
-    quickbooksInvoiceId: (wo.quickbooks_invoice_id as string | null | undefined) ?? null,
-    quickbooksInvoiceNumber: (wo.quickbooks_invoice_number as string | null | undefined) ?? null,
-    quickbooksInvoiceEnvironment: invoiceEnvironment ?? null,
-    invoiceStatus: invoiceStatus ?? null,
-    invoiceSentAt: (wo.invoice_sent_at as string | null | undefined) ?? null,
-    invoicePaidAt: (wo.invoice_paid_at as string | null | undefined) ?? null,
-    invoiceBalanceCents: (wo.invoice_balance_cents as number | null | undefined) ?? null,
-    invoiceDueDate: (wo.invoice_due_date as string | null | undefined) ?? null,
-    invoiceLastSyncedAt: (wo.invoice_last_synced_at as string | null | undefined) ?? null,
-  };
-}
-
-function mapLastScanLocation(equipment: WorkOrderJoinedEquipment): { lat: number; lng: number } | undefined {
-  const lastKnown = equipment?.last_known_location;
-
-  if (!lastKnown || lastKnown.latitude == null || lastKnown.longitude == null) {
-    return undefined;
-  }
-
-  return { lat: lastKnown.latitude, lng: lastKnown.longitude };
-}
-
-function mapTeamLocationInput(team: WorkOrderJoinedTeam) {
-  if (!team) {
-    return undefined;
-  }
-
-  return {
-    override_equipment_location: team.override_equipment_location,
-    location_lat: team.location_lat,
-    location_lng: team.location_lng,
-    location_address: team.location_address,
-    location_city: team.location_city,
-    location_state: team.location_state,
-    location_country: team.location_country,
-  };
-}
-
-function mapEquipmentLocationInput(equipment: WorkOrderJoinedEquipment) {
-  return {
-    use_team_location: equipment?.use_team_location,
-    assigned_location_lat: equipment?.assigned_location_lat,
-    assigned_location_lng: equipment?.assigned_location_lng,
-    assigned_location_street: equipment?.assigned_location_street,
-    assigned_location_city: equipment?.assigned_location_city,
-    assigned_location_state: equipment?.assigned_location_state,
-    assigned_location_country: equipment?.assigned_location_country,
-  };
-}
-
-function resolveWorkOrderLocation(equipment: WorkOrderJoinedEquipment): WorkOrder['effectiveLocation'] {
-  if (!equipment) {
-    return null;
-  }
-
-  return resolveEffectiveLocation({
-    team: mapTeamLocationInput(equipment.teams ?? null),
-    equipment: mapEquipmentLocationInput(equipment),
-    lastScan: mapLastScanLocation(equipment),
-  });
-}
-
-function mapAssignedTo(assignee: WorkOrderJoinedProfile): WorkOrder['assignedTo'] {
-  if (!assignee?.id || !assignee.name) {
-    return null;
-  }
-
-  return { id: assignee.id, name: assignee.name };
-}
-
-function mapWorkOrderTeam(team: WorkOrderJoinedTeam): WorkOrder['team'] {
-  if (!team?.id || !team.name) {
-    return null;
-  }
-
-  return {
-    id: team.id,
-    name: team.name,
-    description: team.description || undefined,
-    location_address: team.location_address,
-    location_city: team.location_city,
-    location_state: team.location_state,
-    location_country: team.location_country,
-    location_lat: team.location_lat,
-    location_lng: team.location_lng,
-  };
-}
-
-function mapEmbeddedEquipmentTeam(team: WorkOrderJoinedTeam): WorkOrderEmbeddedEquipment['team'] {
-  if (!team?.id) {
-    return null;
-  }
-
-  return {
-    id: team.id,
-    name: team.name ?? '',
-    description: team.description || undefined,
-    override_equipment_location: team.override_equipment_location,
-    location_lat: team.location_lat,
-    location_lng: team.location_lng,
-    location_address: team.location_address,
-    location_city: team.location_city,
-    location_state: team.location_state,
-    location_country: team.location_country,
-  };
-}
-
-function mapEmbeddedEquipment(
-  equipment: WorkOrderJoinedEquipment,
-  organizationId: string,
-): WorkOrderEmbeddedEquipment | null {
-  if (!equipment?.id) {
-    return null;
-  }
-
-  return {
-    id: equipment.id,
-    organization_id: equipment.organization_id ?? organizationId,
-    name: equipment.name ?? '',
-    manufacturer: equipment.manufacturer ?? null,
-    model: equipment.model ?? null,
-    serial_number: equipment.serial_number ?? null,
-    status: (equipment.status ?? 'active') as WorkOrderEmbeddedEquipment['status'],
-    working_hours: equipment.working_hours ?? null,
-    image_url: equipment.image_url ?? null,
-    team_id: equipment.team_id ?? null,
-    location: equipment.location ?? null,
-    customer_id: equipment.customer_id ?? null,
-    default_pm_template_id: equipment.default_pm_template_id ?? null,
-    custom_attributes: equipment.custom_attributes ?? null,
-    use_team_location: equipment.use_team_location ?? null,
-    last_known_location: equipment.last_known_location ?? null,
-    assigned_location_lat: equipment.assigned_location_lat ?? null,
-    assigned_location_lng: equipment.assigned_location_lng ?? null,
-    assigned_location_street: equipment.assigned_location_street ?? null,
-    assigned_location_city: equipment.assigned_location_city ?? null,
-    assigned_location_state: equipment.assigned_location_state ?? null,
-    assigned_location_country: equipment.assigned_location_country ?? null,
-    team: mapEmbeddedEquipmentTeam(equipment.teams ?? null),
-  };
-}
-
-function mapJoinedWorkOrderFields(
-  assignee: WorkOrderJoinedProfile,
-  equipment: WorkOrderJoinedEquipment,
-  creator: WorkOrderJoinedProfile,
-  organizationId: string,
-): Partial<WorkOrder> {
-  const team = equipment?.teams ?? null;
-
-  return {
-    assigneeName: assignee?.name || undefined,
-    teamName: team?.name || undefined,
-    equipmentName: equipment?.name || undefined,
-    equipmentManufacturer: equipment?.manufacturer || undefined,
-    equipmentModel: equipment?.model || undefined,
-    equipmentSerialNumber: equipment?.serial_number || undefined,
-    equipmentWorkingHours: equipment?.working_hours ?? undefined,
-    equipmentImageUrl: equipment?.image_url ?? undefined,
-    equipmentTeamId: equipment?.team_id || undefined,
-    equipmentTeamName: team?.name || undefined,
-    createdByName: creator?.name || undefined,
-    assignedTo: mapAssignedTo(assignee),
-    effectiveLocation: resolveWorkOrderLocation(equipment),
-    team: mapWorkOrderTeam(team),
-    equipment: mapEmbeddedEquipment(equipment, organizationId),
-  };
-}
-
-/**
- * Maps raw Supabase row to WorkOrder with computed fields
- */
-function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
-  const assignee = wo.assignee as WorkOrderJoinedProfile;
-  const equipment = wo.equipment as WorkOrderJoinedEquipment;
-  const creator = wo.creator as WorkOrderJoinedProfile;
-  const organizationId = wo.organization_id as string;
-
-  return {
-    ...mapBaseWorkOrderFields(wo),
-    ...mapQuickBooksInvoiceFields(wo),
-    ...mapJoinedWorkOrderFields(assignee, equipment, creator, organizationId),
-  } as WorkOrder;
-}
 
 export class WorkOrderService extends BaseService {
   /**
@@ -399,27 +70,17 @@ export class WorkOrderService extends BaseService {
       // Apply team-based access control filtering
       if (filters.userTeamIds !== undefined && !filters.isOrgAdmin) {
         if (filters.userTeamIds.length > 0) {
-          // Get equipment IDs for user's teams
-          const { data: equipmentIds, error: equipmentError } = await supabase
-            .from('equipment')
-            .select('id')
-            .eq('organization_id', this.organizationId)
-            .in('team_id', filters.userTeamIds);
+          const equipmentResolution = await resolveEquipmentIdsForUserTeams(
+            this.organizationId,
+            filters.userTeamIds,
+          );
 
-          if (equipmentError) {
-            logger.error('Error fetching equipment for team access control:', equipmentError);
-            return this.handleError(equipmentError);
-          }
-
-          const ids = equipmentIds?.map(e => e.id) || [];
-          if (ids.length > 0) {
-            query = query.in('equipment_id', ids);
-          } else {
-            // No equipment for user's teams, return empty
+          if (equipmentResolution === 'empty') {
             return this.handleSuccess([]);
           }
+
+          query = query.in('equipment_id', equipmentResolution);
         } else {
-          // User has no team memberships
           return this.handleSuccess([]);
         }
       }
@@ -430,24 +91,16 @@ export class WorkOrderService extends BaseService {
 
       // Apply team filter - requires getting equipment IDs first
       if (filters.teamId && filters.teamId !== 'all') {
-        const { data: equipmentIds, error: teamEquipmentError } = await supabase
-          .from('equipment')
-          .select('id')
-          .eq('organization_id', this.organizationId)
-          .eq('team_id', filters.teamId);
+        const equipmentResolution = await resolveEquipmentIdsForTeamFilter(
+          this.organizationId,
+          filters.teamId,
+        );
 
-        if (teamEquipmentError) {
-          logger.error('Error fetching equipment for team filter:', teamEquipmentError);
-          return this.handleError(teamEquipmentError);
-        }
-
-        const ids = equipmentIds?.map(e => e.id) || [];
-        if (ids.length > 0) {
-          query = query.in('equipment_id', ids);
-        } else {
-          // No equipment for this team
+        if (equipmentResolution === 'empty') {
           return this.handleSuccess([]);
         }
+
+        query = query.in('equipment_id', equipmentResolution);
       }
 
       // Apply equipment filter (uses idx_work_orders_equipment_id index)
@@ -801,50 +454,8 @@ export class WorkOrderService extends BaseService {
         return this.handleError(new Error('Work order not found'));
       }
 
-      // Get notes
-      const { data: notes, error: notesError } = await supabase
-        .from('work_order_notes')
-        .select('*')
-        .eq('work_order_id', workOrderId)
-        .order('created_at', { ascending: false });
-
-      if (notesError) {
-        logger.error('Error fetching work order notes:', notesError);
-        return this.handleError(notesError);
-      }
-
-      if (!notes || notes.length === 0) {
-        return this.handleSuccess([]);
-      }
-
-      // Get author names
-      const authorIds = [...new Set(notes.map(note => note.author_id))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .in('id', authorIds);
-
-      const { imagesList, uploaderProfiles, displayByImageId: resolvedByImageId } =
-        await fetchWorkOrderImagesWithUploaderProfiles(workOrderId);
-
-      // Map notes with authors and images
-      const enrichedNotes: WorkOrderNote[] = notes.map(note => {
-        const author = (profiles || []).find(p => p.id === note.author_id);
-        const noteImages = mapResolvedImagesForNote(
-          note.id,
-          imagesList,
-          resolvedByImageId,
-          uploaderProfiles,
-        );
-
-        return {
-          ...note,
-          author_name: author?.name || 'Unknown',
-          images: noteImages,
-        };
-      });
-
-      return this.handleSuccess(enrichedNotes);
+      const notes = await getWorkOrderNotesWithImages(workOrderId, this.organizationId);
+      return this.handleSuccess(notes as unknown as WorkOrderNote[]);
     } catch (error) {
       return this.handleError(error);
     }
@@ -858,46 +469,16 @@ export class WorkOrderService extends BaseService {
     noteData: WorkOrderNoteCreateData
   ): Promise<ApiResponse<WorkOrderNote>> {
     try {
-      const auth = await requireAuthenticatedClaims();
-      if ('error' in auth) {
-        return this.handleError(auth.error);
-      }
-      const claims = auth;
+      const note = await createWorkOrderNoteWithImages(
+        workOrderId,
+        noteData.content,
+        noteData.hours_worked || 0,
+        noteData.is_private || false,
+        [],
+        this.organizationId,
+      );
 
-      const workOrder = await fetchWorkOrderInOrganization(this.organizationId, workOrderId);
-      if (!workOrder) {
-        return this.handleError(new Error('Work order not found'));
-      }
-
-      const { data: note, error } = await supabase
-        .from('work_order_notes')
-        .insert({
-          work_order_id: workOrderId,
-          author_id: claims.sub,
-          content: noteData.content,
-          hours_worked: noteData.hours_worked || 0,
-          is_private: noteData.is_private || false
-        })
-        .select()
-        .single();
-
-      if (error) {
-        logger.error('Error creating work order note:', error);
-        return this.handleError(error);
-      }
-
-      // Get author profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .eq('id', claims.sub)
-        .single();
-
-      return this.handleSuccess({
-        ...note,
-        author_name: profile?.name || 'Unknown',
-        images: []
-      });
+      return this.handleSuccess(note as unknown as WorkOrderNote);
     } catch (error) {
       return this.handleError(error);
     }
@@ -912,48 +493,8 @@ export class WorkOrderService extends BaseService {
    */
   async getImages(workOrderId: string): Promise<ApiResponse<WorkOrderImage[]>> {
     try {
-      const workOrder = await fetchWorkOrderInOrganization(this.organizationId, workOrderId);
-      if (!workOrder) {
-        return this.handleError(new Error('Work order not found'));
-      }
-
-      const { data: images, error } = await supabase
-        .from('work_order_images')
-        .select('*')
-        .eq('work_order_id', workOrderId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        logger.error('Error fetching work order images:', error);
-        return this.handleError(error);
-      }
-
-      if (!images || images.length === 0) {
-        return this.handleSuccess([]);
-      }
-
-      // Get uploader names
-      const uploaderIds = [...new Set(images.map(img => img.uploaded_by))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .in('id', uploaderIds);
-
-      const signedUrls = await batchResolveWorkOrderImageDisplayUrls(images.map(img => img.file_url));
-      const enrichedImages: WorkOrderImage[] = images
-        .map((image, i) => {
-          const uploader = (profiles || []).find(p => p.id === image.uploaded_by);
-          const displayUrl = displayUrlForStoredPrivateImage(signedUrls[i], image.file_url);
-          if (displayUrl == null) return null;
-          return {
-            ...image,
-            file_url: displayUrl,
-            uploaded_by_name: uploader?.name || 'Unknown',
-          };
-        })
-        .filter((row): row is WorkOrderImage => row != null);
-
-      return this.handleSuccess(enrichedImages);
+      const images = await fetchWorkOrderImagesForService(this.organizationId, workOrderId);
+      return this.handleSuccess(images);
     } catch (error) {
       return this.handleError(error);
     }
@@ -968,105 +509,13 @@ export class WorkOrderService extends BaseService {
     description?: string
   ): Promise<ApiResponse<WorkOrderImage>> {
     try {
-      const auth = await requireAuthenticatedClaims();
-      if ('error' in auth) {
-        return this.handleError(auth.error);
-      }
-      const claims = auth;
-
-      const workOrder = await fetchWorkOrderInOrganization(this.organizationId, workOrderId);
-      if (!workOrder) {
-        return this.handleError(new Error('Work order not found'));
-      }
-
-      // Validate storage quota
-      await validateStorageQuota(this.organizationId, file.size);
-
-      // Upload file to storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${claims.sub}/${workOrderId}/${Date.now()}.${fileExt}`;
-      const storedPath = await uploadImageToStorage('work-order-images', fileName, file);
-
-      // Save image record
-      const { data: imageRecord, error: imageError } = await supabase
-        .from('work_order_images')
-        .insert({
-          work_order_id: workOrderId,
-          uploaded_by: claims.sub,
-          file_name: file.name,
-          file_url: storedPath,
-          file_size: file.size,
-          mime_type: file.type,
-          description: description || null
-        })
-        .select()
-        .single();
-
-      if (imageError) {
-        logger.error('Error saving image record:', imageError);
-        try {
-          await deleteImageFromStorage('work-order-images', storedPath);
-        } catch (cleanupError) {
-          logger.error(
-            'Failed to delete orphaned work-order image after DB insert failure:',
-            cleanupError,
-          );
-        }
-        return this.handleError(imageError);
-      }
-
-      // Get uploader profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .eq('id', claims.sub)
-        .single();
-
-      const displayUrl = displayUrlForStoredPrivateImage(
-        await resolveImageDisplayUrl('work-order-images', imageRecord.file_url),
-        imageRecord.file_url,
+      const image = await uploadWorkOrderImageForService(
+        this.organizationId,
+        workOrderId,
+        file,
+        description,
       );
-
-      if (displayUrl == null) {
-        const cleanupCtx = {
-          imageId: imageRecord.id,
-          storedPath,
-          workOrderId,
-        };
-        // Signing failed — clean up DB row and storage to avoid orphaned resources.
-        // DB delete must succeed before storage delete; otherwise the DB row still
-        // exists and would point at a missing storage object, creating broken state.
-        logger.error('Signing failed for uploaded work order image, rolling back', cleanupCtx);
-        const { error: dbDeleteError } = await supabase
-          .from('work_order_images')
-          .delete()
-          .eq('id', imageRecord.id)
-          .eq('work_order_id', workOrderId);
-        if (dbDeleteError) {
-          logger.error(
-            'Failed to delete DB row during signing-failure rollback; skipping storage cleanup to preserve consistency',
-            { ...cleanupCtx, error: dbDeleteError },
-          );
-        } else {
-          try {
-            await deleteImageFromStorage('work-order-images', storedPath);
-          } catch (cleanupError) {
-            logger.error(
-              'Failed to delete orphaned work-order storage object during rollback',
-              { ...cleanupCtx, error: cleanupError },
-            );
-          }
-        }
-        return this.handleError(
-          new Error('Could not generate a secure link for the uploaded image. Try again.'),
-        );
-      }
-
-      return this.handleSuccess({
-        ...imageRecord,
-        uploaded_by_name: profile?.name || 'Unknown',
-        file_url: displayUrl,
-      });
+      return this.handleSuccess(image);
     } catch (error) {
       return this.handleError(error);
     }

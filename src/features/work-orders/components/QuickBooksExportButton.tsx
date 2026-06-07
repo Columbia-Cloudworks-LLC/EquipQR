@@ -2,32 +2,25 @@
 // Duplication rationale: Export button repeats guarded action blocks per target
 /**
  * QuickBooks Export Button Component
- * 
+ *
  * Allows admin/owners to export a work order to QuickBooks as a draft invoice.
  * Shows loading state and handles success/error feedback.
  */
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { 
-  DropdownMenuItem 
-} from '@/components/ui/dropdown-menu';
-import { 
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Badge } from '@/components/ui/badge';
-import { FileSpreadsheet, RefreshCw, CheckCircle, ExternalLink, Info, Copy } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  getConnectionStatus,
-  getTeamCustomerMapping,
-} from '@/services/quickbooks';
+import { getConnectionStatus, getTeamCustomerMapping } from '@/services/quickbooks';
 import { getQuickBooksInvoiceUrl } from '@/services/quickbooks/types';
 import { useExportToQuickBooks } from '@/hooks/useExportToQuickBooks';
 import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
@@ -36,6 +29,12 @@ import { useAppToast } from '@/hooks/useAppToast';
 import { isQuickBooksEnabled } from '@/lib/flags';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import type { QuickBooksExportLog } from '@/services/quickbooks/quickbooksService';
+import {
+  getQuickBooksExportAvailability,
+  getQuickBooksInvoiceDisplay,
+  QuickBooksExportButtonContent,
+  QuickBooksExportStatusDetails,
+} from '@/features/work-orders/components/quickBooksExportPresentation';
 
 interface QuickBooksExportButtonProps {
   workOrderId: string;
@@ -67,20 +66,17 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   workOrderStatus,
   asMenuItem = false,
   onExportSuccess,
-  showStatusDetails = false
+  showStatusDetails = false,
 }) => {
   const { formatDateTime } = useFormatTimestamp();
 
   const { currentOrganization } = useOrganization();
   const { success: showSuccessToast, error: showErrorToast } = useAppToast();
 
-  // Check if feature is enabled
   const featureEnabled = isQuickBooksEnabled();
 
-  // Check QuickBooks management permission
   const { data: canExport = false, isLoading: permissionLoading } = useQuickBooksAccess();
 
-  // Query for connection status
   const { data: connectionStatus, isLoading: connectionLoading } = useQuery({
     queryKey: ['quickbooks', 'connection', currentOrganization?.id],
     queryFn: () => getConnectionStatus(currentOrganization!.id),
@@ -88,14 +84,13 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
     staleTime: 60 * 1000,
   });
 
-  // Query for team customer mapping
   const { data: teamMapping, isLoading: mappingLoading } = useQuery({
     queryKey: ['quickbooks', 'team-mapping', currentOrganization?.id, teamId],
     queryFn: () => getTeamCustomerMapping(currentOrganization!.id, teamId!),
-    enabled: !!currentOrganization?.id && !!teamId && canExport && featureEnabled && connectionStatus?.isConnected,
+    enabled:
+      !!currentOrganization?.id && !!teamId && canExport && featureEnabled && connectionStatus?.isConnected,
   });
 
-  // Query for existing export
   const { data: existingExport } = useQuickBooksLastExport(
     workOrderId,
     !!workOrderId && canExport && featureEnabled && connectionStatus?.isConnected
@@ -105,66 +100,39 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
     showStatusDetails && !asMenuItem && workOrderId && canExport && featureEnabled && connectionStatus?.isConnected
   );
 
-  const { data: exportLogs = [] } = useQuickBooksExportLogs(
-    workOrderId,
-    shouldLoadStatusDetails
-  );
+  const { data: exportLogs = [] } = useQuickBooksExportLogs(workOrderId, shouldLoadStatusDetails);
 
-  // Export mutation using the hook
   const exportMutation = useExportToQuickBooks();
 
-  // Don't render if feature is disabled or user doesn't have permission
   if (!featureEnabled || !canExport) {
     return null;
   }
 
-  // Determine button state and tooltip
   const isExporting = exportMutation.isPending;
   const isLoading = connectionLoading || mappingLoading || isExporting || permissionLoading;
   const isConnected = connectionStatus?.isConnected;
   const hasMapping = !!teamMapping;
   const hasTeam = !!teamId;
-  const alreadyExported = !!existingExport;
   const isCompleted = workOrderStatus === 'completed';
 
-  // Calculate invoice display once for reuse in tooltip and button content
-  // Only show invoice label when we have valid identifiers; otherwise treat as no export for display
-  // This avoids confusing "Update Invoice Unknown" text for malformed/incomplete export records
-  const hasInvoiceIdentifiers = Boolean(
-    existingExport?.quickbooks_invoice_number || existingExport?.quickbooks_invoice_id
-  );
-  const invoiceDisplay = alreadyExported && hasInvoiceIdentifiers
-    ? (existingExport.quickbooks_invoice_number || existingExport.quickbooks_invoice_id)
-    : null;
+  const { alreadyExported, hasInvoiceIdentifiers, invoiceDisplay } =
+    getQuickBooksInvoiceDisplay(existingExport);
 
-  let tooltipMessage: string;
-  let isDisabled = false;
+  const { tooltipMessage, isDisabled, showAsUpdate, showSetupState } = getQuickBooksExportAvailability({
+    isCompleted,
+    isConnected,
+    hasTeam,
+    hasMapping,
+    isExporting,
+    alreadyExported,
+    hasInvoiceIdentifiers,
+    invoiceDisplay,
+  });
 
-  if (!isCompleted) {
-    tooltipMessage = 'Complete this work order first, then export to QuickBooks.';
-    isDisabled = true;
-  } else if (!isConnected) {
-    tooltipMessage = 'QuickBooks is not connected. Go to Organization Settings > Integrations to connect QuickBooks.';
-    isDisabled = true;
-  } else if (!hasTeam) {
-    tooltipMessage = 'Assign this equipment to a team before exporting to QuickBooks.';
-    isDisabled = true;
-  } else if (!hasMapping) {
-    tooltipMessage = "This team's QuickBooks customer mapping is missing. Set it in Team Settings > QuickBooks.";
-    isDisabled = true;
-  } else if (isExporting) {
-    tooltipMessage = 'Exporting...';
-    isDisabled = true;
-  } else if (alreadyExported && hasInvoiceIdentifiers) {
-    tooltipMessage = `Previously exported as Invoice ${invoiceDisplay}. Click to update.`;
-  } else {
-    tooltipMessage = 'Export work order as a draft invoice in QuickBooks';
-  }
-
-  // Build invoice URL if we have the data
-  const invoiceUrl = alreadyExported && existingExport.quickbooks_invoice_id && existingExport.quickbooks_environment
-    ? getQuickBooksInvoiceUrl(existingExport.quickbooks_invoice_id, existingExport.quickbooks_environment)
-    : null;
+  const invoiceUrl =
+    alreadyExported && existingExport?.quickbooks_invoice_id && existingExport?.quickbooks_environment
+      ? getQuickBooksInvoiceUrl(existingExport.quickbooks_invoice_id, existingExport.quickbooks_environment)
+      : null;
 
   const handleExport = () => {
     if (isDisabled) return;
@@ -175,37 +143,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
     });
   };
 
-  // Use hasInvoiceIdentifiers for display consistency - malformed exports show as new export
-  const showAsUpdate = alreadyExported && hasInvoiceIdentifiers;
-  const showSetupState = isDisabled && isCompleted && (!isConnected || !hasTeam || !hasMapping);
-
   const latestLog = exportLogs[0] ?? null;
-
-  const getStatusBadgeClass = (status?: QuickBooksExportLog['status']) => {
-    switch (status) {
-      case 'success':
-        return 'bg-success/10 text-success border-success/30';
-      case 'error':
-        return 'bg-destructive/10 text-destructive border-destructive/30';
-      case 'pending':
-        return 'bg-warning/10 text-warning border-warning/30';
-      default:
-        return 'bg-muted text-muted-foreground border-border';
-    }
-  };
-
-  const getStatusLabel = (status?: QuickBooksExportLog['status']) => {
-    switch (status) {
-      case 'success':
-        return 'Success';
-      case 'error':
-        return 'Error';
-      case 'pending':
-        return 'Pending';
-      default:
-        return 'Not exported';
-    }
-  };
 
   const formatTimestamp = (log: QuickBooksExportLog) => {
     const timestamp = log.exported_at ?? log.created_at;
@@ -238,144 +176,30 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
     }
   };
 
-  const renderStatusDetails = () => {
-    if (!showStatusDetails || asMenuItem) {
-      return null;
-    }
-
-    const statusLabel = getStatusLabel(latestLog?.status);
-    const invoiceIdentifier = latestLog?.quickbooks_invoice_number || latestLog?.quickbooks_invoice_id;
-    const hasInvoiceLink = latestLog?.quickbooks_invoice_id && latestLog?.quickbooks_environment;
-    const historyLogs = exportLogs.slice(0, 3);
-
-    return (
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" aria-label="QuickBooks export status">
-            <Info className="h-4 w-4" />
-            <span>QB Status</span>
-            <Badge variant="outline" className={getStatusBadgeClass(latestLog?.status)}>
-              {statusLabel}
-            </Badge>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent align="end" className="w-96">
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <div className="text-sm font-medium">Last export</div>
-              {latestLog ? (
-                <div className="text-sm text-muted-foreground">
-                  {statusLabel} • {formatTimestamp(latestLog)}
-                </div>
-              ) : (
-                <div className="text-sm text-muted-foreground">Not exported yet</div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Invoice</div>
-              {invoiceIdentifier ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm text-muted-foreground">{invoiceIdentifier}</span>
-                  {hasInvoiceLink ? (
-                    <Button variant="link" size="sm" asChild>
-                      <a
-                        href={getQuickBooksInvoiceUrl(
-                          latestLog!.quickbooks_invoice_id!,
-                          latestLog!.quickbooks_environment!
-                        )}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Open in QuickBooks (opens in new tab)"
-                      >
-                        Open in QuickBooks
-                      </a>
-                    </Button>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="text-sm text-muted-foreground">No invoice created yet</div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Troubleshooting</div>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div className="flex items-center justify-between gap-2">
-                  <span>Intuit trace ID</span>
-                  {latestLog?.intuit_tid ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleCopy('Intuit trace ID', latestLog.intuit_tid)}
-                    >
-                      <Copy className="h-4 w-4" />
-                      Copy
-                    </Button>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Not available</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {historyLogs.length > 0 ? (
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Recent exports</div>
-                <div className="space-y-2">
-                  {historyLogs.map((log) => (
-                    <div key={log.id} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={getStatusBadgeClass(log.status)}>
-                          {getStatusLabel(log.status)}
-                        </Badge>
-                        <span className="text-muted-foreground">
-                          {log.quickbooks_invoice_number || log.quickbooks_invoice_id || 'Draft'}
-                        </span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">{formatTimestamp(log)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExport}
-                disabled={isDisabled || isLoading}
-              >
-                {isDisabled ? 'Unavailable' : 'Retry export'}
-              </Button>
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
-    );
-  };
-
-  const buttonContent = (
-    <>
-      {isLoading ? (
-        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-      ) : showAsUpdate ? (
-        <CheckCircle className="h-4 w-4 mr-2" />
-      ) : isDisabled ? (
-        <Info className="h-4 w-4 mr-2" />
-      ) : (
-        <FileSpreadsheet className="h-4 w-4 mr-2" />
-      )}
-      {showAsUpdate
-        ? `Update Invoice ${invoiceDisplay}`
-        : showSetupState
-          ? 'QuickBooks Setup Required'
-          : 'Export to QuickBooks'}
-    </>
+  const statusDetails = (
+    <QuickBooksExportStatusDetails
+      showStatusDetails={showStatusDetails}
+      asMenuItem={asMenuItem}
+      latestLog={latestLog}
+      exportLogs={exportLogs}
+      isDisabled={isDisabled}
+      isLoading={isLoading}
+      onRetryExport={handleExport}
+      onCopy={handleCopy}
+      formatTimestamp={formatTimestamp}
+    />
   );
 
-  // Handle opening the invoice in QuickBooks
+  const buttonContent = (
+    <QuickBooksExportButtonContent
+      isLoading={isLoading}
+      showAsUpdate={showAsUpdate}
+      isDisabled={isDisabled}
+      showSetupState={showSetupState}
+      invoiceDisplay={invoiceDisplay}
+    />
+  );
+
   const handleViewInvoice = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (invoiceUrl) {
@@ -406,7 +230,6 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
     );
   }
 
-  // When already exported, show both update and view buttons
   if (alreadyExported && invoiceUrl) {
     return (
       <div className="flex items-center gap-1">
@@ -414,12 +237,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExport}
-                  disabled={isDisabled || isLoading}
-                >
+                <Button variant="outline" size="sm" onClick={handleExport} disabled={isDisabled || isLoading}>
                   {buttonContent}
                 </Button>
               </span>
@@ -447,7 +265,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        {renderStatusDetails()}
+        {statusDetails}
       </div>
     );
   }
@@ -457,12 +275,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
       <Tooltip>
         <TooltipTrigger asChild>
           <span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              disabled={isDisabled || isLoading}
-            >
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={isDisabled || isLoading}>
               {buttonContent}
             </Button>
           </span>
@@ -471,9 +284,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
           <p className="max-w-xs">{tooltipMessage}</p>
         </TooltipContent>
       </Tooltip>
-      {renderStatusDetails()}
+      {statusDetails}
     </TooltipProvider>
   );
 };
-
-

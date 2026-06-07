@@ -12,6 +12,16 @@ type UseChecklistItemMutationsArgs = {
   newItemIdRef: React.MutableRefObject<string | null>;
 };
 
+function insertItemAfter(
+  items: PMChecklistItem[],
+  itemId: string,
+  createItem: (source: PMChecklistItem) => PMChecklistItem
+): PMChecklistItem[] {
+  const index = items.findIndex((item) => item.id === itemId);
+  if (index === -1) return items;
+  return [...items.slice(0, index + 1), createItem(items[index]), ...items.slice(index + 1)];
+}
+
 export function useChecklistItemMutations({
   setChecklistItems,
   setHasUnsavedChanges,
@@ -38,23 +48,19 @@ export function useChecklistItemMutations({
 
   const addItemBelow = useCallback(
     (itemId: string) => {
-      setChecklistItems((prev) => {
-        const index = prev.findIndex((i) => i.id === itemId);
-        if (index === -1) return prev;
-        const section = prev[index].section;
-        const newId = nanoid();
-        newItemIdRef.current = newId;
-        const newItem: PMChecklistItem = {
+      const newId = nanoid();
+      newItemIdRef.current = newId;
+      setChecklistItems((prev) =>
+        insertItemAfter(prev, itemId, (source) => ({
           id: newId,
           title: '',
           description: '',
-          section,
+          section: source.section,
           condition: null,
           required: true,
           notes: '',
-        };
-        return [...prev.slice(0, index + 1), newItem, ...prev.slice(index + 1)];
-      });
+        }))
+      );
       setHasUnsavedChanges(true);
     },
     [newItemIdRef, setChecklistItems, setHasUnsavedChanges]
@@ -96,12 +102,9 @@ export function useChecklistItemMutations({
 
   const duplicateItem = useCallback(
     (itemId: string) => {
-      setChecklistItems((prev) => {
-        const index = prev.findIndex((i) => i.id === itemId);
-        if (index === -1) return prev;
-        const copy: PMChecklistItem = { ...prev[index], id: nanoid() };
-        return [...prev.slice(0, index + 1), copy, ...prev.slice(index + 1)];
-      });
+      setChecklistItems((prev) =>
+        insertItemAfter(prev, itemId, (source) => ({ ...source, id: nanoid() }))
+      );
       setHasUnsavedChanges(true);
     },
     [setChecklistItems, setHasUnsavedChanges]

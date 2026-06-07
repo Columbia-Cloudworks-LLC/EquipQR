@@ -25,14 +25,11 @@ import {
   createJsonResponse,
   handleCorsPreflightIfNeeded,
   withCorrelationId,
+  type RequestContext,
 } from "../_shared/supabase-clients.ts";
 import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
 
 const FUNCTION_NAME = "create-ticket";
-
-// =============================================================================
-// Constants
-// =============================================================================
 
 const GITHUB_REPO_OWNER = "Columbia-Cloudworks-LLC";
 const GITHUB_REPO_NAME = "EquipQR";
@@ -44,41 +41,27 @@ const MAX_TITLE_LENGTH = 200;
 const MIN_DESCRIPTION_LENGTH = 10;
 const MAX_DESCRIPTION_LENGTH = 5000;
 
-/** Maximum metadata string field length */
 const MAX_METADATA_FIELD_LENGTH = 500;
-/** Maximum length for array items in metadata */
 const MAX_METADATA_ARRAY_ITEM_LENGTH = 200;
-/** Maximum number of items in metadata arrays */
 const MAX_METADATA_ARRAY_SIZE = 10;
 
-/** Rate limit: max tickets per user within the rate window */
 const RATE_LIMIT_MAX_TICKETS = 3;
-/** Rate limit window in minutes */
 const RATE_LIMIT_WINDOW_MINUTES = 60;
 
-// =============================================================================
-// Types
-// =============================================================================
-
 interface SanitizedMetadata {
-  // Core
   appVersion: string;
   userAgent: string;
   currentUrl: string;
   timestamp: string;
-  // Environment
   screenSize: string;
   devicePixelRatio: number;
   isOnline: boolean;
   timezone: string;
   sessionDuration: number;
-  // Organization context (IDs only)
   organizationId: string | null;
   organizationPlan: string | null;
   userRole: string | null;
-  // Feature flags
   featureFlags: Record<string, boolean>;
-  // Errors & diagnostics
   recentErrors: string[];
   failedQueries: string[];
   performanceMetrics: {
@@ -87,11 +70,22 @@ interface SanitizedMetadata {
   };
 }
 
-// =============================================================================
-// Helpers
-// =============================================================================
+interface TicketRequestBody {
+  title?: string;
+  description?: string;
+  metadata?: Record<string, unknown>;
+}
 
-/** Fields that may contain user-provided PII and must never appear in logs. */
+interface ParsedTicketPayload {
+  trimmedTitle: string;
+  trimmedDescription: string;
+  metadataObj: Record<string, unknown>;
+}
+
+type ValidationResult =
+  | { ok: true; payload: ParsedTicketPayload }
+  | { ok: false; response: Response };
+
 const REDACTED_LOG_FIELDS = new Set([
   "title",
   "description",
@@ -114,10 +108,6 @@ function logStep(step: string, details?: Record<string, unknown>) {
   }
 }
 
-/**
- * Strip HTML tags recursively to prevent injection via nested tags.
- * Example: `<scr<script>ipt>` -> after one pass becomes `<script>` -> stripped on next pass.
- */
 function stripHtmlTags(input: string): string {
   const tagPattern = /<[^>]*>/g;
   let result = input;
@@ -129,45 +119,28 @@ function stripHtmlTags(input: string): string {
   return result;
 }
 
-/**
- * Sanitize a string for safe embedding in GitHub-flavored markdown.
- */
 function sanitizeForMarkdown(input: string): string {
   return stripHtmlTags(
     input
       .replace(/@/g, "@\u200B")
-      // Escape backslashes first so later escaping uses only literal backslashes.
       .replace(/\\/g, "\\\\")
       .replace(/\|/g, "\\|")
       .replace(/\[([^\]]*)\]\(([^)]*)\)/g, "\\[$1\\]\\($2\\)")
-      // Escape backtick sequences to prevent breaking out of fenced code blocks.
-      // Insert a zero-width space after the first backtick of any run of 3+.
       .replace(/`{3,}/g, (match) => "`\u200B" + match.slice(1))
   );
 }
 
-/**
- * Redact potential PII from user-provided text before posting to GitHub.
- * Strips email addresses and phone-like patterns.
- */
 function redactPII(input: string): string {
   return input
-    // Redact email addresses
     .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, "[email redacted]")
-    // Redact phone numbers (various formats)
     .replace(/(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g, "[phone redacted]");
 }
 
-/**
- * Strip query string from a URL path to prevent PII leakage
- * (query params may contain tokens, emails, etc.)
- */
 function stripQueryString(url: string): string {
   const qIndex = url.indexOf("?");
   return qIndex >= 0 ? url.slice(0, qIndex) : url;
 }
 
-/** Safely extract a string from raw metadata */
 function safeString(
   raw: Record<string, unknown>,
   key: string,
@@ -178,7 +151,6 @@ function safeString(
   return typeof val === "string" ? val.slice(0, maxLen) : fallback;
 }
 
-/** Safely extract a number from raw metadata */
 function safeNumber(
   raw: Record<string, unknown>,
   key: string,
@@ -188,7 +160,6 @@ function safeNumber(
   return typeof val === "number" && isFinite(val) ? val : fallback;
 }
 
-/** Safely extract a boolean from raw metadata */
 function safeBool(
   raw: Record<string, unknown>,
   key: string,
@@ -198,7 +169,6 @@ function safeBool(
   return typeof val === "boolean" ? val : fallback;
 }
 
-/** Safely extract a nullable string */
 function safeNullableString(
   raw: Record<string, unknown>,
   key: string,
@@ -208,7 +178,6 @@ function safeNullableString(
   return typeof val === "string" ? val.slice(0, maxLen) : null;
 }
 
-/** Safely extract a string array */
 function safeStringArray(
   raw: Record<string, unknown>,
   key: string,
@@ -223,12 +192,7 @@ function safeStringArray(
     .map((s) => s.slice(0, maxItemLen));
 }
 
-/**
- * Validate and sanitize metadata from the client.
- * Only whitelisted fields are kept; all values are type-checked and length-capped.
- */
 function sanitizeMetadata(raw: Record<string, unknown>): SanitizedMetadata {
-  // Feature flags -- whitelist only known boolean flags
   const rawFlags = (typeof raw.featureFlags === "object" && raw.featureFlags !== null)
     ? raw.featureFlags as Record<string, unknown>
     : {};
@@ -239,7 +203,6 @@ function sanitizeMetadata(raw: Record<string, unknown>): SanitizedMetadata {
     }
   }
 
-  // Performance metrics
   const rawPerf = (typeof raw.performanceMetrics === "object" && raw.performanceMetrics !== null)
     ? raw.performanceMetrics as Record<string, unknown>
     : {};
@@ -269,21 +232,14 @@ function sanitizeMetadata(raw: Record<string, unknown>): SanitizedMetadata {
   };
 }
 
-/**
- * Build the GitHub issue body with debug context and no PII.
- * Includes a collapsible diagnostics section for developer context.
- */
 function buildGitHubIssueBody(
   userId: string,
   description: string,
   metadata: SanitizedMetadata
 ): string {
   const safeDescription = sanitizeForMarkdown(redactPII(description));
-
-  // Strip query strings from URL to prevent PII leakage (tokens, emails in params)
   const safeRoute = stripQueryString(metadata.currentUrl);
 
-  // Build diagnostics table rows
   const diagRows = [
     `| **App Version** | ${sanitizeForMarkdown(metadata.appVersion)} |`,
     `| **Browser/OS** | ${sanitizeForMarkdown(metadata.userAgent)} |`,
@@ -307,14 +263,12 @@ function buildGitHubIssueBody(
     diagRows.push(`| **Memory** | ${metadata.performanceMetrics.memoryUsage}MB |`);
   }
 
-  // Build errors section
   let errorsSection = "";
   if (metadata.recentErrors.length > 0) {
     const safeErrors = metadata.recentErrors.map(e => sanitizeForMarkdown(e)).join("\n");
     errorsSection = `\n**Recent Errors (${metadata.recentErrors.length}):**\n\n\`\`\`\n${safeErrors}\n\`\`\`\n`;
   }
 
-  // Build failed queries section
   let queriesSection = "";
   if (metadata.failedQueries.length > 0) {
     const safeQueries = metadata.failedQueries
@@ -346,9 +300,6 @@ ${errorsSection}${queriesSection}
 *This issue was automatically created via the EquipQR in-app bug reporting system.*`;
 }
 
-/**
- * Check per-user rate limit by counting recent tickets.
- */
 async function checkRateLimit(
   adminClient: ReturnType<typeof createAdminSupabaseClient>,
   userId: string
@@ -373,9 +324,6 @@ async function checkRateLimit(
   return (count ?? 0) < RATE_LIMIT_MAX_TICKETS;
 }
 
-/**
- * Create a GitHub issue via the REST API.
- */
 async function createGitHubIssue(
   title: string,
   body: string,
@@ -411,11 +359,6 @@ async function createGitHubIssue(
   return { number: data.number, html_url: data.html_url };
 }
 
-/**
- * Close a GitHub issue as compensation when the DB insert fails.
- * This is a best-effort operation -- if it fails we log and move on
- * because we cannot leave the user hanging for a secondary cleanup.
- */
 async function closeGitHubIssue(
   issueNumber: number,
   githubPat: string
@@ -454,26 +397,168 @@ async function closeGitHubIssue(
   }
 }
 
-/** Maximum number of DB insert retries before compensating */
 const DB_INSERT_MAX_RETRIES = 2;
-/** Delay between DB insert retries in milliseconds */
 const DB_INSERT_RETRY_DELAY_MS = 500;
 
-/** Simple delay helper */
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// =============================================================================
-// Main Handler
-// =============================================================================
+function coerceMetadataObject(rawMetadata: unknown): Record<string, unknown> | null {
+  if (rawMetadata === null || rawMetadata === undefined) {
+    return {};
+  }
+  if (typeof rawMetadata !== "object") {
+    return null;
+  }
+  return rawMetadata as Record<string, unknown>;
+}
 
-Deno.serve(withCorrelationId(async (req, _ctx) => {
+function validateTitleAndDescription(
+  title: unknown,
+  description: unknown
+): ValidationResult {
+  if (!title || !description) {
+    return {
+      ok: false,
+      response: createErrorResponse("title and description are required", 400),
+    };
+  }
+
+  const trimmedTitle = String(title).trim();
+  const trimmedDescription = String(description).trim();
+
+  if (
+    trimmedTitle.length < MIN_TITLE_LENGTH ||
+    trimmedTitle.length > MAX_TITLE_LENGTH
+  ) {
+    return {
+      ok: false,
+      response: createErrorResponse(
+        `Title must be between ${MIN_TITLE_LENGTH} and ${MAX_TITLE_LENGTH} characters`,
+        400
+      ),
+    };
+  }
+
+  if (
+    trimmedDescription.length < MIN_DESCRIPTION_LENGTH ||
+    trimmedDescription.length > MAX_DESCRIPTION_LENGTH
+  ) {
+    return {
+      ok: false,
+      response: createErrorResponse(
+        `Description must be between ${MIN_DESCRIPTION_LENGTH} and ${MAX_DESCRIPTION_LENGTH} characters`,
+        400
+      ),
+    };
+  }
+
+  return {
+    ok: true,
+    payload: {
+      trimmedTitle,
+      trimmedDescription,
+      metadataObj: {},
+    },
+  };
+}
+
+function parseTicketRequestBody(body: TicketRequestBody): ValidationResult {
+  const { title, description, metadata: rawMetadata = {} } = body;
+  const validation = validateTitleAndDescription(title, description);
+  if (!validation.ok) {
+    return validation;
+  }
+
+  const metadataObj = coerceMetadataObject(rawMetadata);
+  if (metadataObj === null) {
+    return {
+      ok: false,
+      response: createErrorResponse("metadata must be an object or omitted", 400),
+    };
+  }
+
+  return {
+    ok: true,
+    payload: {
+      ...validation.payload,
+      metadataObj,
+    },
+  };
+}
+
+async function insertTicketWithRetry(
+  adminClient: ReturnType<typeof createAdminSupabaseClient>,
+  params: {
+    userId: string;
+    trimmedTitle: string;
+    trimmedDescription: string;
+    sanitizedMetadata: SanitizedMetadata;
+    githubIssue: { number: number; html_url: string };
+  }
+): Promise<{ ticket: { id: string } | null; lastInsertError?: string }> {
+  let ticket: { id: string } | null = null;
+  let lastInsertError: string | undefined;
+
+  for (let attempt = 1; attempt <= DB_INSERT_MAX_RETRIES + 1; attempt++) {
+    const { data, error: insertError } = await adminClient
+      .from("tickets")
+      .insert({
+        user_id: params.userId,
+        title: params.trimmedTitle,
+        description: params.trimmedDescription,
+        status: "open",
+        github_issue_number: params.githubIssue.number,
+        github_issue_url: params.githubIssue.html_url,
+        metadata: params.sanitizedMetadata,
+      })
+      .select("id")
+      .single();
+
+    if (!insertError && data) {
+      ticket = data;
+      break;
+    }
+
+    if (insertError?.code === "23505") {
+      logStep("Unique-violation on retry — prior insert succeeded, fetching existing ticket", {
+        issueNumber: params.githubIssue.number,
+        attempt,
+      });
+
+      const { data: existing } = await adminClient
+        .from("tickets")
+        .select("id")
+        .eq("github_issue_number", params.githubIssue.number)
+        .maybeSingle();
+
+      if (existing) {
+        ticket = existing;
+        break;
+      }
+    }
+
+    lastInsertError = insertError?.message;
+    logStep(`DB insert attempt ${attempt} failed`, {
+      error: lastInsertError,
+      code: insertError?.code,
+      willRetry: attempt <= DB_INSERT_MAX_RETRIES,
+    });
+
+    if (attempt <= DB_INSERT_MAX_RETRIES) {
+      await delay(DB_INSERT_RETRY_DELAY_MS * attempt);
+    }
+  }
+
+  return { ticket, lastInsertError };
+}
+
+async function handle(req: Request, _ctx: RequestContext): Promise<Response> {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    // 1. Authenticate user
     const supabase = createUserSupabaseClient(req);
     const auth = await requireUser(req, supabase);
     if ("error" in auth) {
@@ -482,66 +567,26 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     const { user } = auth;
     logStep("User authenticated", { userId: user.id });
 
-    // 2. Validate request method
     if (req.method !== "POST") {
       return createErrorResponse("Method not allowed", 405);
     }
 
-    // 3. Parse and validate request body
-    let body: {
-      title?: string;
-      description?: string;
-      metadata?: Record<string, unknown>;
-    };
+    let body: TicketRequestBody;
     try {
       body = await req.json();
     } catch {
       return createErrorResponse("Invalid JSON body", 400);
     }
 
-    const { title, description, metadata: rawMetadata = {} } = body;
-
-    if (!title || !description) {
-      return createErrorResponse("title and description are required", 400);
+    const parsed = parseTicketRequestBody(body);
+    if (!parsed.ok) {
+      return parsed.response;
     }
 
-    // Coerce metadata to a valid object -- metadata can be explicitly `null`
-    // which bypasses the destructuring default and would crash sanitizeMetadata.
-    if (rawMetadata !== null && rawMetadata !== undefined && typeof rawMetadata !== "object") {
-      return createErrorResponse("metadata must be an object or omitted", 400);
-    }
-    const metadataObj: Record<string, unknown> =
-      typeof rawMetadata === "object" && rawMetadata !== null ? rawMetadata : {};
-
-    const trimmedTitle = title.trim();
-    const trimmedDescription = description.trim();
-
-    if (
-      trimmedTitle.length < MIN_TITLE_LENGTH ||
-      trimmedTitle.length > MAX_TITLE_LENGTH
-    ) {
-      return createErrorResponse(
-        `Title must be between ${MIN_TITLE_LENGTH} and ${MAX_TITLE_LENGTH} characters`,
-        400
-      );
-    }
-
-    if (
-      trimmedDescription.length < MIN_DESCRIPTION_LENGTH ||
-      trimmedDescription.length > MAX_DESCRIPTION_LENGTH
-    ) {
-      return createErrorResponse(
-        `Description must be between ${MIN_DESCRIPTION_LENGTH} and ${MAX_DESCRIPTION_LENGTH} characters`,
-        400
-      );
-    }
-
-    // 4. Sanitize metadata (whitelist fields, cap lengths, discard unknowns)
+    const { trimmedTitle, trimmedDescription, metadataObj } = parsed.payload;
     const sanitizedMetadata = sanitizeMetadata(metadataObj);
 
-    // 5. Rate limit check (before calling GitHub API)
     const adminClient = createAdminSupabaseClient();
-
     const withinRateLimit = await checkRateLimit(adminClient, user.id);
     if (!withinRateLimit) {
       logStep("Rate limit exceeded", { userId: user.id });
@@ -551,10 +596,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       );
     }
 
-    // 6. Create GitHub Issue (requireSecret emits MISSING_REQUIRED_SECRET
-    //    if the GITHUB_PAT is absent — handled by the catch block below).
     const githubPat = requireSecret("GITHUB_PAT", { functionName: FUNCTION_NAME });
-
     logStep("Creating GitHub issue");
 
     const sanitizedTitle = sanitizeForMarkdown(redactPII(trimmedTitle));
@@ -582,69 +624,13 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       return createErrorResponse("Failed to create GitHub issue", 500);
     }
 
-    // 7. Insert ticket record using admin client (with retry + compensation)
-    //    If the DB insert fails after retries, close the GitHub issue to
-    //    prevent orphan issues in the repository.
-    //
-    //    IDEMPOTENCY: A partial UNIQUE index exists on github_issue_number.
-    //    If a retry hits a unique-violation (code 23505), the first insert
-    //    actually succeeded -- fetch the existing ticket and return success
-    //    instead of erroneously closing the GitHub issue.
-    let ticket: { id: string } | null = null;
-    let lastInsertError: string | undefined;
-
-    for (let attempt = 1; attempt <= DB_INSERT_MAX_RETRIES + 1; attempt++) {
-      const { data, error: insertError } = await adminClient
-        .from("tickets")
-        .insert({
-          user_id: user.id,
-          title: trimmedTitle,
-          description: trimmedDescription,
-          status: "open",
-          github_issue_number: githubIssue.number,
-          github_issue_url: githubIssue.html_url,
-          metadata: sanitizedMetadata,
-        })
-        .select("id")
-        .single();
-
-      if (!insertError && data) {
-        ticket = data;
-        break;
-      }
-
-      // Unique-violation on github_issue_number means a prior attempt
-      // actually succeeded.  Fetch the existing row and treat as success.
-      if (insertError?.code === "23505") {
-        logStep("Unique-violation on retry — prior insert succeeded, fetching existing ticket", {
-          issueNumber: githubIssue.number,
-          attempt,
-        });
-
-        const { data: existing } = await adminClient
-          .from("tickets")
-          .select("id")
-          .eq("github_issue_number", githubIssue.number)
-          .maybeSingle();
-
-        if (existing) {
-          ticket = existing;
-          break;
-        }
-        // If the fetch somehow fails, fall through to normal retry/error handling.
-      }
-
-      lastInsertError = insertError?.message;
-      logStep(`DB insert attempt ${attempt} failed`, {
-        error: lastInsertError,
-        code: insertError?.code,
-        willRetry: attempt <= DB_INSERT_MAX_RETRIES,
-      });
-
-      if (attempt <= DB_INSERT_MAX_RETRIES) {
-        await delay(DB_INSERT_RETRY_DELAY_MS * attempt);
-      }
-    }
+    const { ticket, lastInsertError } = await insertTicketWithRetry(adminClient, {
+      userId: user.id,
+      trimmedTitle,
+      trimmedDescription,
+      sanitizedMetadata,
+      githubIssue,
+    });
 
     if (!ticket) {
       logStep("ERROR: All DB insert attempts failed, compensating by closing GitHub issue", {
@@ -660,7 +646,6 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       githubIssueNumber: githubIssue.number,
     });
 
-    // 8. Return success
     return createJsonResponse({
       success: true,
       ticketId: ticket.id,
@@ -673,4 +658,21 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     console.error("[CREATE-TICKET] Unhandled error:", errorMessage);
     return createErrorResponse("An unexpected error occurred", 500);
   }
-}));
+}
+
+export const __testables = {
+  handle,
+  coerceMetadataObject,
+  parseTicketRequestBody,
+  validateTitleAndDescription,
+  sanitizeForMarkdown,
+  redactPII,
+  sanitizeMetadata,
+  insertTicketWithRetry,
+  MIN_TITLE_LENGTH,
+  MAX_TITLE_LENGTH,
+  MIN_DESCRIPTION_LENGTH,
+  MAX_DESCRIPTION_LENGTH,
+};
+
+Deno.serve(withCorrelationId(handle));

@@ -11,12 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Demo action overlay** — Playwright demo recording helpers can show user-action overlays during scripted captures so generated demos highlight clicks, taps, and typed interactions.
 - **Fallow codebase intelligence** — Repository npm scripts (`fallow:scan`, `fallow:audit`, `fallow:dupes`, `fallow:health`, `fallow:fix:preview`) and `.fallowrc.json` entrypoint modeling for verified scripts, tests, and public surfaces.
 - **Local dev and E2E ergonomics** — `dev-stop-all.bat`, `scripts/stop-dev-and-e2e.ps1`, and VS Code tasks to stop the full dev stack and Playwright E2E runners together.
 - **Playwright user regression expansion** — New `@full` workflow specs (auth lifecycle, signup success, org switching, team roles, equipment detail tabs, scan history, PM template editor, privacy request, PWA offline, fleet map, reports, and related flows), a `e2e/user/COVERAGE.md` matrix, GitHub Actions `playwright-user-regression` workflow, dedicated E2E seed fixtures, and npm scripts for full, local-full, mobile-critical, and dual-viewport critical runs.
 - **Playwright demo and viewport modes** — `dev-test.bat` / `run-user-regression.ps1` support a demo run profile, desktop/mobile/both viewport modes, and auto database reset for `@full` suites.
 
 ### Changed
+
+- **Fallow unit-size maintainability pass** — Decomposed large runtime components (PM checklist, inventory item form, equipment details, inventory list, unified members list, Google Places autocomplete, work-order status actions), structured the privacy policy into section modules, thinned QuickBooks OAuth/upload/export edge-function entrypoints with focused helpers, and extracted shared test fixtures; Fallow health score remains 77.3 (B) with the `unit_size` penalty still capped at 10.0 pending further reduction of population-level large-function density.
+- **Route, script, and export maintainability** — Split app route declarations, preview-access probes, migration SQL analysis, demo recorder orchestration, CSV/Google export builders, QuickBooks invoice export, and Google/QuickBooks OAuth callbacks into focused helpers with targeted regression coverage.
 
 - **Dead-code cleanup** — Evidence-backed removal of obsolete modules, duplicate feature barrels, unused exports, and legacy organization/session scaffolding identified by Fallow (findings reduced to 0); session types consolidated with expanded `useSessionManager` test coverage.
 - **Dependencies** — Trimmed unused npm packages surfaced during the audit.
