@@ -1,7 +1,6 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { verifyInventoryItemInOrganization } from '@/features/inventory/services/inventoryItemAccess';
-import type { InventoryItem } from '@/features/inventory/types/inventory';
 import type { Equipment } from '@/features/equipment/services/EquipmentService';
 
 async function assertEquipmentInOrganization(
@@ -62,39 +61,6 @@ export const getCompatibleEquipmentForItem = async (
     return equipment;
   } catch (error) {
     logger.error('Error fetching compatible equipment for item:', error);
-    throw error;
-  }
-};
-
-// ============================================
-// Get Compatible Items for Equipment
-// ============================================
-
-const getCompatibleItemsForEquipment = async (
-  organizationId: string,
-  equipmentId: string
-): Promise<InventoryItem[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('equipment_part_compatibility')
-      .select(`
-        inventory_item_id,
-        inventory_items!inner(*)
-      `)
-      .eq('equipment_id', equipmentId)
-      .eq('inventory_items.organization_id', organizationId);
-
-    if (error) throw error;
-
-    return (data || []).map((row: { inventory_items: InventoryItem }) => {
-      const item = row.inventory_items as unknown as InventoryItem;
-      return {
-        ...item,
-        isLowStock: item.quantity_on_hand <= item.low_stock_threshold
-      };
-    });
-  } catch (error) {
-    logger.error('Error fetching compatible items for equipment:', error);
     throw error;
   }
 };

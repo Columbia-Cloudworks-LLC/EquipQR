@@ -152,6 +152,51 @@ describe('collectRpcGrantSecurityErrors', () => {
 
     expect(errors).toHaveLength(0);
   });
+
+  it('rejects quoted schema-qualified anon grants without matching markers', () => {
+    const content =
+      '-- rpc-anon-grant-allowed: get_invitation_by_token_secure\n' +
+      'GRANT EXECUTE ON FUNCTION "public"."other_fn"() TO anon;';
+    const errors = collectRpcGrantSecurityErrors({
+      fileName: '20260607130000_quoted.sql',
+      content,
+      analysisContent: content,
+      rpcAnonAllowlist: anonAllowlist,
+      rpcAuthenticatedAllowlist: authenticatedAllowlist,
+    });
+
+    expect(errors.some((error) => error.includes('other_fn'))).toBe(true);
+  });
+
+  it('rejects private-schema authenticated grants without matching markers', () => {
+    const content =
+      '-- rpc-authenticated-grant-allowed: refresh_quickbooks_tokens_manual\n' +
+      'GRANT EXECUTE ON FUNCTION private.my_fn() TO authenticated;';
+    const errors = collectRpcGrantSecurityErrors({
+      fileName: '20260607130000_private.sql',
+      content,
+      analysisContent: content,
+      rpcAnonAllowlist: anonAllowlist,
+      rpcAuthenticatedAllowlist: authenticatedAllowlist,
+    });
+
+    expect(errors.some((error) => error.includes('my_fn'))).toBe(true);
+  });
+
+  it('fails closed when the granted function identifier cannot be parsed', () => {
+    const content =
+      '-- rpc-anon-grant-allowed: get_invitation_by_token_secure\n' +
+      'GRANT EXECUTE ON FUNCTION 123invalid() TO anon;';
+    const errors = collectRpcGrantSecurityErrors({
+      fileName: '20260607130000_unparsed.sql',
+      content,
+      analysisContent: content,
+      rpcAnonAllowlist: anonAllowlist,
+      rpcAuthenticatedAllowlist: authenticatedAllowlist,
+    });
+
+    expect(errors.some((error) => error.includes('could not be parsed'))).toBe(true);
+  });
 });
 
 describe('parseRpcGrantMarkerNames', () => {
@@ -171,6 +216,18 @@ describe('parseGrantedFunctionName', () => {
         'GRANT EXECUTE ON FUNCTION public.refresh_quickbooks_tokens_manual() TO authenticated;',
       ),
     ).toBe('refresh_quickbooks_tokens_manual');
+  });
+
+  it('extracts function names from quoted schema-qualified GRANT statements', () => {
+    expect(
+      parseGrantedFunctionName('GRANT EXECUTE ON FUNCTION "public"."my_fn"() TO anon;'),
+    ).toBe('my_fn');
+  });
+
+  it('extracts function names from non-public schema GRANT statements', () => {
+    expect(
+      parseGrantedFunctionName('GRANT EXECUTE ON FUNCTION private.my_fn() TO authenticated;'),
+    ).toBe('my_fn');
   });
 });
 

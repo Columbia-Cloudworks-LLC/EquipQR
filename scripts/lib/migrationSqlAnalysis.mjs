@@ -265,11 +265,25 @@ export function parseRpcGrantMarkerNames(content, role) {
  */
 export function parseGrantedFunctionName(grantStatement) {
   const match =
-    /GRANT\s+(?:ALL|EXECUTE)\s+ON\s+FUNCTION\s+(?:public\.)?(?:"([^"]+)"|([a-z_][a-z0-9_]*))/i.exec(
+    /GRANT\s+(?:ALL|EXECUTE)\s+ON\s+FUNCTION\s+(?:(?:"([^"]+)"|([a-z_][a-z0-9_]*))\s*\.\s*)?(?:"([^"]+)"|([a-z_][a-z0-9_]*))/i.exec(
       grantStatement,
     );
   if (!match) return null;
-  return (match[1] || match[2]).toLowerCase();
+  return (match[3] || match[4]).toLowerCase();
+}
+
+/**
+ * @param {string[]} errors
+ * @param {string} fileName
+ * @param {{ statement: string }} grant
+ * @param {'anon' | 'authenticated'} role
+ */
+function pushUnparsedGrantFunctionError(errors, fileName, grant, role) {
+  errors.push(
+    `[RPC SECURITY] "${fileName}" grants EXECUTE on a function to role ${role} but the function identifier could not be parsed from the GRANT statement.\n` +
+      `  Use an unquoted schema-qualified form (e.g. public.fn_name) or update the migration validator parser.\n` +
+      `  Statement: ${grant.statement.trim()}`,
+  );
 }
 
 /**
@@ -347,7 +361,10 @@ export function collectRpcGrantSecurityErrors({
       }
 
       for (const grant of anonGrants) {
-        if (!grant.functionName) continue;
+        if (!grant.functionName) {
+          pushUnparsedGrantFunctionError(errors, fileName, grant, 'anon');
+          continue;
+        }
         if (!anonMarkers.includes(grant.functionName)) {
           errors.push(
             `[RPC SECURITY] "${fileName}" grants EXECUTE on function "${grant.functionName}" to anon but has no matching rpc-anon-grant-allowed marker.`,
@@ -381,7 +398,10 @@ export function collectRpcGrantSecurityErrors({
       }
 
       for (const grant of authenticatedGrants) {
-        if (!grant.functionName) continue;
+        if (!grant.functionName) {
+          pushUnparsedGrantFunctionError(errors, fileName, grant, 'authenticated');
+          continue;
+        }
         if (!authenticatedMarkers.includes(grant.functionName)) {
           errors.push(
             `[RPC SECURITY] "${fileName}" grants EXECUTE on function "${grant.functionName}" to authenticated but has no matching rpc-authenticated-grant-allowed marker.`,
