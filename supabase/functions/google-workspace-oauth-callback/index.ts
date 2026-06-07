@@ -3,7 +3,11 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
 import { logStep } from "./gw-oauth-validation.ts";
 import { parseOAuthState, validateOAuthStateTimestamp } from "./gw-oauth-state.ts";
-import { buildOAuthRedirectUri, validateOAuthRedirectUri } from "./gw-oauth-redirect-uri.ts";
+import {
+  buildOAuthRedirectUri,
+  resolveOAuthRedirectBaseUrl,
+  validateOAuthRedirectUri,
+} from "./gw-oauth-redirect-uri.ts";
 import {
   exchangeAuthorizationCode,
   fetchGoogleUserInfo,
@@ -46,7 +50,10 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     const clientSecret = requireSecret("GOOGLE_WORKSPACE_CLIENT_SECRET", { functionName: FUNCTION_NAME });
     const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: FUNCTION_NAME });
     const productionUrl = Deno.env.get("PRODUCTION_URL");
-    const oauthRedirectBaseUrl = Deno.env.get("GW_OAUTH_REDIRECT_BASE_URL") || supabaseUrl;
+    const oauthRedirectBaseUrl = resolveOAuthRedirectBaseUrl(
+      Deno.env.get("GW_OAUTH_REDIRECT_BASE_URL"),
+      supabaseUrl,
+    );
 
     if (!productionUrl) {
       logStep("WARNING: PRODUCTION_URL not set, using fallback", { fallback: "https://equipqr.app" });

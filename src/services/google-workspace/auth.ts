@@ -8,6 +8,7 @@ import {
   buildOAuthCallbackRedirectUri,
   createOAuthStatePayload,
   parseOAuthSessionRpcResult,
+  resolveOAuthRedirectBaseUrl,
   resolveOAuthOriginUrl,
 } from '@/services/oauthSessionHelpers';
 
@@ -98,7 +99,7 @@ export async function generateGoogleWorkspaceAuthUrl(
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   // Prefer explicit OAuth redirect base URL override, otherwise fall back to Supabase project URL
   const explicitBaseUrl = import.meta.env.VITE_GW_OAUTH_REDIRECT_BASE_URL;
-  const oauthRedirectBaseUrl = explicitBaseUrl || supabaseUrl;
+  const oauthRedirectBaseUrl = resolveOAuthRedirectBaseUrl(explicitBaseUrl, supabaseUrl);
 
   if (!clientId) {
     throw new Error('Google Workspace integration is not configured. Missing VITE_GOOGLE_WORKSPACE_CLIENT_ID.');

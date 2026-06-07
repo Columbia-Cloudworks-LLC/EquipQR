@@ -1,6 +1,8 @@
+import fs from 'fs';
 import path from 'path';
 import { defineConfig, devices } from '@playwright/test';
 import { loadUserRegressionRunConfig } from './e2e/user/shared/run-config';
+import { resolveRealAuthBaseUrl } from './e2e/user/shared/real-auth-config';
 
 const repoRoot = process.cwd();
 const runConfig = loadUserRegressionRunConfig();
@@ -61,6 +63,14 @@ const outputDir = runConfig.outputDir || path.join(
 
 const ownerStorage = path.join(authDir, 'owner.json');
 
+const realAuthStorageRaw = process.env.E2E_REAL_AUTH_STORAGE_STATE?.trim();
+const realAuthStorageState = realAuthStorageRaw
+  ? path.resolve(realAuthStorageRaw)
+  : null;
+const realAuthStorageExists =
+  realAuthStorageState !== null && fs.existsSync(realAuthStorageState);
+const realAuthBaseURL = resolveRealAuthBaseUrl();
+
 export default defineConfig({
   testDir: 'e2e/user',
   fullyParallel: false,
@@ -114,6 +124,17 @@ export default defineConfig({
       grep: /@full/,
       use: {
         storageState: ownerStorage,
+      },
+    },
+    {
+      name: 'real-auth-integrations',
+      grep: /@real-auth/,
+      use: {
+        baseURL: realAuthBaseURL,
+        viewport: { width: 1280, height: 720 },
+        ...(realAuthStorageExists && realAuthStorageState
+          ? { storageState: realAuthStorageState }
+          : {}),
       },
     },
   ],

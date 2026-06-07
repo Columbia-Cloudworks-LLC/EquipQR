@@ -248,13 +248,13 @@ GITHUB_WEBHOOK_SECRET=<your-github-webhook-secret>
 # QuickBooks (if enabled)
 INTUIT_CLIENT_ID=<your-intuit-client-id>
 INTUIT_CLIENT_SECRET=<your-intuit-client-secret>
-QB_OAUTH_REDIRECT_BASE_URL=https://supabase.preview.equipqr.app
+QB_OAUTH_REDIRECT_BASE_URL=https://olsdirkvvfegvclbpgrg.supabase.co
 QUICKBOOKS_SANDBOX=true
 
 # Google Workspace Integration (if enabled)
 GOOGLE_WORKSPACE_CLIENT_ID=<your-google-workspace-client-id>
 GOOGLE_WORKSPACE_CLIENT_SECRET=<your-google-workspace-client-secret>
-GW_OAUTH_REDIRECT_BASE_URL=https://supabase.preview.equipqr.app
+GW_OAUTH_REDIRECT_BASE_URL=https://olsdirkvvfegvclbpgrg.supabase.co
 TOKEN_ENCRYPTION_KEY=<generate-with-openssl-rand-base64-32>
 KDF_SALT=<generate-unique-salt-with-openssl-rand-base64-32>
 ```

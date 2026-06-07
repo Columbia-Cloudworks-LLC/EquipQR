@@ -4,6 +4,7 @@
 import { assertEquals, assertThrows } from "jsr:@std/assert@1";
 import {
   buildOAuthRedirectUri,
+  resolveOAuthRedirectBaseUrl,
   validateOAuthRedirectBaseUrl,
 } from "./qb-oauth-redirect-uri.ts";
 import { parseOAuthState, validateOAuthStateTimestamp } from "./qb-oauth-state.ts";
@@ -26,6 +27,16 @@ Deno.test("buildOAuthRedirectUri trims trailing slashes and appends callback pat
   assertEquals(
     buildOAuthRedirectUri("https://supabase.equipqr.app/"),
     "https://supabase.equipqr.app/functions/v1/quickbooks-oauth-callback",
+  );
+});
+
+Deno.test("resolveOAuthRedirectBaseUrl normalizes retired preview Supabase hostname", () => {
+  assertEquals(
+    resolveOAuthRedirectBaseUrl(
+      "https://supabase.preview.equipqr.app",
+      "https://olsdirkvvfegvclbpgrg.supabase.co",
+    ),
+    "https://olsdirkvvfegvclbpgrg.supabase.co",
   );
 });
 

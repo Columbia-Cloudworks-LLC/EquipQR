@@ -52,7 +52,7 @@ OAuth 2.0 requires that the `redirect_uri` used during authorization **must exac
 | Environment | `VITE_QB_OAUTH_REDIRECT_BASE_URL` / `QB_OAUTH_REDIRECT_BASE_URL` |
 |-------------|------------------------------------------------------------------|
 | Production | `https://supabase.equipqr.app` |
-| Preview | `https://supabase.preview.equipqr.app` |
+| Preview | `https://olsdirkvvfegvclbpgrg.supabase.co` |
 | Local | `http://localhost:54321` (or port from `supabase/config.toml` / `npx supabase status`) |
 
 If these values don't match, OAuth will fail with "oauth_failed" error.

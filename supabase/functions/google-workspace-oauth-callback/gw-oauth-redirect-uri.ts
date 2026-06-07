@@ -1,6 +1,17 @@
 import { logStep } from "./gw-oauth-validation.ts";
 
 const EXPECTED_CALLBACK_PATH = "/functions/v1/google-workspace-oauth-callback";
+const RETIRED_OAUTH_REDIRECT_BASE_URLS: Record<string, string> = {
+  "https://supabase.preview.equipqr.app": "https://olsdirkvvfegvclbpgrg.supabase.co",
+};
+
+export function resolveOAuthRedirectBaseUrl(
+  configuredBaseUrl: string | undefined,
+  fallbackBaseUrl: string,
+): string {
+  const rawBaseUrl = (configuredBaseUrl || fallbackBaseUrl).trim().replace(/\/+$/, "");
+  return RETIRED_OAUTH_REDIRECT_BASE_URLS[rawBaseUrl] ?? rawBaseUrl;
+}
 
 export function buildOAuthRedirectUri(oauthRedirectBaseUrl: string): string {
   const redirectBaseUrl = oauthRedirectBaseUrl.trim().replace(/\/+$/, "");
@@ -77,6 +88,7 @@ export function validateOAuthRedirectUri(
 
 export const __gwOauthRedirectUriTestables = {
   buildOAuthRedirectUri,
+  resolveOAuthRedirectBaseUrl,
   validateOAuthRedirectUri,
   EXPECTED_CALLBACK_PATH,
 };

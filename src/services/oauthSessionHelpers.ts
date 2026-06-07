@@ -5,6 +5,18 @@ export type OAuthSessionRpcRow = {
   nonce: string;
 };
 
+const RETIRED_OAUTH_REDIRECT_BASE_URLS: Record<string, string> = {
+  'https://supabase.preview.equipqr.app': 'https://olsdirkvvfegvclbpgrg.supabase.co',
+};
+
+export function resolveOAuthRedirectBaseUrl(
+  configuredBaseUrl: string | undefined,
+  fallbackBaseUrl: string,
+): string {
+  const rawBaseUrl = (configuredBaseUrl || fallbackBaseUrl).trim().replace(/\/+$/, '');
+  return RETIRED_OAUTH_REDIRECT_BASE_URLS[rawBaseUrl] ?? rawBaseUrl;
+}
+
 export function assertValidOAuthRedirectBase(oauthRedirectBaseUrl: string): void {
   try {
     new URL(oauthRedirectBaseUrl);

@@ -20,7 +20,7 @@ const {
 } = __gwOauthValidationTestables;
 
 const { parseOAuthState, validateOAuthStateTimestamp } = __stateTestables;
-const { buildOAuthRedirectUri } = __gwOauthRedirectUriTestables;
+const { buildOAuthRedirectUri, resolveOAuthRedirectBaseUrl } = __gwOauthRedirectUriTestables;
 const { extractUserDomain } = __gwOauthGoogleApiTestables;
 const { buildSuccessRedirectUrl, resolveFallbackProductionUrl } = __gwOauthSuccessRedirectTestables;
 
@@ -102,6 +102,16 @@ Deno.test("buildOAuthRedirectUri appends callback path without trailing slash du
   assertEquals(
     buildOAuthRedirectUri("https://supabase.example.co/"),
     "https://supabase.example.co/functions/v1/google-workspace-oauth-callback",
+  );
+});
+
+Deno.test("resolveOAuthRedirectBaseUrl normalizes retired preview Supabase hostname", () => {
+  assertEquals(
+    resolveOAuthRedirectBaseUrl(
+      "https://supabase.preview.equipqr.app",
+      "https://olsdirkvvfegvclbpgrg.supabase.co",
+    ),
+    "https://olsdirkvvfegvclbpgrg.supabase.co",
   );
 });
 

@@ -6,6 +6,7 @@ import { logStep } from "./qb-oauth-validation.ts";
 import { parseOAuthState, validateOAuthStateTimestamp } from "./qb-oauth-state.ts";
 import {
   buildOAuthRedirectUri,
+  resolveOAuthRedirectBaseUrl,
   validateOAuthRedirectBaseUrl,
 } from "./qb-oauth-redirect-uri.ts";
 import { exchangeAuthorizationCode } from "./qb-oauth-intuit-api.ts";
@@ -37,7 +38,10 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: FUNCTION_NAME });
     const supabaseServiceKey = requireSecret("SUPABASE_SERVICE_ROLE_KEY", { functionName: FUNCTION_NAME });
     const productionUrl = resolveProductionUrl();
-    const qbOAuthRedirectBaseUrl = Deno.env.get("QB_OAUTH_REDIRECT_BASE_URL") || supabaseUrl;
+    const qbOAuthRedirectBaseUrl = resolveOAuthRedirectBaseUrl(
+      Deno.env.get("QB_OAUTH_REDIRECT_BASE_URL"),
+      supabaseUrl,
+    );
 
     validateOAuthRedirectBaseUrl(qbOAuthRedirectBaseUrl);
 

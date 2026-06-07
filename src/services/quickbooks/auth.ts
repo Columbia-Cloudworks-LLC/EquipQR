@@ -18,6 +18,7 @@ import {
   buildOAuthCallbackRedirectUri,
   createOAuthStatePayload,
   parseOAuthSessionRpcResult,
+  resolveOAuthRedirectBaseUrl,
   resolveOAuthOriginUrl,
 } from '@/services/oauthSessionHelpers';
 
@@ -77,7 +78,10 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
   const clientId = import.meta.env.VITE_INTUIT_CLIENT_ID;
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const explicitOAuthRedirectBaseUrl = import.meta.env.VITE_QB_OAUTH_REDIRECT_BASE_URL;
-  const oauthRedirectBaseUrl = explicitOAuthRedirectBaseUrl || supabaseUrl;
+  const oauthRedirectBaseUrl = resolveOAuthRedirectBaseUrl(
+    explicitOAuthRedirectBaseUrl,
+    supabaseUrl,
+  );
 
   if (!clientId) {
     throw new Error(

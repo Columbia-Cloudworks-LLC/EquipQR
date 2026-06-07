@@ -12,7 +12,9 @@ Local command matrix:
 | `dev-test.bat critical demo` | 1080p desktop demo recording with step pacing and target highlights |
 | `dev-test.bat critical demo mobile` | Mobile demo recording with touch viewport and target highlights |
 
-Out of scope (deferred external): live Google Workspace OAuth/sync, QuickBooks OAuth/connect/export success.
+Out of scope for default regression: live Google Workspace OAuth/sync, QuickBooks OAuth/connect/export success.
+
+Opt-in real-auth project (`real-auth-integrations`, tag `@real-auth`): preview + captured storage state for connected Google Workspace and production QuickBooks export. See [docs/ops/playwright-real-auth-integrations.md](../../docs/ops/playwright-real-auth-integrations.md).
 
 ## Coverage map
 
@@ -46,6 +48,7 @@ Out of scope (deferred external): live Google Workspace OAuth/sync, QuickBooks O
 | PM templates list | full | `full/pm-templates.spec.ts` | desktop full; mobile by explicit `full mobile` run |
 | PM template editor/view | full | `full/pm-template-editor.spec.ts` | desktop full; mobile by explicit `full mobile` run |
 | Organization / integrations UI | full | `full/org-integrations.spec.ts` | desktop full; mobile by explicit `full mobile` run |
+| Real-auth integrations + QBO export | real-auth (opt-in) | `full/real-auth-integrations.spec.ts` | desktop only; manual storage state |
 | Teams list/detail | full | `full/org-integrations.spec.ts`, `full/team-detail-management.spec.ts` | desktop full; mobile by explicit `full mobile` run |
 | Fleet map | full | `full/fleet-map.spec.ts` | desktop full; mobile by explicit `full mobile` run |
 | Notifications/settings/reports shell | full | `full/notifications-settings.spec.ts` | desktop full; mobile by explicit `full mobile` run |
