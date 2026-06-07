@@ -8,25 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- Simplified URL configuration: OAuth callback URIs now derive from `VITE_SUPABASE_URL` / `SUPABASE_URL`, and Edge redirects prefer `PUBLIC_SITE_URL` with legacy `PRODUCTION_URL` fallback; deprecated QBO/GW redirect base env vars removed from sync scripts and docs.
+
+## [3.8.2] - 2026-06-07
 
 ### Added
 
-- **Demo action overlay** — Playwright demo recording helpers can show user-action overlays during scripted captures so generated demos highlight clicks, taps, and typed interactions.
-- **Fallow codebase intelligence** — Repository npm scripts (`fallow:scan`, `fallow:audit`, `fallow:dupes`, `fallow:health`, `fallow:fix:preview`) and `.fallowrc.json` entrypoint modeling for verified scripts, tests, and public surfaces.
-- **Local dev and E2E ergonomics** — `dev-stop-all.bat`, `scripts/stop-dev-and-e2e.ps1`, and VS Code tasks to stop the full dev stack and Playwright E2E runners together.
-- **Playwright user regression expansion** — New `@full` workflow specs (auth lifecycle, signup success, org switching, team roles, equipment detail tabs, scan history, PM template editor, privacy request, PWA offline, fleet map, reports, and related flows), a `e2e/user/COVERAGE.md` matrix, GitHub Actions `playwright-user-regression` workflow, dedicated E2E seed fixtures, and npm scripts for full, local-full, mobile-critical, and dual-viewport critical runs.
-- **Playwright demo and viewport modes** — `dev-test.bat` / `run-user-regression.ps1` support a demo run profile, desktop/mobile/both viewport modes, and auto database reset for `@full` suites.
+- **Playwright user regression coverage** — Expanded critical and full browser suites, run modes, coverage tracking, real-auth integration hooks, and demo action overlays so preview releases can be validated across desktop, mobile, auth, support, privacy, PM template, scan history, and work-order workflows.
+- **Fallow codebase intelligence** — Repository scripts and configuration now cover static health, duplication, dead-code, PR risk analysis, and local verification cleanup helpers.
 
 ### Changed
 
-- **Fallow unit-size maintainability pass** — Decomposed large runtime components (PM checklist, inventory item form, equipment details, inventory list, unified members list, Google Places autocomplete, work-order status actions), structured the privacy policy into section modules, thinned QuickBooks OAuth/upload/export edge-function entrypoints with focused helpers, and extracted shared test fixtures; Fallow health score remains 77.3 (B) with the `unit_size` penalty still capped at 10.0 pending further reduction of population-level large-function density.
-- **Route, script, and export maintainability** — Split app route declarations, preview-access probes, migration SQL analysis, demo recorder orchestration, CSV/Google export builders, QuickBooks invoice export, and Google/QuickBooks OAuth callbacks into focused helpers with targeted regression coverage.
-
-- **Dead-code cleanup** — Evidence-backed removal of obsolete modules, duplicate feature barrels, unused exports, and legacy organization/session scaffolding identified by Fallow (findings reduced to 0); session types consolidated with expanded `useSessionManager` test coverage.
-- **Dependencies** — Trimmed unused npm packages surfaced during the audit.
-- **Playwright shared helpers** — Expanded auth, org, page, seed-data, and UI form helpers plus run-config defaults for multi-org and mobile flows.
-- **Demo marketing recorder** — Quality gate, diagnostics, and step-runner improvements for demo GIF/video capture.
+- **Maintainability and verification tooling** — Decomposed large runtime components, route declarations, export builders, OAuth callbacks, demo recording helpers, and shared test fixtures while trimming unused packages and obsolete modules surfaced by Fallow.
+- **Canonical URL and integration configuration** — OAuth callback URIs now derive from `VITE_SUPABASE_URL` / `SUPABASE_URL`, Edge redirects prefer `PUBLIC_SITE_URL` with legacy `PRODUCTION_URL` fallback, and deprecated QuickBooks/Google Workspace redirect-base environment variables were removed from sync scripts and docs.
+- **QuickBooks integration posture** — QuickBooks behavior is scoped to production-connected environments, customer search avoids unsupported and non-queryable fields, and customer imports verify team linking.
 - **Vite React plugin** — Switched from the SWC React plugin to the standard Vite React plugin to keep Vitest and production builds quiet under Vite 8/Rolldown.
 
 ### Removed
@@ -35,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Preventive maintenance query handling** — PM status lookups now return the first matching row and handle query errors gracefully.
 - **Post-signup success view** — Auth no longer auto-redirects away from the check-your-email success screen before the user chooses return to sign-in.
 - **Fleet map Google Maps key** — Session refresh and retry when the public maps key edge function returns unauthorized.
 - **PM template and QuickBooks UI** — Stable selectors and test hooks for Playwright full-suite coverage.
@@ -1976,8 +1971,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.1...HEAD
-- Simplified URL configuration: OAuth callback URIs now derive from `VITE_SUPABASE_URL` / `SUPABASE_URL`, and Edge redirects prefer `PUBLIC_SITE_URL` with legacy `PRODUCTION_URL` fallback; deprecated QBO/GW redirect base env vars removed from sync scripts and docs.
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.2...HEAD
+[3.8.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.1...v3.8.2
 [3.8.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.0...v3.8.1
 [3.8.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.4...v3.8.0
 [3.6.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.3...v3.6.4
