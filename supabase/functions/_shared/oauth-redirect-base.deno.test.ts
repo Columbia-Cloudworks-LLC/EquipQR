@@ -21,6 +21,16 @@ Deno.test("resolveOAuthRedirectBaseUrl normalizes retired preview Supabase hostn
   );
 });
 
+Deno.test("resolveOAuthRedirectBaseUrl normalizes stale preview Supabase app hostname", () => {
+  assertEquals(
+    resolveOAuthRedirectBaseUrl(
+      "https://preview.supabase.app",
+      "https://olsdirkvvfegvclbpgrg.supabase.co",
+    ),
+    "https://olsdirkvvfegvclbpgrg.supabase.co",
+  );
+});
+
 Deno.test("buildOAuthCallbackRedirectUri appends callback path", () => {
   assertEquals(
     buildOAuthCallbackRedirectUri(

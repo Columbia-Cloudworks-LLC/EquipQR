@@ -7,6 +7,7 @@
  */
 
 const RETIRED_OAUTH_REDIRECT_BASE_URLS: Record<string, string> = {
+  "https://preview.supabase.app": "https://olsdirkvvfegvclbpgrg.supabase.co",
   "https://supabase.preview.equipqr.app": "https://olsdirkvvfegvclbpgrg.supabase.co",
 };
 

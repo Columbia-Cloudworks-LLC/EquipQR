@@ -45,3 +45,28 @@ Deno.test("resolvePublicSiteUrl falls back to PRODUCTION_URL then default", () =
     }
   }
 });
+
+Deno.test("resolvePublicSiteUrl normalizes stale preview Supabase app origin", () => {
+  const prevPublic = Deno.env.get("PUBLIC_SITE_URL");
+  const prevProduction = Deno.env.get("PRODUCTION_URL");
+  try {
+    Deno.env.set("PUBLIC_SITE_URL", "https://preview.supabase.app");
+    Deno.env.set("PRODUCTION_URL", "https://equipqr.app");
+    assertEquals(resolvePublicSiteUrl(), "https://preview.equipqr.app");
+
+    Deno.env.delete("PUBLIC_SITE_URL");
+    Deno.env.set("PRODUCTION_URL", "https://preview.supabase.app");
+    assertEquals(resolvePublicSiteUrl(), "https://preview.equipqr.app");
+  } finally {
+    if (prevPublic === undefined) {
+      Deno.env.delete("PUBLIC_SITE_URL");
+    } else {
+      Deno.env.set("PUBLIC_SITE_URL", prevPublic);
+    }
+    if (prevProduction === undefined) {
+      Deno.env.delete("PRODUCTION_URL");
+    } else {
+      Deno.env.set("PRODUCTION_URL", prevProduction);
+    }
+  }
+});

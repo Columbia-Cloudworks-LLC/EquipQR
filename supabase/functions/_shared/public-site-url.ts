@@ -7,15 +7,19 @@
 
 export const DEFAULT_PUBLIC_SITE_URL = "https://equipqr.app";
 
+const RETIRED_PUBLIC_SITE_URLS: Record<string, string> = {
+  "https://preview.supabase.app": "https://preview.equipqr.app",
+};
+
 export function resolvePublicSiteUrl(): string {
   const publicSiteUrl = Deno.env.get("PUBLIC_SITE_URL")?.trim();
   if (publicSiteUrl) {
-    return publicSiteUrl;
+    return RETIRED_PUBLIC_SITE_URLS[publicSiteUrl.replace(/\/+$/, "")] ?? publicSiteUrl;
   }
 
   const legacyProductionUrl = Deno.env.get("PRODUCTION_URL")?.trim();
   if (legacyProductionUrl) {
-    return legacyProductionUrl;
+    return RETIRED_PUBLIC_SITE_URLS[legacyProductionUrl.replace(/\/+$/, "")] ?? legacyProductionUrl;
   }
 
   return DEFAULT_PUBLIC_SITE_URL;
