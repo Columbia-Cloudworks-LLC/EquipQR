@@ -140,3 +140,17 @@ Deno.test("buildCustomerQueries returns one active-customer query when search is
 Deno.test("sanitizeCustomerSearchQuery strips unsupported QBO special characters", () => {
   assertEquals(sanitizeCustomerSearchQuery("3-A Equipment; DROP"), "3-A Equipment DROP");
 });
+
+Deno.test("buildCustomerQueries does not request non-queryable BillAddr or ShipAddr fields", () => {
+  const queries = buildCustomerQueries("");
+
+  assertEquals(queries.length, 1);
+  assertEquals(queries[0].includes("BillAddr"), false);
+  assertEquals(queries[0].includes("ShipAddr"), false);
+  assertEquals(
+    queries[0].includes(
+      "SELECT Id, DisplayName, GivenName, FamilyName, CompanyName, PrimaryEmailAddr, PrimaryPhone, Mobile, Fax, AlternatePhone, Taxable FROM Customer",
+    ),
+    true,
+  );
+});

@@ -204,6 +204,16 @@ serveQuickBooksFunction(FUNCTION_NAME, logStep, async ({
           });
         }
 
+        if (qbResponse.status === 400) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.",
+          }), {
+            status: 422,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
         throw new Error("Failed to query QuickBooks customers");
       }
 

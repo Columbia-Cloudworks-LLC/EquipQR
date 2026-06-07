@@ -1,5 +1,6 @@
+// BillAddr and ShipAddr are not queryable via QBO query language (QueryValidationError).
 const CUSTOMER_SELECT =
-  "SELECT Id, DisplayName, GivenName, FamilyName, CompanyName, PrimaryEmailAddr, PrimaryPhone, Mobile, Fax, AlternatePhone, BillAddr, ShipAddr, Taxable FROM Customer";
+  "SELECT Id, DisplayName, GivenName, FamilyName, CompanyName, PrimaryEmailAddr, PrimaryPhone, Mobile, Fax, AlternatePhone, Taxable FROM Customer";
 
 export function sanitizeCustomerSearchQuery(query: unknown): string {
   if (typeof query !== "string") return "";
