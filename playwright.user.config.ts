@@ -2,7 +2,10 @@ import fs from 'fs';
 import path from 'path';
 import { defineConfig, devices } from '@playwright/test';
 import { loadUserRegressionRunConfig } from './e2e/user/shared/run-config';
-import { resolveRealAuthBaseUrl } from './e2e/user/shared/real-auth-config';
+import {
+  resolveRealAuthBaseUrl,
+  resolveVercelAutomationBypassHeaders,
+} from './e2e/user/shared/real-auth-config';
 
 const repoRoot = process.cwd();
 const runConfig = loadUserRegressionRunConfig();
@@ -70,6 +73,7 @@ const realAuthStorageState = realAuthStorageRaw
 const realAuthStorageExists =
   realAuthStorageState !== null && fs.existsSync(realAuthStorageState);
 const realAuthBaseURL = resolveRealAuthBaseUrl();
+const vercelAutomationBypassHeaders = resolveVercelAutomationBypassHeaders();
 
 export default defineConfig({
   testDir: 'e2e/user',
@@ -132,6 +136,9 @@ export default defineConfig({
       use: {
         baseURL: realAuthBaseURL,
         viewport: { width: 1280, height: 720 },
+        ...(vercelAutomationBypassHeaders
+          ? { extraHTTPHeaders: vercelAutomationBypassHeaders }
+          : {}),
         ...(realAuthStorageExists && realAuthStorageState
           ? { storageState: realAuthStorageState }
           : {}),

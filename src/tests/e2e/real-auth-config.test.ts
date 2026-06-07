@@ -5,6 +5,7 @@ import {
   isQboProductionDraftsAllowed,
   isTruthyEnv,
   resolveRealAuthBaseUrl,
+  resolveVercelAutomationBypassHeaders,
 } from '../../../e2e/user/shared/real-auth-config';
 
 describe('real-auth-config', () => {
@@ -39,6 +40,21 @@ describe('real-auth-config', () => {
     expect(getProductionQuickBooksInvoiceUrl('12345')).toBe(
       'https://app.qbo.intuit.com/app/invoice?txnId=12345',
     );
+  });
+
+  it('builds Vercel protection bypass headers when the secret is present', () => {
+    process.env.VERCEL_AUTOMATION_BYPASS_SECRET = 'bypass-secret';
+
+    expect(resolveVercelAutomationBypassHeaders()).toEqual({
+      'x-vercel-protection-bypass': 'bypass-secret',
+      'x-vercel-set-bypass-cookie': 'true',
+    });
+  });
+
+  it('omits Vercel protection bypass headers when the secret is absent', () => {
+    delete process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+
+    expect(resolveVercelAutomationBypassHeaders()).toBeUndefined();
   });
 
   it('requires all export prerequisites', () => {

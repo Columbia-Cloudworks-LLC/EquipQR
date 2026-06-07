@@ -37,8 +37,23 @@ Never commit `tmp/playwright/auth/nicholas-google-qbo.json`. It contains live se
 |----------|----------------|-------------|
 | `E2E_REAL_AUTH_STORAGE_STATE` | All `@real-auth` tests | Path to captured storage JSON |
 | `E2E_REAL_AUTH_BASE_URL` | Optional | Defaults to `https://preview.equipqr.app` |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | Protected preview runs | Vercel Deployment Protection bypass secret from `op://EquipQR Agents/vercel-automation-bypass/VERCEL_AUTOMATION_BYPASS_SECRET` |
 | `E2E_QBO_WORK_ORDER_ID` | Export test only | Known-safe **completed** preview work order UUID (`1660137f-a803-4510-9a0a-96c7048d0eb4`) |
 | `E2E_ALLOW_QBO_PRODUCTION_DRAFTS` | Export test only | Must be `true` to opt in to production draft invoice create/update |
+
+Load the Vercel bypass secret before running tests against protected preview:
+
+```powershell
+$env:VERCEL_AUTOMATION_BYPASS_SECRET = op read "op://EquipQR Agents/vercel-automation-bypass/VERCEL_AUTOMATION_BYPASS_SECRET"
+```
+
+To reuse a Google-only storage state as a starting point for the combined EquipQR + QBO state:
+
+```powershell
+npx playwright codegen "https://preview.equipqr.app/auth?tab=signin" `
+  --load-storage="tmp/playwright/auth/google-business.json" `
+  --save-storage="tmp/playwright/auth/nicholas-google-qbo.json"
+```
 
 ### Work order preconditions
 

@@ -22,6 +22,16 @@ export function resolveRealAuthBaseUrl(): string {
   return raw ? raw.replace(/\/+$/, '') : 'https://preview.equipqr.app';
 }
 
+export function resolveVercelAutomationBypassHeaders(): Record<string, string> | undefined {
+  const secret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim();
+  if (!secret) return undefined;
+
+  return {
+    'x-vercel-protection-bypass': secret,
+    'x-vercel-set-bypass-cookie': 'true',
+  };
+}
+
 /** Known-safe completed work order ID for QuickBooks export smoke. */
 export function resolveQboWorkOrderId(): string | null {
   const raw = process.env.E2E_QBO_WORK_ORDER_ID?.trim();
