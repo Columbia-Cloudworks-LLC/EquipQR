@@ -165,18 +165,6 @@ export const generateEquipmentName = (manufacturer: string, model: string): stri
   return `${mfr} ${mdl}`;
 };
 
-/**
- * Generate default equipment description from manufacturer, model, and serial number
- */
-const generateEquipmentDescription = (
-  manufacturer: string,
-  model: string,
-  serialNumber: string
-): string => {
-  const name = generateEquipmentName(manufacturer, model);
-  return `${name} - S/N: ${serialNumber}`;
-};
-
 // ============================================
 // Equipment Record Types
 // ============================================
