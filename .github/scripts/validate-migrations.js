@@ -20,7 +20,10 @@ import {
   findLastAlterTableBefore,
   findStatementEndSemicolon,
   collectDropColumnMatches,
+  collectRpcGrantSecurityErrors,
   createTableRegex,
+  grantFunctionToAnonRegex,
+  grantFunctionToAuthenticatedRegex,
 } from '../../scripts/lib/migrationSqlAnalysis.mjs';
 
 const NAMING_REGEX = /^\d{14}_[a-z0-9_]+\.sql$/;
@@ -42,12 +45,10 @@ try {
 }
 
 /** Grants EXECUTE/ALL on functions to anon widen the PostgREST attack surface. */
-const grantFunctionToAnonRegex =
-  /GRANT\s+(?:ALL|EXECUTE)\s+ON\s+FUNCTION\s+[^;]+\s+TO\s+[^;]*\banon\b/gi;
+const grantFunctionToAnonRegexLocal = grantFunctionToAnonRegex;
 
 /** Grants EXECUTE/ALL on SECURITY DEFINER functions to authenticated widen REST RPC surface. */
-const grantFunctionToAuthenticatedRegex =
-  /GRANT\s+(?:ALL|EXECUTE)\s+ON\s+FUNCTION\s+[^;]+\s+TO\s+[^;]*\bauthenticated\b/gi;
+const grantFunctionToAuthenticatedRegexLocal = grantFunctionToAuthenticatedRegex;
 
 const RESERVED_SCHEMA_TABLE_NAMES = new Set([
   'auth',
@@ -214,35 +215,25 @@ for (const filePath of changedFiles) {
     continue;
   }
 
-  // ── 1b. ANON FUNCTION GRANT GUARD (issue #762) ───────────────────────────
-  const hasAnonGrantMarker = /--\s*rpc-anon-grant-allowed:/i.test(content);
-  grantFunctionToAnonRegex.lastIndex = 0;
-  if (grantFunctionToAnonRegex.test(analysisContent) && !hasAnonGrantMarker) {
-    errors.push(
-      `[RPC SECURITY] "${fileName}" grants EXECUTE on a function to role anon.\n` +
-        `  Add a reviewed allowlist entry to scripts/security-definer-rpc-allowlists.json and include\n` +
-        `  "-- rpc-anon-grant-allowed: <function_name>" in this migration, or revoke anon instead.\n` +
-        `  Allowed anon RPC names: ${rpcAnonAllowlist.join(', ')}`,
-    );
-  } else if (grantFunctionToAnonRegex.test(analysisContent)) {
-    console.log('  ✅ Anon function grant has rpc-anon-grant-allowed marker OK');
-  }
-
-  // ── 1c. AUTHENTICATED FUNCTION GRANT GUARD (issue #762) ───────────────────
-  const hasAuthenticatedGrantMarker =
-    /--\s*rpc-authenticated-grant-allowed:/i.test(content) ||
-    /--\s*rpc-anon-grant-allowed:.*bulk lockdown/i.test(content);
-  grantFunctionToAuthenticatedRegex.lastIndex = 0;
-  if (grantFunctionToAuthenticatedRegex.test(analysisContent) && !hasAuthenticatedGrantMarker) {
-    errors.push(
-      `[RPC SECURITY] "${fileName}" grants EXECUTE on a function to role authenticated.\n` +
-        `  Add the function to scripts/security-definer-rpc-allowlists.json and include\n` +
-        `  "-- rpc-authenticated-grant-allowed: <function_name>" in this migration, or rely on\n` +
-        `  the bulk lockdown migration instead of per-function GRANTs.\n` +
-        `  Reviewed authenticated/RLS helper names: ${[...new Set(rpcAuthenticatedAllowlist)].slice(0, 8).join(', ')}${rpcAuthenticatedAllowlist.length > 8 ? ', ...' : ''}`,
-    );
-  } else if (grantFunctionToAuthenticatedRegex.test(analysisContent)) {
-    console.log('  ✅ Authenticated function grant has rpc-authenticated-grant-allowed marker OK');
+  // ── 1b/1c. RPC FUNCTION GRANT GUARD (issue #762) ─────────────────────────
+  const rpcGrantErrors = collectRpcGrantSecurityErrors({
+    fileName,
+    content,
+    analysisContent,
+    rpcAnonAllowlist,
+    rpcAuthenticatedAllowlist,
+  });
+  if (rpcGrantErrors.length > 0) {
+    errors.push(...rpcGrantErrors);
+  } else {
+    grantFunctionToAnonRegexLocal.lastIndex = 0;
+    grantFunctionToAuthenticatedRegexLocal.lastIndex = 0;
+    if (grantFunctionToAnonRegexLocal.test(analysisContent)) {
+      console.log('  ✅ Anon function grant markers validated against allowlist OK');
+    }
+    if (grantFunctionToAuthenticatedRegexLocal.test(analysisContent)) {
+      console.log('  ✅ Authenticated function grant markers validated against allowlist OK');
+    }
   }
 
   // ── 2. DROP COLUMN SAFETY CHECK ─────────────────────────────────────────

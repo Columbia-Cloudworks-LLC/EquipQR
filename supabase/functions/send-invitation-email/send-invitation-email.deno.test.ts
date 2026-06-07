@@ -54,9 +54,11 @@ async function withEnv(
   }
 }
 
-Deno.test(
-  "ordering: missing RESEND_API_KEY returns 500 even with no auth header (secret loads BEFORE requireAuthenticatedPost)",
-  async () => {
+Deno.test({
+  name:
+    "ordering: missing RESEND_API_KEY returns 500 even with no auth header (secret loads BEFORE requireAuthenticatedPost)",
+  permissions: { env: ["RESEND_API_KEY"] },
+  fn: async () => {
     await withEnv(
       {
         RESEND_API_KEY: undefined,
@@ -82,16 +84,18 @@ Deno.test(
       },
     );
   },
-);
+});
 
 const PLATFORM_FAKES = {
   SUPABASE_URL: "https://fake.supabase.test",
   SUPABASE_ANON_KEY: "fake-anon-key-for-test-only",
 } as const;
 
-Deno.test(
-  "ordering: with RESEND_API_KEY present, no auth header returns 401 (auth runs AFTER the secret check)",
-  async () => {
+Deno.test({
+  name:
+    "ordering: with RESEND_API_KEY present, no auth header returns 401 (auth runs AFTER the secret check)",
+  permissions: { env: ["RESEND_API_KEY", "SUPABASE_URL", "SUPABASE_ANON_KEY"] },
+  fn: async () => {
     await withEnv(
       {
         RESEND_API_KEY: "test-fake-not-a-real-key",
@@ -112,4 +116,4 @@ Deno.test(
       },
     );
   },
-);
+});

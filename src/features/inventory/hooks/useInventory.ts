@@ -474,7 +474,7 @@ export const useEquipmentMatchingItemRules = (
 /**
  * Hook to add a single compatibility rule.
  */
-const useAddCompatibilityRule = () => {
+export const useAddCompatibilityRule = () => {
   const queryClient = useQueryClient();
   const { toast } = useAppToast();
 

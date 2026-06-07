@@ -99,7 +99,6 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
         input,
         organizationId: currentOrganization?.id,
         userId: user?.id,
-        requireOrganization: false,
         offlineCreate: async ({ content, hoursWorked, isPrivate, images, machineHours }) => {
           const service = new OfflineAwareWorkOrderService(currentOrganization!.id, user!.id);
           const result = await service.createWorkOrderNote(

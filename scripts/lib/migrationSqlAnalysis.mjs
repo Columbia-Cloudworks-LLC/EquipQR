@@ -230,3 +230,166 @@ export function collectDropColumnMatches(content) {
   matches.sort((a, b) => a.index - b.index);
   return matches;
 }
+
+/** Grants EXECUTE/ALL on functions to anon widen the PostgREST attack surface. */
+export const grantFunctionToAnonRegex =
+  /GRANT\s+(?:ALL|EXECUTE)\s+ON\s+FUNCTION\s+[^;]+\s+TO\s+[^;]*\banon\b/gi;
+
+/** Grants EXECUTE/ALL on SECURITY DEFINER functions to authenticated widen REST RPC surface. */
+export const grantFunctionToAuthenticatedRegex =
+  /GRANT\s+(?:ALL|EXECUTE)\s+ON\s+FUNCTION\s+[^;]+\s+TO\s+[^;]*\bauthenticated\b/gi;
+
+const rpcAnonGrantMarkerRegex = /--\s*rpc-anon-grant-allowed:\s*([a-z_][a-z0-9_]*)/gi;
+const rpcAuthenticatedGrantMarkerRegex =
+  /--\s*rpc-authenticated-grant-allowed:\s*([a-z_][a-z0-9_-]*)/gi;
+
+/**
+ * @param {string} content
+ * @param {'anon' | 'authenticated'} role
+ */
+export function parseRpcGrantMarkerNames(content, role) {
+  const regex =
+    role === 'anon' ? rpcAnonGrantMarkerRegex : rpcAuthenticatedGrantMarkerRegex;
+  /** @type {string[]} */
+  const names = [];
+  let match;
+  regex.lastIndex = 0;
+  while ((match = regex.exec(content)) !== null) {
+    names.push(match[1].toLowerCase());
+  }
+  return names;
+}
+
+/**
+ * @param {string} grantStatement
+ */
+export function parseGrantedFunctionName(grantStatement) {
+  const match =
+    /GRANT\s+(?:ALL|EXECUTE)\s+ON\s+FUNCTION\s+(?:public\.)?(?:"([^"]+)"|([a-z_][a-z0-9_]*))/i.exec(
+      grantStatement,
+    );
+  if (!match) return null;
+  return (match[1] || match[2]).toLowerCase();
+}
+
+/**
+ * @param {string} analysisContent
+ * @param {'anon' | 'authenticated'} role
+ */
+export function collectFunctionGrantsToRole(analysisContent, role) {
+  const regex = role === 'anon' ? grantFunctionToAnonRegex : grantFunctionToAuthenticatedRegex;
+  /** @type {{ statement: string; functionName: string | null; index: number }[]} */
+  const grants = [];
+  let match;
+  regex.lastIndex = 0;
+  while ((match = regex.exec(analysisContent)) !== null) {
+    grants.push({
+      statement: match[0],
+      functionName: parseGrantedFunctionName(match[0]),
+      index: match.index,
+    });
+  }
+  return grants;
+}
+
+/**
+ * @param {string} content
+ */
+export function hasBulkLockdownGrantMarker(content) {
+  return (
+    /--\s*rpc-authenticated-grant-allowed:\s*bulk-lockdown/i.test(content) ||
+    /--\s*rpc-anon-grant-allowed:.*bulk lockdown/i.test(content)
+  );
+}
+
+/**
+ * @param {{
+ *   fileName: string;
+ *   content: string;
+ *   analysisContent: string;
+ *   rpcAnonAllowlist: string[];
+ *   rpcAuthenticatedAllowlist: string[];
+ * }} options
+ */
+export function collectRpcGrantSecurityErrors({
+  fileName,
+  content,
+  analysisContent,
+  rpcAnonAllowlist,
+  rpcAuthenticatedAllowlist,
+}) {
+  /** @type {string[]} */
+  const errors = [];
+  const anonAllowSet = new Set(rpcAnonAllowlist.map((name) => name.toLowerCase()));
+  const authenticatedAllowSet = new Set(
+    rpcAuthenticatedAllowlist.map((name) => name.toLowerCase()),
+  );
+
+  const anonGrants = collectFunctionGrantsToRole(analysisContent, 'anon');
+  const anonMarkers = parseRpcGrantMarkerNames(content, 'anon');
+
+  if (anonGrants.length > 0) {
+    if (anonMarkers.length === 0) {
+      errors.push(
+        `[RPC SECURITY] "${fileName}" grants EXECUTE on a function to role anon.\n` +
+          `  Add a reviewed allowlist entry to scripts/security-definer-rpc-allowlists.json and include\n` +
+          `  "-- rpc-anon-grant-allowed: <function_name>" in this migration, or revoke anon instead.\n` +
+          `  Allowed anon RPC names: ${rpcAnonAllowlist.join(', ')}`,
+      );
+    } else {
+      for (const markerName of anonMarkers) {
+        if (!anonAllowSet.has(markerName)) {
+          errors.push(
+            `[RPC SECURITY] "${fileName}" marker rpc-anon-grant-allowed references "${markerName}" which is not in scripts/security-definer-rpc-allowlists.json.\n` +
+              `  Allowed anon RPC names: ${rpcAnonAllowlist.join(', ')}`,
+          );
+        }
+      }
+
+      for (const grant of anonGrants) {
+        if (!grant.functionName) continue;
+        if (!anonMarkers.includes(grant.functionName)) {
+          errors.push(
+            `[RPC SECURITY] "${fileName}" grants EXECUTE on function "${grant.functionName}" to anon but has no matching rpc-anon-grant-allowed marker.`,
+          );
+        }
+      }
+    }
+  }
+
+  const authenticatedGrants = collectFunctionGrantsToRole(analysisContent, 'authenticated');
+  const authenticatedMarkers = parseRpcGrantMarkerNames(content, 'authenticated');
+  const bulkLockdown = hasBulkLockdownGrantMarker(content);
+
+  if (authenticatedGrants.length > 0) {
+    if (authenticatedMarkers.length === 0 && !bulkLockdown) {
+      errors.push(
+        `[RPC SECURITY] "${fileName}" grants EXECUTE on a function to role authenticated.\n` +
+          `  Add the function to scripts/security-definer-rpc-allowlists.json and include\n` +
+          `  "-- rpc-authenticated-grant-allowed: <function_name>" in this migration, or rely on\n` +
+          `  the bulk lockdown migration instead of per-function GRANTs.\n` +
+          `  Reviewed authenticated/RLS helper names: ${[...new Set(rpcAuthenticatedAllowlist)].slice(0, 8).join(', ')}${rpcAuthenticatedAllowlist.length > 8 ? ', ...' : ''}`,
+      );
+    } else if (!bulkLockdown) {
+      for (const markerName of authenticatedMarkers) {
+        if (markerName === 'bulk-lockdown') continue;
+        if (!authenticatedAllowSet.has(markerName)) {
+          errors.push(
+            `[RPC SECURITY] "${fileName}" marker rpc-authenticated-grant-allowed references "${markerName}" which is not in scripts/security-definer-rpc-allowlists.json.`,
+          );
+        }
+      }
+
+      for (const grant of authenticatedGrants) {
+        if (!grant.functionName) continue;
+        if (!authenticatedMarkers.includes(grant.functionName)) {
+          errors.push(
+            `[RPC SECURITY] "${fileName}" grants EXECUTE on function "${grant.functionName}" to authenticated but has no matching rpc-authenticated-grant-allowed marker.`,
+          );
+        }
+      }
+    }
+  }
+
+  return errors;
+}

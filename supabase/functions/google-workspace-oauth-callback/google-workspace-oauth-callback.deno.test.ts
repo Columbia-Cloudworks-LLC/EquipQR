@@ -35,19 +35,23 @@ Deno.test("isValidEmail accepts well-formed addresses and rejects malformed", ()
   assertEquals(isValidEmail(null), false);
 });
 
-Deno.test("isValidRedirectUrl allows relative paths and rejects protocol-relative URLs", () => {
-  const prevProductionUrl = Deno.env.get("PRODUCTION_URL");
-  try {
-    Deno.env.set("PRODUCTION_URL", "https://equipqr.app");
-    assertEquals(isValidRedirectUrl("/dashboard", "https://equipqr.app"), true);
-    assertEquals(isValidRedirectUrl("//evil.com/path", "https://equipqr.app"), false);
-  } finally {
-    if (prevProductionUrl === undefined) {
-      Deno.env.delete("PRODUCTION_URL");
-    } else {
-      Deno.env.set("PRODUCTION_URL", prevProductionUrl);
+Deno.test({
+  name: "isValidRedirectUrl allows relative paths and rejects protocol-relative URLs",
+  permissions: { env: ["PRODUCTION_URL"] },
+  fn: () => {
+    const prevProductionUrl = Deno.env.get("PRODUCTION_URL");
+    try {
+      Deno.env.set("PRODUCTION_URL", "https://equipqr.app");
+      assertEquals(isValidRedirectUrl("/dashboard", "https://equipqr.app"), true);
+      assertEquals(isValidRedirectUrl("//evil.com/path", "https://equipqr.app"), false);
+    } finally {
+      if (prevProductionUrl === undefined) {
+        Deno.env.delete("PRODUCTION_URL");
+      } else {
+        Deno.env.set("PRODUCTION_URL", prevProductionUrl);
+      }
     }
-  }
+  },
 });
 
 Deno.test("isTrustedDomain allows equipqr.app subdomains", () => {
@@ -141,67 +145,79 @@ Deno.test("buildSuccessRedirectUrl appends gw_connected query param", () => {
   assertEquals(url, "https://equipqr.app/dashboard/onboarding/workspace?gw_connected=true");
 });
 
-Deno.test("resolveFallbackProductionUrl falls back when PRODUCTION_URL is untrusted", () => {
-  const prev = Deno.env.get("PRODUCTION_URL");
-  try {
-    Deno.env.set("PRODUCTION_URL", "https://evil.example.com");
-    assertEquals(resolveFallbackProductionUrl(), "https://equipqr.app");
-  } finally {
-    if (prev === undefined) {
-      Deno.env.delete("PRODUCTION_URL");
-    } else {
-      Deno.env.set("PRODUCTION_URL", prev);
+Deno.test({
+  name: "resolveFallbackProductionUrl falls back when PRODUCTION_URL is untrusted",
+  permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
+  fn: () => {
+    const prev = Deno.env.get("PRODUCTION_URL");
+    try {
+      Deno.env.set("PRODUCTION_URL", "https://evil.example.com");
+      assertEquals(resolveFallbackProductionUrl(), "https://equipqr.app");
+    } finally {
+      if (prev === undefined) {
+        Deno.env.delete("PRODUCTION_URL");
+      } else {
+        Deno.env.set("PRODUCTION_URL", prev);
+      }
     }
-  }
+  },
 });
 
-Deno.test("isProductionEnvironment and isPreviewEnvironment prefer PUBLIC_SITE_URL", () => {
-  const prevPublic = Deno.env.get("PUBLIC_SITE_URL");
-  const prevProduction = Deno.env.get("PRODUCTION_URL");
-  try {
-    Deno.env.set("PUBLIC_SITE_URL", "https://preview.equipqr.app");
-    Deno.env.set("PRODUCTION_URL", "https://equipqr.app");
-    assertEquals(isProductionEnvironment(), true);
-    assertEquals(isPreviewEnvironment(), true);
-  } finally {
-    if (prevPublic === undefined) {
-      Deno.env.delete("PUBLIC_SITE_URL");
-    } else {
-      Deno.env.set("PUBLIC_SITE_URL", prevPublic);
+Deno.test({
+  name: "isProductionEnvironment and isPreviewEnvironment prefer PUBLIC_SITE_URL",
+  permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
+  fn: () => {
+    const prevPublic = Deno.env.get("PUBLIC_SITE_URL");
+    const prevProduction = Deno.env.get("PRODUCTION_URL");
+    try {
+      Deno.env.set("PUBLIC_SITE_URL", "https://preview.equipqr.app");
+      Deno.env.set("PRODUCTION_URL", "https://equipqr.app");
+      assertEquals(isProductionEnvironment(), true);
+      assertEquals(isPreviewEnvironment(), true);
+    } finally {
+      if (prevPublic === undefined) {
+        Deno.env.delete("PUBLIC_SITE_URL");
+      } else {
+        Deno.env.set("PUBLIC_SITE_URL", prevPublic);
+      }
+      if (prevProduction === undefined) {
+        Deno.env.delete("PRODUCTION_URL");
+      } else {
+        Deno.env.set("PRODUCTION_URL", prevProduction);
+      }
     }
-    if (prevProduction === undefined) {
-      Deno.env.delete("PRODUCTION_URL");
-    } else {
-      Deno.env.set("PRODUCTION_URL", prevProduction);
-    }
-  }
+  },
 });
 
-Deno.test("isProductionEnvironment and isPreviewEnvironment reflect PRODUCTION_URL fallback", () => {
-  const prevPublic = Deno.env.get("PUBLIC_SITE_URL");
-  const prev = Deno.env.get("PRODUCTION_URL");
-  try {
-    Deno.env.delete("PUBLIC_SITE_URL");
-    Deno.env.set("PRODUCTION_URL", "https://equipqr.app");
-    assertEquals(isProductionEnvironment(), true);
-    assertEquals(isPreviewEnvironment(), false);
-
-    Deno.env.set("PRODUCTION_URL", "https://preview.equipqr.app");
-    assertEquals(isProductionEnvironment(), true);
-    assertEquals(isPreviewEnvironment(), true);
-
-    Deno.env.set("PRODUCTION_URL", "http://localhost:8080");
-    assertEquals(isProductionEnvironment(), false);
-  } finally {
-    if (prevPublic === undefined) {
+Deno.test({
+  name: "isProductionEnvironment and isPreviewEnvironment reflect PRODUCTION_URL fallback",
+  permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
+  fn: () => {
+    const prevPublic = Deno.env.get("PUBLIC_SITE_URL");
+    const prev = Deno.env.get("PRODUCTION_URL");
+    try {
       Deno.env.delete("PUBLIC_SITE_URL");
-    } else {
-      Deno.env.set("PUBLIC_SITE_URL", prevPublic);
+      Deno.env.set("PRODUCTION_URL", "https://equipqr.app");
+      assertEquals(isProductionEnvironment(), true);
+      assertEquals(isPreviewEnvironment(), false);
+
+      Deno.env.set("PRODUCTION_URL", "https://preview.equipqr.app");
+      assertEquals(isProductionEnvironment(), true);
+      assertEquals(isPreviewEnvironment(), true);
+
+      Deno.env.set("PRODUCTION_URL", "http://localhost:8080");
+      assertEquals(isProductionEnvironment(), false);
+    } finally {
+      if (prevPublic === undefined) {
+        Deno.env.delete("PUBLIC_SITE_URL");
+      } else {
+        Deno.env.set("PUBLIC_SITE_URL", prevPublic);
+      }
+      if (prev === undefined) {
+        Deno.env.delete("PRODUCTION_URL");
+      } else {
+        Deno.env.set("PRODUCTION_URL", prev);
+      }
     }
-    if (prev === undefined) {
-      Deno.env.delete("PRODUCTION_URL");
-    } else {
-      Deno.env.set("PRODUCTION_URL", prev);
-    }
-  }
+  },
 });

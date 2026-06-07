@@ -8,6 +8,10 @@ import {
   findLastAlterTableBefore,
   findStatementEndSemicolon,
   collectDropColumnMatches,
+  parseRpcGrantMarkerNames,
+  parseGrantedFunctionName,
+  collectRpcGrantSecurityErrors,
+  hasBulkLockdownGrantMarker,
 } from '../../../scripts/lib/migrationSqlAnalysis.mjs';
 
 describe('escapeRegExp', () => {
@@ -83,6 +87,98 @@ describe('collectDropColumnMatches', () => {
     );
     expect(matches[1].groups[1] || matches[1].groups[2] || matches[1].groups[3] || matches[1].groups[4]).toBe(
       'beta',
+    );
+  });
+});
+
+describe('collectRpcGrantSecurityErrors', () => {
+  const anonAllowlist = ['get_invitation_by_token_secure'];
+  const authenticatedAllowlist = ['refresh_quickbooks_tokens_manual'];
+
+  it('rejects anon grants when marker name is not allowlisted', () => {
+    const content = `-- rpc-anon-grant-allowed: fake_rpc\nGRANT EXECUTE ON FUNCTION public.fake_rpc(text) TO anon;`;
+    const errors = collectRpcGrantSecurityErrors({
+      fileName: '20260607120000_fake.sql',
+      content,
+      analysisContent: content,
+      rpcAnonAllowlist: anonAllowlist,
+      rpcAuthenticatedAllowlist: authenticatedAllowlist,
+    });
+
+    expect(errors.some((error) => error.includes('fake_rpc'))).toBe(true);
+  });
+
+  it('accepts allowlisted anon marker matching the granted function', () => {
+    const content =
+      '-- rpc-anon-grant-allowed: get_invitation_by_token_secure\n' +
+      'GRANT EXECUTE ON FUNCTION public.get_invitation_by_token_secure(text) TO anon;';
+    const errors = collectRpcGrantSecurityErrors({
+      fileName: '20260607120000_ok.sql',
+      content,
+      analysisContent: content,
+      rpcAnonAllowlist: anonAllowlist,
+      rpcAuthenticatedAllowlist: authenticatedAllowlist,
+    });
+
+    expect(errors).toHaveLength(0);
+  });
+
+  it('accepts authenticated grants with bulk-lockdown marker', () => {
+    const content =
+      '-- rpc-authenticated-grant-allowed: bulk-lockdown\n' +
+      'GRANT EXECUTE ON FUNCTION public.get_dashboard_trends() TO authenticated;';
+    const errors = collectRpcGrantSecurityErrors({
+      fileName: '20260602120000_lockdown.sql',
+      content,
+      analysisContent: content,
+      rpcAnonAllowlist: anonAllowlist,
+      rpcAuthenticatedAllowlist: authenticatedAllowlist,
+    });
+
+    expect(errors).toHaveLength(0);
+  });
+
+  it('requires authenticated marker names to match granted functions', () => {
+    const content =
+      '-- rpc-authenticated-grant-allowed: refresh_quickbooks_tokens_manual\n' +
+      'GRANT EXECUTE ON FUNCTION public.refresh_quickbooks_tokens_manual() TO authenticated;';
+    const errors = collectRpcGrantSecurityErrors({
+      fileName: '20260602130000_harden.sql',
+      content,
+      analysisContent: content,
+      rpcAnonAllowlist: anonAllowlist,
+      rpcAuthenticatedAllowlist: authenticatedAllowlist,
+    });
+
+    expect(errors).toHaveLength(0);
+  });
+});
+
+describe('parseRpcGrantMarkerNames', () => {
+  it('parses marker function names from comments', () => {
+    const content =
+      '-- rpc-anon-grant-allowed: get_invitation_by_token_secure (bulk lockdown)\n' +
+      '-- rpc-authenticated-grant-allowed: bulk-lockdown';
+    expect(parseRpcGrantMarkerNames(content, 'anon')).toEqual(['get_invitation_by_token_secure']);
+    expect(parseRpcGrantMarkerNames(content, 'authenticated')).toEqual(['bulk-lockdown']);
+  });
+});
+
+describe('parseGrantedFunctionName', () => {
+  it('extracts function names from GRANT statements', () => {
+    expect(
+      parseGrantedFunctionName(
+        'GRANT EXECUTE ON FUNCTION public.refresh_quickbooks_tokens_manual() TO authenticated;',
+      ),
+    ).toBe('refresh_quickbooks_tokens_manual');
+  });
+});
+
+describe('hasBulkLockdownGrantMarker', () => {
+  it('detects bulk lockdown markers', () => {
+    expect(hasBulkLockdownGrantMarker('-- rpc-authenticated-grant-allowed: bulk-lockdown')).toBe(true);
+    expect(hasBulkLockdownGrantMarker('-- rpc-anon-grant-allowed: get_invitation_by_token_secure (bulk lockdown)')).toBe(
+      true,
     );
   });
 });
