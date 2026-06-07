@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
-import { format } from 'date-fns';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import InlineEditField from './InlineEditField';
 import { formatDateForInput } from '@/features/equipment/utils/equipmentHelpers';
 
@@ -30,6 +30,8 @@ export function EquipmentLifecycleCard({
   lastMaintenanceDisplay,
   onFieldUpdate,
 }: EquipmentLifecycleCardProps) {
+  const { formatDate } = useFormatTimestamp();
+
   return (
     <Card>
       <CardHeader>
@@ -102,7 +104,7 @@ export function EquipmentLifecycleCard({
           <div>
             <span className="text-sm font-medium text-muted-foreground">Created Date</span>
             <div className="mt-1 text-base text-foreground">
-              {equipment.created_at ? format(new Date(equipment.created_at), 'PPP') : '—'}
+              {equipment.created_at ? formatDate(equipment.created_at) : '—'}
             </div>
           </div>
         </div>
