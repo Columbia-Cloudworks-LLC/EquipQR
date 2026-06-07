@@ -1,4 +1,12 @@
-const SENSITIVE_LOG_KEYS = ["access_token", "refresh_token"] as const;
+const SENSITIVE_LOG_KEYS = [
+  "access_token",
+  "refresh_token",
+  "fault",
+  "errorText",
+  "responseText",
+  "responseBody",
+  "rawResponse",
+] as const;
 
 /**
  * Factory for edge-function log helpers that redact token fields before console output.

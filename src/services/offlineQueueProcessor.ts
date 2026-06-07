@@ -189,7 +189,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
 
   work_order_update: (async (item: OfflineQueueUpdateItem) => {
     const { workOrderId, data, changedFields, serverUpdatedAt, serverSnapshot } = item.payload;
-    return syncWorkOrderOfflineUpdate(workOrderId, data, {
+    return syncWorkOrderOfflineUpdate(item.organizationId, workOrderId, data, {
       changedFields,
       serverUpdatedAt,
       serverSnapshot,
@@ -206,6 +206,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
         .from('work_orders')
         .select('status, updated_at')
         .eq('id', workOrderId)
+        .eq('organization_id', item.organizationId)
         .single();
 
       if (fetchErr) throw fetchErr;
@@ -251,6 +252,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
       .from('work_orders')
       .update(updateData)
       .eq('id', workOrderId)
+      .eq('organization_id', item.organizationId)
       .select()
       .single();
 

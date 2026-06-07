@@ -193,46 +193,64 @@ describe('OfflineQueueProcessor', () => {
     expect(all[0].lastError).toBeTruthy();
   });
 
-  it('processes work_order_update items via supabase', async () => {
+  it('processes work_order_update items via supabase with organization scoping', async () => {
     const item = createPendingItem({
       type: 'work_order_update',
       payload: { workOrderId: 'wo-123', data: { title: 'Updated title' } },
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
 
+    const eqCalls: Array<[string, string]> = [];
+    const eqMock = vi.fn((column: string, value: string) => {
+      eqCalls.push([column, value]);
+      return {
+        eq: eqMock,
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: {}, error: null }),
+        }),
+      };
+    });
+
     mockSupabaseFrom.mockReturnValue({
       update: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: {}, error: null }),
-          }),
-        }),
+        eq: eqMock,
       }),
     });
 
     const result = await processor.processAll();
     expect(result.succeeded).toBe(1);
+    expect(eqCalls).toContainEqual(['id', 'wo-123']);
+    expect(eqCalls).toContainEqual(['organization_id', ORG_ID]);
   });
 
-  it('processes work_order_status items via supabase', async () => {
+  it('processes work_order_status items via supabase with organization scoping', async () => {
     const item = createPendingItem({
       type: 'work_order_status',
       payload: { workOrderId: 'wo-123', newStatus: 'completed' },
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
 
+    const eqCalls: Array<[string, string]> = [];
+    const eqMock = vi.fn((column: string, value: string) => {
+      eqCalls.push([column, value]);
+      return {
+        eq: eqMock,
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: {}, error: null }),
+        }),
+      };
+    });
+
     mockSupabaseFrom.mockReturnValue({
       update: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: {}, error: null }),
-          }),
-        }),
+        eq: eqMock,
       }),
     });
 
     const result = await processor.processAll();
     expect(result.succeeded).toBe(1);
+    expect(eqCalls).toContainEqual(['id', 'wo-123']);
+    expect(eqCalls).toContainEqual(['organization_id', ORG_ID]);
   });
 
   it('invalidates query caches after successful sync', async () => {
@@ -348,23 +366,35 @@ describe('OfflineQueueProcessor', () => {
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
 
-    // First call: getSession (already mocked)
-    // Supabase from() for the status handler's conflict check
+    const selectEqMock = vi.fn((column: string, value: string) => {
+      void column;
+      void value;
+      return {
+        eq: selectEqMock,
+        single: vi.fn().mockResolvedValue({
+          data: { status: 'completed', updated_at: '2026-02-01T00:00:00Z' },
+          error: null,
+        }),
+      };
+    });
+
+    const updateEqMock = vi.fn((column: string, value: string) => {
+      void column;
+      void value;
+      return {
+        eq: updateEqMock,
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: {}, error: null }),
+        }),
+      };
+    });
+
     mockSupabaseFrom.mockReturnValue({
       select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({
-            data: { status: 'completed', updated_at: '2026-02-01T00:00:00Z' },
-            error: null,
-          }),
-        }),
+        eq: selectEqMock,
       }),
       update: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: {}, error: null }),
-          }),
-        }),
+        eq: updateEqMock,
       }),
     });
 

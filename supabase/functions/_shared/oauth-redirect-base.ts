@@ -15,7 +15,8 @@ export function resolveOAuthRedirectBaseUrl(
   configuredBaseUrl: string | undefined,
   supabaseUrl: string,
 ): string {
-  const rawBaseUrl = (configuredBaseUrl || supabaseUrl).trim().replace(/\/+$/, "");
+  const candidate = configuredBaseUrl?.trim();
+  const rawBaseUrl = (candidate ? candidate : supabaseUrl).trim().replace(/\/+$/, "");
   return RETIRED_OAUTH_REDIRECT_BASE_URLS[rawBaseUrl] ?? rawBaseUrl;
 }
 

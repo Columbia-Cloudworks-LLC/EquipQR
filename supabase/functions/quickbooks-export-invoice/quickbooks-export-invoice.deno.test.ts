@@ -8,6 +8,7 @@ import { __testables } from "./qbo-invoice-lines.ts";
 import { __payloadTestables, type QuickBooksInvoice } from "./qbo-invoice-payload.ts";
 import { updateWorkOrderInvoiceMirror } from "./work-order-invoice-mirror.ts";
 import { loadWorkOrderForExport } from "./qbo-work-order-gate.ts";
+import { __qboInvoiceApiTestables } from "./qbo-invoice-api.ts";
 
 const {
   buildInvoiceLines,
@@ -1288,4 +1289,62 @@ Deno.test("loadWorkOrderForExport returns error without notFound for non-PGRST11
   assertEquals(result.workOrder, null);
   assertEquals(result.error, "permission denied for table work_orders");
   assertEquals(result.notFound, false);
+});
+
+const { assertNoFault, logQuickBooksHttpFailure } = __qboInvoiceApiTestables;
+
+Deno.test("assertNoFault logs metadata only and throws without PII from Fault", () => {
+  const logs: Array<{ step: string; details?: Record<string, unknown> }> = [];
+  const logStep = (step: string, details?: Record<string, unknown>) => {
+    logs.push({ step, details });
+  };
+
+  let thrown: Error | null = null;
+  try {
+    assertNoFault(
+      {
+        Fault: {
+          type: "ValidationFault",
+          Error: [{
+            code: "6240",
+            Message: "Secret Customer Name",
+            Detail: "Invoice 12345 for Acme Corp",
+          }],
+        },
+      },
+      logStep,
+      "invoice create response",
+      "tid-123",
+    );
+  } catch (error) {
+    thrown = error as Error;
+  }
+
+  assertEquals(thrown !== null, true);
+  assertEquals(thrown!.message.includes("Secret Customer Name"), false);
+  assertEquals(thrown!.message.includes("Acme Corp"), false);
+  const detailsJson = JSON.stringify(logs[0]?.details ?? {});
+  assertEquals(detailsJson.includes("Secret Customer Name"), false);
+  assertEquals(detailsJson.includes("Acme Corp"), false);
+  assertEquals(logs[0]?.details?.type, "ValidationFault");
+});
+
+Deno.test("logQuickBooksHttpFailure avoids logging upstream response bodies", () => {
+  const logs: Array<{ step: string; details?: Record<string, unknown> }> = [];
+  const logStep = (step: string, details?: Record<string, unknown>) => {
+    logs.push({ step, details });
+  };
+
+  logQuickBooksHttpFailure(
+    "Invoice update failed",
+    new Response('{"Fault":{"Error":[{"Message":"Secret Customer Name"}]}}', { status: 400 }),
+    "tid-456",
+    logStep,
+  );
+
+  const detailsJson = JSON.stringify(logs[0]?.details ?? {});
+  assertEquals(detailsJson.includes("Secret Customer Name"), false);
+  assertEquals(logs[0]?.details?.status, 400);
+  assertEquals(logs[0]?.details?.reason, "bad_request");
+  assertEquals(logs[0]?.details?.intuit_tid, "tid-456");
 });

@@ -16,6 +16,36 @@ export interface InvoiceApiResult {
   intuitTid: string | null;
 }
 
+type QuickBooksFaultMetadata = {
+  type?: unknown;
+  errorCodes: Array<string | number | undefined>;
+};
+
+function extractQuickBooksFaultMetadata(fault: unknown): QuickBooksFaultMetadata {
+  if (!fault || typeof fault !== "object") {
+    return { errorCodes: [] };
+  }
+  const faultObj = fault as Record<string, unknown>;
+  const errors = Array.isArray(faultObj.Error) ? faultObj.Error : [];
+  const errorCodes = errors.map((entry) => {
+    if (!entry || typeof entry !== "object") return undefined;
+    return (entry as Record<string, unknown>).code as string | number | undefined;
+  });
+  return {
+    type: faultObj.type,
+    errorCodes,
+  };
+}
+
+function canonicalQuickBooksHttpFailureReason(status: number): string {
+  if (status === 400) return "bad_request";
+  if (status === 401) return "unauthorized";
+  if (status === 403) return "forbidden";
+  if (status === 429) return "rate_limited";
+  if (status >= 500) return "quickbooks_unavailable";
+  return "quickbooks_request_failed";
+}
+
 function assertNoFault(
   payload: { Fault?: unknown },
   logStep: (step: string, details?: Record<string, unknown>) => void,
@@ -24,9 +54,22 @@ function assertNoFault(
 ): void {
   if (!payload.Fault) return;
 
-  const faultMsg = JSON.stringify(payload.Fault).substring(0, 300);
-  logStep(`Fault in ${context}`, { fault: faultMsg, intuit_tid: intuitTid });
-  throw new Error(`${context} Fault: ${faultMsg}`);
+  const { type, errorCodes } = extractQuickBooksFaultMetadata(payload.Fault);
+  logStep(`Fault in ${context}`, { type, errorCodes, intuit_tid: intuitTid });
+  throw new Error(`QuickBooks returned a validation error for ${context}`);
+}
+
+function logQuickBooksHttpFailure(
+  step: string,
+  response: Response,
+  intuitTid: string | null,
+  logStep: (step: string, details?: Record<string, unknown>) => void,
+): void {
+  logStep(step, {
+    status: response.status,
+    reason: canonicalQuickBooksHttpFailureReason(response.status),
+    intuit_tid: intuitTid,
+  });
 }
 
 export async function fetchExistingInvoiceForUpdate(
@@ -91,8 +134,7 @@ export async function updateQuickBooksInvoice(
   const intuitTid = getIntuitTid(updateResponse);
 
   if (!updateResponse.ok) {
-    const errorText = await updateResponse.text();
-    logStep("Invoice update failed", { error: errorText, intuit_tid: intuitTid });
+    logQuickBooksHttpFailure("Invoice update failed", updateResponse, intuitTid, logStep);
     throw new Error("Failed to update invoice in QuickBooks");
   }
 
@@ -148,8 +190,7 @@ export async function createQuickBooksInvoice(
   const intuitTid = getIntuitTid(createResponse);
 
   if (!createResponse.ok) {
-    const errorText = await createResponse.text();
-    logStep("Invoice creation failed", { error: errorText, intuit_tid: intuitTid });
+    logQuickBooksHttpFailure("Invoice creation failed", createResponse, intuitTid, logStep);
     throw new Error("Failed to create invoice in QuickBooks");
   }
 
@@ -161,3 +202,10 @@ export async function createQuickBooksInvoice(
     intuitTid,
   };
 }
+
+export const __qboInvoiceApiTestables = {
+  assertNoFault,
+  extractQuickBooksFaultMetadata,
+  canonicalQuickBooksHttpFailureReason,
+  logQuickBooksHttpFailure,
+};

@@ -12,27 +12,17 @@ export interface WorkOrderOrganizationInfo {
 }
 
 /**
- * Returns the provided organization ID or loads it from the work order row.
+ * Returns the trusted organization ID from caller context.
  */
 export async function resolveWorkOrderOrganizationId(
-  workOrderId: string,
+  _workOrderId: string,
   organizationId?: string,
 ): Promise<string> {
-  if (organizationId) {
-    return organizationId;
+  if (!organizationId) {
+    throw new Error('Organization ID required');
   }
 
-  const { data: workOrder } = await supabase
-    .from('work_orders')
-    .select('organization_id')
-    .eq('id', workOrderId)
-    .single();
-
-  if (!workOrder) {
-    throw new Error('Work order not found');
-  }
-
-  return workOrder.organization_id;
+  return organizationId;
 }
 
 export async function getWorkOrderOrganization(

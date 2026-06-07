@@ -83,6 +83,7 @@ export function buildFieldLevelWorkOrderMerge(
 }
 
 export async function syncWorkOrderOfflineUpdate(
+  organizationId: string,
   workOrderId: string,
   data: UpdateWorkOrderData,
   options?: {
@@ -91,6 +92,10 @@ export async function syncWorkOrderOfflineUpdate(
     serverSnapshot?: WorkOrderServerSnapshot;
   },
 ): Promise<WorkOrderUpdateSyncResult> {
+  if (!organizationId) {
+    throw new Error('Organization ID required');
+  }
+
   const { changedFields, serverUpdatedAt, serverSnapshot } = options ?? {};
 
   if (serverUpdatedAt && changedFields && changedFields.length > 0) {
@@ -98,6 +103,7 @@ export async function syncWorkOrderOfflineUpdate(
       .from('work_orders')
       .select('updated_at, title, description, priority, due_date, estimated_hours, has_pm')
       .eq('id', workOrderId)
+      .eq('organization_id', organizationId)
       .single();
 
     if (fetchErr) throw fetchErr;
@@ -121,7 +127,8 @@ export async function syncWorkOrderOfflineUpdate(
         const { error } = await supabase
           .from('work_orders')
           .update(safeUpdate)
-          .eq('id', workOrderId);
+          .eq('id', workOrderId)
+          .eq('organization_id', organizationId);
 
         if (error) throw error;
       }
@@ -146,6 +153,7 @@ export async function syncWorkOrderOfflineUpdate(
     .from('work_orders')
     .update(updateData)
     .eq('id', workOrderId)
+    .eq('organization_id', organizationId)
     .select()
     .single();
 

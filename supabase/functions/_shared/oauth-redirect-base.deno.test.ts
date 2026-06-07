@@ -21,6 +21,13 @@ Deno.test("resolveOAuthRedirectBaseUrl normalizes retired preview Supabase hostn
   );
 });
 
+Deno.test("resolveOAuthRedirectBaseUrl falls back to SUPABASE_URL when override is whitespace-only", () => {
+  assertEquals(
+    resolveOAuthRedirectBaseUrl("   ", "https://olsdirkvvfegvclbpgrg.supabase.co"),
+    "https://olsdirkvvfegvclbpgrg.supabase.co",
+  );
+});
+
 Deno.test("resolveOAuthRedirectBaseUrl normalizes stale preview Supabase app hostname", () => {
   assertEquals(
     resolveOAuthRedirectBaseUrl(

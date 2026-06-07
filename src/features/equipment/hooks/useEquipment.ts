@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   EquipmentService,
   EquipmentFilters,
-  EquipmentCreateData,
   EquipmentUpdateData,
   EquipmentSummary,
   EquipmentListFilters,
@@ -303,42 +302,6 @@ export const useEquipmentWorkOrders = (
 };
 
 /**
- * Create equipment mutation
- */
-const useCreateEquipment = (organizationId: string | undefined) => {
-  const queryClient = useQueryClient();
-  const { toast } = useAppToast();
-
-  return useMutation({
-    mutationFn: async (data: EquipmentCreateData) => {
-      if (!organizationId) throw new Error('Organization ID required');
-      const result = await EquipmentService.create(organizationId, data);
-      if (result.success && result.data) {
-        return result.data;
-      }
-      throw new Error(result.error || 'Failed to create equipment');
-    },
-    onSuccess: (data) => {
-      // Invalidate equipment queries
-      queryClient.invalidateQueries({ queryKey: ['equipment', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats', organizationId] });
-      toast({
-        title: 'Equipment Created',
-        description: `${data.name} has been added successfully`,
-        variant: 'success',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Creation Failed',
-        description: error instanceof Error ? error.message : 'Failed to create equipment',
-        variant: 'error',
-      });
-    },
-  });
-};
-
-/**
  * Update equipment mutation
  */
 export const useUpdateEquipment = (organizationId: string | undefined) => {
@@ -371,42 +334,6 @@ export const useUpdateEquipment = (organizationId: string | undefined) => {
       toast({
         title: 'Update Failed',
         description: error instanceof Error ? error.message : 'Failed to update equipment',
-        variant: 'error',
-      });
-    },
-  });
-};
-
-/**
- * Delete equipment mutation
- */
-const useDeleteEquipment = (organizationId: string | undefined) => {
-  const queryClient = useQueryClient();
-  const { toast } = useAppToast();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      if (!organizationId) throw new Error('Organization ID required');
-      const result = await EquipmentService.delete(organizationId, id);
-      if (result.success && result.data) {
-        return result.data;
-      }
-      throw new Error(result.error || 'Failed to delete equipment');
-    },
-    onSuccess: () => {
-      // Invalidate equipment queries
-      queryClient.invalidateQueries({ queryKey: ['equipment', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats', organizationId] });
-      toast({
-        title: 'Equipment Deleted',
-        description: 'Equipment has been deleted successfully',
-        variant: 'success',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Deletion Failed',
-        description: error instanceof Error ? error.message : 'Failed to delete equipment',
         variant: 'error',
       });
     },
@@ -461,53 +388,6 @@ export const useCreateScan = (organizationId: string | undefined) => {
       toast({
         title: 'Scan Failed',
         description: error instanceof Error ? error.message : 'Failed to log scan',
-        variant: 'error',
-      });
-    },
-  });
-};
-
-/**
- * Create note mutation
- * Creates a basic note for equipment (without images)
- * For notes with images, use the equipmentNotesService directly
- */
-const useCreateNote = (organizationId: string | undefined) => {
-  const queryClient = useQueryClient();
-  const { toast } = useAppToast();
-
-  return useMutation({
-    mutationFn: async ({ equipmentId, content, isPrivate = false }: { 
-      equipmentId: string; 
-      content: string; 
-      isPrivate?: boolean 
-    }) => {
-      if (!organizationId) throw new Error('Organization ID required');
-      const result = await EquipmentService.createNote(organizationId, equipmentId, content, isPrivate);
-      if (result.success && result.data) {
-        return result.data;
-      }
-      throw new Error(result.error || 'Failed to create note');
-    },
-    onSuccess: (_data, variables) => {
-      // Invalidate notes queries for this equipment
-      queryClient.invalidateQueries({ 
-        queryKey: ['equipment-notes', organizationId, variables.equipmentId] 
-      });
-      // Also invalidate legacy query keys for backward compatibility
-      queryClient.invalidateQueries({ 
-        queryKey: ['notes', 'equipment', organizationId, variables.equipmentId] 
-      });
-      toast({
-        title: 'Note Added',
-        description: 'Your note has been saved successfully',
-        variant: 'success',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Note Failed',
-        description: error instanceof Error ? error.message : 'Failed to save note',
         variant: 'error',
       });
     },

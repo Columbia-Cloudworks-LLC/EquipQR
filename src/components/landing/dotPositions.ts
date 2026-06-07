@@ -64,7 +64,7 @@ function pointInPolygon(point: [number, number], polygon: Array<[number, number]
  * Original deterministic positions (no polygon constraint).
  * Kept exported for back-compat with existing tests.
  */
-function computeDotPositions(stateKey: StateCode, dotCount: number): DotPosition[] {
+export function computeDotPositions(stateKey: StateCode, dotCount: number): DotPosition[] {
   const rng = seededRng(strToSeed(stateKey));
   return Array.from({ length: dotCount }, (_, i) => ({
     id: i,
