@@ -517,7 +517,7 @@ export const useAddCompatibilityRule = () => {
 /**
  * Hook to remove a compatibility rule.
  */
-const useRemoveCompatibilityRule = () => {
+export const useRemoveCompatibilityRule = () => {
   const queryClient = useQueryClient();
   const { toast } = useAppToast();
 
