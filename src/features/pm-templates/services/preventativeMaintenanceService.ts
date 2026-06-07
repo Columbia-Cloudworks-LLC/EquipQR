@@ -3690,9 +3690,11 @@ export const getPMByWorkOrderId = async (
       .select('*')
       .eq('work_order_id', workOrderId)
       .eq('organization_id', organizationId)
-      .single();
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       logger.error('Error fetching PM:', error);
       return null;
     }
