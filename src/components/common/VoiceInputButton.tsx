@@ -18,7 +18,8 @@ const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
   className,
   size = 'sm',
 }) => {
-  if (!canUseVoice) {
+  // Keep the stop control visible during an active session even if the field becomes disabled.
+  if (!canUseVoice && !isListening) {
     return null;
   }
 

@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 
 export interface UseVoiceTextAppenderOptions {
@@ -56,7 +56,8 @@ export function useVoiceTextAppender(
     isListening,
     error,
     interimTranscript,
-    toggleListening,
+    toggleListening: speechToggleListening,
+    stopListening,
   } = useSpeechToText({
     onResult: handleSpeechResult,
     lang,
@@ -64,6 +65,23 @@ export function useVoiceTextAppender(
   });
 
   const canUseVoice = isSupported && !disabled && !readOnly;
+
+  useEffect(() => {
+    if ((disabled || readOnly) && isListening) {
+      stopListening();
+    }
+  }, [disabled, readOnly, isListening, stopListening]);
+
+  const toggleListening = useCallback(() => {
+    if (disabled || readOnly) {
+      if (isListening) {
+        stopListening();
+      }
+      return;
+    }
+
+    speechToggleListening();
+  }, [disabled, readOnly, isListening, stopListening, speechToggleListening]);
 
   return {
     isSupported,

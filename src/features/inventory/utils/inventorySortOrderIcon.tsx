@@ -8,8 +8,8 @@ import {
 } from 'lucide-react';
 import type { InventorySortField } from '@/features/inventory/types/inventory';
 import {
-  inventorySortOrderNumericFields,
-  inventorySortOrderTextFields,
+  isNumericSortField,
+  isTextSortField,
 } from '@/features/inventory/utils/inventorySortOrderLabel';
 
 interface InventorySortOrderIconProps {
@@ -25,7 +25,7 @@ export function InventorySortOrderIcon({
 }: InventorySortOrderIconProps) {
   const ascending = sortOrder === 'asc';
 
-  if (sortBy && inventorySortOrderTextFields.has(sortBy)) {
+  if (isTextSortField(sortBy)) {
     return ascending ? (
       <ArrowDownAZ className={className} aria-hidden />
     ) : (
@@ -33,7 +33,7 @@ export function InventorySortOrderIcon({
     );
   }
 
-  if (sortBy && inventorySortOrderNumericFields.has(sortBy)) {
+  if (isNumericSortField(sortBy)) {
     return ascending ? (
       <ArrowDown01 className={className} aria-hidden />
     ) : (

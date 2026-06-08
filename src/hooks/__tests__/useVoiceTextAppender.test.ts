@@ -3,18 +3,23 @@ import { renderHook, act } from '@testing-library/react';
 import { appendSpeechTranscript, useVoiceTextAppender } from '@/hooks/useVoiceTextAppender';
 
 const mockToggleListening = vi.fn();
+const mockStopListening = vi.fn();
 const mockUseSpeechToText = vi.fn();
+
+let mockIsListening = false;
 
 vi.mock('@/hooks/useSpeechToText', () => ({
   useSpeechToText: (options: { onResult: (transcript: string) => void }) => {
     mockUseSpeechToText(options);
     return {
       isSupported: true,
-      isListening: false,
+      get isListening() {
+        return mockIsListening;
+      },
       error: null,
       interimTranscript: '',
       startListening: vi.fn(),
-      stopListening: vi.fn(),
+      stopListening: mockStopListening,
       toggleListening: mockToggleListening,
     };
   },
@@ -38,6 +43,7 @@ describe('appendSpeechTranscript', () => {
 describe('useVoiceTextAppender', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockIsListening = false;
   });
 
   it('forwards speech results to onChange with append semantics', () => {
@@ -113,6 +119,78 @@ describe('useVoiceTextAppender', () => {
     );
 
     expect(result.current.canUseVoice).toBe(true);
-    expect(result.current.toggleListening).toBe(mockToggleListening);
+
+    act(() => {
+      result.current.toggleListening();
+    });
+
+    expect(mockToggleListening).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops listening when disabled or readOnly becomes true', () => {
+    const onChange = vi.fn();
+    mockIsListening = true;
+
+    const { rerender } = renderHook(
+      ({ disabled, readOnly }: { disabled?: boolean; readOnly?: boolean }) =>
+        useVoiceTextAppender({
+          value: '',
+          onChange,
+          disabled,
+          readOnly,
+        }),
+      { initialProps: { disabled: false, readOnly: false } }
+    );
+
+    expect(mockStopListening).not.toHaveBeenCalled();
+
+    rerender({ disabled: true, readOnly: false });
+    expect(mockStopListening).toHaveBeenCalledTimes(1);
+
+    mockStopListening.mockClear();
+    mockIsListening = true;
+    rerender({ disabled: false, readOnly: true });
+    expect(mockStopListening).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows stop but blocks start when disabled or readOnly', () => {
+    const onChange = vi.fn();
+
+    mockIsListening = true;
+    const { result: listeningResult } = renderHook(() =>
+      useVoiceTextAppender({
+        value: '',
+        onChange,
+        disabled: true,
+      })
+    );
+
+    // Mount effect also stops when disabled + listening; isolate toggle behavior.
+    mockStopListening.mockClear();
+
+    act(() => {
+      listeningResult.current.toggleListening();
+    });
+
+    expect(mockStopListening).toHaveBeenCalledTimes(1);
+    expect(mockToggleListening).not.toHaveBeenCalled();
+
+    mockStopListening.mockClear();
+    mockIsListening = false;
+
+    const { result: idleResult } = renderHook(() =>
+      useVoiceTextAppender({
+        value: '',
+        onChange,
+        readOnly: true,
+      })
+    );
+
+    act(() => {
+      idleResult.current.toggleListening();
+    });
+
+    expect(mockStopListening).not.toHaveBeenCalled();
+    expect(mockToggleListening).not.toHaveBeenCalled();
   });
 });
