@@ -258,12 +258,7 @@ export function EquipmentBasicInfoCard({
                   manufacturerFieldId={manufacturerFieldId}
                   modelFieldId={modelFieldId}
                   serialNumberFieldId={serialNumberFieldId}
-                  pmTemplateFieldId={pmTemplateFieldId}
-                  pmTemplateOptions={pmTemplateOptions}
                   onFieldUpdate={onFieldUpdate}
-                  onPMTemplateAssignment={onPMTemplateAssignment}
-                  getCurrentPMTemplateDisplay={getCurrentPMTemplateDisplay}
-                  getCurrentTeamDisplay={getCurrentTeamDisplay}
                 />
 
                 <EquipmentDescriptionField
