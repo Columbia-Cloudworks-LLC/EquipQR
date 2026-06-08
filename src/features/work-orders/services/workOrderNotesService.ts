@@ -218,15 +218,15 @@ export async function attachWorkOrderCreationImages(params: {
 // Get notes with images for work order
 export const getWorkOrderNotesWithImages = async (
   workOrderId: string,
-  organizationId?: string
+  organizationId: string,
 ) => {
+  if (!organizationId.trim()) {
+    throw new Error('Organization ID is required to fetch work order notes with images');
+  }
+
   try {
-    // If organization_id is provided, verify the work order belongs to that organization
-    // This provides explicit multi-tenancy filtering as a failsafe (per coding guidelines)
-    if (
-      organizationId &&
-      !(await verifyWorkOrderOrganizationScope(workOrderId, organizationId))
-    ) {
+    // Verify the work order belongs to the organization (explicit multi-tenancy failsafe)
+    if (!(await verifyWorkOrderOrganizationScope(workOrderId, organizationId))) {
       return [];
     }
 
@@ -253,7 +253,7 @@ export const getWorkOrderNotesWithImages = async (
     }
 
     const { imagesList, uploaderProfiles, displayByImageId } =
-      await fetchWorkOrderImagesWithUploaderProfiles(workOrderId, organizationId ?? '');
+      await fetchWorkOrderImagesWithUploaderProfiles(workOrderId, organizationId);
 
     return notes.map(note => {
       const author = profiles.find(p => p.id === note.author_id);

@@ -36,6 +36,10 @@ export async function fetchWorkOrderImagesWithUploaderProfiles(
   uploaderProfiles: ProfileRef[];
   displayByImageId: Map<string, string>;
 }> {
+  if (!organizationId.trim()) {
+    throw new Error('Organization ID is required to fetch work order images');
+  }
+
   const { data: allImages } = await supabase
     .from('work_order_images')
     .select('*, work_orders!inner(organization_id)')

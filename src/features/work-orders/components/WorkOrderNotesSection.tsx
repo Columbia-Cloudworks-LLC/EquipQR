@@ -85,7 +85,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   // Fetch notes with images
   const { data: serverNotes = [], isLoading } = useQuery({
     queryKey: workOrderQueryKeys.notesWithImages(workOrderId),
-    queryFn: () => getWorkOrderNotesWithImages(workOrderId, currentOrganization?.id),
+    queryFn: () => getWorkOrderNotesWithImages(workOrderId, currentOrganization!.id),
     enabled: !!workOrderId && !!currentOrganization?.id
   });
 

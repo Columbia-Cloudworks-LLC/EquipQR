@@ -59,4 +59,16 @@ describe('fetchWorkOrderImagesWithUploaderProfiles', () => {
     expect(result.imagesList).toHaveLength(0);
     expect(result.uploaderProfiles).toHaveLength(0);
   });
+
+  it('throws when organizationId is empty or whitespace', async () => {
+    await expect(
+      fetchWorkOrderImagesWithUploaderProfiles('wo-123', ''),
+    ).rejects.toThrow('Organization ID is required to fetch work order images');
+
+    await expect(
+      fetchWorkOrderImagesWithUploaderProfiles('wo-123', '   '),
+    ).rejects.toThrow('Organization ID is required to fetch work order images');
+
+    expect(fromMock).not.toHaveBeenCalled();
+  });
 });
