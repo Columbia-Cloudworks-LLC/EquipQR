@@ -28,18 +28,25 @@ export async function buildWorkOrderImageDisplayMap(
   return displayByImageId;
 }
 
-export async function fetchWorkOrderImagesWithUploaderProfiles(workOrderId: string): Promise<{
+export async function fetchWorkOrderImagesWithUploaderProfiles(
+  workOrderId: string,
+  organizationId: string,
+): Promise<{
   imagesList: WorkOrderNoteImageRow[];
   uploaderProfiles: ProfileRef[];
   displayByImageId: Map<string, string>;
 }> {
   const { data: allImages } = await supabase
     .from('work_order_images')
-    .select('*')
+    .select('*, work_orders!inner(organization_id)')
     .eq('work_order_id', workOrderId)
+    .eq('work_orders.organization_id', organizationId)
     .order('created_at', { ascending: false });
 
-  const imagesList = (allImages ?? []) as WorkOrderNoteImageRow[];
+  const imagesList = (
+    (allImages ?? []) as (WorkOrderNoteImageRow & { work_orders?: unknown })[]
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  ).map(({ work_orders: _workOrdersScope, ...row }) => row as WorkOrderNoteImageRow);
   const uploaderIds = [...new Set(imagesList.map((img) => img.uploaded_by))];
   let uploaderProfiles: ProfileRef[] = [];
 

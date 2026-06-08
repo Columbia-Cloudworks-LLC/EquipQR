@@ -1,0 +1,22 @@
+---
+description: Fallow must run on the current working branch before any commit on this repo.
+alwaysApply: true
+---
+
+# Fallow Before Commit
+
+Before committing any code change in this repository, run Fallow against the **current working branch** and review the result:
+
+```powershell
+npx --yes fallow@2.88.0 --format json --quiet --summary > tmp\fallow-pre-commit.json 2>$null
+$code = $LASTEXITCODE
+if ($code -ge 2) { throw "Fallow runtime error $code — fix before committing" }
+```
+
+## Rules
+
+- **Never** pass `--base origin/main` or `--changed-since origin/main` for preview-branch debugging. The baseline is always the current working branch state.
+- Review the JSON output in `tmp\fallow-pre-commit.json` and include a one-line summary of the result in the commit notes (e.g. "Fallow: 4 unused-export findings, no dupes, exitCode=0").
+- Do **not** commit if Fallow exits with code `2+` (runtime error — invalid config, parse failure, or dry-run guard); fix the issue first.
+- Exit code `1` (issues found) is not a hard block but must be acknowledged in the plan and addressed when findings were introduced by the current change.
+- Never run `fallow watch` in agent sessions.

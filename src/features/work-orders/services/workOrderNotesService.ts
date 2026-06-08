@@ -253,7 +253,7 @@ export const getWorkOrderNotesWithImages = async (
     }
 
     const { imagesList, uploaderProfiles, displayByImageId } =
-      await fetchWorkOrderImagesWithUploaderProfiles(workOrderId);
+      await fetchWorkOrderImagesWithUploaderProfiles(workOrderId, organizationId ?? '');
 
     return notes.map(note => {
       const author = profiles.find(p => p.id === note.author_id);

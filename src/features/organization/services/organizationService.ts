@@ -93,6 +93,7 @@ export const getUserOrganizations = async (userId: string): Promise<Organization
 /**
  * @deprecated Use getUserOrganizations instead
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getUserOrganizationsOptimized = getUserOrganizations;
 
 // ============================================
@@ -108,6 +109,7 @@ export const getOrganizationMembers = async (organizationId: string): Promise<Or
 /**
  * @deprecated Use getOrganizationMembers instead
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getOrganizationMembersOptimized = getOrganizationMembers;
 
 /**
@@ -119,6 +121,7 @@ export const getOrganizationAdmins = async (organizationId: string): Promise<Org
 /**
  * @deprecated Use getOrganizationAdmins instead
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getOrganizationAdminsOptimized = getOrganizationAdmins;
 
 // ============================================
