@@ -167,6 +167,21 @@ function scopeFilters(target: ScopeTarget) {
   }
 }
 
+type ScopeFilterResult = ReturnType<typeof scopeFilters>;
+
+function applyScopeTargetFilter<T extends { eq: (column: string, value: string) => T }>(
+  query: T,
+  filters: ScopeFilterResult,
+): T {
+  if (filters.scope_type === 'equipment') {
+    return query.eq('equipment_id', filters.equipment_id);
+  }
+  if (filters.scope_type === 'team') {
+    return query.eq('team_id', filters.team_id);
+  }
+  return query.eq('pm_template_id', filters.pm_template_id);
+}
+
 function mapEffectivePolicyRow(
   row: {
     interval_value: number | null;
@@ -222,13 +237,7 @@ export const pmIntervalPolicyService = {
       .eq('organization_id', organizationId)
       .eq('policy_slot', 'default');
 
-    if (filters.scope_type === 'equipment') {
-      query = query.eq('equipment_id', filters.equipment_id);
-    } else if (filters.scope_type === 'team') {
-      query = query.eq('team_id', filters.team_id);
-    } else {
-      query = query.eq('pm_template_id', filters.pm_template_id);
-    }
+    query = applyScopeTargetFilter(query, filters);
 
     const { data, error } = await query.maybeSingle();
     if (error) throw error;
@@ -292,13 +301,7 @@ export const pmIntervalPolicyService = {
       .eq('organization_id', organizationId)
       .eq('policy_slot', 'default');
 
-    if (filters.scope_type === 'equipment') {
-      query = query.eq('equipment_id', filters.equipment_id);
-    } else if (filters.scope_type === 'team') {
-      query = query.eq('team_id', filters.team_id);
-    } else {
-      query = query.eq('pm_template_id', filters.pm_template_id);
-    }
+    query = applyScopeTargetFilter(query, filters);
 
     const { error } = await query;
     if (error) throw error;

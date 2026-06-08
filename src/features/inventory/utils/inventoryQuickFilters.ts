@@ -1,6 +1,8 @@
 import type { InventoryItem, InventoryQuickFilterKey } from '@/features/inventory/types/inventory';
-import type { InventoryTableRowViewModel } from '@/features/inventory/utils/inventoryListViewModel';
-import { resolveStockHealthTier } from '@/features/inventory/utils/stockHealthLevels';
+import {
+  buildInventoryTableRowViewModel,
+  type InventoryTableRowViewModel,
+} from '@/features/inventory/utils/inventoryListViewModel';
 
 export const QUICK_FILTER_LABELS: Record<InventoryQuickFilterKey, string> = {
   'low-stock': 'Low stock',
@@ -21,15 +23,14 @@ export function matchesQuickFilter(
   recentlyAdjustedIds: Set<string>,
 ): boolean {
   const { item } = row;
-  const tier = resolveStockHealthTier(item);
 
   switch (filter) {
     case 'low-stock':
-      return tier === 'low';
+      return row.stockTier === 'low';
     case 'out-of-stock':
-      return tier === 'out';
+      return row.stockTier === 'out';
     case 'negative-stock':
-      return tier === 'negative';
+      return row.stockTier === 'negative';
     case 'has-alternates':
       return row.alternateGroupCount > 0;
     case 'missing-location':
@@ -69,36 +70,7 @@ export function countQuickFilterMatches(
   recentlyAdjustedIds: Set<string>,
 ): number {
   return items.filter((item) => {
-    const tier = resolveStockHealthTier(item);
-    const alternateGroupCount = groupMembershipCounts[item.id] ?? 0;
-    const missingLocation = !item.location?.trim();
-    const missingUnitCost =
-      item.default_unit_cost == null || item.default_unit_cost === '';
-    const missingSku = !item.sku?.trim();
-    const missingData = missingLocation || missingUnitCost || missingSku;
-    const reorderPriority =
-      item.quantity_on_hand < 0
-        ? 4
-        : item.quantity_on_hand === 0
-          ? 3
-          : item.isLowStock ?? item.quantity_on_hand <= item.low_stock_threshold
-            ? 2
-            : item.quantity_on_hand <= item.low_stock_threshold * 1.5
-              ? 1
-              : 0;
-
-    const row: InventoryTableRowViewModel = {
-      item,
-      stockTier: tier,
-      reorderPriority,
-      inventoryValue: 0,
-      alternateGroupCount,
-      lastAdjustedAt: null,
-      missingLocation,
-      missingUnitCost,
-      missingSku,
-      missingData,
-    };
+    const row = buildInventoryTableRowViewModel(item, groupMembershipCounts);
     return matchesQuickFilter(row, filter, recentlyAdjustedIds);
   }).length;
 }
