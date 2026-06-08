@@ -88,7 +88,10 @@ export const useInventoryItems = (
       return await getInventoryItems(organizationId, filters);
     },
     enabled: !!organizationId,
-    staleTime
+    staleTime,
+    // Keep the previous list visible while sort/filter refetches so mobile
+    // filter sheets stay mounted and users can keep adjusting options.
+    placeholderData: (previousData) => previousData,
   });
 };
 

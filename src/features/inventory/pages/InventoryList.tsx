@@ -96,7 +96,7 @@ const InventoryList = () => {
     }
   }, [searchParams]);
 
-  const { data: items = [], isLoading } = useInventoryItems(
+  const { data: items = [], isPending: isInventoryPending } = useInventoryItems(
     currentOrganization?.id,
     filters,
   );
@@ -307,7 +307,7 @@ const InventoryList = () => {
     );
   }
 
-  if (isLoading) {
+  if (isInventoryPending && items.length === 0) {
     return (
       <Page maxWidth="7xl" padding="responsive">
         <PageHeader title="Inventory" />

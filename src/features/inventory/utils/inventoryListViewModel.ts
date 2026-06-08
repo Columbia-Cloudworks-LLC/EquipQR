@@ -4,7 +4,6 @@ import { resolveStockHealthTier } from '@/features/inventory/utils/stockHealthLe
 export interface InventoryTableRowViewModel {
   item: InventoryItem;
   stockTier: ReturnType<typeof resolveStockHealthTier>;
-  stockBarPercent: number;
   reorderPriority: number;
   inventoryValue: number;
   alternateGroupCount: number;
@@ -20,11 +19,6 @@ export function buildInventoryTableRowViewModel(
   groupMembershipCounts: Record<string, number>,
   lastAdjustedAtByItemId: Record<string, string> = {},
 ): InventoryTableRowViewModel {
-  const threshold = Math.max(item.low_stock_threshold, 1);
-  const stockBarPercent = Math.min(
-    100,
-    Math.round((Math.max(0, item.quantity_on_hand) / threshold) * 100),
-  );
   const unitCost = item.default_unit_cost != null ? Number(item.default_unit_cost) : 0;
   const inventoryValue = unitCost * item.quantity_on_hand;
   const alternateGroupCount = groupMembershipCounts[item.id] ?? 0;
@@ -44,7 +38,6 @@ export function buildInventoryTableRowViewModel(
   return {
     item,
     stockTier: resolveStockHealthTier(item),
-    stockBarPercent,
     reorderPriority,
     inventoryValue,
     alternateGroupCount,

@@ -11,7 +11,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Layers, MoreVertical } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import { InventoryStockBar } from '@/features/inventory/components/InventoryStockBar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   DropdownMenu,
@@ -182,7 +182,10 @@ export function InventoryListDesktopTable({
                       </Badge>
                     )}
                   </div>
-                  <Progress value={vm.stockBarPercent} className="h-1.5" />
+                  <InventoryStockBar
+                    quantityOnHand={item.quantity_on_hand}
+                    lowStockThreshold={item.low_stock_threshold}
+                  />
                 </div>
               );
             case 'low_stock_threshold':

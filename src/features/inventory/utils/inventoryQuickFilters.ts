@@ -90,7 +90,6 @@ export function countQuickFilterMatches(
     const row: InventoryTableRowViewModel = {
       item,
       stockTier: tier,
-      stockBarPercent: 0,
       reorderPriority,
       inventoryValue: 0,
       alternateGroupCount,
