@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen } from '@/test/utils/test-utils';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import { EquipmentCardGridView } from '../EquipmentCardGridView';
 import { getEquipmentCardDisplayModel } from '@/features/equipment/utils/getEquipmentCardDisplayModel';
@@ -75,5 +76,35 @@ describe('EquipmentCardGridView', () => {
     const hoursValue = screen.getByText(largeHoursDisplay.workingHoursDisplay);
     expect(hoursValue).toHaveClass('truncate');
     expect(hoursValue).toHaveClass('text-lg');
+  });
+
+  it('opens work order options from a dropdown menu', async () => {
+    const user = userEvent.setup();
+    const onQuickAction = vi.fn();
+
+    render(
+      <EquipmentCardGridView
+        equipment={mockEquipment}
+        display={display}
+        pmReadout={pmReadout}
+        onQRClick={vi.fn()}
+        onQuickAction={onQuickAction}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /work order/i }));
+
+    await user.click(screen.getByRole('menuitem', { name: /new pm work order/i }));
+    expect(onQuickAction).toHaveBeenCalledWith(
+      expect.anything(),
+      '/dashboard/equipment/eq-1?createWorkOrder=pm',
+    );
+
+    await user.click(screen.getByRole('button', { name: /work order/i }));
+    await user.click(screen.getByRole('menuitem', { name: /create generic work order/i }));
+    expect(onQuickAction).toHaveBeenCalledWith(
+      expect.anything(),
+      '/dashboard/equipment/eq-1?createWorkOrder=generic',
+    );
   });
 });

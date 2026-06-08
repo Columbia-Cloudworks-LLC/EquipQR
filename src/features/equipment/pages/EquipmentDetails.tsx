@@ -44,7 +44,7 @@ function normalizeTabParam(tab: string | null): string {
 
 const EquipmentDetails = () => {
   const { equipmentId } = useParams<{ equipmentId: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { currentOrganization, isLoading: orgLoading } = useOrganization();
   const { data: equipment, isLoading: equipmentLoading } = useEquipmentById(
@@ -56,6 +56,7 @@ const EquipmentDetails = () => {
 
   const [activeTab, setActiveTab] = useState(() => normalizeTabParam(searchParams.get('tab')));
   const [isWorkOrderFormOpen, setIsWorkOrderFormOpen] = useState(false);
+  const [workOrderCreateMode, setWorkOrderCreateMode] = useState<'pm' | 'generic' | null>(null);
   const [isQRCodeOpen, setIsQRCodeOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isWorkingHoursModalOpen, setIsWorkingHoursModalOpen] = useState(false);
@@ -66,6 +67,20 @@ const EquipmentDetails = () => {
       setActiveTab(normalizeTabParam(tabParam));
     }
   }, [tabParam]);
+
+  useEffect(() => {
+    if (!equipment) return;
+
+    const createParam = searchParams.get('createWorkOrder');
+    if (createParam !== 'pm' && createParam !== 'generic') return;
+
+    setWorkOrderCreateMode(createParam);
+    setIsWorkOrderFormOpen(true);
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete('createWorkOrder');
+    setSearchParams(nextSearchParams, { replace: true });
+  }, [equipment, searchParams, setSearchParams]);
 
   useEquipmentScanLogger({
     equipmentId,
@@ -291,10 +306,15 @@ const EquipmentDetails = () => {
           organizationId={currentOrganization.id}
           isAdmin={isAdmin}
           isWorkOrderFormOpen={isWorkOrderFormOpen}
+          workOrderCreateMode={workOrderCreateMode}
+          defaultPmTemplateId={equipment.default_pm_template_id}
           isQRCodeOpen={isQRCodeOpen}
           isDeleteDialogOpen={isDeleteDialogOpen}
           isWorkingHoursModalOpen={isWorkingHoursModalOpen}
-          onCloseWorkOrderForm={() => setIsWorkOrderFormOpen(false)}
+          onCloseWorkOrderForm={() => {
+            setIsWorkOrderFormOpen(false);
+            setWorkOrderCreateMode(null);
+          }}
           onCloseQRCode={() => setIsQRCodeOpen(false)}
           onDeleteDialogOpenChange={setIsDeleteDialogOpen}
           onDeleteSuccess={() => navigate('/dashboard/equipment')}
