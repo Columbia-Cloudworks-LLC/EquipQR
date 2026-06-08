@@ -278,6 +278,7 @@ export const pmIntervalPolicyService = {
         .from('pm_interval_policies')
         .update(payload)
         .eq('id', existing.id)
+        .eq('organization_id', organizationId)
         .select()
         .single();
       if (error) throw error;

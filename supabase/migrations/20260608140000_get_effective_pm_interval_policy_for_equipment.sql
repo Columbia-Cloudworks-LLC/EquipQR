@@ -140,5 +140,6 @@ $$;
 ALTER FUNCTION public.get_effective_pm_interval_policy_for_equipment(uuid) OWNER TO postgres;
 REVOKE ALL ON FUNCTION public.get_effective_pm_interval_policy_for_equipment(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.get_effective_pm_interval_policy_for_equipment(uuid) FROM anon;
+REVOKE ALL ON FUNCTION public.get_effective_pm_interval_policy_for_equipment(uuid) FROM authenticated;
 GRANT EXECUTE ON FUNCTION public.get_effective_pm_interval_policy_for_equipment(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_effective_pm_interval_policy_for_equipment(uuid) TO service_role;

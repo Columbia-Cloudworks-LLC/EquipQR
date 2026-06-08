@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(13);
+SELECT plan(20);
 
 SELECT has_table('public', 'pm_interval_policies', 'pm_interval_policies table exists');
 SELECT has_column('public', 'pm_interval_policies', 'organization_id', 'organization_id exists');
@@ -138,6 +138,139 @@ SELECT is(
   ),
   0,
   'Equipment none policy suppresses recurring schedule'
+);
+
+-- RLS: members can read, only org admins can mutate
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', 'bb0e8400-e29b-41d4-a716-446655440005', true);
+SELECT set_config(
+  'request.jwt.claims',
+  json_build_object('sub', 'bb0e8400-e29b-41d4-a716-446655440005')::text,
+  true
+);
+
+SELECT ok(
+  (SELECT count(*)::int
+   FROM public.pm_interval_policies
+   WHERE organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid) >= 1,
+  'Org member can select PM interval policies'
+);
+
+INSERT INTO public.pm_interval_policies (
+  organization_id,
+  scope_type,
+  team_id,
+  policy_slot,
+  schedule_mode,
+  interval_value,
+  interval_type,
+  created_by,
+  updated_by
+) VALUES (
+  '660e8400-e29b-41d4-a716-446655440001'::uuid,
+  'team',
+  '880e8400-e29b-41d4-a716-446655440005'::uuid,
+  'default',
+  'custom',
+  30,
+  'days',
+  'bb0e8400-e29b-41d4-a716-446655440005'::uuid,
+  'bb0e8400-e29b-41d4-a716-446655440005'::uuid
+);
+
+SELECT is(
+  (SELECT count(*)::int
+   FROM public.pm_interval_policies
+   WHERE organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid
+     AND team_id = '880e8400-e29b-41d4-a716-446655440005'::uuid),
+  0,
+  'Non-admin org member cannot insert PM interval policies'
+);
+
+UPDATE public.pm_interval_policies
+SET interval_value = 99
+WHERE organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid
+  AND team_id = '880e8400-e29b-41d4-a716-446655440002'::uuid;
+
+SELECT is(
+  (SELECT interval_value
+   FROM public.pm_interval_policies
+   WHERE organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid
+     AND team_id = '880e8400-e29b-41d4-a716-446655440002'::uuid),
+  45,
+  'Non-admin org member cannot update PM interval policies'
+);
+
+DELETE FROM public.pm_interval_policies
+WHERE organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid
+  AND equipment_id = 'aa0e8400-e29b-41d4-a716-446655440010'::uuid;
+
+SELECT is(
+  (SELECT count(*)::int
+   FROM public.pm_interval_policies
+   WHERE organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid
+     AND equipment_id = 'aa0e8400-e29b-41d4-a716-446655440010'::uuid),
+  1,
+  'Non-admin org member cannot delete PM interval policies'
+);
+
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', 'bb0e8400-e29b-41d4-a716-446655440004', true);
+SELECT set_config(
+  'request.jwt.claims',
+  json_build_object('sub', 'bb0e8400-e29b-41d4-a716-446655440004')::text,
+  true
+);
+
+SELECT lives_ok($$
+  INSERT INTO public.pm_interval_policies (
+    organization_id,
+    scope_type,
+    team_id,
+    policy_slot,
+    schedule_mode,
+    interval_value,
+    interval_type,
+    created_by,
+    updated_by
+  ) VALUES (
+    '660e8400-e29b-41d4-a716-446655440001'::uuid,
+    'team',
+    '880e8400-e29b-41d4-a716-446655440005'::uuid,
+    'default',
+    'custom',
+    30,
+    'days',
+    'bb0e8400-e29b-41d4-a716-446655440004'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440004'::uuid
+  );
+$$, 'Org admin can insert PM interval policies');
+
+UPDATE public.pm_interval_policies
+SET interval_value = 60
+WHERE organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid
+  AND team_id = '880e8400-e29b-41d4-a716-446655440002'::uuid;
+
+SELECT is(
+  (SELECT interval_value
+   FROM public.pm_interval_policies
+   WHERE organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid
+     AND team_id = '880e8400-e29b-41d4-a716-446655440002'::uuid),
+  60,
+  'Org admin can update PM interval policies'
+);
+
+DELETE FROM public.pm_interval_policies
+WHERE organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid
+  AND equipment_id = 'aa0e8400-e29b-41d4-a716-446655440010'::uuid;
+
+SELECT is(
+  (SELECT count(*)::int
+   FROM public.pm_interval_policies
+   WHERE organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid
+     AND equipment_id = 'aa0e8400-e29b-41d4-a716-446655440010'::uuid),
+  0,
+  'Org admin can delete PM interval policies'
 );
 
 SELECT * FROM finish();

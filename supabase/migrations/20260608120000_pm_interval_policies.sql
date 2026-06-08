@@ -89,12 +89,7 @@ FOR SELECT USING (
 DROP POLICY IF EXISTS pm_interval_policies_insert ON public.pm_interval_policies;
 CREATE POLICY pm_interval_policies_insert ON public.pm_interval_policies
 FOR INSERT WITH CHECK (
-  organization_id IN (
-    SELECT om.organization_id
-    FROM public.organization_members om
-    WHERE om.user_id = auth.uid()
-      AND om.status = 'active'
-  )
+  public.is_org_admin(auth.uid(), organization_id)
   AND (
     equipment_id IS NULL
     OR equipment_id IN (
@@ -125,20 +120,10 @@ FOR INSERT WITH CHECK (
 DROP POLICY IF EXISTS pm_interval_policies_update ON public.pm_interval_policies;
 CREATE POLICY pm_interval_policies_update ON public.pm_interval_policies
 FOR UPDATE USING (
-  organization_id IN (
-    SELECT om.organization_id
-    FROM public.organization_members om
-    WHERE om.user_id = auth.uid()
-      AND om.status = 'active'
-  )
+  public.is_org_admin(auth.uid(), organization_id)
 )
 WITH CHECK (
-  organization_id IN (
-    SELECT om.organization_id
-    FROM public.organization_members om
-    WHERE om.user_id = auth.uid()
-      AND om.status = 'active'
-  )
+  public.is_org_admin(auth.uid(), organization_id)
   AND (
     equipment_id IS NULL
     OR equipment_id IN (
@@ -169,12 +154,7 @@ WITH CHECK (
 DROP POLICY IF EXISTS pm_interval_policies_delete ON public.pm_interval_policies;
 CREATE POLICY pm_interval_policies_delete ON public.pm_interval_policies
 FOR DELETE USING (
-  organization_id IN (
-    SELECT om.organization_id
-    FROM public.organization_members om
-    WHERE om.user_id = auth.uid()
-      AND om.status = 'active'
-  )
+  public.is_org_admin(auth.uid(), organization_id)
 );
 
 -- 2. Backfill org-owned template intervals into template-scoped policies
