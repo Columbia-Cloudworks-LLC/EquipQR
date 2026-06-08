@@ -40,4 +40,6 @@ export const pmIntervalPolicies = {
     ['pm-interval-policies', orgId, 'team', teamId] as const,
   byTemplate: (orgId: string, templateId: string) =>
     ['pm-interval-policies', orgId, 'template', templateId] as const,
+  effectiveByEquipment: (equipmentId: string) =>
+    ['pm-interval-policies', 'effective', equipmentId] as const,
 };

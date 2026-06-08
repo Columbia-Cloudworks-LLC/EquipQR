@@ -34,3 +34,17 @@ export function usePMIntervalPolicy(
     staleTime: 5 * 60 * 1000,
   });
 }
+
+export function useEffectivePMIntervalForEquipment(
+  equipmentId: string | undefined,
+  options: { enabled?: boolean } = {}
+) {
+  const enabled = (options.enabled ?? true) && !!equipmentId;
+
+  return useQuery({
+    queryKey: queryKeys.pmIntervalPolicies.effectiveByEquipment(equipmentId ?? ''),
+    queryFn: () => pmIntervalPolicyService.getEffectivePolicyForEquipment(equipmentId!),
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}

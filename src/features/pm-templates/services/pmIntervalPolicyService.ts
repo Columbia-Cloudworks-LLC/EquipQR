@@ -30,22 +30,109 @@ export type PMSchedulePolicyFormState = {
   intervalType: PMIntervalType;
 };
 
-export function formatPMSchedulePolicyDisplay(
-  policy: PMIntervalPolicyRow | null | undefined,
-  options?: { teamName?: string | null }
+export type EffectivePMIntervalPolicy = {
+  scheduleMode: 'custom' | 'none' | 'unconfigured';
+  intervalValue: number | null;
+  intervalType: PMIntervalType | null;
+  source:
+    | 'equipment_policy'
+    | 'team_policy'
+    | 'template_policy'
+    | 'template_default'
+    | 'unconfigured';
+  templateName?: string | null;
+};
+
+export type PMSchedulePolicyDisplay = {
+  primary: string;
+  secondary: string | null;
+};
+
+export function formatPMIntervalPrimary(value: number, type: PMIntervalType): string {
+  const unit = type === 'hours' ? 'hours' : 'days';
+  return `Every ${value} ${unit}`;
+}
+
+function getInheritedSourceLabel(
+  effective: EffectivePMIntervalPolicy,
+  teamName?: string | null
 ): string {
+  switch (effective.source) {
+    case 'team_policy':
+      return teamName ? `From team (${teamName})` : 'From team schedule';
+    case 'template_policy':
+      return effective.templateName
+        ? `From template (${effective.templateName})`
+        : 'From template schedule';
+    case 'template_default':
+      return effective.templateName
+        ? `From PM template (${effective.templateName})`
+        : 'From PM template default';
+    case 'equipment_policy':
+      return 'Equipment override';
+    case 'unconfigured':
+      return teamName
+        ? `Inherits from team (${teamName})`
+        : 'Inherits from team or PM template';
+    default:
+      return '';
+  }
+}
+
+export function getPMSchedulePolicyDisplay(
+  policy: PMIntervalPolicyRow | null | undefined,
+  options?: {
+    teamName?: string | null;
+    inheritedEffective?: EffectivePMIntervalPolicy | null;
+    inheritedEffectiveLoading?: boolean;
+  }
+): PMSchedulePolicyDisplay {
   const form = policyRowToFormState(policy);
+
   if (form.mode === 'none') {
-    return 'No recurring PM';
+    return { primary: 'No recurring PM', secondary: 'Equipment override' };
   }
+
   if (form.mode === 'custom' && form.intervalValue) {
-    const unit = form.intervalType === 'hours' ? 'hours' : 'days';
-    return `Every ${form.intervalValue} ${unit}`;
+    return {
+      primary: formatPMIntervalPrimary(form.intervalValue, form.intervalType),
+      secondary: 'Equipment override',
+    };
   }
-  if (options?.teamName) {
-    return `Inherits from team (${options.teamName})`;
+
+  if (options?.inheritedEffectiveLoading) {
+    return { primary: 'Loading…', secondary: null };
   }
-  return 'Inherits from team or template';
+
+  const effective = options?.inheritedEffective;
+
+  if (effective?.scheduleMode === 'custom' && effective.intervalValue && effective.intervalType) {
+    return {
+      primary: formatPMIntervalPrimary(effective.intervalValue, effective.intervalType),
+      secondary: getInheritedSourceLabel(effective, options?.teamName),
+    };
+  }
+
+  if (effective?.scheduleMode === 'none') {
+    return {
+      primary: 'No recurring PM',
+      secondary: getInheritedSourceLabel(effective, options?.teamName),
+    };
+  }
+
+  if (effective?.scheduleMode === 'unconfigured') {
+    return {
+      primary: 'No schedule configured',
+      secondary: getInheritedSourceLabel(effective, options?.teamName),
+    };
+  }
+
+  return {
+    primary: 'Inherited schedule',
+    secondary: options?.teamName
+      ? `Inherits from team (${options.teamName})`
+      : 'Inherits from team or PM template',
+  };
 }
 
 export function policyRowToFormState(
@@ -80,7 +167,50 @@ function scopeFilters(target: ScopeTarget) {
   }
 }
 
+function mapEffectivePolicyRow(
+  row: {
+    interval_value: number | null;
+    interval_type: string | null;
+    source: string;
+    schedule_mode: string;
+    template_name?: string | null;
+  } | null
+): EffectivePMIntervalPolicy | null {
+  if (!row) {
+    return null;
+  }
+
+  const scheduleMode =
+    row.schedule_mode === 'custom' || row.schedule_mode === 'none'
+      ? row.schedule_mode
+      : 'unconfigured';
+  const intervalType =
+    row.interval_type === 'hours' || row.interval_type === 'days'
+      ? row.interval_type
+      : null;
+  const source = row.source as EffectivePMIntervalPolicy['source'];
+
+  return {
+    scheduleMode,
+    intervalValue: row.interval_value,
+    intervalType,
+    source,
+    templateName: row.template_name ?? null,
+  };
+}
+
 export const pmIntervalPolicyService = {
+  async getEffectivePolicyForEquipment(
+    equipmentId: string
+  ): Promise<EffectivePMIntervalPolicy | null> {
+    const { data, error } = await supabase.rpc('get_effective_pm_interval_policy_for_equipment', {
+      p_equipment_id: equipmentId,
+    });
+    if (error) throw error;
+    const row = data?.[0];
+    return mapEffectivePolicyRow(row ?? null);
+  },
+
   async getPolicy(
     organizationId: string,
     target: ScopeTarget

@@ -35,6 +35,7 @@
     "get_compatible_parts_for_make_model",
     "get_dashboard_trends",
     "get_equipment_for_inventory_item_rules",
+    "get_effective_pm_interval_policy_for_equipment",
     "get_equipment_pm_status",
     "get_google_workspace_connection_status",
     "get_invitation_by_token_secure",

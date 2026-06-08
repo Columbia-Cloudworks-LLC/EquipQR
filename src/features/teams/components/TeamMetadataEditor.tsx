@@ -165,6 +165,9 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
         queryClient.invalidateQueries({
           queryKey: ['pm-status', 'org', currentOrganization.id],
         });
+        queryClient.invalidateQueries({
+          queryKey: ['pm-interval-policies', 'effective'],
+        });
       }
       
       queryClient.invalidateQueries({ queryKey: ['team', team.id] });

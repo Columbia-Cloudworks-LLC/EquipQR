@@ -207,7 +207,14 @@ const EquipmentDetails = () => {
 
         <ResponsiveEquipmentTabs activeTab={activeTab} onTabChange={setActiveTab}>
           <TabsContent value="details">
-            <EquipmentDetailsTab equipment={equipment} assignedTeam={assignedTeam} />
+            <EquipmentDetailsTab
+              equipment={equipment}
+              assignedTeam={assignedTeam}
+              onCreatePMWorkOrder={() => {
+                setWorkOrderCreateMode('pm');
+                setIsWorkOrderFormOpen(true);
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="notes">

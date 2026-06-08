@@ -4,13 +4,17 @@ import { Check, Edit2, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PMSchedulePolicyFields } from '@/features/pm-templates/components/PMSchedulePolicyFields';
 import {
-  formatPMSchedulePolicyDisplay,
+  getPMSchedulePolicyDisplay,
   policyRowToFormState,
   pmIntervalPolicyService,
   type PMIntervalPolicyRow,
   type PMSchedulePolicyFormState,
 } from '@/features/pm-templates/services/pmIntervalPolicyService';
-import { usePMIntervalPolicy } from '@/features/pm-templates/hooks/usePMIntervalPolicies';
+import { PMSchedulePolicyReadout } from './PMSchedulePolicyReadout';
+import {
+  useEffectivePMIntervalForEquipment,
+  usePMIntervalPolicy,
+} from '@/features/pm-templates/hooks/usePMIntervalPolicies';
 import { queryKeys } from '@/lib/queryKeys';
 import { toast } from 'sonner';
 
@@ -30,6 +34,11 @@ export function InlineEditPMSchedule({
   const queryClient = useQueryClient();
   const target = { scopeType: 'equipment' as const, equipmentId };
   const { data: policy, isLoading } = usePMIntervalPolicy(organizationId, target);
+  const isInherit = policyRowToFormState(policy).mode === 'inherit';
+  const { data: inheritedEffective, isLoading: isLoadingInheritedEffective } =
+    useEffectivePMIntervalForEquipment(equipmentId, {
+      enabled: isInherit,
+    });
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState<PMSchedulePolicyFormState>(policyRowToFormState(policy));
@@ -41,7 +50,11 @@ export function InlineEditPMSchedule({
     }
   }, [policy, isEditing]);
 
-  const displayText = formatPMSchedulePolicyDisplay(policy, { teamName });
+  const display = getPMSchedulePolicyDisplay(policy, {
+    teamName,
+    inheritedEffective: isInherit ? inheritedEffective : undefined,
+    inheritedEffectiveLoading: isInherit && isLoadingInheritedEffective,
+  });
 
   const handleSave = async () => {
     if (form.mode === 'custom' && (!form.intervalValue || form.intervalValue < 1)) {
@@ -68,6 +81,9 @@ export function InlineEditPMSchedule({
       queryClient.invalidateQueries({
         queryKey: queryKeys.equipment.pmStatus(equipmentId),
       });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.pmIntervalPolicies.effectiveByEquipment(equipmentId),
+      });
       setIsEditing(false);
     } catch {
       toast.error('Failed to update PM schedule');
@@ -83,17 +99,17 @@ export function InlineEditPMSchedule({
   };
 
   if (!canEdit) {
-    return <span className="text-base text-foreground">{displayText}</span>;
+    return <PMSchedulePolicyReadout display={display} />;
   }
 
   if (!isEditing) {
     return (
-      <div className="flex items-center gap-2 text-base">
-        <span>{displayText}</span>
+      <div className="flex items-start gap-2">
+        <PMSchedulePolicyReadout display={display} />
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 w-6 p-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100"
+          className="mt-0.5 h-6 w-6 shrink-0 p-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100"
           onClick={() => setIsEditing(true)}
           disabled={isLoading}
           aria-label="Edit PM schedule"

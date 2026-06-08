@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(12);
+SELECT plan(13);
 
 SELECT has_table('public', 'pm_interval_policies', 'pm_interval_policies table exists');
 SELECT has_column('public', 'pm_interval_policies', 'organization_id', 'organization_id exists');
@@ -30,6 +30,25 @@ SELECT has_function(
   ARRAY['uuid'],
   'get_equipment_pm_status exists'
 );
+
+SELECT has_function(
+  'public',
+  'get_effective_pm_interval_policy_for_equipment',
+  ARRAY['uuid'],
+  'get_effective_pm_interval_policy_for_equipment exists'
+);
+
+DELETE FROM public.pm_interval_policies p
+WHERE p.organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid
+  AND (
+    p.equipment_id = 'aa0e8400-e29b-41d4-a716-446655440010'::uuid
+    OR p.team_id = '880e8400-e29b-41d4-a716-446655440002'::uuid
+    OR p.pm_template_id = (
+      SELECT e.default_pm_template_id
+      FROM public.equipment e
+      WHERE e.id = 'aa0e8400-e29b-41d4-a716-446655440010'::uuid
+    )
+  );
 
 -- Service role can resolve policy for seeded equipment with template default interval
 SELECT is(

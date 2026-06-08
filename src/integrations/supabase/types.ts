@@ -4709,6 +4709,16 @@ export type Database = {
           status: string
         }[]
       }
+      get_effective_pm_interval_policy_for_equipment: {
+        Args: { p_equipment_id: string }
+        Returns: {
+          interval_type: string | null
+          interval_value: number | null
+          schedule_mode: string
+          source: string
+          template_name: string | null
+        }[]
+      }
       get_equipment_pm_status: {
         Args: { p_equipment_id: string }
         Returns: {
@@ -5589,4 +5599,3 @@ export const Constants = {
     },
   },
 } as const
-

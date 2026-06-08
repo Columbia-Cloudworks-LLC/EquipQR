@@ -68,17 +68,13 @@ export type EquipmentBasicInfoCardProps = {
   modelFieldId: string;
   serialNumberFieldId: string;
   assignedTeamFieldId: string;
-  pmTemplateFieldId: string;
   descriptionFieldId: string;
   teamOptions: { value: string; label: string }[];
-  pmTemplateOptions: { value: string; label: string }[];
   lastMaintenanceLink: string | null;
   lastMaintenanceDisplay: string;
   onFieldUpdate: (field: keyof Equipment, value: string) => void | Promise<void>;
   onTeamAssignment: (value: string) => void | Promise<void>;
-  onPMTemplateAssignment: (value: string) => void | Promise<void>;
   getCurrentTeamDisplay: () => string;
-  getCurrentPMTemplateDisplay: () => string;
 };
 
 export function EquipmentBasicInfoCard({
@@ -102,17 +98,13 @@ export function EquipmentBasicInfoCard({
   modelFieldId,
   serialNumberFieldId,
   assignedTeamFieldId,
-  pmTemplateFieldId,
   descriptionFieldId,
   teamOptions,
-  pmTemplateOptions,
   lastMaintenanceLink,
   lastMaintenanceDisplay,
   onFieldUpdate,
   onTeamAssignment,
-  onPMTemplateAssignment,
   getCurrentTeamDisplay,
-  getCurrentPMTemplateDisplay,
 }: EquipmentBasicInfoCardProps) {
   return (
     <Card>
@@ -236,12 +228,7 @@ export function EquipmentBasicInfoCard({
               manufacturerFieldId={manufacturerFieldId}
               modelFieldId={modelFieldId}
               serialNumberFieldId={serialNumberFieldId}
-              pmTemplateFieldId={pmTemplateFieldId}
-              pmTemplateOptions={pmTemplateOptions}
               onFieldUpdate={onFieldUpdate}
-              onPMTemplateAssignment={onPMTemplateAssignment}
-              getCurrentPMTemplateDisplay={getCurrentPMTemplateDisplay}
-              getCurrentTeamDisplay={getCurrentTeamDisplay}
             />
           )}
         </div>

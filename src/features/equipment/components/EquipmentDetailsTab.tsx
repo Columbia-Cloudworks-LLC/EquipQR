@@ -32,9 +32,14 @@ const WorkingHoursTimelineModal = lazy(() =>
 interface EquipmentDetailsTabProps {
   equipment: Equipment;
   assignedTeam?: EquipmentTeamSummary | null;
+  onCreatePMWorkOrder?: () => void;
 }
 
-const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment, assignedTeam }) => {
+const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
+  equipment,
+  assignedTeam,
+  onCreatePMWorkOrder,
+}) => {
   const [showQRCode, setShowQRCode] = useState(false);
   const [showWorkingHoursModal, setShowWorkingHoursModal] = useState(false);
   const [isEditingLocation, setIsEditingLocation] = useState(false);
@@ -149,23 +154,25 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment, as
         modelFieldId={modelFieldId}
         serialNumberFieldId={serialNumberFieldId}
         assignedTeamFieldId={assignedTeamFieldId}
-        pmTemplateFieldId={pmTemplateFieldId}
         descriptionFieldId={descriptionFieldId}
         teamOptions={teamOptions}
-        pmTemplateOptions={pmTemplateOptions}
         lastMaintenanceLink={lastMaintenanceLink}
         lastMaintenanceDisplay={lastMaintenanceDisplay}
         onFieldUpdate={handleFieldUpdate}
         onTeamAssignment={handleTeamAssignment}
-        onPMTemplateAssignment={handlePMTemplateAssignment}
         getCurrentTeamDisplay={getCurrentTeamDisplay}
-        getCurrentPMTemplateDisplay={getCurrentPMTemplateDisplay}
       />
 
       {isMobile && (
         <EquipmentPMInfo
-          equipmentId={equipment.id}
-          organizationId={equipment.organization_id}
+          equipment={equipment}
+          canEdit={canEdit}
+          pmTemplateFieldId={pmTemplateFieldId}
+          pmTemplateOptions={pmTemplateOptions}
+          onPMTemplateAssignment={handlePMTemplateAssignment}
+          getCurrentPMTemplateDisplay={getCurrentPMTemplateDisplay}
+          getCurrentTeamDisplay={getCurrentTeamDisplay}
+          onCreatePMWorkOrder={onCreatePMWorkOrder}
         />
       )}
 
@@ -182,8 +189,14 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment, as
 
       {!isMobile && (
         <EquipmentPMInfo
-          equipmentId={equipment.id}
-          organizationId={equipment.organization_id}
+          equipment={equipment}
+          canEdit={canEdit}
+          pmTemplateFieldId={pmTemplateFieldId}
+          pmTemplateOptions={pmTemplateOptions}
+          onPMTemplateAssignment={handlePMTemplateAssignment}
+          getCurrentPMTemplateDisplay={getCurrentPMTemplateDisplay}
+          getCurrentTeamDisplay={getCurrentTeamDisplay}
+          onCreatePMWorkOrder={onCreatePMWorkOrder}
         />
       )}
 
