@@ -13,10 +13,6 @@ vi.mock('@/features/inventory/hooks/useInventory', () => ({
   useAdjustInventoryQuantity: vi.fn(),
   useInventoryListMetadata: vi.fn(),
   useRecentlyAdjustedInventoryItemIds: vi.fn(() => ({ data: {}, isLoading: false })),
-  useUpdateInventoryItem: vi.fn(() => ({
-    mutateAsync: vi.fn().mockResolvedValue({}),
-    isPending: false,
-  })),
 }));
 
 vi.mock('@/features/inventory/hooks/useAlternateGroups', () => ({
@@ -397,18 +393,18 @@ describe('InventoryList — desktop table', () => {
     expect(summary).toHaveTextContent('Low stock');
   });
 
-  it('toggles row selection and shows bulk action bar', async () => {
-    const user = userEvent.setup();
+  it('does not expose row selection or list-level bulk actions on desktop', async () => {
     render(<InventoryList />);
 
     await waitFor(() => {
       expect(screen.getByText('Healthy Part')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('checkbox', { name: /select healthy part/i }));
-
-    expect(screen.getByText(/1 item selected/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /export selected/i })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', { name: /select all inventory items/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/item selected/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /open bulk edit/i })).not.toBeInTheDocument();
   });
 
   it('shows a negative stock label for negative quantities', async () => {

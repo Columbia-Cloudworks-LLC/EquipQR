@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Package, Plus } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -7,7 +7,6 @@ import {
   useInventoryItems,
   useInventoryListMetadata,
   useRecentlyAdjustedInventoryItemIds,
-  useUpdateInventoryItem,
 } from '@/features/inventory/hooks/useInventory';
 import { useInventoryGroupMembershipCounts } from '@/features/inventory/hooks/useAlternateGroups';
 import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
@@ -35,7 +34,6 @@ import { InventoryColumnManager } from '@/features/inventory/components/Inventor
 import { InventorySavedViewsMenu } from '@/features/inventory/components/InventorySavedViewsMenu';
 import { InventoryHealthSummary } from '@/features/inventory/components/InventoryHealthSummary';
 import { InventoryQuickFilterChips } from '@/features/inventory/components/InventoryQuickFilterChips';
-import { InventoryBulkActionBar } from '@/features/inventory/components/InventoryBulkActionBar';
 import type { InventoryTableColumnKey } from '@/features/inventory/components/inventoryTableColumns';
 import {
   applyQuickFilters,
@@ -46,10 +44,7 @@ import {
   isClientSideSortField,
   sortInventoryViewModels,
 } from '@/features/inventory/utils/inventoryListViewModel';
-import { itemsToAllExportRows, getAllExportHeaders } from '@/features/inventory/utils/inventoryExportUtils';
-import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { useAppToast } from '@/hooks/useAppToast';
-import { arrayToCsv, downloadCsv, filenameWithDate } from '@/utils/exportUtils';
 import { cn } from '@/lib/utils';
 
 const EMPTY_METADATA: InventoryListMetadata = {
@@ -73,7 +68,6 @@ const InventoryList = () => {
   const { canManageInventory, canManagePartsManagers } = usePermissions();
   const isMobile = useIsMobile();
   const { toast } = useAppToast();
-  const { formatDate } = useFormatTimestamp();
 
   const [showForm, setShowForm] = useState(false);
   const [showManagersSheet, setShowManagersSheet] = useState(false);
@@ -87,12 +81,9 @@ const InventoryList = () => {
     sortOrder: 'asc',
   });
   const [quickFilters, setQuickFilters] = useState<InventoryQuickFilterKey[]>([]);
-  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
-  const [bulkUpdating, setBulkUpdating] = useState(false);
 
   const tablePrefs = useInventoryTablePreferences(currentOrganization?.id);
   const adjustMutation = useAdjustInventoryQuantity();
-  const updateMutation = useUpdateInventoryItem();
   const { data: groupMembershipCounts = {} } = useInventoryGroupMembershipCounts(currentOrganization?.id);
   const { data: recentAdjustments = {} } = useRecentlyAdjustedInventoryItemIds(currentOrganization?.id);
   const initializedFromUrl = useRef(false);
@@ -148,11 +139,6 @@ const InventoryList = () => {
         (key) => tablePrefs.columnVisibility[key] !== false,
       ),
     [tablePrefs.columnOrder, tablePrefs.columnVisibility],
-  );
-
-  const selectedItems = useMemo(
-    () => items.filter((item) => selectedItemIds.has(item.id)),
-    [items, selectedItemIds],
   );
 
   const quickFilterCounts = useMemo(() => {
@@ -304,83 +290,6 @@ const InventoryList = () => {
     });
   };
 
-  const handleToggleSelected = (itemId: string) => {
-    setSelectedItemIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(itemId)) next.delete(itemId);
-      else next.add(itemId);
-      return next;
-    });
-  };
-
-  const handleToggleSelectAll = (checked: boolean) => {
-    if (!checked) {
-      setSelectedItemIds(new Set());
-      return;
-    }
-    setSelectedItemIds(new Set(viewModels.map((row) => row.item.id)));
-  };
-
-  const handleExportSelected = useCallback(() => {
-    const rows = itemsToAllExportRows(selectedItems, formatDate);
-    const csv = arrayToCsv(getAllExportHeaders(), rows);
-    downloadCsv(csv, filenameWithDate('inventory-selected', 'csv'));
-  }, [selectedItems, formatDate]);
-
-  const runBulkUpdate = async (
-    updater: (itemId: string) => Promise<void>,
-    successLabel: string,
-  ) => {
-    if (!currentOrganization || selectedItemIds.size === 0) return;
-    setBulkUpdating(true);
-    let success = 0;
-    let failed = 0;
-    for (const itemId of selectedItemIds) {
-      try {
-        await updater(itemId);
-        success += 1;
-      } catch {
-        failed += 1;
-      }
-    }
-    setBulkUpdating(false);
-    toast({
-      title: successLabel,
-      description:
-        failed > 0
-          ? `${success} updated, ${failed} failed.`
-          : `${success} item${success === 1 ? '' : 's'} updated.`,
-      variant: failed > 0 ? 'warning' : 'default',
-    });
-    if (success > 0) setSelectedItemIds(new Set());
-  };
-
-  const handleBulkUpdateLocation = async (location: string) => {
-    if (!currentOrganization) return;
-    await runBulkUpdate(
-      (itemId) =>
-        updateMutation.mutateAsync({
-          organizationId: currentOrganization.id,
-          itemId,
-          formData: { location },
-        }).then(() => undefined),
-      'Location updated',
-    );
-  };
-
-  const handleBulkUpdateThreshold = async (threshold: number) => {
-    if (!currentOrganization) return;
-    await runBulkUpdate(
-      (itemId) =>
-        updateMutation.mutateAsync({
-          organizationId: currentOrganization.id,
-          itemId,
-          formData: { low_stock_threshold: threshold },
-        }).then(() => undefined),
-      'Threshold updated',
-    );
-  };
-
   const canCreate = canManageInventory(isPartsManager);
   const canManage = canManagePartsManagers();
 
@@ -476,7 +385,6 @@ const InventoryList = () => {
           canExport={canCreate}
           items={items}
           visibleColumnKeys={visibleColumnKeys}
-          selectedItems={selectedItems}
           toolbarControls={!isMobile ? desktopToolbarControls : undefined}
           healthSummary={!isMobile ? <InventoryHealthSummary metadata={metadata} /> : undefined}
           quickFilterChips={
@@ -534,42 +442,27 @@ const InventoryList = () => {
             onManageAlternateGroups={handleManageAlternateGroups}
           />
         ) : (
-          <>
-            <InventoryListDesktopTable
-              rows={viewModels}
-              filters={filters}
-              columnVisibility={tablePrefs.columnVisibility}
-              columnOrder={tablePrefs.columnOrder}
-              columnSizing={tablePrefs.columnSizing}
-              density={tablePrefs.density}
-              selectedItemIds={selectedItemIds}
-              canCreate={canCreate}
-              adjustPending={adjustMutation.isPending}
-              onColumnVisibilityChange={(visibility) =>
-                tablePrefs.setColumnVisibility(visibility as Record<string, boolean>)
-              }
-              onColumnOrderChange={tablePrefs.setColumnOrder}
-              onColumnSizingChange={tablePrefs.setColumnSizing}
-              onSortChange={handleSortChange}
-              onViewItem={handleViewItem}
-              onQuickAdjust={handleQuickAdjust}
-              onShowQR={handleShowQRCode}
-              onEditItem={handleEditItem}
-              onManageAlternateGroups={handleManageAlternateGroups}
-              onToggleSelected={handleToggleSelected}
-              onToggleSelectAll={handleToggleSelectAll}
-            />
-            <InventoryBulkActionBar
-              selectedCount={selectedItemIds.size}
-              canEdit={canCreate}
-              onClearSelection={() => setSelectedItemIds(new Set())}
-              onExportSelected={handleExportSelected}
-              onOpenBulkEdit={() => navigate('/dashboard/inventory/bulk')}
-              onBulkUpdateLocation={handleBulkUpdateLocation}
-              onBulkUpdateThreshold={handleBulkUpdateThreshold}
-              isUpdating={bulkUpdating}
-            />
-          </>
+          <InventoryListDesktopTable
+            rows={viewModels}
+            filters={filters}
+            columnVisibility={tablePrefs.columnVisibility}
+            columnOrder={tablePrefs.columnOrder}
+            columnSizing={tablePrefs.columnSizing}
+            density={tablePrefs.density}
+            canCreate={canCreate}
+            adjustPending={adjustMutation.isPending}
+            onColumnVisibilityChange={(visibility) =>
+              tablePrefs.setColumnVisibility(visibility as Record<string, boolean>)
+            }
+            onColumnOrderChange={tablePrefs.setColumnOrder}
+            onColumnSizingChange={tablePrefs.setColumnSizing}
+            onSortChange={handleSortChange}
+            onViewItem={handleViewItem}
+            onQuickAdjust={handleQuickAdjust}
+            onShowQR={handleShowQRCode}
+            onEditItem={handleEditItem}
+            onManageAlternateGroups={handleManageAlternateGroups}
+          />
         )}
 
         <InventoryListDialogs

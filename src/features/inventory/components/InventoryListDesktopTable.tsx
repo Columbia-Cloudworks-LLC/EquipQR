@@ -7,12 +7,10 @@ import {
   type ColumnSizingState,
   type VisibilityState,
 } from '@tanstack/react-table';
-import { Layers, MoreVertical } from 'lucide-react';
-import { BulkGridSortableHeader } from '@/components/bulk-edit/BulkGridSortableHeader';
+import { ArrowDown, ArrowUp, ArrowUpDown, Layers, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -32,8 +30,8 @@ import type { InventoryTableRowViewModel } from '@/features/inventory/utils/inve
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { cn } from '@/lib/utils';
 
-const SELECT_COLUMN_ID = '__select';
 const ACTIONS_COLUMN_ID = '__actions';
+const NAME_COLUMN_ID = 'name';
 
 type InventoryListDesktopTableProps = {
   rows: InventoryTableRowViewModel[];
@@ -42,7 +40,6 @@ type InventoryListDesktopTableProps = {
   columnOrder: InventoryTableColumnKey[];
   columnSizing: Record<string, number>;
   density: InventoryTableDensity;
-  selectedItemIds: Set<string>;
   canCreate: boolean;
   adjustPending: boolean;
   onColumnVisibilityChange: (visibility: VisibilityState) => void;
@@ -54,14 +51,23 @@ type InventoryListDesktopTableProps = {
   onShowQR: (item: InventoryItem) => void;
   onEditItem: (item: InventoryItem) => void;
   onManageAlternateGroups: (itemId: string) => void;
-  onToggleSelected: (itemId: string) => void;
-  onToggleSelectAll: (checked: boolean) => void;
 };
 
 function getAlignClass(align?: 'left' | 'right' | 'center'): string {
   if (align === 'right') return 'text-right';
   if (align === 'center') return 'text-center';
   return '';
+}
+
+function getSortIcon(sortBy: InventorySortField | undefined, sortOrder: 'asc' | 'desc' | undefined, field: InventorySortField) {
+  if (sortBy !== field) {
+    return <ArrowUpDown className="h-3 w-3 shrink-0 opacity-50" aria-hidden />;
+  }
+  return sortOrder === 'asc' ? (
+    <ArrowUp className="h-3 w-3 shrink-0" aria-hidden />
+  ) : (
+    <ArrowDown className="h-3 w-3 shrink-0" aria-hidden />
+  );
 }
 
 export function InventoryListDesktopTable({
@@ -71,7 +77,6 @@ export function InventoryListDesktopTable({
   columnOrder,
   columnSizing,
   density,
-  selectedItemIds,
   canCreate,
   adjustPending,
   onColumnVisibilityChange,
@@ -83,42 +88,14 @@ export function InventoryListDesktopTable({
   onShowQR,
   onEditItem,
   onManageAlternateGroups,
-  onToggleSelected,
-  onToggleSelectAll,
 }: InventoryListDesktopTableProps) {
   const { formatDate, formatDateTime } = useFormatTimestamp();
   const isCompact = density === 'compact';
   const headDensityClass = isCompact ? 'h-9 px-2 text-xs' : '';
   const cellDensityClass = isCompact ? 'py-1.5 px-2 text-sm' : '';
 
-  const allSelected = rows.length > 0 && rows.every((row) => selectedItemIds.has(row.item.id));
-  const someSelected = rows.some((row) => selectedItemIds.has(row.item.id));
-
   const dataColumns = useMemo<ColumnDef<InventoryTableRowViewModel>[]>(() => {
-    const defs: ColumnDef<InventoryTableRowViewModel>[] = [
-      {
-        id: SELECT_COLUMN_ID,
-        size: 48,
-        minSize: 48,
-        maxSize: 48,
-        enableResizing: false,
-        header: () => (
-          <Checkbox
-            checked={allSelected ? true : someSelected ? 'indeterminate' : false}
-            onCheckedChange={(checked) => onToggleSelectAll(checked === true)}
-            aria-label="Select all inventory items"
-          />
-        ),
-        cell: ({ row }) => (
-          <Checkbox
-            checked={selectedItemIds.has(row.original.item.id)}
-            onCheckedChange={() => onToggleSelected(row.original.item.id)}
-            aria-label={`Select ${row.original.item.name}`}
-            onClick={(e) => e.stopPropagation()}
-          />
-        ),
-      },
-    ];
+    const defs: ColumnDef<InventoryTableRowViewModel>[] = [];
 
     for (const key of columnOrder) {
       if (columnVisibility[key] === false) continue;
@@ -133,22 +110,23 @@ export function InventoryListDesktopTable({
         minSize: meta.minWidth,
         maxSize: meta.maxWidth,
         enableResizing: true,
-        header: ({ column }) =>
+        header: () =>
           meta.sortable ? (
-            <BulkGridSortableHeader
-              column={{
-                getIsSorted: () => {
-                  if (filters.sortBy !== sortField) return false;
-                  return filters.sortOrder === 'desc' ? 'desc' : 'asc';
-                },
-                toggleSorting: () => onSortChange(sortField),
-              }}
-              title={meta.title}
-              align={meta.align === 'right' ? 'right' : 'left'}
-              fullWidth
-            />
+            <button
+              type="button"
+              className={cn(
+                'flex w-full items-center gap-1 rounded-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+                meta.align === 'right' && 'justify-end',
+                meta.align === 'center' && 'justify-center',
+                !meta.align || meta.align === 'left' ? 'justify-start' : undefined,
+              )}
+              onClick={() => onSortChange(sortField)}
+            >
+              <span>{meta.title}</span>
+              {getSortIcon(filters.sortBy, filters.sortOrder, sortField)}
+            </button>
           ) : (
-            <span className="text-xs font-medium">{meta.title}</span>
+            <span className="block w-full text-xs font-medium text-muted-foreground">{meta.title}</span>
           ),
         cell: ({ row }) => {
           const vm = row.original;
@@ -313,7 +291,6 @@ export function InventoryListDesktopTable({
     return defs;
   }, [
     adjustPending,
-    allSelected,
     canCreate,
     columnOrder,
     columnSizing,
@@ -327,11 +304,7 @@ export function InventoryListDesktopTable({
     onQuickAdjust,
     onShowQR,
     onSortChange,
-    onToggleSelectAll,
-    onToggleSelected,
     onViewItem,
-    selectedItemIds,
-    someSelected,
   ]);
 
   const table = useReactTable({
@@ -339,7 +312,7 @@ export function InventoryListDesktopTable({
     columns: dataColumns,
     state: {
       columnVisibility,
-      columnOrder: [SELECT_COLUMN_ID, ...columnOrder, ACTIONS_COLUMN_ID],
+      columnOrder: [...columnOrder, ACTIONS_COLUMN_ID],
       columnSizing,
     },
     onColumnVisibilityChange: (updater) => {
@@ -348,11 +321,10 @@ export function InventoryListDesktopTable({
       onColumnVisibilityChange(next);
     },
     onColumnOrderChange: (updater) => {
-      const current = [SELECT_COLUMN_ID, ...columnOrder, ACTIONS_COLUMN_ID];
+      const current = [...columnOrder, ACTIONS_COLUMN_ID];
       const next = typeof updater === 'function' ? updater(current) : updater;
       const filtered = next.filter(
         (id): id is InventoryTableColumnKey =>
-          id !== SELECT_COLUMN_ID &&
           id !== ACTIONS_COLUMN_ID &&
           INVENTORY_TABLE_COLUMN_META.some((m) => m.key === id),
       );
@@ -368,32 +340,38 @@ export function InventoryListDesktopTable({
     getCoreRowModel: getCoreRowModel(),
   });
 
+  const tableWidth = Math.max(table.getTotalSize(), 960);
+
   return (
     <Card>
       <CardContent className="p-0">
-        <div
-          className="relative w-full overflow-auto rounded-sm border"
-          style={{ maxHeight: 'calc(100vh - 16rem)' }}
-        >
-          <Table style={{ width: table.getTotalSize() }}>
-            <TableHeader className="sticky top-0 z-20 bg-background shadow-[0_1px_0_0_hsl(var(--border))]">
+        <div className="w-full overflow-x-auto rounded-sm border">
+          <Table
+            withWrapper={false}
+            className="table-fixed"
+            style={{ width: tableWidth, minWidth: '100%' }}
+          >
+            <colgroup>
+              {table.getHeaderGroups()[0]?.headers.map((header) => (
+                <col key={header.id} style={{ width: header.getSize() }} />
+              ))}
+            </colgroup>
+            <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header, index) => {
+                  {headerGroup.headers.map((header) => {
                     const meta = INVENTORY_TABLE_COLUMN_META.find(
                       (c) => c.key === header.column.id,
                     );
-                    const isFrozen = index <= 1;
+                    const isFrozenName = header.column.id === NAME_COLUMN_ID;
                     return (
                       <TableHead
                         key={header.id}
-                        style={{ width: header.getSize() }}
                         className={cn(
                           headDensityClass,
                           getAlignClass(meta?.align),
                           meta?.mono && 'font-mono tabular-nums',
-                          isFrozen && 'sticky left-0 z-30 bg-background',
-                          index === 1 && isFrozen && 'left-[48px]',
+                          isFrozenName && 'sticky left-0 z-20 bg-background',
                           'relative',
                         )}
                       >
@@ -429,26 +407,20 @@ export function InventoryListDesktopTable({
                 </TableRow>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={selectedItemIds.has(row.original.item.id) ? 'selected' : undefined}
-                    className="group hover:bg-muted/50"
-                  >
-                    {row.getVisibleCells().map((cell, index) => {
+                  <TableRow key={row.id} className="group hover:bg-muted/50">
+                    {row.getVisibleCells().map((cell) => {
                       const meta = INVENTORY_TABLE_COLUMN_META.find(
                         (c) => c.key === cell.column.id,
                       );
-                      const isFrozen = index <= 1;
+                      const isFrozenName = cell.column.id === NAME_COLUMN_ID;
                       return (
                         <TableCell
                           key={cell.id}
-                          style={{ width: cell.column.getSize() }}
                           className={cn(
                             cellDensityClass,
                             getAlignClass(meta?.align),
                             meta?.mono && 'font-mono tabular-nums',
-                            isFrozen && 'sticky left-0 z-10 bg-background group-hover:bg-muted/50',
-                            index === 1 && isFrozen && 'left-[48px]',
+                            isFrozenName && 'sticky left-0 z-10 bg-background group-hover:bg-muted/50',
                           )}
                         >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
