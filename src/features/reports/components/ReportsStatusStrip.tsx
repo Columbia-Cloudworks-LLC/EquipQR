@@ -63,7 +63,7 @@ export const ReportsStatusStrip: React.FC<ReportsStatusStripProps> = ({
         label="RATE LIMIT"
         value={
           <span className="font-tabular text-xs text-muted-foreground">
-            5/min · 50/hr
+            5/user/min · 50/org/hr
           </span>
         }
       />
