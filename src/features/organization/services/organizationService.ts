@@ -30,7 +30,7 @@ export type { OrganizationUpdatePayload };
 /**
  * Get organization by ID
  */
-const getOrganizationById = async (organizationId: string) => {
+export const getOrganizationById = async (organizationId: string) => {
   try {
     const { data, error } = await supabase
       .from('organizations')
