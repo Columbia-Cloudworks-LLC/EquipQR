@@ -118,9 +118,9 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
       ) : null}
       {/* Mobile: compact list row — no side action rail so content stays within viewport */}
       <div className="md:hidden">
-        <div className="grid min-w-0 grid-cols-[3.5rem_1fr_auto] gap-x-2.5 gap-y-0.5 p-3">
-          <div className="row-span-4 self-start">
-            <div className="relative aspect-square w-full overflow-hidden rounded-md bg-muted">
+        <div className="grid min-w-0 grid-cols-[4.5rem_1fr_auto] gap-x-2.5 gap-y-0.5 p-3">
+          <div className="row-span-4 self-center">
+            <div className="relative aspect-4/5 w-full overflow-hidden rounded-md bg-muted">
               {equipment.image_url ? (
                 <img
                   src={equipment.image_url}
