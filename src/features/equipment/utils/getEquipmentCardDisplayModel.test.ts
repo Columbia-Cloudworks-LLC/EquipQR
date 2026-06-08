@@ -137,6 +137,7 @@ describe('getEquipmentCardDisplayModel', () => {
       );
 
       expect(result.lastMaintenanceText).toBeUndefined();
+      expect(result.lastMaintenanceDisplay).toBe('—');
     });
 
     it('returns undefined for invalid date string', () => {

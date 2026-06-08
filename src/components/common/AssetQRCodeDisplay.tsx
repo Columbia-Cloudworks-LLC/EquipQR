@@ -2,7 +2,7 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Copy, CheckCircle } from 'lucide-react';
+import { Download, Copy, CheckCircle, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { generateQRDataUrl } from '@/utils/qr';
@@ -63,6 +63,12 @@ const AssetQRCodeDisplay: React.FC<AssetQRCodeDisplayProps> = ({
     }
   }, [open, entityId, generateQRCode]);
 
+  React.useEffect(() => {
+    if (!open) {
+      setCopied(false);
+    }
+  }, [open]);
+
   const baseFilename = entityName ? sanitizeFilename(entityName) : defaultFilenameStem;
 
   const downloadQRCode = async () => {
@@ -96,14 +102,14 @@ const AssetQRCodeDisplay: React.FC<AssetQRCodeDisplayProps> = ({
       await navigator.clipboard.writeText(qrCodeUrl);
       setCopied(true);
       toast.success('QR code URL copied to clipboard');
-
-      setTimeout(() => {
-        setCopied(false);
-      }, 2000);
     } catch (error) {
       console.error('Failed to copy URL:', error);
       toast.error('Failed to copy URL');
     }
+  };
+
+  const testQRCodeUrl = () => {
+    window.open(qrCodeUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -142,20 +148,35 @@ const AssetQRCodeDisplay: React.FC<AssetQRCodeDisplayProps> = ({
               <div className="flex-1 p-2 bg-muted rounded border text-sm font-mono break-all text-muted-foreground">
                 {qrCodeUrl}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={copyQRCodeUrl}
-                className="flex items-center gap-1"
-                aria-label="Copy URL to clipboard"
-              >
-                {copied ? (
-                  <CheckCircle className="h-4 w-4 text-primary" />
-                ) : (
-                  <Copy className="h-4 w-4" />
+              <div className="flex shrink-0 flex-col gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copyQRCodeUrl}
+                  className="flex items-center gap-1"
+                  aria-label="Copy URL to clipboard"
+                  disabled={copied}
+                >
+                  {copied ? (
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                  {copied ? 'Copied' : 'Copy'}
+                </Button>
+                {copied && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={testQRCodeUrl}
+                    className="flex items-center gap-1"
+                    aria-label="Open URL in new tab"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Test
+                  </Button>
                 )}
-                {copied ? 'Copied' : 'Copy'}
-              </Button>
+              </div>
             </div>
           </div>
 
@@ -189,16 +210,12 @@ const AssetQRCodeDisplay: React.FC<AssetQRCodeDisplayProps> = ({
             </ul>
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              onClick={downloadQRCode}
-              disabled={!qrCodeDataUrl}
-              className={`flex flex-1 items-center gap-2 ${isMobile ? 'min-h-11' : ''}`}
-            >
+          <div className="flex gap-2 [&>button]:min-h-[44px]">
+            <Button onClick={downloadQRCode} disabled={!qrCodeDataUrl} className="flex-1">
               <Download className="h-4 w-4" />
               Download {selectedFormat.toUpperCase()}
             </Button>
-            <Button variant="outline" onClick={onClose} className={`flex-1 ${isMobile ? 'min-h-11' : ''}`}>
+            <Button variant="outline" onClick={onClose} className="flex-1">
               Close
             </Button>
           </div>

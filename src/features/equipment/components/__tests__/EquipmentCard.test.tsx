@@ -78,18 +78,26 @@ describe('EquipmentCard', () => {
     });
   });
 
-  describe('Status Badge', () => {
-    it('shows Active badge for active status', () => {
-      render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
+  describe('Status rail (no badge)', () => {
+    it('does not render status badge text on grid cards', () => {
+      render(
+        <EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} viewMode="grid" />,
+      );
 
-      expect(screen.getAllByText('Active')[0]).toBeInTheDocument();
+      expect(screen.queryByText('Active')).not.toBeInTheDocument();
     });
 
-    it('shows Under Maintenance badge for maintenance status', () => {
-      const inactiveEquipment = { ...mockEquipment, status: 'maintenance' };
-      render(<EquipmentCard equipment={inactiveEquipment} onShowQRCode={mockOnShowQRCode} />);
+    it('does not render status badge text for maintenance status on grid cards', () => {
+      const maintenanceEquipment = { ...mockEquipment, status: 'maintenance' };
+      render(
+        <EquipmentCard
+          equipment={maintenanceEquipment}
+          onShowQRCode={mockOnShowQRCode}
+          viewMode="grid"
+        />,
+      );
 
-      expect(screen.getAllByText('Under Maintenance')[0]).toBeInTheDocument();
+      expect(screen.queryByText('Under Maintenance')).not.toBeInTheDocument();
     });
   });
 
@@ -131,28 +139,28 @@ describe('EquipmentCard', () => {
     it('renders working hours when provided', () => {
       render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      expect(screen.getByText(/1,500 hours/)).toBeInTheDocument();
+      expect(screen.getByText('1,500')).toBeInTheDocument();
     });
 
     it('shows 0 hours when working_hours is null', () => {
       const equipmentWithoutHours = { ...mockEquipment, working_hours: null };
       render(<EquipmentCard equipment={equipmentWithoutHours} onShowQRCode={mockOnShowQRCode} />);
 
-      expect(screen.getByText(/0 hours/)).toBeInTheDocument();
+      expect(screen.getByText('0')).toBeInTheDocument();
     });
 
     it('shows 0 hours when working_hours is undefined', () => {
       const equipmentWithUndefinedHours = { ...mockEquipment, working_hours: undefined };
       render(<EquipmentCard equipment={equipmentWithUndefinedHours} onShowQRCode={mockOnShowQRCode} />);
 
-      expect(screen.getByText(/0 hours/)).toBeInTheDocument();
+      expect(screen.getByText('0')).toBeInTheDocument();
     });
 
     it('formats large working hours with locale string', () => {
       const equipmentWithLargeHours = { ...mockEquipment, working_hours: 12500 };
       render(<EquipmentCard equipment={equipmentWithLargeHours} onShowQRCode={mockOnShowQRCode} />);
 
-      expect(screen.getByText(/12,500 hours/)).toBeInTheDocument();
+      expect(screen.getByText('12,500')).toBeInTheDocument();
     });
   });
 
@@ -164,19 +172,20 @@ describe('EquipmentCard', () => {
       expect(screen.getByText(/2024/)).toBeInTheDocument();
     });
 
-    it('does not render last maintenance section when not provided', () => {
+    it('shows em dash for last maintenance when not provided', () => {
       const equipmentWithoutMaintenance = { ...mockEquipment, last_maintenance: undefined };
       render(<EquipmentCard equipment={equipmentWithoutMaintenance} onShowQRCode={mockOnShowQRCode} />);
 
-      expect(screen.queryByText(/Last maintenance/)).not.toBeInTheDocument();
+      expect(screen.getByText('Last maint')).toBeInTheDocument();
+      expect(screen.getAllByText('—').length).toBeGreaterThan(0);
     });
 
     it('handles empty string for last_maintenance', () => {
       const equipmentWithEmptyMaintenance = { ...mockEquipment, last_maintenance: '' };
       render(<EquipmentCard equipment={equipmentWithEmptyMaintenance} onShowQRCode={mockOnShowQRCode} />);
 
-      // Empty string is falsy, so last maintenance section should not render
-      expect(screen.queryByText(/Last maintenance/)).not.toBeInTheDocument();
+      expect(screen.getByText('Last maint')).toBeInTheDocument();
+      expect(screen.getAllByText('—').length).toBeGreaterThan(0);
     });
   });
 
