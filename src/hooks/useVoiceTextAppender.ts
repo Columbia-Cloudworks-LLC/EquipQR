@@ -28,8 +28,9 @@ export function appendSpeechTranscript(currentValue: string, transcript: string)
     return currentValue;
   }
 
-  const separator = currentValue.trim() ? ' ' : '';
-  return currentValue + separator + trimmedTranscript;
+  const trimmedValue = currentValue.trimEnd();
+  const separator = trimmedValue ? ' ' : '';
+  return trimmedValue + separator + trimmedTranscript;
 }
 
 /**

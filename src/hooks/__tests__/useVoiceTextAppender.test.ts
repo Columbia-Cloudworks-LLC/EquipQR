@@ -38,6 +38,10 @@ describe('appendSpeechTranscript', () => {
   it('appends transcript with a single space separator when value is non-empty', () => {
     expect(appendSpeechTranscript('Existing note', 'new words')).toBe('Existing note new words');
   });
+
+  it('trims trailing whitespace from existing value before appending', () => {
+    expect(appendSpeechTranscript('Existing note ', 'new words')).toBe('Existing note new words');
+  });
 });
 
 describe('useVoiceTextAppender', () => {

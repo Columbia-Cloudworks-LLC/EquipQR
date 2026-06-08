@@ -7,6 +7,7 @@ import type { InventoryItem } from '@/features/inventory/types/inventory';
 type FormatDateFn = (date: Date | string) => string;
 
 const ALL_EXPORT_COLUMNS: { key: InventoryTableColumnKey | 'id'; title: string }[] = [
+  { key: 'id', title: 'ID' },
   { key: 'name', title: 'Name' },
   { key: 'sku', title: 'SKU' },
   { key: 'external_id', title: 'External ID' },
@@ -17,6 +18,7 @@ const ALL_EXPORT_COLUMNS: { key: InventoryTableColumnKey | 'id'; title: string }
   { key: 'status', title: 'Status' },
   { key: 'description', title: 'Description' },
   { key: 'created_at', title: 'Created At' },
+  { key: 'updated_at', title: 'Updated At' },
 ];
 
 function getExportCellValue(

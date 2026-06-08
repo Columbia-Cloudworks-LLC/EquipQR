@@ -89,7 +89,14 @@ export const useInventoryItems = (
     staleTime,
     // Keep the previous list visible while sort/filter refetches so mobile
     // filter sheets stay mounted and users can keep adjusting options.
-    placeholderData: (previousData) => previousData,
+    // Do not carry placeholder data across organization switches.
+    placeholderData: (previousData, previousQuery) => {
+      const previousOrgId = previousQuery?.queryKey[1];
+      if (previousOrgId !== organizationId) {
+        return undefined;
+      }
+      return previousData;
+    },
   });
 };
 
