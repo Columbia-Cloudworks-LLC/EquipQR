@@ -1,9 +1,11 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { CheckCircle, Clock, AlertTriangle, Calendar, Timer } from 'lucide-react';
+import PMProgressIndicator from '@/features/work-orders/components/PMProgressIndicator';
 import { useQuery } from '@tanstack/react-query';
 import { Tables } from '@/integrations/supabase/types';
 import { getLatestCompletedPM } from '@/features/pm-templates/services/preventativeMaintenanceService';
@@ -169,9 +171,27 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-xs font-medium">Work Order</span>
               </div>
-              <p className="text-sm truncate">{latestPM.work_order_title}</p>
+              {latestPM.work_order_id ? (
+                <Link
+                  to={`/dashboard/work-orders/${latestPM.work_order_id}?action=pm`}
+                  className="text-sm text-primary hover:underline truncate block"
+                  title={latestPM.work_order_title ?? undefined}
+                >
+                  {latestPM.work_order_title ?? 'PM work order'}
+                </Link>
+              ) : (
+                <p className="text-sm truncate">{latestPM.work_order_title}</p>
+              )}
             </div>
           </div>
+
+          {latestPM.work_order_id && (
+            <PMProgressIndicator
+              workOrderId={latestPM.work_order_id}
+              hasPM
+              showCount
+            />
+          )}
 
           <div className="flex items-center flex-wrap gap-2">
             <Badge className={config.badgeClass}>{config.label}</Badge>

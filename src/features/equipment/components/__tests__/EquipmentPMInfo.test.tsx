@@ -38,6 +38,12 @@ vi.mock('../EquipmentPMConfigFields', () => ({
   EquipmentPMConfigFields: () => <div data-testid="pm-config-fields">PM config</div>,
 }));
 
+vi.mock('@/features/work-orders/components/PMProgressIndicator', () => ({
+  default: ({ workOrderId }: { workOrderId: string }) => (
+    <div data-testid="pm-progress" data-work-order-id={workOrderId} />
+  ),
+}));
+
 describe('EquipmentPMInfo', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -83,6 +89,7 @@ describe('EquipmentPMInfo', () => {
     it('renders PM information when PM data exists', async () => {
       const mockPMData = {
         id: 'pm-1',
+        work_order_id: 'wo-123',
         completed_at: '2024-01-15T10:00:00Z',
         work_order_title: 'Scheduled Maintenance WO-123',
       };
@@ -97,7 +104,11 @@ describe('EquipmentPMInfo', () => {
 
       expect(screen.getByText('Preventative Maintenance')).toBeInTheDocument();
       expect(screen.getByText('Work Order')).toBeInTheDocument();
-      expect(screen.getByText('Scheduled Maintenance WO-123')).toBeInTheDocument();
+
+      const workOrderLink = screen.getByRole('link', { name: 'Scheduled Maintenance WO-123' });
+      expect(workOrderLink).toHaveAttribute('href', '/dashboard/work-orders/wo-123?action=pm');
+
+      expect(screen.getByTestId('pm-progress')).toHaveAttribute('data-work-order-id', 'wo-123');
       expect(screen.getByText('Completed')).toBeInTheDocument();
     });
   });
