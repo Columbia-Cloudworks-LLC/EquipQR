@@ -17,6 +17,7 @@ import { useEquipmentPMStatus, getPMComplianceLevel } from "@/features/equipment
 import { toast } from "sonner";
 import { logger } from '@/utils/logger';
 import EquipmentPMInfo from "./EquipmentPMInfo";
+import { EquipmentPMScheduleCard } from "./EquipmentPMScheduleCard";
 import { EquipmentMobilePMStatusBanner } from "./EquipmentMobilePMStatusBanner";
 import { EquipmentBasicInfoCard } from "./EquipmentBasicInfoCard";
 import { EquipmentLifecycleCard } from "./EquipmentLifecycleCard";
@@ -186,6 +187,13 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({ equipment, as
           organizationId={equipment.organization_id}
         />
       )}
+
+      <EquipmentPMScheduleCard
+        equipmentId={equipment.id}
+        organizationId={equipment.organization_id}
+        teamName={getCurrentTeamDisplay()}
+        canEdit={canEdit}
+      />
 
       <Card>
         <CardHeader>

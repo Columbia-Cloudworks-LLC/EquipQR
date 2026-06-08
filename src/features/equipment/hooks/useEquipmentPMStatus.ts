@@ -11,7 +11,7 @@ export interface EquipmentPMStatus {
   days_overdue: number | null;
   hours_overdue: number | null;
   template_name: string;
-  source: 'work_order_pm' | 'equipment_default';
+  source: 'equipment_policy' | 'team_policy' | 'template_policy' | 'template_default';
 }
 
 async function fetchEquipmentPMStatus(equipmentId: string): Promise<EquipmentPMStatus | null> {

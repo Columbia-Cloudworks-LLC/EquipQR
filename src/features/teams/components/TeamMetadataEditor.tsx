@@ -24,6 +24,13 @@ import { TEAM_NATIVE_SELECT_CLASS_NAME } from '@/features/teams/constants/teamNa
 import SingleImageUpload from '@/components/common/SingleImageUpload';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useCustomersByOrg } from '@/features/teams/hooks/useCustomerAccount';
+import { PMSchedulePolicyFields } from '@/features/pm-templates/components/PMSchedulePolicyFields';
+import {
+  policyRowToFormState,
+  type PMSchedulePolicyFormState,
+} from '@/features/pm-templates/services/pmIntervalPolicyService';
+import { usePMIntervalPolicy } from '@/features/pm-templates/hooks/usePMIntervalPolicies';
+import { pmIntervalPolicyService } from '@/features/pm-templates/services/pmIntervalPolicyService';
 
 interface TeamMetadataEditorProps {
   open: boolean;
@@ -68,6 +75,18 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
   const { isLoaded } = useGoogleMapsLoader();
   const { currentOrganization } = useOrganization();
   const { data: orgCustomers } = useCustomersByOrg(open ? currentOrganization?.id : undefined);
+  const teamPolicyTarget = { scopeType: 'team' as const, teamId: team.id };
+  const { data: teamPolicy } = usePMIntervalPolicy(currentOrganization?.id, teamPolicyTarget, { enabled: open });
+  const [pmScheduleForm, setPmScheduleForm] = useState<PMSchedulePolicyFormState>(
+    policyRowToFormState(teamPolicy)
+  );
+  const [pmScheduleError, setPmScheduleError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (open) {
+      setPmScheduleForm(policyRowToFormState(teamPolicy));
+    }
+  }, [open, teamPolicy]);
 
   const handleTeamImageUpload = async (file: File) => {
     const publicUrl = await uploadTeamImage(team.id, team.organization_id, file);
@@ -125,9 +144,28 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
       updates.location_lng = null;
     }
 
+    if (pmScheduleForm.mode === 'custom' && (!pmScheduleForm.intervalValue || pmScheduleForm.intervalValue < 1)) {
+      setPmScheduleError('Enter a value of 1 or greater');
+      return;
+    }
+    setPmScheduleError(null);
+
     setIsLoading(true);
     try {
       await updateTeam(team.id, updates);
+      if (currentOrganization?.id) {
+        await pmIntervalPolicyService.upsertPolicy(
+          currentOrganization.id,
+          teamPolicyTarget,
+          pmScheduleForm
+        );
+        queryClient.invalidateQueries({
+          queryKey: ['pm-interval-policies', currentOrganization.id, 'team', team.id],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['pm-status', 'org', currentOrganization.id],
+        });
+      }
       
       queryClient.invalidateQueries({ queryKey: ['team', team.id] });
       queryClient.invalidateQueries({ queryKey: ['teams', team.organization_id] });
@@ -224,6 +262,14 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
                 isLoaded={isLoaded}
                 overrideEquipmentLocation={overrideEquipmentLocation}
                 onOverrideEquipmentLocationChange={setOverrideEquipmentLocation}
+              />
+
+              <PMSchedulePolicyFields
+                value={pmScheduleForm}
+                onChange={setPmScheduleForm}
+                inheritLabel="Inherit from assigned PM template"
+                intervalError={pmScheduleError}
+                disabled={isLoading}
               />
             </CardContent>
           </Card>

@@ -17,6 +17,8 @@ import type { ChecklistTemplateEditorTemplate } from '@/features/organization/co
 import { useChecklistItemMutations } from '@/features/organization/hooks/useChecklistItemMutations';
 import { useChecklistSectionNavigation } from '@/features/organization/hooks/useChecklistSectionNavigation';
 import { useChecklistSectionManagement } from '@/features/organization/hooks/useChecklistSectionManagement';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { pmIntervalPolicyService, policyRowToFormState } from '@/features/pm-templates/services/pmIntervalPolicyService';
 
 type UseChecklistTemplateEditorStateArgs = {
   template?: ChecklistTemplateEditorTemplate | null;
@@ -42,8 +44,31 @@ export function useChecklistTemplateEditorState({
 
   const newItemIdRef = useRef<string | null>(null);
 
+  const { currentOrganization } = useOrganization();
   const createMutation = useCreatePMTemplate();
   const updateMutation = useUpdatePMTemplate();
+
+  const syncTemplateIntervalPolicy = useCallback(
+    async (templateId: string, intervalPayload: IntervalPayload) => {
+      if (!currentOrganization?.id) return;
+
+      const form =
+        intervalPayload.interval_value && intervalPayload.interval_type
+          ? {
+              mode: 'custom' as const,
+              intervalValue: intervalPayload.interval_value,
+              intervalType: intervalPayload.interval_type,
+            }
+          : policyRowToFormState(null);
+
+      await pmIntervalPolicyService.upsertPolicy(
+        currentOrganization.id,
+        { scopeType: 'template', templateId },
+        form
+      );
+    },
+    [currentOrganization?.id]
+  );
 
   const { data: savedRules = [], isLoading: isLoadingRules } = usePMTemplateCompatibilityRules(
     template?.id,
@@ -164,6 +189,7 @@ export function useChecklistTemplateEditorState({
             ...intervalPayload,
           },
         });
+        await syncTemplateIntervalPolicy(template.id, intervalPayload);
         setHasUnsavedChanges(false);
         onSave(template.id);
         return template.id;
@@ -175,6 +201,7 @@ export function useChecklistTemplateEditorState({
         template_data: checklistItems,
         ...intervalPayload,
       });
+      await syncTemplateIntervalPolicy(created.id, intervalPayload);
       setHasUnsavedChanges(false);
       onSave(created.id);
       return created.id;
@@ -194,6 +221,7 @@ export function useChecklistTemplateEditorState({
     updateMutation,
     createMutation,
     onSave,
+    syncTemplateIntervalPolicy,
   ]);
 
   const storageKey = `pm-template-editor-${template?.id || 'new'}`;
@@ -247,6 +275,7 @@ export function useChecklistTemplateEditorState({
         ...intervalPayload,
       },
     });
+    await syncTemplateIntervalPolicy(template!.id, intervalPayload);
     setHasUnsavedChanges(false);
     clearStorage();
   }, [
@@ -260,6 +289,7 @@ export function useChecklistTemplateEditorState({
     intervalType,
     updateMutation,
     clearStorage,
+    syncTemplateIntervalPolicy,
   ]);
 
   const { triggerAutoSave, status: autoSaveInternalStatus, lastSaved } = useAutoSave({

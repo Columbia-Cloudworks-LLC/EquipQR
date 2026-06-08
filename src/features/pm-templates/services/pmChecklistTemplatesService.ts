@@ -221,6 +221,8 @@ export const pmChecklistTemplatesService = {
       name: cloneName,
       description: sourceTemplate.description || null,
       template_data: clonedData,
+      interval_value: sourceTemplate.interval_value ?? null,
+      interval_type: sourceTemplate.interval_type ?? null,
       is_protected: false, // Cloned templates are never protected
       created_by: userId,
       updated_by: userId

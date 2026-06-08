@@ -1,11 +1,12 @@
 BEGIN;
-SELECT plan(60);
+SELECT plan(66);
 
 -- Tables
 SELECT has_table('public', 'pm_checklist_templates', 'pm_checklist_templates table exists');
 SELECT has_table('public', 'preventative_maintenance', 'preventative_maintenance table exists');
 SELECT has_table('public', 'pm_status_history', 'pm_status_history table exists');
 SELECT has_table('public', 'pm_template_compatibility_rules', 'pm_template_compatibility_rules table exists');
+SELECT has_table('public', 'pm_interval_policies', 'pm_interval_policies table exists');
 
 -- Key columns: pm_checklist_templates
 SELECT has_column('public', 'pm_checklist_templates', 'organization_id', 'pm_checklist_templates.organization_id exists');
@@ -59,6 +60,7 @@ SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid = 'public.pm_checklist_
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid = 'public.preventative_maintenance'::regclass), 'RLS enabled on preventative_maintenance');
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid = 'public.pm_status_history'::regclass), 'RLS enabled on pm_status_history');
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid = 'public.pm_template_compatibility_rules'::regclass), 'RLS enabled on pm_template_compatibility_rules');
+SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid = 'public.pm_interval_policies'::regclass), 'RLS enabled on pm_interval_policies');
 
 -- Policies
 SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND tablename = 'pm_checklist_templates' AND policyname = 'pm_checklist_templates_admin_insert'), 1, 'pm_checklist_templates_admin_insert policy exists');
@@ -77,6 +79,11 @@ SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND
 SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND tablename = 'pm_template_compatibility_rules' AND policyname = 'pm_template_compat_rules_select'), 1, 'pm_template_compat_rules_select policy exists');
 SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND tablename = 'pm_template_compatibility_rules' AND policyname = 'pm_template_compat_rules_update'), 1, 'pm_template_compat_rules_update policy exists');
 SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND tablename = 'pm_template_compatibility_rules' AND policyname = 'pm_template_compat_rules_delete'), 1, 'pm_template_compat_rules_delete policy exists');
+
+SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND tablename = 'pm_interval_policies' AND policyname = 'pm_interval_policies_select'), 1, 'pm_interval_policies_select policy exists');
+SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND tablename = 'pm_interval_policies' AND policyname = 'pm_interval_policies_insert'), 1, 'pm_interval_policies_insert policy exists');
+SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND tablename = 'pm_interval_policies' AND policyname = 'pm_interval_policies_update'), 1, 'pm_interval_policies_update policy exists');
+SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND tablename = 'pm_interval_policies' AND policyname = 'pm_interval_policies_delete'), 1, 'pm_interval_policies_delete policy exists');
 
 -- Triggers
 SELECT has_trigger('public', 'preventative_maintenance', 'audit_pm_trigger', 'audit_pm_trigger exists');

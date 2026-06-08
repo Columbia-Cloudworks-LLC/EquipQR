@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 <!-- markdownlint-disable MD024 -->
 
@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **PM interval policies** — Hierarchical preventive-maintenance schedules (equipment override, team policy, template default) via `pm_interval_policies`, updated PM status RPCs, and inherit/custom/no-recurring controls on equipment, team, and PM template surfaces.
 ## [3.8.2] - 2026-06-07
 
 ### Added

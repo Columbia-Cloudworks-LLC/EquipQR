@@ -6,6 +6,7 @@ import { CheckCircle, Clock, AlertTriangle, Calendar, Timer } from 'lucide-react
 import { useQuery } from '@tanstack/react-query';
 import { getLatestCompletedPM } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { useEquipmentPMStatus, getPMComplianceLevel } from '@/features/equipment/hooks/useEquipmentPMStatus';
+import { getPMScheduleSourceLabel } from '@/features/pm-templates/utils/pmScheduleSourceLabel';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
 interface EquipmentPMInfoProps {
@@ -130,7 +131,7 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Timer className="h-3 w-3" />
               Every {pmStatus.interval_value} {pmStatus.interval_type === 'hours' ? 'hrs' : 'days'}
-              {pmStatus.source === 'equipment_default' && ' (default)'}
+              {pmStatus.source ? ` (${getPMScheduleSourceLabel(pmStatus.source)})` : ''}
             </span>
           )}
 
