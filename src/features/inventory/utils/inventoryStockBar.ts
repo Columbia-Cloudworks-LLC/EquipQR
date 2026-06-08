@@ -2,6 +2,9 @@ export type InventoryStockBarState = {
   fillPercent: number;
   notchPercent: number;
   ariaLabel: string;
+  ariaValueMin: number;
+  ariaValueMax: number;
+  ariaValueNow: number;
 };
 
 const OVERSTOCK_LOG_MULTIPLIER = 18;
@@ -18,12 +21,18 @@ export function computeInventoryStockBarState(
 ): InventoryStockBarState {
   const threshold = Math.max(lowStockThreshold, 1);
   const quantity = quantityOnHand;
+  const ariaValueMin = 0;
+  const ariaValueMax = threshold;
+  const ariaValueNow = Math.min(Math.max(quantity, ariaValueMin), ariaValueMax);
 
   if (quantity <= 0) {
     return {
       fillPercent: 0,
       notchPercent: 100,
       ariaLabel: `${quantity} on hand, low stock threshold ${threshold}`,
+      ariaValueMin,
+      ariaValueMax,
+      ariaValueNow,
     };
   }
 
@@ -35,6 +44,9 @@ export function computeInventoryStockBarState(
       fillPercent,
       notchPercent: 100,
       ariaLabel: `${quantity} on hand, low stock threshold ${threshold}, ${fillPercent}% of threshold`,
+      ariaValueMin,
+      ariaValueMax,
+      ariaValueNow,
     };
   }
 
@@ -49,5 +61,8 @@ export function computeInventoryStockBarState(
     fillPercent: 100,
     notchPercent,
     ariaLabel: `${quantity} on hand, low stock threshold ${threshold}, ${roundedRatio}x over threshold`,
+    ariaValueMin,
+    ariaValueMax,
+    ariaValueNow,
   };
 }

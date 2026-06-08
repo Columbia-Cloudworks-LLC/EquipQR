@@ -447,6 +447,7 @@ END;
 $$;
 
 ALTER FUNCTION public.get_equipment_pm_status(uuid) OWNER TO postgres;
+-- rpc-authenticated-grant-allowed: get_equipment_pm_status
 GRANT EXECUTE ON FUNCTION public.get_equipment_pm_status(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_equipment_pm_status(uuid) TO service_role;
 
@@ -491,5 +492,6 @@ END;
 $$;
 
 ALTER FUNCTION public.get_org_equipment_pm_statuses(uuid) OWNER TO postgres;
+-- rpc-authenticated-grant-allowed: get_org_equipment_pm_statuses
 GRANT EXECUTE ON FUNCTION public.get_org_equipment_pm_statuses(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_org_equipment_pm_statuses(uuid) TO service_role;

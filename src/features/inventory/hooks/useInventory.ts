@@ -17,8 +17,6 @@ import {
   type PaginatedTransactionsResult
 } from '@/features/inventory/services/inventoryService';
 import {
-  linkItemToEquipment,
-  unlinkItemFromEquipment,
   getCompatibleEquipmentForItem,
   bulkLinkEquipmentToItem
 } from '@/features/inventory/services/inventoryCompatibilityService';

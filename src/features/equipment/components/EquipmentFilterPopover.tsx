@@ -1,5 +1,4 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { FilterPopoverClearAllFooter } from '@/components/filters/FilterPopoverClearAllFooter';
 import { FilterPopoverShell } from '@/components/filters/FilterPopoverShell';
 import { Separator } from '@/components/ui/separator';

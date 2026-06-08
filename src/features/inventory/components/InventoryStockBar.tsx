@@ -12,19 +12,17 @@ export function InventoryStockBar({
   lowStockThreshold,
   className,
 }: InventoryStockBarProps) {
-  const { fillPercent, notchPercent, ariaLabel } = computeInventoryStockBarState(
-    quantityOnHand,
-    lowStockThreshold,
-  );
+  const { fillPercent, notchPercent, ariaLabel, ariaValueMin, ariaValueMax, ariaValueNow } =
+    computeInventoryStockBarState(quantityOnHand, lowStockThreshold);
 
   return (
     <div className={cn('relative flex h-3 w-full items-center', className)}>
       <div
         role="progressbar"
         aria-label={ariaLabel}
-        aria-valuemin={0}
-        aria-valuemax={Math.max(lowStockThreshold, 1)}
-        aria-valuenow={quantityOnHand}
+        aria-valuemin={ariaValueMin}
+        aria-valuemax={ariaValueMax}
+        aria-valuenow={ariaValueNow}
         className="relative h-1.5 w-full rounded-full bg-secondary"
       >
         <div

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -22,6 +22,14 @@ export function PMSchedulePolicyFields({
   disabled = false,
   compact = false,
 }: PMSchedulePolicyFieldsProps) {
+  const idBase = useId();
+  const inheritId = `${idBase}-inherit`;
+  const customId = `${idBase}-custom`;
+  const noneId = `${idBase}-none`;
+  const intervalValueId = `${idBase}-interval-value`;
+  const daysId = `${idBase}-days`;
+  const hoursId = `${idBase}-hours`;
+
   return (
     <div className={compact ? 'space-y-3' : 'space-y-3 rounded-md border p-4'}>
       {!compact && (
@@ -45,20 +53,20 @@ export function PMSchedulePolicyFields({
         disabled={disabled}
       >
         <div className="flex items-center gap-2">
-          <RadioGroupItem value="inherit" id="pm-schedule-inherit" />
-          <Label htmlFor="pm-schedule-inherit" className="font-normal cursor-pointer">
+          <RadioGroupItem value="inherit" id={inheritId} />
+          <Label htmlFor={inheritId} className="font-normal cursor-pointer">
             {inheritLabel}
           </Label>
         </div>
         <div className="flex items-center gap-2">
-          <RadioGroupItem value="custom" id="pm-schedule-custom" />
-          <Label htmlFor="pm-schedule-custom" className="font-normal cursor-pointer">
+          <RadioGroupItem value="custom" id={customId} />
+          <Label htmlFor={customId} className="font-normal cursor-pointer">
             Custom interval
           </Label>
         </div>
         <div className="flex items-center gap-2">
-          <RadioGroupItem value="none" id="pm-schedule-none" />
-          <Label htmlFor="pm-schedule-none" className="font-normal cursor-pointer">
+          <RadioGroupItem value="none" id={noneId} />
+          <Label htmlFor={noneId} className="font-normal cursor-pointer">
             No recurring PM
           </Label>
         </div>
@@ -67,12 +75,12 @@ export function PMSchedulePolicyFields({
       {value.mode === 'custom' && (
         <div className="flex flex-wrap items-end gap-4 pt-1">
           <div className="flex-1 max-w-[200px]">
-            <Label htmlFor="pmScheduleIntervalValue" className="text-xs">
+            <Label htmlFor={intervalValueId} className="text-xs">
               Every
             </Label>
             <div className="flex items-center gap-2">
               <Input
-                id="pmScheduleIntervalValue"
+                id={intervalValueId}
                 type="number"
                 min={1}
                 value={value.intervalValue ?? ''}
@@ -97,14 +105,14 @@ export function PMSchedulePolicyFields({
             disabled={disabled}
           >
             <div className="flex items-center gap-1.5">
-              <RadioGroupItem value="days" id="pm-schedule-days" />
-              <Label htmlFor="pm-schedule-days" className="text-sm font-normal cursor-pointer">
+              <RadioGroupItem value="days" id={daysId} />
+              <Label htmlFor={daysId} className="text-sm font-normal cursor-pointer">
                 Calendar Days
               </Label>
             </div>
             <div className="flex items-center gap-1.5">
-              <RadioGroupItem value="hours" id="pm-schedule-hours" />
-              <Label htmlFor="pm-schedule-hours" className="text-sm font-normal cursor-pointer">
+              <RadioGroupItem value="hours" id={hoursId} />
+              <Label htmlFor={hoursId} className="text-sm font-normal cursor-pointer">
                 Working Hours
               </Label>
             </div>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getInventorySortOrderLabel } from '@/features/inventory/utils/inventorySortOrderIcon';
+import { getInventorySortOrderLabel } from '@/features/inventory/utils/inventorySortOrderLabel';
 
 describe('getInventorySortOrderLabel', () => {
   it('uses A–Z wording for text sort fields', () => {

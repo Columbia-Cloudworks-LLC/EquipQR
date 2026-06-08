@@ -71,7 +71,7 @@ export function sortInventoryViewModels(
   const sorted = [...rows];
 
   const compare = (a: InventoryTableRowViewModel, b: InventoryTableRowViewModel): number => {
-    let result = 0;
+    let result: number;
     switch (sortBy) {
       case 'status': {
         const tierOrder = { negative: 0, out: 1, low: 2, healthy: 3 };
@@ -97,7 +97,8 @@ export function sortInventoryViewModels(
         break;
       }
       default:
-        result = 0;
+        result = a.item.name.localeCompare(b.item.name);
+        return ascending ? result : -result;
     }
     if (result === 0) {
       result = a.item.name.localeCompare(b.item.name);

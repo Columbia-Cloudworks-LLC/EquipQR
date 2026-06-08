@@ -7,7 +7,6 @@ import {
   getPMSchedulePolicyDisplay,
   policyRowToFormState,
   pmIntervalPolicyService,
-  type PMIntervalPolicyRow,
   type PMSchedulePolicyFormState,
 } from '@/features/pm-templates/services/pmIntervalPolicyService';
 import { PMSchedulePolicyReadout } from './PMSchedulePolicyReadout';

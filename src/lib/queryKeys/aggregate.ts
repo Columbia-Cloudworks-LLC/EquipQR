@@ -4,7 +4,6 @@ import {
   workOrders,
   workOrderEquipment,
   workOrderMetrics,
-  workOrderExports,
   exportArtifacts,
 } from './workOrders';
 import { preventiveMaintenance, pmTemplates, pmTemplateMatching, pmStatus, pmIntervalPolicies } from './pm';

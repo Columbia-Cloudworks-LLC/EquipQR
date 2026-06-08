@@ -26,6 +26,17 @@ vi.mock('@/features/pm-templates/hooks/usePMTemplateCompatibility', () => ({
   useBulkSetPMTemplateRules: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
+vi.mock('@/features/pm-templates/services/pmIntervalPolicyService', () => ({
+  pmIntervalPolicyService: {
+    upsertPolicy: vi.fn().mockResolvedValue(null),
+  },
+  policyRowToFormState: vi.fn(() => ({
+    mode: 'inherit',
+    intervalValue: null,
+    intervalType: 'days',
+  })),
+}));
+
 // Mock toast
 vi.mock('sonner', () => ({
   toast: {

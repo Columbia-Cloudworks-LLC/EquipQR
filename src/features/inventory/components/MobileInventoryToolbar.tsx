@@ -23,10 +23,8 @@ import {
 import { cn } from '@/lib/utils';
 import { InventoryLocationFilterSelect } from '@/features/inventory/components/InventoryLocationFilterSelect';
 import type { InventoryFilters } from '@/features/inventory/types/inventory';
-import {
-  getInventorySortOrderLabel,
-  InventorySortOrderIcon,
-} from '@/features/inventory/utils/inventorySortOrderIcon';
+import { getInventorySortOrderLabel } from '@/features/inventory/utils/inventorySortOrderLabel';
+import { InventorySortOrderIcon } from '@/features/inventory/utils/inventorySortOrderIcon';
 
 const SORT_OPTIONS: { value: NonNullable<InventoryFilters['sortBy']>; label: string }[] = [
   { value: 'name', label: 'Name' },
