@@ -863,3 +863,16 @@ UPDATE public.equipment SET
   assigned_location_lat = 32.221743,
   assigned_location_lng = -110.926479
 WHERE id = 'aa0e8400-e29b-41d4-a716-44665544f405'::uuid; -- new: Lincoln Ranger 305G Welder
+
+-- =====================================================
+-- last_maintenance: deterministic dev fixture for grid card "Last maint" cells
+-- Offset from installation_date scales with working_hours (14–540 days) for variety.
+-- =====================================================
+UPDATE public.equipment
+SET last_maintenance = (
+  installation_date + (
+    (GREATEST(14, LEAST(540, (COALESCE(working_hours, 0)::int % 540) + 14)) || ' days')::interval
+  )
+)::date
+WHERE installation_date IS NOT NULL
+  AND last_maintenance IS NULL;
