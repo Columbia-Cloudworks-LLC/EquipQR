@@ -12,6 +12,11 @@ vi.mock('@/features/inventory/hooks/useInventory', () => ({
   useInventoryItems: vi.fn(),
   useAdjustInventoryQuantity: vi.fn(),
   useInventoryListMetadata: vi.fn(),
+  useRecentlyAdjustedInventoryItemIds: vi.fn(() => ({ data: {}, isLoading: false })),
+  useUpdateInventoryItem: vi.fn(() => ({
+    mutateAsync: vi.fn().mockResolvedValue({}),
+    isPending: false,
+  })),
 }));
 
 vi.mock('@/features/inventory/hooks/useAlternateGroups', () => ({
@@ -130,7 +135,15 @@ describe('InventoryList — mobile', () => {
     inventoryHookMocks.useInventoryListMetadata.mockReturnValue({
       data: {
         uniqueLocations: ['Warehouse A', 'Yard'],
+        totalCount: 2,
+        negativeStockCount: 0,
+        outOfStockCount: 0,
         lowStockCount: 1,
+        healthyCount: 1,
+        missingLocationCount: 0,
+        missingUnitCostCount: 0,
+        missingSkuCount: 0,
+        estimatedInventoryValue: 100,
       },
       isLoading: false,
       isError: false,
@@ -280,7 +293,15 @@ describe('InventoryList — mobile', () => {
     inventoryHookMocks.useInventoryListMetadata.mockReturnValue({
       data: {
         uniqueLocations: ['Warehouse A', 'Yard'],
+        totalCount: 2,
+        negativeStockCount: 0,
+        outOfStockCount: 0,
         lowStockCount: 7,
+        healthyCount: 0,
+        missingLocationCount: 0,
+        missingUnitCostCount: 0,
+        missingSkuCount: 0,
+        estimatedInventoryValue: 0,
       },
       isLoading: false,
       isError: false,
@@ -331,7 +352,15 @@ describe('InventoryList — desktop table', () => {
     inventoryHookMocks.useInventoryListMetadata.mockReturnValue({
       data: {
         uniqueLocations: ['Warehouse A', 'Yard'],
+        totalCount: 2,
+        negativeStockCount: 0,
+        outOfStockCount: 0,
         lowStockCount: 1,
+        healthyCount: 1,
+        missingLocationCount: 0,
+        missingUnitCostCount: 0,
+        missingSkuCount: 0,
+        estimatedInventoryValue: 100,
       },
       isLoading: false,
       isError: false,
@@ -352,10 +381,34 @@ describe('InventoryList — desktop table', () => {
     render(<InventoryList />);
 
     await waitFor(() => {
-      expect(screen.getByRole('columnheader', { name: /name/i })).toBeInTheDocument();
+      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
     });
+    expect(screen.getByRole('button', { name: /manage table columns/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /saved views/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /sort and filter/i })).not.toBeInTheDocument();
-    expect(screen.getByText('Healthy Part')).toBeInTheDocument();
+  });
+
+  it('shows inventory health summary on desktop', async () => {
+    render(<InventoryList />);
+
+    const summary = await screen.findByLabelText(/inventory health summary/i);
+    expect(summary).toBeInTheDocument();
+    expect(summary).toHaveTextContent('Total');
+    expect(summary).toHaveTextContent('Low stock');
+  });
+
+  it('toggles row selection and shows bulk action bar', async () => {
+    const user = userEvent.setup();
+    render(<InventoryList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('checkbox', { name: /select healthy part/i }));
+
+    expect(screen.getByText(/1 item selected/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /export selected/i })).toBeInTheDocument();
   });
 
   it('shows a negative stock label for negative quantities', async () => {
@@ -397,7 +450,7 @@ describe('InventoryList — desktop table', () => {
       expect(screen.getByText('Healthy Part')).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/part of 3 alternate groups/i)).toBeInTheDocument();
+    expect(screen.getByText(/3 alternate groups/i)).toBeInTheDocument();
   });
 
   it('navigates to item detail with alternateAction param when Manage Alternate Groups is clicked', async () => {
@@ -481,7 +534,18 @@ describe('InventoryList — mobile — bulk option not exposed', () => {
       isPending: false,
     } as unknown as ReturnType<typeof useInventoryModule.useAdjustInventoryQuantity>);
     inventoryHookMocks.useInventoryListMetadata.mockReturnValue({
-      data: { uniqueLocations: [], lowStockCount: 0 },
+      data: {
+        uniqueLocations: [],
+        totalCount: 0,
+        negativeStockCount: 0,
+        outOfStockCount: 0,
+        lowStockCount: 0,
+        healthyCount: 0,
+        missingLocationCount: 0,
+        missingUnitCostCount: 0,
+        missingSkuCount: 0,
+        estimatedInventoryValue: 0,
+      },
       isLoading: false,
       isError: false,
       error: null,

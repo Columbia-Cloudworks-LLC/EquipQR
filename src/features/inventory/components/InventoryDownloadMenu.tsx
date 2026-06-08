@@ -11,51 +11,34 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import type { InventoryTableColumnKey } from '@/features/inventory/components/inventoryTableColumns';
+import type { InventoryItem } from '@/features/inventory/types/inventory';
+import {
+  getAllExportHeaders,
+  getVisibleExportHeaders,
+  itemsToAllExportRows,
+  itemsToJsonExport,
+  itemsToVisibleExportRows,
+} from '@/features/inventory/utils/inventoryExportUtils';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { arrayToCsv, downloadCsv, downloadJson, filenameWithDate } from '@/utils/exportUtils';
-import type { InventoryItem } from '@/features/inventory/types/inventory';
 
 interface InventoryDownloadMenuProps {
   canExport: boolean;
   items: InventoryItem[];
-}
-
-const CSV_HEADERS = [
-  'Name',
-  'SKU',
-  'External ID',
-  'Quantity',
-  'Low Stock Threshold',
-  'Location',
-  'Unit Cost',
-  'Status',
-  'Description',
-  'Created At',
-];
-
-function itemsToCsvRows(
-  items: InventoryItem[],
-  formatDate: (date: Date | string) => string
-): string[][] {
-  return items.map((item) => [
-    item.name ?? '',
-    item.sku ?? '',
-    item.external_id ?? '',
-    item.quantity_on_hand != null ? String(item.quantity_on_hand) : '',
-    item.low_stock_threshold != null ? String(item.low_stock_threshold) : '',
-    item.location ?? '',
-    item.default_unit_cost != null ? String(item.default_unit_cost) : '',
-    item.isLowStock ? 'Low Stock' : 'OK',
-    item.description ?? '',
-    item.created_at ? formatDate(item.created_at) : '',
-  ]);
+  visibleColumnKeys?: InventoryTableColumnKey[];
+  selectedItems?: InventoryItem[];
 }
 
 const InventoryDownloadMenu: React.FC<InventoryDownloadMenuProps> = ({
   canExport,
   items,
+  visibleColumnKeys = [],
+  selectedItems = [],
 }) => {
   const { formatDate } = useFormatTimestamp();
+  const hasVisibleColumns = visibleColumnKeys.length > 0;
+  const hasSelection = selectedItems.length > 0;
 
   if (!canExport) {
     return (
@@ -78,28 +61,41 @@ const InventoryDownloadMenu: React.FC<InventoryDownloadMenuProps> = ({
     );
   }
 
-  const handleExportCsv = () => {
-    const rows = itemsToCsvRows(items, formatDate);
-    const csv = arrayToCsv(CSV_HEADERS, rows);
+  const handleExportAllCsv = () => {
+    const rows = itemsToAllExportRows(items, formatDate);
+    const csv = arrayToCsv(getAllExportHeaders(), rows);
     downloadCsv(csv, filenameWithDate('inventory', 'csv'));
   };
 
-  const handleExportJson = () => {
-    const data = items.map((item) => ({
-      id: item.id,
-      name: item.name,
-      sku: item.sku,
-      external_id: item.external_id,
-      quantity_on_hand: item.quantity_on_hand,
-      low_stock_threshold: item.low_stock_threshold,
-      location: item.location,
-      default_unit_cost: item.default_unit_cost,
-      description: item.description,
-      is_low_stock: item.isLowStock ?? false,
-      created_at: item.created_at,
-      updated_at: item.updated_at,
-    }));
-    downloadJson(data, filenameWithDate('inventory', 'json'));
+  const handleExportAllJson = () => {
+    downloadJson(itemsToJsonExport(items), filenameWithDate('inventory', 'json'));
+  };
+
+  const handleExportVisibleCsv = () => {
+    const rows = itemsToVisibleExportRows(items, visibleColumnKeys, formatDate);
+    const csv = arrayToCsv(getVisibleExportHeaders(visibleColumnKeys), rows);
+    downloadCsv(csv, filenameWithDate('inventory-visible-columns', 'csv'));
+  };
+
+  const handleExportVisibleJson = () => {
+    const data = itemsToJsonExport(items).map((item) => {
+      const filtered: Record<string, unknown> = { id: item.id };
+      for (const key of visibleColumnKeys) {
+        filtered[key] = item[key as keyof typeof item];
+      }
+      return filtered;
+    });
+    downloadJson(data, filenameWithDate('inventory-visible-columns', 'json'));
+  };
+
+  const handleExportSelectedCsv = () => {
+    const rows = itemsToAllExportRows(selectedItems, formatDate);
+    const csv = arrayToCsv(getAllExportHeaders(), rows);
+    downloadCsv(csv, filenameWithDate('inventory-selected', 'csv'));
+  };
+
+  const handleExportSelectedJson = () => {
+    downloadJson(itemsToJsonExport(selectedItems), filenameWithDate('inventory-selected', 'json'));
   };
 
   return (
@@ -115,15 +111,36 @@ const InventoryDownloadMenu: React.FC<InventoryDownloadMenuProps> = ({
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-          Export format
+          Export all fields
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
         <ExportFormatMenuItems
-          onExportCsv={handleExportCsv}
-          onExportJson={handleExportJson}
+          onExportCsv={handleExportAllCsv}
+          onExportJson={handleExportAllJson}
         />
+
+        {hasVisibleColumns && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+              Export visible columns
+            </DropdownMenuLabel>
+            <DropdownMenuItem onSelect={handleExportVisibleCsv}>CSV (visible)</DropdownMenuItem>
+            <DropdownMenuItem onSelect={handleExportVisibleJson}>JSON (visible)</DropdownMenuItem>
+          </>
+        )}
+
+        {hasSelection && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+              Export selected ({selectedItems.length})
+            </DropdownMenuLabel>
+            <DropdownMenuItem onSelect={handleExportSelectedCsv}>CSV (selected)</DropdownMenuItem>
+            <DropdownMenuItem onSelect={handleExportSelectedJson}>JSON (selected)</DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

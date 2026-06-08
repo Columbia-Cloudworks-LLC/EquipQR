@@ -10,6 +10,7 @@ import type {
   InventoryTransaction,
   InventoryQuantityAdjustment,
   InventoryFilters,
+  InventoryListMetadata,
   PartialInventoryItem
 } from '@/features/inventory/types/inventory';
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
@@ -63,7 +64,19 @@ export const getInventoryItems = async (
     // Note: Equipment compatibility filter is not applied in this function.
     // Use getCompatibleInventoryItems for equipment-based filtering.
 
-    if (sortBy !== 'status') {
+    const dbSortFields = [
+      'name',
+      'sku',
+      'external_id',
+      'quantity_on_hand',
+      'low_stock_threshold',
+      'location',
+      'default_unit_cost',
+      'created_at',
+      'updated_at',
+    ] as const;
+
+    if (dbSortFields.includes(sortBy as (typeof dbSortFields)[number])) {
       query = query.order(sortBy, { ascending });
     } else {
       query = query.order('name', { ascending: true });
@@ -84,18 +97,6 @@ export const getInventoryItems = async (
       items = items.filter(item => item.isLowStock);
     }
 
-    // Status is a computed value (isLowStock), so it must be sorted client-side.
-    if (sortBy === 'status') {
-      items.sort((a, b) => {
-        const statusA = a.isLowStock ? 0 : 1;
-        const statusB = b.isLowStock ? 0 : 1;
-        if (statusA === statusB) {
-          return a.name.localeCompare(b.name);
-        }
-        return ascending ? statusA - statusB : statusB - statusA;
-      });
-    }
-
     return items;
   } catch (error) {
     logger.error('Error fetching inventory items:', error);
@@ -103,18 +104,13 @@ export const getInventoryItems = async (
   }
 };
 
-export interface InventoryListMetadata {
-  uniqueLocations: string[];
-  lowStockCount: number;
-}
-
 export const getInventoryListMetadata = async (
   organizationId: string
 ): Promise<InventoryListMetadata> => {
   try {
     const { data, error } = await supabase
       .from('inventory_items')
-      .select('location, quantity_on_hand, low_stock_threshold')
+      .select('location, quantity_on_hand, low_stock_threshold, default_unit_cost, sku')
       .eq('organization_id', organizationId);
 
     if (error) throw error;
@@ -126,16 +122,83 @@ export const getInventoryListMetadata = async (
         .filter((location): location is string => !!location && location.trim() !== '')
     )].sort();
 
-    const lowStockCount = rows.filter(
-      (item) => item.quantity_on_hand <= item.low_stock_threshold
-    ).length;
+    let negativeStockCount = 0;
+    let outOfStockCount = 0;
+    let lowStockCount = 0;
+    let healthyCount = 0;
+    let missingLocationCount = 0;
+    let missingUnitCostCount = 0;
+    let missingSkuCount = 0;
+    let estimatedInventoryValue = 0;
+
+    for (const item of rows) {
+      const q = item.quantity_on_hand;
+      const threshold = item.low_stock_threshold;
+      const isLow = q <= threshold;
+
+      if (q < 0) negativeStockCount += 1;
+      else if (q === 0) outOfStockCount += 1;
+      else if (isLow) lowStockCount += 1;
+      else healthyCount += 1;
+
+      if (!item.location?.trim()) missingLocationCount += 1;
+      if (item.default_unit_cost == null || item.default_unit_cost === '') {
+        missingUnitCostCount += 1;
+      }
+      if (!item.sku?.trim()) missingSkuCount += 1;
+
+      const unitCost =
+        item.default_unit_cost != null ? Number(item.default_unit_cost) : 0;
+      if (Number.isFinite(unitCost)) {
+        estimatedInventoryValue += unitCost * q;
+      }
+    }
 
     return {
       uniqueLocations,
+      totalCount: rows.length,
+      negativeStockCount,
+      outOfStockCount,
       lowStockCount,
+      healthyCount,
+      missingLocationCount,
+      missingUnitCostCount,
+      missingSkuCount,
+      estimatedInventoryValue,
     };
   } catch (error) {
     logger.error('Error fetching inventory list metadata:', error);
+    throw error;
+  }
+};
+
+export const getRecentlyAdjustedInventoryItemIds = async (
+  organizationId: string,
+  days = 30,
+): Promise<Record<string, string>> => {
+  try {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    const sinceIso = since.toISOString();
+
+    const { data, error } = await supabase
+      .from('inventory_transactions')
+      .select('inventory_item_id, created_at')
+      .eq('organization_id', organizationId)
+      .gte('created_at', sinceIso)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const byItemId: Record<string, string> = {};
+    for (const row of data ?? []) {
+      if (!byItemId[row.inventory_item_id]) {
+        byItemId[row.inventory_item_id] = row.created_at;
+      }
+    }
+    return byItemId;
+  } catch (error) {
+    logger.error('Error fetching recently adjusted inventory items:', error);
     throw error;
   }
 };

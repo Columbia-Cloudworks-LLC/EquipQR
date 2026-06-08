@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import InventoryFilterPopover from './InventoryFilterPopover';
 import InventoryDownloadMenu from './InventoryDownloadMenu';
+import type { InventoryTableColumnKey } from '@/features/inventory/components/inventoryTableColumns';
 import type { InventoryFilters, InventoryItem } from '@/features/inventory/types/inventory';
 
 interface InventoryToolbarProps {
@@ -16,6 +17,11 @@ interface InventoryToolbarProps {
   onClearFilters: () => void;
   canExport?: boolean;
   items?: InventoryItem[];
+  visibleColumnKeys?: InventoryTableColumnKey[];
+  selectedItems?: InventoryItem[];
+  toolbarControls?: React.ReactNode;
+  healthSummary?: React.ReactNode;
+  quickFilterChips?: React.ReactNode;
 }
 
 const InventoryToolbar: React.FC<InventoryToolbarProps> = ({
@@ -26,6 +32,11 @@ const InventoryToolbar: React.FC<InventoryToolbarProps> = ({
   onClearFilters,
   canExport = false,
   items = [],
+  visibleColumnKeys = [],
+  selectedItems = [],
+  toolbarControls,
+  healthSummary,
+  quickFilterChips,
 }) => {
   const activeFilterCount = [
     !!filters.location,
@@ -36,9 +47,9 @@ const InventoryToolbar: React.FC<InventoryToolbarProps> = ({
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Single toolbar row */}
+      {healthSummary}
+
       <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
-        {/* Search */}
         <div className="relative flex-1 max-w-[300px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
           <Input
@@ -61,7 +72,6 @@ const InventoryToolbar: React.FC<InventoryToolbarProps> = ({
 
         <Separator orientation="vertical" className="h-5" />
 
-        {/* Filter popover */}
         <InventoryFilterPopover
           filters={filters}
           uniqueLocations={uniqueLocations}
@@ -72,16 +82,19 @@ const InventoryToolbar: React.FC<InventoryToolbarProps> = ({
 
         <Separator orientation="vertical" className="h-5" />
 
-        {/* Download menu */}
+        {toolbarControls}
+
+        {toolbarControls && <Separator orientation="vertical" className="h-5" />}
+
         <InventoryDownloadMenu
           canExport={canExport}
           items={items}
+          visibleColumnKeys={visibleColumnKeys}
+          selectedItems={selectedItems}
         />
 
-        {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Result count */}
         <span
           className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block"
           aria-live="polite"
@@ -92,7 +105,8 @@ const InventoryToolbar: React.FC<InventoryToolbarProps> = ({
         </span>
       </div>
 
-      {/* Active filter badges row */}
+      {quickFilterChips}
+
       {hasActiveFilters && (
         <div className="flex flex-wrap items-center gap-1.5 px-1">
           <span className="text-xs text-muted-foreground">Active:</span>

@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import {
   getInventoryItems,
   getInventoryListMetadata,
+  getRecentlyAdjustedInventoryItemIds,
   getInventoryItemById,
   createInventoryItem,
   updateInventoryItem,
@@ -105,11 +106,40 @@ export const useInventoryListMetadata = (
       if (!organizationId) {
         return {
           uniqueLocations: [],
+          totalCount: 0,
+          negativeStockCount: 0,
+          outOfStockCount: 0,
           lowStockCount: 0,
+          healthyCount: 0,
+          missingLocationCount: 0,
+          missingUnitCostCount: 0,
+          missingSkuCount: 0,
+          estimatedInventoryValue: 0,
         };
       }
 
       return await getInventoryListMetadata(organizationId);
+    },
+    enabled: !!organizationId,
+    staleTime,
+  });
+};
+
+export const useRecentlyAdjustedInventoryItemIds = (
+  organizationId: string | undefined,
+  options?: {
+    staleTime?: number;
+    days?: number;
+  }
+) => {
+  const staleTime = options?.staleTime ?? 2 * 60 * 1000;
+  const days = options?.days ?? 30;
+
+  return useQuery({
+    queryKey: ['inventory-recent-adjustments', organizationId, days],
+    queryFn: async () => {
+      if (!organizationId) return {};
+      return await getRecentlyAdjustedInventoryItemIds(organizationId, days);
     },
     enabled: !!organizationId,
     staleTime,
