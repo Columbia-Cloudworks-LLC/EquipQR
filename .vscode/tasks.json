@@ -46,8 +46,8 @@
         },
         "background": {
           "activeOnStart": true,
-          "beginsPattern": "^\\[EquipQR\\] Edge Functions serve starting",
-          "endsPattern": "^\\[EquipQR\\] Edge Functions ready"
+          "beginsPattern": "\\[EquipQR\\] Edge Functions serve starting",
+          "endsPattern": "\\[EquipQR\\] Edge Functions ready"
         }
       }
     },
@@ -76,8 +76,8 @@
         },
         "background": {
           "activeOnStart": true,
-          "beginsPattern": "^\\[EquipQR\\] Docs dev server starting",
-          "endsPattern": "^\\[EquipQR\\] Docs ready"
+          "beginsPattern": "\\[EquipQR\\] Docs dev server starting",
+          "endsPattern": "\\[EquipQR\\] Docs ready"
         }
       }
     },
@@ -106,8 +106,8 @@
         },
         "background": {
           "activeOnStart": true,
-          "beginsPattern": "^\\[EquipQR\\] Vite dev server starting",
-          "endsPattern": "^\\[EquipQR\\] Vite ready"
+          "beginsPattern": "\\[EquipQR\\] Vite dev server starting",
+          "endsPattern": "\\[EquipQR\\] Vite ready"
         }
       }
     },
