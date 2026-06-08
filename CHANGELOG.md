@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 <!-- markdownlint-disable MD024 -->
 
@@ -9,9 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.8.3] - 2026-06-08
+
 ### Added
 
-- **PM interval policies** — Hierarchical preventive-maintenance schedules (equipment override, team policy, template default) via `pm_interval_policies`, updated PM status RPCs, and inherit/custom/no-recurring controls on equipment, team, and PM template surfaces.
+- **PM interval policies** — Hierarchical preventive-maintenance schedules at equipment, team, and PM template levels, with inherit/custom/no-recurring controls, effective-policy readouts on equipment records, inline PM schedule editing, and team-level PM schedule configuration.
+- **Voice dictation in field workflows** — Microphone input on note composers and other text fields so technicians can dictate instead of typing on mobile keyboards.
+- **Equipment card grid and quick work orders** — Grid view cards show PM status readouts, last maintenance context, and a work-order menu for faster creation from the fleet list; QR code display is clearer on cards and detail surfaces.
+- **Fleet Export Console** — Reports is reorganized into categorized export modules with live record counts, Google Workspace connection status, and an export protocol panel for owners and admins.
+- **Inventory list desktop personalization** — Saved views (including built-in purchasing, low-stock, field technician, and accounting layouts), column manager, density toggle, quick-filter chips, stock-level bars, health summary, and bulk actions on the desktop table.
+
+### Changed
+
+- **Equipment PM panel** — Preventive Maintenance on equipment details links open PM work orders and shows progress toward the next due interval.
+- **Work order creation entry points** — Equipment and QR quick-action menus use a consolidated dropdown with tooltips for common create paths.
+- **Labor entry on notes** — New note entry no longer collects hours worked inline; labor belongs in work-order cost line items while legacy note data continues to display and export.
+
+### Fixed
+
+- **PM schedule inline edit** — Equipment PM schedule edits save reliably from the detail page readout.
+- **Inventory desktop table** — Corrected table layout regressions and removed a broken list bulk-edit path that could confuse desktop users.
+- **Local dev restart** — `dev-start.bat -Force` stops a running stack before restarting instead of failing with "already running".
+
 ## [3.8.2] - 2026-06-07
 
 ### Added
@@ -1974,7 +1993,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.2...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.3...HEAD
+[3.8.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.2...v3.8.3
 [3.8.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.1...v3.8.2
 [3.8.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.0...v3.8.1
 [3.8.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.4...v3.8.0
