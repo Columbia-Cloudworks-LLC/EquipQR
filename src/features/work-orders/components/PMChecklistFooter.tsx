@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { RotateCcw } from 'lucide-react';
 import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { useVoiceTextAppender } from '@/hooks/useVoiceTextAppender';
+import VoiceInputButton from '@/components/common/VoiceInputButton';
+import VoiceInterimTranscript from '@/components/common/VoiceInterimTranscript';
 
 type PMChecklistFooterProps = {
   pmStatus: string;
@@ -42,6 +45,20 @@ export function PMChecklistFooter({
   onShowSetAllOKDialog,
   onShowRevertPMDialog,
 }: PMChecklistFooterProps) {
+  const notesDisabled = readOnly || pmStatus === 'completed';
+
+  const {
+    isListening,
+    error: speechError,
+    interimTranscript,
+    toggleListening,
+    canUseVoice,
+  } = useVoiceTextAppender({
+    value: notes,
+    onChange: onNotesChange,
+    disabled: notesDisabled,
+  });
+
   return (
     <>
       {pmStatus !== 'completed' && unratedRequiredItems.length > 0 && (
@@ -76,15 +93,31 @@ export function PMChecklistFooter({
       )}
 
       <div className="space-y-2">
-        <label className="text-base font-semibold">General Notes</label>
-        <Textarea
-          placeholder="Add general notes about this PM..."
-          value={notes}
-          onChange={(e) => onNotesChange(e.target.value)}
-          disabled={readOnly || pmStatus === 'completed'}
-          rows={3}
-          className="text-[15px] text-foreground placeholder:text-muted-foreground/70"
-        />
+        <div className="flex items-center justify-between">
+          <label className="text-base font-semibold">General Notes</label>
+          <VoiceInputButton
+            isListening={isListening}
+            onToggle={toggleListening}
+            canUseVoice={canUseVoice}
+          />
+        </div>
+        <div className="relative">
+          <Textarea
+            placeholder="Add general notes about this PM..."
+            value={notes}
+            onChange={(e) => onNotesChange(e.target.value)}
+            disabled={notesDisabled}
+            rows={3}
+            className="text-[15px] text-foreground placeholder:text-muted-foreground/70"
+          />
+          <VoiceInterimTranscript
+            isListening={isListening}
+            interimTranscript={interimTranscript}
+          />
+        </div>
+        {speechError && (
+          <p className="text-sm text-destructive">{speechError}</p>
+        )}
       </div>
 
       {!readOnly && pmStatus !== 'completed' && (

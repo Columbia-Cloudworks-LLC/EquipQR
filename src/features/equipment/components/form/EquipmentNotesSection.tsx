@@ -1,35 +1,35 @@
 import React, { useCallback } from 'react';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { UseFormReturn } from 'react-hook-form';
-import { Mic, MicOff } from 'lucide-react';
 import { type EquipmentFormData } from '@/features/equipment/types/equipment';
-import { useSpeechToText } from '@/hooks/useSpeechToText';
+import { useVoiceTextAppender } from '@/hooks/useVoiceTextAppender';
+import VoiceInputButton from '@/components/common/VoiceInputButton';
+import VoiceInterimTranscript from '@/components/common/VoiceInterimTranscript';
 
 interface EquipmentNotesSectionProps {
   form: UseFormReturn<EquipmentFormData>;
 }
 
 const EquipmentNotesSection: React.FC<EquipmentNotesSectionProps> = ({ form }) => {
-  // Handler to append transcript to the notes field
-  const handleSpeechResult = useCallback((transcript: string) => {
-    const currentValue = form.getValues('notes') || '';
-    const separator = currentValue.trim() ? ' ' : '';
-    form.setValue('notes', currentValue + separator + transcript, { 
+  const notesValue = form.watch('notes') || '';
+
+  const handleNotesChange = useCallback((nextValue: string) => {
+    form.setValue('notes', nextValue, {
       shouldValidate: true,
-      shouldDirty: true 
+      shouldDirty: true,
     });
   }, [form]);
 
   const {
-    isSupported,
     isListening,
     error: speechError,
     interimTranscript,
     toggleListening,
-  } = useSpeechToText({
-    onResult: handleSpeechResult,
+    canUseVoice,
+  } = useVoiceTextAppender({
+    value: notesValue,
+    onChange: handleNotesChange,
   });
 
   return (
@@ -40,29 +40,11 @@ const EquipmentNotesSection: React.FC<EquipmentNotesSectionProps> = ({ form }) =
         <FormItem>
           <div className="flex items-center justify-between">
             <FormLabel>Description/Notes</FormLabel>
-            {isSupported && (
-              <Button
-                type="button"
-                variant={isListening ? "destructive" : "outline"}
-                size="sm"
-                onClick={toggleListening}
-                aria-pressed={isListening}
-                aria-label={isListening ? "Stop voice input" : "Start voice input"}
-                className="h-7 px-2 gap-1"
-              >
-                {isListening ? (
-                  <>
-                    <MicOff className="h-3.5 w-3.5" />
-                    <span className="text-xs">Stop</span>
-                  </>
-                ) : (
-                  <>
-                    <Mic className="h-3.5 w-3.5" />
-                    <span className="text-xs">Voice</span>
-                  </>
-                )}
-              </Button>
-            )}
+            <VoiceInputButton
+              isListening={isListening}
+              onToggle={toggleListening}
+              canUseVoice={canUseVoice}
+            />
           </div>
           <FormControl>
             <div className="relative">
@@ -71,11 +53,10 @@ const EquipmentNotesSection: React.FC<EquipmentNotesSectionProps> = ({ form }) =
                 className="min-h-[100px]"
                 {...field}
               />
-              {isListening && interimTranscript && (
-                <div className="absolute bottom-2 left-2 right-2 text-xs text-muted-foreground bg-muted/80 rounded px-2 py-1 pointer-events-none">
-                  {interimTranscript}...
-                </div>
-              )}
+              <VoiceInterimTranscript
+                isListening={isListening}
+                interimTranscript={interimTranscript}
+              />
             </div>
           </FormControl>
           {speechError && (

@@ -80,6 +80,32 @@ vi.mock('@/components/common/InlineNoteComposer', () => ({
   ),
 }));
 
+const mockToggleListening = vi.fn();
+
+vi.mock('@/hooks/useVoiceTextAppender', () => ({
+  useVoiceTextAppender: ({
+    value,
+    onChange,
+    disabled,
+  }: {
+    value: string;
+    onChange: (value: string) => void;
+    disabled?: boolean;
+  }) => ({
+    isSupported: true,
+    isListening: false,
+    error: null,
+    interimTranscript: '',
+    toggleListening: () => {
+      mockToggleListening();
+      if (!disabled) {
+        onChange(`${value}${value.trim() ? ' ' : ''}voice reason`);
+      }
+    },
+    canUseVoice: !disabled,
+  }),
+}));
+
 const mockFetchMemberships = vi.mocked(fetchQRActionTeamMemberships);
 const mockCreateWorkOrder = vi.mocked(createQRWorkOrder);
 const mockUpdateHours = vi.mocked(updateQRWorkingHours);
@@ -286,6 +312,31 @@ describe('EquipmentQRQuickActions', () => {
       );
     });
     expect(await screen.findByText(/working hours updated to 125.5 hours/i)).toBeInTheDocument();
+  });
+
+  it('appends voice dictation to the working-hours reason field', async () => {
+    const user = userEvent.setup();
+    mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'manager' }]);
+    mockUpdateHours.mockResolvedValue(undefined);
+
+    renderQuickActions();
+
+    await user.click(screen.getByRole('button', { name: /update hours/i }));
+    const hoursInput = await screen.findByLabelText(/new total hours/i);
+    await user.clear(hoursInput);
+    await user.type(hoursInput, '130');
+    await user.type(screen.getByLabelText(/reason or note/i), 'Meter');
+    await user.click(screen.getByRole('button', { name: 'Start voice input' }));
+    await user.click(screen.getByRole('button', { name: /^update hours$/i }));
+
+    await waitFor(() => {
+      expect(mockUpdateHours).toHaveBeenCalledWith(
+        expect.objectContaining({
+          notes: 'Meter voice reason',
+        })
+      );
+    });
+    expect(mockToggleListening).toHaveBeenCalled();
   });
 
   it('adds an equipment note for an allowed team member', async () => {

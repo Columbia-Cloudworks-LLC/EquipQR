@@ -12,6 +12,9 @@ import { cn } from '@/lib/utils';
 import { handleDragActiveState } from '@/components/common/drag-active-handlers';
 import { useFileObjectUrlPreview } from '@/components/common/useFileObjectUrlPreview';
 import { logger } from '@/utils/logger';
+import { useVoiceTextAppender } from '@/hooks/useVoiceTextAppender';
+import VoiceInputButton from '@/components/common/VoiceInputButton';
+import VoiceInterimTranscript from '@/components/common/VoiceInterimTranscript';
 
 // Image Thumbnail Component with proper cleanup
 const ImageThumbnail: React.FC<{
@@ -292,6 +295,18 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
     }
   }, [requestAttachTrigger, handleAttachClick]);
 
+  const {
+    isListening,
+    error: speechError,
+    interimTranscript,
+    toggleListening,
+    canUseVoice,
+  } = useVoiceTextAppender({
+    value,
+    onChange,
+    disabled: disabled || isSubmitting,
+  });
+
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       {/* Text Input Area */}
@@ -314,12 +329,23 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
           placeholder={placeholder}
           disabled={disabled || isSubmitting}
           rows={3}
-          className="min-h-[80px] resize-none border-0 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 pr-20"
+          className="min-h-[80px] resize-none border-0 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 pr-28"
           aria-label="Note content"
         />
+        <VoiceInterimTranscript
+          isListening={isListening}
+          interimTranscript={interimTranscript}
+          className="bottom-10 left-2 right-24"
+        />
         
-        {/* Attach Images Button */}
-        <div className="absolute bottom-2 right-2">
+        {/* Attach Images and Voice Buttons */}
+        <div className="absolute bottom-2 right-2 flex items-center gap-0.5">
+          <VoiceInputButton
+            isListening={isListening}
+            onToggle={toggleListening}
+            canUseVoice={canUseVoice}
+            size="icon"
+          />
           <Button
             type="button"
             variant="ghost"
@@ -344,6 +370,10 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
           className="hidden"
         />
       </div>
+
+      {speechError && (
+        <p className="text-sm text-destructive">{speechError}</p>
+      )}
 
       {/* Image Thumbnails */}
       {attachedImages.length > 0 && (

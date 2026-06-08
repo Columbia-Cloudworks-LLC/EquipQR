@@ -52,6 +52,32 @@ vi.mock('sonner', () => ({
   }
 }));
 
+const mockToggleListening = vi.fn();
+
+vi.mock('@/hooks/useVoiceTextAppender', () => ({
+  useVoiceTextAppender: ({
+    value,
+    onChange,
+    disabled,
+  }: {
+    value: string;
+    onChange: (value: string) => void;
+    disabled?: boolean;
+  }) => ({
+    isSupported: true,
+    isListening: false,
+    error: null,
+    interimTranscript: '',
+    toggleListening: () => {
+      mockToggleListening();
+      if (!disabled) {
+        onChange(`${value}${value.trim() ? ' ' : ''}dictated pm note`);
+      }
+    },
+    canUseVoice: !disabled,
+  }),
+}));
+
 const createMockPM = (overrides?: Partial<PreventativeMaintenance>): PreventativeMaintenance => ({
   id: 'pm-1',
   work_order_id: 'wo-1',
@@ -223,6 +249,31 @@ describe('PMChecklistComponent', () => {
       await openPmSectionAndWaitForItem('Engine', 'Check oil level');
 
       expect(screen.queryByRole('button', { name: /add notes/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('general notes voice dictation', () => {
+    it('shows voice control on general notes and appends dictated text', async () => {
+      const pm = createMockPM();
+      renderPMChecklist(pm, { onUpdate: mockOnUpdate });
+
+      expect(screen.getByText('General Notes')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Start voice input' })).toBeInTheDocument();
+
+      const generalNotes = screen.getByPlaceholderText('Add general notes about this PM...');
+      fireEvent.change(generalNotes, { target: { value: 'Initial' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Start voice input' }));
+
+      expect(mockToggleListening).toHaveBeenCalledTimes(1);
+      expect(generalNotes).toHaveValue('Initial dictated pm note');
+    });
+
+    it('hides voice control when PM is completed', async () => {
+      const pm = createMockPM({ status: 'completed' });
+      renderPMChecklist(pm, { onUpdate: mockOnUpdate });
+
+      expect(screen.getByPlaceholderText('Add general notes about this PM...')).toBeDisabled();
+      expect(screen.queryByRole('button', { name: 'Start voice input' })).not.toBeInTheDocument();
     });
   });
 });
