@@ -241,6 +241,7 @@ export function EquipmentBasicInfoCard({
               onFieldUpdate={onFieldUpdate}
               onPMTemplateAssignment={onPMTemplateAssignment}
               getCurrentPMTemplateDisplay={getCurrentPMTemplateDisplay}
+              getCurrentTeamDisplay={getCurrentTeamDisplay}
             />
           )}
         </div>
@@ -275,6 +276,7 @@ export function EquipmentBasicInfoCard({
                   onFieldUpdate={onFieldUpdate}
                   onPMTemplateAssignment={onPMTemplateAssignment}
                   getCurrentPMTemplateDisplay={getCurrentPMTemplateDisplay}
+                  getCurrentTeamDisplay={getCurrentTeamDisplay}
                 />
 
                 <EquipmentDescriptionField

@@ -5,7 +5,7 @@
 
 .PARAMETER Force
   After Supabase is up: reset local DB, regenerate TypeScript types, seed equipment images, then ensure Edge, docs, and Vite are running.
-  Does not call dev-stop. If Vite, docs, or Edge Functions serve is already running, exits with an error - run dev-stop first.
+  If Vite, docs, or Edge Functions serve is already running, stops the dev stack first, then continues startup.
 
 .PARAMETER PrepareOnly
   Run setup through env sync (steps 1-7) and exit before launching Edge Functions, docs, or Vite.
@@ -203,14 +203,28 @@ if ($PrepareOnly) {
 Write-Host " ============================================"
 Write-Host ""
 
-if ($Force) {
-    if (Test-DevStackAlreadyRunningForForce) {
-        Write-Host "FAIL: A dev server is already running (Vite on 8080, docs on 5174, and/or Edge Functions serve)."
-        Write-Host '       Stop the stack first, then run with -Force:'
-        Write-Host '         .\dev-stop.bat'
-        Write-Host '         .\dev-start.bat -Force'
+if ($Force -and (Test-DevStackAlreadyRunningForForce)) {
+    Write-Host ' [-Force] Dev stack already running - stopping first...'
+    $stopScript = Join-Path $repoRoot 'dev-stop.ps1'
+    $oldStopEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & $stopScript
+        $stopExit = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $oldStopEap
+    }
+    if ($stopExit -ne 0) {
+        Write-Host "FAIL: dev-stop exited with code $stopExit before -Force restart."
         exit 1
     }
+    Start-Sleep -Seconds 2
+    if (Test-DevStackAlreadyRunningForForce) {
+        Write-Host 'FAIL: Dev stack still running after dev-stop. Close remaining processes and retry.'
+        exit 1
+    }
+    Write-Host '        Dev stack stopped - continuing startup.'
+    Write-Host ''
 }
 
 # ---------- 1. Pre-flight ----------

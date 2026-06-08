@@ -1,7 +1,8 @@
 import React from 'react';
-import { Wrench } from 'lucide-react';
+import { Timer, Wrench } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import InlineEditField from './InlineEditField';
+import { InlineEditPMSchedule } from './InlineEditPMSchedule';
 
 type Equipment = Tables<'equipment'>;
 
@@ -18,6 +19,7 @@ export interface EquipmentIdentityFieldsProps {
   onFieldUpdate: (field: keyof Equipment, value: string) => void | Promise<void>;
   onPMTemplateAssignment: (templateId: string) => void | Promise<void>;
   getCurrentPMTemplateDisplay: () => string;
+  getCurrentTeamDisplay: () => string;
 }
 
 export const EquipmentIdentityFields: React.FC<EquipmentIdentityFieldsProps> = ({
@@ -31,6 +33,7 @@ export const EquipmentIdentityFields: React.FC<EquipmentIdentityFieldsProps> = (
   onFieldUpdate,
   onPMTemplateAssignment,
   getCurrentPMTemplateDisplay,
+  getCurrentTeamDisplay,
 }) => (
   <>
     <div>
@@ -105,6 +108,19 @@ export const EquipmentIdentityFields: React.FC<EquipmentIdentityFieldsProps> = (
         ) : (
           <span className="text-base text-foreground">{getCurrentPMTemplateDisplay()}</span>
         )}
+      </div>
+    </div>
+
+    <div>
+      <span className="text-sm font-medium text-muted-foreground">PM Schedule</span>
+      <div className="group mt-1 flex items-start gap-2">
+        <Timer className="h-4 w-4 text-muted-foreground mt-1 shrink-0" />
+        <InlineEditPMSchedule
+          equipmentId={equipment.id}
+          organizationId={equipment.organization_id}
+          teamName={getCurrentTeamDisplay()}
+          canEdit={canEdit}
+        />
       </div>
     </div>
   </>

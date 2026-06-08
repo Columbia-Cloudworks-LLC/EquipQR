@@ -30,6 +30,24 @@ export type PMSchedulePolicyFormState = {
   intervalType: PMIntervalType;
 };
 
+export function formatPMSchedulePolicyDisplay(
+  policy: PMIntervalPolicyRow | null | undefined,
+  options?: { teamName?: string | null }
+): string {
+  const form = policyRowToFormState(policy);
+  if (form.mode === 'none') {
+    return 'No recurring PM';
+  }
+  if (form.mode === 'custom' && form.intervalValue) {
+    const unit = form.intervalType === 'hours' ? 'hours' : 'days';
+    return `Every ${form.intervalValue} ${unit}`;
+  }
+  if (options?.teamName) {
+    return `Inherits from team (${options.teamName})`;
+  }
+  return 'Inherits from team or template';
+}
+
 export function policyRowToFormState(
   policy: PMIntervalPolicyRow | null | undefined
 ): PMSchedulePolicyFormState {

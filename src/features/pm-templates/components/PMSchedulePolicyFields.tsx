@@ -10,6 +10,8 @@ type PMSchedulePolicyFieldsProps = {
   inheritLabel?: string;
   intervalError?: string | null;
   disabled?: boolean;
+  /** Omit card chrome when embedded in an inline equipment field editor. */
+  compact?: boolean;
 };
 
 export function PMSchedulePolicyFields({
@@ -18,15 +20,18 @@ export function PMSchedulePolicyFields({
   inheritLabel = 'Inherit schedule',
   intervalError,
   disabled = false,
+  compact = false,
 }: PMSchedulePolicyFieldsProps) {
   return (
-    <div className="space-y-3 rounded-md border p-4">
-      <div>
-        <Label className="text-sm font-medium">PM Schedule</Label>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Control when equipment should be flagged for recurring preventive maintenance.
-        </p>
-      </div>
+    <div className={compact ? 'space-y-3' : 'space-y-3 rounded-md border p-4'}>
+      {!compact && (
+        <div>
+          <Label className="text-sm font-medium">PM Schedule</Label>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Control when equipment should be flagged for recurring preventive maintenance.
+          </p>
+        </div>
+      )}
 
       <RadioGroup
         value={value.mode}
