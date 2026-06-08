@@ -887,7 +887,7 @@ export const defaultForkliftChecklist: PMChecklistItem[] = [
 ];
 
 // Pull Trailer PM (Default)
-export const defaultPullTrailerChecklist: PMChecklistItem[] = [
+const defaultPullTrailerChecklist: PMChecklistItem[] = [
   {
     id: 'visual-inspection-1',
     title: 'Overall Condition',
@@ -1299,7 +1299,7 @@ export const defaultPullTrailerChecklist: PMChecklistItem[] = [
 ];
 
 // Compressor PM (Default)
-export const defaultCompressorChecklist: PMChecklistItem[] = [
+const defaultCompressorChecklist: PMChecklistItem[] = [
   {
     id: 'visual-inspection-1',
     title: 'Overall Condition and Leaks',
@@ -1727,7 +1727,7 @@ export const defaultCompressorChecklist: PMChecklistItem[] = [
 ];
 
 // Scissor Lift PM (Default)
-export const defaultScissorLiftChecklist: PMChecklistItem[] = [
+const defaultScissorLiftChecklist: PMChecklistItem[] = [
   {
     id: 'visual-inspection-1',
     title: 'General Condition and Leaks',
@@ -2323,7 +2323,7 @@ export const defaultScissorLiftChecklist: PMChecklistItem[] = [
 ];
 
 // Excavator PM (Default)
-export const defaultExcavatorChecklist: PMChecklistItem[] = [
+const defaultExcavatorChecklist: PMChecklistItem[] = [
   {
     id: 'visual-inspection-1',
     title: 'Exterior and Undercarriage Overview',
@@ -2999,7 +2999,7 @@ export const defaultExcavatorChecklist: PMChecklistItem[] = [
 ];
 
 // Skid Steer PM (Default)
-export const defaultSkidSteerChecklist: PMChecklistItem[] = [
+const defaultSkidSteerChecklist: PMChecklistItem[] = [
   {
     id: 'visual-inspection-1',
     title: 'Fluid Leaks and Exterior Condition',
@@ -3690,9 +3690,11 @@ export const getPMByWorkOrderId = async (
       .select('*')
       .eq('work_order_id', workOrderId)
       .eq('organization_id', organizationId)
-      .single();
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       logger.error('Error fetching PM:', error);
       return null;
     }
@@ -3888,7 +3890,7 @@ export const getLatestCompletedPMDetails = async (
 };
 
 // Create PM for multiple equipment (multi-equipment work orders)
-export const createPMsForEquipment = async (
+const createPMsForEquipment = async (
   workOrderId: string,
   equipmentIds: string[],
   organizationId: string,

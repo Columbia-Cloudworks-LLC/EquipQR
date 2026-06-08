@@ -5,10 +5,6 @@
  * are defined once instead of duplicated across every QBO Edge Function.
  */
 
-/** Sandbox base URL for the QuickBooks Data API (v3). */
-export const QBO_API_BASE_SANDBOX =
-  "https://sandbox-quickbooks.api.intuit.com";
-
 /** Production base URL for the QuickBooks Data API (v3). */
 export const QBO_API_BASE_PRODUCTION =
   "https://quickbooks.api.intuit.com";
@@ -28,19 +24,11 @@ export const QBO_TOKEN_URL =
  */
 export const QBO_MINOR_VERSION = 70;
 
-/** Whether the current deployment targets the QBO sandbox environment. */
-export const IS_SANDBOX =
-  Deno.env.get("QUICKBOOKS_SANDBOX") !== "false";
-
-/** Resolved base URL for the QuickBooks Data API (sandbox or production). */
-export const QBO_API_BASE = IS_SANDBOX
-  ? QBO_API_BASE_SANDBOX
-  : QBO_API_BASE_PRODUCTION;
+/** Resolved base URL for the QuickBooks Data API. EquipQR uses production QBO only. */
+export const QBO_API_BASE = QBO_API_BASE_PRODUCTION;
 
 /** Human-readable environment label stored in export logs. */
-export const QBO_ENVIRONMENT: "sandbox" | "production" = IS_SANDBOX
-  ? "sandbox"
-  : "production";
+export const QBO_ENVIRONMENT: "production" = "production";
 
 const envOrDefault = (value: string | undefined, fallback: string): string =>
   value && value.trim().length > 0 ? value.trim() : fallback;
@@ -89,13 +77,13 @@ export const QBO_INVOICE_ITEM_NAMES = {
  * `QBO_INVOICE_PARTS_ITEM_PREFIX` is no longer used by `quickbooks-export-invoice`;
  * configure {@link QBO_INVOICE_ITEM_NAMES.parts} via `QBO_INVOICE_PARTS_ITEM_NAME` instead.
  */
-export const QBO_INVOICE_PARTS_ITEM_PREFIX = envOrDefault(
+const QBO_INVOICE_PARTS_ITEM_PREFIX = envOrDefault(
   Deno.env.get("QBO_INVOICE_PARTS_ITEM_PREFIX"),
   "Part",
 );
 
 /** Optional Income account Id for auto-created invoice items (chart of accounts). */
-export const QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID =
+const QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID =
   Deno.env.get("QBO_INVOICE_ITEM_INCOME_ACCOUNT_ID")?.trim() ?? "";
 
 /** Optional exact Income account Name for auto-created invoice items. */
@@ -118,7 +106,7 @@ export function resolveQboDefaultLaborRateCents(): number {
 }
 
 /** @deprecated Prefer {@link resolveQboDefaultLaborRateCents} — reads env at call time (tests, late injection). */
-export const QBO_DEFAULT_LABOR_RATE_CENTS = resolveQboDefaultLaborRateCents();
+const QBO_DEFAULT_LABOR_RATE_CENTS = resolveQboDefaultLaborRateCents();
 
 /** Maximum age for cached QuickBooks Customer.Taxable before export must re-confirm. */
 export function resolveQboTaxStatusMaxCacheAgeHours(): number {

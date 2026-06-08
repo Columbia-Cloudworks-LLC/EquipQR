@@ -3,7 +3,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Building, MapPin, Users, X } from 'lucide-react';
+import { Search, Filter, Users, X } from 'lucide-react';
+import {
+  EquipmentLocationSelect,
+  EquipmentManufacturerSelect,
+  EquipmentStatusSelect,
+} from '@/features/equipment/components/EquipmentFilterSelects';
+import { EQUIPMENT_QUICK_FILTERS } from '@/features/equipment/components/equipmentFilterConstants';
 import { Badge } from "@/components/ui/badge";
 import { EquipmentFilters } from '@/features/equipment/hooks/useEquipmentFiltering';
 
@@ -53,51 +59,27 @@ export const DesktopEquipmentFilters: React.FC<DesktopEquipmentFiltersProps> = (
                 />
               </div>
             </div>
-            <Select value={filters.status} onValueChange={(value) => onFilterChange('status', value)}>
-              <SelectTrigger className="w-[180px]" aria-label="Filter by status">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="maintenance">Maintenance</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="out_of_service">Out of Service</SelectItem>
-              </SelectContent>
-            </Select>
+            <EquipmentStatusSelect
+              value={filters.status}
+              onValueChange={(value) => onFilterChange('status', value)}
+              placeholder="Filter by status"
+              triggerClassName="w-[180px]"
+              leadingIcon={<Filter className="h-4 w-4 mr-2" />}
+            />
           </div>
           
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-            <Select value={filters.manufacturer} onValueChange={(value) => onFilterChange('manufacturer', value)}>
-              <SelectTrigger aria-label="Manufacturer">
-                <Building className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Manufacturer" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Manufacturers</SelectItem>
-                {filterOptions.manufacturers.map((manufacturer) => (
-                  <SelectItem key={manufacturer} value={manufacturer}>
-                    {manufacturer}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <EquipmentManufacturerSelect
+              value={filters.manufacturer}
+              onValueChange={(value) => onFilterChange('manufacturer', value)}
+              manufacturers={filterOptions.manufacturers}
+            />
 
-            <Select value={filters.location} onValueChange={(value) => onFilterChange('location', value)}>
-              <SelectTrigger aria-label="Location">
-                <MapPin className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Location" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Locations</SelectItem>
-                {filterOptions.locations.map((location) => (
-                  <SelectItem key={location} value={location}>
-                    {location}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <EquipmentLocationSelect
+              value={filters.location}
+              onValueChange={(value) => onFilterChange('location', value)}
+              locations={filterOptions.locations}
+            />
 
             <Select value={filters.team} onValueChange={(value) => onFilterChange('team', value)}>
               <SelectTrigger aria-label="Team">
@@ -128,12 +110,7 @@ export const DesktopEquipmentFilters: React.FC<DesktopEquipmentFiltersProps> = (
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {[
-              { label: 'Maintenance Due', value: 'maintenance-due' },
-              { label: 'Warranty Expiring', value: 'warranty-expiring' },
-              { label: 'Recently Added', value: 'recently-added' },
-              { label: 'Active Only', value: 'active-only' },
-            ].map((preset) => (
+            {EQUIPMENT_QUICK_FILTERS.map((preset) => (
               <Button
                 key={preset.value}
                 size="sm"

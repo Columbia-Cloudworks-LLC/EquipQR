@@ -296,4 +296,3 @@ export function AuditLogList({
   );
 }
 
-export default AuditLogList;

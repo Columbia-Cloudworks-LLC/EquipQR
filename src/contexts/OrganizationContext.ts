@@ -1,9 +1,3 @@
-// Compatibility layer - re-export everything from SimpleOrganizationContext
-export {
-  type SimpleOrganizationContextType as OrganizationContextType,
-  type SimpleOrganization
-} from './SimpleOrganizationContext';
-
-export { SimpleOrganizationProvider as OrganizationProvider } from './SimpleOrganizationProvider';
+// Compatibility layer - re-export useOrganization (alias of useSimpleOrganization)
 export { useSimpleOrganization as useOrganization } from '@/hooks/useSimpleOrganization';
 

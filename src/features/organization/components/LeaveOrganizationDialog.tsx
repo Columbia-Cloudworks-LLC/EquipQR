@@ -138,5 +138,4 @@ export const LeaveOrganizationDialog: React.FC<LeaveOrganizationDialogProps> = (
   );
 };
 
-export default LeaveOrganizationDialog;
 

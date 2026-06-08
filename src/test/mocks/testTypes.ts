@@ -140,7 +140,7 @@ export const createMockSimpleOrganizationContext = (
 });
 
 // Type-safe mock factories for common test scenarios
-export const createAdminTestSetup = () => {
+const createAdminTestSetup = () => {
   const user = createMockUser();
   const organization = createMockOrganization({ 
     userRole: 'admin',
@@ -153,7 +153,7 @@ export const createAdminTestSetup = () => {
   return { user, organization, sessionData };
 };
 
-export const createMemberTestSetup = () => {
+const createMemberTestSetup = () => {
   const user = createMockUser();
   const organization = createMockOrganization({ 
     userRole: 'member',
@@ -166,7 +166,7 @@ export const createMemberTestSetup = () => {
   return { user, organization, sessionData };
 };
 
-export const createViewerTestSetup = () => {
+const createViewerTestSetup = () => {
   const user = createMockUser();
   const organization = createMockOrganization({ 
     userRole: 'member', // Using member since viewer isn't a valid organization role

@@ -253,7 +253,6 @@ When rotating keys or deploying a new environment, verify secrets in **both** da
 | `VITE_GOOGLE_WORKSPACE_CLIENT_ID` | Shared Google OAuth client ID for Workspace OAuth and browser Picker token flow |
 | `VITE_GOOGLE_PICKER_API_KEY` | Google Picker browser API key (referrer-restricted) |
 | `VITE_GOOGLE_PICKER_APP_ID` | Google Cloud project number for Picker |
-| `VITE_ENABLE_QUICKBOOKS` | Feature flag: QuickBooks integration |
 
 #### Supabase Edge Function Secrets (runtime, set in Supabase Dashboard)
 

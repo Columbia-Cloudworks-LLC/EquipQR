@@ -121,14 +121,6 @@ export interface AuditLogPagination {
   pageSize: number;
 }
 
-/**
- * Sort options for audit log queries
- */
-export interface AuditLogSort {
-  field: 'created_at' | 'entity_type' | 'action' | 'actor_name';
-  direction: 'asc' | 'desc';
-}
-
 // ============================================
 // Timeline Aggregation Types (issue #641)
 // ============================================
@@ -291,25 +283,4 @@ export interface AuditLogCsvRow {
   changedBy: string;
   changedByEmail: string;
   changesDescription: string;
-}
-
-// ============================================
-// Component Props Types
-// ============================================
-
-/**
- * Props for the HistoryTab component
- */
-export interface HistoryTabProps {
-  entityType: AuditEntityType;
-  entityId: string;
-  organizationId: string;
-}
-
-/**
- * Props for the ChangesDiff component
- */
-export interface ChangesDiffProps {
-  changes: AuditChanges;
-  expanded?: boolean;
 }

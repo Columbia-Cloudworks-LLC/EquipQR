@@ -1,47 +1,23 @@
 // Using Deno.serve (built-in)
-import { createClient } from "npm:@supabase/supabase-js@2.45.0";
-import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   QBO_API_BASE,
-  QBO_TOKEN_URL,
   getIntuitTid,
   withMinorVersion,
 } from "../_shared/quickbooks-config.ts";
-import { withCorrelationId } from "../_shared/supabase-clients.ts";
-import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
+import { requireBearerUserJsonUnauthorized } from "../_shared/supabase-clients.ts";
+import { MissingSecretError } from "../_shared/require-secret.ts";
+import { serveQuickBooksFunction } from "../_shared/quickbooks-serve.ts";
+import { createRedactedLogStep } from "../_shared/redacted-logger.ts";
+import {
+  refreshQuickBooksAccessTokenIfNeeded,
+  type QuickBooksCredential,
+} from "../_shared/quickbooks-token.ts";
 
 const FUNCTION_NAME = "quickbooks-search-customers";
 
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  // Avoid logging sensitive data
-  const safeDetails = details ? { ...details } : undefined;
-  if (safeDetails) {
-    delete safeDetails.access_token;
-    delete safeDetails.refresh_token;
-  }
-  const detailsStr = safeDetails ? ` - ${JSON.stringify(safeDetails)}` : '';
-  console.log(`[QUICKBOOKS-SEARCH-CUSTOMERS] ${step}${detailsStr}`);
-};
+const logStep = createRedactedLogStep("QUICKBOOKS-SEARCH-CUSTOMERS");
 
 // getIntuitTid imported from _shared/quickbooks-config.ts
-
-interface QuickBooksCredential {
-  id: string;
-  organization_id: string;
-  realm_id: string;
-  access_token: string;
-  refresh_token: string;
-  access_token_expires_at: string;
-  refresh_token_expires_at: string;
-}
-
-interface IntuitTokenResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-  expires_in: number;
-  x_refresh_token_expires_in: number;
-}
 
 interface QuickBooksCustomer {
   Id: string;
@@ -73,6 +49,10 @@ interface QuickBooksCustomer {
 }
 
 import { buildQBOContacts } from "./qbo-contacts.ts";
+import {
+  buildCustomerQueries,
+  sanitizeCustomerSearchQuery,
+} from "./qbo-customer-query.ts";
 export { buildQBOContacts } from "./qbo-contacts.ts";
 
 interface CustomerQueryResponse {
@@ -84,129 +64,25 @@ interface CustomerQueryResponse {
   time: string;
 }
 
-/**
- * Refresh the access token if needed
- */
-async function refreshTokenIfNeeded(
-  credential: QuickBooksCredential,
-  supabaseClient: any,
-  clientId: string,
-  clientSecret: string
-): Promise<string> {
-  const now = new Date();
-  const accessTokenExpiresAt = new Date(credential.access_token_expires_at);
-  
-  // If token is still valid for at least 5 minutes, use it
-  if (accessTokenExpiresAt > new Date(now.getTime() + 5 * 60 * 1000)) {
-    return credential.access_token;
-  }
-
-  logStep("Access token expired or expiring soon, refreshing...");
-
-  // Check if refresh token is still valid
-  const refreshTokenExpiresAt = new Date(credential.refresh_token_expires_at);
-  if (refreshTokenExpiresAt <= now) {
-    throw new Error("Refresh token has expired. Please reconnect QuickBooks.");
-  }
-
-  // Refresh the token
-  const tokenRequestBody = new URLSearchParams({
-    grant_type: "refresh_token",
-    refresh_token: credential.refresh_token,
-  });
-
-  const basicAuth = btoa(`${clientId}:${clientSecret}`);
-  
-  const tokenResponse = await fetch(QBO_TOKEN_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Authorization": `Basic ${basicAuth}`,
-      "Accept": "application/json",
-    },
-    body: tokenRequestBody.toString(),
-  });
-
-  if (!tokenResponse.ok) {
-    const errorText = await tokenResponse.text();
-    console.error("Token refresh failed:", tokenResponse.status, errorText);
-    throw new Error("Failed to refresh QuickBooks access token");
-  }
-
-  const tokenData: IntuitTokenResponse = await tokenResponse.json();
-
-  // Update credentials in database
-  const newAccessExpiresAt = new Date(now.getTime() + tokenData.expires_in * 1000);
-  const newRefreshExpiresAt = new Date(now.getTime() + tokenData.x_refresh_token_expires_in * 1000);
-
-  const { error: updateError } = await supabaseClient
-    .from('quickbooks_credentials')
-    .update({
-      access_token: tokenData.access_token,
-      refresh_token: tokenData.refresh_token,
-      access_token_expires_at: newAccessExpiresAt.toISOString(),
-      refresh_token_expires_at: newRefreshExpiresAt.toISOString(),
-      updated_at: now.toISOString(),
-    })
-    .eq('id', credential.id);
-
-  if (updateError) {
-    console.error("Failed to update credentials after refresh:", updateError);
-    // Continue with the new token even if database update fails
-  }
-
-  logStep("Token refreshed successfully");
-  return tokenData.access_token;
-}
-
-Deno.serve(withCorrelationId(async (req, ctx) => {
-  const corsHeaders = getCorsHeaders(req);
-
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+serveQuickBooksFunction(FUNCTION_NAME, logStep, async ({
+  req,
+  ctx,
+  corsHeaders,
+  secrets,
+  supabaseClient,
+}) => {
   try {
-    logStep("Function started", { correlation_id: ctx.correlationId });
+    const { clientId, clientSecret } = secrets;
 
-    // Required secrets — surface as MISSING_REQUIRED_SECRET via the helper.
-    const clientId = requireSecret("INTUIT_CLIENT_ID", { functionName: FUNCTION_NAME });
-    const clientSecret = requireSecret("INTUIT_CLIENT_SECRET", { functionName: FUNCTION_NAME });
-    const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: FUNCTION_NAME });
-    const supabaseServiceKey = requireSecret("SUPABASE_SERVICE_ROLE_KEY", { functionName: FUNCTION_NAME });
-
-    // Validate authorization
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader || !authHeader.toLowerCase().startsWith("bearer ")) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Unauthorized" 
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const authResult = await requireBearerUserJsonUnauthorized(
+      req,
+      supabaseClient,
+      corsHeaders,
+    );
+    if (authResult instanceof Response) {
+      return authResult;
     }
-
-    // Create Supabase client with service role
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false }
-    });
-
-    // Verify the user's token
-    const token = authHeader.substring(7).trim();
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-    
-    if (userError || !user) {
-      logStep("Authentication failed", { error: userError?.message });
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Unauthorized" 
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const { user } = authResult;
 
     // Parse request body
     const body = await req.json();
@@ -271,105 +147,104 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       });
     }
 
-    // Get a valid access token (refresh if needed)
-    const accessToken = await refreshTokenIfNeeded(
-      credentials,
+    const { accessToken } = await refreshQuickBooksAccessTokenIfNeeded(
+      credentials as QuickBooksCredential,
       supabaseClient,
       clientId,
-      clientSecret
+      clientSecret,
+      { onPersistError: "logAndContinue", log: logStep },
     );
 
-    // Build the QuickBooks Customer query — include all documented contact fields
-    let customerQuery = "SELECT Id, DisplayName, GivenName, FamilyName, CompanyName, PrimaryEmailAddr, PrimaryPhone, Mobile, Fax, AlternatePhone, BillAddr, ShipAddr, Taxable FROM Customer WHERE Active = true";
-    if (query && query.trim()) {
-      // Whitelist: allow only alphanumeric, spaces, hyphens, periods, commas, apostrophes
-      // This prevents QuickBooks Query Language injection via special characters
-      const sanitizedQuery = query.replace(/[^a-zA-Z0-9\s\-.,']/g, "").trim();
-
-      // Reject excessively long search queries
-      if (sanitizedQuery.length > 100) {
-        return new Response(JSON.stringify({
-          success: false,
-          error: "Search query too long"
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      if (sanitizedQuery.length > 0) {
-        // Escape single quotes for the QuickBooks query (defense-in-depth)
-        const escapedQuery = sanitizedQuery.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-        customerQuery = `SELECT Id, DisplayName, GivenName, FamilyName, CompanyName, PrimaryEmailAddr, PrimaryPhone, Mobile, Fax, AlternatePhone, BillAddr, ShipAddr, Taxable FROM Customer WHERE Active = true AND (DisplayName LIKE '%${escapedQuery}%' OR CompanyName LIKE '%${escapedQuery}%')`;
-      }
-    }
-    customerQuery += " MAXRESULTS 100";
-
-    logStep("Querying QuickBooks customers", { realmId: credentials.realm_id });
-
-    // Call QuickBooks API (with minorversion for full field support)
-    const qbResponse = await fetch(
-      withMinorVersion(`${QBO_API_BASE}/v3/company/${credentials.realm_id}/query?query=${encodeURIComponent(customerQuery)}`),
-      {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    // Capture intuit_tid from response headers for troubleshooting
-    const intuitTid = getIntuitTid(qbResponse);
-
-    if (!qbResponse.ok) {
-      const errorText = await qbResponse.text();
-      console.error("QuickBooks API error:", qbResponse.status, errorText);
-      logStep("QuickBooks API error", { status: qbResponse.status, intuit_tid: intuitTid });
-      
-      // Handle specific error cases
-      if (qbResponse.status === 401) {
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: "QuickBooks authentication failed. Please reconnect QuickBooks." 
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      throw new Error("Failed to query QuickBooks customers");
-    }
-
-    const qbData: CustomerQueryResponse = await qbResponse.json();
-
-    // Check for Fault in 200 OK response (QBO best practice)
-    // QBO can return HTTP 200 with a Fault body instead of query results
-    if ((qbData as unknown as Record<string, unknown>).Fault) {
-      const faultObj = (qbData as unknown as Record<string, unknown>).Fault as Record<string, unknown>;
-      // Only log non-sensitive fault metadata (type + error codes); avoid raw message/detail
-      const errorCodes = Array.isArray(faultObj?.Error)
-        ? (faultObj.Error as Array<Record<string, unknown>>).map(e => ({ code: e?.code }))
-        : [];
-      logStep("Fault in customer query response", { type: faultObj?.type, errorCodes, intuit_tid: intuitTid });
-      // Return 422 instead of throwing to the catch block (which returns 500).
-      // This is a validation/query error from QBO, not an internal server error.
-      // Uses the request-scoped corsHeaders (origin-validated) for consistency
-      // with all other responses in this function — not createErrorResponse,
-      // which applies the wildcard CORS headers.
+    const sanitizedQuery = sanitizeCustomerSearchQuery(query);
+    if (sanitizedQuery.length > 100) {
       return new Response(JSON.stringify({
         success: false,
-        error: "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.",
+        error: "Search query too long"
       }), {
-        status: 422,
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const customers = qbData.QueryResponse.Customer || [];
+    logStep("Querying QuickBooks customers", { realmId: credentials.realm_id });
 
-    logStep("Customers fetched successfully", { count: customers.length, intuit_tid: intuitTid });
+    const customersById = new Map<string, QuickBooksCustomer>();
+    let lastIntuitTid: string | undefined;
+    for (const customerQuery of buildCustomerQueries(sanitizedQuery)) {
+      // Call QuickBooks API (with minorversion for full field support)
+      const qbResponse = await fetch(
+        withMinorVersion(`${QBO_API_BASE}/v3/company/${credentials.realm_id}/query?query=${encodeURIComponent(customerQuery)}`),
+        {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Capture intuit_tid from response headers for troubleshooting
+      const intuitTid = getIntuitTid(qbResponse);
+      lastIntuitTid = intuitTid;
+
+      if (!qbResponse.ok) {
+        const errorText = await qbResponse.text();
+        console.error("QuickBooks API error:", qbResponse.status, errorText);
+        logStep("QuickBooks API error", { status: qbResponse.status, intuit_tid: intuitTid });
+
+        // Handle specific error cases
+        if (qbResponse.status === 401) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: "QuickBooks authentication failed. Please reconnect QuickBooks."
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (qbResponse.status === 400) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.",
+          }), {
+            status: 422,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        throw new Error("Failed to query QuickBooks customers");
+      }
+
+      const qbData: CustomerQueryResponse = await qbResponse.json();
+
+      // Check for Fault in 200 OK response (QBO best practice)
+      // QBO can return HTTP 200 with a Fault body instead of query results
+      if ((qbData as unknown as Record<string, unknown>).Fault) {
+        const faultObj = (qbData as unknown as Record<string, unknown>).Fault as Record<string, unknown>;
+        // Only log non-sensitive fault metadata (type + error codes); avoid raw message/detail
+        const errorCodes = Array.isArray(faultObj?.Error)
+          ? (faultObj.Error as Array<Record<string, unknown>>).map(e => ({ code: e?.code }))
+          : [];
+        logStep("Fault in customer query response", { type: faultObj?.type, errorCodes, intuit_tid: intuitTid });
+        return new Response(JSON.stringify({
+          success: false,
+          error: "QuickBooks returned a validation error for the customer query. Please adjust your search and try again.",
+        }), {
+          status: 422,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      for (const customer of qbData.QueryResponse.Customer || []) {
+        customersById.set(customer.Id, customer);
+      }
+    }
+
+    const customers = Array.from(customersById.values());
+
+    logStep("Customers fetched successfully", { count: customers.length, intuit_tid: lastIntuitTid });
 
     // Return simplified customer list with documented contact fields and normalized contacts
     const simplifiedCustomers = customers.map(c => ({
@@ -427,4 +302,4 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-}));
+});

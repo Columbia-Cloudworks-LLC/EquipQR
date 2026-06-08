@@ -177,6 +177,10 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
   }, [workOrder.id, workOrder.title, equipment]);
 
   const buildPdfData = useCallback(async (includeCosts: boolean): Promise<WorkOrderPDFData> => {
+    if (!organizationId) {
+      throw new Error('Organization ID is required');
+    }
+
     const notesPromise = getWorkOrderNotesWithImages(workOrder.id, organizationId).catch(err => {
       logger.warn('Failed to fetch notes for PDF:', err);
       return [];

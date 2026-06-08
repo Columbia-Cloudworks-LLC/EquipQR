@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Processor mirrors offlineAware enqueue payloads for replay
 /**
  * Offline Queue Processor — V2
  *
@@ -16,9 +18,11 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { WorkOrderService } from '@/features/work-orders/services/workOrderService';
+import { syncWorkOrderOfflineUpdate } from './offlineQueueWorkOrderUpdate';
 import { logger } from '@/utils/logger';
 import { getErrorMessage } from '@/utils/errorHandling';
-import { workOrders, organization, equipment, preventiveMaintenance } from '@/lib/queryKeys';
+import { invalidateOfflineSyncQueries } from './offlineQueueInvalidation';
+import { ensureActiveOfflineSession } from './offlineQueueSession';
 import type {
   OfflineQueueItem,
   OfflineQueueEnqueueInput,
@@ -34,7 +38,6 @@ import type {
   OfflineQueuePMInitItem,
   OfflineQueuePMUpdateItem,
   OfflineQueuePMDeleteItem,
-  WorkOrderServerSnapshot,
 } from './offlineQueueService';
 import { OfflineQueueService } from './offlineQueueService';
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
@@ -186,121 +189,11 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
 
   work_order_update: (async (item: OfflineQueueUpdateItem) => {
     const { workOrderId, data, changedFields, serverUpdatedAt, serverSnapshot } = item.payload;
-
-    // Map of camelCase field names (used in UpdateWorkOrderData / changedFields) to DB column names.
-    // Also used to pull the corresponding value out of serverSnapshot and current server state.
-    const fieldMap: Record<string, keyof WorkOrderServerSnapshot> = {
-      title: 'title',
-      description: 'description',
-      priority: 'priority',
-      dueDate: 'due_date',
-      estimatedHours: 'estimated_hours',
-      hasPM: 'has_pm',
-    };
-
-    // ── Conflict detection (3-way merge) ──────────────────────────────────────
-    // We can only do a proper merge when we have:
-    //   1. The timestamp of the server state when the user started editing (serverUpdatedAt)
-    //   2. The list of fields the user actually changed (changedFields)
-    // serverSnapshot is used when available for per-field server-change detection.
-    if (serverUpdatedAt && changedFields && changedFields.length > 0) {
-      const { data: current, error: fetchErr } = await supabase
-        .from('work_orders')
-        .select('updated_at, title, description, priority, due_date, estimated_hours, has_pm')
-        .eq('id', workOrderId)
-        .single();
-
-      if (fetchErr) throw fetchErr;
-
-      if (current && current.updated_at !== serverUpdatedAt) {
-        // Server state changed while we were offline — perform field-level merge.
-        logger.info(`Conflict detected for WO ${workOrderId}: server updated_at differs`, {
-          serverUpdatedAt,
-          currentUpdatedAt: current.updated_at,
-        });
-
-        const safeUpdate: Record<string, unknown> = {};
-        const conflictingFields: string[] = [];
-
-        for (const field of changedFields) {
-          const dbCol = fieldMap[field];
-          if (!dbCol) continue;
-
-          const ourValue = (data as Record<string, unknown>)[field];
-          if (ourValue === undefined) continue;
-
-          // 3-way merge: determine whether the *server* also changed this field.
-          // If we have a serverSnapshot we can compare precisely; without it we
-          // fall back to server-wins (safe default).
-          let serverChangedThisField: boolean;
-          if (serverSnapshot && dbCol in serverSnapshot) {
-            // Server changed this field iff its current value differs from the baseline.
-            serverChangedThisField =
-              String(current[dbCol] ?? '') !== String(serverSnapshot[dbCol] ?? '');
-          } else {
-            // No per-field baseline available — assume server changed everything
-            // (conservative / server-wins fallback).
-            serverChangedThisField = true;
-          }
-
-          if (serverChangedThisField) {
-            // Server wins — record the conflict but do not overwrite.
-            conflictingFields.push(field);
-            logger.info(
-              `Field-level conflict on WO ${workOrderId}.${field}: ` +
-              `keeping server value "${current[dbCol]}", discarding offline value "${ourValue}"`,
-            );
-          } else {
-            // Server did not touch this field — safe to apply our offline change.
-            safeUpdate[dbCol] =
-              field === 'dueDate' || field === 'estimatedHours' ? (ourValue || null) : ourValue;
-          }
-        }
-
-        if (Object.keys(safeUpdate).length > 0) {
-          safeUpdate.updated_at = new Date().toISOString();
-          const { error } = await supabase
-            .from('work_orders')
-            .update(safeUpdate)
-            .eq('id', workOrderId);
-
-          if (error) throw error;
-        }
-
-        if (conflictingFields.length > 0) {
-          return {
-            success: true,
-            conflict: {
-              workOrderId,
-              type: 'field_conflict' as const,
-              details: `Server-side changes won for: ${conflictingFields.join(', ')}. Your offline edits to these fields were discarded.`,
-            },
-          };
-        }
-
-        return { success: true };
-      }
-    }
-
-    // No conflict — apply all changed fields directly.
-    const updateData: Record<string, unknown> = {};
-    if (data.title !== undefined) updateData.title = data.title;
-    if (data.description !== undefined) updateData.description = data.description;
-    if (data.priority !== undefined) updateData.priority = data.priority;
-    if (data.dueDate !== undefined) updateData.due_date = data.dueDate || null;
-    if (data.estimatedHours !== undefined) updateData.estimated_hours = data.estimatedHours || null;
-    if (data.hasPM !== undefined) updateData.has_pm = data.hasPM;
-    updateData.updated_at = new Date().toISOString();
-
-    const { error } = await supabase
-      .from('work_orders')
-      .update(updateData)
-      .eq('id', workOrderId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return { success: true };
+    return syncWorkOrderOfflineUpdate(item.organizationId, workOrderId, data, {
+      changedFields,
+      serverUpdatedAt,
+      serverSnapshot,
+    });
   }) as QueueItemHandler<never>,
 
   work_order_status: (async (item: OfflineQueueStatusItem) => {
@@ -313,6 +206,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
         .from('work_orders')
         .select('status, updated_at')
         .eq('id', workOrderId)
+        .eq('organization_id', item.organizationId)
         .single();
 
       if (fetchErr) throw fetchErr;
@@ -358,6 +252,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
       .from('work_orders')
       .update(updateData)
       .eq('id', workOrderId)
+      .eq('organization_id', item.organizationId)
       .select()
       .single();
 
@@ -608,32 +503,15 @@ export class OfflineQueueProcessor {
    * 3. Processes each item with conflict detection
    */
   async processAll(): Promise<ProcessResult> {
-    // ── Session refresh guard ──
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      try {
-        const { error } = await supabase.auth.refreshSession();
-        if (error) {
-          logger.error('Session refresh failed during offline sync', error);
-          return {
-            succeeded: 0,
-            failed: 0,
-            remaining: this.queueService.getPendingCount(),
-            conflicts: [],
-          };
-        }
-      } catch {
-        logger.error('Session refresh threw during offline sync');
-        return {
-          succeeded: 0,
-          failed: 0,
-          remaining: this.queueService.getPendingCount(),
-          conflicts: [],
-        };
-      }
+    if (!(await ensureActiveOfflineSession())) {
+      return {
+        succeeded: 0,
+        failed: 0,
+        remaining: this.queueService.getPendingCount(),
+        conflicts: [],
+      };
     }
 
-    // ── Compact queue before processing ──
     this.queueService.compact();
 
     const items = this.queueService.getAll().filter(i => i.status === 'pending');
@@ -642,125 +520,88 @@ export class OfflineQueueProcessor {
     const conflicts: ConflictInfo[] = [];
 
     for (const item of items) {
-      // Skip items whose handler already succeeded earlier in this session.
-      // This guards against same-session replay when localStorage removal
-      // failed and the item's persisted status is still 'processing'.
-      if (this._processedInSession.has(item.id)) {
+      const outcome = await this.processQueueItem(item);
+      if (!outcome) {
         continue;
       }
-
-      this.queueService.updateStatus(item.id, 'processing');
-
-      const handler = HANDLER_MAP[item.type];
-      if (!handler) {
-        logger.error(`No handler for queue item type: ${item.type}`);
-        this.queueService.updateStatus(item.id, 'failed', 'Unknown item type');
-        failed++;
-        continue;
-      }
-
-      try {
-        const result = await handler(item as never);
-
-        // Mark as processed immediately so any subsequent storage failure
-        // cannot cause a duplicate server-side operation within this session.
-        this._processedInSession.add(item.id);
-
-        if (result.followUpItems?.length) {
-          // Atomically remove the processed item and append follow-ups in a
-          // single localStorage write so neither can be lost independently.
-          try {
-            this.queueService.replaceWithFollowUps(item.id, result.followUpItems);
-          } catch (replaceErr) {
-            // Handler already succeeded against the server — never leave the
-            // original item marked retryable or we risk duplicate creates on a
-            // later sync (e.g. work_order_create). Drop the processed item, then
-            // best-effort enqueue follow-ups individually.
-            logger.error('Failed to atomically replace queue item with follow-ups', replaceErr);
-            try {
-              this.queueService.remove(item.id);
-            } catch (removeErr) {
-              // item.id is already in _processedInSession — same-session replay
-              // is blocked regardless of the queue's persisted state.
-              logger.error('Failed to remove processed queue item after follow-up failure', removeErr);
-            }
-            for (const followUp of result.followUpItems) {
-              try {
-                this.queueService.enqueue(followUp);
-              } catch (enqueueErr) {
-                logger.error('Failed to enqueue follow-up item after primary handler succeeded', enqueueErr);
-              }
-            }
-          }
-        } else {
-          this.queueService.remove(item.id);
-        }
+      if (outcome.outcome === 'succeeded') {
         succeeded++;
-
-        if (result.conflict) {
-          conflicts.push(result.conflict);
+        if (outcome.conflict) {
+          conflicts.push(outcome.conflict);
         }
-      } catch (error) {
-        const newRetryCount = item.retryCount + 1;
-        if (newRetryCount >= item.maxRetries) {
-          try {
-            this.queueService.updateStatus(item.id, 'failed', getErrorMessage(error));
-          } catch (persistErr) {
-            logger.error('Failed to persist failed status for queue item', persistErr);
-          }
-          failed++;
-        } else {
-          try {
-            this.queueService.updateRetry(item.id, newRetryCount, getErrorMessage(error));
-          } catch (persistErr) {
-            logger.error('Failed to persist retry state for queue item', persistErr);
-          }
-        }
+      } else if (outcome.outcome === 'failed') {
+        failed++;
       }
     }
 
-    // Bulk cache invalidation after sync
     if (succeeded > 0) {
-      const orgIds = [...new Set(items.map(i => i.organizationId))];
-      const hasWorkOrderItems = items.some(i =>
-        ['work_order_create', 'work_order_update', 'work_order_status', 'work_order_note'].includes(i.type),
-      );
-      const hasEquipmentItems = items.some(i =>
-        ['equipment_create', 'equipment_create_full', 'equipment_update', 'equipment_hours', 'equipment_note'].includes(i.type),
-      );
-      const hasPMItems = items.some(i =>
-        i.type === 'pm_init' ||
-        i.type === 'pm_update' ||
-        i.type === 'pm_delete' ||
-        (i.type === 'work_order_create' && i.payload.hasPM),
-      );
-
-      for (const orgId of orgIds) {
-        if (hasWorkOrderItems) {
-          this.queryClient.invalidateQueries({ queryKey: workOrders.root });
-          this.queryClient.invalidateQueries({ queryKey: workOrders.enhanced(orgId) });
-          this.queryClient.invalidateQueries({ queryKey: workOrders.optimized(orgId) });
-          this.queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', orgId] });
-          this.queryClient.invalidateQueries({ queryKey: ['workOrders', orgId] });
-          this.queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', orgId] });
-          this.queryClient.invalidateQueries({ queryKey: ['team-based-work-orders', orgId] });
-        }
-        if (hasEquipmentItems) {
-          this.queryClient.invalidateQueries({ queryKey: equipment.root });
-          this.queryClient.invalidateQueries({ queryKey: ['equipment', orgId] });
-        }
-        if (hasPMItems) {
-          // Bulk-invalidate the entire `preventativeMaintenance` namespace so
-          // every per-WO and per-WO+equipment cache key picks up the freshly
-          // synced PM record without us having to enumerate them.
-          this.queryClient.invalidateQueries({ queryKey: preventiveMaintenance.root });
-        }
-        this.queryClient.invalidateQueries({ queryKey: organization(orgId).dashboardStats() });
-        this.queryClient.invalidateQueries({ queryKey: ['dashboardStats', orgId] });
-      }
+      invalidateOfflineSyncQueries(this.queryClient, items);
     }
 
     const remaining = this.queueService.getAll().filter(i => i.status === 'pending').length;
     return { succeeded, failed, remaining, conflicts };
+  }
+
+  private async processQueueItem(
+    item: OfflineQueueItem,
+  ): Promise<{ outcome: 'succeeded' | 'failed' | 'retry'; conflict?: ConflictInfo } | null> {
+    if (this._processedInSession.has(item.id)) {
+      return null;
+    }
+
+    this.queueService.updateStatus(item.id, 'processing');
+
+    const handler = HANDLER_MAP[item.type];
+    if (!handler) {
+      logger.error(`No handler for queue item type: ${item.type}`);
+      this.queueService.updateStatus(item.id, 'failed', 'Unknown item type');
+      return { outcome: 'failed' };
+    }
+
+    try {
+      const result = await handler(item as never);
+      this._processedInSession.add(item.id);
+
+      if (result.followUpItems?.length) {
+        try {
+          this.queueService.replaceWithFollowUps(item.id, result.followUpItems);
+        } catch (replaceErr) {
+          logger.error('Failed to atomically replace queue item with follow-ups', replaceErr);
+          try {
+            this.queueService.remove(item.id);
+          } catch (removeErr) {
+            logger.error('Failed to remove processed queue item after follow-up failure', removeErr);
+          }
+          for (const followUp of result.followUpItems) {
+            try {
+              this.queueService.enqueue(followUp);
+            } catch (enqueueErr) {
+              logger.error('Failed to enqueue follow-up item after primary handler succeeded', enqueueErr);
+            }
+          }
+        }
+      } else {
+        this.queueService.remove(item.id);
+      }
+
+      return { outcome: 'succeeded', conflict: result.conflict };
+    } catch (error) {
+      const newRetryCount = item.retryCount + 1;
+      if (newRetryCount >= item.maxRetries) {
+        try {
+          this.queueService.updateStatus(item.id, 'failed', getErrorMessage(error));
+        } catch (persistErr) {
+          logger.error('Failed to persist failed status for queue item', persistErr);
+        }
+        return { outcome: 'failed' };
+      }
+
+      try {
+        this.queueService.updateRetry(item.id, newRetryCount, getErrorMessage(error));
+      } catch (persistErr) {
+        logger.error('Failed to persist retry state for queue item', persistErr);
+      }
+      return { outcome: 'retry' };
+    }
   }
 }

@@ -39,7 +39,7 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
               <Button
                 variant="outline"
                 onClick={onEditClick}
-                className="min-h-[44px] px-3 touch-manipulation"
+                className="min-h-[44px] min-w-[44px] px-3 touch-manipulation"
                 aria-label="Edit work order"
               >
                 <Edit className="h-4 w-4" />

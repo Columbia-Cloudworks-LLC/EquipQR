@@ -53,7 +53,7 @@ export const usePMByWorkOrderAndEquipment = (workOrderId: string, equipmentId: s
 };
 
 // Get all PMs for a work order (all equipment)
-export const usePMsByWorkOrderId = (workOrderId: string) => {
+const usePMsByWorkOrderId = (workOrderId: string) => {
   const { currentOrganization } = useOrganization();
 
   return useQuery({

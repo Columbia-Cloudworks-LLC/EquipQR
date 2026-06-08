@@ -319,7 +319,7 @@ function hasLowEntropy(key: string): boolean {
  * 
  * @returns true if the key is valid, throws otherwise
  */
-export function validateEncryptionKeyConfiguration(): boolean {
+function validateEncryptionKeyConfiguration(): boolean {
   // This will throw if key is missing or invalid
   getTokenEncryptionKey();
   return true;
@@ -332,7 +332,7 @@ export function validateEncryptionKeyConfiguration(): boolean {
  * 
  * @returns true if the salt is valid, throws otherwise
  */
-export function validateKdfSaltConfiguration(): boolean {
+function validateKdfSaltConfiguration(): boolean {
   // This will throw if salt is missing in production or invalid
   getKdfSalt();
   return true;

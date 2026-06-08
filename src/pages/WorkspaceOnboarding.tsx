@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Onboarding reuses workspace member import table semantics
 import { useMemo, useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
@@ -22,6 +24,7 @@ import {
 } from '@/services/google-workspace';
 import { generateGoogleWorkspaceAuthUrl, isGoogleWorkspaceConfigured } from '@/services/google-workspace/auth';
 import { isConsumerGoogleDomain } from '@/utils/google-workspace';
+import { useGoogleWorkspaceMemberSelection } from '@/features/organization/hooks/useGoogleWorkspaceMemberSelection';
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
 const WorkspaceOnboarding = () => {
@@ -39,6 +42,10 @@ const WorkspaceOnboarding = () => {
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [adminEmails, setAdminEmails] = useState<Set<string>>(new Set());
+  const { toggleEmail, toggleAdmin, clearSelection } = useGoogleWorkspaceMemberSelection(
+    setSelectedEmails,
+    setAdminEmails,
+  );
 
   // Handle OAuth callback parameters
   const gwError = searchParams.get('gw_error');
@@ -164,38 +171,6 @@ const WorkspaceOnboarding = () => {
     }
   };
 
-  const toggleEmail = (email: string, checked: boolean) => {
-    setSelectedEmails(prev => {
-      const next = new Set(prev);
-      if (checked) {
-        next.add(email);
-      } else {
-        next.delete(email);
-      }
-      return next;
-    });
-
-    if (!checked) {
-      setAdminEmails(prev => {
-        const next = new Set(prev);
-        next.delete(email);
-        return next;
-      });
-    }
-  };
-
-  const toggleAdmin = (email: string, checked: boolean) => {
-    setAdminEmails(prev => {
-      const next = new Set(prev);
-      if (checked) {
-        next.add(email);
-      } else {
-        next.delete(email);
-      }
-      return next;
-    });
-  };
-
   const handleAddMembers = async () => {
     if (!workspaceOrgId || selectedEmails.size === 0) return;
     try {
@@ -208,8 +183,7 @@ const WorkspaceOnboarding = () => {
         title: 'Members added',
         description: `${result.members_added} members added. ${result.admin_applied} admins applied; ${result.admin_pending} pending.`,
       });
-      setSelectedEmails(new Set());
-      setAdminEmails(new Set());
+      clearSelection();
       await refetch();
     } catch (error) {
       toast({

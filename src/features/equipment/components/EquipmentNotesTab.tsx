@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Plus, Images, Clock, Gauge, User, EyeOff } from 'lucide-react';
+import { Images } from 'lucide-react';
+import NoteTimelineEntry from '@/components/common/NoteTimelineEntry';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,14 +16,20 @@ import {
 } from '@/features/equipment/services/equipmentNotesService';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
-import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyncBadge';
 import { useOfflineMergedNotes } from '@/features/offline-queue/hooks/useOfflineMergedNotes';
-import InlineNoteComposer from '@/components/common/InlineNoteComposer';
 import ImageGallery from '@/components/common/ImageGallery';
-import { OfflineFormBanner } from '@/features/offline-queue/components/OfflineFormBanner';
-import { logger } from '@/utils/logger';
+import NotesLoadingSkeleton from '@/components/common/NotesLoadingSkeleton';
+import { resolveNoteContentFromSubmit } from '@/components/common/noteContentHelpers';
+import type { NoteSubmitPayload } from '@/components/common/noteSubmitTypes';
+import {
+  createNoteCreateMutationCallbacks,
+  runOfflineAwareNoteCreate,
+  showQueuedNoteCreateToasts,
+} from '@/components/common/noteCreateHelpers';
+import { NotesTabAddNoteSection } from '@/components/common/NotesTabAddNoteSection';
 import { useEquipmentNotesPermissions } from '@/features/equipment/hooks/useEquipmentNotesPermissions';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
+import { useAttachedNoteImages } from '@/hooks/useAttachedNoteImages';
 
 interface EquipmentNotesTabProps {
   equipmentId: string;
@@ -53,7 +57,8 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   const offlineCtx = useOfflineQueueOptional();
   const [showForm, setShowForm] = useState(false);
   const [noteContent, setNoteContent] = useState('');
-  const [attachedImages, setAttachedImages] = useState<File[]>([]);
+  const { attachedImages, handleImagesAdd, handleImageRemove, clearAttachedImages } =
+    useAttachedNoteImages();
   const activeOrganizationId = organizationId ?? currentOrganization?.id;
   const permissions = useEquipmentNotesPermissions(equipmentTeamId);
   const { formatDate: formatNoteDate } = useFormatTimestamp();
@@ -77,61 +82,52 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
 
   // Create note mutation — supports offline (text only; images when online)
   const createNoteMutation = useMutation({
-    mutationFn: async ({ content, hoursWorked, isPrivate, images, machineHours }: {
-      content: string;
-      hoursWorked: number;
-      isPrivate: boolean;
-      images: File[];
-      machineHours?: number;
-    }) => {
-      if (!activeOrganizationId) {
-        throw new Error('No active organization selected');
-      }
-      const orgId = activeOrganizationId;
-
-      // Images require Storage upload (online only), so only text-only notes can go through the offline queue
-      const useOfflinePath = !navigator.onLine || images.length === 0;
-      if (useOfflinePath && user?.id) {
-        const service = new OfflineAwareWorkOrderService(orgId, user.id);
-        const result = await service.createEquipmentNote(equipmentId, content, hoursWorked, isPrivate, machineHours);
-        if (result.queuedOffline) {
-          return { queuedOffline: true, hadImages: images.length > 0 };
-        }
-        return { queuedOffline: false, data: result.data };
-      }
-      return createEquipmentNoteWithImages(
-        equipmentId,
-        content,
-        hoursWorked,
-        isPrivate,
-        images,
-        orgId,
-        machineHours,
-      );
-    },
-    onSuccess: (result) => {
-      const queuedOffline = result && typeof result === 'object' && 'queuedOffline' in result && result.queuedOffline;
-      if (queuedOffline) {
-        const hadImages = result && typeof result === 'object' && 'hadImages' in result && result.hadImages;
-        toast.success(
-          hadImages
-            ? 'Note saved offline. Attach images when you reconnect.'
-            : 'Note saved offline — will sync when you reconnect.',
-        );
+    mutationFn: (input) =>
+      runOfflineAwareNoteCreate({
+        input,
+        organizationId: activeOrganizationId,
+        userId: user?.id,
+        offlineCreate: async ({ content, hoursWorked, isPrivate, images, machineHours }) => {
+          const service = new OfflineAwareWorkOrderService(activeOrganizationId!, user!.id);
+          const result = await service.createEquipmentNote(
+            equipmentId,
+            content,
+            hoursWorked,
+            isPrivate,
+            machineHours,
+          );
+          if (result.queuedOffline) {
+            return { queuedOffline: true as const, hadImages: images.length > 0 };
+          }
+          return { queuedOffline: false as const, data: result.data };
+        },
+        onlineCreate: ({ content, hoursWorked, isPrivate, images, machineHours }) =>
+          createEquipmentNoteWithImages(
+            equipmentId,
+            content,
+            hoursWorked,
+            isPrivate,
+            images,
+            activeOrganizationId!,
+            machineHours,
+          ),
+      }),
+    ...createNoteCreateMutationCallbacks({
+      onQueuedOffline: (hadImages) => {
+        showQueuedNoteCreateToasts(hadImages, { combinedOfflineMessage: true });
         offlineCtx?.refresh();
-      } else {
+      },
+      onOnlineSuccess: () => {
         queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.notesWithImages(equipmentId) });
         queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.images(equipmentId) });
         toast.success('Note created successfully');
-      }
-      setShowForm(false);
-      setNoteContent('');
-      setAttachedImages([]);
-    },
-    onError: (error) => {
-      logger.error('Failed to create note', error);
-      toast.error('Failed to create note');
-    }
+      },
+      resetForm: () => {
+        setShowForm(false);
+        setNoteContent('');
+        clearAttachedImages();
+      },
+    }),
   });
 
   // Delete image mutation
@@ -166,24 +162,10 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
     }
   });
 
-  const handleNoteSubmit = async (data: {
-    content: string;
-    images: File[];
-    hoursWorked?: number;
-    machineHours?: number;
-    isPrivate?: boolean;
-  }) => {
-    // Generate content if none provided but images are uploaded
-    let finalContent = data.content.trim();
-    if (!finalContent && data.images.length > 0) {
-      const userName = user?.email?.split('@')[0] || 'User';
-      if (data.images.length === 1) {
-        finalContent = `${userName} uploaded 1 image.`;
-      } else {
-        finalContent = `${userName} uploaded ${data.images.length} images.`;
-      }
-    }
-    
+  const handleNoteSubmit = async (data: NoteSubmitPayload) => {
+    const userName = user?.email?.split('@')[0] || 'User';
+    const finalContent = resolveNoteContentFromSubmit(data, userName, 'count');
+
     await createNoteMutation.mutateAsync({
       content: finalContent,
       hoursWorked: data.hoursWorked || 0,
@@ -193,177 +175,51 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
     });
   };
 
-  const handleImagesAdd = (files: File[]) => {
-    setAttachedImages(prev => [...prev, ...files]);
-  };
-
-  const handleImageRemove = (index: number) => {
-    setAttachedImages(prev => prev.filter((_, i) => i !== index));
-  };
-
   const canDeleteImage = (image: { uploaded_by: string }) => {
     return image.uploaded_by === user?.id;
-  };
-
-  const formatHours = (hours: number | null | undefined) => {
-    const numHours = Number(hours) || 0;
-    return numHours > 0 ? `${numHours}h` : '';
-  };
-
-  const formatMachineHours = (hours: number | null | undefined) => {
-    const n = Number(hours);
-    return Number.isFinite(n) && n > 0 ? `${n}h` : '';
   };
 
   // Derive user display name for clipboard paste fallback
   const userDisplayName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
 
   if (notesLoading) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-24 bg-muted animate-pulse rounded" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <NotesLoadingSkeleton />;
   }
 
   return (
     <div className="space-y-6">
-      {/* Add Note Form - Always show if no notes exist */}
-      {(notes.length === 0 || showForm) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>{notes.length === 0 ? 'Add Your First Note' : 'Add Note'}</span>
-              {notes.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setShowForm(false);
-                    setNoteContent('');
-                    setAttachedImages([]);
-                  }}
-                >
-                  Cancel
-                </Button>
-              )}
-            </CardTitle>
-            <OfflineFormBanner />
-          </CardHeader>
-          <CardContent>
-            <InlineNoteComposer
-              value={noteContent}
-              onChange={setNoteContent}
-              onSubmit={handleNoteSubmit}
-              attachedImages={attachedImages}
-              onImagesAdd={handleImagesAdd}
-              onImageRemove={handleImageRemove}
-              showPrivateToggle={true}
-              showHoursWorked={true}
-              showMachineHours={true}
-              disabled={createNoteMutation.isPending}
-              isSubmitting={createNoteMutation.isPending}
-              placeholder="Enter your note..."
-              userDisplayName={userDisplayName}
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Add Note Button - Only show if notes exist and form is not shown */}
-      {notes.length > 0 && !showForm && (
-        <div className="flex justify-center">
-          <Button
-            variant="outline"
-            onClick={() => setShowForm(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Note
-          </Button>
-        </div>
-      )}
+      <NotesTabAddNoteSection
+        noteCount={notes.length}
+        showForm={showForm}
+        onShowForm={() => setShowForm(true)}
+        onCancelForm={() => {
+          setShowForm(false);
+          setNoteContent('');
+          clearAttachedImages();
+        }}
+        noteContent={noteContent}
+        onNoteContentChange={setNoteContent}
+        onSubmit={handleNoteSubmit}
+        attachedImages={attachedImages}
+        onImagesAdd={handleImagesAdd}
+        onImageRemove={handleImageRemove}
+        showPrivateToggle
+        disabled={createNoteMutation.isPending}
+        isSubmitting={createNoteMutation.isPending}
+        userDisplayName={userDisplayName}
+      />
 
       {/* Notes List */}
       <div className="space-y-4">
         {notes.map((note) => (
-          <Card key={note.id}>
-            <CardContent standalone>
-              <div className="space-y-3">
-                {/* Note Header */}
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
-                    <User className="h-4 w-4" />
-                    <span>{note.author_name}</span>
-                    {(note as { _isPendingSync?: boolean })._isPendingSync && <PendingSyncBadge />}
-                    <span>•</span>
-                    <span>{formatNoteDate(note.created_at)}</span>
-                    {formatHours(note.hours_worked) && (
-                      <>
-                        <span>•</span>
-                        <Clock className="h-4 w-4" />
-                        <span title="Hours worked">{formatHours(note.hours_worked)} worked</span>
-                      </>
-                    )}
-                    {formatMachineHours(note.machine_hours) && (
-                      <>
-                        <span>•</span>
-                        <Gauge className="h-4 w-4" />
-                        <span title="Machine hours">
-                          {formatMachineHours(note.machine_hours)} machine
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {note.is_private && (
-                      <Badge variant="outline" className="text-xs">
-                        <EyeOff className="h-3 w-3 mr-1" />
-                        Private
-                      </Badge>
-                    )}
-                    {note.images && note.images.length > 0 && (
-                      <Badge variant="outline" className="text-xs">
-                        <Images className="h-3 w-3 mr-1" />
-                        {note.images.length} image{note.images.length !== 1 ? 's' : ''}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                {/* Note Content */}
-                <div className="prose prose-sm max-w-none">
-                  <p className="whitespace-pre-wrap">{note.content}</p>
-                </div>
-
-                {/* Note Images */}
-                {note.images && note.images.length > 0 && (
-                  <>
-                    <Separator />
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                      {note.images.map((image) => (
-                        <div key={image.id} className="aspect-square bg-muted rounded overflow-hidden">
-                          <img
-                            src={image.file_url}
-                            alt={image.file_name}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            decoding="async"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <NoteTimelineEntry
+            key={note.id}
+            note={{
+              ...note,
+              _isPendingSync: (note as { _isPendingSync?: boolean })._isPendingSync,
+            }}
+            formatDate={formatNoteDate}
+          />
         ))}
       </div>
 

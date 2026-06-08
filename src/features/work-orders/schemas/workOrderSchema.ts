@@ -82,80 +82,6 @@ export const workOrderFormSchema = z.object({
 
 export type WorkOrderFormData = z.infer<typeof workOrderFormSchema>;
 
-/**
- * Schema for quick status update
- */
-export const workOrderStatusUpdateSchema = z.object({
-  workOrderId: z.string().uuid(),
-  status: workOrderStatusSchema,
-  organizationId: z.string().uuid()
-});
-
-export type WorkOrderStatusUpdateData = z.infer<typeof workOrderStatusUpdateSchema>;
-
-/**
- * Schema for work order assignment
- */
-export const workOrderAssignmentSchema = z.object({
-  workOrderId: z.string().uuid(),
-  assigneeId: z.string().uuid().nullable(),
-  organizationId: z.string().uuid()
-});
-
-export type WorkOrderAssignmentData = z.infer<typeof workOrderAssignmentSchema>;
-
-/**
- * Schema for work order note creation
- */
-export const workOrderNoteSchema = z.object({
-  content: z.string()
-    .min(1, "Note content is required")
-    .max(5000, "Note must be less than 5000 characters"),
-  hoursWorked: z.number()
-    .min(0, "Hours worked cannot be negative")
-    .max(1000, "Hours worked seems too high")
-    .optional()
-    .default(0),
-  isPrivate: z.boolean().default(false)
-});
-
-export type WorkOrderNoteData = z.infer<typeof workOrderNoteSchema>;
-
-/**
- * Schema for work order cost entry
- */
-export const workOrderCostSchema = z.object({
-  description: z.string()
-    .min(1, "Description is required")
-    .max(500, "Description must be less than 500 characters"),
-  amount: z.number()
-    .min(0, "Amount cannot be negative"),
-  category: z.enum(['labor', 'parts', 'other']).default('other'),
-  quantity: z.number()
-    .min(1, "Quantity must be at least 1")
-    .default(1)
-});
-
-export type WorkOrderCostData = z.infer<typeof workOrderCostSchema>;
-
-// ============================================
-// Filter Schemas
-// ============================================
-
-/**
- * Schema for work order list filters
- */
-export const workOrderFiltersSchema = z.object({
-  searchQuery: z.string().default(''),
-  statusFilter: z.string().default('all'),
-  assigneeFilter: z.string().default('all'),
-  teamFilter: z.string().default('all'),
-  priorityFilter: z.string().default('all'),
-  dueDateFilter: z.string().default('all')
-});
-
-export type WorkOrderFiltersData = z.infer<typeof workOrderFiltersSchema>;
-
 // ============================================
 // Validation Helpers
 // ============================================
@@ -163,7 +89,7 @@ export type WorkOrderFiltersData = z.infer<typeof workOrderFiltersSchema>;
 /**
  * Validate work order form data
  */
-export const validateWorkOrderForm = (data: unknown): { 
+const validateWorkOrderForm = (data: unknown): { 
   success: boolean; 
   data?: WorkOrderFormData; 
   errors?: z.ZodError 
@@ -208,14 +134,14 @@ export const getDefaultWorkOrderFormValues = (
 /**
  * Type guard to check if a string is a valid WorkOrderStatus
  */
-export const isValidStatus = (value: string): value is WorkOrderStatus => {
+const isValidStatus = (value: string): value is WorkOrderStatus => {
   return workOrderStatusSchema.safeParse(value).success;
 };
 
 /**
  * Type guard to check if a string is a valid WorkOrderPriority
  */
-export const isValidPriority = (value: string): value is WorkOrderPriority => {
+const isValidPriority = (value: string): value is WorkOrderPriority => {
   return workOrderPrioritySchema.safeParse(value).success;
 };
 

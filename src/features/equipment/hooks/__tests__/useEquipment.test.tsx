@@ -5,10 +5,9 @@
  * query scenarios and filter combinations.
  */
 
-import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { createQueryClientWrapper, waitForHookSuccess } from '@/test/utils/test-utils';
 import {
   useEquipment,
   useEquipmentById,
@@ -32,8 +31,7 @@ vi.mock('@/features/equipment/services/EquipmentService', () => ({
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
-    createScan: vi.fn(),
-    createNote: vi.fn()
+    createScan: vi.fn()
   }
 }));
 
@@ -60,25 +58,7 @@ vi.mock('@/hooks/useAppToast', () => ({
 
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
 
-// Create a new query client for each test
-const createTestQueryClient = () =>
-  new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-        gcTime: 0
-      }
-    }
-  });
-
-const createWrapper = () => {
-  const queryClient = createTestQueryClient();
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
-  );
-};
+const createWrapper = createQueryClientWrapper;
 
 describe('useEquipment', () => {
   beforeEach(() => {
@@ -99,9 +79,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(result.current.data).toHaveLength(Object.keys(equipment).length);
       expect(EquipmentService.getAll).toHaveBeenCalledWith(
@@ -129,9 +107,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(EquipmentService.getAll).toHaveBeenCalledWith(
         organizations.acme.id,
@@ -148,9 +124,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(EquipmentService.getAll).toHaveBeenCalledWith(
         organizations.acme.id,
@@ -185,9 +159,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(EquipmentService.getAll).toHaveBeenCalled();
     });
@@ -207,9 +179,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(EquipmentService.getById).toHaveBeenCalledWith(
         organizations.acme.id,
@@ -274,9 +244,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(EquipmentService.getNotesByEquipmentId).toHaveBeenCalledWith(
         organizations.acme.id,
@@ -313,9 +281,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(EquipmentService.getScansByEquipmentId).toHaveBeenCalledWith(
         organizations.acme.id,
@@ -350,9 +316,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(EquipmentService.getStatusCounts).toHaveBeenCalledWith(organizations.acme.id);
       expect(result.current.data).toEqual(mockCounts);
@@ -378,9 +342,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(result.current.data).toEqual({ active: 0, maintenance: 0, inactive: 0 });
     });
@@ -402,9 +364,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       // Should return grouped manufacturers with their models
       expect(result.current.data).toBeDefined();
@@ -436,9 +396,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(result.current.data).toEqual([]);
     });
@@ -460,9 +418,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       // First manufacturer should be Apple (alphabetically)
       expect(result.current.data?.[0]?.manufacturer).toBe('Apple');
@@ -489,9 +445,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       // Should only have Toyota (equipment without manufacturer is skipped)
       expect(result.current.data).toHaveLength(1);
@@ -509,9 +463,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       // The query was called with the right parameters
       expect(EquipmentService.getAll).toHaveBeenCalledWith(
@@ -532,9 +484,7 @@ describe('useEquipment', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(EquipmentService.getById).toHaveBeenCalledWith(
         organizations.acme.id,

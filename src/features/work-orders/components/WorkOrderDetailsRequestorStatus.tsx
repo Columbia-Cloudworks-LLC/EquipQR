@@ -1,12 +1,16 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Requestor status mirrors manager status controls
 
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Clock, User, UserMinus, Wrench, Clipboard } from 'lucide-react';
+import { Clock, Wrench, Clipboard } from 'lucide-react';
 import { WorkOrderData, EquipmentData, PermissionLevels, PMData } from '@/features/work-orders/types/workOrderDetails';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
+import { formatStatus, getStatusColor } from '@/features/work-orders/utils/workOrderHelpers';
+import { getWorkOrderAssignmentDisplay } from '@/features/work-orders/utils/workOrderAssignmentDisplay';
 
 interface WorkOrderDetailsRequestorStatusProps {
   workOrder: WorkOrderData;
@@ -22,49 +26,13 @@ export const WorkOrderDetailsRequestorStatus: React.FC<WorkOrderDetailsRequestor
   pmData
 }) => {
   const { formatDate } = useFormatTimestamp();
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'submitted': return 'bg-info/20 text-info';
-      case 'accepted': return 'bg-primary/20 text-primary';
-      case 'assigned': return 'bg-warning/20 text-warning';
-      case 'in_progress': return 'bg-warning/20 text-warning';
-      case 'on_hold': return 'bg-muted text-foreground';
-      case 'completed': return 'bg-success/20 text-success';
-      case 'cancelled': return 'bg-destructive/20 text-destructive';
-      default: return 'bg-muted text-foreground';
-    }
-  };
-
-  const formatStatus = (status: string) => {
-    return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
-
-  const getAssignmentInfo = () => {
-    const assigneeName = workOrder.assigneeName || workOrder.assignee?.name;
-    
-    if (workOrder.assignee_id && assigneeName) {
-      return {
-        type: 'user',
-        name: assigneeName,
-        icon: User,
-        label: 'Assigned to'
-      };
-    }
-    
-    return {
-      type: 'unassigned',
-      name: 'Not yet assigned',
-      icon: UserMinus,
-      label: 'Assignment'
-    };
-  };
 
   // Only show for non-managers
   if (permissionLevels.isManager) {
     return null;
   }
 
-  const assignment = getAssignmentInfo();
+  const assignment = getWorkOrderAssignmentDisplay(workOrder);
   const AssignmentIcon = assignment.icon;
 
   return (

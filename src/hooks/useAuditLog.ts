@@ -20,6 +20,13 @@ import {
   ACTION_LABELS,
 } from '@/types/audit';
 import { useAppToast } from '@/hooks/useAppToast';
+import { runAuditExportDownload } from '@/hooks/auditExportDownload';
+import {
+  AUDIT_QUERY_STALE_MS,
+  auditInfiniteNextPage,
+  mapAuditPage,
+  unwrapAuditResult,
+} from '@/hooks/auditLogQueryHelpers';
 
 // ============================================
 // Helper Functions
@@ -133,25 +140,13 @@ export function useEntityHistory(
         { page: pageParam, pageSize }
       );
       
-      if (!result.success || !result.data) {
-        throw new Error(result.error || 'Failed to fetch entity history');
-      }
-      
-      return {
-        ...result.data,
-        data: result.data.data.map(formatAuditEntry),
-        page: pageParam,
-      };
+      const data = unwrapAuditResult(result, 'Failed to fetch entity history');
+      return mapAuditPage(data, pageParam, formatAuditEntry);
     },
     initialPageParam: 1,
-    getNextPageParam: (lastPage) => {
-      if (lastPage.hasMore) {
-        return lastPage.page + 1;
-      }
-      return undefined;
-    },
+    getNextPageParam: auditInfiniteNextPage,
     enabled,
-    staleTime: 30 * 1000, // 30 seconds - audit data changes with entity updates
+    staleTime: AUDIT_QUERY_STALE_MS,
   });
 }
 
@@ -187,17 +182,14 @@ export function useOrganizationAuditLog(
         pagination
       );
       
-      if (!result.success || !result.data) {
-        throw new Error(result.error || 'Failed to fetch audit log');
-      }
-      
+      const data = unwrapAuditResult(result, 'Failed to fetch audit log');
       return {
-        ...result.data,
-        data: result.data.data.map(formatAuditEntry),
+        ...data,
+        data: data.data.map(formatAuditEntry),
       };
     },
     enabled,
-    staleTime: 30 * 1000,
+    staleTime: AUDIT_QUERY_STALE_MS,
   });
 
   return query;
@@ -206,7 +198,7 @@ export function useOrganizationAuditLog(
 /**
  * Hook for paginated organization audit log with infinite scroll
  */
-export function useOrganizationAuditLogInfinite(
+function useOrganizationAuditLogInfinite(
   organizationId: string | undefined,
   filters?: AuditLogFilters,
   options?: {
@@ -226,25 +218,13 @@ export function useOrganizationAuditLogInfinite(
         { page: pageParam, pageSize }
       );
       
-      if (!result.success || !result.data) {
-        throw new Error(result.error || 'Failed to fetch audit log');
-      }
-      
-      return {
-        ...result.data,
-        data: result.data.data.map(formatAuditEntry),
-        page: pageParam,
-      };
+      const data = unwrapAuditResult(result, 'Failed to fetch audit log');
+      return mapAuditPage(data, pageParam, formatAuditEntry);
     },
     initialPageParam: 1,
-    getNextPageParam: (lastPage) => {
-      if (lastPage.hasMore) {
-        return lastPage.page + 1;
-      }
-      return undefined;
-    },
+    getNextPageParam: auditInfiniteNextPage,
     enabled,
-    staleTime: 30 * 1000,
+    staleTime: AUDIT_QUERY_STALE_MS,
   });
 }
 
@@ -277,14 +257,10 @@ export function useAuditTimeline(
     queryFn: async () => {
       const result = await auditService.getAuditTimeline(organizationId!, params);
 
-      if (!result.success || !result.data) {
-        throw new Error(result.error || 'Failed to fetch audit timeline');
-      }
-
-      return result.data;
+      return unwrapAuditResult(result, 'Failed to fetch audit timeline');
     },
     enabled,
-    staleTime: 30 * 1000,
+    staleTime: AUDIT_QUERY_STALE_MS,
   });
 }
 
@@ -295,7 +271,7 @@ export function useAuditTimeline(
 /**
  * Hook to fetch activity for a specific user
  */
-export function useUserActivity(
+function useUserActivity(
   organizationId: string | undefined,
   userId: string | undefined,
   pagination?: AuditLogPagination,
@@ -335,7 +311,7 @@ export function useUserActivity(
 /**
  * Hook to fetch recent activity for dashboard widgets
  */
-export function useRecentActivity(
+function useRecentActivity(
   organizationId: string | undefined,
   limit: number = 10,
   options?: {
@@ -403,93 +379,17 @@ export function useAuditStats(
 export function useAuditExport(organizationId: string | undefined) {
   const { toast } = useAppToast();
 
-  const exportToCsv = useCallback(async (
-    filters?: AuditLogFilters,
-    onProgress?: (progress: { current: number; total: number }) => void
-  ) => {
-    if (!organizationId) {
-      toast({
-        title: 'Export Failed',
-        description: 'Organization ID is required',
-        variant: 'error',
-      });
-      return;
-    }
+  const exportToCsv = useCallback(
+    (filters?: AuditLogFilters, onProgress?: (progress: { current: number; total: number }) => void) =>
+      runAuditExportDownload(organizationId, toast, 'csv', filters, onProgress),
+    [organizationId, toast],
+  );
 
-    try {
-      const result = await auditService.exportToCsv(organizationId, filters, onProgress);
-      
-      if (!result.success || !result.data) {
-        throw new Error(result.error || 'Export failed');
-      }
-
-      const blob = new Blob([result.data], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `audit-log-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: 'Export Complete',
-        description: 'Audit log has been exported to CSV',
-        variant: 'success',
-      });
-    } catch (error) {
-      toast({
-        title: 'Export Failed',
-        description: error instanceof Error ? error.message : 'Failed to export audit log',
-        variant: 'error',
-      });
-    }
-  }, [organizationId, toast]);
-
-  const exportToJson = useCallback(async (
-    filters?: AuditLogFilters,
-    onProgress?: (progress: { current: number; total: number }) => void
-  ) => {
-    if (!organizationId) {
-      toast({
-        title: 'Export Failed',
-        description: 'Organization ID is required',
-        variant: 'error',
-      });
-      return;
-    }
-
-    try {
-      const result = await auditService.exportToJson(organizationId, filters, onProgress);
-
-      if (!result.success || !result.data) {
-        throw new Error(result.error || 'Export failed');
-      }
-
-      const blob = new Blob([result.data], { type: 'application/json;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `audit-log-${format(new Date(), 'yyyy-MM-dd')}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: 'Export Complete',
-        description: 'Audit log has been exported to JSON',
-        variant: 'success',
-      });
-    } catch (error) {
-      toast({
-        title: 'Export Failed',
-        description: error instanceof Error ? error.message : 'Failed to export audit log',
-        variant: 'error',
-      });
-    }
-  }, [organizationId, toast]);
+  const exportToJson = useCallback(
+    (filters?: AuditLogFilters, onProgress?: (progress: { current: number; total: number }) => void) =>
+      runAuditExportDownload(organizationId, toast, 'json', filters, onProgress),
+    [organizationId, toast],
+  );
 
   return { exportToCsv, exportToJson };
 }
@@ -501,7 +401,7 @@ export function useAuditExport(organizationId: string | undefined) {
 /**
  * Combined hook for the Audit Log page with filtering and pagination
  */
-export function useAuditLogPage(organizationId: string | undefined) {
+function useAuditLogPage(organizationId: string | undefined) {
   const { exportToCsv } = useAuditExport(organizationId);
 
   // Memoized filter state helpers

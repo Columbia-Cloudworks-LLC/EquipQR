@@ -61,13 +61,12 @@ $EDGE_ITEM_CONFIG = @{
             'VAPID_PUBLIC_KEY',
             'VAPID_PRIVATE_KEY',
             'VAPID_SUBJECT',
-            'PRODUCTION_URL'
+            'PUBLIC_SITE_URL'
         )
         OptionalVars      = @(
             'GITHUB_PAT',
             'GITHUB_WEBHOOK_SECRET',
-            'QB_OAUTH_REDIRECT_BASE_URL',
-            'GW_OAUTH_REDIRECT_BASE_URL',
+            'PRODUCTION_URL',
             'SUPER_ADMIN_ORG_ID'
         )
     }
@@ -88,13 +87,12 @@ $EDGE_ITEM_CONFIG = @{
             'VAPID_PUBLIC_KEY',
             'VAPID_PRIVATE_KEY',
             'VAPID_SUBJECT',
-            'PRODUCTION_URL'
+            'PUBLIC_SITE_URL'
         )
         OptionalVars      = @(
             'GITHUB_PAT',
             'GITHUB_WEBHOOK_SECRET',
-            'QB_OAUTH_REDIRECT_BASE_URL',
-            'GW_OAUTH_REDIRECT_BASE_URL',
+            'PRODUCTION_URL',
             'SUPER_ADMIN_ORG_ID'
         )
     }

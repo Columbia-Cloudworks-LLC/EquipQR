@@ -34,7 +34,8 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 
 | Secret Name | Required For | Example Value | Notes |
 |------------|--------------|---------------|-------|
-| `PRODUCTION_URL` | `send-invitation-email`, `quickbooks-oauth-callback` | `https://preview.equipqr.app` | **For preview branch, this should be the preview deployment URL** |
+| `PUBLIC_SITE_URL` | `send-invitation-email`, OAuth callbacks | `https://preview.equipqr.app` | **Canonical public app origin for preview** |
+| `PRODUCTION_URL` | Legacy fallback for `PUBLIC_SITE_URL` | `https://preview.equipqr.app` | Deprecated — migrate to `PUBLIC_SITE_URL` |
 | `SUPER_ADMIN_ORG_ID` | Admin validation functions | `your-org-id` | Organization ID for super admin access |
 
 ### Email Service
@@ -72,8 +73,8 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 |------------|--------------|---------------|-------|
 | `INTUIT_CLIENT_ID` | All QuickBooks functions | `Q0...` | QuickBooks OAuth client ID |
 | `INTUIT_CLIENT_SECRET` | All QuickBooks functions | `...` | QuickBooks OAuth client secret |
-| `QB_OAUTH_REDIRECT_BASE_URL` | `quickbooks-oauth-callback` | `https://supabase.equipqr.app` | **⚠️ CRITICAL: Must match client `VITE_QB_OAUTH_REDIRECT_BASE_URL`** |
-| `QUICKBOOKS_SANDBOX` | All QuickBooks functions | `true` or `false` | Set to `true` for sandbox, `false` for production |
+
+OAuth callback URIs are derived from `SUPABASE_URL` — do **not** set `QB_OAUTH_REDIRECT_BASE_URL` or `GW_OAUTH_REDIRECT_BASE_URL` for normal environments. See [URL config external cleanup](url-config-external-cleanup.md).
 
 ### GitHub Integration (Bug Reporting)
 
@@ -90,7 +91,7 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 - `RESEND_API_KEY` ✅
 - `SUPABASE_URL` ✅
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
-- `PRODUCTION_URL` ✅
+- `PUBLIC_SITE_URL` ✅ (or legacy `PRODUCTION_URL`)
 
 #### `geocode-location`
 - `GOOGLE_MAPS_SERVER_KEY` ✅ (legacy `GOOGLE_MAPS_API_KEY` accepted as fallback)
@@ -118,30 +119,25 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 - `INTUIT_CLIENT_SECRET` ✅
 - `SUPABASE_URL` ✅
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
-- `PRODUCTION_URL` ✅
-- `QB_OAUTH_REDIRECT_BASE_URL` ✅ **⚠️ CRITICAL: Must match `VITE_QB_OAUTH_REDIRECT_BASE_URL`**
-- `QUICKBOOKS_SANDBOX` ✅
+- `PUBLIC_SITE_URL` ✅ (or legacy `PRODUCTION_URL`)
 
 #### `quickbooks-refresh-tokens`
 - `INTUIT_CLIENT_ID` ✅
 - `INTUIT_CLIENT_SECRET` ✅
 - `SUPABASE_URL` ✅
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
-- `QUICKBOOKS_SANDBOX` ✅
 
 #### `quickbooks-search-customers`
 - `INTUIT_CLIENT_ID` ✅
 - `INTUIT_CLIENT_SECRET` ✅
 - `SUPABASE_URL` ✅
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
-- `QUICKBOOKS_SANDBOX` ✅
 
 #### `quickbooks-export-invoice`
 - `INTUIT_CLIENT_ID` ✅
 - `INTUIT_CLIENT_SECRET` ✅
 - `SUPABASE_URL` ✅
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
-- `QUICKBOOKS_SANDBOX` ✅
 
 ### Bug Reporting
 
@@ -176,7 +172,6 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
 - `TOKEN_ENCRYPTION_KEY` ✅
 - `KDF_SALT` ⚠️ (Optional but recommended for defense-in-depth)
-- `GW_OAUTH_REDIRECT_BASE_URL` ✅
 - `GOOGLE_WORKSPACE_CLIENT_ID` ✅
 - `GOOGLE_WORKSPACE_CLIENT_SECRET` ✅
 
@@ -227,7 +222,7 @@ SUPABASE_SERVICE_ROLE_KEY=<preview-branch-service-role-key>
 SUPABASE_ANON_KEY=<preview-branch-anon-key>
 
 # Application Configuration
-PRODUCTION_URL=https://preview.equipqr.app
+PUBLIC_SITE_URL=https://preview.equipqr.app
 SUPER_ADMIN_ORG_ID=<your-org-id>
 
 # Email Service
@@ -248,13 +243,10 @@ GITHUB_WEBHOOK_SECRET=<your-github-webhook-secret>
 # QuickBooks (if enabled)
 INTUIT_CLIENT_ID=<your-intuit-client-id>
 INTUIT_CLIENT_SECRET=<your-intuit-client-secret>
-QB_OAUTH_REDIRECT_BASE_URL=https://supabase.preview.equipqr.app
-QUICKBOOKS_SANDBOX=true
 
 # Google Workspace Integration (if enabled)
 GOOGLE_WORKSPACE_CLIENT_ID=<your-google-workspace-client-id>
 GOOGLE_WORKSPACE_CLIENT_SECRET=<your-google-workspace-client-secret>
-GW_OAUTH_REDIRECT_BASE_URL=https://supabase.preview.equipqr.app
 TOKEN_ENCRYPTION_KEY=<generate-with-openssl-rand-base64-32>
 KDF_SALT=<generate-unique-salt-with-openssl-rand-base64-32>
 ```
@@ -272,7 +264,7 @@ After setting secrets, verify they're working:
 ### ⚠️ Critical: Branch-Specific Values
 
 - **`SUPABASE_URL`**: Must be the preview branch URL (`https://olsdirkvvfegvclbpgrg.supabase.co`), NOT the production URL
-- **`PRODUCTION_URL`**: For preview branch, this should be `https://preview.equipqr.app` (the preview deployment URL), NOT `https://equipqr.app`
+- **`PUBLIC_SITE_URL`**: For preview branch, this should be `https://preview.equipqr.app` (the preview deployment URL), NOT `https://equipqr.app`
 
 ### 🔄 Secrets Are Not Synced
 
@@ -302,7 +294,7 @@ Secrets are **not automatically synced** between branches. If you add a new secr
 
 ### Email Invitations Use Wrong URL
 
-1. Verify `PRODUCTION_URL` is set correctly for the branch:
+1. Verify `PUBLIC_SITE_URL` (or legacy `PRODUCTION_URL`) is set correctly for the branch:
    - Production branch: `https://equipqr.app`
    - Preview branch: `https://preview.equipqr.app`
 

@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { useSession } from '@/hooks/useSession';
+import { mapSessionTeamMemberships } from '@/features/teams/utils/sessionTeamMemberships';
 import {
   TeamContext,
-  type TeamMembership,
   type TeamMembershipContextType,
 } from './team-context';
 
@@ -19,13 +19,7 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshSession 
   } = useSession();
 
-  // Convert session team memberships to the expected format
-  const teamMemberships: TeamMembership[] = (sessionData?.teamMemberships || []).map(tm => ({
-    team_id: tm.teamId,
-    team_name: tm.teamName,
-    role: tm.role,
-    joined_date: tm.joinedDate
-  }));
+  const teamMemberships = mapSessionTeamMemberships(sessionData?.teamMemberships);
 
   const teamData: TeamMembershipContextType = {
     teamMemberships,
@@ -46,4 +40,3 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export { TeamContext };
-export type { TeamMembership, TeamMembershipContextType };

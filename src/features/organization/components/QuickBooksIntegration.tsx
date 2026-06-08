@@ -27,9 +27,10 @@ import {
   disconnectQuickBooks,
   manualTokenRefresh,
 } from '@/services/quickbooks';
-import { isQuickBooksEnabled } from '@/lib/flags';
 import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
 import { toast } from 'sonner';
+import { IntegrationLoadingCard } from '@/features/organization/components/IntegrationLoadingCard';
+import { IntegrationNotConfiguredCard } from '@/features/organization/components/IntegrationNotConfiguredCard';
 
 interface QuickBooksIntegrationProps {
   /** @deprecated - No longer used. Permission is now derived from useQuickBooksAccess hook. */
@@ -46,7 +47,6 @@ export const QuickBooksIntegration = ({
 
   const { data: canManage = false, isLoading: permissionLoading } = useQuickBooksAccess();
 
-  const featureEnabled = isQuickBooksEnabled();
   const isConfigured = isQuickBooksConfigured();
 
   const {
@@ -56,7 +56,7 @@ export const QuickBooksIntegration = ({
   } = useQuery({
     queryKey: ['quickbooks', 'connection', currentOrganization?.id],
     queryFn: () => getConnectionStatus(currentOrganization!.id),
-    enabled: !!currentOrganization?.id && canManage && featureEnabled,
+    enabled: !!currentOrganization?.id && canManage && isConfigured,
     staleTime: 60 * 1000,
   });
 
@@ -105,32 +105,20 @@ export const QuickBooksIntegration = ({
     }
   };
 
-  if (!featureEnabled || (!permissionLoading && !canManage)) {
+  if (!permissionLoading && !canManage) {
     return null;
   }
 
   if (permissionLoading || statusLoading) {
-    return (
-      <div className="rounded-lg border p-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading QuickBooks...
-        </div>
-      </div>
-    );
+    return <IntegrationLoadingCard label="Loading QuickBooks..." />;
   }
 
   if (!isConfigured) {
     return (
-      <div className="rounded-lg border p-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-medium">QuickBooks Online</p>
-            <p className="text-xs text-muted-foreground">Export work orders as draft invoices</p>
-          </div>
-          <Badge variant="secondary" className="self-start sm:self-auto">Not configured</Badge>
-        </div>
-      </div>
+      <IntegrationNotConfiguredCard
+        title="QuickBooks Online"
+        description="Export work orders as draft invoices"
+      />
     );
   }
 
@@ -254,4 +242,3 @@ export const QuickBooksIntegration = ({
   );
 };
 
-export default QuickBooksIntegration;

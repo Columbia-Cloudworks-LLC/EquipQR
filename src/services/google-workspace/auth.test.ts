@@ -42,5 +42,41 @@ describe('generateGoogleWorkspaceAuthUrl', () => {
       p_origin_url: expect.any(String),
     });
   });
+
+  it('derives redirect_uri from VITE_SUPABASE_URL when override is unset', async () => {
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://olsdirkvvfegvclbpgrg.supabase.co');
+    vi.stubEnv('VITE_GW_OAUTH_REDIRECT_BASE_URL', '');
+    rpcMock.mockResolvedValue({
+      data: [{ session_token: 'session-token', nonce: 'nonce-token' }],
+      error: null,
+    });
+
+    const url = await generateGoogleWorkspaceAuthUrl({
+      organizationId: 'org-123',
+    });
+
+    const parsed = new URL(url);
+    expect(parsed.searchParams.get('redirect_uri')).toBe(
+      'https://olsdirkvvfegvclbpgrg.supabase.co/functions/v1/google-workspace-oauth-callback',
+    );
+  });
+
+  it('normalizes the retired preview Supabase redirect host', async () => {
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://olsdirkvvfegvclbpgrg.supabase.co');
+    vi.stubEnv('VITE_GW_OAUTH_REDIRECT_BASE_URL', 'https://supabase.preview.equipqr.app');
+    rpcMock.mockResolvedValue({
+      data: [{ session_token: 'session-token', nonce: 'nonce-token' }],
+      error: null,
+    });
+
+    const url = await generateGoogleWorkspaceAuthUrl({
+      organizationId: 'org-123',
+    });
+
+    const parsed = new URL(url);
+    expect(parsed.searchParams.get('redirect_uri')).toBe(
+      'https://olsdirkvvfegvclbpgrg.supabase.co/functions/v1/google-workspace-oauth-callback',
+    );
+  });
 });
 

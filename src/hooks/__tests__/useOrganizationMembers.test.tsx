@@ -17,10 +17,19 @@ vi.mock('sonner', () => ({
   }
 }));
 
+vi.mock('@/utils/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
 
 // Import mocked modules for assertions
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 const MembersProbe = ({ organizationId }: { organizationId: string }) => {
   const { data, isLoading, error } = useOrganizationMembers(organizationId);
@@ -81,18 +90,15 @@ const RemoveMemberProbe = ({ organizationId, onReady }: { organizationId: string
 };
 
 describe('useOrganizationMembers', () => {
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
   let invalidateSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     vi.clearAllMocks();
-    consoleErrorSpy.mockRestore();
     invalidateSpy.mockRestore();
   });
 
@@ -160,9 +166,8 @@ describe('useOrganizationMembers', () => {
       expect(screen.getByTestId('has-error')).toHaveTextContent('true');
       expect(screen.getByTestId('member-count')).toHaveTextContent('0');
 
-      // Verify console error was called (uses logger format with emoji prefix)
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '🚨 Error fetching organization members',
+      expect(logger.error).toHaveBeenCalledWith(
+        'Error fetching organization members',
         mockError
       );
     });
@@ -305,9 +310,9 @@ describe('useOrganizationMembers', () => {
         capturedMutation!.mutateAsync({ memberId: 'u1', newRole: 'member' })
       ).rejects.toThrow();
 
-      // Verify error handling (uses logger format with emoji prefix)
+      // Verify error handling
       expect(toast.error).toHaveBeenCalledWith('Failed to update member role');
-      expect(consoleErrorSpy).toHaveBeenCalledWith('🚨 Error updating member role', mockError);
+      expect(logger.error).toHaveBeenCalledWith('Error updating member role', mockError);
 
       // Verify error state
       await waitFor(() => {

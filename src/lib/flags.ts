@@ -6,13 +6,9 @@
  */
 
 /**
- * Controls whether QuickBooks Online integration is enabled.
- * When disabled, all QuickBooks-related UI and functionality is hidden.
- * 
- * Set via environment variable: VITE_ENABLE_QUICKBOOKS
- * Defaults to false (disabled) unless explicitly set to 'true'.
+ * QuickBooks Online integration is always available when credentials are configured.
  */
-export const QUICKBOOKS_ENABLED = import.meta.env.VITE_ENABLE_QUICKBOOKS === 'true';
+export const QUICKBOOKS_ENABLED = true;
 
 /**
  * Controls whether Multi-Factor Authentication (MFA) features are enabled.
@@ -86,7 +82,7 @@ export function isMFAEnabled(): boolean {
  * Check if the offline queue feature is enabled
  * @returns true if offline queue features should be active
  */
-export function isOfflineQueueEnabled(): boolean {
+function isOfflineQueueEnabled(): boolean {
   return OFFLINE_QUEUE_ENABLED;
 }
 

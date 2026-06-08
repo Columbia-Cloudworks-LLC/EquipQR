@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ListTree } from 'lucide-react';
@@ -131,7 +130,7 @@ export const PMTemplateSectionToc: React.FC<PMTemplateSectionTocProps> = ({
               )
             )}
           </div>
-          <ScrollArea className="max-h-[50vh] pr-2">
+          <div className="max-h-[50vh] overflow-y-auto pr-2">
             <nav aria-label="Template sections table of contents">
               <ul className="space-y-1 text-sm">
                 {sections.map((section) => (
@@ -150,7 +149,7 @@ export const PMTemplateSectionToc: React.FC<PMTemplateSectionTocProps> = ({
                 ))}
               </ul>
             </nav>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
     </div>

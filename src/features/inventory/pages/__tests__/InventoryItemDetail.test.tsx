@@ -13,6 +13,7 @@ const renderWithUser = (ui: React.ReactElement) => {
 };
 import type { InventoryItem, PartCompatibilityRule } from '@/features/inventory/types/inventory';
 import * as useInventoryModule from '@/features/inventory/hooks/useInventory';
+import * as inventoryEquipmentLinkMutations from '@/features/inventory/hooks/inventoryEquipmentLinkMutations';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 // Mock react-router-dom
@@ -136,12 +137,15 @@ vi.mock('@/features/inventory/hooks/useInventory', () => ({
   useDeleteInventoryItem: vi.fn(),
   useAdjustInventoryQuantity: vi.fn(),
   useUpdateInventoryItem: vi.fn(),
-  useUnlinkItemFromEquipment: vi.fn(),
   useCompatibleEquipmentForItem: vi.fn(),
   useBulkLinkEquipmentToItem: vi.fn(),
   useCompatibilityRulesForItem: vi.fn(),
   useBulkSetCompatibilityRules: vi.fn(),
   useEquipmentMatchingItemRules: vi.fn()
+}));
+
+vi.mock('@/features/inventory/hooks/inventoryEquipmentLinkMutations', () => ({
+  useUnlinkItemFromEquipment: vi.fn(),
 }));
 
 vi.mock('@/features/inventory/hooks/usePartsManagers', () => ({
@@ -189,10 +193,10 @@ const setupMocks = (options: { rules?: PartCompatibilityRule[]; itemLoading?: bo
     isPending: false
   } as unknown as ReturnType<typeof useInventoryModule.useUpdateInventoryItem>);
   
-  vi.mocked(useInventoryModule.useUnlinkItemFromEquipment).mockReturnValue({
+  vi.mocked(inventoryEquipmentLinkMutations.useUnlinkItemFromEquipment).mockReturnValue({
     mutateAsync: vi.fn(),
     isPending: false
-  } as unknown as ReturnType<typeof useInventoryModule.useUnlinkItemFromEquipment>);
+  } as unknown as ReturnType<typeof inventoryEquipmentLinkMutations.useUnlinkItemFromEquipment>);
   
   vi.mocked(useInventoryModule.useCompatibleEquipmentForItem).mockReturnValue({
     data: [{ id: 'eq-1', name: 'Bulldozer 1', manufacturer: 'Caterpillar', model: 'D6T' }],

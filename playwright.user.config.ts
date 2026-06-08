@@ -2,6 +2,10 @@ import fs from 'fs';
 import path from 'path';
 import { defineConfig, devices } from '@playwright/test';
 import { loadUserRegressionRunConfig } from './e2e/user/shared/run-config';
+import {
+  resolveRealAuthBaseUrl,
+  resolveVercelAutomationBypassHeaders,
+} from './e2e/user/shared/real-auth-config';
 
 const repoRoot = process.cwd();
 const runConfig = loadUserRegressionRunConfig();
@@ -14,19 +18,20 @@ const overlayMode = runConfig.overlayMode;
 const viewportMode = runConfig.viewportMode;
 const showPlaywrightAnnotations = annotateVideos && overlayMode === 'debug';
 const desktopDevice = devices['Desktop Chrome'];
-const videoSize = viewportMode === 'mobile'
-  ? { width: 390, height: 844 }
-  : { width: 1280, height: 720 };
+const effectiveViewportMode = viewportMode === 'mobile' ? 'mobile' : 'desktop';
+const videoSize = runConfig.videoSize;
 const viewportOverrides = viewportMode === 'mobile'
   ? {
-      viewport: { width: 390, height: 844 },
+      viewport: runConfig.mobileViewport,
       deviceScaleFactor: 3,
       isMobile: true,
       hasTouch: true,
       userAgent:
         'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36',
     }
-  : {};
+  : {
+      viewport: runConfig.desktopViewport,
+    };
 const videoAnnotations = {
   actions: {
     duration: 900,
@@ -41,7 +46,8 @@ const videoAnnotations = {
 };
 const artifactTitle = runConfig.recordingTitle || overlayMode;
 const artifactContext = [
-  viewportMode,
+  effectiveViewportMode,
+  runConfig.runProfile !== 'test' ? runConfig.runProfile : '',
   runConfig.recordAllVideos ? 'record' : 'test',
   artifactTitle !== 'none' ? artifactTitle : '',
 ]
@@ -58,12 +64,16 @@ const outputDir = runConfig.outputDir || path.join(
   artifactContext || 'desktop-test',
 );
 
-function storageStateFor(persona: string): string | undefined {
-  const filePath = path.join(authDir, `${persona}.json`);
-  return fs.existsSync(filePath) ? filePath : undefined;
-}
+const ownerStorage = path.join(authDir, 'owner.json');
 
-const ownerStorage = storageStateFor('owner');
+const realAuthStorageRaw = process.env.E2E_REAL_AUTH_STORAGE_STATE?.trim();
+const realAuthStorageState = realAuthStorageRaw
+  ? path.resolve(realAuthStorageRaw)
+  : null;
+const realAuthStorageExists =
+  realAuthStorageState !== null && fs.existsSync(realAuthStorageState);
+const realAuthBaseURL = resolveRealAuthBaseUrl();
+const vercelAutomationBypassHeaders = resolveVercelAutomationBypassHeaders();
 
 export default defineConfig({
   testDir: 'e2e/user',
@@ -85,21 +95,16 @@ export default defineConfig({
     baseURL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: recordAllVideos
-      ? showPlaywrightAnnotations
-        ? {
-            mode: 'on',
-            size: videoSize,
-            show: videoAnnotations,
-          }
-        : 'on'
-      : showPlaywrightAnnotations
-        ? {
-            mode: 'retain-on-failure',
-            size: videoSize,
-            show: videoAnnotations,
-          }
-        : 'retain-on-failure',
+    video: showPlaywrightAnnotations
+      ? {
+          mode: recordAllVideos ? 'on' : 'retain-on-failure',
+          size: videoSize,
+          show: videoAnnotations,
+        }
+      : {
+          mode: recordAllVideos ? 'on' : 'retain-on-failure',
+          size: videoSize,
+        },
     ...(Number.isFinite(slowMo) && slowMo > 0
       ? { launchOptions: { slowMo } }
       : {}),
@@ -114,7 +119,7 @@ export default defineConfig({
       dependencies: ['setup'],
       grep: /@critical/,
       use: {
-        ...(ownerStorage ? { storageState: ownerStorage } : {}),
+        storageState: ownerStorage,
       },
     },
     {
@@ -122,7 +127,21 @@ export default defineConfig({
       dependencies: ['setup'],
       grep: /@full/,
       use: {
-        ...(ownerStorage ? { storageState: ownerStorage } : {}),
+        storageState: ownerStorage,
+      },
+    },
+    {
+      name: 'real-auth-integrations',
+      grep: /@real-auth/,
+      use: {
+        baseURL: realAuthBaseURL,
+        viewport: { width: 1280, height: 720 },
+        ...(vercelAutomationBypassHeaders
+          ? { extraHTTPHeaders: vercelAutomationBypassHeaders }
+          : {}),
+        ...(realAuthStorageExists && realAuthStorageState
+          ? { storageState: realAuthStorageState }
+          : {}),
       },
     },
   ],

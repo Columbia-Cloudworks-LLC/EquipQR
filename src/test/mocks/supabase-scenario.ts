@@ -689,7 +689,7 @@ export function setSupabaseError(table: TableName, error: SupabaseError | null):
  * Get direct access to the store for advanced scenarios.
  * Prefer using the public API functions instead.
  */
-export function getSupabaseStore(): SupabaseScenarioStore {
+function getSupabaseStore(): SupabaseScenarioStore {
   return store;
 }
 
@@ -701,4 +701,4 @@ export function getSupabaseStore(): SupabaseScenarioStore {
  * The scenario-driven Supabase mock client.
  * Import this in test setup to replace the real client.
  */
-export const scenarioSupabaseMock = createScenarioSupabaseMock();
+const scenarioSupabaseMock = createScenarioSupabaseMock();

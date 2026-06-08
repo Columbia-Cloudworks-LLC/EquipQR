@@ -249,6 +249,160 @@ export type OfflineQueueEnqueueInput = {
   userId: string;
 };
 
+interface OfflineQueueCompactionState {
+  compacted: OfflineQueueItem[];
+  updateMap: Map<string, OfflineQueueUpdateItem>;
+  statusMap: Map<string, OfflineQueueStatusItem>;
+  equipmentUpdateMap: Map<string, OfflineQueueEquipmentUpdateItem>;
+  equipmentHoursMap: Map<string, OfflineQueueEquipmentHoursItem>;
+  pmUpdateMap: Map<string, OfflineQueuePMUpdateItem>;
+}
+
+function createCompactionState(): OfflineQueueCompactionState {
+  return {
+    compacted: [],
+    updateMap: new Map(),
+    statusMap: new Map(),
+    equipmentUpdateMap: new Map(),
+    equipmentHoursMap: new Map(),
+    pmUpdateMap: new Map(),
+  };
+}
+
+function cloneQueueItem<TItem extends OfflineQueueItem>(item: TItem): TItem {
+  return JSON.parse(JSON.stringify(item)) as TItem;
+}
+
+function mergeChangedFields(
+  existingFields: string[] | undefined,
+  incomingFields: string[] | undefined,
+): string[] {
+  return [...new Set([...(existingFields || []), ...(incomingFields || [])])];
+}
+
+function compactWorkOrderUpdate(
+  updateMap: Map<string, OfflineQueueUpdateItem>,
+  updateItem: OfflineQueueUpdateItem,
+): void {
+  const existing = updateMap.get(updateItem.payload.workOrderId);
+
+  if (!existing) {
+    updateMap.set(updateItem.payload.workOrderId, cloneQueueItem(updateItem));
+    return;
+  }
+
+  // Keep the earliest serverUpdatedAt: it is the true 3-way merge baseline.
+  const serverSnapshot = {
+    ...(updateItem.payload.serverSnapshot ?? {}),
+    ...(existing.payload.serverSnapshot ?? {}),
+  };
+
+  existing.payload = {
+    ...existing.payload,
+    data: { ...existing.payload.data, ...updateItem.payload.data },
+    changedFields: mergeChangedFields(
+      existing.payload.changedFields,
+      updateItem.payload.changedFields,
+    ),
+    serverUpdatedAt: existing.payload.serverUpdatedAt ?? updateItem.payload.serverUpdatedAt,
+    serverSnapshot: Object.keys(serverSnapshot).length > 0 ? serverSnapshot : undefined,
+  };
+  existing.timestamp = updateItem.timestamp;
+}
+
+function compactEquipmentUpdate(
+  equipmentUpdateMap: Map<string, OfflineQueueEquipmentUpdateItem>,
+  eqUpdateItem: OfflineQueueEquipmentUpdateItem,
+): void {
+  const existing = equipmentUpdateMap.get(eqUpdateItem.payload.equipmentId);
+
+  if (!existing) {
+    equipmentUpdateMap.set(eqUpdateItem.payload.equipmentId, cloneQueueItem(eqUpdateItem));
+    return;
+  }
+
+  existing.payload = {
+    ...existing.payload,
+    data: { ...existing.payload.data, ...eqUpdateItem.payload.data },
+    changedFields: mergeChangedFields(
+      existing.payload.changedFields,
+      eqUpdateItem.payload.changedFields,
+    ),
+  };
+  existing.timestamp = eqUpdateItem.timestamp;
+}
+
+function preferDefined<TValue>(
+  incoming: TValue | undefined,
+  existing: TValue | undefined,
+): TValue | undefined {
+  return incoming !== undefined ? incoming : existing;
+}
+
+function compactPmUpdate(
+  pmUpdateMap: Map<string, OfflineQueuePMUpdateItem>,
+  pmUpdateItem: OfflineQueuePMUpdateItem,
+): void {
+  const existing = pmUpdateMap.get(pmUpdateItem.payload.pmId);
+
+  if (!existing) {
+    pmUpdateMap.set(pmUpdateItem.payload.pmId, cloneQueueItem(pmUpdateItem));
+    return;
+  }
+
+  existing.payload = {
+    ...existing.payload,
+    checklistData: preferDefined(
+      pmUpdateItem.payload.checklistData,
+      existing.payload.checklistData,
+    ),
+    notes: preferDefined(pmUpdateItem.payload.notes, existing.payload.notes),
+    status: preferDefined(pmUpdateItem.payload.status, existing.payload.status),
+    templateId: preferDefined(pmUpdateItem.payload.templateId, existing.payload.templateId),
+    completedAt: preferDefined(pmUpdateItem.payload.completedAt, existing.payload.completedAt),
+    completedBy: preferDefined(pmUpdateItem.payload.completedBy, existing.payload.completedBy),
+    serverUpdatedAt: existing.payload.serverUpdatedAt ?? pmUpdateItem.payload.serverUpdatedAt,
+  };
+  existing.timestamp = pmUpdateItem.timestamp;
+}
+
+function compactQueueItem(item: OfflineQueueItem, state: OfflineQueueCompactionState): void {
+  switch (item.type) {
+    case 'work_order_create':
+      state.compacted.push(item);
+      break;
+    case 'work_order_update':
+      compactWorkOrderUpdate(state.updateMap, item);
+      break;
+    case 'work_order_status':
+      state.statusMap.set(item.payload.workOrderId, item);
+      break;
+    case 'equipment_update':
+      compactEquipmentUpdate(state.equipmentUpdateMap, item);
+      break;
+    case 'equipment_hours':
+      state.equipmentHoursMap.set(item.payload.equipmentId, item);
+      break;
+    case 'pm_update':
+      compactPmUpdate(state.pmUpdateMap, item);
+      break;
+    default:
+      state.compacted.push(item);
+      break;
+  }
+}
+
+function buildCompactedQueue(state: OfflineQueueCompactionState): OfflineQueueItem[] {
+  return [
+    ...state.compacted,
+    ...state.updateMap.values(),
+    ...state.statusMap.values(),
+    ...state.equipmentUpdateMap.values(),
+    ...state.equipmentHoursMap.values(),
+    ...state.pmUpdateMap.values(),
+  ].sort((a, b) => a.timestamp - b.timestamp);
+}
+
 // ─── Service ─────────────────────────────────────────────────────────────────
 
 export class OfflineQueueService {
@@ -483,149 +637,12 @@ export class OfflineQueueService {
     const queue = this.getAll();
     if (queue.length <= 1) return;
 
-    const compacted: OfflineQueueItem[] = [];
-    const updateMap = new Map<string, OfflineQueueUpdateItem>();
-    const statusMap = new Map<string, OfflineQueueStatusItem>();
-    const equipmentUpdateMap = new Map<string, OfflineQueueEquipmentUpdateItem>();
-    const equipmentHoursMap = new Map<string, OfflineQueueEquipmentHoursItem>();
     // PM updates collapse by pmId so a 50-item checklist edit session yields
     // one network call. PM inits are NOT compacted because each binds to a
     // distinct work-order/equipment pair.
-    const pmUpdateMap = new Map<string, OfflineQueuePMUpdateItem>();
-
-    for (const item of queue) {
-      if (item.type === 'work_order_create') {
-        // Creates are always kept as-is (they have no workOrderId yet)
-        compacted.push(item);
-      } else if (item.type === 'work_order_update') {
-        const updateItem = item as OfflineQueueUpdateItem;
-        const existing = updateMap.get(updateItem.payload.workOrderId);
-        if (existing) {
-          // Merge: apply later update's fields onto existing
-          const mergedData = { ...existing.payload.data, ...updateItem.payload.data };
-          const mergedFields = [
-            ...new Set([
-              ...(existing.payload.changedFields || []),
-              ...(updateItem.payload.changedFields || []),
-            ]),
-          ];
-          // Keep the EARLIEST serverUpdatedAt — that is the true baseline the user
-          // saw when they began editing. Overwriting it with a later timestamp would
-          // cause conflict detection to use the wrong anchor.
-          const serverUpdatedAt = existing.payload.serverUpdatedAt ?? updateItem.payload.serverUpdatedAt;
-          // Prefer the earlier snapshot for fields that appear in both snapshots;
-          // fall back to the later snapshot for fields only it has.
-          const serverSnapshot = {
-            ...(updateItem.payload.serverSnapshot ?? {}),
-            ...(existing.payload.serverSnapshot ?? {}),
-          };
-          existing.payload = {
-            ...existing.payload,
-            data: mergedData,
-            changedFields: mergedFields,
-            serverUpdatedAt,
-            serverSnapshot: Object.keys(serverSnapshot).length > 0 ? serverSnapshot : undefined,
-          };
-          existing.timestamp = updateItem.timestamp; // use latest timestamp
-        } else {
-          // First update for this WO — clone it into the map
-          const clone = JSON.parse(JSON.stringify(updateItem)) as OfflineQueueUpdateItem;
-          updateMap.set(updateItem.payload.workOrderId, clone);
-        }
-      } else if (item.type === 'work_order_status') {
-        const statusItem = item as OfflineQueueStatusItem;
-        statusMap.set(statusItem.payload.workOrderId, statusItem);
-      } else if (item.type === 'equipment_update') {
-        const eqUpdateItem = item as OfflineQueueEquipmentUpdateItem;
-        const existing = equipmentUpdateMap.get(eqUpdateItem.payload.equipmentId);
-        if (existing) {
-          const mergedData = { ...existing.payload.data, ...eqUpdateItem.payload.data };
-          const mergedFields = [
-            ...new Set([
-              ...(existing.payload.changedFields || []),
-              ...(eqUpdateItem.payload.changedFields || []),
-            ]),
-          ];
-          existing.payload = {
-            ...existing.payload,
-            data: mergedData,
-            changedFields: mergedFields,
-          };
-          existing.timestamp = eqUpdateItem.timestamp;
-        } else {
-          const clone = JSON.parse(JSON.stringify(eqUpdateItem)) as OfflineQueueEquipmentUpdateItem;
-          equipmentUpdateMap.set(eqUpdateItem.payload.equipmentId, clone);
-        }
-      } else if (item.type === 'equipment_hours') {
-        const eqHoursItem = item as OfflineQueueEquipmentHoursItem;
-        equipmentHoursMap.set(eqHoursItem.payload.equipmentId, eqHoursItem);
-      } else if (item.type === 'pm_update') {
-        const pmUpdateItem = item as OfflineQueuePMUpdateItem;
-        const existing = pmUpdateMap.get(pmUpdateItem.payload.pmId);
-        if (existing) {
-          // Merge: latest checklist + notes win; keep earliest serverUpdatedAt
-          // (3-way merge anchor); collapse status to the latest (so an
-          // in_progress -> completed flow surfaces as a single completed
-          // replay).
-          existing.payload = {
-            ...existing.payload,
-            checklistData:
-              pmUpdateItem.payload.checklistData !== undefined
-                ? pmUpdateItem.payload.checklistData
-                : existing.payload.checklistData,
-            notes:
-              pmUpdateItem.payload.notes !== undefined
-                ? pmUpdateItem.payload.notes
-                : existing.payload.notes,
-            status:
-              pmUpdateItem.payload.status !== undefined
-                ? pmUpdateItem.payload.status
-                : existing.payload.status,
-            templateId:
-              pmUpdateItem.payload.templateId !== undefined
-                ? pmUpdateItem.payload.templateId
-                : existing.payload.templateId,
-            completedAt:
-              pmUpdateItem.payload.completedAt !== undefined
-                ? pmUpdateItem.payload.completedAt
-                : existing.payload.completedAt,
-            completedBy:
-              pmUpdateItem.payload.completedBy !== undefined
-                ? pmUpdateItem.payload.completedBy
-                : existing.payload.completedBy,
-            serverUpdatedAt:
-              existing.payload.serverUpdatedAt ?? pmUpdateItem.payload.serverUpdatedAt,
-          };
-          existing.timestamp = pmUpdateItem.timestamp;
-        } else {
-          const clone = JSON.parse(JSON.stringify(pmUpdateItem)) as OfflineQueuePMUpdateItem;
-          pmUpdateMap.set(pmUpdateItem.payload.pmId, clone);
-        }
-      } else {
-        compacted.push(item);
-      }
-    }
-
-    for (const item of updateMap.values()) {
-      compacted.push(item);
-    }
-    for (const item of statusMap.values()) {
-      compacted.push(item);
-    }
-    for (const item of equipmentUpdateMap.values()) {
-      compacted.push(item);
-    }
-    for (const item of equipmentHoursMap.values()) {
-      compacted.push(item);
-    }
-    for (const item of pmUpdateMap.values()) {
-      compacted.push(item);
-    }
-
-    // Sort by original timestamp to preserve FIFO causality
-    compacted.sort((a, b) => a.timestamp - b.timestamp);
-
-    this.persist(compacted);
+    const state = createCompactionState();
+    queue.forEach(item => compactQueueItem(item, state));
+    this.persist(buildCompactedQueue(state));
   }
 
   /** Reset all failed items back to pending so they can be retried. */

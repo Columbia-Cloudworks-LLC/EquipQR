@@ -1,12 +1,15 @@
+import '@/test/utils/mock-use-app-toast';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import {
+  clickButtonWhenReadyWithUser,
+  ensureElementFromPointMock,
+  waitForButton,
+} from '@/test/utils/test-utils';
 import MFAEnrollment from '../MFAEnrollment';
 
-// Mock document.elementFromPoint used by input-otp internal PWM badge
-if (!document.elementFromPoint) {
-  document.elementFromPoint = vi.fn().mockReturnValue(null);
-}
+ensureElementFromPointMock();
 
 // Mock useMFA hook
 const mockEnrollTOTP = vi.fn();
@@ -26,17 +29,6 @@ vi.mock('@/hooks/useMFA', () => ({
     challengeAndVerify: vi.fn(),
     unenrollFactor: vi.fn(),
     refreshMFAStatus: vi.fn(),
-  }),
-}));
-
-// Mock useAppToast
-vi.mock('@/hooks/useAppToast', () => ({
-  useAppToast: () => ({
-    toast: vi.fn(),
-    success: vi.fn(),
-    error: vi.fn(),
-    info: vi.fn(),
-    warning: vi.fn(),
   }),
 }));
 
@@ -87,20 +79,14 @@ describe('MFAEnrollment', () => {
   it('shows "I\'ve Scanned the Code" button in scan step', async () => {
     render(<MFAEnrollment onComplete={mockOnComplete} />);
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /scanned the code/i })).toBeInTheDocument();
-    });
+    await waitForButton(/scanned the code/i);
   });
 
   it('transitions to verify step when clicking "I\'ve Scanned the Code"', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
     render(<MFAEnrollment onComplete={mockOnComplete} />);
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /scanned the code/i })).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /scanned the code/i }));
+    await clickButtonWhenReadyWithUser(user, /scanned the code/i);
 
     expect(screen.getByText(/enter the 6-digit code/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument();

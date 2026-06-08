@@ -9,22 +9,6 @@
 export type ReportType = 'equipment' | 'work-orders' | 'work-orders-detailed' | 'inventory' | 'scans' | 'kpis' | 'alternate-groups';
 
 // ============================================
-// Filter Types
-// ============================================
-
-export interface ReportFilters {
-  type: ReportType;
-  dateRange: {
-    from: Date | undefined;
-    to: Date | undefined;
-  };
-  status?: string;
-  location?: string;
-  priority?: string;
-  teamId?: string;
-}
-
-// ============================================
 // Export Configuration Types
 // ============================================
 
@@ -66,15 +50,6 @@ export interface ExportRequest {
   filters: ExportFilters;
   columns: string[];
   format: 'csv';
-}
-
-/**
- * ExportResponse - Response from a successful export
- * The actual response is a CSV blob, but errors return JSON
- */
-export interface ExportErrorResponse {
-  error: string;
-  details?: string;
 }
 
 // ============================================

@@ -11,6 +11,7 @@ const TEAM_OPERATION_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technic
 // excluded here to match the database policy; org owners/admins have their own
 // higher-priority rule ('equipment-create-admin') that grants org-wide create.
 const TEAM_EQUIPMENT_CREATE_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician']);
+const TEAM_MANAGER_ONLY: ReadonlySet<TeamRole> = new Set(['manager']);
 
 export class PermissionEngine {
   private rules: Map<string, PermissionRule<EntityContext>[]> = new Map();
@@ -28,6 +29,13 @@ export class PermissionEngine {
   ): boolean {
     if (!teamId) return false;
     return memberships.some(tm => tm.teamId === teamId && allowedRoles.has(tm.role));
+  }
+
+  private isTeamManager(
+    memberships: TeamMembership[],
+    teamId: string | undefined,
+  ): boolean {
+    return this.hasTeamMembershipWithRole(memberships, teamId, TEAM_MANAGER_ONLY);
   }
 
   private initializeRules() {
@@ -71,12 +79,8 @@ export class PermissionEngine {
 
     this.addRule('equipment.edit', {
       name: 'equipment-edit-team-manager',
-      check: (context, entityContext) => {
-        if (!entityContext?.teamId) return false;
-        return context.teamMemberships.some(tm => 
-          tm.teamId === entityContext.teamId && tm.role === 'manager'
-        );
-      },
+      check: (context, entityContext) =>
+        this.isTeamManager(context.teamMemberships, entityContext?.teamId),
       priority: 90
     });
 
@@ -114,12 +118,8 @@ export class PermissionEngine {
 
     this.addRule('equipment.delete', {
       name: 'equipment-delete-team-manager',
-      check: (context, entityContext) => {
-        if (!entityContext?.teamId) return false;
-        return context.teamMemberships.some(tm =>
-          tm.teamId === entityContext.teamId && tm.role === 'manager'
-        );
-      },
+      check: (context, entityContext) =>
+        this.isTeamManager(context.teamMemberships, entityContext?.teamId),
       priority: 90
     });
 
@@ -150,12 +150,8 @@ export class PermissionEngine {
 
     this.addRule('workorder.edit', {
       name: 'workorder-edit-team-manager',
-      check: (context, entityContext) => {
-        if (!entityContext?.teamId) return false;
-        return context.teamMemberships.some(tm => 
-          tm.teamId === entityContext.teamId && tm.role === 'manager'
-        );
-      },
+      check: (context, entityContext) =>
+        this.isTeamManager(context.teamMemberships, entityContext?.teamId),
       priority: 90
     });
 
@@ -167,12 +163,8 @@ export class PermissionEngine {
 
     this.addRule('workorder.assign', {
       name: 'workorder-assign-team-manager',
-      check: (context, entityContext) => {
-        if (!entityContext?.teamId) return false;
-        return context.teamMemberships.some(tm => 
-          tm.teamId === entityContext.teamId && tm.role === 'manager'
-        );
-      },
+      check: (context, entityContext) =>
+        this.isTeamManager(context.teamMemberships, entityContext?.teamId),
       priority: 90
     });
 
@@ -229,12 +221,8 @@ export class PermissionEngine {
 
     this.addRule('team.manage', {
       name: 'team-manage-manager',
-      check: (context, entityContext) => {
-        if (!entityContext?.teamId) return false;
-        return context.teamMemberships.some(tm => 
-          tm.teamId === entityContext.teamId && tm.role === 'manager'
-        );
-      },
+      check: (context, entityContext) =>
+        this.isTeamManager(context.teamMemberships, entityContext?.teamId),
       priority: 90
     });
   }

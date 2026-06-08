@@ -5,7 +5,6 @@ import type {
   TeamInsert, 
   TeamUpdate, 
   TeamMemberInsert,
-  TeamMemberRole,
   Team,
   TeamMember,
   TeamWithMembers
@@ -21,20 +20,10 @@ import {
 } from '@/services/imageUploadService';
 
 // Re-export types for backward compatibility
-export type { Team, TeamMember, TeamWithMembers, TeamMemberRole };
-
-/**
- * @deprecated Use Team from @/types/team instead
- */
-export type OptimizedTeam = Team;
-
-/**
- * @deprecated Use TeamMember from @/types/team instead
- */
-export type OptimizedTeamMember = TeamMember;
+export type { Team, TeamMember, TeamWithMembers };
 
 // Create a new team
-export const createTeam = async (teamData: TeamInsert): Promise<Team> => {
+const createTeam = async (teamData: TeamInsert): Promise<Team> => {
   const { data, error } = await supabase
     .from('teams')
     .insert(teamData)
@@ -121,7 +110,7 @@ export const deleteTeam = async (id: string): Promise<void> => {
 
 // Get teams by organization with member details
 // @deprecated Use TeamRepository.getTeamsByOrg() for better performance with optimized queries
-export const getTeamsByOrganization = async (organizationId: string): Promise<TeamWithMembers[]> => {
+const getTeamsByOrganization = async (organizationId: string): Promise<TeamWithMembers[]> => {
   // First get all teams for the organization
   const { data: teams, error: teamsError } = await supabase
     .from('teams')
@@ -167,7 +156,7 @@ export const getTeamsByOrganization = async (organizationId: string): Promise<Te
 };
 
 // Get single team with members
-export const getTeamById = async (id: string): Promise<TeamWithMembers | null> => {
+const getTeamById = async (id: string): Promise<TeamWithMembers | null> => {
   // First get the team
   const { data: team, error: teamError } = await supabase
     .from('teams')
@@ -283,7 +272,7 @@ export const getAvailableUsersForTeam = async (organizationId: string, teamId: s
 
 // Check if user is team manager
 // @deprecated Use TeamRepository.isTeamManager() for better performance with optimized queries
-export const isTeamManager = async (userId: string, teamId: string): Promise<boolean> => {
+const isTeamManager = async (userId: string, teamId: string): Promise<boolean> => {
   const { data, error } = await supabase
     .from('team_members')
     .select('role')
@@ -297,7 +286,7 @@ export const isTeamManager = async (userId: string, teamId: string): Promise<boo
 };
 
 // Get teams user manages
-export const getTeamsUserManages = async (userId: string): Promise<TeamRow[]> => {
+const getTeamsUserManages = async (userId: string): Promise<TeamRow[]> => {
   // First get team IDs where user is manager
   const { data: teamMemberships, error: memberError } = await supabase
     .from('team_members')

@@ -21,6 +21,17 @@ test.describe('bulk and parts @full', () => {
     });
   });
 
+  test('part lookup finds seeded CAT alternate group', async ({ gotoDashboard, page, assertHealthyShell }) => {
+    await gotoDashboard('/part-lookup');
+    await assertHealthyShell();
+    const search = page.getByPlaceholder(/part number|search/i).first();
+    await search.fill('CAT-1R-0750');
+    await search.press('Enter');
+    await expect(page.getByText(/CAT|WIX|Baldwin|alternate|compatible/i).first()).toBeVisible({
+      timeout: 60_000,
+    });
+  });
+
   test('alternate groups list loads', async ({ gotoDashboard, page, assertHealthyShell }) => {
     await gotoDashboard('/alternate-groups');
     await assertHealthyShell();

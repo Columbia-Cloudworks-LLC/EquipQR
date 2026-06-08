@@ -237,5 +237,4 @@ export const DeleteOrganizationDialog: React.FC<DeleteOrganizationDialogProps> =
   );
 };
 
-export default DeleteOrganizationDialog;
 

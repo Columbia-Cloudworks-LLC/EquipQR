@@ -22,4 +22,12 @@ test.describe('support audit dsr @full', () => {
       timeout: 60_000,
     });
   });
+
+  test('support hub exposes ticket actions', async ({ gotoDashboard, page, assertHealthyShell }) => {
+    await gotoDashboard('/support');
+    await assertHealthyShell();
+    await expect(
+      page.getByRole('button', { name: /get help|report an issue|my tickets/i }).first(),
+    ).toBeVisible({ timeout: 60_000 });
+  });
 });

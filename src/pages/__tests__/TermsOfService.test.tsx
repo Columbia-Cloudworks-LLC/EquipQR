@@ -2,15 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@/test/utils/test-utils';
 import TermsOfService from '../TermsOfService';
 
-// Mock Link from react-router-dom with partial mock
 vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
-  return {
-    ...actual,
-    Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => (
-      <a href={to} {...props}>{children}</a>
-    )
-  };
+  const { createReactRouterDomTestMock } = await import(
+    '@/test/utils/react-router-dom-test-mock'
+  );
+  return createReactRouterDomTestMock();
 });
 
 describe('TermsOfService', () => {

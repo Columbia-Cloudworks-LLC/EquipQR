@@ -1,17 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { 
-  WorkOrderService, 
-  WorkOrderNote, 
-  WorkOrderImage 
-} from '@/features/work-orders/services/workOrderService';
+import { WorkOrderService } from '@/features/work-orders/services/workOrderService';
 import { workOrderKeys } from '@/features/work-orders/hooks/useWorkOrders';
 import { workOrders as workOrderQueryKeys, notifications as notificationQueryKeys } from '@/lib/queryKeys';
 import { getAuthClaims } from '@/lib/authClaims';
-
-// Re-export types from WorkOrderService for backward compatibility
-export type { WorkOrderNote, WorkOrderImage };
+import { resolveWorkOrderOrganizationId } from '@/features/work-orders/services/workOrderOrganizationService';
 
 export type NotificationData = {
   work_order_id?: string;
@@ -44,22 +38,13 @@ export interface Notification {
 }
 
 // Work Order Notes hooks - using WorkOrderService
-export const useWorkOrderNotes = (workOrderId: string, organizationId?: string) => {
+const useWorkOrderNotes = (workOrderId: string, organizationId?: string) => {
   return useQuery({
     queryKey: workOrderQueryKeys.notes(workOrderId),
     queryFn: async () => {
-      if (!organizationId) {
-        // Fallback: fetch organization_id from work order if not provided
-        const { data: workOrder } = await supabase
-          .from('work_orders')
-          .select('organization_id')
-          .eq('id', workOrderId)
-          .single();
-        if (!workOrder) throw new Error('Work order not found');
-        organizationId = workOrder.organization_id;
-      }
+      const orgId = await resolveWorkOrderOrganizationId(workOrderId, organizationId);
 
-      const service = new WorkOrderService(organizationId);
+      const service = new WorkOrderService(orgId);
       const response = await service.getNotes(workOrderId);
       
       if (!response.success) {
@@ -72,7 +57,7 @@ export const useWorkOrderNotes = (workOrderId: string, organizationId?: string) 
   });
 };
 
-export const useCreateWorkOrderNote = () => {
+const useCreateWorkOrderNote = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -89,16 +74,7 @@ export const useCreateWorkOrderNote = () => {
       isPrivate?: boolean;
       organizationId?: string;
     }) => {
-      let orgId = organizationId;
-      if (!orgId) {
-        const { data: workOrder } = await supabase
-          .from('work_orders')
-          .select('organization_id')
-          .eq('id', workOrderId)
-          .single();
-        if (!workOrder) throw new Error('Work order not found');
-        orgId = workOrder.organization_id;
-      }
+      const orgId = await resolveWorkOrderOrganizationId(workOrderId, organizationId);
 
       const service = new WorkOrderService(orgId);
       const response = await service.createNote(workOrderId, {
@@ -125,21 +101,13 @@ export const useCreateWorkOrderNote = () => {
 };
 
 // Work Order Images hooks - using WorkOrderService
-export const useWorkOrderImages = (workOrderId: string, organizationId?: string) => {
+const useWorkOrderImages = (workOrderId: string, organizationId?: string) => {
   return useQuery({
     queryKey: workOrderQueryKeys.images(workOrderId),
     queryFn: async () => {
-      if (!organizationId) {
-        const { data: workOrder } = await supabase
-          .from('work_orders')
-          .select('organization_id')
-          .eq('id', workOrderId)
-          .single();
-        if (!workOrder) throw new Error('Work order not found');
-        organizationId = workOrder.organization_id;
-      }
+      const orgId = await resolveWorkOrderOrganizationId(workOrderId, organizationId);
 
-      const service = new WorkOrderService(organizationId);
+      const service = new WorkOrderService(orgId);
       const response = await service.getImages(workOrderId);
 
       if (!response.success) {
@@ -152,7 +120,7 @@ export const useWorkOrderImages = (workOrderId: string, organizationId?: string)
   });
 };
 
-export const useUploadWorkOrderImage = () => {
+const useUploadWorkOrderImage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -167,16 +135,7 @@ export const useUploadWorkOrderImage = () => {
       description?: string;
       organizationId?: string;
     }) => {
-      let orgId = organizationId;
-      if (!orgId) {
-        const { data: workOrder } = await supabase
-          .from('work_orders')
-          .select('organization_id')
-          .eq('id', workOrderId)
-          .single();
-        if (!workOrder) throw new Error('Work order not found');
-        orgId = workOrder.organization_id;
-      }
+      const orgId = await resolveWorkOrderOrganizationId(workOrderId, organizationId);
 
       const service = new WorkOrderService(orgId);
       const response = await service.uploadImage(workOrderId, file, description);

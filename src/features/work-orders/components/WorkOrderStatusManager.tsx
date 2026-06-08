@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Status manager shares transition UI with details page
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,20 +19,20 @@ import {
   Users, 
   AlertTriangle,
   Clipboard,
-  Shield,
   Clock,
   Wrench,
   MapPin,
   AlertCircle
 } from 'lucide-react';
-import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOrderData';
-import { useWorkOrderAcceptance } from '@/features/work-orders/hooks/useWorkOrderAcceptance';
-import { usePMByWorkOrderId } from '@/features/pm-templates/hooks/usePMData';
-import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
+import { WorkOrderAssigneeSelectItems } from '@/features/work-orders/components/WorkOrderAssigneeSelectItems';
+import { useWorkOrderStatusChangeHandlers } from '@/features/work-orders/hooks/useWorkOrderStatusChangeHandlers';
 import { useWorkOrderContextualAssignment, type AssignmentWorkOrderContext } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
-import { useAuth } from '@/hooks/useAuth';
-
-import { isOverdue as checkIsOverdue } from '@/features/work-orders/utils/workOrderHelpers';
+import {
+  formatStatus,
+  getStatusColor,
+  isOverdue as checkIsOverdue,
+} from '@/features/work-orders/utils/workOrderHelpers';
+import { buildWorkOrderStatusActions } from '@/features/work-orders/utils/buildWorkOrderStatusActions';
 import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
 import WorkOrderAssigneeDisplay from './WorkOrderAssigneeDisplay';
 import ClickableAddress from '@/components/ui/ClickableAddress';
@@ -51,15 +53,6 @@ type StatusWorkOrder = {
   equipment_id?: string;
   equipmentTeamId?: string | null;
 };
-
-interface StatusAction {
-  label: string;
-  action: () => void;
-  icon: React.ComponentType<{ className?: string }>;
-  variant: 'default' | 'destructive' | 'outline' | 'secondary';
-  description: string;
-  disabled?: boolean;
-}
 
 interface WorkOrderStatusManagerProps {
   workOrder: StatusWorkOrder;
@@ -95,12 +88,24 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [selectedAssigneeForStart, setSelectedAssigneeForStart] = useState<string>('');
-  const updateStatusMutation = useUpdateWorkOrderStatus();
-  const acceptanceMutation = useWorkOrderAcceptance();
-  const { data: pmData } = usePMByWorkOrderId(workOrder.id);
-  const { isManager, isTechnician } = useWorkOrderPermissionLevels();
-  const { user } = useAuth();
-  
+  const {
+    updateStatusMutation,
+    acceptanceMutation,
+    pmData,
+    isManager,
+    isTechnician,
+    canPerformStatusActions,
+    canCompleteWorkOrder,
+    handleStatusChange,
+    handleAcceptanceComplete,
+  } = useWorkOrderStatusChangeHandlers(
+    workOrder,
+    organizationId,
+    () => setShowAcceptanceModal(true),
+    () => setShowCancelDialog(true),
+    () => setShowCompleteDialog(true),
+  );
+
   // Build context for contextual assignment - needed for accepted status
   const assignmentContext: AssignmentWorkOrderContext = {
     id: workOrder.id,
@@ -110,40 +115,6 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
   };
   const { assignmentOptions, isLoading: assignmentLoading, equipmentHasNoTeam } = useWorkOrderContextualAssignment(assignmentContext);
   const startAssigneeFieldId = `work-order-start-assignee-${workOrder.id}`;
-
-  const handleStatusChange = async (newStatus: WorkOrderStatus) => {
-    // Check if trying to complete work order with incomplete PM
-    if (newStatus === 'completed' && workOrder.has_pm && pmData) {
-      if (pmData.status !== 'completed') {
-        return;
-      }
-    }
-
-    if (newStatus === 'accepted') {
-      setShowAcceptanceModal(true);
-      return;
-    }
-
-    if (newStatus === 'cancelled') {
-      setShowCancelDialog(true);
-      return;
-    }
-
-    if (newStatus === 'completed') {
-      setShowCompleteDialog(true);
-      return;
-    }
-
-    try {
-      await updateStatusMutation.mutateAsync({
-        workOrderId: workOrder.id,
-        status: newStatus,
-        organizationId
-      });
-    } catch (error) {
-      console.error('Error updating work order status:', error);
-    }
-  };
 
   const handleConfirmCancel = async () => {
     try {
@@ -171,21 +142,6 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     }
   };
 
-  const handleAcceptanceComplete = async (assigneeId?: string) => {
-    try {
-      // Use the acceptance mutation which properly handles assignee assignment
-      await acceptanceMutation.mutateAsync({
-        workOrderId: workOrder.id,
-        organizationId,
-        assigneeId
-      });
-      setShowAcceptanceModal(false);
-    } catch (error) {
-      console.error('Error accepting work order:', error);
-      throw error;
-    }
-  };
-
   // Handler for assigning and starting work order from accepted status
   const handleAssignAndStart = async () => {
     if (!selectedAssigneeForStart) return;
@@ -203,134 +159,14 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     }
   };
 
-  // Check if user can perform status actions
-  const canPerformStatusActions = () => {
-    if (isManager) return true;
-    if (isTechnician && (workOrder.assignee_id === user?.id)) return true;
-    if (workOrder.created_by === user?.id && workOrder.status === 'submitted') return true;
-    return false;
-  };
-
-const getStatusActions = (): StatusAction[] => {
-    if (!canPerformStatusActions()) return [];
-
-    const canComplete = !workOrder.has_pm || (pmData && pmData.status === 'completed');
-    
-    switch (workOrder.status) {
-      case 'submitted': {
-        const actions: StatusAction[] = [];
-        if (isManager || isTechnician) {
-          actions.push({ 
-            label: 'Accept', 
-            action: () => handleStatusChange('accepted'), 
-            icon: CheckCircle,
-            variant: 'secondary' as const,
-            description: 'Accept this work order and proceed with planning'
-          });
-        }
-        actions.push({ 
-          label: 'Cancel', 
-          action: () => handleStatusChange('cancelled'), 
-          icon: X,
-          variant: 'outline' as const,
-          description: 'Cancel this work order'
-        });
-        return actions;
-      }
-
-      case 'accepted':
-        if (!isManager && !isTechnician) return [];
-        return [
-          { 
-            label: 'Cancel', 
-            action: () => handleStatusChange('cancelled'), 
-            icon: X,
-            variant: 'outline' as const,
-            description: 'Cancel this work order'
-          }
-        ];
-
-      case 'assigned':
-        if (!isManager && !isTechnician) return [];
-        return [
-          { 
-            label: 'Start Work', 
-            action: () => handleStatusChange('in_progress'), 
-            icon: Play,
-            variant: 'secondary' as const,
-            description: 'Begin working on this order'
-          },
-          { 
-            label: 'Put on Hold', 
-            action: () => handleStatusChange('on_hold'), 
-            icon: Pause,
-            variant: 'outline' as const,
-            description: 'Temporarily pause this work order'
-          }
-        ];
-
-      case 'in_progress':
-        if (!isManager && !isTechnician) return [];
-        return [
-          { 
-            label: 'Complete', 
-            action: () => handleStatusChange('completed'), 
-            icon: CheckCircle,
-            variant: 'default' as const,
-            description: canComplete ? 'Mark this work order as completed' : 'Complete PM checklist first',
-            disabled: !canComplete
-          },
-          { 
-            label: 'Put on Hold', 
-            action: () => handleStatusChange('on_hold'), 
-            icon: Pause,
-            variant: 'outline' as const,
-            description: 'Temporarily pause this work order'
-          }
-        ];
-
-      case 'on_hold':
-        if (!isManager && !isTechnician) return [];
-        return [
-          { 
-            label: 'Resume', 
-            action: () => handleStatusChange('in_progress'), 
-            icon: Play,
-            variant: 'secondary' as const,
-            description: 'Resume work on this order'
-          },
-          { 
-            label: 'Cancel', 
-            action: () => handleStatusChange('cancelled'), 
-            icon: X,
-            variant: 'outline' as const,
-            description: 'Cancel this work order'
-          }
-        ];
-
-      default:
-        return [];
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'submitted': return 'bg-info/20 text-info';
-      case 'accepted': return 'bg-primary/20 text-primary';
-      case 'assigned': return 'bg-warning/20 text-warning';
-      case 'in_progress': return 'bg-warning/20 text-warning';
-      case 'on_hold': return 'bg-muted text-foreground';
-      case 'completed': return 'bg-success/20 text-success';
-      case 'cancelled': return 'bg-destructive/20 text-destructive';
-      default: return 'bg-muted text-foreground';
-    }
-  };
-
-  const formatStatus = (status: string) => {
-    return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
-
-  const statusActions = getStatusActions();
+  const statusActions = buildWorkOrderStatusActions({
+    status: workOrder.status,
+    canPerformStatusActions: canPerformStatusActions(),
+    isManager,
+    isTechnician,
+    canComplete: canCompleteWorkOrder(),
+    onStatusChange: handleStatusChange,
+  });
 
   return (
     <div className="space-y-4">
@@ -411,25 +247,7 @@ const getStatusActions = (): StatusAction[] => {
                     <SelectValue placeholder={assignmentLoading ? "Loading..." : "Select assignee..."} />
                   </SelectTrigger>
                   <SelectContent>
-                    {assignmentOptions.map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
-                        <div className="flex items-center gap-2">
-                          {option.role === 'owner' || option.role === 'admin' ? (
-                            <Shield className="h-4 w-4" />
-                          ) : (
-                            <User className="h-4 w-4" />
-                          )}
-                          <div>
-                            <span>{option.name}</span>
-                            {option.role && (
-                              <span className="text-xs text-muted-foreground ml-1">
-                                ({option.role})
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </SelectItem>
-                    ))}
+                    <WorkOrderAssigneeSelectItems options={assignmentOptions} />
                   </SelectContent>
                 </Select>
               </div>
@@ -621,7 +439,10 @@ const getStatusActions = (): StatusAction[] => {
         onClose={() => setShowAcceptanceModal(false)}
         workOrder={workOrder}
         organizationId={organizationId}
-        onAccept={handleAcceptanceComplete}
+        onAccept={async (assigneeId) => {
+          await handleAcceptanceComplete(assigneeId);
+          setShowAcceptanceModal(false);
+        }}
       />
 
       {/* Cancel Confirmation Dialog */}

@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Mobile toolbar mirrors desktop filter field wiring
 import React from 'react';
 import { Search, SlidersHorizontal, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,41 +23,20 @@ import {
 import { HorizontalChipRow } from '@/components/layout/HorizontalChipRow';
 import type { WorkOrderFilters as FiltersType } from '@/features/work-orders/types/workOrder';
 import type { QuickFilterPreset, SortField, SortDirection } from '@/features/work-orders/hooks/useWorkOrderFilters';
+import type { WorkOrderFiltersToolbarProps } from '@/features/work-orders/types/workOrderFiltersToolbarTypes';
+import {
+  WORK_ORDER_SORT_OPTIONS,
+  WORK_ORDER_QUICK_FILTER_PRESETS,
+} from '@/features/work-orders/constants/workOrderSortOptions';
+import {
+  WorkOrderStatusFilterSelect,
+  WorkOrderPriorityFilterSelect,
+  WorkOrderDueDateFilterSelect,
+  WorkOrderInvoiceFilterSelect,
+} from '@/features/work-orders/components/WorkOrderFilterSelectFields';
 import { formatInvoiceFilterLabel } from '@/features/work-orders/utils/invoiceFilterLabels';
 
-const SORT_OPTIONS: { value: string; label: string }[] = [
-  { value: 'created:desc', label: 'Created (newest)' },
-  { value: 'created:asc', label: 'Created (oldest)' },
-  { value: 'due_date:asc', label: 'Due Date (soonest)' },
-  { value: 'due_date:desc', label: 'Due Date (latest)' },
-  { value: 'priority:desc', label: 'Priority (high first)' },
-  { value: 'priority:asc', label: 'Priority (low first)' },
-  { value: 'status:asc', label: 'Status (earliest)' },
-  { value: 'status:desc', label: 'Status (latest)' },
-];
-
-const QUICK_FILTER_PRESETS: { label: string; value: QuickFilterPreset }[] = [
-  { label: 'My Work', value: 'my-work' },
-  { label: 'Urgent', value: 'urgent' },
-  { label: 'Overdue', value: 'overdue' },
-  { label: 'Unassigned', value: 'unassigned' },
-];
-
-export interface MobileWorkOrderToolbarProps {
-  filters: FiltersType;
-  activeFilterCount: number;
-  activePresets: Set<QuickFilterPreset>;
-  showMobileFilters: boolean;
-  onShowMobileFiltersChange: (show: boolean) => void;
-  onFilterChange: (key: keyof FiltersType, value: string) => void;
-  onClearFilters: () => void;
-  onQuickFilter: (preset: QuickFilterPreset) => void;
-  sortField: SortField;
-  sortDirection: SortDirection;
-  onSortChange: (field: SortField, direction: SortDirection) => void;
-  resultCount: number;
-  totalCount: number;
-}
+export type MobileWorkOrderToolbarProps = WorkOrderFiltersToolbarProps;
 
 const MobileWorkOrderToolbar: React.FC<MobileWorkOrderToolbarProps> = ({
   filters,
@@ -163,7 +144,7 @@ const MobileWorkOrderToolbar: React.FC<MobileWorkOrderToolbarProps> = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {SORT_OPTIONS.map((opt) => (
+                    {WORK_ORDER_SORT_OPTIONS.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}
                       </SelectItem>
@@ -181,24 +162,13 @@ const MobileWorkOrderToolbar: React.FC<MobileWorkOrderToolbarProps> = ({
                   <label htmlFor={mobileStatusFilterId} className="mb-2 block text-sm font-medium">
                     Status
                   </label>
-                  <Select
+                  <WorkOrderStatusFilterSelect
                     value={filters.statusFilter}
                     onValueChange={(value) => onFilterChange('statusFilter', value)}
-                  >
-                    <SelectTrigger id={mobileStatusFilterId} className="h-11">
-                      <SelectValue placeholder="All Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="submitted">Submitted</SelectItem>
-                      <SelectItem value="accepted">Accepted</SelectItem>
-                      <SelectItem value="assigned">Assigned</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="on_hold">On Hold</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    triggerId={mobileStatusFilterId}
+                    placeholder="All Status"
+                    allLabel="All Status"
+                  />
                 </div>
 
                 <div>
@@ -224,61 +194,33 @@ const MobileWorkOrderToolbar: React.FC<MobileWorkOrderToolbarProps> = ({
                   <label htmlFor={mobilePriorityFilterId} className="mb-2 block text-sm font-medium">
                     Priority
                   </label>
-                  <Select
+                  <WorkOrderPriorityFilterSelect
                     value={filters.priorityFilter}
                     onValueChange={(value) => onFilterChange('priorityFilter', value)}
-                  >
-                    <SelectTrigger id={mobilePriorityFilterId} className="h-11">
-                      <SelectValue placeholder="All Priorities" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Priorities</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    triggerId={mobilePriorityFilterId}
+                  />
                 </div>
 
                 <div>
                   <label htmlFor={mobileDueDateFilterId} className="mb-2 block text-sm font-medium">
                     Due Date
                   </label>
-                  <Select
+                  <WorkOrderDueDateFilterSelect
                     value={filters.dueDateFilter}
                     onValueChange={(value) => onFilterChange('dueDateFilter', value)}
-                  >
-                    <SelectTrigger id={mobileDueDateFilterId} className="h-11">
-                      <SelectValue placeholder="All Dates" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Dates</SelectItem>
-                      <SelectItem value="overdue">Overdue</SelectItem>
-                      <SelectItem value="today">Due Today</SelectItem>
-                      <SelectItem value="this_week">This Week</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    triggerId={mobileDueDateFilterId}
+                  />
                 </div>
 
                 <div>
                   <label htmlFor={mobileInvoiceFilterId} className="mb-2 block text-sm font-medium">
                     Invoice
                   </label>
-                  <Select
+                  <WorkOrderInvoiceFilterSelect
                     value={filters.invoiceFilter}
                     onValueChange={(value) => onFilterChange('invoiceFilter', value)}
-                  >
-                    <SelectTrigger id={mobileInvoiceFilterId} className="h-11">
-                      <SelectValue placeholder="All Invoices" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Invoices</SelectItem>
-                      <SelectItem value="paid">Paid</SelectItem>
-                      <SelectItem value="unpaid">Unpaid</SelectItem>
-                      <SelectItem value="overdue">Overdue</SelectItem>
-                      <SelectItem value="not_exported">Not Exported</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    triggerId={mobileInvoiceFilterId}
+                  />
                 </div>
               </div>
 
@@ -296,7 +238,7 @@ const MobileWorkOrderToolbar: React.FC<MobileWorkOrderToolbarProps> = ({
 
       {/* Quick filter chips */}
       <HorizontalChipRow ariaLabel="Quick filter options" className="-mx-1 px-1" gap="gap-1.5">
-        {QUICK_FILTER_PRESETS.map((preset) => {
+        {WORK_ORDER_QUICK_FILTER_PRESETS.map((preset) => {
           const isActive = activePresets.has(preset.value);
           return (
             <Button

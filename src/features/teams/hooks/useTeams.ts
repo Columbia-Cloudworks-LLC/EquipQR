@@ -7,4 +7,4 @@
 
 export { useTeams } from '@/features/teams/hooks/useTeamManagement';
 
-export type { Team, TeamMember } from '@/features/teams/types/team';
+export type { Team } from '@/features/teams/types/team';

@@ -147,18 +147,15 @@ SUPABASE_SERVICE_ROLE_KEY=<local-service-role-key-from-supabase-start-output>
 SUPABASE_URL=http://localhost:58221
 SUPABASE_ANON_KEY=<local-anon-key>
 
-# QuickBooks (use sandbox credentials for local dev)
-INTUIT_CLIENT_ID=<your-sandbox-client-id>
-INTUIT_CLIENT_SECRET=<your-sandbox-client-secret>
-QUICKBOOKS_SANDBOX=true
-PRODUCTION_URL=http://localhost:8080
-# CRITICAL: Must match VITE_QB_OAUTH_REDIRECT_BASE_URL in client .env
-QB_OAUTH_REDIRECT_BASE_URL=http://localhost:58221
+# QuickBooks
+INTUIT_CLIENT_ID=<your-intuit-client-id>
+INTUIT_CLIENT_SECRET=<your-intuit-client-secret>
+PUBLIC_SITE_URL=http://localhost:8080
 
 # Google Workspace Integration (if testing locally)
 GOOGLE_WORKSPACE_CLIENT_ID=<your-google-workspace-client-id>
 GOOGLE_WORKSPACE_CLIENT_SECRET=<your-google-workspace-client-secret>
-GW_OAUTH_REDIRECT_BASE_URL=http://localhost:58221
+# OAuth callback URIs derive from VITE_SUPABASE_URL / SUPABASE_URL — no separate redirect base vars
 TOKEN_ENCRYPTION_KEY=<generate-with-openssl-rand-base64-32>
 KDF_SALT=<generate-unique-salt-with-openssl-rand-base64-32>
 

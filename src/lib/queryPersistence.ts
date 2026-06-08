@@ -125,7 +125,7 @@ function persistenceKey(scope: PersistenceScope): string {
  * announced yet. Components must not assume a scope exists — until the user
  * is authenticated and an organization is selected, persistence is a no-op.
  */
-export function getActivePersistenceScope(): PersistenceScope | null {
+function getActivePersistenceScope(): PersistenceScope | null {
   return currentScope;
 }
 
@@ -143,7 +143,7 @@ export function setActivePersistenceScope(scope: PersistenceScope | null): void 
  * Drop the persisted cache for a specific scope (used on sign-out).
  * Logs and swallows IDB failures — clearing is best-effort.
  */
-export async function clearPersistedCache(scope: PersistenceScope): Promise<void> {
+async function clearPersistedCache(scope: PersistenceScope): Promise<void> {
   const legacyKey = persistenceKey(scope);
   const persisterKeyPrefix = `equipqr:tq:${scope.userId}:${scope.orgId}`;
   try {

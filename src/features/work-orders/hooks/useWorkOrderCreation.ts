@@ -196,7 +196,3 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: str
     },
   });
 };
-
-// Backward compatibility exports
-export type EnhancedCreateWorkOrderData = CreateWorkOrderData;
-export const useCreateWorkOrderEnhanced = useCreateWorkOrder;

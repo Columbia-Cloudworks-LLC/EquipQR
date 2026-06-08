@@ -1,10 +1,15 @@
 import { useState, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
-import { SessionData, SessionTeamMembership, SessionOrganization } from '@/contexts/SessionContext';
+import type { SessionData, SessionTeamMembership, SessionOrganization } from '@/types/session';
 import { SessionDataService } from '@/services/sessionDataService';
 import { SessionStorageService } from '@/services/sessionStorageService';
 import { getOrganizationPreference, saveOrganizationPreference, shouldRefreshSession, getSessionVersion } from '@/utils/sessionPersistence';
 import { logger } from '@/utils/logger';
+import {
+  buildEmptySessionData,
+  resolvePrioritizedOrgId,
+  shouldSkipSessionRefresh,
+} from '@/hooks/sessionManagerRefresh';
 
 interface UseSessionManagerProps {
   user: User | null;
@@ -13,7 +18,7 @@ interface UseSessionManagerProps {
   onError: (error: string) => void;
 }
 
-export interface InitializeSessionResult {
+interface InitializeSessionResult {
   waitForAuth?: boolean;
   shouldLoadFromCache?: boolean;
   cachedData?: SessionData | null;
@@ -39,38 +44,26 @@ export const useSessionManager = ({ user, authLoading, onSessionUpdate, onError 
 
   const refreshSession = useCallback(async (force: boolean = false, preserveOrgSelection: boolean = false) => {
     if (!user) {
-      onSessionUpdate({
-        organizations: [],
-        currentOrganizationId: null,
-        teamMemberships: [],
-        lastUpdated: new Date().toISOString(),
-        version: getSessionVersion()
-      });
+      onSessionUpdate(buildEmptySessionData());
       return;
     }
 
-    // More conservative refresh timing to prevent unnecessary API calls
-    if (!force && lastRefreshTime) {
-      const lastRefresh = new Date(lastRefreshTime);
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-      
-      if (lastRefresh > fiveMinutesAgo) {
-        return;
-      }
+    if (shouldSkipSessionRefresh(force, lastRefreshTime)) {
+      return;
     }
 
     try {
       onError('');
-      
+
       const userPreference = getOrganizationPreference();
       const storedData = SessionStorageService.loadSessionFromStorage();
-      
-      // If preserving org selection, prioritize current selection over stored data
-      const prioritizedOrgId = preserveOrgSelection && storedData?.currentOrganizationId 
-        ? storedData.currentOrganizationId 
-        : userPreference?.selectedOrgId;
+      const prioritizedOrgId = resolvePrioritizedOrgId(
+        preserveOrgSelection,
+        storedData?.currentOrganizationId,
+        userPreference?.selectedOrgId
+      );
 
-      const { organizations, currentOrganizationId, teamMemberships } = 
+      const { organizations, currentOrganizationId, teamMemberships } =
         await SessionDataService.fetchSessionData(
           user.id,
           prioritizedOrgId,
@@ -78,7 +71,7 @@ export const useSessionManager = ({ user, authLoading, onSessionUpdate, onError 
         );
 
       const newSessionData = createSessionData(organizations, currentOrganizationId, teamMemberships);
-      
+
       onSessionUpdate(newSessionData);
       SessionStorageService.saveSessionToStorage(newSessionData);
       setLastRefreshTime(new Date().toISOString());
@@ -86,13 +79,14 @@ export const useSessionManager = ({ user, authLoading, onSessionUpdate, onError 
       console.error('Error refreshing session:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to refresh session';
       onError(errorMessage);
-      
-      // Try to use cached data if available and compatible
-      if (!force) {
-        const cachedData = SessionStorageService.loadSessionFromStorage();
-        if (cachedData && SessionStorageService.isSessionVersionValid(cachedData)) {
-          onSessionUpdate(cachedData);
-        }
+
+      if (force) {
+        return;
+      }
+
+      const cachedData = SessionStorageService.loadSessionFromStorage();
+      if (cachedData && SessionStorageService.isSessionVersionValid(cachedData)) {
+        onSessionUpdate(cachedData);
       }
     }
   }, [user, lastRefreshTime, onSessionUpdate, onError, createSessionData]);

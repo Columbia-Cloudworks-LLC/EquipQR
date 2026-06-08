@@ -1,35 +1,20 @@
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
-  Plus,
-  Trash2,
-  Package,
-  Tag,
   CheckCircle2,
   AlertTriangle,
-  Star,
-  Search,
   ExternalLink,
   Pencil,
 } from 'lucide-react';
-import { useOrganization } from '@/contexts/OrganizationContext';
-import { usePermissions } from '@/hooks/usePermissions';
-import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
+import { useInventoryPartsManagerAccess } from '@/features/inventory/hooks/useInventoryPartsManagerAccess';
 import { useInventoryItems } from '@/features/inventory/hooks/useInventory';
-import {
-  useAlternateGroup,
-  useAddInventoryItemToGroup,
-  useAddPartIdentifierToGroup,
-  useRemoveGroupMember,
-} from '@/features/inventory/hooks/useAlternateGroups';
+import { useAlternateGroup } from '@/features/inventory/hooks/useAlternateGroups';
+import { useAlternateGroupDetailDialogs } from '@/features/inventory/hooks/useAlternateGroupDetailDialogs';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -44,146 +29,34 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { AlternateGroupForm } from '@/features/inventory/components/AlternateGroupForm';
+import { AlternateGroupMembersSection } from '@/features/inventory/components/AlternateGroupMembersSection';
+import { AlternateGroupAddItemDialog } from '@/features/inventory/components/AlternateGroupAddItemDialog';
+import { AlternateGroupAddIdentifierDialog } from '@/features/inventory/components/AlternateGroupAddIdentifierDialog';
+import { AlternateGroupRemoveMemberDialog } from '@/features/inventory/components/AlternateGroupRemoveMemberDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
-import type { PartIdentifierType } from '@/features/inventory/types/inventory';
-import type { AlternateGroupMember } from '@/features/inventory/services/partAlternatesService';
-
-const IDENTIFIER_TYPES: { value: PartIdentifierType; label: string }[] = [
-  { value: 'oem', label: 'OEM Part Number' },
-  { value: 'aftermarket', label: 'Aftermarket Part Number' },
-  { value: 'mpn', label: 'Manufacturer Part Number' },
-  { value: 'upc', label: 'UPC Code' },
-  { value: 'cross_ref', label: 'Cross-Reference Number' },
-  { value: 'sku', label: 'Internal SKU' },
-];
 
 const AlternateGroupDetail: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { currentOrganization } = useOrganization();
-  const { canManageInventory } = usePermissions();
-  const { data: isPartsManager = false } = useIsPartsManager(currentOrganization?.id);
-  const canEdit = canManageInventory(isPartsManager);
-
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showAddItemDialog, setShowAddItemDialog] = useState(false);
-  const [showAddIdentifierDialog, setShowAddIdentifierDialog] = useState(false);
-  const [removingMember, setRemovingMember] = useState<AlternateGroupMember | null>(null);
-  
-  // Add item dialog state
-  const [itemSearch, setItemSearch] = useState('');
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [isPrimaryItem, setIsPrimaryItem] = useState(false);
-  
-  // Add identifier dialog state
-  const [identifierType, setIdentifierType] = useState<PartIdentifierType>('oem');
-  const [identifierValue, setIdentifierValue] = useState('');
-  const [identifierManufacturer, setIdentifierManufacturer] = useState('');
+  const { currentOrganization, canEdit } = useInventoryPartsManagerAccess();
 
   const { data: group, isLoading } = useAlternateGroup(
     currentOrganization?.id,
-    groupId
+    groupId,
   );
-  
+
   const { data: inventoryItems = [] } = useInventoryItems(currentOrganization?.id);
-  
-  const addItemMutation = useAddInventoryItemToGroup();
-  const addIdentifierMutation = useAddPartIdentifierToGroup();
-  const removeMemberMutation = useRemoveGroupMember();
 
-  // Filter out items already in the group
-  const availableItems = useMemo(() => {
-    if (!group) return inventoryItems;
-    const memberItemIds = new Set(
-      group.members.filter(m => m.inventory_item_id).map(m => m.inventory_item_id)
-    );
-    return inventoryItems.filter(item => !memberItemIds.has(item.id));
-  }, [inventoryItems, group]);
-
-  // Filter by search
-  const filteredItems = useMemo(() => {
-    if (!itemSearch.trim()) return [];
-    const needle = itemSearch.toLowerCase();
-    return availableItems
-      .filter(
-        (item) =>
-          item.name.toLowerCase().includes(needle) ||
-          item.sku?.toLowerCase().includes(needle)
-      )
-      .slice(0, 20);
-  }, [availableItems, itemSearch]);
-
-  const handleAddItem = async () => {
-    if (!currentOrganization || !groupId || !selectedItemId) return;
-    try {
-      await addItemMutation.mutateAsync({
-        organizationId: currentOrganization.id,
-        groupId,
-        inventoryItemId: selectedItemId,
-        isPrimary: isPrimaryItem,
-      });
-      setShowAddItemDialog(false);
-      setSelectedItemId(null);
-      setIsPrimaryItem(false);
-      setItemSearch('');
-    } catch {
-      // Error handled by mutation
-    }
-  };
-
-  const handleAddIdentifier = async () => {
-    if (!currentOrganization || !groupId || !identifierValue.trim()) return;
-    try {
-      await addIdentifierMutation.mutateAsync({
-        organizationId: currentOrganization.id,
-        groupId,
-        identifierType,
-        rawValue: identifierValue.trim(),
-        manufacturer: identifierManufacturer.trim() || undefined,
-      });
-      setShowAddIdentifierDialog(false);
-      setIdentifierType('oem');
-      setIdentifierValue('');
-      setIdentifierManufacturer('');
-    } catch {
-      // Error handled by mutation
-    }
-  };
-
-  const handleRemoveMember = async () => {
-    if (!currentOrganization || !groupId || !removingMember) return;
-    try {
-      await removeMemberMutation.mutateAsync({
-        organizationId: currentOrganization.id,
-        groupId,
-        memberId: removingMember.id,
-      });
-      setRemovingMember(null);
-    } catch {
-      // Error handled by mutation
-    }
-  };
+  const dialogs = useAlternateGroupDetailDialogs({
+    organizationId: currentOrganization?.id,
+    groupId,
+    group,
+    inventoryItems,
+  });
 
   if (!currentOrganization) {
     return (
@@ -226,159 +99,14 @@ const AlternateGroupDetail: React.FC = () => {
     );
   }
 
-  const inventoryMembers = group.members.filter(m => m.inventory_item_id);
-  const identifierMembers = group.members.filter(m => m.part_identifier_id && !m.inventory_item_id);
-  const closeAddItemDialog = () => {
-    setShowAddItemDialog(false);
-    setSelectedItemId(null);
-    setIsPrimaryItem(false);
-    setItemSearch('');
-  };
-  const closeAddIdentifierDialog = () => {
-    setShowAddIdentifierDialog(false);
-    setIdentifierType('oem');
-    setIdentifierValue('');
-    setIdentifierManufacturer('');
-  };
-
-  const addItemDialogBody = (
-    <div className="space-y-4">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-        <Input
-          placeholder="Search inventory items..."
-          value={itemSearch}
-          onChange={(e) => setItemSearch(e.target.value)}
-          className="pl-9"
-        />
-      </div>
-
-      <div className="max-h-60 overflow-y-auto border rounded-md p-2 space-y-1">
-        {filteredItems.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            {!itemSearch.trim() && availableItems.length > 0
-              ? 'Search to find inventory items to add'
-              : availableItems.length === 0
-                ? 'All inventory items are already in this group'
-                : 'No items found matching your search'}
-          </p>
-        ) : (
-          filteredItems.map((item) => (
-            <div
-              key={item.id}
-              className={`p-2 rounded cursor-pointer hover:bg-muted/50 transition-colors ${
-                selectedItemId === item.id
-                  ? 'bg-primary/15 border-2 border-primary ring-2 ring-primary/20'
-                  : 'border border-transparent'
-              }`}
-              onClick={() => setSelectedItemId(item.id)}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-medium">{item.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {item.sku && `SKU: ${item.sku} • `}
-                    Qty: {item.quantity_on_hand}
-                  </p>
-                </div>
-                {selectedItemId === item.id && (
-                  <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                )}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="is-primary"
-          checked={isPrimaryItem}
-          onCheckedChange={(checked) => setIsPrimaryItem(checked as boolean)}
-        />
-        <Label htmlFor="is-primary" className="text-sm">
-          Mark as primary part in this group
-        </Label>
-      </div>
-
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={closeAddItemDialog}>
-          Cancel
-        </Button>
-        <Button
-          onClick={handleAddItem}
-          disabled={!selectedItemId || addItemMutation.isPending}
-        >
-          {addItemMutation.isPending ? 'Adding...' : 'Add Item'}
-        </Button>
-      </div>
-    </div>
-  );
-
-  const addIdentifierDialogBody = (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="identifier-type">Type</Label>
-        <Select
-          value={identifierType}
-          onValueChange={(value) => setIdentifierType(value as PartIdentifierType)}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {IDENTIFIER_TYPES.map((type) => (
-              <SelectItem key={type.value} value={type.value}>
-                {type.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="identifier-value">
-          Part Number <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          id="identifier-value"
-          placeholder="e.g., CAT-1R-0750, WIX 51773"
-          value={identifierValue}
-          onChange={(e) => setIdentifierValue(e.target.value)}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="identifier-manufacturer">Manufacturer</Label>
-        <Input
-          id="identifier-manufacturer"
-          placeholder="e.g., Caterpillar, WIX, Baldwin"
-          value={identifierManufacturer}
-          onChange={(e) => setIdentifierManufacturer(e.target.value)}
-        />
-        <p className="text-xs text-muted-foreground">
-          Optional. The brand or manufacturer of this part number.
-        </p>
-      </div>
-
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={closeAddIdentifierDialog}>
-          Cancel
-        </Button>
-        <Button
-          onClick={handleAddIdentifier}
-          disabled={!identifierValue.trim() || addIdentifierMutation.isPending}
-        >
-          {addIdentifierMutation.isPending ? 'Adding...' : 'Add Part Number'}
-        </Button>
-      </div>
-    </div>
+  const inventoryMembers = group.members.filter((m) => m.inventory_item_id);
+  const identifierMembers = group.members.filter(
+    (m) => m.part_identifier_id && !m.inventory_item_id,
   );
 
   return (
     <Page maxWidth="7xl" padding="responsive">
       <div className="space-y-6">
-        {/* Header */}
         <PageHeader
           density="compact"
           title={group.name}
@@ -409,7 +137,7 @@ const AlternateGroupDetail: React.FC = () => {
           }
           actions={
             canEdit ? (
-              <Button variant="outline" onClick={() => setShowEditDialog(true)}>
+              <Button variant="outline" onClick={() => dialogs.setShowEditDialog(true)}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit Group
               </Button>
@@ -417,7 +145,6 @@ const AlternateGroupDetail: React.FC = () => {
           }
         />
 
-        {/* Notes/Evidence */}
         {(group.notes || group.evidence_url) && (
           <Card>
             <CardHeader>
@@ -441,163 +168,19 @@ const AlternateGroupDetail: React.FC = () => {
           </Card>
         )}
 
-        {/* Inventory Items Section */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Inventory Items
-                <Badge variant="secondary">{inventoryMembers.length}</Badge>
-              </CardTitle>
-              <CardDescription>
-                Inventory items that belong to this alternate group
-              </CardDescription>
-            </div>
-            {canEdit && (
-              <Button size="sm" onClick={() => setShowAddItemDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Item
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent>
-            {inventoryMembers.length === 0 ? (
-              <div className="text-center py-8">
-                <Package className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                <p className="font-medium mb-1">No inventory items in this group yet</p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Add interchangeable parts — OEM, aftermarket, or equivalent substitutes.
-                </p>
-                {canEdit && (
-                  <Button onClick={() => setShowAddItemDialog(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add First Item
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {inventoryMembers.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      {member.is_primary && (
-                        <Star className="h-4 w-4 text-warning shrink-0" />
-                      )}
-                      <div className="min-w-0">
-                        <p
-                          className="font-medium cursor-pointer hover:text-primary truncate"
-                          onClick={() =>
-                            navigate(`/dashboard/inventory/${member.inventory_item_id}`)
-                          }
-                        >
-                          {member.inventory_name || 'Unknown Item'}
-                        </p>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          {member.inventory_sku && <span>SKU: {member.inventory_sku}</span>}
-                          <span>Qty: {member.quantity_on_hand}</span>
-                        </div>
-                      </div>
-                    </div>
-                    {canEdit && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={isMobile ? 'min-h-11 min-w-11' : undefined}
-                        onClick={() => setRemovingMember(member)}
-                        aria-label={`Remove ${member.inventory_name || 'inventory item'} from group`}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Part Identifiers Section */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Tag className="h-5 w-5" />
-                Part Numbers
-                <Badge variant="secondary">{identifierMembers.length}</Badge>
-              </CardTitle>
-              <CardDescription>
-                OEM, aftermarket, and cross-reference part numbers
-              </CardDescription>
-            </div>
-            {canEdit && (
-              <Button size="sm" onClick={() => setShowAddIdentifierDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Part Number
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent>
-            {identifierMembers.length === 0 ? (
-              <div className="text-center py-8">
-                <Tag className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                <p className="text-muted-foreground mb-4">
-                  No part numbers in this group yet
-                </p>
-                {canEdit && (
-                  <Button variant="outline" onClick={() => setShowAddIdentifierDialog(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add First Part Number
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {identifierMembers.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="min-w-0">
-                        <p className="font-mono font-medium">
-                          {member.identifier_value}
-                        </p>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          {member.identifier_manufacturer && (
-                            <span>{member.identifier_manufacturer}</span>
-                          )}
-                          <Badge variant="outline" className="text-xs uppercase">
-                            {member.identifier_type}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                    {canEdit && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={isMobile ? 'min-h-11 min-w-11' : undefined}
-                        onClick={() => setRemovingMember(member)}
-                        aria-label={`Remove ${member.identifier_value || 'part number'} from group`}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <AlternateGroupMembersSection
+          inventoryMembers={inventoryMembers}
+          identifierMembers={identifierMembers}
+          canEdit={canEdit}
+          isMobile={isMobile}
+          onAddItem={() => dialogs.setShowAddItemDialog(true)}
+          onAddIdentifier={() => dialogs.setShowAddIdentifierDialog(true)}
+          onRemoveMember={dialogs.setRemovingMember}
+        />
       </div>
 
-      {/* Edit Group Dialog / Drawer */}
       {isMobile ? (
-        <Drawer open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <Drawer open={dialogs.showEditDialog} onOpenChange={dialogs.setShowEditDialog}>
           <DrawerContent className="max-h-[85dvh]">
             <DrawerHeader>
               <DrawerTitle>Edit Alternate Group</DrawerTitle>
@@ -606,121 +189,69 @@ const AlternateGroupDetail: React.FC = () => {
             <div className="px-4 pb-4 overflow-y-auto">
               <AlternateGroupForm
                 group={group}
-                onSuccess={() => setShowEditDialog(false)}
-                onCancel={() => setShowEditDialog(false)}
+                onSuccess={() => dialogs.setShowEditDialog(false)}
+                onCancel={() => dialogs.setShowEditDialog(false)}
               />
             </div>
           </DrawerContent>
         </Drawer>
       ) : (
-        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <Dialog open={dialogs.showEditDialog} onOpenChange={dialogs.setShowEditDialog}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Edit Alternate Group</DialogTitle>
-              <DialogDescription>
-                Update the group details.
-              </DialogDescription>
+              <DialogDescription>Update the group details.</DialogDescription>
             </DialogHeader>
             <AlternateGroupForm
               group={group}
-              onSuccess={() => setShowEditDialog(false)}
-              onCancel={() => setShowEditDialog(false)}
+              onSuccess={() => dialogs.setShowEditDialog(false)}
+              onCancel={() => dialogs.setShowEditDialog(false)}
             />
           </DialogContent>
         </Dialog>
       )}
 
-      {/* Add Inventory Item Dialog / Drawer */}
-      {isMobile ? (
-        <Drawer
-          open={showAddItemDialog}
-          onOpenChange={(open) => (open ? setShowAddItemDialog(true) : closeAddItemDialog())}
-        >
-          <DrawerContent className="max-h-[85dvh]">
-            <DrawerHeader>
-              <DrawerTitle>Add Inventory Item</DrawerTitle>
-              <DrawerDescription>
-                Select an inventory item to add to this alternate group.
-              </DrawerDescription>
-            </DrawerHeader>
-            <div className="px-4 pb-4 overflow-y-auto">{addItemDialogBody}</div>
-          </DrawerContent>
-        </Drawer>
-      ) : (
-        <Dialog
-          open={showAddItemDialog}
-          onOpenChange={(open) => (open ? setShowAddItemDialog(true) : closeAddItemDialog())}
-        >
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Add Inventory Item</DialogTitle>
-              <DialogDescription>
-                Select an inventory item to add to this alternate group.
-              </DialogDescription>
-            </DialogHeader>
-            {addItemDialogBody}
-          </DialogContent>
-        </Dialog>
-      )}
+      <AlternateGroupAddItemDialog
+        isMobile={isMobile}
+        open={dialogs.showAddItemDialog}
+        onOpenChange={(open) => (open ? dialogs.setShowAddItemDialog(true) : dialogs.closeAddItemDialog())}
+        itemSearch={dialogs.itemSearch}
+        onItemSearchChange={dialogs.setItemSearch}
+        filteredItems={dialogs.filteredItems}
+        availableItemsCount={dialogs.availableItems.length}
+        selectedItemId={dialogs.selectedItemId}
+        onSelectItem={dialogs.setSelectedItemId}
+        isPrimaryItem={dialogs.isPrimaryItem}
+        onPrimaryItemChange={dialogs.setIsPrimaryItem}
+        onCancel={dialogs.closeAddItemDialog}
+        onSubmit={dialogs.handleAddItem}
+        isPending={dialogs.addItemMutation.isPending}
+      />
 
-      {/* Add Part Identifier Dialog / Drawer */}
-      {isMobile ? (
-        <Drawer
-          open={showAddIdentifierDialog}
-          onOpenChange={(open) => (open ? setShowAddIdentifierDialog(true) : closeAddIdentifierDialog())}
-        >
-          <DrawerContent className="max-h-[85dvh]">
-            <DrawerHeader>
-              <DrawerTitle>Add Part Number</DrawerTitle>
-              <DrawerDescription>
-                Add an OEM, aftermarket, or cross-reference part number to this group.
-              </DrawerDescription>
-            </DrawerHeader>
-            <div className="px-4 pb-4 overflow-y-auto">{addIdentifierDialogBody}</div>
-          </DrawerContent>
-        </Drawer>
-      ) : (
-        <Dialog
-          open={showAddIdentifierDialog}
-          onOpenChange={(open) => (open ? setShowAddIdentifierDialog(true) : closeAddIdentifierDialog())}
-        >
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Add Part Number</DialogTitle>
-              <DialogDescription>
-                Add an OEM, aftermarket, or cross-reference part number to this group.
-              </DialogDescription>
-            </DialogHeader>
-            {addIdentifierDialogBody}
-          </DialogContent>
-        </Dialog>
-      )}
+      <AlternateGroupAddIdentifierDialog
+        isMobile={isMobile}
+        open={dialogs.showAddIdentifierDialog}
+        onOpenChange={(open) =>
+          open ? dialogs.setShowAddIdentifierDialog(true) : dialogs.closeAddIdentifierDialog()
+        }
+        identifierType={dialogs.identifierType}
+        onIdentifierTypeChange={dialogs.setIdentifierType}
+        identifierValue={dialogs.identifierValue}
+        onIdentifierValueChange={dialogs.setIdentifierValue}
+        identifierManufacturer={dialogs.identifierManufacturer}
+        onIdentifierManufacturerChange={dialogs.setIdentifierManufacturer}
+        onCancel={dialogs.closeAddIdentifierDialog}
+        onSubmit={dialogs.handleAddIdentifier}
+        isPending={dialogs.addIdentifierMutation.isPending}
+      />
 
-      {/* Remove Member Confirmation */}
-      <AlertDialog open={!!removingMember} onOpenChange={() => setRemovingMember(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove from Group?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to remove "
-              {removingMember?.inventory_name || removingMember?.identifier_value || 'this item'}
-              " from the alternate group?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleRemoveMember}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Remove
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <AlternateGroupRemoveMemberDialog
+        member={dialogs.removingMember}
+        onOpenChange={() => dialogs.setRemovingMember(null)}
+        onConfirm={dialogs.handleRemoveMember}
+      />
     </Page>
   );
 };
 
 export default AlternateGroupDetail;
-

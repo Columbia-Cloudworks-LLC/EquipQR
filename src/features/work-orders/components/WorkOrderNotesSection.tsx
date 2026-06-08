@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Plus, MessageSquare, Images, Clock, Gauge, User, EyeOff } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
+import NoteTimelineEntry from '@/components/common/NoteTimelineEntry';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,12 +18,19 @@ import {
 } from '@/features/work-orders/services/workOrderNotesService';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
-import { OfflineFormBanner } from '@/features/offline-queue/components/OfflineFormBanner';
-import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyncBadge';
+import { NotesTabAddNoteSection } from '@/components/common/NotesTabAddNoteSection';
 import { useOfflineMergedNotes } from '@/features/offline-queue/hooks/useOfflineMergedNotes';
-import InlineNoteComposer from '@/components/common/InlineNoteComposer';
-import { logger } from '@/utils/logger';
+import NotesLoadingSkeleton from '@/components/common/NotesLoadingSkeleton';
+import { resolveNoteContentFromSubmit } from '@/components/common/noteContentHelpers';
+import type { NoteSubmitPayload } from '@/components/common/noteSubmitTypes';
+import {
+  createNoteCreateMutationCallbacks,
+  runOfflineAwareNoteCreate,
+  showQueuedNoteCreateToasts,
+} from '@/components/common/noteCreateHelpers';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
+import { useAttachedNoteImages } from '@/hooks/useAttachedNoteImages';
+import { logger } from '@/utils/logger';
 
 interface WorkOrderNotesSectionProps {
   workOrderId: string;
@@ -69,13 +77,16 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
     }
   }, [openCaptureTrigger]);
   const [noteContent, setNoteContent] = useState('');
-  const [attachedImages, setAttachedImages] = useState<File[]>([]);
+  const { attachedImages, handleImagesAdd, handleImageRemove, clearAttachedImages } =
+    useAttachedNoteImages({
+      onAddWhileOffline: () => toast.error(offlinePhotoMessage),
+    });
 
   // Fetch notes with images
   const { data: serverNotes = [], isLoading } = useQuery({
     queryKey: workOrderQueryKeys.notesWithImages(workOrderId),
-    queryFn: () => getWorkOrderNotesWithImages(workOrderId),
-    enabled: !!workOrderId
+    queryFn: () => getWorkOrderNotesWithImages(workOrderId, currentOrganization!.id),
+    enabled: !!workOrderId && !!currentOrganization?.id
   });
 
   // Merge server notes with any pending offline note items
@@ -83,64 +94,56 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
 
   // Create note mutation — supports offline (text only; images when online)
   const createNoteMutation = useMutation({
-    mutationFn: async ({ content, hoursWorked, isPrivate, images, machineHours }: {
-      content: string;
-      hoursWorked: number;
-      isPrivate: boolean;
-      images: File[];
-      machineHours?: number;
-    }) => {
-      const useOfflinePath = !navigator.onLine || images.length === 0;
-      if (useOfflinePath && currentOrganization?.id && user?.id) {
-        const service = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
-        const result = await service.createWorkOrderNote(workOrderId, content, hoursWorked, isPrivate, machineHours);
-        if (result.queuedOffline) {
-          return { queuedOffline: true, hadImages: images.length > 0 };
-        }
-        return { queuedOffline: false, data: result.data };
-      }
-      return createWorkOrderNoteWithImages(
-        workOrderId,
-        content,
-        hoursWorked,
-        isPrivate,
-        images,
-        currentOrganization?.id,
-        machineHours,
-      );
-    },
-    onSuccess: (result) => {
-      const queuedOffline = result && typeof result === 'object' && 'queuedOffline' in result && result.queuedOffline;
-      if (queuedOffline) {
-        const hadImages = result && typeof result === 'object' && 'hadImages' in result && result.hadImages;
-        toast.success('Note saved offline — will sync when you reconnect.');
-        if (hadImages) {
-          toast.warning(offlinePhotoMessage);
-        }
+    mutationFn: (input) =>
+      runOfflineAwareNoteCreate({
+        input,
+        organizationId: currentOrganization?.id,
+        userId: user?.id,
+        offlineCreate: async ({ content, hoursWorked, isPrivate, images, machineHours }) => {
+          const service = new OfflineAwareWorkOrderService(currentOrganization!.id, user!.id);
+          const result = await service.createWorkOrderNote(
+            workOrderId,
+            content,
+            hoursWorked,
+            isPrivate,
+            machineHours,
+          );
+          if (result.queuedOffline) {
+            return { queuedOffline: true as const, hadImages: images.length > 0 };
+          }
+          return { queuedOffline: false as const, data: result.data };
+        },
+        onlineCreate: ({ content, hoursWorked, isPrivate, images, machineHours }) =>
+          createWorkOrderNoteWithImages(
+            workOrderId,
+            content,
+            hoursWorked,
+            isPrivate,
+            images,
+            currentOrganization?.id,
+            machineHours,
+          ),
+      }),
+    ...createNoteCreateMutationCallbacks({
+      onQueuedOffline: (hadImages) => {
+        showQueuedNoteCreateToasts(hadImages, { photoWarningMessage: offlinePhotoMessage });
         offlineCtx?.refresh();
-      } else {
+      },
+      onOnlineSuccess: () => {
         queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.notesWithImages(workOrderId) });
         queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.images(workOrderId) });
         queryClient.invalidateQueries({ queryKey: workOrderMetrics.imageCount(workOrderId) });
         toast.success('Note created successfully');
-      }
-      setShowForm(false);
-      setNoteContent('');
-      setAttachedImages([]);
-    },
-    onError: (error) => {
-      logger.error('Failed to create note', error);
-      toast.error('Failed to create note');
-    }
+      },
+      resetForm: () => {
+        setShowForm(false);
+        setNoteContent('');
+        clearAttachedImages();
+      },
+    }),
   });
 
-  const handleNoteSubmit = async (data: {
-    content: string;
-    images: File[];
-    hoursWorked?: number;
-    machineHours?: number;
-    isPrivate?: boolean;
-  }) => {
+  const handleNoteSubmit = async (data: NoteSubmitPayload) => {
     if (import.meta.env.DEV) {
       logger.debug('handleNoteSubmit called', { 
         contentLength: data.content.length,
@@ -151,31 +154,23 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
       });
     }
     
+    let submitData = data;
     if (!navigator.onLine && data.images.length > 0) {
       toast.error(offlinePhotoMessage);
-      setAttachedImages([]);
+      clearAttachedImages();
       if (!data.content.trim()) {
         return;
       }
-      data = { ...data, images: [] };
+      submitData = { ...data, images: [] };
     }
 
-    // Generate content if none provided but images are uploaded
-    let finalContent = data.content.trim();
-    if (!finalContent && data.images.length > 0) {
-      const userName = user?.email?.split('@')[0] || 'User';
-      if (data.images.length === 1) {
-        finalContent = `${userName} uploaded: ${data.images[0].name}`;
-      } else {
-        const fileNames = data.images.map(f => f.name).join(', ');
-        finalContent = `${userName} uploaded ${data.images.length} images: ${fileNames}`;
-      }
-      if (import.meta.env.DEV) {
-        logger.debug('Auto-generated note content', { finalContent });
-      }
+    const userName = user?.email?.split('@')[0] || 'User';
+    const finalContent = resolveNoteContentFromSubmit(submitData, userName, 'filenames');
+    if (import.meta.env.DEV && finalContent && !submitData.content.trim() && submitData.images.length > 0) {
+      logger.debug('Auto-generated note content', { finalContent });
     }
     
-    if (!finalContent && data.images.length === 0) {
+    if (!finalContent && submitData.images.length === 0) {
       if (import.meta.env.DEV) {
         logger.debug('No content or images provided for note creation');
       }
@@ -186,10 +181,10 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
     try {
       await createNoteMutation.mutateAsync({
         content: finalContent,
-        hoursWorked: data.hoursWorked || 0,
-        isPrivate: data.isPrivate || false,
-        images: data.images,
-        machineHours: data.machineHours
+        hoursWorked: submitData.hoursWorked || 0,
+        isPrivate: submitData.isPrivate || false,
+        images: submitData.images,
+        machineHours: submitData.machineHours
       });
       
       if (import.meta.env.DEV) {
@@ -199,27 +194,6 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
       logger.error('Error in handleNoteSubmit', error);
       throw error;
     }
-  };
-
-  const handleImagesAdd = (files: File[]) => {
-    if (!navigator.onLine) {
-      toast.error(offlinePhotoMessage);
-      return;
-    }
-    setAttachedImages(prev => [...prev, ...files]);
-  };
-
-  const handleImageRemove = (index: number) => {
-    setAttachedImages(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const formatHours = (hours: number) => {
-    return hours > 0 ? `${hours}h` : '';
-  };
-
-  const formatMachineHours = (hours: number | null | undefined) => {
-    const n = Number(hours);
-    return Number.isFinite(n) && n > 0 ? `${n}h` : '';
   };
 
   // Filter notes based on privacy settings
@@ -233,76 +207,36 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   const userDisplayName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
 
   if (isLoading) {
-    return (
-      <Card className="shadow-elevation-2">
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-24 bg-muted animate-pulse rounded" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <NotesLoadingSkeleton cardClassName="shadow-elevation-2" />;
   }
 
   return (
     <div className="space-y-6 overflow-x-hidden">
       {/* Add Note Form - Always show if no notes exist or explicitly requested */}
-      {canAddNotes && (visibleNotes.length === 0 || showForm) && (
-        <Card className="shadow-elevation-2">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>{visibleNotes.length === 0 ? 'Add Your First Note' : 'Add Note'}</span>
-              {visibleNotes.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setShowForm(false);
-                    setNoteContent('');
-                    setAttachedImages([]);
-                  }}
-                >
-                  Cancel
-                </Button>
-              )}
-            </CardTitle>
-            <OfflineFormBanner />
-          </CardHeader>
-          <CardContent>
-            <InlineNoteComposer
-              value={noteContent}
-              onChange={setNoteContent}
-              onSubmit={handleNoteSubmit}
-              attachedImages={attachedImages}
-              onImagesAdd={handleImagesAdd}
-              onImageRemove={handleImageRemove}
-              showPrivateToggle={showPrivateNotes}
-              showHoursWorked={true}
-              showMachineHours={true}
-              disabled={createNoteMutation.isPending}
-              isSubmitting={createNoteMutation.isPending}
-              placeholder="Enter your note..."
-              userDisplayName={userDisplayName}
-              requestAttachTrigger={attachRequestId}
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Add Note Button - Only show if notes exist and form is not shown */}
-      {canAddNotes && visibleNotes.length > 0 && !showForm && !hideInlineAddButton && (
-        <div className="flex justify-center">
-          <Button
-            variant="outline"
-            onClick={() => setShowForm(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Note
-          </Button>
-        </div>
-      )}
+      <NotesTabAddNoteSection
+        noteCount={visibleNotes.length}
+        showForm={showForm}
+        canAddNotes={canAddNotes}
+        onShowForm={() => setShowForm(true)}
+        onCancelForm={() => {
+          setShowForm(false);
+          setNoteContent('');
+          clearAttachedImages();
+        }}
+        noteContent={noteContent}
+        onNoteContentChange={setNoteContent}
+        onSubmit={handleNoteSubmit}
+        attachedImages={attachedImages}
+        onImagesAdd={handleImagesAdd}
+        onImageRemove={handleImageRemove}
+        showPrivateToggle={showPrivateNotes}
+        disabled={createNoteMutation.isPending}
+        isSubmitting={createNoteMutation.isPending}
+        userDisplayName={userDisplayName}
+        cardClassName="shadow-elevation-2"
+        requestAttachTrigger={attachRequestId}
+        hideInlineAddButton={hideInlineAddButton}
+      />
 
       {/* Empty State - Show when no notes, no form, and user cannot add notes */}
       {visibleNotes.length === 0 && !showForm && !canAddNotes && (
@@ -329,80 +263,15 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
             <div className="space-y-4">
               {visibleNotes.map((note) => {
                 const typedNote = note as WorkOrderNote & { _isPendingSync?: boolean };
-                const machineLabel = formatMachineHours(typedNote.machine_hours);
                 return (
-                <Card key={note.id}>
-                  <CardContent standalone>
-                    <div className="space-y-3">
-                      {/* Note Header */}
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2 text-[13px] text-muted-foreground flex-wrap">
-                          <User className="h-4 w-4" />
-                          <span>{note.author_name}</span>
-                          {typedNote._isPendingSync && <PendingSyncBadge />}
-                          <span>•</span>
-                          <span>{formatDate(note.created_at)}</span>
-                          {formatHours(note.hours_worked) && (
-                            <>
-                              <span>•</span>
-                              <Clock className="h-4 w-4" />
-                              <span title="Hours worked">{formatHours(note.hours_worked)} worked</span>
-                            </>
-                          )}
-                          {machineLabel && (
-                            <>
-                              <span>•</span>
-                              <Gauge className="h-4 w-4" />
-                              <span title="Machine hours">
-                                {machineLabel} machine
-                              </span>
-                            </>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          {note.is_private && (
-                            <Badge variant="outline" className="text-xs">
-                              <EyeOff className="h-3 w-3 mr-1" />
-                              Private
-                            </Badge>
-                          )}
-                          {note.images && note.images.length > 0 && (
-                            <Badge variant="outline" className="text-xs">
-                              <Images className="h-3 w-3 mr-1" />
-                              {note.images.length} image{note.images.length !== 1 ? 's' : ''}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Note Content */}
-                      <div className="prose prose-sm max-w-none dark:prose-invert">
-                        <p className="whitespace-pre-wrap text-[15px] text-foreground/90 leading-relaxed">{note.content}</p>
-                      </div>
-
-                      {/* Note Images */}
-                      {note.images && note.images.length > 0 && (
-                        <>
-                          <Separator />
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                            {note.images.map((image) => (
-                              <div key={image.id} className="aspect-square bg-muted rounded overflow-hidden">
-                                <img
-                                  src={image.file_url}
-                                  alt={image.file_name}
-                                  className="w-full h-full object-cover"
-                                  loading="lazy"
-                                  decoding="async"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                  <NoteTimelineEntry
+                    key={note.id}
+                    note={typedNote}
+                    formatDate={formatDate}
+                    metaClassName="text-[13px] text-muted-foreground"
+                    contentClassName="prose prose-sm max-w-none dark:prose-invert"
+                    contentTextClassName="whitespace-pre-wrap text-[15px] text-foreground/90 leading-relaxed"
+                  />
                 );
               })}
             </div>

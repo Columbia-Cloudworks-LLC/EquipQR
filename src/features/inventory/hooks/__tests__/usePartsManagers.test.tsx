@@ -5,11 +5,14 @@
  * These tests validate permission checks, data fetching, and mutation behaviors.
  */
 
-import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
+import { createRouterQueryClientWrapper } from '@/test/utils/query-client-wrapper';
+import {
+  setupAuthAndToastMocks,
+  waitForHookSuccess,
+  expectHookData,
+} from '@/test/utils/hook-test-helpers';
 
 // Mock dependencies
 vi.mock('@/hooks/useAuth', () => ({
@@ -44,21 +47,7 @@ import {
 import { personas } from '@/test/fixtures/personas';
 import { organizations } from '@/test/fixtures/entities';
 
-// Test wrapper with QueryClient
-const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-
-  return ({ children }: { children: React.ReactNode }) => (
-    <MemoryRouter>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </MemoryRouter>
-  );
-};
+const createWrapper = () => createRouterQueryClientWrapper();
 
 // Mock toast implementation
 const mockToast = vi.fn();
@@ -66,19 +55,7 @@ const mockToast = vi.fn();
 describe('usePartsManagers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useAuth).mockReturnValue({
-      user: { id: personas.admin.id, email: personas.admin.email },
-      session: { user: { id: personas.admin.id } },
-      isLoading: false,
-      signUp: vi.fn(),
-      signIn: vi.fn(),
-      signInWithGoogle: vi.fn(),
-      signOut: vi.fn(),
-    } as unknown as ReturnType<typeof useAuth>);
-
-    vi.mocked(useAppToast).mockReturnValue({
-      toast: mockToast,
-    } as unknown as ReturnType<typeof useAppToast>);
+    setupAuthAndToastMocks(useAuth, useAppToast, mockToast);
   });
 
   describe('usePartsManagers hook', () => {
@@ -101,11 +78,8 @@ describe('usePartsManagers', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(result.current.data).toEqual(mockManagers);
+      await waitForHookSuccess(result);
+      expectHookData(result, mockManagers);
       expect(getPartsManagers).toHaveBeenCalledWith(organizations.acme.id);
     });
 
@@ -143,9 +117,7 @@ describe('usePartsManagers', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(result.current.data).toBe(true);
       expect(isUserPartsManager).toHaveBeenCalledWith(
@@ -162,9 +134,7 @@ describe('usePartsManagers', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(result.current.data).toBe(false);
     });
@@ -177,9 +147,7 @@ describe('usePartsManagers', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       // Should use the auth user's id (personas.admin.id)
       expect(isUserPartsManager).toHaveBeenCalledWith(
@@ -479,9 +447,7 @@ describe('Parts Manager User Journeys', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitForHookSuccess(result);
 
       expect(result.current.data?.length).toBe(2);
       expect(result.current.data?.[0].userName).toBe(personas.teamManager.name);

@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getAuthClaims } from '@/lib/authClaims';
 import { logger } from '@/utils/logger';
+import { resolveOrganizationAccess } from '@/features/organization/services/organizationMembershipAccess';
 
 export interface WorkOrderOrganizationInfo {
   workOrderId: string;
@@ -10,16 +11,30 @@ export interface WorkOrderOrganizationInfo {
   userRole?: string;
 }
 
-export const getWorkOrderOrganization = async (
-  workOrderId: string
-): Promise<WorkOrderOrganizationInfo | null> => {
+/**
+ * Returns the trusted organization ID from caller context.
+ */
+export async function resolveWorkOrderOrganizationId(
+  _workOrderId: string,
+  organizationId?: string,
+): Promise<string> {
+  if (!organizationId) {
+    throw new Error('Organization ID required');
+  }
+
+  return organizationId;
+}
+
+export async function getWorkOrderOrganization(
+  workOrderId: string,
+): Promise<WorkOrderOrganizationInfo | null> {
   try {
     const claims = await getAuthClaims();
     if (!claims) {
       return null;
     }
 
-    const { data: workOrder, error: woError } = await supabase
+    const { data: workOrder, error: workOrderError } = await supabase
       .from('work_orders')
       .select(`
         id,
@@ -32,35 +47,22 @@ export const getWorkOrderOrganization = async (
       .eq('id', workOrderId)
       .single();
 
-    if (woError || !workOrder) {
-      logger.error('Error fetching work order for QR redirect:', woError);
+    if (workOrderError || !workOrder) {
+      logger.error('Error fetching work order organization:', workOrderError);
       return null;
     }
 
-    const organization = workOrder.organizations as { id: string; name: string } | null;
-    if (!organization) {
+    const access = await resolveOrganizationAccess(workOrder, claims.sub);
+    if (!access) {
       return null;
     }
-
-    const { data: membership, error: membershipError } = await supabase
-      .from('organization_members')
-      .select('role, status')
-      .eq('organization_id', organization.id)
-      .eq('user_id', claims.sub)
-      .eq('status', 'active')
-      .single();
-
-    const userHasAccess = !membershipError && !!membership;
 
     return {
       workOrderId: workOrder.id,
-      organizationId: organization.id,
-      organizationName: organization.name,
-      userHasAccess,
-      userRole: membership?.role,
+      ...access,
     };
   } catch (error) {
     logger.error('Error in getWorkOrderOrganization:', error);
     return null;
   }
-};
+}

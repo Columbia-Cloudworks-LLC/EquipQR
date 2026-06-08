@@ -2,17 +2,28 @@ import fs from 'fs';
 import path from 'path';
 
 export type ActionOverlayMode = 'none' | 'debug' | 'marketing';
-export type UserRegressionViewportMode = 'desktop' | 'mobile';
+export type UserRegressionRunProfile = 'test' | 'watch' | 'demo';
+export type UserRegressionViewportMode = 'desktop' | 'mobile' | 'both';
+
+export type UserRegressionViewportSize = {
+  width: number;
+  height: number;
+};
 
 export type UserRegressionRunConfig = {
   baseURL: string;
+  runProfile: UserRegressionRunProfile;
   recordAllVideos: boolean;
   annotateVideos: boolean;
   actionOverlay: boolean;
+  actionCue: boolean;
   overlayMode: ActionOverlayMode;
   viewportMode: UserRegressionViewportMode;
   recordingTitle: string;
   outputDir: string;
+  desktopViewport: UserRegressionViewportSize;
+  mobileViewport: UserRegressionViewportSize;
+  videoSize: UserRegressionViewportSize;
   slowMoMs: number;
   stagePauseMs: number;
   watchPauseMs: number;
@@ -20,13 +31,18 @@ export type UserRegressionRunConfig = {
 
 const DEFAULT_CONFIG: UserRegressionRunConfig = {
   baseURL: 'http://localhost:8080',
+  runProfile: 'test',
   recordAllVideos: false,
   annotateVideos: false,
   actionOverlay: false,
+  actionCue: false,
   overlayMode: 'none',
   viewportMode: 'desktop',
   recordingTitle: '',
   outputDir: '',
+  desktopViewport: { width: 1280, height: 720 },
+  mobileViewport: { width: 390, height: 844 },
+  videoSize: { width: 1280, height: 720 },
   slowMoMs: 0,
   stagePauseMs: 0,
   watchPauseMs: 0,
@@ -51,12 +67,37 @@ function overlayModeOrDefault(value: unknown): ActionOverlayMode {
   return 'none';
 }
 
+function runProfileOrDefault(value: unknown, fallback: UserRegressionRunProfile): UserRegressionRunProfile {
+  if (value === 'demo' || value === 'watch' || value === 'test') return value;
+  return fallback;
+}
+
 function viewportModeOrDefault(value: unknown): UserRegressionViewportMode {
+  if (value === 'both') return 'both';
   return value === 'mobile' ? 'mobile' : 'desktop';
 }
 
 function stringOrDefault(value: unknown, fallback: string): string {
   return typeof value === 'string' ? value.trim() : fallback;
+}
+
+function viewportSizeOrDefault(
+  value: unknown,
+  fallback: UserRegressionViewportSize,
+): UserRegressionViewportSize {
+  if (
+    value &&
+    typeof value === 'object' &&
+    typeof (value as Record<string, unknown>).width === 'number' &&
+    typeof (value as Record<string, unknown>).height === 'number'
+  ) {
+    const width = (value as { width: number }).width;
+    const height = (value as { height: number }).height;
+    if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+      return { width, height };
+    }
+  }
+  return fallback;
 }
 
 function baseUrlOrDefault(value: unknown): string {
@@ -67,13 +108,18 @@ function baseUrlOrDefault(value: unknown): string {
 function normalizeRunConfig(raw: Record<string, unknown>, fallback: UserRegressionRunConfig): UserRegressionRunConfig {
   return {
     baseURL: baseUrlOrDefault(raw.baseURL ?? fallback.baseURL),
+    runProfile: runProfileOrDefault(raw.runProfile, fallback.runProfile),
     recordAllVideos: boolOrDefault(raw.recordAllVideos, fallback.recordAllVideos),
     annotateVideos: boolOrDefault(raw.annotateVideos, fallback.annotateVideos),
     actionOverlay: boolOrDefault(raw.actionOverlay, fallback.actionOverlay),
+    actionCue: boolOrDefault(raw.actionCue, fallback.actionCue),
     overlayMode: overlayModeOrDefault(raw.overlayMode ?? fallback.overlayMode),
     viewportMode: viewportModeOrDefault(raw.viewportMode ?? fallback.viewportMode),
     recordingTitle: stringOrDefault(raw.recordingTitle, fallback.recordingTitle),
     outputDir: stringOrDefault(raw.outputDir, fallback.outputDir),
+    desktopViewport: viewportSizeOrDefault(raw.desktopViewport, fallback.desktopViewport),
+    mobileViewport: viewportSizeOrDefault(raw.mobileViewport, fallback.mobileViewport),
+    videoSize: viewportSizeOrDefault(raw.videoSize, fallback.videoSize),
     slowMoMs: nonNegativeNumberOrDefault(raw.slowMoMs, fallback.slowMoMs),
     stagePauseMs: nonNegativeNumberOrDefault(raw.stagePauseMs, fallback.stagePauseMs),
     watchPauseMs: nonNegativeNumberOrDefault(raw.watchPauseMs, fallback.watchPauseMs),

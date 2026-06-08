@@ -109,32 +109,51 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
     invalidateSpy.mockRestore();
   });
 
+  type PmFormDataOverrides = Partial<
+    Omit<WorkOrderFormData, 'equipmentId'> & { equipmentId?: string | null }
+  >;
+
+  const buildPmFormData = (
+    overrides: PmFormDataOverrides = {},
+  ): Omit<WorkOrderFormData, 'equipmentId'> & { equipmentId?: string | null } => ({
+    title: 'Test Work Order',
+    description: 'Test Description',
+    priority: 'medium',
+    hasPM: true,
+    pmTemplateId: 'template-1',
+    ...overrides,
+  });
+
+  async function renderActionsHarness(
+    pmData: TestComponentProps['pmData'] = null,
+  ) {
+    let capturedActions: ReturnType<typeof useWorkOrderDetailsActions> | undefined;
+
+    render(
+      <TestComponent
+        workOrderId="wo-1"
+        organizationId="org-1"
+        pmData={pmData}
+        onReady={(actions) => {
+          capturedActions = actions;
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(capturedActions).toBeDefined();
+    });
+
+    return capturedActions!;
+  }
+
   describe('PM Creation Equipment ID Prioritization', () => {
     it('should use data.equipmentId when both data.equipmentId and equipmentId parameter are present', async () => {
-      let capturedActions: ReturnType<typeof useWorkOrderDetailsActions> | undefined;
-      
-      render(
-        <TestComponent
-          workOrderId="wo-1"
-          organizationId="org-1"
-          pmData={null} // No existing PM
-          onReady={(actions) => { capturedActions = actions; }}
-        />
-      );
+      const capturedActions = await renderActionsHarness();
 
-      await waitFor(() => {
-        expect(capturedActions).toBeDefined();
-      });
-
-      // Prepare form data with equipmentId
-      const formData: WorkOrderFormData = {
-        title: 'Test Work Order',
-        description: 'Test Description',
-        equipmentId: 'eq-from-form', // This should be prioritized
-        priority: 'medium',
-        hasPM: true,
-        pmTemplateId: 'template-1',
-      };
+      const formData = buildPmFormData({
+        equipmentId: 'eq-from-form',
+      }) as WorkOrderFormData;
 
       // Call handleUpdateWorkOrder with both data.equipmentId and equipmentId parameter
       await capturedActions!.handleUpdateWorkOrder(
@@ -163,30 +182,9 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
     });
 
     it('should fall back to equipmentId parameter when data.equipmentId is unavailable', async () => {
-      let capturedActions: ReturnType<typeof useWorkOrderDetailsActions> | undefined;
-      
-      render(
-        <TestComponent
-          workOrderId="wo-1"
-          organizationId="org-1"
-          pmData={null} // No existing PM
-          onReady={(actions) => { capturedActions = actions; }}
-        />
-      );
+      const capturedActions = await renderActionsHarness();
 
-      await waitFor(() => {
-        expect(capturedActions).toBeDefined();
-      });
-
-      // Prepare form data without equipmentId (simulating unavailable value)
-      const formData: Omit<WorkOrderFormData, 'equipmentId'> & { equipmentId?: string } = {
-        title: 'Test Work Order',
-        description: 'Test Description',
-        // equipmentId is intentionally omitted - should fall back to parameter
-        priority: 'medium',
-        hasPM: true,
-        pmTemplateId: 'template-1',
-      };
+      const formData = buildPmFormData();
 
       // Call handleUpdateWorkOrder with only equipmentId parameter
       await capturedActions!.handleUpdateWorkOrder(
@@ -212,30 +210,9 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
     });
 
     it('should skip PM creation when both data.equipmentId and equipmentId parameter are nullish', async () => {
-      let capturedActions: ReturnType<typeof useWorkOrderDetailsActions> | undefined;
-      
-      render(
-        <TestComponent
-          workOrderId="wo-1"
-          organizationId="org-1"
-          pmData={null} // No existing PM
-          onReady={(actions) => { capturedActions = actions; }}
-        />
-      );
+      const capturedActions = await renderActionsHarness();
 
-      await waitFor(() => {
-        expect(capturedActions).toBeDefined();
-      });
-
-      // Prepare form data without equipmentId
-      const formData: Omit<WorkOrderFormData, 'equipmentId'> & { equipmentId?: string } = {
-        title: 'Test Work Order',
-        description: 'Test Description',
-        // equipmentId is intentionally omitted
-        priority: 'medium',
-        hasPM: true,
-        pmTemplateId: 'template-1',
-      };
+      const formData = buildPmFormData();
 
       // Call handleUpdateWorkOrder without equipmentId parameter
       await capturedActions!.handleUpdateWorkOrder(
@@ -257,30 +234,9 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
     });
 
     it('should skip PM creation when data.equipmentId is null and equipmentId parameter is undefined', async () => {
-      let capturedActions: ReturnType<typeof useWorkOrderDetailsActions> | undefined;
-      
-      render(
-        <TestComponent
-          workOrderId="wo-1"
-          organizationId="org-1"
-          pmData={null}
-          onReady={(actions) => { capturedActions = actions; }}
-        />
-      );
+      const capturedActions = await renderActionsHarness();
 
-      await waitFor(() => {
-        expect(capturedActions).toBeDefined();
-      });
-
-      // Create form data with null equipmentId (simulating form state)
-      const formData: Omit<WorkOrderFormData, 'equipmentId'> & { equipmentId?: string | null } = {
-        title: 'Test Work Order',
-        description: 'Test Description',
-        equipmentId: null, // Explicitly null
-        priority: 'medium',
-        hasPM: true,
-        pmTemplateId: 'template-1',
-      };
+      const formData = buildPmFormData({ equipmentId: null });
 
       await capturedActions!.handleUpdateWorkOrder(
         formData,
@@ -297,29 +253,9 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
     });
 
     it('should skip PM creation when data.equipmentId is undefined and equipmentId parameter is empty string', async () => {
-      let capturedActions: ReturnType<typeof useWorkOrderDetailsActions> | undefined;
-      
-      render(
-        <TestComponent
-          workOrderId="wo-1"
-          organizationId="org-1"
-          pmData={null}
-          onReady={(actions) => { capturedActions = actions; }}
-        />
-      );
+      const capturedActions = await renderActionsHarness();
 
-      await waitFor(() => {
-        expect(capturedActions).toBeDefined();
-      });
-
-      const formData: Omit<WorkOrderFormData, 'equipmentId'> & { equipmentId?: string } = {
-        title: 'Test Work Order',
-        description: 'Test Description',
-        // equipmentId is intentionally omitted to simulate undefined
-        priority: 'medium',
-        hasPM: true,
-        pmTemplateId: 'template-1',
-      };
+      const formData = buildPmFormData();
 
       await capturedActions!.handleUpdateWorkOrder(
         formData,
@@ -338,29 +274,9 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
 
   describe('PM Creation Edge Cases', () => {
     it('should handle PM creation when pmTemplateId is provided but equipmentId comes from parameter', async () => {
-      let capturedActions: ReturnType<typeof useWorkOrderDetailsActions> | undefined;
-      
-      render(
-        <TestComponent
-          workOrderId="wo-1"
-          organizationId="org-1"
-          pmData={null}
-          onReady={(actions) => { capturedActions = actions; }}
-        />
-      );
+      const capturedActions = await renderActionsHarness();
 
-      await waitFor(() => {
-        expect(capturedActions).toBeDefined();
-      });
-
-      const formData: Omit<WorkOrderFormData, 'equipmentId'> & { equipmentId?: string } = {
-        title: 'Test Work Order',
-        description: 'Test Description',
-        // equipmentId is intentionally omitted - should use parameter
-        priority: 'medium',
-        hasPM: true,
-        pmTemplateId: 'template-1',
-      };
+      const formData = buildPmFormData();
 
       await capturedActions!.handleUpdateWorkOrder(
         formData,
@@ -381,29 +297,12 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
     });
 
     it('should not create PM when pmTemplateId is missing even if equipmentId is present', async () => {
-      let capturedActions: ReturnType<typeof useWorkOrderDetailsActions> | undefined;
-      
-      render(
-        <TestComponent
-          workOrderId="wo-1"
-          organizationId="org-1"
-          pmData={null}
-          onReady={(actions) => { capturedActions = actions; }}
-        />
-      );
+      const capturedActions = await renderActionsHarness();
 
-      await waitFor(() => {
-        expect(capturedActions).toBeDefined();
-      });
-
-      const formData: WorkOrderFormData = {
-        title: 'Test Work Order',
-        description: 'Test Description',
-        equipmentId: 'eq-1', // Present
-        priority: 'medium',
-        hasPM: true,
-        pmTemplateId: null, // Missing template
-      };
+      const formData = buildPmFormData({
+        equipmentId: 'eq-1',
+        pmTemplateId: null,
+      }) as WorkOrderFormData;
 
       await capturedActions!.handleUpdateWorkOrder(
         formData,

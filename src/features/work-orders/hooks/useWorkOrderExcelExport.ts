@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Excel export repeats count and export orchestration blocks
 /**
  * Work Order Excel Export Hook
  * 
@@ -9,11 +11,20 @@ import { useState, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast as sonnerToast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { buildWorkOrderExportCountQuery } from '@/features/reports/utils/exportCountQueries';
 import { logger } from '@/utils/logger';
 import { useAppToast } from '@/hooks/useAppToast';
 import type { WorkOrderExcelFilters } from '@/features/work-orders/types/workOrderExcel';
 import { INTERNAL_WORK_ORDER_PACKET_POLICY } from '@/features/work-orders/constants/workOrderExportPolicy';
 import { workOrderExports, exportArtifacts } from '@/lib/queryKeys';
+import { downloadBlob } from '@/utils/exportUtils';
+import {
+  generateSingleWorkOrderPacketFilename,
+  generateWorkOrderExportFilename,
+  parseWorkOrderExportError,
+  postWorkOrderExport,
+} from '@/features/work-orders/services/workOrderExportPost';
+import { handleGoogleWorkspaceExportError } from '@/features/work-orders/utils/googleWorkspaceExportToasts';
 
 /** Response from the export-work-orders-to-google-sheets function */
 interface GoogleSheetsExportResponse {
@@ -32,12 +43,6 @@ interface GoogleDocsExportResponse {
   warnings?: string[];
 }
 
-/** Error response with optional code for handling insufficient scopes */
-interface ExportErrorResponse {
-  error: string;
-  code?: string;
-}
-
 /**
  * Export work orders via edge function (bulk export)
  */
@@ -47,30 +52,15 @@ async function exportWorkOrdersExcel(
 ): Promise<Blob> {
   logger.info('Initiating bulk work order Excel export', { organizationId });
 
-  // Use fetch directly instead of supabase.functions.invoke for binary response
-  const { data: sessionData } = await supabase.auth.getSession();
-  const accessToken = sessionData?.session?.access_token;
-  
-  if (!accessToken) {
-    throw new Error('Not authenticated');
-  }
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const response = await fetch(`${supabaseUrl}/functions/v1/export-work-orders-excel`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({
-      organizationId,
-      filters,
-    }),
-  });
+  const response = await postWorkOrderExport(
+    'export-work-orders-excel',
+    organizationId,
+    filters
+  );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(errorData.error || errorData.details || `HTTP ${response.status}`);
+    const error = await parseWorkOrderExportError(response);
+    throw error;
   }
 
   const data = await response.arrayBuffer();
@@ -90,33 +80,14 @@ async function exportWorkOrdersToGoogleSheets(
 ): Promise<GoogleSheetsExportResponse> {
   logger.info('Initiating Google Sheets export', { organizationId });
 
-  const { data: sessionData } = await supabase.auth.getSession();
-  const accessToken = sessionData?.session?.access_token;
-  
-  if (!accessToken) {
-    throw new Error('Not authenticated');
-  }
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const response = await fetch(`${supabaseUrl}/functions/v1/export-work-orders-to-google-sheets`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({
-      organizationId,
-      filters,
-    }),
-  });
+  const response = await postWorkOrderExport(
+    'export-work-orders-to-google-sheets',
+    organizationId,
+    filters
+  );
 
   if (!response.ok) {
-    const errorData: ExportErrorResponse = await response.json().catch(() => ({ error: 'Unknown error' }));
-    
-    // Create a custom error that includes the code
-    const error = new Error(errorData.error || `HTTP ${response.status}`) as Error & { code?: string };
-    error.code = errorData.code;
-    throw error;
+    throw await parseWorkOrderExportError(response);
   }
 
   return await response.json();
@@ -128,62 +99,17 @@ async function exportWorkOrdersToGoogleDocs(
 ): Promise<GoogleDocsExportResponse> {
   logger.info('Initiating Google Docs export', { organizationId });
 
-  const { data: sessionData } = await supabase.auth.getSession();
-  const accessToken = sessionData?.session?.access_token;
-
-  if (!accessToken) {
-    throw new Error('Not authenticated');
-  }
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const response = await fetch(`${supabaseUrl}/functions/v1/export-work-orders-to-google-docs`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({
-      organizationId,
-      filters,
-    }),
-  });
+  const response = await postWorkOrderExport(
+    'export-work-orders-to-google-docs',
+    organizationId,
+    filters
+  );
 
   if (!response.ok) {
-    const errorData: ExportErrorResponse = await response.json().catch(() => ({ error: 'Unknown error' }));
-    const error = new Error(errorData.error || `HTTP ${response.status}`) as Error & { code?: string };
-    error.code = errorData.code;
-    throw error;
+    throw await parseWorkOrderExportError(response);
   }
 
   return await response.json();
-}
-
-/**
- * Download a blob as a file
- */
-function downloadBlob(blob: Blob, filename: string): void {
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
-}
-
-/**
- * Generate export filename
- */
-function generateExportFilename(organizationName: string): string {
-  const sanitizedOrgName = organizationName.replace(/[^a-zA-Z0-9_-]/g, '_');
-  const timestamp = new Date().toISOString().split('T')[0];
-  return `${sanitizedOrgName}_internal_work_order_packet_${timestamp}.xlsx`;
-}
-
-function generateSinglePacketFilename(workOrderId: string): string {
-  const timestamp = new Date().toISOString().split('T')[0];
-  return `work_order_${workOrderId.slice(0, 8)}_internal_packet_${timestamp}.xlsx`;
 }
 
 /**
@@ -193,31 +119,14 @@ async function getWorkOrderCount(
   organizationId: string,
   filters: WorkOrderExcelFilters
 ): Promise<number> {
-  let query = supabase
-    .from('work_orders')
-    .select('id', { count: 'exact', head: true })
-    .eq('organization_id', organizationId);
-
-  if (filters.status) {
-    query = query.eq('status', filters.status);
-  }
-  if (filters.workOrderId) {
-    query = query.eq('id', filters.workOrderId);
-  }
-  if (filters.teamId) {
-    query = query.eq('team_id', filters.teamId);
-  }
-  if (filters.priority) {
-    query = query.eq('priority', filters.priority);
-  }
-
-  const dateField = filters.dateField || 'created_date';
-  if (filters.dateRange?.from) {
-    query = query.gte(dateField, filters.dateRange.from);
-  }
-  if (filters.dateRange?.to) {
-    query = query.lte(dateField, filters.dateRange.to);
-  }
+  const query = buildWorkOrderExportCountQuery(organizationId, {
+    status: filters.status,
+    workOrderId: filters.workOrderId,
+    teamId: filters.teamId,
+    priority: filters.priority,
+    dateField: filters.dateField || 'created_date',
+    dateRange: filters.dateRange,
+  });
 
   const { count } = await query;
   return count ?? 0;
@@ -262,7 +171,7 @@ export function useWorkOrderExcelExport(
       return exportWorkOrdersExcel(organizationId, filters);
     },
     onSuccess: (blob) => {
-      const filename = generateExportFilename(organizationName);
+      const filename = generateWorkOrderExportFilename(organizationName);
       downloadBlob(blob, filename);
       toast({
         title: 'Export Complete',
@@ -297,30 +206,7 @@ export function useWorkOrderExcelExport(
     },
     onError: (error: Error & { code?: string }) => {
       logger.error('Google Sheets export error', error);
-
-      if (error.code === 'insufficient_scopes' || error.code === 'not_connected') {
-        toast({
-          title: 'Google Workspace Permissions Required',
-          description: 'Please reconnect Google Workspace in Organization Settings to enable this feature.',
-          variant: 'error',
-        });
-        return;
-      }
-
-      if (error.code === 'missing_destination') {
-        toast({
-          title: 'Organization Drive Folder Required',
-          description: 'Set an organization Drive folder in Organization Settings before exporting.',
-          variant: 'error',
-        });
-        return;
-      }
-
-      toast({
-        title: 'Export Failed',
-        description: error.message || `Failed to export ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName.toLowerCase()} to Google Sheets.`,
-        variant: 'error',
-      });
+      handleGoogleWorkspaceExportError(toast, error, 'Sheets');
     },
   });
 
@@ -357,39 +243,7 @@ export function useWorkOrderExcelExport(
     },
     onError: (error: Error & { code?: string }) => {
       logger.error('Google Docs export error', error);
-
-      if (error.code === 'insufficient_scopes' || error.code === 'not_connected') {
-        toast({
-          title: 'Google Workspace Permissions Required',
-          description: 'Please reconnect Google Workspace in Organization Settings to enable this feature.',
-          variant: 'error',
-        });
-        return;
-      }
-
-      if (error.code === 'missing_destination') {
-        toast({
-          title: 'Organization Drive Folder Required',
-          description: 'Set an organization Drive folder in Organization Settings before exporting.',
-          variant: 'error',
-        });
-        return;
-      }
-
-      if (error.code === 'single_work_order_required') {
-        toast({
-          title: 'Single Work Order Only',
-          description: 'Google Docs export supports a single work order. Use Google Sheets for bulk exports.',
-          variant: 'error',
-        });
-        return;
-      }
-
-      toast({
-        title: 'Export Failed',
-        description: error.message || `Failed to export ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName.toLowerCase()} to Google Docs.`,
-        variant: 'error',
-      });
+      handleGoogleWorkspaceExportError(toast, error, 'Docs');
     },
   });
 
@@ -425,7 +279,7 @@ export function useWorkOrderExcelExport(
           workOrderId,
           dateField: 'created_date',
         });
-        downloadBlob(blob, generateSinglePacketFilename(workOrderId));
+        downloadBlob(blob, generateSingleWorkOrderPacketFilename(workOrderId));
         logger.info('Internal packet export succeeded', { workOrderId });
         toast({
           title: 'Export Complete',
@@ -493,26 +347,7 @@ export function useWorkOrderExcelExport(
           });
         }
       } catch (error) {
-        const typedError = error as Error & { code?: string };
-        if (typedError.code === 'missing_destination') {
-          toast({
-            title: 'Organization Drive Folder Required',
-            description: 'Set an organization Drive folder in Organization Settings before exporting.',
-            variant: 'error',
-          });
-        } else if (typedError.code === 'insufficient_scopes' || typedError.code === 'not_connected') {
-          toast({
-            title: 'Google Workspace Permissions Required',
-            description: 'Please reconnect Google Workspace in Organization Settings to enable this feature.',
-            variant: 'error',
-          });
-        } else {
-          toast({
-            title: 'Export Failed',
-            description: typedError.message || `Failed to export ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName.toLowerCase()} to Google Docs.`,
-            variant: 'error',
-          });
-        }
+        handleGoogleWorkspaceExportError(toast, error as Error & { code?: string }, 'Docs');
       } finally {
         setIsExportingSingleToDocs(false);
       }
@@ -547,4 +382,3 @@ export function useWorkOrderExcelExport(
   };
 }
 
-export default useWorkOrderExcelExport;

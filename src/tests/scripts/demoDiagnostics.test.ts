@@ -31,6 +31,7 @@ describe('demo diagnostics helpers', () => {
       sceneTimings: [],
       activity: {
         actionCount: 3,
+        spotlightCount: 3,
         retryCount: 0,
         selectorFallbackCount: 1,
         checkpointPassCount: 1,
@@ -43,6 +44,7 @@ describe('demo diagnostics helpers', () => {
     expect(metadata.scenarioId).toBe('executive-overview');
     expect(metadata.flowToken).toBe('demo-exec-overview');
     expect(metadata.runIndex).toBe(2);
+    expect(metadata.activity.spotlightCount).toBe(3);
   });
 
   it('redacts storage state env in diagnostics', () => {
@@ -55,11 +57,13 @@ describe('demo diagnostics helpers', () => {
       selectorFallbacks: [],
       retries: [],
       sceneEvents: [],
+      spotlightCount: 2,
       qualityGate: { passed: true, failures: [] },
       env: {
         DEMO_STORAGE_STATE: 'tmp/demos/auth.json'
       }
     });
     expect(diagnostics.env.DEMO_STORAGE_STATE).toBe('<redacted-path>');
+    expect(diagnostics.spotlightCount).toBe(2);
   });
 });

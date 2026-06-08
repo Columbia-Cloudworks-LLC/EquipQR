@@ -7,6 +7,8 @@ import { QBO_INVOICE_ITEM_NAMES } from "../_shared/quickbooks-config.ts";
 import { __testables } from "./qbo-invoice-lines.ts";
 import { __payloadTestables, type QuickBooksInvoice } from "./qbo-invoice-payload.ts";
 import { updateWorkOrderInvoiceMirror } from "./work-order-invoice-mirror.ts";
+import { loadWorkOrderForExport } from "./qbo-work-order-gate.ts";
+import { __qboInvoiceApiTestables } from "./qbo-invoice-api.ts";
 
 const {
   buildInvoiceLines,
@@ -41,6 +43,121 @@ const minimalWorkOrder = {
 
 function restoreFetch(original: typeof fetch) {
   globalThis.fetch = original;
+}
+
+const JSON_HEADERS = { "Content-Type": "application/json" } as const;
+const ITEM_POST_PATH = /\/v3\/company\/[^/]+\/item(?:\?|$)/;
+
+type ExistingQboItem = {
+  Id: string;
+  Name: string;
+  Type: string;
+};
+
+type InstallQuickBooksItemFetchMockOptions = {
+  /** When provided, records raw POST bodies for item-create assertions */
+  postBodies?: string[];
+  /** Prefix for IDs returned from item-create POST (default `new-`) */
+  createdItemIdPrefix?: "id-" | "new-";
+  /** Pre-existing items matched by escaped `Name = '...'` in Item query URLs */
+  existingItemsByName?: Record<string, ExistingQboItem>;
+  /** Income account name in Account query mock (default `Sales Income`) */
+  incomeAccountName?: string;
+  /**
+   * `compact`: regression-style mock (POST first, `Sales` account, empty Item queries).
+   * `full`: Account + Item query + optional POST with `not mocked` fallback.
+   */
+  mode?: "full" | "compact";
+};
+
+function installQuickBooksItemFetchMock(
+  options: InstallQuickBooksItemFetchMockOptions = {},
+): typeof fetch {
+  const originalFetch = globalThis.fetch;
+  const {
+    postBodies,
+    createdItemIdPrefix = "new-",
+    existingItemsByName = {},
+    incomeAccountName = "Sales Income",
+    mode = "full",
+  } = options;
+
+  const compactAccountName = "Sales";
+  const accountName = mode === "compact" ? compactAccountName : incomeAccountName;
+
+  globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    const method = (init?.method ?? "GET").toUpperCase();
+    const bodyStr = init?.body ? String(init.body) : "";
+
+    if (method === "POST" && ITEM_POST_PATH.test(url)) {
+      if (postBodies) {
+        postBodies.push(bodyStr);
+      }
+      const body = JSON.parse(bodyStr) as { Name: string; Type?: string };
+      const itemResponse =
+        mode === "compact"
+          ? { Item: { Id: `id-${body.Name}`, Name: body.Name } }
+          : {
+            Item: {
+              Id: `${createdItemIdPrefix}${body.Name}`,
+              Name: body.Name,
+              Type: body.Type,
+            },
+          };
+      return Promise.resolve(
+        new Response(JSON.stringify(itemResponse), {
+          status: 200,
+          headers: JSON_HEADERS,
+        }),
+      );
+    }
+
+    if (url.includes("/query") && url.includes(encodeURIComponent("Account"))) {
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            QueryResponse: { Account: [{ Id: "inc-1", Name: accountName }] },
+          }),
+          { status: 200, headers: JSON_HEADERS },
+        ),
+      );
+    }
+
+    if (url.includes("/query") && url.includes(encodeURIComponent("Item"))) {
+      const decoded = decodeURIComponent(url);
+      for (const [name, item] of Object.entries(existingItemsByName)) {
+        const escaped = escapeQuickBooksQueryValue(name);
+        if (decoded.includes(`Name = '${escaped}'`)) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({ QueryResponse: { Item: [item] } }),
+              { status: 200, headers: JSON_HEADERS },
+            ),
+          );
+        }
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify({ QueryResponse: {} }), {
+          status: 200,
+          headers: JSON_HEADERS,
+        }),
+      );
+    }
+
+    if (mode === "full") {
+      return Promise.resolve(new Response("not mocked", { status: 500 }));
+    }
+
+    return Promise.resolve(
+      new Response(JSON.stringify({ QueryResponse: {} }), {
+        status: 200,
+        headers: JSON_HEADERS,
+      }),
+    );
+  };
+
+  return originalFetch;
 }
 
 Deno.test("escapeQuickBooksQueryValue escapes quotes and backslashes", () => {
@@ -283,50 +400,12 @@ Deno.test("resolveIncomeAccountRef throws when configured ID returns non-OK HTTP
 });
 
 Deno.test("buildInvoiceLines emits one Parts line for multiple inventory-backed costs", async () => {
-  const originalFetch = globalThis.fetch;
   const postBodies: string[] = [];
+  const originalFetch = installQuickBooksItemFetchMock({
+    postBodies,
+    createdItemIdPrefix: "id-",
+  });
   try {
-    globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      const method = (init?.method ?? "GET").toUpperCase();
-      const bodyStr = init?.body ? String(init.body) : "";
-
-      if (url.includes("/query") && url.includes(encodeURIComponent("Account"))) {
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              QueryResponse: { Account: [{ Id: "inc-1", Name: "Sales Income" }] },
-            }),
-            { status: 200, headers: { "Content-Type": "application/json" } },
-          ),
-        );
-      }
-
-      if (url.includes("/query") && url.includes(encodeURIComponent("Item"))) {
-        return Promise.resolve(
-          new Response(JSON.stringify({ QueryResponse: {} }), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }),
-        );
-      }
-
-      if (method === "POST" && /\/v3\/company\/[^/]+\/item(?:\?|$)/.test(url)) {
-        postBodies.push(bodyStr);
-        const body = JSON.parse(bodyStr) as { Name: string; Type: string };
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              Item: { Id: `id-${body.Name}`, Name: body.Name, Type: body.Type },
-            }),
-            { status: 200, headers: { "Content-Type": "application/json" } },
-          ),
-        );
-      }
-
-      return Promise.resolve(new Response("not mocked", { status: 500 }));
-    };
-
     const costs = [
       {
         description: "Bolt A",
@@ -381,68 +460,18 @@ Deno.test("buildInvoiceLines emits one Parts line for multiple inventory-backed 
 });
 
 Deno.test("buildInvoiceLines uses Service type for Labor item creation and reuses existing Item Id", async () => {
-  const originalFetch = globalThis.fetch;
   const postBodies: string[] = [];
+  const originalFetch = installQuickBooksItemFetchMock({
+    postBodies,
+    existingItemsByName: {
+      [QBO_INVOICE_ITEM_NAMES.labor]: {
+        Id: "existing-labor",
+        Name: QBO_INVOICE_ITEM_NAMES.labor,
+        Type: "Service",
+      },
+    },
+  });
   try {
-    globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      const method = (init?.method ?? "GET").toUpperCase();
-      const bodyStr = init?.body ? String(init.body) : "";
-
-      if (url.includes("/query") && url.includes(encodeURIComponent("Account"))) {
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              QueryResponse: { Account: [{ Id: "inc-1", Name: "Sales Income" }] },
-            }),
-            { status: 200, headers: { "Content-Type": "application/json" } },
-          ),
-        );
-      }
-
-      if (url.includes("/query") && url.includes(encodeURIComponent("Item"))) {
-        const decoded = decodeURIComponent(url);
-        const escapedLaborName = escapeQuickBooksQueryValue(QBO_INVOICE_ITEM_NAMES.labor);
-        if (decoded.includes(`Name = '${escapedLaborName}'`)) {
-          return Promise.resolve(
-            new Response(
-              JSON.stringify({
-                QueryResponse: {
-                  Item: [{
-                    Id: "existing-labor",
-                    Name: QBO_INVOICE_ITEM_NAMES.labor,
-                    Type: "Service",
-                  }],
-                },
-              }),
-              { status: 200, headers: { "Content-Type": "application/json" } },
-            ),
-          );
-        }
-        return Promise.resolve(
-          new Response(JSON.stringify({ QueryResponse: {} }), {
-            status: 200,
-            headers: { "Content-Type": "application/json" } },
-          ),
-        );
-      }
-
-      if (method === "POST" && /\/v3\/company\/[^/]+\/item(?:\?|$)/.test(url)) {
-        postBodies.push(bodyStr);
-        const body = JSON.parse(bodyStr) as { Name: string; Type: string };
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              Item: { Id: `new-${body.Name}`, Name: body.Name, Type: body.Type },
-            }),
-            { status: 200, headers: { "Content-Type": "application/json" } },
-          ),
-        );
-      }
-
-      return Promise.resolve(new Response("not mocked", { status: 500 }));
-    };
-
     const costs = [
       {
         description: "Labor — repair",
@@ -474,50 +503,9 @@ Deno.test("buildInvoiceLines uses Service type for Labor item creation and reuse
 });
 
 Deno.test("buildInvoiceLines produces Labor and Parts rows when both totals are positive", async () => {
-  const originalFetch = globalThis.fetch;
   const postBodies: string[] = [];
+  const originalFetch = installQuickBooksItemFetchMock({ postBodies });
   try {
-    globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      const method = (init?.method ?? "GET").toUpperCase();
-      const bodyStr = init?.body ? String(init.body) : "";
-
-      if (url.includes("/query") && url.includes(encodeURIComponent("Account"))) {
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              QueryResponse: { Account: [{ Id: "inc-1", Name: "Sales Income" }] },
-            }),
-            { status: 200, headers: { "Content-Type": "application/json" } },
-          ),
-        );
-      }
-
-      if (url.includes("/query") && url.includes(encodeURIComponent("Item"))) {
-        return Promise.resolve(
-          new Response(JSON.stringify({ QueryResponse: {} }), {
-            status: 200,
-            headers: { "Content-Type": "application/json" } },
-          ),
-        );
-      }
-
-      if (method === "POST" && /\/v3\/company\/[^/]+\/item(?:\?|$)/.test(url)) {
-        postBodies.push(bodyStr);
-        const body = JSON.parse(bodyStr) as { Name: string; Type: string };
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              Item: { Id: `new-${body.Name}`, Name: body.Name, Type: body.Type },
-            }),
-            { status: 200, headers: { "Content-Type": "application/json" } },
-          ),
-        );
-      }
-
-      return Promise.resolve(new Response("not mocked", { status: 500 }));
-    };
-
     const costs = [
       {
         description: "Labor task",
@@ -560,50 +548,9 @@ Deno.test("buildInvoiceLines produces Labor and Parts rows when both totals are 
 Deno.test(
   "buildInvoiceLines sums manual non-inventory and inventory-backed rows into one Parts line with Labor",
   async () => {
-    const originalFetch = globalThis.fetch;
     const postBodies: string[] = [];
+    const originalFetch = installQuickBooksItemFetchMock({ postBodies });
     try {
-      globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-        const url = String(input);
-        const method = (init?.method ?? "GET").toUpperCase();
-        const bodyStr = init?.body ? String(init.body) : "";
-
-        if (url.includes("/query") && url.includes(encodeURIComponent("Account"))) {
-          return Promise.resolve(
-            new Response(
-              JSON.stringify({
-                QueryResponse: { Account: [{ Id: "inc-1", Name: "Sales Income" }] },
-              }),
-              { status: 200, headers: { "Content-Type": "application/json" } },
-            ),
-          );
-        }
-
-        if (url.includes("/query") && url.includes(encodeURIComponent("Item"))) {
-          return Promise.resolve(
-            new Response(JSON.stringify({ QueryResponse: {} }), {
-              status: 200,
-              headers: { "Content-Type": "application/json" },
-            }),
-          );
-        }
-
-        if (method === "POST" && /\/v3\/company\/[^/]+\/item(?:\?|$)/.test(url)) {
-          postBodies.push(bodyStr);
-          const body = JSON.parse(bodyStr) as { Name: string; Type: string };
-          return Promise.resolve(
-            new Response(
-              JSON.stringify({
-                Item: { Id: `new-${body.Name}`, Name: body.Name, Type: body.Type },
-              }),
-              { status: 200, headers: { "Content-Type": "application/json" } },
-            ),
-          );
-        }
-
-        return Promise.resolve(new Response("not mocked", { status: 500 }));
-      };
-
       const costs = [
         {
           description: "Labor",
@@ -659,50 +606,9 @@ Deno.test(
 );
 
 Deno.test("buildInvoiceLines folds Truck Supplies cost row into summarized Parts only", async () => {
-  const originalFetch = globalThis.fetch;
   const postBodies: string[] = [];
+  const originalFetch = installQuickBooksItemFetchMock({ postBodies });
   try {
-    globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      const method = (init?.method ?? "GET").toUpperCase();
-      const bodyStr = init?.body ? String(init.body) : "";
-
-      if (url.includes("/query") && url.includes(encodeURIComponent("Account"))) {
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              QueryResponse: { Account: [{ Id: "inc-1", Name: "Sales Income" }] },
-            }),
-            { status: 200, headers: { "Content-Type": "application/json" } },
-          ),
-        );
-      }
-
-      if (url.includes("/query") && url.includes(encodeURIComponent("Item"))) {
-        return Promise.resolve(
-          new Response(JSON.stringify({ QueryResponse: {} }), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }),
-        );
-      }
-
-      if (method === "POST" && /\/v3\/company\/[^/]+\/item(?:\?|$)/.test(url)) {
-        postBodies.push(bodyStr);
-        const body = JSON.parse(bodyStr) as { Name: string; Type: string };
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              Item: { Id: `new-${body.Name}`, Name: body.Name, Type: body.Type },
-            }),
-            { status: 200, headers: { "Content-Type": "application/json" } },
-          ),
-        );
-      }
-
-      return Promise.resolve(new Response("not mocked", { status: 500 }));
-    };
-
     const costs = [
       {
         description: "Truck Supplies",
@@ -740,35 +646,8 @@ Deno.test("buildInvoiceLines folds Truck Supplies cost row into summarized Parts
 
 // Fix 1: Labor Amount must equal aggregated labor cost total regardless of rate
 Deno.test("buildInvoiceLines Labor Amount matches aggregated labor cost even when hours imply a different rate", async () => {
-  const originalFetch = globalThis.fetch;
+  const originalFetch = installQuickBooksItemFetchMock({ mode: "compact" });
   try {
-    globalThis.fetch = (_input: RequestInfo | URL, init?: RequestInit) => {
-      const method = (init?.method ?? "GET").toUpperCase();
-      if (method === "POST") {
-        const body = JSON.parse(String(init?.body ?? "{}")) as { Name: string; Type: string };
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({ Item: { Id: `id-${body.Name}`, Name: body.Name } }),
-            { status: 200, headers: { "Content-Type": "application/json" } },
-          ),
-        );
-      }
-      const url = String(_input);
-      if (url.includes("/query") && url.includes(encodeURIComponent("Account"))) {
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({ QueryResponse: { Account: [{ Id: "inc-1", Name: "Sales" }] } }),
-            { status: 200, headers: { "Content-Type": "application/json" } },
-          ),
-        );
-      }
-      return Promise.resolve(
-        new Response(JSON.stringify({ QueryResponse: {} }), {
-          status: 200, headers: { "Content-Type": "application/json" },
-        }),
-      );
-    };
-
     const costs = [{
       description: "Labor — welding",
       quantity: 1,
@@ -797,35 +676,8 @@ Deno.test("buildInvoiceLines bills labor from default rate when hours exist but 
   const prevRate = Deno.env.get("QBO_DEFAULT_LABOR_RATE_CENTS");
   try {
     Deno.env.set("QBO_DEFAULT_LABOR_RATE_CENTS", "5000");
-    const originalFetch = globalThis.fetch;
+    const originalFetch = installQuickBooksItemFetchMock({ mode: "compact" });
     try {
-      globalThis.fetch = (_input: RequestInfo | URL, init?: RequestInit) => {
-        const method = (init?.method ?? "GET").toUpperCase();
-        if (method === "POST") {
-          const body = JSON.parse(String(init?.body ?? "{}")) as { Name: string; Type: string };
-          return Promise.resolve(
-            new Response(
-              JSON.stringify({ Item: { Id: `id-${body.Name}`, Name: body.Name } }),
-              { status: 200, headers: { "Content-Type": "application/json" } },
-            ),
-          );
-        }
-        const url = String(_input);
-        if (url.includes("/query") && url.includes(encodeURIComponent("Account"))) {
-          return Promise.resolve(
-            new Response(
-              JSON.stringify({ QueryResponse: { Account: [{ Id: "inc-1", Name: "Sales" }] } }),
-              { status: 200, headers: { "Content-Type": "application/json" } },
-            ),
-          );
-        }
-        return Promise.resolve(
-          new Response(JSON.stringify({ QueryResponse: {} }), {
-            status: 200, headers: { "Content-Type": "application/json" },
-          }),
-        );
-      };
-
       const notes = [{
         hours_worked: 2,
         is_private: false,
@@ -860,35 +712,8 @@ Deno.test("buildInvoiceLines default-rate labor bills rounded Qty so UnitPrice m
   const prevRate = Deno.env.get("QBO_DEFAULT_LABOR_RATE_CENTS");
   try {
     Deno.env.set("QBO_DEFAULT_LABOR_RATE_CENTS", "5000"); // $50.00/hr
-    const originalFetch = globalThis.fetch;
+    const originalFetch = installQuickBooksItemFetchMock({ mode: "compact" });
     try {
-      globalThis.fetch = (_input: RequestInfo | URL, init?: RequestInit) => {
-        const method = (init?.method ?? "GET").toUpperCase();
-        if (method === "POST") {
-          const body = JSON.parse(String(init?.body ?? "{}")) as { Name: string; Type: string };
-          return Promise.resolve(
-            new Response(
-              JSON.stringify({ Item: { Id: `id-${body.Name}`, Name: body.Name } }),
-              { status: 200, headers: { "Content-Type": "application/json" } },
-            ),
-          );
-        }
-        const url = String(_input);
-        if (url.includes("/query") && url.includes(encodeURIComponent("Account"))) {
-          return Promise.resolve(
-            new Response(
-              JSON.stringify({ QueryResponse: { Account: [{ Id: "inc-1", Name: "Sales" }] } }),
-              { status: 200, headers: { "Content-Type": "application/json" } },
-            ),
-          );
-        }
-        return Promise.resolve(
-          new Response(JSON.stringify({ QueryResponse: {} }), {
-            status: 200, headers: { "Content-Type": "application/json" },
-          }),
-        );
-      };
-
       const notes = [{
         hours_worked: 1.234,
         is_private: false,
@@ -924,35 +749,8 @@ Deno.test("buildInvoiceLines default-rate labor bills rounded Qty so UnitPrice m
 
 // Labor Qty must match the value used for UnitPrice (rounded hours, min 0.01) so Qty×UnitPrice ≈ Amount
 Deno.test("buildInvoiceLines Labor uses clamped rounded Qty and matching UnitPrice for tiny logged hours", async () => {
-  const originalFetch = globalThis.fetch;
+  const originalFetch = installQuickBooksItemFetchMock({ mode: "compact" });
   try {
-    globalThis.fetch = (_input: RequestInfo | URL, init?: RequestInit) => {
-      const method = (init?.method ?? "GET").toUpperCase();
-      if (method === "POST") {
-        const body = JSON.parse(String(init?.body ?? "{}")) as { Name: string; Type: string };
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({ Item: { Id: `id-${body.Name}`, Name: body.Name } }),
-            { status: 200, headers: { "Content-Type": "application/json" } },
-          ),
-        );
-      }
-      const url = String(_input);
-      if (url.includes("/query") && url.includes(encodeURIComponent("Account"))) {
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({ QueryResponse: { Account: [{ Id: "inc-1", Name: "Sales" }] } }),
-            { status: 200, headers: { "Content-Type": "application/json" } },
-          ),
-        );
-      }
-      return Promise.resolve(
-        new Response(JSON.stringify({ QueryResponse: {} }), {
-          status: 200, headers: { "Content-Type": "application/json" },
-        }),
-      );
-    };
-
     const costs = [{
       description: "Labor — small job",
       quantity: 1,
@@ -1262,35 +1060,8 @@ Deno.test("resolveIncomeAccountRef throws when configured ID returns inactive In
 
 // Fix 3 + cap: Final concatenated description stays within QBO limit after appending long suffix
 Deno.test("buildInvoiceLines final line Description stays within QBO field limit after appending suffix", async () => {
-  const originalFetch = globalThis.fetch;
+  const originalFetch = installQuickBooksItemFetchMock({ mode: "compact" });
   try {
-    globalThis.fetch = (_input: RequestInfo | URL, init?: RequestInit) => {
-      const method = (init?.method ?? "GET").toUpperCase();
-      if (method === "POST") {
-        const body = JSON.parse(String(init?.body ?? "{}")) as { Name: string };
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({ Item: { Id: `id-${body.Name}`, Name: body.Name } }),
-            { status: 200, headers: { "Content-Type": "application/json" } },
-          ),
-        );
-      }
-      const url = String(_input);
-      if (url.includes("/query") && url.includes(encodeURIComponent("Account"))) {
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({ QueryResponse: { Account: [{ Id: "inc-1", Name: "Sales" }] } }),
-            { status: 200, headers: { "Content-Type": "application/json" } },
-          ),
-        );
-      }
-      return Promise.resolve(
-        new Response(JSON.stringify({ QueryResponse: {} }), {
-          status: 200, headers: { "Content-Type": "application/json" },
-        }),
-      );
-    };
-
     // Inventory cost with a very long description; PM public desc also near the cap
     const longCostDesc = "Cost detail: " + "x".repeat(3500);
     const longPublicNotes = "y".repeat(3500);
@@ -1461,4 +1232,119 @@ Deno.test("updateWorkOrderInvoiceMirror resolves without throwing when the main 
     false,
     "mirror failures are secondary side effects — export outcome must not propagate them as failures",
   );
+});
+
+// ────────────────────────────────────────────────────────────────
+// Work order export gate (PR #1023)
+// ────────────────────────────────────────────────────────────────
+
+type WorkOrderExportSingleResult = {
+  data: unknown;
+  error: { code?: string; message: string } | null;
+};
+
+type WorkOrderExportQueryBuilder = {
+  select(_cols: string): WorkOrderExportQueryBuilder;
+  eq(_col: string, _val: unknown): WorkOrderExportQueryBuilder;
+  in(_col: string, _vals: unknown[]): WorkOrderExportQueryBuilder;
+  single(): Promise<WorkOrderExportSingleResult>;
+};
+
+function createWorkOrderExportMock(singleResult: WorkOrderExportSingleResult) {
+  function from(_table: string) {
+    const builder: WorkOrderExportQueryBuilder = {
+      select(_cols: string) { return builder; },
+      eq(_col: string, _val: unknown) { return builder; },
+      in(_col: string, _vals: unknown[]) { return builder; },
+      single() { return Promise.resolve(singleResult); },
+    };
+    return builder;
+  }
+  return { from };
+}
+
+Deno.test("loadWorkOrderForExport returns notFound for PGRST116", async () => {
+  const { from } = createWorkOrderExportMock({
+    data: null,
+    error: { code: "PGRST116", message: "JSON object requested, multiple (or no) rows returned" },
+  });
+  const result = await loadWorkOrderForExport(
+    { from } as unknown as SupabaseClient,
+    "wo-missing",
+    ["org-1"],
+  );
+  assertEquals(result, { workOrder: null, error: null, notFound: true });
+});
+
+Deno.test("loadWorkOrderForExport returns error without notFound for non-PGRST116 failures", async () => {
+  const { from } = createWorkOrderExportMock({
+    data: null,
+    error: { code: "42501", message: "permission denied for table work_orders" },
+  });
+  const result = await loadWorkOrderForExport(
+    { from } as unknown as SupabaseClient,
+    "wo-fail",
+    ["org-1"],
+  );
+  assertEquals(result.workOrder, null);
+  assertEquals(result.error, "permission denied for table work_orders");
+  assertEquals(result.notFound, false);
+});
+
+const { assertNoFault, logQuickBooksHttpFailure } = __qboInvoiceApiTestables;
+
+Deno.test("assertNoFault logs metadata only and throws without PII from Fault", () => {
+  const logs: Array<{ step: string; details?: Record<string, unknown> }> = [];
+  const logStep = (step: string, details?: Record<string, unknown>) => {
+    logs.push({ step, details });
+  };
+
+  let thrown: Error | null = null;
+  try {
+    assertNoFault(
+      {
+        Fault: {
+          type: "ValidationFault",
+          Error: [{
+            code: "6240",
+            Message: "Secret Customer Name",
+            Detail: "Invoice 12345 for Acme Corp",
+          }],
+        },
+      },
+      logStep,
+      "invoice create response",
+      "tid-123",
+    );
+  } catch (error) {
+    thrown = error as Error;
+  }
+
+  assertEquals(thrown !== null, true);
+  assertEquals(thrown!.message.includes("Secret Customer Name"), false);
+  assertEquals(thrown!.message.includes("Acme Corp"), false);
+  const detailsJson = JSON.stringify(logs[0]?.details ?? {});
+  assertEquals(detailsJson.includes("Secret Customer Name"), false);
+  assertEquals(detailsJson.includes("Acme Corp"), false);
+  assertEquals(logs[0]?.details?.type, "ValidationFault");
+});
+
+Deno.test("logQuickBooksHttpFailure avoids logging upstream response bodies", () => {
+  const logs: Array<{ step: string; details?: Record<string, unknown> }> = [];
+  const logStep = (step: string, details?: Record<string, unknown>) => {
+    logs.push({ step, details });
+  };
+
+  logQuickBooksHttpFailure(
+    "Invoice update failed",
+    new Response('{"Fault":{"Error":[{"Message":"Secret Customer Name"}]}}', { status: 400 }),
+    "tid-456",
+    logStep,
+  );
+
+  const detailsJson = JSON.stringify(logs[0]?.details ?? {});
+  assertEquals(detailsJson.includes("Secret Customer Name"), false);
+  assertEquals(logs[0]?.details?.status, 400);
+  assertEquals(logs[0]?.details?.reason, "bad_request");
+  assertEquals(logs[0]?.details?.intuit_tid, "tid-456");
 });

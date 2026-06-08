@@ -65,7 +65,7 @@ export function buildSceneClipPath(videoRelativePath, sceneId) {
  *  startedAtIso: string,
  *  finishedAtIso: string,
  *  sceneTimings: Array<Record<string, unknown>>,
- *  activity: { actionCount: number, retryCount: number, selectorFallbackCount: number, checkpointPassCount: number, checkpointFailCount: number },
+ *  activity: { actionCount: number, spotlightCount?: number, retryCount: number, selectorFallbackCount: number, checkpointPassCount: number, checkpointFailCount: number },
  *  qualityGate: Record<string, unknown>,
  *  compose: { enabled: boolean, attempted: boolean, composed: boolean, skippedReason?: string },
  *  env: NodeJS.ProcessEnv
@@ -102,6 +102,7 @@ export function buildRunMetadata(input) {
  *  selectorFallbacks: Array<Record<string, unknown>>,
  *  retries: Array<Record<string, unknown>>,
  *  sceneEvents: Array<Record<string, unknown>>,
+ *  spotlightCount?: number,
  *  qualityGate: Record<string, unknown>,
  *  env: NodeJS.ProcessEnv
  * }} input
@@ -116,6 +117,7 @@ export function buildDiagnostics(input) {
     selectorFallbacks: input.selectorFallbacks,
     retries: input.retries,
     sceneEvents: input.sceneEvents,
+    spotlightCount: Number(input.spotlightCount || 0),
     qualityGate: input.qualityGate,
     env: buildSafeEnvSnapshot(input.env)
   };

@@ -11,10 +11,8 @@
 
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -78,29 +76,14 @@ vi.mock('sonner', () => ({
 // ---------------------------------------------------------------------------
 
 import { QuickBooksCustomerMapping } from '@/features/teams/components/QuickBooksCustomerMapping';
-
-function createTestQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
-      mutations: { retry: false },
-    },
-  });
-}
+import { renderWithQuickBooksProviders } from '@/tests/quickbooks/testUtils';
 
 function renderComponent(props: {
   teamId: string;
   teamName: string;
   customerId?: string | null;
 } = { teamId: 'team-456', teamName: 'Alpha Team' }) {
-  const queryClient = createTestQueryClient();
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <QuickBooksCustomerMapping {...props} />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
+  return renderWithQuickBooksProviders(<QuickBooksCustomerMapping {...props} />);
 }
 
 // ---------------------------------------------------------------------------
@@ -251,6 +234,15 @@ describe('QuickBooksCustomerMapping', () => {
     mockGetTeamCustomerMapping.mockResolvedValue(null);
     const mockImportFromQB = vi.fn().mockResolvedValue({ id: 'created-cust' });
     const mockLink = vi.fn().mockResolvedValue(undefined);
+    mockUpdateTeamCustomerMapping.mockResolvedValue({
+      id: 'map-1',
+      organization_id: 'org-123',
+      team_id: 'team-456',
+      quickbooks_customer_id: 'qb-1',
+      display_name: 'Bill Lucchini',
+      created_at: '2025-01-01T00:00:00Z',
+      updated_at: '2025-01-01T00:00:00Z',
+    });
 
     vi.mocked(
       (await import('@/features/teams/hooks/useCustomerAccount')).useCustomerMutations
@@ -315,6 +307,13 @@ describe('QuickBooksCustomerMapping', () => {
               ]),
             }),
           })
+        );
+        expect(mockLink).toHaveBeenCalledWith({ teamId: 'team-456', customerId: 'created-cust' });
+        expect(mockUpdateTeamCustomerMapping).toHaveBeenCalledWith(
+          'org-123',
+          'team-456',
+          'qb-1',
+          'Bill Lucchini',
         );
       });
     }

@@ -1,17 +1,9 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Service repeats org-scoped equipment resolution for filters
 import { BaseService, ApiResponse, PaginationParams, FilterParams } from '@/services/base/BaseService';
+import { applySupabasePaginationRange } from '@/services/supabaseQueryPagination';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { validateStorageQuota } from '@/utils/storageQuota';
-import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
-import { getAuthClaims } from '@/lib/authClaims';
-import {
-  uploadImageToStorage,
-  resolveImageDisplayUrl,
-  normalizeStoredObjectPath,
-  batchResolveWorkOrderImageDisplayUrls,
-  displayUrlForStoredPrivateImage,
-  deleteImageFromStorage,
-} from '@/services/imageUploadService';
 
 // Import and re-export unified types from the single source of truth
 import {
@@ -24,11 +16,29 @@ import {
   WorkOrderImage,
   WorkOrderServiceFilters,
 } from '@/features/work-orders/types/workOrder';
+import { applyWorkOrderSupabaseFilters } from '@/features/work-orders/utils/workOrderSupabaseFilters';
+import {
+  WORK_ORDER_SELECT,
+  WORK_ORDER_LIST_SELECT,
+  mapWorkOrderRow,
+} from '@/features/work-orders/services/workOrderRowMapper';
+import {
+  resolveEquipmentIdsForTeamFilter,
+  resolveEquipmentIdsForUserTeams,
+} from '@/features/work-orders/services/workOrderListQueryHelpers';
+import {
+  createWorkOrderNoteWithImages,
+  getWorkOrderNotesWithImages,
+} from '@/features/work-orders/services/workOrderNotesService';
+import {
+  fetchWorkOrderImagesForService,
+  uploadWorkOrderImageForService,
+} from '@/features/work-orders/services/workOrderServiceImages';
+import { fetchWorkOrderInOrganization } from '@/features/work-orders/services/workOrderServiceAccess';
 
 // Re-export types for backward compatibility
 export type {
   WorkOrder,
-  WorkOrderRow,
   WorkOrderCreateData,
   WorkOrderUpdateData,
   WorkOrderNote,
@@ -41,263 +51,6 @@ export type {
  * Extends base FilterParams with work order specific filters
  */
 export interface WorkOrderFilters extends FilterParams, WorkOrderServiceFilters {}
-
-// Optimized select query string with all joins.
-//
-// `status`, `default_pm_template_id`, and `customer_id` are intentionally
-// included in the embedded equipment block so the work-order detail page can
-// stop issuing a second `useEquipmentById` round-trip just to read those
-// three fields. The added columns are tiny (uuid + enum), so the per-row
-// payload cost on the work-order list query stays negligible while every WO
-// detail open on Slow 4G saves a full equipment row fetch.
-const WORK_ORDER_SELECT = `
-  *,
-  assignee:profiles!work_orders_assignee_id_fkey (
-    id,
-    name
-  ),
-  equipment:equipment!work_orders_equipment_id_fkey (
-    id,
-    organization_id,
-    name,
-    manufacturer,
-    model,
-    serial_number,
-    status,
-    working_hours,
-    image_url,
-    team_id,
-    location,
-    customer_id,
-    default_pm_template_id,
-    custom_attributes,
-    use_team_location,
-    last_known_location,
-    assigned_location_lat,
-    assigned_location_lng,
-    assigned_location_street,
-    assigned_location_city,
-    assigned_location_state,
-    assigned_location_country,
-    teams:team_id (
-      id,
-      name,
-      description,
-      override_equipment_location,
-      location_lat,
-      location_lng,
-      location_address,
-      location_city,
-      location_state,
-      location_country
-    )
-  ),
-  creator:profiles!work_orders_created_by_fkey (
-    id,
-    name
-  )
-`;
-
-const WORK_ORDER_LIST_SELECT = WORK_ORDER_SELECT.replace(/^ *custom_attributes,\r?\n/m, '');
-
-/**
- * Maps raw Supabase row to WorkOrder with computed fields
- */
-function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
-  const assignee = wo.assignee as { id?: string; name?: string } | null;
-  const equipment = wo.equipment as {
-    id?: string;
-    organization_id?: string;
-    name?: string;
-    manufacturer?: string | null;
-    model?: string | null;
-    serial_number?: string | null;
-    status?: string;
-    working_hours?: number | null;
-    image_url?: string | null;
-    team_id?: string;
-    location?: string;
-    customer_id?: string | null;
-    default_pm_template_id?: string | null;
-    custom_attributes?: Record<string, unknown> | null;
-    use_team_location?: boolean;
-    last_known_location?: { latitude?: number; longitude?: number } | null;
-    assigned_location_lat?: number | null;
-    assigned_location_lng?: number | null;
-    assigned_location_street?: string | null;
-    assigned_location_city?: string | null;
-    assigned_location_state?: string | null;
-    assigned_location_country?: string | null;
-    teams?: {
-      id?: string;
-      name?: string;
-      description?: string;
-      override_equipment_location?: boolean;
-      location_lat?: number | null;
-      location_lng?: number | null;
-      location_address?: string | null;
-      location_city?: string | null;
-      location_state?: string | null;
-      location_country?: string | null;
-    } | null;
-  } | null;
-  const creator = wo.creator as { id?: string; name?: string } | null;
-
-  // Resolve effective location using the hierarchy:
-  // team override > manual assignment > last scan
-  const lastKnown = equipment?.last_known_location;
-  const lastScan =
-    lastKnown && lastKnown.latitude != null && lastKnown.longitude != null
-      ? { lat: lastKnown.latitude, lng: lastKnown.longitude }
-      : undefined;
-
-  const effectiveLocation = equipment
-    ? resolveEffectiveLocation({
-        team: equipment.teams
-          ? {
-              override_equipment_location: equipment.teams.override_equipment_location,
-              location_lat: equipment.teams.location_lat,
-              location_lng: equipment.teams.location_lng,
-              location_address: equipment.teams.location_address,
-              location_city: equipment.teams.location_city,
-              location_state: equipment.teams.location_state,
-              location_country: equipment.teams.location_country,
-            }
-          : undefined,
-        equipment: {
-          use_team_location: equipment.use_team_location,
-          assigned_location_lat: equipment.assigned_location_lat,
-          assigned_location_lng: equipment.assigned_location_lng,
-          assigned_location_street: equipment.assigned_location_street,
-          assigned_location_city: equipment.assigned_location_city,
-          assigned_location_state: equipment.assigned_location_state,
-          assigned_location_country: equipment.assigned_location_country,
-        },
-        lastScan,
-      })
-    : null;
-
-  return {
-    // Base work order fields
-    id: wo.id as string,
-    title: wo.title as string,
-    description: wo.description as string,
-    equipment_id: wo.equipment_id as string,
-    organization_id: wo.organization_id as string,
-    priority: wo.priority as WorkOrder['priority'],
-    status: wo.status as WorkOrder['status'],
-    assignee_id: wo.assignee_id as string | null,
-    assignee_name: wo.assignee_name as string | null,
-    team_id: wo.team_id as string | null,
-    created_by: wo.created_by as string,
-    created_by_admin: wo.created_by_admin as string | null,
-    created_by_name: wo.created_by_name as string | null,
-    created_date: wo.created_date as string,
-    due_date: wo.due_date as string | null,
-    estimated_hours: wo.estimated_hours as number | null,
-    completed_date: wo.completed_date as string | null,
-    acceptance_date: wo.acceptance_date as string | null,
-    updated_at: wo.updated_at as string,
-    is_historical: wo.is_historical as boolean,
-    historical_start_date: wo.historical_start_date as string | null,
-    historical_notes: wo.historical_notes as string | null,
-    has_pm: wo.has_pm as boolean,
-    pm_required: wo.pm_required as boolean,
-    primary_image_id: (wo.primary_image_id as string | null | undefined) ?? null,
-    quickbooks_invoice_id: (wo.quickbooks_invoice_id as string | null | undefined) ?? null,
-    quickbooks_invoice_number: (wo.quickbooks_invoice_number as string | null | undefined) ?? null,
-    quickbooks_invoice_environment: (wo.quickbooks_invoice_environment as 'sandbox' | 'production' | null | undefined) ?? null,
-    quickbooks_realm_id: (wo.quickbooks_realm_id as string | null | undefined) ?? null,
-    invoice_status: (wo.invoice_status as WorkOrder['invoice_status'] | undefined) ?? null,
-    invoice_sent_at: (wo.invoice_sent_at as string | null | undefined) ?? null,
-    invoice_paid_at: (wo.invoice_paid_at as string | null | undefined) ?? null,
-    invoice_balance_cents: (wo.invoice_balance_cents as number | null | undefined) ?? null,
-    invoice_due_date: (wo.invoice_due_date as string | null | undefined) ?? null,
-    invoice_last_synced_at: (wo.invoice_last_synced_at as string | null | undefined) ?? null,
-    invoice_sync_error: (wo.invoice_sync_error as string | null | undefined) ?? null,
-    quickbooksInvoiceId: (wo.quickbooks_invoice_id as string | null | undefined) ?? null,
-    quickbooksInvoiceNumber: (wo.quickbooks_invoice_number as string | null | undefined) ?? null,
-    quickbooksInvoiceEnvironment: (wo.quickbooks_invoice_environment as 'sandbox' | 'production' | null | undefined) ?? null,
-    invoiceStatus: (wo.invoice_status as WorkOrder['invoice_status'] | undefined) ?? null,
-    invoiceSentAt: (wo.invoice_sent_at as string | null | undefined) ?? null,
-    invoicePaidAt: (wo.invoice_paid_at as string | null | undefined) ?? null,
-    invoiceBalanceCents: (wo.invoice_balance_cents as number | null | undefined) ?? null,
-    invoiceDueDate: (wo.invoice_due_date as string | null | undefined) ?? null,
-    invoiceLastSyncedAt: (wo.invoice_last_synced_at as string | null | undefined) ?? null,
-    // Computed fields from joins
-    assigneeName: assignee?.name || undefined,
-    teamName: equipment?.teams?.name || undefined,
-    equipmentName: equipment?.name || undefined,
-    equipmentManufacturer: equipment?.manufacturer || undefined,
-    equipmentModel: equipment?.model || undefined,
-    equipmentSerialNumber: equipment?.serial_number || undefined,
-    equipmentWorkingHours: equipment?.working_hours ?? undefined,
-    equipmentImageUrl: equipment?.image_url ?? undefined,
-    equipmentTeamId: equipment?.team_id || undefined,
-    equipmentTeamName: equipment?.teams?.name || undefined,
-    createdByName: creator?.name || undefined,
-    // Assignment object for component compatibility
-    assignedTo: assignee?.id && assignee?.name ? { id: assignee.id, name: assignee.name } : null,
-    // Resolved location from hierarchy
-    effectiveLocation,
-    // Team details
-    team: equipment?.teams?.id && equipment?.teams?.name ? {
-      id: equipment.teams.id,
-      name: equipment.teams.name,
-      description: equipment.teams.description || undefined,
-      location_address: equipment.teams.location_address,
-      location_city: equipment.teams.location_city,
-      location_state: equipment.teams.location_state,
-      location_country: equipment.teams.location_country,
-      location_lat: equipment.teams.location_lat,
-      location_lng: equipment.teams.location_lng,
-    } : null,
-    // Embedded equipment record so the work-order detail page can drop the
-    // duplicate `useEquipmentById` round-trip — every field consumers read
-    // (id/name/status/team_id/location/last_known_location/customer_id/
-    // default_pm_template_id) is now part of `WORK_ORDER_SELECT`.
-    equipment: equipment?.id
-      ? {
-          id: equipment.id,
-          organization_id: equipment.organization_id ?? (wo.organization_id as string),
-          name: equipment.name ?? '',
-          manufacturer: equipment.manufacturer ?? null,
-          model: equipment.model ?? null,
-          serial_number: equipment.serial_number ?? null,
-          status: (equipment.status ?? 'active') as 'active' | 'maintenance' | 'inactive',
-          working_hours: equipment.working_hours ?? null,
-          image_url: equipment.image_url ?? null,
-          team_id: equipment.team_id ?? null,
-          location: equipment.location ?? null,
-          customer_id: equipment.customer_id ?? null,
-          default_pm_template_id: equipment.default_pm_template_id ?? null,
-          custom_attributes: equipment.custom_attributes ?? null,
-          use_team_location: equipment.use_team_location ?? null,
-          last_known_location: equipment.last_known_location ?? null,
-          assigned_location_lat: equipment.assigned_location_lat ?? null,
-          assigned_location_lng: equipment.assigned_location_lng ?? null,
-          assigned_location_street: equipment.assigned_location_street ?? null,
-          assigned_location_city: equipment.assigned_location_city ?? null,
-          assigned_location_state: equipment.assigned_location_state ?? null,
-          assigned_location_country: equipment.assigned_location_country ?? null,
-          team: equipment.teams?.id
-            ? {
-                id: equipment.teams.id,
-                name: equipment.teams.name ?? '',
-                description: equipment.teams.description || undefined,
-                override_equipment_location: equipment.teams.override_equipment_location,
-                location_lat: equipment.teams.location_lat,
-                location_lng: equipment.teams.location_lng,
-                location_address: equipment.teams.location_address,
-                location_city: equipment.teams.location_city,
-                location_state: equipment.teams.location_state,
-                location_country: equipment.teams.location_country,
-              }
-            : null,
-        }
-      : null,
-  };
-}
 
 export class WorkOrderService extends BaseService {
   /**
@@ -317,105 +70,42 @@ export class WorkOrderService extends BaseService {
       // Apply team-based access control filtering
       if (filters.userTeamIds !== undefined && !filters.isOrgAdmin) {
         if (filters.userTeamIds.length > 0) {
-          // Get equipment IDs for user's teams
-          const { data: equipmentIds, error: equipmentError } = await supabase
-            .from('equipment')
-            .select('id')
-            .eq('organization_id', this.organizationId)
-            .in('team_id', filters.userTeamIds);
+          const equipmentResolution = await resolveEquipmentIdsForUserTeams(
+            this.organizationId,
+            filters.userTeamIds,
+          );
 
-          if (equipmentError) {
-            logger.error('Error fetching equipment for team access control:', equipmentError);
-            return this.handleError(equipmentError);
-          }
-
-          const ids = equipmentIds?.map(e => e.id) || [];
-          if (ids.length > 0) {
-            query = query.in('equipment_id', ids);
-          } else {
-            // No equipment for user's teams, return empty
+          if (equipmentResolution === 'empty') {
             return this.handleSuccess([]);
           }
+
+          query = query.in('equipment_id', equipmentResolution);
         } else {
-          // User has no team memberships
           return this.handleSuccess([]);
         }
       }
 
-      // Apply status filter (uses idx_work_orders_org_status composite index)
-      if (filters.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status);
-      }
-
-      // Apply priority filter
-      if (filters.priority && filters.priority !== 'all') {
-        query = query.eq('priority', filters.priority);
-      }
-
-      // Apply assignee filter (uses idx_work_orders_assignee_id index)
-      if (filters.assigneeId && filters.assigneeId !== 'all') {
-        if (filters.assigneeId === 'unassigned') {
-          query = query.is('assignee_id', null);
-        } else {
-          query = query.eq('assignee_id', filters.assigneeId);
-        }
-      }
+      query = applyWorkOrderSupabaseFilters(query, filters, {
+        overdueExcludeTerminalStatuses: true,
+      });
 
       // Apply team filter - requires getting equipment IDs first
       if (filters.teamId && filters.teamId !== 'all') {
-        const { data: equipmentIds, error: teamEquipmentError } = await supabase
-          .from('equipment')
-          .select('id')
-          .eq('organization_id', this.organizationId)
-          .eq('team_id', filters.teamId);
+        const equipmentResolution = await resolveEquipmentIdsForTeamFilter(
+          this.organizationId,
+          filters.teamId,
+        );
 
-        if (teamEquipmentError) {
-          logger.error('Error fetching equipment for team filter:', teamEquipmentError);
-          return this.handleError(teamEquipmentError);
-        }
-
-        const ids = equipmentIds?.map(e => e.id) || [];
-        if (ids.length > 0) {
-          query = query.in('equipment_id', ids);
-        } else {
-          // No equipment for this team
+        if (equipmentResolution === 'empty') {
           return this.handleSuccess([]);
         }
+
+        query = query.in('equipment_id', equipmentResolution);
       }
 
       // Apply equipment filter (uses idx_work_orders_equipment_id index)
       if (filters.equipmentId) {
         query = query.eq('equipment_id', filters.equipmentId);
-      }
-
-      // Apply due date filter (uses idx_work_orders_org_due_date)
-      if (filters.dueDateFilter) {
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const weekFromNow = new Date(today);
-        weekFromNow.setDate(weekFromNow.getDate() + 7);
-
-        switch (filters.dueDateFilter) {
-          case 'overdue':
-            query = query
-              .lt('due_date', today.toISOString())
-              .not('status', 'eq', 'completed')
-              .not('status', 'eq', 'cancelled');
-            break;
-          case 'today': {
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            query = query
-              .gte('due_date', today.toISOString())
-              .lt('due_date', tomorrow.toISOString());
-            break;
-          }
-          case 'this_week':
-            query = query
-              .gte('due_date', today.toISOString())
-              .lt('due_date', weekFromNow.toISOString());
-            break;
-        }
       }
 
       // Apply text search if provided
@@ -432,11 +122,7 @@ export class WorkOrderService extends BaseService {
         query = query.order('created_date', { ascending: false });
       }
 
-      // Apply pagination
-      if (pagination.limit) {
-        const startIndex = ((pagination.page || 1) - 1) * pagination.limit;
-        query = query.range(startIndex, startIndex + pagination.limit - 1);
-      }
+      query = applySupabasePaginationRange(query, pagination);
 
       const { data, error } = await query;
 
@@ -709,47 +395,6 @@ export class WorkOrderService extends BaseService {
     }
   }
 
-  /**
-   * Get dashboard stats for work orders
-   */
-  async getDashboardStats(): Promise<ApiResponse<{
-    total: number;
-    completed: number;
-    pending: number;
-    overdue: number;
-  }>> {
-    try {
-      const { data, error } = await supabase
-        .from('work_orders')
-        .select('status, due_date')
-        .eq('organization_id', this.organizationId);
-
-      if (error) {
-        logger.error('Error fetching work order dashboard stats:', error);
-        return this.handleError(error);
-      }
-
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const workOrders = data || [];
-
-      const total = workOrders.length;
-      const completed = workOrders.filter(wo => wo.status === 'completed').length;
-      const pending = workOrders.filter(wo => 
-        !['completed', 'cancelled'].includes(wo.status)
-      ).length;
-      const overdue = workOrders.filter(wo => 
-        wo.due_date && 
-        new Date(wo.due_date) < today && 
-        !['completed', 'cancelled'].includes(wo.status)
-      ).length;
-
-      return this.handleSuccess({ total, completed, pending, overdue });
-    } catch (error) {
-      return this.handleError(error);
-    }
-  }
-
   // ============================================
   // Convenience methods
   // ============================================
@@ -804,95 +449,13 @@ export class WorkOrderService extends BaseService {
    */
   async getNotes(workOrderId: string): Promise<ApiResponse<WorkOrderNote[]>> {
     try {
-      // Verify work order belongs to organization
-      const { data: workOrder, error: woError } = await supabase
-        .from('work_orders')
-        .select('id')
-        .eq('id', workOrderId)
-        .eq('organization_id', this.organizationId)
-        .single();
-
-      if (woError || !workOrder) {
+      const workOrder = await fetchWorkOrderInOrganization(this.organizationId, workOrderId);
+      if (!workOrder) {
         return this.handleError(new Error('Work order not found'));
       }
 
-      // Get notes
-      const { data: notes, error: notesError } = await supabase
-        .from('work_order_notes')
-        .select('*')
-        .eq('work_order_id', workOrderId)
-        .order('created_at', { ascending: false });
-
-      if (notesError) {
-        logger.error('Error fetching work order notes:', notesError);
-        return this.handleError(notesError);
-      }
-
-      if (!notes || notes.length === 0) {
-        return this.handleSuccess([]);
-      }
-
-      // Get author names
-      const authorIds = [...new Set(notes.map(note => note.author_id))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .in('id', authorIds);
-
-      // Get all images for this work order
-      const { data: allImages } = await supabase
-        .from('work_order_images')
-        .select('*')
-        .eq('work_order_id', workOrderId)
-        .order('created_at', { ascending: false });
-
-      // Get uploader names for images
-      const uploaderIds = [...new Set((allImages || []).map(img => img.uploaded_by))];
-      let uploaderProfiles: Array<{ id: string; name?: string }> = [];
-      
-      if (uploaderIds.length > 0) {
-        const { data: uploaderData } = await supabase
-          .from('profiles')
-          .select('id, name')
-          .in('id', uploaderIds);
-        uploaderProfiles = uploaderData || [];
-      }
-
-      const imagesList = allImages || [];
-      const signedForImages = await batchResolveWorkOrderImageDisplayUrls(
-        imagesList.map(img => img.file_url),
-      );
-      const resolvedByImageId = new Map<string, string>();
-      imagesList.forEach((img, i) => {
-        const displayUrl = displayUrlForStoredPrivateImage(signedForImages[i], img.file_url);
-        if (displayUrl != null) {
-          resolvedByImageId.set(img.id, displayUrl);
-        }
-      });
-
-      // Map notes with authors and images
-      const enrichedNotes: WorkOrderNote[] = notes.map(note => {
-        const author = (profiles || []).find(p => p.id === note.author_id);
-        const noteImages = imagesList
-          .filter(img => img.note_id === note.id)
-          .filter(img => resolvedByImageId.has(img.id))
-          .map(img => {
-            const uploader = uploaderProfiles.find(p => p.id === img.uploaded_by);
-            return {
-              ...img,
-              file_url: resolvedByImageId.get(img.id)!,
-              uploaded_by_name: uploader?.name || 'Unknown',
-            };
-          });
-
-        return {
-          ...note,
-          author_name: author?.name || 'Unknown',
-          images: noteImages,
-        };
-      });
-
-      return this.handleSuccess(enrichedNotes);
+      const notes = await getWorkOrderNotesWithImages(workOrderId, this.organizationId);
+      return this.handleSuccess(notes as unknown as WorkOrderNote[]);
     } catch (error) {
       return this.handleError(error);
     }
@@ -906,139 +469,16 @@ export class WorkOrderService extends BaseService {
     noteData: WorkOrderNoteCreateData
   ): Promise<ApiResponse<WorkOrderNote>> {
     try {
-      const claims = await getAuthClaims();
-      if (!claims) {
-        return this.handleError(new Error('User not authenticated'));
-      }
-
-      // Verify work order belongs to organization
-      const { data: workOrder, error: woError } = await supabase
-        .from('work_orders')
-        .select('id')
-        .eq('id', workOrderId)
-        .eq('organization_id', this.organizationId)
-        .single();
-
-      if (woError || !workOrder) {
-        return this.handleError(new Error('Work order not found'));
-      }
-
-      const { data: note, error } = await supabase
-        .from('work_order_notes')
-        .insert({
-          work_order_id: workOrderId,
-          author_id: claims.sub,
-          content: noteData.content,
-          hours_worked: noteData.hours_worked || 0,
-          is_private: noteData.is_private || false
-        })
-        .select()
-        .single();
-
-      if (error) {
-        logger.error('Error creating work order note:', error);
-        return this.handleError(error);
-      }
-
-      // Get author profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .eq('id', claims.sub)
-        .single();
-
-      return this.handleSuccess({
-        ...note,
-        author_name: profile?.name || 'Unknown',
-        images: []
-      });
-    } catch (error) {
-      return this.handleError(error);
-    }
-  }
-
-  /**
-   * Create a note with images
-   */
-  async createNoteWithImages(
-    workOrderId: string,
-    noteData: WorkOrderNoteCreateData,
-    images: File[]
-  ): Promise<ApiResponse<WorkOrderNote>> {
-    try {
-      const claims = await getAuthClaims();
-      if (!claims) {
-        return this.handleError(new Error('User not authenticated'));
-      }
-
-      // Validate storage quota for all files
-      const totalFileSize = images.reduce((sum, file) => sum + file.size, 0);
-      await validateStorageQuota(this.organizationId, totalFileSize);
-
-      // Create the note first
-      const noteResult = await this.createNote(workOrderId, noteData);
-      if (!noteResult.success || !noteResult.data) {
-        return noteResult;
-      }
-
-      const note = noteResult.data;
-      const uploadedImages: WorkOrderImage[] = [];
-
-      // Upload images
-      for (const file of images) {
-        try {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${claims.sub}/${workOrderId}/${note.id}/${Date.now()}.${fileExt}`;
-          const storedPath = await uploadImageToStorage('work-order-images', fileName, file);
-
-          const { data: imageRecord, error: imageError } = await supabase
-            .from('work_order_images')
-            .insert({
-              work_order_id: workOrderId,
-              note_id: note.id,
-              file_name: file.name,
-              file_url: storedPath,
-              file_size: file.size,
-              mime_type: file.type,
-              uploaded_by: claims.sub,
-              description: `Attached to note: ${note.id}`
-            })
-            .select()
-            .single();
-
-          if (imageError) {
-            logger.error('Failed to save image record:', imageError);
-            try {
-              await deleteImageFromStorage('work-order-images', storedPath);
-            } catch (cleanupError) {
-              logger.error('Failed to delete orphaned work-order image after DB insert failure:', cleanupError);
-            }
-            continue;
-          }
-
-          uploadedImages.push({
-            ...imageRecord,
-            uploaded_by_name: note.author_name,
-          });
-        } catch (error) {
-          logger.error('Error processing image:', error);
-        }
-      }
-
-      const signedUploads = await batchResolveWorkOrderImageDisplayUrls(
-        uploadedImages.map(img => img.file_url),
+      const note = await createWorkOrderNoteWithImages(
+        workOrderId,
+        noteData.content,
+        noteData.hours_worked || 0,
+        noteData.is_private || false,
+        [],
+        this.organizationId,
       );
-      const uploadedWithUrls = uploadedImages
-        .map((img, i) => {
-          const url = displayUrlForStoredPrivateImage(signedUploads[i], img.file_url);
-          return url == null ? null : { ...img, file_url: url };
-        })
-        .filter((row): row is WorkOrderImage => row != null);
 
-      return this.handleSuccess({
-        ...note,
-        images: uploadedWithUrls,
-      });
+      return this.handleSuccess(note as unknown as WorkOrderNote);
     } catch (error) {
       return this.handleError(error);
     }
@@ -1053,55 +493,8 @@ export class WorkOrderService extends BaseService {
    */
   async getImages(workOrderId: string): Promise<ApiResponse<WorkOrderImage[]>> {
     try {
-      // Verify work order belongs to organization
-      const { data: workOrder, error: woError } = await supabase
-        .from('work_orders')
-        .select('id')
-        .eq('id', workOrderId)
-        .eq('organization_id', this.organizationId)
-        .single();
-
-      if (woError || !workOrder) {
-        return this.handleError(new Error('Work order not found'));
-      }
-
-      const { data: images, error } = await supabase
-        .from('work_order_images')
-        .select('*')
-        .eq('work_order_id', workOrderId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        logger.error('Error fetching work order images:', error);
-        return this.handleError(error);
-      }
-
-      if (!images || images.length === 0) {
-        return this.handleSuccess([]);
-      }
-
-      // Get uploader names
-      const uploaderIds = [...new Set(images.map(img => img.uploaded_by))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .in('id', uploaderIds);
-
-      const signedUrls = await batchResolveWorkOrderImageDisplayUrls(images.map(img => img.file_url));
-      const enrichedImages: WorkOrderImage[] = images
-        .map((image, i) => {
-          const uploader = (profiles || []).find(p => p.id === image.uploaded_by);
-          const displayUrl = displayUrlForStoredPrivateImage(signedUrls[i], image.file_url);
-          if (displayUrl == null) return null;
-          return {
-            ...image,
-            file_url: displayUrl,
-            uploaded_by_name: uploader?.name || 'Unknown',
-          };
-        })
-        .filter((row): row is WorkOrderImage => row != null);
-
-      return this.handleSuccess(enrichedImages);
+      const images = await fetchWorkOrderImagesForService(this.organizationId, workOrderId);
+      return this.handleSuccess(images);
     } catch (error) {
       return this.handleError(error);
     }
@@ -1116,175 +509,13 @@ export class WorkOrderService extends BaseService {
     description?: string
   ): Promise<ApiResponse<WorkOrderImage>> {
     try {
-      const claims = await getAuthClaims();
-      if (!claims) {
-        return this.handleError(new Error('User not authenticated'));
-      }
-
-      // Verify work order belongs to organization
-      const { data: workOrder, error: woError } = await supabase
-        .from('work_orders')
-        .select('id')
-        .eq('id', workOrderId)
-        .eq('organization_id', this.organizationId)
-        .single();
-
-      if (woError || !workOrder) {
-        return this.handleError(new Error('Work order not found'));
-      }
-
-      // Validate storage quota
-      await validateStorageQuota(this.organizationId, file.size);
-
-      // Upload file to storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${claims.sub}/${workOrderId}/${Date.now()}.${fileExt}`;
-      const storedPath = await uploadImageToStorage('work-order-images', fileName, file);
-
-      // Save image record
-      const { data: imageRecord, error: imageError } = await supabase
-        .from('work_order_images')
-        .insert({
-          work_order_id: workOrderId,
-          uploaded_by: claims.sub,
-          file_name: file.name,
-          file_url: storedPath,
-          file_size: file.size,
-          mime_type: file.type,
-          description: description || null
-        })
-        .select()
-        .single();
-
-      if (imageError) {
-        logger.error('Error saving image record:', imageError);
-        try {
-          await deleteImageFromStorage('work-order-images', storedPath);
-        } catch (cleanupError) {
-          logger.error(
-            'Failed to delete orphaned work-order image after DB insert failure:',
-            cleanupError,
-          );
-        }
-        return this.handleError(imageError);
-      }
-
-      // Get uploader profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .eq('id', claims.sub)
-        .single();
-
-      const displayUrl = displayUrlForStoredPrivateImage(
-        await resolveImageDisplayUrl('work-order-images', imageRecord.file_url),
-        imageRecord.file_url,
+      const image = await uploadWorkOrderImageForService(
+        this.organizationId,
+        workOrderId,
+        file,
+        description,
       );
-
-      if (displayUrl == null) {
-        const cleanupCtx = {
-          imageId: imageRecord.id,
-          storedPath,
-          workOrderId,
-        };
-        // Signing failed — clean up DB row and storage to avoid orphaned resources.
-        // DB delete must succeed before storage delete; otherwise the DB row still
-        // exists and would point at a missing storage object, creating broken state.
-        logger.error('Signing failed for uploaded work order image, rolling back', cleanupCtx);
-        const { error: dbDeleteError } = await supabase
-          .from('work_order_images')
-          .delete()
-          .eq('id', imageRecord.id)
-          .eq('work_order_id', workOrderId);
-        if (dbDeleteError) {
-          logger.error(
-            'Failed to delete DB row during signing-failure rollback; skipping storage cleanup to preserve consistency',
-            { ...cleanupCtx, error: dbDeleteError },
-          );
-        } else {
-          try {
-            await deleteImageFromStorage('work-order-images', storedPath);
-          } catch (cleanupError) {
-            logger.error(
-              'Failed to delete orphaned work-order storage object during rollback',
-              { ...cleanupCtx, error: cleanupError },
-            );
-          }
-        }
-        return this.handleError(
-          new Error('Could not generate a secure link for the uploaded image. Try again.'),
-        );
-      }
-
-      return this.handleSuccess({
-        ...imageRecord,
-        uploaded_by_name: profile?.name || 'Unknown',
-        file_url: displayUrl,
-      });
-    } catch (error) {
-      return this.handleError(error);
-    }
-  }
-
-  /**
-   * Delete an image from a work order
-   */
-  async deleteImage(imageId: string): Promise<ApiResponse<boolean>> {
-    try {
-      const claims = await getAuthClaims();
-      if (!claims) {
-        return this.handleError(new Error('User not authenticated'));
-      }
-
-      // Get image details and verify ownership
-      const { data: image, error: fetchError } = await supabase
-        .from('work_order_images')
-        .select(`
-          *,
-          work_orders!inner (
-            organization_id
-          )
-        `)
-        .eq('id', imageId)
-        .single();
-
-      if (fetchError || !image) {
-        return this.handleError(new Error('Image not found'));
-      }
-
-      // Verify organization
-      const workOrder = image.work_orders as { organization_id: string };
-      if (workOrder.organization_id !== this.organizationId) {
-        return this.handleError(new Error('Not authorized'));
-      }
-
-      // Check if user can delete (must be uploader or have admin permissions)
-      if (image.uploaded_by !== claims.sub) {
-        return this.handleError(new Error('Not authorized to delete this image'));
-      }
-
-      // Delete from database
-      const { error: deleteError } = await supabase
-        .from('work_order_images')
-        .delete()
-        .eq('id', imageId);
-
-      if (deleteError) {
-        logger.error('Error deleting image:', deleteError);
-        return this.handleError(deleteError);
-      }
-
-      try {
-        const filePath = normalizeStoredObjectPath(image.file_url, 'work-order-images');
-        if (filePath) {
-          await supabase.storage.from('work-order-images').remove([filePath]);
-        }
-      } catch (storageError) {
-        logger.error('Failed to delete image from storage:', storageError);
-        // Don't fail the operation if storage deletion fails
-      }
-
-      return this.handleSuccess(true);
+      return this.handleSuccess(image);
     } catch (error) {
       return this.handleError(error);
     }

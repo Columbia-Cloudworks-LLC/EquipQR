@@ -1,37 +1,23 @@
-import path from 'path';
-import { test, expect } from '../fixtures/equipqr-test';
-import { pauseForWatchMode } from '../shared/page-helpers';
-import { authStatePath } from '../shared/seed-data';
+import { test } from '../fixtures/equipqr-test';
+import { openDashboardAsPersona } from '../shared/auth-helpers';
 
 test.describe('authentication @critical', () => {
   test('reuses saved owner storage state', async ({ browser }) => {
-    const statePath = path.resolve(authStatePath('owner'));
-    const context = await browser.newContext({ storageState: statePath });
-    const page = await context.newPage();
-    await page.goto('/dashboard');
-    await expect(page).toHaveURL(/\/dashboard/i, { timeout: 60_000 });
-    await expect(page.locator('#main-content, main').first()).toBeVisible();
-    await pauseForWatchMode(page);
+    const { context } = await openDashboardAsPersona(browser, 'owner');
     await context.close();
   });
 
   test('admin storage state reaches dashboard', async ({ browser }) => {
-    const statePath = path.resolve(authStatePath('admin'));
-    const context = await browser.newContext({ storageState: statePath });
-    const page = await context.newPage();
-    await page.goto('/dashboard');
-    await expect(page).toHaveURL(/\/dashboard/i, { timeout: 60_000 });
-    await pauseForWatchMode(page);
+    const { context } = await openDashboardAsPersona(browser, 'admin', {
+      assertMainContent: false,
+    });
     await context.close();
   });
 
   test('technician storage state reaches dashboard', async ({ browser }) => {
-    const statePath = path.resolve(authStatePath('technician'));
-    const context = await browser.newContext({ storageState: statePath });
-    const page = await context.newPage();
-    await page.goto('/dashboard');
-    await expect(page).toHaveURL(/\/dashboard/i, { timeout: 60_000 });
-    await pauseForWatchMode(page);
+    const { context } = await openDashboardAsPersona(browser, 'technician', {
+      assertMainContent: false,
+    });
     await context.close();
   });
 });

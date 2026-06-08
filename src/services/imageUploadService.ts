@@ -496,6 +496,16 @@ export async function batchResolveEquipmentDisplayImageUrls(
   return results;
 }
 
+export async function withResolvedEquipmentImages<T extends { image_url?: string | null }>(
+  rows: T[],
+): Promise<T[]> {
+  const urls = await batchResolveEquipmentDisplayImageUrls(rows.map(row => row.image_url ?? null));
+  return rows.map((row, index) => ({
+    ...row,
+    image_url: urls[index] ?? null,
+  }));
+}
+
 /**
  * Normalize a stored file reference (legacy public URL, signed URL, or canonical path)
  * to the storage object path for the given bucket.

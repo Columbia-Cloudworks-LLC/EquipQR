@@ -226,7 +226,7 @@ export const useTeamMembers = (teamId: string | undefined, organizationId: strin
 };
 
 // Hook to check if user can manage team
-export const useTeamManagerCheck = (userId: string | undefined, teamId: string | undefined) => {
+const useTeamManagerCheck = (userId: string | undefined, teamId: string | undefined) => {
   return useQuery({
     queryKey: ['teamManager', userId, teamId],
     queryFn: () => TeamRepository.isTeamManager(userId!, teamId!),

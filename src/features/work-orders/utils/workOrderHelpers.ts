@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Helpers duplicated in export dialog for stable import boundary
 /**
  * Work Order Presentation Helpers
  * 
@@ -60,7 +62,7 @@ export const getStatusColor = (status: string): string => {
 /**
  * Get shadcn Badge variant for status
  */
-export const getStatusBadgeVariant = (status: WorkOrderStatus): 'default' | 'secondary' | 'outline' | 'destructive' => {
+const getStatusBadgeVariant = (status: WorkOrderStatus): 'default' | 'secondary' | 'outline' | 'destructive' => {
   switch (status) {
     case 'completed':
       return 'default';
@@ -81,7 +83,7 @@ export const getStatusBadgeVariant = (status: WorkOrderStatus): 'default' | 'sec
 /**
  * Get shadcn Badge variant for priority
  */
-export const getPriorityBadgeVariant = (priority: WorkOrderPriority): 'default' | 'secondary' | 'outline' | 'destructive' => {
+const getPriorityBadgeVariant = (priority: WorkOrderPriority): 'default' | 'secondary' | 'outline' | 'destructive' => {
   switch (priority) {
     case 'high':
       return 'destructive';
@@ -128,7 +130,7 @@ export const formatDate = (
   }
 };
 
-export const formatDateTime = (
+const formatDateTime = (
   dateString: string | null | undefined,
   settings: WorkOrderDateSettings
 ): string => {
@@ -140,7 +142,7 @@ export const formatDateTime = (
   }
 };
 
-export const formatRelativeDate = (
+const formatRelativeDate = (
   dateString: string | null | undefined,
   settings: WorkOrderDateSettings
 ): string => {
@@ -178,14 +180,14 @@ export const isTerminalStatus = (status: WorkOrderStatus): boolean => {
 /**
  * Check if a work order can be edited
  */
-export const isEditable = (status: WorkOrderStatus): boolean => {
+const isEditable = (status: WorkOrderStatus): boolean => {
   return !isTerminalStatus(status);
 };
 
 /**
  * Get the next valid status transitions for a work order
  */
-export const getValidStatusTransitions = (currentStatus: WorkOrderStatus): WorkOrderStatus[] => {
+const getValidStatusTransitions = (currentStatus: WorkOrderStatus): WorkOrderStatus[] => {
   switch (currentStatus) {
     case 'submitted':
       return ['accepted', 'cancelled'];
@@ -229,7 +231,7 @@ export const getPriorityValue = (priority: WorkOrderPriority): number => {
 /**
  * Sort work orders by priority (high first)
  */
-export const sortByPriority = <T extends { priority: WorkOrderPriority }>(items: T[]): T[] => {
+const sortByPriority = <T extends { priority: WorkOrderPriority }>(items: T[]): T[] => {
   return [...items].sort((a, b) => getPriorityValue(b.priority) - getPriorityValue(a.priority));
 };
 
@@ -274,7 +276,7 @@ export const humanizeAttributeValue = (value: unknown): string => {
 // Display Constants
 // ============================================
 
-export const STATUS_OPTIONS: { value: WorkOrderStatus; label: string }[] = [
+const STATUS_OPTIONS: { value: WorkOrderStatus; label: string }[] = [
   { value: 'submitted', label: 'Submitted' },
   { value: 'accepted', label: 'Accepted' },
   { value: 'assigned', label: 'Assigned' },
@@ -284,7 +286,7 @@ export const STATUS_OPTIONS: { value: WorkOrderStatus; label: string }[] = [
   { value: 'cancelled', label: 'Cancelled' }
 ];
 
-export const PRIORITY_OPTIONS: { value: WorkOrderPriority; label: string }[] = [
+const PRIORITY_OPTIONS: { value: WorkOrderPriority; label: string }[] = [
   { value: 'high', label: 'High' },
   { value: 'medium', label: 'Medium' },
   { value: 'low', label: 'Low' }

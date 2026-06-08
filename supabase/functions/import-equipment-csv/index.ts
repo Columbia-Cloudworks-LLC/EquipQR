@@ -8,9 +8,8 @@
 
 import { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import {
-  createUserSupabaseClient,
-  requireUser,
   verifyOrgAdmin,
+  requireAuthenticatedPost,
   createErrorResponse,
   createJsonResponse,
   handleCorsPreflightIfNeeded,
@@ -29,53 +28,73 @@ interface MappedRow {
   customAttributes: Record<string, string | number | boolean | null>;
 }
 
+type ColumnMapping = {
+  header: string;
+  mappedTo:
+    | "name"
+    | "manufacturer"
+    | "model"
+    | "serial"
+    | "location"
+    | "last_maintenance"
+    | "custom"
+    | "skip";
+  customKey?: string;
+};
+
+type EquipmentWritePayload = Record<
+  string,
+  string | Record<string, string | number | boolean | null> | null
+>;
+
+interface ExistingEquipmentRow {
+  id: string;
+  last_maintenance?: string | null;
+  custom_attributes?: Record<string, string | number | boolean | null> | null;
+}
+
+interface PreparedRow {
+  rowIndex: number;
+  mappedRow: MappedRow;
+  existing: ExistingEquipmentRow | null;
+}
+
+interface UpdateOp {
+  rowIndex: number;
+  existingId: string;
+  updateData: EquipmentWritePayload;
+}
+
 interface ImportRequest {
   dryRun: boolean;
   rows: Record<string, string>[];
-  mappings: Array<{
-    header: string;
-    mappedTo:
-      | "name"
-      | "manufacturer"
-      | "model"
-      | "serial"
-      | "location"
-      | "last_maintenance"
-      | "custom"
-      | "skip";
-    customKey?: string;
-  }>;
+  mappings: ColumnMapping[];
   importId: string;
   teamId: string | null;
   organizationId: string;
   chunkIndex?: number;
 }
 
+interface ImportFailure {
+  row: number;
+  reason: string;
+}
+
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    if (req.method !== "POST") {
-      return createErrorResponse("Method not allowed", 405);
+    const authContext = await requireAuthenticatedPost(req);
+    if (authContext instanceof Response) {
+      return authContext;
     }
 
-    // Create user-scoped client (RLS enforced)
-    const supabase = createUserSupabaseClient(req);
-
-    // Validate user authentication
-    const auth = await requireUser(req, supabase);
-    if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status);
-    }
-
-    const { user } = auth;
+    const { supabase, user } = authContext;
 
     const body: ImportRequest = await req.json();
     const { dryRun, rows, mappings, importId, teamId, organizationId } = body;
 
-    // Verify user has admin/owner role in the organization
     const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
     if (!isAdmin) {
       return createErrorResponse(
@@ -86,20 +105,18 @@ Deno.serve(async (req) => {
 
     if (dryRun) {
       return await handleDryRun(supabase, organizationId, rows, mappings);
-    } else {
-      return await handleImport(
-        supabase,
-        organizationId,
-        rows,
-        mappings,
-        importId,
-        teamId
-      );
     }
+
+    return await handleImport(
+      supabase,
+      organizationId,
+      rows,
+      mappings,
+      importId,
+      teamId
+    );
   } catch (error) {
-    // Log the full error server-side for debugging
     console.error("[IMPORT-EQUIPMENT-CSV] Import error:", error);
-    // Return generic message to client - never expose error.message directly
     return createErrorResponse("An unexpected error occurred", 500);
   }
 });
@@ -108,19 +125,7 @@ async function handleDryRun(
   supabase: SupabaseClient,
   organizationId: string,
   rows: Record<string, string>[],
-  mappings: Array<{
-    header: string;
-    mappedTo:
-      | "name"
-      | "manufacturer"
-      | "model"
-      | "serial"
-      | "location"
-      | "last_maintenance"
-      | "custom"
-      | "skip";
-    customKey?: string;
-  }>
+  mappings: ColumnMapping[]
 ) {
   let validCount = 0;
   let willCreate = 0;
@@ -159,7 +164,6 @@ async function handleDryRun(
         continue;
       }
 
-      // Check if equipment exists (RLS will apply)
       const existing = await findExistingEquipment(
         supabase,
         organizationId,
@@ -211,43 +215,57 @@ async function handleImport(
   supabase: SupabaseClient,
   organizationId: string,
   rows: Record<string, string>[],
-  mappings: Array<{
-    header: string;
-    mappedTo:
-      | "name"
-      | "manufacturer"
-      | "model"
-      | "serial"
-      | "location"
-      | "last_maintenance"
-      | "custom"
-      | "skip";
-    customKey?: string;
-  }>,
+  mappings: ColumnMapping[],
   importId: string,
   teamId: string | null
 ) {
-  // NOTE: CSV parsing is done client-side with papaparse; this function receives parsed rows.
-  let created = 0;
-  let merged = 0;
-  let failed = 0;
-  const failures: Array<{ row: number; reason: string }> = [];
+  const { preparedRows, failures: prepFailures } = await prepareImportRows(
+    supabase,
+    organizationId,
+    rows,
+    mappings
+  );
 
-  // Phase 1: Map and validate all rows, check for existing equipment
-  interface PreparedRow {
-    rowIndex: number;
-    mappedRow: MappedRow;
-    existing: Awaited<ReturnType<typeof findExistingEquipment>> | null;
-  }
+  const { toInsert, toInsertRowIndices, updateOps } = partitionPreparedRows(
+    preparedRows,
+    organizationId,
+    importId,
+    teamId
+  );
+
+  const insertResult = await insertEquipmentChunks(
+    supabase,
+    toInsert,
+    toInsertRowIndices
+  );
+  const updateResult = await updateExistingEquipmentBatch(
+    supabase,
+    organizationId,
+    updateOps
+  );
+
+  return createJsonResponse({
+    created: insertResult.created,
+    merged: updateResult.merged,
+    failed: prepFailures.length + insertResult.failed + updateResult.failed,
+    failures: [...prepFailures, ...insertResult.failures, ...updateResult.failures],
+  });
+}
+
+async function prepareImportRows(
+  supabase: SupabaseClient,
+  organizationId: string,
+  rows: Record<string, string>[],
+  mappings: ColumnMapping[]
+): Promise<{ preparedRows: PreparedRow[]; failures: ImportFailure[] }> {
   const preparedRows: PreparedRow[] = [];
+  const failures: ImportFailure[] = [];
 
   for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    const mappedRow = mapRow(row, mappings);
-
+    const mappedRow = mapRow(rows[i], mappings);
     const validation = validateRow(mappedRow);
+
     if (!validation.valid) {
-      failed++;
       failures.push({
         row: i + 1,
         reason: validation.error || "Invalid row",
@@ -263,188 +281,225 @@ async function handleImport(
       );
       preparedRows.push({ rowIndex: i, mappedRow, existing });
     } catch (error) {
-      failed++;
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
       failures.push({ row: i + 1, reason: errorMsg });
     }
   }
 
-  // Phase 2: Separate into inserts and updates
-  const toInsert: Array<
-    Record<
-      string,
-      string | Record<string, string | number | boolean | null> | null
-    >
-  > = [];
-  const toInsertRowIndices: number[] = [];
+  return { preparedRows, failures };
+}
 
-  interface UpdateOp {
-    rowIndex: number;
-    existingId: string;
-    updateData: Record<
-      string,
-      string | Record<string, string | number | boolean | null> | null
-    >;
+function buildUpdateData(
+  mappedRow: MappedRow,
+  existing: ExistingEquipmentRow
+): EquipmentWritePayload {
+  const updateData: EquipmentWritePayload = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (mappedRow.name && mappedRow.name.trim() !== "") {
+    updateData.name = mappedRow.name.trim();
   }
+
+  if (mappedRow.location && mappedRow.location.trim() !== "") {
+    updateData.location = mappedRow.location.trim();
+  }
+
+  if (Object.keys(mappedRow.customAttributes).length > 0) {
+    updateData.custom_attributes = {
+      ...((existing.custom_attributes as Record<
+        string,
+        string | number | boolean | null
+      >) || {}),
+      ...mappedRow.customAttributes,
+    };
+  }
+
+  if (mappedRow.last_maintenance) {
+    const newDate = new Date(mappedRow.last_maintenance);
+    const existingDate = existing.last_maintenance
+      ? new Date(existing.last_maintenance as string)
+      : null;
+
+    if (!existingDate || newDate > existingDate) {
+      updateData.last_maintenance = mappedRow.last_maintenance;
+      updateData.last_maintenance_work_order_id = null;
+    }
+  }
+
+  return updateData;
+}
+
+function buildInsertData(
+  mappedRow: MappedRow,
+  organizationId: string,
+  importId: string,
+  teamId: string | null
+): EquipmentWritePayload {
+  const insertData: EquipmentWritePayload = {
+    organization_id: organizationId,
+    name:
+      mappedRow.name ||
+      `${mappedRow.manufacturer || ""} ${mappedRow.model || ""}`.trim() ||
+      "Imported Equipment",
+    manufacturer: mappedRow.manufacturer || "",
+    model: mappedRow.model || "",
+    serial_number: mappedRow.serial || "",
+    status: "active",
+    location: mappedRow.location || "Unknown",
+    installation_date: new Date().toISOString().split("T")[0],
+    custom_attributes: mappedRow.customAttributes,
+    import_id: importId,
+    team_id: teamId,
+  };
+
+  if (mappedRow.last_maintenance) {
+    insertData.last_maintenance = mappedRow.last_maintenance;
+    insertData.last_maintenance_work_order_id = null;
+  }
+
+  return insertData;
+}
+
+function partitionPreparedRows(
+  preparedRows: PreparedRow[],
+  organizationId: string,
+  importId: string,
+  teamId: string | null
+): {
+  toInsert: EquipmentWritePayload[];
+  toInsertRowIndices: number[];
+  updateOps: UpdateOp[];
+} {
+  const toInsert: EquipmentWritePayload[] = [];
+  const toInsertRowIndices: number[] = [];
   const updateOps: UpdateOp[] = [];
 
   for (const { rowIndex, mappedRow, existing } of preparedRows) {
     if (existing) {
-      // Build update payload
-      const updateData: Record<
-        string,
-        string | Record<string, string | number | boolean | null> | null
-      > = {
-        updated_at: new Date().toISOString(),
-      };
-
-      if (mappedRow.name && mappedRow.name.trim() !== "") {
-        updateData.name = mappedRow.name.trim();
-      }
-
-      if (mappedRow.location && mappedRow.location.trim() !== "") {
-        updateData.location = mappedRow.location.trim();
-      }
-
-      if (Object.keys(mappedRow.customAttributes).length > 0) {
-        updateData.custom_attributes = {
-          ...((existing.custom_attributes as Record<
-            string,
-            string | number | boolean | null
-          >) || {}),
-          ...mappedRow.customAttributes,
-        };
-      }
-
-      if (mappedRow.last_maintenance) {
-        const newDate = new Date(mappedRow.last_maintenance);
-        const existingDate = existing.last_maintenance
-          ? new Date(existing.last_maintenance as string)
-          : null;
-
-        if (!existingDate || newDate > existingDate) {
-          updateData.last_maintenance = mappedRow.last_maintenance;
-          updateData.last_maintenance_work_order_id = null;
-        }
-      }
-
-      updateOps.push({ rowIndex, existingId: existing.id as string, updateData });
-    } else {
-      // Build insert payload
-      const insertData: Record<
-        string,
-        string | Record<string, string | number | boolean | null> | null
-      > = {
-        organization_id: organizationId,
-        name:
-          mappedRow.name ||
-          `${mappedRow.manufacturer || ""} ${mappedRow.model || ""}`.trim() ||
-          "Imported Equipment",
-        manufacturer: mappedRow.manufacturer || "",
-        model: mappedRow.model || "",
-        serial_number: mappedRow.serial || "",
-        status: "active",
-        location: mappedRow.location || "Unknown",
-        installation_date: new Date().toISOString().split("T")[0],
-        custom_attributes: mappedRow.customAttributes,
-        import_id: importId,
-        team_id: teamId,
-      };
-
-      if (mappedRow.last_maintenance) {
-        insertData.last_maintenance = mappedRow.last_maintenance;
-        insertData.last_maintenance_work_order_id = null;
-      }
-
-      toInsert.push(insertData);
-      toInsertRowIndices.push(rowIndex);
+      updateOps.push({
+        rowIndex,
+        existingId: existing.id,
+        updateData: buildUpdateData(mappedRow, existing),
+      });
+      continue;
     }
+
+    toInsert.push(buildInsertData(mappedRow, organizationId, importId, teamId));
+    toInsertRowIndices.push(rowIndex);
   }
 
-  // Phase 3: Bulk insert new equipment in chunks for better error isolation
-  if (toInsert.length > 0) {
-    // Process inserts in chunks to isolate failures
-    for (let chunkStart = 0; chunkStart < toInsert.length; chunkStart += BULK_INSERT_CHUNK_SIZE) {
-      const chunkEnd = Math.min(chunkStart + BULK_INSERT_CHUNK_SIZE, toInsert.length);
-      const chunk = toInsert.slice(chunkStart, chunkEnd);
-      const chunkRowIndices = toInsertRowIndices.slice(chunkStart, chunkEnd);
+  return { toInsert, toInsertRowIndices, updateOps };
+}
 
-      const { error: insertError } = await supabase
-        .from("equipment")
-        .insert(chunk);
+function formatChunkInsertFailureReason(
+  chunkLength: number,
+  chunkRowIndices: number[],
+  errorDetails: string
+): string {
+  const firstRow = chunkRowIndices[0] + 1;
+  const lastRow = chunkRowIndices[chunkRowIndices.length - 1] + 1;
+  return `Bulk insert failed for chunk of ${chunkLength} row${chunkLength === 1 ? "" : "s"} (rows ${firstRow}-${lastRow}). Error: ${errorDetails}`;
+}
 
-      if (insertError) {
-        // Only mark rows in this chunk as failed
-        const detailParts = [insertError.message, insertError.details, insertError.hint].filter(Boolean);
-        const errorDetails = detailParts.join(' | ');
-        const chunkReason = `Bulk insert failed for chunk of ${chunk.length} row${chunk.length === 1 ? '' : 's'} (rows ${chunkRowIndices[0] + 1}-${chunkRowIndices[chunkRowIndices.length - 1] + 1}). Error: ${errorDetails}`;
-        for (const rowIndex of chunkRowIndices) {
-          failed++;
-          failures.push({ row: rowIndex + 1, reason: chunkReason });
-        }
-        // Continue processing remaining chunks
-      } else {
-        created += chunk.length;
-      }
-    }
-  }
+async function insertEquipmentChunks(
+  supabase: SupabaseClient,
+  toInsert: EquipmentWritePayload[],
+  toInsertRowIndices: number[]
+): Promise<{ created: number; failed: number; failures: ImportFailure[] }> {
+  let created = 0;
+  let failed = 0;
+  const failures: ImportFailure[] = [];
 
-  // Phase 4: Run updates in batched parallel for better performance
-  // Limit concurrency to avoid overwhelming the database with simultaneous requests
-  const UPDATE_BATCH_SIZE = BULK_INSERT_CHUNK_SIZE;
-  if (updateOps.length > 0) {
-    for (let batchStart = 0; batchStart < updateOps.length; batchStart += UPDATE_BATCH_SIZE) {
-      const batch = updateOps.slice(batchStart, batchStart + UPDATE_BATCH_SIZE);
-      const updateResults = await Promise.allSettled(
-        batch.map(async ({ rowIndex, existingId, updateData }) => {
-          const { error: updateError } = await supabase
-            .from("equipment")
-            .update(updateData)
-            .eq("id", existingId)
-            .eq("organization_id", organizationId);
+  for (
+    let chunkStart = 0;
+    chunkStart < toInsert.length;
+    chunkStart += BULK_INSERT_CHUNK_SIZE
+  ) {
+    const chunkEnd = Math.min(
+      chunkStart + BULK_INSERT_CHUNK_SIZE,
+      toInsert.length
+    );
+    const chunk = toInsert.slice(chunkStart, chunkEnd);
+    const chunkRowIndices = toInsertRowIndices.slice(chunkStart, chunkEnd);
 
-          if (updateError) {
-            throw { rowIndex, message: updateError.message };
-          }
-          return { rowIndex };
-        })
+    const { error: insertError } = await supabase.from("equipment").insert(chunk);
+
+    if (insertError) {
+      const detailParts = [
+        insertError.message,
+        insertError.details,
+        insertError.hint,
+      ].filter(Boolean);
+      const chunkReason = formatChunkInsertFailureReason(
+        chunk.length,
+        chunkRowIndices,
+        detailParts.join(" | ")
       );
 
-      for (const result of updateResults) {
-        if (result.status === "fulfilled") {
-          merged++;
-        } else {
-          failed++;
-          const reason = result.reason as { rowIndex: number; message: string };
-          failures.push({ row: reason.rowIndex + 1, reason: reason.message });
+      for (const rowIndex of chunkRowIndices) {
+        failed++;
+        failures.push({ row: rowIndex + 1, reason: chunkReason });
+      }
+      continue;
+    }
+
+    created += chunk.length;
+  }
+
+  return { created, failed, failures };
+}
+
+async function updateExistingEquipmentBatch(
+  supabase: SupabaseClient,
+  organizationId: string,
+  updateOps: UpdateOp[]
+): Promise<{ merged: number; failed: number; failures: ImportFailure[] }> {
+  let merged = 0;
+  let failed = 0;
+  const failures: ImportFailure[] = [];
+
+  for (
+    let batchStart = 0;
+    batchStart < updateOps.length;
+    batchStart += BULK_INSERT_CHUNK_SIZE
+  ) {
+    const batch = updateOps.slice(
+      batchStart,
+      batchStart + BULK_INSERT_CHUNK_SIZE
+    );
+    const updateResults = await Promise.allSettled(
+      batch.map(async ({ rowIndex, existingId, updateData }) => {
+        const { error: updateError } = await supabase
+          .from("equipment")
+          .update(updateData)
+          .eq("id", existingId)
+          .eq("organization_id", organizationId);
+
+        if (updateError) {
+          throw { rowIndex, message: updateError.message };
         }
+        return { rowIndex };
+      })
+    );
+
+    for (const result of updateResults) {
+      if (result.status === "fulfilled") {
+        merged++;
+      } else {
+        failed++;
+        const reason = result.reason as { rowIndex: number; message: string };
+        failures.push({ row: reason.rowIndex + 1, reason: reason.message });
       }
     }
   }
 
-  return createJsonResponse({
-    created,
-    merged,
-    failed,
-    failures,
-  });
+  return { merged, failed, failures };
 }
 
 function mapRow(
   row: Record<string, string>,
-  mappings: Array<{
-    header: string;
-    mappedTo:
-      | "name"
-      | "manufacturer"
-      | "model"
-      | "serial"
-      | "location"
-      | "last_maintenance"
-      | "custom"
-      | "skip";
-    customKey?: string;
-  }>
+  mappings: ColumnMapping[]
 ): MappedRow {
   const result: MappedRow = {
     customAttributes: {},
@@ -458,7 +513,26 @@ function mapRow(
       result.customAttributes[mapping.customKey || mapping.header] =
         inferType(value);
     } else if (mapping.mappedTo !== "skip") {
-      (result as Record<string, string>)[mapping.mappedTo] = value.trim();
+      switch (mapping.mappedTo) {
+        case "name":
+          result.name = value.trim();
+          break;
+        case "manufacturer":
+          result.manufacturer = value.trim();
+          break;
+        case "model":
+          result.model = value.trim();
+          break;
+        case "serial":
+          result.serial = value.trim();
+          break;
+        case "location":
+          result.location = value.trim();
+          break;
+        case "last_maintenance":
+          result.last_maintenance = value.trim();
+          break;
+      }
     }
   }
 
@@ -490,7 +564,6 @@ async function findExistingEquipment(
     return null;
   }
 
-  // RLS will restrict to equipment in orgs the user has access to
   const { data } = await supabase
     .from("equipment")
     .select("*")
@@ -506,12 +579,10 @@ async function findExistingEquipment(
 function inferType(value: string): string | number | boolean {
   const trimmed = value.trim();
 
-  // Boolean
   if (["true", "false", "yes", "no"].includes(trimmed.toLowerCase())) {
     return ["true", "yes"].includes(trimmed.toLowerCase());
   }
 
-  // Number
   const num = Number(trimmed);
   if (!isNaN(num) && isFinite(num) && trimmed !== "") {
     return num;
@@ -519,3 +590,12 @@ function inferType(value: string): string | number | boolean {
 
   return trimmed;
 }
+
+export const __testables = {
+  mapRow,
+  validateRow,
+  inferType,
+  buildUpdateData,
+  buildInsertData,
+  formatChunkInsertFailureReason,
+};

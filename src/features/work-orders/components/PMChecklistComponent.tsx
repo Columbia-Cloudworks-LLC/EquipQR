@@ -1,12 +1,12 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Large PM checklist with repeated per-item render paths
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { CheckCircle, Clock, AlertTriangle, RefreshCw, RotateCcw } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, RefreshCw } from 'lucide-react';
 import { PMChecklistItem, PreventativeMaintenance, defaultForkliftChecklist } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAutoSave } from '@/hooks/useAutoSave';
@@ -20,6 +20,13 @@ import { WorkOrderData, EquipmentData, TeamMemberData, OrganizationData } from '
 import { logger } from '@/utils/logger';
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
 import PMChecklistSections from '@/features/work-orders/components/PMChecklistSections';
+import { PMChecklistDialogs } from '@/features/work-orders/components/PMChecklistDialogs';
+import { PMChecklistFooter } from '@/features/work-orders/components/PMChecklistFooter';
+import {
+  buildInitialOpenSections,
+  isPMChecklistItemComplete,
+  parsePMChecklistData,
+} from '@/features/work-orders/utils/pmChecklistInit';
 import { preventiveMaintenance } from '@/lib/queryKeys';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -27,8 +34,48 @@ import { useAuth } from '@/hooks/useAuth';
 // Pure utility functions (hoisted to module scope)
 // ============================================
 
-function isItemComplete(item: PMChecklistItem): boolean {
-  return item.condition !== undefined && item.condition !== null;
+function getChecklistTitle(
+  templateName: string | null | undefined,
+  templateId: string | null | undefined,
+): string {
+  if (templateName) {
+    return `${templateName} - Preventative Maintenance Checklist`;
+  }
+  if (templateId) {
+    return 'Preventative Maintenance Checklist';
+  }
+  return 'Forklift Preventative Maintenance Checklist';
+}
+
+type PMChecklistStatusHeaderProps = {
+  statusIcon: React.ReactNode;
+  title: string;
+  statusLabel: string;
+  statusColorClass: string;
+  titleClassName?: string;
+  badgeRowExtras?: React.ReactNode;
+};
+
+function PMChecklistStatusHeader({
+  statusIcon,
+  title,
+  statusLabel,
+  statusColorClass,
+  titleClassName,
+  badgeRowExtras,
+}: PMChecklistStatusHeaderProps) {
+  return (
+    <>
+      {statusIcon}
+      <div>
+        <CardTitle className={titleClassName}>{title}</CardTitle>
+        <div className="flex items-center gap-2 mt-1">
+          <Badge className={statusColorClass}>{statusLabel}</Badge>
+          {badgeRowExtras}
+        </div>
+      </div>
+    </>
+  );
 }
 
 // ============================================
@@ -183,92 +230,22 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     // Initialize PM Checklist
 
     try {
-      let parsedChecklist: PMChecklistItem[] = [];
-      
-      // Improved validation and parsing logic
-      if (pm.checklist_data && Array.isArray(pm.checklist_data) && pm.checklist_data.length > 0) {
-        // Validate that the array contains valid checklist items
-        const isValidChecklistData = pm.checklist_data.every((item: unknown) => {
-          const checklistItem = item as Record<string, unknown>;
-          return (
-            item &&
-            typeof item === 'object' &&
-            typeof checklistItem.id === 'string' &&
-            typeof checklistItem.title === 'string' &&
-            typeof checklistItem.section === 'string' &&
-            typeof checklistItem.required === 'boolean' &&
-            (checklistItem.condition === null || checklistItem.condition === undefined || 
-             (typeof checklistItem.condition === 'number' && Number(checklistItem.condition) >= 1 && Number(checklistItem.condition) <= 5))
-          );
-        });
+      const { checklist: parsedChecklist, notes: storedNotes, fromStorage } = parsePMChecklistData(
+        pm.checklist_data,
+        storageKey,
+      );
 
-        if (isValidChecklistData) {
-          // Cast the data with proper type assertion
-          parsedChecklist = pm.checklist_data.map((item: unknown) => {
-            const checklistItem = item as Record<string, unknown>;
-            return {
-              id: String(checklistItem.id),
-              title: String(checklistItem.title),
-              description: checklistItem.description ? String(checklistItem.description) : undefined,
-              section: String(checklistItem.section),
-              required: Boolean(checklistItem.required),
-              condition: checklistItem.condition !== null && checklistItem.condition !== undefined ? Number(checklistItem.condition) as 1 | 2 | 3 | 4 | 5 : null,
-              notes: checklistItem.notes ? String(checklistItem.notes) : undefined
-            };
-          });
-          
-          // Using saved checklist data
-        } else {
-          // Saved checklist data is invalid, using default
-          parsedChecklist = [...defaultForkliftChecklist];
-        }
-      } else {
-        // Try to load from browser storage first (only if PM data is empty)
-        try {
-          const stored = localStorage.getItem(storageKey);
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
-              if (parsed.data.checklist && Array.isArray(parsed.data.checklist)) {
-                parsedChecklist = parsed.data.checklist;
-                setNotes(parsed.data.notes || '');
-                // Loaded from browser storage
-              }
-            }
-          }
-        } catch (error) {
-          logger.warn('Failed to load PM checklist from browser storage', error);
-        }
-        
-        if (parsedChecklist.length === 0) {
-          // Using default forklift checklist
-          parsedChecklist = [...defaultForkliftChecklist];
-        }
+      if (fromStorage) {
+        setNotes(storedNotes);
       }
 
       setChecklist(parsedChecklist);
-
-      // Initialize all sections as collapsed by default
-      const sections = Array.from(new Set(parsedChecklist.map(item => item.section)));
-      const initialOpenSections: Record<string, boolean> = {};
-      sections.forEach(section => {
-        initialOpenSections[section] = false; // All sections collapsed by default
-      });
-      setOpenSections(initialOpenSections);
-      
+      setOpenSections(buildInitialOpenSections(parsedChecklist));
       setIsInitialized(true);
     } catch (error) {
       logger.error('Error parsing checklist data', error);
       setChecklist([...defaultForkliftChecklist]);
-      
-      // Initialize sections for default checklist (all collapsed)
-      const sections = Array.from(new Set(defaultForkliftChecklist.map(item => item.section)));
-      const initialOpenSections: Record<string, boolean> = {};
-      sections.forEach(section => {
-        initialOpenSections[section] = false; // All sections collapsed by default
-      });
-      setOpenSections(initialOpenSections);
-      
+      setOpenSections(buildInitialOpenSections(defaultForkliftChecklist));
       setIsInitialized(true);
     }
   }, [pm.checklist_data, pm.id, isMobile, isInitialized, isManuallyUpdated, storageKey]);
@@ -400,7 +377,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 
   const completePM = async () => {
     const requiredItems = checklist.filter(item => item.required);
-    const unratedRequiredItems = requiredItems.filter(item => !isItemComplete(item));
+    const unratedRequiredItems = requiredItems.filter(item => !isPMChecklistItemComplete(item));
     const unsafeItems = checklist.filter(item => item.condition === 5);
 
     if (unratedRequiredItems.length > 0) {
@@ -596,6 +573,9 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }
   };
 
+  const checklistTitle = getChecklistTitle(templateName, pm.template_id);
+  const statusLabel = pm.status.replace('_', ' ').toUpperCase();
+
   // getConditionColor, getConditionText, and isItemComplete are hoisted to module scope
 
   // Memoize expensive calculations — single pass over the checklist array
@@ -607,10 +587,10 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 
     for (const item of checklist) {
       sectionSet.add(item.section);
-      if (isItemComplete(item)) {
+      if (isPMChecklistItemComplete(item)) {
         completed.push(item);
       }
-      if (item.required && !isItemComplete(item)) {
+      if (item.required && !isPMChecklistItemComplete(item)) {
         unratedRequired.push(item);
       }
       if (item.condition === 5) {
@@ -630,7 +610,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   // Calculate section progress
   const getSectionProgress = useCallback((section: string) => {
     const sectionItems = checklist.filter(item => item.section === section);
-    const completedSectionItems = sectionItems.filter(item => isItemComplete(item));
+    const completedSectionItems = sectionItems.filter(item => isPMChecklistItemComplete(item));
     return {
       completed: completedSectionItems.length,
       total: sectionItems.length,
@@ -694,7 +674,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
 
   // Helper function to get border styling based on item state
   const getItemBorderClass = useCallback((item: PMChecklistItem) => {
-    const isComplete = isItemComplete(item);
+    const isComplete = isPMChecklistItemComplete(item);
     if (isComplete) {
       return 'border-l-4 border-l-success'; // Green border for completed items
     } else if (item.required) {
@@ -717,22 +697,12 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {getStatusIcon()}
-              <div>
-                <CardTitle>
-                  {templateName 
-                    ? `${templateName} - Preventative Maintenance Checklist`
-                    : pm.template_id 
-                      ? 'Preventative Maintenance Checklist' 
-                      : 'Forklift Preventative Maintenance Checklist'
-                  }
-                </CardTitle>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge className={getStatusColor()}>
-                    {pm.status.replace('_', ' ').toUpperCase()}
-                  </Badge>
-                </div>
-              </div>
+              <PMChecklistStatusHeader
+                statusIcon={getStatusIcon()}
+                title={checklistTitle}
+                statusLabel={statusLabel}
+                statusColorClass={getStatusColor()}
+              />
             </div>
           </div>
         </CardHeader>
@@ -750,22 +720,12 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {getStatusIcon()}
-              <div>
-                <CardTitle>
-                  {templateName 
-                    ? `${templateName} - Preventative Maintenance Checklist`
-                    : pm.template_id 
-                      ? 'Preventative Maintenance Checklist' 
-                      : 'Forklift Preventative Maintenance Checklist'
-                  }
-                </CardTitle>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge className={getStatusColor()}>
-                    {pm.status.replace('_', ' ').toUpperCase()}
-                  </Badge>
-                </div>
-              </div>
+              <PMChecklistStatusHeader
+                statusIcon={getStatusIcon()}
+                title={checklistTitle}
+                statusLabel={statusLabel}
+                statusColorClass={getStatusColor()}
+              />
             </div>
           </div>
         </CardHeader>
@@ -800,22 +760,13 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
             {/* Title Row */}
             <div className="flex items-center gap-3">
               {getStatusIcon()}
-              <CardTitle className="text-lg leading-tight">
-                {templateName 
-                  ? `${templateName} - Preventative Maintenance Checklist`
-                  : pm.template_id 
-                    ? 'Preventative Maintenance Checklist' 
-                    : 'Forklift Preventative Maintenance Checklist'
-                }
-              </CardTitle>
+              <CardTitle className="text-lg leading-tight">{checklistTitle}</CardTitle>
             </div>
             
             {/* Status and Progress Row */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <Badge className={getStatusColor()}>
-                  {pm.status.replace('_', ' ').toUpperCase()}
-                </Badge>
+                <Badge className={getStatusColor()}>{statusLabel}</Badge>
                 {hasUnsavedChanges && (
                   <Badge variant="outline" className="text-xs">Unsaved changes</Badge>
                 )}
@@ -834,69 +785,33 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
         ) : (
           // Desktop: Horizontal layout
           <div className="flex items-center gap-3">
-            {getStatusIcon()}
-            <div>
-              <CardTitle>
-                {templateName 
-                  ? `${templateName} - Preventative Maintenance Checklist`
-                  : pm.template_id 
-                    ? 'Preventative Maintenance Checklist' 
-                    : 'Forklift Preventative Maintenance Checklist'
-                }
-              </CardTitle>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge className={getStatusColor()}>
-                  {pm.status.replace('_', ' ').toUpperCase()}
-                </Badge>
-                {hasUnsavedChanges && (
-                  <Badge variant="outline" className="text-xs">Unsaved changes</Badge>
-                )}
-                <span className="text-sm text-muted-foreground">
-                  Progress: {completedItems.length}/{totalItems} items completed
-                </span>
-                {!readOnly && (
-                  <SaveStatus 
-                    status={saveStatus} 
-                    lastSaved={lastSaved}
-                    className="ml-2"
-                  />
-                )}
-              </div>
-            </div>
+            <PMChecklistStatusHeader
+              statusIcon={getStatusIcon()}
+              title={checklistTitle}
+              statusLabel={statusLabel}
+              statusColorClass={getStatusColor()}
+              badgeRowExtras={
+                <>
+                  {hasUnsavedChanges && (
+                    <Badge variant="outline" className="text-xs">Unsaved changes</Badge>
+                  )}
+                  <span className="text-sm text-muted-foreground">
+                    Progress: {completedItems.length}/{totalItems} items completed
+                  </span>
+                  {!readOnly && (
+                    <SaveStatus
+                      status={saveStatus}
+                      lastSaved={lastSaved}
+                      className="ml-2"
+                    />
+                  )}
+                </>
+              }
+            />
           </div>
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {pm.status !== 'completed' && unratedRequiredItems.length > 0 && (
-          <Alert className="border-destructive/30 bg-destructive/10">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="text-destructive">
-              {unratedRequiredItems.length} required item(s) need to be rated before completion.
-              {!readOnly && (
-                <>
-                  {' '}
-                  <button 
-                    onClick={() => setShowSetAllOKDialog(true)}
-                    className="text-destructive underline hover:no-underline focus:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-sm"
-                    disabled={isSettingAllOK}
-                  >
-                    Set All to OK
-                  </button>
-                </>
-              )}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {pm.status !== 'completed' && unsafeItems.length > 0 && (
-          <Alert className="border-destructive/30 bg-destructive/10">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="text-destructive">
-              {unsafeItems.length} item(s) marked as unsafe condition present require immediate attention.
-            </AlertDescription>
-          </Alert>
-        )}
-
         <PMChecklistSections
           sections={sections}
           checklist={checklist}
@@ -912,103 +827,35 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
           handleNotesItemChange={handleNotesItemChange}
         />
 
-        <div className="space-y-2">
-          <label className="text-base font-semibold">General Notes</label>
-          <Textarea
-            placeholder="Add general notes about this PM..."
-            value={notes}
-            onChange={(e) => handleNotesChange(e.target.value)}
-            disabled={readOnly || pm.status === 'completed'}
-            rows={3}
-            className="text-[15px] text-foreground placeholder:text-muted-foreground/70"
-          />
-        </div>
+        <PMChecklistFooter
+          pmStatus={pm.status}
+          readOnly={readOnly}
+          isAdmin={isAdmin}
+          notes={notes}
+          unratedRequiredItems={unratedRequiredItems}
+          unsafeItems={unsafeItems}
+          isUpdating={isUpdating}
+          isReverting={isReverting}
+          isSettingAllOK={isSettingAllOK}
+          completedAt={pm.completed_at}
+          formattedCompletedAt={pm.completed_at ? formatDateTime(pm.completed_at) : undefined}
+          onNotesChange={handleNotesChange}
+          onSaveChanges={saveChanges}
+          onCompletePM={completePM}
+          onShowSetAllOKDialog={() => setShowSetAllOKDialog(true)}
+          onShowRevertPMDialog={() => setShowRevertPMDialog(true)}
+        />
 
-        {!readOnly && pm.status !== 'completed' && (
-          <div className="flex gap-2 pt-4">
-            <Button
-              onClick={saveChanges}
-              disabled={isUpdating}
-              variant="outline"
-            >
-              {isUpdating ? 'Saving...' : 'Save Changes'}
-            </Button>
-            <Button
-              onClick={completePM}
-              disabled={isUpdating || unratedRequiredItems.length > 0 || unsafeItems.length > 0}
-            >
-              {isUpdating ? 'Completing...' : 'Complete PM'}
-            </Button>
-          </div>
-        )}
-
-        {/* Admin Revert Option for Completed PM */}
-        {isAdmin && pm.status === 'completed' && (
-          <div className="flex gap-2 pt-4 border-t">
-            <Button
-              onClick={() => setShowRevertPMDialog(true)}
-              disabled={isReverting}
-              variant="outline"
-              className="border-destructive/50 text-destructive hover:bg-destructive/10"
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Revert PM Completion
-            </Button>
-          </div>
-        )}
-
-        {pm.completed_at && (
-          <div className="pt-4 border-t text-sm text-muted-foreground">
-            Completed on {formatDateTime(pm.completed_at)}
-          </div>
-        )}
-
-        {/* Set All to OK Confirmation Dialog */}
-        <AlertDialog open={showSetAllOKDialog} onOpenChange={setShowSetAllOKDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Set All Items to OK?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will set the condition of all checklist items to "OK". Any existing notes on the items will be preserved. 
-                This action is useful when the equipment is already in good working order.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isSettingAllOK}>Cancel</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={handleSetAllToOK}
-                disabled={isSettingAllOK}
-              >
-                {isSettingAllOK ? 'Setting & Saving...' : 'Set All to OK & Save'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Revert PM Completion Confirmation Dialog */}
-        <AlertDialog open={showRevertPMDialog} onOpenChange={setShowRevertPMDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Revert PM Completion?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will revert the PM checklist status from completed back to in-progress. All checklist item assessments and notes will be preserved. This action can only be performed by an administrator.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isReverting}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  setShowRevertPMDialog(false);
-                  revertPMCompletion();
-                }}
-                disabled={isReverting}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {isReverting ? 'Reverting...' : 'Yes, Revert Completion'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <PMChecklistDialogs
+          showSetAllOKDialog={showSetAllOKDialog}
+          onSetAllOKDialogOpenChange={setShowSetAllOKDialog}
+          isSettingAllOK={isSettingAllOK}
+          onConfirmSetAllOK={handleSetAllToOK}
+          showRevertPMDialog={showRevertPMDialog}
+          onRevertPMDialogOpenChange={setShowRevertPMDialog}
+          isReverting={isReverting}
+          onConfirmRevert={revertPMCompletion}
+        />
       </CardContent>
     </Card>
   );

@@ -66,14 +66,12 @@ $edgeEnvPath = Join-Path $workspaceRoot "supabase\functions\.env"
 Write-ManagedBlock -FilePath $viteLocalEnvPath -CreateIfMissing $true -BlockLines @(
     "VITE_SUPABASE_URL=$localSupabaseBaseUrl"
     "SUPABASE_URL=$localSupabaseBaseUrl"
+    "PUBLIC_SITE_URL=http://localhost:8080"
     "INTUIT_REDIRECT_URI=$quickbooksRedirectUri"
-    "QB_OAUTH_REDIRECT_BASE_URL=$localSupabaseBaseUrl"
-    "VITE_QB_OAUTH_REDIRECT_BASE_URL=$localSupabaseBaseUrl"
-    "GW_OAUTH_REDIRECT_BASE_URL=$localSupabaseBaseUrl"
-    "VITE_GW_OAUTH_REDIRECT_BASE_URL=$localSupabaseBaseUrl"
 ) -KeysToReplace @(
     "VITE_SUPABASE_URL"
     "SUPABASE_URL"
+    "PUBLIC_SITE_URL"
     "INTUIT_REDIRECT_URI"
     "QB_OAUTH_REDIRECT_BASE_URL"
     "VITE_QB_OAUTH_REDIRECT_BASE_URL"
@@ -83,11 +81,11 @@ Write-ManagedBlock -FilePath $viteLocalEnvPath -CreateIfMissing $true -BlockLine
 
 Write-ManagedBlock -FilePath $edgeEnvPath -CreateIfMissing $false -BlockLines @(
     "INTUIT_REDIRECT_URI=$quickbooksRedirectUri"
-    "QB_OAUTH_REDIRECT_BASE_URL=$localSupabaseBaseUrl"
-    "GW_OAUTH_REDIRECT_BASE_URL=$localSupabaseBaseUrl"
+    "PUBLIC_SITE_URL=http://localhost:8080"
 ) -KeysToReplace @(
     "SUPABASE_URL"
     "INTUIT_REDIRECT_URI"
+    "PUBLIC_SITE_URL"
     "QB_OAUTH_REDIRECT_BASE_URL"
     "GW_OAUTH_REDIRECT_BASE_URL"
 )

@@ -236,7 +236,8 @@ async function runWithArgs(args) {
       const diagnosticsBuffer = {
         retries: [],
         selectorFallbacks: [],
-        sceneEvents: []
+        sceneEvents: [],
+        spotlightCount: 0
       };
       const actionCountRef = { value: 0 };
       const failureTaxonomy = [];
@@ -337,6 +338,8 @@ async function runWithArgs(args) {
         scenarioMinDurationMs: scenario.targetDurationMs?.min || 3000,
         totalDurationMs,
         activityCount: actionCountRef.value,
+        spotlightCount: diagnosticsBuffer.spotlightCount,
+        videoSize: { width: 1920, height: 1080 },
         requiredCheckpointCount,
         passedCheckpointCount
       });
@@ -366,6 +369,7 @@ async function runWithArgs(args) {
         sceneTimings: sceneTimingSummary,
         activity: {
           actionCount: actionCountRef.value,
+          spotlightCount: diagnosticsBuffer.spotlightCount,
           retryCount: diagnosticsBuffer.retries.length,
           selectorFallbackCount: diagnosticsBuffer.selectorFallbacks.length,
           checkpointPassCount: passedCheckpointCount,
@@ -389,6 +393,7 @@ async function runWithArgs(args) {
         selectorFallbacks: diagnosticsBuffer.selectorFallbacks,
         retries: diagnosticsBuffer.retries,
         sceneEvents: diagnosticsBuffer.sceneEvents,
+        spotlightCount: diagnosticsBuffer.spotlightCount,
         qualityGate,
         env: process.env
       });

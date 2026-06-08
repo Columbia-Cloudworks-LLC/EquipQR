@@ -1,4 +1,8 @@
 import { logger } from '@/utils/logger';
+import {
+  batchUpdateRowResult,
+  collectBatchMutationResults,
+} from '@/services/batchMutationResultHelpers';
 import { supabase } from '@/integrations/supabase/client';
 import type {
   InventoryItem,
@@ -803,32 +807,18 @@ export const batchUpdateInventoryItems = async (
           .eq('organization_id', organizationId)
           .select('id');
 
-        if (error) {
-          return { id, error: error.message };
-        }
-        if (!rows || rows.length === 0) {
-          return { id, error: 'Inventory item not found or access denied' };
-        }
-        return { id, error: null as string | null };
+        return batchUpdateRowResult(
+          id,
+          error,
+          rows,
+          'Inventory item not found or access denied',
+        );
       })
     );
 
-    for (let i = 0; i < results.length; i++) {
-      const result = results[i];
-      if (result.status === 'fulfilled') {
-        const { id, error: rowError } = result.value;
-        if (rowError) {
-          failed.push({ id, error: rowError });
-        } else {
-          succeeded.push(id);
-        }
-      } else {
-        const id = chunk[i].id;
-        const msg =
-          result.reason instanceof Error ? result.reason.message : 'Unknown error';
-        failed.push({ id, error: msg });
-      }
-    }
+    const chunkResults = collectBatchMutationResults(results, chunk);
+    succeeded.push(...chunkResults.succeeded);
+    failed.push(...chunkResults.failed);
   }
 
   return { succeeded, failed };

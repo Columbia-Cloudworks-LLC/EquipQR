@@ -5,7 +5,7 @@ import { backgroundSync } from '@/services/backgroundSync';
 import { performanceMonitor } from '@/utils/performanceMonitoring';
 
 // PHASE 3: Cache invalidation hooks with smart patterns
-export const useCacheInvalidation = () => {
+const useCacheInvalidation = () => {
   const queryClient = useQueryClient();
 
   // Initialize cache manager with query client
@@ -61,7 +61,7 @@ export const useCacheInvalidation = () => {
 };
 
 // Hook for optimistic updates with automatic rollback
-export const useOptimisticUpdates = () => {
+const useOptimisticUpdates = () => {
   const optimisticUpdate = useCallback(async <T>(
     queryKey: QueryKey,
     updater: (old: T | undefined) => T,
@@ -110,7 +110,7 @@ export const useBackgroundSync = () => {
 };
 
 // Hook for cache management and statistics
-export const useCacheManagement = () => {
+const useCacheManagement = () => {
   const getCacheStats = useCallback(() => {
     return cacheManager.getCacheStats();
   }, []);

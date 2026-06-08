@@ -22,24 +22,11 @@ import {
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
 import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
+import { createStructuredLogger } from "../_shared/structured-logger.ts";
 
 const FUNCTION_NAME = "places-autocomplete";
 
-const logStep = (
-  step: string,
-  correlationId: string,
-  details?: Record<string, unknown>,
-) => {
-  console.log(
-    JSON.stringify({
-      level: "info",
-      function: FUNCTION_NAME,
-      correlation_id: correlationId,
-      step,
-      ...details,
-    }),
-  );
-};
+const logStep = createStructuredLogger(FUNCTION_NAME);
 
 // Request validation schemas
 

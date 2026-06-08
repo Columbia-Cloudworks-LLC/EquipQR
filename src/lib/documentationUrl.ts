@@ -22,5 +22,5 @@ export function resolveSupportDocsUrl(env: DocumentationUrlEnv = import.meta.env
   return `${base}/support`;
 }
 
-export const DOCUMENTATION_URL = resolveDocumentationUrl();
+const DOCUMENTATION_URL = resolveDocumentationUrl();
 export const SUPPORT_DOCS_URL = resolveSupportDocsUrl();

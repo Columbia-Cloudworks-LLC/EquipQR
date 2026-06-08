@@ -1,12 +1,8 @@
-import React, { useState } from 'react';
-import { Filter, X, Check } from 'lucide-react';
+import React from 'react';
+import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { FilterPopoverClearAllFooter } from '@/components/filters/FilterPopoverClearAllFooter';
+import { FilterPopoverShell } from '@/components/filters/FilterPopoverShell';
 import {
   Select,
   SelectContent,
@@ -14,6 +10,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  WorkOrderStatusFilterSelect,
+  WorkOrderPriorityFilterSelect,
+  WorkOrderDueDateFilterSelect,
+  WorkOrderInvoiceFilterSelect,
+} from '@/features/work-orders/components/WorkOrderFilterSelectFields';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -44,56 +46,17 @@ const WorkOrderFilterPopover: React.FC<WorkOrderFilterPopoverProps> = ({
   onClearFilters,
   onQuickFilter,
 }) => {
-  const [open, setOpen] = useState(false);
-
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 text-sm font-normal"
-          aria-label={`Filter work orders${activeFilterCount > 0 ? `, ${activeFilterCount} active` : ''}`}
-        >
-          <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-          Filter
-          {activeFilterCount > 0 && (
-            <Badge
-              variant="secondary"
-              className="ml-0.5 h-4 min-w-4 rounded-full px-1 py-0 text-[10px] font-semibold leading-none"
-            >
-              {activeFilterCount}
-            </Badge>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-72 p-4" align="start">
-        <div className="flex flex-col gap-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Filters
-          </p>
-
+    <FilterPopoverShell ariaSubject="work orders" activeFilterCount={activeFilterCount}>
+      {({ close }) => (
+        <>
           {/* Status */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs text-muted-foreground">Status</label>
-            <Select
+            <WorkOrderStatusFilterSelect
               value={filters.statusFilter}
               onValueChange={(v) => onFilterChange('statusFilter', v)}
-            >
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue placeholder="All statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="submitted">Submitted</SelectItem>
-                <SelectItem value="accepted">Accepted</SelectItem>
-                <SelectItem value="assigned">Assigned</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="on_hold">On Hold</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
+            />
           </div>
 
           {/* Assignee */}
@@ -117,59 +80,28 @@ const WorkOrderFilterPopover: React.FC<WorkOrderFilterPopoverProps> = ({
           {/* Priority */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs text-muted-foreground">Priority</label>
-            <Select
+            <WorkOrderPriorityFilterSelect
               value={filters.priorityFilter}
               onValueChange={(v) => onFilterChange('priorityFilter', v)}
-            >
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue placeholder="All priorities" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priorities</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-              </SelectContent>
-            </Select>
+            />
           </div>
 
           {/* Due Date */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs text-muted-foreground">Due Date</label>
-            <Select
+            <WorkOrderDueDateFilterSelect
               value={filters.dueDateFilter}
               onValueChange={(v) => onFilterChange('dueDateFilter', v)}
-            >
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue placeholder="All dates" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Dates</SelectItem>
-                <SelectItem value="overdue">Overdue</SelectItem>
-                <SelectItem value="today">Due Today</SelectItem>
-                <SelectItem value="this_week">This Week</SelectItem>
-              </SelectContent>
-            </Select>
+            />
           </div>
 
           {/* Invoice */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs text-muted-foreground">Invoice</label>
-            <Select
+            <WorkOrderInvoiceFilterSelect
               value={filters.invoiceFilter}
               onValueChange={(v) => onFilterChange('invoiceFilter', v)}
-            >
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue placeholder="All invoices" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Invoices</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="unpaid">Unpaid</SelectItem>
-                <SelectItem value="overdue">Overdue</SelectItem>
-                <SelectItem value="not_exported">Not Exported</SelectItem>
-              </SelectContent>
-            </Select>
+            />
           </div>
 
           <Separator />
@@ -203,26 +135,14 @@ const WorkOrderFilterPopover: React.FC<WorkOrderFilterPopoverProps> = ({
             </div>
           </div>
 
-          {activeFilterCount > 0 && (
-            <>
-              <Separator />
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-full text-xs text-muted-foreground hover:text-foreground"
-                onClick={() => {
-                  onClearFilters();
-                  setOpen(false);
-                }}
-              >
-                <X className="h-3 w-3 mr-1.5" />
-                Clear all filters
-              </Button>
-            </>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
+          <FilterPopoverClearAllFooter
+            activeFilterCount={activeFilterCount}
+            onClearFilters={onClearFilters}
+            onClose={close}
+          />
+        </>
+      )}
+    </FilterPopoverShell>
   );
 };
 

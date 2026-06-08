@@ -11,7 +11,6 @@ import {
   isUserPartsManager,
   addPartsManager,
   removePartsManager,
-  type PartsManager,
 } from '@/features/inventory/services/partsManagersService';
 import { useAppToast } from '@/hooks/useAppToast';
 
@@ -145,6 +144,3 @@ export const useRemovePartsManager = () => {
     },
   });
 };
-
-// Re-export types
-export type { PartsManager };

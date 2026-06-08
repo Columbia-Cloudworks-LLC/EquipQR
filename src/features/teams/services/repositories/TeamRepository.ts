@@ -1,3 +1,5 @@
+// fallow-ignore-file code-duplication
+// Duplication rationale: Repository queries share org-scoped filter prelude
 import {
   getOrganizationTeamsOptimized,
   getTeamMembersOptimized,
@@ -19,14 +21,11 @@ import type {
   TeamUpdate
 } from '@/features/teams/types/team';
 
-// Re-export for backward compatibility
-export type { TeamMember as OptimizedTeamMember };
-
 /**
  * Unified Team Repository using optimized queries for better performance
  * Provides a single interface for all team-related operations
  */
-export class TeamRepository {
+class TeamRepository {
   /**
    * Get teams by organization ID using optimized query with member counts
    * Converts OptimizedTeam to TeamWithMembers format for compatibility

@@ -16,6 +16,16 @@ A baseline migration can help new environments apply a single SQL file instead o
 - **Baseline**: `supabase/migrations/20260114000000_baseline.sql` (13,000+ lines)
 - **All Historical Migrations**: Kept in `supabase/migrations/` alongside the baseline
 - **Active**: All migrations remain in the migrations folder
+- **Reference schema export**: `supabase/schema.sql` (preview-sourced, read-only; not applied by CLI)
+- **Reference RLS export**: `supabase/rls-policies.sql` (table posture + policy inventory; read-only)
+
+Regenerate the reference exports locally:
+
+```powershell
+.\scripts\export-schema-baseline.ps1
+```
+
+CI regenerates both files on `main` pushes via `.github/workflows/export-schema.yml` when `PREVIEW_DATABASE_URL` is configured.
 
 ## Important: Why We Don't Archive Migrations
 

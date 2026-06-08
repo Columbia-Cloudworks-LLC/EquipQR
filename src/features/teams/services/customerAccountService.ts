@@ -9,7 +9,10 @@ import type {
   ExternalContactUpdate,
   ExternalContactListRow,
 } from '@/features/teams/types/team';
-import type { QBODerivedContact } from '@/services/quickbooks/types';
+import type { QBODerivedContact, QuickBooksCustomerRecord } from '@/services/quickbooks/types';
+
+/** @deprecated Use QuickBooksCustomerRecord from @/services/quickbooks/types */
+export type QBCustomerPayload = QuickBooksCustomerRecord;
 
 // ============================================
 // Customer Account CRUD
@@ -79,45 +82,21 @@ export async function linkTeamToCustomer(teamId: string, customerId: string | nu
     query = query.eq('organization_id', organizationId);
   }
 
-  const { error } = await query;
+  const { data, error } = await query
+    .select('id, customer_id')
+    .maybeSingle();
 
   if (error) throw error;
+  if (!data || data.customer_id !== customerId) {
+    throw new Error('Team customer account link could not be saved. Confirm you can manage this team and try again.');
+  }
 }
 
 // ============================================
 // QuickBooks → Customer Import / Refresh
 // ============================================
 
-export interface QBCustomerPayload {
-  Id: string;
-  DisplayName: string;
-  GivenName?: string;
-  FamilyName?: string;
-  CompanyName?: string;
-  Taxable?: boolean;
-  Email?: string;
-  Phone?: string;
-  Mobile?: string;
-  Fax?: string;
-  AlternatePhone?: string;
-  contacts?: QBODerivedContact[];
-  BillAddr?: {
-    Line1?: string;
-    City?: string;
-    State?: string;
-    Country?: string;
-    PostalCode?: string;
-  };
-  ShipAddr?: {
-    Line1?: string;
-    City?: string;
-    State?: string;
-    Country?: string;
-    PostalCode?: string;
-  };
-}
-
-function qbAddrToJson(addr?: QBCustomerPayload['BillAddr']): Record<string, string> | null {
+function qbAddrToJson(addr?: QuickBooksCustomerRecord['BillAddr']): Record<string, string> | null {
   if (!addr) return null;
   return {
     line1: addr.Line1 ?? '',
@@ -130,7 +109,7 @@ function qbAddrToJson(addr?: QBCustomerPayload['BillAddr']): Record<string, stri
 
 /** Slim QBO debug snapshot per contact row (avoid storing the full customer payload N times). */
 function buildQuickBooksContactSourcePayload(
-  qb: QBCustomerPayload,
+  qb: QuickBooksCustomerRecord,
   contact: QBODerivedContact
 ): NonNullable<ExternalContactInsert['source_payload']> {
   const payload: Json = {

@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Package, History, Link2, Plus, Minus, QrCode, Search, Check, X, Settings2, CheckCircle2, AlertCircle, RefreshCw, Layers, Cpu, LinkIcon } from 'lucide-react';
+import { ArrowLeft, Package, History, Link2, Plus, QrCode } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useInventoryItem, useInventoryTransactions, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useUnlinkItemFromEquipment, useCompatibleEquipmentForItem, useBulkLinkEquipmentToItem, useCompatibilityRulesForItem, useBulkSetCompatibilityRules, useEquipmentMatchingItemRules } from '@/features/inventory/hooks/useInventory';
+import { useInventoryItem, useInventoryTransactions, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useCompatibleEquipmentForItem, useBulkLinkEquipmentToItem, useCompatibilityRulesForItem, useBulkSetCompatibilityRules, useEquipmentMatchingItemRules } from '@/features/inventory/hooks/useInventory';
+import { useUnlinkItemFromEquipment } from '@/features/inventory/hooks/inventoryEquipmentLinkMutations';
 import { useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
 import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
 import {
@@ -11,59 +12,40 @@ import {
   useCreateAlternateGroup,
   useAddInventoryItemToGroup,
 } from '@/features/inventory/hooks/useAlternateGroups';
-// Lazy-mount the rules editor only when the dialog is opened. The editor pulls
-// in the full equipment manufacturers/models query (and its own sub-queries),
-// none of which are needed unless the user is actively editing rules.
-const CompatibilityRulesEditor = lazy(() =>
-  import('@/features/inventory/components/CompatibilityRulesEditor').then((m) => ({
-    default: m.CompatibilityRulesEditor,
-  })),
-);
-import type { PartCompatibilityRuleFormData, ModelMatchType, VerificationStatus, AlternatePartResult } from '@/features/inventory/types/inventory';
+import type { PartCompatibilityRuleFormData } from '@/features/inventory/types/inventory';
 import { getAlternatesForInventoryItem } from '@/features/inventory/services/partAlternatesService';
+import { groupAlternatePartsByGroupId } from '@/features/inventory/utils/groupAlternateParts';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
-import { InventoryItemForm } from '@/features/inventory/components/InventoryItemForm';
-import InventoryQRCodeDisplay from '@/features/inventory/components/InventoryQRCodeDisplay';
-import { useAuth } from '@/hooks/useAuth';
 import { HistoryTab } from '@/components/audit';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { logger } from '@/utils/logger';
-import type { PartAlternateGroup } from '@/features/inventory/types/inventory';
 import { getInventoryItemImages, uploadInventoryItemImages, deleteInventoryItemImage } from '@/features/inventory/services/inventoryService';
 import { useAppToast } from '@/hooks/useAppToast';
 import { inventory as inventoryQueryKeys } from '@/lib/queryKeys';
 import InventoryItemOverviewTab from '@/features/inventory/pages/components/InventoryItemOverviewTab';
 import InventoryItemTransactionsTab from '@/features/inventory/pages/components/InventoryItemTransactionsTab';
+import InventoryItemCompatibilityTab from '@/features/inventory/pages/components/InventoryItemCompatibilityTab';
 import { HorizontalChipRow } from '@/components/layout/HorizontalChipRow';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getStockHealthPresentation } from '@/features/inventory/utils/stockHealth';
+import { useInventoryItemAdjustQuantity } from '@/features/inventory/hooks/useInventoryItemAdjustQuantity';
+import { useInventoryItemEquipmentDialog } from '@/features/inventory/hooks/useInventoryItemEquipmentDialog';
+import { useInventoryItemAlternateGroupDialogs } from '@/features/inventory/hooks/useInventoryItemAlternateGroupDialogs';
+import { InventoryItemDetailDialogs } from '@/features/inventory/pages/components/InventoryItemDetailDialogs';
 
 const InventoryItemDetail = () => {
   const { itemId } = useParams<{ itemId: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { currentOrganization } = useOrganization();
-  const { user } = useAuth();
   const { canManageInventory } = usePermissions();
   const isMobile = useIsMobile();
   const appToast = useAppToast();
@@ -76,28 +58,12 @@ const InventoryItemDetail = () => {
   const [showEditForm, setShowEditForm] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-  const [showAdjustDialog, setShowAdjustDialog] = useState(false);
-  const [showAddInput, setShowAddInput] = useState(false);
-  const [showSubtractInput, setShowSubtractInput] = useState(false);
-  const [adjustmentAmount, setAdjustmentAmount] = useState(1);
-  const [adjustReason, setAdjustReason] = useState('');
   const [showQRCode, setShowQRCode] = useState(false);
-  const [showAddEquipmentDialog, setShowAddEquipmentDialog] = useState(false);
-  const [equipmentSearch, setEquipmentSearch] = useState('');
-  const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<string[]>([]);
   const [showEditRules, setShowEditRules] = useState(false);
   const [editingRules, setEditingRules] = useState<PartCompatibilityRuleFormData[]>([]);
-  
-  // Alternate group management state
-  const [showCreateGroupDialog, setShowCreateGroupDialog] = useState(false);
+  const [showAddEquipmentDialog, setShowAddEquipmentDialog] = useState(false);
   const [showAddToGroupDialog, setShowAddToGroupDialog] = useState(false);
-  const [newGroupName, setNewGroupName] = useState('');
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
-  const [groupSearch, setGroupSearch] = useState('');
 
-  // Open add-to-group dialog when navigated with ?alternateAction=add.
-  // Guard on canEdit so a crafted URL cannot drop a read-only user into a
-  // write flow they should never see.
   useEffect(() => {
     if (searchParams.get('alternateAction') === 'add' && canEdit) {
       setShowAddToGroupDialog(true);
@@ -121,20 +87,7 @@ const InventoryItemDetail = () => {
     itemId
   );
   const transactions = transactionsData?.transactions ?? [];
-  
-  // Equipment list is only needed when the "Add Equipment Compatibility"
-  // dialog is open. Use the lightweight summaries projection so the dropdown
-  // load stays fast on Slow 4G and avoid even the request until the dialog
-  // is visible.
-  const { data: allEquipment = [] } = useEquipmentSummaries(currentOrganization?.id, {
-    enabled: showAddEquipmentDialog,
-  });
 
-  // Alternate groups list is only used inside the "Add to Existing Group"
-  // dialog. Defer until the user opens it.
-  const { data: allGroups = [] } = useAlternateGroups(currentOrganization?.id, {
-    enabled: showAddToGroupDialog,
-  });
   const { data: compatibleEquipment = [] } = useCompatibleEquipmentForItem(
     currentOrganization?.id,
     itemId
@@ -158,15 +111,10 @@ const InventoryItemDetail = () => {
   });
   
   // Group alternates by group for display
-  const groupedAlternates = useMemo(() => {
-    const groups = new Map<string, AlternatePartResult[]>();
-    for (const alt of alternates) {
-      const existing = groups.get(alt.group_id) || [];
-      existing.push(alt);
-      groups.set(alt.group_id, existing);
-    }
-    return Array.from(groups.entries());
-  }, [alternates]);
+  const groupedAlternates = useMemo(
+    () => groupAlternatePartsByGroupId(alternates),
+    [alternates],
+  );
   
   const deleteMutation = useDeleteInventoryItem();
   const adjustMutation = useAdjustInventoryQuantity();
@@ -176,6 +124,41 @@ const InventoryItemDetail = () => {
   const bulkSetRulesMutation = useBulkSetCompatibilityRules();
   const createGroupMutation = useCreateAlternateGroup();
   const addToGroupMutation = useAddInventoryItemToGroup();
+
+  const adjustQuantity = useInventoryItemAdjustQuantity({
+    organizationId: currentOrganization?.id,
+    itemId,
+    adjustMutation,
+  });
+
+  const { data: allEquipment = [] } = useEquipmentSummaries(currentOrganization?.id, {
+    enabled: showAddEquipmentDialog,
+  });
+
+  const { data: allGroups = [] } = useAlternateGroups(currentOrganization?.id, {
+    enabled: showAddToGroupDialog,
+  });
+
+  const equipmentDialog = useInventoryItemEquipmentDialog({
+    organizationId: currentOrganization?.id,
+    itemId,
+    compatibleEquipment,
+    bulkLinkEquipmentMutation,
+    showAddEquipmentDialog,
+    setShowAddEquipmentDialog,
+  });
+
+  const alternateGroups = useInventoryItemAlternateGroupDialogs({
+    organizationId: currentOrganization?.id,
+    itemId,
+    groupedAlternates,
+    allGroups,
+    createGroupMutation,
+    addToGroupMutation,
+    refetchAlternates,
+    showAddToGroupDialog,
+    setShowAddToGroupDialog,
+  });
 
   const handleDelete = async () => {
     if (!currentOrganization || !itemId) return;
@@ -188,63 +171,6 @@ const InventoryItemDetail = () => {
     } catch {
       // Error handled in mutation
     }
-  };
-
-  const resetAdjustDialog = () => {
-    setShowAddInput(false);
-    setShowSubtractInput(false);
-    setAdjustmentAmount(1);
-    setAdjustReason('');
-  };
-
-  const handleAdjustQuantity = async (delta: number) => {
-    if (!currentOrganization || !itemId || !user || delta === 0) return;
-    try {
-      await adjustMutation.mutateAsync({
-        organizationId: currentOrganization.id,
-        adjustment: {
-          itemId,
-          delta,
-          reason: adjustReason || 'Manual adjustment'
-        }
-      });
-      setShowAdjustDialog(false);
-      resetAdjustDialog();
-    } catch {
-      // Error handled in mutation
-    }
-  };
-
-  const handleQuickAdd = () => {
-    handleAdjustQuantity(1);
-  };
-
-  const handleQuickTake = () => {
-    handleAdjustQuantity(-1);
-  };
-
-  const handleShowAddMore = () => {
-    setShowAddInput(true);
-    setShowSubtractInput(false);
-    setAdjustmentAmount(1);
-  };
-
-  const handleShowTakeMore = () => {
-    setShowSubtractInput(true);
-    setShowAddInput(false);
-    setAdjustmentAmount(1);
-  };
-
-  const handleCancelInput = () => {
-    setShowAddInput(false);
-    setShowSubtractInput(false);
-    setAdjustmentAmount(1);
-  };
-
-  const handleSubmitMore = () => {
-    if (adjustmentAmount <= 0) return;
-    const delta = showAddInput ? adjustmentAmount : -adjustmentAmount;
-    handleAdjustQuantity(delta);
   };
 
   const handleRemoveEquipment = async (equipmentId: string) => {
@@ -260,97 +186,17 @@ const InventoryItemDetail = () => {
     }
   };
 
-  const handleOpenAddEquipmentDialog = () => {
-    const currentEquipmentIds = compatibleEquipment.map(eq => eq.id);
-    setSelectedEquipmentIds(currentEquipmentIds);
-    setEquipmentSearch('');
-    setShowAddEquipmentDialog(true);
-  };
-
-  const handleSaveEquipmentCompatibility = async () => {
+  const handleSaveCompatibilityRules = async () => {
     if (!currentOrganization || !itemId) return;
-
     try {
-      // Use bulk operation to avoid multiple toast notifications
-      await bulkLinkEquipmentMutation.mutateAsync({
+      await bulkSetRulesMutation.mutateAsync({
         organizationId: currentOrganization.id,
         itemId,
-        equipmentIds: selectedEquipmentIds
+        rules: editingRules,
       });
-
-      setShowAddEquipmentDialog(false);
-    } catch {
-      // Errors handled in mutation
-    }
-  };
-
-  const handleEquipmentToggle = (equipmentId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedEquipmentIds(prev => [...prev, equipmentId]);
-    } else {
-      setSelectedEquipmentIds(prev => prev.filter(id => id !== equipmentId));
-    }
-  };
-
-  // Filter groups for the "Add to Group" dialog - exclude groups this item is already in
-  const itemGroupIds = useMemo(() => {
-    return new Set(groupedAlternates.map(([groupId]) => groupId));
-  }, [groupedAlternates]);
-
-  const availableGroups = useMemo(() => {
-    return allGroups.filter((g) => !itemGroupIds.has(g.id));
-  }, [allGroups, itemGroupIds]);
-
-  const filteredGroups = useMemo(() => {
-    if (!groupSearch.trim()) return availableGroups;
-    const needle = groupSearch.toLowerCase();
-    return availableGroups.filter(
-      (g) =>
-        g.name.toLowerCase().includes(needle) ||
-        g.description?.toLowerCase().includes(needle)
-    );
-  }, [availableGroups, groupSearch]);
-
-  // Handlers for alternate group management
-  const handleCreateGroupWithItem = async () => {
-    if (!currentOrganization || !itemId || !newGroupName.trim()) return;
-    try {
-      const newGroup = await createGroupMutation.mutateAsync({
-        organizationId: currentOrganization.id,
-        data: {
-          name: newGroupName.trim(),
-          status: 'unverified',
-        },
-      });
-      // Add this item to the new group
-      await addToGroupMutation.mutateAsync({
-        organizationId: currentOrganization.id,
-        groupId: newGroup.id,
-        inventoryItemId: itemId,
-        isPrimary: true,
-      });
-      setShowCreateGroupDialog(false);
-      setNewGroupName('');
-      refetchAlternates();
+      setShowEditRules(false);
     } catch (error) {
-      logger.error('Error creating group with item', error);
-    }
-  };
-
-  const handleAddToGroup = async () => {
-    if (!currentOrganization || !itemId || !selectedGroupId) return;
-    try {
-      await addToGroupMutation.mutateAsync({
-        organizationId: currentOrganization.id,
-        groupId: selectedGroupId,
-        inventoryItemId: itemId,
-      });
-      setShowAddToGroupDialog(false);
-      setSelectedGroupId(null);
-      setGroupSearch('');
-      refetchAlternates();
-    } catch (error) {
-      logger.error('Error adding item to group', error);
+      logger.error('Error saving compatibility rules', error);
     }
   };
 
@@ -407,158 +253,6 @@ const InventoryItemDetail = () => {
 
   const stockHealth = getStockHealthPresentation(item);
 
-  const handleAdjustOpenChange = (open: boolean) => {
-    setShowAdjustDialog(open);
-    if (!open) {
-      resetAdjustDialog();
-    }
-  };
-
-  const outlineSecondaryClass = isMobile ? 'border-2 border-input bg-muted/25 hover:bg-muted/40' : '';
-
-  const adjustQuantityInner = (
-    <div
-      className={cn(
-        'space-y-6',
-        isMobile
-          ? 'max-h-[min(85dvh,calc(100dvh-8rem))] overflow-y-auto overscroll-contain px-4 pb-2 [-webkit-overflow-scrolling:touch]'
-          : 'max-h-[calc(100dvh-11rem)] overflow-y-auto overscroll-contain pr-1 pb-safe-bottom'
-      )}
-    >
-      <div className="text-center">
-        <p className="text-sm text-muted-foreground mb-2">Current quantity</p>
-        <p className="text-4xl font-bold">{item.quantity_on_hand}</p>
-      </div>
-
-      {!showSubtractInput && (
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Add to inventory</Label>
-          {showAddInput ? (
-            <div className="space-y-3">
-              <Input
-                type="number"
-                min="1"
-                value={adjustmentAmount}
-                onChange={(e) => setAdjustmentAmount(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                placeholder="Enter amount to add"
-                autoFocus
-              />
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleCancelInput} className="flex-1">
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSubmitMore}
-                  disabled={adjustmentAmount <= 0 || adjustMutation.isPending}
-                  className="flex-1"
-                >
-                  {adjustMutation.isPending ? 'Adding...' : 'Add'}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex gap-2">
-              <Button onClick={handleQuickAdd} disabled={adjustMutation.isPending} className="flex-1">
-                <Plus className="h-4 w-4 mr-2" />
-                Add 1
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleShowAddMore}
-                className={cn('flex-1', outlineSecondaryClass)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add More
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {!showAddInput && (
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Take from inventory</Label>
-          {showSubtractInput ? (
-            <div className="space-y-3">
-              <Input
-                type="number"
-                min="1"
-                value={adjustmentAmount}
-                onChange={(e) => setAdjustmentAmount(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                placeholder="Enter amount to take"
-                autoFocus
-              />
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleCancelInput} className="flex-1">
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSubmitMore}
-                  disabled={adjustmentAmount <= 0 || adjustMutation.isPending}
-                  className="flex-1"
-                >
-                  {adjustMutation.isPending ? 'Taking...' : 'Take'}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex gap-2">
-              <Button
-                onClick={handleQuickTake}
-                disabled={adjustMutation.isPending}
-                variant="destructive"
-                className="flex-1"
-              >
-                <Minus className="h-4 w-4 mr-2" />
-                Take 1
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleShowTakeMore}
-                className={cn('flex-1', outlineSecondaryClass)}
-              >
-                <Minus className="h-4 w-4 mr-2" />
-                Take More
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div>
-        <Label htmlFor="adjust-reason" className="text-sm font-medium">
-          Reason <span className="text-muted-foreground font-normal">(optional)</span>
-        </Label>
-        <Textarea
-          id="adjust-reason"
-          value={adjustReason}
-          onChange={(e) => setAdjustReason(e.target.value)}
-          placeholder="Reason for adjustment..."
-          rows={3}
-          className="mt-1"
-        />
-      </div>
-
-      {!showAddInput && !showSubtractInput && (
-        isMobile ? (
-          <Button
-            variant="outline"
-            className="w-full min-h-11 border-border/80 bg-transparent"
-            onClick={() => handleAdjustOpenChange(false)}
-          >
-            Cancel
-          </Button>
-        ) : (
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={() => handleAdjustOpenChange(false)}>
-              Cancel
-            </Button>
-          </div>
-        )
-      )}
-    </div>
-  );
-
   return (
     <Page maxWidth="7xl" padding="responsive">
       <div className="space-y-4 md:space-y-6">
@@ -585,7 +279,7 @@ const InventoryItemDetail = () => {
               {canEdit && (
                 <Button
                   variant="default"
-                  onClick={() => setShowAdjustDialog(true)}
+                  onClick={() => adjustQuantity.setShowAdjustDialog(true)}
                   className="min-h-[44px] flex-1 md:flex-initial"
                   aria-label="Adjust Quantity"
                 >
@@ -704,435 +398,48 @@ const InventoryItemDetail = () => {
             value="compatibility"
             className="space-y-4 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:duration-150 motion-reduce:data-[state=active]:animate-none"
           >
-            {/* Compatibility Rules Card - First */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                <CardTitle>Compatibility Rules</CardTitle>
-                {canEdit && (
-                  <Button
-                    onClick={() => {
-                      // Initialize editing state with current rules (including new fields)
-                      setEditingRules(compatibilityRules.map(r => ({
-                        manufacturer: r.manufacturer,
-                        model: r.model,
-                        match_type: r.match_type || 'exact',
-                        status: r.status || 'unverified',
-                        notes: r.notes || null
-                      })));
-                      setShowEditRules(true);
-                    }}
-                    size="sm"
-                  >
-                    <Settings2 className="h-4 w-4 mr-2" />
-                    Edit Rules
-                  </Button>
-                )}
-              </CardHeader>
-              <CardContent>
-                {rulesLoading ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-8 w-full" />
-                    <Skeleton className="h-8 w-3/4" />
-                  </div>
-                ) : compatibilityRules.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground mb-2">
-                      No compatibility rules defined
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Rules automatically match parts to equipment by manufacturer and model.
-                    </p>
-                    {canEdit && (
-                      <Button
-                        onClick={() => {
-                          setEditingRules([{ manufacturer: '', model: null, match_type: 'exact', status: 'unverified' }]);
-                          setShowEditRules(true);
-                        }}
-                        variant="outline"
-                        className="mt-4"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Rules
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {compatibilityRules.map((rule) => {
-                      const matchType = (rule.match_type || 'exact') as ModelMatchType;
-                      const status = (rule.status || 'unverified') as VerificationStatus;
-                      const matchTypeLabel = {
-                        any: 'Any model',
-                        exact: rule.model || 'Any model',
-                        prefix: `${rule.model}*`,
-                        wildcard: rule.model_pattern_raw || rule.model || '?'
-                      }[matchType];
-                      
-                      return (
-                        <div 
-                          key={rule.id} 
-                          className="flex items-center justify-between p-2 border rounded-md"
-                        >
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium">{rule.manufacturer}</span>
-                            <span className="text-muted-foreground">→</span>
-                            <Badge variant="outline" className="text-xs capitalize">
-                              {matchType === 'any' ? 'Any' : matchType}
-                            </Badge>
-                            <span className="text-sm text-muted-foreground">
-                              {matchTypeLabel}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {status === 'verified' && (
-                              <Badge className="bg-success text-xs">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                Verified
-                              </Badge>
-                            )}
-                            {status === 'deprecated' && (
-                              <Badge variant="secondary" className="text-xs">
-                                Deprecated
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Equipment Matched by Rules - Shows equipment auto-discovered via rules */}
-            {compatibilityRules.length > 0 && (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Cpu className="h-5 w-5 text-muted-foreground" />
-                      Equipment Matched by Rules
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Equipment auto-discovered via the compatibility rules above
-                    </p>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {matchedEquipmentLoading ? (
-                    <div className="space-y-2">
-                      <Skeleton className="h-12 w-full" />
-                      <Skeleton className="h-12 w-3/4" />
-                    </div>
-                  ) : equipmentMatchedByRules.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Cpu className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground mb-2">
-                        No equipment matches the current rules
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Equipment with matching manufacturer and model will appear here automatically.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {equipmentMatchedByRules.map((equipment) => (
-                        <div
-                          key={equipment.equipment_id}
-                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
-                          onClick={() => navigate(`/dashboard/equipment/${equipment.equipment_id}`)}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium">{equipment.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {equipment.manufacturer} {equipment.model}
-                              {equipment.serial_number && ` • S/N: ${equipment.serial_number}`}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <Badge variant="secondary" className="text-xs capitalize">
-                              {equipment.matched_rule_match_type}
-                            </Badge>
-                            {equipment.matched_rule_status === 'verified' && (
-                              <Badge className="bg-success text-xs">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                Verified
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                      <p className="text-xs text-muted-foreground text-center pt-2">
-                        {equipmentMatchedByRules.length} equipment {equipmentMatchedByRules.length === 1 ? 'item' : 'items'} matched
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Direct Associations - Manually linked equipment (regardless of rules) */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <LinkIcon className="h-5 w-5 text-muted-foreground" />
-                    Direct Associations
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Equipment manually linked to this part (independent of rules)
-                  </p>
-                </div>
-                {canEdit && (
-                  <Button
-                    onClick={handleOpenAddEquipmentDialog}
-                    size="sm"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Manage
-                  </Button>
-                )}
-              </CardHeader>
-              <CardContent>
-                {compatibleEquipment.length === 0 ? (
-                  <div className="text-center py-8">
-                    <LinkIcon className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-muted-foreground mb-2">
-                      No equipment directly linked
-                    </p>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Direct associations are useful for special cases not covered by rules.
-                    </p>
-                    {canEdit && (
-                      <Button onClick={handleOpenAddEquipmentDialog} variant="outline">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Equipment
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {compatibleEquipment.map((equipment) => (
-                      <div
-                        key={equipment.id}
-                        className="flex items-center justify-between p-3 border rounded-lg"
-                      >
-                        <div 
-                          className="flex-1 min-w-0 cursor-pointer hover:text-primary"
-                          onClick={() => navigate(`/dashboard/equipment/${equipment.id}`)}
-                        >
-                          <p className="font-medium">{equipment.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {equipment.manufacturer} {equipment.model}
-                          </p>
-                        </div>
-                        {canEdit && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveEquipment(equipment.id)}
-                            disabled={unlinkEquipmentMutation.isPending}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Part Alternates / Interchange Groups */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                <div>
-                  <CardTitle>Part Alternates</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Interchangeable parts based on part number equivalence groups
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {canEdit && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowAddToGroupDialog(true)}
-                        disabled={availableGroups.length === 0}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add to Group
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => setShowCreateGroupDialog(true)}
-                      >
-                        <Layers className="h-4 w-4 mr-2" />
-                        Create Group
-                      </Button>
-                    </>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => refetchAlternates()}
-                    disabled={alternatesLoading}
-                  >
-                    <RefreshCw className={`h-4 w-4 ${alternatesLoading ? 'animate-spin' : ''}`} />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {alternatesLoading ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-3/4" />
-                  </div>
-                ) : groupedAlternates.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Layers className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-muted-foreground mb-2">
-                      No alternate part groups found
-                    </p>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Add this part to an existing group or create a new one to define interchangeable parts.
-                    </p>
-                    {canEdit && (
-                      <div className="flex justify-center gap-2">
-                        {availableGroups.length > 0 && (
-                          <Button variant="outline" onClick={() => setShowAddToGroupDialog(true)}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add to Existing Group
-                          </Button>
-                        )}
-                        <Button onClick={() => setShowCreateGroupDialog(true)}>
-                          <Layers className="h-4 w-4 mr-2" />
-                          Create New Group
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {groupedAlternates.map(([groupId, parts]) => {
-                      const groupName = parts[0].group_name;
-                      const groupVerified = parts[0].group_verified;
-                      const groupNotes = parts[0].group_notes;
-                      const inventoryParts = parts.filter(p => p.inventory_item_id);
-                      const inStockParts = parts.filter(p => p.is_in_stock);
-                      
-                      return (
-                        <div key={groupId} className="border rounded-lg p-4 space-y-3">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-medium">{groupName}</h4>
-                                {groupVerified && (
-                                  <Badge className="bg-success text-xs">
-                                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                                    Verified
-                                  </Badge>
-                                )}
-                              </div>
-                              {groupNotes && (
-                                <p className="text-sm text-muted-foreground mt-1">{groupNotes}</p>
-                              )}
-                            </div>
-                            <div className="text-right text-sm text-muted-foreground">
-                              <div>{inventoryParts.length} in inventory</div>
-                              <div className={inStockParts.length > 0 ? 'text-success font-medium' : ''}>
-                                {inStockParts.length} in stock
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            {parts.map((part, idx) => {
-                              const isCurrentItem = part.inventory_item_id === itemId;
-                              
-                              return (
-                                <div
-                                  key={idx}
-                                  className={`flex items-center justify-between p-2 rounded border ${
-                                    isCurrentItem 
-                                      ? 'border-primary bg-primary/5' 
-                                      : 'border-border hover:bg-muted/50'
-                                  } ${part.inventory_item_id && !isCurrentItem ? 'cursor-pointer' : ''}`}
-                                  onClick={() => {
-                                    if (part.inventory_item_id && !isCurrentItem) {
-                                      navigate(`/dashboard/inventory/${part.inventory_item_id}`);
-                                    }
-                                  }}
-                                >
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      {part.inventory_name ? (
-                                        <span className="font-medium">{part.inventory_name}</span>
-                                      ) : (
-                                        <span className="text-muted-foreground">
-                                          {part.identifier_manufacturer && `${part.identifier_manufacturer} `}
-                                          {part.identifier_value}
-                                        </span>
-                                      )}
-                                      
-                                      {isCurrentItem && (
-                                        <Badge variant="outline" className="text-xs">
-                                          This item
-                                        </Badge>
-                                      )}
-                                      
-                                      {part.is_primary && (
-                                        <Badge variant="secondary" className="text-xs">
-                                          Primary
-                                        </Badge>
-                                      )}
-                                      
-                                      {part.identifier_type && (
-                                        <Badge variant="outline" className="text-xs uppercase">
-                                          {part.identifier_type}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    
-                                    {part.inventory_item_id && part.inventory_sku && (
-                                      <div className="text-sm text-muted-foreground mt-0.5">
-                                        SKU: {part.inventory_sku}
-                                        {part.location && ` • ${part.location}`}
-                                      </div>
-                                    )}
-                                  </div>
-                                  
-                                  {part.inventory_item_id && (
-                                    <div className="text-right ml-4">
-                                      <div className={`font-medium ${
-                                        part.is_low_stock 
-                                          ? 'text-destructive' 
-                                          : part.is_in_stock 
-                                            ? 'text-success' 
-                                            : 'text-muted-foreground'
-                                      }`}>
-                                        {part.quantity_on_hand}
-                                      </div>
-                                      {part.is_low_stock && (
-                                        <div className="text-xs text-destructive flex items-center justify-end gap-1">
-                                          <AlertCircle className="h-3 w-3" />
-                                          Low
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <InventoryItemCompatibilityTab
+              itemId={itemId}
+              canEdit={canEdit}
+              compatibilityRules={compatibilityRules}
+              rulesLoading={rulesLoading}
+              equipmentMatchedByRules={equipmentMatchedByRules}
+              matchedEquipmentLoading={matchedEquipmentLoading}
+              compatibleEquipment={compatibleEquipment}
+              unlinkEquipmentPending={unlinkEquipmentMutation.isPending}
+              groupedAlternates={groupedAlternates}
+              alternatesLoading={alternatesLoading}
+              availableGroupsCount={alternateGroups.availableGroups.length}
+              onEditRules={() => {
+                setEditingRules(
+                  compatibilityRules.map((r) => ({
+                    manufacturer: r.manufacturer,
+                    model: r.model,
+                    match_type: r.match_type || 'exact',
+                    status: r.status || 'unverified',
+                    notes: r.notes || null,
+                  }))
+                );
+                setShowEditRules(true);
+              }}
+              onAddRules={() => {
+                setEditingRules([
+                  { manufacturer: '', model: null, match_type: 'exact', status: 'unverified' },
+                ]);
+                setShowEditRules(true);
+              }}
+              onOpenManageEquipment={equipmentDialog.handleOpenAddEquipmentDialog}
+              onRemoveEquipment={handleRemoveEquipment}
+              onNavigateToEquipment={(equipmentId) =>
+                navigate(`/dashboard/equipment/${equipmentId}`)
+              }
+              onNavigateToInventoryItem={(inventoryItemId) =>
+                navigate(`/dashboard/inventory/${inventoryItemId}`)
+              }
+              onOpenAddToGroup={() => alternateGroups.setShowAddToGroupDialog(true)}
+              onOpenCreateGroup={() => alternateGroups.setShowCreateGroupDialog(true)}
+              onRefetchAlternates={() => refetchAlternates()}
+            />
           </TabsContent>
 
           <TabsContent
@@ -1145,7 +452,7 @@ const InventoryItemDetail = () => {
               </CardHeader>
               <CardContent>
                 {itemId && (
-                  <HistoryTab 
+                  <HistoryTab
                     entityType="inventory_item"
                     entityId={itemId}
                     organizationId={currentOrganization.id}
@@ -1157,381 +464,33 @@ const InventoryItemDetail = () => {
 
         </Tabs>
 
-        {/* Edit Form */}
-        {showEditForm && (
-          <InventoryItemForm
-            open={showEditForm}
-            onClose={() => setShowEditForm(false)}
-            editingItem={item}
-          />
-        )}
-
-        {/* Delete Confirmation Dialog - First Step */}
-        <Dialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Delete Inventory Item</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete "{item.name}"? This will permanently delete the item and all its transaction history. This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowDeleteConfirmation(false)}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={() => {
-                setShowDeleteConfirmation(false);
-                setShowDeleteDialog(true);
-              }}>
-                Continue
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Dialog - Final Confirmation */}
-        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Final Confirmation</DialogTitle>
-              <DialogDescription>
-                This will permanently delete "{item.name}" and all {transactions.length} transaction record{transactions.length !== 1 ? 's' : ''}. This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => {
-                setShowDeleteDialog(false);
-                setShowDeleteConfirmation(false);
-              }}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={handleDelete}>
-                Delete Permanently
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* QR Code Display */}
         {itemId && (
-          <InventoryQRCodeDisplay
-            open={showQRCode}
-            onClose={() => setShowQRCode(false)}
+          <InventoryItemDetailDialogs
+            item={item}
             itemId={itemId}
-            itemName={item.name}
+            transactionCount={transactions.length}
+            isMobile={isMobile}
+            showEditForm={showEditForm}
+            setShowEditForm={setShowEditForm}
+            showDeleteConfirmation={showDeleteConfirmation}
+            setShowDeleteConfirmation={setShowDeleteConfirmation}
+            showDeleteDialog={showDeleteDialog}
+            setShowDeleteDialog={setShowDeleteDialog}
+            showQRCode={showQRCode}
+            setShowQRCode={setShowQRCode}
+            adjustQuantity={adjustQuantity}
+            equipmentDialog={equipmentDialog}
+            allEquipment={allEquipment}
+            showEditRules={showEditRules}
+            setShowEditRules={setShowEditRules}
+            editingRules={editingRules}
+            setEditingRules={setEditingRules}
+            bulkSetRulesPending={bulkSetRulesMutation.isPending}
+            onSaveCompatibilityRules={handleSaveCompatibilityRules}
+            alternateGroups={alternateGroups}
+            onDelete={handleDelete}
           />
         )}
-
-        {/* Adjust Quantity: bottom sheet on mobile, centered dialog on desktop */}
-        {isMobile ? (
-          <Drawer open={showAdjustDialog} onOpenChange={handleAdjustOpenChange}>
-            <DrawerContent className="max-h-[92dvh] pb-safe-bottom">
-              <DrawerHeader className="text-left">
-                <DrawerTitle>Adjust Quantity</DrawerTitle>
-                <DrawerDescription className="sr-only">
-                  Add or remove inventory quantity. You can optionally record a reason.
-                </DrawerDescription>
-              </DrawerHeader>
-              {adjustQuantityInner}
-            </DrawerContent>
-          </Drawer>
-        ) : (
-          <Dialog open={showAdjustDialog} onOpenChange={handleAdjustOpenChange}>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Adjust Quantity</DialogTitle>
-                <DialogDescription className="sr-only">
-                  Add or remove inventory quantity. You can optionally record a reason.
-                </DialogDescription>
-              </DialogHeader>
-              {adjustQuantityInner}
-            </DialogContent>
-          </Dialog>
-        )}
-
-        {/* Add/Manage Equipment Compatibility Dialog */}
-        <Dialog open={showAddEquipmentDialog} onOpenChange={setShowAddEquipmentDialog}>
-          <DialogContent className="max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Manage Compatible Equipment</DialogTitle>
-              <DialogDescription>
-                Select equipment that is compatible with this inventory item
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search equipment..."
-                  value={equipmentSearch}
-                  onChange={(e) => setEquipmentSearch(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <div className="border rounded-md p-2 space-y-2 max-h-96 overflow-y-auto">
-                {(() => {
-                  const filteredEquipment = allEquipment.filter(
-                    (eq) =>
-                      eq.name.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
-                      (eq.manufacturer ?? '').toLowerCase().includes(equipmentSearch.toLowerCase()) ||
-                      (eq.model ?? '').toLowerCase().includes(equipmentSearch.toLowerCase())
-                  );
-
-                  if (filteredEquipment.length === 0) {
-                    return (
-                      <p className="text-sm text-muted-foreground text-center py-8">
-                        {allEquipment.length === 0
-                          ? 'No equipment available'
-                          : 'No equipment found matching your search'}
-                      </p>
-                    );
-                  }
-
-                  return filteredEquipment.map((equipment) => {
-                    const isSelected = selectedEquipmentIds.includes(equipment.id);
-                    return (
-                      <div
-                        key={equipment.id}
-                        className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded"
-                      >
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={(checked) =>
-                            handleEquipmentToggle(equipment.id, checked as boolean)
-                          }
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium">{equipment.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {equipment.manufacturer} {equipment.model}
-                          </div>
-                        </div>
-                        {isSelected && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Check className="h-3 w-3 mr-1" />
-                            Selected
-                          </Badge>
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-              {selectedEquipmentIds.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {selectedEquipmentIds.map((id) => {
-                    const equipment = allEquipment.find((eq) => eq.id === id);
-                    return equipment ? (
-                      <Badge key={id} variant="secondary" className="gap-1">
-                        {equipment.name}
-                        <button
-                          type="button"
-                          aria-label={`Remove ${equipment.name} from selected equipment`}
-                          onClick={() => handleEquipmentToggle(id, false)}
-                          className="ml-1 inline-flex items-center justify-center rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                        >
-                          <X className="h-3 w-3" aria-hidden="true" />
-                        </button>
-                      </Badge>
-                    ) : null;
-                  })}
-                </div>
-              )}
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowAddEquipmentDialog(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSaveEquipmentCompatibility}
-                  disabled={bulkLinkEquipmentMutation.isPending}
-                >
-                  {bulkLinkEquipmentMutation.isPending
-                    ? 'Saving...'
-                    : 'Save Changes'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit Compatibility Rules Dialog */}
-        <Dialog open={showEditRules} onOpenChange={setShowEditRules}>
-          <DialogContent className="max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Compatibility Rules</DialogTitle>
-              <DialogDescription>
-                Define manufacturer and model patterns to automatically match this part with compatible equipment.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              {showEditRules && (
-                <Suspense fallback={<Skeleton className="h-32 w-full" />}>
-                  <CompatibilityRulesEditor
-                    rules={editingRules}
-                    onChange={setEditingRules}
-                    disabled={bulkSetRulesMutation.isPending}
-                  />
-                </Suspense>
-              )}
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowEditRules(false)}
-                  disabled={bulkSetRulesMutation.isPending}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={async () => {
-                    if (!currentOrganization || !itemId) return;
-                    try {
-                      await bulkSetRulesMutation.mutateAsync({
-                        organizationId: currentOrganization.id,
-                        itemId,
-                        rules: editingRules
-                      });
-                      setShowEditRules(false);
-                    } catch (error) {
-                      // Error toast is handled by the mutation hook
-                      logger.error('Error saving compatibility rules', error);
-                    }
-                  }}
-                  disabled={bulkSetRulesMutation.isPending}
-                >
-                  {bulkSetRulesMutation.isPending ? 'Saving...' : 'Save Rules'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Create Alternate Group Dialog */}
-        <Dialog open={showCreateGroupDialog} onOpenChange={setShowCreateGroupDialog}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Create Alternate Group</DialogTitle>
-              <DialogDescription>
-                Create a new alternate group with this item as the first member.
-                Other interchangeable parts can be added later.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="group-name">
-                  Group Name <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="group-name"
-                  placeholder="e.g., Oil Filter - CAT D6T Compatible"
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  A descriptive name for this group of interchangeable parts.
-                </p>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowCreateGroupDialog(false);
-                    setNewGroupName('');
-                  }}
-                  disabled={createGroupMutation.isPending || addToGroupMutation.isPending}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleCreateGroupWithItem}
-                  disabled={!newGroupName.trim() || createGroupMutation.isPending || addToGroupMutation.isPending}
-                >
-                  {createGroupMutation.isPending || addToGroupMutation.isPending
-                    ? 'Creating...'
-                    : 'Create Group'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Add to Existing Group Dialog */}
-        <Dialog open={showAddToGroupDialog} onOpenChange={setShowAddToGroupDialog}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Add to Alternate Group</DialogTitle>
-              <DialogDescription>
-                Select an existing alternate group to add this item to.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search groups..."
-                  value={groupSearch}
-                  onChange={(e) => setGroupSearch(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <div className="max-h-60 overflow-y-auto border rounded-md p-2 space-y-1">
-                {filteredGroups.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    {availableGroups.length === 0
-                      ? 'No available groups. Create a new one instead.'
-                      : 'No groups found matching your search'}
-                  </p>
-                ) : (
-                  filteredGroups.map((group: PartAlternateGroup) => (
-                    <div
-                      key={group.id}
-                      className={`p-3 rounded cursor-pointer hover:bg-muted/50 ${
-                        selectedGroupId === group.id ? 'bg-primary/10 border border-primary' : 'border border-transparent'
-                      }`}
-                      onClick={() => setSelectedGroupId(group.id)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{group.name}</p>
-                        {group.status === 'verified' && (
-                          <Badge className="bg-success text-xs">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Verified
-                          </Badge>
-                        )}
-                      </div>
-                      {group.description && (
-                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                          {group.description}
-                        </p>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowAddToGroupDialog(false);
-                    setSelectedGroupId(null);
-                    setGroupSearch('');
-                  }}
-                  disabled={addToGroupMutation.isPending}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleAddToGroup}
-                  disabled={!selectedGroupId || addToGroupMutation.isPending}
-                >
-                  {addToGroupMutation.isPending ? 'Adding...' : 'Add to Group'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </Page>
   );

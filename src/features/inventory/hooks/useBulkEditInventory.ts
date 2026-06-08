@@ -1,4 +1,3 @@
-import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -6,6 +5,12 @@ import { z } from 'zod';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { inventory as inventoryKeys } from '@/lib/queryKeys';
 import { usePermissions } from '@/hooks/usePermissions';
+import {
+  bulkEditMutationOnError,
+  useBulkEditCommitResult,
+  type BulkEditCommitHookResult,
+} from '@/hooks/useBulkEditCommitResult';
+import { useBulkEditRowState } from '@/hooks/useBulkEditRowState';
 import {
   batchUpdateInventoryItems,
   adjustInventoryQuantity,
@@ -30,29 +35,10 @@ export type BulkEditableField =
 /** Per-row, per-field delta. Only fields the user actually changed are present. */
 export type InventoryRowDelta = Partial<Pick<InventoryItem, BulkEditableField>>;
 
-export interface UseBulkEditInventoryResult {
-  dirtyRows: Map<string, InventoryRowDelta>;
-  selectedRowIds: Set<string>;
-  dirtyCount: number;
-  selectedCount: number;
-  isPending: boolean;
-
-  setCellValue: <K extends BulkEditableField>(
-    id: string,
-    field: K,
-    value: InventoryItem[K]
-  ) => void;
-  setCellValueOnRows: <K extends BulkEditableField>(
-    ids: string[],
-    field: K,
-    value: InventoryItem[K]
-  ) => void;
-  clearDirty: () => void;
-  toggleSelected: (id: string) => void;
-  selectAll: (ids: string[]) => void;
-  clearSelection: () => void;
-  commit: () => Promise<void>;
-}
+export type UseBulkEditInventoryResult = BulkEditCommitHookResult<
+  InventoryItem,
+  InventoryRowDelta
+>;
 
 // ============================================
 // Validation schema for bulk-editable scalar fields
@@ -72,12 +58,6 @@ const bulkEditSchema = z.object({
 type BulkEditSchemaInput = z.infer<typeof bulkEditSchema>;
 
 // ============================================
-// Normalize helper — mirrors the equipment grid
-// ============================================
-
-const normalize = (v: unknown): unknown => (v === '' ? null : v);
-
-// ============================================
 // Hook
 // ============================================
 
@@ -89,97 +69,8 @@ export const useBulkEditInventory = (
   const { canManageInventory } = usePermissions();
   const queryClient = useQueryClient();
 
-  const [dirtyRows, setDirtyRows] = useState<Map<string, InventoryRowDelta>>(
-    () => new Map()
-  );
-  const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(
-    () => new Set()
-  );
-
-  // Stable lookup of initial values keyed by item id.
-  const initialById = useMemo(() => {
-    const map = new Map<string, InventoryItem>();
-    for (const row of initialRows) {
-      map.set(row.id, row);
-    }
-    return map;
-  }, [initialRows]);
-
-  // ── Cell mutations ────────────────────────────────────────────────────────
-
-  const setCellValue = useCallback(
-    <K extends BulkEditableField>(
-      id: string,
-      field: K,
-      value: InventoryItem[K]
-    ) => {
-      setDirtyRows((prev) => {
-        const next = new Map(prev);
-        const initial = initialById.get(id);
-        const originalValue = initial?.[field];
-        const existing = next.get(id) ?? {};
-
-        if (Object.is(normalize(value), normalize(originalValue))) {
-          // Revert: remove field; drop row entry if no other fields remain.
-          if (field in existing) {
-            const rest = { ...(existing as Record<string, unknown>) };
-            delete rest[field as string];
-            if (Object.keys(rest).length === 0) {
-              next.delete(id);
-            } else {
-              next.set(id, rest as InventoryRowDelta);
-            }
-          }
-        } else {
-          next.set(id, {
-            ...existing,
-            [field]: normalize(value),
-          } as InventoryRowDelta);
-        }
-        return next;
-      });
-    },
-    [initialById]
-  );
-
-  const setCellValueOnRows = useCallback(
-    <K extends BulkEditableField>(
-      ids: string[],
-      field: K,
-      value: InventoryItem[K]
-    ) => {
-      ids.forEach((id) => setCellValue(id, field, value));
-    },
-    [setCellValue]
-  );
-
-  const clearDirty = useCallback(() => {
-    setDirtyRows(new Map());
-  }, []);
-
-  // ── Row selection ─────────────────────────────────────────────────────────
-
-  const toggleSelected = useCallback((id: string) => {
-    setSelectedRowIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
-
-  const selectAll = useCallback((ids: string[]) => {
-    setSelectedRowIds(new Set(ids));
-  }, []);
-
-  const clearSelection = useCallback(() => {
-    setSelectedRowIds(new Set());
-  }, []);
-
-  // ── Commit mutation ───────────────────────────────────────────────────────
+  const rowState = useBulkEditRowState<InventoryItem, InventoryRowDelta>(initialRows);
+  const { dirtyRows, clearSucceededDirtyFields } = rowState;
 
   const commitMutation = useMutation({
     mutationFn: async () => {
@@ -208,6 +99,8 @@ export const useBulkEditInventory = (
       }> = [];
       const validationFailures: Array<{ id: string; error: string }> = [];
 
+      const initialById = new Map(initialRows.map((row) => [row.id, row]));
+
       for (const [id, delta] of dirtyRows) {
         const parsed = bulkEditSchema.safeParse(delta as BulkEditSchemaInput);
         if (!parsed.success) {
@@ -234,9 +127,9 @@ export const useBulkEditInventory = (
 
         if (quantity_on_hand !== undefined && quantity_on_hand !== null) {
           const initialQty = initial.quantity_on_hand;
-          const delta = quantity_on_hand - initialQty;
-          if (delta !== 0) {
-            quantityUpdates.push({ id, delta, initialQty, nextQty: quantity_on_hand });
+          const qtyDelta = quantity_on_hand - initialQty;
+          if (qtyDelta !== 0) {
+            quantityUpdates.push({ id, delta: qtyDelta, initialQty, nextQty: quantity_on_hand });
           }
         }
       }
@@ -265,11 +158,11 @@ export const useBulkEditInventory = (
       }
 
       // Run quantity adjustments individually (each preserves inventory_transactions).
-      for (const { id, delta } of quantityUpdates) {
+      for (const { id, delta: qtyDelta } of quantityUpdates) {
         try {
           await adjustInventoryQuantity(orgId, {
             itemId: id,
-            delta,
+            delta: qtyDelta,
             reason: 'Bulk inventory grid adjustment',
           });
           const existing = rowSummaries.get(id) ?? { metadataSuccess: true, quantitySuccess: true };
@@ -287,7 +180,7 @@ export const useBulkEditInventory = (
 
       // A row is fully succeeded if EVERY update it needed worked.
       for (const [id, delta] of dirtyRows) {
-        const { quantity_on_hand, ...metaFields } = (delta as Record<string, unknown>);
+        const { quantity_on_hand, ...metaFields } = delta as Record<string, unknown>;
         const needsMeta = Object.keys(metaFields).length > 0;
         const needsQty =
           quantity_on_hand !== undefined &&
@@ -351,39 +244,18 @@ export const useBulkEditInventory = (
       }
 
       if (succeeded.length > 0) {
-        // Strip only the specific fields that were successfully committed and
-        // still match the submitted value — any concurrent edits stay dirty.
-        setDirtyRows((prev) => {
-          const next = new Map(prev);
-          for (const id of succeeded) {
-            const submittedMeta = submittedMetaById.get(id) ?? {};
-            const submittedQty = submittedQtyById.get(id);
-            const current = next.get(id) as Record<string, unknown> | undefined;
-            if (!current) {
-              next.delete(id);
-              continue;
-            }
-            const remaining: Record<string, unknown> = { ...current };
-            for (const [field, submittedValue] of Object.entries(submittedMeta)) {
-              if (field in remaining && Object.is(remaining[field], submittedValue)) {
-                delete remaining[field];
-              }
-            }
-            if (submittedQty !== undefined && 'quantity_on_hand' in remaining) {
-              if (Object.is(remaining['quantity_on_hand'], submittedQty)) {
-                delete remaining['quantity_on_hand'];
-              }
-            }
-            if (Object.keys(remaining).length === 0) {
-              next.delete(id);
-            } else {
-              next.set(id, remaining as InventoryRowDelta);
-            }
-          }
-          return next;
-        });
+        const submittedById = new Map<string, Record<string, unknown>>();
+        for (const [id, meta] of submittedMetaById) {
+          submittedById.set(id, { ...meta });
+        }
+        for (const [id, qty] of submittedQtyById) {
+          submittedById.set(id, {
+            ...(submittedById.get(id) ?? {}),
+            quantity_on_hand: qty,
+          });
+        }
+        clearSucceededDirtyFields(succeeded, submittedById);
 
-        // Invalidate inventory queries for affected items.
         const orgId = currentOrganization?.id;
         if (orgId) {
           queryClient.invalidateQueries({ queryKey: ['inventory-items', orgId] });
@@ -397,28 +269,8 @@ export const useBulkEditInventory = (
       }
     },
 
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Bulk update failed');
-    },
+    onError: bulkEditMutationOnError,
   });
 
-  const commit = useCallback(async () => {
-    if (dirtyRows.size === 0) return;
-    await commitMutation.mutateAsync();
-  }, [commitMutation, dirtyRows.size]);
-
-  return {
-    dirtyRows,
-    selectedRowIds,
-    dirtyCount: dirtyRows.size,
-    selectedCount: selectedRowIds.size,
-    isPending: commitMutation.isPending,
-    setCellValue,
-    setCellValueOnRows,
-    clearDirty,
-    toggleSelected,
-    selectAll,
-    clearSelection,
-    commit,
-  };
+  return useBulkEditCommitResult(rowState, commitMutation);
 };

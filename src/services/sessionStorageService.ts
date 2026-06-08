@@ -1,5 +1,5 @@
 import { logger } from '@/utils/logger';
-import { SessionData } from '@/contexts/SessionContext';
+import type { SessionData } from '@/types/session';
 import { 
   getSessionStorageKey, 
   getSessionVersion,
@@ -53,12 +53,6 @@ export class SessionStorageService {
   static clearSessionStorage(): void {
     localStorage.removeItem(SESSION_STORAGE_KEY);
     clearOrganizationPreference();
-  }
-
-  static isSessionExpired(sessionData: SessionData): boolean {
-    const lastUpdated = new Date(sessionData.lastUpdated);
-    const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
-    return lastUpdated < fourHoursAgo;
   }
 
   static isSessionVersionValid(sessionData: SessionData): boolean {

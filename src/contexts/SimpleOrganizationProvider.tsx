@@ -5,10 +5,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSession } from '@/hooks/useSession';
 import { logger } from '@/utils/logger';
 import { setActivePersistenceScope } from '@/lib/queryPersistence';
-import { 
-  SimpleOrganizationContext, 
-  SimpleOrganization, 
-  SimpleOrganizationContextType 
+import { mapOrganizationRowsToSessionOrganizations } from '@/utils/mapOrganizationToSession';
+import {
+  SimpleOrganizationContext,
+  SimpleOrganization,
+  SimpleOrganizationContextType,
 } from './SimpleOrganizationContext';
 
 const CURRENT_ORG_STORAGE_KEY = 'equipqr_current_organization';
@@ -103,28 +104,10 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
       
       const personalOrgId = personalOrgData?.organization_id || null;
 
-      // Combine data
-      const orgs: SimpleOrganization[] = (orgData || []).map(org => {
-        const membership = membershipData.find(m => m.organization_id === org.id);
-        return {
-          id: org.id,
-          name: org.name,
-          plan: org.plan as 'free' | 'premium',
-          memberCount: org.member_count,
-          maxMembers: org.max_members,
-          features: org.features,
-          billingCycle: org.billing_cycle as 'monthly' | 'yearly' | undefined,
-          nextBillingDate: org.next_billing_date || undefined,
-          logo: org.logo || undefined,
-          backgroundColor: org.background_color || undefined,
-          scanLocationCollectionEnabled: org.scan_location_collection_enabled ?? true,
-          userRole: membership?.role as 'owner' | 'admin' | 'member' || 'member',
-          userStatus: membership?.status as 'active' | 'pending' | 'inactive' || 'active',
-          isPersonal: org.id === personalOrgId
-        };
-      });
-
-      return orgs;
+      return mapOrganizationRowsToSessionOrganizations(orgData || [], membershipData).map(org => ({
+        ...org,
+        isPersonal: org.id === personalOrgId,
+      }));
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5 minutes

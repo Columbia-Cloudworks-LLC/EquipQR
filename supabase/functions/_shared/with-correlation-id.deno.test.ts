@@ -2,6 +2,7 @@ import { assert, assertEquals } from "jsr:@std/assert@1";
 import {
   createErrorResponse,
   createJsonResponse,
+  requireAuthenticatedPost,
   withCorrelationId,
 } from "./supabase-clients.ts";
 import { MissingSecretError } from "./require-secret.ts";
@@ -308,6 +309,7 @@ Deno.test("createErrorResponse preserves important canonical allowlisted message
       "QuickBooks tax status could not be confirmed. Please refresh the customer from QuickBooks and try again.",
       "QuickBooks tax status could not be confirmed. Please refresh the customer from QuickBooks and try again.",
     ],
+    ["Work order not found", "Work order not found"],
   ];
 
   for (const [input, expected] of cases) {
@@ -362,4 +364,17 @@ Deno.test("createErrorResponse canonicalizes dynamic allowlisted messages withou
       "canonical message must not reflect dynamic input tails",
     );
   }
+});
+
+// =============================================================================
+// requireAuthenticatedPost
+// =============================================================================
+
+Deno.test("requireAuthenticatedPost rejects non-POST methods", async () => {
+  const response = await requireAuthenticatedPost(
+    new Request("https://example.com", { method: "GET" }),
+  );
+  assert(response instanceof Response);
+  assertEquals(response.status, 405);
+  assertEquals(await readErrorMessage(response), "Method not allowed");
 });

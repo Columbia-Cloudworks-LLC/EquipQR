@@ -1,12 +1,21 @@
 import React from 'react';
-import { PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { Forklift } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import EmptyState from '@/components/ui/empty-state';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentByStatus } from '@/features/dashboard/hooks/useDashboardWidgets';
-import { useNavigate } from 'react-router-dom';
+
+import {
+  DonutWidgetChartSkeleton,
+  DonutWidgetDesktopChart,
+  DonutWidgetMobileBreakdown,
+} from './dashboardDonutChartShared';
+import {
+  useDonutSliceNavigate,
+  useDonutStatusChartData,
+  useDonutStatusCountTotal,
+  useDonutTooltipFormatter,
+} from './useDonutStatusChartData';
 
 const STATUS_COLORS: Record<string, string> = {
   active: 'hsl(var(--chart-1))',
@@ -54,37 +63,16 @@ const CenterLabel: React.FC<CenterLabelProps> = ({ cx, cy, total }) => (
  * Donut chart showing equipment breakdown by status (active, maintenance, retired, etc.).
  */
 const EquipmentByStatusWidget: React.FC = () => {
-  const navigate = useNavigate();
   const { currentOrganization } = useOrganization();
   const organizationId = currentOrganization?.id;
 
   const { data, isLoading } = useEquipmentByStatus(organizationId);
-  const totalCount = React.useMemo(
-    () => (data ?? []).reduce((sum, item) => sum + item.count, 0),
-    [data]
-  );
-
-  const handleSliceClick = React.useCallback(
-    (status: string) => {
-      navigate(`/dashboard/equipment?status=${status}`);
-    },
-    [navigate]
-  );
-
-  const tooltipContent = React.useCallback(
-    ({ active, payload }: { active?: boolean; payload?: Array<{ value: number; payload: { label: string; count: number } }> }) => {
-      if (!active || !payload || payload.length === 0) return null;
-      const datum = payload[0]?.payload;
-      if (!datum) return null;
-      const percentage = totalCount > 0 ? Math.round((datum.count / totalCount) * 100) : 0;
-      return (
-        <div className="rounded-md border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md">
-          <p className="font-medium">{datum.label}</p>
-          <p>{datum.count} equipment ({percentage}%)</p>
-        </div>
-      );
-    },
-    [totalCount]
+  const totalCount = useDonutStatusCountTotal(data);
+  const chartData = useDonutStatusChartData(data, (status) => getStatusColor(status));
+  const handleSliceClick = useDonutSliceNavigate((status) => `/dashboard/equipment?status=${status}`);
+  const tooltipContent = useDonutTooltipFormatter(
+    totalCount,
+    (count, percentage) => `${count} equipment (${percentage}%)`,
   );
 
   return (
@@ -98,115 +86,29 @@ const EquipmentByStatusWidget: React.FC = () => {
       </CardHeader>
       <CardContent className="pb-4">
         {isLoading ? (
-          <div className="flex items-center gap-6">
-            <Skeleton className="h-32 w-32 rounded-full flex-shrink-0" />
-            <div className="flex-1 space-y-2">
-              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
-            </div>
-          </div>
-        ) : data && data.length > 0 ? (
+          <DonutWidgetChartSkeleton />
+        ) : chartData && chartData.length > 0 ? (
           <div aria-label="Equipment status distribution chart">
-            {/* Mobile: compact summary + stacked bar (donut hidden below md) */}
-            <div className="md:hidden space-y-3" data-testid="equipment-status-mobile-summary">
-              <p className="text-sm text-muted-foreground">
-                <span className="font-semibold text-foreground">{totalCount}</span> assets · tap a row to filter
-              </p>
-              <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
-                {data.map((entry) => {
-                  const pct = totalCount > 0 ? (entry.count / totalCount) * 100 : 0;
-                  if (pct <= 0) return null;
-                  return (
-                    <button
-                      key={`bar-${entry.status}`}
-                      type="button"
-                      style={{
-                        width: `${pct}%`,
-                        backgroundColor: getStatusColor(entry.status),
-                      }}
-                      className="min-w-[4px] transition-opacity hover:opacity-90 touch-manipulation"
-                      onClick={() => handleSliceClick(entry.status)}
-                      aria-label={`${entry.label}: ${entry.count}`}
-                    />
-                  );
-                })}
-              </div>
-              <ul className="space-y-1.5">
-                {data.map((entry) => {
-                  const pct = totalCount > 0 ? Math.round((entry.count / totalCount) * 100) : 0;
-                  return (
-                    <li key={entry.status}>
-                      <button
-                        type="button"
-                        onClick={() => handleSliceClick(entry.status)}
-                        className="flex w-full items-center gap-2 rounded-lg border border-border/60 px-2 py-2 text-left text-sm transition-colors hover:bg-muted/50 touch-manipulation min-h-[48px]"
-                      >
-                        <span
-                          className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                          style={{ backgroundColor: getStatusColor(entry.status) }}
-                        />
-                        <span className="flex-1 capitalize text-foreground">{entry.label}</span>
-                        <span className="font-medium tabular-nums">{entry.count}</span>
-                        <span className="w-10 text-right text-muted-foreground tabular-nums text-xs">{pct}%</span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-
-            <div className="hidden md:flex items-center justify-center">
-              <div className="flex items-center gap-6">
-                <div className="h-40 w-40 flex-shrink-0">
-                    <PieChart width={160} height={160}>
-                      <Pie
-                        data={data}
-                        dataKey="count"
-                        nameKey="label"
-                        cx={80}
-                        cy={80}
-                        innerRadius={48}
-                        outerRadius={70}
-                        paddingAngle={2}
-                        onClick={(entry) => handleSliceClick(entry.status)}
-                      >
-                        {data.map((entry) => (
-                          <Cell
-                            key={entry.status}
-                            fill={getStatusColor(entry.status)}
-                            stroke="hsl(var(--card))"
-                            strokeWidth={3}
-                            style={{ cursor: 'pointer' }}
-                          />
-                        ))}
-                        <CenterLabel cx={80} cy={80} total={totalCount} />
-                      </Pie>
-                      <Tooltip content={tooltipContent} />
-                    </PieChart>
-                </div>
-                <div className="min-w-0 w-44 space-y-1.5">
-                  {data.map((entry) => {
-                    const pct = totalCount > 0 ? Math.round((entry.count / totalCount) * 100) : 0;
-                    return (
-                      <button
-                        key={entry.status}
-                        onClick={() => handleSliceClick(entry.status)}
-                        className="flex w-full items-center gap-2 rounded px-1 py-1.5 text-left text-xs transition-colors hover:bg-muted/50 touch-manipulation"
-                      >
-                        <span
-                          className="h-2 w-2 flex-shrink-0 rounded-full"
-                          style={{ backgroundColor: getStatusColor(entry.status) }}
-                        />
-                        <span className="flex-1 truncate capitalize text-muted-foreground">{entry.label}</span>
-                        <span className="font-medium tabular-nums">{entry.count}</span>
-                        <span className="w-8 text-right text-muted-foreground tabular-nums">{pct}%</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
+            <DonutWidgetMobileBreakdown
+              data={chartData}
+              totalCount={totalCount}
+              mobileTestId="equipment-status-mobile-summary"
+              onSliceClick={handleSliceClick}
+              mobileSummary={
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-semibold text-foreground">{totalCount}</span> assets · tap a row to filter
+                </p>
+              }
+            />
+            <DonutWidgetDesktopChart
+              data={chartData}
+              totalCount={totalCount}
+              tooltipContent={tooltipContent}
+              onSliceClick={handleSliceClick}
+              centerLabel={<CenterLabel cx={80} cy={80} total={totalCount} />}
+            />
             <p className="sr-only">
-              Equipment status summary: {data.map((entry) => `${entry.label} ${entry.count}`).join(', ')}.
+              Equipment status summary: {chartData.map((entry) => `${entry.label} ${entry.count}`).join(', ')}.
             </p>
           </div>
         ) : (

@@ -113,10 +113,3 @@ export async function allocateCanonicalArtifactRelativePath(options) {
 export async function ensureDemoDirectory() {
   await fs.mkdir(path.resolve(process.cwd(), DEMO_DIR), { recursive: true });
 }
-
-/**
- * @returns {string}
- */
-export function getDemoDirectoryRelativePath() {
-  return DEMO_DIR;
-}

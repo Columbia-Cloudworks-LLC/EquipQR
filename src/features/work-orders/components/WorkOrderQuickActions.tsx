@@ -86,4 +86,3 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
   );
 };
 
-export default WorkOrderQuickActions;

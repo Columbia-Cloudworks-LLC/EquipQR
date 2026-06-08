@@ -6,9 +6,8 @@
 
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { screen, waitFor } from '@testing-library/react';
+import { clickButtonWhenReady } from '@/test/utils/rtl-helpers';
 
 // Mock the feature flags
 vi.mock('@/lib/flags', () => ({
@@ -55,26 +54,10 @@ vi.mock('@/services/quickbooks', () => ({
 
 import { QuickBooksIntegration } from '@/features/organization/components/QuickBooksIntegration';
 import { isQuickBooksEnabled } from '@/lib/flags';
+import { renderWithQuickBooksProviders } from '@/tests/quickbooks/testUtils';
 
-const createTestQueryClient = () => new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
-
-const renderComponent = (props = { currentUserRole: 'admin' as const }) => {
-  const queryClient = createTestQueryClient();
-  
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <QuickBooksIntegration {...props} />
-      </MemoryRouter>
-    </QueryClientProvider>
-  );
-};
+const renderComponent = (props = { currentUserRole: 'admin' as const }) =>
+  renderWithQuickBooksProviders(<QuickBooksIntegration {...props} />);
 
 describe('QuickBooksIntegration Component', () => {
   beforeEach(() => {
@@ -90,20 +73,12 @@ describe('QuickBooksIntegration Component', () => {
     });
   });
 
-  describe('Feature Flag', () => {
-    it('should not render when feature is disabled', () => {
-      vi.mocked(isQuickBooksEnabled).mockReturnValueOnce(false);
-      
-      const { container } = renderComponent();
-      
-      expect(container).toBeEmptyDOMElement();
-    });
+  describe('Visibility', () => {
+    it('should render for users with manage permission regardless of feature flag', async () => {
+      vi.mocked(isQuickBooksEnabled).mockReturnValue(false);
 
-    it('should render when feature is enabled', async () => {
-      vi.mocked(isQuickBooksEnabled).mockReturnValue(true);
-      
       renderComponent();
-      
+
       await waitFor(() => {
         expect(screen.getByText('QuickBooks Online')).toBeInTheDocument();
       });
@@ -192,12 +167,7 @@ describe('QuickBooksIntegration Component', () => {
       
       renderComponent();
       
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /^Connect$/ })).toBeInTheDocument();
-      });
-      
-      const connectButton = screen.getByRole('button', { name: /^Connect$/ });
-      fireEvent.click(connectButton);
+      await clickButtonWhenReady(/^Connect$/);
       
       await waitFor(() => {
         expect(mockGenerateQuickBooksAuthUrl).toHaveBeenCalled();

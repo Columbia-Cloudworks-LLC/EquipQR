@@ -83,13 +83,14 @@ const timeoutMs = timeoutArg
 // Remove our custom arg before passing to vitest
 const vitestArgs = args.filter((a) => !a.startsWith('--runner-timeout='));
 
-// Build the command
-const npxBin = isWindows ? 'npx.cmd' : 'npx';
-const vitestProcess = spawn(npxBin, ['vitest', 'run', ...vitestArgs], {
+// Build the command. Spawn Node directly so Windows does not need `shell: true`
+// for `.cmd` shims, which emits DEP0190 on Node 24.
+const vitestCli = path.join(repoRoot, 'node_modules', 'vitest', 'vitest.mjs');
+const vitestProcess = spawn(process.execPath, [vitestCli, 'run', ...vitestArgs], {
   stdio: ['inherit', 'pipe', 'pipe'],
   env: process.env,
   cwd: repoRoot,
-  shell: isWindows,
+  shell: false,
 });
 
 let cleanupStarted = false;

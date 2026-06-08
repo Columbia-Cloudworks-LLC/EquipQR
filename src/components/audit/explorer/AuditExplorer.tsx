@@ -30,6 +30,8 @@ import {
   DEFAULT_AUDIT_TIME_PRESET,
   FormattedAuditEntry,
 } from '@/types/audit';
+import { BUCKET_MS, startOfBucketUtc } from './aggregate-bucket';
+import { runAuditExport } from './runAuditExport';
 import { AuditTimelineHistogram } from './AuditTimelineHistogram';
 import { AuditLogList } from './AuditLogList';
 import { AuditLogDetailPanel } from './AuditLogDetailPanel';
@@ -43,17 +45,6 @@ const AUDIT_EXPLORER_PANEL_IDS = ['audit-explorer-list', 'audit-explorer-detail'
 const NOOP_LAYOUT_STORAGE: LayoutStorage = {
   getItem: () => null,
   setItem: () => {},
-};
-
-/**
- * Bucket size in milliseconds. Mirrors `date_trunc(p_bucket, ...)` semantics
- * in the get_audit_log_timeline RPC and matches BUCKET_MS in
- * AuditTimelineHistogram so dense bar grids align with the SQL output.
- */
-const BUCKET_MS: Record<AuditLogTimelineBucket, number> = {
-  minute: 60 * 1000,
-  hour: 60 * 60 * 1000,
-  day: 24 * 60 * 60 * 1000,
 };
 
 /**
@@ -72,28 +63,6 @@ const PRESET_CONFIG: Record<
   last_7d: { count: 7, bucket: 'day' },
   last_30d: { count: 30, bucket: 'day' },
 };
-
-/**
- * Truncate a timestamp to the start of its UTC bucket — matches PostgreSQL
- * `date_trunc(p_bucket, timestamptz)` running in the default UTC session
- * timezone. Local-time helpers from date-fns would skew bucket boundaries
- * for non-UTC clients, so we pin the math to UTC here.
- */
-function startOfBucketUtc(bucket: AuditLogTimelineBucket, when: Date): Date {
-  const d = new Date(when.getTime());
-  switch (bucket) {
-    case 'minute':
-      d.setUTCSeconds(0, 0);
-      break;
-    case 'hour':
-      d.setUTCMinutes(0, 0, 0);
-      break;
-    case 'day':
-      d.setUTCHours(0, 0, 0, 0);
-      break;
-  }
-  return d;
-}
 
 function presetToRange(preset: Exclude<AuditLogTimePreset, 'custom'>): {
   dateFrom: string;
@@ -252,38 +221,20 @@ export function AuditExplorer({ organizationId }: AuditExplorerProps) {
 
   const handleExportCsv = async () => {
     if (!canExport) return;
-    setIsExporting(true);
-    setExportProgressLabel('Preparing export...');
-    try {
-      await exportToCsv(filtersForQuery, ({ current, total }) => {
-        setExportProgressLabel(
-          total === 0
-            ? 'No matching records found.'
-            : `Exporting ${current.toLocaleString()} of ${total.toLocaleString()} records...`
-        );
-      });
-    } finally {
-      setIsExporting(false);
-      setExportProgressLabel(undefined);
-    }
+    await runAuditExport(
+      (onProgress) => exportToCsv(filtersForQuery, onProgress),
+      setExportProgressLabel,
+      setIsExporting,
+    );
   };
 
   const handleExportJson = async () => {
     if (!canExport) return;
-    setIsExporting(true);
-    setExportProgressLabel('Preparing export...');
-    try {
-      await exportToJson(filtersForQuery, ({ current, total }) => {
-        setExportProgressLabel(
-          total === 0
-            ? 'No matching records found.'
-            : `Exporting ${current.toLocaleString()} of ${total.toLocaleString()} records...`
-        );
-      });
-    } finally {
-      setIsExporting(false);
-      setExportProgressLabel(undefined);
-    }
+    await runAuditExport(
+      (onProgress) => exportToJson(filtersForQuery, onProgress),
+      setExportProgressLabel,
+      setIsExporting,
+    );
   };
 
   return (
@@ -387,4 +338,3 @@ export function AuditExplorer({ organizationId }: AuditExplorerProps) {
   );
 }
 
-export default AuditExplorer;

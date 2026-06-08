@@ -1,29 +1,38 @@
 
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-
-import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, XCircle } from 'lucide-react';
 import HCaptchaComponent from '@/components/ui/HCaptcha';
 import { getCurrentAuthSession, signUpWithEmail } from '@/services/authSignupService';
-import {
-  PASSWORD_POLICY,
-  validatePasswordComplexity,
-  calculatePasswordStrength,
-} from '@/lib/passwordPolicy';
+import { validatePasswordComplexity, calculatePasswordStrength } from '@/lib/passwordPolicy';
 import { checkPasswordBreachedHibp } from '@/lib/hibpPasswordCheck';
 import {
   clearPendingTermsAcceptanceForUser,
   markPendingTermsAcceptanceForUser,
   recordTermsAcceptance,
 } from '@/lib/termsAcceptanceRecording';
-import { PRIVACY_VERSION_HASH, TERMS_VERSION_HASH } from '@/lib/legalPolicyVersions';
+import SignUpInviteBanner from './SignUpInviteBanner';
+import SignUpPrivacyNotice from './SignUpPrivacyNotice';
+import SignUpPasswordField from './SignUpPasswordField';
+import SignUpConfirmPasswordField from './SignUpConfirmPasswordField';
+import SignUpTermsAcceptance from './SignUpTermsAcceptance';
+import {
+  ALL_SIGNUP_FIELDS_TOUCHED,
+  buildSignupUserMetadata,
+  computePasswordMatch,
+  getEmailErrorForValue,
+  getInvitedOrgNameConflict,
+  getSignupAcceptanceError,
+  getSignupFieldError,
+  isSignupFormValid,
+  type SignUpValidationContext,
+} from './signUpFormModel';
 
 interface SignUpFormProps {
   onSuccess: (message: string, email?: string) => void;
+  onBeforeSignupSubmit?: () => void;
   onError: (error: string) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
@@ -34,6 +43,7 @@ interface SignUpFormProps {
 
 const SignUpForm: React.FC<SignUpFormProps> = ({
   onSuccess,
+  onBeforeSignupSubmit,
   onError,
   isLoading,
   setIsLoading,
@@ -62,41 +72,70 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
   const complexity = validatePasswordComplexity(formData.password);
   const strength = calculatePasswordStrength(formData.password);
 
+  const validationContext = useMemo<SignUpValidationContext>(
+    () => ({
+      formData,
+      touched,
+      emailError,
+      orgNameError,
+      passwordMatch,
+      complexity,
+      termsAccepted,
+      acceptanceTouched,
+      submitAttempted,
+      hcaptchaEnabled,
+      hcaptchaToken,
+    }),
+    [
+      formData,
+      touched,
+      emailError,
+      orgNameError,
+      passwordMatch,
+      complexity,
+      termsAccepted,
+      acceptanceTouched,
+      submitAttempted,
+      hcaptchaEnabled,
+      hcaptchaToken,
+    ],
+  );
+
   useEffect(() => {
     if (!prefillEmail) return;
     setFormData(prev => {
       if (prefillEmail === prev.email) {
         return prev;
       }
-      const valid = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(prefillEmail);
-      setEmailError(valid || prefillEmail.length === 0 ? null : 'Enter a valid email address');
+      setEmailError(getEmailErrorForValue(prefillEmail));
       return { ...prev, email: prefillEmail };
     });
   }, [prefillEmail]);
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const next = { ...prev, [field]: value };
 
-    if (field === 'password' || field === 'confirmPassword') {
-      const newPassword = field === 'password' ? value : formData.password;
-      const newConfirmPassword = field === 'confirmPassword' ? value : formData.confirmPassword;
-
-      if (newConfirmPassword) {
-        setPasswordMatch(newPassword === newConfirmPassword);
-      } else {
-        setPasswordMatch(null);
+      if (field === 'password' || field === 'confirmPassword') {
+        setPasswordMatch(
+          computePasswordMatch(
+            field === 'password' ? value : prev.password,
+            field === 'confirmPassword' ? value : prev.confirmPassword,
+            field,
+            prev.password,
+            prev.confirmPassword,
+          ),
+        );
       }
-    }
+
+      return next;
+    });
+
     if (field === 'email') {
-      const valid = /[^\s@]+@[^\s@]+\.[^\s@]+/.test(value);
-      setEmailError(valid || value.length === 0 ? null : 'Enter a valid email address');
+      setEmailError(getEmailErrorForValue(value));
     }
     if (field === 'organizationName' && invitedOrgName) {
-      if (value.trim().toLowerCase() === invitedOrgName.trim().toLowerCase()) {
-        setOrgNameError(`Please choose a different name than "${invitedOrgName}"`);
-      } else {
-        setOrgNameError(null);
-      }
+      setOrgNameError(getInvitedOrgNameConflict(value, invitedOrgName));
     }
   };
 
@@ -104,46 +143,12 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
     setTouched(prev => ({ ...prev, [field]: true }));
   };
 
-  const getFieldError = (field: string): string | null => {
-    if (!touched[field]) return null;
-    switch (field) {
-      case 'name':
-        return !formData.name.trim() ? 'Full name is required' : null;
-      case 'email':
-        if (!formData.email.trim()) return 'Email is required';
-        return emailError;
-      case 'organizationName':
-        if (orgNameError) return orgNameError;
-        return !formData.organizationName.trim() ? 'Organization name is required' : null;
-      case 'password':
-        if (!formData.password) return 'Password is required';
-        return complexity.valid ? null : complexity.errors[0] ?? 'Password does not meet requirements';
-      case 'confirmPassword':
-        if (!formData.confirmPassword) return 'Please confirm your password';
-        return passwordMatch === false ? 'Passwords do not match' : null;
-      default:
-        return null;
-    }
-  };
+  const getFieldError = (field: string) => getSignupFieldError(field, validationContext);
 
-  const getAcceptanceError = (): string | null => {
-    if (!acceptanceTouched && !submitAttempted) return null;
-    return termsAccepted ? null : 'You must accept the Terms of Service and Privacy Policy';
-  };
+  const getAcceptanceError = () =>
+    getSignupAcceptanceError(termsAccepted, acceptanceTouched, submitAttempted);
 
-  const isFormValid = () => {
-    const baseValid =
-      formData.name.trim() &&
-      formData.email.trim() &&
-      complexity.valid &&
-      formData.confirmPassword &&
-      formData.organizationName.trim() &&
-      passwordMatch === true &&
-      !orgNameError &&
-      termsAccepted;
-
-    return hcaptchaEnabled ? baseValid && !!hcaptchaToken : baseValid;
-  };
+  const formIsValid = () => isSignupFormValid(validationContext);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,19 +161,14 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       return;
     }
 
-    if (!isFormValid()) {
-      setTouched({
-        name: true,
-        email: true,
-        organizationName: true,
-        password: true,
-        confirmPassword: true,
-      });
+    if (!formIsValid()) {
+      setTouched(ALL_SIGNUP_FIELDS_TOUCHED);
       onError('Please fill in all fields correctly');
       return;
     }
 
     setIsLoading(true);
+    onBeforeSignupSubmit?.();
 
     try {
       const hibp = await checkPasswordBreachedHibp(formData.password);
@@ -189,26 +189,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
 
       const redirectUrl = `${window.location.origin}/`;
       const submittedEmail = formData.email.trim();
-
-      const signUpData: Record<string, string> = {
-        name: formData.name,
-        organization_name: formData.organizationName,
-      };
-
-      if (invitedOrgId) {
-        signUpData.invited_organization_id = invitedOrgId;
-      }
-      if (invitedOrgName) {
-        signUpData.invited_organization_name = invitedOrgName;
-      }
-      if (invitedOrgId || invitedOrgName) {
-        signUpData.signup_source = 'invite';
-      }
-
-      signUpData.terms_accepted = 'true';
-      signUpData.terms_version_hash = TERMS_VERSION_HASH;
-      signUpData.privacy_version_hash = PRIVACY_VERSION_HASH;
-      signUpData.terms_accepted_at = new Date().toISOString();
+      const signUpData = buildSignupUserMetadata(formData, { invitedOrgId, invitedOrgName });
 
       const { data, error } = await signUpWithEmail({
         email: submittedEmail,
@@ -308,25 +289,11 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
     onError('CAPTCHA expired. Please complete it again.');
   };
 
-  const strengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong'][strength];
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {invitedOrgName && (
-        <div className="bg-info/10 border border-info/30 rounded-lg p-3 text-sm">
-          <p className="text-info">
-            You'll join <strong>{invitedOrgName}</strong> after signing up. Please choose a different name for your own workspace below.
-          </p>
-        </div>
-      )}
+      {invitedOrgName && <SignUpInviteBanner invitedOrgName={invitedOrgName} />}
 
-      <p className="text-sm text-muted-foreground leading-relaxed">
-        We collect your name, email, and organization details to create your account. See our{' '}
-        <Link to="/privacy-policy#notice-at-collection" className="text-primary underline underline-offset-2">
-          Privacy Notice at Collection
-        </Link>
-        .
-      </p>
+      <SignUpPrivacyNotice />
 
       <div className="space-y-2">
         <Label htmlFor="signup-name">Full Name</Label>
@@ -394,117 +361,30 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
         )}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="signup-password">Password</Label>
-        <Input
-          id="signup-password"
-          type="password"
-          autoComplete="new-password"
-          value={formData.password}
-          onChange={e => handleInputChange('password', e.target.value)}
-          onBlur={() => handleBlur('password')}
-          required
-          minLength={PASSWORD_POLICY.minLength}
-          aria-invalid={!!getFieldError('password')}
-          aria-describedby={getFieldError('password') ? 'signup-password-hint signup-password-error' : 'signup-password-hint'}
-        />
-        <div id="signup-password-hint" className="space-y-2 text-sm">
-          <p className="text-muted-foreground">Password must have:</p>
-          <ul className="space-y-1">
-            <li className={complexity.hasMinLength ? 'text-success' : 'text-muted-foreground'}>
-              {complexity.hasMinLength ? <CheckCircle className="inline h-3 w-3 mr-1" /> : <XCircle className="inline h-3 w-3 mr-1" />}
-              At least {PASSWORD_POLICY.minLength} characters
-            </li>
-            <li className={complexity.hasNumber ? 'text-success' : 'text-muted-foreground'}>
-              {complexity.hasNumber ? <CheckCircle className="inline h-3 w-3 mr-1" /> : <XCircle className="inline h-3 w-3 mr-1" />}
-              One number
-            </li>
-            <li className={complexity.hasSymbol ? 'text-success' : 'text-muted-foreground'}>
-              {complexity.hasSymbol ? <CheckCircle className="inline h-3 w-3 mr-1" /> : <XCircle className="inline h-3 w-3 mr-1" />}
-              One symbol (e.g. ! @ # $)
-            </li>
-          </ul>
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Strength</span>
-              <span>{strengthLabel}</span>
-            </div>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4].map(seg => (
-                <div
-                  key={seg}
-                  className={`h-1.5 flex-1 rounded-full ${strength >= seg ? 'bg-primary' : 'bg-muted'}`}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-        {getFieldError('password') && (
-          <p id="signup-password-error" className="text-sm text-destructive" aria-live="polite">
-            {getFieldError('password')}
-          </p>
-        )}
-      </div>
+      <SignUpPasswordField
+        password={formData.password}
+        complexity={complexity}
+        strength={strength}
+        error={getFieldError('password')}
+        onChange={value => handleInputChange('password', value)}
+        onBlur={() => handleBlur('password')}
+      />
 
-      <div className="space-y-2">
-        <Label htmlFor="signup-confirm-password">Confirm Password</Label>
-        <div className="relative">
-          <Input
-            id="signup-confirm-password"
-            type="password"
-            autoComplete="new-password"
-            value={formData.confirmPassword}
-            onChange={e => handleInputChange('confirmPassword', e.target.value)}
-            onBlur={() => handleBlur('confirmPassword')}
-            required
-            className={
-              passwordMatch === false
-                ? 'border-destructive'
-                : passwordMatch === true
-                  ? 'border-success/30'
-                  : ''
-            }
-          />
-          {passwordMatch !== null && (
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              {passwordMatch ? (
-                <CheckCircle className="h-4 w-4 text-success" data-testid="password-match-success" />
-              ) : (
-                <XCircle className="h-4 w-4 text-destructive" data-testid="password-match-error" />
-              )}
-            </div>
-          )}
-        </div>
-        {passwordMatch === false && <p className="text-sm text-destructive">Passwords do not match</p>}
-      </div>
+      <SignUpConfirmPasswordField
+        confirmPassword={formData.confirmPassword}
+        passwordMatch={passwordMatch}
+        onChange={value => handleInputChange('confirmPassword', value)}
+        onBlur={() => handleBlur('confirmPassword')}
+      />
 
-      <div className="flex items-start gap-2 rounded-md border border-border p-3">
-        <Checkbox
-          id="terms-accept"
-          checked={termsAccepted}
-          onCheckedChange={v => {
-            setTermsAccepted(v === true);
-            setAcceptanceTouched(true);
-          }}
-          aria-invalid={!!getAcceptanceError()}
-        />
-        <label htmlFor="terms-accept" className="text-sm leading-snug cursor-pointer">
-          I have read and agree to the{' '}
-          <Link to="/terms-of-service" className="text-primary underline underline-offset-2" target="_blank" rel="noreferrer">
-            Terms of Service
-          </Link>{' '}
-          and{' '}
-          <Link to="/privacy-policy" className="text-primary underline underline-offset-2" target="_blank" rel="noreferrer">
-            Privacy Policy
-          </Link>
-          .
-        </label>
-      </div>
-      {getAcceptanceError() && (
-        <p className="text-sm text-destructive" role="alert">
-          {getAcceptanceError()}
-        </p>
-      )}
+      <SignUpTermsAcceptance
+        termsAccepted={termsAccepted}
+        error={getAcceptanceError()}
+        onCheckedChange={accepted => {
+          setTermsAccepted(accepted);
+          setAcceptanceTouched(true);
+        }}
+      />
 
       {hcaptchaEnabled && (
         <HCaptchaComponent
@@ -517,17 +397,11 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       <Button
         type="submit"
         className="w-full"
-        disabled={isLoading || !isFormValid()}
+        disabled={isLoading || !formIsValid()}
         onClick={() => {
           setSubmitAttempted(true);
-          if (!isFormValid()) {
-            setTouched({
-              name: true,
-              email: true,
-              organizationName: true,
-              password: true,
-              confirmPassword: true,
-            });
+          if (!formIsValid()) {
+            setTouched(ALL_SIGNUP_FIELDS_TOUCHED);
             setAcceptanceTouched(true);
           }
         }}
@@ -542,7 +416,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
         </Button>
       )}
 
-      {!isFormValid() && Object.keys(touched).length > 0 && (
+      {!formIsValid() && Object.keys(touched).length > 0 && (
         <p className="text-xs text-muted-foreground text-center">Fill in all required fields to continue</p>
       )}
     </form>

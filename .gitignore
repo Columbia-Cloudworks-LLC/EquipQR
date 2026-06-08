@@ -82,6 +82,7 @@ skills-lock.json
 # Firecrawl scrape/research output — local-only agent artifacts.
 # Kept on disk for reference but never committed.
 .firecrawl/
+.fallow/
 
 .vercel
 

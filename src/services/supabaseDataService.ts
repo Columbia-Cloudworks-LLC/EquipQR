@@ -2,6 +2,15 @@ import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import { getAuthClaims } from '@/lib/authClaims';
+import {
+  queryOrgScopedEquipmentNotes,
+  queryOrgScopedEquipmentScans,
+} from '@/services/equipmentOrgScopedQueries';
+import {
+  aggregateBasicDashboardStats,
+  aggregateExtendedDashboardStats,
+} from '@/utils/dashboardStatsAggregation';
+import { enrichWorkOrderWithAssigneeName } from '@/services/workOrderAssigneeEnrichment';
 
 // Use native Supabase types directly
 export type Equipment = Tables<'equipment'>;
@@ -207,15 +216,7 @@ export const getDashboardStatsByOrganization = async (organizationId: string): P
       logger.error('Error fetching work order stats:', workOrderError);
     }
 
-    const equipment = equipmentData || [];
-    const workOrders = workOrderData || [];
-
-    return {
-      totalEquipment: equipment.length,
-      activeEquipment: equipment.filter(e => e.status === 'active').length,
-      maintenanceEquipment: equipment.filter(e => e.status === 'maintenance').length,
-      totalWorkOrders: workOrders.length
-    };
+    return aggregateBasicDashboardStats(equipmentData || [], workOrderData || []);
   } catch (error) {
     logger.error('Error in getDashboardStatsByOrganization:', error);
     return {
@@ -230,17 +231,7 @@ export const getDashboardStatsByOrganization = async (organizationId: string): P
 // Notes functions
 export const getNotesByEquipmentId = async (organizationId: string, equipmentId: string): Promise<Note[]> => {
   try {
-    const { data, error } = await supabase
-      .from('notes')
-      .select(`
-        *,
-        equipment!inner (
-          organization_id
-        )
-      `)
-      .eq('equipment_id', equipmentId)
-      .eq('equipment.organization_id', organizationId)
-      .order('created_at', { ascending: false });
+    const { data, error } = await queryOrgScopedEquipmentNotes(organizationId, equipmentId);
 
     if (error) {
       logger.error('Error fetching notes:', error);
@@ -355,7 +346,7 @@ export const getAllWorkOrdersByOrganization = async (organizationId: string): Pr
 };
 
 // @deprecated Use WorkOrderService.getById() instead. Will be removed in Phase 2.
-export const getWorkOrderById = async (organizationId: string, workOrderId: string): Promise<WorkOrder | undefined> => {
+const getWorkOrderById = async (organizationId: string, workOrderId: string): Promise<WorkOrder | undefined> => {
   try {
     const { data, error } = await supabase
       .from('work_orders')
@@ -369,16 +360,7 @@ export const getWorkOrderById = async (organizationId: string, workOrderId: stri
       return undefined;
     }
 
-    // Get profiles for transforming the data - teams come from equipment assignment
-    const profilesResult = data.assignee_id ? 
-      await supabase.from('profiles').select('id, name').eq('id', data.assignee_id).single() : 
-      { data: null, error: null };
-
-    return {
-      ...data,
-      assigneeName: profilesResult.data?.name,
-      teamName: undefined // Team info now comes from equipment assignment
-    };
+    return enrichWorkOrderWithAssigneeName(data);
   } catch (error) {
     logger.error('Error in getWorkOrderById:', error);
     return undefined;
@@ -388,17 +370,7 @@ export const getWorkOrderById = async (organizationId: string, workOrderId: stri
 // Scans functions
 export const getScansByEquipmentId = async (organizationId: string, equipmentId: string): Promise<Scan[]> => {
   try {
-    const { data, error } = await supabase
-      .from('scans')
-      .select(`
-        *,
-        equipment!inner (
-          organization_id
-        )
-      `)
-      .eq('equipment_id', equipmentId)
-      .eq('equipment.organization_id', organizationId)
-      .order('scanned_at', { ascending: false });
+    const { data, error } = await queryOrgScopedEquipmentScans(organizationId, equipmentId);
 
     if (error) {
       logger.error('Error fetching scans:', error);
@@ -427,7 +399,7 @@ export const getScansByEquipmentId = async (organizationId: string, equipmentId:
 };
 
 // Create scan function
-export const createScan = async (
+const createScan = async (
   organizationId: string,
   equipmentId: string,
   location?: string,
@@ -475,7 +447,7 @@ export const createScan = async (
 
 // Mutation functions
 // @deprecated Use WorkOrderService.updateStatus() instead. Will be removed in Phase 2.
-export const updateWorkOrderStatus = async (
+const updateWorkOrderStatus = async (
   organizationId: string,
   workOrderId: string,
   newStatus: WorkOrder['status']
@@ -508,7 +480,7 @@ export const updateWorkOrderStatus = async (
 
 // Create equipment
 // @deprecated Use EquipmentService.create() instead. Will be removed in Phase 2.
-export const createEquipment = async (
+const createEquipment = async (
   organizationId: string,
   equipmentData: Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>
 ): Promise<Equipment | null> => {
@@ -536,7 +508,7 @@ export const createEquipment = async (
 
 // Create work order
 // @deprecated Use WorkOrderService.create() instead. Will be removed in Phase 2.
-export const createWorkOrder = async (
+const createWorkOrder = async (
   organizationId: string,
   workOrderData: Omit<WorkOrder, 'id' | 'created_date' | 'updated_at' | 'organization_id' | 'assigneeName' | 'teamName' | 'completed_date' | 'created_by'>
 ): Promise<WorkOrder | null> => {
@@ -562,16 +534,7 @@ export const createWorkOrder = async (
       return null;
     }
 
-    // Get profiles for transforming the data - teams come from equipment assignment
-    const profilesResult = data.assignee_id ? 
-      await supabase.from('profiles').select('id, name').eq('id', data.assignee_id).single() : 
-      { data: null, error: null };
-
-    return {
-      ...data,
-      assigneeName: profilesResult.data?.name,
-      teamName: undefined // Team info now comes from equipment assignment
-    };
+    return enrichWorkOrderWithAssigneeName(data);
   } catch (error) {
     logger.error('Error in createWorkOrder:', error);
     return null;
@@ -579,7 +542,7 @@ export const createWorkOrder = async (
 };
 
 // Create note
-export const createNote = async (
+const createNote = async (
   organizationId: string,
   equipmentId: string,
   content: string,
@@ -627,7 +590,7 @@ export const createNote = async (
 
 // Update equipment
 // @deprecated Use EquipmentService.update() instead. Will be removed in Phase 2.
-export const updateEquipment = async (
+const updateEquipment = async (
   organizationId: string,
   equipmentId: string,
   equipmentData: Partial<Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>>
@@ -661,7 +624,7 @@ export const updateEquipment = async (
  * OPTIMIZED: Single query with joins instead of multiple calls
  * Fetches all teams for an organization with member info and work order counts
  */
-export const getOptimizedTeamsByOrganization = async (organizationId: string): Promise<Team[]> => {
+const getOptimizedTeamsByOrganization = async (organizationId: string): Promise<Team[]> => {
   try {
     // Single query to get teams with members using joins
     const { data: teamsWithMembers, error } = await supabase
@@ -723,7 +686,7 @@ export const getOptimizedTeamsByOrganization = async (organizationId: string): P
  * OPTIMIZED: Batch queries for dashboard stats
  * Fetches equipment and work order stats in parallel
  */
-export const getOptimizedDashboardStats = async (organizationId: string): Promise<DashboardStats> => {
+const getOptimizedDashboardStats = async (organizationId: string): Promise<DashboardStats> => {
   try {
     // Batch both queries at once
     const [equipmentResult, workOrderResult] = await Promise.all([
@@ -737,17 +700,10 @@ export const getOptimizedDashboardStats = async (organizationId: string): Promis
         .eq('organization_id', organizationId)
     ]);
 
-    const equipment = equipmentResult.data || [];
-    const workOrders = workOrderResult.data || [];
-
-    return {
-      totalEquipment: equipment.length,
-      activeEquipment: equipment.filter(e => e.status === 'active').length,
-      maintenanceEquipment: equipment.filter(e => e.status === 'maintenance').length,
-      totalWorkOrders: workOrders.length,
-      completedWorkOrders: workOrders.filter(wo => wo.status === 'completed').length,
-      pendingWorkOrders: workOrders.filter(wo => !['completed', 'cancelled'].includes(wo.status)).length
-    };
+    return aggregateExtendedDashboardStats(
+      equipmentResult.data || [],
+      workOrderResult.data || [],
+    );
   } catch (error) {
     logger.error('Error in getOptimizedDashboardStats:', error);
     return {

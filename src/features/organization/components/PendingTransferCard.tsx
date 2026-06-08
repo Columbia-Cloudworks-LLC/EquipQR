@@ -267,4 +267,3 @@ export const PendingTransferCard: React.FC<PendingTransferCardProps> = ({
   );
 };
 
-export default PendingTransferCard;

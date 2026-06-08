@@ -1,8 +1,5 @@
-import React from 'react';
-import { render } from '@/test/utils/test-utils';
+import { render, createSettingsTestWrapper, SYDNEY_USER_SETTINGS } from '@/test/utils/test-utils';
 import { describe, it, expect, vi } from 'vitest';
-import { SettingsContext } from '@/contexts/settings-context';
-import type { UserSettings } from '@/types/settings';
 import { formatDateTime } from '@/utils/dateFormatter';
 import type { InventoryTransaction } from '@/features/inventory/types/inventory';
 import InventoryItemTransactionsTab from '../InventoryItemTransactionsTab';
@@ -14,25 +11,7 @@ vi.mock('@/utils/logger', () => ({
   },
 }));
 
-const sydneySettings: UserSettings = {
-  timezone: 'Australia/Sydney',
-  dateFormat: 'MM/dd/yyyy',
-};
-
-function SettingsWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <SettingsContext.Provider
-      value={{
-        settings: sydneySettings,
-        updateSetting: vi.fn(),
-        resetSettings: vi.fn(),
-        isLoading: false,
-      }}
-    >
-      {children}
-    </SettingsContext.Provider>
-  );
-}
+const SettingsWrapper = createSettingsTestWrapper();
 
 const UTC_CROSS_CALENDAR = '2023-12-24T15:00:00.000Z';
 
@@ -58,7 +37,7 @@ describe('InventoryItemTransactionsTab', () => {
       wrapper: SettingsWrapper,
     });
 
-    const expected = formatDateTime(UTC_CROSS_CALENDAR, sydneySettings);
+    const expected = formatDateTime(UTC_CROSS_CALENDAR, SYDNEY_USER_SETTINGS);
     expect(container).toHaveTextContent(expected);
   });
 });

@@ -28,7 +28,7 @@ interface ExportMutationVariables {
  * - Toast notifications for success/error
  * - Loading state management
  */
-export function useReportExport({
+function useReportExport({
   reportType,
   organizationId,
   organizationName,

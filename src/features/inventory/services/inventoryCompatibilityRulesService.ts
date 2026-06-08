@@ -1,18 +1,11 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { verifyInventoryItemInOrganization } from '@/features/inventory/services/inventoryItemAccess';
 import type { PartCompatibilityRule, PartCompatibilityRuleFormData, EquipmentMatchedByRules, ModelMatchType, VerificationStatus } from '@/features/inventory/types/inventory';
-
-// ============================================
-// Normalization Helpers
-// ============================================
-
-/**
- * Normalize a string for case-insensitive + trimmed matching.
- * Matches the database normalization: lower(trim(value))
- */
-const normalizeValue = (value: string): string => {
-  return value.trim().toLowerCase();
-};
+import {
+  filterValidCompatibilityRules,
+  mapCompatibilityRulesToJsonb,
+} from '@/services/compatibilityRulesJsonb';
 
 // ============================================
 // Get Compatibility Rules for Item
@@ -30,17 +23,7 @@ export const getCompatibilityRulesForItem = async (
   itemId: string
 ): Promise<PartCompatibilityRule[]> => {
   try {
-    // Verify item belongs to organization as a failsafe
-    const { data: item, error: itemError } = await supabase
-      .from('inventory_items')
-      .select('id')
-      .eq('id', itemId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (itemError || !item) {
-      throw new Error('Inventory item not found or access denied');
-    }
+    await verifyInventoryItemInOrganization(organizationId, itemId);
 
     const { data, error } = await supabase
       .from('part_compatibility_rules')
@@ -54,114 +37,6 @@ export const getCompatibilityRulesForItem = async (
     return (data || []) as PartCompatibilityRule[];
   } catch (error) {
     logger.error('Error fetching compatibility rules for item:', error);
-    throw error;
-  }
-};
-
-// ============================================
-// Add Compatibility Rule
-// ============================================
-
-/**
- * Add a single compatibility rule for an inventory item.
- * 
- * @param organizationId - Organization ID for access control
- * @param itemId - Inventory item ID
- * @param rule - Rule data (manufacturer, model)
- * @returns The created rule
- */
-export const addCompatibilityRule = async (
-  organizationId: string,
-  itemId: string,
-  rule: PartCompatibilityRuleFormData
-): Promise<PartCompatibilityRule> => {
-  try {
-    // Verify item belongs to organization
-    const { data: item, error: itemError } = await supabase
-      .from('inventory_items')
-      .select('id')
-      .eq('id', itemId)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (itemError || !item) {
-      throw new Error('Inventory item not found or access denied');
-    }
-
-    // Normalize values for matching
-    const manufacturerNorm = normalizeValue(rule.manufacturer);
-    const modelNorm = rule.model ? normalizeValue(rule.model) : null;
-
-    const { data, error } = await supabase
-      .from('part_compatibility_rules')
-      .insert({
-        inventory_item_id: itemId,
-        manufacturer: rule.manufacturer.trim(),
-        model: rule.model?.trim() || null,
-        manufacturer_norm: manufacturerNorm,
-        model_norm: modelNorm
-      })
-      .select()
-      .single();
-
-    // Handle duplicate key error gracefully
-    if (error) {
-      if (error.code === '23505') {
-        throw new Error('This manufacturer/model combination already exists for this item');
-      }
-      throw error;
-    }
-
-    return data as PartCompatibilityRule;
-  } catch (error) {
-    logger.error('Error adding compatibility rule:', error);
-    throw error;
-  }
-};
-
-// ============================================
-// Remove Compatibility Rule
-// ============================================
-
-/**
- * Remove a compatibility rule by ID.
- * 
- * @param organizationId - Organization ID for access control
- * @param ruleId - Rule ID to remove
- */
-export const removeCompatibilityRule = async (
-  organizationId: string,
-  ruleId: string
-): Promise<void> => {
-  try {
-    // Verify rule belongs to an item in the organization (via RLS + explicit check)
-    const { data: rule, error: ruleError } = await supabase
-      .from('part_compatibility_rules')
-      .select(`
-        id,
-        inventory_items!inner(organization_id)
-      `)
-      .eq('id', ruleId)
-      .single();
-
-    if (ruleError || !rule) {
-      throw new Error('Compatibility rule not found or access denied');
-    }
-
-    // Type assertion for the joined data
-    const ruleData = rule as { id: string; inventory_items: { organization_id: string } };
-    if (ruleData.inventory_items.organization_id !== organizationId) {
-      throw new Error('Compatibility rule not found or access denied');
-    }
-
-    const { error } = await supabase
-      .from('part_compatibility_rules')
-      .delete()
-      .eq('id', ruleId);
-
-    if (error) throw error;
-  } catch (error) {
-    logger.error('Error removing compatibility rule:', error);
     throw error;
   }
 };
@@ -191,18 +66,16 @@ export const bulkSetCompatibilityRules = async (
   rules: PartCompatibilityRuleFormData[]
 ): Promise<{ rulesSet: number }> => {
   try {
-    // Filter out rules with empty manufacturers (invalid/incomplete rules)
-    const validRules = rules.filter(rule => rule.manufacturer.trim().length > 0);
-
-    // Convert rules to JSONB format for the RPC function
-    // Now includes match_type, status, and notes
-    const rulesJsonb = validRules.map(rule => ({
-      manufacturer: rule.manufacturer.trim(),
-      model: rule.model?.trim() || null,
-      match_type: rule.match_type || 'exact',
-      status: rule.status || 'unverified',
-      notes: rule.notes || null
-    }));
+    const validRules = filterValidCompatibilityRules(rules);
+    const rulesJsonb = mapCompatibilityRulesToJsonb(
+      validRules.map((rule) => ({
+        manufacturer: rule.manufacturer,
+        model: rule.model,
+        match_type: rule.match_type || 'exact',
+        status: rule.status || 'unverified',
+        notes: rule.notes ?? null,
+      })),
+    );
 
     // Call the atomic RPC function
     const { data, error } = await supabase.rpc('bulk_set_compatibility_rules', {
@@ -249,15 +122,12 @@ export const countEquipmentMatchingRules = async (
   rules: PartCompatibilityRuleFormData[]
 ): Promise<number> => {
   try {
-    // Filter out invalid rules with empty manufacturers
-    const validRules = rules.filter(rule => rule.manufacturer.trim().length > 0);
-    
+    const validRules = filterValidCompatibilityRules(rules);
+
     if (validRules.length === 0) {
       return 0;
     }
 
-    // Convert rules to JSONB format for the RPC function
-    // Now includes match_type for pattern matching support
     const rulesJsonb = validRules.map(rule => {
       const matchType = rule.match_type || 'exact';
       let model = rule.model?.trim() || null;

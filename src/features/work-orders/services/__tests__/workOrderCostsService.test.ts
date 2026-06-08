@@ -34,6 +34,63 @@ vi.mock('@/utils/logger', () => ({
 
 const { supabase } = await import('@/integrations/supabase/client');
 
+function createCostSelectQuery(data: unknown) {
+  return {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data, error: null }),
+  };
+}
+
+function createCostUpdateQuery(data: unknown) {
+  return {
+    update: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data, error: null }),
+  };
+}
+
+function createProfileQuery(name: string) {
+  return {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data: { name }, error: null }),
+  };
+}
+
+function mockCostQuantityUpdateSequence(
+  currentCost: Record<string, unknown>,
+  updatedCost: Record<string, unknown>,
+  profileName = 'John',
+) {
+  (supabase.from as ReturnType<typeof vi.fn>)
+    .mockReturnValueOnce(createCostSelectQuery(currentCost))
+    .mockReturnValueOnce(createCostUpdateQuery(updatedCost))
+    .mockReturnValueOnce(createProfileQuery(profileName));
+}
+
+function createCostsListQuery(mockCosts: unknown, error: { message: string } | null = null) {
+  return {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    order: vi.fn().mockResolvedValue({ data: mockCosts, error }),
+  };
+}
+
+function createProfilesInQuery(mockProfiles: unknown, error: { message: string } | null = null) {
+  return {
+    select: vi.fn().mockReturnThis(),
+    in: vi.fn().mockResolvedValue({ data: mockProfiles, error }),
+  };
+}
+
+function mockCostsAndProfilesSequence(mockCosts: unknown, mockProfiles: unknown) {
+  (supabase.from as ReturnType<typeof vi.fn>)
+    .mockReturnValueOnce(createCostsListQuery(mockCosts))
+    .mockReturnValueOnce(createProfilesInQuery(mockProfiles));
+}
+
 describe('workOrderCostsService', () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -51,20 +108,7 @@ describe('workOrderCostsService', () => {
         { id: 'user-2', name: 'Jane Smith' }
       ];
 
-      const mockCostsQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: mockCosts, error: null })
-      };
-
-      const mockProfilesQuery = {
-        select: vi.fn().mockReturnThis(),
-        in: vi.fn().mockResolvedValue({ data: mockProfiles, error: null })
-      };
-
-      (supabase.from as ReturnType<typeof vi.fn>)
-        .mockReturnValueOnce(mockCostsQuery)
-        .mockReturnValueOnce(mockProfilesQuery);
+      mockCostsAndProfilesSequence(mockCosts, mockProfiles);
 
       const result = await getWorkOrderCosts('wo-1');
 
@@ -129,20 +173,7 @@ describe('workOrderCostsService', () => {
         { id: 'cost-1', work_order_id: 'wo-1', description: 'Parts', quantity: 1, unit_price_cents: 1000, total_price_cents: 1000, created_by: 'unknown-user', created_at: '2024-01-01' }
       ];
 
-      const mockCostsQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: mockCosts, error: null })
-      };
-
-      const mockProfilesQuery = {
-        select: vi.fn().mockReturnThis(),
-        in: vi.fn().mockResolvedValue({ data: [], error: null })
-      };
-
-      (supabase.from as ReturnType<typeof vi.fn>)
-        .mockReturnValueOnce(mockCostsQuery)
-        .mockReturnValueOnce(mockProfilesQuery);
+      mockCostsAndProfilesSequence(mockCosts, []);
 
       const result = await getWorkOrderCosts('wo-1');
 
@@ -262,22 +293,9 @@ describe('workOrderCostsService', () => {
         updated_at: '2024-01-10'
       };
 
-      const mockUpdateQuery = {
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: mockUpdatedCost, error: null })
-      };
-
-      const mockProfileQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { name: 'John Doe' }, error: null })
-      };
-
       (supabase.from as ReturnType<typeof vi.fn>)
-        .mockReturnValueOnce(mockUpdateQuery)
-        .mockReturnValueOnce(mockProfileQuery);
+        .mockReturnValueOnce(createCostUpdateQuery(mockUpdatedCost))
+        .mockReturnValueOnce(createProfileQuery('John Doe'));
 
       const result = await updateWorkOrderCost('cost-1', updateData);
 
@@ -471,29 +489,7 @@ describe('workOrderCostsService', () => {
         updated_at: '2024-01-10'
       };
 
-      const mockSelectQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: mockCurrentCost, error: null })
-      };
-
-      const mockUpdateQuery = {
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: mockUpdatedCost, error: null })
-      };
-
-      const mockProfileQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { name: 'John' }, error: null })
-      };
-
-      (supabase.from as ReturnType<typeof vi.fn>)
-        .mockReturnValueOnce(mockSelectQuery)
-        .mockReturnValueOnce(mockUpdateQuery)
-        .mockReturnValueOnce(mockProfileQuery);
+      mockCostQuantityUpdateSequence(mockCurrentCost, mockUpdatedCost);
 
       const result = await updateWorkOrderCostWithQuantityTracking('cost-1', { quantity: 3 });
 
@@ -517,29 +513,7 @@ describe('workOrderCostsService', () => {
         updated_at: '2024-01-10'
       };
 
-      const mockSelectQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: mockCurrentCost, error: null })
-      };
-
-      const mockUpdateQuery = {
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: mockUpdatedCost, error: null })
-      };
-
-      const mockProfileQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { name: 'John' }, error: null })
-      };
-
-      (supabase.from as ReturnType<typeof vi.fn>)
-        .mockReturnValueOnce(mockSelectQuery)
-        .mockReturnValueOnce(mockUpdateQuery)
-        .mockReturnValueOnce(mockProfileQuery);
+      mockCostQuantityUpdateSequence(mockCurrentCost, mockUpdatedCost);
 
       const result = await updateWorkOrderCostWithQuantityTracking('cost-1', { quantity: 5 });
 
@@ -560,29 +534,7 @@ describe('workOrderCostsService', () => {
         updated_at: '2024-01-10'
       };
 
-      const mockSelectQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: mockCurrentCost, error: null })
-      };
-
-      const mockUpdateQuery = {
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: mockUpdatedCost, error: null })
-      };
-
-      const mockProfileQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { name: 'John' }, error: null })
-      };
-
-      (supabase.from as ReturnType<typeof vi.fn>)
-        .mockReturnValueOnce(mockSelectQuery)
-        .mockReturnValueOnce(mockUpdateQuery)
-        .mockReturnValueOnce(mockProfileQuery);
+      mockCostQuantityUpdateSequence(mockCurrentCost, mockUpdatedCost);
 
       const result = await updateWorkOrderCostWithQuantityTracking('cost-1', { quantity: 5 });
 
@@ -603,29 +555,7 @@ describe('workOrderCostsService', () => {
         updated_at: '2024-01-10'
       };
 
-      const mockSelectQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: mockCurrentCost, error: null })
-      };
-
-      const mockUpdateQuery = {
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: mockUpdatedCost, error: null })
-      };
-
-      const mockProfileQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { name: 'John' }, error: null })
-      };
-
-      (supabase.from as ReturnType<typeof vi.fn>)
-        .mockReturnValueOnce(mockSelectQuery)
-        .mockReturnValueOnce(mockUpdateQuery)
-        .mockReturnValueOnce(mockProfileQuery);
+      mockCostQuantityUpdateSequence(mockCurrentCost, mockUpdatedCost);
 
       const result = await updateWorkOrderCostWithQuantityTracking('cost-1', { description: 'Updated description' });
 
@@ -654,20 +584,7 @@ describe('workOrderCostsService', () => {
 
       const mockProfiles = [{ id: 'user-1', name: 'John Doe' }];
 
-      const mockCostsQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: mockCosts, error: null })
-      };
-
-      const mockProfilesQuery = {
-        select: vi.fn().mockReturnThis(),
-        in: vi.fn().mockResolvedValue({ data: mockProfiles, error: null })
-      };
-
-      (supabase.from as ReturnType<typeof vi.fn>)
-        .mockReturnValueOnce(mockCostsQuery)
-        .mockReturnValueOnce(mockProfilesQuery);
+      mockCostsAndProfilesSequence(mockCosts, mockProfiles);
 
       const result = await getMyCosts('org-1', 'user-1');
 
@@ -703,20 +620,7 @@ describe('workOrderCostsService', () => {
         { id: 'user-2', name: 'Jane' }
       ];
 
-      const mockCostsQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: mockCosts, error: null })
-      };
-
-      const mockProfilesQuery = {
-        select: vi.fn().mockReturnThis(),
-        in: vi.fn().mockResolvedValue({ data: mockProfiles, error: null })
-      };
-
-      (supabase.from as ReturnType<typeof vi.fn>)
-        .mockReturnValueOnce(mockCostsQuery)
-        .mockReturnValueOnce(mockProfilesQuery);
+      mockCostsAndProfilesSequence(mockCosts, mockProfiles);
 
       const result = await getAllCostsWithCreators('org-1');
 

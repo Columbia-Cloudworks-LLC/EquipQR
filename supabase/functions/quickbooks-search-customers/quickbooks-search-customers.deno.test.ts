@@ -4,6 +4,10 @@
  */
 import { assertEquals, assertExists } from "jsr:@std/assert@1";
 import { buildQBOContacts } from "./qbo-contacts.ts";
+import {
+  buildCustomerQueries,
+  sanitizeCustomerSearchQuery,
+} from "./qbo-customer-query.ts";
 
 const stubCustomer = {
   Id: "qb-1",
@@ -115,4 +119,38 @@ Deno.test("buildQBOContacts does not include token fields in output", () => {
       "Contact entry must not include token fields",
     );
   }
+});
+
+Deno.test("buildCustomerQueries does not use unsupported QBO OR filters", () => {
+  const queries = buildCustomerQueries("Matthew Hankins");
+
+  assertEquals(queries.length, 2);
+  assertEquals(queries.some((query) => /\sOR\s/i.test(query)), false);
+  assertEquals(queries[0].includes("DisplayName LIKE '%Matthew Hankins%'"), true);
+  assertEquals(queries[1].includes("CompanyName LIKE '%Matthew Hankins%'"), true);
+});
+
+Deno.test("buildCustomerQueries returns one active-customer query when search is empty", () => {
+  const queries = buildCustomerQueries("");
+
+  assertEquals(queries.length, 1);
+  assertEquals(queries[0].endsWith("WHERE Active = true MAXRESULTS 100"), true);
+});
+
+Deno.test("sanitizeCustomerSearchQuery strips unsupported QBO special characters", () => {
+  assertEquals(sanitizeCustomerSearchQuery("3-A Equipment; DROP"), "3-A Equipment DROP");
+});
+
+Deno.test("buildCustomerQueries does not request non-queryable BillAddr or ShipAddr fields", () => {
+  const queries = buildCustomerQueries("");
+
+  assertEquals(queries.length, 1);
+  assertEquals(queries[0].includes("BillAddr"), false);
+  assertEquals(queries[0].includes("ShipAddr"), false);
+  assertEquals(
+    queries[0].includes(
+      "SELECT Id, DisplayName, GivenName, FamilyName, CompanyName, PrimaryEmailAddr, PrimaryPhone, Mobile, Fax, AlternatePhone, Taxable FROM Customer",
+    ),
+    true,
+  );
 });

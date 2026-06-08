@@ -78,30 +78,6 @@ export const usePendingTransferForUser = () => {
   };
 };
 
-/**
- * Get pending transfer requests for a specific organization
- */
-export const useOrganizationTransferRequests = (organizationId: string | undefined) => {
-  return useQuery({
-    queryKey: ['ownership-transfers', 'organization', organizationId],
-    queryFn: async (): Promise<PendingTransferRequest[]> => {
-      if (!organizationId) return [];
-
-      const { data, error } = await supabase
-        .rpc('get_pending_transfer_requests');
-
-      if (error) throw error;
-      
-      // Filter to only this organization
-      return (data || []).filter(
-        (r: PendingTransferRequest) => r.organization_id === organizationId
-      );
-    },
-    enabled: !!organizationId,
-    staleTime: 30 * 1000,
-  });
-};
-
 // ============================================
 // Mutations
 // ============================================

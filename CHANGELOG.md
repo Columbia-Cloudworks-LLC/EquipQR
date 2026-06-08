@@ -9,6 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.8.2] - 2026-06-07
+
+### Added
+
+- **Playwright user regression coverage** — Expanded critical and full browser suites, run modes, coverage tracking, real-auth integration hooks, and demo action overlays so preview releases can be validated across desktop, mobile, auth, support, privacy, PM template, scan history, and work-order workflows.
+- **Fallow codebase intelligence** — Repository scripts and configuration now cover static health, duplication, dead-code, PR risk analysis, and local verification cleanup helpers.
+
+### Changed
+
+- **Maintainability and verification tooling** — Decomposed large runtime components, route declarations, export builders, OAuth callbacks, demo recording helpers, and shared test fixtures while trimming unused packages and obsolete modules surfaced by Fallow.
+- **Canonical URL and integration configuration** — OAuth callback URIs now derive from `VITE_SUPABASE_URL` / `SUPABASE_URL`, Edge redirects prefer `PUBLIC_SITE_URL` with legacy `PRODUCTION_URL` fallback, and deprecated QuickBooks/Google Workspace redirect-base environment variables were removed from sync scripts and docs.
+- **QuickBooks integration posture** — QuickBooks behavior is scoped to production-connected environments, customer search avoids unsupported and non-queryable fields, and customer imports verify team linking.
+- **Vite React plugin** — Switched from the SWC React plugin to the standard Vite React plugin to keep Vitest and production builds quiet under Vite 8/Rolldown.
+
+### Removed
+
+- Obsolete one-off PM seed/generator scripts, unused shadcn UI primitives with no import paths, duplicate work-order/organization/report components, and deprecated enhanced-organization hook layers superseded by current feature services.
+
+### Fixed
+
+- **Preventive maintenance query handling** — PM status lookups now return the first matching row and handle query errors gracefully.
+- **Post-signup success view** — Auth no longer auto-redirects away from the check-your-email success screen before the user chooses return to sign-in.
+- **Fleet map Google Maps key** — Session refresh and retry when the public maps key edge function returns unauthorized.
+- **PM template and QuickBooks UI** — Stable selectors and test hooks for Playwright full-suite coverage.
+- **E2E user regression** — Scoped the work order create-button locator to avoid ambiguous matches during creation flows.
+- **E2E auth state stability** — Full-suite Playwright runs now always apply setup-generated owner storage state, and the logout lifecycle test restores shared owner auth so later direct dashboard routes stay signed in.
+- **E2E creation and offline flows** — Equipment creation helpers now wait for the hydrated equipment search box before opening newly created records, and mobile offline note coverage now asserts the actual offline banner/footer feedback.
+- **Verification noise cleanup** — The Vitest wrapper now starts Vitest without Node 24 `shell: true` deprecation warnings, and the PWA service-worker build uses an IIFE output to avoid Vite/Rolldown `inlineDynamicImports` warnings.
+
 ## [3.8.1] - 2026-06-01
 
 ### Changed
@@ -1942,7 +1971,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.1...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.2...HEAD
+[3.8.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.1...v3.8.2
 [3.8.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.0...v3.8.1
 [3.8.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.4...v3.8.0
 [3.6.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.6.3...v3.6.4

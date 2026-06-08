@@ -1,5 +1,6 @@
 import React from 'react';
-import { Upload, FileSpreadsheet, FileJson, ChevronDown } from 'lucide-react';
+import { Upload, ChevronDown } from 'lucide-react';
+import { ExportFormatMenuItems } from '@/components/common/ExportFormatMenuItems';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -122,26 +123,12 @@ const EquipmentActionsMenu: React.FC<EquipmentActionsMenuProps> = ({
             <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
               Export
             </DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={handleExportCsv}
-              className="gap-2 cursor-pointer"
-            >
-              <FileSpreadsheet className="h-4 w-4 text-success" />
-              <div className="flex flex-col">
-                <span className="text-sm">Export as CSV</span>
-                <span className="text-[10px] text-muted-foreground">Comma-separated values</span>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={handleExportJson}
-              className="gap-2 cursor-pointer"
-            >
-              <FileJson className="h-4 w-4 text-info" />
-              <div className="flex flex-col">
-                <span className="text-sm">Export as JSON</span>
-                <span className="text-[10px] text-muted-foreground">Structured data format</span>
-              </div>
-            </DropdownMenuItem>
+            <ExportFormatMenuItems
+              onExportCsv={handleExportCsv}
+              onExportJson={handleExportJson}
+              csvLabel="Export as CSV"
+              jsonLabel="Export as JSON"
+            />
           </>
         )}
       </DropdownMenuContent>

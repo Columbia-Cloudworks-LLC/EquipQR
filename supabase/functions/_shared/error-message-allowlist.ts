@@ -143,6 +143,7 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   // QuickBooks integration errors
   /^QuickBooks returned a validation error for the customer query\. Please adjust your search and try again\.$/,
   /^QuickBooks tax status could not be confirmed\. Please refresh the customer from QuickBooks and try again\.$/,
+  /^Work order not found$/,
 
   // Places autocomplete errors (now routed through createErrorResponse)
   /^Place not found$/,
@@ -195,6 +196,6 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
  * @param errorMessage - The error message to validate
  * @returns true if the message matches an allowlisted pattern, false otherwise
  */
-export function isErrorAllowlisted(errorMessage: string): boolean {
+function isErrorAllowlisted(errorMessage: string): boolean {
   return SAFE_ERROR_PATTERNS.some((pattern) => pattern.test(errorMessage));
 }

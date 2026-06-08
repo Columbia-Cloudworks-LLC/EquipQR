@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -12,6 +12,12 @@ import {
   equipmentFormSchema,
   type EquipmentRecord,
 } from '@/features/equipment/types/equipment';
+import {
+  bulkEditMutationOnError,
+  useBulkEditCommitResult,
+  type BulkEditCommitHookResult,
+} from '@/hooks/useBulkEditCommitResult';
+import { useBulkEditRowState } from '@/hooks/useBulkEditRowState';
 
 /**
  * Field-level delta for a single equipment row. Only the fields the user has
@@ -19,42 +25,10 @@ import {
  */
 export type EquipmentRowDelta = Partial<EquipmentRecord>;
 
-export interface UseBulkEditEquipmentResult {
-  /** Map of equipment id -> field-level delta. Entries are removed when the
-   *  user reverts every changed field on a row back to its original value. */
-  dirtyRows: Map<string, EquipmentRowDelta>;
-  /** Currently checkbox-selected row ids. */
-  selectedRowIds: Set<string>;
-  /** Number of rows with at least one dirty field. */
-  dirtyCount: number;
-  /** Number of selected rows. */
-  selectedCount: number;
-  /** True while the batch commit mutation is in flight. */
-  isPending: boolean;
-
-  /** Set a single field on a single row. Reverting to the initial value clears the delta. */
-  setCellValue: <K extends keyof EquipmentRecord>(
-    id: string,
-    field: K,
-    value: EquipmentRecord[K]
-  ) => void;
-  /** Apply the same field/value to many rows at once (used by the bulk-apply confirmation dialog). */
-  setCellValueOnRows: <K extends keyof EquipmentRecord>(
-    ids: string[],
-    field: K,
-    value: EquipmentRecord[K]
-  ) => void;
-  /** Discard every dirty edit. */
-  clearDirty: () => void;
-  /** Toggle whether a single row is selected. */
-  toggleSelected: (id: string) => void;
-  /** Replace the selection with the given ids. */
-  selectAll: (ids: string[]) => void;
-  /** Clear the row selection (does not affect dirty state). */
-  clearSelection: () => void;
-  /** Commit every dirty row to Supabase via `EquipmentService.batchUpdate`. */
-  commit: () => Promise<void>;
-}
+export type UseBulkEditEquipmentResult = BulkEditCommitHookResult<
+  EquipmentRecord,
+  EquipmentRowDelta
+>;
 
 /**
  * Local state + commit logic for the bulk-edit equipment grid (#627).
@@ -74,92 +48,8 @@ export const useBulkEditEquipment = (
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
 
-  const [dirtyRows, setDirtyRows] = useState<Map<string, EquipmentRowDelta>>(
-    () => new Map()
-  );
-  const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(
-    () => new Set()
-  );
-
-  const initialById = useMemo(() => {
-    const map = new Map<string, EquipmentRecord>();
-    for (const row of initialRows) {
-      map.set(row.id, row);
-    }
-    return map;
-  }, [initialRows]);
-
-  const setCellValue = useCallback(
-    <K extends keyof EquipmentRecord>(
-      id: string,
-      field: K,
-      value: EquipmentRecord[K]
-    ) => {
-      setDirtyRows((prev) => {
-        const next = new Map(prev);
-        const initial = initialById.get(id);
-        const originalValue = initial?.[field];
-        const existing = next.get(id) ?? {};
-        // Match `BulkEditableCell.isDirty`: '' and null are treated as
-        // equivalent for diff purposes (both render as the em-dash placeholder).
-        // Without this, "clearing" a nullable field that was already null would
-        // record a '' delta the cell shows as clean — invisible dirty state
-        // that surprises users at commit time.
-        const normalize = (v: unknown): unknown => (v === '' ? null : v);
-        if (Object.is(normalize(value), normalize(originalValue))) {
-          // Revert: drop the field from the delta; drop the row entirely if it has no other deltas.
-          if (field in existing) {
-            const rest: Record<string, unknown> = { ...(existing as Record<string, unknown>) };
-            delete rest[field as string];
-            if (Object.keys(rest).length === 0) {
-              next.delete(id);
-            } else {
-              next.set(id, rest as EquipmentRowDelta);
-            }
-          }
-        } else {
-          next.set(id, { ...existing, [field]: normalize(value) } as EquipmentRowDelta);
-        }
-        return next;
-      });
-    },
-    [initialById]
-  );
-
-  const setCellValueOnRows = useCallback(
-    <K extends keyof EquipmentRecord>(
-      ids: string[],
-      field: K,
-      value: EquipmentRecord[K]
-    ) => {
-      ids.forEach((id) => setCellValue(id, field, value));
-    },
-    [setCellValue]
-  );
-
-  const clearDirty = useCallback(() => {
-    setDirtyRows(new Map());
-  }, []);
-
-  const toggleSelected = useCallback((id: string) => {
-    setSelectedRowIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
-
-  const selectAll = useCallback((ids: string[]) => {
-    setSelectedRowIds(new Set(ids));
-  }, []);
-
-  const clearSelection = useCallback(() => {
-    setSelectedRowIds(new Set());
-  }, []);
+  const rowState = useBulkEditRowState<EquipmentRecord, EquipmentRowDelta>(initialRows);
+  const { dirtyRows, clearSucceededDirtyFields } = rowState;
 
   const partialSchema = useMemo(() => equipmentFormSchema.partial(), []);
 
@@ -221,42 +111,7 @@ export const useBulkEditEquipment = (
       }
 
       if (succeeded.length > 0) {
-        // Drop only the field-level edits that were actually committed.
-        // The grid stays interactive during isPending (only Save/Discard are
-        // disabled), so the user can edit additional cells — including new
-        // fields on a row that's currently being committed — while the
-        // mutation is in flight. Removing the entire row entry would silently
-        // discard those concurrent edits. Instead, for each succeeded row,
-        // strip only the specific fields whose current dirty value still
-        // matches what was submitted; any field the user has since edited
-        // (or any new field added after submission) stays dirty for the next
-        // commit.
-        setDirtyRows((prev) => {
-          const next = new Map(prev);
-          for (const id of succeeded) {
-            const submitted = submittedById.get(id);
-            const current = next.get(id) as Record<string, unknown> | undefined;
-            if (!submitted || !current) {
-              next.delete(id);
-              continue;
-            }
-            const remaining: Record<string, unknown> = { ...current };
-            for (const [field, submittedValue] of Object.entries(submitted)) {
-              if (
-                field in remaining &&
-                Object.is(remaining[field], submittedValue)
-              ) {
-                delete remaining[field];
-              }
-            }
-            if (Object.keys(remaining).length === 0) {
-              next.delete(id);
-            } else {
-              next.set(id, remaining as EquipmentRowDelta);
-            }
-          }
-          return next;
-        });
+        clearSucceededDirtyFields(succeeded, submittedById);
       }
 
       const orgId = currentOrganization?.id;
@@ -267,28 +122,8 @@ export const useBulkEditEquipment = (
         }
       }
     },
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Bulk update failed');
-    },
+    onError: bulkEditMutationOnError,
   });
 
-  const commit = useCallback(async () => {
-    if (dirtyRows.size === 0) return;
-    await commitMutation.mutateAsync();
-  }, [commitMutation, dirtyRows.size]);
-
-  return {
-    dirtyRows,
-    selectedRowIds,
-    dirtyCount: dirtyRows.size,
-    selectedCount: selectedRowIds.size,
-    isPending: commitMutation.isPending,
-    setCellValue,
-    setCellValueOnRows,
-    clearDirty,
-    toggleSelected,
-    selectAll,
-    clearSelection,
-    commit,
-  };
+  return useBulkEditCommitResult(rowState, commitMutation);
 };

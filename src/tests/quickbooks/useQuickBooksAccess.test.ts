@@ -6,7 +6,8 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { createQuickBooksTestQueryClient } from '@/tests/quickbooks/testUtils';
 import React from 'react';
 
 // Mock the organization context
@@ -45,19 +46,8 @@ import { useQuickBooksAccess, useUpdateQuickBooksPermission } from '@/hooks/useQ
 import { isQuickBooksEnabled } from '@/lib/flags';
 import { useOrganization } from '@/contexts/OrganizationContext';
 
-const createTestQueryClient = () => new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-    mutations: {
-      retry: false,
-    },
-  },
-});
-
 const createWrapper = () => {
-  const queryClient = createTestQueryClient();
+  const queryClient = createQuickBooksTestQueryClient();
   return ({ children }: { children: React.ReactNode }) => (
     React.createElement(QueryClientProvider, { client: queryClient }, children)
   );
@@ -113,17 +103,19 @@ describe('useQuickBooksAccess', () => {
     });
   });
 
-  it('should not fetch when feature is disabled', async () => {
+  it('should fetch permissions even when legacy feature flag is disabled', async () => {
     vi.mocked(isQuickBooksEnabled).mockReturnValue(false);
+    mockRpc.mockResolvedValue({ data: true, error: null });
 
-    renderHook(() => useQuickBooksAccess(), {
+    const { result } = renderHook(() => useQuickBooksAccess(), {
       wrapper: createWrapper(),
     });
 
-    // Wait a tick to ensure no query was triggered
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await waitFor(() => {
+      expect(result.current.data).toBe(true);
+    });
 
-    expect(mockRpc).not.toHaveBeenCalled();
+    expect(mockRpc).toHaveBeenCalled();
   });
 
   it('should not fetch when no organization is available', async () => {
