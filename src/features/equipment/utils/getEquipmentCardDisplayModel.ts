@@ -12,6 +12,8 @@ export interface EquipmentCardDisplayModel {
   lastMaintenanceText?: string;
   /** Telemetry cell value for grid cards */
   lastMaintenanceDisplay: string;
+  /** Mobile card: formatted date plus compact days-ago suffix */
+  lastMaintenanceMobileDisplay: string;
   workingHoursText: string;
   workingHoursShortText: string;
   /** Tabular number for grid hero metric */
@@ -37,6 +39,44 @@ function buildAssetDescriptor(manufacturer?: string | null, model?: string | nul
   return parts.length > 0 ? parts.join(' ') : EMPTY_READOUT;
 }
 
+/** Calendar-day delta for Postgres `date` strings (yyyy-mm-dd). */
+function daysSinceDateOnly(value: string): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim());
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]) - 1;
+  const day = Number(match[3]);
+  const maintenanceDate = new Date(year, month, day);
+  if (
+    maintenanceDate.getFullYear() !== year ||
+    maintenanceDate.getMonth() !== month ||
+    maintenanceDate.getDate() !== day
+  ) {
+    return null;
+  }
+
+  const today = new Date();
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const diffDays = Math.floor(
+    (todayDate.getTime() - maintenanceDate.getTime()) / (1000 * 60 * 60 * 24),
+  );
+
+  return diffDays >= 0 ? diffDays : null;
+}
+
+function buildLastMaintenanceMobileDisplay(
+  rawDate: string | undefined,
+  formattedDate: string | null,
+): string {
+  if (!formattedDate || !rawDate?.trim()) return EMPTY_READOUT;
+
+  const daysAgo = daysSinceDateOnly(rawDate);
+  if (daysAgo === null) return formattedDate;
+
+  return `${formattedDate} (${daysAgo} d ago)`;
+}
+
 export function getEquipmentCardDisplayModel(
   equipment: EquipmentCardDisplayInput,
   settings: UserSettings
@@ -55,6 +95,10 @@ export function getEquipmentCardDisplayModel(
     statusClassName: getStatusColor(equipment.status),
     lastMaintenanceText: lastMaintenanceDate ? `Last maintenance: ${lastMaintenanceDate}` : undefined,
     lastMaintenanceDisplay: lastMaintenanceDate ?? EMPTY_READOUT,
+    lastMaintenanceMobileDisplay: buildLastMaintenanceMobileDisplay(
+      equipment.last_maintenance,
+      lastMaintenanceDate,
+    ),
     workingHoursText: `${hoursFormatted} hours`,
     workingHoursShortText: `${hoursFormatted} hrs`,
     workingHoursDisplay: hoursFormatted,

@@ -168,8 +168,8 @@ describe('EquipmentCard', () => {
     it('renders last maintenance date when provided', () => {
       render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      // Date format may vary, but the year should be there
-      expect(screen.getByText(/2024/)).toBeInTheDocument();
+      // Date format may vary, but the year should be there (mobile + desktop grid)
+      expect(screen.getAllByText(/2024/).length).toBeGreaterThan(0);
     });
 
     it('shows em dash for last maintenance when not provided', () => {
@@ -286,15 +286,34 @@ describe('EquipmentCard', () => {
     });
   });
 
-  describe('Mobile Responsiveness', () => {
-    it('applies mobile styles when on mobile', async () => {
-      const { useIsMobile } = await import('@/hooks/use-mobile');
-      vi.mocked(useIsMobile).mockReturnValue(true);
+  describe('Mobile work order quick actions', () => {
+    it('opens PM and generic work order options without navigating to equipment details', async () => {
+      const user = (await import('@testing-library/user-event')).default.setup();
 
       render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      // Component should render without errors
-      expect(screen.getAllByText('Forklift A1')[0]).toBeInTheDocument();
+      const workOrderButtons = screen.getAllByRole('button', { name: /work order/i });
+      const mobileButton = workOrderButtons.find(
+        (button) => button.classList.contains('h-8') && button.classList.contains('w-8'),
+      );
+      expect(mobileButton).toBeDefined();
+
+      await user.click(mobileButton!);
+      await user.click(screen.getByRole('menuitem', { name: /new pm work order/i }));
+
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/dashboard/equipment/eq-1?createWorkOrder=pm',
+      );
+      expect(mockNavigate).not.toHaveBeenCalledWith('/dashboard/equipment/eq-1');
+
+      mockNavigate.mockClear();
+
+      await user.click(mobileButton!);
+      await user.click(screen.getByRole('menuitem', { name: /create generic work order/i }));
+
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/dashboard/equipment/eq-1?createWorkOrder=generic',
+      );
     });
   });
 

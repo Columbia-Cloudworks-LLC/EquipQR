@@ -12,6 +12,7 @@ import { getEquipmentStatusRailClass, getEquipmentStatusBackgroundTint } from "@
 import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyncBadge';
 import PMStatusIndicator from './PMStatusIndicator';
 import { EquipmentCardGridView } from './EquipmentCardGridView';
+import { EquipmentCardWorkOrderMenu } from './EquipmentCardWorkOrderMenu';
 import type { EquipmentPMStatus } from '@/features/equipment/hooks/useEquipmentPMStatus';
 import type { MergedEquipment } from '@/features/equipment/hooks/useOfflineMergedEquipment';
 import { isOfflineEquipmentId } from '@/features/equipment/hooks/useOfflineMergedEquipment';
@@ -117,59 +118,72 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
       ) : null}
       {/* Mobile: compact list row — no side action rail so content stays within viewport */}
       <div className="md:hidden">
-        <div className="flex min-w-0 items-start gap-2.5 p-3">
-          <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-md bg-muted">
-            {equipment.image_url ? (
-              <img
-                src={equipment.image_url}
-                alt={display.imageAlt}
-                className="h-full w-full object-cover"
-                loading="lazy"
-                decoding="async"
-                onError={(e) => {
-                  e.currentTarget.src = display.imageFallbackSrc;
-                }}
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <Forklift className="h-6 w-6 text-muted-foreground/50" />
-              </div>
+        <div className="grid min-w-0 grid-cols-[auto_1fr_auto] gap-x-2.5 gap-y-0.5 p-3">
+          <div className="row-span-4 min-h-0 self-stretch">
+            <div className="relative aspect-square h-full overflow-hidden rounded-md bg-muted">
+              {equipment.image_url ? (
+                <img
+                  src={equipment.image_url}
+                  alt={display.imageAlt}
+                  className="h-full w-full object-contain"
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => {
+                    e.currentTarget.src = display.imageFallbackSrc;
+                  }}
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <Forklift className="h-[45%] w-[45%] text-muted-foreground/50" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="col-start-2 row-start-1 flex min-w-0 items-center gap-1.5">
+            <span className="truncate text-sm font-semibold leading-tight">{equipment.name}</span>
+            {(equipment as MergedEquipment)._isPendingSync && (
+              <PendingSyncBadge className="flex-shrink-0" />
             )}
           </div>
 
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start gap-1 min-w-0">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="truncate text-sm font-semibold leading-tight">{equipment.name}</span>
-                  {(equipment as MergedEquipment)._isPendingSync && (
-                    <PendingSyncBadge className="flex-shrink-0" />
-                  )}
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 flex-shrink-0 -mr-1 text-muted-foreground hover:text-foreground"
-                onClick={handleQRClick}
-                aria-label={`Show QR code for ${equipment.name}`}
-              >
-                <QrCode className="h-4 w-4" />
-              </Button>
-            </div>
+          <div className="col-start-3 row-start-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 flex-shrink-0 -mr-1 text-muted-foreground hover:text-foreground"
+              onClick={handleQRClick}
+              aria-label={`Show QR code for ${equipment.name}`}
+            >
+              <QrCode className="h-4 w-4" />
+            </Button>
+          </div>
 
-            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
-              <PMStatusIndicator status={pmStatus} size="sm" />
-              <span className="inline-flex flex-shrink-0 items-center gap-0.5 text-xs text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                {display.workingHoursShortText}
-              </span>
-            </div>
+          <div className="col-start-2 row-start-2 flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+            <Calendar className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate font-tabular">{display.lastMaintenanceMobileDisplay}</span>
+          </div>
 
-            <div className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
-              <MapPin className="h-3 w-3 flex-shrink-0" />
-              <span className="truncate">{equipment.location}</span>
-            </div>
+          <div className="col-start-2 row-start-3 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+            <PMStatusIndicator status={pmStatus} size="sm" />
+            <span className="inline-flex flex-shrink-0 items-center gap-0.5 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              {display.workingHoursShortText}
+            </span>
+          </div>
+
+          <div className="col-start-2 row-start-4 flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+            <MapPin className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">{equipment.location}</span>
+          </div>
+
+          <div className="col-start-3 row-start-4 self-end">
+            <EquipmentCardWorkOrderMenu
+              equipmentId={equipment.id}
+              pmStatus={pmStatus}
+              onQuickAction={handleQuickAction}
+              variant="icon"
+            />
           </div>
         </div>
       </div>

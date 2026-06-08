@@ -5,19 +5,11 @@ import {
   QrCode,
   Forklift,
   History,
-  Plus,
-  Wrench,
-  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyncBadge';
+import { EquipmentCardWorkOrderMenu } from '@/features/equipment/components/EquipmentCardWorkOrderMenu';
 import type { EquipmentCardDisplayModel } from '@/features/equipment/utils/getEquipmentCardDisplayModel';
 import type { EquipmentCardPmReadout } from '@/features/equipment/utils/getEquipmentCardPmReadout';
 import { getPMComplianceLevel } from '@/features/equipment/hooks/useEquipmentPMStatus';
@@ -78,8 +70,6 @@ export function EquipmentCardGridView({
 }: EquipmentCardGridViewProps) {
   const pmLevel = getPMComplianceLevel(pmStatus);
   const isPmOverdue = pmLevel === 'overdue';
-  const pmWorkOrderPath = `/dashboard/equipment/${equipment.id}?createWorkOrder=pm`;
-  const genericWorkOrderPath = `/dashboard/equipment/${equipment.id}?createWorkOrder=generic`;
 
   return (
     <div className="hidden md:flex md:flex-col md:h-full">
@@ -189,29 +179,11 @@ export function EquipmentCardGridView({
         role="group"
         aria-label="Equipment actions"
       >
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant={isPmOverdue ? 'destructive' : 'secondary'}
-              size="sm"
-              className="h-8 gap-1.5 text-xs font-medium"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Work Order
-              <ChevronDown className="h-3.5 w-3.5 opacity-70" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuItem onClick={(e) => onQuickAction(e, pmWorkOrderPath)}>
-              <Wrench className="mr-2 h-4 w-4" />
-              New PM Work Order
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => onQuickAction(e, genericWorkOrderPath)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Generic Work Order
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <EquipmentCardWorkOrderMenu
+          equipmentId={equipment.id}
+          pmStatus={pmStatus}
+          onQuickAction={onQuickAction}
+        />
         <Button
           variant="ghost"
           size="sm"
