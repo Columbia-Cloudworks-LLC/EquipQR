@@ -15,6 +15,31 @@ import {
 } from "./qb-oauth-success-redirect.ts";
 import { isValidRedirectUrl, STATE_TTL_MS } from "./qb-oauth-validation.ts";
 
+function withEnv(updates: Record<string, string | undefined>, fn: () => void): void {
+  const previous = new Map<string, string | undefined>();
+  for (const key of Object.keys(updates)) {
+    previous.set(key, Deno.env.get(key));
+    const value = updates[key];
+    if (value === undefined) {
+      Deno.env.delete(key);
+    } else {
+      Deno.env.set(key, value);
+    }
+  }
+
+  try {
+    fn();
+  } finally {
+    for (const [key, value] of previous) {
+      if (value === undefined) {
+        Deno.env.delete(key);
+      } else {
+        Deno.env.set(key, value);
+      }
+    }
+  }
+}
+
 Deno.test("validateOAuthRedirectBaseUrl rejects malformed base URLs", () => {
   assertThrows(
     () => validateOAuthRedirectBaseUrl("not-a-url"),
@@ -82,29 +107,55 @@ Deno.test("validateOAuthStateTimestamp rejects expired state", () => {
 
 Deno.test({
   name: "isValidRedirectUrl allows relative paths and production host",
-  permissions: { env: ["VERCEL_PROJECT_SLUG"] },
+  permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
 }, () => {
-  const productionUrl = "https://equipqr.app";
-  assertEquals(isValidRedirectUrl(null, productionUrl), true);
-  assertEquals(isValidRedirectUrl("/dashboard/organization", productionUrl), true);
-  assertEquals(isValidRedirectUrl("https://equipqr.app/settings", productionUrl), true);
-  assertEquals(isValidRedirectUrl("https://evil.example.com/", productionUrl), false);
+  withEnv({ PUBLIC_SITE_URL: "https://equipqr.app", PRODUCTION_URL: undefined }, () => {
+    const productionUrl = "https://equipqr.app";
+    assertEquals(isValidRedirectUrl(null, productionUrl), true);
+    assertEquals(isValidRedirectUrl("/dashboard/organization", productionUrl), true);
+    assertEquals(isValidRedirectUrl("https://equipqr.app/settings", productionUrl), true);
+    assertEquals(isValidRedirectUrl("https://evil.example.com/", productionUrl), false);
+  });
+});
+
+Deno.test({
+  name: "isValidRedirectUrl rejects loopback and broad Vercel hosts in deployed contexts",
+  permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
+}, () => {
+  withEnv({ PUBLIC_SITE_URL: "https://preview.equipqr.app", PRODUCTION_URL: undefined }, () => {
+    const productionUrl = "https://preview.equipqr.app";
+    assertEquals(isValidRedirectUrl("http://localhost:8080/dashboard", productionUrl), false);
+    assertEquals(isValidRedirectUrl("http://127.0.0.1:8080/dashboard", productionUrl), false);
+    assertEquals(isValidRedirectUrl("https://equip-qr-evil.vercel.app/dashboard", productionUrl), false);
+  });
+});
+
+Deno.test({
+  name: "isValidRedirectUrl allows loopback only when public site URL is local",
+  permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
+}, () => {
+  withEnv({ PUBLIC_SITE_URL: "http://localhost:8080", PRODUCTION_URL: undefined }, () => {
+    assertEquals(isValidRedirectUrl("http://localhost:8080/dashboard", "https://equipqr.app"), true);
+    assertEquals(isValidRedirectUrl("http://127.0.0.1:8080/dashboard", "https://equipqr.app"), true);
+  });
 });
 
 Deno.test({
   name: "buildSuccessRedirectUrl uses default org path when redirect is invalid",
-  permissions: { env: ["VERCEL_PROJECT_SLUG"] },
+  permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
 }, () => {
-  const url = buildSuccessRedirectUrl({
-    productionUrl: "https://equipqr.app",
-    originUrl: null,
-    redirectUrl: "https://evil.example.com/path",
-    realmId: "realm-1",
+  withEnv({ PUBLIC_SITE_URL: "https://equipqr.app", PRODUCTION_URL: undefined }, () => {
+    const url = buildSuccessRedirectUrl({
+      productionUrl: "https://equipqr.app",
+      originUrl: null,
+      redirectUrl: "https://evil.example.com/path",
+      realmId: "realm-1",
+    });
+    assertEquals(
+      url,
+      "https://equipqr.app/dashboard/organization?qb_connected=true&realm_id=realm-1",
+    );
   });
-  assertEquals(
-    url,
-    "https://equipqr.app/dashboard/organization?qb_connected=true&realm_id=realm-1",
-  );
 });
 
 Deno.test("buildAccessDeniedRedirectUrl encodes error parameters", () => {

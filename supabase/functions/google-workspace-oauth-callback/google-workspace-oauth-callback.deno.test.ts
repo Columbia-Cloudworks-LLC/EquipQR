@@ -24,6 +24,31 @@ const { buildOAuthRedirectUri, resolveOAuthRedirectBaseUrl } = __gwOauthRedirect
 const { extractUserDomain } = __gwOauthGoogleApiTestables;
 const { buildSuccessRedirectUrl, resolveFallbackProductionUrl } = __gwOauthSuccessRedirectTestables;
 
+function withEnv(updates: Record<string, string | undefined>, fn: () => void): void {
+  const previous = new Map<string, string | undefined>();
+  for (const key of Object.keys(updates)) {
+    previous.set(key, Deno.env.get(key));
+    const value = updates[key];
+    if (value === undefined) {
+      Deno.env.delete(key);
+    } else {
+      Deno.env.set(key, value);
+    }
+  }
+
+  try {
+    fn();
+  } finally {
+    for (const [key, value] of previous) {
+      if (value === undefined) {
+        Deno.env.delete(key);
+      } else {
+        Deno.env.set(key, value);
+      }
+    }
+  }
+}
+
 Deno.test("normalizeDomain lowercases and trims", () => {
   assertEquals(normalizeDomain("  Example.COM  "), "example.com");
 });
@@ -37,26 +62,44 @@ Deno.test("isValidEmail accepts well-formed addresses and rejects malformed", ()
 
 Deno.test({
   name: "isValidRedirectUrl allows relative paths and rejects protocol-relative URLs",
-  permissions: { env: ["PRODUCTION_URL"] },
+  permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
   fn: () => {
-    const prevProductionUrl = Deno.env.get("PRODUCTION_URL");
-    try {
-      Deno.env.set("PRODUCTION_URL", "https://equipqr.app");
+    withEnv({ PUBLIC_SITE_URL: "https://equipqr.app", PRODUCTION_URL: "https://equipqr.app" }, () => {
       assertEquals(isValidRedirectUrl("/dashboard", "https://equipqr.app"), true);
       assertEquals(isValidRedirectUrl("//evil.com/path", "https://equipqr.app"), false);
-    } finally {
-      if (prevProductionUrl === undefined) {
-        Deno.env.delete("PRODUCTION_URL");
-      } else {
-        Deno.env.set("PRODUCTION_URL", prevProductionUrl);
-      }
-    }
+    });
   },
 });
 
-Deno.test("isTrustedDomain allows equipqr.app subdomains", () => {
-  assertEquals(isTrustedDomain("https://preview.equipqr.app/dashboard"), true);
-  assertEquals(isTrustedDomain("https://evil.example.com/"), false);
+Deno.test({
+  name: "isValidRedirectUrl rejects loopback and broad Vercel hosts in deployed contexts",
+  permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
+}, () => {
+  withEnv({ PUBLIC_SITE_URL: "https://preview.equipqr.app", PRODUCTION_URL: "https://equipqr.app" }, () => {
+    assertEquals(isValidRedirectUrl("http://localhost:8080/dashboard", "https://preview.equipqr.app"), false);
+    assertEquals(isValidRedirectUrl("http://127.0.0.1:8080/dashboard", "https://preview.equipqr.app"), false);
+    assertEquals(isValidRedirectUrl("https://equip-qr-evil.vercel.app/dashboard", "https://preview.equipqr.app"), false);
+  });
+});
+
+Deno.test({
+  name: "isValidRedirectUrl allows loopback only when public site URL is local",
+  permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
+}, () => {
+  withEnv({ PUBLIC_SITE_URL: "http://localhost:8080", PRODUCTION_URL: "https://equipqr.app" }, () => {
+    assertEquals(isValidRedirectUrl("http://localhost:8080/dashboard", "https://equipqr.app"), true);
+    assertEquals(isValidRedirectUrl("http://127.0.0.1:8080/dashboard", "https://equipqr.app"), true);
+  });
+});
+
+Deno.test({
+  name: "isTrustedDomain allows equipqr.app subdomains",
+  permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
+}, () => {
+  withEnv({ PUBLIC_SITE_URL: "https://equipqr.app", PRODUCTION_URL: "https://equipqr.app" }, () => {
+    assertEquals(isTrustedDomain("https://preview.equipqr.app/dashboard"), true);
+    assertEquals(isTrustedDomain("https://evil.example.com/"), false);
+  });
 });
 
 Deno.test("parseOAuthState decodes base64 JSON state", () => {
@@ -136,13 +179,18 @@ Deno.test("extractUserDomain blocks consumer gmail domains", () => {
   );
 });
 
-Deno.test("buildSuccessRedirectUrl appends gw_connected query param", () => {
-  const url = buildSuccessRedirectUrl({
-    originUrl: null,
-    redirectUrl: "/dashboard/onboarding/workspace",
-    resolvedProductionUrl: "https://equipqr.app",
+Deno.test({
+  name: "buildSuccessRedirectUrl appends gw_connected query param",
+  permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
+}, () => {
+  withEnv({ PUBLIC_SITE_URL: "https://equipqr.app", PRODUCTION_URL: "https://equipqr.app" }, () => {
+    const url = buildSuccessRedirectUrl({
+      originUrl: null,
+      redirectUrl: "/dashboard/onboarding/workspace",
+      resolvedProductionUrl: "https://equipqr.app",
+    });
+    assertEquals(url, "https://equipqr.app/dashboard/onboarding/workspace?gw_connected=true");
   });
-  assertEquals(url, "https://equipqr.app/dashboard/onboarding/workspace?gw_connected=true");
 });
 
 Deno.test({

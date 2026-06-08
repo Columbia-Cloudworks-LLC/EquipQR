@@ -12,10 +12,26 @@ type RateLimitQueryResult = {
   error?: { code?: string; message?: string } | null;
 };
 
-function createRateLimitMock(results: RateLimitQueryResult[]): SupabaseClient {
-  let callIndex = 0;
+type RateLimitQueryFilter = {
+  method: "eq" | "gte";
+  column: string;
+  value: unknown;
+};
 
-  const buildChain = (result: RateLimitQueryResult) => {
+type RateLimitQueryCall = {
+  table: string;
+  filters: RateLimitQueryFilter[];
+};
+
+type RateLimitMock = SupabaseClient & {
+  __calls: RateLimitQueryCall[];
+};
+
+function createRateLimitMock(results: RateLimitQueryResult[]): RateLimitMock {
+  let callIndex = 0;
+  const calls: RateLimitQueryCall[] = [];
+
+  const buildChain = (result: RateLimitQueryResult, call: RateLimitQueryCall) => {
     const terminal = () =>
       Promise.resolve({
         count: result.count ?? null,
@@ -26,18 +42,37 @@ function createRateLimitMock(results: RateLimitQueryResult[]): SupabaseClient {
     const chain: Record<string, unknown> = {};
     chain.select = () => chain;
     chain.limit = () => terminal();
-    chain.eq = () => chain;
-    chain.gte = () => terminal();
+    chain.eq = (column: string, value: unknown) => {
+      call.filters.push({ method: "eq", column, value });
+      return chain;
+    };
+    chain.gte = (column: string, value: unknown) => {
+      call.filters.push({ method: "gte", column, value });
+      return terminal();
+    };
     return chain;
   };
 
-  return {
-    from: () => {
+  const client = {
+    from: (table: string) => {
       const result = results[callIndex] ?? { count: 0, error: null };
+      const call: RateLimitQueryCall = { table, filters: [] };
+      calls.push(call);
       callIndex += 1;
-      return buildChain(result);
+      return buildChain(result, call);
     },
-  } as unknown as SupabaseClient;
+  } as unknown as RateLimitMock;
+
+  client.__calls = calls;
+  return client;
+}
+
+function getEqFilters(call: RateLimitQueryCall): Record<string, unknown> {
+  return Object.fromEntries(
+    call.filters
+      .filter((filter) => filter.method === "eq")
+      .map((filter) => [filter.column, filter.value]),
+  );
 }
 
 Deno.test("formatUnitCost converts cents to dollar string", () => {
@@ -125,6 +160,28 @@ Deno.test("checkRateLimit fails closed when org count query errors", async () =>
     "org-1",
   );
   assertEquals(allowed, false);
+});
+
+Deno.test("checkRateLimit scopes every export_request_log query by organization", async () => {
+  const mock = createRateLimitMock([
+    { error: null, count: 0 },
+    { error: null, count: 4 },
+    { error: null, count: 49 },
+  ]);
+
+  const allowed = await checkRateLimit(mock, "user-1", "org-1");
+
+  assertEquals(allowed, true);
+  assertEquals(mock.__calls.length, 3);
+  assertEquals(mock.__calls.map((call) => call.table), [
+    "export_request_log",
+    "export_request_log",
+    "export_request_log",
+  ]);
+  assertEquals(getEqFilters(mock.__calls[0]).organization_id, "org-1");
+  assertEquals(getEqFilters(mock.__calls[1]).organization_id, "org-1");
+  assertEquals(getEqFilters(mock.__calls[1]).user_id, "user-1");
+  assertEquals(getEqFilters(mock.__calls[2]).organization_id, "org-1");
 });
 
 Deno.test("checkRateLimit enforces user and org limits when counts succeed", async () => {

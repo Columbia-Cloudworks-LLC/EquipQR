@@ -43,6 +43,7 @@ export async function checkRateLimit(
   const { error: tableCheckError } = await supabase
     .from("export_request_log")
     .select("id", { head: true, count: "exact" })
+    .eq("organization_id", organizationId)
     .limit(1);
 
   if (tableCheckError) {
@@ -61,6 +62,7 @@ export async function checkRateLimit(
   const { count: userCount, error: userCountError } = await supabase
     .from("export_request_log")
     .select("*", { count: "exact", head: true })
+    .eq("organization_id", organizationId)
     .eq("user_id", userId)
     .gte("requested_at", oneMinuteAgo);
 

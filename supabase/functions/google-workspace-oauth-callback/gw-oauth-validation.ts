@@ -72,6 +72,23 @@ export function isPreviewEnvironment(): boolean {
   return publicSiteUrl.includes("preview.");
 }
 
+function resolveHostname(urlString: string): string | null {
+  try {
+    return new URL(urlString).hostname;
+  } catch {
+    return null;
+  }
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "127.0.0.1";
+}
+
+function isLocalDevelopmentContext(): boolean {
+  const publicSiteHostname = resolveHostname(resolvePublicSiteUrl());
+  return !!publicSiteHostname && isLoopbackHostname(publicSiteHostname);
+}
+
 export function isValidRedirectUrl(urlToValidate: string | null, productionUrl: string): boolean {
   if (!urlToValidate) return true;
 
@@ -83,45 +100,27 @@ export function isValidRedirectUrl(urlToValidate: string | null, productionUrl: 
     const url = new URL(urlToValidate);
     const productionDomain = new URL(productionUrl).hostname;
 
-    // In production, only allow the production domain
-    // localhost/127.0.0.1 are ONLY allowed in non-production environments
-    const isProduction = isProductionEnvironment();
-    const isPreview = isPreviewEnvironment();
-    
-    // Build list of allowed domains
-    const allowedDomains = isProduction
-      ? [productionDomain]
-      : [productionDomain, "localhost", "127.0.0.1"];
-    
-    // In preview environments, also allow Vercel preview deployment URLs
-    // scoped to our project slug to prevent open-redirect via arbitrary Vercel sites.
-    const vercelSlug = Deno.env.get("VERCEL_PROJECT_SLUG") || "equip-qr";
-    const allowedSuffixes = isPreview ? [`.vercel.app`] : [];
-    const vercelPrefix = `${vercelSlug}-`;
+    const publicSiteDomain = resolveHostname(resolvePublicSiteUrl());
+    const isLoopbackRedirect = isLoopbackHostname(url.hostname);
 
-    for (const domain of allowedDomains) {
-      if (domain.startsWith(".")) {
-        if (url.hostname.endsWith(domain) || url.hostname === domain.slice(1)) {
-          return true;
-        }
-      } else if (url.hostname === domain) {
-        return true;
-      }
+    if (isLoopbackRedirect) {
+      return isLocalDevelopmentContext();
     }
-    
-    // Check suffix-based allowed domains, scoped to our Vercel project slug
-    for (const suffix of allowedSuffixes) {
-      if (url.hostname.endsWith(suffix) && url.hostname.startsWith(vercelPrefix)) {
-        return true;
-      }
+
+    const allowedDomains = new Set([
+      productionDomain,
+      publicSiteDomain,
+    ].filter((domain): domain is string => !!domain));
+
+    if (allowedDomains.has(url.hostname)) {
+      return true;
     }
 
     logStep("Redirect URL validation failed", {
       redirectUrl: urlToValidate.substring(0, 100),
       hostname: url.hostname,
       productionDomain,
-      isProduction,
-      isPreview,
+      publicSiteDomain,
     });
     return false;
   } catch {

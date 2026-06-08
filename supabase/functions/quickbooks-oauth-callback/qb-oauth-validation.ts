@@ -1,3 +1,5 @@
+import { resolvePublicSiteUrl } from "../_shared/public-site-url.ts";
+
 export const STATE_TTL_MS = 60 * 60 * 1000;
 
 export const logStep = (step: string, details?: Record<string, unknown>) => {
@@ -11,10 +13,26 @@ export const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[QUICKBOOKS-OAUTH-CALLBACK] ${step}${detailsStr}`);
 };
 
+function resolveHostname(urlString: string): string | null {
+  try {
+    return new URL(urlString).hostname;
+  } catch {
+    return null;
+  }
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "127.0.0.1";
+}
+
+function isLocalDevelopmentContext(): boolean {
+  const publicSiteHostname = resolveHostname(resolvePublicSiteUrl());
+  return !!publicSiteHostname && isLoopbackHostname(publicSiteHostname);
+}
+
 /**
- * Validates a redirect URL against allowed domains.
- * Only allows redirects to the same domain as the production URL, relative paths,
- * localhost, or allowed preview domains.
+ * Validates a redirect URL against exact configured app origins.
+ * Loopback redirects are only valid when the public site URL is local/dev.
  */
 export function isValidRedirectUrl(redirectUrl: string | null, productionUrl: string): boolean {
   if (!redirectUrl) {
@@ -28,28 +46,19 @@ export function isValidRedirectUrl(redirectUrl: string | null, productionUrl: st
 
     const url = new URL(redirectUrl);
     const productionDomain = new URL(productionUrl).hostname;
+    const publicSiteDomain = resolveHostname(resolvePublicSiteUrl());
+    const isLoopbackRedirect = isLoopbackHostname(url.hostname);
 
-    if (url.hostname === productionDomain) {
-      return true;
+    if (isLoopbackRedirect) {
+      return isLocalDevelopmentContext();
     }
 
-    const allowedDomains = [
+    const allowedDomains = new Set([
       productionDomain,
-      "localhost",
-      "127.0.0.1",
-    ];
+      publicSiteDomain,
+    ].filter((domain): domain is string => !!domain));
 
-    for (const domain of allowedDomains) {
-      if (url.hostname === domain) {
-        return true;
-      }
-    }
-
-    const vercelSlug = Deno.env.get("VERCEL_PROJECT_SLUG") || "equip-qr";
-    if (
-      url.hostname.endsWith(".vercel.app") &&
-      url.hostname.startsWith(`${vercelSlug}-`)
-    ) {
+    if (allowedDomains.has(url.hostname)) {
       return true;
     }
 
@@ -57,6 +66,7 @@ export function isValidRedirectUrl(redirectUrl: string | null, productionUrl: st
       redirectUrl: redirectUrl.substring(0, 100),
       hostname: url.hostname,
       productionDomain,
+      publicSiteDomain,
     });
     return false;
   } catch {
