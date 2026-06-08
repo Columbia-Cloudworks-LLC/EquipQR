@@ -1,157 +1,16 @@
 /**
  * Organization Service - Canonical service for organization operations
- * 
- * This file consolidates organization-related operations from various sources.
- * Import from here instead of using optimizedOrganizationService.
  */
 
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
-import { fetchOrganizationMembersByRole } from '@/features/organization/services/organizationMemberQueries';
-import type { 
-  OrganizationMemberRecord,
-  OrganizationWithMembership,
-  OrganizationUpdatePayload
-} from '@/features/organization/types/organization';
+import type { OrganizationUpdatePayload } from '@/features/organization/types/organization';
 import {
   uploadImageToStorage,
   deleteImageFromStorage,
   generateSingleFilePath,
   validateImageFile,
 } from '@/services/imageUploadService';
-
-// Re-export types for backward compatibility
-export type { OrganizationUpdatePayload };
-
-// ============================================
-// Organization Query Functions
-// ============================================
-
-/**
- * Get organization by ID
- */
-export const getOrganizationById = async (organizationId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('organizations')
-      .select('*')
-      .eq('id', organizationId)
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    logger.error('Error fetching organization:', error);
-    return null;
-  }
-};
-
-/**
- * Get user's organizations using idx_organization_members_user_status
- */
-export const getUserOrganizations = async (userId: string): Promise<OrganizationWithMembership[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('organization_members')
-      .select(`
-        *,
-        organizations!inner (
-          id,
-          name,
-          plan,
-          member_count,
-          max_members,
-          features,
-          created_at,
-          updated_at
-        )
-      `)
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .order('joined_date', { ascending: false });
-
-    if (error) throw error;
-
-    return (data || []).map(om => ({
-      id: om.organizations.id,
-      name: om.organizations.name,
-      plan: om.organizations.plan,
-      member_count: om.organizations.member_count,
-      max_members: om.organizations.max_members,
-      features: om.organizations.features,
-      created_at: om.organizations.created_at,
-      updated_at: om.organizations.updated_at,
-      user_role: om.role,
-      joined_date: om.joined_date
-    }));
-  } catch (error) {
-    logger.error('Error fetching user organizations:', error);
-    return [];
-  }
-};
-
-/**
- * @deprecated Use getUserOrganizations instead
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const getUserOrganizationsOptimized = getUserOrganizations;
-
-// ============================================
-// Organization Member Functions
-// ============================================
-
-/**
- * Get organization members using organization_id index
- */
-export const getOrganizationMembers = async (organizationId: string): Promise<OrganizationMemberRecord[]> =>
-  fetchOrganizationMembersByRole(organizationId);
-
-/**
- * @deprecated Use getOrganizationMembers instead
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const getOrganizationMembersOptimized = getOrganizationMembers;
-
-/**
- * Get organization admins efficiently
- */
-export const getOrganizationAdmins = async (organizationId: string): Promise<OrganizationMemberRecord[]> =>
-  fetchOrganizationMembersByRole(organizationId, { adminRolesOnly: true });
-
-/**
- * @deprecated Use getOrganizationAdmins instead
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const getOrganizationAdminsOptimized = getOrganizationAdmins;
-
-// ============================================
-// Organization Permission Functions
-// ============================================
-
-/**
- * Check user permissions efficiently using idx_organization_members_user_status
- */
-const checkUserOrgAccess = async (userId: string, organizationId: string): Promise<{ hasAccess: boolean; role?: string }> => {
-  try {
-    const { data, error } = await supabase
-      .from('organization_members')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('organization_id', organizationId)
-      .eq('status', 'active')
-      .single();
-
-    if (error && error.code !== 'PGRST116') throw error;
-    
-    return {
-      hasAccess: !!data,
-      role: data?.role
-    };
-  } catch (error) {
-    logger.error('Error checking user organization access:', error);
-    return { hasAccess: false };
-  }
-};
 
 // ============================================
 // Organization Update Functions
@@ -246,5 +105,3 @@ export const deleteOrganizationLogo = async (
     logger.error('Failed to delete organization logo from storage (DB already cleared):', storageError);
   }
 };
-
-

@@ -1,5 +1,5 @@
 ---
-description: Fallow must run on the current working branch before any commit on this repo.
+description: Fallow must run on the current working branch before any commit on this repo. exitCode=1 is a hard blocker.
 alwaysApply: true
 ---
 
@@ -11,12 +11,25 @@ Before committing any code change in this repository, run Fallow against the **c
 npx --yes fallow@2.88.0 --format json --quiet --summary > tmp\fallow-pre-commit.json 2>$null
 $code = $LASTEXITCODE
 if ($code -ge 2) { throw "Fallow runtime error $code — fix before committing" }
+$issues = (Get-Content tmp\fallow-pre-commit.json | ConvertFrom-Json).check.total_issues
+if ($issues -gt 0) { throw "Fallow found $issues issue(s) — resolve before committing (zero-baseline policy)" }
 ```
+
+## Zero-Baseline Policy
+
+As of PR #1024 (v3.8.2), the `preview` branch was driven to a **clean baseline**:
+
+- **0 unused exports**
+- **0 unused files**
+- **0 duplication clone groups**
+
+This baseline must be preserved on every commit going forward.
 
 ## Rules
 
-- **Never** pass `--base origin/main` or `--changed-since origin/main` for preview-branch debugging. The baseline is always the current working branch state.
-- Review the JSON output in `tmp\fallow-pre-commit.json` and include a one-line summary of the result in the commit notes (e.g. "Fallow: 4 unused-export findings, no dupes, exitCode=0").
-- Do **not** commit if Fallow exits with code `2+` (runtime error — invalid config, parse failure, or dry-run guard); fix the issue first.
-- Exit code `1` (issues found) is not a hard block but must be acknowledged in the plan and addressed when findings were introduced by the current change.
-- Never run `fallow watch` in agent sessions.
+- **`exitCode=1` is a hard blocker.** Any Fallow finding — unused export, unused file, or duplication — must be resolved before committing. This is not optional and not something to "review and proceed."
+- **No `origin/main` baseline.** When debugging the `preview` branch, run Fallow against the current working branch state only. Never pass `--base origin/main` or `--changed-since origin/main` as the baseline for preview work.
+- **Exception for pre-existing findings only.** If a finding was already present on `preview` before the current branch started (e.g. inherited from a dependency update outside your control), document it explicitly in the commit message and plan before pushing. Do not self-grant this exception for code you wrote.
+- **`exitCode=2+` is always a hard blocker** (runtime error — invalid config, parse failure). Fix before committing.
+- **Never run `fallow watch`** in agent sessions.
+- **Include Fallow result in commit notes:** e.g. `Fallow: exitCode=0, total_issues=0`.
