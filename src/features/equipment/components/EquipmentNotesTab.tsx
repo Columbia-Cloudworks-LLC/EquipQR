@@ -168,7 +168,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
 
     await createNoteMutation.mutateAsync({
       content: finalContent,
-      hoursWorked: data.hoursWorked || 0,
+      hoursWorked: 0,
       isPrivate: data.isPrivate || false,
       images: data.images,
       machineHours: data.machineHours

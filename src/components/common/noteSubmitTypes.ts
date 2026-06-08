@@ -2,7 +2,6 @@
 export interface NoteSubmitPayload {
   content: string;
   images: File[];
-  hoursWorked?: number;
   machineHours?: number;
   isPrivate?: boolean;
 }

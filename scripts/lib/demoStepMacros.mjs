@@ -233,7 +233,6 @@ function addCustomAttributeMacro(args) {
  */
 function addEquipmentNoteMacro(args) {
   const content = toText(args?.content) || 'Note added during demo recording.';
-  const hoursWorked = Number.isFinite(Number(args?.hoursWorked)) ? String(args?.hoursWorked) : '';
   const machineHours = Number.isFinite(Number(args?.machineHours)) ? String(args?.machineHours) : '';
 
   const steps = /** @type {DemoActionStep[]} */ ([
@@ -245,15 +244,6 @@ function addEquipmentNoteMacro(args) {
       fallbackSelectors: ['textarea[placeholder*="Enter your note" i]', 'textarea']
     }
   ]);
-
-  if (hoursWorked) {
-    steps.push({
-      type: 'action',
-      action: 'fillNumberInput',
-      name: 'Hours Worked',
-      value: hoursWorked
-    });
-  }
 
   if (machineHours) {
     steps.push({

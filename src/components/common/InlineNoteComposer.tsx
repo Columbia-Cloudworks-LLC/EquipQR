@@ -60,7 +60,6 @@ export interface InlineNoteComposerProps {
   onSubmit: (data: {
     content: string;
     images: File[];
-    hoursWorked?: number;
     machineHours?: number;
     isPrivate?: boolean;
   }) => Promise<void> | void;
@@ -72,8 +71,6 @@ export interface InlineNoteComposerProps {
   onImageRemove?: (index: number) => void;
   /** Whether private note toggle should be shown */
   showPrivateToggle?: boolean;
-  /** Whether hours worked input should be shown */
-  showHoursWorked?: boolean;
   /** Whether machine hours input should be shown */
   showMachineHours?: boolean;
   /** Whether the form is disabled */
@@ -102,7 +99,6 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
   onImagesAdd,
   onImageRemove,
   showPrivateToggle = false,
-  showHoursWorked = false,
   showMachineHours = false,
   disabled = false,
   isSubmitting = false,
@@ -113,7 +109,6 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
   userDisplayName,
   requestAttachTrigger,
 }) => {
-  const [hoursWorked, setHoursWorked] = useState<number>(0);
   const [machineHours, setMachineHours] = useState<number>(0);
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
   const [dragActive, setDragActive] = useState(false);
@@ -266,20 +261,18 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
       await onSubmit({
         content: value.trim(),
         images: attachedImages,
-        hoursWorked: showHoursWorked ? hoursWorked : undefined,
         machineHours: showMachineHours ? machineHours : undefined,
         isPrivate: showPrivateToggle ? isPrivate : undefined,
       });
       
       // Reset form after successful submit
-      setHoursWorked(0);
       setMachineHours(0);
       setIsPrivate(false);
     } catch (error) {
       // Error handling is done by parent component
       logger.error('Failed to submit note', error);
     }
-  }, [value, attachedImages, hoursWorked, machineHours, isPrivate, showHoursWorked, showMachineHours, showPrivateToggle, onSubmit]);
+  }, [value, attachedImages, machineHours, isPrivate, showMachineHours, showPrivateToggle, onSubmit]);
 
   const handleAttachClick = useCallback(() => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -390,28 +383,8 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
       )}
 
       {/* Optional Fields Row */}
-      {(showHoursWorked || showMachineHours || showPrivateToggle) && (
+      {(showMachineHours || showPrivateToggle) && (
         <div className="flex flex-wrap items-center gap-3 text-sm">
-          {showHoursWorked && (
-            <div className="flex items-center gap-2">
-              <Label htmlFor="hours-worked" className="text-xs text-muted-foreground whitespace-nowrap">
-                Hours Worked:
-              </Label>
-              <Input
-                id="hours-worked"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.5"
-                placeholder="0.0"
-                value={hoursWorked || ''}
-                onChange={(e) => setHoursWorked(parseFloat(e.target.value) || 0)}
-                disabled={disabled || isSubmitting}
-                className="h-8 w-20"
-              />
-            </div>
-          )}
-          
           {showMachineHours && (
             <div className="flex items-center gap-2">
               <Label htmlFor="machine-hours" className="text-xs text-muted-foreground whitespace-nowrap">

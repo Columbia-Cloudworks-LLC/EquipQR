@@ -148,7 +148,6 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
       logger.debug('handleNoteSubmit called', { 
         contentLength: data.content.length,
         imageCount: data.images.length,
-        hoursWorked: data.hoursWorked,
         machineHours: data.machineHours,
         isPrivate: data.isPrivate
       });
@@ -181,7 +180,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
     try {
       await createNoteMutation.mutateAsync({
         content: finalContent,
-        hoursWorked: submitData.hoursWorked || 0,
+        hoursWorked: 0,
         isPrivate: submitData.isPrivate || false,
         images: submitData.images,
         machineHours: submitData.machineHours
