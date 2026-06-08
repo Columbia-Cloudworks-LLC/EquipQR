@@ -47,7 +47,7 @@ export interface SlotAvailability {
   current_period_end: string;
 }
 
-const useOrganizationSlots = (organizationId: string) => {
+export const useOrganizationSlots = (organizationId: string) => {
   return useQuery({
     queryKey: ['organization-slots', organizationId],
     queryFn: async (): Promise<OrganizationSlot[]> => [],
@@ -56,7 +56,7 @@ const useOrganizationSlots = (organizationId: string) => {
   });
 };
 
-const useSlotAvailability = (organizationId: string) => {
+export const useSlotAvailability = (organizationId: string) => {
   return useQuery({
     queryKey: ['slot-availability', organizationId],
     queryFn: async (): Promise<SlotAvailability> => ({
@@ -72,7 +72,7 @@ const useSlotAvailability = (organizationId: string) => {
   });
 };
 
-const useSlotPurchases = (organizationId: string) => {
+export const useSlotPurchases = (organizationId: string) => {
   return useQuery({
     queryKey: ['slot-purchases', organizationId],
     queryFn: async (): Promise<SlotPurchase[]> => [],

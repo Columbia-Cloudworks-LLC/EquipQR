@@ -26,6 +26,10 @@ export interface ExportResult {
 
 export type UserSupabaseClient = SupabaseClient;
 
+function isMissingRelationError(error: { code?: string } | null): boolean {
+  return error?.code === "42P01";
+}
+
 /**
  * Check rate limits for export requests.
  * - Max 5 exports per user per minute
@@ -38,32 +42,47 @@ export async function checkRateLimit(
 ): Promise<boolean> {
   const { error: tableCheckError } = await supabase
     .from("export_request_log")
-    .select("id")
+    .select("id", { head: true, count: "exact" })
     .limit(1);
 
   if (tableCheckError) {
-    console.log("export_request_log table not found, skipping rate limit check");
-    return true;
+    if (isMissingRelationError(tableCheckError)) {
+      console.log("export_request_log table not found, skipping rate limit check");
+      return true;
+    }
+
+    console.error("[export-report] rate limit probe failed", { code: tableCheckError.code });
+    return false;
   }
 
   const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
-  const { count: userCount } = await supabase
+  const { count: userCount, error: userCountError } = await supabase
     .from("export_request_log")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
     .gte("requested_at", oneMinuteAgo);
 
+  if (userCountError) {
+    console.error("[export-report] user rate limit count failed", { code: userCountError.code });
+    return false;
+  }
+
   if ((userCount ?? 0) >= 5) {
     return false;
   }
 
-  const { count: orgCount } = await supabase
+  const { count: orgCount, error: orgCountError } = await supabase
     .from("export_request_log")
     .select("*", { count: "exact", head: true })
     .eq("organization_id", organizationId)
     .gte("requested_at", oneHourAgo);
+
+  if (orgCountError) {
+    console.error("[export-report] org rate limit count failed", { code: orgCountError.code });
+    return false;
+  }
 
   if ((orgCount ?? 0) >= 50) {
     return false;
@@ -71,3 +90,7 @@ export async function checkRateLimit(
 
   return true;
 }
+
+export const __rateLimitTestables = {
+  isMissingRelationError,
+};
