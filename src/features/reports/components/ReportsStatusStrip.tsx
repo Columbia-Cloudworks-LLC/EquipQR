@@ -3,11 +3,12 @@ import { Badge } from '@/components/ui/badge';
 import { Building2, ShieldCheck, Cloud, Gauge } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const EXPORT_RATE_LIMIT_SUMMARY = '5 per minute, 50 per hour';
+
 export interface ReportsStatusStripProps {
   organizationName: string;
   canExport: boolean;
   isGoogleWorkspaceConnected: boolean;
-  rateLimitSummary?: string;
   className?: string;
 }
 
@@ -18,7 +19,6 @@ export const ReportsStatusStrip: React.FC<ReportsStatusStripProps> = ({
   organizationName,
   canExport,
   isGoogleWorkspaceConnected,
-  rateLimitSummary = 'Rate-limited',
   className,
 }) => {
   return (
@@ -65,7 +65,7 @@ export const ReportsStatusStrip: React.FC<ReportsStatusStripProps> = ({
         label="RATE LIMIT"
         value={
           <span className="font-tabular text-xs text-muted-foreground">
-            {rateLimitSummary}
+            {EXPORT_RATE_LIMIT_SUMMARY}
           </span>
         }
       />
