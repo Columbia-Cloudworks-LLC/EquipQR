@@ -15,6 +15,7 @@ import ClickableAddress from '@/components/ui/ClickableAddress';
 import GooglePlacesAutocomplete, { type PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import type { EquipmentTeamSummary } from '@/features/equipment/services/EquipmentService';
 import {
+  desktopHoverEditIconClassName,
   inlineEditIconClassName,
   mobileInlineEditRowExtrasClassName,
   mobileInlineEditValueClassName,
@@ -206,7 +207,7 @@ export const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
         <div
           className={cn(
             'mt-1 flex w-full min-w-0 items-center',
-            isMobile ? mobileInlineEditRowExtrasClassName : 'gap-2',
+            isMobile ? mobileInlineEditRowExtrasClassName : 'group gap-2',
           )}
         >
           <div className={cn('flex min-w-0 items-center gap-2', isMobile && mobileInlineEditValueClassName)}>
@@ -223,7 +224,7 @@ export const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
               variant="ghost"
               size="sm"
               onClick={onStartEdit}
-              className={inlineEditIconClassName}
+              className={isMobile ? inlineEditIconClassName : desktopHoverEditIconClassName}
               aria-label="Edit location"
             >
               <Edit2 className="h-3.5 w-3.5" />
@@ -242,7 +243,7 @@ export const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
         <div
           className={cn(
             'mt-1 flex w-full min-w-0 items-center',
-            isMobile ? mobileInlineEditRowExtrasClassName : 'gap-2',
+            isMobile ? mobileInlineEditRowExtrasClassName : 'group gap-2',
           )}
         >
           <div className={cn('flex min-w-0 items-center gap-2', isMobile && mobileInlineEditValueClassName)}>
@@ -254,7 +255,7 @@ export const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
               variant="ghost"
               size="sm"
               onClick={onStartEdit}
-              className={inlineEditIconClassName}
+              className={isMobile ? inlineEditIconClassName : desktopHoverEditIconClassName}
               aria-label="Edit location"
             >
               <Edit2 className="h-3.5 w-3.5" />
