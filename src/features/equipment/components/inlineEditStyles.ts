@@ -10,7 +10,7 @@ export const desktopHoverEditIconClassName = cn(
 
 export const responsiveHoverEditIconClassName = cn(
   inlineEditIconClassName,
-  'sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 sm:focus-visible:opacity-100',
+  'md:opacity-0 md:transition-opacity md:group-hover:opacity-100 md:group-focus-within:opacity-100 md:focus-visible:opacity-100',
 );
 
 /** Applied with a base flex row on mobile to push the edit trigger to the card edge. */
