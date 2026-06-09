@@ -573,6 +573,7 @@ export type Database = {
           address_state: string | null
           address_street: string | null
           changed_by: string | null
+          changed_by_name: string | null
           created_at: string
           equipment_id: string
           formatted_address: string | null
@@ -588,6 +589,7 @@ export type Database = {
           address_state?: string | null
           address_street?: string | null
           changed_by?: string | null
+          changed_by_name?: string | null
           created_at?: string
           equipment_id: string
           formatted_address?: string | null
@@ -603,6 +605,7 @@ export type Database = {
           address_state?: string | null
           address_street?: string | null
           changed_by?: string | null
+          changed_by_name?: string | null
           created_at?: string
           equipment_id?: string
           formatted_address?: string | null
@@ -685,7 +688,7 @@ export type Database = {
       }
       equipment_notes: {
         Row: {
-          author_id: string
+          author_id: string | null
           author_name: string | null
           content: string
           created_at: string
@@ -699,7 +702,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          author_id: string
+          author_id?: string | null
           author_name?: string | null
           content: string
           created_at?: string
@@ -713,7 +716,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          author_id?: string
+          author_id?: string | null
           author_name?: string | null
           content?: string
           created_at?: string
@@ -798,6 +801,7 @@ export type Database = {
         Row: {
           changed_at: string
           changed_by: string | null
+          changed_by_name: string | null
           equipment_id: string
           id: string
           new_status: string
@@ -806,6 +810,7 @@ export type Database = {
         Insert: {
           changed_at?: string
           changed_by?: string | null
+          changed_by_name?: string | null
           equipment_id: string
           id?: string
           new_status: string
@@ -814,6 +819,7 @@ export type Database = {
         Update: {
           changed_at?: string
           changed_by?: string | null
+          changed_by_name?: string | null
           equipment_id?: string
           id?: string
           new_status?: string
@@ -1186,7 +1192,7 @@ export type Database = {
           inventory_item_id: string
           mime_type: string | null
           organization_id: string
-          uploaded_by: string
+          uploaded_by: string | null
           uploaded_by_name: string | null
         }
         Insert: {
@@ -1198,7 +1204,7 @@ export type Database = {
           inventory_item_id: string
           mime_type?: string | null
           organization_id: string
-          uploaded_by: string
+          uploaded_by?: string | null
           uploaded_by_name?: string | null
         }
         Update: {
@@ -1210,7 +1216,7 @@ export type Database = {
           inventory_item_id?: string
           mime_type?: string | null
           organization_id?: string
-          uploaded_by?: string
+          uploaded_by?: string | null
           uploaded_by_name?: string | null
         }
         Relationships: [
@@ -1247,7 +1253,8 @@ export type Database = {
       inventory_items: {
         Row: {
           created_at: string
-          created_by: string
+          created_by: string | null
+          created_by_name: string | null
           default_unit_cost: number | null
           description: string | null
           external_id: string | null
@@ -1263,7 +1270,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          created_by: string
+          created_by?: string | null
+          created_by_name?: string | null
           default_unit_cost?: number | null
           description?: string | null
           external_id?: string | null
@@ -1279,7 +1287,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          created_by?: string
+          created_by?: string | null
+          created_by_name?: string | null
           default_unit_cost?: number | null
           description?: string | null
           external_id?: string | null
@@ -1314,7 +1323,7 @@ export type Database = {
           organization_id: string
           previous_quantity: number
           transaction_type: Database["public"]["Enums"]["inventory_transaction_type"]
-          user_id: string
+          user_id: string | null
           user_name: string | null
           work_order_id: string | null
         }
@@ -1328,7 +1337,7 @@ export type Database = {
           organization_id: string
           previous_quantity: number
           transaction_type: Database["public"]["Enums"]["inventory_transaction_type"]
-          user_id: string
+          user_id?: string | null
           user_name?: string | null
           work_order_id?: string | null
         }
@@ -1342,7 +1351,7 @@ export type Database = {
           organization_id?: string
           previous_quantity?: number
           transaction_type?: Database["public"]["Enums"]["inventory_transaction_type"]
-          user_id?: string
+          user_id?: string | null
           user_name?: string | null
           work_order_id?: string | null
         }
@@ -2101,7 +2110,8 @@ export type Database = {
       part_alternate_groups: {
         Row: {
           created_at: string
-          created_by: string
+          created_by: string | null
+          created_by_name: string | null
           description: string | null
           evidence_url: string | null
           id: string
@@ -2112,10 +2122,12 @@ export type Database = {
           updated_at: string
           verified_at: string | null
           verified_by: string | null
+          verified_by_name: string | null
         }
         Insert: {
           created_at?: string
-          created_by: string
+          created_by?: string | null
+          created_by_name?: string | null
           description?: string | null
           evidence_url?: string | null
           id?: string
@@ -2126,10 +2138,12 @@ export type Database = {
           updated_at?: string
           verified_at?: string | null
           verified_by?: string | null
+          verified_by_name?: string | null
         }
         Update: {
           created_at?: string
-          created_by?: string
+          created_by?: string | null
+          created_by_name?: string | null
           description?: string | null
           evidence_url?: string | null
           id?: string
@@ -2140,6 +2154,7 @@ export type Database = {
           updated_at?: string
           verified_at?: string | null
           verified_by?: string | null
+          verified_by_name?: string | null
         }
         Relationships: [
           {
@@ -2222,7 +2237,8 @@ export type Database = {
       part_identifiers: {
         Row: {
           created_at: string
-          created_by: string
+          created_by: string | null
+          created_by_name: string | null
           id: string
           identifier_type: Database["public"]["Enums"]["part_identifier_type"]
           inventory_item_id: string | null
@@ -2234,7 +2250,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          created_by: string
+          created_by?: string | null
+          created_by_name?: string | null
           id?: string
           identifier_type: Database["public"]["Enums"]["part_identifier_type"]
           inventory_item_id?: string | null
@@ -2246,7 +2263,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          created_by?: string
+          created_by?: string | null
+          created_by_name?: string | null
           id?: string
           identifier_type?: Database["public"]["Enums"]["part_identifier_type"]
           inventory_item_id?: string | null
@@ -2409,10 +2427,126 @@ export type Database = {
           },
         ]
       }
+      pm_interval_policies: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          equipment_id: string | null
+          id: string
+          interval_type: string | null
+          interval_value: number | null
+          organization_id: string
+          pm_template_id: string | null
+          policy_slot: string
+          schedule_mode: string
+          scope_type: string
+          team_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          equipment_id?: string | null
+          id?: string
+          interval_type?: string | null
+          interval_value?: number | null
+          organization_id: string
+          pm_template_id?: string | null
+          policy_slot?: string
+          schedule_mode: string
+          scope_type: string
+          team_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          equipment_id?: string | null
+          id?: string
+          interval_type?: string | null
+          interval_value?: number | null
+          organization_id?: string
+          pm_template_id?: string | null
+          policy_slot?: string
+          schedule_mode?: string
+          scope_type?: string
+          team_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pm_interval_policies_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pm_interval_policies_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pm_interval_policies_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pm_interval_policies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pm_interval_policies_pm_template_id_fkey"
+            columns: ["pm_template_id"]
+            isOneToOne: false
+            referencedRelation: "pm_checklist_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pm_interval_policies_pm_template_id_fkey"
+            columns: ["pm_template_id"]
+            isOneToOne: false
+            referencedRelation: "pm_templates_check"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pm_interval_policies_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pm_interval_policies_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pm_interval_policies_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       pm_status_history: {
         Row: {
           changed_at: string
           changed_by: string
+          changed_by_name: string | null
           created_at: string
           id: string
           metadata: Json | null
@@ -2424,6 +2558,7 @@ export type Database = {
         Insert: {
           changed_at?: string
           changed_by: string
+          changed_by_name?: string | null
           created_at?: string
           id?: string
           metadata?: Json | null
@@ -2435,6 +2570,7 @@ export type Database = {
         Update: {
           changed_at?: string
           changed_by?: string
+          changed_by_name?: string | null
           created_at?: string
           id?: string
           metadata?: Json | null
@@ -2628,6 +2764,8 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_reason: string | null
           email: string | null
           email_private: boolean | null
           id: string
@@ -2638,6 +2776,8 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_reason?: string | null
           email?: string | null
           email_private?: boolean | null
           id: string
@@ -2648,6 +2788,8 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_reason?: string | null
           email?: string | null
           email_private?: boolean | null
           id?: string
@@ -2812,53 +2954,6 @@ export type Database = {
           },
         ]
       }
-      quickbooks_oauth_sessions: {
-        Row: {
-          created_at: string
-          expires_at: string
-          id: string
-          nonce: string
-          organization_id: string
-          origin_url: string | null
-          redirect_url: string | null
-          session_token: string
-          used_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          expires_at: string
-          id?: string
-          nonce: string
-          organization_id: string
-          origin_url?: string | null
-          redirect_url?: string | null
-          session_token: string
-          used_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string
-          id?: string
-          nonce?: string
-          organization_id?: string
-          origin_url?: string | null
-          redirect_url?: string | null
-          session_token?: string
-          used_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "quickbooks_oauth_sessions_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       quickbooks_invoice_status_events: {
         Row: {
           attempts: number
@@ -2911,6 +3006,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "quickbooks_invoice_status_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quickbooks_oauth_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          nonce: string
+          organization_id: string
+          origin_url: string | null
+          redirect_url: string | null
+          session_token: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          nonce: string
+          organization_id: string
+          origin_url?: string | null
+          redirect_url?: string | null
+          session_token: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          nonce?: string
+          organization_id?: string
+          origin_url?: string | null
+          redirect_url?: string | null
+          session_token?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quickbooks_oauth_sessions_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -3079,6 +3221,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scan_follow_up_events_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "scan_follow_up_events_scan_id_fkey"
@@ -3276,33 +3425,36 @@ export type Database = {
       terms_acceptances: {
         Row: {
           accepted_at: string
+          accepted_by_email: string | null
           created_at: string
           id: string
           ip_address: string
           privacy_version_hash: string
           terms_version_hash: string
           user_agent: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           accepted_at: string
+          accepted_by_email?: string | null
           created_at?: string
           id?: string
           ip_address: string
           privacy_version_hash: string
           terms_version_hash: string
           user_agent: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           accepted_at?: string
+          accepted_by_email?: string | null
           created_at?: string
           id?: string
           ip_address?: string
           privacy_version_hash?: string
           terms_version_hash?: string
           user_agent?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -3646,7 +3798,7 @@ export type Database = {
       }
       work_order_notes: {
         Row: {
-          author_id: string
+          author_id: string | null
           author_name: string | null
           content: string
           created_at: string
@@ -3658,7 +3810,7 @@ export type Database = {
           work_order_id: string
         }
         Insert: {
-          author_id: string
+          author_id?: string | null
           author_name?: string | null
           content: string
           created_at?: string
@@ -3670,7 +3822,7 @@ export type Database = {
           work_order_id: string
         }
         Update: {
-          author_id?: string
+          author_id?: string | null
           author_name?: string | null
           content?: string
           created_at?: string
@@ -4127,6 +4279,10 @@ export type Database = {
         Args: { p_email: string }
         Returns: number
       }
+      apply_account_deletion_storage_metadata: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       apply_pending_admin_grants_for_user: {
         Args: { p_user_id: string }
         Returns: number
@@ -4239,6 +4395,18 @@ export type Database = {
       check_team_role_secure: {
         Args: { required_role: string; team_uuid: string; user_uuid: string }
         Returns: boolean
+      }
+      claim_quickbooks_invoice_status_events: {
+        Args: { p_batch_size: number }
+        Returns: {
+          attempts: number
+          entity_id: string
+          entity_name: string
+          id: string
+          operation: string
+          organization_id: string
+          realm_id: string
+        }[]
       }
       cleanup_expired_gws_oauth_sessions: { Args: never; Returns: number }
       cleanup_expired_invitations: { Args: never; Returns: number }
@@ -4539,6 +4707,16 @@ export type Database = {
           name: string
           serial_number: string
           status: string
+        }[]
+      }
+      get_effective_pm_interval_policy_for_equipment: {
+        Args: { p_equipment_id: string }
+        Returns: {
+          interval_type: string | null
+          interval_value: number | null
+          schedule_mode: string
+          source: string
+          template_name: string | null
         }[]
       }
       get_equipment_pm_status: {
@@ -4876,6 +5054,7 @@ export type Database = {
         Returns: Json
       }
       invoke_queue_worker: { Args: never; Returns: undefined }
+      invoke_quickbooks_invoice_status_sync: { Args: never; Returns: undefined }
       invoke_quickbooks_token_refresh: { Args: never; Returns: undefined }
       is_org_admin: {
         Args: { org_id: string; user_uuid: string }
@@ -5042,10 +5221,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      prepare_account_deletion: {
+        Args: {
+          p_actor_id?: string
+          p_dsr_request_id?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       preserve_user_attribution: {
         Args: { user_uuid: string }
         Returns: undefined
       }
+      preview_account_deletion: { Args: { p_user_id: string }; Returns: Json }
       process_all_pending_departures: { Args: never; Returns: Json }
       process_departure_batch: {
         Args: { p_batch_size?: number; p_queue_id: string }
@@ -5086,6 +5274,15 @@ export type Database = {
       reserve_slot_for_invitation: {
         Args: { invitation_id: string; org_id: string }
         Returns: boolean
+      }
+      resolve_effective_pm_interval_policy: {
+        Args: { p_equipment_id: string }
+        Returns: {
+          interval_type: string
+          interval_value: number
+          source: string
+          template_name: string
+        }[]
       }
       respond_to_ownership_transfer: {
         Args: {
@@ -5130,6 +5327,10 @@ export type Database = {
           work_order_team_id: string
         }
         Returns: boolean
+      }
+      snapshot_account_deletion_attribution: {
+        Args: { p_user_id: string }
+        Returns: undefined
       }
       trigger_departure_processing: { Args: never; Returns: Json }
       update_equipment_working_hours: {
@@ -5350,7 +5551,7 @@ export type CompositeTypes<
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
-const Constants = {
+export const Constants = {
   graphql_public: {
     Enums: {},
   },

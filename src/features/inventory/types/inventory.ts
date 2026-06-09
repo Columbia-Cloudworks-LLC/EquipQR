@@ -311,6 +311,37 @@ export interface InventoryQuantityAdjustment {
   workOrderId?: string;
 }
 
+export type InventoryTableDensity = 'compact' | 'comfortable';
+
+export type InventoryQuickFilterKey =
+  | 'low-stock'
+  | 'out-of-stock'
+  | 'negative-stock'
+  | 'has-alternates'
+  | 'missing-location'
+  | 'missing-unit-cost'
+  | 'missing-sku'
+  | 'missing-data'
+  | 'recently-adjusted'
+  | 'reorder-needed';
+
+export type InventorySortField =
+  | 'name'
+  | 'sku'
+  | 'external_id'
+  | 'quantity_on_hand'
+  | 'low_stock_threshold'
+  | 'location'
+  | 'default_unit_cost'
+  | 'status'
+  | 'alternate_groups'
+  | 'created_at'
+  | 'updated_at'
+  | 'last_adjusted_at'
+  | 'inventory_value'
+  | 'reorder_priority'
+  | 'missing_data';
+
 /**
  * InventoryFilters - Filter options for inventory list
  */
@@ -319,8 +350,42 @@ export interface InventoryFilters {
   lowStockOnly?: boolean;
   location?: string;
   equipmentId?: string;
-  sortBy?: 'name' | 'sku' | 'external_id' | 'quantity_on_hand' | 'location' | 'status';
+  sortBy?: InventorySortField;
   sortOrder?: 'asc' | 'desc';
+}
+
+export interface InventoryListMetadata {
+  uniqueLocations: string[];
+  totalCount: number;
+  negativeStockCount: number;
+  outOfStockCount: number;
+  lowStockCount: number;
+  healthyCount: number;
+  missingLocationCount: number;
+  missingUnitCostCount: number;
+  missingSkuCount: number;
+  estimatedInventoryValue: number;
+}
+
+export interface InventorySavedView {
+  id: string;
+  name: string;
+  filters: InventoryFilters;
+  quickFilters: InventoryQuickFilterKey[];
+  columnVisibility: Record<string, boolean>;
+  columnOrder: string[];
+  columnSizing: Record<string, number>;
+  density: InventoryTableDensity;
+}
+
+export interface InventoryTablePreferences {
+  version: number;
+  columnVisibility: Record<string, boolean>;
+  columnOrder: string[];
+  columnSizing: Record<string, number>;
+  density: InventoryTableDensity;
+  savedViews: InventorySavedView[];
+  activeViewId?: string;
 }
 
 // ============================================

@@ -4,10 +4,9 @@ import {
   workOrders,
   workOrderEquipment,
   workOrderMetrics,
-  workOrderExports,
   exportArtifacts,
 } from './workOrders';
-import { preventiveMaintenance, pmTemplates, pmTemplateMatching, pmStatus } from './pm';
+import { preventiveMaintenance, pmTemplates, pmTemplateMatching, pmStatus, pmIntervalPolicies } from './pm';
 import { quickBooks, googleWorkspace } from './integrations';
 import { notifications, inventory, tickets } from './misc';
 
@@ -33,5 +32,6 @@ export const queryKeys = {
   tickets,
   dashboardPreferences,
   pmStatus,
+  pmIntervalPolicies,
   exportArtifacts,
 };

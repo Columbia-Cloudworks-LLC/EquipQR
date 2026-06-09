@@ -25,6 +25,7 @@ import DeleteTeamDialog from '@/features/teams/components/DeleteTeamDialog';
 import TeamRecentEquipment from '@/features/teams/components/TeamRecentEquipment';
 import TeamRecentWorkOrders from '@/features/teams/components/TeamRecentWorkOrders';
 import TeamLocationCard from '@/features/teams/components/TeamLocationCard';
+import { TeamPMScheduleCard } from '@/features/teams/components/TeamPMScheduleCard';
 import CustomerAccountCard from '@/features/teams/components/CustomerAccountCard';
 import ExternalContactsList from '@/features/teams/components/ExternalContactsList';
 
@@ -261,6 +262,8 @@ const TeamDetails = () => {
         canEdit={canEdit}
         onEditClick={() => setShowMetadataEditor(true)}
       />
+
+      <TeamPMScheduleCard organizationId={currentOrganization.id} teamId={team.id} />
 
       {/* Team Activity Summary */}
       <TeamActivitySummary

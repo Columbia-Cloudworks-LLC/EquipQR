@@ -36,6 +36,8 @@ interface WorkOrderFormProps {
   isUpdating?: boolean;
   /** PM data for edit mode to default template selection */
   pmData?: { template_id?: string | null } | null;
+  /** Pre-select PM checklist mode when creating from equipment quick actions */
+  initialHasPM?: boolean;
 }
 
 const WorkOrderForm: React.FC<WorkOrderFormProps> = ({ 
@@ -46,7 +48,8 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
   onSubmit,
   initialIsHistorical = false,
   isUpdating = false,
-  pmData
+  pmData,
+  initialHasPM = false,
 }) => {
   const { currentOrganization } = useOrganization();
   const { getUserTeamIds } = useSession();
@@ -67,7 +70,8 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
     equipmentId,
     isOpen: open,
     initialIsHistorical,
-    pmData
+    initialHasPM,
+    pmData,
   });
 
   const { allEquipment, preSelectedEquipment, isEquipmentPreSelected } = useEquipmentSelection({

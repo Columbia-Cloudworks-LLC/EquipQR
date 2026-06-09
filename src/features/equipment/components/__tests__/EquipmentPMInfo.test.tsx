@@ -1,15 +1,47 @@
 import React from 'react';
 import { render, screen, waitFor } from '@/test/utils/test-utils';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Tables } from '@/integrations/supabase/types';
 import EquipmentPMInfo from '../EquipmentPMInfo';
 
-// Mock the service function - hoisted to avoid initialization issues
+const mockEquipment = {
+  id: 'eq-1',
+  organization_id: 'org-1',
+  default_pm_template_id: null,
+} as Tables<'equipment'>;
+
+const defaultProps = {
+  equipment: mockEquipment,
+  canEdit: false,
+  pmTemplateFieldId: 'equipment-pm-template-eq-1',
+  pmTemplateOptions: [{ value: 'none', label: 'None' }],
+  onPMTemplateAssignment: vi.fn(),
+  getCurrentPMTemplateDisplay: () => 'None',
+  getCurrentTeamDisplay: () => 'Unassigned',
+};
+
 const { mockGetLatestCompletedPM } = vi.hoisted(() => ({
-  mockGetLatestCompletedPM: vi.fn()
+  mockGetLatestCompletedPM: vi.fn(),
 }));
 
 vi.mock('@/features/pm-templates/services/preventativeMaintenanceService', () => ({
-  getLatestCompletedPM: mockGetLatestCompletedPM
+  getLatestCompletedPM: mockGetLatestCompletedPM,
+}));
+
+vi.mock('@/features/equipment/hooks/useEquipmentPMStatus', () => ({
+  useEquipmentPMStatus: vi.fn(() => ({ data: null, isLoading: false })),
+  getPMComplianceLevel: vi.fn(() => 'no_interval'),
+}));
+
+vi.mock('../EquipmentPMConfigFields', () => ({
+  EquipmentPMConfigFields: () => <div data-testid="pm-config-fields">PM config</div>,
+}));
+
+vi.mock('@/features/work-orders/components/PMProgressIndicator', () => ({
+  default: ({ workOrderId }: { workOrderId: string }) => (
+    <div data-testid="pm-progress" data-work-order-id={workOrderId} />
+  ),
 }));
 
 describe('EquipmentPMInfo', () => {
@@ -20,46 +52,63 @@ describe('EquipmentPMInfo', () => {
   describe('Core Rendering', () => {
     it('renders loading state initially', () => {
       mockGetLatestCompletedPM.mockResolvedValue(null);
-      
-      render(<EquipmentPMInfo equipmentId="eq-1" organizationId="org-1" />);
-      
-      // Should show the PM title in loading state
+
+      render(<EquipmentPMInfo {...defaultProps} />);
+
       expect(screen.getByText('Preventative Maintenance')).toBeInTheDocument();
+      expect(screen.getByTestId('pm-config-fields')).toBeInTheDocument();
     });
 
     it('renders no PM found message when no PM data exists', async () => {
       mockGetLatestCompletedPM.mockResolvedValue(null);
-      
-      render(<EquipmentPMInfo equipmentId="eq-1" organizationId="org-1" />);
-      
-      // Wait for loading to complete
+
+      render(<EquipmentPMInfo {...defaultProps} />);
+
       await waitFor(() => {
-        expect(screen.getByText('No PM records found. Create a work order with PM to start tracking.')).toBeInTheDocument();
+        expect(screen.getByText(/No PM records found\./)).toBeInTheDocument();
+        expect(screen.getByText(/Create a work order with PM/)).toBeInTheDocument();
       });
+    });
+
+    it('opens PM work order creation when the empty-state link is clicked', async () => {
+      mockGetLatestCompletedPM.mockResolvedValue(null);
+      const onCreatePMWorkOrder = vi.fn();
+      const user = userEvent.setup();
+
+      render(<EquipmentPMInfo {...defaultProps} onCreatePMWorkOrder={onCreatePMWorkOrder} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Create a work order with PM' })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Create a work order with PM' }));
+
+      expect(onCreatePMWorkOrder).toHaveBeenCalledTimes(1);
     });
 
     it('renders PM information when PM data exists', async () => {
       const mockPMData = {
         id: 'pm-1',
+        work_order_id: 'wo-123',
         completed_at: '2024-01-15T10:00:00Z',
-        work_order_title: 'Scheduled Maintenance WO-123'
+        work_order_title: 'Scheduled Maintenance WO-123',
       };
-      
+
       mockGetLatestCompletedPM.mockResolvedValue(mockPMData);
-      
-      render(<EquipmentPMInfo equipmentId="eq-1" organizationId="org-1" />);
-      
-      // Wait for data to load (content that only appears when PM data is loaded)
+
+      render(<EquipmentPMInfo {...defaultProps} />);
+
       await waitFor(() => {
         expect(screen.getByText('Last PM')).toBeInTheDocument();
       });
-      
-      // Verify card and work order are displayed
+
       expect(screen.getByText('Preventative Maintenance')).toBeInTheDocument();
       expect(screen.getByText('Work Order')).toBeInTheDocument();
-      expect(screen.getByText('Scheduled Maintenance WO-123')).toBeInTheDocument();
-      
-      // Verify status badge (no interval -> Completed)
+
+      const workOrderLink = screen.getByRole('link', { name: 'Scheduled Maintenance WO-123' });
+      expect(workOrderLink).toHaveAttribute('href', '/dashboard/work-orders/wo-123?action=pm');
+
+      expect(screen.getByTestId('pm-progress')).toHaveAttribute('data-work-order-id', 'wo-123');
       expect(screen.getByText('Completed')).toBeInTheDocument();
     });
   });

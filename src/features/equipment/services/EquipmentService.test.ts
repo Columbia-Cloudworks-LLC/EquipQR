@@ -10,12 +10,23 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 vi.mock('@/services/imageUploadService', () => ({
   batchResolveEquipmentDisplayImageUrls: vi.fn((refs: (string | null | undefined)[]) =>
-    Promise.resolve(refs.map(ref => ref ?? null))
+    Promise.resolve(refs.map(ref => (ref ? 'https://signed.example/equipment.jpg' : null)))
   ),
   withResolvedEquipmentImages: vi.fn(<T extends { image_url?: string | null }>(rows: T[]) =>
-    Promise.resolve(rows)
+    Promise.resolve(rows.map(row => ({
+      ...row,
+      image_url: row.image_url ? 'https://signed.example/equipment.jpg' : row.image_url ?? null,
+    })))
   ),
 }));
+
+vi.mock('@/features/equipment/utils/equipmentTeamFlatten', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/features/equipment/utils/equipmentTeamFlatten')>();
+  return {
+    ...actual,
+    flattenAndResolveEquipmentImages: vi.fn(actual.flattenAndResolveEquipmentImages),
+  };
+});
 
 const { supabase } = await import('@/integrations/supabase/client');
 
@@ -329,6 +340,42 @@ describe('EquipmentService', () => {
       expect(selectArg).toContain('id');
       expect(selectArg).toContain('warranty_expiration');
       expect(selectArg).toContain('team:team_id(id, name)');
+    });
+
+    it('resolves equipment images before returning paginated rows', async () => {
+      const { flattenAndResolveEquipmentImages } = await import(
+        '@/features/equipment/utils/equipmentTeamFlatten'
+      );
+      const mockRows = [
+        {
+          id: 'eq-1',
+          name: 'Forklift',
+          organization_id: organizationId,
+          status: 'active',
+          image_url: 'org/equipment/eq-1/photo.jpg',
+          team: { id: 't1', name: 'Crew' },
+        },
+      ];
+      const mockQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        in: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        or: vi.fn().mockReturnThis(),
+        gte: vi.fn().mockReturnThis(),
+        lte: vi.fn().mockReturnThis(),
+        lt: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        range: vi.fn().mockResolvedValue({ data: mockRows, count: 1, error: null }),
+      };
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+
+      const result = await EquipmentService.getFilteredList(organizationId, {}, { page: 1, pageSize: 10 });
+
+      expect(flattenAndResolveEquipmentImages).toHaveBeenCalledWith(mockRows);
+      expect(result.success).toBe(true);
+      expect(result.data?.data[0].image_url).toBe('https://signed.example/equipment.jpg');
+      expect(result.data?.data[0].team_name).toBe('Crew');
     });
   });
 });

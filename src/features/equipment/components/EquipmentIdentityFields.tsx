@@ -1,11 +1,8 @@
 import React from 'react';
-import { Wrench } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import InlineEditField from './InlineEditField';
 
 type Equipment = Tables<'equipment'>;
-
-type SelectOption = { value: string; label: string };
 
 export interface EquipmentIdentityFieldsProps {
   equipment: Equipment;
@@ -13,11 +10,7 @@ export interface EquipmentIdentityFieldsProps {
   manufacturerFieldId: string;
   modelFieldId: string;
   serialNumberFieldId: string;
-  pmTemplateFieldId: string;
-  pmTemplateOptions: SelectOption[];
   onFieldUpdate: (field: keyof Equipment, value: string) => void | Promise<void>;
-  onPMTemplateAssignment: (templateId: string) => void | Promise<void>;
-  getCurrentPMTemplateDisplay: () => string;
 }
 
 export const EquipmentIdentityFields: React.FC<EquipmentIdentityFieldsProps> = ({
@@ -26,11 +19,7 @@ export const EquipmentIdentityFields: React.FC<EquipmentIdentityFieldsProps> = (
   manufacturerFieldId,
   modelFieldId,
   serialNumberFieldId,
-  pmTemplateFieldId,
-  pmTemplateOptions,
   onFieldUpdate,
-  onPMTemplateAssignment,
-  getCurrentPMTemplateDisplay,
 }) => (
   <>
     <div>
@@ -81,30 +70,6 @@ export const EquipmentIdentityFields: React.FC<EquipmentIdentityFieldsProps> = (
           className="text-base"
           editAriaLabel="Edit serial number"
         />
-      </div>
-    </div>
-
-    <div>
-      <label htmlFor={pmTemplateFieldId} className="text-sm font-medium text-muted-foreground">
-        PM Template
-      </label>
-      <div className="mt-1 flex items-center gap-2">
-        <Wrench className="h-4 w-4 text-muted-foreground" />
-        {canEdit ? (
-          <InlineEditField
-            value={equipment.default_pm_template_id || 'none'}
-            onSave={onPMTemplateAssignment}
-            canEdit={canEdit}
-            fieldId={pmTemplateFieldId}
-            type="select"
-            selectOptions={pmTemplateOptions}
-            placeholder="Select PM template"
-            className="text-base"
-            editAriaLabel="Edit PM template"
-          />
-        ) : (
-          <span className="text-base text-foreground">{getCurrentPMTemplateDisplay()}</span>
-        )}
       </div>
     </div>
   </>

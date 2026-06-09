@@ -1,0 +1,41 @@
+---
+description: Commit incidental AGENTS.md and .cursor/* workflow edits on authorized commits to avoid dirty-tree triage overhead.
+alwaysApply: true
+---
+
+# Workflow Artifacts (Dirty Tree)
+
+Cursor plugins (for example continual-learning / `agents-memory-updater`) may update workflow files mid-session even when the active task did not author them. Treat that dirt as **expected dev-process output**, not unrelated product scope.
+
+## Workflow artifact paths
+
+- `AGENTS.md`
+- `.cursor/skills/**`
+- `.cursor/rules/**`
+- `.cursor/hooks/**`
+- `.cursor/agents/**`
+- `scripts/mcp.template.json`
+
+## On any authorized commit
+
+1. Run `git status --short`.
+2. If workflow artifact paths above are dirty, **include them in the commit** (same commit as the task, or a preceding `chore(cursor): sync workflow artifacts` commit). Do **not** spend turns deciding whether they belong.
+3. Quick safety scan before staging: no secrets, no destructive rewrites, no product-behavior changes outside Cursor workflow. If a workflow file diff touches product runtime code, stop and escalate.
+4. **Other** dirty paths (`src/**`, `supabase/**`, `docs/**` product copy, etc.) remain out of scope unless the task explicitly edits them — stage around or leave untouched.
+
+## Skill-specific gates
+
+| Workflow | Dirty-tree behavior |
+|----------|---------------------|
+| Default implementation (`itil-issue-resolver`, feature/fix on `preview`) | Bundle workflow artifacts per rules above |
+| `address-pr-feedback` | Bundle workflow artifacts; still scope product edits to the feedback pass |
+| `/release` | If workflow-only dirt blocks Step 1a switching/alignment, path-stash those files first, including untracked workflow artifacts; after `preview` is aligned, commit workflow artifacts on `preview` (Step 1b) and continue. If product-only dirt is present, stop and report. If mixed workflow + product dirt is present, commit workflow artifacts first, then stop until product dirt is resolved. |
+| Workflow/memory maintenance task | Commit workflow artifacts only; keep commits incremental |
+
+## Lesson capture
+
+Prefer the custom `reflect` skill when present (explicit approval before write). Do not reinstall the Cursor `continual-learning` plugin — its `agents-memory-updater` subagent is slow and rewrites `AGENTS.md` without approval. When plugin-driven updates still land, commit them under this rule rather than reverting or endlessly re-triaging.
+
+## Changelog
+
+Workflow artifact commits do **not** require `CHANGELOG.md` entries (`changelog-stop` already excludes `.cursor/`, `docs/`, `AGENTS.md`, and `scripts/mcp.template.json`).

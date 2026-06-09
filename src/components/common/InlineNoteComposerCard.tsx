@@ -17,7 +17,6 @@ export interface InlineNoteComposerCardProps {
   onImagesAdd: (files: File[]) => void;
   onImageRemove: (index: number) => void;
   showPrivateToggle: boolean;
-  showHoursWorked?: boolean;
   showMachineHours?: boolean;
   disabled?: boolean;
   isSubmitting?: boolean;
@@ -38,7 +37,6 @@ export const InlineNoteComposerCard: React.FC<InlineNoteComposerCardProps> = ({
   onImagesAdd,
   onImageRemove,
   showPrivateToggle,
-  showHoursWorked = true,
   showMachineHours = true,
   disabled,
   isSubmitting,
@@ -67,7 +65,6 @@ export const InlineNoteComposerCard: React.FC<InlineNoteComposerCardProps> = ({
         onImagesAdd={onImagesAdd}
         onImageRemove={onImageRemove}
         showPrivateToggle={showPrivateToggle}
-        showHoursWorked={showHoursWorked}
         showMachineHours={showMachineHours}
         disabled={disabled}
         isSubmitting={isSubmitting}

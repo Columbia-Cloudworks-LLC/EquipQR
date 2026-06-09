@@ -12,6 +12,9 @@ import { cn } from '@/lib/utils';
 import { handleDragActiveState } from '@/components/common/drag-active-handlers';
 import { useFileObjectUrlPreview } from '@/components/common/useFileObjectUrlPreview';
 import { logger } from '@/utils/logger';
+import { useVoiceTextAppender } from '@/hooks/useVoiceTextAppender';
+import VoiceInputButton from '@/components/common/VoiceInputButton';
+import VoiceInterimTranscript from '@/components/common/VoiceInterimTranscript';
 
 // Image Thumbnail Component with proper cleanup
 const ImageThumbnail: React.FC<{
@@ -57,7 +60,6 @@ export interface InlineNoteComposerProps {
   onSubmit: (data: {
     content: string;
     images: File[];
-    hoursWorked?: number;
     machineHours?: number;
     isPrivate?: boolean;
   }) => Promise<void> | void;
@@ -69,8 +71,6 @@ export interface InlineNoteComposerProps {
   onImageRemove?: (index: number) => void;
   /** Whether private note toggle should be shown */
   showPrivateToggle?: boolean;
-  /** Whether hours worked input should be shown */
-  showHoursWorked?: boolean;
   /** Whether machine hours input should be shown */
   showMachineHours?: boolean;
   /** Whether the form is disabled */
@@ -99,7 +99,6 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
   onImagesAdd,
   onImageRemove,
   showPrivateToggle = false,
-  showHoursWorked = false,
   showMachineHours = false,
   disabled = false,
   isSubmitting = false,
@@ -110,7 +109,6 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
   userDisplayName,
   requestAttachTrigger,
 }) => {
-  const [hoursWorked, setHoursWorked] = useState<number>(0);
   const [machineHours, setMachineHours] = useState<number>(0);
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
   const [dragActive, setDragActive] = useState(false);
@@ -263,20 +261,18 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
       await onSubmit({
         content: value.trim(),
         images: attachedImages,
-        hoursWorked: showHoursWorked ? hoursWorked : undefined,
         machineHours: showMachineHours ? machineHours : undefined,
         isPrivate: showPrivateToggle ? isPrivate : undefined,
       });
       
       // Reset form after successful submit
-      setHoursWorked(0);
       setMachineHours(0);
       setIsPrivate(false);
     } catch (error) {
       // Error handling is done by parent component
       logger.error('Failed to submit note', error);
     }
-  }, [value, attachedImages, hoursWorked, machineHours, isPrivate, showHoursWorked, showMachineHours, showPrivateToggle, onSubmit]);
+  }, [value, attachedImages, machineHours, isPrivate, showMachineHours, showPrivateToggle, onSubmit]);
 
   const handleAttachClick = useCallback(() => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -291,6 +287,18 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
       handleAttachClick();
     }
   }, [requestAttachTrigger, handleAttachClick]);
+
+  const {
+    isListening,
+    error: speechError,
+    interimTranscript,
+    toggleListening,
+    canUseVoice,
+  } = useVoiceTextAppender({
+    value,
+    onChange,
+    disabled: disabled || isSubmitting,
+  });
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
@@ -314,12 +322,23 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
           placeholder={placeholder}
           disabled={disabled || isSubmitting}
           rows={3}
-          className="min-h-[80px] resize-none border-0 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 pr-20"
+          className="min-h-[80px] resize-none border-0 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 pr-28"
           aria-label="Note content"
         />
+        <VoiceInterimTranscript
+          isListening={isListening}
+          interimTranscript={interimTranscript}
+          className="bottom-10 left-2 right-24"
+        />
         
-        {/* Attach Images Button */}
-        <div className="absolute bottom-2 right-2">
+        {/* Attach Images and Voice Buttons */}
+        <div className="absolute bottom-2 right-2 flex items-center gap-0.5">
+          <VoiceInputButton
+            isListening={isListening}
+            onToggle={toggleListening}
+            canUseVoice={canUseVoice}
+            size="icon"
+          />
           <Button
             type="button"
             variant="ghost"
@@ -345,6 +364,10 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
         />
       </div>
 
+      {speechError && (
+        <p className="text-sm text-destructive">{speechError}</p>
+      )}
+
       {/* Image Thumbnails */}
       {attachedImages.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
@@ -360,28 +383,8 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
       )}
 
       {/* Optional Fields Row */}
-      {(showHoursWorked || showMachineHours || showPrivateToggle) && (
+      {(showMachineHours || showPrivateToggle) && (
         <div className="flex flex-wrap items-center gap-3 text-sm">
-          {showHoursWorked && (
-            <div className="flex items-center gap-2">
-              <Label htmlFor="hours-worked" className="text-xs text-muted-foreground whitespace-nowrap">
-                Hours Worked:
-              </Label>
-              <Input
-                id="hours-worked"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.5"
-                placeholder="0.0"
-                value={hoursWorked || ''}
-                onChange={(e) => setHoursWorked(parseFloat(e.target.value) || 0)}
-                disabled={disabled || isSubmitting}
-                className="h-8 w-20"
-              />
-            </div>
-          )}
-          
           {showMachineHours && (
             <div className="flex items-center gap-2">
               <Label htmlFor="machine-hours" className="text-xs text-muted-foreground whitespace-nowrap">

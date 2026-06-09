@@ -5,6 +5,7 @@ import { pmChecklistTemplatesService, PMTemplate, PMTemplateSummary, templateToS
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { queryKeys } from '@/lib/queryKeys';
 import { toast } from 'sonner';
+import { pmIntervalPolicyService } from '@/features/pm-templates/services/pmIntervalPolicyService';
 
 type PMTemplateListQueryOptions = {
   enabled?: boolean;
@@ -203,10 +204,32 @@ export const useClonePMTemplate = () => {
         newName
       );
     },
-    onSuccess: () => {
+    onSuccess: async (clonedTemplate) => {
       if (currentOrganization?.id) {
+        if (clonedTemplate.interval_value && clonedTemplate.interval_type) {
+          try {
+            await pmIntervalPolicyService.upsertPolicy(
+              currentOrganization.id,
+              { scopeType: 'template', templateId: clonedTemplate.id },
+              {
+                mode: 'custom',
+                intervalValue: clonedTemplate.interval_value,
+                intervalType: clonedTemplate.interval_type,
+              }
+            );
+          } catch (policyError) {
+            console.error('Error syncing cloned template PM schedule policy:', policyError);
+            toast.error('Template cloned, but PM schedule policy was not synced');
+          }
+        }
         queryClient.invalidateQueries({ 
           queryKey: queryKeys.pmTemplates.list(currentOrganization.id) 
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.pmIntervalPolicies.byTemplate(
+            currentOrganization.id,
+            clonedTemplate.id
+          ),
         });
       }
       toast.success('Template cloned successfully');

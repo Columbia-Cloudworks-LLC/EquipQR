@@ -100,6 +100,18 @@ vi.mock('@/hooks/useGoogleMapsLoader', () => ({
   }))
 }));
 
+vi.mock('@/hooks/use-mobile', () => ({
+  useIsMobile: vi.fn(() => false)
+}));
+
+vi.mock('@/features/equipment/hooks/useEquipmentPMStatus', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/features/equipment/hooks/useEquipmentPMStatus')>();
+  return {
+    ...actual,
+    useEquipmentPMStatus: vi.fn(() => ({ data: null, isLoading: false })),
+  };
+});
+
 // ============================================
 // Equipment entity based on fixture data
 // ============================================
@@ -293,6 +305,24 @@ describe('EquipmentDetailsTab', () => {
 
       render(<EquipmentDetailsTab equipment={eqWithoutAttrs} />);
       expect(screen.getByTestId('inline-edit-custom-attributes')).toBeInTheDocument();
+    });
+  });
+
+  describe('on mobile', () => {
+    beforeEach(async () => {
+      setupPermissions(true, true);
+      const { useIsMobile } = await import('@/hooks/use-mobile');
+      vi.mocked(useIsMobile).mockReturnValue(true);
+    });
+
+    it('expands Show all details without crashing', async () => {
+      render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /show all details/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(eqFixtures.forklift1.serial_number)).toBeInTheDocument();
+      });
     });
   });
 });

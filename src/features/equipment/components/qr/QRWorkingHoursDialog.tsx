@@ -12,6 +12,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import { useVoiceTextAppender } from '@/hooks/useVoiceTextAppender';
+import VoiceInputButton from '@/components/common/VoiceInputButton';
+import VoiceInterimTranscript from '@/components/common/VoiceInterimTranscript';
 import {
   canRunQRAction,
   type QRActionEquipment,
@@ -43,6 +46,18 @@ const QRWorkingHoursDialog: React.FC<QRWorkingHoursDialogProps> = ({
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const {
+    isListening,
+    error: speechError,
+    interimTranscript,
+    toggleListening,
+    canUseVoice,
+  } = useVoiceTextAppender({
+    value: reason,
+    onChange: setReason,
+    disabled: isSubmitting,
+  });
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -122,14 +137,31 @@ const QRWorkingHoursDialog: React.FC<QRWorkingHoursDialogProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="qr-hours-reason">Reason or note (optional)</Label>
-            <Textarea
-              id="qr-hours-reason"
-              value={reason}
-              onChange={event => setReason(event.target.value)}
-              placeholder="Meter reading, field service update, or correction reason"
-              rows={3}
-            />
+            <div className="flex items-center justify-between">
+              <Label htmlFor="qr-hours-reason">Reason or note (optional)</Label>
+              <VoiceInputButton
+                isListening={isListening}
+                onToggle={toggleListening}
+                canUseVoice={canUseVoice}
+              />
+            </div>
+            <div className="relative">
+              <Textarea
+                id="qr-hours-reason"
+                value={reason}
+                onChange={event => setReason(event.target.value)}
+                placeholder="Meter reading, field service update, or correction reason"
+                rows={3}
+                disabled={isSubmitting}
+              />
+              <VoiceInterimTranscript
+                isListening={isListening}
+                interimTranscript={interimTranscript}
+              />
+            </div>
+            {speechError && (
+              <p className="text-sm text-destructive">{speechError}</p>
+            )}
           </div>
 
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

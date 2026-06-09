@@ -169,6 +169,25 @@ describe('QRCodeDisplay', () => {
       });
     });
 
+    it('shows Test button after successful copy that opens the URL', async () => {
+      const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+      render(<QRCodeDisplay {...defaultProps} />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Copy URL to clipboard' }));
+
+      const testButton = await screen.findByRole('button', { name: 'Open URL in new tab' });
+      fireEvent.click(testButton);
+
+      expect(openSpy).toHaveBeenCalledWith(
+        'https://test.com/qr/equipment/test-equipment-id',
+        '_blank',
+        'noopener,noreferrer'
+      );
+
+      openSpy.mockRestore();
+    });
+
     it('handles copy error', async () => {
       (navigator.clipboard.writeText as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Copy failed'));
       

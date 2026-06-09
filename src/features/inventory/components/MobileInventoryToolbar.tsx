@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, SlidersHorizontal, MapPin, AlertTriangle, ChevronUp, ChevronDown } from 'lucide-react';
+import { Search, SlidersHorizontal, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +23,8 @@ import {
 import { cn } from '@/lib/utils';
 import { InventoryLocationFilterSelect } from '@/features/inventory/components/InventoryLocationFilterSelect';
 import type { InventoryFilters } from '@/features/inventory/types/inventory';
+import { getInventorySortOrderLabel } from '@/features/inventory/utils/inventorySortOrderLabel';
+import { InventorySortOrderIcon } from '@/features/inventory/utils/inventorySortOrderIcon';
 
 const SORT_OPTIONS: { value: NonNullable<InventoryFilters['sortBy']>; label: string }[] = [
   { value: 'name', label: 'Name' },
@@ -190,13 +192,9 @@ const MobileInventoryToolbar: React.FC<MobileInventoryToolbarProps> = ({
                     size="icon"
                     className="h-11 w-11 shrink-0 touch-manipulation"
                     onClick={toggleSortOrder}
-                    aria-label={sortOrder === 'asc' ? 'Ascending order, tap for descending' : 'Descending order, tap for ascending'}
+                    aria-label={getInventorySortOrderLabel(sortBy, sortOrder)}
                   >
-                    {sortOrder === 'asc' ? (
-                      <ChevronUp className="h-5 w-5" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5" />
-                    )}
+                    <InventorySortOrderIcon sortBy={sortBy} sortOrder={sortOrder} />
                   </Button>
                 </div>
               </div>

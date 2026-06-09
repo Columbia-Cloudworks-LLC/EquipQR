@@ -30,3 +30,16 @@ export const pmStatus = {
   byEquipment: (equipmentId: string) => ['pm-status', equipmentId] as const,
   byOrg: (orgId: string) => ['pm-status', 'org', orgId] as const,
 };
+
+export const pmIntervalPolicies = {
+  root: ['pm-interval-policies'] as const,
+  byOrg: (orgId: string) => ['pm-interval-policies', orgId] as const,
+  byEquipment: (orgId: string, equipmentId: string) =>
+    ['pm-interval-policies', orgId, 'equipment', equipmentId] as const,
+  byTeam: (orgId: string, teamId: string) =>
+    ['pm-interval-policies', orgId, 'team', teamId] as const,
+  byTemplate: (orgId: string, templateId: string) =>
+    ['pm-interval-policies', orgId, 'template', templateId] as const,
+  effectiveByEquipment: (equipmentId: string) =>
+    ['pm-interval-policies', 'effective', equipmentId] as const,
+};

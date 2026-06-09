@@ -6,7 +6,6 @@
  */
 
 import { z } from 'zod';
-import type { WorkOrderStatus, WorkOrderPriority } from '@/features/work-orders/types/workOrder';
 
 // ============================================
 // Base Schemas
@@ -83,23 +82,8 @@ export const workOrderFormSchema = z.object({
 export type WorkOrderFormData = z.infer<typeof workOrderFormSchema>;
 
 // ============================================
-// Validation Helpers
+// Default Values
 // ============================================
-
-/**
- * Validate work order form data
- */
-const validateWorkOrderForm = (data: unknown): { 
-  success: boolean; 
-  data?: WorkOrderFormData; 
-  errors?: z.ZodError 
-} => {
-  const result = workOrderFormSchema.safeParse(data);
-  if (result.success) {
-    return { success: true, data: result.data };
-  }
-  return { success: false, errors: result.error };
-};
 
 /**
  * Get default form values
@@ -108,6 +92,7 @@ export const getDefaultWorkOrderFormValues = (
   options: {
     equipmentId?: string;
     isHistorical?: boolean;
+    initialHasPM?: boolean;
   } = {}
 ): Partial<WorkOrderFormData> => ({
   title: '',
@@ -116,7 +101,7 @@ export const getDefaultWorkOrderFormValues = (
   priority: 'medium',
   dueDate: undefined,
   estimatedHours: undefined,
-  hasPM: false,
+  hasPM: options.initialHasPM ?? false,
   pmTemplateId: null,
   // Simplified assignment: null = unassigned
   assigneeId: null,
@@ -126,24 +111,4 @@ export const getDefaultWorkOrderFormValues = (
   historicalNotes: '',
   completedDate: undefined,
 });
-
-// ============================================
-// Type Guards
-// ============================================
-
-/**
- * Type guard to check if a string is a valid WorkOrderStatus
- */
-const isValidStatus = (value: string): value is WorkOrderStatus => {
-  return workOrderStatusSchema.safeParse(value).success;
-};
-
-/**
- * Type guard to check if a string is a valid WorkOrderPriority
- */
-const isValidPriority = (value: string): value is WorkOrderPriority => {
-  return workOrderPrioritySchema.safeParse(value).success;
-};
-
-
 

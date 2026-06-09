@@ -1,8 +1,10 @@
 import { useMemo, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Tables } from '@/integrations/supabase/types';
 import type { PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import type { EquipmentTeamSummary } from '@/features/equipment/services/EquipmentService';
+import { queryKeys } from '@/lib/queryKeys';
 import { applyEquipmentUpdateRules } from '@/utils/object-utils';
 import { logger } from '@/utils/logger';
 
@@ -25,6 +27,23 @@ export function useEquipmentDetailsTabActions({
   pmTemplates: PMTemplateOption[];
   updateEquipmentMutation: UpdateEquipmentMutation;
 }) {
+  const queryClient = useQueryClient();
+
+  const invalidateInheritedPMSchedule = useCallback(() => {
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.pmIntervalPolicies.effectiveByEquipment(equipment.id),
+    });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.pmStatus.byEquipment(equipment.id),
+    });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.pmStatus.byOrg(equipment.organization_id),
+    });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.equipment.pmStatus(equipment.id),
+    });
+  }, [equipment.id, equipment.organization_id, queryClient]);
+
   const handleFieldUpdate = useCallback(
     async (field: keyof Equipment, value: string) => {
       try {
@@ -77,6 +96,7 @@ export function useEquipmentDetailsTabActions({
           id: equipment.id,
           data: { team_id: teamValue },
         });
+        invalidateInheritedPMSchedule();
         toast.success('Team assignment updated successfully');
       } catch (error) {
         logger.error('Error updating team assignment', error);
@@ -84,7 +104,7 @@ export function useEquipmentDetailsTabActions({
         throw error;
       }
     },
-    [equipment.id, updateEquipmentMutation]
+    [equipment.id, invalidateInheritedPMSchedule, updateEquipmentMutation]
   );
 
   const handlePMTemplateAssignment = useCallback(
@@ -98,6 +118,7 @@ export function useEquipmentDetailsTabActions({
           id: equipment.id,
           data: { default_pm_template_id: templateValue },
         });
+        invalidateInheritedPMSchedule();
         toast.success('PM template assignment updated successfully');
       } catch (error) {
         logger.error('Error updating PM template assignment', error);
@@ -105,7 +126,7 @@ export function useEquipmentDetailsTabActions({
         throw error;
       }
     },
-    [equipment.id, updateEquipmentMutation]
+    [equipment.id, invalidateInheritedPMSchedule, updateEquipmentMutation]
   );
 
   const saveAssignedLocation = useCallback(

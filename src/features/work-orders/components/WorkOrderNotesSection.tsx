@@ -1,9 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { MessageSquare } from 'lucide-react';
 import NoteTimelineEntry from '@/components/common/NoteTimelineEntry';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -148,7 +145,6 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
       logger.debug('handleNoteSubmit called', { 
         contentLength: data.content.length,
         imageCount: data.images.length,
-        hoursWorked: data.hoursWorked,
         machineHours: data.machineHours,
         isPrivate: data.isPrivate
       });
@@ -181,7 +177,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
     try {
       await createNoteMutation.mutateAsync({
         content: finalContent,
-        hoursWorked: submitData.hoursWorked || 0,
+        hoursWorked: 0,
         isPrivate: submitData.isPrivate || false,
         images: submitData.images,
         machineHours: submitData.machineHours

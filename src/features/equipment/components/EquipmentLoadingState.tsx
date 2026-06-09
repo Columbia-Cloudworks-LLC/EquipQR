@@ -4,16 +4,17 @@ import PageHeader from '@/components/layout/PageHeader';
 
 /** Single shimmer row matching the mobile equipment card layout */
 const MobileSkeletonRow = () => (
-  <div className="flex min-w-0 items-start gap-2.5 overflow-hidden rounded-lg border bg-card p-3">
-    <Skeleton className="h-12 w-12 flex-shrink-0 rounded-md" />
-    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-      <div className="flex items-center gap-2">
-        <Skeleton className="h-4 flex-1 rounded" />
-        <Skeleton className="h-8 w-8 flex-shrink-0 rounded" />
-      </div>
-      <Skeleton className="h-3 w-24 rounded" />
-      <Skeleton className="h-3 w-2/3 rounded" />
+  <div className="grid min-w-0 grid-cols-[4.5rem_1fr_auto] gap-x-2.5 gap-y-0.5 overflow-hidden rounded-lg border bg-card p-3">
+    <div className="row-span-4 self-center">
+      <Skeleton className="aspect-[4/5] w-full rounded-md" />
     </div>
+    <div className="col-start-2 row-start-1 flex min-w-0 items-center gap-2">
+      <Skeleton className="h-4 flex-1 rounded" />
+    </div>
+    <Skeleton className="col-start-3 row-start-1 h-8 w-8 rounded" />
+    <Skeleton className="col-start-2 row-start-2 h-3 w-24 rounded" />
+    <Skeleton className="col-start-2 row-start-3 h-3 w-2/3 rounded" />
+    <Skeleton className="col-start-2 row-start-4 h-3 w-1/2 rounded" />
   </div>
 );
 

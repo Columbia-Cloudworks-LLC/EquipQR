@@ -1,16 +1,18 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { QrCode, MapPin, Calendar, Forklift, Clock, ChevronRight, ClipboardList, History } from 'lucide-react';
+import { QrCode, MapPin, Calendar, Forklift, Clock, ChevronRight } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getEquipmentCardDisplayModel } from "@/features/equipment/utils/getEquipmentCardDisplayModel";
+import { getEquipmentCardPmReadout } from "@/features/equipment/utils/getEquipmentCardPmReadout";
 import { useUserSettings } from '@/hooks/useUserSettings';
-import { getEquipmentStatusBorderClass } from "@/lib/status-colors";
+import { getEquipmentStatusRailClass, getEquipmentStatusBackgroundTint } from "@/lib/status-colors";
 import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyncBadge';
 import PMStatusIndicator from './PMStatusIndicator';
+import { EquipmentCardGridView } from './EquipmentCardGridView';
+import { EquipmentCardWorkOrderMenu } from './EquipmentCardWorkOrderMenu';
 import type { EquipmentPMStatus } from '@/features/equipment/hooks/useEquipmentPMStatus';
 import type { MergedEquipment } from '@/features/equipment/hooks/useOfflineMergedEquipment';
 import { isOfflineEquipmentId } from '@/features/equipment/hooks/useOfflineMergedEquipment';
@@ -50,7 +52,9 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
   const navigate = useNavigate();
   const { settings } = useUserSettings();
   const display = getEquipmentCardDisplayModel(equipment, settings);
-  const statusBorderClass = getEquipmentStatusBorderClass(equipment.status);
+  const pmReadout = getEquipmentCardPmReadout(pmStatus);
+  const statusRailClass = getEquipmentStatusRailClass(equipment.status);
+  const statusTintClass = viewMode === 'grid' ? getEquipmentStatusBackgroundTint(equipment.status) : '';
 
   const handleCardClick = () => {
     if (isOfflineEquipmentId(equipment.id)) {
@@ -94,8 +98,11 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
   return (
     <Card
       className={cn(
-        "min-w-0 w-full max-w-full overflow-hidden hover:shadow-lg transition-all duration-normal cursor-pointer",
-        statusBorderClass
+        "min-w-0 w-full max-w-full overflow-hidden cursor-pointer cv-auto-lg",
+        "card-lift hover:shadow-lg transition-all duration-normal",
+        statusRailClass && "relative",
+        statusTintClass,
+        viewMode === 'grid' && "flex flex-col md:h-full"
       )}
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
@@ -103,67 +110,80 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
       tabIndex={0}
       aria-label={`Open details for ${equipment.name}`}
     >
+      {statusRailClass ? (
+        <div
+          className={cn('pointer-events-none absolute inset-y-0 left-0 z-10 w-1 rounded-l-lg', statusRailClass)}
+          aria-hidden
+        />
+      ) : null}
       {/* Mobile: compact list row — no side action rail so content stays within viewport */}
       <div className="md:hidden">
-        <div className="flex min-w-0 items-start gap-2.5 p-3">
-          <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-md bg-muted">
-            {equipment.image_url ? (
-              <img
-                src={equipment.image_url}
-                alt={display.imageAlt}
-                className="h-full w-full object-cover"
-                loading="lazy"
-                decoding="async"
-                onError={(e) => {
-                  e.currentTarget.src = display.imageFallbackSrc;
-                }}
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <Forklift className="h-6 w-6 text-muted-foreground/50" />
-              </div>
+        <div className="grid min-w-0 grid-cols-[4.5rem_1fr_auto] gap-x-2.5 gap-y-0.5 p-3">
+          <div className="row-span-4 self-center">
+            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-md bg-muted">
+              {equipment.image_url ? (
+                <img
+                  src={equipment.image_url}
+                  alt={display.imageAlt}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => {
+                    e.currentTarget.src = display.imageFallbackSrc;
+                  }}
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <Forklift className="h-[45%] w-[45%] text-muted-foreground/50" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="col-start-2 row-start-1 flex min-w-0 items-center gap-1.5">
+            <span className="truncate text-sm font-semibold leading-tight">{equipment.name}</span>
+            {(equipment as MergedEquipment)._isPendingSync && (
+              <PendingSyncBadge className="flex-shrink-0" />
             )}
           </div>
 
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start gap-1 min-w-0">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="truncate text-sm font-semibold leading-tight">{equipment.name}</span>
-                  {(equipment as MergedEquipment)._isPendingSync && (
-                    <PendingSyncBadge className="flex-shrink-0" />
-                  )}
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 flex-shrink-0 -mr-1 text-muted-foreground hover:text-foreground"
-                onClick={handleQRClick}
-                aria-label={`Show QR code for ${equipment.name}`}
-              >
-                <QrCode className="h-4 w-4" />
-              </Button>
-            </div>
+          <div className="col-start-3 row-start-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 flex-shrink-0 -mr-1 text-muted-foreground hover:text-foreground"
+              onClick={handleQRClick}
+              aria-label={`Show QR code for ${equipment.name}`}
+            >
+              <QrCode className="h-4 w-4" />
+            </Button>
+          </div>
 
-            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
-              <Badge
-                className={`${display.statusClassName} rounded-full px-2 py-0.5 text-xs flex-shrink-0`}
-                variant="outline"
-              >
-                {display.statusLabel}
-              </Badge>
-              <PMStatusIndicator status={pmStatus} size="sm" />
-              <span className="inline-flex flex-shrink-0 items-center gap-0.5 text-xs text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                {display.workingHoursShortText}
-              </span>
-            </div>
+          <div className="col-start-2 row-start-2 flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+            <Calendar className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate font-tabular">{display.lastMaintenanceMobileDisplay}</span>
+          </div>
 
-            <div className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
-              <MapPin className="h-3 w-3 flex-shrink-0" />
-              <span className="truncate">{equipment.location}</span>
-            </div>
+          <div className="col-start-2 row-start-3 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+            <PMStatusIndicator status={pmStatus} size="sm" />
+            <span className="inline-flex flex-shrink-0 items-center gap-0.5 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              {display.workingHoursShortText}
+            </span>
+          </div>
+
+          <div className="col-start-2 row-start-4 flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+            <MapPin className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">{equipment.location}</span>
+          </div>
+
+          <div className="col-start-3 row-start-4 self-end">
+            <EquipmentCardWorkOrderMenu
+              equipmentId={equipment.id}
+              pmStatus={pmStatus}
+              onQuickAction={handleQuickAction}
+              variant="icon"
+            />
           </div>
         </div>
       </div>
@@ -192,9 +212,6 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <span className="truncate text-sm font-semibold">{equipment.name}</span>
-                <Badge className={`${display.statusClassName} rounded-full px-2 py-0.5 text-xs`} variant="outline">
-                  {display.statusLabel}
-                </Badge>
                 <PMStatusIndicator status={pmStatus} size="sm" />
                 {(equipment as MergedEquipment)._isPendingSync && <PendingSyncBadge />}
               </div>
@@ -241,106 +258,17 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
         </div>
       )}
 
-      {/* Desktop grid view: full card layout */}
+      {/* Desktop grid view: NASA-punk telemetry card */}
       {viewMode === 'grid' && (
-        <div className="hidden md:block">
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div className="flex-1 min-w-0">
-                <CardTitle className="text-lg">{equipment.name}</CardTitle>
-                <CardDescription>
-                  {equipment.team_name || `${equipment.manufacturer} ${equipment.model}`}
-                </CardDescription>
-                <div className="mt-1.5 flex items-center gap-2">
-                  <Badge className={`${display.statusClassName} rounded-full px-2 py-0.5 text-xs`} variant="outline">
-                    {display.statusLabel}
-                  </Badge>
-                  <PMStatusIndicator status={pmStatus} size="sm" />
-                  {(equipment as MergedEquipment)._isPendingSync && <PendingSyncBadge />}
-                </div>
-              </div>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-10 w-10 flex-shrink-0"
-                    onClick={handleQRClick}
-                    aria-label={`Show QR code for ${equipment.name}`}
-                  >
-                    <QrCode className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Show QR Code</TooltipContent>
-              </Tooltip>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3 md:space-y-4">
-            <div className="aspect-video w-full overflow-hidden rounded-md bg-muted">
-              {equipment.image_url ? (
-                <img
-                  src={equipment.image_url}
-                  alt={display.imageAlt}
-                  className="h-full w-full object-cover transition-transform hover:scale-105"
-                  loading="lazy"
-                  decoding="async"
-                  onError={(e) => { e.currentTarget.src = display.imageFallbackSrc; }}
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  <Forklift className="h-12 w-12 text-muted-foreground/50" />
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">Serial:</span>
-                <span className="text-muted-foreground break-words">{equipment.serial_number}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-muted-foreground truncate">{equipment.location}</span>
-              </div>
-              <div className="flex items-center gap-4 flex-wrap">
-                {display.lastMaintenanceText && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-muted-foreground text-xs md:text-sm">
-                      {display.lastMaintenanceText}
-                    </span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <span className="text-muted-foreground text-xs md:text-sm font-medium">
-                    {display.workingHoursText}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-          <div className="flex items-center gap-1 border-t px-4 py-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-              onClick={(e) => handleQuickAction(e, `/dashboard/work-orders/new?equipmentId=${equipment.id}`)}
-            >
-              <ClipboardList className="h-3.5 w-3.5" />
-              + Work Order
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-              onClick={(e) => handleQuickAction(e, `/dashboard/equipment/${equipment.id}?tab=scan-history`)}
-            >
-              <History className="h-3.5 w-3.5" />
-              History
-            </Button>
-          </div>
-        </div>
+        <EquipmentCardGridView
+          equipment={equipment}
+          display={display}
+          pmReadout={pmReadout}
+          pmStatus={pmStatus}
+          isPendingSync={(equipment as MergedEquipment)._isPendingSync}
+          onQRClick={handleQRClick}
+          onQuickAction={handleQuickAction}
+        />
       )}
     </Card>
   );

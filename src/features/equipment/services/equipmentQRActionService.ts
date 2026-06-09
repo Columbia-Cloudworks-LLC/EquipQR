@@ -9,6 +9,7 @@ import { WorkOrderService } from '@/features/work-orders/services/workOrderServi
 import { attachWorkOrderCreationImages } from '@/features/work-orders/services/workOrderNotesService';
 import type { WorkOrder, WorkOrderPriority } from '@/features/work-orders/types/workOrder';
 import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
+import { resolvePMTemplateId } from '@/features/pm-templates/utils/resolvePMTemplateId';
 import type { QRActionEquipment } from '@/features/equipment/services/equipmentQRPermissions';
 import { recordScanFollowUpEvent } from '@/features/equipment/services/scanFollowUpEventService';
 import { logger } from '@/utils/logger';
@@ -75,10 +76,10 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
   if (input.attachPM) {
     let pmError: unknown;
 
-    const explicitOverride =
-      typeof input.pmTemplateId === 'string' ? input.pmTemplateId.trim() : '';
-    const resolvedTemplateId =
-      explicitOverride.length > 0 ? explicitOverride : input.equipment.defaultPmTemplateId;
+    const resolvedTemplateId = resolvePMTemplateId({
+      explicitTemplateId: input.pmTemplateId,
+      equipmentDefaultTemplateId: input.equipment.defaultPmTemplateId,
+    });
 
     if (!resolvedTemplateId) {
       pmError = new Error('Select a PM checklist template to create this work order.');

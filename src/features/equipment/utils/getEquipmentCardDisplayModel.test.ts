@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { getEquipmentCardDisplayModel } from './getEquipmentCardDisplayModel';
 import { testUserSettingsSydney } from '@/test/utils/TestProviders';
 import { formatDate } from '@/utils/dateFormatter';
@@ -137,6 +137,7 @@ describe('getEquipmentCardDisplayModel', () => {
       );
 
       expect(result.lastMaintenanceText).toBeUndefined();
+      expect(result.lastMaintenanceDisplay).toBe('—');
     });
 
     it('returns undefined for invalid date string', () => {
@@ -150,6 +151,38 @@ describe('getEquipmentCardDisplayModel', () => {
       );
 
       expect(result.lastMaintenanceText).toBeUndefined();
+    });
+
+    it('appends days-ago suffix for mobile display', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2026, 5, 8, 12, 0, 0));
+
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Test Equipment',
+          status: 'active',
+          last_maintenance: '2026-06-07',
+        },
+        settings
+      );
+
+      expect(result.lastMaintenanceMobileDisplay).toBe(
+        `${formatDate('2026-06-07', settings)} (1 d ago)`,
+      );
+
+      vi.useRealTimers();
+    });
+
+    it('uses em dash for mobile display when last_maintenance is missing', () => {
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Test Equipment',
+          status: 'active',
+        },
+        settings
+      );
+
+      expect(result.lastMaintenanceMobileDisplay).toBe('—');
     });
   });
 

@@ -19,6 +19,8 @@ type EquipmentDetailsModalsProps = {
   organizationId: string;
   isAdmin: boolean;
   isWorkOrderFormOpen: boolean;
+  workOrderCreateMode?: 'pm' | 'generic' | null;
+  defaultPmTemplateId?: string | null;
   isQRCodeOpen: boolean;
   isDeleteDialogOpen: boolean;
   isWorkingHoursModalOpen: boolean;
@@ -35,6 +37,8 @@ export function EquipmentDetailsModals({
   organizationId,
   isAdmin,
   isWorkOrderFormOpen,
+  workOrderCreateMode = null,
+  defaultPmTemplateId = null,
   isQRCodeOpen,
   isDeleteDialogOpen,
   isWorkingHoursModalOpen,
@@ -52,6 +56,12 @@ export function EquipmentDetailsModals({
             open={isWorkOrderFormOpen}
             onClose={onCloseWorkOrderForm}
             equipmentId={equipmentId}
+            initialHasPM={workOrderCreateMode === 'pm'}
+            pmData={
+              workOrderCreateMode === 'pm' && defaultPmTemplateId
+                ? { template_id: defaultPmTemplateId }
+                : null
+            }
           />
         </Suspense>
       )}

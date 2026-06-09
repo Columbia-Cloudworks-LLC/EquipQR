@@ -23,7 +23,15 @@ import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { TEAM_NATIVE_SELECT_CLASS_NAME } from '@/features/teams/constants/teamNativeSelectClassName';
 import SingleImageUpload from '@/components/common/SingleImageUpload';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useCustomersByOrg } from '@/features/teams/hooks/useCustomerAccount';
+import { PMSchedulePolicyFields } from '@/features/pm-templates/components/PMSchedulePolicyFields';
+import {
+  policyRowToFormState,
+  type PMSchedulePolicyFormState,
+} from '@/features/pm-templates/services/pmIntervalPolicyService';
+import { usePMIntervalPolicy } from '@/features/pm-templates/hooks/usePMIntervalPolicies';
+import { pmIntervalPolicyService } from '@/features/pm-templates/services/pmIntervalPolicyService';
 
 interface TeamMetadataEditorProps {
   open: boolean;
@@ -67,7 +75,22 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
   const queryClient = useQueryClient();
   const { isLoaded } = useGoogleMapsLoader();
   const { currentOrganization } = useOrganization();
+  const { canManageTeam, isOrganizationAdmin } = usePermissions();
+  const canEditTeam = canManageTeam(team.id);
+  const canEditPMSchedule = isOrganizationAdmin();
   const { data: orgCustomers } = useCustomersByOrg(open ? currentOrganization?.id : undefined);
+  const teamPolicyTarget = { scopeType: 'team' as const, teamId: team.id };
+  const { data: teamPolicy } = usePMIntervalPolicy(currentOrganization?.id, teamPolicyTarget, { enabled: open });
+  const [pmScheduleForm, setPmScheduleForm] = useState<PMSchedulePolicyFormState>(
+    policyRowToFormState(teamPolicy)
+  );
+  const [pmScheduleError, setPmScheduleError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (open) {
+      setPmScheduleForm(policyRowToFormState(teamPolicy));
+    }
+  }, [open, teamPolicy]);
 
   const handleTeamImageUpload = async (file: File) => {
     const publicUrl = await uploadTeamImage(team.id, team.organization_id, file);
@@ -98,6 +121,16 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!canEditTeam) {
+      toast({
+        title: 'Permission denied',
+        description: 'You do not have permission to edit this team.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const formData = new FormData(e.target as HTMLFormElement);
     
     const updates: Record<string, unknown> = {
@@ -125,24 +158,61 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
       updates.location_lng = null;
     }
 
+    if (pmScheduleForm.mode === 'custom' && (!pmScheduleForm.intervalValue || pmScheduleForm.intervalValue < 1)) {
+      setPmScheduleError('Enter a value of 1 or greater');
+      return;
+    }
+    setPmScheduleError(null);
+
     setIsLoading(true);
     try {
       await updateTeam(team.id, updates);
-      
+
       queryClient.invalidateQueries({ queryKey: ['team', team.id] });
       queryClient.invalidateQueries({ queryKey: ['teams', team.organization_id] });
-      
-      toast({
-        title: "Team updated",
-        description: "Team information has been successfully updated.",
-      });
-      
-      onClose();
+
+      let pmScheduleSaved = true;
+      if (currentOrganization?.id && canEditPMSchedule) {
+        try {
+          await pmIntervalPolicyService.upsertPolicy(
+            currentOrganization.id,
+            teamPolicyTarget,
+            pmScheduleForm
+          );
+          queryClient.invalidateQueries({
+            queryKey: ['pm-interval-policies', currentOrganization.id, 'team', team.id],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ['pm-status', 'org', currentOrganization.id],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ['pm-interval-policies', 'effective'],
+          });
+        } catch (policyError) {
+          pmScheduleSaved = false;
+          toast({
+            title: 'Team updated, but PM schedule was not saved',
+            description:
+              policyError instanceof Error
+                ? policyError.message
+                : 'Failed to save PM schedule. Please try again.',
+            variant: 'destructive',
+          });
+        }
+      }
+
+      if (pmScheduleSaved) {
+        toast({
+          title: 'Team updated',
+          description: 'Team information has been successfully updated.',
+        });
+        onClose();
+      }
     } catch (error) {
       toast({
-        title: "Error updating team",
-        description: error instanceof Error ? error.message : "Failed to update team. Please try again.",
-        variant: "destructive",
+        title: 'Error updating team',
+        description: error instanceof Error ? error.message : 'Failed to update team. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -225,6 +295,19 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
                 overrideEquipmentLocation={overrideEquipmentLocation}
                 onOverrideEquipmentLocationChange={setOverrideEquipmentLocation}
               />
+
+              <PMSchedulePolicyFields
+                value={pmScheduleForm}
+                onChange={setPmScheduleForm}
+                inheritLabel="Inherit from assigned PM template"
+                intervalError={pmScheduleError}
+                disabled={isLoading || !canEditPMSchedule}
+              />
+              {!canEditPMSchedule && (
+                <p className="text-xs text-muted-foreground">
+                  Only org admins can edit the PM schedule.
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -232,7 +315,7 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
             <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || !canEditTeam}>
               {isLoading ? "Saving..." : "Save Changes"}
             </Button>
           </div>

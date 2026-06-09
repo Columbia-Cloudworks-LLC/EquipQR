@@ -1,4 +1,10 @@
-import type { ExportColumn, ReportType, ReportCardConfig } from '@/features/reports/types/reports';
+import type {
+  ExportColumn,
+  ReportType,
+  ReportCardConfig,
+  ReportCategory,
+} from '@/features/reports/types/reports';
+import { REPORT_CATEGORY_LABELS } from '@/features/reports/types/reports';
 
 /**
  * Column definitions for Equipment reports
@@ -121,11 +127,16 @@ export function getDefaultColumns(reportType: ReportType): string[] {
 export const REPORT_CARDS: ReportCardConfig[] = [
   {
     type: 'equipment',
-    title: 'Equipment Report',
-    description: 'Export your fleet equipment data with custom columns',
+    title: 'Fleet Asset Register',
+    description: 'Export fleet equipment records with customizable columns for audits and asset tracking',
     icon: 'Forklift',
     format: 'csv',
+    formatLabel: 'CSV',
     columnCount: EQUIPMENT_COLUMNS.length,
+    category: 'fleet-assets',
+    operationCode: 'EXP-01',
+    audiences: ['Fleet Manager', 'Office Admin'],
+    previewFields: ['Status', 'Location', 'Warranty', 'Working Hours'],
   },
   {
     type: 'work-orders-detailed',
@@ -133,30 +144,73 @@ export const REPORT_CARDS: ReportCardConfig[] = [
     description: 'Operational multi-sheet workbook with labor, costs, PM checklists, and timeline',
     icon: 'ClipboardList',
     format: 'excel',
+    formatLabel: 'Excel Workbook',
     columnCount: WORK_ORDER_COLUMNS.length,
+    category: 'maintenance-operations',
+    operationCode: 'EXP-02',
+    audiences: ['Office Admin', 'Shop Supervisor'],
+    previewFields: ['Labor', 'Costs', 'PM Checklist', 'Timeline'],
+    featured: true,
   },
   {
     type: 'inventory',
-    title: 'Inventory Report',
-    description: 'Export parts inventory with stock levels',
+    title: 'Parts Inventory Snapshot',
+    description: 'Export parts inventory with stock levels, locations, and low-stock indicators',
     icon: 'Package',
     format: 'csv',
+    formatLabel: 'CSV',
     columnCount: INVENTORY_COLUMNS.length,
+    category: 'inventory-parts',
+    operationCode: 'EXP-03',
+    audiences: ['Parts Lead', 'Office Admin'],
+    previewFields: ['SKU', 'Quantity', 'Low Stock', 'Unit Cost'],
   },
   {
     type: 'scans',
-    title: 'Scan Activity Report',
-    description: 'Export QR code scan history',
+    title: 'QR Scan Evidence Log',
+    description: 'Export QR code scan history for field activity and compliance review',
     icon: 'ScanLine',
     format: 'csv',
+    formatLabel: 'CSV',
     columnCount: SCAN_COLUMNS.length,
+    category: 'scan-evidence',
+    operationCode: 'EXP-05',
+    audiences: ['Compliance', 'Fleet Manager'],
+    previewFields: ['Equipment', 'Scanned By', 'Timestamp', 'Location'],
   },
   {
     type: 'alternate-groups',
-    title: 'Alternate Parts Report',
-    description: 'Export interchangeable parts groups with cross-references',
+    title: 'Alternate Parts Cross-Reference',
+    description: 'Export interchangeable parts groups with cross-references and verification status',
     icon: 'Layers',
     format: 'csv',
+    formatLabel: 'CSV',
     columnCount: ALTERNATE_GROUPS_COLUMNS.length,
+    category: 'inventory-parts',
+    operationCode: 'EXP-04',
+    audiences: ['Parts Lead'],
+    previewFields: ['Group Name', 'Primary Part', 'Cross-Ref', 'Verification'],
   },
 ];
+
+/** Featured report card (hero module) */
+export const FEATURED_REPORT_CARD = REPORT_CARDS.find((c) => c.featured);
+
+/** Secondary report cards grouped by mission area */
+export function getReportsByCategory(): { category: ReportCategory; label: string; cards: ReportCardConfig[] }[] {
+  const secondary = REPORT_CARDS.filter((c) => !c.featured);
+  const order: ReportCategory[] = [
+    'fleet-assets',
+    'maintenance-operations',
+    'inventory-parts',
+    'scan-evidence',
+  ];
+
+  return order
+    .map((category) => ({
+      category,
+      label: REPORT_CATEGORY_LABELS[category],
+      cards: secondary.filter((c) => c.category === category),
+    }))
+    .filter((group) => group.cards.length > 0);
+}

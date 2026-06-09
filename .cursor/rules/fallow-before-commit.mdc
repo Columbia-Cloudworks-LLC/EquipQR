@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Fallow Before Commit
 
-Before committing any code change in this repository, run Fallow against the **current working branch** and review the result:
+Before committing any code change in this repository, run Fallow against the **current working branch** and review both the dead-code/unused scan **and** the duplication scan:
 
 ```powershell
 npx --yes fallow@2.88.0 --format json --quiet --summary > tmp\fallow-pre-commit.json 2>$null
@@ -13,6 +13,12 @@ $code = $LASTEXITCODE
 if ($code -ge 2) { throw "Fallow runtime error $code — fix before committing" }
 $issues = (Get-Content tmp\fallow-pre-commit.json | ConvertFrom-Json).check.total_issues
 if ($issues -gt 0) { throw "Fallow found $issues issue(s) — resolve before committing (zero-baseline policy)" }
+
+npx --yes fallow@2.88.0 dupes --format json --quiet > tmp\fallow-pre-commit-dupes.json 2>$null
+$dupesCode = $LASTEXITCODE
+if ($dupesCode -ge 2) { throw "Fallow dupes runtime error $dupesCode — fix before committing" }
+$cloneGroups = (Get-Content tmp\fallow-pre-commit-dupes.json | ConvertFrom-Json).clone_groups.Count
+if ($cloneGroups -gt 0) { throw "Fallow found $cloneGroups duplication clone group(s) — resolve before committing (zero-baseline policy)" }
 ```
 
 ## Zero-Baseline Policy
@@ -28,8 +34,9 @@ This baseline must be preserved on every commit going forward.
 ## Rules
 
 - **`exitCode=1` is a hard blocker.** Any Fallow finding — unused export, unused file, or duplication — must be resolved before committing. This is not optional and not something to "review and proceed."
+- **Run both scans.** The primary `fallow` summary covers unused exports/files; `fallow dupes` is a separate required gate for clone groups. Do not commit when either scan reports findings.
 - **No `origin/main` baseline.** When debugging the `preview` branch, run Fallow against the current working branch state only. Never pass `--base origin/main` or `--changed-since origin/main` as the baseline for preview work.
 - **Exception for pre-existing findings only.** If a finding was already present on `preview` before the current branch started (e.g. inherited from a dependency update outside your control), document it explicitly in the commit message and plan before pushing. Do not self-grant this exception for code you wrote.
 - **`exitCode=2+` is always a hard blocker** (runtime error — invalid config, parse failure). Fix before committing.
 - **Never run `fallow watch`** in agent sessions.
-- **Include Fallow result in commit notes:** e.g. `Fallow: exitCode=0, total_issues=0`.
+- **Include Fallow result in commit notes:** e.g. `Fallow: exitCode=0, total_issues=0, clone_groups=0`.

@@ -1,5 +1,4 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { FilterPopoverClearAllFooter } from '@/components/filters/FilterPopoverClearAllFooter';
 import { FilterPopoverShell } from '@/components/filters/FilterPopoverShell';
 import { Separator } from '@/components/ui/separator';
@@ -11,6 +10,7 @@ import {
   EquipmentStatusSelect,
 } from '@/features/equipment/components/EquipmentFilterSelects';
 import { EQUIPMENT_QUICK_FILTERS } from '@/features/equipment/components/equipmentFilterConstants';
+import { EquipmentStatusRailLegend } from '@/features/equipment/components/EquipmentStatusRailLegend';
 
 // Team is intentionally not part of FilterOptions here — the team scope is
 // owned by the global TopBar `useSelectedTeam`. The popover only exposes
@@ -60,6 +60,8 @@ const EquipmentFilterPopover: React.FC<EquipmentFilterPopoverProps> = ({
               }}
             />
           </div>
+
+          <EquipmentStatusRailLegend />
 
           {/* Manufacturer */}
           <div className="flex flex-col gap-1.5">

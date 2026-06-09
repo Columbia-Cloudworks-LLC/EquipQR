@@ -2,22 +2,63 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Package, Plus } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useAdjustInventoryQuantity, useInventoryItems, useInventoryListMetadata } from '@/features/inventory/hooks/useInventory';
+import {
+  useAdjustInventoryQuantity,
+  useInventoryItems,
+  useInventoryListMetadata,
+  useRecentlyAdjustedInventoryItemIds,
+} from '@/features/inventory/hooks/useInventory';
 import { useInventoryGroupMembershipCounts } from '@/features/inventory/hooks/useAlternateGroups';
 import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
+import { useInventoryTablePreferences } from '@/features/inventory/hooks/useInventoryTablePreferences';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
-import type { InventoryItem, InventoryFilters } from '@/features/inventory/types/inventory';
+import type {
+  InventoryItem,
+  InventoryFilters,
+  InventoryListMetadata,
+  InventoryQuickFilterKey,
+  InventorySavedView,
+  InventorySortField,
+} from '@/features/inventory/types/inventory';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { InventoryListPageActions } from '@/features/inventory/components/InventoryListPageActions';
 import { InventoryListFilterToolbar } from '@/features/inventory/components/InventoryListFilterToolbar';
 import { InventoryListDesktopTable } from '@/features/inventory/components/InventoryListDesktopTable';
 import { InventoryListMobileList } from '@/features/inventory/components/InventoryListMobileList';
 import { InventoryListDialogs } from '@/features/inventory/components/InventoryListDialogs';
+import { InventoryColumnManager } from '@/features/inventory/components/InventoryColumnManager';
+import { InventorySavedViewsMenu } from '@/features/inventory/components/InventorySavedViewsMenu';
+import { InventoryHealthSummary } from '@/features/inventory/components/InventoryHealthSummary';
+import { InventoryQuickFilterChips } from '@/features/inventory/components/InventoryQuickFilterChips';
+import type { InventoryTableColumnKey } from '@/features/inventory/components/inventoryTableColumns';
+import {
+  applyQuickFilters,
+  countQuickFilterMatches,
+} from '@/features/inventory/utils/inventoryQuickFilters';
+import {
+  buildInventoryTableRowViewModel,
+  isClientSideSortField,
+  sortInventoryViewModels,
+} from '@/features/inventory/utils/inventoryListViewModel';
+import { useAppToast } from '@/hooks/useAppToast';
 import { cn } from '@/lib/utils';
+
+const EMPTY_METADATA: InventoryListMetadata = {
+  uniqueLocations: [],
+  totalCount: 0,
+  negativeStockCount: 0,
+  outOfStockCount: 0,
+  lowStockCount: 0,
+  healthyCount: 0,
+  missingLocationCount: 0,
+  missingUnitCostCount: 0,
+  missingSkuCount: 0,
+  estimatedInventoryValue: 0,
+};
 
 const InventoryList = () => {
   const navigate = useNavigate();
@@ -26,6 +67,8 @@ const InventoryList = () => {
   const { data: isPartsManager = false } = useIsPartsManager(currentOrganization?.id);
   const { canManageInventory, canManagePartsManagers } = usePermissions();
   const isMobile = useIsMobile();
+  const { toast } = useAppToast();
+
   const [showForm, setShowForm] = useState(false);
   const [showManagersSheet, setShowManagersSheet] = useState(false);
   const [showQRCode, setShowQRCode] = useState(false);
@@ -37,8 +80,12 @@ const InventoryList = () => {
     sortBy: 'name',
     sortOrder: 'asc',
   });
+  const [quickFilters, setQuickFilters] = useState<InventoryQuickFilterKey[]>([]);
+
+  const tablePrefs = useInventoryTablePreferences(currentOrganization?.id);
   const adjustMutation = useAdjustInventoryQuantity();
   const { data: groupMembershipCounts = {} } = useInventoryGroupMembershipCounts(currentOrganization?.id);
+  const { data: recentAdjustments = {} } = useRecentlyAdjustedInventoryItemIds(currentOrganization?.id);
   const initializedFromUrl = useRef(false);
 
   useEffect(() => {
@@ -49,16 +96,72 @@ const InventoryList = () => {
     }
   }, [searchParams]);
 
-  const { data: items = [], isLoading } = useInventoryItems(
+  const { data: items = [], isPending: isInventoryPending } = useInventoryItems(
     currentOrganization?.id,
-    filters
+    filters,
   );
 
   const { data: inventoryListMetadata } = useInventoryListMetadata(
-    currentOrganization?.id
+    currentOrganization?.id,
   );
 
-  const uniqueLocations = inventoryListMetadata?.uniqueLocations ?? [];
+  const metadata = inventoryListMetadata ?? EMPTY_METADATA;
+  const uniqueLocations = metadata.uniqueLocations;
+  const recentlyAdjustedIds = useMemo(
+    () => new Set(Object.keys(recentAdjustments)),
+    [recentAdjustments],
+  );
+
+  const viewModels = useMemo(() => {
+    const rows = items.map((item) =>
+      buildInventoryTableRowViewModel(item, groupMembershipCounts, recentAdjustments),
+    );
+    const filtered = applyQuickFilters(rows, quickFilters, recentlyAdjustedIds);
+    const sortBy = filters.sortBy ?? 'name';
+    const sortOrder = filters.sortOrder ?? 'asc';
+    if (isClientSideSortField(sortBy)) {
+      return sortInventoryViewModels(filtered, sortBy, sortOrder);
+    }
+    return filtered;
+  }, [
+    items,
+    groupMembershipCounts,
+    recentAdjustments,
+    quickFilters,
+    recentlyAdjustedIds,
+    filters.sortBy,
+    filters.sortOrder,
+  ]);
+
+  const visibleColumnKeys = useMemo(
+    () =>
+      tablePrefs.columnOrder.filter(
+        (key) => tablePrefs.columnVisibility[key] !== false,
+      ),
+    [tablePrefs.columnOrder, tablePrefs.columnVisibility],
+  );
+
+  const quickFilterCounts = useMemo(() => {
+    const counts: Partial<Record<InventoryQuickFilterKey, number>> = {};
+    const keys: InventoryQuickFilterKey[] = [
+      'low-stock',
+      'out-of-stock',
+      'negative-stock',
+      'reorder-needed',
+      'has-alternates',
+      'missing-data',
+      'recently-adjusted',
+    ];
+    for (const key of keys) {
+      counts[key] = countQuickFilterMatches(
+        items,
+        groupMembershipCounts,
+        key,
+        recentlyAdjustedIds,
+      );
+    }
+    return counts;
+  }, [items, groupMembershipCounts, recentlyAdjustedIds]);
 
   const activeFilterCount = useMemo(() => {
     let n = 0;
@@ -68,7 +171,7 @@ const InventoryList = () => {
     return n;
   }, [filters.search, filters.lowStockOnly, filters.location]);
 
-  const lowStockOrgWide = inventoryListMetadata?.lowStockCount ?? 0;
+  const lowStockOrgWide = metadata.lowStockCount;
 
   const handleAddItem = () => {
     setEditingItem(null);
@@ -101,7 +204,7 @@ const InventoryList = () => {
     setShowQRCode(true);
   };
 
-  const handleSortChange = (sortBy: NonNullable<InventoryFilters['sortBy']>) => {
+  const handleSortChange = (sortBy: InventorySortField) => {
     setFilters((prev) => ({
       ...prev,
       sortBy,
@@ -134,13 +237,64 @@ const InventoryList = () => {
       sortBy: 'name',
       sortOrder: 'asc',
     }));
+    setQuickFilters([]);
+  };
+
+  const handleToggleQuickFilter = (filter: InventoryQuickFilterKey) => {
+    setQuickFilters((prev) =>
+      prev.includes(filter) ? prev.filter((f) => f !== filter) : [...prev, filter],
+    );
+  };
+
+  const handleMoveColumn = (key: InventoryTableColumnKey, direction: 'up' | 'down') => {
+    const order = [...tablePrefs.columnOrder];
+    const index = order.indexOf(key);
+    if (index < 0) return;
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= order.length) return;
+    [order[index], order[swapIndex]] = [order[swapIndex], order[index]];
+    tablePrefs.setColumnOrder(order);
+  };
+
+  const handleAddColumn = (key: InventoryTableColumnKey) => {
+    tablePrefs.setColumnVisibility({
+      ...tablePrefs.columnVisibility,
+      [key]: true,
+    });
+  };
+
+  const handleRemoveColumn = (key: InventoryTableColumnKey) => {
+    tablePrefs.toggleColumn(key);
+  };
+
+  const handleApplyView = (view: InventorySavedView) => {
+    tablePrefs.applyView(view);
+    setFilters(view.filters);
+    setQuickFilters(view.quickFilters);
+  };
+
+  const handleSaveCurrentView = (name: string) => {
+    if (!currentOrganization) return;
+    tablePrefs.saveView({
+      name,
+      filters,
+      quickFilters,
+      columnVisibility: tablePrefs.columnVisibility,
+      columnOrder: tablePrefs.columnOrder,
+      columnSizing: tablePrefs.columnSizing,
+      density: tablePrefs.density,
+    });
+    toast({
+      title: 'View saved',
+      description: `"${name}" is now available in Saved views.`,
+    });
   };
 
   const canCreate = canManageInventory(isPartsManager);
   const canManage = canManagePartsManagers();
 
   const hasActiveFilters =
-    !!filters.search?.trim() || filters.lowStockOnly || !!filters.location;
+    !!filters.search?.trim() || filters.lowStockOnly || !!filters.location || quickFilters.length > 0;
 
   if (!currentOrganization) {
     return (
@@ -153,7 +307,7 @@ const InventoryList = () => {
     );
   }
 
-  if (isLoading) {
+  if (isInventoryPending && items.length === 0) {
     return (
       <Page maxWidth="7xl" padding="responsive">
         <PageHeader title="Inventory" />
@@ -174,12 +328,37 @@ const InventoryList = () => {
     );
   }
 
+  const desktopToolbarControls = (
+    <div className="flex items-center gap-2">
+      <InventorySavedViewsMenu
+        savedViews={tablePrefs.savedViews}
+        activeViewId={tablePrefs.activeViewId}
+        onApplyView={handleApplyView}
+        onSaveCurrentView={handleSaveCurrentView}
+        onDeleteView={tablePrefs.deleteView}
+      />
+      <InventoryColumnManager
+        columnVisibility={tablePrefs.columnVisibility}
+        columnOrder={tablePrefs.columnOrder}
+        density={tablePrefs.density}
+        hasOverrides={tablePrefs.hasTableOverrides}
+        onMoveColumn={handleMoveColumn}
+        onAddColumn={handleAddColumn}
+        onRemoveColumn={handleRemoveColumn}
+        onDensityChange={tablePrefs.setDensity}
+        onResetColumns={tablePrefs.resetColumnVisibility}
+        onResetWidths={tablePrefs.resetColumnWidths}
+        onResetAll={tablePrefs.resetTablePreferences}
+      />
+    </div>
+  );
+
   return (
     <Page maxWidth="7xl" padding="responsive">
       <div
         className={cn(
           'space-y-4 md:space-y-6',
-          isMobile && canCreate && 'pb-28'
+          isMobile && canCreate && 'pb-28',
         )}
       >
         <PageHeader
@@ -200,24 +379,38 @@ const InventoryList = () => {
           isMobile={isMobile}
           filters={filters}
           uniqueLocations={uniqueLocations}
-          resultCount={items.length}
+          resultCount={viewModels.length}
           lowStockOrgWide={lowStockOrgWide}
           activeFilterCount={activeFilterCount}
           canExport={canCreate}
           items={items}
+          visibleColumnKeys={visibleColumnKeys}
+          toolbarControls={!isMobile ? desktopToolbarControls : undefined}
+          healthSummary={!isMobile ? <InventoryHealthSummary metadata={metadata} /> : undefined}
+          quickFilterChips={
+            !isMobile ? (
+              <InventoryQuickFilterChips
+                activeQuickFilters={quickFilters}
+                counts={quickFilterCounts}
+                onToggle={handleToggleQuickFilter}
+                onClear={() => setQuickFilters([])}
+              />
+            ) : undefined
+          }
           onFilterChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
-          onClearFilters={() =>
+          onClearFilters={() => {
             setFilters((prev) => ({
               ...prev,
               search: '',
               lowStockOnly: false,
               location: undefined,
-            }))
-          }
+            }));
+            setQuickFilters([]);
+          }}
           onClearSheetFilters={handleMobileResetSortAndFilters}
         />
 
-        {items.length === 0 ? (
+        {viewModels.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <Package className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
@@ -250,14 +443,21 @@ const InventoryList = () => {
           />
         ) : (
           <InventoryListDesktopTable
-            items={items}
+            rows={viewModels}
             filters={filters}
-            groupMembershipCounts={groupMembershipCounts}
+            columnVisibility={tablePrefs.columnVisibility}
+            columnOrder={tablePrefs.columnOrder}
+            columnSizing={tablePrefs.columnSizing}
+            density={tablePrefs.density}
             canCreate={canCreate}
             adjustPending={adjustMutation.isPending}
+            onColumnVisibilityChange={(visibility) =>
+              tablePrefs.setColumnVisibility(visibility as Record<string, boolean>)
+            }
+            onColumnOrderChange={tablePrefs.setColumnOrder}
+            onColumnSizingChange={tablePrefs.setColumnSizing}
             onSortChange={handleSortChange}
             onViewItem={handleViewItem}
-            onItemKeyDown={handleItemKeyDown}
             onQuickAdjust={handleQuickAdjust}
             onShowQR={handleShowQRCode}
             onEditItem={handleEditItem}

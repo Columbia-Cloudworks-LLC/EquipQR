@@ -24,6 +24,9 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import type { WorkOrder, WorkOrderPriority } from '@/features/work-orders/types/workOrder';
+import { useVoiceTextAppender } from '@/hooks/useVoiceTextAppender';
+import VoiceInputButton from '@/components/common/VoiceInputButton';
+import VoiceInterimTranscript from '@/components/common/VoiceInterimTranscript';
 import {
   canRunQRAction,
   type QRActionEquipment,
@@ -166,6 +169,18 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
     needsPmTemplateChoice &&
     (!pmTemplateId || templatesListLoading || templatesListError || noTemplatesAvailable);
 
+  const {
+    isListening,
+    error: speechError,
+    interimTranscript,
+    toggleListening,
+    canUseVoice,
+  } = useVoiceTextAppender({
+    value: description,
+    onChange: setDescription,
+    disabled: isSubmitting,
+  });
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
@@ -281,15 +296,31 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="qr-work-order-description">Description</Label>
-            <Textarea
-              id="qr-work-order-description"
-              value={description}
-              onChange={event => setDescription(event.target.value)}
-              disabled={isSubmitting}
-              rows={4}
-              required
-            />
+            <div className="flex items-center justify-between">
+              <Label htmlFor="qr-work-order-description">Description</Label>
+              <VoiceInputButton
+                isListening={isListening}
+                onToggle={toggleListening}
+                canUseVoice={canUseVoice}
+              />
+            </div>
+            <div className="relative">
+              <Textarea
+                id="qr-work-order-description"
+                value={description}
+                onChange={event => setDescription(event.target.value)}
+                disabled={isSubmitting}
+                rows={4}
+                required
+              />
+              <VoiceInterimTranscript
+                isListening={isListening}
+                interimTranscript={interimTranscript}
+              />
+            </div>
+            {speechError && (
+              <p className="text-sm text-destructive">{speechError}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
