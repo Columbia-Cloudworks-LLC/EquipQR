@@ -196,9 +196,9 @@ Formatting rule: boundary tags and headers at column 0; nested snippets/examples
 
 Triage summary:
 Address:
-- {{thread/review id or author/path}}: {{why it is valid}}
+- {{thread/review id or author/path}}: {{why it is valid}}; files: {{files}}; symbols: {{symbols}}; behavior change: {{behavior change}}
 Defer:
-- {{thread/review id or author/path}}: {{why out of scope}}; tracking issue title: {{tracking_issue_title}}
+- {{thread/review id or author/path}}: {{why out of scope}}; tracking issue title: {{tracking_issue_title}}; issue body outline: {{issue body outline}}; prepared reply text: {{prepared reply text}}
 Reject:
 - {{thread/review id or author/path}}: {{why it does not apply}}
 </context-anchor>
