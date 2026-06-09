@@ -7,6 +7,7 @@ export interface ReportsStatusStripProps {
   organizationName: string;
   canExport: boolean;
   isGoogleWorkspaceConnected: boolean;
+  rateLimitSummary?: string;
   className?: string;
 }
 
@@ -17,6 +18,7 @@ export const ReportsStatusStrip: React.FC<ReportsStatusStripProps> = ({
   organizationName,
   canExport,
   isGoogleWorkspaceConnected,
+  rateLimitSummary = 'Rate-limited',
   className,
 }) => {
   return (
@@ -63,7 +65,7 @@ export const ReportsStatusStrip: React.FC<ReportsStatusStripProps> = ({
         label="RATE LIMIT"
         value={
           <span className="font-tabular text-xs text-muted-foreground">
-            5/user/min · 50/org/hr
+            {rateLimitSummary}
           </span>
         }
       />

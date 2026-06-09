@@ -75,8 +75,9 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
   const queryClient = useQueryClient();
   const { isLoaded } = useGoogleMapsLoader();
   const { currentOrganization } = useOrganization();
-  const { canManageTeam } = usePermissions();
+  const { canManageTeam, isOrganizationAdmin } = usePermissions();
   const canEditTeam = canManageTeam(team.id);
+  const canEditPMSchedule = isOrganizationAdmin();
   const { data: orgCustomers } = useCustomersByOrg(open ? currentOrganization?.id : undefined);
   const teamPolicyTarget = { scopeType: 'team' as const, teamId: team.id };
   const { data: teamPolicy } = usePMIntervalPolicy(currentOrganization?.id, teamPolicyTarget, { enabled: open });
@@ -171,7 +172,7 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
       queryClient.invalidateQueries({ queryKey: ['teams', team.organization_id] });
 
       let pmScheduleSaved = true;
-      if (currentOrganization?.id) {
+      if (currentOrganization?.id && canEditPMSchedule) {
         try {
           await pmIntervalPolicyService.upsertPolicy(
             currentOrganization.id,
@@ -300,8 +301,13 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
                 onChange={setPmScheduleForm}
                 inheritLabel="Inherit from assigned PM template"
                 intervalError={pmScheduleError}
-                disabled={isLoading}
+                disabled={isLoading || !canEditPMSchedule}
               />
+              {!canEditPMSchedule && (
+                <p className="text-xs text-muted-foreground">
+                  Only org admins can edit the PM schedule.
+                </p>
+              )}
             </CardContent>
           </Card>
 

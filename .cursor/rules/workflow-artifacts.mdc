@@ -38,4 +38,4 @@ Prefer the custom `reflect` skill when present (explicit approval before write).
 
 ## Changelog
 
-Workflow artifact commits do **not** require `CHANGELOG.md` entries (`changelog-stop` already excludes `.cursor/`).
+Workflow artifact commits do **not** require `CHANGELOG.md` entries (`changelog-stop` already excludes `.cursor/`, `docs/`, `AGENTS.md`, and `scripts/mcp.template.json`).

@@ -72,8 +72,10 @@ if ($changelogTouched) {
 
 $relevantFiles = $changedFiles | Where-Object {
     $_ -ne 'CHANGELOG.md' -and
+    $_ -ne 'AGENTS.md' -and
     $_ -notmatch '^\.cursor/' -and
     $_ -notmatch '^docs/' -and
+    $_ -notmatch '^scripts/mcp\.template\.json$' -and
     $_ -notmatch '^(README|CONTRIBUTING|SUPPORT|SECURITY)\.md$'
 }
 

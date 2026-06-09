@@ -23,7 +23,9 @@ export function TeamPMScheduleCard({ organizationId, teamId }: TeamPMScheduleCar
     : form.mode === 'none'
       ? 'No recurring PM for equipment on this team unless overridden per asset.'
       : form.mode === 'custom'
-        ? `Custom team interval: every ${form.intervalValue} ${form.intervalType === 'hours' ? 'working hours' : 'calendar days'}`
+        ? form.intervalValue !== null && form.intervalValue > 0
+          ? `Custom team interval: every ${form.intervalValue} ${form.intervalType === 'hours' ? 'working hours' : 'calendar days'}`
+          : 'Custom team interval configured'
         : 'No team override: equipment uses its PM template schedule unless overridden per asset.';
 
   return (

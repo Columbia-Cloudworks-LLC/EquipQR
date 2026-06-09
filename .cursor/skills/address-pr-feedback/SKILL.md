@@ -219,7 +219,7 @@ Reject:
 - [ ] Append a short Phase 3 summary under <summary-checkpoints>.
 
 ## Phase 4: Verification
-- [ ] Run lint, `npx tsc --noEmit`, and scoped `npm test -- <paths>` unless this plan authorizes broader verification.
+- [ ] Run lint, `npx tsc --noEmit`, and scoped `npm test -- {{paths}}` unless this plan authorizes broader verification.
 - [ ] Require green output or stop with the failing command and relevant output summary.
 - [ ] Append a verification summary under <summary-checkpoints>.
 

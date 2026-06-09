@@ -11,6 +11,7 @@ const mockUpsertPolicy = vi.fn();
 const mockToast = vi.fn();
 const mockOnClose = vi.fn();
 const mockCanManageTeam = vi.fn(() => true);
+const mockIsOrganizationAdmin = vi.fn(() => true);
 
 vi.mock('@/features/teams/services/teamService', () => ({
   updateTeam: (...args: unknown[]) => mockUpdateTeam(...args),
@@ -52,6 +53,7 @@ vi.mock('@/hooks/use-toast', () => ({
 vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: () => ({
     canManageTeam: (...args: unknown[]) => mockCanManageTeam(...args),
+    isOrganizationAdmin: () => mockIsOrganizationAdmin(),
   }),
 }));
 
@@ -99,6 +101,7 @@ describe('TeamMetadataEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCanManageTeam.mockReturnValue(true);
+    mockIsOrganizationAdmin.mockReturnValue(true);
     mockUpdateTeam.mockResolvedValue({ ...mockTeam, name: 'Updated Team' });
     mockUpsertPolicy.mockRejectedValue(new Error('Policy save failed'));
   });
@@ -125,6 +128,46 @@ describe('TeamMetadataEditor', () => {
       })
     );
     expect(mockOnClose).not.toHaveBeenCalled();
+  });
+
+  it('skips upsertPolicy and saves team metadata when user is team manager only (not org admin)', async () => {
+    mockCanManageTeam.mockReturnValue(true);
+    mockIsOrganizationAdmin.mockReturnValue(false);
+    mockUpsertPolicy.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+    await waitFor(() => {
+      expect(mockUpdateTeam).toHaveBeenCalledWith('team-1', expect.objectContaining({
+        name: 'Maintenance Team',
+      }));
+    });
+
+    expect(mockUpsertPolicy).not.toHaveBeenCalled();
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Team updated',
+      })
+    );
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('re-checks isOrganizationAdmin at submit time and blocks upsertPolicy if denied', async () => {
+    mockCanManageTeam.mockReturnValue(true);
+    mockIsOrganizationAdmin.mockReturnValue(false);
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+    await waitFor(() => {
+      expect(mockUpdateTeam).toHaveBeenCalled();
+    });
+
+    expect(mockIsOrganizationAdmin).toHaveBeenCalled();
+    expect(mockUpsertPolicy).not.toHaveBeenCalled();
   });
 
   it('blocks submit and shows permission denied when user cannot manage the team', async () => {

@@ -120,7 +120,7 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
       <div className="md:hidden">
         <div className="grid min-w-0 grid-cols-[4.5rem_1fr_auto] gap-x-2.5 gap-y-0.5 p-3">
           <div className="row-span-4 self-center">
-            <div className="relative aspect-4/5 w-full overflow-hidden rounded-md bg-muted">
+            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-md bg-muted">
               {equipment.image_url ? (
                 <img
                   src={equipment.image_url}
