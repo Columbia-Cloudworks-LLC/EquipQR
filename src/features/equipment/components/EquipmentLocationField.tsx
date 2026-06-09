@@ -283,7 +283,7 @@ export const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
             variant="ghost"
             size="sm"
             onClick={onStartEdit}
-            className={isMobile ? inlineEditIconClassName : 'min-h-11 shrink-0 px-3 text-sm text-primary hover:text-primary/80 hover:underline'}
+            className="min-h-11 shrink-0 px-3 text-sm text-primary hover:text-primary/80 hover:underline"
           >
             Set Location
           </Button>
