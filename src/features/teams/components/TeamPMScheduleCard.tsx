@@ -20,11 +20,13 @@ export function TeamPMScheduleCard({ organizationId, teamId }: TeamPMScheduleCar
 
   const summary = isLoading
     ? 'Loading PM schedule...'
+  const summary = isLoading
+    ? 'Loading PM schedule...'
     : form.mode === 'none'
       ? 'No recurring PM for equipment on this team unless overridden per asset.'
       : form.mode === 'custom'
         ? `Custom team interval: every ${form.intervalValue} ${form.intervalType === 'hours' ? 'working hours' : 'calendar days'}`
-        : 'Equipment inherits schedule from assigned PM template unless overridden.';
+        : 'No team override: equipment uses its PM template schedule unless overridden per asset.';
 
   return (
     <Card>
