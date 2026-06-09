@@ -175,7 +175,7 @@ The plan must be simple, concrete, and action-oriented:
 - Start with `<context-anchor>` and require the execution agent to read `AGENTS.md`, relevant `.cursor/rules/*.mdc`, this skill, PR context, and touched source/test files before editing.
 - Use markdown checkboxes (`- [ ]`) for every executable task and instruct the execution agent to edit the plan file to mark each task `- [x]` as it progresses.
 - For behavior changes, require test-first verification: author/update the focused test, run the exact command to confirm the expected failure, then implement and rerun to green.
-- Never use triple backticks inside the generated plan. Nested code, schemas, JSON, SQL, and commands must be free text indented with exactly two or four spaces.
+- Never use triple backticks inside the generated plan. Boundary tags and markdown headers must start at column 0; nested code, schemas, JSON, SQL, and commands must be free text indented with exactly four leading spaces.
 - Include the exact verification commands: for **targeted** fixes, default to `npm run lint`, `npx tsc --noEmit`, and **scoped** `npm test -- <touched test paths>` (runs `scripts/test-runner.mjs`) — not a repo-wide `npm test` unless the plan documents why the change is broad or high-risk (see Step 6). State the expected pass condition.
 - Include an `<authorized-commands>` list of the exact PowerShell-compatible commands allowed for this PR-feedback pass and tell the execution agent not to invent terminal commands.
 - Include the commit message, push target, in-thread reply plan, top-level PR summary sections, and `gh pr checks` spot-check.
@@ -183,75 +183,74 @@ The plan must be simple, concrete, and action-oriented:
 
 Use this plan shape:
 
-  # PR Feedback Implementation Plan
+# PR Feedback Implementation Plan
 
-  <context-anchor>
-  PR: #<number> - <title>
-  Base: <base branch>
-  Branch/worktree: <branch or path>
-  Stack: React + TypeScript + Vite + Tailwind + shadcn/ui + Supabase + TanStack Query + Vitest + React Testing Library on Windows PowerShell.
-  Required reading before edits: AGENTS.md, relevant .cursor/rules/*.mdc, .cursor/skills/address-pr-feedback/SKILL.md, PR context, review threads, and <touched files>.
-  Composer target: Composer 2.5 should be able to execute this without inferring missing files, commands, tests, or stop conditions.
-  Formatting rule: do not use triple backticks anywhere in this plan; indent examples with exactly two or four spaces.
-  </context-anchor>
+<context-anchor>
+PR: #<number> - <title>
+Base: <base branch>
+Branch/worktree: <branch or path>
+Stack: React + TypeScript + Vite + Tailwind + shadcn/ui + Supabase + TanStack Query + Vitest + React Testing Library on Windows PowerShell.
+Required reading before edits: AGENTS.md, relevant .cursor/rules/*.mdc, .cursor/skills/address-pr-feedback/SKILL.md, PR context, review threads, and <touched files>.
+Composer target: Composer 2.5 should be able to execute this without inferring missing files, commands, tests, or stop conditions.
+Formatting rule: boundary tags and headers at column 0; nested snippets/examples at exactly four leading spaces; no triple backticks anywhere in this plan.
 
-  <triage>
-  Address:
-  - <thread/review id or author/path>: <why it is valid>
-  Defer:
-  - <thread/review id or author/path>: <why out of scope>; tracking issue title: <title>
-  Reject:
-  - <thread/review id or author/path>: <why it does not apply>
-  </triage>
+Triage summary:
+Address:
+- <thread/review id or author/path>: <why it is valid>
+Defer:
+- <thread/review id or author/path>: <why out of scope>; tracking issue title: <title>
+Reject:
+- <thread/review id or author/path>: <why it does not apply>
+</context-anchor>
 
-  <execution-steps>
-  ## Phase 1: Discovery
-  - [ ] Read <exact files> and confirm each Address item still applies.
-  - [ ] Append a short Phase 1 summary under <summary-checkpoints>.
+<execution-steps>
+## Phase 1: Discovery
+- [ ] Read <exact files> and confirm each Address item still applies.
+- [ ] Append a short Phase 1 summary under <summary-checkpoints>.
 
-  ## Phase 2: Test First
-  - [ ] Add/update <test file> to cover <case>.
-  - [ ] Run <exact scoped test command> and confirm it fails for the expected reason.
-  - [ ] Append a short Phase 2 summary under <summary-checkpoints>.
+## Phase 2: Test First
+- [ ] Add/update <test file> to cover <case>.
+- [ ] Run <exact scoped test command> and confirm it fails for the expected reason.
+- [ ] Append a short Phase 2 summary under <summary-checkpoints>.
 
-  ## Phase 3: Implementation
-  - [ ] Edit <file> at <symbol> to <specific change>.
-  - [ ] Create deferred issue(s) with the listed titles and body outlines.
-  - [ ] Append a short Phase 3 summary under <summary-checkpoints>.
+## Phase 3: Implementation
+- [ ] Edit <file> at <symbol> to <specific change>.
+- [ ] Create deferred issue(s) with the listed titles and body outlines.
+- [ ] Append a short Phase 3 summary under <summary-checkpoints>.
 
-  ## Phase 4: Verification
-  - [ ] Run lint, `npx tsc --noEmit`, and scoped `npm test -- <paths>` unless this plan authorizes broader verification.
-  - [ ] Require green output or stop with the failing command and relevant output summary.
-  - [ ] Append a verification summary under <summary-checkpoints>.
+## Phase 4: Verification
+- [ ] Run lint, `npx tsc --noEmit`, and scoped `npm test -- <paths>` unless this plan authorizes broader verification.
+- [ ] Require green output or stop with the failing command and relevant output summary.
+- [ ] Append a verification summary under <summary-checkpoints>.
 
-  ## Phase 5: Publish
-  - [ ] Commit with <message>.
-  - [ ] Push to <remote>/<branch>.
-  - [ ] Reply to inline threads using the prepared addressed/deferred/rejected text.
-  - [ ] Post the top-level PR Feedback Response comment.
-  - [ ] Run `gh pr checks <pr_number>` and report failures if any.
-  </execution-steps>
+## Phase 5: Publish
+- [ ] Commit with <message>.
+- [ ] Push to <remote>/<branch>.
+- [ ] Reply to inline threads using the prepared addressed/deferred/rejected text.
+- [ ] Post the top-level PR Feedback Response comment.
+- [ ] Run `gh pr checks <pr_number>` and report failures if any.
+</execution-steps>
 
-  <authorized-commands>
-  - <exact PowerShell-compatible command>
-  - <exact PowerShell-compatible command>
-  </authorized-commands>
+<authorized-commands>
+- <exact PowerShell-compatible command>
+- <exact PowerShell-compatible command>
+</authorized-commands>
 
-  <verification-plan>
-  - [ ] Expected failing test before implementation: <command and failure signal>.
-  - [ ] Expected passing checks after implementation: <commands and pass conditions>.
-  </verification-plan>
+<verification-plan>
+- [ ] Expected failing test before implementation: <command and failure signal>.
+- [ ] Expected passing checks after implementation: <commands and pass conditions>.
+</verification-plan>
 
-  <summary-checkpoints>
-  The execution agent must physically edit this plan file, mark each completed task with `- [x]`, and append summaries here at the end of each major phase.
-  </summary-checkpoints>
+<summary-checkpoints>
+The execution agent must physically edit this plan file, mark each completed task with `- [x]`, and append summaries here at the end of each major phase.
+</summary-checkpoints>
 
-  <stop-conditions>
-  - Stop if a needed command is not listed in <authorized-commands>.
-  - Stop if unrelated dirty product files would need to be touched.
-  - Stop if reviewer intent is unclear.
-  - Stop if verification fails for reasons outside the planned change.
-  </stop-conditions>
+<stop-conditions>
+- Stop if a needed command is not listed in <authorized-commands>.
+- Stop if unrelated dirty product files would need to be touched.
+- Stop if reviewer intent is unclear.
+- Stop if verification fails for reasons outside the planned change.
+</stop-conditions>
 
 Stop after presenting the plan and wait for explicit user approval. If the user approves, return to Agent Mode and continue with Step 5. If the user asked only for review/planning, stop after presenting the plan.
 
