@@ -22,7 +22,7 @@ This is the explicit release gate. It does **not** auto-promote production traff
 - **Never auto-discard local changes.** Resolve dirty trees per `.cursor/rules/workflow-artifacts.mdc`: if workflow-artifact-only dirt blocks Step 1a branch switching or fast-forward alignment, path-stash it before switching (Step 1a preflight), then commit on `preview` in Step 1b; **stop** on unresolved product or mixed dirt. Do not run `git reset --hard` or `git clean`.
 - **Never push to `main`.** The only git write on `main` is opening the PR (`preview` → `main`).
 - **Never run the full Vitest suite.** Run only updated or added test files from the release diff.
-- **Do not edit the plan file** if one is attached for this task.
+- **Do not edit an attached plan file** unless it follows the Composer 2.5 plan format in `.cursor/rules/composer-plan-format.mdc`; in that case, update checkboxes and append summary checkpoints exactly as the plan instructs.
 - **PR summary is customer-facing.** Lead with user-visible outcomes, workflow improvements, fixes, and new capabilities. Keep file paths, migration names, internal agent/process details, and implementation jargon out of the top summary.
 
 ## Workflow
