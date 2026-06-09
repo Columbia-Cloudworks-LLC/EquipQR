@@ -19,7 +19,7 @@ This is the explicit release gate. It does **not** auto-promote production traff
 ## Mandatory Rules
 
 - **Windows / PowerShell only.** No bash heredocs, no `&&`, no Unix-only utilities. Use `--body-file` for multiline PR bodies.
-- **Never auto-discard local changes.** Resolve dirty trees per `.cursor/rules/workflow-artifacts.mdc`: after Step 1a ensures `preview` is checked out, commit workflow-artifact-only dirt on `preview` (Step 1b), then continue; **stop** on unresolved product or mixed dirt. Do not run `git reset --hard` or `git clean`.
+- **Never auto-discard local changes.** Resolve dirty trees per `.cursor/rules/workflow-artifacts.mdc`: if workflow-artifact-only dirt blocks Step 1a branch switching or fast-forward alignment, path-stash it before switching (Step 1a preflight), then commit on `preview` in Step 1b; **stop** on unresolved product or mixed dirt. Do not run `git reset --hard` or `git clean`.
 - **Never push to `main`.** The only git write on `main` is opening the PR (`preview` → `main`).
 - **Never run the full Vitest suite.** Run only updated or added test files from the release diff.
 - **Do not edit the plan file** if one is attached for this task.
@@ -54,6 +54,30 @@ git rev-parse HEAD
 git rev-parse origin/preview
 ```
 
+#### 1a-preflight. Dirty tree before switching or fast-forward
+
+Before `git switch preview` or `git merge --ff-only origin/preview`, inspect the working tree:
+
+```powershell
+git status --porcelain
+```
+
+If output is non-empty, classify dirt per `.cursor/rules/workflow-artifacts.mdc`:
+
+- **Workflow-artifact-only dirt** (`AGENTS.md`, `.cursor/**`, `scripts/mcp.template.json`): path-stash only those files so switching/alignment can proceed. Example:
+
+  ```powershell
+  git stash push -m "release: workflow artifacts preflight" -- AGENTS.md .cursor scripts/mcp.template.json
+  ```
+
+  After switching to `preview` and fast-forwarding `origin/preview` (below), run `git stash pop` (or `git stash apply` then `git stash drop`) to restore the dirt, then continue to Step 1b to commit and push on `preview`.
+
+- **Product dirt** (`src/**`, `supabase/**`, etc.): **stop**. Tell the user to commit, stash, or discard manually, then re-run `/release`.
+
+- **Mixed dirt**: **stop**. Resolve product dirt manually first; do not auto-stash product paths.
+
+If the tree is clean, or workflow-only dirt was stashed successfully, continue below.
+
 If not on `preview`:
 
 ```powershell
@@ -67,7 +91,7 @@ git log --oneline origin/preview..HEAD
 git log --oneline HEAD..origin/preview
 ```
 
-- If local is **behind** `origin/preview` and the tree is clean, fast-forward:
+- If local is **behind** `origin/preview`, fast-forward (tree must be clean or workflow-only dirt already stashed):
 
   ```powershell
   git merge --ff-only origin/preview
@@ -76,6 +100,12 @@ git log --oneline HEAD..origin/preview
 - If local is **ahead** of `origin/preview` (unpushed commits exist), **stop**. Report the unpushed commits and ask the user to push or reconcile before releasing.
 
 - If local and remote **diverged**, **stop**. Do not reset or force-push.
+
+If workflow-only dirt was stashed in the preflight above, restore it now before Step 1b:
+
+```powershell
+git stash pop
+```
 
 After alignment, confirm:
 

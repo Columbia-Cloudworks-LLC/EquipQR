@@ -29,7 +29,7 @@ Cursor plugins (for example continual-learning / `agents-memory-updater`) may up
 |----------|---------------------|
 | Default implementation (`itil-issue-resolver`, feature/fix on `preview`) | Bundle workflow artifacts per rules above |
 | `address-pr-feedback` | Bundle workflow artifacts; still scope product edits to the feedback pass |
-| `/release` | After ensuring on `preview` (Step 1a): if the tree is dirty **only** with workflow artifacts, commit on `preview` and continue; if product files are dirty, stop and report |
+| `/release` | If workflow-only dirt blocks Step 1a switching/alignment, path-stash those files first; after `preview` is aligned, commit workflow artifacts on `preview` (Step 1b) and continue; if product files are dirty, stop and report |
 | Workflow/memory maintenance task | Commit workflow artifacts only; keep commits incremental |
 
 ## Lesson capture
