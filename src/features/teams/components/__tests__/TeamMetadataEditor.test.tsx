@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import TeamMetadataEditor from '@/features/teams/components/TeamMetadataEditor';
@@ -10,6 +10,7 @@ const mockUpdateTeam = vi.fn();
 const mockUpsertPolicy = vi.fn();
 const mockToast = vi.fn();
 const mockOnClose = vi.fn();
+const mockCanManageTeam = vi.fn(() => true);
 
 vi.mock('@/features/teams/services/teamService', () => ({
   updateTeam: (...args: unknown[]) => mockUpdateTeam(...args),
@@ -46,6 +47,12 @@ vi.mock('@/hooks/useGoogleMapsLoader', () => ({
 
 vi.mock('@/hooks/use-toast', () => ({
   toast: (...args: unknown[]) => mockToast(...args),
+}));
+
+vi.mock('@/hooks/usePermissions', () => ({
+  usePermissions: () => ({
+    canManageTeam: (...args: unknown[]) => mockCanManageTeam(...args),
+  }),
 }));
 
 vi.mock('@/components/common/SingleImageUpload', () => ({
@@ -91,6 +98,7 @@ function renderEditor() {
 describe('TeamMetadataEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCanManageTeam.mockReturnValue(true);
     mockUpdateTeam.mockResolvedValue({ ...mockTeam, name: 'Updated Team' });
     mockUpsertPolicy.mockRejectedValue(new Error('Policy save failed'));
   });
@@ -113,6 +121,26 @@ describe('TeamMetadataEditor', () => {
     expect(mockToast).toHaveBeenCalledWith(
       expect.objectContaining({
         title: 'Team updated, but PM schedule was not saved',
+        variant: 'destructive',
+      })
+    );
+    expect(mockOnClose).not.toHaveBeenCalled();
+  });
+
+  it('blocks submit and shows permission denied when user cannot manage the team', async () => {
+    mockCanManageTeam.mockReturnValue(false);
+    renderEditor();
+
+    const form = screen.getByRole('button', { name: 'Save Changes' }).closest('form');
+    expect(form).not.toBeNull();
+    fireEvent.submit(form!);
+
+    expect(mockCanManageTeam).toHaveBeenCalledWith('team-1');
+    expect(mockUpdateTeam).not.toHaveBeenCalled();
+    expect(mockUpsertPolicy).not.toHaveBeenCalled();
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Permission denied',
         variant: 'destructive',
       })
     );

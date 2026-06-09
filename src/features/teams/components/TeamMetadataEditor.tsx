@@ -23,6 +23,7 @@ import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { TEAM_NATIVE_SELECT_CLASS_NAME } from '@/features/teams/constants/teamNativeSelectClassName';
 import SingleImageUpload from '@/components/common/SingleImageUpload';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useCustomersByOrg } from '@/features/teams/hooks/useCustomerAccount';
 import { PMSchedulePolicyFields } from '@/features/pm-templates/components/PMSchedulePolicyFields';
 import {
@@ -74,6 +75,8 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
   const queryClient = useQueryClient();
   const { isLoaded } = useGoogleMapsLoader();
   const { currentOrganization } = useOrganization();
+  const { canManageTeam } = usePermissions();
+  const canEditTeam = canManageTeam(team.id);
   const { data: orgCustomers } = useCustomersByOrg(open ? currentOrganization?.id : undefined);
   const teamPolicyTarget = { scopeType: 'team' as const, teamId: team.id };
   const { data: teamPolicy } = usePMIntervalPolicy(currentOrganization?.id, teamPolicyTarget, { enabled: open });
@@ -117,6 +120,16 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!canEditTeam) {
+      toast({
+        title: 'Permission denied',
+        description: 'You do not have permission to edit this team.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const formData = new FormData(e.target as HTMLFormElement);
     
     const updates: Record<string, unknown> = {
@@ -296,7 +309,7 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
             <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || !canEditTeam}>
               {isLoading ? "Saving..." : "Save Changes"}
             </Button>
           </div>

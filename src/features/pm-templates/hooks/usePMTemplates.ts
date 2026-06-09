@@ -207,15 +207,20 @@ export const useClonePMTemplate = () => {
     onSuccess: async (clonedTemplate) => {
       if (currentOrganization?.id) {
         if (clonedTemplate.interval_value && clonedTemplate.interval_type) {
-          await pmIntervalPolicyService.upsertPolicy(
-            currentOrganization.id,
-            { scopeType: 'template', templateId: clonedTemplate.id },
-            {
-              mode: 'custom',
-              intervalValue: clonedTemplate.interval_value,
-              intervalType: clonedTemplate.interval_type,
-            }
-          );
+          try {
+            await pmIntervalPolicyService.upsertPolicy(
+              currentOrganization.id,
+              { scopeType: 'template', templateId: clonedTemplate.id },
+              {
+                mode: 'custom',
+                intervalValue: clonedTemplate.interval_value,
+                intervalType: clonedTemplate.interval_type,
+              }
+            );
+          } catch (policyError) {
+            console.error('Error syncing cloned template PM schedule policy:', policyError);
+            toast.error('Template cloned, but PM schedule policy was not synced');
+          }
         }
         queryClient.invalidateQueries({ 
           queryKey: queryKeys.pmTemplates.list(currentOrganization.id) 

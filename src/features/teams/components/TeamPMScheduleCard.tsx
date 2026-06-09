@@ -20,8 +20,6 @@ export function TeamPMScheduleCard({ organizationId, teamId }: TeamPMScheduleCar
 
   const summary = isLoading
     ? 'Loading PM schedule...'
-  const summary = isLoading
-    ? 'Loading PM schedule...'
     : form.mode === 'none'
       ? 'No recurring PM for equipment on this team unless overridden per asset.'
       : form.mode === 'custom'

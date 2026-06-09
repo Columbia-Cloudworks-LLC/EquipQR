@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(20);
+SELECT plan(23);
 
 SELECT has_table('public', 'pm_interval_policies', 'pm_interval_policies table exists');
 SELECT has_column('public', 'pm_interval_policies', 'organization_id', 'organization_id exists');
@@ -156,27 +156,29 @@ SELECT ok(
   'Org member can select PM interval policies'
 );
 
-INSERT INTO public.pm_interval_policies (
-  organization_id,
-  scope_type,
-  team_id,
-  policy_slot,
-  schedule_mode,
-  interval_value,
-  interval_type,
-  created_by,
-  updated_by
-) VALUES (
-  '660e8400-e29b-41d4-a716-446655440001'::uuid,
-  'team',
-  '880e8400-e29b-41d4-a716-446655440005'::uuid,
-  'default',
-  'custom',
-  30,
-  'days',
-  'bb0e8400-e29b-41d4-a716-446655440005'::uuid,
-  'bb0e8400-e29b-41d4-a716-446655440005'::uuid
-);
+SELECT throws_ok($$
+  INSERT INTO public.pm_interval_policies (
+    organization_id,
+    scope_type,
+    team_id,
+    policy_slot,
+    schedule_mode,
+    interval_value,
+    interval_type,
+    created_by,
+    updated_by
+  ) VALUES (
+    '660e8400-e29b-41d4-a716-446655440001'::uuid,
+    'team',
+    '880e8400-e29b-41d4-a716-446655440005'::uuid,
+    'default',
+    'custom',
+    30,
+    'days',
+    'bb0e8400-e29b-41d4-a716-446655440005'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440005'::uuid
+  );
+$$, '42501', 'Non-admin org member cannot insert PM interval policies');
 
 SELECT is(
   (SELECT count(*)::int
@@ -187,10 +189,12 @@ SELECT is(
   'Non-admin org member cannot insert PM interval policies'
 );
 
-UPDATE public.pm_interval_policies
-SET interval_value = 99
-WHERE organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid
-  AND team_id = '880e8400-e29b-41d4-a716-446655440002'::uuid;
+SELECT throws_ok($$
+  UPDATE public.pm_interval_policies
+  SET interval_value = 99
+  WHERE organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid
+    AND team_id = '880e8400-e29b-41d4-a716-446655440002'::uuid;
+$$, '42501', 'Non-admin org member cannot update PM interval policies');
 
 SELECT is(
   (SELECT interval_value
@@ -201,9 +205,11 @@ SELECT is(
   'Non-admin org member cannot update PM interval policies'
 );
 
-DELETE FROM public.pm_interval_policies
-WHERE organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid
-  AND equipment_id = 'aa0e8400-e29b-41d4-a716-446655440010'::uuid;
+SELECT throws_ok($$
+  DELETE FROM public.pm_interval_policies
+  WHERE organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid
+    AND equipment_id = 'aa0e8400-e29b-41d4-a716-446655440010'::uuid;
+$$, '42501', 'Non-admin org member cannot delete PM interval policies');
 
 SELECT is(
   (SELECT count(*)::int
@@ -211,7 +217,7 @@ SELECT is(
    WHERE organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid
      AND equipment_id = 'aa0e8400-e29b-41d4-a716-446655440010'::uuid),
   1,
-  'Non-admin org member cannot delete PM interval policies'
+  'Equipment PM interval policy row remains after non-admin delete attempt'
 );
 
 SET LOCAL ROLE authenticated;
