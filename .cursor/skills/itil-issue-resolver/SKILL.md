@@ -35,7 +35,7 @@ If the request is still unclear, use:
    - `explore` for broad impact discovery.
    - `docs-researcher` for current library/vendor docs.
    - `ci-watcher` or `ci-investigator` after a PR exists or checks fail.
-5. Stage only files needed for the issue. Do not stage unrelated dirty work.
+5. Stage task files plus any dirty **workflow artifacts** per `.cursor/rules/workflow-artifacts.mdc`. Do not stage other unrelated product dirt.
 6. Prefer targeted verification over full-suite loops unless the change is broad or high-risk.
 
 ## Workflow
@@ -67,7 +67,7 @@ git branch --show-current
 gh pr list --state open --search "<issue-number> in:body" --json number,title,headRefName,baseRefName,url
 ```
 
-If an open PR or branch already covers the issue, resume it instead of duplicating work. If unrelated local changes exist, leave them alone and stage around them.
+If an open PR or branch already covers the issue, resume it instead of duplicating work. On authorized commits, include dirty workflow artifacts (`AGENTS.md`, `.cursor/**` per `workflow-artifacts.mdc`) without triage. Leave other unrelated product changes unstaged.
 
 ### 3. Plan The Edit Briefly
 

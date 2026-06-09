@@ -86,8 +86,9 @@ git status
 git diff
 ```
 
-- Scope commits to files touched for this PR-feedback pass; do not stage unrelated local changes.
-- If unrelated edits exist, stash or exclude them before committing.
+- Scope product commits to files touched for this PR-feedback pass.
+- Include dirty **workflow artifacts** on the same commit per `.cursor/rules/workflow-artifacts.mdc` (no triage).
+- Stash or exclude other unrelated product edits before committing.
 
 **Release PR guard:** Read `baseRefName` from `gh pr view`. If the PR targets `main` (`preview` → `main` release / `/raise` flow), **do not defer** compliance, security, RBAC/RLS, or service-boundary findings — resolve them in this PR or stop and escalate. Deferred tracking issues apply to normal integration PRs (typically base `preview`).
 
