@@ -19,7 +19,7 @@ This is the explicit release gate. It does **not** auto-promote production traff
 ## Mandatory Rules
 
 - **Windows / PowerShell only.** No bash heredocs, no `&&`, no Unix-only utilities. Use `--body-file` for multiline PR bodies.
-- **Never auto-discard local changes.** If `git status --porcelain` is non-empty, stop and report what is dirty. Do not run `git reset --hard` or `git clean`.
+- **Never auto-discard local changes.** Resolve dirty trees per `.cursor/rules/workflow-artifacts.mdc`: after Step 1a ensures `preview` is checked out, commit workflow-artifact-only dirt on `preview` (Step 1b), then continue; **stop** on unresolved product or mixed dirt. Do not run `git reset --hard` or `git clean`.
 - **Never push to `main`.** The only git write on `main` is opening the PR (`preview` → `main`).
 - **Never run the full Vitest suite.** Run only updated or added test files from the release diff.
 - **Do not edit the plan file** if one is attached for this task.
@@ -28,7 +28,7 @@ This is the explicit release gate. It does **not** auto-promote production traff
 ## Workflow
 
 ```
-- [ ] Step 1: Preflight — fetch, resolve dirty tree (workflow artifacts or clean), align with origin/preview
+- [ ] Step 1: Preflight — fetch, align with origin/preview, resolve dirty tree (workflow artifacts or clean)
 - [ ] Step 2: Run changelog-version-curator subagent
 - [ ] Step 3: Commit and push release metadata (if changed)
 - [ ] Step 4: Run scoped Vitest on changed test files only
@@ -46,19 +46,7 @@ Run from the repo root.
 git fetch origin preview main --tags
 ```
 
-### 1a. Dirty working tree gate
-
-```powershell
-git status --porcelain
-```
-
-If output is non-empty:
-
-1. **Workflow-artifact-only dirt** (`AGENTS.md`, `.cursor/**`, `scripts/mcp.template.json` per `.cursor/rules/workflow-artifacts.mdc`): commit with `chore(cursor): sync workflow artifacts`, push to `origin/preview`, then continue `/release`.
-2. **Product dirt** (`src/**`, `supabase/**`, etc.): **stop**. Tell the user to commit, stash, or discard manually, then re-run `/release`.
-3. **Mixed dirt**: commit workflow artifacts first (step 1), then **stop** until product dirt is resolved.
-
-### 1b. Ensure on `preview` and aligned with `origin/preview`
+### 1a. Ensure on `preview` and aligned with `origin/preview`
 
 ```powershell
 git branch --show-current
@@ -97,6 +85,20 @@ git rev-parse origin/preview
 ```
 
 These SHAs should match before continuing.
+
+### 1b. Dirty working tree gate
+
+Run only after Step 1a confirms `preview` is checked out.
+
+```powershell
+git status --porcelain
+```
+
+If output is non-empty:
+
+1. **Workflow-artifact-only dirt** (`AGENTS.md`, `.cursor/**`, `scripts/mcp.template.json` per `.cursor/rules/workflow-artifacts.mdc`): on `preview`, commit with `chore(cursor): sync workflow artifacts`, push to `origin/preview`, then continue `/release`.
+2. **Product dirt** (`src/**`, `supabase/**`, etc.): **stop**. Tell the user to commit, stash, or discard manually, then re-run `/release`.
+3. **Mixed dirt**: commit workflow artifacts first (step 1), then **stop** until product dirt is resolved.
 
 ### 1c. Capture release baseline
 
@@ -296,7 +298,7 @@ Remind the user: merge triggers CI/release readiness; production traffic still r
 
 Stop without opening/updating the PR when any of these occur:
 
-- Dirty working tree with unresolved product changes (workflow-artifact-only dirt should be committed in Step 1a first)
+- Dirty working tree with unresolved product changes (workflow-artifact-only dirt should be committed in Step 1b after Step 1a confirms `preview`)
 - Local `preview` diverged from or ahead of unpushed commits relative to `origin/preview`
 - changelog-version-curator validation failure or version mismatch
 - Push to `origin/preview` failed or remote not aligned after push
