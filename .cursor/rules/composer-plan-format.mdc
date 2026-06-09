@@ -15,6 +15,7 @@ Whenever an agent creates a plan file, Change Plan, implementation plan, PR-feed
 - In `<context-anchor>`, require the execution agent to ingest relevant `.cursor/rules/*.mdc`, `.cursor/skills/**/SKILL.md`, and `AGENTS.md` before modifying files.
 - Never wrap nested code snippets, schemas, SQL, JSON, PowerShell, bash, or commands in triple backticks inside the generated plan. Use plain indented text with exactly four leading spaces for nested snippet/example lines.
 - Boundary tags and markdown headers must start at column 0 (no leading spaces). Only nested snippet/example lines inside a section use four-space indentation.
+- Reserve angle brackets for real section boundary tags only. Use double-curly placeholders such as {{plan title}} or {{exact test command}} for generic fill-in text inside plan content.
 - Represent all execution work as atomic sequential markdown checkboxes (`- [ ]`). Instruct the execution agent to physically edit the plan file and change each item to `- [x]` immediately after completing it.
 
 ## Execution Requirements
@@ -27,45 +28,45 @@ Whenever an agent creates a plan file, Change Plan, implementation plan, PR-feed
 
 ## Minimal Plan Shape
 
-# <plan title>
+# {{plan title}}
 
 <context-anchor>
 Stack: React + TypeScript + Vite + Tailwind + shadcn/ui + Supabase + TanStack Query + Vitest + React Testing Library on Windows PowerShell.
 Before edits: read and follow AGENTS.md plus relevant .cursor/rules/*.mdc and .cursor/skills/**/SKILL.md.
 Composer target: Composer 2.5 should be able to execute this without inferring missing files, commands, tests, or stop conditions.
-Formatting rule: boundary tags and headers at column 0; nested snippets/examples at exactly four leading spaces; no triple backticks anywhere in this plan.
+Formatting rule: boundary tags and headers at column 0; nested snippets/examples at exactly four leading spaces; no triple backticks anywhere in this plan; use {{placeholder text}} for generic fill-in values.
 </context-anchor>
 
 <execution-steps>
 ## Phase 1: Discovery
-- [ ] Read <exact files/rules>.
-- [ ] Confirm <specific behavior or symbol>.
+- [ ] Read {{exact files/rules}}.
+- [ ] Confirm {{specific behavior or symbol}}.
 - [ ] Append a 2-4 bullet summary under <summary-checkpoints>.
 
 ## Phase 2: Test First
-- [ ] Add or update <test file> for <expected behavior>.
-- [ ] Run <exact test command> and confirm it fails for the expected reason.
+- [ ] Add or update {{test file}} for {{expected behavior}}.
+- [ ] Run {{exact test command}} and confirm it fails for the expected reason.
 - [ ] Append a 2-4 bullet summary under <summary-checkpoints>.
 
 ## Phase 3: Implementation
-- [ ] Edit <file> at <symbol> to <specific behavior>.
-- [ ] Update related types, fixtures, or UI copy in <exact files>.
+- [ ] Edit {{file}} at {{symbol}} to {{specific behavior}}.
+- [ ] Update related types, fixtures, or UI copy in {{exact files}}.
 - [ ] Append a 2-4 bullet summary under <summary-checkpoints>.
 
 ## Phase 4: Verification
-- [ ] Rerun <exact test command> and confirm it passes.
-- [ ] Run <exact lint/type/build command>.
+- [ ] Rerun {{exact test command}} and confirm it passes.
+- [ ] Run {{exact lint/type/build command}}.
 - [ ] Append a final verification summary under <summary-checkpoints>.
 </execution-steps>
 
 <authorized-commands>
-- <exact PowerShell-compatible command>
-- <exact PowerShell-compatible command>
+- {{exact PowerShell-compatible command}}
+- {{exact PowerShell-compatible command}}
 </authorized-commands>
 
 <verification-plan>
-- [ ] Expected failing test before implementation: <test command and failure signal>.
-- [ ] Expected passing checks after implementation: <commands and pass conditions>.
+- [ ] Expected failing test before implementation: {{test command and failure signal}}.
+- [ ] Expected passing checks after implementation: {{commands and pass conditions}}.
 </verification-plan>
 
 <summary-checkpoints>

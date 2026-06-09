@@ -36,43 +36,43 @@ Read the issue or request and identify:
 
 ### 2. Write The Plan
 
-Write the plan as a deterministic `plan.md`-style markdown document that follows `.cursor/rules/composer-plan-format.mdc`. The plan is optimized for Composer 2.5 execution and must use semantic XML-style boundary tags. Do not use triple backticks anywhere in the generated plan; boundary tags and markdown headers must start at column 0, and any nested examples, schemas, SQL, JSON, or commands must be free text indented with exactly four leading spaces.
+Write the plan as a deterministic `plan.md`-style markdown document that follows `.cursor/rules/composer-plan-format.mdc`. The plan is optimized for Composer 2.5 execution and must use semantic XML-style boundary tags. Do not use triple backticks anywhere in the generated plan; boundary tags and markdown headers must start at column 0, and any nested examples, schemas, SQL, JSON, or commands must be free text indented with exactly four leading spaces. Reserve angle brackets for real section boundary tags; use {{placeholder text}} for generic fill-in values.
 
 Use this compact shape and fill every placeholder with concrete repo details:
 
-# Change Plan: <request title>
+# Change Plan: {{request title}}
 
 <context-anchor>
-Request: #<number> - <title> (or ad-hoc)
-Goal: <one paragraph>
+Request: #{{number}} - {{title}} (or ad-hoc)
+Goal: {{one paragraph}}
 Stack: React + TypeScript + Vite + Tailwind + shadcn/ui + Supabase + TanStack Query + Vitest + React Testing Library on Windows PowerShell.
-Required reading before edits: AGENTS.md, relevant .cursor/rules/*.mdc, relevant .cursor/skills/**/SKILL.md, and <task-specific files>.
+Required reading before edits: AGENTS.md, relevant .cursor/rules/*.mdc, relevant .cursor/skills/**/SKILL.md, and {{task-specific files}}.
 Composer target: Composer 2.5 should be able to execute this without inferring missing files, commands, tests, or stop conditions.
-Formatting rule: boundary tags and headers at column 0; nested snippets/examples at exactly four leading spaces; no triple backticks anywhere in this plan.
+Formatting rule: boundary tags and headers at column 0; nested snippets/examples at exactly four leading spaces; no triple backticks anywhere in this plan; use {{placeholder text}} for generic fill-in values.
 
-External setup: <steps, owner, credential/resource names, verification, or "None">
-Branch/PR path: <direct preview push when allowed by workflow rules, or branch -> PR into preview when requested/formal work requires it>
+External setup: {{steps, owner, credential/resource names, verification, or "None"}}
+Branch/PR path: {{direct preview push when allowed by workflow rules, or branch -> PR into preview when requested/formal work requires it}}
 </context-anchor>
 
 <execution-steps>
 ## Phase 1: Discovery
-- [ ] Read <exact files, symbols, routes, tables, policies, or functions>.
-- [ ] Confirm <acceptance criteria and constraints>.
+- [ ] Read {{exact files, symbols, routes, tables, policies, or functions}}.
+- [ ] Confirm {{acceptance criteria and constraints}}.
 - [ ] Append a short Phase 1 summary under <summary-checkpoints>.
 
 ## Phase 2: Test First
-- [ ] Add or update <test file> to prove <expected behavior>.
-- [ ] Run <exact focused test command> and confirm it fails for the expected reason before implementation.
+- [ ] Add or update {{test file}} to prove {{expected behavior}}.
+- [ ] Run {{exact focused test command}} and confirm it fails for the expected reason before implementation.
 - [ ] Append a short Phase 2 summary under <summary-checkpoints>.
 
 ## Phase 3: Implementation
-- [ ] Edit <file> at <symbol> to <specific change>.
-- [ ] Update related <types, hooks, services, UI copy, RLS, migrations, fixtures, or docs>.
+- [ ] Edit {{file}} at {{symbol}} to {{specific change}}.
+- [ ] Update related {{types, hooks, services, UI copy, RLS, migrations, fixtures, or docs}}.
 - [ ] Append a short Phase 3 summary under <summary-checkpoints>.
 
 ## Phase 4: Verification
-- [ ] Rerun <exact focused test command> and confirm it passes.
-- [ ] Run <exact lint/type/build/manual verification commands>.
+- [ ] Rerun {{exact focused test command}} and confirm it passes.
+- [ ] Run {{exact lint/type/build/manual verification commands}}.
 - [ ] Append a final verification summary under <summary-checkpoints>.
 
 ## Phase 5: Audit / Handoff
@@ -81,14 +81,14 @@ Branch/PR path: <direct preview push when allowed by workflow rules, or branch -
 </execution-steps>
 
 <authorized-commands>
-- <exact PowerShell-compatible command>
-- <exact PowerShell-compatible command>
+- {{exact PowerShell-compatible command}}
+- {{exact PowerShell-compatible command}}
 </authorized-commands>
 
 <verification-plan>
-- [ ] Expected failing test before implementation: <command and failure signal>.
-- [ ] Expected passing checks after implementation: <commands and pass conditions>.
-- [ ] Manual checks: <routes, browser steps, screenshots, or "None">.
+- [ ] Expected failing test before implementation: {{command and failure signal}}.
+- [ ] Expected passing checks after implementation: {{commands and pass conditions}}.
+- [ ] Manual checks: {{routes, browser steps, screenshots, or "None"}}.
 </verification-plan>
 
 <summary-checkpoints>
@@ -100,7 +100,7 @@ The execution agent must physically edit this plan file, mark each completed tas
 - Stop if requirements, reviewer intent, external setup, or acceptance criteria are ambiguous.
 - Stop if unrelated dirty product files would need to be touched.
 - Stop if verification fails for reasons outside the planned change.
-- Risks/backout: <main risks and revert/backout path>
+- Risks/backout: {{main risks and revert/backout path}}
 </stop-conditions>
 
 ### 3. Keep It Executable
