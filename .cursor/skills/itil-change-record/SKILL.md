@@ -40,10 +40,10 @@ Write the plan as a deterministic `plan.md`-style markdown document that follows
 
 Use this compact shape and fill every placeholder with concrete repo details:
 
-# Change Plan: {{request title}}
+# Change Plan: {{request_title}}
 
 <context-anchor>
-Request: #{{number}} - {{title}} (or ad-hoc)
+Request: #{{number}} - {{request_title}} (or ad-hoc)
 Goal: {{one paragraph}}
 Stack: React + TypeScript + Vite + Tailwind + shadcn/ui + Supabase + TanStack Query + Vitest + React Testing Library on Windows PowerShell.
 Required reading before edits: AGENTS.md, relevant .cursor/rules/*.mdc, relevant .cursor/skills/**/SKILL.md, and {{task-specific files}}.

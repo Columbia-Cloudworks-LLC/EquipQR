@@ -186,7 +186,7 @@ Use this plan shape:
 # PR Feedback Implementation Plan
 
 <context-anchor>
-PR: #{{number}} - {{title}}
+PR: #{{pr_number}} - {{pr_title}}
 Base: {{base branch}}
 Branch/worktree: {{branch or path}}
 Stack: React + TypeScript + Vite + Tailwind + shadcn/ui + Supabase + TanStack Query + Vitest + React Testing Library on Windows PowerShell.
@@ -198,7 +198,7 @@ Triage summary:
 Address:
 - {{thread/review id or author/path}}: {{why it is valid}}
 Defer:
-- {{thread/review id or author/path}}: {{why out of scope}}; tracking issue title: {{title}}
+- {{thread/review id or author/path}}: {{why out of scope}}; tracking issue title: {{tracking_issue_title}}
 Reject:
 - {{thread/review id or author/path}}: {{why it does not apply}}
 </context-anchor>
