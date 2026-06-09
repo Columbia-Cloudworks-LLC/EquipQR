@@ -64,13 +64,14 @@ git status --porcelain
 
 If output is non-empty, classify dirt per `.cursor/rules/workflow-artifacts.mdc`:
 
-- **Workflow-artifact-only dirt** (`AGENTS.md`, `.cursor/**`, `scripts/mcp.template.json`): path-stash only those files so switching/alignment can proceed. Example:
+- **Workflow-artifact-only dirt** (`AGENTS.md`, `.cursor/**`, `scripts/mcp.template.json`): path-stash only those files, including untracked workflow artifacts, so switching/alignment can proceed. Example:
 
   ```powershell
-  git stash push -m "release: workflow artifacts preflight" -- AGENTS.md .cursor scripts/mcp.template.json
+  git stash push -u -m "release: workflow artifacts preflight" -- AGENTS.md .cursor scripts/mcp.template.json
+  git stash list -n 1
   ```
 
-  After switching to `preview` and fast-forwarding `origin/preview` (below), run `git stash pop` (or `git stash apply` then `git stash drop`) to restore the dirt, then continue to Step 1b to commit and push on `preview`.
+  Confirm the newest stash entry contains `release: workflow artifacts preflight` before switching or fast-forwarding. If no matching entry was created, **stop** and inspect the working tree before continuing.
 
 - **Product dirt** (`src/**`, `supabase/**`, etc.): **stop**. Tell the user to commit, stash, or discard manually, then re-run `/release`.
 
@@ -101,11 +102,15 @@ git log --oneline HEAD..origin/preview
 
 - If local and remote **diverged**, **stop**. Do not reset or force-push.
 
-If workflow-only dirt was stashed in the preflight above, restore it now before Step 1b:
+If workflow-only dirt was stashed in the preflight above, restore it now before Step 1b. First confirm the newest stash entry is the expected release preflight stash:
 
 ```powershell
+git stash list -n 1
 git stash pop
+git status --porcelain
 ```
+
+If `git stash pop` exits non-zero, reports conflicts, or `git status --porcelain` shows conflicted paths, **stop**. Ask the user to resolve the stash conflict manually before continuing `/release`; do not proceed to Step 1b while the repository is conflicted.
 
 After alignment, confirm:
 
