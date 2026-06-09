@@ -69,12 +69,8 @@ function getInheritedSourceLabel(
         ? `From PM template (${effective.templateName})`
         : 'From PM template default';
     case 'equipment_policy':
-      return 'Equipment override';
     case 'unconfigured':
-      return teamName
-        ? `Inherits from team (${teamName})`
-        : 'Inherits from team or PM template';
-    default:
+      return '';
       return '';
   }
 }
