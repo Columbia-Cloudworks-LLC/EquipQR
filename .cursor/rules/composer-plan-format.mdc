@@ -1,0 +1,77 @@
+---
+description: "Composer 2.5 executable plan format"
+alwaysApply: true
+---
+
+# Composer 2.5 Executable Plans
+
+Whenever an agent creates a plan file, Change Plan, implementation plan, PR-feedback plan, or switches to Plan Mode for work that may later be executed by Cursor Composer, write the plan as a deterministic `plan.md`-style markdown document optimized for Composer 2.5.
+
+## Required Structure
+
+- Use semantic XML-style boundary tags with standard markdown headers. Required top-level sections are `<context-anchor>`, `<execution-steps>`, `<authorized-commands>`, `<verification-plan>`, `<summary-checkpoints>`, and `<stop-conditions>`.
+- Start with `<context-anchor>` and explicitly state the EquipQR stack: React, TypeScript, Vite, Tailwind, shadcn/ui, Supabase, TanStack Query, Vitest, React Testing Library, and PowerShell on Windows.
+- In `<context-anchor>`, require the execution agent to ingest relevant `.cursor/rules/*.mdc`, `.cursor/skills/**/SKILL.md`, and `AGENTS.md` before modifying files.
+- Never wrap nested code snippets, schemas, SQL, JSON, PowerShell, bash, or commands in triple backticks inside the generated plan. Use plain indented text with exactly two or four leading spaces.
+- Represent all execution work as atomic sequential markdown checkboxes (`- [ ]`). Instruct the execution agent to physically edit the plan file and change each item to `- [x]` immediately after completing it.
+
+## Execution Requirements
+
+- Organize the work into clear phases such as Discovery, Scaffold, Test First, Implementation, Verification, Audit, Commit/PR, and Handoff. Omit irrelevant phases, but preserve sequential order.
+- Require test-driven verification for behavior changes: author or update the focused unit test first, run the exact failing test command and record the expected failure, then implement the logic, then rerun the same test to green.
+- Pre-define the exact terminal commands and scripts the execution agent may use. Commands must be PowerShell-compatible for this repo. Do not tell Composer to guess or invent commands.
+- End each major phase with a summary checkpoint task requiring the execution agent to halt, append a short architectural/change summary to the plan, and then continue using that appended summary as memory.
+- Include explicit stop conditions for ambiguous requirements, missing secrets, dirty unrelated product files, failing commands that are not clearly caused by the current task, or any required command not listed in `<authorized-commands>`.
+
+## Minimal Plan Shape
+
+  # <plan title>
+
+  <context-anchor>
+  Stack: React + TypeScript + Vite + Tailwind + shadcn/ui + Supabase + TanStack Query + Vitest + React Testing Library on Windows PowerShell.
+  Before edits: read and follow AGENTS.md plus relevant .cursor/rules/*.mdc and .cursor/skills/**/SKILL.md.
+  Composer target: Composer 2.5 should be able to execute this without inferring missing files, commands, tests, or stop conditions.
+  Formatting rule: do not use triple backticks anywhere in this plan; indent examples with exactly two or four spaces.
+  </context-anchor>
+
+  <execution-steps>
+  ## Phase 1: Discovery
+  - [ ] Read <exact files/rules>.
+  - [ ] Confirm <specific behavior or symbol>.
+  - [ ] Append a 2-4 bullet summary under <summary-checkpoints>.
+
+  ## Phase 2: Test First
+  - [ ] Add or update <test file> for <expected behavior>.
+  - [ ] Run <exact test command> and confirm it fails for the expected reason.
+  - [ ] Append a 2-4 bullet summary under <summary-checkpoints>.
+
+  ## Phase 3: Implementation
+  - [ ] Edit <file> at <symbol> to <specific behavior>.
+  - [ ] Update related types, fixtures, or UI copy in <exact files>.
+  - [ ] Append a 2-4 bullet summary under <summary-checkpoints>.
+
+  ## Phase 4: Verification
+  - [ ] Rerun <exact test command> and confirm it passes.
+  - [ ] Run <exact lint/type/build command>.
+  - [ ] Append a final verification summary under <summary-checkpoints>.
+  </execution-steps>
+
+  <authorized-commands>
+  - <exact PowerShell-compatible command>
+  - <exact PowerShell-compatible command>
+  </authorized-commands>
+
+  <verification-plan>
+  - [ ] Expected failing test before implementation: <test command and failure signal>.
+  - [ ] Expected passing checks after implementation: <commands and pass conditions>.
+  </verification-plan>
+
+  <summary-checkpoints>
+  Add summaries here during execution. Keep each checkpoint short and factual.
+  </summary-checkpoints>
+
+  <stop-conditions>
+  - Stop if a needed command is not listed in <authorized-commands>.
+  - Stop if unrelated dirty product files would need to be touched.
+  - Stop if tests fail for reasons outside the planned change.
+  </stop-conditions>
