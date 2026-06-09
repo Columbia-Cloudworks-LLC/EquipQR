@@ -26,14 +26,14 @@ export const EquipmentIdentityFields: React.FC<EquipmentIdentityFieldsProps> = (
       <label htmlFor={manufacturerFieldId} className="text-sm font-medium text-muted-foreground">
         Manufacturer
       </label>
-      <div className="mt-1">
+      <div className="mt-1 w-full">
         <InlineEditField
           value={equipment.manufacturer || ''}
           onSave={(value) => onFieldUpdate('manufacturer', value)}
           canEdit={canEdit}
           fieldId={manufacturerFieldId}
           placeholder="Enter manufacturer"
-          className="text-base"
+          className="w-full text-base"
           editAriaLabel="Edit manufacturer"
         />
       </div>
@@ -43,14 +43,14 @@ export const EquipmentIdentityFields: React.FC<EquipmentIdentityFieldsProps> = (
       <label htmlFor={modelFieldId} className="text-sm font-medium text-muted-foreground">
         Model
       </label>
-      <div className="mt-1">
+      <div className="mt-1 w-full">
         <InlineEditField
           value={equipment.model || ''}
           onSave={(value) => onFieldUpdate('model', value)}
           canEdit={canEdit}
           fieldId={modelFieldId}
           placeholder="Enter model"
-          className="text-base"
+          className="w-full text-base"
           editAriaLabel="Edit model"
         />
       </div>
@@ -60,14 +60,14 @@ export const EquipmentIdentityFields: React.FC<EquipmentIdentityFieldsProps> = (
       <label htmlFor={serialNumberFieldId} className="text-sm font-medium text-muted-foreground">
         Serial Number
       </label>
-      <div className="mt-1">
+      <div className="mt-1 w-full">
         <InlineEditField
           value={equipment.serial_number || ''}
           onSave={(value) => onFieldUpdate('serial_number', value)}
           canEdit={canEdit}
           fieldId={serialNumberFieldId}
           placeholder="Enter serial number"
-          className="text-base"
+          className="w-full text-base"
           editAriaLabel="Edit serial number"
         />
       </div>

@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Check, Edit2, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  desktopHoverEditIconClassName,
+  desktopInlineEditRowClassName,
+  inlineEditIconClassName,
+  mobileInlineEditRowClassName,
+  mobileInlineEditValueClassName,
+} from './inlineEditStyles';
 import { useQueryClient } from '@tanstack/react-query';
 import { PMSchedulePolicyFields } from '@/features/pm-templates/components/PMSchedulePolicyFields';
 import {
@@ -31,6 +40,7 @@ export function InlineEditPMSchedule({
   canEdit,
 }: InlineEditPMScheduleProps) {
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const target = { scopeType: 'equipment' as const, equipmentId };
   const { data: policy, isLoading } = usePMIntervalPolicy(organizationId, target);
   const isInherit = policyRowToFormState(policy).mode === 'inherit';
@@ -102,18 +112,27 @@ export function InlineEditPMSchedule({
   }
 
   if (!isEditing) {
+    const startEdit = () => setIsEditing(true);
+
     return (
-      <div className="flex items-start gap-2">
-        <PMSchedulePolicyReadout display={display} />
+      <div
+        className={cn(
+          isMobile ? mobileInlineEditRowClassName : desktopInlineEditRowClassName,
+          'min-w-0 flex-1 items-start',
+        )}
+      >
+        <div className={cn(isMobile && mobileInlineEditValueClassName, !isMobile && 'min-w-0 flex-1')}>
+          <PMSchedulePolicyReadout display={display} />
+        </div>
         <Button
           variant="ghost"
           size="sm"
-          className="mt-0.5 h-6 w-6 shrink-0 p-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100"
-          onClick={() => setIsEditing(true)}
+          className={isMobile ? inlineEditIconClassName : desktopHoverEditIconClassName}
+          onClick={startEdit}
           disabled={isLoading}
           aria-label="Edit PM schedule"
         >
-          <Edit2 className="h-3 w-3" />
+          <Edit2 className="h-3.5 w-3.5" />
         </Button>
       </div>
     );

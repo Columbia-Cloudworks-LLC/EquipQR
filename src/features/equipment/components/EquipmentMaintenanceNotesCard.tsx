@@ -30,7 +30,7 @@ export function EquipmentMaintenanceNotesCard({
       <CardContent className="space-y-4">
         <div>
           <label htmlFor={notesFieldId} className="text-sm font-medium text-muted-foreground">Notes</label>
-          <div className="mt-1">
+          <div className="mt-1 w-full">
             <InlineEditField
               value={equipment.notes || ''}
               onSave={(value) => onFieldUpdate('notes', value)}
@@ -38,7 +38,7 @@ export function EquipmentMaintenanceNotesCard({
               fieldId={notesFieldId}
               type="textarea"
               placeholder="Enter maintenance notes or additional information"
-              className="text-base"
+              className="w-full text-base"
               editAriaLabel="Edit notes"
             />
           </div>

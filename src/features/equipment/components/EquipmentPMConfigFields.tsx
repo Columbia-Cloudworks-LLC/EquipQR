@@ -3,6 +3,7 @@ import { Timer, Wrench } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import InlineEditField from './InlineEditField';
 import { InlineEditPMSchedule } from './InlineEditPMSchedule';
+import { mobileInlineEditIconRowClassName } from './inlineEditStyles';
 
 type Equipment = Tables<'equipment'>;
 
@@ -33,8 +34,8 @@ export function EquipmentPMConfigFields({
         <label htmlFor={pmTemplateFieldId} className="text-sm font-medium text-muted-foreground">
           PM Template
         </label>
-        <div className="mt-1 flex items-center gap-2">
-          <Wrench className="h-4 w-4 text-muted-foreground" />
+        <div className={mobileInlineEditIconRowClassName}>
+          <Wrench className="h-4 w-4 shrink-0 text-muted-foreground" />
           {canEdit ? (
             <InlineEditField
               value={equipment.default_pm_template_id || 'none'}
@@ -44,18 +45,18 @@ export function EquipmentPMConfigFields({
               type="select"
               selectOptions={pmTemplateOptions}
               placeholder="Select PM template"
-              className="text-base"
+              className="min-w-0 flex-1 text-base"
               editAriaLabel="Edit PM template"
             />
           ) : (
-            <span className="text-base text-foreground">{getCurrentPMTemplateDisplay()}</span>
+            <span className="min-w-0 flex-1 text-base text-foreground">{getCurrentPMTemplateDisplay()}</span>
           )}
         </div>
       </div>
 
       <div>
         <span className="text-sm font-medium text-muted-foreground">PM Schedule</span>
-        <div className="group mt-1 flex items-start gap-2">
+        <div className={mobileInlineEditIconRowClassName}>
           <Timer className="h-4 w-4 text-muted-foreground mt-1 shrink-0" />
           <InlineEditPMSchedule
             equipmentId={equipment.id}

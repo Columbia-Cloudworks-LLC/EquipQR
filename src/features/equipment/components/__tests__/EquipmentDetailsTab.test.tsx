@@ -315,13 +315,17 @@ describe('EquipmentDetailsTab', () => {
       vi.mocked(useIsMobile).mockReturnValue(true);
     });
 
-    it('expands Show all details without crashing', async () => {
+    it('shows identity fields by default and expands description without crashing', async () => {
       render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
 
-      fireEvent.click(screen.getByRole('button', { name: /show all details/i }));
+      expect(screen.getByText(eqFixtures.forklift1.manufacturer)).toBeInTheDocument();
+      expect(screen.getByText(eqFixtures.forklift1.model)).toBeInTheDocument();
+      expect(screen.getByText(eqFixtures.forklift1.serial_number)).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /show description/i }));
 
       await waitFor(() => {
-        expect(screen.getByText(eqFixtures.forklift1.serial_number)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /hide description/i })).toBeInTheDocument();
       });
     });
   });

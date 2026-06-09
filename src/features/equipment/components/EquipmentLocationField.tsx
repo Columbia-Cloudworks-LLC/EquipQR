@@ -8,10 +8,17 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { MapPin, Edit2, Info, Navigation, X, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Tables } from '@/integrations/supabase/types';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import GooglePlacesAutocomplete, { type PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import type { EquipmentTeamSummary } from '@/features/equipment/services/EquipmentService';
+import {
+  inlineEditIconClassName,
+  mobileInlineEditRowExtrasClassName,
+  mobileInlineEditValueClassName,
+} from './inlineEditStyles';
 
 type Equipment = Tables<'equipment'>;
 
@@ -49,6 +56,7 @@ export const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
   onCancelEdit,
   onSave,
 }) => {
+  const isMobile = useIsMobile();
   const [pendingPlace, setPendingPlace] = useState<PlaceLocationData | null>(null);
   const [isCleared, setIsCleared] = useState(false);
 
@@ -195,20 +203,27 @@ export const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
     return (
       <div>
         <span className="text-sm font-medium text-muted-foreground">Location</span>
-        <div className="mt-1 flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-          <ClickableAddress
-            address={equipmentAddress}
-            lat={equipment.assigned_location_lat ?? undefined}
-            lng={equipment.assigned_location_lng ?? undefined}
-            className="text-base"
-          />
+        <div
+          className={cn(
+            'mt-1 flex w-full min-w-0 items-center',
+            isMobile ? mobileInlineEditRowExtrasClassName : 'gap-2',
+          )}
+        >
+          <div className={cn('flex min-w-0 items-center gap-2', isMobile && mobileInlineEditValueClassName)}>
+            <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+            <ClickableAddress
+              address={equipmentAddress}
+              lat={equipment.assigned_location_lat ?? undefined}
+              lng={equipment.assigned_location_lng ?? undefined}
+              className="min-w-0 text-base"
+            />
+          </div>
           {canEdit && (
             <Button
               variant="ghost"
               size="sm"
               onClick={onStartEdit}
-              className="h-11 w-11 p-0 text-muted-foreground hover:text-foreground"
+              className={inlineEditIconClassName}
               aria-label="Edit location"
             >
               <Edit2 className="h-3.5 w-3.5" />
@@ -224,15 +239,22 @@ export const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
     return (
       <div>
         <span className="text-sm font-medium text-muted-foreground">Location</span>
-        <div className="mt-1 flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-          <span className="text-base">{legacyLocation}</span>
+        <div
+          className={cn(
+            'mt-1 flex w-full min-w-0 items-center',
+            isMobile ? mobileInlineEditRowExtrasClassName : 'gap-2',
+          )}
+        >
+          <div className={cn('flex min-w-0 items-center gap-2', isMobile && mobileInlineEditValueClassName)}>
+            <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span className="min-w-0 text-base">{legacyLocation}</span>
+          </div>
           {canEdit && (
             <Button
               variant="ghost"
               size="sm"
               onClick={onStartEdit}
-              className="h-11 w-11 p-0 text-muted-foreground hover:text-foreground"
+              className={inlineEditIconClassName}
               aria-label="Edit location"
             >
               <Edit2 className="h-3.5 w-3.5" />
@@ -246,15 +268,22 @@ export const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
   return (
     <div>
       <span className="text-sm font-medium text-muted-foreground">Location</span>
-      <div className="mt-1 flex items-center gap-2">
-        <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-        <span className="text-base text-muted-foreground">No location set</span>
+      <div
+        className={cn(
+          'mt-1 flex w-full min-w-0 items-center',
+          isMobile ? mobileInlineEditRowExtrasClassName : 'gap-2',
+        )}
+      >
+        <div className={cn('flex min-w-0 items-center gap-2', isMobile && mobileInlineEditValueClassName)}>
+          <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="text-base text-muted-foreground">No location set</span>
+        </div>
         {canEdit && (
           <Button
             variant="ghost"
             size="sm"
             onClick={onStartEdit}
-            className="min-h-11 px-3 text-sm text-primary hover:text-primary/80 hover:underline"
+            className={isMobile ? inlineEditIconClassName : 'min-h-11 shrink-0 px-3 text-sm text-primary hover:text-primary/80 hover:underline'}
           >
             Set Location
           </Button>
