@@ -19,7 +19,7 @@ This is the explicit release gate. It does **not** auto-promote production traff
 ## Mandatory Rules
 
 - **Windows / PowerShell only.** No bash heredocs, no `&&`, no Unix-only utilities. Use `--body-file` for multiline PR bodies.
-- **Never auto-discard local changes.** If `git status --porcelain` is non-empty, stop and report what is dirty. Do not run `git reset --hard` or `git clean`.
+- **Never auto-discard local changes.** Resolve dirty trees per `.cursor/rules/workflow-artifacts.mdc`: if workflow-artifact-only dirt blocks Step 1a branch switching or fast-forward alignment, path-stash it before switching (Step 1a preflight), then commit on `preview` in Step 1b; **stop** on unresolved product or mixed dirt. Do not run `git reset --hard` or `git clean`.
 - **Never push to `main`.** The only git write on `main` is opening the PR (`preview` → `main`).
 - **Never run the full Vitest suite.** Run only updated or added test files from the release diff.
 - **Do not edit the plan file** if one is attached for this task.
@@ -28,7 +28,7 @@ This is the explicit release gate. It does **not** auto-promote production traff
 ## Workflow
 
 ```
-- [ ] Step 1: Preflight — fetch, clean tree, align with origin/preview
+- [ ] Step 1: Preflight — fetch, align with origin/preview, resolve dirty tree (workflow artifacts or clean)
 - [ ] Step 2: Run changelog-version-curator subagent
 - [ ] Step 3: Commit and push release metadata (if changed)
 - [ ] Step 4: Run scoped Vitest on changed test files only
@@ -46,21 +46,38 @@ Run from the repo root.
 git fetch origin preview main --tags
 ```
 
-### 1a. Stop on dirty working tree
-
-```powershell
-git status --porcelain
-```
-
-If output is non-empty, **stop**. Tell the user to commit, stash, or discard changes manually, then re-run `/release`.
-
-### 1b. Ensure on `preview` and aligned with `origin/preview`
+### 1a. Ensure on `preview` and aligned with `origin/preview`
 
 ```powershell
 git branch --show-current
 git rev-parse HEAD
 git rev-parse origin/preview
 ```
+
+#### 1a-preflight. Dirty tree before switching or fast-forward
+
+Before `git switch preview` or `git merge --ff-only origin/preview`, inspect the working tree:
+
+```powershell
+git status --porcelain
+```
+
+If output is non-empty, classify dirt per `.cursor/rules/workflow-artifacts.mdc`:
+
+- **Workflow-artifact-only dirt** (`AGENTS.md`, `.cursor/**`, `scripts/mcp.template.json`): path-stash only those files, including untracked workflow artifacts, so switching/alignment can proceed. Example:
+
+  ```powershell
+  git stash push -u -m "release: workflow artifacts preflight" -- AGENTS.md .cursor scripts/mcp.template.json
+  git stash list -n 1
+  ```
+
+  Confirm the newest stash entry contains `release: workflow artifacts preflight` before switching or fast-forwarding. If no matching entry was created, **stop** and inspect the working tree before continuing.
+
+- **Product dirt** (`src/**`, `supabase/**`, etc.): **stop**. Tell the user to commit, stash, or discard manually, then re-run `/release`.
+
+- **Mixed dirt**: **stop**. Resolve product dirt manually first; do not auto-stash product paths.
+
+If the tree is clean, or workflow-only dirt was stashed successfully, continue below.
 
 If not on `preview`:
 
@@ -75,7 +92,7 @@ git log --oneline origin/preview..HEAD
 git log --oneline HEAD..origin/preview
 ```
 
-- If local is **behind** `origin/preview` and the tree is clean, fast-forward:
+- If local is **behind** `origin/preview`, fast-forward (tree must be clean or workflow-only dirt already stashed):
 
   ```powershell
   git merge --ff-only origin/preview
@@ -85,6 +102,16 @@ git log --oneline HEAD..origin/preview
 
 - If local and remote **diverged**, **stop**. Do not reset or force-push.
 
+If workflow-only dirt was stashed in the preflight above, restore it now before Step 1b. First confirm the newest stash entry is the expected release preflight stash:
+
+```powershell
+git stash list -n 1
+git stash pop
+git status --porcelain
+```
+
+If `git stash pop` exits non-zero, reports conflicts, or `git status --porcelain` shows conflicted paths, **stop**. Ask the user to resolve the stash conflict manually before continuing `/release`; do not proceed to Step 1b while the repository is conflicted.
+
 After alignment, confirm:
 
 ```powershell
@@ -93,6 +120,20 @@ git rev-parse origin/preview
 ```
 
 These SHAs should match before continuing.
+
+### 1b. Dirty working tree gate
+
+Run only after Step 1a confirms `preview` is checked out.
+
+```powershell
+git status --porcelain
+```
+
+If output is non-empty:
+
+1. **Workflow-artifact-only dirt** (`AGENTS.md`, `.cursor/**`, `scripts/mcp.template.json` per `.cursor/rules/workflow-artifacts.mdc`): on `preview`, commit with `chore(cursor): sync workflow artifacts`, push to `origin/preview`, then continue `/release`.
+2. **Product dirt** (`src/**`, `supabase/**`, etc.): **stop**. Tell the user to commit, stash, or discard manually, then re-run `/release`.
+3. **Mixed dirt**: commit workflow artifacts first (step 1), then **stop** until product dirt is resolved.
 
 ### 1c. Capture release baseline
 
@@ -292,7 +333,7 @@ Remind the user: merge triggers CI/release readiness; production traffic still r
 
 Stop without opening/updating the PR when any of these occur:
 
-- Dirty working tree
+- Dirty working tree with unresolved product changes (workflow-artifact-only dirt should be committed in Step 1b after Step 1a confirms `preview`)
 - Local `preview` diverged from or ahead of unpushed commits relative to `origin/preview`
 - changelog-version-curator validation failure or version mismatch
 - Push to `origin/preview` failed or remote not aligned after push
