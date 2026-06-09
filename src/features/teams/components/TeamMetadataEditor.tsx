@@ -153,37 +153,52 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
     setIsLoading(true);
     try {
       await updateTeam(team.id, updates);
-      if (currentOrganization?.id) {
-        await pmIntervalPolicyService.upsertPolicy(
-          currentOrganization.id,
-          teamPolicyTarget,
-          pmScheduleForm
-        );
-        queryClient.invalidateQueries({
-          queryKey: ['pm-interval-policies', currentOrganization.id, 'team', team.id],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ['pm-status', 'org', currentOrganization.id],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ['pm-interval-policies', 'effective'],
-        });
-      }
-      
+
       queryClient.invalidateQueries({ queryKey: ['team', team.id] });
       queryClient.invalidateQueries({ queryKey: ['teams', team.organization_id] });
-      
-      toast({
-        title: "Team updated",
-        description: "Team information has been successfully updated.",
-      });
-      
-      onClose();
+
+      let pmScheduleSaved = true;
+      if (currentOrganization?.id) {
+        try {
+          await pmIntervalPolicyService.upsertPolicy(
+            currentOrganization.id,
+            teamPolicyTarget,
+            pmScheduleForm
+          );
+          queryClient.invalidateQueries({
+            queryKey: ['pm-interval-policies', currentOrganization.id, 'team', team.id],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ['pm-status', 'org', currentOrganization.id],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ['pm-interval-policies', 'effective'],
+          });
+        } catch (policyError) {
+          pmScheduleSaved = false;
+          toast({
+            title: 'Team updated, but PM schedule was not saved',
+            description:
+              policyError instanceof Error
+                ? policyError.message
+                : 'Failed to save PM schedule. Please try again.',
+            variant: 'destructive',
+          });
+        }
+      }
+
+      if (pmScheduleSaved) {
+        toast({
+          title: 'Team updated',
+          description: 'Team information has been successfully updated.',
+        });
+        onClose();
+      }
     } catch (error) {
       toast({
-        title: "Error updating team",
-        description: error instanceof Error ? error.message : "Failed to update team. Please try again.",
-        variant: "destructive",
+        title: 'Error updating team',
+        description: error instanceof Error ? error.message : 'Failed to update team. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
