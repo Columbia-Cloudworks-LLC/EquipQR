@@ -119,7 +119,7 @@ export class OfflineAwareWorkOrderService {
         throw new Error(response.error || 'Failed to create work order');
       }
 
-      return { data: response.data as OfflineEntity, queuedOffline: false };
+      return { data: response.data as unknown as OfflineEntity, queuedOffline: false };
     } catch (error) {
       // Fallback: if it's a network error, queue locally
       if (isNetworkError(error)) {
@@ -303,7 +303,7 @@ export class OfflineAwareWorkOrderService {
     try {
       const result = await EquipmentService.createQuick(this.orgId, data);
       if (!result.success || !result.data) throw new Error(result.error || 'Failed to create equipment');
-      return { data: result.data as OfflineEntity, queuedOffline: false };
+      return { data: result.data as unknown as OfflineEntity, queuedOffline: false };
     } catch (error) {
       if (isNetworkError(error)) return this.queueEquipmentCreateQuick(data);
       throw error;
@@ -319,7 +319,7 @@ export class OfflineAwareWorkOrderService {
     try {
       const result = await EquipmentService.create(this.orgId, data);
       if (!result.success || !result.data) throw new Error(result.error || 'Failed to create equipment');
-      return { data: result.data as OfflineEntity, queuedOffline: false };
+      return { data: result.data as unknown as OfflineEntity, queuedOffline: false };
     } catch (error) {
       if (isNetworkError(error)) return this.queueEquipmentCreateFull(data);
       throw error;
@@ -379,7 +379,7 @@ export class OfflineAwareWorkOrderService {
         this.orgId,
         machineHours,
       );
-      return { data: note as OfflineEntity, queuedOffline: false };
+      return { data: note as unknown as OfflineEntity, queuedOffline: false };
     } catch (error) {
       if (isNetworkError(error)) return this.queueEquipmentNote(equipmentId, content, hoursWorked, isPrivate, machineHours);
       throw error;
@@ -406,7 +406,7 @@ export class OfflineAwareWorkOrderService {
         this.orgId,
         machineHours,
       );
-      return { data: note as OfflineEntity, queuedOffline: false };
+      return { data: note as unknown as OfflineEntity, queuedOffline: false };
     } catch (error) {
       if (isNetworkError(error)) return this.queueWorkOrderNote(workOrderId, content, hoursWorked, isPrivate, machineHours);
       throw error;

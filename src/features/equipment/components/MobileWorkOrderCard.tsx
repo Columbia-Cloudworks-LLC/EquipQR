@@ -8,15 +8,12 @@ import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import WorkOrderCostSubtotal from '@/features/work-orders/components/WorkOrderCostSubtotal';
 import PMProgressIndicator from '@/features/work-orders/components/PMProgressIndicator';
 
-import { WorkOrder } from '@/services/supabaseDataService';
+import type { WorkOrder, WorkOrderData } from '@/features/work-orders/types/workOrder';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
 interface ExtendedWorkOrder extends WorkOrder {
-  created_date: string;
-  due_date?: string;
-  estimated_hours?: number;
-  completed_date?: string;
-  has_pm?: boolean;
+  teamName?: string;
+  equipmentName?: string;
 }
 
 interface MobileWorkOrderCardProps {
@@ -166,7 +163,13 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({ workOrder }) 
 
           {/* Footer */}
           <div className="flex items-center justify-between pt-2 border-t">
-            {permissions.workOrders.getDetailedPermissions({ ...workOrder, organizationId: '' }).canEdit && (
+            {permissions.workOrders.getDetailedPermissions({
+              id: workOrder.id,
+              status: workOrder.status,
+              organizationId: workOrder.organization_id,
+              equipmentId: workOrder.equipment_id,
+              hasPM: workOrder.has_pm,
+            } as WorkOrderData).canEdit && (
               <WorkOrderCostSubtotal 
                 workOrderId={workOrder.id}
                 className="text-sm"

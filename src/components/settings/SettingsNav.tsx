@@ -19,7 +19,7 @@ const SETTINGS_SECTIONS: SettingsSection[] = [
 export const SettingsNav: React.FC = () => {
   const [activeSection, setActiveSection] = useState(SETTINGS_SECTIONS[0].id);
   const isClickScrolling = useRef(false);
-  const clickTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const handleIntersection = useCallback((entries: IntersectionObserverEntry[]) => {
     if (isClickScrolling.current) return;

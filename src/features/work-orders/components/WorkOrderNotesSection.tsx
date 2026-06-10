@@ -24,6 +24,7 @@ import {
   createNoteCreateMutationCallbacks,
   runOfflineAwareNoteCreate,
   showQueuedNoteCreateToasts,
+  type NoteCreateMutationInput,
 } from '@/components/common/noteCreateHelpers';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { useAttachedNoteImages } from '@/hooks/useAttachedNoteImages';
@@ -91,8 +92,8 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
 
   // Create note mutation — supports offline (text only; images when online)
   const createNoteMutation = useMutation({
-    mutationFn: (input) =>
-      runOfflineAwareNoteCreate({
+    mutationFn: (input: NoteCreateMutationInput) =>
+      runOfflineAwareNoteCreate<WorkOrderNote>({
         input,
         organizationId: currentOrganization?.id,
         userId: user?.id,
@@ -108,7 +109,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
           if (result.queuedOffline) {
             return { queuedOffline: true as const, hadImages: images.length > 0 };
           }
-          return { queuedOffline: false as const, data: result.data };
+          return { queuedOffline: false as const, data: result.data as unknown as WorkOrderNote };
         },
         onlineCreate: ({ content, hoursWorked, isPrivate, images, machineHours }) =>
           createWorkOrderNoteWithImages(
@@ -262,7 +263,21 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
                 return (
                   <NoteTimelineEntry
                     key={note.id}
-                    note={typedNote}
+                    note={{
+                      id: typedNote.id,
+                      author_name: typedNote.author_name ?? 'Unknown',
+                      created_at: typedNote.created_at,
+                      content: typedNote.content,
+                      hours_worked: typedNote.hours_worked,
+                      machine_hours: typedNote.machine_hours,
+                      is_private: typedNote.is_private,
+                      images: typedNote.images?.map((image) => ({
+                        id: image.id,
+                        file_url: image.file_url,
+                        file_name: image.file_name,
+                      })),
+                      _isPendingSync: typedNote._isPendingSync,
+                    }}
                     formatDate={formatDate}
                     metaClassName="text-[13px] text-muted-foreground"
                     contentClassName="prose prose-sm max-w-none dark:prose-invert"

@@ -105,7 +105,7 @@ export function useOfflineMergedWorkOrders(
         // Pending-sync markers
         _isPendingSync: true,
         _queueItemId: item.id,
-      } as MergedWorkOrder;
+      } as unknown as MergedWorkOrder;
     });
 
     // Offline items first (most recent queue items at top), then server data

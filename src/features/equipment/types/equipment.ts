@@ -14,6 +14,9 @@ import { Tables } from '@/integrations/supabase/types';
 
 export type EquipmentStatus = 'active' | 'maintenance' | 'inactive';
 
+/** Raw Supabase equipment row alias for components that only need table fields. */
+export type Equipment = Tables<'equipment'>;
+
 // ============================================
 // Location Types
 // ============================================
@@ -191,15 +194,6 @@ export interface EquipmentRecord extends Omit<EquipmentRow, 'custom_attributes' 
   
   // Frontend-specific computed fields from joins
   team_name?: string;
-  
-  // Assigned location fields
-  assigned_location_street?: string | null;
-  assigned_location_city?: string | null;
-  assigned_location_state?: string | null;
-  assigned_location_country?: string | null;
-  assigned_location_lat?: number | null;
-  assigned_location_lng?: number | null;
-  use_team_location?: boolean;
 }
 
 /**
@@ -224,21 +218,6 @@ export interface EquipmentFilters {
   // Team-based access control
   userTeamIds?: string[];
   isOrgAdmin?: boolean;
-}
-
-// ============================================
-// Equipment Note Types
-// ============================================
-
-export interface EquipmentNote {
-  id: string;
-  equipment_id: string;
-  author_id: string;
-  content: string;
-  is_private: boolean;
-  created_at: string;
-  updated_at: string;
-  authorName?: string;
 }
 
 // ============================================

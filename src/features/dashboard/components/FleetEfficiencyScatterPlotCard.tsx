@@ -74,7 +74,12 @@ const FleetEfficiencyScatterPlotCard: React.FC = () => {
   const resolveClientPoint = (event: unknown) => {
     if (!event) return null;
     const nativeEvent = (event as React.MouseEvent<SVGElement>).nativeEvent ?? event;
-    if ('clientX' in nativeEvent && 'clientY' in nativeEvent) {
+    if (
+      typeof nativeEvent === 'object' &&
+      nativeEvent !== null &&
+      'clientX' in nativeEvent &&
+      'clientY' in nativeEvent
+    ) {
       return { x: nativeEvent.clientX as number, y: nativeEvent.clientY as number };
     }
     return null;
@@ -217,9 +222,9 @@ const FleetEfficiencyScatterPlotCard: React.FC = () => {
                   data={jitteredData}
                   fill="hsl(var(--primary))"
                   stroke="hsl(var(--primary))"
-                  shape={(props: Record<string, unknown>) => (
+                  shape={(props: unknown) => (
                     <ScatterPointShape
-                      {...props}
+                      {...(props as Record<string, unknown>)}
                       allPoints={jitteredData}
                       onTeamSelect={handleTeamSelectFromCluster}
                     />

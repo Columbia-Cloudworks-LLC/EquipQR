@@ -6,16 +6,12 @@ import { applyAuditFilters } from '@/services/auditFilters';
 const AUDIT_EXPORT_BATCH_SIZE = 5000;
 const AUDIT_EXPORT_MAX_RECORDS = 10000;
 
-type AuditLogFilterQuery = Parameters<typeof applyAuditFilters>[0] & {
-  lte: (column: string, value: string) => Parameters<typeof applyAuditFilters>[0];
-};
-
 type AuditExportPageConfig = {
   organizationId: string;
   filters?: AuditLogFilters;
   select: string;
-  applyExtraCountFilters?: (query: AuditLogFilterQuery) => AuditLogFilterQuery;
-  applyExtraPageFilters?: (query: AuditLogFilterQuery) => AuditLogFilterQuery;
+  /** Optional exclusive upper bound for `created_at` (JSON export safety cap). */
+  createdAtLte?: string;
   onProgress?: (progress: { current: number; total: number }) => void;
 };
 
@@ -26,8 +22,7 @@ export async function fetchAuditLogExportEntries(
     organizationId,
     filters,
     select,
-    applyExtraCountFilters,
-    applyExtraPageFilters,
+    createdAtLte,
     onProgress,
   } = config;
 
@@ -36,8 +31,8 @@ export async function fetchAuditLogExportEntries(
     .select('*', { count: 'exact', head: true })
     .eq('organization_id', organizationId);
 
-  if (applyExtraCountFilters) {
-    countQuery = applyExtraCountFilters(countQuery);
+  if (createdAtLte) {
+    countQuery = countQuery.lte('created_at', createdAtLte);
   }
 
   countQuery = applyAuditFilters(countQuery, filters);
@@ -67,8 +62,8 @@ export async function fetchAuditLogExportEntries(
       .order('id', { ascending: false })
       .range(offset, pageEnd);
 
-    if (applyExtraPageFilters) {
-      pageQuery = applyExtraPageFilters(pageQuery);
+    if (createdAtLte) {
+      pageQuery = pageQuery.lte('created_at', createdAtLte);
     }
 
     pageQuery = applyAuditFilters(pageQuery, filters);
@@ -76,7 +71,7 @@ export async function fetchAuditLogExportEntries(
     const { data: pageData, error: pageError } = await pageQuery;
     if (pageError) throw pageError;
 
-    const pageEntries = (pageData ?? []) as AuditLogEntry[];
+    const pageEntries = (pageData ?? []) as unknown as AuditLogEntry[];
     if (pageEntries.length === 0) break;
 
     allEntries.push(...pageEntries);

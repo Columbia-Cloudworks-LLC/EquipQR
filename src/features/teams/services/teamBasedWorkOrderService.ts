@@ -112,7 +112,7 @@ export const getTeamBasedWorkOrders = async (
       query = query.in('equipment_id', accessibleEquipmentIds);
     }
 
-    query = applyWorkOrderSupabaseFilters(query, filters);
+    query = applyWorkOrderSupabaseFilters(query as never, filters);
 
     // Order by created_date descending (most recent first)
     query = query.order('created_date', { ascending: false });
@@ -124,7 +124,7 @@ export const getTeamBasedWorkOrders = async (
       throw error;
     }
 
-    return (data || []).map(wo => {
+    return (data || []).map((wo) => {
       const lastKnown = wo.equipment?.last_known_location;
       let lastScan: { lat: number; lng: number } | undefined;
       if (lastKnown && typeof lastKnown === 'object') {
@@ -163,6 +163,7 @@ export const getTeamBasedWorkOrders = async (
         : null;
 
       return {
+        ...wo,
         id: wo.id,
         title: wo.title,
         description: wo.description,
@@ -188,7 +189,7 @@ export const getTeamBasedWorkOrders = async (
         createdByName: wo.creator?.name,
         has_pm: wo.has_pm,
         effectiveLocation,
-      };
+      } as unknown as TeamBasedWorkOrder;
     });
   } catch (error) {
     logger.error('Error in getTeamBasedWorkOrders:', error);

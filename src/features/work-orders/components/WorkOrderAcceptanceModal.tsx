@@ -73,8 +73,8 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
         const teamManagers = equipmentTeam.members
           .filter(m => m.role === 'manager' && m.id !== currentUser?.id)
           .map(m => ({
-            id: m.id,
-            name: m.name,
+            id: m.user_id,
+            name: m.profiles?.name ?? 'Unknown',
             type: 'user' as const,
             role: 'Team Manager'
           }));
@@ -83,8 +83,8 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
         const teamTechnicians = equipmentTeam.members
           .filter(m => m.role === 'technician' && m.id !== currentUser?.id)
           .map(m => ({
-            id: m.id,
-            name: m.name,
+            id: m.user_id,
+            name: m.profiles?.name ?? 'Unknown',
             type: 'user' as const,
             role: 'Team Technician'
           }));

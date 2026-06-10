@@ -45,3 +45,8 @@ export function getAssigneeInitials(assigneeName?: string | null): string {
     .toUpperCase();
   return chars.slice(0, 2) || '?';
 }
+
+/** Cast filter-list WorkOrderData to WorkOrder for card components that expect DB shape. */
+export function workOrderDataAsWorkOrder(data: WorkOrderData): WorkOrder {
+  return data as unknown as WorkOrder;
+}

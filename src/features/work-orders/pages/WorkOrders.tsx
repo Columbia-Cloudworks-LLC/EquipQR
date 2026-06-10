@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, ShieldCheck, Users } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -11,7 +11,7 @@ import { useWorkOrderFilters } from '@/features/work-orders/hooks/useWorkOrderFi
 import { useUser } from '@/contexts/useUser';
 import { useSelectedTeam } from '@/hooks/useSelectedTeam';
 import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
-import { WorkOrderAcceptanceModalState, WorkOrderData } from '@/features/work-orders/types/workOrder';
+import { toWorkOrderData, WorkOrderAcceptanceModalState, WorkOrderData } from '@/features/work-orders/types/workOrder';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { SortDirection, SortField } from '@/features/work-orders/hooks/useWorkOrderFilters';
@@ -67,6 +67,10 @@ const WorkOrders = () => {
 
   // Merge server work orders with any pending offline queue items
   const mergedWorkOrders = useOfflineMergedWorkOrders(allWorkOrders);
+  const workOrdersForFilters = useMemo(
+    () => mergedWorkOrders.map(toWorkOrderData),
+    [mergedWorkOrders],
+  );
 
   // Use custom filters hook
   const {
@@ -81,7 +85,7 @@ const WorkOrders = () => {
     toggleQuickFilter,
     updateFilter,
     updateSort
-  } = useWorkOrderFilters(mergedWorkOrders, currentUser?.id);
+  } = useWorkOrderFilters(workOrdersForFilters, currentUser?.id);
 
   // Apply URL parameter filters on initial load.
   // The `team` parameter writes to the GLOBAL `useSelectedTeam` selection (not

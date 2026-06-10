@@ -165,7 +165,7 @@ export function AuditLogList({
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const listRef = useListRef();
+  const listRef = useListRef(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
   const scrollVirtualToIndex = useCallback(

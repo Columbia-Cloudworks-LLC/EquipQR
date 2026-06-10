@@ -69,7 +69,7 @@ export function useOfflineMergedNotes<T extends { id: string }>(
         author_name: user?.user_metadata?.full_name ?? 'You',
         images: [],
         _isPendingSync: true,
-      } as T & { _isPendingSync?: boolean };
+      } as unknown as T & { _isPendingSync?: boolean };
     });
 
     // Offline notes first (newest at top)

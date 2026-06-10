@@ -23,6 +23,7 @@ import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyn
 import type { MergedWorkOrder } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
 import { getAssigneeInitials } from '@/features/work-orders/utils/workOrderCardMappers';
 import { WorkOrderEquipmentThumbnail } from './WorkOrderEquipmentThumbnail';
+import type { QuickBooksInvoiceStatus } from '@/features/work-orders/types/workOrder';
 import type { WorkOrderCardProps } from '../WorkOrderCard';
 
 type WorkOrderMobileCardProps = Pick<WorkOrderCardProps, 'workOrder' | 'onNavigate' | 'isAboveTheFold'>;
@@ -120,7 +121,7 @@ export const WorkOrderMobileCard: React.FC<WorkOrderMobileCardProps> = memo(({
               (workOrder as MergedWorkOrder)._isPendingSync) && (
               <div className="mt-1 flex flex-wrap items-center gap-1">
                 <QuickBooksInvoiceStatusBadge
-                  status={workOrder.invoiceStatus ?? workOrder.invoice_status}
+                  status={(workOrder.invoiceStatus ?? workOrder.invoice_status) as QuickBooksInvoiceStatus | null | undefined}
                   invoiceNumber={workOrder.quickbooksInvoiceNumber ?? workOrder.quickbooks_invoice_number}
                   balanceCents={workOrder.invoiceBalanceCents ?? workOrder.invoice_balance_cents}
                   paidAt={workOrder.invoicePaidAt ?? workOrder.invoice_paid_at}

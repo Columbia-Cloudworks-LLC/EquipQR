@@ -62,7 +62,7 @@ export async function checkStorageQuota(
 
     // Ensure all properties are defined with defaults
     // result is guaranteed to be defined here (checked on line 49)
-    const result = data as StorageQuotaCheck;
+    const result = data as unknown as StorageQuotaCheck;
     return {
       canUpload: result.canUpload ?? true,
       currentStorageGB: result.currentStorageGB ?? 0,

@@ -46,7 +46,7 @@ export const useLeaveOrganization = () => {
 
       if (error) throw error;
 
-      const result = data as LeaveResult;
+      const result = data as unknown as LeaveResult;
       if (!result.success) {
         throw new Error(result.error || 'Failed to leave organization');
       }

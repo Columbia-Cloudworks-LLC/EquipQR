@@ -63,9 +63,11 @@ export function toEquipmentCreateData(data: EquipmentFormData): EquipmentCreateD
     customer_id: null,
     working_hours: 0,
     import_id: null,
-  };
+    last_maintenance_work_order_id: null,
+    use_team_location: false,
+  } as EquipmentCreateData;
 }
 
 export function toEquipmentUpdateData(data: EquipmentFormData): EquipmentUpdateData {
-  return mapEquipmentFormSharedFields(data);
+  return mapEquipmentFormSharedFields(data) as EquipmentUpdateData;
 }

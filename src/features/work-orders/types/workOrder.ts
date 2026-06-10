@@ -344,7 +344,7 @@ export interface WorkOrderImage {
 /**
  * Converts WorkOrder (database format) to WorkOrderData (UI format)
  */
-function toWorkOrderData(row: WorkOrder): WorkOrderData {
+export function toWorkOrderData(row: WorkOrder): WorkOrderData {
   return {
     id: row.id,
     title: row.title,
@@ -377,7 +377,7 @@ function toWorkOrderData(row: WorkOrder): WorkOrderData {
     quickbooksInvoiceId: row.quickbooks_invoice_id,
     quickbooksInvoiceNumber: row.quickbooks_invoice_number,
     quickbooksInvoiceEnvironment: row.quickbooks_invoice_environment as 'sandbox' | 'production' | null,
-    invoiceStatus: row.invoice_status,
+    invoiceStatus: row.invoice_status as QuickBooksInvoiceStatus | null | undefined,
     invoiceSentAt: row.invoice_sent_at,
     invoicePaidAt: row.invoice_paid_at,
     invoiceBalanceCents: row.invoice_balance_cents,

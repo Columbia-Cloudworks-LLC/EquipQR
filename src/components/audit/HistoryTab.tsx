@@ -192,7 +192,7 @@ export function HistoryTab({ entityType, entityId, organizationId }: HistoryTabP
   });
   
   // Flatten pages into single array
-  const entries = data?.pages.flatMap(page => page.data) ?? [];
+  const entries = data?.pages.flatMap((page) => (page as unknown as { data: FormattedAuditEntry[] }).data) ?? [];
   
   // Filter entries by action type
   const filteredEntries = actionFilter === 'all' 

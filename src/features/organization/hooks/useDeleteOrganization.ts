@@ -58,7 +58,7 @@ export const useOrganizationDeletionStats = (
 
       if (error) throw error;
 
-      const result = data as DeletionStats;
+      const result = data as unknown as DeletionStats;
       if (!result.success) {
         throw new Error(result.error || 'Failed to get deletion stats');
       }
@@ -101,7 +101,7 @@ export const useDeleteOrganization = () => {
 
       if (error) throw error;
 
-      const result = data as DeleteResult;
+      const result = data as unknown as DeleteResult;
       if (!result.success) {
         throw new Error(result.error || 'Failed to delete organization');
       }

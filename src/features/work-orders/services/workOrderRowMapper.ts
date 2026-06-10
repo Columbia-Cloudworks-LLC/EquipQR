@@ -2,6 +2,7 @@ import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
 import {
   WorkOrder,
   WorkOrderEmbeddedEquipment,
+  type QuickBooksInvoiceStatus,
 } from '@/features/work-orders/types/workOrder';
 
 // Optimized select query string with all joins.
@@ -133,7 +134,7 @@ export function mapBaseWorkOrderFields(wo: Record<string, unknown>): Partial<Wor
 
 export function mapQuickBooksInvoiceFields(wo: Record<string, unknown>): Partial<WorkOrder> {
   const invoiceEnvironment = wo.quickbooks_invoice_environment as 'sandbox' | 'production' | null | undefined;
-  const invoiceStatus = wo.invoice_status as WorkOrder['invoice_status'] | undefined;
+  const invoiceStatus = wo.invoice_status as QuickBooksInvoiceStatus | null | undefined;
 
   return {
     quickbooks_invoice_id: (wo.quickbooks_invoice_id as string | null | undefined) ?? null,

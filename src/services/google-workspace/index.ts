@@ -325,5 +325,5 @@ export async function disconnectGoogleWorkspace(
     throw new Error(error.message);
   }
 
-  return data as DisconnectWorkspaceResult;
+  return data as unknown as DisconnectWorkspaceResult;
 }

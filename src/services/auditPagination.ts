@@ -17,7 +17,7 @@ export function buildAuditLogQueryResult<T extends { created_at: string }>(
   pageSize: number,
 ): AuditLogQueryResult {
   return {
-    data: data as AuditLogQueryResult['data'],
+    data: data as unknown as AuditLogQueryResult['data'],
     totalCount,
     hasMore: offset + pageSize < totalCount,
   };

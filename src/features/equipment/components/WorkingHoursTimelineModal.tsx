@@ -403,8 +403,8 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
           ) : (
             // Desktop table layout
             <DataTable
-              data={historyResult?.data || []}
-              columns={columns}
+              data={(historyResult?.data || []) as unknown as Record<string, unknown>[]}
+              columns={columns as unknown as import('@/components/ui/data-table').Column<Record<string, unknown>>[]}
               isLoading={isLoadingHistory}
               pagination={pagination}
               emptyMessage="No working hours history found."

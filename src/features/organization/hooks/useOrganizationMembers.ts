@@ -208,7 +208,7 @@ export const useRemoveMember = (organizationId: string) => {
 
       if (error) throw error;
 
-      const result = data as RemovalResult | null;
+      const result = data as unknown as RemovalResult | null;
 
       // The function returns a JSON object with success status and details
       if (!result?.success) {

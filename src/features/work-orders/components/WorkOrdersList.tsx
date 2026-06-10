@@ -6,12 +6,13 @@ import { toast } from 'sonner';
 import WorkOrderCard from './WorkOrderCard';
 import { WorkOrdersEmptyState } from './WorkOrdersEmptyState';
 import { isOfflineId } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
-import type { WorkOrder } from '@/features/work-orders/types/workOrder';
+import { workOrderDataAsWorkOrder } from '@/features/work-orders/utils/workOrderCardMappers';
+import type { WorkOrderData } from '@/features/work-orders/types/workOrder';
 import type { QuickFilterPreset } from '@/features/work-orders/hooks/useWorkOrderFilters';
 
 interface WorkOrdersListProps {
-  workOrders: WorkOrder[];
-  onAcceptClick: (workOrder: WorkOrder) => void;
+  workOrders: WorkOrderData[];
+  onAcceptClick: (workOrder: WorkOrderData) => void;
   onStatusUpdate: (workOrderId: string, newStatus: string) => void;
   isUpdating: boolean;
   isAccepting: boolean;
@@ -72,10 +73,10 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
         // (getBoundingClientRect) for PM segment tooltips on list cards.
         <div key={order.id}>
           <WorkOrderCard
-            workOrder={order}
+            workOrder={workOrderDataAsWorkOrder(order)}
             variant={isMobile ? 'mobile' : 'desktop'}
             onNavigate={handleNavigate}
-            onAcceptClick={onAcceptClick}
+            onAcceptClick={(workOrder) => onAcceptClick(order)}
             onStatusUpdate={onStatusUpdate}
             isUpdating={isUpdating}
             isAccepting={isAccepting}

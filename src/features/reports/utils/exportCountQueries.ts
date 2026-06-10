@@ -21,7 +21,7 @@ function orgScopedExportCountQuery(
     .eq('organization_id', organizationId);
 
   if (status) {
-    query = query.eq('status', status);
+    query = query.eq('status', status as never);
   }
 
   return query;
@@ -51,10 +51,10 @@ export function buildWorkOrderExportCountQuery(
     query = query.eq('team_id', filters.teamId);
   }
   if (filters.priority) {
-    query = query.eq('priority', filters.priority);
+    query = query.eq('priority', filters.priority as never);
   }
 
-  const dateField = filters.dateField ?? 'created_date';
+  const dateField = (filters.dateField ?? 'created_date') as 'created_date' | 'due_date' | 'completed_date';
   if (filters.dateRange?.from) {
     query = query.gte(dateField, filters.dateRange.from);
   }

@@ -20,7 +20,12 @@ export const EquipmentIdentityFields: React.FC<EquipmentIdentityFieldsProps> = (
   modelFieldId,
   serialNumberFieldId,
   onFieldUpdate,
-}) => (
+}) => {
+  const saveField = async (field: keyof Equipment, value: string) => {
+    await onFieldUpdate(field, value);
+  };
+
+  return (
   <>
     <div>
       <label htmlFor={manufacturerFieldId} className="text-sm font-medium text-muted-foreground">
@@ -29,7 +34,7 @@ export const EquipmentIdentityFields: React.FC<EquipmentIdentityFieldsProps> = (
       <div className="mt-1 w-full">
         <InlineEditField
           value={equipment.manufacturer || ''}
-          onSave={(value) => onFieldUpdate('manufacturer', value)}
+          onSave={(value) => saveField('manufacturer', value)}
           canEdit={canEdit}
           fieldId={manufacturerFieldId}
           placeholder="Enter manufacturer"
@@ -46,7 +51,7 @@ export const EquipmentIdentityFields: React.FC<EquipmentIdentityFieldsProps> = (
       <div className="mt-1 w-full">
         <InlineEditField
           value={equipment.model || ''}
-          onSave={(value) => onFieldUpdate('model', value)}
+          onSave={(value) => saveField('model', value)}
           canEdit={canEdit}
           fieldId={modelFieldId}
           placeholder="Enter model"
@@ -63,7 +68,7 @@ export const EquipmentIdentityFields: React.FC<EquipmentIdentityFieldsProps> = (
       <div className="mt-1 w-full">
         <InlineEditField
           value={equipment.serial_number || ''}
-          onSave={(value) => onFieldUpdate('serial_number', value)}
+          onSave={(value) => saveField('serial_number', value)}
           canEdit={canEdit}
           fieldId={serialNumberFieldId}
           placeholder="Enter serial number"
@@ -73,4 +78,5 @@ export const EquipmentIdentityFields: React.FC<EquipmentIdentityFieldsProps> = (
       </div>
     </div>
   </>
-);
+  );
+};

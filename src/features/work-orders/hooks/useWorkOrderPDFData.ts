@@ -6,6 +6,7 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { supabase } from '@/integrations/supabase/client';
 import { getWorkOrderNotesWithImages } from '@/features/work-orders/services/workOrderNotesService';
+import type { WorkOrderNote } from '@/features/work-orders/types/workOrder';
 import { getWorkOrderCosts } from '@/features/work-orders/services/workOrderCostsService';
 import { 
   generateWorkOrderPDF,
@@ -89,11 +90,11 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
     teamId,
   } = options;
   
-  const { organization } = useOrganization();
+  const { currentOrganization } = useOrganization();
   const settingsContext = useContext(SettingsContext);
   const { settings: fallbackSettings } = useUserSettings();
   const settings = settingsContext?.settings ?? fallbackSettings;
-  const organizationId = organization?.id;
+  const organizationId = currentOrganization?.id;
   const exportDateSettings = useMemo(
     () =>
       ({
@@ -216,7 +217,7 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
       workOrder,
       equipment: equipmentWithCustomer,
       organizationName,
-      notes,
+      notes: notes as WorkOrderNote[],
       costs,
       pmData,
       includeCosts,
@@ -373,7 +374,7 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
     setIsGeneratingWorksheet(true);
 
     try {
-      const orgLogoUrl = (organization as Record<string, unknown> | null)?.logo as string | null ?? null;
+      const orgLogoUrl = (currentOrganization as Record<string, unknown> | null)?.logo as string | null ?? null;
 
       let teamImgUrl: string | null = null;
       if (teamId && organizationId) {
@@ -417,7 +418,7 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
       isGeneratingWorksheetRef.current = false;
       setIsGeneratingWorksheet(false);
     }
-  }, [equipment, exportDateSettings, organizationName, pmData, workOrder, organization, teamId, organizationId, buildQRCodes, buildPageIdentity]);
+  }, [equipment, exportDateSettings, organizationName, pmData, workOrder, currentOrganization, teamId, organizationId, buildQRCodes, buildPageIdentity]);
 
   return {
     downloadPDF,

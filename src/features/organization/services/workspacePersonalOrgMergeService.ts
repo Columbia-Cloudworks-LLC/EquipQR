@@ -30,7 +30,7 @@ export const requestWorkspacePersonalOrgMerge = async ({
     });
 
   if (error) throw error;
-  return data as WorkspaceMergeActionResult;
+  return data as unknown as WorkspaceMergeActionResult;
 };
 
 export const respondToWorkspacePersonalOrgMerge = async ({
@@ -50,7 +50,7 @@ export const respondToWorkspacePersonalOrgMerge = async ({
     });
 
   if (error) throw error;
-  return data as WorkspaceMergeActionResult;
+  return data as unknown as WorkspaceMergeActionResult;
 };
 
 export const getPersonalOrgMergePreview = async (
@@ -62,5 +62,5 @@ export const getPersonalOrgMergePreview = async (
     });
 
   if (error) throw error;
-  return data as PersonalOrgMergePreview;
+  return data as unknown as PersonalOrgMergePreview;
 };

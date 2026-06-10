@@ -32,7 +32,7 @@ const createTeam = async (teamData: TeamInsert): Promise<Team> => {
     .single();
 
   if (error) throw error;
-  return data;
+  return { ...data, member_count: 1 };
 };
 
 // Create a team and automatically add creator as manager
@@ -91,7 +91,7 @@ export const updateTeam = async (id: string, updates: TeamUpdate): Promise<Team>
     .single();
 
   if (error) throw error;
-  return data;
+  return { ...data, member_count: 0 };
 };
 
 // Delete a team

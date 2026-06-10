@@ -31,6 +31,9 @@ export function EquipmentLifecycleCard({
   onFieldUpdate,
 }: EquipmentLifecycleCardProps) {
   const { formatDate } = useFormatTimestamp();
+  const saveField = async (field: keyof Equipment, value: string) => {
+    await onFieldUpdate(field, value);
+  };
 
   return (
     <Card>
@@ -47,7 +50,7 @@ export function EquipmentLifecycleCard({
             <div className="mt-1 w-full">
               <InlineEditField
                 value={formatDateForInput(equipment.installation_date)}
-                onSave={(value) => onFieldUpdate('installation_date', value)}
+                onSave={(value) => saveField('installation_date', value)}
                 canEdit={canEdit}
                 fieldId={installationDateFieldId}
                 type="date"
@@ -63,7 +66,7 @@ export function EquipmentLifecycleCard({
             <div className="mt-1 w-full">
               <InlineEditField
                 value={formatDateForInput(equipment.warranty_expiration)}
-                onSave={(value) => onFieldUpdate('warranty_expiration', value)}
+                onSave={(value) => saveField('warranty_expiration', value)}
                 canEdit={canEdit}
                 fieldId={warrantyExpirationFieldId}
                 type="date"
@@ -79,7 +82,7 @@ export function EquipmentLifecycleCard({
             <div className="mt-1 w-full">
               <InlineEditField
                 value={formatDateForInput(equipment.last_maintenance)}
-                onSave={(value) => onFieldUpdate('last_maintenance', value)}
+                onSave={(value) => saveField('last_maintenance', value)}
                 canEdit={canEdit}
                 fieldId={maintenanceDateFieldId}
                 type="date"

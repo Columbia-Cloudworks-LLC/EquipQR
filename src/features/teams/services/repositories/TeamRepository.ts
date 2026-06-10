@@ -59,7 +59,7 @@ class TeamRepository {
         ...team,
         members: formattedMembers,
         member_count: team.member_count,
-      };
+      } as TeamWithMembers;
     });
   }
 
@@ -87,7 +87,7 @@ class TeamRepository {
       ...team,
       members: formattedMembers,
       member_count: team.member_count
-    };
+    } as TeamWithMembers;
   }
 
   /**

@@ -21,10 +21,12 @@ import ImageGallery from '@/components/common/ImageGallery';
 import NotesLoadingSkeleton from '@/components/common/NotesLoadingSkeleton';
 import { resolveNoteContentFromSubmit } from '@/components/common/noteContentHelpers';
 import type { NoteSubmitPayload } from '@/components/common/noteSubmitTypes';
+import type { EquipmentNote } from '@/features/equipment/types/equipmentNotes';
 import {
   createNoteCreateMutationCallbacks,
   runOfflineAwareNoteCreate,
   showQueuedNoteCreateToasts,
+  type NoteCreateMutationInput,
 } from '@/components/common/noteCreateHelpers';
 import { NotesTabAddNoteSection } from '@/components/common/NotesTabAddNoteSection';
 import { useEquipmentNotesPermissions } from '@/features/equipment/hooks/useEquipmentNotesPermissions';
@@ -82,8 +84,8 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
 
   // Create note mutation — supports offline (text only; images when online)
   const createNoteMutation = useMutation({
-    mutationFn: (input) =>
-      runOfflineAwareNoteCreate({
+    mutationFn: (input: NoteCreateMutationInput) =>
+      runOfflineAwareNoteCreate<EquipmentNote>({
         input,
         organizationId: activeOrganizationId,
         userId: user?.id,
@@ -99,7 +101,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
           if (result.queuedOffline) {
             return { queuedOffline: true as const, hadImages: images.length > 0 };
           }
-          return { queuedOffline: false as const, data: result.data };
+          return { queuedOffline: false as const, data: result.data as unknown as EquipmentNote };
         },
         onlineCreate: ({ content, hoursWorked, isPrivate, images, machineHours }) =>
           createEquipmentNoteWithImages(
@@ -215,7 +217,18 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
           <NoteTimelineEntry
             key={note.id}
             note={{
-              ...note,
+              id: note.id,
+              author_name: note.author_name ?? 'Unknown',
+              created_at: note.created_at,
+              content: note.content,
+              hours_worked: note.hours_worked,
+              machine_hours: note.machine_hours,
+              is_private: note.is_private,
+              images: note.images?.map((image) => ({
+                id: image.id,
+                file_url: image.file_url,
+                file_name: image.file_name,
+              })),
               _isPendingSync: (note as { _isPendingSync?: boolean })._isPendingSync,
             }}
             formatDate={formatNoteDate}

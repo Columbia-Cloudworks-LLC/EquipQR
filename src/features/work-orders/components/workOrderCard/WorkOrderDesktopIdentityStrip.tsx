@@ -9,7 +9,7 @@ import { WorkOrderQuickActions } from '../WorkOrderQuickActions';
 import QuickBooksInvoiceStatusBadge from '../QuickBooksInvoiceStatusBadge';
 import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyncBadge';
 import type { MergedWorkOrder } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
-import type { WorkOrder } from '@/features/work-orders/types/workOrder';
+import type { WorkOrder, WorkOrderData, QuickBooksInvoiceStatus } from '@/features/work-orders/types/workOrder';
 import { WorkOrderEquipmentThumbnail } from './WorkOrderEquipmentThumbnail';
 
 type WorkOrderDesktopIdentityStripProps = {
@@ -69,7 +69,7 @@ export const WorkOrderDesktopIdentityStrip: React.FC<WorkOrderDesktopIdentityStr
           {formatWorkOrderPriorityLabel(workOrder.priority)}
         </Badge>
         <QuickBooksInvoiceStatusBadge
-          status={workOrder.invoiceStatus ?? workOrder.invoice_status}
+          status={(workOrder.invoiceStatus ?? workOrder.invoice_status) as QuickBooksInvoiceStatus | null | undefined}
           invoiceNumber={workOrder.quickbooksInvoiceNumber ?? workOrder.quickbooks_invoice_number}
           balanceCents={workOrder.invoiceBalanceCents ?? workOrder.invoice_balance_cents}
           paidAt={workOrder.invoicePaidAt ?? workOrder.invoice_paid_at}

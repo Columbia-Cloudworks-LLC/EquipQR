@@ -49,5 +49,5 @@ export async function fetchAuditLogPage(
 
   if (error) throw error;
 
-  return buildAuditLogQueryResult(data as AuditLogEntry[], count ?? 0, offset, pageSize);
+  return buildAuditLogQueryResult((data ?? []) as unknown as AuditLogEntry[], count ?? 0, offset, pageSize);
 }

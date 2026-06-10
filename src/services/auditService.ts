@@ -289,8 +289,7 @@ export const auditService = {
         organizationId,
         filters,
         select: '*',
-        applyExtraCountFilters: (query) => query.lte('created_at', cutoff),
-        applyExtraPageFilters: (query) => query.lte('created_at', cutoff),
+        createdAtLte: cutoff,
         onProgress,
       });
 

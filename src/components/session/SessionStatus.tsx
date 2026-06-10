@@ -69,7 +69,9 @@ export const SessionStatus = () => {
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
-                onClick={refreshSession}
+                onClick={() => {
+                  void refreshSession();
+                }}
                 disabled={isLoading}
                 aria-label="Refresh session"
               >

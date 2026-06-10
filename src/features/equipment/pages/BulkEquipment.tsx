@@ -40,7 +40,7 @@ const BulkEquipment: React.FC = () => {
     selectAll,
     clearSelection,
     commit,
-  } = useBulkEditEquipment(filteredAndSortedEquipment);
+  } = useBulkEditEquipment(filteredAndSortedEquipment as unknown as import('@/features/equipment/types/equipment').EquipmentRecord[]);
 
   // Bulk edit is a desktop-only surface (#627 AC#1). Mobile users that hit
   // /dashboard/equipment/bulk directly (deep link, browser back, mistaken
@@ -119,7 +119,7 @@ const BulkEquipment: React.FC = () => {
         />
 
         <BulkEquipmentGrid
-          rows={filteredAndSortedEquipment}
+          rows={filteredAndSortedEquipment as unknown as import('@/features/equipment/types/equipment').EquipmentRecord[]}
           dirtyRows={dirtyRows}
           selectedRowIds={selectedRowIds}
           onSetCellValue={setCellValue}

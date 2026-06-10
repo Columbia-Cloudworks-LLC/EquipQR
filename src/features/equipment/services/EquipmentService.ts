@@ -142,6 +142,7 @@ type EquipmentListQuery = {
   eq: (column: string, value: string) => EquipmentListQuery;
   in: (column: string, values: readonly string[]) => EquipmentListQuery;
   is: (column: string, value: null) => EquipmentListQuery;
+  not: (column: string, operator: string, value: null) => EquipmentListQuery;
   order: (column: string, options: { ascending: boolean }) => EquipmentListQuery;
   range: (from: number, to: number) => EquipmentListQuery;
 };
@@ -275,6 +276,9 @@ export interface EquipmentScan extends Tables<'scans'> {
 export interface EquipmentWorkOrder extends Tables<'work_orders'> {
   assigneeName?: string;
   equipmentName?: string;
+  equipmentManufacturer?: string;
+  equipmentModel?: string;
+  equipmentSerialNumber?: string;
 }
 
 /**

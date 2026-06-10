@@ -84,10 +84,14 @@ export const getAlternatesForPartNumber = async (
       return [];
     }
 
-    const { data, error } = await supabase.rpc('get_alternates_for_part_number', {
-      p_organization_id: organizationId,
-      p_part_number: partNumber.trim()
-    }, { signal });
+    const { data, error } = await supabase.rpc(
+      'get_alternates_for_part_number',
+      {
+        p_organization_id: organizationId,
+        p_part_number: partNumber.trim(),
+      },
+      signal ? ({ signal } as Parameters<typeof supabase.rpc>[2]) : undefined,
+    );
 
     // If request was aborted, return empty result silently
     if (signal?.aborted) {
@@ -148,7 +152,7 @@ export const getAlternatesForInventoryItem = async (
       throw error;
     }
 
-    return (data || []) as AlternatePartResult[];
+    return (data || []) as unknown as AlternatePartResult[];
   } catch (error) {
     logger.error('Error looking up alternates for inventory item:', error);
     throw error;
@@ -408,7 +412,7 @@ export const updateAlternateGroup = async (
 
     const { data: group, error } = await supabase
       .from('part_alternate_groups')
-      .update(updateData)
+      .update(updateData as never)
       .eq('id', groupId)
       .eq('organization_id', organizationId)
       .select()

@@ -234,7 +234,9 @@ export const ReportExportModule: React.FC<ReportExportModuleProps> = ({
   const iconSize = featured ? 'h-10 w-10' : 'h-8 w-8';
 
   const iconNode = REPORT_ICONS[config.icon] ?? <FileSpreadsheet className={iconSize} />;
-  const scaledIcon = React.cloneElement(iconNode as React.ReactElement, { className: iconSize });
+  const scaledIcon = React.isValidElement(iconNode)
+    ? React.cloneElement(iconNode as React.ReactElement<{ className?: string }>, { className: iconSize })
+    : iconNode;
 
   return (
     <Card
@@ -316,7 +318,9 @@ export const ReportExportModule: React.FC<ReportExportModuleProps> = ({
       <div className="flex flex-1 flex-col p-4 sm:hidden">
         <div className="flex items-start gap-3">
           <div className="shrink-0 border border-primary/20 bg-primary/10 p-2 text-primary">
-            {React.cloneElement(iconNode as React.ReactElement, { className: 'h-6 w-6' })}
+            {React.isValidElement(iconNode)
+              ? React.cloneElement(iconNode as React.ReactElement<{ className?: string }>, { className: 'h-6 w-6' })
+              : iconNode}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
