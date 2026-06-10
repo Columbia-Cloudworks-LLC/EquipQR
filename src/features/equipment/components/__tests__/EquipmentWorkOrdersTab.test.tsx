@@ -3,6 +3,8 @@ import { render, screen, fireEvent } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import EquipmentWorkOrdersTab from '../EquipmentWorkOrdersTab';
 import * as useEquipmentModule from '@/features/equipment/hooks/useEquipment';
+import type { EquipmentWorkOrder } from '@/features/equipment/services/EquipmentService';
+import { mockQueryResult } from '@/test/utils/mock-tanstack-query';
 
 // Mock hooks and components
 vi.mock('@/features/equipment/hooks/useEquipment', () => ({
@@ -52,7 +54,7 @@ const mockWorkOrders = [
     completed_date: '2024-01-12',
     is_historical: true
   }
-];
+] as never;
 
 describe('EquipmentWorkOrdersTab', () => {
   const mockOnCreateWorkOrder = vi.fn();
@@ -60,10 +62,9 @@ describe('EquipmentWorkOrdersTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    vi.mocked(useEquipmentModule.useEquipmentWorkOrders).mockReturnValue({
-      data: mockWorkOrders,
-      isLoading: false
-    });
+    vi.mocked(useEquipmentModule.useEquipmentWorkOrders).mockReturnValue(
+      mockQueryResult({ data: mockWorkOrders as never, isLoading: false }),
+    );
   });
 
   describe('Core Rendering', () => {
@@ -102,10 +103,9 @@ describe('EquipmentWorkOrdersTab', () => {
     });
 
     it('displays singular form for one work order', () => {
-      vi.mocked(useEquipmentModule.useEquipmentWorkOrders).mockReturnValue({
-        data: [mockWorkOrders[0]],
-        isLoading: false
-      });
+      vi.mocked(useEquipmentModule.useEquipmentWorkOrders).mockReturnValue(
+        mockQueryResult({ data: [mockWorkOrders[0]] as never, isLoading: false }),
+      );
 
       render(
         <EquipmentWorkOrdersTab 
@@ -120,10 +120,9 @@ describe('EquipmentWorkOrdersTab', () => {
 
   describe('Loading State', () => {
     it('shows loading skeletons when isLoading is true', () => {
-      vi.mocked(useEquipmentModule.useEquipmentWorkOrders).mockReturnValue({
-        data: [],
-        isLoading: true
-      });
+      vi.mocked(useEquipmentModule.useEquipmentWorkOrders).mockReturnValue(
+        mockQueryResult({ data: [] as never, isLoading: true }),
+      );
 
       const { container } = render(
         <EquipmentWorkOrdersTab 
@@ -139,10 +138,9 @@ describe('EquipmentWorkOrdersTab', () => {
 
   describe('Empty State', () => {
     it('shows empty state when no work orders', () => {
-      vi.mocked(useEquipmentModule.useEquipmentWorkOrders).mockReturnValue({
-        data: [],
-        isLoading: false
-      });
+      vi.mocked(useEquipmentModule.useEquipmentWorkOrders).mockReturnValue(
+        mockQueryResult({ data: [], isLoading: false }),
+      );
 
       render(
         <EquipmentWorkOrdersTab 

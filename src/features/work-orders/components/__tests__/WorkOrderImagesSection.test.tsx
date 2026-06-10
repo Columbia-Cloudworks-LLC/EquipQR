@@ -63,7 +63,7 @@ describe('WorkOrderImagesSection', () => {
       data: { count: 2, images: [] },
       isLoading: false,
       isError: false,
-    } as ReturnType<typeof useWorkOrderImageCount>);
+    } as unknown as ReturnType<typeof useWorkOrderImageCount>);
     vi.mocked(getWorkOrderImages).mockResolvedValue([]);
     invalidateSpy = vi
       .spyOn(QueryClient.prototype, 'invalidateQueries')
@@ -192,7 +192,7 @@ describe('WorkOrderImagesSection', () => {
       data: undefined,
       isLoading: false,
       isError: true,
-    } as ReturnType<typeof useWorkOrderImageCount>);
+    } as unknown as ReturnType<typeof useWorkOrderImageCount>);
     vi.mocked(getWorkOrderImages).mockResolvedValue([makeImage({ id: 'count-error-image' })]);
 
     render(

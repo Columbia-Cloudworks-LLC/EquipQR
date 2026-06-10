@@ -49,7 +49,7 @@ vi.mock('../QuickBooksInvoiceStatusBadge', () => ({
   default: () => null,
 }));
 
-const baseWorkOrder: WorkOrder = {
+const baseWorkOrder = {
   id: 'wo-1',
   title: 'Replace hydraulic line',
   description: 'Repair the leaking boom hose',
@@ -79,7 +79,7 @@ const baseWorkOrder: WorkOrder = {
   estimated_hours: 4,
   historical_notes: null,
   historical_start_date: null,
-};
+} as unknown as WorkOrder;
 
 describe('WorkOrderCard', () => {
   beforeEach(() => {

@@ -432,7 +432,7 @@ describe('OfflineQueueProcessor', () => {
     };
     const item = createPendingItem({
       type: 'equipment_create_full',
-      payload,
+      payload: payload as never,
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
 
@@ -510,7 +510,7 @@ describe('OfflineQueueProcessor', () => {
 
     const item = createPendingItem({
       type: 'equipment_create',
-      payload: { name: 'Loader', manufacturer: 'Cat', model: 'D6', serial_number: 'SN-001' },
+      payload: { name: 'Loader', manufacturer: 'Cat', model: 'D6', serial_number: 'SN-001', team_id: 'team-1' } as never,
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
 

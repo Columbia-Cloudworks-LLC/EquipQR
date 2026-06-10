@@ -13,6 +13,7 @@ import { SlotAvailability } from '@/features/organization/hooks/useOrganizationS
 // Mock data helpers
 const createMember = (status: 'active' | 'pending' = 'active', role: 'owner' | 'admin' | 'member' = 'member'): RealOrganizationMember => ({
   id: Math.random().toString(),
+  userId: Math.random().toString(),
   name: `User ${Math.random()}`,
   email: `user${Math.random()}@example.com`,
   role,

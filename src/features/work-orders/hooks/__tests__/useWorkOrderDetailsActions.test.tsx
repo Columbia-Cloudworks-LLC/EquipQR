@@ -60,7 +60,7 @@ interface TestComponentProps {
 }
 
 const TestComponent = ({ workOrderId, organizationId, pmData, onReady }: TestComponentProps) => {
-  const actions = useWorkOrderDetailsActions(workOrderId, organizationId, pmData);
+  const actions = useWorkOrderDetailsActions(workOrderId, organizationId, pmData as never);
   
   React.useEffect(() => {
     if (onReady) {
@@ -92,7 +92,7 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
     } as unknown as ReturnType<typeof useUpdateWorkOrder>);
 
     // Mock pmChecklistTemplatesService.getTemplate
-    vi.mocked(pmChecklistTemplatesService.getTemplate).mockResolvedValue(mockPMTemplate);
+    vi.mocked(pmChecklistTemplatesService.getTemplate).mockResolvedValue(mockPMTemplate as never);
 
     // Mock createPM to return a successful PM record
     vi.mocked(createPM).mockResolvedValue({
@@ -101,7 +101,7 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
       equipment_id: 'eq-1',
       organization_id: 'org-1',
       status: 'pending',
-    } as unknown as ReturnType<typeof createPM>);
+    } as never);
   });
 
   afterEach(() => {
@@ -109,17 +109,15 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
     invalidateSpy.mockRestore();
   });
 
-  type PmFormDataOverrides = Partial<
-    Omit<WorkOrderFormData, 'equipmentId'> & { equipmentId?: string | null }
-  >;
-
   const buildPmFormData = (
-    overrides: PmFormDataOverrides = {},
-  ): Omit<WorkOrderFormData, 'equipmentId'> & { equipmentId?: string | null } => ({
+    overrides: Partial<WorkOrderFormData> = {},
+  ): WorkOrderFormData => ({
     title: 'Test Work Order',
     description: 'Test Description',
+    equipmentId: 'eq-default',
     priority: 'medium',
     hasPM: true,
+    isHistorical: false,
     pmTemplateId: 'template-1',
     ...overrides,
   });
@@ -153,7 +151,7 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
 
       const formData = buildPmFormData({
         equipmentId: 'eq-from-form',
-      }) as WorkOrderFormData;
+      });
 
       // Call handleUpdateWorkOrder with both data.equipmentId and equipmentId parameter
       await capturedActions!.handleUpdateWorkOrder(
@@ -236,7 +234,7 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
     it('should skip PM creation when data.equipmentId is null and equipmentId parameter is undefined', async () => {
       const capturedActions = await renderActionsHarness();
 
-      const formData = buildPmFormData({ equipmentId: null });
+      const formData = buildPmFormData({ equipmentId: '' });
 
       await capturedActions!.handleUpdateWorkOrder(
         formData,

@@ -136,7 +136,7 @@ describe('useAlternateGroups', () => {
         ],
         identifiers: [],
       };
-      vi.mocked(getAlternateGroupById).mockResolvedValue(mockGroup);
+      vi.mocked(getAlternateGroupById).mockResolvedValue(mockGroup as never);
 
       const { result } = renderHook(
         () => useAlternateGroup(organizations.acme.id, partAlternateGroups.oilFilterGroup.id),
@@ -144,7 +144,7 @@ describe('useAlternateGroups', () => {
       );
 
       await waitForHookSuccess(result);
-      expectHookData(result, mockGroup);
+      expectHookData(result, mockGroup as never);
       expect(getAlternateGroupById).toHaveBeenCalledWith(
         organizations.acme.id,
         partAlternateGroups.oilFilterGroup.id
@@ -313,12 +313,7 @@ describe('useAlternateGroups', () => {
 
   describe('useAddInventoryItemToGroup mutation', () => {
     it('adds an inventory item to a group', async () => {
-      vi.mocked(addInventoryItemToGroup).mockResolvedValue({
-        id: 'member-1',
-        group_id: partAlternateGroups.oilFilterGroup.id,
-        inventory_item_id: inventoryItems.oilFilter.id,
-        is_primary: false,
-      });
+      vi.mocked(addInventoryItemToGroup).mockResolvedValue(undefined as never);
 
       const { result } = renderHook(
         () => useAddInventoryItemToGroup(),
@@ -344,12 +339,7 @@ describe('useAlternateGroups', () => {
     });
 
     it('can mark item as primary', async () => {
-      vi.mocked(addInventoryItemToGroup).mockResolvedValue({
-        id: 'member-1',
-        group_id: partAlternateGroups.oilFilterGroup.id,
-        inventory_item_id: inventoryItems.oilFilter.id,
-        is_primary: true,
-      });
+      vi.mocked(addInventoryItemToGroup).mockResolvedValue(undefined as never);
 
       const { result } = renderHook(
         () => useAddInventoryItemToGroup(),
@@ -531,18 +521,8 @@ describe('Alternate Groups User Journeys', () => {
   describe('Parts Manager adds items to group', () => {
     it('adds multiple inventory items as alternates', async () => {
       vi.mocked(addInventoryItemToGroup)
-        .mockResolvedValueOnce({
-          id: 'member-1',
-          group_id: partAlternateGroups.oilFilterGroup.id,
-          inventory_item_id: inventoryItems.oilFilter.id,
-          is_primary: true,
-        })
-        .mockResolvedValueOnce({
-          id: 'member-2',
-          group_id: partAlternateGroups.oilFilterGroup.id,
-          inventory_item_id: inventoryItems.airFilter.id,
-          is_primary: false,
-        });
+        .mockResolvedValueOnce(undefined as never)
+        .mockResolvedValueOnce(undefined as never);
 
       const { result } = renderHook(
         () => useAddInventoryItemToGroup(),

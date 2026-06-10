@@ -116,18 +116,19 @@ const mockItem: InventoryItem = {
   quantity_on_hand: 100,
   low_stock_threshold: 10,
   location: 'Warehouse A',
-  default_unit_cost: '25.00',
+  default_unit_cost: 25,
   image_url: null,
   isLowStock: false,
   created_at: '2024-01-01',
   updated_at: '2024-01-01',
-  created_by: 'user-1'
+  created_by: 'user-1',
+  created_by_name: 'Test User',
 };
 
-const mockRules: PartCompatibilityRule[] = [
+const mockRules = [
   { id: 'rule-1', inventory_item_id: 'item-1', manufacturer: 'Caterpillar', model: 'D6T', manufacturer_norm: 'caterpillar', model_norm: 'd6t', created_at: '2024-01-01' },
-  { id: 'rule-2', inventory_item_id: 'item-1', manufacturer: 'John Deere', model: null, manufacturer_norm: 'john deere', model_norm: null, created_at: '2024-01-01' }
-];
+  { id: 'rule-2', inventory_item_id: 'item-1', manufacturer: 'John Deere', model: null, manufacturer_norm: 'john deere', model_norm: null, created_at: '2024-01-01' },
+] as PartCompatibilityRule[];
 
 const mockBulkSetRulesMutateAsync = vi.fn();
 

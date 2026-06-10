@@ -19,8 +19,8 @@ export {
   waitForHookSuccess,
   expectHookData,
   createReactRouterDomTestMock,
-  mockSonnerAndLogger,
 } from './hook-test-helpers';
+export { mockSonnerAndLogger } from './hook-test-helpers';
 // Re-export custom render
 export { customRender as render } from './renderUtils';
 

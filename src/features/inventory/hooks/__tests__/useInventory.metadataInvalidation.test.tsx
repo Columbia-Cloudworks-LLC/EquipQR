@@ -34,6 +34,10 @@ vi.mock('@/hooks/useAppToast', () => ({
   })),
 }));
 
+type MutationConfig = {
+  onSuccess: (...args: unknown[]) => void;
+};
+
 describe('inventory metadata invalidation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -41,8 +45,9 @@ describe('inventory metadata invalidation', () => {
 
   it('invalidates list metadata after creating an inventory item', () => {
     const { result } = renderHook(() => useCreateInventoryItem());
+    const config = result.current as unknown as MutationConfig;
 
-    result.current.onSuccess(
+    config.onSuccess(
       { name: 'New Part' },
       { organizationId: 'org-1', formData: {} }
     );
@@ -54,8 +59,9 @@ describe('inventory metadata invalidation', () => {
 
   it('invalidates list metadata after updating an inventory item', () => {
     const { result } = renderHook(() => useUpdateInventoryItem());
+    const config = result.current as unknown as MutationConfig;
 
-    result.current.onSuccess(
+    config.onSuccess(
       { name: 'Updated Part' },
       { organizationId: 'org-1', itemId: 'item-1', formData: {} }
     );
@@ -67,8 +73,9 @@ describe('inventory metadata invalidation', () => {
 
   it('invalidates list metadata after deleting an inventory item', () => {
     const { result } = renderHook(() => useDeleteInventoryItem());
+    const config = result.current as unknown as MutationConfig;
 
-    result.current.onSuccess(undefined, {
+    config.onSuccess(undefined, {
       organizationId: 'org-1',
       itemId: 'item-1',
     });
@@ -80,8 +87,9 @@ describe('inventory metadata invalidation', () => {
 
   it('invalidates list metadata after adjusting inventory quantity', () => {
     const { result } = renderHook(() => useAdjustInventoryQuantity());
+    const config = result.current as unknown as MutationConfig;
 
-    result.current.onSuccess(6, {
+    config.onSuccess(6, {
       organizationId: 'org-1',
       adjustment: {
         itemId: 'item-1',

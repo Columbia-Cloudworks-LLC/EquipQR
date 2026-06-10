@@ -7,6 +7,7 @@ import * as useEquipmentModule from '@/features/equipment/hooks/useEquipment';
 import * as useUnifiedPermissionsModule from '@/hooks/useUnifiedPermissions';
 import { personas } from '@/test/fixtures/personas';
 import { equipment as eqFixtures, organizations, teams as teamFixtures } from '@/test/fixtures/entities';
+import { mockMutationResult } from '@/test/utils/mock-tanstack-query';
 
 // ============================================
 // Mocks
@@ -145,7 +146,8 @@ const forkliftEquipment: Tables<'equipment'> = {
   assigned_location_state: null,
   assigned_location_country: null,
   assigned_location_lat: 40.7128,
-  assigned_location_lng: -74.006
+  assigned_location_lng: -74.006,
+  use_team_location: false,
 };
 
 // ============================================
@@ -155,9 +157,14 @@ const forkliftEquipment: Tables<'equipment'> = {
 function setupPermissions(canEdit: boolean, canDelete: boolean) {
   vi.mocked(useUnifiedPermissionsModule.useUnifiedPermissions).mockReturnValue({
     equipment: {
-      getPermissions: vi.fn(() => ({ canEdit, canDelete }))
-    }
-  });
+      getPermissions: vi.fn(() => ({
+        canView: true,
+        canCreate: canEdit,
+        canEdit,
+        canDelete,
+      })),
+    },
+  } as unknown as ReturnType<typeof useUnifiedPermissionsModule.useUnifiedPermissions>);
 }
 
 // ============================================
@@ -167,10 +174,12 @@ function setupPermissions(canEdit: boolean, canDelete: boolean) {
 describe('EquipmentDetailsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue({
-      mutateAsync: vi.fn().mockResolvedValue(forkliftEquipment),
-      isPending: false
-    });
+    vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue(
+      mockMutationResult({
+        mutateAsync: vi.fn().mockResolvedValue(forkliftEquipment),
+        isPending: false,
+      }),
+    );
   });
 
   // --------------------------------------------------------
@@ -212,10 +221,12 @@ describe('EquipmentDetailsTab', () => {
 
     it('calls update mutation when a field is saved', async () => {
       const mockMutateAsync = vi.fn().mockResolvedValue(forkliftEquipment);
-      vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
+      vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue(
+        mockMutationResult({
+          mutateAsync: mockMutateAsync,
+          isPending: false,
+        }),
+      );
 
       render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
 
@@ -236,10 +247,12 @@ describe('EquipmentDetailsTab', () => {
 
     it('updates custom attributes when saved', async () => {
       const mockMutateAsync = vi.fn().mockResolvedValue(forkliftEquipment);
-      vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
+      vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue(
+        mockMutationResult({
+          mutateAsync: mockMutateAsync,
+          isPending: false,
+        }),
+      );
 
       render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
       fireEvent.click(screen.getByText('Save Attributes'));

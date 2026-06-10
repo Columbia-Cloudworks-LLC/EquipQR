@@ -5,7 +5,7 @@ import { vi } from 'vitest';
 import { useSession } from '@/hooks/useSession';
 import { useAuth } from '@/hooks/useAuth';
 import { permissionEngine } from '@/services/permissions/PermissionEngine';
-import { personas } from '@/test/fixtures/personas';
+import { personas, type UserPersona } from '@/test/fixtures/personas';
 import {
   createMockAuthForPersona,
   createMockSessionForPersona,
@@ -26,7 +26,7 @@ export const createUnifiedPermissionsWrapper = () => {
 };
 
 export const setupUnifiedPermissionsPersonaMocks = (personaKey: keyof typeof personas) => {
-  const persona = personas[personaKey];
+  const persona = personas[personaKey] as UserPersona;
 
   vi.mocked(useAuth).mockReturnValue({
     ...createMockAuthForPersona(persona),
@@ -34,14 +34,14 @@ export const setupUnifiedPermissionsPersonaMocks = (personaKey: keyof typeof per
     signIn: vi.fn(),
     signInWithGoogle: vi.fn(),
     signOut: vi.fn(),
-  });
+  } as unknown as ReturnType<typeof useAuth>);
 
   vi.mocked(useSession).mockReturnValue({
-    ...createMockSessionForPersona(persona),
+    ...(createMockSessionForPersona(persona) as Record<string, unknown>),
     switchOrganization: vi.fn(),
     refreshSession: vi.fn(),
     clearSession: vi.fn(),
-  });
+  } as unknown as ReturnType<typeof useSession>);
 
   vi.mocked(permissionEngine.hasPermission).mockImplementation(
     (permission: string, userContext, entityContext) => {

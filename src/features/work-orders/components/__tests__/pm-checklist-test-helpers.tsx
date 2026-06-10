@@ -3,14 +3,16 @@ import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import PMChecklistComponent from '../PMChecklistComponent';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 
-export const defaultPmChecklistOrg = { id: 'org-1', name: 'Test Org' };
+import type { OrganizationData } from '@/features/work-orders/types/workOrderDetails';
+
+export const defaultPmChecklistOrg: OrganizationData = { id: 'org-1', name: 'Test Org', plan: 'free', memberCount: 1, maxMembers: 10, features: [] };
 
 export function renderPMChecklist(
   pm: PreventativeMaintenance,
   options?: {
     readOnly?: boolean;
     onUpdate?: () => void;
-    organization?: { id: string; name: string };
+    organization?: OrganizationData;
   },
 ) {
   const onUpdate = options?.onUpdate ?? (() => undefined);

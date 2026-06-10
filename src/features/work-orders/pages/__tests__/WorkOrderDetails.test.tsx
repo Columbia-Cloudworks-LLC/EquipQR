@@ -372,8 +372,6 @@ describe('WorkOrderDetails', () => {
           created_by: 'requestor-1',
           teamName: 'Field Team',
           assigneeName: 'Matt Technician',
-          team: null,
-          assignee: null,
           primary_image_id: 'primary-img-1',
         },
         pmData: {
@@ -385,8 +383,8 @@ describe('WorkOrderDetails', () => {
             { id: 'item-1', condition: 'ok' },
             { id: 'item-2', condition: null },
           ],
-        },
-      }),
+        } as never,
+      } as never),
     );
 
     render(<WorkOrderDetails />);
@@ -448,12 +446,10 @@ describe('WorkOrderDetails', () => {
           created_by: 'requestor-1',
           teamName: 'Field Team',
           assigneeName: 'Matt Technician',
-          team: null,
-          assignee: null,
           primary_image_id: 'primary-desktop-1',
         },
         pmData: null,
-      }),
+      } as never),
     );
 
     render(<WorkOrderDetails />);
@@ -492,15 +488,15 @@ describe('WorkOrderDetails', () => {
         },
         equipment: {
           manufacturer: 'Cat',
-        },
+        } as never,
         pmData: {
           id: 'pm-1',
           work_order_id: 'wo-1',
           equipment_id: 'eq-1',
           status: 'in_progress',
           checklist_data: [],
-        },
-      }),
+        } as never,
+      } as never),
     );
 
     render(<WorkOrderDetails />);
@@ -542,15 +538,15 @@ describe('WorkOrderDetails', () => {
         },
         equipment: {
           manufacturer: 'Cat',
-        },
+        } as never,
         pmData: {
           id: 'pm-1',
           work_order_id: 'wo-1',
           equipment_id: 'eq-1',
           status: 'in_progress',
           checklist_data: [],
-        },
-      }),
+        } as never,
+      } as never),
     );
 
     render(<WorkOrderDetails />);

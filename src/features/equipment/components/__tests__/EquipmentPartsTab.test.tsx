@@ -83,7 +83,7 @@ describe('EquipmentPartsTab', () => {
       error: null,
       isError: false,
       refetch: vi.fn(),
-    } as ReturnType<typeof useInventoryModule.useCompatibleInventoryItems>);
+    } as unknown as ReturnType<typeof useInventoryModule.useCompatibleInventoryItems>);
   });
 
   describe('Core Rendering', () => {
@@ -144,7 +144,7 @@ describe('EquipmentPartsTab', () => {
         error: null,
         isError: false,
         refetch: vi.fn(),
-      } as ReturnType<typeof useInventoryModule.useCompatibleInventoryItems>);
+      } as unknown as ReturnType<typeof useInventoryModule.useCompatibleInventoryItems>);
 
       const { container } = render(
         <EquipmentPartsTab 
@@ -166,7 +166,7 @@ describe('EquipmentPartsTab', () => {
         error: null,
         isError: false,
         refetch: vi.fn(),
-      } as ReturnType<typeof useInventoryModule.useCompatibleInventoryItems>);
+      } as unknown as ReturnType<typeof useInventoryModule.useCompatibleInventoryItems>);
 
       render(
         <EquipmentPartsTab 

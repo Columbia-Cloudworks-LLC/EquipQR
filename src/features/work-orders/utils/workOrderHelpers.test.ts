@@ -4,9 +4,9 @@ import { formatDate } from "./workOrderHelpers";
 /** Same UTC instant as dateFormatter tests — different calendar date in Sydney (AEDT). */
 const UTC_CROSS_CALENDAR = "2023-12-24T15:00:00.000Z";
 
-const sydney: { timezone: string; dateFormat: string } = {
+const sydney = {
   timezone: "Australia/Sydney",
-  dateFormat: "MM/dd/yyyy",
+  dateFormat: "MM/dd/yyyy" as const,
 };
 
 describe("workOrderHelpers (#768)", () => {

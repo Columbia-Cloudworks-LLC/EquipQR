@@ -179,7 +179,7 @@ describe('EquipmentService', () => {
 
       (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
-      const result = await EquipmentService.create(organizationId, equipmentData);
+      const result = await EquipmentService.create(organizationId, equipmentData as never);
       
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();

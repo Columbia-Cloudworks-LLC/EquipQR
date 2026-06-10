@@ -19,6 +19,7 @@ interface SimpleOrganizationContextType {
   currentOrganization: SimpleOrganization | null;
   organizations: SimpleOrganization[];
   userOrganizations: SimpleOrganization[];
+  organizationId: string | null;
   setCurrentOrganization: (organizationId: string) => void;
   switchOrganization: (organizationId: string) => void;
   isLoading: boolean;
@@ -100,6 +101,10 @@ export const createMockUserForContext = (overrides: Partial<User> = {}): User =>
   ...overrides
 });
 
+export const createMockSimpleOrganizationFixture = (
+  overrides: Partial<SessionOrganization> = {},
+): SessionOrganization => createMockSessionOrganization(overrides);
+
 export const createMockOrganization = (overrides: Partial<TestOrganization> = {}): TestOrganization => ({
   id: 'org-1',
   name: 'Test Organization',
@@ -129,9 +134,43 @@ export const createMockUserContext = (user: TestUser | null = null): UserContext
 export const createMockSimpleOrganizationContext = (
   organization: TestOrganization | null = null
 ): SimpleOrganizationContextType => ({
-  currentOrganization: organization as SimpleOrganization | null,
-  organizations: organization ? [organization as SimpleOrganization] : [],
-  userOrganizations: organization ? [organization as SimpleOrganization] : [],
+  currentOrganization: organization
+    ? (createMockSessionOrganization({
+        id: organization.id,
+        name: organization.name,
+        plan: organization.plan,
+        memberCount: organization.memberCount,
+        maxMembers: organization.maxMembers,
+        features: organization.features,
+        userRole: organization.userRole,
+        userStatus: organization.userStatus,
+      }) as SimpleOrganization)
+    : null,
+  organizations: organization
+    ? [createMockSessionOrganization({
+        id: organization.id,
+        name: organization.name,
+        plan: organization.plan,
+        memberCount: organization.memberCount,
+        maxMembers: organization.maxMembers,
+        features: organization.features,
+        userRole: organization.userRole,
+        userStatus: organization.userStatus,
+      }) as SimpleOrganization]
+    : [],
+  userOrganizations: organization
+    ? [createMockSessionOrganization({
+        id: organization.id,
+        name: organization.name,
+        plan: organization.plan,
+        memberCount: organization.memberCount,
+        maxMembers: organization.maxMembers,
+        features: organization.features,
+        userRole: organization.userRole,
+        userStatus: organization.userStatus,
+      }) as SimpleOrganization]
+    : [],
+  organizationId: organization?.id ?? null,
   setCurrentOrganization: vi.fn(),
   switchOrganization: vi.fn(),
   isLoading: false,

@@ -1,10 +1,13 @@
-import { fireEvent, screen, waitFor, type Matcher } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { expect } from 'vitest';
 import type { UserEvent } from '@testing-library/user-event';
+
+type ButtonNameMatcher = string | RegExp;
 
 /**
  * Wait until a button is present (common async UI test pattern).
  */
-export async function waitForButton(name: Matcher): Promise<void> {
+export async function waitForButton(name: ButtonNameMatcher): Promise<void> {
   await waitFor(() => {
     expect(screen.getByRole('button', { name })).toBeInTheDocument();
   });
@@ -13,7 +16,7 @@ export async function waitForButton(name: Matcher): Promise<void> {
 /**
  * Wait until a button is present, then click it with fireEvent.
  */
-export async function clickButtonWhenReady(name: Matcher): Promise<void> {
+export async function clickButtonWhenReady(name: ButtonNameMatcher): Promise<void> {
   await waitForButton(name);
   fireEvent.click(screen.getByRole('button', { name }));
 }
@@ -23,7 +26,7 @@ export async function clickButtonWhenReady(name: Matcher): Promise<void> {
  */
 export async function clickButtonWhenReadyWithUser(
   user: UserEvent,
-  name: Matcher,
+  name: ButtonNameMatcher,
 ): Promise<void> {
   await waitForButton(name);
   await user.click(screen.getByRole('button', { name }));

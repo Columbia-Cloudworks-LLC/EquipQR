@@ -171,6 +171,7 @@ describe('useSession', () => {
           memberCount: 1,
           maxMembers: 10,
           features: [],
+          scanLocationCollectionEnabled: true,
           billingEmail: 'test@example.com',
           isOwner: true,
           userRole: 'admin' as const,
@@ -184,6 +185,7 @@ describe('useSession', () => {
           memberCount: 1,
           maxMembers: 10,
           features: [],
+          scanLocationCollectionEnabled: true,
           billingEmail: 'test@example.com',
           isOwner: true,
           userRole: 'admin' as const,
@@ -202,6 +204,7 @@ describe('useSession', () => {
         memberCount: 1,
         maxMembers: 10,
         features: [],
+        scanLocationCollectionEnabled: true,
         billingEmail: 'test@example.com',
         isOwner: true,
         userRole: 'admin' as const,
@@ -233,7 +236,7 @@ describe('useSession', () => {
     };
 
     render(
-      <SessionContext.Provider value={mockSessionValue}>
+      <SessionContext.Provider value={mockSessionValue as never}>
         <MethodTestComponent />
       </SessionContext.Provider>
     );

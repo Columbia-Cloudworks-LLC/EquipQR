@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { OfflineAwareWorkOrderService } from '../offlineAwareService';
 import { OfflineQueueService } from '../offlineQueueService';
+import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -56,6 +57,14 @@ function makeCreateData() {
 function jpegFile(name = 'snap.jpg') {
   return new File(['x'], name, { type: 'image/jpeg' });
 }
+
+const sampleChecklistItem: PMChecklistItem = {
+  id: 'item-1',
+  title: 'Check fluid',
+  required: true,
+  section: 'Inspection',
+  condition: undefined,
+};
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
@@ -254,7 +263,7 @@ describe('OfflineAwareWorkOrderService', () => {
       workOrderId: 'wo-abc',
       equipmentId: 'equip-abc',
       templateId: 'tmpl-1',
-      checklistData: [{ id: 'item-1', label: 'Check fluid', completed: false }],
+      checklistData: [sampleChecklistItem],
       notes: 'Initial notes',
     };
 
@@ -344,7 +353,7 @@ describe('OfflineAwareWorkOrderService', () => {
   describe('updatePM', () => {
     const pmId = 'pm-xyz';
     const updateData = {
-      checklistData: [{ id: 'item-1', label: 'Check fluid', completed: true }],
+      checklistData: [{ ...sampleChecklistItem, condition: 3 as const }],
       notes: 'Updated notes',
       status: 'in_progress' as const,
     };
@@ -418,7 +427,7 @@ describe('OfflineAwareWorkOrderService', () => {
       expect(result.queuedOffline).toBe(true);
       const items = queueReader.getAll();
       expect(items[0].payload).toMatchObject({ pmId });
-      expect(items[0].payload.serverUpdatedAt).toBeUndefined();
+      expect((items[0].payload as { serverUpdatedAt?: string }).serverUpdatedAt).toBeUndefined();
 
       Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
     });

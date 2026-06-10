@@ -213,18 +213,20 @@ function setupPersonaMocks(options: {
       memberCount: organizations.acme.memberCount,
       plan: organizations.acme.plan,
       maxMembers: organizations.acme.maxMembers,
-      features: organizations.acme.features,
+      features: [...organizations.acme.features],
+      scanLocationCollectionEnabled: true,
       userRole: 'admin',
       userStatus: 'active'
     },
     organizations: [],
     userOrganizations: [],
+    organizationId: organizations.acme.id,
     setCurrentOrganization: vi.fn(),
     switchOrganization: vi.fn(),
     isLoading: false,
     error: null,
     refetch: vi.fn()
-  });
+  } as unknown as ReturnType<typeof useSimpleOrganizationModule.useSimpleOrganization>);
 
   vi.mocked(useTeamBasedDashboardModule.useTeamBasedDashboardAccess).mockReturnValue({
     userTeamIds,
@@ -471,12 +473,13 @@ describe('Dashboard', () => {
         organizations: [],
         userOrganizations: [],
         currentOrganization: null,
+        organizationId: null,
         setCurrentOrganization: vi.fn(),
         switchOrganization: vi.fn(),
         isLoading: false,
         error: null,
-        refetch: vi.fn()
-      });
+        refetch: vi.fn(),
+      } as unknown as ReturnType<typeof useSimpleOrganizationModule.useSimpleOrganization>);
       vi.mocked(useTeamBasedDashboardModule.useTeamBasedDashboardAccess).mockReturnValue({
         userTeamIds: [],
         hasTeamAccess: false,

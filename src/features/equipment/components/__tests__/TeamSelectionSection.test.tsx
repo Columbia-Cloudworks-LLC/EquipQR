@@ -103,7 +103,7 @@ const TestWrapper = ({ defaultValues, isAdmin = false, creatableTeamIds = ['team
   });
 
   // Mock permissions based on isAdmin prop
-  vi.mocked(usePermissionsModule.usePermissions).mockReturnValue({
+  vi.mocked(usePermissionsModule.usePermissions).mockReturnValue(({
     canManageTeam: vi.fn(() => isAdmin),
     canViewTeam: vi.fn(() => true),
     canCreateTeam: vi.fn(() => isAdmin),
@@ -126,7 +126,7 @@ const TestWrapper = ({ defaultValues, isAdmin = false, creatableTeamIds = ['team
     hasRole: vi.fn((roles: string[]) => isAdmin && (roles.includes('owner') || roles.includes('admin'))),
     isTeamMember: vi.fn(() => true),
     isTeamManager: vi.fn(() => isAdmin)
-  });
+  }) as unknown as ReturnType<typeof usePermissionsModule.usePermissions>);
 
   return (
     <Form {...form}>
@@ -138,7 +138,7 @@ const TestWrapper = ({ defaultValues, isAdmin = false, creatableTeamIds = ['team
 describe('TeamSelectionSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useTeamsModule.useTeams).mockReturnValue({
+    vi.mocked(useTeamsModule.useTeams).mockReturnValue(({
       teams: [
         { 
           id: 'team-1', 
@@ -175,8 +175,8 @@ describe('TeamSelectionSection', () => {
       ],
       isLoading: false,
       error: null
-    });
-    vi.mocked(usePermissionsModule.usePermissions).mockReturnValue({
+    }) as unknown as ReturnType<typeof useTeamsModule.useTeams>);
+    vi.mocked(usePermissionsModule.usePermissions).mockReturnValue(({
       canManageTeam: vi.fn(() => false),
       canViewTeam: vi.fn(() => true),
       canCreateTeam: vi.fn(() => false),
@@ -197,7 +197,7 @@ describe('TeamSelectionSection', () => {
       hasRole: vi.fn(() => false),
       isTeamMember: vi.fn(() => true),
       isTeamManager: vi.fn(() => false)
-    });
+    }) as unknown as ReturnType<typeof usePermissionsModule.usePermissions>);
   });
 
   describe('Core Rendering', () => {
@@ -216,12 +216,12 @@ describe('TeamSelectionSection', () => {
 
   describe('Loading State', () => {
     it('shows loading state when teams are loading', () => {
-      vi.mocked(useTeamsModule.useTeams).mockReturnValue({
+      vi.mocked(useTeamsModule.useTeams).mockReturnValue(({
         teams: [],
         managedTeams: [],
         isLoading: true,
         error: null
-      });
+      }) as unknown as ReturnType<typeof useTeamsModule.useTeams>);
 
       render(<TestWrapper />);
       

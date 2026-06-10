@@ -65,15 +65,22 @@ const createMockEquipment = (overrides: Partial<EquipmentRecord> = {}): Equipmen
   image_url: null,
   last_known_location: null,
   team_id: null,
+  customer_id: null,
   organization_id: 'org-1',
   created_at: '2025-01-01T00:00:00Z',
   updated_at: '2025-01-01T00:00:00Z',
   working_hours: 0,
-  
+  use_team_location: false,
+  assigned_location_street: null,
+  assigned_location_city: null,
+  assigned_location_state: null,
+  assigned_location_country: null,
+  assigned_location_lat: null,
+  assigned_location_lng: null,
   default_pm_template_id: null,
   
   ...overrides,
-});
+} as EquipmentRecord);
 
 const baseValues: EquipmentFormData = {
   name: 'Eq Name',

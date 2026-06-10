@@ -55,7 +55,7 @@ describe('MFAContext', () => {
     vi.mocked(supabase.auth.mfa.listFactors).mockResolvedValueOnce({
       data: { totp: [mockFactor], phone: [] },
       error: null,
-    } as unknown as ReturnType<typeof supabase.auth.mfa.listFactors>);
+    } as never);
 
     const { result } = renderHook(() => useMFA(), { wrapper });
 
@@ -71,7 +71,7 @@ describe('MFAContext', () => {
     vi.mocked(supabase.auth.mfa.getAuthenticatorAssuranceLevel).mockResolvedValueOnce({
       data: { currentLevel: 'aal2', nextLevel: 'aal2', currentAuthenticationMethods: [] },
       error: null,
-    } as unknown as ReturnType<typeof supabase.auth.mfa.getAuthenticatorAssuranceLevel>);
+    } as never);
 
     const { result } = renderHook(() => useMFA(), { wrapper });
 
@@ -95,12 +95,12 @@ describe('MFAContext', () => {
     vi.mocked(supabase.auth.mfa.listFactors).mockResolvedValueOnce({
       data: { totp: [mockFactor], phone: [] },
       error: null,
-    } as unknown as ReturnType<typeof supabase.auth.mfa.listFactors>);
+    } as never);
 
     vi.mocked(supabase.auth.mfa.getAuthenticatorAssuranceLevel).mockResolvedValueOnce({
       data: { currentLevel: 'aal1', nextLevel: 'aal2', currentAuthenticationMethods: [] },
       error: null,
-    } as unknown as ReturnType<typeof supabase.auth.mfa.getAuthenticatorAssuranceLevel>);
+    } as never);
 
     const { result } = renderHook(() => useMFA(), { wrapper });
 

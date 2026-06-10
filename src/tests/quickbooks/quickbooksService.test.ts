@@ -10,7 +10,12 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createMockSupabaseClient } from '@/test/utils/mock-supabase';
+import {
+  createMockSupabaseClient,
+  mockPostgrestError,
+  mockPostgrestSuccess,
+} from '@/test/utils/mock-supabase';
+import type { Session } from '@supabase/supabase-js';
 
 // Mock the supabase client before importing the service
 vi.mock('@/integrations/supabase/client', () => ({
@@ -34,22 +39,22 @@ import {
   getLastSuccessfulExport,
 } from '@/services/quickbooks/quickbooksService';
 
-function createMockAuthSession(overrides?: { access_token?: string; refresh_token?: string }) {
+function createMockAuthSession(overrides?: { access_token?: string; refresh_token?: string }): Session {
   return {
     access_token: overrides?.access_token ?? 'test-token',
     refresh_token: overrides?.refresh_token ?? 'refresh-token',
     expires_in: 3600,
-    expires_at: Date.now() + 3600000,
+    expires_at: Math.floor(Date.now() / 1000) + 3600,
     token_type: 'bearer',
     user: {
       id: 'user-123',
       email: 'test@test.com',
       app_metadata: {},
       user_metadata: {},
-      aud: 'test',
+      aud: 'authenticated',
       created_at: '',
     },
-  };
+  } as Session;
 }
 
 function mockAuthenticatedSession(session = createMockAuthSession()) {
@@ -80,13 +85,7 @@ describe('QuickBooks Service', () => {
         expires_at: new Date().toISOString(),
       };
 
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: [mockSessionData],
-        error: null,
-        count: 1,
-        status: 200,
-        statusText: 'OK',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockPostgrestSuccess([mockSessionData]));
 
       const result = await createOAuthSession(mockOrganizationId);
 
@@ -102,13 +101,7 @@ describe('QuickBooks Service', () => {
     });
 
     it('should throw error when RPC fails', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Database error', code: 'DB001', details: null, hint: null },
-        count: 0,
-        status: 500,
-        statusText: 'Internal Server Error',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockPostgrestError('Database error', 'DB001'));
 
       await expect(createOAuthSession(mockOrganizationId)).rejects.toThrow(
         'Failed to create OAuth session: Database error'
@@ -116,13 +109,7 @@ describe('QuickBooks Service', () => {
     });
 
     it('should throw error when no data returned', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: [],
-        error: null,
-        count: 0,
-        status: 200,
-        statusText: 'OK',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockPostgrestSuccess([]));
 
       await expect(createOAuthSession(mockOrganizationId)).rejects.toThrow(
         'No session data returned'
@@ -140,13 +127,7 @@ describe('QuickBooks Service', () => {
         nonce: 'test-nonce',
       };
 
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: [mockValidation],
-        error: null,
-        count: 1,
-        status: 200,
-        statusText: 'OK',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockPostgrestSuccess([mockValidation]));
 
       const result = await validateOAuthSession('test-token');
 
@@ -160,13 +141,7 @@ describe('QuickBooks Service', () => {
     });
 
     it('should return invalid for expired/missing session', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: [],
-        error: null,
-        count: 0,
-        status: 200,
-        statusText: 'OK',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockPostgrestSuccess([]));
 
       const result = await validateOAuthSession('invalid-token');
 
@@ -190,13 +165,7 @@ describe('QuickBooks Service', () => {
         scopes: 'com.intuit.quickbooks.accounting',
       };
 
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: [mockStatus],
-        error: null,
-        count: 1,
-        status: 200,
-        statusText: 'OK',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockPostgrestSuccess([mockStatus]));
 
       const result = await getConnectionStatus(mockOrganizationId);
 
@@ -221,13 +190,7 @@ describe('QuickBooks Service', () => {
         scopes: null,
       };
 
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: [mockStatus],
-        error: null,
-        count: 1,
-        status: 200,
-        statusText: 'OK',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockPostgrestSuccess([mockStatus]));
 
       const result = await getConnectionStatus(mockOrganizationId);
 
@@ -235,13 +198,7 @@ describe('QuickBooks Service', () => {
     });
 
     it('should return not connected on RPC error', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Permission denied', code: 'PERM001', details: null, hint: null },
-        count: 0,
-        status: 403,
-        statusText: 'Forbidden',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockPostgrestError('Permission denied', 'PERM001'));
 
       const result = await getConnectionStatus(mockOrganizationId);
 
@@ -256,13 +213,7 @@ describe('QuickBooks Service', () => {
         message: 'QuickBooks disconnected successfully',
       };
 
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: [mockResult],
-        error: null,
-        count: 1,
-        status: 200,
-        statusText: 'OK',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockPostgrestSuccess([mockResult]));
 
       await expect(disconnectQuickBooks(mockOrganizationId)).resolves.not.toThrow();
       expect(supabase.rpc).toHaveBeenCalledWith('disconnect_quickbooks', {
@@ -272,13 +223,7 @@ describe('QuickBooks Service', () => {
     });
 
     it('should throw error on RPC failure', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Permission denied', code: 'PERM001', details: null, hint: null },
-        count: 0,
-        status: 403,
-        statusText: 'Forbidden',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockPostgrestError('Permission denied', 'PERM001'));
 
       await expect(disconnectQuickBooks(mockOrganizationId)).rejects.toThrow(
         'Failed to disconnect QuickBooks: Permission denied'
@@ -291,13 +236,7 @@ describe('QuickBooks Service', () => {
         message: 'No QuickBooks connection found to disconnect',
       };
 
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: [mockResult],
-        error: null,
-        count: 1,
-        status: 200,
-        statusText: 'OK',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockPostgrestSuccess([mockResult]));
 
       await expect(disconnectQuickBooks(mockOrganizationId)).rejects.toThrow(
         'No QuickBooks connection found to disconnect'
@@ -507,7 +446,7 @@ describe('QuickBooks Service', () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: vi.fn().mockResolvedValue({ customers: mockCustomers }),
-      } as Response);
+      } as unknown as Response);
 
       const result = await searchCustomers(mockOrganizationId, 'test');
 
@@ -543,7 +482,7 @@ describe('QuickBooks Service', () => {
           invoice_number: '1001',
           is_update: false,
         }),
-      } as Response);
+      } as unknown as Response);
 
       const result = await exportInvoice(mockWorkOrderId);
 

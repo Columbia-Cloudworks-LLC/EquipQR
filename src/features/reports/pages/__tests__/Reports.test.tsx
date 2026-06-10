@@ -67,7 +67,7 @@ const setupMocks = (options: {
     currentOrganization: hasOrganization
       ? { id: organizations.acme.id, name: organizations.acme.name }
       : null,
-  } as ReturnType<typeof useOrganization>);
+  } as unknown as ReturnType<typeof useOrganization>);
 
   vi.mocked(usePermissions).mockReturnValue({
     hasRole: vi.fn((roles: string[]) => {
@@ -80,13 +80,13 @@ const setupMocks = (options: {
     ...defaultCountQuery,
     data: recordCount,
     isLoading: isLoadingCount,
-  } as ReturnType<typeof useReportRecordCount>);
+  } as unknown as ReturnType<typeof useReportRecordCount>);
 
   vi.mocked(useWorkOrderExcelCount).mockReturnValue({
     ...defaultCountQuery,
     data: recordCount,
     isLoading: isLoadingCount,
-  } as ReturnType<typeof useWorkOrderExcelCount>);
+  } as unknown as ReturnType<typeof useWorkOrderExcelCount>);
 
   vi.mocked(useReportExportDialog).mockReturnValue({
     handleExport: vi.fn(),
@@ -103,7 +103,7 @@ const setupMocks = (options: {
   vi.mocked(useGoogleWorkspaceConnectionStatus).mockReturnValue({
     isConnected: isGoogleConnected,
     isLoading: false,
-  } as ReturnType<typeof useGoogleWorkspaceConnectionStatus>);
+  } as unknown as ReturnType<typeof useGoogleWorkspaceConnectionStatus>);
 };
 
 describe('Reports page (Fleet Export Console)', () => {

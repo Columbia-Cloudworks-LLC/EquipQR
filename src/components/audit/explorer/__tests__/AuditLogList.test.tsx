@@ -60,9 +60,6 @@ vi.mock('react-window', () => ({
       if (listRef) {
         listRef.current = {
           scrollToRow: mockScrollToRow,
-          get element() {
-            return null;
-          },
         };
       }
     }, [listRef]);

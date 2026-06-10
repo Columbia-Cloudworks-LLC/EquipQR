@@ -75,9 +75,9 @@ export const JourneyProviders: React.FC<JourneyProvidersProps> = ({
     <MemoryRouter initialEntries={initialEntries}>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <AuthContext.Provider value={authValue}>
-            <SessionContext.Provider value={sessionValue}>
-              <SimpleOrganizationContext.Provider value={orgValue}>
+          <AuthContext.Provider value={authValue as never}>
+            <SessionContext.Provider value={sessionValue as never}>
+              <SimpleOrganizationContext.Provider value={orgValue as never}>
                 <LocationTracker onLocationChange={onLocationChange} />
                 <Suspense fallback={<div data-testid="journey-loading">Loading...</div>}>
                   {children}

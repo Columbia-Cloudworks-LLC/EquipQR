@@ -75,14 +75,15 @@ const baseItem = (overrides: Partial<InventoryItem>): InventoryItem => ({
   quantity_on_hand: 100,
   low_stock_threshold: 10,
   location: 'Warehouse A',
-  default_unit_cost: '1.00',
+  default_unit_cost: 1,
   image_url: null,
   isLowStock: false,
   created_at: '2024-01-01',
   updated_at: '2024-01-01',
   created_by: 'user-1',
+  created_by_name: 'Test User',
   ...overrides,
-});
+} as InventoryItem);
 
 const mockCatalog: InventoryItem[] = [
   baseItem({ id: 'item-1', name: 'Healthy Part', quantity_on_hand: 100, isLowStock: false }),

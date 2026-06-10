@@ -91,8 +91,12 @@ const createMockPM = (overrides?: Partial<PreventativeMaintenance>): Preventativ
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
   completed_at: null,
-  ...overrides
-});
+  completed_by: null,
+  completed_by_name: null,
+  created_by: 'user-1',
+  created_by_name: 'Test User',
+  ...overrides,
+} as PreventativeMaintenance);
 
 const mockOnUpdate = vi.fn();
 

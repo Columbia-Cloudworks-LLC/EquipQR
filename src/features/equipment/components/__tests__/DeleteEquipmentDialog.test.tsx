@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DeleteEquipmentDialog } from '../DeleteEquipmentDialog';
+import { mockMutationResult } from '@/test/utils/mock-tanstack-query';
 import * as deleteEquipmentServiceModule from '@/features/equipment/services/deleteEquipmentService';
 import * as useDeleteEquipmentModule from '@/features/equipment/hooks/useDeleteEquipment';
 
@@ -13,6 +14,15 @@ vi.mock('@/features/equipment/services/deleteEquipmentService', () => ({
 vi.mock('@/features/equipment/hooks/useDeleteEquipment', () => ({
   useDeleteEquipment: vi.fn()
 }));
+
+const buildDeleteEquipmentMutationMock = (
+  overrides: Partial<ReturnType<typeof useDeleteEquipmentModule.useDeleteEquipment>> = {},
+) =>
+  ({
+    mutateAsync: vi.fn().mockResolvedValue(undefined),
+    isPending: false,
+    ...overrides,
+  }) as unknown as ReturnType<typeof useDeleteEquipmentModule.useDeleteEquipment>;
 
 const mockImpact = {
   workOrders: 5,
@@ -39,10 +49,9 @@ describe('DeleteEquipmentDialog', () => {
     
     vi.mocked(deleteEquipmentServiceModule.getEquipmentDeletionImpact).mockResolvedValue(mockImpact);
     
-    vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
-      mutateAsync: vi.fn().mockResolvedValue(undefined),
-      isPending: false
-    });
+    vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue(
+      buildDeleteEquipmentMutationMock(),
+    );
   });
 
   async function waitForEnabledContinueAndClick() {
@@ -189,10 +198,9 @@ describe('DeleteEquipmentDialog', () => {
   describe('Deletion Process', () => {
     it('calls delete mutation when delete button is clicked', async () => {
       const mockMutateAsync = vi.fn().mockResolvedValue(undefined);
-      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
+      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue(
+        buildDeleteEquipmentMutationMock({ mutateAsync: mockMutateAsync }),
+      );
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
       await advanceToDeleteConfirmation();
@@ -210,10 +218,9 @@ describe('DeleteEquipmentDialog', () => {
 
     it('calls onSuccess after successful deletion', async () => {
       const mockMutateAsync = vi.fn().mockResolvedValue(undefined);
-      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
+      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue(
+        buildDeleteEquipmentMutationMock({ mutateAsync: mockMutateAsync }),
+      );
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
       await advanceToDeleteConfirmation();
@@ -230,10 +237,9 @@ describe('DeleteEquipmentDialog', () => {
 
     it('closes dialog after successful deletion', async () => {
       const mockMutateAsync = vi.fn().mockResolvedValue(undefined);
-      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
+      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue(
+        buildDeleteEquipmentMutationMock({ mutateAsync: mockMutateAsync }),
+      );
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
       await advanceToDeleteConfirmation();
@@ -250,10 +256,12 @@ describe('DeleteEquipmentDialog', () => {
 
     it('shows loading state during deletion', async () => {
       const mockMutateAsync = vi.fn(() => new Promise(() => {}));
-      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: true
-      });
+      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue(
+        buildDeleteEquipmentMutationMock({
+          mutateAsync: mockMutateAsync as never,
+          isPending: true,
+        }),
+      );
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
       await waitForEnabledContinueAndClick();

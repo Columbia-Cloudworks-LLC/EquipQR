@@ -30,6 +30,7 @@ const mockItem: InventoryItem = {
   default_unit_cost: 1.5,
   image_url: null,
   created_by: 'user-1',
+  created_by_name: 'Test User',
   created_at: UTC_CROSS_CALENDAR,
   updated_at: UTC_CROSS_CALENDAR,
   isLowStock: false,
@@ -46,9 +47,11 @@ describe('InventoryDownloadMenu', () => {
 
   it('CSV export formats created_at using user timezone settings', async () => {
     const user = userEvent.setup();
-    render(<InventoryDownloadMenu canExport items={[mockItem]} />, {
-      wrapper: SettingsWrapper,
-    });
+    render(
+      <SettingsWrapper>
+        <InventoryDownloadMenu canExport items={[mockItem]} />
+      </SettingsWrapper>,
+    );
 
     await user.click(screen.getByRole('button', { name: /download inventory/i }));
     await user.click(screen.getByText('CSV'));
@@ -61,12 +64,13 @@ describe('InventoryDownloadMenu', () => {
   it('exports visible columns when visibleColumnKeys are provided', async () => {
     const user = userEvent.setup();
     render(
-      <InventoryDownloadMenu
-        canExport
-        items={[mockItem]}
-        visibleColumnKeys={['name', 'sku', 'quantity_on_hand']}
-      />,
-      { wrapper: SettingsWrapper },
+      <SettingsWrapper>
+        <InventoryDownloadMenu
+          canExport
+          items={[mockItem]}
+          visibleColumnKeys={['name', 'sku', 'quantity_on_hand']}
+        />
+      </SettingsWrapper>,
     );
 
     await user.click(screen.getByRole('button', { name: /download inventory/i }));
@@ -82,12 +86,13 @@ describe('InventoryDownloadMenu', () => {
   it('exports selected rows when selectedItems are provided', async () => {
     const user = userEvent.setup();
     render(
-      <InventoryDownloadMenu
-        canExport
-        items={[mockItem]}
-        selectedItems={[mockItem]}
-      />,
-      { wrapper: SettingsWrapper },
+      <SettingsWrapper>
+        <InventoryDownloadMenu
+          canExport
+          items={[mockItem]}
+          selectedItems={[mockItem]}
+        />
+      </SettingsWrapper>,
     );
 
     await user.click(screen.getByRole('button', { name: /download inventory/i }));

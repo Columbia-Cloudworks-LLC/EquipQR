@@ -40,7 +40,7 @@ describe('pmChecklistHelpers', () => {
     });
 
     it('returns not_rated for unknown condition values', () => {
-      const item = { id: '1', condition: 99 } as PMChecklistItem;
+      const item = { id: '1', condition: 99 } as unknown as PMChecklistItem;
       expect(getItemStatus(item)).toBe('not_rated');
     });
   });

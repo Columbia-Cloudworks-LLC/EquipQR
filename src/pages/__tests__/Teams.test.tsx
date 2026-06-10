@@ -5,7 +5,8 @@ import userEvent from '@testing-library/user-event';
 import Teams from '@/features/teams/pages/Teams';
 import { personas } from '@/test/fixtures/personas';
 import { teams as teamFixtures, organizations } from '@/test/fixtures/entities';
-import type { Team } from '@/features/teams/hooks/useTeams';
+import type { TeamWithMembers } from '@/features/teams/types/team';
+import type { UserPersona } from '@/test/fixtures/personas';
 
 vi.mock('@/features/teams/components/CreateTeamDialog', () => ({
   default: ({ open, onClose }: { open: boolean; onClose: () => void }) =>
@@ -43,7 +44,7 @@ const mockUsePermissions = vi.mocked(usePermissions);
 const mockUseSimpleOrganization = vi.mocked(useSimpleOrganization);
 
 // Realistic team based on entity fixtures
-const maintenanceTeam: Team = {
+const maintenanceTeam = {
   id: teamFixtures.maintenance.id,
   name: teamFixtures.maintenance.name,
   description: teamFixtures.maintenance.description,
@@ -69,9 +70,9 @@ const maintenanceTeam: Team = {
     }
   ],
   member_count: 2
-};
+} as unknown as TeamWithMembers;
 
-const fieldTeam: Team = {
+const fieldTeam = {
   id: teamFixtures.field.id,
   name: teamFixtures.field.name,
   description: teamFixtures.field.description,
@@ -80,13 +81,13 @@ const fieldTeam: Team = {
   updated_at: '2024-01-01T00:00:00Z',
   members: [],
   member_count: 0
-};
+} as unknown as TeamWithMembers;
 
 // ============================================
 // Helpers
 // ============================================
 
-function setupAsPersona(persona: typeof personas.owner, options?: { canCreate?: boolean; teams?: Team[] }) {
+function setupAsPersona(persona: UserPersona, options?: { canCreate?: boolean; teams?: TeamWithMembers[] }) {
   const isAdmin = persona.organizationRole === 'owner' || persona.organizationRole === 'admin';
   const canCreate = options?.canCreate ?? isAdmin;
   const teams = options?.teams ?? [];
@@ -95,11 +96,11 @@ function setupAsPersona(persona: typeof personas.owner, options?: { canCreate?: 
     currentOrganization: {
       id: organizations.acme.id,
       name: organizations.acme.name,
-      plan: organizations.acme.plan as 'free' | 'professional' | 'enterprise',
+      plan: organizations.acme.plan,
       memberCount: organizations.acme.memberCount,
       maxMembers: organizations.acme.maxMembers,
-      features: organizations.acme.features,
-      userRole: persona.organizationRole as 'owner' | 'admin' | 'member',
+      features: [...organizations.acme.features],
+      userRole: persona.organizationRole,
       userStatus: 'active' as const
     },
     organizations: [],
@@ -109,7 +110,7 @@ function setupAsPersona(persona: typeof personas.owner, options?: { canCreate?: 
     isLoading: false,
     error: null,
     refetch: vi.fn().mockResolvedValue(undefined)
-  });
+  } as unknown as ReturnType<typeof useSimpleOrganization>);
 
   mockUsePermissions.mockReturnValue({
     canManageTeam: () => isAdmin,
@@ -130,9 +131,14 @@ function setupAsPersona(persona: typeof personas.owner, options?: { canCreate?: 
     hasRole: () => isAdmin,
     isTeamMember: () => persona.teamMemberships.length > 0,
     isTeamManager: () => persona.teamMemberships.some(tm => tm.role === 'manager')
-  });
+  } as unknown as ReturnType<typeof usePermissions>);
 
-  mockUseTeams.mockReturnValue({ teams, managedTeams: isAdmin ? teams : [], isLoading: false, error: null });
+  mockUseTeams.mockReturnValue({
+    teams,
+    managedTeams: isAdmin ? teams : [],
+    isLoading: false,
+    error: null,
+  } as unknown as ReturnType<typeof useTeams>);
 }
 
 // ============================================
@@ -234,7 +240,12 @@ describe('Teams Page', () => {
   describe('while teams are loading', () => {
     beforeEach(() => {
       setupAsPersona(personas.owner);
-      mockUseTeams.mockReturnValue({ teams: undefined, managedTeams: [], isLoading: true, error: null });
+      mockUseTeams.mockReturnValue({
+        teams: undefined,
+        managedTeams: [],
+        isLoading: true,
+        error: null,
+      } as unknown as ReturnType<typeof useTeams>);
     });
 
     it('shows loading skeleton cards', () => {

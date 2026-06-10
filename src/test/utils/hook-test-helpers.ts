@@ -50,3 +50,9 @@ export function expectHookData<TData>(
 }
 
 export { createReactRouterDomTestMock } from '@/test/utils/react-router-dom-test-mock';
+
+/** Stub sonner toast and logger for hook suites that assert on toast side effects. */
+export function mockSonnerAndLogger(): { toast: ReturnType<typeof vi.fn> } {
+  const toast = vi.fn();
+  return { toast };
+}

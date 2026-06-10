@@ -65,7 +65,7 @@ describe('EquipmentImagesTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    vi.mocked(equipmentImagesServiceModule.getAllEquipmentImages).mockResolvedValue(mockImages);
+    vi.mocked(equipmentImagesServiceModule.getAllEquipmentImages).mockResolvedValue(mockImages as never);
   });
 
   describe('Core Rendering', () => {
@@ -113,7 +113,7 @@ describe('EquipmentImagesTab', () => {
     });
 
     it('handles image upload', async () => {
-      vi.mocked(equipmentNotesServiceModule.createEquipmentNoteWithImages).mockResolvedValue({ id: 'note-1' });
+      vi.mocked(equipmentNotesServiceModule.createEquipmentNoteWithImages).mockResolvedValue({ id: 'note-1' } as never);
 
       render(
         <EquipmentImagesTab 

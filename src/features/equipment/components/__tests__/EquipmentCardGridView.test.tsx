@@ -65,7 +65,7 @@ describe('EquipmentCardGridView', () => {
 
     render(
       <EquipmentCardGridView
-        equipment={{ ...mockEquipment, working_hours: 99999.99 }}
+        equipment={{ id: mockEquipment.id, name: mockEquipment.name, team_name: mockEquipment.team_name }}
         display={largeHoursDisplay}
         pmReadout={pmReadout}
         onQRClick={vi.fn()}

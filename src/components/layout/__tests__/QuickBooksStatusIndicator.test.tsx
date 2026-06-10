@@ -3,7 +3,7 @@ import { render, screen } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock the flag and connection hook BEFORE importing the component under test.
-const isQuickBooksEnabledMock = vi.fn<[], boolean>();
+const isQuickBooksEnabledMock = vi.fn<() => boolean>();
 const useQuickBooksConnectionMock = vi.fn();
 
 vi.mock('@/lib/flags', async () => {

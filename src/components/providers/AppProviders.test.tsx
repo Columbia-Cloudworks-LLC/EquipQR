@@ -9,9 +9,12 @@ const ROUTER_FUTURE = {
   v7_relativeSplatPath: true,
 } as const;
 
+// Reserved for future React Router v7 flag wiring; MemoryRouter types omit `future` in this version.
+void ROUTER_FUTURE;
+
 function renderWithRouter(ui: React.ReactElement, initialPath = '/') {
   return render(
-    <MemoryRouter initialEntries={[initialPath]} future={ROUTER_FUTURE}>
+    <MemoryRouter initialEntries={[initialPath]}>
       {ui}
     </MemoryRouter>,
   );

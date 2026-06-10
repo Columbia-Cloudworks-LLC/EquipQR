@@ -53,6 +53,7 @@ const mockOrganization: SessionOrganization = {
   features: ['feature1', 'feature2'],
   userRole: 'admin' as const,
   userStatus: 'active' as const,
+  scanLocationCollectionEnabled: true,
 };
 
 const mockSessionData: SessionData = {

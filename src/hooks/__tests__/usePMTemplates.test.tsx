@@ -56,6 +56,8 @@ const mockTemplateSummaries = [
     description: 'Global template description',
     is_protected: true,
     organization_id: null,
+    interval_value: null,
+    interval_type: null,
     sections: [{ name: 'Engine', count: 1 }],
     itemCount: 1
   },
@@ -65,6 +67,8 @@ const mockTemplateSummaries = [
     description: 'Organization template',
     is_protected: false,
     organization_id: 'org-1',
+    interval_value: null,
+    interval_type: null,
     sections: [{ name: 'Safety', count: 1 }],
     itemCount: 1
   }
@@ -108,7 +112,7 @@ describe('usePMTemplates', () => {
       error: null,
       refetch: vi.fn(),
       isLoading: false
-    });
+    } as unknown as ReturnType<typeof useOrganization>);
     
     vi.mocked(useAuth).mockReturnValue({
       user: { id: 'user-1', email: 'test@example.com' },
@@ -117,13 +121,13 @@ describe('usePMTemplates', () => {
       refreshUser: vi.fn()
     } as unknown as ReturnType<typeof useAuth>);
     
-    vi.mocked(pmChecklistTemplatesService.listTemplates).mockResolvedValue(mockTemplates);
-    vi.mocked(pmChecklistTemplatesService.getTemplate).mockResolvedValue(mockTemplates[0]);
-    vi.mocked(pmChecklistTemplatesService.createTemplate).mockResolvedValue(mockTemplates[0]);
-    vi.mocked(pmChecklistTemplatesService.updateTemplate).mockResolvedValue(mockTemplates[0]);
+    vi.mocked(pmChecklistTemplatesService.listTemplates).mockResolvedValue(mockTemplates as never);
+    vi.mocked(pmChecklistTemplatesService.getTemplate).mockResolvedValue(mockTemplates[0] as never);
+    vi.mocked(pmChecklistTemplatesService.createTemplate).mockResolvedValue(mockTemplates[0] as never);
+    vi.mocked(pmChecklistTemplatesService.updateTemplate).mockResolvedValue(mockTemplates[0] as never);
     vi.mocked(pmChecklistTemplatesService.deleteTemplate).mockResolvedValue(undefined);
-    vi.mocked(pmChecklistTemplatesService.cloneTemplate).mockResolvedValue(mockTemplates[1]);
-    vi.mocked(templateToSummary).mockImplementation((template: typeof mockTemplates[0]) => 
+    vi.mocked(pmChecklistTemplatesService.cloneTemplate).mockResolvedValue(mockTemplates[1] as never);
+    vi.mocked(templateToSummary).mockImplementation((template) => 
       mockTemplateSummaries.find(s => s.id === template.id)!
     );
     vi.mocked(toast.success).mockImplementation(() => '1');
@@ -174,7 +178,7 @@ describe('usePMTemplates', () => {
         error: null,
         refetch: vi.fn(),
         isLoading: false
-      });
+      } as unknown as ReturnType<typeof useOrganization>);
 
       const { result } = renderHook(() => usePMTemplates(), { wrapper });
 
@@ -297,7 +301,7 @@ describe('usePMTemplates', () => {
         error: null,
         refetch: vi.fn(),
         isLoading: false
-      });
+      } as unknown as ReturnType<typeof useOrganization>);
 
       const { result } = renderHook(() => useCreatePMTemplate(), { wrapper });
 
@@ -436,7 +440,7 @@ describe('usePMTemplates', () => {
         error: null,
         refetch: vi.fn(),
         isLoading: false
-      });
+      } as unknown as ReturnType<typeof useOrganization>);
 
       const { result } = renderHook(() => useClonePMTemplate(), { wrapper });
 

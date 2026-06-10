@@ -11,6 +11,7 @@ import {
   sampleAlternateParts,
   sampleCompatibleParts,
 } from './partAlternatesServiceFixtures';
+import { mockPostgrestError, mockPostgrestSuccess } from '@/test/utils/mock-supabase';
 
 describe('partAlternatesService', () => {
   beforeEach(() => {
@@ -31,7 +32,7 @@ describe('partAlternatesService', () => {
     });
 
     it('calls RPC with normalized part number', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValue({ data: [], error: null });
+      vi.mocked(supabase.rpc).mockResolvedValue(mockPostgrestSuccess([]));
 
       await getAlternatesForPartNumber('org-1', '  CAT-1R-0750  ');
 
@@ -46,7 +47,7 @@ describe('partAlternatesService', () => {
     });
 
     it('returns alternate parts from RPC', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValue({ data: [...sampleAlternateParts], error: null });
+      vi.mocked(supabase.rpc).mockResolvedValue(mockPostgrestSuccess([...sampleAlternateParts]));
 
       const result = await getAlternatesForPartNumber('org-1', 'CAT-1R-0750');
 
@@ -56,10 +57,7 @@ describe('partAlternatesService', () => {
     });
 
     it('throws error on access denied', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: null,
-        error: { code: '42501', message: 'Access denied' },
-      });
+      vi.mocked(supabase.rpc).mockResolvedValue(mockPostgrestError('Access denied', '42501') as never);
 
       await expect(getAlternatesForPartNumber('org-1', 'TEST')).rejects.toThrow('Access denied');
     });
@@ -67,7 +65,7 @@ describe('partAlternatesService', () => {
 
   describe('getAlternatesForInventoryItem', () => {
     it('calls RPC with correct parameters', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValue({ data: [], error: null });
+      vi.mocked(supabase.rpc).mockResolvedValue(mockPostgrestSuccess([]));
 
       await getAlternatesForInventoryItem('org-1', 'inv-123');
 
@@ -83,7 +81,7 @@ describe('partAlternatesService', () => {
         { group_id: 'g1', group_name: 'Group 1', inventory_item_id: 'inv-2' },
       ];
 
-      vi.mocked(supabase.rpc).mockResolvedValue({ data: mockData, error: null });
+      vi.mocked(supabase.rpc).mockResolvedValue(mockPostgrestSuccess(mockData));
 
       const result = await getAlternatesForInventoryItem('org-1', 'inv-123');
       expect(result.length).toBe(2);
@@ -99,7 +97,7 @@ describe('partAlternatesService', () => {
     });
 
     it('calls RPC with manufacturer only', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValue({ data: [], error: null });
+      vi.mocked(supabase.rpc).mockResolvedValue(mockPostgrestSuccess([]));
 
       await getCompatiblePartsForMakeModel('org-1', 'Caterpillar');
 
@@ -111,7 +109,7 @@ describe('partAlternatesService', () => {
     });
 
     it('calls RPC with manufacturer and model', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValue({ data: [], error: null });
+      vi.mocked(supabase.rpc).mockResolvedValue(mockPostgrestSuccess([]));
 
       await getCompatiblePartsForMakeModel('org-1', 'Caterpillar', 'D6T');
 
@@ -123,7 +121,7 @@ describe('partAlternatesService', () => {
     });
 
     it('returns compatible parts with verification status', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValue({ data: [...sampleCompatibleParts], error: null });
+      vi.mocked(supabase.rpc).mockResolvedValue(mockPostgrestSuccess([...sampleCompatibleParts]));
 
       const result = await getCompatiblePartsForMakeModel('org-1', 'CAT', 'D6T');
 
@@ -140,10 +138,7 @@ describe('Error Handling', () => {
   });
 
   it('getAlternatesForPartNumber throws on RPC error', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValue({
-      data: null,
-      error: { code: 'other', message: 'Some error' },
-    });
+    vi.mocked(supabase.rpc).mockResolvedValue(mockPostgrestError('Some error', 'other') as never);
 
     await expect(getAlternatesForPartNumber('org-1', 'TEST')).rejects.toEqual({
       code: 'other',
@@ -152,19 +147,13 @@ describe('Error Handling', () => {
   });
 
   it('getAlternatesForInventoryItem throws on access denied', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValue({
-      data: null,
-      error: { code: '42501', message: 'Access denied' },
-    });
+    vi.mocked(supabase.rpc).mockResolvedValue(mockPostgrestError('Access denied', '42501') as never);
 
     await expect(getAlternatesForInventoryItem('org-1', 'item-1')).rejects.toThrow('Access denied');
   });
 
   it('getAlternatesForInventoryItem throws on other errors', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValue({
-      data: null,
-      error: { code: 'other', message: 'Some error' },
-    });
+    vi.mocked(supabase.rpc).mockResolvedValue(mockPostgrestError('Some error', 'other') as never);
 
     await expect(getAlternatesForInventoryItem('org-1', 'item-1')).rejects.toEqual({
       code: 'other',
@@ -173,19 +162,13 @@ describe('Error Handling', () => {
   });
 
   it('getCompatiblePartsForMakeModel throws on access denied', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValue({
-      data: null,
-      error: { code: '42501', message: 'Access denied' },
-    });
+    vi.mocked(supabase.rpc).mockResolvedValue(mockPostgrestError('Access denied', '42501') as never);
 
     await expect(getCompatiblePartsForMakeModel('org-1', 'CAT')).rejects.toThrow('Access denied');
   });
 
   it('getCompatiblePartsForMakeModel throws on other errors', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValue({
-      data: null,
-      error: { code: 'other', message: 'Some error' },
-    });
+    vi.mocked(supabase.rpc).mockResolvedValue(mockPostgrestError('Some error', 'other') as never);
 
     await expect(getCompatiblePartsForMakeModel('org-1', 'CAT')).rejects.toEqual({
       code: 'other',
@@ -194,7 +177,7 @@ describe('Error Handling', () => {
   });
 
   it('getCompatiblePartsForMakeModel normalizes whitespace in inputs', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValue({ data: [], error: null });
+    vi.mocked(supabase.rpc).mockResolvedValue(mockPostgrestSuccess([]));
 
     await getCompatiblePartsForMakeModel('org-1', '  Caterpillar  ', '  D6T  ');
 

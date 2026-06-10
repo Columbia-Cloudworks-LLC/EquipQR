@@ -397,7 +397,7 @@ describe('OfflineQueueService', () => {
         type: 'pm_update',
         payload: {
           pmId: 'pm-1',
-          checklistData: [{ id: 'item-1', title: 'Check oil', condition: 1, notes: '' }],
+          checklistData: [{ id: 'item-1', title: 'Check oil', condition: 1, notes: '', required: true, section: 'Engine' }],
           notes: 'First note',
           status: 'in_progress',
           serverUpdatedAt: '2026-05-01T10:00:00Z',
@@ -409,7 +409,7 @@ describe('OfflineQueueService', () => {
         type: 'pm_update',
         payload: {
           pmId: 'pm-1',
-          checklistData: [{ id: 'item-1', title: 'Check oil', condition: 3, notes: 'Updated' }],
+          checklistData: [{ id: 'item-1', title: 'Check oil', condition: 3, notes: 'Updated', required: true, section: 'Engine' }],
           notes: 'Second note',
           status: 'completed',
           completedAt: '2026-05-01T11:00:00Z',
@@ -495,7 +495,7 @@ describe('OfflineQueueService', () => {
         type: 'pm_update',
         payload: {
           pmId: 'pm-3',
-          checklistData: [{ id: 'item-2', title: 'Check brakes', condition: 2, notes: '' }],
+          checklistData: [{ id: 'item-2', title: 'Check brakes', condition: 2, notes: '', required: true, section: 'Brakes' }],
           // notes and status intentionally omitted (undefined)
         },
         organizationId: ORG_ID,
@@ -533,7 +533,7 @@ describe('OfflineQueueService', () => {
         payload: {
           pmId: 'pm-T',
           templateId: 'tpl-new',
-          checklistData: [{ id: 'x', title: 'Item', condition: 1, notes: '' }],
+          checklistData: [{ id: 'x', title: 'Item', condition: 1, notes: '', required: true, section: 'General' }],
         },
         organizationId: ORG_ID,
         userId: USER_ID,

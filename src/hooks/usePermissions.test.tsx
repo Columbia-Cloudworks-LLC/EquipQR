@@ -3,7 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { usePermissions, useWorkOrderPermissions } from './usePermissions';
 import { 
   createMockUserContext,
-  createMockSimpleOrganizationContext
+  createMockSimpleOrganizationContext,
+  createMockSessionOrganization,
 } from '@/test/mocks/testTypes';
 import type { WorkOrderData } from '@/features/work-orders/types/workOrder';
 
@@ -133,18 +134,10 @@ const createTestOrganization = (role: 'owner' | 'admin' | 'member' = 'member') =
   });
 
 const updateSessionMockForRole = (role: 'owner' | 'admin' | 'member') => {
+    const sessionOrg = createMockSessionOrganization({ userRole: role });
     mockUseSession.mockReturnValue({
       sessionData: {
-        organizations: [{
-          id: 'org-1',
-          name: 'Test Organization',
-          plan: 'free' as const,
-          memberCount: 1,
-          maxMembers: 5,
-          features: [],
-          userRole: role as 'owner' | 'admin' | 'member',
-          userStatus: 'active' as const
-        }],
+        organizations: [sessionOrg],
         currentOrganizationId: 'org-1',
         teamMemberships: [],
         lastUpdated: new Date().toISOString(),
@@ -152,16 +145,7 @@ const updateSessionMockForRole = (role: 'owner' | 'admin' | 'member') => {
       },
       isLoading: false,
       error: null,
-      getCurrentOrganization: vi.fn(() => ({
-        id: 'org-1',
-        name: 'Test Organization',
-        plan: 'free' as const,
-        memberCount: 1,
-        maxMembers: 5,
-        features: [],
-        userRole: role as 'owner' | 'admin' | 'member',
-        userStatus: 'active' as const
-      })),
+      getCurrentOrganization: vi.fn(() => sessionOrg),
       switchOrganization: vi.fn(),
       hasTeamRole: vi.fn(() => false),
       hasTeamAccess: vi.fn((teamId: string) => teamId === 'team-1'),
@@ -169,7 +153,7 @@ const updateSessionMockForRole = (role: 'owner' | 'admin' | 'member') => {
       getUserTeamIds: vi.fn(() => ['team-1']),
       refreshSession: vi.fn(),
       clearSession: vi.fn()
-    });
+    } as unknown as ReturnType<typeof useSession>);
   };
 
 const createTestUser = () => ({
@@ -184,7 +168,7 @@ const setupPermissionsMocks = (
   ) => {
     updateSessionMockForRole(sessionRole);
     mockUseSimpleOrganization.mockReturnValue(
-      createMockSimpleOrganizationContext(createTestOrganization(orgRole)),
+      createMockSimpleOrganizationContext(createTestOrganization(orgRole)) as unknown as ReturnType<typeof useSimpleOrganization>,
     );
     mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
   };
@@ -288,7 +272,7 @@ describe('usePermissions', () => {
   describe('edge cases', () => {
     it('should handle missing user', () => {
       mockUseSimpleOrganization.mockReturnValue(
-        createMockSimpleOrganizationContext(createTestOrganization('admin')),
+        createMockSimpleOrganizationContext(createTestOrganization('admin')) as unknown as ReturnType<typeof useSimpleOrganization>,
       );
       mockUseUser.mockReturnValue(createMockUserContext(null));
 
@@ -298,7 +282,9 @@ describe('usePermissions', () => {
     });
 
     it('should handle missing organization', () => {
-      mockUseSimpleOrganization.mockReturnValue(createMockSimpleOrganizationContext(null));
+      mockUseSimpleOrganization.mockReturnValue(
+        createMockSimpleOrganizationContext(null) as unknown as ReturnType<typeof useSimpleOrganization>,
+      );
       mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
 
       const { result } = renderHook(() => usePermissions());
@@ -312,7 +298,7 @@ describe('usePermissions', () => {
       delete (orgWithNoMembers as unknown as { members?: unknown }).members;
       
       mockUseSimpleOrganization.mockReturnValue(
-        createMockSimpleOrganizationContext(orgWithNoMembers)
+        createMockSimpleOrganizationContext(orgWithNoMembers) as unknown as ReturnType<typeof useSimpleOrganization>,
       );
       mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
 

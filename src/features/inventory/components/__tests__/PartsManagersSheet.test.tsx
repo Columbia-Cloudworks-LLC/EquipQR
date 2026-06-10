@@ -92,7 +92,7 @@ const setupMocks = (options: {
 
   vi.mocked(useOrganization).mockReturnValue({
     currentOrganization: { id: organizations.acme.id, name: organizations.acme.name },
-  } as ReturnType<typeof useOrganization>);
+  } as unknown as ReturnType<typeof useOrganization>);
 
   vi.mocked(usePermissions).mockReturnValue({
     canManagePartsManagers: () => canManage,

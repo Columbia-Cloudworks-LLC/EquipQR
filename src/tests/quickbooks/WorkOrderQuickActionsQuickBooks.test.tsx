@@ -13,7 +13,7 @@ import userEvent from '@testing-library/user-event';
 // Mock the feature flags
 const mockIsQuickBooksEnabled = vi.fn(() => true);
 vi.mock('@/lib/flags', () => ({
-  isQuickBooksEnabled: (...args: unknown[]) => mockIsQuickBooksEnabled(...args),
+  isQuickBooksEnabled: vi.fn(() => mockIsQuickBooksEnabled()),
 }));
 
 // Mock the QuickBooks access hook
@@ -23,7 +23,7 @@ const mockUseQuickBooksAccess = vi.fn(() => ({
 }));
 
 vi.mock('@/hooks/useQuickBooksAccess', () => ({
-  useQuickBooksAccess: (...args: unknown[]) => mockUseQuickBooksAccess(...args),
+  useQuickBooksAccess: vi.fn(() => mockUseQuickBooksAccess()),
 }));
 
 // Mock QuickBooksExportButton to simplify the test

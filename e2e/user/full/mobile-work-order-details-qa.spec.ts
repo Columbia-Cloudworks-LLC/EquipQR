@@ -20,7 +20,6 @@ test.use({
   isMobile: true,
   hasTouch: true,
   userAgent: MOBILE_USER_AGENT,
-  reducedMotion: 'reduce',
 });
 
 test.describe('mobile work order details field QA @full', () => {
@@ -106,7 +105,7 @@ test.describe('mobile work order details field QA @full', () => {
 async function emulateSlow4G(context: BrowserContext, page: Page): Promise<() => Promise<void>> {
   const cdpSession = await context.newCDPSession(page);
   await cdpSession.send('Network.enable');
-  await cdpSession.send('Network.emulateNetworkConditions', SLOW_4G_NETWORK_CONDITIONS);
+  await cdpSession.send('Network.emulateNetworkConditions', SLOW_4G_NETWORK_CONDITIONS as never);
 
   return async () => {
     await cdpSession

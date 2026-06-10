@@ -260,7 +260,7 @@ describe('InvitationAccept Page', () => {
     it('redirects to auth page with invitation params when not logged in', async () => {
       vi.mocked(useAuthModule.useAuth).mockReturnValue({
         user: null
-      } as ReturnType<typeof useAuthModule.useAuth>);
+      } as unknown as ReturnType<typeof useAuthModule.useAuth>);
 
       mockRpc.mockResolvedValue({ data: [mockInvitation], error: null });
 
@@ -278,7 +278,7 @@ describe('InvitationAccept Page', () => {
     it('stores pending redirect in session storage', async () => {
       vi.mocked(useAuthModule.useAuth).mockReturnValue({
         user: null
-      } as ReturnType<typeof useAuthModule.useAuth>);
+      } as unknown as ReturnType<typeof useAuthModule.useAuth>);
 
       mockRpc.mockResolvedValue({ data: [mockInvitation], error: null });
 

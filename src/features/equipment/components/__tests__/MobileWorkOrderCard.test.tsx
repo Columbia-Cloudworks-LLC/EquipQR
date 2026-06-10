@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import MobileWorkOrderCard from '../MobileWorkOrderCard';
 
 // Mock navigate
@@ -39,8 +40,8 @@ const mockWorkOrder = {
   completed_date: null,
   estimated_hours: null,
   historical_notes: null,
-  historical_start_date: null
-};
+  historical_start_date: null,
+} as unknown as WorkOrder;
 
 describe('MobileWorkOrderCard', () => {
   beforeEach(() => {

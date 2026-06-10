@@ -45,9 +45,11 @@ describe('AlternateGroupsDownloadMenu', () => {
 
   it('CSV export formats created_at and updated_at using user timezone settings', async () => {
     const user = userEvent.setup();
-    render(<AlternateGroupsDownloadMenu groups={[mockGroup]} />, {
-      wrapper: SettingsWrapper,
-    });
+    render(
+      <SettingsWrapper>
+        <AlternateGroupsDownloadMenu groups={[mockGroup]} />
+      </SettingsWrapper>,
+    );
 
     await user.click(
       screen.getByRole('button', { name: /download alternate groups/i })

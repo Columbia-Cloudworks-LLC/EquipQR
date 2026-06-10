@@ -112,13 +112,19 @@ vi.mock('@/features/work-orders/hooks/useWorkOrderFilters', () => ({
       assigneeFilter: 'all',
       teamFilter: 'all',
       priorityFilter: 'all',
-      dueDateFilter: 'all'
+      dueDateFilter: 'all',
+      invoiceFilter: 'all',
     },
     filteredWorkOrders: [],
+    totalCount: 0,
+    activePresets: new Set(),
+    sortField: 'created',
+    sortDirection: 'desc',
     getActiveFilterCount: vi.fn(() => 0),
     clearAllFilters: vi.fn(),
-    applyQuickFilter: vi.fn(),
-    updateFilter: vi.fn()
+    toggleQuickFilter: vi.fn(),
+    updateFilter: vi.fn(),
+    updateSort: vi.fn(),
   }))
 }));
 
@@ -204,14 +210,20 @@ function setWorkOrders(workOrders: WorkOrderData[]) {
       assigneeFilter: 'all',
       teamFilter: 'all',
       priorityFilter: 'all',
-      dueDateFilter: 'all'
+      dueDateFilter: 'all',
+      invoiceFilter: 'all',
     },
     filteredWorkOrders: workOrders,
+    totalCount: workOrders.length,
+    activePresets: new Set(),
+    sortField: 'created',
+    sortDirection: 'desc',
     getActiveFilterCount: vi.fn(() => 0),
     clearAllFilters: vi.fn(),
-    applyQuickFilter: vi.fn(),
-    updateFilter: vi.fn()
-  });
+    toggleQuickFilter: vi.fn(),
+    updateFilter: vi.fn(),
+    updateSort: vi.fn(),
+  } as ReturnType<typeof useWorkOrderFiltersModule.useWorkOrderFilters>);
 }
 
 // ============================================
@@ -346,13 +358,18 @@ describe('WorkOrders Page', () => {
     it('responds to search input', () => {
       const mockUpdateFilter = vi.fn();
       vi.mocked(useWorkOrderFiltersModule.useWorkOrderFilters).mockReturnValue({
-        filters: { searchQuery: '', statusFilter: 'all', assigneeFilter: 'all', teamFilter: 'all', priorityFilter: 'all', dueDateFilter: 'all' },
+        filters: { searchQuery: '', statusFilter: 'all', assigneeFilter: 'all', teamFilter: 'all', priorityFilter: 'all', dueDateFilter: 'all', invoiceFilter: 'all' },
         filteredWorkOrders: [],
+        totalCount: 0,
+        activePresets: new Set(),
+        sortField: 'created',
+        sortDirection: 'desc',
         getActiveFilterCount: vi.fn(() => 0),
         clearAllFilters: vi.fn(),
-        applyQuickFilter: vi.fn(),
-        updateFilter: mockUpdateFilter
-      });
+        toggleQuickFilter: vi.fn(),
+        updateFilter: mockUpdateFilter,
+        updateSort: vi.fn(),
+      } as ReturnType<typeof useWorkOrderFiltersModule.useWorkOrderFilters>);
 
       render(<WorkOrders />);
       fireEvent.change(screen.getByPlaceholderText(/search work orders/i), { target: { value: 'hydraulic' } });

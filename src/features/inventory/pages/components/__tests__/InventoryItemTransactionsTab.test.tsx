@@ -33,9 +33,11 @@ describe('InventoryItemTransactionsTab', () => {
       userName: 'Tester',
     };
 
-    const { container } = render(<InventoryItemTransactionsTab transactions={[transaction]} />, {
-      wrapper: SettingsWrapper,
-    });
+    const { container } = render(
+      <SettingsWrapper>
+        <InventoryItemTransactionsTab transactions={[transaction]} />
+      </SettingsWrapper>,
+    );
 
     const expected = formatDateTime(UTC_CROSS_CALENDAR, SYDNEY_USER_SETTINGS);
     expect(container).toHaveTextContent(expected);

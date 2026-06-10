@@ -4,6 +4,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import WorkOrderCostsSection from '../WorkOrderCostsSection';
 import { personas } from '@/test/fixtures/personas';
 import { workOrders as woFixtures } from '@/test/fixtures/entities';
+import type { useWorkOrderCosts } from '@/features/work-orders/hooks/useWorkOrderCosts';
+import type { useWorkOrderEquipment } from '@/features/work-orders/hooks/useWorkOrderEquipment';
+
+const mockCostsQuery = (
+  data: unknown[] = [],
+  isLoading = false,
+) => ({ data, isLoading } as unknown as ReturnType<typeof useWorkOrderCosts>);
+
+const mockEquipmentQuery = (
+  data: unknown[] = [],
+  isLoading = false,
+) => ({ data, isLoading } as unknown as ReturnType<typeof useWorkOrderEquipment>);
 
 // ============================================
 // Mocks
@@ -58,7 +70,7 @@ describe('WorkOrderCostsSection', () => {
   describe(`as ${personas.admin.name} (admin with full cost access)`, () => {
     it('shows the costs section title', async () => {
       const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
-      vi.mocked(useWorkOrderCosts).mockReturnValue({ data: [], isLoading: false });
+      vi.mocked(useWorkOrderCosts).mockReturnValue(mockCostsQuery());
 
       render(
         <WorkOrderCostsSection workOrderId={woFixtures.assigned.id} canAddCosts={true} canEditCosts={true} />
@@ -69,7 +81,7 @@ describe('WorkOrderCostsSection', () => {
 
     it('can both add and edit costs', async () => {
       const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
-      vi.mocked(useWorkOrderCosts).mockReturnValue({ data: [], isLoading: false });
+      vi.mocked(useWorkOrderCosts).mockReturnValue(mockCostsQuery());
 
       render(
         <WorkOrderCostsSection workOrderId={woFixtures.assigned.id} canAddCosts={true} canEditCosts={true} />
@@ -84,7 +96,7 @@ describe('WorkOrderCostsSection', () => {
         { id: 'cost-1', description: 'Hydraulic hose replacement', quantity: 1, unit_price_cents: 8950 },
         { id: 'cost-2', description: 'Labor - 2 hours', quantity: 2, unit_price_cents: 7500 }
       ];
-      vi.mocked(useWorkOrderCosts).mockReturnValue({ data: mockCosts, isLoading: false });
+      vi.mocked(useWorkOrderCosts).mockReturnValue(mockCostsQuery(mockCosts));
 
       render(
         <WorkOrderCostsSection workOrderId={woFixtures.inProgress.id} canAddCosts={true} canEditCosts={true} />
@@ -134,7 +146,7 @@ describe('WorkOrderCostsSection', () => {
 
     it.each(cases)('$label', async ({ canAddCosts, canEditCosts, expected }) => {
       const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
-      vi.mocked(useWorkOrderCosts).mockReturnValue({ data: [], isLoading: false });
+      vi.mocked(useWorkOrderCosts).mockReturnValue(mockCostsQuery());
 
       render(
         <WorkOrderCostsSection workOrderId="wo-test" canAddCosts={canAddCosts} canEditCosts={canEditCosts} />
@@ -150,7 +162,7 @@ describe('WorkOrderCostsSection', () => {
   describe('while costs are loading', () => {
     it('shows a loading indicator', async () => {
       const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
-      vi.mocked(useWorkOrderCosts).mockReturnValue({ data: [], isLoading: true });
+      vi.mocked(useWorkOrderCosts).mockReturnValue(mockCostsQuery([], true));
 
       render(
         <WorkOrderCostsSection workOrderId={woFixtures.assigned.id} canAddCosts={true} canEditCosts={true} />
@@ -166,7 +178,7 @@ describe('WorkOrderCostsSection', () => {
   describe('mobileField variant', () => {
     it('passes compactMobile to the inline editor', async () => {
       const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
-      vi.mocked(useWorkOrderCosts).mockReturnValue({ data: [], isLoading: false });
+      vi.mocked(useWorkOrderCosts).mockReturnValue(mockCostsQuery());
 
       render(
         <WorkOrderCostsSection
@@ -187,15 +199,14 @@ describe('WorkOrderCostsSection', () => {
       const { useWorkOrderCosts } = await import('@/features/work-orders/hooks/useWorkOrderCosts');
       const { useWorkOrderEquipment } = await import('@/features/work-orders/hooks/useWorkOrderEquipment');
 
-      vi.mocked(useWorkOrderCosts).mockReturnValue({ data: [], isLoading: false });
-      vi.mocked(useWorkOrderEquipment).mockReturnValue({
-        data: [
+      vi.mocked(useWorkOrderCosts).mockReturnValue(mockCostsQuery());
+      vi.mocked(useWorkOrderEquipment).mockReturnValue(
+        mockEquipmentQuery([
           { equipment_id: 'eq-forklift-1' },
           { equipment_id: null },
-          { equipment_id: 'eq-crane-1' }
-        ],
-        isLoading: false
-      });
+          { equipment_id: 'eq-crane-1' },
+        ]),
+      );
 
       render(
         <WorkOrderCostsSection workOrderId={woFixtures.inProgress.id} canAddCosts={true} canEditCosts={true} />

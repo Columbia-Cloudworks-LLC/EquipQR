@@ -132,7 +132,7 @@ jobs:
         report-json: "eslint-report.json"
 
     - name: Run type check
-      run: npx tsc --noEmit
+      run: npm run type-check
 
   test:
     # Sharded test execution. Each shard runs roughly 1/N of the suite in

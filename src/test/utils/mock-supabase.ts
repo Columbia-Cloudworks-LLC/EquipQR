@@ -146,3 +146,44 @@ const mockUser = {
     full_name: 'Test User',
   },
 };
+
+/** Minimal PostgREST success envelope for typed service tests. */
+export function mockPostgrestSuccess<T>(
+  data: T,
+  extra?: { count?: number; status?: number; statusText?: string },
+) {
+  return {
+    data,
+    error: null,
+    count: extra?.count ?? null,
+    status: extra?.status ?? 200,
+    statusText: extra?.statusText ?? 'OK',
+    success: true as const,
+  };
+}
+
+/** Minimal PostgREST error envelope for typed service tests. */
+export function mockPostgrestError(message: string, code = 'PGRST000') {
+  const error = {
+    message,
+    code,
+    details: null as string | null,
+    hint: null as string | null,
+    name: 'PostgrestError',
+    toJSON: () => ({
+      name: 'PostgrestError',
+      message,
+      details: null as string | null,
+      hint: null as string | null,
+      code,
+    }),
+  };
+  return {
+    data: null,
+    error,
+    count: null,
+    status: 400,
+    statusText: 'Bad Request',
+    success: false as const,
+  };
+}

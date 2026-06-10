@@ -194,4 +194,5 @@ export function renderJourney(options: RenderJourneyOptions): RenderJourneyResul
 // Re-export common testing utilities
 // ============================================
 
+export { personas } from '@/test/fixtures/personas';
 export type { PersonaKey, UserPersona } from '@/test/fixtures/personas';

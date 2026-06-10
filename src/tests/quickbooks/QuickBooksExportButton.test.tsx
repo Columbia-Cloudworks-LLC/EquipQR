@@ -31,7 +31,7 @@ const mockUseQuickBooksAccess = vi.fn(() => ({
 }));
 
 vi.mock('@/hooks/useQuickBooksAccess', () => ({
-  useQuickBooksAccess: (...args: unknown[]) => mockUseQuickBooksAccess(...args),
+  useQuickBooksAccess: vi.fn(() => mockUseQuickBooksAccess()),
 }));
 
 // Mock the QuickBooks service
@@ -39,8 +39,8 @@ const mockGetConnectionStatus = vi.fn();
 const mockGetTeamCustomerMapping = vi.fn();
 
 vi.mock('@/services/quickbooks', () => ({
-  getConnectionStatus: (...args: unknown[]) => mockGetConnectionStatus(...args),
-  getTeamCustomerMapping: (...args: unknown[]) => mockGetTeamCustomerMapping(...args),
+  getConnectionStatus: vi.fn((...args: Parameters<typeof mockGetConnectionStatus>) => mockGetConnectionStatus(...args)),
+  getTeamCustomerMapping: vi.fn((...args: Parameters<typeof mockGetTeamCustomerMapping>) => mockGetTeamCustomerMapping(...args)),
 }));
 
 // Mock the export hook
@@ -62,9 +62,9 @@ const mockUseQuickBooksExportLogs = vi.fn(() => ({
 }));
 
 vi.mock('@/hooks/useExportToQuickBooks', () => ({
-  useExportToQuickBooks: (...args: unknown[]) => mockUseExportToQuickBooks(...args),
-  useQuickBooksLastExport: (...args: unknown[]) => mockUseQuickBooksLastExport(...args),
-  useQuickBooksExportLogs: (...args: unknown[]) => mockUseQuickBooksExportLogs(...args),
+  useExportToQuickBooks: vi.fn(() => mockUseExportToQuickBooks()),
+  useQuickBooksLastExport: vi.fn(() => mockUseQuickBooksLastExport()),
+  useQuickBooksExportLogs: vi.fn(() => mockUseQuickBooksExportLogs()),
 }));
 
 // Mock toast
@@ -79,13 +79,30 @@ import { QuickBooksExportButton } from '@/features/work-orders/components/QuickB
 import { isQuickBooksEnabled } from '@/lib/flags';
 import { renderWithQuickBooksProviders } from '@/tests/quickbooks/testUtils';
 
-const renderComponent = (props = {
+type QuickBooksExportButtonTestProps = {
+  workOrderId: string;
+  teamId: string | null;
+  workOrderStatus: 'completed' | 'in_progress' | 'submitted' | 'assigned' | 'accepted' | 'on_hold' | 'cancelled';
+  asMenuItem: boolean;
+  showStatusDetails: boolean;
+};
+
+const defaultRenderProps: QuickBooksExportButtonTestProps = {
   workOrderId: 'wo-123',
   teamId: 'team-456',
-  workOrderStatus: 'completed' as const,
+  workOrderStatus: 'completed',
   asMenuItem: false,
   showStatusDetails: false,
-}) => renderWithQuickBooksProviders(<QuickBooksExportButton {...props} />);
+};
+
+const renderComponent = (
+  props: Partial<QuickBooksExportButtonTestProps> = {},
+) => {
+  const merged = { ...defaultRenderProps, ...props };
+  return renderWithQuickBooksProviders(
+    <QuickBooksExportButton {...(merged as unknown as React.ComponentProps<typeof QuickBooksExportButton>)} />,
+  );
+};
 
 describe('QuickBooksExportButton Component', () => {
   beforeEach(() => {

@@ -41,6 +41,7 @@ const mockUser: User = {
 };
 
 const baseAuth = {
+  session: null,
   signUp: vi.fn(),
   signIn: vi.fn(),
   signInWithGoogle: vi.fn(),

@@ -3,10 +3,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@/test/utils/test-utils';
 import { QueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { useOrganizationMembers, useUpdateMemberRole, useRemoveMember } from '@/features/organization/hooks/useOrganizationMembers';
+import { mockPostgrestSuccess } from '@/test/utils/mock-supabase';
 
 // Mock dependencies
 vi.mock('@/integrations/supabase/client', async () => {
-  const { createMockSupabaseClient } = await import('@/test/utils/mock-supabase');
+  const { createMockSupabaseClient, mockPostgrestSuccess } = await import('@/test/utils/mock-supabase');
   return { supabase: createMockSupabaseClient() };
 });
 
@@ -340,14 +341,13 @@ describe('useOrganizationMembers', () => {
       // Mock authenticated user claims
       vi.mocked(supabase.auth.getClaims).mockResolvedValue({
         data: { claims: { sub: mockUser.id } },
-        error: null
-      });
+        error: null,
+      } as never);
 
       // Mock successful RPC call
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: mockRpcResult,
-        error: null
-      });
+      vi.mocked(supabase.rpc).mockResolvedValue(
+        mockPostgrestSuccess(mockRpcResult) as never,
+      );
 
       let capturedMutation: RemoveMemberMutation | undefined;
       
@@ -400,14 +400,13 @@ describe('useOrganizationMembers', () => {
       // Mock authenticated user claims
       vi.mocked(supabase.auth.getClaims).mockResolvedValue({
         data: { claims: { sub: mockUser.id } },
-        error: null
-      });
+        error: null,
+      } as never);
 
       // Mock RPC error result
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: mockRpcResult,
-        error: null
-      });
+      vi.mocked(supabase.rpc).mockResolvedValue(
+        mockPostgrestSuccess(mockRpcResult) as never,
+      );
 
       let capturedMutation: RemoveMemberMutation | undefined;
       
@@ -440,8 +439,8 @@ describe('useOrganizationMembers', () => {
       // Mock no authenticated user claims
       vi.mocked(supabase.auth.getClaims).mockResolvedValue({
         data: { claims: null },
-        error: null
-      });
+        error: null,
+      } as never);
 
       let capturedMutation: RemoveMemberMutation | undefined;
       

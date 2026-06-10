@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+import { createMockSimpleOrganization } from '@/test/utils/mock-tanstack-query';
 import type * as useWorkOrderDetailsDataModule from '@/features/work-orders/components/hooks/useWorkOrderDetailsData';
 import type * as useWorkOrderDetailsActionsModule from '@/features/work-orders/hooks/useWorkOrderDetailsActions';
 
@@ -52,7 +53,7 @@ export const defaultWorkOrderDetailsDataMock = {
     id: 'org-1',
     name: 'Test Org',
   },
-} satisfies Partial<ReturnType<typeof useWorkOrderDetailsDataModule.useWorkOrderDetailsData>>;
+} as unknown as Partial<ReturnType<typeof useWorkOrderDetailsDataModule.useWorkOrderDetailsData>>;
 
 export const defaultWorkOrderDetailsActionsMock = {
   isEditFormOpen: false,
@@ -70,7 +71,7 @@ export const defaultWorkOrderDetailsActionsMock = {
   handleCancelPMChange: vi.fn(),
   getPMDataDetails: () => ({ hasNotes: false, hasCompletedItems: false }),
   isUpdating: false,
-} satisfies Partial<ReturnType<typeof useWorkOrderDetailsActionsModule.useWorkOrderDetailsActions>>;
+} as unknown as Partial<ReturnType<typeof useWorkOrderDetailsActionsModule.useWorkOrderDetailsActions>>;
 
 export function createWorkOrderDetailsDataMock(
   overrides: Partial<ReturnType<typeof useWorkOrderDetailsDataModule.useWorkOrderDetailsData>> = {},
@@ -103,7 +104,7 @@ export function createManagerWorkOrderDetailsDataMock(
       isManager: true,
       isTechnician: true,
       isRequestor: false,
-    },
+    } as never,
     formMode: 'manager',
     isWorkOrderLocked: false,
     canAddCosts: true,
@@ -115,7 +116,7 @@ export function createManagerWorkOrderDetailsDataMock(
     currentOrganization: {
       id: 'org-1',
       name: 'Test Org',
-    },
+    } as never,
     ...overrides,
   });
 }

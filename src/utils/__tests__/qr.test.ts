@@ -5,7 +5,10 @@ import {
   workOrderQRPath,
   qrFullUrl,
   parseEquipQRTarget,
+  type ParseEquipQRTargetResult,
 } from '../qr';
+
+type ParseFailure = Extract<ParseEquipQRTargetResult, { ok: false }>;
 
 const LOCAL_ORIGIN = 'http://localhost:8080';
 
@@ -96,20 +99,26 @@ describe('parseEquipQRTarget', () => {
 
   it('returns empty for whitespace-only input', () => {
     const r = parseEquipQRTarget('   ', LOCAL_ORIGIN);
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reason).toBe('empty');
+    if (r.ok) {
+      throw new Error('expected parse failure');
+    }
+    expect((r as ParseFailure).reason).toBe('empty');
   });
 
   it('returns unsupported for non-qr dashboard paths', () => {
     const r = parseEquipQRTarget('/dashboard/equipment/1', LOCAL_ORIGIN);
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reason).toBe('unsupported');
+    if (r.ok) {
+      throw new Error('expected parse failure');
+    }
+    expect((r as ParseFailure).reason).toBe('unsupported');
   });
 
   it('returns external for unknown origin', () => {
     const r = parseEquipQRTarget('https://evil.example/qr/equipment/x', LOCAL_ORIGIN);
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reason).toBe('external');
+    if (r.ok) {
+      throw new Error('expected parse failure');
+    }
+    expect((r as ParseFailure).reason).toBe('external');
   });
 });
 

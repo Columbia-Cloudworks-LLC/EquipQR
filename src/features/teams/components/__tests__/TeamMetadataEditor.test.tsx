@@ -10,18 +10,18 @@ const mockUpdateTeam = vi.fn();
 const mockUpsertPolicy = vi.fn();
 const mockToast = vi.fn();
 const mockOnClose = vi.fn();
-const mockCanManageTeam = vi.fn(() => true);
+const mockCanManageTeam = vi.fn<(teamId: string) => boolean>(() => true);
 const mockIsOrganizationAdmin = vi.fn(() => true);
 
 vi.mock('@/features/teams/services/teamService', () => ({
-  updateTeam: (...args: unknown[]) => mockUpdateTeam(...args),
+  updateTeam: vi.fn((teamId: unknown, data: unknown) => mockUpdateTeam(teamId, data)),
   uploadTeamImage: vi.fn(),
   deleteTeamImage: vi.fn(),
 }));
 
 vi.mock('@/features/pm-templates/services/pmIntervalPolicyService', () => ({
   pmIntervalPolicyService: {
-    upsertPolicy: (...args: unknown[]) => mockUpsertPolicy(...args),
+    upsertPolicy: vi.fn((...args: [unknown, unknown]) => mockUpsertPolicy(...args)),
   },
   policyRowToFormState: vi.fn(() => ({
     mode: 'inherit',
@@ -47,12 +47,12 @@ vi.mock('@/hooks/useGoogleMapsLoader', () => ({
 }));
 
 vi.mock('@/hooks/use-toast', () => ({
-  toast: (...args: unknown[]) => mockToast(...args),
+  toast: vi.fn((message: unknown) => mockToast(message)),
 }));
 
 vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: () => ({
-    canManageTeam: (...args: unknown[]) => mockCanManageTeam(...args),
+    canManageTeam: vi.fn((teamId: string) => mockCanManageTeam(teamId)),
     isOrganizationAdmin: () => mockIsOrganizationAdmin(),
   }),
 }));
@@ -69,7 +69,7 @@ vi.mock('@/features/pm-templates/components/PMSchedulePolicyFields', () => ({
   PMSchedulePolicyFields: () => <div data-testid="pm-schedule-policy-fields" />,
 }));
 
-const mockTeam: TeamWithMembers = {
+const mockTeam = {
   id: 'team-1',
   name: 'Maintenance Team',
   description: 'Handles maintenance',
@@ -80,7 +80,7 @@ const mockTeam: TeamWithMembers = {
   customer_id: null,
   members: [],
   member_count: 1,
-};
+} as unknown as TeamWithMembers;
 
 function renderEditor() {
   const queryClient = new QueryClient({

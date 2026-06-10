@@ -39,8 +39,8 @@ function createThenableWorkOrdersQuery(rows: Array<{ id: string }>): Record<stri
   const thenable = builder as Record<string, unknown> & {
     then: typeof Promise.prototype.then;
   };
-  thenable.then = (onfulfilled: (value: unknown) => unknown) =>
-    Promise.resolve({ data: rows, error: null }).then(onfulfilled);
+  thenable.then = ((onfulfilled?: (value: { data: unknown; error: null }) => unknown) =>
+    Promise.resolve({ data: rows, error: null }).then(onfulfilled)) as typeof Promise.prototype.then;
   return thenable;
 }
 

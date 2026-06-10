@@ -72,10 +72,10 @@ export const TestProviders = ({
         <TooltipProvider>
           <SettingsContext.Provider value={defaultTestSettingsContext}>
             <MockAuthProvider value={authValue}>
-              <MockSessionProvider value={sessionValue}>
+              <MockSessionProvider value={sessionValue as never}>
                 <MockSessionProvider2>
                   <MockUserProvider>
-                    <MockSimpleOrganizationProvider value={orgValue}>
+                    <MockSimpleOrganizationProvider value={orgValue as never}>
                       {children}
                     </MockSimpleOrganizationProvider>
                   </MockUserProvider>

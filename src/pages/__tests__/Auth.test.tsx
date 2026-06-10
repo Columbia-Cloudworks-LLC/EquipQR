@@ -235,7 +235,7 @@ describe('Auth Page', () => {
         signUp: vi.fn(),
         signIn: vi.fn(),
         signOut: vi.fn()
-      } as ReturnType<typeof useAuthModule.useAuth>);
+      } as unknown as ReturnType<typeof useAuthModule.useAuth>);
 
       render(<Auth />);
 
@@ -280,7 +280,7 @@ describe('Auth Page', () => {
     });
 
     it('displays error when Google sign in fails', async () => {
-      const mockSignInWithGoogle = vi.fn(() => Promise.resolve({ error: { message: 'Google auth failed' } }));
+      const mockSignInWithGoogle = vi.fn(() => Promise.resolve({ error: new Error('Google auth failed') }));
       vi.mocked(useAuthModule.useAuth).mockReturnValue({
         user: null,
         signInWithGoogle: mockSignInWithGoogle,
@@ -302,4 +302,5 @@ describe('Auth Page', () => {
     });
   });
 });
+
 

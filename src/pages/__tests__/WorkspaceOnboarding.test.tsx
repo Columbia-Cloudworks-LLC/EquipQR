@@ -173,7 +173,7 @@ describe('WorkspaceOnboarding', () => {
     // Mock window.location.href setter
     const originalLocation = window.location;
     delete (window as { location?: Location }).location;
-    window.location = { ...originalLocation, href: '' } as Location;
+    (window as unknown as { location: Location }).location = { ...originalLocation, href: '' } as Location;
 
     customRender(<WorkspaceOnboarding />);
 
@@ -185,7 +185,7 @@ describe('WorkspaceOnboarding', () => {
     });
 
     // Restore
-    window.location = originalLocation;
+    (window as unknown as { location: Location }).location = originalLocation;
   });
 
   it('shows sync and member selection for connected workspace', () => {

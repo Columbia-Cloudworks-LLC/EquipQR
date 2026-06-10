@@ -38,6 +38,8 @@ const mockTemplates = [
     description: 'Default forklift template',
     organization_id: null,
     is_protected: true,
+    interval_value: null,
+    interval_type: null,
     sections: [{ name: 'Engine', count: 2 }],
     itemCount: 2
   },
@@ -47,6 +49,8 @@ const mockTemplates = [
     description: 'Organization template',
     organization_id: 'org-1',
     is_protected: false,
+    interval_value: null,
+    interval_type: null,
     sections: [{ name: 'Safety', count: 1 }],
     itemCount: 1
   },
@@ -56,6 +60,8 @@ const mockTemplates = [
     description: 'Another global template',
     organization_id: null,
     is_protected: true,
+    interval_value: null,
+    interval_type: null,
     sections: [{ name: 'Hydraulics', count: 3 }],
     itemCount: 3
   }
@@ -83,7 +89,7 @@ function mockPMTemplatesResult(
     status: 'success',
     fetchStatus: 'idle',
     ...overrides,
-  } as ReturnType<typeof usePMTemplatesModule.usePMTemplates>;
+  } as unknown as ReturnType<typeof usePMTemplatesModule.usePMTemplates>;
 }
 
 type PMChecklistHookOptions = {
@@ -122,7 +128,7 @@ describe('useWorkOrderPMChecklist', () => {
       error: null,
       status: 'success',
       fetchStatus: 'idle'
-    } as ReturnType<typeof usePMTemplates>);
+    } as unknown as ReturnType<typeof usePMTemplates>);
     
     // Mock useMatchingPMTemplates to return all templates as matching by default
     vi.mocked(useMatchingPMTemplates).mockReturnValue({
@@ -155,11 +161,8 @@ describe('useWorkOrderPMChecklist', () => {
     vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
       restrictions: {
         canCreateCustomPMTemplates: true,
-        canAddMembers: true,
-        canAccessAdvancedAnalytics: true,
-        canAccessFleetMap: true,
         upgradeMessage: ''
-      },
+      } as never,
       checkRestriction: vi.fn(),
       getRestrictionMessage: vi.fn(),
       isSingleUser: false,
@@ -192,17 +195,15 @@ describe('useWorkOrderPMChecklist', () => {
       vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
         restrictions: {
           canCreateCustomPMTemplates: false,
-          canAddMembers: true,
-          canAccessAdvancedAnalytics: false,
           canAccessFleetMap: false,
-          upgradeMessage: 'Upgrade for more features'
-        },
+          upgradeMessage: 'Upgrade for more features',
+        } as never,
         checkRestriction: vi.fn(),
         getRestrictionMessage: vi.fn(),
         isSingleUser: true,
         canUpgrade: true,
-        isLoading: false
-      });
+        isLoading: false,
+      } as unknown as ReturnType<typeof useSimplifiedOrganizationRestrictions>);
 
       const setValue = vi.fn();
       const { result } = renderHook(
@@ -310,17 +311,15 @@ describe('useWorkOrderPMChecklist', () => {
       vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
         restrictions: {
           canCreateCustomPMTemplates: false,
-          canAddMembers: true,
-          canAccessAdvancedAnalytics: false,
           canAccessFleetMap: false,
-          upgradeMessage: 'Upgrade for more features'
-        },
+          upgradeMessage: 'Upgrade for more features',
+        } as never,
         checkRestriction: vi.fn(),
         getRestrictionMessage: vi.fn(),
         isSingleUser: true,
         canUpgrade: true,
-        isLoading: false
-      });
+        isLoading: false,
+      } as unknown as ReturnType<typeof useSimplifiedOrganizationRestrictions>);
 
       const setValue = vi.fn();
       const { result } = renderHook(
@@ -344,11 +343,9 @@ describe('useWorkOrderPMChecklist', () => {
       vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
         restrictions: {
           canCreateCustomPMTemplates: false,
-          canAddMembers: true,
-          canAccessAdvancedAnalytics: false,
           canAccessFleetMap: false,
           upgradeMessage: ''
-        },
+        } as never,
         checkRestriction: vi.fn(),
         getRestrictionMessage: vi.fn(),
         isSingleUser: true,

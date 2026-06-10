@@ -1,6 +1,11 @@
 /* eslint-disable no-console */
 import '@testing-library/jest-dom';
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
+
+declare global {
+  var stopA11yChecks: (() => void) | undefined;
+  let startA11yChecks: () => void;
+}
 import { cleanup } from '@testing-library/react';
 import { createMockSupabaseClient } from './utils/mock-supabase';
 
@@ -79,12 +84,6 @@ import { createMockSupabaseClient } from './utils/mock-supabase';
   }
 })();
 
-declare global {
-  // Expose A11y control functions for tests
-  let startA11yChecks: () => void;
-  let stopA11yChecks: () => void;
-}
-
 // Mock Supabase client globally to prevent real client initialization
 // The real client has autoRefreshToken and WebSocket connections that keep
 // timers alive and prevent the test process from exiting
@@ -102,7 +101,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Make vi globally available for tests
-globalThis.vi = vi;
+(globalThis as typeof globalThis & { vi: typeof vi }).vi = vi;
 
 // Use a dedicated test-harness app version in tests to distinguish them from production
 // and ensure deterministic behavior. Tests don't need the real application version, so
@@ -138,8 +137,9 @@ afterAll(() => {
   // Restore real timers in case fake timers were used
   vi.useRealTimers();
   // Stop a11y checks if they were started
-  if (typeof globalThis.stopA11yChecks === 'function') {
-    globalThis.stopA11yChecks();
+  const globalWithA11y = globalThis as typeof globalThis & { stopA11yChecks?: () => void };
+  if (typeof globalWithA11y.stopA11yChecks === 'function') {
+    globalWithA11y.stopA11yChecks();
   }
 });
 

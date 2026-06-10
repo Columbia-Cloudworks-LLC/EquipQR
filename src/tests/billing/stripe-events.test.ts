@@ -22,8 +22,7 @@ type SupabaseFromHandlers = {
 };
 
 const supabaseFromMock = supabase.from as unknown as MockInstance<
-  [string],
-  SupabaseFromHandlers
+  (table: string) => SupabaseFromHandlers
 >;
 
 describe('Stripe Event Logging', () => {
@@ -127,7 +126,7 @@ describe('Stripe Event Logging', () => {
       };
 
       try {
-        await supabase.from('stripe_event_logs').insert(eventLog);
+        await supabase.from('stripe_event_logs' as never).insert(eventLog as never);
       } catch (error) {
         const supabaseError = error as { code?: string };
         expect(supabaseError?.code).toBe('23505');
@@ -152,7 +151,7 @@ describe('Stripe Event Logging', () => {
         payload: { test: 'data' }
       };
 
-      const result = await supabase.from('stripe_event_logs').insert(eventLog);
+      const result = await supabase.from('stripe_event_logs' as never).insert(eventLog as never);
       
       expect(result.error).toBeNull();
       expect(mockInsert).toHaveBeenCalledWith(eventLog);
@@ -273,7 +272,7 @@ describe('Stripe Event Logging', () => {
 
       // Test webhook_events gating
       try {
-        await supabase.from('webhook_events').insert({ event_id: 'evt_dual_123' });
+        await supabase.from('webhook_events' as never).insert({ event_id: 'evt_dual_123' } as never);
       } catch (error) {
         const supabaseError = error as { code?: string };
         expect(supabaseError?.code).toBe('23505');
@@ -281,12 +280,12 @@ describe('Stripe Event Logging', () => {
       }
 
       // Test that stripe_event_logs would still work for audit
-      const auditResult = await supabase.from('stripe_event_logs').insert({
+      const auditResult = await supabase.from('stripe_event_logs' as never).insert({
         event_id: 'evt_audit_123',
         type: 'invoice.payment_succeeded',
         subscription_id: 'sub_123',
         payload: { test: 'data' }
-      });
+      } as never);
 
       expect(auditResult.error).toBeNull();
       expect(eventLogsInsert).toHaveBeenCalled();

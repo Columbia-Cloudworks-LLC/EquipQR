@@ -10,12 +10,17 @@ const { mockUpload, mockFrom, mockCreateSignedUrl, mockCreateSignedUrls, mockGet
     })),
     error: null,
   }));
-  const mockGetPublicUrl = vi.fn(() => ({
+  const mockGetPublicUrl = vi.fn<(path: string) => { data: { publicUrl: string } }>(() => ({
     data: {
       publicUrl: 'https://example.supabase.co/storage/v1/object/public/organization-logos/org/logo.png',
     },
   }));
-  const mockFrom = vi.fn(() => ({
+  const mockFrom = vi.fn<(bucket: string) => {
+    upload: typeof mockUpload;
+    getPublicUrl: typeof mockGetPublicUrl;
+    createSignedUrl: typeof mockCreateSignedUrl;
+    createSignedUrls: typeof mockCreateSignedUrls;
+  }>(() => ({
     upload: mockUpload,
     getPublicUrl: mockGetPublicUrl,
     createSignedUrl: mockCreateSignedUrl,

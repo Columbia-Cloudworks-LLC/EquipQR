@@ -58,6 +58,7 @@ vi.mock('@/features/organization/components/SimplifiedInvitationDialog', () => (
 
 // Import component after mocks
 import OrganizationTabs from '../OrganizationTabs';
+import { createMockSimpleOrganization } from '@/test/utils/mock-tanstack-query';
 
 describe('OrganizationTabs', () => {
   type MinimalMember = {
@@ -81,6 +82,11 @@ describe('OrganizationTabs', () => {
         currentUserRole="admin"
         permissions={{ canInviteMembers: true }}
         membersLoading={false}
+        organization={{
+          ...createMockSimpleOrganization({ id: 'org-1', name: 'Test Org' }),
+          billingEmail: 'owner@example.com',
+          isOwner: false,
+        } as never}
       />
     );
 

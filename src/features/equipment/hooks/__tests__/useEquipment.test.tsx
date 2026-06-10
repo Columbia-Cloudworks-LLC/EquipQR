@@ -17,6 +17,13 @@ import {
   useEquipmentManufacturersAndModels
 } from '../useEquipment';
 import { equipment, organizations, teams } from '@/test/fixtures/entities';
+import type { ApiResponse } from '@/services/base/BaseService';
+import type {
+  EquipmentNote,
+  EquipmentScan,
+  EquipmentSummary,
+  EquipmentWithTeam,
+} from '@/features/equipment/services/EquipmentService';
 
 // Mock the EquipmentService
 vi.mock('@/features/equipment/services/EquipmentService', () => ({
@@ -55,7 +62,8 @@ describe('useEquipment', () => {
     beforeEach(() => {
       vi.mocked(EquipmentService.getAll).mockResolvedValue({
         success: true,
-        data: Object.values(equipment)
+        data: Object.values(equipment) as unknown as EquipmentWithTeam[],
+        error: null,
       });
     });
 
@@ -122,8 +130,9 @@ describe('useEquipment', () => {
     it('handles API errors', async () => {
       vi.mocked(EquipmentService.getAll).mockResolvedValueOnce({
         success: false,
-        error: 'Failed to fetch equipment'
-      });
+        error: 'Failed to fetch equipment',
+        data: null,
+      } satisfies ApiResponse<EquipmentWithTeam[]>);
 
       const { result } = renderHook(
         () => useEquipment(organizations.acme.id),
@@ -155,7 +164,8 @@ describe('useEquipment', () => {
     beforeEach(() => {
       vi.mocked(EquipmentService.getById).mockResolvedValue({
         success: true,
-        data: equipment.forklift1
+        data: equipment.forklift1 as unknown as EquipmentWithTeam,
+        error: null,
       });
     });
 
@@ -195,8 +205,9 @@ describe('useEquipment', () => {
     it('handles not found error', async () => {
       vi.mocked(EquipmentService.getById).mockResolvedValueOnce({
         success: false,
-        error: 'Equipment not found'
-      });
+        error: 'Equipment not found',
+        data: null,
+      } satisfies ApiResponse<EquipmentWithTeam>);
 
       const { result } = renderHook(
         () => useEquipmentById(organizations.acme.id, 'non-existent-id'),
@@ -215,12 +226,13 @@ describe('useEquipment', () => {
     const mockNotes = [
       { id: 'note-1', content: 'Test note 1', equipment_id: equipment.forklift1.id },
       { id: 'note-2', content: 'Test note 2', equipment_id: equipment.forklift1.id }
-    ];
+    ] as unknown as EquipmentNote[];
 
     beforeEach(() => {
       vi.mocked(EquipmentService.getNotesByEquipmentId).mockResolvedValue({
         success: true,
-        data: mockNotes
+        data: mockNotes,
+        error: null,
       });
     });
 
@@ -252,12 +264,13 @@ describe('useEquipment', () => {
   describe('useEquipmentScans', () => {
     const mockScans = [
       { id: 'scan-1', equipment_id: equipment.forklift1.id, scanned_at: new Date().toISOString() }
-    ];
+    ] as unknown as EquipmentScan[];
 
     beforeEach(() => {
       vi.mocked(EquipmentService.getScansByEquipmentId).mockResolvedValue({
         success: true,
-        data: mockScans
+        data: mockScans,
+        error: null,
       });
     });
 
@@ -292,7 +305,8 @@ describe('useEquipment', () => {
     beforeEach(() => {
       vi.mocked(EquipmentService.getStatusCounts).mockResolvedValue({
         success: true,
-        data: mockCounts
+        data: mockCounts,
+        error: null,
       });
     });
 
@@ -320,8 +334,9 @@ describe('useEquipment', () => {
     it('returns zero counts on error', async () => {
       vi.mocked(EquipmentService.getStatusCounts).mockResolvedValueOnce({
         success: false,
-        error: 'Failed to fetch counts'
-      });
+        error: 'Failed to fetch counts',
+        data: null,
+      } satisfies ApiResponse<Record<'active' | 'maintenance' | 'inactive', number>>);
 
       const { result } = renderHook(
         () => useEquipmentStatusCounts(organizations.acme.id),
@@ -340,7 +355,8 @@ describe('useEquipment', () => {
       // `getAll`. The summary projection includes manufacturer/model directly.
       vi.mocked(EquipmentService.getSummaries).mockResolvedValue({
         success: true,
-        data: Object.values(equipment) as unknown as Awaited<ReturnType<typeof EquipmentService.getSummaries>>['data']
+        data: Object.values(equipment) as unknown as EquipmentSummary[],
+        error: null,
       });
     });
 
@@ -374,8 +390,9 @@ describe('useEquipment', () => {
     it('returns empty array on error', async () => {
       vi.mocked(EquipmentService.getSummaries).mockResolvedValueOnce({
         success: false,
-        error: 'Failed to fetch'
-      });
+        error: 'Failed to fetch',
+        data: null,
+      } satisfies ApiResponse<EquipmentSummary[]>);
 
       const { result } = renderHook(
         () => useEquipmentManufacturersAndModels(organizations.acme.id),
@@ -396,7 +413,8 @@ describe('useEquipment', () => {
 
       vi.mocked(EquipmentService.getSummaries).mockResolvedValueOnce({
         success: true,
-        data: mixedEquipment as unknown as Awaited<ReturnType<typeof EquipmentService.getSummaries>>['data']
+        data: mixedEquipment as unknown as EquipmentSummary[],
+        error: null,
       });
 
       const { result } = renderHook(
@@ -423,7 +441,8 @@ describe('useEquipment', () => {
 
       vi.mocked(EquipmentService.getSummaries).mockResolvedValueOnce({
         success: true,
-        data: equipmentWithoutManufacturer as unknown as Awaited<ReturnType<typeof EquipmentService.getSummaries>>['data']
+        data: equipmentWithoutManufacturer as unknown as EquipmentSummary[],
+        error: null,
       });
 
       const { result } = renderHook(
@@ -462,7 +481,8 @@ describe('useEquipment', () => {
     it('uses correct query key for equipment by id', async () => {
       vi.mocked(EquipmentService.getById).mockResolvedValue({
         success: true,
-        data: equipment.forklift1
+        data: equipment.forklift1 as unknown as EquipmentWithTeam,
+        error: null,
       });
 
       const { result } = renderHook(
@@ -495,8 +515,10 @@ describe('useEquipment', () => {
 
     it('handles service returning success false without error message', async () => {
       vi.mocked(EquipmentService.getAll).mockResolvedValueOnce({
-        success: false
-      });
+        success: false,
+        error: null,
+        data: null,
+      } satisfies ApiResponse<EquipmentWithTeam[]>);
 
       const { result } = renderHook(
         () => useEquipment(organizations.acme.id),

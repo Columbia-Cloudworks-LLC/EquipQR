@@ -18,6 +18,7 @@ const mockItem: InventoryItem = {
   default_unit_cost: 1.5,
   image_url: null,
   created_by: 'user-1',
+  created_by_name: 'Test User',
   created_at: '2024-01-01T00:00:00.000Z',
   updated_at: '2024-06-01T00:00:00.000Z',
   isLowStock: false,

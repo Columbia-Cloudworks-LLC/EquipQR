@@ -22,8 +22,7 @@ type SupabaseFromHandlers = {
 };
 
 const supabaseFromMock = supabase.from as unknown as MockInstance<
-  [string],
-  SupabaseFromHandlers
+  (table: string) => SupabaseFromHandlers
 >;
 
 describe('Webhook Event Idempotency', () => {
@@ -178,7 +177,7 @@ describe('Webhook Event Idempotency', () => {
         payload: { test: 'data' }
       };
 
-      const result = await supabase.from('stripe_event_logs').insert(eventLog);
+      const result = await supabase.from('stripe_event_logs' as never).insert(eventLog as never);
       
       expect(result.error).toBeNull();
       expect(mockInsert).toHaveBeenCalledWith(eventLog);

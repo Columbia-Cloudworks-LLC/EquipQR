@@ -80,7 +80,7 @@ const setupMocks = (options: {
     currentOrganization: hasOrganization
       ? { id: organizations.acme.id, name: organizations.acme.name }
       : null,
-  } as ReturnType<typeof useOrganization>);
+  } as unknown as ReturnType<typeof useOrganization>);
 
   vi.mocked(usePermissions).mockReturnValue({
     canCreateEquipment: () => canEdit,

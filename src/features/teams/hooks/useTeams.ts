@@ -6,5 +6,3 @@
  */
 
 export { useTeams } from '@/features/teams/hooks/useTeamManagement';
-
-export type { Team } from '@/features/teams/types/team';

@@ -39,7 +39,7 @@ export const organizations = {
   acme: {
     id: 'org-acme',
     name: 'Acme Equipment Co',
-    plan: 'professional' as const,
+    plan: 'premium' as const,
     memberCount: 12,
     maxMembers: 50,
     features: ['custom_pm_templates', 'fleet_map', 'advanced_analytics']

@@ -140,7 +140,7 @@ describe('WorkOrderAssignmentSelector', () => {
         failureReason: null,
         submittedAt: 0,
         isPaused: false
-      } as ReturnType<typeof useQuickWorkOrderAssignment>);
+      } as unknown as ReturnType<typeof useQuickWorkOrderAssignment>);
 
       render(
         <WorkOrderAssignmentSelector

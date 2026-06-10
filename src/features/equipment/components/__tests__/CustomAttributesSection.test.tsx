@@ -9,6 +9,20 @@ vi.mock('@/hooks/useCustomAttributes', () => ({
   useCustomAttributes: vi.fn()
 }));
 
+const buildMockCustomAttributesHook = (
+  overrides: Partial<ReturnType<typeof useCustomAttributesModule.useCustomAttributes>> = {},
+) =>
+  ({
+    attributes: [],
+    addAttribute: vi.fn(),
+    removeAttribute: vi.fn(),
+    updateAttribute: vi.fn(),
+    validateAttributes: vi.fn(() => true),
+    getCleanAttributes: vi.fn(() => []),
+    setAttributes: vi.fn(),
+    ...overrides,
+  }) as unknown as ReturnType<typeof useCustomAttributesModule.useCustomAttributes>;
+
 describe('CustomAttributesSection', () => {
   const mockOnChange = vi.fn();
   const mockAddAttribute = vi.fn();
@@ -19,13 +33,14 @@ describe('CustomAttributesSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
-      attributes: [],
-      addAttribute: mockAddAttribute,
-      removeAttribute: mockRemoveAttribute,
-      updateAttribute: mockUpdateAttribute,
-      getCleanAttributes: mockGetCleanAttributes
-    });
+    vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue(
+      buildMockCustomAttributesHook({
+        addAttribute: mockAddAttribute,
+        removeAttribute: mockRemoveAttribute,
+        updateAttribute: mockUpdateAttribute,
+        getCleanAttributes: mockGetCleanAttributes,
+      }),
+    );
   });
 
   describe('Core Rendering', () => {
@@ -60,16 +75,18 @@ describe('CustomAttributesSection', () => {
     });
 
     it('displays attributes from hook', () => {
-      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
-        attributes: [
-          { id: 'attr-1', key: 'Color', value: 'Red' },
-          { id: 'attr-2', key: 'Size', value: 'Large' }
-        ],
-        addAttribute: mockAddAttribute,
-        removeAttribute: mockRemoveAttribute,
-        updateAttribute: mockUpdateAttribute,
-        getCleanAttributes: mockGetCleanAttributes
-      });
+      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue(
+        buildMockCustomAttributesHook({
+          attributes: [
+            { id: 'attr-1', key: 'Color', value: 'Red' },
+            { id: 'attr-2', key: 'Size', value: 'Large' }
+          ],
+          addAttribute: mockAddAttribute,
+          removeAttribute: mockRemoveAttribute,
+          updateAttribute: mockUpdateAttribute,
+          getCleanAttributes: mockGetCleanAttributes
+        }),
+      );
 
       render(<CustomAttributesSection onChange={mockOnChange} />);
       
@@ -80,15 +97,17 @@ describe('CustomAttributesSection', () => {
     });
 
     it('calls updateAttribute when attribute key changes', () => {
-      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
-        attributes: [
-          { id: 'attr-1', key: 'Color', value: 'Red' }
-        ],
-        addAttribute: mockAddAttribute,
-        removeAttribute: mockRemoveAttribute,
-        updateAttribute: mockUpdateAttribute,
-        getCleanAttributes: mockGetCleanAttributes
-      });
+      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue(
+        buildMockCustomAttributesHook({
+          attributes: [
+            { id: 'attr-1', key: 'Color', value: 'Red' }
+          ],
+          addAttribute: mockAddAttribute,
+          removeAttribute: mockRemoveAttribute,
+          updateAttribute: mockUpdateAttribute,
+          getCleanAttributes: mockGetCleanAttributes
+        }),
+      );
 
       render(<CustomAttributesSection onChange={mockOnChange} />);
       
@@ -99,15 +118,17 @@ describe('CustomAttributesSection', () => {
     });
 
     it('calls updateAttribute when attribute value changes', () => {
-      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
-        attributes: [
-          { id: 'attr-1', key: 'Color', value: 'Red' }
-        ],
-        addAttribute: mockAddAttribute,
-        removeAttribute: mockRemoveAttribute,
-        updateAttribute: mockUpdateAttribute,
-        getCleanAttributes: mockGetCleanAttributes
-      });
+      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue(
+        buildMockCustomAttributesHook({
+          attributes: [
+            { id: 'attr-1', key: 'Color', value: 'Red' }
+          ],
+          addAttribute: mockAddAttribute,
+          removeAttribute: mockRemoveAttribute,
+          updateAttribute: mockUpdateAttribute,
+          getCleanAttributes: mockGetCleanAttributes
+        }),
+      );
 
       render(<CustomAttributesSection onChange={mockOnChange} />);
       
@@ -119,16 +140,18 @@ describe('CustomAttributesSection', () => {
 
     it('calls removeAttribute when delete button is clicked', () => {
       // Need at least 2 attributes so delete button is not disabled
-      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
-        attributes: [
-          { id: 'attr-1', key: 'Color', value: 'Red' },
-          { id: 'attr-2', key: 'Size', value: 'Large' }
-        ],
-        addAttribute: mockAddAttribute,
-        removeAttribute: mockRemoveAttribute,
-        updateAttribute: mockUpdateAttribute,
-        getCleanAttributes: mockGetCleanAttributes
-      });
+      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue(
+        buildMockCustomAttributesHook({
+          attributes: [
+            { id: 'attr-1', key: 'Color', value: 'Red' },
+            { id: 'attr-2', key: 'Size', value: 'Large' }
+          ],
+          addAttribute: mockAddAttribute,
+          removeAttribute: mockRemoveAttribute,
+          updateAttribute: mockUpdateAttribute,
+          getCleanAttributes: mockGetCleanAttributes
+        }),
+      );
 
       render(<CustomAttributesSection onChange={mockOnChange} />);
       
@@ -146,13 +169,15 @@ describe('CustomAttributesSection', () => {
       ];
 
       // Mock the hook to return the array attributes (simulating what the real hook does)
-      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
-        attributes: initialAttributes,
-        addAttribute: mockAddAttribute,
-        removeAttribute: mockRemoveAttribute,
-        updateAttribute: mockUpdateAttribute,
-        getCleanAttributes: () => [{ key: 'Key1', value: 'Value1' }]
-      });
+      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue(
+        buildMockCustomAttributesHook({
+          attributes: initialAttributes,
+          addAttribute: mockAddAttribute,
+          removeAttribute: mockRemoveAttribute,
+          updateAttribute: mockUpdateAttribute,
+          getCleanAttributes: () => [{ id: 'attr-1', key: 'Key1', value: 'Value1' }]
+        }),
+      );
 
       render(<CustomAttributesSection initialAttributes={initialAttributes} onChange={mockOnChange} />);
       
@@ -163,16 +188,21 @@ describe('CustomAttributesSection', () => {
     it('handles object format initial attributes', () => {
       // Mock the hook to return the converted attributes (simulating what the real hook does)
       // The component converts object format to array format before passing to the hook
-      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
-        attributes: [
-          { id: 'attr-1', key: 'Key1', value: 'Value1' },
-          { id: 'attr-2', key: 'Key2', value: 'Value2' }
-        ],
-        addAttribute: mockAddAttribute,
-        removeAttribute: mockRemoveAttribute,
-        updateAttribute: mockUpdateAttribute,
-        getCleanAttributes: () => [{ key: 'Key1', value: 'Value1' }, { key: 'Key2', value: 'Value2' }]
-      });
+      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue(
+        buildMockCustomAttributesHook({
+          attributes: [
+            { id: 'attr-1', key: 'Key1', value: 'Value1' },
+            { id: 'attr-2', key: 'Key2', value: 'Value2' }
+          ],
+          addAttribute: mockAddAttribute,
+          removeAttribute: mockRemoveAttribute,
+          updateAttribute: mockUpdateAttribute,
+          getCleanAttributes: () => [
+            { id: 'attr-1', key: 'Key1', value: 'Value1' },
+            { id: 'attr-2', key: 'Key2', value: 'Value2' },
+          ]
+        }),
+      );
 
       const initialAttributes = {
         Key1: 'Value1',
@@ -203,15 +233,17 @@ describe('CustomAttributesSection', () => {
 
   describe('OnChange Callback', () => {
     it('calls onChange when attributes change', async () => {
-      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
-        attributes: [
-          { id: 'attr-1', key: 'Color', value: 'Red' }
-        ],
-        addAttribute: mockAddAttribute,
-        removeAttribute: mockRemoveAttribute,
-        updateAttribute: mockUpdateAttribute,
-        getCleanAttributes: () => [{ key: 'Color', value: 'Red' }]
-      });
+      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue(
+        buildMockCustomAttributesHook({
+          attributes: [
+            { id: 'attr-1', key: 'Color', value: 'Red' }
+          ],
+          addAttribute: mockAddAttribute,
+          removeAttribute: mockRemoveAttribute,
+          updateAttribute: mockUpdateAttribute,
+          getCleanAttributes: () => [{ id: 'attr-1', key: 'Color', value: 'Red' }]
+        }),
+      );
 
       render(<CustomAttributesSection onChange={mockOnChange} />);
       
@@ -221,5 +253,4 @@ describe('CustomAttributesSection', () => {
     });
   });
 });
-
 

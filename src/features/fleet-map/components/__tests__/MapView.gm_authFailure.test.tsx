@@ -52,7 +52,7 @@ global.window.google = {
     LatLngBounds: vi.fn(() => ({ extend: vi.fn(), toJSON: vi.fn() })),
     event: { addListenerOnce: vi.fn() },
   },
-} as unknown as GoogleMapsMock;
+} as unknown as typeof google;
 
 describe('MapView gm_authFailure handling', () => {
   let originalReload: typeof window.location.reload;

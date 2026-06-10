@@ -35,7 +35,7 @@ const mockUseQuickBooksAccess = vi.fn(() => ({
   isLoading: false,
 }));
 vi.mock('@/hooks/useQuickBooksAccess', () => ({
-  useQuickBooksAccess: (...args: unknown[]) => mockUseQuickBooksAccess(...args),
+  useQuickBooksAccess: () => mockUseQuickBooksAccess(),
 }));
 
 const mockGetConnectionStatus = vi.fn();
@@ -252,7 +252,7 @@ describe('QuickBooksCustomerMapping', () => {
       link: { mutateAsync: mockLink, isPending: false },
       importFromQB: { mutateAsync: mockImportFromQB, isPending: false },
       refreshFromQB: { mutateAsync: vi.fn(), isPending: false },
-    } as ReturnType<typeof import('@/features/teams/hooks/useCustomerAccount').useCustomerMutations>);
+    } as unknown as ReturnType<typeof import('@/features/teams/hooks/useCustomerAccount').useCustomerMutations>);
 
     mockSearchCustomers.mockResolvedValue({
       success: true,
