@@ -24,12 +24,10 @@ self.addEventListener('activate', (event) => {
         includeUncontrolled: true,
       });
 
-      await Promise.all(
-        windowClients.map((client) => {
-          if ('navigate' in client) {
-            return client.navigate(client.url);
-          }
-        })
+      await Promise.allSettled(
+        windowClients
+          .filter((client) => 'navigate' in client)
+          .map((client) => client.navigate(client.url))
       );
 
       await self.registration.unregister();
