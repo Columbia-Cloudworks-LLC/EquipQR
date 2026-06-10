@@ -6,12 +6,16 @@ import { applyAuditFilters } from '@/services/auditFilters';
 const AUDIT_EXPORT_BATCH_SIZE = 5000;
 const AUDIT_EXPORT_MAX_RECORDS = 10000;
 
+type AuditLogFilterQuery = Parameters<typeof applyAuditFilters>[0] & {
+  lte: (column: string, value: string) => Parameters<typeof applyAuditFilters>[0];
+};
+
 type AuditExportPageConfig = {
   organizationId: string;
   filters?: AuditLogFilters;
   select: string;
-  applyExtraCountFilters?: <T>(query: T) => T;
-  applyExtraPageFilters?: <T>(query: T) => T;
+  applyExtraCountFilters?: (query: AuditLogFilterQuery) => AuditLogFilterQuery;
+  applyExtraPageFilters?: (query: AuditLogFilterQuery) => AuditLogFilterQuery;
   onProgress?: (progress: { current: number; total: number }) => void;
 };
 

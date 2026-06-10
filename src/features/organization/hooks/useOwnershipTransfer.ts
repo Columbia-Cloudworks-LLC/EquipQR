@@ -108,7 +108,7 @@ export const useInitiateTransfer = () => {
 
       if (error) throw error;
 
-      const result = data as TransferResult;
+      const result = data as unknown as TransferResult;
       if (!result.success) {
         throw new Error(result.error || 'Failed to initiate transfer');
       }
@@ -161,7 +161,7 @@ export const useAcceptTransfer = () => {
 
       if (error) throw error;
 
-      const result = data as TransferResult;
+      const result = data as unknown as TransferResult;
       if (!result.success) {
         throw new Error(result.error || 'Failed to accept transfer');
       }
@@ -219,7 +219,7 @@ export const useRejectTransfer = () => {
 
       if (error) throw error;
 
-      const result = data as TransferResult;
+      const result = data as unknown as TransferResult;
       if (!result.success) {
         throw new Error(result.error || 'Failed to reject transfer');
       }
@@ -264,7 +264,7 @@ export const useCancelTransfer = () => {
 
       if (error) throw error;
 
-      const result = data as TransferResult;
+      const result = data as unknown as TransferResult;
       if (!result.success) {
         throw new Error(result.error || 'Failed to cancel transfer');
       }

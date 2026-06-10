@@ -195,7 +195,7 @@ export const auditService = {
       if (error) throw error;
       
       return createServiceSuccessResponse(
-        buildAuditLogQueryResult(data as AuditLogEntry[], count ?? 0, offset, pageSize),
+        buildAuditLogQueryResult((data ?? []) as unknown as AuditLogEntry[], count ?? 0, offset, pageSize),
       );
     } catch (error) {
       return createServiceErrorResponse(error, 'AuditService error');
@@ -240,7 +240,7 @@ export const auditService = {
       
       if (error) throw error;
       
-      return createServiceSuccessResponse(data as AuditLogEntry[]);
+      return createServiceSuccessResponse((data ?? []) as unknown as AuditLogEntry[]);
     } catch (error) {
       return createServiceErrorResponse(error, 'AuditService error');
     }

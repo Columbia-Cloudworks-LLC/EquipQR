@@ -4,6 +4,7 @@ import {
   collectBatchMutationResults,
 } from '@/services/batchMutationResultHelpers';
 import { supabase } from '@/integrations/supabase/client';
+import type { TablesUpdate } from '@/integrations/supabase/types';
 import type {
   InventoryItem,
   InventoryItemImage,
@@ -11,7 +12,8 @@ import type {
   InventoryQuantityAdjustment,
   InventoryFilters,
   InventoryListMetadata,
-  PartialInventoryItem
+  PartialInventoryItem,
+  PartCompatibilityRuleFormData,
 } from '@/features/inventory/types/inventory';
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
 import { bulkSetCompatibilityRules } from '@/features/inventory/services/inventoryCompatibilityRulesService';
@@ -142,7 +144,7 @@ export const getInventoryListMetadata = async (
       else healthyCount += 1;
 
       if (!item.location?.trim()) missingLocationCount += 1;
-      if (item.default_unit_cost == null || item.default_unit_cost === '') {
+      if (item.default_unit_cost == null) {
         missingUnitCostCount += 1;
       }
       if (!item.sku?.trim()) missingSkuCount += 1;
@@ -292,7 +294,11 @@ export const createInventoryItem = async (
 
     // Save compatibility rules (manufacturer/model patterns)
     if (formData.compatibilityRules && formData.compatibilityRules.length > 0) {
-      await bulkSetCompatibilityRules(organizationId, itemData.id, formData.compatibilityRules);
+      await bulkSetCompatibilityRules(
+        organizationId,
+        itemData.id,
+        formData.compatibilityRules as PartCompatibilityRuleFormData[],
+      );
     }
 
     return {
@@ -311,7 +317,7 @@ export const updateInventoryItem = async (
   formData: Partial<InventoryItemFormData>
 ): Promise<InventoryItem> => {
   try {
-    const updateData: Record<string, unknown> = {};
+    const updateData: TablesUpdate<'inventory_items'> = {};
 
     if (formData.name !== undefined) updateData.name = formData.name;
     if (formData.description !== undefined) updateData.description = formData.description || null;
@@ -354,7 +360,11 @@ export const updateInventoryItem = async (
 
     // Update compatibility rules if provided
     if (formData.compatibilityRules !== undefined) {
-      await bulkSetCompatibilityRules(organizationId, itemId, formData.compatibilityRules);
+      await bulkSetCompatibilityRules(
+        organizationId,
+        itemId,
+        formData.compatibilityRules as PartCompatibilityRuleFormData[],
+      );
     }
 
     return {

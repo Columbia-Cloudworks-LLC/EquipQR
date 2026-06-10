@@ -200,7 +200,7 @@ export const useRemoveMember = (organizationId: string) => {
       const claims = await getAuthClaims();
       if (!claims) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase.rpc<RemovalResult>('remove_organization_member_safely', {
+      const { data, error } = await supabase.rpc('remove_organization_member_safely', {
         user_uuid: memberId,
         org_id: organizationId,
         removed_by: claims.sub
@@ -208,7 +208,7 @@ export const useRemoveMember = (organizationId: string) => {
 
       if (error) throw error;
 
-      const result = data;
+      const result = data as RemovalResult | null;
 
       // The function returns a JSON object with success status and details
       if (!result?.success) {

@@ -14,7 +14,7 @@ import {
   useNotificationSubscription,
   useMarkAllNotificationsAsRead
 } from '@/hooks/useNotificationSettings';
-import { useMarkNotificationAsRead, type Notification } from '@/features/work-orders/hooks/useWorkOrderData';
+import { useMarkNotificationAsRead, type Notification, type NotificationData } from '@/features/work-orders/hooks/useWorkOrderData';
 import { useNotificationMarkReadOnClick } from '@/hooks/useNotificationMarkReadOnClick';
 import { logger } from '@/utils/logger';
 import {
@@ -38,8 +38,15 @@ const Notifications: React.FC = () => {
   // Set up real-time subscription
   useNotificationSubscription(organizationId || '');
 
+  const appNotifications: Notification[] = notifications.map((row) => ({
+    ...row,
+    data: (row.data && typeof row.data === 'object' && !Array.isArray(row.data)
+      ? row.data
+      : {}) as NotificationData,
+  }));
+
   // Filter notifications based on search and filters
-  const filteredNotifications = notifications.filter(notification => {
+  const filteredNotifications = appNotifications.filter(notification => {
     const matchesSearch = notification.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          notification.message.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -52,9 +59,13 @@ const Notifications: React.FC = () => {
     return matchesSearch && matchesType && matchesRead;
   });
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = appNotifications.filter(n => !n.read).length;
 
   const markReadIfNeeded = useNotificationMarkReadOnClick(markAsReadMutation);
+
+  const handleSwitchOrganization = async (orgId: string) => {
+    switchOrganization(orgId);
+  };
 
   const handleNotificationClick = async (notification: Notification) => {
     await markReadIfNeeded(notification);
@@ -63,7 +74,7 @@ const Notifications: React.FC = () => {
       notification,
       organizationId,
       navigate,
-      switchOrganization,
+      switchOrganization: handleSwitchOrganization,
     });
   };
 
