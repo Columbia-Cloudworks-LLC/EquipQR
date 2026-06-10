@@ -35,20 +35,6 @@ vi.mock('@/features/equipment/services/EquipmentService', () => ({
   }
 }));
 
-// Mock useBackgroundSync
-vi.mock('@/hooks/useCacheInvalidation', () => ({
-  useBackgroundSync: () => ({
-    subscribeToOrganization: vi.fn()
-  })
-}));
-
-// Mock performanceMonitor
-vi.mock('@/utils/performanceMonitoring', () => ({
-  performanceMonitor: {
-    recordMetric: vi.fn()
-  }
-}));
-
 // Mock useAppToast
 vi.mock('@/hooks/useAppToast', () => ({
   useAppToast: () => ({

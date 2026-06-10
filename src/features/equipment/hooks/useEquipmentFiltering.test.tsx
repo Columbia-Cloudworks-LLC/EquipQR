@@ -8,14 +8,6 @@ vi.mock('@/features/equipment/hooks/useEquipment', () => ({
   useEquipmentSummaries: vi.fn(),
 }));
 
-vi.mock('@/services/syncDataService', () => ({
-  useSyncTeamsByOrganization: vi.fn(),
-}));
-
-vi.mock('@/features/teams/hooks/useTeamManagement', () => ({
-  useTeams: vi.fn(() => ({ teams: [], managedTeams: [], isLoading: false, error: null })),
-}));
-
 vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: () => ({ canManageOrganization: () => true }),
 }));
@@ -26,7 +18,6 @@ vi.mock('@/features/teams/hooks/useTeamMembership', () => ({
 
 import { useEquipmentFiltering } from './useEquipmentFiltering';
 import { useEquipmentList, useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
-import { useSyncTeamsByOrganization } from '@/services/syncDataService';
 
 const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const client = new QueryClient({
@@ -53,10 +44,6 @@ beforeEach(() => {
   });
   (useEquipmentSummaries as Mock).mockReturnValue({
     data: summariesFixture,
-    isLoading: false,
-  });
-  (useSyncTeamsByOrganization as Mock).mockReturnValue({
-    data: teamFixtures,
     isLoading: false,
   });
 });

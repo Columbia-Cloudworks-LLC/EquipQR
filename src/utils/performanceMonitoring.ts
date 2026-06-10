@@ -116,6 +116,3 @@ function usePerformanceTimer(name: string, enabled = true) {
     getMetrics: () => monitor.getMetrics(name)
   };
 }
-
-// Export singleton instance
-export const performanceMonitor = PerformanceMonitor.getInstance();

@@ -8,14 +8,17 @@ import {
   EquipmentListResult,
 } from '@/features/equipment/services/EquipmentService';
 import { PaginationParams } from '@/services/base/BaseService';
-import {
-  resolveEquipmentQuerySyncOptions,
-  useEquipmentOrgBackgroundSync,
-} from '@/hooks/equipmentQuerySync';
 import { useAppToast } from '@/hooks/useAppToast';
 import { createScopedQueryPersister } from '@/lib/queryPersistence';
 import { equipment as equipmentKeys } from '@/lib/queryKeys';
 import { getScanFollowUpEventsByEquipmentId } from '@/features/equipment/services/scanFollowUpEventService';
+
+const DEFAULT_EQUIPMENT_STALE_MS = 5 * 60 * 1000;
+
+function resolveEquipmentStaleOptions(options?: { staleTime?: number }) {
+  const staleTime = options?.staleTime ?? DEFAULT_EQUIPMENT_STALE_MS;
+  return { staleTime, gcTime: staleTime * 2 };
+}
 
 /**
  * Stable references for the empty default arguments used by `useEquipment`.
@@ -39,11 +42,10 @@ export const useEquipment = (
   filters: EquipmentFilters = EMPTY_EQUIPMENT_FILTERS,
   pagination: PaginationParams = EMPTY_EQUIPMENT_PAGINATION,
   options?: {
-    enableBackgroundSync?: boolean;
     staleTime?: number;
   }
 ) => {
-  const { enableSync, staleTime, gcTime } = resolveEquipmentQuerySyncOptions(options);
+  const { staleTime, gcTime } = resolveEquipmentStaleOptions(options);
 
   const query = useQuery({
     queryKey: ['equipment', organizationId, filters, pagination],
@@ -59,8 +61,6 @@ export const useEquipment = (
     staleTime,
     gcTime,
   });
-
-  useEquipmentOrgBackgroundSync(organizationId, enableSync);
 
   return query;
 };
@@ -165,11 +165,10 @@ export const useEquipmentById = (
   organizationId: string | undefined,
   equipmentId: string | undefined,
   options?: {
-    enableBackgroundSync?: boolean;
     staleTime?: number;
   }
 ) => {
-  const { enableSync, staleTime } = resolveEquipmentQuerySyncOptions(options);
+  const { staleTime } = resolveEquipmentStaleOptions(options);
 
   const query = useQuery({
     queryKey: ['equipment', organizationId, equipmentId],
@@ -185,8 +184,6 @@ export const useEquipmentById = (
     staleTime,
     persister: fieldReadPersister(),
   });
-
-  useEquipmentOrgBackgroundSync(organizationId, enableSync, false);
 
   return query;
 };
