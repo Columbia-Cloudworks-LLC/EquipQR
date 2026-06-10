@@ -1,6 +1,6 @@
 import type { MutableRefObject } from 'react';
 import { logger } from '@/utils/logger';
-import type { PartCompatibilityRuleFormData } from '@/features/inventory/types/inventory';
+import type { PartCompatibilityRuleFormData, ModelMatchType, VerificationStatus } from '@/features/inventory/types/inventory';
 
 export function shouldIgnoreStaleInventoryItemEditingLoad(
   abortController: AbortController,
@@ -26,8 +26,8 @@ export function mapInventoryCompatibilityRules(
   return (rulesData || []).map((row) => ({
     manufacturer: row.manufacturer,
     model: row.model,
-    match_type: row.match_type ?? 'exact',
-    status: row.status ?? 'unverified',
+    match_type: (row.match_type ?? 'exact') as ModelMatchType,
+    status: (row.status ?? 'unverified') as VerificationStatus,
     notes: row.notes ?? null,
   }));
 }

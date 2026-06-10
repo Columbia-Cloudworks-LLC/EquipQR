@@ -23,7 +23,7 @@ export function buildInventoryTableRowViewModel(
   const inventoryValue = unitCost * item.quantity_on_hand;
   const alternateGroupCount = groupMembershipCounts[item.id] ?? 0;
   const missingLocation = !item.location?.trim();
-  const missingUnitCost = item.default_unit_cost == null || item.default_unit_cost === '';
+  const missingUnitCost = item.default_unit_cost == null;
   const missingSku = !item.sku?.trim();
 
   let reorderPriority = 0;

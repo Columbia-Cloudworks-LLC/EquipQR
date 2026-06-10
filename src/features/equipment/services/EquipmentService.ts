@@ -502,16 +502,17 @@ export class EquipmentService {
         query = query.eq('team_id', filters.team);
       }
 
-      query = applyEquipmentListDateFilters(query as unknown as EquipmentListQuery, filters) as typeof query;
-      query = applyWarrantyExpiringFilter(query as unknown as EquipmentListQuery, filters) as typeof query;
+      let listQuery = query as unknown as EquipmentListQuery;
+      listQuery = applyEquipmentListDateFilters(listQuery, filters);
+      listQuery = applyWarrantyExpiringFilter(listQuery, filters);
 
       const { sortField, sortDirection } = getEquipmentListSort(pagination);
-      query = query.order(sortField, { ascending: sortDirection !== 'desc' });
+      listQuery = listQuery.order(sortField, { ascending: sortDirection !== 'desc' });
 
       const { from, to } = getEquipmentListRange(page, pageSize);
-      query = query.range(from, to);
+      listQuery = listQuery.range(from, to);
 
-      const { data, error, count } = await query;
+      const { data, error, count } = await (listQuery as unknown as typeof query);
 
       if (error) {
         logger.error('Error fetching paginated equipment list:', error);

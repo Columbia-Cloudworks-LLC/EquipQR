@@ -105,8 +105,12 @@ export function useExportToQuickBooks() {
       }
 
       // Handle function-level errors (success: false in response)
-      if (!data || !data.success) {
-        throw new Error(data?.error || 'Failed to export invoice');
+      if (!data || data.success === false) {
+        const message =
+          data && 'error' in data && data.error
+            ? data.error
+            : 'Failed to export invoice';
+        throw new Error(message);
       }
 
       // Map snake_case response to camelCase result

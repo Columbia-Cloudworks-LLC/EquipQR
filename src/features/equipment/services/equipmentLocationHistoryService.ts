@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
 
 export interface LocationChangeParams {
@@ -55,7 +56,7 @@ export async function logEquipmentLocationChange(params: LocationChangeParams): 
       p_address_state: params.addressState ?? null,
       p_address_country: params.addressCountry ?? null,
       p_formatted_address: formattedAddress ?? null,
-      p_metadata: params.metadata ?? {},
+      p_metadata: (params.metadata ?? {}) as Json,
     });
 
     if (error) {

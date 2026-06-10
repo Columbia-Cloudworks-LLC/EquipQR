@@ -71,7 +71,7 @@ const SubmitTicketDialog: React.FC<SubmitTicketDialogProps> = ({
         organizationId: orgContext.organizationId,
         currentOrganization: orgContext.currentOrganization,
       } : undefined,
-      queryClient,
+      queryClient as unknown as Parameters<typeof collectSessionDiagnostics>[1],
     );
 
     submitTicket(

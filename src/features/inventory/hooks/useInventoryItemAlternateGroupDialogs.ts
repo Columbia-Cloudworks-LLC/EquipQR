@@ -121,6 +121,7 @@ export function useInventoryItemAlternateGroupDialogs({
     groupSearch,
     setGroupSearch,
     availableGroups,
+    availableGroupsCount: availableGroups.length,
     filteredGroups,
     handleCreateGroupWithItem,
     handleAddToGroup,

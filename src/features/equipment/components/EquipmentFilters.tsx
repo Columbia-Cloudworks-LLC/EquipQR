@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileEquipmentFilters } from './MobileEquipmentFilters';
 import EquipmentToolbar from './EquipmentToolbar';
+import type { EquipmentFilters as EquipmentFiltersState } from '@/features/equipment/hooks/useEquipmentFiltering';
 import type { EquipmentListToolbarProps } from '@/features/equipment/components/equipmentFilterTypes';
 
 type EquipmentFiltersProps = EquipmentListToolbarProps;
@@ -52,7 +53,7 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
         activeFilterCount={activeFilterCount}
         showMobileFilters={showMobileFilters}
         onShowMobileFiltersChange={setShowMobileFilters}
-        onFilterChange={onFilterChange}
+        onFilterChange={onFilterChange as <K extends keyof EquipmentFiltersState>(key: K, value: EquipmentFiltersState[K]) => void}
         onClearFilters={onClearFilters}
         onQuickFilter={onQuickFilter}
         filterOptions={filterOptions}

@@ -105,7 +105,12 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
       model: preSelectedEquipment.model,
       serial_number: preSelectedEquipment.serial_number,
       location: preSelectedEquipment.location,
-      last_known_location: preSelectedEquipment.last_known_location,
+      last_known_location:
+        preSelectedEquipment.last_known_location &&
+        typeof preSelectedEquipment.last_known_location === 'object' &&
+        !Array.isArray(preSelectedEquipment.last_known_location)
+          ? (preSelectedEquipment.last_known_location as { name?: string })
+          : null,
       team: preSelectedEquipment.team
         ? { id: preSelectedEquipment.team.id, name: preSelectedEquipment.team.name }
         : null,

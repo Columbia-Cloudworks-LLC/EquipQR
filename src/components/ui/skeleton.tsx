@@ -137,7 +137,9 @@ function SkeletonList({
     <div className="space-y-4" role="status" aria-label="Loading content">
       <span className="sr-only">Loading...</span>
       {Array.from({ length: count }).map((_, i) => (
-        <Component key={i} className="animate-stagger-in" style={{ animationDelay: `${i * 50}ms` } as React.CSSProperties} />
+        <div key={i} style={{ animationDelay: `${i * 50}ms` } as React.CSSProperties}>
+          <Component className="animate-stagger-in" />
+        </div>
       ))}
     </div>
   )

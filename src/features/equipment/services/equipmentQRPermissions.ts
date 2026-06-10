@@ -413,6 +413,6 @@ export async function fetchQRActionTeamMemberships(
 
   return (data ?? []).map(membership => ({
     teamId: membership.team_id,
-    role: membership.role,
+    role: membership.role as TeamRole,
   }));
 }

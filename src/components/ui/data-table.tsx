@@ -138,10 +138,10 @@ export function DataTable<T extends Record<string, unknown>>({
       : item[column.key as keyof T];
 
     if (column.render) {
-      return column.render(value, item, index);
+      return column.render(value, item, index) as React.ReactNode;
     }
 
-    return value;
+    return value as React.ReactNode;
   };
 
   // The outer container for the table body. When stickyHeader is enabled we own

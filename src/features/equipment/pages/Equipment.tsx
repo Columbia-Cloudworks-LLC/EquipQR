@@ -252,7 +252,7 @@ const Equipment = () => {
         canImport={canImport}
         canExport={canExport}
         onImportCsv={() => setShowImportCsv(true)}
-        equipment={equipment}
+        equipment={equipment as EquipmentRecord[]}
         columnPicker={
           viewMode === 'table' ? (
             <EquipmentColumnPicker

@@ -35,7 +35,7 @@ export async function fetchAuditLogExportEntries(
     countQuery = countQuery.lte('created_at', createdAtLte);
   }
 
-  countQuery = applyAuditFilters(countQuery, filters);
+  countQuery = applyAuditFilters(countQuery as never, filters) as typeof countQuery;
   const { count, error: countError } = await countQuery;
   if (countError) throw countError;
 
@@ -66,7 +66,7 @@ export async function fetchAuditLogExportEntries(
       pageQuery = pageQuery.lte('created_at', createdAtLte);
     }
 
-    pageQuery = applyAuditFilters(pageQuery, filters);
+    pageQuery = applyAuditFilters(pageQuery as never, filters) as typeof pageQuery;
 
     const { data: pageData, error: pageError } = await pageQuery;
     if (pageError) throw pageError;

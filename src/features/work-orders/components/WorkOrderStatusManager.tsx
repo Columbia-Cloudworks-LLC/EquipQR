@@ -25,6 +25,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { WorkOrderAssigneeSelectItems } from '@/features/work-orders/components/WorkOrderAssigneeSelectItems';
+import type { AssignmentOption } from '@/features/work-orders/hooks/useWorkOrderAssignment';
 import { useWorkOrderStatusChangeHandlers } from '@/features/work-orders/hooks/useWorkOrderStatusChangeHandlers';
 import { useWorkOrderContextualAssignment, type AssignmentWorkOrderContext } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
 import {
@@ -247,7 +248,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
                     <SelectValue placeholder={assignmentLoading ? "Loading..." : "Select assignee..."} />
                   </SelectTrigger>
                   <SelectContent>
-                    <WorkOrderAssigneeSelectItems options={assignmentOptions} />
+                    <WorkOrderAssigneeSelectItems options={assignmentOptions as AssignmentOption[]} />
                   </SelectContent>
                 </Select>
               </div>

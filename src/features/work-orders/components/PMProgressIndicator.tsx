@@ -30,7 +30,7 @@ const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({
     }
 
     try {
-      const checklistItems = pmData.checklist_data as PMChecklistItem[];
+      const checklistItems = pmData.checklist_data as unknown as PMChecklistItem[];
       return checklistItems.map(item => ({
         id: item.id,
         status: getItemStatus(item),

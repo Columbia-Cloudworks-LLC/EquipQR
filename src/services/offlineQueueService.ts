@@ -609,10 +609,10 @@ export class OfflineQueueService {
 
     queue[idx] = {
       ...item,
-      payload: mergedPayload as OfflineQueueItem['payload'],
+      payload: mergedPayload,
       payloadSizeBytes: sizeBytes,
-      timestamp: Date.now(), // bump timestamp so it re-sorts on next compact
-    };
+      timestamp: Date.now(),
+    } as OfflineQueueItem;
 
     this.persist(queue);
     return true;

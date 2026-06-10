@@ -97,7 +97,7 @@ export async function compressImageFile(
       return compressed;
     }
     return new File([compressed], file.name, {
-      type: compressed.type || file.type,
+      type: (compressed as Blob).type || file.type,
       lastModified: Date.now(),
     });
   } catch (error) {

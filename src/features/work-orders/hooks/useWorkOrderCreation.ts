@@ -18,6 +18,7 @@ export interface CreateWorkOrderData {
   equipmentId: string;
   priority: 'low' | 'medium' | 'high';
   dueDate?: string;
+  estimatedHours?: number;
   equipmentWorkingHours?: number;
   hasPM?: boolean;
   pmTemplateId?: string;
@@ -110,7 +111,7 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: str
               .eq('id', data.pmTemplateId)
               .single();
             if (template) {
-              checklistData = template.template_data as PMChecklistItem[];
+              checklistData = template.template_data as unknown as PMChecklistItem[];
               notes = template.description || '';
             }
           }

@@ -25,7 +25,7 @@ export const SensitivePrivacySettings: React.FC<SensitivePrivacySettingsProps> =
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ limit_sensitive_pi: newValue } as Record<string, unknown>)
+        .update({ limit_sensitive_pi: newValue } as never)
         .eq('id', user.id);
 
       if (error) throw error;

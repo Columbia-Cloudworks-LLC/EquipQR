@@ -1,6 +1,6 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
-import { deleteImageFromStorage } from '@/services/imageUploadService';
+import { deleteImageFromStorage, type StorageBucket } from '@/services/imageUploadService';
 
 export async function rollbackNoteImageAfterSigningFailure(params: {
   bucket: string;
@@ -26,7 +26,7 @@ export async function rollbackNoteImageAfterSigningFailure(params: {
   }
 
   try {
-    await deleteImageFromStorage(params.bucket, params.storedPath);
+    await deleteImageFromStorage(params.bucket as StorageBucket, params.storedPath);
   } catch (cleanupError) {
     logger.error('Failed to delete orphaned storage object during rollback:', { ...ctx, error: cleanupError });
   }

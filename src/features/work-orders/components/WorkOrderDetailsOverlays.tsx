@@ -237,7 +237,9 @@ export function WorkOrderDetailsOverlays({
         onClose={onFieldAcceptDialogClose}
         workOrder={workOrder as unknown as WorkOrderLike}
         organizationId={organizationId}
-        onAccept={onFieldAcceptComplete}
+        onAccept={async () => {
+          onFieldAcceptComplete();
+        }}
       />
 
       {showMobileActionFooter && (

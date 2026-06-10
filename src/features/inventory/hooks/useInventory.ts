@@ -443,7 +443,11 @@ export const useBulkLinkEquipmentToItem = () => {
     },
     onSuccess: (result, variables) => {
       // Invalidate queries to refetch compatible equipment
-      invalidateEquipmentLinkQueries(queryClient, variables);
+      invalidateEquipmentLinkQueries(queryClient, {
+        organizationId: variables.organizationId,
+        itemId: variables.itemId,
+        equipmentId: variables.equipmentIds[0] ?? '',
+      });
       
       // Show summary toast with counts
       const { added, removed } = result;

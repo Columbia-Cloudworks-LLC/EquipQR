@@ -122,7 +122,7 @@ const PMComplianceWidget: React.FC = () => {
             <DonutWidgetDesktopChart
               data={chartData}
               totalCount={totalCount}
-              tooltipContent={tooltipContent}
+              tooltipContent={tooltipContent as unknown as React.ComponentProps<typeof DonutWidgetDesktopChart>['tooltipContent']}
               onSliceClick={handleSliceClick}
               legendLabelClassName="truncate text-muted-foreground"
               cellStrokeDasharray={(index) => (index % 2 === 0 ? '0' : '3 2')}

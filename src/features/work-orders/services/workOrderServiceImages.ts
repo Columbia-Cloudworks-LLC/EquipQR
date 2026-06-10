@@ -65,7 +65,7 @@ export async function fetchWorkOrderImagesForService(
         uploaded_by_name: uploader?.name || 'Unknown',
       };
     })
-    .filter((row): row is WorkOrderImage => row != null);
+    .filter((row): row is NonNullable<typeof row> => row != null) as WorkOrderImage[];
 }
 
 export async function uploadWorkOrderImageForService(

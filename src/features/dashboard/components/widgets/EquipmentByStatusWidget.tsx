@@ -103,7 +103,7 @@ const EquipmentByStatusWidget: React.FC = () => {
             <DonutWidgetDesktopChart
               data={chartData}
               totalCount={totalCount}
-              tooltipContent={tooltipContent}
+              tooltipContent={tooltipContent as unknown as React.ComponentProps<typeof DonutWidgetDesktopChart>['tooltipContent']}
               onSliceClick={handleSliceClick}
               centerLabel={<CenterLabel cx={80} cy={80} total={totalCount} />}
             />

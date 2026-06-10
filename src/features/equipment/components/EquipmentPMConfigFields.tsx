@@ -39,7 +39,9 @@ export function EquipmentPMConfigFields({
           {canEdit ? (
             <InlineEditField
               value={equipment.default_pm_template_id || 'none'}
-              onSave={onPMTemplateAssignment}
+              onSave={async (templateId) => {
+                await onPMTemplateAssignment(templateId);
+              }}
               canEdit={canEdit}
               fieldId={pmTemplateFieldId}
               type="select"

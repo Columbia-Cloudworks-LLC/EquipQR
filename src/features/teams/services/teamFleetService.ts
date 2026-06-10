@@ -67,7 +67,11 @@ export const getAccessibleTeams = async (
       throw error;
     }
     
-    return teams || [];
+    return (teams || []).map((team) => ({
+      ...team,
+      equipmentCount: 0,
+      hasLocationData: team.location_lat != null && team.location_lng != null,
+    }));
   } catch (error) {
     logger.error('Error in getAccessibleTeams', error);
     throw error;

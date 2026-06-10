@@ -126,7 +126,7 @@ export async function syncWorkOrderOfflineUpdate(
         safeUpdate.updated_at = new Date().toISOString();
         const { error } = await supabase
           .from('work_orders')
-          .update(safeUpdate)
+          .update(safeUpdate as never)
           .eq('id', workOrderId)
           .eq('organization_id', organizationId);
 

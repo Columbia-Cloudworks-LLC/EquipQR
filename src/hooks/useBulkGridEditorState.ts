@@ -21,7 +21,7 @@ export function useBulkGridEditorState<TField extends string, TValue>({
 }: BulkGridEditorHandlers<TField, TValue>) {
   return useBulkGridWorkspace<TField>({
     selectedRowIds,
-    fieldLabels,
+    fieldLabels: fieldLabels as Record<TField, string>,
     onSetCellValue: (rowId, field, value) => onSetCellValue(rowId, field, value as TValue),
     onSetCellValueOnRows: onSetCellValueOnRows
       ? (rowIds, field, value) => onSetCellValueOnRows(rowIds, field, value as TValue)

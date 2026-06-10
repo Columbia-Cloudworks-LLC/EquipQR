@@ -5,6 +5,7 @@ import { Users, Settings } from 'lucide-react';
 import { OrganizationSettings } from './OrganizationSettings';
 import UnifiedMembersList from './UnifiedMembersList';
 import { SessionOrganization } from '@/contexts/SessionContext';
+import type { OrganizationMember } from '@/features/organization/types/organization';
 
 interface MemberItem {
   id: string;
@@ -58,7 +59,7 @@ const OrganizationTabs: React.FC<OrganizationTabsProps> = ({
 
       <TabsContent value="members" className="space-y-4">
         <UnifiedMembersList
-          members={members}
+          members={members as OrganizationMember[]}
           organizationId={organizationId}
           currentUserRole={currentUserRole}
           isLoading={membersLoading}

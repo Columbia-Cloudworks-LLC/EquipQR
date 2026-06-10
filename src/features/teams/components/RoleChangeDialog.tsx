@@ -122,7 +122,7 @@ const RoleChangeDialog: React.FC<RoleChangeDialogProps> = ({
               <TeamRoleSelect
                 label="New Team Role *"
                 value={selectedRole}
-                onValueChange={setSelectedRole}
+                onValueChange={(value) => setSelectedRole(value as TeamRole | '')}
                 options={roleOptions}
                 required
               />

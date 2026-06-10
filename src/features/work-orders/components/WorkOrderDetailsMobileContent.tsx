@@ -19,7 +19,12 @@ import { MobileWorkOrderFieldNextAction } from '@/features/work-orders/component
 import type { EquipmentWithTeam } from '@/features/equipment/services/EquipmentService';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import type { PMChecklistStats } from '@/features/work-orders/utils/pmChecklistStats';
-import type { WorkOrder, WorkOrderEmbeddedEquipment, WorkOrderPriority, WorkOrderStatus } from '@/features/work-orders/types/workOrder';
+import type {
+  WorkOrder,
+  WorkOrderEmbeddedEquipment,
+  WorkOrderPriority,
+  WorkOrderStatus,
+} from '@/features/work-orders/types/workOrder';
 import type {
   OrganizationData,
   PermissionLevels,
@@ -291,7 +296,7 @@ export function WorkOrderDetailsMobileContent({
             <CollapsibleContent>
               <CardContent className="space-y-4 pt-0">
                 <WorkOrderDetailsPMInfo
-                  workOrder={workOrder}
+                  workOrder={workOrder as unknown as PMWorkOrderData}
                   pmData={pmData}
                   permissionLevels={permissionLevels as PermissionLevels}
                 />

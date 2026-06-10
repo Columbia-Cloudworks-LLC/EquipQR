@@ -53,7 +53,7 @@ export function useWorkOrderDetailsExports({
           }
         : null,
     ),
-    pmData,
+    pmData: pmData as import('@/features/pm-templates/services/preventativeMaintenanceService').PreventativeMaintenance | null | undefined,
     organizationName,
     teamId: equipment?.team_id,
   });

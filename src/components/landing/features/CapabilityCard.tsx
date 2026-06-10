@@ -1,8 +1,7 @@
+import React from 'react';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import type { LucideIcon } from 'lucide-react';
-
 interface CapabilityCardProps {
-  icon: LucideIcon;
+  icon: React.ComponentType<{ className?: string }>;
   name: string;
   description: string;
 }

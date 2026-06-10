@@ -11,7 +11,7 @@ export function flattenEquipmentRowsWithTeamName<T extends RowWithTeamJoin>(
   return (rows || []).map((row) => ({
     ...row,
     team_name: (row.team as { name?: string } | null | undefined)?.name ?? undefined,
-  })) as EquipmentWithTeam[];
+  })) as unknown as EquipmentWithTeam[];
 }
 
 export async function flattenAndResolveEquipmentImages<T extends RowWithTeamJoin>(

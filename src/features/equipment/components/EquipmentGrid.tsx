@@ -68,7 +68,7 @@ const EquipmentGrid: React.FC<EquipmentGridProps> = ({
   if (viewMode === 'table') {
     return (
       <EquipmentTable
-        equipment={equipment}
+        equipment={equipment as React.ComponentProps<typeof EquipmentTable>['equipment']}
         onShowQRCode={onShowQRCode}
         pmStatuses={pmStatuses}
         sortConfig={sortConfig}

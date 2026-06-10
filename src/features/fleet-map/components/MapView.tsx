@@ -275,7 +275,7 @@ const MapContent: React.FC<{
     () =>
       [
         ...filteredLocations.map((l) => `e:${l.id}`),
-        ...teamHQLocations.map((h) => `t:${h.teamId}`),
+        ...teamHQLocations.map((h) => `t:${h.id}`),
       ]
         .sort()
         .join('|'),

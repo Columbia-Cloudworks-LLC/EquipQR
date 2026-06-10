@@ -43,24 +43,24 @@ export function buildWorkOrderExportCountQuery(
   organizationId: string,
   filters: WorkOrderCountFilterInput,
 ) {
-  let query = orgScopedExportCountQuery('work_orders', organizationId, filters.status);
+  let query = orgScopedExportCountQuery('work_orders', organizationId, filters.status) as never;
   if (filters.workOrderId) {
-    query = query.eq('id', filters.workOrderId);
+    query = (query as { eq: (column: string, value: string) => never }).eq('id', filters.workOrderId);
   }
   if (filters.teamId) {
-    query = query.eq('team_id', filters.teamId);
+    query = (query as { eq: (column: string, value: string) => never }).eq('team_id', filters.teamId);
   }
   if (filters.priority) {
-    query = query.eq('priority', filters.priority as never);
+    query = (query as { eq: (column: string, value: string) => never }).eq('priority', filters.priority);
   }
 
   const dateField = (filters.dateField ?? 'created_date') as 'created_date' | 'due_date' | 'completed_date';
   if (filters.dateRange?.from) {
-    query = query.gte(dateField, filters.dateRange.from);
+    query = (query as { gte: (column: string, value: string) => never }).gte(dateField, filters.dateRange.from);
   }
   if (filters.dateRange?.to) {
-    query = query.lte(dateField, filters.dateRange.to);
+    query = (query as { lte: (column: string, value: string) => never }).lte(dateField, filters.dateRange.to);
   }
 
-  return query;
+  return query as ReturnType<typeof orgScopedExportCountQuery>;
 }

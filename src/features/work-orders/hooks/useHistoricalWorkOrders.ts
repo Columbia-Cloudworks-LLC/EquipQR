@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
 import { defaultForkliftChecklist } from '@/features/pm-templates/services/preventativeMaintenanceService';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database, Json } from '@/integrations/supabase/types';
 
 export interface HistoricalWorkOrderData {
   equipmentId: string;
@@ -62,9 +62,9 @@ export const useCreateHistoricalWorkOrder = (options?: { onSuccess?: (workOrder:
           p_pm_status: data.pmStatus || 'pending',
           p_pm_completion_date: data.pmCompletionDate,
           p_pm_notes: data.pmNotes,
-          p_pm_checklist_data: data.hasPM && (!data.pmChecklistData || data.pmChecklistData.length === 0) 
-            ? defaultForkliftChecklist 
-            : data.pmChecklistData || []
+          p_pm_checklist_data: (data.hasPM && (!data.pmChecklistData || data.pmChecklistData.length === 0)
+            ? defaultForkliftChecklist
+            : data.pmChecklistData || []) as Json,
         }
       );
 

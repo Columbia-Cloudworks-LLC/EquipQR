@@ -374,7 +374,7 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
     setIsGeneratingWorksheet(true);
 
     try {
-      const orgLogoUrl = (currentOrganization as Record<string, unknown> | null)?.logo as string | null ?? null;
+      const orgLogoUrl = (currentOrganization as unknown as Record<string, unknown> | null)?.logo as string | null ?? null;
 
       let teamImgUrl: string | null = null;
       if (teamId && organizationId) {

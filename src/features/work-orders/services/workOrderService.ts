@@ -85,9 +85,9 @@ export class WorkOrderService extends BaseService {
         }
       }
 
-      query = applyWorkOrderSupabaseFilters(query, filters, {
+      query = applyWorkOrderSupabaseFilters(query as never, filters, {
         overdueExcludeTerminalStatuses: true,
-      });
+      }) as typeof query;
 
       // Apply team filter - requires getting equipment IDs first
       if (filters.teamId && filters.teamId !== 'all') {

@@ -250,7 +250,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
 
     const { error } = await supabase
       .from('work_orders')
-      .update(updateData)
+      .update(updateData as never)
       .eq('id', workOrderId)
       .eq('organization_id', item.organizationId)
       .select()

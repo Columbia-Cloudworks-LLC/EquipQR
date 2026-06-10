@@ -144,7 +144,7 @@ export const DonutWidgetDesktopChart: React.FC<DonutWidgetDesktopChartProps> = (
             innerRadius={48}
             outerRadius={70}
             paddingAngle={2}
-            onClick={(entry) => onSliceClick(entry.status)}
+            onClick={(entry) => onSliceClick((entry as { status?: string }).status ?? '')}
           >
             {data.map((entry, index) => (
               <Cell

@@ -105,7 +105,7 @@ export const useWorkOrderForm = ({
     field: K, 
     value: WorkOrderFormData[K]
   ) => {
-    rhfSetValue(field, value, { shouldValidate: true, shouldDirty: true });
+    rhfSetValue(field, value as never, { shouldValidate: true, shouldDirty: true });
   }, [rhfSetValue]);
 
   // Create setValues adapter

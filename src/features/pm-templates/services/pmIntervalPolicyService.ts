@@ -235,7 +235,7 @@ export const pmIntervalPolicyService = {
       .eq('organization_id', organizationId)
       .eq('policy_slot', 'default');
 
-    query = applyScopeTargetFilter(query, filters);
+    query = applyScopeTargetFilter(query as never, filters) as typeof query;
 
     const { data, error } = await query.maybeSingle();
     if (error) throw error;
@@ -300,7 +300,7 @@ export const pmIntervalPolicyService = {
       .eq('organization_id', organizationId)
       .eq('policy_slot', 'default');
 
-    query = applyScopeTargetFilter(query, filters);
+    query = applyScopeTargetFilter(query as never, filters) as typeof query;
 
     const { error } = await query;
     if (error) throw error;

@@ -74,7 +74,7 @@ const EquipmentScanner: React.FC = () => {
     (raw: string, source: DecodeSource) => {
       if (handledDecodeRef.current) return;
       const parsed = parseEquipQRTarget(raw);
-      if (!parsed.ok) {
+      if (parsed.ok === false) {
         handledDecodeRef.current = true;
         stopScannerSafe();
         setPhase('error');
