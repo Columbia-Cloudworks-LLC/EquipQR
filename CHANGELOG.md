@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [3.8.6] - 2026-06-10
+
+### Fixed
+
+- **equipqr.info Help Center loads** — Returning visitors who still had the old EquipQR PWA service worker registered now receive a kill-switch worker that clears stranded caches and unregisters so equipqr.info serves the VitePress documentation site instead of the cached app shell.
+
 ## [3.8.5] - 2026-06-09
 
 ### Fixed
@@ -2010,7 +2016,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.5...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.6...HEAD
+[3.8.6]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.5...v3.8.6
 [3.8.5]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.4...v3.8.5
 [3.8.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.3...v3.8.4
 [3.8.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.2...v3.8.3
