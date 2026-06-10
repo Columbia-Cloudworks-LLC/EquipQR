@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
 import type { 
   TeamRow, 

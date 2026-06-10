@@ -52,7 +52,7 @@
     "coverage:merge": "node scripts/merge-coverage.mjs",
     "analyze": "npm run build && npx vite-bundle-analyzer",
     "size-check": "npx size-limit",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "deploy:vercel": "npx --yes vercel@51.6.1 --prod",
     "docs:dev": "npm --prefix docs run docs:dev",
     "docs:build": "npm --prefix docs run docs:build",

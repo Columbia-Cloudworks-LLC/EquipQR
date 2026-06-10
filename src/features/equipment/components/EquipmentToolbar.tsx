@@ -10,6 +10,8 @@ import EquipmentFilterPopover from './EquipmentFilterPopover';
 import EquipmentSortPopover from './EquipmentSortPopover';
 import EquipmentActionsMenu from './EquipmentActionsMenu';
 import type { EquipmentListToolbarProps } from '@/features/equipment/components/equipmentFilterTypes';
+import type { EquipmentFilters } from '@/features/equipment/hooks/useEquipmentFiltering';
+import type { EquipmentViewMode } from '@/features/equipment/components/EquipmentCard';
 
 type EquipmentToolbarProps = EquipmentListToolbarProps;
 

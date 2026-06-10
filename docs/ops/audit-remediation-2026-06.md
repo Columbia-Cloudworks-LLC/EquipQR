@@ -80,4 +80,13 @@ File-size discipline is good — almost nothing breaches the 1k-line rule, route
 
 ## Execution Summaries
 
-_Add phase completion notes here during execution._
+### Phase 0 — Done
+- Branch `chore/audit-remediation-2026-06` off `origin/preview`; draft PR #1031 opened.
+- Fallow health baseline: **77.3**.
+
+### Phase 1 — Blocked (stop condition)
+- Type gate rewired: removed `baseUrl` from `tsconfig.app.json`; `npm run type-check` now runs `tsc -p tsconfig.app.json` + `tsconfig.node.json`.
+- Four audit-known errors fixed (`ArrowLeft`, `Database`, `EquipmentViewMode`, `EquipmentFilters` imports).
+- **673 total errors** remain (311 production, 362 test). Stop threshold: 150.
+- Top codes: TS2345 (193), TS2322 (151), TS2339 (52), TS2352 (37), TS2551 (26).
+- **User decision needed:** batch-fix strategy (incremental vs. test exclusion vs. strictness tuning) before Phase 1 can complete and CI can adopt the new gate.
