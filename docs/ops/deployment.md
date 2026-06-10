@@ -22,6 +22,8 @@ Developer and operator documentation is published from this repository’s [`doc
 
 Keep **`equipqr.info` off the SPA project (`equipqr`)** — only the docs project should attach that hostname.
 
+**Stranded PWA service worker:** Visitors who loaded `equipqr.info` while it still served the SPA may retain the app's Workbox worker at scope `/`. Normal reloads then show the precached app shell under the docs URL; hard reload bypasses the worker. The docs project ships [`docs/public/sw.js`](../public/sw.js) as a kill-switch: on the next worker update check it clears all Cache Storage buckets, reloads open tabs, and unregisters. `docs/vercel.json` sets `Cache-Control: no-cache` on `/sw.js` so browsers pick up the script promptly. This fix deploys with `main` only (same branch gate as the docs site).
+
 **Build note:** Vercel installs dependencies from `docs/package.json` only. Because the monorepo root still has [`postcss.config.js`](../../postcss.config.js), PostCSS can walk up and load the root config unless a scoped file exists. The docs project ships [`docs/postcss.config.js`](../postcss.config.js) (same plugin list as root) and pins `@tailwindcss/postcss`, `tailwindcss`, and `postcss` under [`docs/package.json`](../package.json). Tailwind is also wired in [`docs/.vitepress/config.ts`](../.vitepress/config.ts) for local dev.
 
 **Local footer testing:** Run `.\dev-start.bat` to start the product app and docs site together. In local Vite dev mode, the app footer’s Documentation link defaults to `http://localhost:5174`; production builds default to `https://equipqr.info`. Set `VITE_DOCUMENTATION_URL` when you need to test a different docs preview URL, such as `http://localhost:4173` after running `npm run docs:build` and then `npm run docs:preview`.
