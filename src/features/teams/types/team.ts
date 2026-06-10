@@ -83,6 +83,8 @@ export type ExternalContactListRow = Omit<ExternalContactRow, 'source_payload'>;
  * Used when displaying team details or editing
  */
 export interface TeamWithMembers extends TeamRow {
+  customer_name?: string | null;
+  quickbooks_synced_at?: string | null;
   members: Array<TeamMemberRow & {
     profiles: {
       name: string;

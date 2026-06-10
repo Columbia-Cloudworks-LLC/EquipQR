@@ -58,7 +58,9 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
       notification,
       organizationId,
       navigate,
-      switchOrganization,
+      switchOrganization: async (orgId) => {
+        switchOrganization(orgId);
+      },
     });
   };
 
@@ -118,36 +120,37 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ organizationId }) =
           <ScrollArea className="h-96">
             <div className="space-y-1">
               {recentNotifications.map((notification) => {
-                const hasAction = notificationHasNavigableAction(notification);
-                const isTransferRequest = notification.type === 'ownership_transfer_request' || notification.type === 'workspace_merge_request';
+                const typedNotification = notification as Notification;
+                const hasAction = notificationHasNavigableAction(typedNotification);
+                const isTransferRequest = typedNotification.type === 'ownership_transfer_request' || typedNotification.type === 'workspace_merge_request';
                 
                 return (
                   <DropdownMenuItem
-                    key={notification.id}
+                    key={typedNotification.id}
                     className={`p-3 cursor-pointer ${
-                      notification.read ? 'opacity-60' : ''
-                    } ${isTransferRequest && !notification.read ? 'bg-primary/5 border-l-2 border-primary' : ''}`}
-                    onClick={() => handleNotificationClick(notification)}
+                      typedNotification.read ? 'opacity-60' : ''
+                    } ${isTransferRequest && !typedNotification.read ? 'bg-primary/5 border-l-2 border-primary' : ''}`}
+                    onClick={() => handleNotificationClick(typedNotification)}
                   >
                     <div className="flex gap-3 w-full">
                       <div className="text-lg flex-shrink-0">
-                        {getNotificationEmoji(notification.type)}
+                        {getNotificationEmoji(typedNotification.type)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <p className="text-sm font-medium truncate">
-                            {notification.title}
+                            {typedNotification.title}
                           </p>
-                          {!notification.read && (
+                          {!typedNotification.read && (
                             <div className="h-2 w-2 bg-primary rounded-full flex-shrink-0 mt-2" />
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                          {notification.message}
+                          {typedNotification.message}
                         </p>
                         <div className="flex items-center justify-between mt-1">
                           <p className="text-xs text-muted-foreground">
-                            {format(new Date(notification.created_at), 'MMM d, h:mm a')}
+                            {format(new Date(typedNotification.created_at), 'MMM d, h:mm a')}
                           </p>
                           {hasAction && (
                             <span className="text-xs text-primary font-medium">

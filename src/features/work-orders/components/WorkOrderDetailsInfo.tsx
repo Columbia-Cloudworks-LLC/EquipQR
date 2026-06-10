@@ -9,6 +9,8 @@ import { Wrench, FileText, ChevronDown, MapPin, Forklift } from 'lucide-react';
 import { GoogleMap, MarkerF } from '@react-google-maps/api';
 import { Equipment } from '@/services/supabaseDataService';
 import type { WorkOrder as EnhancedWorkOrder } from '@/features/work-orders/types/workOrder';
+import type { WorkOrderEmbeddedEquipment } from '@/features/work-orders/types/workOrder';
+import type { EquipmentWithTeam } from '@/features/equipment/services/EquipmentService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { useEquipmentCurrentWorkingHours } from '@/features/equipment/hooks/useEquipmentWorkingHours';
@@ -19,7 +21,7 @@ import type { EffectiveLocation } from '@/utils/effectiveLocation';
 
 interface WorkOrderDetailsInfoProps {
   workOrder: EnhancedWorkOrder;
-  equipment: Equipment | null;
+  equipment: Equipment | EquipmentWithTeam | WorkOrderEmbeddedEquipment | null;
   effectiveLocation?: EffectiveLocation | null;
 }
 

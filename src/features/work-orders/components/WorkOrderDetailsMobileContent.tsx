@@ -19,7 +19,12 @@ import { MobileWorkOrderFieldNextAction } from '@/features/work-orders/component
 import type { EquipmentWithTeam } from '@/features/equipment/services/EquipmentService';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import type { PMChecklistStats } from '@/features/work-orders/utils/pmChecklistStats';
-import type { WorkOrder, WorkOrderEmbeddedEquipment } from '@/features/work-orders/types/workOrder';
+import type { WorkOrder, WorkOrderEmbeddedEquipment, WorkOrderPriority, WorkOrderStatus } from '@/features/work-orders/types/workOrder';
+import type {
+  OrganizationData,
+  PermissionLevels,
+  WorkOrderData as PMWorkOrderData,
+} from '@/features/work-orders/types/workOrderDetails';
 import type {
   AssigneeNameSummary,
   TeamSummary,
@@ -60,7 +65,7 @@ export interface WorkOrderDetailsMobileContentProps {
     pendingCount: number;
     failedCount: number;
   };
-  compactWorkOrderSummary: { status: string; priority: string; due_date?: string | null };
+  compactWorkOrderSummary: { status: WorkOrderStatus; priority: WorkOrderPriority; due_date?: string | null };
   compactEquipmentSummary?: { id: string; name: string; status: string };
   teamSummary?: TeamSummary;
   assigneeNameSummary?: AssigneeNameSummary;
@@ -119,6 +124,16 @@ export function WorkOrderDetailsMobileContent({
   onComplete,
   onRetrySync,
 }: WorkOrderDetailsMobileContentProps) {
+  const pmWorkOrder = workOrder as unknown as PMWorkOrderData;
+  const pmOrganization: OrganizationData = {
+    id: currentOrganization.id,
+    name: currentOrganization.name,
+    plan: 'free',
+    memberCount: 0,
+    maxMembers: 0,
+    features: [],
+  };
+
   return (
     <>
       <MobileWorkOrderCompactSummary
@@ -136,7 +151,7 @@ export function WorkOrderDetailsMobileContent({
             due_date: workOrder.due_date ?? undefined,
             estimated_hours: workOrder.estimated_hours ?? undefined,
             has_pm: workOrder.has_pm ?? undefined,
-            pm_status: pmData?.status,
+            pm_status: pmData?.status as 'pending' | 'in_progress' | 'completed' | 'cancelled' | undefined,
             pm_progress: pmChecklist.progress,
             pm_total: pmChecklist.total,
           }}
@@ -205,11 +220,11 @@ export function WorkOrderDetailsMobileContent({
                 }}
                 readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
                 isAdmin={permissionLevels.isManager}
-                workOrder={workOrder}
+                workOrder={pmWorkOrder}
                 equipment={equipment}
-                team={workOrder.team}
-                organization={currentOrganization}
-                assignee={workOrder.assignee}
+                team={workOrder.team ?? undefined}
+                organization={pmOrganization}
+                assignee={mobileAssigneeSummary}
               />
             )}
             {pmLoading && <WorkOrderPMChecklistLoadingCard />}
@@ -278,7 +293,7 @@ export function WorkOrderDetailsMobileContent({
                 <WorkOrderDetailsPMInfo
                   workOrder={workOrder}
                   pmData={pmData}
-                  permissionLevels={permissionLevels}
+                  permissionLevels={permissionLevels as PermissionLevels}
                 />
 
                 <WorkOrderTimeline

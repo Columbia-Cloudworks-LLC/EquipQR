@@ -12,13 +12,15 @@ export function normalizeAuditDateTo(dateTo: string): string {
   return endDate.toISOString();
 }
 
-export function applyAuditFilters<T>(query: T, filters?: AuditLogFilters): T {
-  let filteredQuery = query as T & {
+export function applyAuditFilters<
+  T extends {
     eq: (column: string, value: string) => T;
     gte: (column: string, value: string) => T;
     lt: (column: string, value: string) => T;
     or: (query: string) => T;
-  };
+  },
+>(query: T, filters?: AuditLogFilters): T {
+  let filteredQuery = query;
 
   if (filters?.entityType && filters.entityType !== 'all') {
     filteredQuery = filteredQuery.eq('entity_type', filters.entityType);

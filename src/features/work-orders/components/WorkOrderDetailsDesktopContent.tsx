@@ -13,6 +13,11 @@ import {
 import type { EquipmentWithTeam } from '@/features/equipment/services/EquipmentService';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import type { WorkOrder, WorkOrderEmbeddedEquipment } from '@/features/work-orders/types/workOrder';
+import type {
+  OrganizationData,
+  PermissionLevels,
+  WorkOrderData as PMWorkOrderData,
+} from '@/features/work-orders/types/workOrderDetails';
 
 type StaggerProps = (index: number) => {
   className?: string;
@@ -71,12 +76,22 @@ export function WorkOrderDetailsDesktopContent({
   stagger,
   onPMUpdate,
 }: WorkOrderDetailsDesktopContentProps) {
+  const pmWorkOrder = workOrder as unknown as PMWorkOrderData;
+  const pmOrganization: OrganizationData = {
+    id: currentOrganization.id,
+    name: currentOrganization.name,
+    plan: 'free',
+    memberCount: 0,
+    maxMembers: 0,
+    features: [],
+  };
+
   return (
     <>
       <div {...stagger(0)}>
         <WorkOrderDetailsInfo
           workOrder={workOrder}
-          equipment={equipment}
+          equipment={equipment ?? null}
           effectiveLocation={workOrder.effectiveLocation}
         />
       </div>
@@ -102,11 +117,11 @@ export function WorkOrderDetailsDesktopContent({
                 onUpdate={onPMUpdate}
                 readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
                 isAdmin={permissionLevels.isManager}
-                workOrder={workOrder}
+                workOrder={pmWorkOrder}
                 equipment={equipment}
-                team={teamData}
-                organization={currentOrganization}
-                assignee={assigneeData}
+                team={teamData?.name ? { name: teamData.name } : undefined}
+                organization={pmOrganization}
+                assignee={assigneeData?.name ? { name: assigneeData.name } : undefined}
               />
             </div>
           )}
@@ -121,9 +136,9 @@ export function WorkOrderDetailsDesktopContent({
 
       <div {...stagger(3)}>
         <WorkOrderDetailsPMInfo
-          workOrder={workOrder}
+          workOrder={pmWorkOrder}
           pmData={pmData}
-          permissionLevels={permissionLevels}
+          permissionLevels={permissionLevels as PermissionLevels}
         />
       </div>
 

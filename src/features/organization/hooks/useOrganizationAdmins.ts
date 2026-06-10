@@ -6,9 +6,18 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
 import type { OrganizationAdmin } from '@/features/organization/types/organization';
+
+type OrganizationAdminMemberRow = {
+  user_id: string;
+  role: string;
+  profiles: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+};
 
 /**
  * Hook for fetching organization admins (owners and admins)
@@ -21,9 +30,7 @@ export const useOrganizationAdmins = (organizationId: string) => {
 
       const { data, error } = await supabase
         .from('organization_members')
-        .select<(Database['public']['Tables']['organization_members']['Row'] & {
-          profiles: Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'name' | 'email'> | null;
-        })>(`
+        .select(`
           user_id,
           role,
           profiles:user_id (
@@ -41,7 +48,7 @@ export const useOrganizationAdmins = (organizationId: string) => {
         return [];
       }
 
-      return (data || []).map((member) => ({
+      return ((data || []) as OrganizationAdminMemberRow[]).map((member) => ({
         id: member.user_id,
         name: member.profiles?.name ?? 'Unknown',
         email: member.profiles?.email ?? '',

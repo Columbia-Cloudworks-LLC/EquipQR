@@ -112,9 +112,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     return;
                   }
 
-                  supabase.rpc('apply_pending_admin_grants_for_user', {
-                    p_user_id: userIdAtSignIn,
-                  })
+                  void Promise.resolve(
+                    supabase.rpc('apply_pending_admin_grants_for_user', {
+                      p_user_id: userIdAtSignIn,
+                    }),
+                  )
                     .then(() => {
                       localStorage.setItem(adminGrantsCacheKey, String(Date.now()));
                     })

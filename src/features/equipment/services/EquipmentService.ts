@@ -133,7 +133,17 @@ export interface EquipmentListResult {
  */
 const MAX_LIST_PAGE_SIZE = 200;
 
-type EquipmentListQuery = ReturnType<ReturnType<typeof supabase.from>['select']>;
+type EquipmentListQuery = {
+  gte: (column: string, value: string) => EquipmentListQuery;
+  lte: (column: string, value: string) => EquipmentListQuery;
+  lt: (column: string, value: string) => EquipmentListQuery;
+  gt: (column: string, value: string) => EquipmentListQuery;
+  eq: (column: string, value: string) => EquipmentListQuery;
+  in: (column: string, values: readonly string[]) => EquipmentListQuery;
+  is: (column: string, value: null) => EquipmentListQuery;
+  order: (column: string, options: { ascending: boolean }) => EquipmentListQuery;
+  range: (from: number, to: number) => EquipmentListQuery;
+};
 type EquipmentListPagination = {
   page?: number;
   pageSize?: number;
@@ -487,8 +497,8 @@ export class EquipmentService {
         query = query.eq('team_id', filters.team);
       }
 
-      query = applyEquipmentListDateFilters(query, filters);
-      query = applyWarrantyExpiringFilter(query, filters);
+      query = applyEquipmentListDateFilters(query as unknown as EquipmentListQuery, filters) as typeof query;
+      query = applyWarrantyExpiringFilter(query as unknown as EquipmentListQuery, filters) as typeof query;
 
       const { sortField, sortDirection } = getEquipmentListSort(pagination);
       query = query.order(sortField, { ascending: sortDirection !== 'desc' });
@@ -812,9 +822,13 @@ export class EquipmentService {
         return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
-      const notes: EquipmentNote[] = (data || []).map(note => ({
+      type EquipmentNoteRow = Tables<'notes'> & {
+        author?: { name?: string } | null;
+      };
+
+      const notes: EquipmentNote[] = ((data || []) as EquipmentNoteRow[]).map((note) => ({
         ...note,
-        authorName: (note.author as { name?: string } | null | undefined)?.name || 'Unknown'
+        authorName: note.author?.name || 'Unknown'
       }));
 
       return createServiceSuccessResponse(notes);
@@ -840,9 +854,13 @@ export class EquipmentService {
         return createServiceErrorResponse(error, 'EquipmentService error');
       }
 
-      const scans: EquipmentScan[] = (data || []).map(scan => ({
+      type EquipmentScanRow = Tables<'scans'> & {
+        scanned_by_profile?: { name?: string } | null;
+      };
+
+      const scans: EquipmentScan[] = ((data || []) as EquipmentScanRow[]).map((scan) => ({
         ...scan,
-        scannedByName: (scan.scanned_by_profile as { name?: string } | null | undefined)?.name || 'Unknown'
+        scannedByName: scan.scanned_by_profile?.name || 'Unknown'
       }));
 
       return createServiceSuccessResponse(scans);

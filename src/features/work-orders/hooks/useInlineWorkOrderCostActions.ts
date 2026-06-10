@@ -30,7 +30,15 @@ type UseInlineWorkOrderCostActionsParams = {
   resetCosts: (costs: WorkOrderCost[]) => void;
   resetCostsWithMinimum: (costs: WorkOrderCost[]) => void;
   removeCost: (id: string) => void;
-  addFilledCost: (cost: WorkOrderCostItem) => void;
+  addFilledCost: (cost: {
+    id: string;
+    work_order_id: string;
+    description: string;
+    quantity: number;
+    unit_price_cents: number;
+    inventory_item_id?: string;
+    original_quantity?: number;
+  }) => void;
 };
 
 export function useInlineWorkOrderCostActions({
@@ -176,7 +184,7 @@ export function useInlineWorkOrderCostActions({
           toast({
             title: 'Error',
             description: 'Failed to fetch inventory item details',
-            variant: 'destructive',
+            variant: 'error',
           });
           return;
         }
@@ -251,14 +259,14 @@ export function useInlineWorkOrderCostActions({
             toast({
               title: 'Cannot add part',
               description: `Insufficient stock: Only ${match[2]} unit(s) available, but ${match[1]} requested. The quantity may have changed since you selected this item.`,
-              variant: 'destructive',
+              variant: 'error',
             });
           } else {
             toast({
               title: 'Cannot add part',
               description:
                 'Insufficient stock available. The quantity may have changed since you selected this item.',
-              variant: 'destructive',
+              variant: 'error',
             });
           }
         }
@@ -284,7 +292,7 @@ export function useInlineWorkOrderCostActions({
       toast({
         title: 'Invalid hours',
         description: 'Enter billable hours greater than zero.',
-        variant: 'destructive',
+        variant: 'error',
       });
       return;
     }
@@ -292,7 +300,7 @@ export function useInlineWorkOrderCostActions({
       toast({
         title: 'Invalid rate',
         description: 'Enter a valid hourly rate (0 or more).',
-        variant: 'destructive',
+        variant: 'error',
       });
       return;
     }
