@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.8.4] - 2026-06-09
+
+### Fixed
+
+- **Equipment details mobile inline edit** — Edit buttons stay pinned to the card edge on narrow screens so controls remain reachable without overlapping field values; desktop hover-to-reveal editing is unchanged.
+
+### Changed
+
+- **Equipment details inline editing** — Shared edit-row and icon styling across basic info, identity, location, lifecycle, maintenance notes, custom attributes, and PM schedule fields for consistent layout on phones and tablets.
+
 ## [3.8.3] - 2026-06-08
 
 ### Added
@@ -1993,7 +2003,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.3...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.4...HEAD
+[3.8.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.3...v3.8.4
 [3.8.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.2...v3.8.3
 [3.8.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.1...v3.8.2
 [3.8.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.0...v3.8.1

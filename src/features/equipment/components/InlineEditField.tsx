@@ -8,6 +8,14 @@ import { Check, X, Edit2 } from 'lucide-react';
 import { logger } from '@/utils/logger';
 import { cn } from '@/lib/utils';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  desktopHoverEditIconClassName,
+  desktopInlineEditRowClassName,
+  inlineEditIconClassName,
+  mobileInlineEditRowClassName,
+  mobileInlineEditValueClassName,
+} from './inlineEditStyles';
 
 /** Empty inline field: em dash in body style, not monospace (overrides parent font-mono on SKU/external ID). */
 function EmptyFieldDisplay({ className }: { className?: string }) {
@@ -53,6 +61,7 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
   editAriaLabel
 }) => {
   const { formatDate } = useFormatTimestamp();
+  const isMobile = useIsMobile();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
   const [isSaving, setIsSaving] = useState(false);
@@ -129,18 +138,27 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
     return <span className={className}>{resolvedDisplayNode}</span>;
   }
 
+  const editLabel = editAriaLabel ?? 'Edit';
+
   if (!isEditing) {
     return (
-      <div className={`group flex items-center gap-2 ${className}`}>
-        <span>{resolvedDisplayNode}</span>
+      <div
+        className={cn(
+          isMobile ? mobileInlineEditRowClassName : desktopInlineEditRowClassName,
+          className,
+        )}
+      >
+        <span className={cn(isMobile && mobileInlineEditValueClassName, !isMobile && 'min-w-0')}>
+          {resolvedDisplayNode}
+        </span>
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+          className={isMobile ? inlineEditIconClassName : desktopHoverEditIconClassName}
           onClick={() => setIsEditing(true)}
-          aria-label={editAriaLabel ?? 'Edit'}
+          aria-label={editLabel}
         >
-          <Edit2 className="h-3 w-3" />
+          <Edit2 className="h-3.5 w-3.5" />
         </Button>
       </div>
     );

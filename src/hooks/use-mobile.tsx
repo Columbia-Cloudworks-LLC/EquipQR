@@ -1,15 +1,22 @@
 import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768
+const MOBILE_QUERY = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`
 
 const getServerSnapshot = () => false
 
 function getSnapshot() {
-  return window.innerWidth < MOBILE_BREAKPOINT
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false
+  }
+  return window.matchMedia(MOBILE_QUERY).matches
 }
 
 function subscribe(callback: () => void) {
-  const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return () => undefined
+  }
+  const mql = window.matchMedia(MOBILE_QUERY)
   mql.addEventListener("change", callback)
   return () => mql.removeEventListener("change", callback)
 }

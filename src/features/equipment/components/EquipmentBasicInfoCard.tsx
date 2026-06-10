@@ -12,6 +12,7 @@ import { EquipmentLocationField } from './EquipmentLocationField';
 import type { EquipmentTeamSummary } from '@/features/equipment/services/EquipmentService';
 import { EQUIPMENT_STATUS_OPTIONS, getStatusColor } from '@/features/equipment/utils/equipmentHelpers';
 import type { PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
+import { mobileInlineEditIconRowClassName } from './inlineEditStyles';
 
 type Equipment = Tables<'equipment'>;
 
@@ -31,7 +32,7 @@ function EquipmentDescriptionField({
       <label htmlFor={descriptionFieldId} className="text-sm font-medium text-muted-foreground">
         Description
       </label>
-      <div className="mt-1">
+      <div className="mt-1 w-full">
         <InlineEditField
           value={value}
           onSave={onSave}
@@ -39,7 +40,7 @@ function EquipmentDescriptionField({
           fieldId={descriptionFieldId}
           type="textarea"
           placeholder="Enter equipment description"
-          className="text-base"
+          className="w-full text-base"
           editAriaLabel="Edit description"
         />
       </div>
@@ -118,14 +119,14 @@ export function EquipmentBasicInfoCard({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor={nameFieldId} className="text-sm font-medium text-muted-foreground">Name</label>
-            <div className="mt-1">
+            <div className="mt-1 w-full">
               <InlineEditField
                 value={equipment.name || ''}
                 onSave={(value) => onFieldUpdate('name', value)}
                 canEdit={canEdit}
                 fieldId={nameFieldId}
                 placeholder="Enter equipment name"
-                className="text-base"
+                className="w-full text-base"
                 editAriaLabel="Edit name"
               />
             </div>
@@ -133,7 +134,7 @@ export function EquipmentBasicInfoCard({
 
           <div>
             <label htmlFor={statusFieldId} className="text-sm font-medium text-muted-foreground">Status</label>
-            <div className="mt-1">
+            <div className="mt-1 w-full">
               {canEdit ? (
                 <InlineEditField
                   value={equipment.status || 'active'}
@@ -142,7 +143,7 @@ export function EquipmentBasicInfoCard({
                   fieldId={statusFieldId}
                   type="select"
                   selectOptions={[...EQUIPMENT_STATUS_OPTIONS]}
-                  className="text-base"
+                  className="w-full text-base"
                   editAriaLabel="Edit status"
                 />
               ) : (
@@ -182,8 +183,8 @@ export function EquipmentBasicInfoCard({
 
           <div>
             <label htmlFor={assignedTeamFieldId} className="text-sm font-medium text-muted-foreground">Assigned Team</label>
-            <div className="mt-1 flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
+            <div className={mobileInlineEditIconRowClassName}>
+              <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
               {canAssignTeams ? (
                 <InlineEditField
                   value={equipment.team_id || 'unassigned'}
@@ -193,11 +194,11 @@ export function EquipmentBasicInfoCard({
                   type="select"
                   selectOptions={teamOptions}
                   placeholder="Select team"
-                  className="text-base"
+                  className="min-w-0 flex-1 text-base"
                   editAriaLabel="Edit assigned team"
                 />
               ) : (
-                <span className="text-base text-foreground">
+                <span className="min-w-0 flex-1 text-base text-foreground">
                   {getCurrentTeamDisplay()}
                 </span>
               )}
@@ -221,16 +222,14 @@ export function EquipmentBasicInfoCard({
             </div>
           </div>
 
-          {!isMobile && (
-            <EquipmentIdentityFields
-              equipment={equipment}
-              canEdit={canEdit}
-              manufacturerFieldId={manufacturerFieldId}
-              modelFieldId={modelFieldId}
-              serialNumberFieldId={serialNumberFieldId}
-              onFieldUpdate={onFieldUpdate}
-            />
-          )}
+          <EquipmentIdentityFields
+            equipment={equipment}
+            canEdit={canEdit}
+            manufacturerFieldId={manufacturerFieldId}
+            modelFieldId={modelFieldId}
+            serialNumberFieldId={serialNumberFieldId}
+            onFieldUpdate={onFieldUpdate}
+          />
         </div>
 
         {!isMobile && (
@@ -247,20 +246,11 @@ export function EquipmentBasicInfoCard({
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="w-full justify-center gap-1.5 text-muted-foreground">
                 <ChevronDown className={`h-4 w-4 transition-transform ${showAllBasicInfo ? 'rotate-180' : ''}`} />
-                {showAllBasicInfo ? 'Show less' : 'Show all details'}
+                {showAllBasicInfo ? 'Hide description' : 'Show description'}
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="grid grid-cols-1 gap-4 pt-4 border-t mt-2">
-                <EquipmentIdentityFields
-                  equipment={equipment}
-                  canEdit={canEdit}
-                  manufacturerFieldId={manufacturerFieldId}
-                  modelFieldId={modelFieldId}
-                  serialNumberFieldId={serialNumberFieldId}
-                  onFieldUpdate={onFieldUpdate}
-                />
-
+              <div className="pt-4 border-t mt-2">
                 <EquipmentDescriptionField
                   descriptionFieldId={descriptionFieldId}
                   value={equipment.notes || ''}

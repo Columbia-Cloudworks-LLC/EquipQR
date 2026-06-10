@@ -44,7 +44,7 @@ export function EquipmentLifecycleCard({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor={installationDateFieldId} className="text-sm font-medium text-muted-foreground">Installation Date</label>
-            <div className="mt-1">
+            <div className="mt-1 w-full">
               <InlineEditField
                 value={formatDateForInput(equipment.installation_date)}
                 onSave={(value) => onFieldUpdate('installation_date', value)}
@@ -52,7 +52,7 @@ export function EquipmentLifecycleCard({
                 fieldId={installationDateFieldId}
                 type="date"
                 placeholder="Select installation date"
-                className="text-base"
+                className="w-full text-base"
                 editAriaLabel="Edit installation date"
               />
             </div>
@@ -60,7 +60,7 @@ export function EquipmentLifecycleCard({
 
           <div>
             <label htmlFor={warrantyExpirationFieldId} className="text-sm font-medium text-muted-foreground">Warranty Expiration</label>
-            <div className="mt-1">
+            <div className="mt-1 w-full">
               <InlineEditField
                 value={formatDateForInput(equipment.warranty_expiration)}
                 onSave={(value) => onFieldUpdate('warranty_expiration', value)}
@@ -68,7 +68,7 @@ export function EquipmentLifecycleCard({
                 fieldId={warrantyExpirationFieldId}
                 type="date"
                 placeholder="Select warranty expiration date"
-                className="text-base"
+                className="w-full text-base"
                 editAriaLabel="Edit warranty expiration"
               />
             </div>
@@ -76,7 +76,7 @@ export function EquipmentLifecycleCard({
 
           <div>
             <label htmlFor={maintenanceDateFieldId} className="text-sm font-medium text-muted-foreground">Last Maintenance</label>
-            <div className="mt-1">
+            <div className="mt-1 w-full">
               <InlineEditField
                 value={formatDateForInput(equipment.last_maintenance)}
                 onSave={(value) => onFieldUpdate('last_maintenance', value)}
@@ -84,7 +84,7 @@ export function EquipmentLifecycleCard({
                 fieldId={maintenanceDateFieldId}
                 type="date"
                 placeholder="Select last maintenance date"
-                className="text-base"
+                className="w-full text-base"
                 editAriaLabel="Edit last maintenance"
                 displayNode={
                   lastMaintenanceLink ? (

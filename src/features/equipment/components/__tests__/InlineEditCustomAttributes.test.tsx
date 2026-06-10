@@ -16,6 +16,23 @@ describe('InlineEditCustomAttributes', () => {
   });
 
   describe('Core Rendering', () => {
+    it('keeps the edit trigger visible through mobile widths and uses md hover reveal', () => {
+      render(
+        <InlineEditCustomAttributes
+          attributes={mockAttributes}
+          onSave={mockOnSave}
+          canEdit={true}
+        />
+      );
+
+      const editButton = screen.getByLabelText('Edit custom attributes');
+      expect(editButton.className).toContain('h-11');
+      expect(editButton.className).toContain('md:opacity-0');
+      expect(editButton.className).toContain('md:group-hover:opacity-100');
+      expect(editButton.className).not.toContain('sm:opacity-0');
+      expect(editButton.className).not.toContain('sm:group-hover:opacity-100');
+    });
+
     it('renders custom attributes', () => {
       render(
         <InlineEditCustomAttributes 

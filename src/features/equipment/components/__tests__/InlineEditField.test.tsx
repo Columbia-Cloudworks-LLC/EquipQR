@@ -3,12 +3,21 @@ import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import InlineEditField from '../InlineEditField';
 
+vi.mock('@/hooks/use-mobile', () => ({
+  useIsMobile: vi.fn(() => false),
+}));
+
+import { useIsMobile } from '@/hooks/use-mobile';
+
+const mockUseIsMobile = vi.mocked(useIsMobile);
+
 describe('InlineEditField', () => {
   const mockOnSave = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockOnSave.mockResolvedValue(undefined);
+    mockUseIsMobile.mockReturnValue(false);
   });
 
   describe('Display Mode', () => {
@@ -308,7 +317,8 @@ describe('InlineEditField', () => {
       expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
     });
 
-    it('keeps the hover-reveal classes on the edit trigger so opacity behavior is unchanged', () => {
+    it('anchors the edit trigger on the right on mobile', () => {
+      mockUseIsMobile.mockReturnValue(true);
       render(
         <InlineEditField
           value="Active"
@@ -319,8 +329,24 @@ describe('InlineEditField', () => {
       );
 
       const editButton = screen.getByRole('button', { name: 'Edit status' });
-      expect(editButton.className).toContain('opacity-0');
-      expect(editButton.className).toContain('group-hover:opacity-100');
+      expect(editButton.parentElement?.className).toContain('justify-between');
+      expect(editButton.className).toContain('h-11');
+    });
+
+    it('keeps desktop hover-reveal on the edit icon', () => {
+      mockUseIsMobile.mockReturnValue(false);
+      render(
+        <InlineEditField
+          value="Active"
+          onSave={mockOnSave}
+          canEdit={true}
+          editAriaLabel="Edit status"
+        />
+      );
+
+      const desktopEditIcon = screen.getByRole('button', { name: 'Edit status' });
+      expect(desktopEditIcon.className).toContain('opacity-0');
+      expect(desktopEditIcon.className).toContain('group-hover:opacity-100');
     });
   });
 });

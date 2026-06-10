@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import { Edit2, Check, X } from 'lucide-react';
+import { responsiveHoverEditIconClassName } from './inlineEditStyles';
 import CustomAttributesSection from './CustomAttributesSection';
 import { CustomAttributesReadOnlyGrid } from '@/features/equipment/components/CustomAttributesReadOnlyGrid';
 import type { CustomAttribute } from '@/hooks/useCustomAttributes';
@@ -69,17 +69,17 @@ const InlineEditCustomAttributes: React.FC<InlineEditCustomAttributesProps> = ({
 
   if (!isEditing) {
     return (
-      <div className="group">
-        <div className="flex items-center justify-between mb-4">
+      <div>
+        <div className="group flex items-center justify-between mb-4">
           <h4 className="text-sm font-medium">Custom Attributes</h4>
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            className={responsiveHoverEditIconClassName}
             onClick={handleStartEdit}
             aria-label="Edit custom attributes"
           >
-            <Edit2 className="h-3 w-3" />
+            <Edit2 className="h-3.5 w-3.5" />
           </Button>
         </div>
         {Object.keys(attributesData).length > 0 ? (
