@@ -15,6 +15,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { WorkOrderService } from '@/features/work-orders/services/workOrderService';
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
 import { updateEquipmentWorkingHours } from '@/features/equipment/services/equipmentWorkingHoursService';
@@ -44,6 +45,9 @@ import {
   updatePM,
   deletePM,
 } from '@/features/pm-templates/services/preventativeMaintenanceService';
+
+type WorkOrderUpdate = Database['public']['Tables']['work_orders']['Update'];
+type OfflineEntity = { id: string; [key: string]: unknown };
 
 // ─── Result type ─────────────────────────────────────────────────────────────
 
@@ -115,7 +119,7 @@ export class OfflineAwareWorkOrderService {
         throw new Error(response.error || 'Failed to create work order');
       }
 
-      return { data: response.data, queuedOffline: false };
+      return { data: response.data as OfflineEntity, queuedOffline: false };
     } catch (error) {
       // Fallback: if it's a network error, queue locally
       if (isNetworkError(error)) {
@@ -178,7 +182,7 @@ export class OfflineAwareWorkOrderService {
 
     // ── TIER 2: Attempt real call ──
     try {
-      const updateData: Record<string, unknown> = {
+      const updateData: WorkOrderUpdate = {
         status: newStatus,
         updated_at: new Date().toISOString(),
       };
@@ -299,7 +303,7 @@ export class OfflineAwareWorkOrderService {
     try {
       const result = await EquipmentService.createQuick(this.orgId, data);
       if (!result.success || !result.data) throw new Error(result.error || 'Failed to create equipment');
-      return { data: result.data, queuedOffline: false };
+      return { data: result.data as OfflineEntity, queuedOffline: false };
     } catch (error) {
       if (isNetworkError(error)) return this.queueEquipmentCreateQuick(data);
       throw error;
@@ -315,7 +319,7 @@ export class OfflineAwareWorkOrderService {
     try {
       const result = await EquipmentService.create(this.orgId, data);
       if (!result.success || !result.data) throw new Error(result.error || 'Failed to create equipment');
-      return { data: result.data, queuedOffline: false };
+      return { data: result.data as OfflineEntity, queuedOffline: false };
     } catch (error) {
       if (isNetworkError(error)) return this.queueEquipmentCreateFull(data);
       throw error;
@@ -333,7 +337,7 @@ export class OfflineAwareWorkOrderService {
     try {
       const result = await EquipmentService.update(this.orgId, equipmentId, data);
       if (!result.success || !result.data) throw new Error(result.error || 'Failed to update equipment');
-      return { data: result.data, queuedOffline: false };
+      return { data: result.data as Record<string, unknown>, queuedOffline: false };
     } catch (error) {
       if (isNetworkError(error)) return this.queueEquipmentUpdate(equipmentId, data, serverUpdatedAt);
       throw error;
@@ -375,7 +379,7 @@ export class OfflineAwareWorkOrderService {
         this.orgId,
         machineHours,
       );
-      return { data: note, queuedOffline: false };
+      return { data: note as OfflineEntity, queuedOffline: false };
     } catch (error) {
       if (isNetworkError(error)) return this.queueEquipmentNote(equipmentId, content, hoursWorked, isPrivate, machineHours);
       throw error;
@@ -402,7 +406,7 @@ export class OfflineAwareWorkOrderService {
         this.orgId,
         machineHours,
       );
-      return { data: note, queuedOffline: false };
+      return { data: note as OfflineEntity, queuedOffline: false };
     } catch (error) {
       if (isNetworkError(error)) return this.queueWorkOrderNote(workOrderId, content, hoursWorked, isPrivate, machineHours);
       throw error;

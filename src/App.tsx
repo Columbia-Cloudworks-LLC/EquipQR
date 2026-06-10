@@ -6,11 +6,9 @@ import { RouteAnnouncer } from '@/components/a11y/RouteAnnouncer';
 import { publicRouteElements } from '@/routes/PublicRoutes';
 import { legacyRedirectRouteElements } from '@/routes/LegacyRedirectRoutes';
 import { DashboardRouteLayout } from '@/routes/DashboardRouteLayout';
-import { routerFutureFlags } from '@/routes/routerConfig';
-
 function App() {
   return (
-    <BrowserRouter future={routerFutureFlags}>
+    <BrowserRouter>
       <AppProviders>
         <a
           href="#main-content"

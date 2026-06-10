@@ -378,11 +378,11 @@ function generateInventoryItems(orgKey: keyof typeof ORGS, count: number, startC
   const items: GeneratedInventoryItem[] = [];
   
   // Focus categories based on org type
-  const categoryWeights: Record<string, number> = {
-    apex: { 'Undercarriage': 3, 'Hydraulics': 3, 'Engine': 2, 'Ground Engaging': 3, 'Filters': 2 } as Record<string, number>,
-    metro: { 'Lift Parts': 4, 'Batteries': 3, 'Hydraulics': 2, 'Safety': 2, 'Tires & Wheels': 2 } as Record<string, number>,
-    valley: { 'Landscaping': 5, 'Filters': 2, 'Fluids': 2, 'Engine': 1 } as Record<string, number>,
-    industrial: { 'Forklift': 5, 'Batteries': 3, 'Tires & Wheels': 2, 'Safety': 2 } as Record<string, number>
+  const categoryWeights: Record<string, Record<string, number>> = {
+    apex: { 'Undercarriage': 3, 'Hydraulics': 3, 'Engine': 2, 'Ground Engaging': 3, 'Filters': 2 },
+    metro: { 'Lift Parts': 4, 'Batteries': 3, 'Hydraulics': 2, 'Safety': 2, 'Tires & Wheels': 2 },
+    valley: { 'Landscaping': 5, 'Filters': 2, 'Fluids': 2, 'Engine': 1 },
+    industrial: { 'Forklift': 5, 'Batteries': 3, 'Tires & Wheels': 2, 'Safety': 2 },
   };
   
   const weights = categoryWeights[orgKey] || {};

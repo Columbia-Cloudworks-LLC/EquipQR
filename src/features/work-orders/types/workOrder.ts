@@ -101,6 +101,22 @@ export interface WorkOrder extends WorkOrderRow {
   invoiceBalanceCents?: number | null;
   invoiceDueDate?: string | null;
   invoiceLastSyncedAt?: string | null;
+  /** @deprecated Prefer snake_case row fields from WorkOrderRow */
+  equipmentId?: string;
+  /** @deprecated Prefer organization_id */
+  organizationId?: string;
+  /** @deprecated Prefer assignee_id */
+  assigneeId?: string | null;
+  /** @deprecated Prefer team_id */
+  teamId?: string | null;
+  /** @deprecated Prefer created_date */
+  createdDate?: string;
+  /** @deprecated Prefer due_date */
+  dueDate?: string | null;
+  /** @deprecated Prefer estimated_hours */
+  estimatedHours?: number | null;
+  /** @deprecated Prefer completed_date */
+  completedDate?: string | null;
   // Computed fields from joins (camelCase for React conventions)
   assigneeName?: string;
   teamName?: string;
