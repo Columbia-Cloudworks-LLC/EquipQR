@@ -79,13 +79,48 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
     workOrder
   });
 
+  const selectorEquipment = useMemo(
+    () =>
+      allEquipment.map((eq) => ({
+        id: eq.id,
+        name: eq.name,
+        manufacturer: eq.manufacturer,
+        model: eq.model,
+        serial_number: eq.serial_number,
+        location: eq.location,
+        last_known_location: eq.last_known_location,
+        team: eq.team,
+        working_hours: eq.working_hours,
+        default_pm_template_id: eq.default_pm_template_id ?? null,
+      })),
+    [allEquipment],
+  );
+
+  const selectorPreSelectedEquipment = useMemo(() => {
+    if (!preSelectedEquipment) return undefined;
+    return {
+      id: preSelectedEquipment.id,
+      name: preSelectedEquipment.name,
+      manufacturer: preSelectedEquipment.manufacturer,
+      model: preSelectedEquipment.model,
+      serial_number: preSelectedEquipment.serial_number,
+      location: preSelectedEquipment.location,
+      last_known_location: preSelectedEquipment.last_known_location,
+      team: preSelectedEquipment.team
+        ? { id: preSelectedEquipment.team.id, name: preSelectedEquipment.team.name }
+        : null,
+      working_hours: preSelectedEquipment.working_hours,
+      default_pm_template_id: preSelectedEquipment.default_pm_template_id ?? null,
+    };
+  }, [preSelectedEquipment]);
+
   // Get the currently selected equipment from form values to pass to PM checklist
   const selectedEquipmentForPM = React.useMemo(() => {
     const equipmentIdFromForm = form.values.equipmentId;
     if (!equipmentIdFromForm) return undefined;
     
     // Try to find in allEquipment first
-    const equipmentFromList = allEquipment.find(eq => eq.id === equipmentIdFromForm);
+    const equipmentFromList = selectorEquipment.find(eq => eq.id === equipmentIdFromForm);
     if (equipmentFromList) {
       return {
         id: equipmentFromList.id,
@@ -97,14 +132,14 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
     // Fall back to preSelectedEquipment if it matches
     if (preSelectedEquipment && preSelectedEquipment.id === equipmentIdFromForm) {
       return {
-        id: preSelectedEquipment.id || '',
-        name: preSelectedEquipment.name || '',
-        default_pm_template_id: preSelectedEquipment.default_pm_template_id || null
+        id: selectorPreSelectedEquipment?.id || '',
+        name: selectorPreSelectedEquipment?.name || '',
+        default_pm_template_id: selectorPreSelectedEquipment?.default_pm_template_id || null
       };
     }
     
     return undefined;
-  }, [form.values.equipmentId, allEquipment, preSelectedEquipment]);
+  }, [form.values.equipmentId, selectorEquipment, selectorPreSelectedEquipment, preSelectedEquipment]);
 
   const { submitForm, isLoading } = useWorkOrderSubmission({
     workOrder,
@@ -120,7 +155,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
   const isSubmitting = isLoading || isUpdating;
 
   const handleSubmit = async () => {
-    const formData = form.values;
+    const formData = form.values as WorkOrderFormData;
     
     // Check if no working hours were updated during work order creation
     if (!isEditMode && !formData.equipmentWorkingHours) {
@@ -208,11 +243,11 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
           ) : null}
 
           <WorkOrderEquipmentSelector
-            values={form.values}
+            values={form.values as WorkOrderFormData}
             errors={form.errors}
             setValue={form.setValue}
-            preSelectedEquipment={preSelectedEquipment}
-            allEquipment={allEquipment}
+            preSelectedEquipment={selectorPreSelectedEquipment}
+            allEquipment={selectorEquipment}
             isEditMode={isEditMode}
             isEquipmentPreSelected={isEquipmentPreSelected}
             canCreateEquipment={canCreateEquipment}

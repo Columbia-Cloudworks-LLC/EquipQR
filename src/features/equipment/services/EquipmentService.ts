@@ -75,6 +75,7 @@ export interface EquipmentSummary {
   last_known_location: { name?: string } | null;
   team?: { id: string; name: string } | null;
   team_name?: string;
+  default_pm_template_id?: string | null;
 }
 
 export interface EquipmentFilters extends FilterParams {

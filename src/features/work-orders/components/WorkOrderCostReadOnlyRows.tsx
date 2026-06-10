@@ -16,10 +16,10 @@ export function WorkOrderCostMobileReadOnlyRow({ cost, formatDate }: WorkOrderCo
         <div className="flex-1">
           <div className="font-medium text-sm flex items-center gap-1.5">
             {cost.inventory_item_id && (
-              <Package className="h-3.5 w-3.5 text-info flex-shrink-0" title="From inventory" />
+              <Package className="h-3.5 w-3.5 text-info flex-shrink-0" aria-label="From inventory" />
             )}
             {!cost.inventory_item_id && isLaborCostRow(cost) && (
-              <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" title="Labor" aria-hidden />
+              <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" aria-label="Labor" />
             )}
             {cost.description}
           </div>
@@ -50,10 +50,10 @@ export function WorkOrderCostDesktopReadOnlyRow({ cost, formatDate }: WorkOrderC
         <div>
           <div className="font-medium flex items-center gap-1.5">
             {cost.inventory_item_id && (
-              <Package className="h-4 w-4 text-info flex-shrink-0" title="From inventory" />
+              <Package className="h-4 w-4 text-info flex-shrink-0" aria-label="From inventory" />
             )}
             {!cost.inventory_item_id && isLaborCostRow(cost) && (
-              <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" title="Labor" aria-hidden />
+              <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-label="Labor" />
             )}
             {cost.description}
           </div>

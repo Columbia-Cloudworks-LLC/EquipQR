@@ -55,6 +55,7 @@ export interface EquipmentSelectorItem {
   last_known_location?: { name?: string } | null;
   team?: { id: string; name: string } | null;
   working_hours?: number | null;
+  default_pm_template_id?: string | null;
 }
 
 

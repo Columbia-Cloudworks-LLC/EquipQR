@@ -25,7 +25,7 @@ function EquipmentDescriptionField({
   descriptionFieldId: string;
   value: string;
   canEdit: boolean;
-  onSave: (value: string) => void | Promise<void>;
+  onSave: (value: string) => Promise<void>;
 }) {
   return (
     <div>
@@ -35,7 +35,9 @@ function EquipmentDescriptionField({
       <div className="mt-1 w-full">
         <InlineEditField
           value={value}
-          onSave={onSave}
+          onSave={async (newValue) => {
+            await onSave(newValue);
+          }}
           canEdit={canEdit}
           fieldId={descriptionFieldId}
           type="textarea"
@@ -107,6 +109,14 @@ export function EquipmentBasicInfoCard({
   onTeamAssignment,
   getCurrentTeamDisplay,
 }: EquipmentBasicInfoCardProps) {
+  const saveField = async (field: keyof Equipment, value: string) => {
+    await onFieldUpdate(field, value);
+  };
+
+  const saveTeam = async (value: string) => {
+    await onTeamAssignment(value);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -122,7 +132,7 @@ export function EquipmentBasicInfoCard({
             <div className="mt-1 w-full">
               <InlineEditField
                 value={equipment.name || ''}
-                onSave={(value) => onFieldUpdate('name', value)}
+                onSave={(value) => saveField('name', value)}
                 canEdit={canEdit}
                 fieldId={nameFieldId}
                 placeholder="Enter equipment name"
@@ -138,7 +148,7 @@ export function EquipmentBasicInfoCard({
               {canEdit ? (
                 <InlineEditField
                   value={equipment.status || 'active'}
-                  onSave={(value) => onFieldUpdate('status', value)}
+                  onSave={(value) => saveField('status', value)}
                   canEdit={canEdit}
                   fieldId={statusFieldId}
                   type="select"
@@ -188,7 +198,7 @@ export function EquipmentBasicInfoCard({
               {canAssignTeams ? (
                 <InlineEditField
                   value={equipment.team_id || 'unassigned'}
-                  onSave={onTeamAssignment}
+                  onSave={saveTeam}
                   canEdit={canAssignTeams}
                   fieldId={assignedTeamFieldId}
                   type="select"
@@ -237,7 +247,7 @@ export function EquipmentBasicInfoCard({
             descriptionFieldId={descriptionFieldId}
             value={equipment.notes || ''}
             canEdit={canEdit}
-            onSave={(value) => onFieldUpdate('notes', value)}
+            onSave={(value) => saveField('notes', value)}
           />
         )}
 
@@ -255,7 +265,7 @@ export function EquipmentBasicInfoCard({
                   descriptionFieldId={descriptionFieldId}
                   value={equipment.notes || ''}
                   canEdit={canEdit}
-                  onSave={(value) => onFieldUpdate('notes', value)}
+                  onSave={(value) => saveField('notes', value)}
                 />
               </div>
             </CollapsibleContent>

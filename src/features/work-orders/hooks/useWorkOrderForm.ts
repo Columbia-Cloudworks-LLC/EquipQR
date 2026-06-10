@@ -1,6 +1,6 @@
 
 import { useEffect, useRef, useMemo, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { WorkOrder as EnhancedWorkOrder } from '@/features/work-orders/types/workOrder';
 import { 
@@ -79,7 +79,7 @@ export const useWorkOrderForm = ({
 
   // Use react-hook-form with zodResolver
   const rhf = useForm<WorkOrderFormData>({
-    resolver: zodResolver(workOrderFormSchema),
+    resolver: zodResolver(workOrderFormSchema) as Resolver<WorkOrderFormData>,
     defaultValues: initialValues as WorkOrderFormData,
     mode: 'onChange',
   });
