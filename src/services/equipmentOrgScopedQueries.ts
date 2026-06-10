@@ -5,7 +5,7 @@ const NOTES_ORG_SCOPED_SELECT = `
   equipment!inner (
     organization_id
   )
-`;
+` as const;
 
 const NOTES_ORG_SCOPED_WITH_AUTHOR_SELECT = `
   *,
@@ -16,14 +16,14 @@ const NOTES_ORG_SCOPED_WITH_AUTHOR_SELECT = `
   equipment!inner (
     organization_id
   )
-`;
+` as const;
 
 const SCANS_ORG_SCOPED_SELECT = `
   *,
   equipment!inner (
     organization_id
   )
-`;
+` as const;
 
 const SCANS_ORG_SCOPED_WITH_SCANNER_SELECT = `
   *,
@@ -34,20 +34,25 @@ const SCANS_ORG_SCOPED_WITH_SCANNER_SELECT = `
   equipment!inner (
     organization_id
   )
-`;
+` as const;
 
 export function queryOrgScopedEquipmentNotes(
   organizationId: string,
   equipmentId: string,
   options?: { includeAuthor?: boolean },
 ) {
-  const select = options?.includeAuthor
-    ? NOTES_ORG_SCOPED_WITH_AUTHOR_SELECT
-    : NOTES_ORG_SCOPED_SELECT;
+  if (options?.includeAuthor) {
+    return supabase
+      .from('notes')
+      .select(NOTES_ORG_SCOPED_WITH_AUTHOR_SELECT)
+      .eq('equipment_id', equipmentId)
+      .eq('equipment.organization_id', organizationId)
+      .order('created_at', { ascending: false });
+  }
 
   return supabase
     .from('notes')
-    .select(select)
+    .select(NOTES_ORG_SCOPED_SELECT)
     .eq('equipment_id', equipmentId)
     .eq('equipment.organization_id', organizationId)
     .order('created_at', { ascending: false });
@@ -58,13 +63,18 @@ export function queryOrgScopedEquipmentScans(
   equipmentId: string,
   options?: { includeScannerProfile?: boolean },
 ) {
-  const select = options?.includeScannerProfile
-    ? SCANS_ORG_SCOPED_WITH_SCANNER_SELECT
-    : SCANS_ORG_SCOPED_SELECT;
+  if (options?.includeScannerProfile) {
+    return supabase
+      .from('scans')
+      .select(SCANS_ORG_SCOPED_WITH_SCANNER_SELECT)
+      .eq('equipment_id', equipmentId)
+      .eq('equipment.organization_id', organizationId)
+      .order('scanned_at', { ascending: false });
+  }
 
   return supabase
     .from('scans')
-    .select(select)
+    .select(SCANS_ORG_SCOPED_SELECT)
     .eq('equipment_id', equipmentId)
     .eq('equipment.organization_id', organizationId)
     .order('scanned_at', { ascending: false });

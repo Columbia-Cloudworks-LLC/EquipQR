@@ -508,9 +508,14 @@ const createEquipment = async (
 
 // Create work order
 // @deprecated Use WorkOrderService.create() instead. Will be removed in Phase 2.
+type WorkOrderInsertPayload = Omit<
+  Tables<'work_orders'>,
+  'id' | 'created_date' | 'updated_at' | 'organization_id' | 'created_by' | 'completed_date'
+> & Partial<Pick<Tables<'work_orders'>, 'created_date' | 'updated_at' | 'completed_date'>>;
+
 const createWorkOrder = async (
   organizationId: string,
-  workOrderData: Omit<WorkOrder, 'id' | 'created_date' | 'updated_at' | 'organization_id' | 'assigneeName' | 'teamName' | 'completed_date' | 'created_by'>
+  workOrderData: WorkOrderInsertPayload,
 ): Promise<WorkOrder | null> => {
   try {
     const claims = await getAuthClaims();

@@ -1,4 +1,4 @@
-import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
+import type { WorkOrderPriority, WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import type { EquipmentForPDF, WorkOrderForPDF } from '@/features/work-orders/services/workOrderReportPDFService';
 
 export interface WorkOrderDetailsPermissionLevels {
@@ -201,10 +201,10 @@ export function buildMobileWorkOrderAssigneeSummary(
 
 export function buildMobileWorkOrderSummary(
   workOrder: MobileWorkOrderSummarySource,
-): { status: string; priority: string; due_date?: string | null } {
+): { status: WorkOrderStatus; priority: WorkOrderPriority; due_date?: string | null } {
   return {
-    status: workOrder.status,
-    priority: workOrder.priority,
+    status: workOrder.status as WorkOrderStatus,
+    priority: workOrder.priority as WorkOrderPriority,
     due_date: workOrder.dueDate,
   };
 }

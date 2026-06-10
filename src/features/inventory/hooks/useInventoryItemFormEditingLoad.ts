@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { supabase } from '@/integrations/supabase/client';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
+import type { ToastVariant } from '@/hooks/useAppToast';
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
 import {
   mapInventoryCompatibilityRules,
@@ -10,9 +11,9 @@ import {
 import { logger } from '@/utils/logger';
 
 type ToastFn = (args: {
-  title: string;
+  title?: string;
   description?: string;
-  variant?: 'default' | 'error' | 'warning' | 'success';
+  variant?: ToastVariant;
 }) => void;
 
 type UseInventoryItemFormEditingLoadParams = {
@@ -94,7 +95,10 @@ export function useInventoryItemFormEditingLoad({
 
           const rules = mapInventoryCompatibilityRules(rulesData);
           formRef.current.setValue('compatibleEquipmentIds', equipmentIds);
-          formRef.current.setValue('compatibilityRules', rules);
+          formRef.current.setValue(
+            'compatibilityRules',
+            rules as InventoryItemFormData['compatibilityRules'],
+          );
 
           if (!abortController.signal.aborted) {
             setIsEditingDataLoaded(true);

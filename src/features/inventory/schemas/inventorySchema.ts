@@ -95,5 +95,6 @@ export const inventoryItemFormSchema = z.object({
   }
 );
 
-export type InventoryItemFormData = z.infer<typeof inventoryItemFormSchema>;
+export type InventoryItemFormData = z.output<typeof inventoryItemFormSchema>;
+export type InventoryItemFormInput = z.input<typeof inventoryItemFormSchema>;
 

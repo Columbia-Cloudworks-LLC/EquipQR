@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Dialog,
@@ -73,7 +73,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
   });
 
   const form = useForm<InventoryItemFormData>({
-    resolver: zodResolver(inventoryItemFormSchema),
+    resolver: zodResolver(inventoryItemFormSchema) as Resolver<InventoryItemFormData>,
     defaultValues: EMPTY_DEFAULTS,
   });
 
@@ -245,6 +245,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
             />
 
             <InventoryItemFormDirectLinksSection
+              form={form}
               allEquipment={allEquipment}
               selectedEquipmentIds={selectedEquipmentIds}
               onEquipmentToggle={handleEquipmentToggle}

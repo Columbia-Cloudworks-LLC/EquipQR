@@ -7,7 +7,8 @@ import { useWorkOrderDetailsData } from '@/features/work-orders/components/hooks
 import { useWorkOrderDetailsActions } from '@/features/work-orders/hooks/useWorkOrderDetailsActions';
 import { useWorkOrderEquipment } from '@/features/work-orders/hooks/useWorkOrderEquipment';
 import { logNavigationEvent } from '@/utils/navigationDebug';
-import { WorkOrderEquipmentSelector } from '@/features/work-orders/components/WorkOrderEquipmentSelector';
+import { WorkOrderLinkedEquipmentTabs } from '@/features/work-orders/components/WorkOrderLinkedEquipmentTabs';
+import type { WorkOrderData } from '@/features/work-orders/types/workOrderDetails';
 import { WorkOrderDetailsMobileHeader } from '@/features/work-orders/components/WorkOrderDetailsMobileHeader';
 import { WorkOrderDetailsDesktopHeader } from '@/features/work-orders/components/WorkOrderDetailsDesktopHeader';
 import { WorkOrderDetailsSidebar } from '@/features/work-orders/components/WorkOrderDetailsSidebar';
@@ -134,7 +135,21 @@ const WorkOrderDetails = () => {
     handleCancelPMChange,
     getPMDataDetails,
     isUpdating,
-  } = useWorkOrderDetailsActions(workOrderId || '', currentOrganization?.id || '', pmData);
+  } = useWorkOrderDetailsActions(
+    workOrderId || '',
+    currentOrganization?.id || '',
+    pmData
+      ? {
+          id: pmData.id,
+          status: pmData.status,
+          notes: pmData.notes ?? undefined,
+          checklist_data: Array.isArray(pmData.checklist_data) ? pmData.checklist_data : undefined,
+          equipment_id: pmData.equipment_id,
+          template_id: pmData.template_id,
+          updated_at: pmData.updated_at,
+        }
+      : null,
+  );
 
   const workTimer = useWorkTimer(workOrderId);
   const offlineQueue = useOfflineQueue();
@@ -258,6 +273,8 @@ const WorkOrderDetails = () => {
     pmSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const workOrderData = workOrder as unknown as WorkOrderData;
+
   return (
     <div className="min-h-screen bg-background texture-grain">
       <WorkOrderDetailsMobileHeader
@@ -268,7 +285,7 @@ const WorkOrderDetails = () => {
       />
 
       <WorkOrderDetailsDesktopHeader
-        workOrder={workOrder}
+        workOrder={workOrderData}
         formMode={formMode}
         permissionLevels={permissionLevels}
         canEdit={canEdit}
@@ -297,8 +314,8 @@ const WorkOrderDetails = () => {
           )}
         >
           {linkedEquipment.length > 1 && (
-            <WorkOrderEquipmentSelector
-              workOrderId={workOrder.id}
+            <WorkOrderLinkedEquipmentTabs
+              linkedEquipment={linkedEquipment}
               selectedEquipmentId={selectedEquipmentId}
               onEquipmentChange={setSelectedEquipmentId}
             />
@@ -372,7 +389,7 @@ const WorkOrderDetails = () => {
         </div>
 
         <WorkOrderDetailsSidebar
-          workOrder={workOrder}
+          workOrder={workOrderData}
           equipment={equipment}
           pmData={pmData}
           formMode={formMode}
