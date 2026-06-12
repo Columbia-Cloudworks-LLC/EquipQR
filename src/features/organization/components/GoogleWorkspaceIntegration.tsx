@@ -61,9 +61,13 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
     setIsSyncing(true);
     try {
       const result = await syncGoogleWorkspaceUsers(currentOrganization.id);
+      const revocationSummary =
+        result.membersDeactivated > 0 || result.claimsRevoked > 0
+          ? ` Revoked access for ${result.membersDeactivated} member(s).`
+          : '';
       toast({
         title: 'Directory synced',
-        description: `${result.usersSynced} users loaded.`,
+        description: `${result.usersSynced} users loaded.${revocationSummary}`,
       });
       await queryClient.invalidateQueries({ queryKey: googleWorkspace.root });
     } catch (error) {
@@ -154,7 +158,7 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
 
       {!isConnected && (
         <p className="text-xs text-muted-foreground">
-          Admin access is granted after users sign in with Google Workspace.
+          Claimed Workspace domains require explicit import or invitation before members can access the organization.
         </p>
       )}
     </div>

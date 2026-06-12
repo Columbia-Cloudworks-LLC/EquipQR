@@ -17,6 +17,12 @@ interface SyncRequest {
   organizationId: string;
 }
 
+interface ReconcileResult {
+  directory_marked_suspended: number;
+  members_deactivated: number;
+  claims_revoked: number;
+}
+
 interface GoogleDirectoryUser {
   id: string;
   primaryEmail: string;
@@ -146,6 +152,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       last_synced_at: string;
       updated_at: string;
     }> = [];
+    const syncedGoogleUserIds: string[] = [];
     let totalUsers = 0;
     let pagesProcessed = 0;
 
@@ -180,6 +187,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       }));
 
       pendingRows.push(...rows);
+      syncedGoogleUserIds.push(...rows.map((row) => row.google_user_id));
       totalUsers += rows.length;
 
       // Batch upsert when we've collected enough users to reduce DB round trips
@@ -213,9 +221,37 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       }
     }
 
-    logStep("Sync complete", { totalUsers, pagesProcessed });
+    logStep("Directory upsert complete", { totalUsers, pagesProcessed });
 
-    return new Response(JSON.stringify({ success: true, usersSynced: totalUsers }), {
+    const { data: reconcileData, error: reconcileError } = await adminClient.rpc(
+      "reconcile_google_workspace_directory",
+      {
+        p_organization_id: organizationId,
+        p_active_google_user_ids: syncedGoogleUserIds,
+      },
+    );
+
+    if (reconcileError) {
+      logStep("Directory reconcile error", { error: reconcileError.message });
+      return createErrorResponse("Failed to reconcile directory access", 500);
+    }
+
+    const reconcile = (reconcileData ?? {}) as ReconcileResult;
+    logStep("Sync complete", {
+      totalUsers,
+      pagesProcessed,
+      directoryMarkedSuspended: reconcile.directory_marked_suspended ?? 0,
+      membersDeactivated: reconcile.members_deactivated ?? 0,
+      claimsRevoked: reconcile.claims_revoked ?? 0,
+    });
+
+    return new Response(JSON.stringify({
+      success: true,
+      usersSynced: totalUsers,
+      directoryMarkedSuspended: reconcile.directory_marked_suspended ?? 0,
+      membersDeactivated: reconcile.members_deactivated ?? 0,
+      claimsRevoked: reconcile.claims_revoked ?? 0,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

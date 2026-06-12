@@ -126,22 +126,37 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     const redirectUri = buildOAuthRedirectUri(oauthRedirectBaseUrl);
     validateOAuthRedirectUri(redirectUri, supabaseUrl);
 
+    logStep("Token exchange starting", { organizationId, hasSessionOrg: !!organizationId });
     const tokenData = await exchangeAuthorizationCode(code, redirectUri, clientId, clientSecret);
+    logStep("Token exchange succeeded", {
+      hasRefreshToken: !!tokenData.refresh_token,
+      expiresIn: tokenData.expires_in,
+    });
 
     const now = new Date();
     const accessTokenExpiresAt = new Date(now.getTime() + tokenData.expires_in * 1000);
 
+    logStep("Userinfo lookup starting");
     const userinfo = await fetchGoogleUserInfo(tokenData.access_token);
     const { userEmail, userDomain } = extractUserDomain(userinfo);
+    logStep("Userinfo lookup succeeded", { userDomain, hasEmail: !!userEmail });
 
+    logStep("Workspace admin verification starting", { userDomain });
     await verifyGoogleWorkspaceAdmin(tokenData.access_token, userEmail);
+    logStep("Workspace admin verification succeeded", { userDomain });
 
+    logStep("Organization resolution starting", {
+      sessionOrganizationId: organizationId,
+      userDomain,
+    });
     const effectiveOrgId = await resolveEffectiveOrganizationId(supabaseClient, {
       organizationId,
       userDomain,
       userId: session.user_id,
     });
+    logStep("Organization resolution succeeded", { effectiveOrgId, userDomain });
 
+    logStep("Credential encryption and storage starting", { effectiveOrgId, userDomain });
     await storeGoogleWorkspaceCredentials(supabaseClient, {
       effectiveOrgId,
       domain: userDomain,
@@ -150,6 +165,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       accessTokenExpiresAt,
       now,
     });
+    logStep("Credential storage succeeded", { effectiveOrgId, userDomain });
 
     const successUrl = buildSuccessRedirectUrl({
       originUrl,

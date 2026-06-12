@@ -129,7 +129,13 @@ describe('Google Workspace Service Functions', () => {
   describe('syncGoogleWorkspaceUsers', () => {
     it('returns synced user count on success', async () => {
       invokeMock.mockResolvedValue({
-        data: { success: true, usersSynced: 25 },
+        data: {
+          success: true,
+          usersSynced: 25,
+          directoryMarkedSuspended: 1,
+          membersDeactivated: 2,
+          claimsRevoked: 1,
+        },
         error: null,
       });
 
@@ -138,7 +144,12 @@ describe('Google Workspace Service Functions', () => {
       expect(invokeMock).toHaveBeenCalledWith('google-workspace-sync-users', {
         body: { organizationId: 'org-123' },
       });
-      expect(result).toEqual({ usersSynced: 25 });
+      expect(result).toEqual({
+        usersSynced: 25,
+        directoryMarkedSuspended: 1,
+        membersDeactivated: 2,
+        claimsRevoked: 1,
+      });
     });
 
     it('throws an error on invoke failure', async () => {

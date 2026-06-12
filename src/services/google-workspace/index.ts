@@ -12,6 +12,9 @@ export interface WorkspaceOnboardingState {
   domain_status: WorkspaceDomainStatus;
   workspace_org_id: string | null;
   is_workspace_connected: boolean | null;
+  has_workspace_membership?: boolean;
+  has_pending_invitation?: boolean;
+  has_pending_claim?: boolean;
 }
 
 export interface WorkspaceConnectionStatus {
@@ -132,7 +135,14 @@ export async function getGoogleWorkspaceConnectionStatus(
   return data[0] as WorkspaceConnectionStatus;
 }
 
-export async function syncGoogleWorkspaceUsers(organizationId: string): Promise<{ usersSynced: number }> {
+export interface GoogleWorkspaceSyncResult {
+  usersSynced: number;
+  directoryMarkedSuspended: number;
+  membersDeactivated: number;
+  claimsRevoked: number;
+}
+
+export async function syncGoogleWorkspaceUsers(organizationId: string): Promise<GoogleWorkspaceSyncResult> {
   const { data, error } = await supabase.functions.invoke('google-workspace-sync-users', {
     body: { organizationId },
   });
@@ -145,7 +155,12 @@ export async function syncGoogleWorkspaceUsers(organizationId: string): Promise<
     throw new Error('Failed to sync Google Workspace users');
   }
 
-  return { usersSynced: data.usersSynced || 0 };
+  return {
+    usersSynced: data.usersSynced || 0,
+    directoryMarkedSuspended: data.directoryMarkedSuspended || 0,
+    membersDeactivated: data.membersDeactivated || 0,
+    claimsRevoked: data.claimsRevoked || 0,
+  };
 }
 
 export async function getGoogleExportDestination(

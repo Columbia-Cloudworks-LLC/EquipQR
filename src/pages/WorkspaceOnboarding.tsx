@@ -24,6 +24,7 @@ import {
 } from '@/services/google-workspace';
 import { generateGoogleWorkspaceAuthUrl, isGoogleWorkspaceConfigured } from '@/services/google-workspace/auth';
 import { isConsumerGoogleDomain } from '@/utils/google-workspace';
+import { googleWorkspace } from '@/lib/queryKeys';
 import { useGoogleWorkspaceMemberSelection } from '@/features/organization/hooks/useGoogleWorkspaceMemberSelection';
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
@@ -86,14 +87,14 @@ const WorkspaceOnboarding = () => {
   const workspaceOrgId = onboardingState?.workspace_org_id || null;
 
   const { data: connectionStatus } = useQuery({
-    queryKey: ['google-workspace', 'connection', workspaceOrgId],
+    queryKey: googleWorkspace.connection(workspaceOrgId ?? ''),
     queryFn: () => getGoogleWorkspaceConnectionStatus(workspaceOrgId!),
     enabled: !!workspaceOrgId,
     staleTime: 60 * 1000,
   });
 
   const { data: directoryUsers = [] } = useQuery({
-    queryKey: ['google-workspace', 'directory-users', workspaceOrgId],
+    queryKey: googleWorkspace.directoryUsers(workspaceOrgId ?? ''),
     queryFn: () => listWorkspaceDirectoryUsers(workspaceOrgId!),
     enabled: !!workspaceOrgId && connectionStatus?.is_connected,
     staleTime: 60 * 1000,
@@ -132,8 +133,15 @@ const WorkspaceOnboarding = () => {
     setIsSyncing(true);
     try {
       const result = await syncGoogleWorkspaceUsers(workspaceOrgId);
-      toast({ title: 'Directory synced', description: `${result.usersSynced} users loaded.` });
-      await queryClient.invalidateQueries({ queryKey: ['google-workspace', 'directory-users', workspaceOrgId] });
+      const revocationSummary =
+        result.membersDeactivated > 0 || result.claimsRevoked > 0
+          ? ` ${result.membersDeactivated} access revoked, ${result.claimsRevoked} claims revoked.`
+          : '';
+      toast({
+        title: 'Directory synced',
+        description: `${result.usersSynced} users loaded.${revocationSummary}`,
+      });
+      await queryClient.invalidateQueries({ queryKey: googleWorkspace.directoryUsers(workspaceOrgId) });
     } catch (error) {
       toast({
         title: 'Failed to sync users',
@@ -158,7 +166,7 @@ const WorkspaceOnboarding = () => {
         description: `Disconnected from ${result.domain}. You can reconnect anytime.`,
       });
       // Invalidate queries to refresh state
-      await queryClient.invalidateQueries({ queryKey: ['google-workspace'] });
+      await queryClient.invalidateQueries({ queryKey: googleWorkspace.root });
       await refetch();
     } catch (error) {
       toast({
@@ -300,9 +308,8 @@ const WorkspaceOnboarding = () => {
                   <div>Connected on: {connectionStatus.connected_at ? new Date(connectionStatus.connected_at).toLocaleDateString() : 'Unknown'}</div>
                 </div>
                 
-                {/* Disconnect option - for testing/development */}
                 <div className="pt-4 border-t">
-                  <p className="text-sm font-medium mb-2">Disconnect</p>
+                  <p className="text-sm font-medium mb-2">Disconnect Google Workspace</p>
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -319,7 +326,8 @@ const WorkspaceOnboarding = () => {
                     )}
                   </Button>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Disconnect to test the OAuth flow again. The domain will remain claimed, so reconnecting will use the same organization.
+                    Disconnect removes OAuth credentials and the cached directory snapshot, but keeps your
+                    domain claimed so users cannot self-join. Reconnect anytime to restore sync.
                   </p>
                 </div>
               </CardContent>
