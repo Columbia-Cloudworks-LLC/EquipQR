@@ -28,6 +28,7 @@ import {
   selectGoogleWorkspaceMembers,
   syncGoogleWorkspaceUsers,
 } from '@/services/google-workspace';
+import { googleWorkspace } from '@/lib/queryKeys';
 import { useGoogleWorkspaceMemberClaims } from '@/features/organization/hooks/useGoogleWorkspaceMemberClaims';
 import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
 import { useGoogleWorkspaceMemberSelection } from '@/features/organization/hooks/useGoogleWorkspaceMemberSelection';
@@ -63,7 +64,7 @@ export const GoogleWorkspaceMemberImportSheet = ({
     error: directoryError,
     refetch: refetchDirectory,
   } = useQuery({
-    queryKey: ['google-workspace', 'directory-users-light', organizationId],
+    queryKey: googleWorkspace.directoryUsersLight(organizationId),
     queryFn: () => listWorkspaceDirectoryUsersLight(organizationId),
     enabled: !!organizationId && open,
     staleTime: 60 * 1000,
@@ -119,11 +120,16 @@ export const GoogleWorkspaceMemberImportSheet = ({
     setIsSyncing(true);
     try {
       const result = await syncGoogleWorkspaceUsers(organizationId);
+      const revocationSummary =
+        result.membersDeactivated > 0 || result.claimsRevoked > 0
+          ? ` Revoked access for ${result.membersDeactivated} member(s).`
+          : '';
       toast({
         title: 'Directory synced',
-        description: `${result.usersSynced} users loaded from Google Workspace.`,
+        description: `${result.usersSynced} users loaded from Google Workspace.${revocationSummary}`,
         variant: 'success',
       });
+      await queryClient.invalidateQueries({ queryKey: googleWorkspace.directoryUsersLight(organizationId) });
       await refetchDirectory();
     } catch (error) {
       toast({
@@ -168,7 +174,7 @@ export const GoogleWorkspaceMemberImportSheet = ({
       });
 
       // Invalidate queries to refresh data
-      await queryClient.invalidateQueries({ queryKey: ['gws-member-claims', organizationId] });
+      await queryClient.invalidateQueries({ queryKey: googleWorkspace.memberClaims(organizationId) });
       await queryClient.invalidateQueries({ queryKey: ['organization-members', organizationId] });
 
       // Close the sheet via the wrapper to ensure local state is reset

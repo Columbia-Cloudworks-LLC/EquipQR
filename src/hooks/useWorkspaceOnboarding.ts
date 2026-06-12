@@ -16,6 +16,7 @@ export const useWorkspaceOnboardingState = () => {
     queryFn: () => getWorkspaceOnboardingState(user!.id),
     enabled: shouldQuery,
     staleTime: 60 * 1000,
+    retry: 1,
   });
 };
 
