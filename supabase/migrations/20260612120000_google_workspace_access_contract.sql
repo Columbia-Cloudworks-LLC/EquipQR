@@ -33,11 +33,10 @@ WHERE om.organization_id = po.organization_id
 -- Backfill workspace-derived memberships from active claims
 UPDATE public.organization_members om
 SET access_source = 'google_workspace'
-FROM auth.users u
-JOIN public.organization_member_claims c
-  ON c.organization_id = om.organization_id
- AND public.normalize_email(c.email) = public.normalize_email(u.email)
-WHERE om.user_id = u.id
+FROM auth.users u, public.organization_member_claims c
+WHERE om.organization_id = c.organization_id
+  AND om.user_id = u.id
+  AND public.normalize_email(c.email) = public.normalize_email(u.email)
   AND c.source = 'google_workspace'
   AND c.status IN ('selected', 'claimed')
   AND om.access_source IS NULL;
@@ -140,6 +139,7 @@ $$;
 COMMENT ON FUNCTION public.get_workspace_onboarding_state(uuid) IS
   'Returns workspace onboarding and claimed-domain access posture for a user.';
 
+-- rpc-authenticated-grant-allowed: get_workspace_onboarding_state
 GRANT EXECUTE ON FUNCTION public.get_workspace_onboarding_state(uuid) TO authenticated, service_role;
 
 -- =============================================================================
@@ -256,8 +256,15 @@ BEGIN
   WHERE public.normalize_email(c.email) = public.normalize_email(NEW.email)
     AND c.status IN ('selected', 'claimed')
   ON CONFLICT (organization_id, user_id) DO UPDATE
-    SET access_source = COALESCE(public.organization_members.access_source, 'google_workspace')
-    WHERE public.organization_members.access_source IS NULL;
+    SET status = CASE
+          WHEN public.organization_members.access_source IS NULL
+            OR public.organization_members.access_source = 'google_workspace'
+            THEN 'active'
+          ELSE public.organization_members.status
+        END,
+        access_source = COALESCE(public.organization_members.access_source, 'google_workspace')
+    WHERE public.organization_members.access_source IS NULL
+       OR public.organization_members.access_source = 'google_workspace';
 
   UPDATE public.organization_member_claims
   SET status = 'claimed',
@@ -274,6 +281,124 @@ $$;
 
 COMMENT ON FUNCTION public.handle_new_user() IS
   'Trigger for new user registration. Creates profile and personal org when allowed; never auto-joins claimed Workspace domains without explicit claim or invitation.';
+
+-- =============================================================================
+-- auto_provision_workspace_organization: claim/reuse org without bulk user migration
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION public.auto_provision_workspace_organization(
+  p_user_id uuid,
+  p_domain text,
+  p_organization_name text
+)
+RETURNS TABLE(
+  organization_id uuid,
+  domain text,
+  already_existed boolean
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_domain text;
+  v_org_id uuid;
+  v_existing_org_id uuid;
+BEGIN
+  v_domain := public.normalize_domain(p_domain);
+
+  IF v_domain IN ('gmail.com', 'googlemail.com') THEN
+    RAISE EXCEPTION 'Consumer domains are not supported';
+  END IF;
+
+  SELECT d.organization_id INTO v_existing_org_id
+  FROM public.workspace_domains d
+  WHERE public.normalize_domain(d.domain) = v_domain;
+
+  IF v_existing_org_id IS NOT NULL THEN
+    organization_id := v_existing_org_id;
+    domain := v_domain;
+    already_existed := true;
+    RETURN NEXT;
+    RETURN;
+  END IF;
+
+  SELECT o.id INTO v_existing_org_id
+  FROM public.organizations o
+  JOIN public.organization_members om ON om.organization_id = o.id
+  LEFT JOIN public.personal_organizations po ON po.organization_id = o.id
+  WHERE om.user_id = p_user_id
+    AND om.role = 'owner'
+    AND om.status = 'active'
+    AND po.organization_id IS NULL
+  ORDER BY o.created_at ASC
+  LIMIT 1;
+
+  IF v_existing_org_id IS NOT NULL THEN
+    INSERT INTO public.workspace_domains (domain, organization_id)
+    VALUES (v_domain, v_existing_org_id)
+    ON CONFLICT (domain) DO NOTHING;
+
+    IF NOT FOUND THEN
+      SELECT d.organization_id INTO v_existing_org_id
+      FROM public.workspace_domains d
+      WHERE public.normalize_domain(d.domain) = v_domain;
+    END IF;
+
+    organization_id := v_existing_org_id;
+    domain := v_domain;
+    already_existed := true;
+    RETURN NEXT;
+    RETURN;
+  END IF;
+
+  INSERT INTO public.organizations (name, plan, member_count, max_members, features)
+  VALUES (
+    p_organization_name,
+    'free',
+    1,
+    5,
+    ARRAY['Equipment Management', 'Work Orders', 'Team Management']
+  )
+  RETURNING id INTO v_org_id;
+
+  INSERT INTO public.organization_members (organization_id, user_id, role, status, access_source)
+  VALUES (v_org_id, p_user_id, 'owner', 'active', 'owner')
+  ON CONFLICT DO NOTHING;
+
+  INSERT INTO public.workspace_domains (domain, organization_id)
+  VALUES (v_domain, v_org_id)
+  ON CONFLICT (domain) DO NOTHING;
+
+  SELECT d.organization_id INTO v_existing_org_id
+  FROM public.workspace_domains d
+  WHERE public.normalize_domain(d.domain) = v_domain;
+
+  IF v_existing_org_id IS NOT NULL AND v_existing_org_id <> v_org_id THEN
+    DELETE FROM public.organization_members
+    WHERE organization_id = v_org_id;
+
+    DELETE FROM public.organizations
+    WHERE id = v_org_id;
+
+    organization_id := v_existing_org_id;
+    domain := v_domain;
+    already_existed := true;
+    RETURN NEXT;
+    RETURN;
+  END IF;
+
+  organization_id := v_org_id;
+  domain := v_domain;
+  already_existed := false;
+  RETURN NEXT;
+END;
+$$;
+
+COMMENT ON FUNCTION public.auto_provision_workspace_organization(uuid, text, text) IS
+  'Atomically provisions or reuses an owner-managed organization for a Workspace domain without migrating same-domain users by default.';
+
+GRANT EXECUTE ON FUNCTION public.auto_provision_workspace_organization(uuid, text, text) TO service_role;
 
 -- =============================================================================
 -- select_google_workspace_members: tag workspace-derived memberships
@@ -355,7 +480,8 @@ BEGIN
     SELECT public.normalize_email(e) FROM unnest(p_emails) AS e
   )
   ON CONFLICT (organization_id, user_id) DO UPDATE
-    SET access_source = 'google_workspace'
+    SET status = 'active',
+        access_source = 'google_workspace'
     WHERE public.organization_members.access_source IS NULL
        OR public.organization_members.access_source = 'google_workspace';
 

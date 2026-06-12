@@ -26,6 +26,7 @@ import { generateGoogleWorkspaceAuthUrl, isGoogleWorkspaceConfigured } from '@/s
 import { isConsumerGoogleDomain } from '@/utils/google-workspace';
 import { googleWorkspace } from '@/lib/queryKeys';
 import { useGoogleWorkspaceMemberSelection } from '@/features/organization/hooks/useGoogleWorkspaceMemberSelection';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
 const WorkspaceOnboarding = () => {
@@ -33,6 +34,7 @@ const WorkspaceOnboarding = () => {
   const { refreshSession } = useSession();
   const { switchOrganization } = useOrganization();
   const { toast } = useAppToast();
+  const { formatDate } = useFormatTimestamp();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -114,7 +116,7 @@ const WorkspaceOnboarding = () => {
     try {
       // For first-time setup, don't pass organization_id - the callback will create one
       const authUrl = await generateGoogleWorkspaceAuthUrl({
-        organizationId: workspaceOrgId || '',
+        ...(workspaceOrgId ? { organizationId: workspaceOrgId } : {}),
         redirectUrl: '/dashboard/onboarding/workspace',
       });
       window.location.href = authUrl;
@@ -305,7 +307,7 @@ const WorkspaceOnboarding = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <div>Connected domain: {connectionStatus.domain}</div>
-                  <div>Connected on: {connectionStatus.connected_at ? new Date(connectionStatus.connected_at).toLocaleDateString() : 'Unknown'}</div>
+                  <div>Connected on: {connectionStatus.connected_at ? formatDate(connectionStatus.connected_at) : 'Unknown'}</div>
                 </div>
                 
                 <div className="pt-4 border-t">

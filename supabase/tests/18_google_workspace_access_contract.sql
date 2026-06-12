@@ -128,8 +128,8 @@ SELECT is(
   (SELECT count(*)::integer
      FROM public.personal_organizations
     WHERE user_id = (SELECT id FROM gws_contract_ids WHERE label = 'unapproved')),
-  1,
-  'unapproved claimed-domain user keeps a personal organization instead of entering the Workspace org'
+  0,
+  'unapproved claimed-domain user does not get personal-org fallback'
 );
 
 INSERT INTO public.google_workspace_directory_users (
@@ -237,7 +237,7 @@ SELECT is(
 );
 
 SELECT is(
-  (SELECT membership_source
+  (SELECT access_source
      FROM public.organization_members
     WHERE organization_id = (SELECT id FROM gws_contract_ids WHERE label = 'org')
       AND user_id = (SELECT id FROM gws_contract_ids WHERE label = 'claimed')),
@@ -286,7 +286,7 @@ INSERT INTO public.organization_members (
   user_id,
   role,
   status,
-  membership_source
+  access_source
 ) VALUES (
   (SELECT id FROM gws_contract_ids WHERE label = 'org'),
   (SELECT id FROM gws_contract_ids WHERE label = 'manual'),
@@ -295,7 +295,7 @@ INSERT INTO public.organization_members (
   'manual'
 ) ON CONFLICT (organization_id, user_id) DO UPDATE
 SET status = 'active',
-    membership_source = 'manual';
+    access_source = 'manual';
 
 INSERT INTO public.organization_member_claims (
   organization_id,
@@ -341,16 +341,16 @@ SET primary_email = EXCLUDED.primary_email,
 
 SELECT has_function(
   'public',
-  'reconcile_google_workspace_directory_snapshot',
-  ARRAY['uuid', 'timestamp with time zone'],
+  'reconcile_google_workspace_directory',
+  ARRAY['uuid', 'text[]'],
   'directory reconciliation RPC exists'
 );
 
 SELECT lives_ok(
   $$
-    SELECT public.reconcile_google_workspace_directory_snapshot(
+    SELECT public.reconcile_google_workspace_directory(
       '18000000-0000-0000-0000-000000000001'::uuid,
-      '2026-06-12T20:00:00Z'::timestamptz
+      ARRAY[]::text[]
     )
   $$,
   'directory reconciliation runs for a completed sync snapshot'

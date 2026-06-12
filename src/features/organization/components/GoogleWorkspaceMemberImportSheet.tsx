@@ -174,7 +174,7 @@ export const GoogleWorkspaceMemberImportSheet = ({
       });
 
       // Invalidate queries to refresh data
-      await queryClient.invalidateQueries({ queryKey: ['gws-member-claims', organizationId] });
+      await queryClient.invalidateQueries({ queryKey: googleWorkspace.memberClaims(organizationId) });
       await queryClient.invalidateQueries({ queryKey: ['organization-members', organizationId] });
 
       // Close the sheet via the wrapper to ensure local state is reset
