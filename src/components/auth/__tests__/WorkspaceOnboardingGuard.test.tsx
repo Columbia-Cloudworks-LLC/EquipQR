@@ -5,6 +5,10 @@ import { customRender } from '@/test/utils/renderUtils';
 import WorkspaceOnboardingGuard from '@/components/auth/WorkspaceOnboardingGuard';
 
 const mockOnboardingState = vi.hoisted(() => vi.fn());
+const mockQueryState = vi.hoisted(() => ({
+  isLoading: false,
+  isError: false,
+}));
 
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({
@@ -19,13 +23,17 @@ vi.mock('@/hooks/useAuth', () => ({
 vi.mock('@/hooks/useWorkspaceOnboarding', () => ({
   useWorkspaceOnboardingState: () => ({
     data: mockOnboardingState(),
-    isLoading: false,
+    isLoading: mockQueryState.isLoading,
+    isError: mockQueryState.isError,
+    refetch: vi.fn(),
   }),
 }));
 
 describe('WorkspaceOnboardingGuard', () => {
   beforeEach(() => {
     mockOnboardingState.mockReset();
+    mockQueryState.isLoading = false;
+    mockQueryState.isError = false;
   });
 
   it('renders children for unclaimed domains', () => {
@@ -62,6 +70,20 @@ describe('WorkspaceOnboardingGuard', () => {
     );
 
     expect(screen.getByText('Workspace access required')).toBeInTheDocument();
+    expect(screen.queryByText('Dashboard content')).not.toBeInTheDocument();
+  });
+
+  it('blocks dashboard access when onboarding state query fails', () => {
+    mockQueryState.isError = true;
+    mockOnboardingState.mockReturnValue(undefined);
+
+    customRender(
+      <WorkspaceOnboardingGuard>
+        <div>Dashboard content</div>
+      </WorkspaceOnboardingGuard>,
+    );
+
+    expect(screen.getByText('Unable to verify workspace access')).toBeInTheDocument();
     expect(screen.queryByText('Dashboard content')).not.toBeInTheDocument();
   });
 

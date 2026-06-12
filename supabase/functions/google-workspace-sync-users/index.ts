@@ -2,6 +2,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 import {
   createAdminSupabaseClient,
   createErrorResponse,
+  createJsonResponse,
   verifyOrgAdmin,
   withCorrelationId,
   requireAuthenticatedPost,
@@ -245,15 +246,13 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       claimsRevoked: reconcile.claims_revoked ?? 0,
     });
 
-    return new Response(JSON.stringify({
+    return createJsonResponse({
       success: true,
       usersSynced: totalUsers,
       directoryMarkedSuspended: reconcile.directory_marked_suspended ?? 0,
       membersDeactivated: reconcile.members_deactivated ?? 0,
       claimsRevoked: reconcile.claims_revoked ?? 0,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    }, 200, { req });
   } catch (error) {
     if (error instanceof MissingSecretError) {
       return createErrorResponse(error, 500);

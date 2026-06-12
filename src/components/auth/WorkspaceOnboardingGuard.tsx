@@ -15,7 +15,7 @@ interface WorkspaceOnboardingGuardProps {
  */
 const WorkspaceOnboardingGuard: React.FC<WorkspaceOnboardingGuardProps> = ({ children }) => {
   const { user } = useAuth();
-  const { data: onboardingState, isLoading } = useWorkspaceOnboardingState();
+  const { data: onboardingState, isLoading, isError, refetch } = useWorkspaceOnboardingState();
 
   if (!user || !isGoogleUser(user)) {
     return <>{children}</>;
@@ -27,6 +27,10 @@ const WorkspaceOnboardingGuard: React.FC<WorkspaceOnboardingGuardProps> = ({ chi
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-label="Checking workspace access" />
       </div>
     );
+  }
+
+  if (isError) {
+    return <WorkspaceAccessGate mode="error" domain={null} onRetry={() => { void refetch(); }} />;
   }
 
   if (!onboardingState || onboardingState.domain_status !== 'claimed') {

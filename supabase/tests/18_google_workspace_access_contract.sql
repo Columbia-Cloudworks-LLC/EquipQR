@@ -3,7 +3,7 @@
 -- sync must revoke only Workspace-derived access.
 
 BEGIN;
-SELECT plan(14);
+SELECT plan(15);
 
 CREATE TEMP TABLE gws_contract_ids (
   label text PRIMARY KEY,
@@ -154,6 +154,15 @@ SELECT set_config(
   'request.jwt.claims',
   json_build_object('sub', (SELECT id::text FROM gws_contract_ids WHERE label = 'admin'))::text,
   true
+);
+
+SELECT is(
+  (SELECT count(*)::integer
+     FROM public.get_workspace_onboarding_state(
+       (SELECT id FROM gws_contract_ids WHERE label = 'unapproved')
+     )),
+  0,
+  'get_workspace_onboarding_state rejects cross-user lookups for authenticated callers'
 );
 
 SELECT throws_ok(
