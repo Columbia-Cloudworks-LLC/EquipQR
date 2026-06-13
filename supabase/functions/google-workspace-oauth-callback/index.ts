@@ -29,21 +29,15 @@ import {
 
 const FUNCTION_NAME = "google-workspace-oauth-callback";
 
-interface OAuthSessionRedirectRow {
-  redirect_url: string | null;
-  origin_url: string | null;
-}
-
 async function peekOAuthRedirectContext(
   supabaseClient: ReturnType<typeof createAdminSupabaseClient>,
   sessionToken: string,
   resolvedProductionUrl: string,
 ) {
-  const { data, error } = await supabaseClient
-    .from("google_workspace_oauth_sessions")
-    .select("redirect_url, origin_url")
-    .eq("session_token", sessionToken)
-    .maybeSingle<OAuthSessionRedirectRow>();
+  const { data, error } = await supabaseClient.rpc(
+    "peek_google_workspace_oauth_session_redirect",
+    { p_session_token: sessionToken },
+  );
 
   if (error) {
     logStep("Failed to peek OAuth session redirect context", {
@@ -56,7 +50,8 @@ async function peekOAuthRedirectContext(
     };
   }
 
-  if (!data) {
+  const row = Array.isArray(data) ? data[0] : null;
+  if (!row) {
     return {
       originUrl: null as string | null,
       redirectUrl: null as string | null,
@@ -65,8 +60,8 @@ async function peekOAuthRedirectContext(
   }
 
   return {
-    originUrl: data.origin_url,
-    redirectUrl: data.redirect_url,
+    originUrl: row.origin_url as string | null,
+    redirectUrl: row.redirect_url as string | null,
     resolvedProductionUrl,
   };
 }
