@@ -94,8 +94,11 @@ Follow local patterns and existing service boundaries. Preserve organization sco
 
 ### 5. Verify
 
+Follow `.cursor/rules/local-verify-before-preview-push.mdc` — **no push to preview until this phase passes with zero user manual steps.**
+
 Choose the smallest credible gate:
 
+- Always run Fallow (both scans) before commit per `fallow-before-commit.mdc`.
 - Always run lint/type checks when product code changed:
   ```powershell
   npm run lint
@@ -106,12 +109,15 @@ Choose the smallest credible gate:
   npm test -- <test-paths>
   ```
 - Run `npm run build` when routing, bundling, PWA, Vite, or env wiring may be affected.
-- For UI changes, smoke the affected route with the browser MCP when practical.
+- For UI changes, smoke the affected route with browser MCP or `.\dev-test.bat` critical when a spec exists.
+- For OAuth/integrations, exercise the flow on the local stack (browser MCP + edge logs + RPC/DB confirmation).
 - For migrations/RLS/edge functions, run the relevant Supabase or Deno checks when the local stack is healthy.
 
-If verification fails outside the change scope, report the blocker instead of broadening the work silently.
+If verification fails outside the change scope, report the blocker instead of broadening the work silently. If E2E cannot be automated locally, **stop before integrate** — do not push to preview.
 
 ### 6. Integrate
+
+**Prerequisite:** Section 5 completed; cite verification commands and outcomes in the handoff.
 
 Follow the current worktree policy:
 

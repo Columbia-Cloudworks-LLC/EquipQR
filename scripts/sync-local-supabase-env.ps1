@@ -82,6 +82,8 @@ Write-ManagedBlock -FilePath $viteLocalEnvPath -CreateIfMissing $true -BlockLine
 Write-ManagedBlock -FilePath $edgeEnvPath -CreateIfMissing $false -BlockLines @(
     "INTUIT_REDIRECT_URI=$quickbooksRedirectUri"
     "PUBLIC_SITE_URL=http://localhost:8080"
+    "GW_OAUTH_REDIRECT_BASE_URL=$localSupabaseBaseUrl"
+    "QB_OAUTH_REDIRECT_BASE_URL=$localSupabaseBaseUrl"
 ) -KeysToReplace @(
     "SUPABASE_URL"
     "INTUIT_REDIRECT_URI"

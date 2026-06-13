@@ -99,7 +99,7 @@ Use when the agent hits **interactive or consent-bound** limits:
 | Situation | What to ask the maintainer |
 |---|---|
 | MCP server not authenticated | "Please authorize **&lt;server&gt;** in Cursor → MCP (browser OAuth)." Then retry once. |
-| Google Workspace connect/disconnect on preview | "Please complete **Connect Google Workspace** in the browser; I'll watch edge logs / DB row count." |
+| Google Workspace connect/disconnect on **preview cloud** only | "Please complete **Connect Google Workspace** on preview.equipqr.app; I'll watch edge logs / DB row count." Local GW flows are agent-automated via browser MCP — do not ask the user to click through local OAuth. |
 | GCP mutation needed | "Approve **gcloud-write** / editor SA impersonation for: &lt;exact change&gt;." Never `gcloud config set account`. |
 | GitHub mutation beyond agent PAT | "Approve **github-write** MCP or run: &lt;exact gh command&gt;." |
 | Supabase production promotion | Explicit `/release` or hotfix language only. |
@@ -119,6 +119,7 @@ Use when the agent hits **interactive or consent-bound** limits:
 |---|---|
 | Full secrets map, sync scripts, rotation | `docs/ops/agent-secrets-and-access.md` |
 | Branching / preview push policy | `.cursor/rules/branching.mdc` |
+| Local E2E gate before preview push | `.cursor/rules/local-verify-before-preview-push.mdc` |
 | Pre-commit Fallow gate | `.cursor/rules/fallow-before-commit.mdc` |
 | PowerShell / git conventions | `.cursor/rules/git-powershell.mdc` |
 | Workflow artifact commits | `.cursor/rules/workflow-artifacts.mdc` |
@@ -136,7 +137,8 @@ When capturing a new secrets or access lesson, update **this file** and, if deta
 
 ## Learned User Preferences
 
-- Use the Columbia Cloudworks Workspace tenant (`columbiacloudworks.com`) and the real EquipQR Connect flow for Google Workspace integration validation; do not provision parallel Google orgs unless explicitly asked.
+- **No preview push without local E2E.** As of 2026-06-13, local dev has production parity. Never push to `preview` until the agent has verified the change locally end-to-end with zero manual user steps (see `local-verify-before-preview-push.mdc`).
+- Use the Columbia Cloudworks Workspace tenant (`columbiacloudworks.com`) and the Columbia Cloudworks Google account for GCP Console OAuth edits on `equipqr-prod`; use the real EquipQR Connect flow for Google Workspace integration validation; do not provision parallel Google orgs unless explicitly asked.
 - Plans for unattended parallel agent execution (Build in Parallel) must branch off `preview`, open a PR to `preview`, and include automatable acceptance criteria verifiable without human intervention.
 - When triaging PR feedback, address every Qodo Code Review item—action required, review recommended, and optional—not only the required block.
 - Scan resolved review threads for regressions introduced by commits pushed after the PR opened; avoid fix-and-regress cycles.
@@ -152,3 +154,7 @@ When capturing a new secrets or access lesson, update **this file** and, if deta
 - Google Workspace OAuth callback error redirects must validate the stored OAuth session via `validate_google_workspace_oauth_session` (nonce, expiry, used_at) before restoring redirect context; unsigned `state` fields alone are not sufficient.
 - OAuth callback URL handlers must clear `gw_connected` when processing `gw_error` so mixed query params cannot trigger conflicting success toasts or spurious cache invalidation.
 - New `SECURITY DEFINER` functions should use `SET search_path = public, pg_temp`, matching the repo hardening convention in existing migrations.
+- Local Google sign-in (Supabase Auth) and Google Workspace Connect use separate GCP OAuth clients; register `http://localhost:54321` and `http://127.0.0.1:54321` redirect URIs on each client for local dev (`/auth/v1/callback` vs `/functions/v1/google-workspace-oauth-callback`).
+- Supabase Management API `external_google_secret` may return a non-`GOCSPX-*` value that fails Google token exchange; source Supabase Auth Google secrets from GCP Console, not the Management API alone (`bootstrap-local-google-auth.ps1` rejects non-`GOCSPX-*` values).
+- UTF-8 em dashes in `.ps1` scripts break parsing under Windows PowerShell 5.1 (`dev-start.bat`); use ASCII hyphens only in repo PowerShell scripts.
+- Local Edge OAuth token exchange requires `GW_OAUTH_REDIRECT_BASE_URL=http://localhost:54321` (and QB equivalent) in `supabase/functions/.env`; internal Docker `SUPABASE_URL` is `http://kong:8000` — restart with `npx supabase stop` / `start`, not edge-container-only restart, after env changes.
