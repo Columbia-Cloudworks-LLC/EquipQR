@@ -11,6 +11,7 @@ These hooks are Windows-specific and require PowerShell. They will not work on U
 - `guard-migrations.ps1` - Guards against reading migration files incorrectly
 - `changelog-stop.ps1` - At the end of completed agent sessions, asks the agent to update `CHANGELOG.md` when relevant repo changes were made without a changelog entry
 - `component-check.py` - Fuzzy-searches existing components before the agent creates a new one
+- `lint-on-edit.ps1` - Runs ESLint on edited `.ts`/`.tsx` files (`--max-warnings 0`) and blocks the agent until lint is clean
 - `strict-type-check.ps1` - Blocks edits that introduce explicit `: any` types in `.ts`/`.tsx` files and runs `tsc --noEmit`
 - `secret-guardian.py` - Scans prompts and shell commands for hardcoded secrets (Stripe keys, Supabase service-role keys, QBO refresh tokens) and blocks the action if detected
 - `architecture-guard.py` - Enforces layered-architecture import rules: blocks UI components from importing features (UI Purity), warns on cross-feature imports (Feature Isolation)

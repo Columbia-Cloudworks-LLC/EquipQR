@@ -6,10 +6,14 @@
           "command": "powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File .\\.cursor\\hooks\\sync-types.ps1"
         },
         {
-          "command": "powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File .\\.cursor\\hooks\\run-tests.ps1"
+          "command": "powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File .\\.cursor\\hooks\\lint-on-edit.ps1",
+          "failClosed": true
         },
         {
           "command": "powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File .\\.cursor\\hooks\\strict-type-check.ps1"
+        },
+        {
+          "command": "powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File .\\.cursor\\hooks\\run-tests.ps1"
         },
         {
           "command": "pythonw .\\.cursor\\hooks\\architecture-guard.py"
