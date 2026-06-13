@@ -9,8 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Google Workspace disconnect** — Organization Integrations replaces the healthy-state Reconnect action with Disconnect (confirmation dialog) and contextual Grant permissions when scopes are incomplete; disconnect always clears OAuth credentials, the cached directory, and the workspace domain claim so onboarding can restart from scratch.
+
 ### Fixed
 
+- **Google Workspace OAuth scope storage** — Re-authorization merges incremental consent grants with stored scopes instead of overwriting them with a partial grant list.
+- **Google Workspace connection health** — Permissions-needed state evaluates feature scopes only, so missing openid/email/profile no longer shows a false Permissions needed badge after a successful connect.
 - **Local dev 1Password sync** — `dev-start.bat` now syncs `.env` files from editable 1Password items (`app-env-local-dev`, `edge-env-local-dev`) instead of the unsupported `op environment read` command.
 
 ## [3.8.7] - 2026-06-13
