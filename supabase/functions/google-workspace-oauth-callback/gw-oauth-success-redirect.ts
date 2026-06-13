@@ -1,6 +1,14 @@
 import { isTrustedDomain, isValidRedirectUrl } from "./gw-oauth-validation.ts";
 import { resolvePublicSiteUrl } from "../_shared/public-site-url.ts";
 
+export interface GoogleWorkspaceCallbackRedirectContext {
+  originUrl: string | null;
+  redirectUrl: string | null;
+  resolvedProductionUrl: string;
+}
+
+const DEFAULT_REDIRECT_PATH = "/dashboard/onboarding/workspace";
+
 export function resolveProductionUrl(productionUrl?: string): string {
   return productionUrl || resolvePublicSiteUrl();
 }
@@ -12,50 +20,64 @@ export function resolveFallbackProductionUrl(): string {
     : "https://equipqr.app";
 }
 
-export function buildGoogleOAuthErrorRedirectUrl(
-  fallbackProductionUrl: string,
-  errorCode: string,
-  userMessage: string,
+function resolveCallbackTargetUrl(
+  params: GoogleWorkspaceCallbackRedirectContext,
 ): string {
-  return `${fallbackProductionUrl}/dashboard/onboarding/workspace?gw_error=${encodeURIComponent(
-    errorCode,
-  )}&gw_error_description=${encodeURIComponent(userMessage)}`;
+  const isOriginValid = !!params.originUrl &&
+    isValidRedirectUrl(params.originUrl, params.resolvedProductionUrl);
+  const finalBaseUrl = (
+    isOriginValid && params.originUrl ? params.originUrl : params.resolvedProductionUrl
+  ).replace(/\/+$/, "");
+
+  if (params.redirectUrl) {
+    if (!isValidRedirectUrl(params.redirectUrl, params.resolvedProductionUrl)) {
+      return `${finalBaseUrl}${DEFAULT_REDIRECT_PATH}`;
+    }
+
+    const isAbsolute = /^https?:\/\//i.test(params.redirectUrl);
+    return isAbsolute ? params.redirectUrl : `${finalBaseUrl}${params.redirectUrl}`;
+  }
+
+  return `${finalBaseUrl}${DEFAULT_REDIRECT_PATH}`;
+}
+
+function buildCallbackRedirectUrl(
+  params: GoogleWorkspaceCallbackRedirectContext,
+  queryParams: Record<string, string>,
+): string {
+  const targetUrl = resolveCallbackTargetUrl(params);
+  const separator = targetUrl.includes("?") ? "&" : "?";
+  const search = new URLSearchParams(queryParams).toString();
+  return `${targetUrl}${separator}${search}`;
+}
+
+export function buildGoogleOAuthErrorRedirectUrl(
+  params: GoogleWorkspaceCallbackRedirectContext & {
+    errorCode: string;
+    userMessage: string;
+  },
+): string {
+  return buildCallbackRedirectUrl(params, {
+    gw_error: params.errorCode,
+    gw_error_description: params.userMessage,
+  });
 }
 
 export function buildGoogleAccessDeniedRedirectUrl(
-  resolvedProductionUrl: string,
+  params: GoogleWorkspaceCallbackRedirectContext,
   error: string,
   userFriendlyError: string,
 ): string {
-  return `${resolvedProductionUrl}/dashboard/onboarding/workspace?gw_error=${encodeURIComponent(error)}&gw_error_description=${encodeURIComponent(userFriendlyError)}`;
+  return buildCallbackRedirectUrl(params, {
+    gw_error: error,
+    gw_error_description: userFriendlyError,
+  });
 }
 
 export function buildSuccessRedirectUrl(
-  params: {
-    originUrl: string | null;
-    redirectUrl: string | null;
-    resolvedProductionUrl: string;
-  },
+  params: GoogleWorkspaceCallbackRedirectContext,
 ): string {
-  const isOriginValid = !!params.originUrl && isValidRedirectUrl(params.originUrl, params.resolvedProductionUrl);
-  const finalBaseUrl = (isOriginValid && params.originUrl ? params.originUrl : params.resolvedProductionUrl).replace(/\/+$/, "");
-  const defaultRedirectPath = "/dashboard/onboarding/workspace";
-
-  let successUrl: string;
-  if (params.redirectUrl) {
-    if (!isValidRedirectUrl(params.redirectUrl, params.resolvedProductionUrl)) {
-      successUrl = `${finalBaseUrl}${defaultRedirectPath}?gw_connected=true`;
-    } else {
-      const isAbsolute = /^https?:\/\//i.test(params.redirectUrl);
-      const baseSuccessUrl = isAbsolute ? params.redirectUrl : `${finalBaseUrl}${params.redirectUrl}`;
-      const separator = baseSuccessUrl.includes("?") ? "&" : "?";
-      successUrl = `${baseSuccessUrl}${separator}gw_connected=true`;
-    }
-  } else {
-    successUrl = `${finalBaseUrl}${defaultRedirectPath}?gw_connected=true`;
-  }
-
-  return successUrl;
+  return buildCallbackRedirectUrl(params, { gw_connected: "true" });
 }
 
 export const __gwOauthSuccessRedirectTestables = {
@@ -64,4 +86,5 @@ export const __gwOauthSuccessRedirectTestables = {
   buildGoogleOAuthErrorRedirectUrl,
   buildGoogleAccessDeniedRedirectUrl,
   buildSuccessRedirectUrl,
+  resolveCallbackTargetUrl,
 };

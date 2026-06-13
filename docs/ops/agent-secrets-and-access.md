@@ -1,0 +1,120 @@
+# Agent secrets and access (EquipQR)
+
+Operational reference for Cursor agents and headless automation. Columbia Cloudworks LLC / EquipQR.
+
+---
+
+## Vault and tokens
+
+**Vault:** `EquipQR Agents`
+
+| Token env var | Service account | Permissions | Typical use |
+|---|---|---|---|
+| `OP_SERVICE_ACCOUNT_TOKEN` | `op-svc-equipqr-agents` | Read | `op read`, `op inject`, metadata, CI |
+| `OP_SAT_EquipQR` | Write SAT (maintainer-provisioned) | Read, Write & Share on vault | `op item create`, `op item edit` |
+
+Cloud Agents and GitHub Actions use the read-only token as a repo/org secret. Never commit either token.
+
+---
+
+## Cursor shell vs 1Password writes
+
+### Symptom
+
+Running `op item edit` or `op item create` **inline** in a Cursor agent terminal:
+
+- Hangs until killed (exit `4294967295` / timeout)
+- `invalid JSON in piped input`
+- `cannot create an item from template and stdin at the same time`
+
+### Cause
+
+Cursor's integrated shell attaches **stdin as a pipe** to child processes. The 1Password CLI treats active stdin as [JSON template input](https://www.1password.dev/cli/reference/management-commands/item#item-edit) (the `-` positional form). Reads do not use that code path, so `op read` works inline.
+
+### Fix (required pattern)
+
+Use the repo helper, which runs `op` in a **detached** `powershell.exe -File` process:
+
+```powershell
+# Dry-run field update (safe)
+.\scripts\op-item-mutate.ps1 `
+  -Action Edit `
+  -Item "app-env-preview-public" `
+  -Vault "EquipQR Agents" `
+  -Assignment "GOOGLE_WORKSPACE_CLIENT_ID[text]=87469690682-example.apps.googleusercontent.com" `
+  -DryRun
+
+# Apply
+.\scripts\op-item-mutate.ps1 -Action Edit -Item "app-env-preview-public" -Vault "EquipQR Agents" `
+  -Assignment "GOOGLE_WORKSPACE_CLIENT_ID[text]=87469690682-example.apps.googleusercontent.com"
+```
+
+Assignment rules ([official docs](https://www.1password.dev/cli/reference/management-commands/item#item-edit)):
+
+- `--` before assignments when values contain `.` or special characters
+- `field[text]=value` for plain text fields
+- For multi-field or sensitive bulk edits: `-Action Edit -TemplatePath C:\path\to\item.json` after `op item get ... --format json`
+
+Interactive maintainer terminals (`PS D:\EquipQR>`) can run `op` directly; agents should not rely on that.
+
+---
+
+## Secret sync pipelines
+
+| Script | Source | Target |
+|---|---|---|
+| `dev-start.bat` / `dev-start.ps1` | `app-env-local-dev`, `edge-env-local-dev` | `.env`, `supabase/functions/.env` |
+| `scripts/sync-vercel-from-1password.ps1` | `app-env-*-public` | Vercel env (production / preview) |
+| `scripts/sync-supabase-secrets-from-1password.ps1` | `edge-env-*-secrets` | Supabase Edge secrets |
+| `scripts/render-mcp-config.ps1` | `scripts/mcp.template.json` + `op inject` | `~/.cursor/mcp.json` |
+
+Verify MCP wiring: `.\scripts\op-mcp-doctor.ps1` (expect 13/13 green on maintainer machine).
+
+### Preview OAuth alignment checklist
+
+Google Workspace OAuth requires **matching client ID** in:
+
+1. `app-env-preview-public` → `GOOGLE_WORKSPACE_CLIENT_ID` → baked into Vite as `VITE_GOOGLE_WORKSPACE_CLIENT_ID`
+2. `edge-env-preview-secrets` → `GOOGLE_WORKSPACE_CLIENT_ID` + `GOOGLE_WORKSPACE_CLIENT_SECRET`
+
+After vault edit:
+
+1. `.\scripts\sync-vercel-from-1password.ps1 -Environment preview`
+2. Redeploy staging (`preview.equipqr.app` alias)
+3. Confirm edge secrets via `sync-supabase-secrets-from-1password.ps1 -Check` (preview project `olsdirkvvfegvclbpgrg`)
+
+---
+
+## MCP and vendor access tiers
+
+Rendered in `~/.cursor/mcp.json` from `scripts/mcp.template.json`:
+
+| MCP entry | Tier | Notes |
+|---|---|---|
+| `github-read` | Read | Default PR/issue inspection |
+| `github-write` | Write | Mutates GitHub; maintainer approval for destructive ops |
+| `gcloud` | Read | Viewer SA JSON |
+| `gcloud-write` | Write | Impersonates editor SA via `CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT` |
+| `supabase` plugin | Mixed | Prefer read; migrations/production need explicit scope |
+| Plugin MCPs (Datadog, Grafana, etc.) | Varies | First use may open **browser OAuth** in Cursor MCP settings |
+
+When an MCP call returns auth errors, ask the maintainer to complete OAuth in **Cursor → Settings → MCP**, then retry once.
+
+---
+
+## Escalation template for agents
+
+When blocked, post:
+
+1. **Blocked on:** (e.g. "1Password vault write", "Supabase production migrate", "Google OAuth consent")
+2. **Already tried:** (e.g. "inline op item edit — stdin pipe failure; detached script works")
+3. **Request:** (e.g. "Please authorize Supabase MCP for project olsdirkvvfegvclbpgrg" or "Please click Connect Google Workspace on preview integrations page")
+4. **Verify after:** (e.g. "I'll confirm `google_workspace_credentials` row count = 1")
+
+---
+
+## Related docs
+
+- `docs/ops/cloud-admin-access.md` — GCP org posture
+- `.cursor/skills/secrets-rotation/SKILL.md` — rotation procedures (when present)
+- `docs/technical/setup.md` — human developer onboarding

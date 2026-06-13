@@ -37,7 +37,18 @@ export function useOrganizationIntegrationOAuthCallbacks() {
   }, [searchParams, setSearchParams, queryClient]);
 
   useEffect(() => {
+    const error = searchParams.get('gw_error');
+    const errorDescription = searchParams.get('gw_error_description');
     const success = searchParams.get('gw_connected');
+
+    if (error) {
+      toast.error(errorDescription || 'Failed to connect Google Workspace');
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('gw_error');
+      newParams.delete('gw_error_description');
+      setSearchParams(newParams, { replace: true });
+      return;
+    }
 
     if (success === 'true') {
       toast.success('Google Workspace reconnected successfully!');

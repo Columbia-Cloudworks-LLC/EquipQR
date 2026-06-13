@@ -22,7 +22,7 @@ const {
 const { parseOAuthState, validateOAuthStateTimestamp } = __stateTestables;
 const { buildOAuthRedirectUri, resolveOAuthRedirectBaseUrl } = __gwOauthRedirectUriTestables;
 const { extractUserDomain } = __gwOauthGoogleApiTestables;
-const { buildSuccessRedirectUrl, resolveFallbackProductionUrl } = __gwOauthSuccessRedirectTestables;
+const { buildSuccessRedirectUrl, resolveFallbackProductionUrl, buildGoogleOAuthErrorRedirectUrl } = __gwOauthSuccessRedirectTestables;
 
 function withEnv(updates: Record<string, string | undefined>, fn: () => void): void {
   const previous = new Map<string, string | undefined>();
@@ -190,6 +190,25 @@ Deno.test({
       resolvedProductionUrl: "https://equipqr.app",
     });
     assertEquals(url, "https://equipqr.app/dashboard/onboarding/workspace?gw_connected=true");
+  });
+});
+
+Deno.test({
+  name: "buildGoogleOAuthErrorRedirectUrl honors integrations redirectUrl from OAuth session",
+  permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
+}, () => {
+  withEnv({ PUBLIC_SITE_URL: "https://preview.equipqr.app", PRODUCTION_URL: "https://equipqr.app" }, () => {
+    const url = buildGoogleOAuthErrorRedirectUrl({
+      originUrl: "https://preview.equipqr.app",
+      redirectUrl: "/dashboard/organization/integrations",
+      resolvedProductionUrl: "https://preview.equipqr.app",
+      errorCode: "oauth_failed",
+      userMessage: "Google Workspace refresh token missing. Please reconnect.",
+    });
+    assertEquals(
+      url,
+      "https://preview.equipqr.app/dashboard/organization/integrations?gw_error=oauth_failed&gw_error_description=Google+Workspace+refresh+token+missing.+Please+reconnect.",
+    );
   });
 });
 

@@ -43,6 +43,12 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     return new Response(null, { headers: getCallbackCorsHeaders(req) });
   }
 
+  let callbackRedirectContext = {
+    originUrl: null as string | null,
+    redirectUrl: null as string | null,
+    resolvedProductionUrl: resolveFallbackProductionUrl(),
+  };
+
   try {
     logStep("Function started", { method: req.method, correlation_id: ctx.correlationId });
 
@@ -54,6 +60,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       supabaseUrl,
     );
     const resolvedProductionUrl = resolveProductionUrl();
+    callbackRedirectContext.resolvedProductionUrl = resolvedProductionUrl;
 
     try {
       new URL(oauthRedirectBaseUrl);
@@ -80,7 +87,11 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
         ? "Google Workspace connection was cancelled"
         : "Google Workspace connection failed";
       return Response.redirect(
-        buildGoogleAccessDeniedRedirectUrl(resolvedProductionUrl, error, userFriendlyError),
+        buildGoogleAccessDeniedRedirectUrl(
+          callbackRedirectContext,
+          error,
+          userFriendlyError,
+        ),
         302,
       );
     }
@@ -118,6 +129,11 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     const redirectUrl = session.redirect_url;
     const originUrl = session.origin_url;
     const sessionNonce = session.nonce;
+    callbackRedirectContext = {
+      originUrl,
+      redirectUrl,
+      resolvedProductionUrl,
+    };
 
     if (!sessionNonce || state.nonce !== sessionNonce) {
       throw new Error("OAuth nonce mismatch. Possible CSRF attack.");
@@ -167,23 +183,25 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     });
     logStep("Credential storage succeeded", { effectiveOrgId, userDomain });
 
-    const successUrl = buildSuccessRedirectUrl({
-      originUrl,
-      redirectUrl,
-      resolvedProductionUrl,
-    });
+    const successUrl = buildSuccessRedirectUrl(callbackRedirectContext);
 
     return Response.redirect(successUrl, 302);
   } catch (error) {
     const fallbackProductionUrl = resolveFallbackProductionUrl();
+    const errorRedirectContext = {
+      originUrl: callbackRedirectContext.originUrl,
+      redirectUrl: callbackRedirectContext.redirectUrl,
+      resolvedProductionUrl: callbackRedirectContext.resolvedProductionUrl || fallbackProductionUrl,
+    };
 
     if (error instanceof MissingSecretError) {
       return Response.redirect(
-        buildGoogleOAuthErrorRedirectUrl(
-          fallbackProductionUrl,
-          "oauth_failed",
-          "Google Workspace OAuth is not configured. Please contact your administrator.",
-        ),
+        buildGoogleOAuthErrorRedirectUrl({
+          ...errorRedirectContext,
+          errorCode: "oauth_failed",
+          userMessage:
+            "Google Workspace OAuth is not configured. Please contact your administrator.",
+        }),
         302,
       );
     }
@@ -200,11 +218,11 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
 
     const userMessage =
       errorMessage || "Failed to connect Google Workspace. Please try again.";
-    const errorUrl = buildGoogleOAuthErrorRedirectUrl(
-      fallbackProductionUrl,
+    const errorUrl = buildGoogleOAuthErrorRedirectUrl({
+      ...errorRedirectContext,
       errorCode,
       userMessage,
-    );
+    });
     return Response.redirect(errorUrl, 302);
   }
 }));

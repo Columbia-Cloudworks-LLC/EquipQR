@@ -30,7 +30,9 @@ export async function storeGoogleWorkspaceCredentials(
   }
 
   if (!refreshToken) {
-    throw new Error("Google Workspace refresh token missing. Please reconnect.");
+    throw new Error(
+      "Google Workspace refresh token missing. Revoke EquipQR at myaccount.google.com/permissions and reconnect.",
+    );
   }
 
   // Encrypt the refresh token before storing
