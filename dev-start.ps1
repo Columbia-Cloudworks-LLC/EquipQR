@@ -118,6 +118,18 @@ function Test-Port5174Listening {
     return [bool]$conns
 }
 
+function Import-SupabaseDotEnv {
+    param([string]$Path = (Join-Path $repoRoot 'supabase\.env'))
+    if (-not (Test-Path -LiteralPath $Path)) { return $false }
+    foreach ($line in [System.IO.File]::ReadLines($Path)) {
+        if ($line -match '^\s*#' -or $line -match '^\s*$') { continue }
+        if ($line -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$') {
+            [Environment]::SetEnvironmentVariable($matches[1], $matches[2], 'Process')
+        }
+    }
+    return $true
+}
+
 function Test-DevStackAlreadyRunningForForce {
     if (Test-EdgeFunctionsServeRunning) { return $true }
     if (Test-Port8080Listening -and (Test-ViteResponding)) { return $true }
@@ -312,6 +324,20 @@ if ($opCli) {
         Write-Host "        WARNING: One or both 1Password env syncs failed. Using existing .env and $DEFAULT_EDGE_ENV_FILE."
     }
 
+    $supabaseAuthSyncScript = Join-Path $repoRoot 'scripts\sync-local-supabase-auth-env.ps1'
+    if (Test-Path -LiteralPath $supabaseAuthSyncScript) {
+        $oldSupaAuthEap = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            & $supabaseAuthSyncScript -ApiPort $SUPABASE_API_PORT
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "        WARNING: Could not sync supabase\.env Google Auth vars. Run scripts\bootstrap-local-google-auth.ps1 once."
+            }
+        } finally {
+            $ErrorActionPreference = $oldSupaAuthEap
+        }
+    }
+
 } else {
     Write-Host "        1Password CLI not found on PATH - using existing .env and $DEFAULT_EDGE_ENV_FILE."
 }
@@ -413,6 +439,12 @@ if ($statusExit -eq 0) {
     try {
         $r = Invoke-WebRequest -Uri "http://127.0.0.1:$SUPABASE_API_PORT/rest/v1/" -Method HEAD -TimeoutSec 3 -UseBasicParsing -ErrorAction Stop
         if ($r.StatusCode -lt 500) {
+            $googleEnabled = docker inspect supabase_auth_ymxkzronkhwxzcdcbnwq --format '{{range .Config.Env}}{{println .}}{{end}}' 2>$null |
+                Select-String 'GOTRUE_EXTERNAL_GOOGLE_ENABLED=true'
+            if (-not $googleEnabled) {
+                Write-Host "        WARNING: Supabase is up but Google sign-in is disabled in the auth container."
+                Write-Host "        Run dev-stop.bat then dev-start.bat (or restart Supabase after sync-local-supabase-auth-env.ps1)."
+            }
             $needStart = $false
             Write-Host "        Supabase API is already responding - skipped start."
         }
@@ -424,6 +456,9 @@ if ($statusExit -eq 0) {
 
 if ($needStart) {
     Write-Host "        Starting Supabase (this may take a few minutes on first run)..."
+    if (-not (Import-SupabaseDotEnv)) {
+        Write-Host "        WARNING: supabase\.env missing - Google sign-in will fail until scripts\bootstrap-local-google-auth.ps1 runs."
+    }
     # Exclude logflare (Logflare analytics) and vector (its log shipper) on
     # Windows hosts. Vector requires Docker to be exposed on tcp://localhost:2375
     # (the Docker SDK over an unauthenticated TCP socket). Without that,

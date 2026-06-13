@@ -13,7 +13,7 @@ project_id = "ymxkzronkhwxzcdcbnwq"
 [auth]
 enabled = true
 # For local development, use the Vite dev server URL
-site_url = "http://localhost:5173"
+site_url = "http://localhost:8080"
 # Additional redirect URLs for OAuth and auth flows
 additional_redirect_urls = [
   "http://localhost:5173/**",
@@ -27,6 +27,11 @@ additional_redirect_urls = [
   # Update this if the Vercel project is renamed.
   "https://equip-qr-*.vercel.app/**"
 ]
+
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
 
 # =============================================================================
 # STORAGE CONFIGURATION
