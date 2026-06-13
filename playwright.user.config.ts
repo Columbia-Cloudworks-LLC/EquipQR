@@ -133,12 +133,24 @@ export default defineConfig({
     {
       name: 'real-auth-integrations',
       grep: /@real-auth/,
+      grepInvert: /@google-oauth/,
       use: {
         baseURL: realAuthBaseURL,
         viewport: { width: 1280, height: 720 },
         ...(vercelAutomationBypassHeaders
           ? { extraHTTPHeaders: vercelAutomationBypassHeaders }
           : {}),
+        ...(realAuthStorageExists && realAuthStorageState
+          ? { storageState: realAuthStorageState }
+          : {}),
+      },
+    },
+    {
+      name: 'google-oauth-local',
+      grep: /@google-oauth/,
+      use: {
+        baseURL: realAuthBaseURL,
+        viewport: { width: 1280, height: 960 },
         ...(realAuthStorageExists && realAuthStorageState
           ? { storageState: realAuthStorageState }
           : {}),

@@ -1,9 +1,13 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import path from 'path';
 import {
+  DEFAULT_GOOGLE_WORKSPACE_LOCAL_AUTH_PATH,
   getProductionQuickBooksInvoiceUrl,
   hasRealAuthExportPrerequisites,
   isQboProductionDraftsAllowed,
   isTruthyEnv,
+  resolveGoogleDocsWorkOrderId,
+  resolveGoogleWorkspaceAuthStoragePath,
   resolveRealAuthBaseUrl,
   resolveVercelAutomationBypassHeaders,
 } from '../../../e2e/user/shared/real-auth-config';
@@ -31,6 +35,20 @@ describe('real-auth-config', () => {
     expect(resolveRealAuthBaseUrl()).toBe('https://preview.equipqr.app');
   });
 
+  it('defaults Google Workspace capture path when env is unset', () => {
+    delete process.env.E2E_REAL_AUTH_STORAGE_STATE;
+    expect(resolveGoogleWorkspaceAuthStoragePath()).toBe(
+      path.resolve(DEFAULT_GOOGLE_WORKSPACE_LOCAL_AUTH_PATH),
+    );
+  });
+
+  it('honors E2E_REAL_AUTH_STORAGE_STATE for capture path', () => {
+    process.env.E2E_REAL_AUTH_STORAGE_STATE = 'tmp/playwright/auth/custom-google.json';
+    expect(resolveGoogleWorkspaceAuthStoragePath()).toBe(
+      path.resolve('tmp/playwright/auth/custom-google.json'),
+    );
+  });
+
   it('strips trailing slashes from base URL', () => {
     process.env.E2E_REAL_AUTH_BASE_URL = 'https://preview.equipqr.app/';
     expect(resolveRealAuthBaseUrl()).toBe('https://preview.equipqr.app');
@@ -55,6 +73,14 @@ describe('real-auth-config', () => {
     delete process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 
     expect(resolveVercelAutomationBypassHeaders()).toBeUndefined();
+  });
+
+  it('resolves optional Google Docs work order id', () => {
+    delete process.env.E2E_GOOGLE_DOCS_WORK_ORDER_ID;
+    expect(resolveGoogleDocsWorkOrderId()).toBeNull();
+
+    process.env.E2E_GOOGLE_DOCS_WORK_ORDER_ID = 'a00e8400-e29b-41d4-a716-446655440004';
+    expect(resolveGoogleDocsWorkOrderId()).toBe('a00e8400-e29b-41d4-a716-446655440004');
   });
 
   it('requires all export prerequisites', () => {
