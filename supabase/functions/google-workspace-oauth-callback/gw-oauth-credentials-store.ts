@@ -3,6 +3,95 @@ import { decryptToken, encryptToken, getTokenEncryptionKey } from "../_shared/cr
 import type { GoogleTokenResponse } from "./gw-oauth-google-api.ts";
 import { logStep, normalizeDomain } from "./gw-oauth-validation.ts";
 
+const DOMAIN_ALREADY_LINKED_ERROR =
+  "This Google Workspace domain is already linked to another EquipQR organization.";
+
+async function resolveWorkspaceDomainClaim(
+  supabaseClient: SupabaseClient,
+  params: { effectiveOrgId: string; domain: string },
+): Promise<{ insertedNewClaim: boolean }> {
+  const { data: existingDomain, error: domainLookupError } = await supabaseClient
+    .from("workspace_domains")
+    .select("organization_id")
+    .eq("domain", params.domain)
+    .maybeSingle();
+
+  if (domainLookupError) {
+    logStep("Domain claim lookup failed", { error: domainLookupError.message });
+    throw new Error("Failed to verify workspace domain claim. Please try again.");
+  }
+
+  if (existingDomain) {
+    if (existingDomain.organization_id !== params.effectiveOrgId) {
+      throw new Error(DOMAIN_ALREADY_LINKED_ERROR);
+    }
+    return { insertedNewClaim: false };
+  }
+
+  const { error: domainInsertError } = await supabaseClient
+    .from("workspace_domains")
+    .insert({
+      domain: params.domain,
+      organization_id: params.effectiveOrgId,
+    });
+
+  if (!domainInsertError) {
+    logStep("Workspace domain claimed", {
+      domain: params.domain,
+      organizationId: params.effectiveOrgId,
+    });
+    return { insertedNewClaim: true };
+  }
+
+  if (domainInsertError.code === "23505") {
+    const { data: conflictingDomain, error: conflictLookupError } = await supabaseClient
+      .from("workspace_domains")
+      .select("organization_id")
+      .eq("domain", params.domain)
+      .maybeSingle();
+
+    if (conflictLookupError) {
+      logStep("Domain claim conflict lookup failed", { error: conflictLookupError.message });
+      throw new Error("Failed to verify workspace domain claim. Please try again.");
+    }
+
+    if (conflictingDomain && conflictingDomain.organization_id !== params.effectiveOrgId) {
+      throw new Error(DOMAIN_ALREADY_LINKED_ERROR);
+    }
+
+    logStep("Workspace domain claim race resolved for same organization", {
+      domain: params.domain,
+      organizationId: params.effectiveOrgId,
+    });
+    return { insertedNewClaim: false };
+  }
+
+  logStep("Domain claim insert failed", {
+    code: domainInsertError.code,
+    message: domainInsertError.message,
+  });
+  throw new Error("Failed to claim workspace domain. Please try again or contact support.");
+}
+
+async function rollbackWorkspaceDomainClaim(
+  supabaseClient: SupabaseClient,
+  params: { effectiveOrgId: string; domain: string },
+): Promise<void> {
+  const { error } = await supabaseClient
+    .from("workspace_domains")
+    .delete()
+    .eq("domain", params.domain)
+    .eq("organization_id", params.effectiveOrgId);
+
+  if (error) {
+    logStep("Domain claim rollback failed", {
+      domain: params.domain,
+      organizationId: params.effectiveOrgId,
+      error: error.message,
+    });
+  }
+}
+
 export async function storeGoogleWorkspaceCredentials(
   supabaseClient: SupabaseClient,
   params: {
@@ -27,7 +116,6 @@ export async function storeGoogleWorkspaceCredentials(
 
   let refreshToken = params.tokenData.refresh_token || null;
   if (!refreshToken) {
-    // Look up existing credentials using normalized domain for consistency
     const { data: existingCreds } = await supabaseClient
       .from("google_workspace_credentials")
       .select("refresh_token")
@@ -41,7 +129,6 @@ export async function storeGoogleWorkspaceCredentials(
         refreshToken = await decryptToken(storedRefreshToken, encryptionKey);
         logStep("Reusing existing refresh token from stored credentials");
       } catch {
-        // Legacy plaintext storage fallback
         refreshToken = storedRefreshToken;
         logStep("Reusing existing refresh token (legacy plaintext)");
       }
@@ -63,21 +150,29 @@ export async function storeGoogleWorkspaceCredentials(
     throw new Error(`Encryption failed: ${encryptErrorMsg}`);
   }
 
-  // Manual upsert: The functional index on (organization_id, normalize_domain(domain))
-  // cannot be used with Supabase JS client's onConflict (it only supports column names).
-  // So we first check if a record exists, then update or insert accordingly.
+  const { insertedNewClaim } = await resolveWorkspaceDomainClaim(supabaseClient, {
+    effectiveOrgId: params.effectiveOrgId,
+    domain,
+  });
+
   const { data: existingRecord, error: selectError } = await supabaseClient
     .from("google_workspace_credentials")
     .select("id")
     .eq("organization_id", params.effectiveOrgId)
-    .eq("domain", normalizeDomain(domain))
+    .eq("domain", domain)
     .maybeSingle();
 
   if (selectError) {
-    logStep("Credentials lookup failed", { 
-      error: selectError.message, 
+    logStep("Credentials lookup failed", {
+      error: selectError.message,
       code: selectError.code,
     });
+    if (insertedNewClaim) {
+      await rollbackWorkspaceDomainClaim(supabaseClient, {
+        effectiveOrgId: params.effectiveOrgId,
+        domain,
+      });
+    }
     throw new Error(`DB select error: ${selectError.code}; ${selectError.message}`);
   }
 
@@ -100,7 +195,7 @@ export async function storeGoogleWorkspaceCredentials(
       .from("google_workspace_credentials")
       .insert({
         organization_id: params.effectiveOrgId,
-        domain: normalizeDomain(domain),
+        domain,
         refresh_token: encryptedRefreshToken,
         access_token_expires_at: params.accessTokenExpiresAt.toISOString(),
         scopes: params.tokenData.scope || null,
@@ -111,50 +206,19 @@ export async function storeGoogleWorkspaceCredentials(
   }
 
   if (upsertError) {
-    logStep("Credentials upsert failed", { 
+    logStep("Credentials upsert failed", {
       code: upsertError.code,
       hint: upsertError.hint,
       message: upsertError.message,
     });
-    // Use a generic user-facing message — detailed DB errors are logged above
+    if (insertedNewClaim) {
+      await rollbackWorkspaceDomainClaim(supabaseClient, {
+        effectiveOrgId: params.effectiveOrgId,
+        domain,
+      });
+    }
     throw new Error("Failed to store credentials. Please try again or contact support.");
   }
-  
+
   logStep("Credentials stored successfully");
-
-  const { data: existingDomain, error: domainLookupError } = await supabaseClient
-    .from("workspace_domains")
-    .select("organization_id")
-    .eq("domain", domain)
-    .maybeSingle();
-
-  if (domainLookupError) {
-    logStep("Domain claim lookup failed", { error: domainLookupError.message });
-    throw new Error("Failed to verify workspace domain claim. Please try again.");
-  }
-
-  if (existingDomain && existingDomain.organization_id !== params.effectiveOrgId) {
-    throw new Error(
-      "This Google Workspace domain is already linked to another EquipQR organization.",
-    );
-  }
-
-  if (!existingDomain) {
-    const { error: domainInsertError } = await supabaseClient
-      .from("workspace_domains")
-      .insert({
-        domain,
-        organization_id: params.effectiveOrgId,
-      });
-
-    if (domainInsertError) {
-      logStep("Domain claim insert failed", {
-        code: domainInsertError.code,
-        message: domainInsertError.message,
-      });
-      throw new Error("Failed to claim workspace domain. Please try again or contact support.");
-    }
-
-    logStep("Workspace domain claimed", { domain, organizationId: params.effectiveOrgId });
-  }
 }

@@ -2,6 +2,9 @@
 -- Purpose: prevent get_workspace_onboarding_state() from failing when duplicate
 --          normalized domain rows exist in workspace_domains
 
+-- Block concurrent writes while deduping and building the normalized unique index.
+LOCK TABLE public.workspace_domains IN SHARE ROW EXCLUSIVE MODE;
+
 -- Fail fast when normalized duplicates map to different organizations.
 DO $$
 BEGIN
