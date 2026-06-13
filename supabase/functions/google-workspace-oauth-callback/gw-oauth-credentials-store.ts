@@ -151,9 +151,17 @@ export async function storeGoogleWorkspaceCredentials(
       try {
         refreshToken = await decryptToken(storedRefreshToken, encryptionKey);
         logStep("Reusing existing refresh token from stored credentials");
-      } catch {
-        refreshToken = storedRefreshToken;
-        logStep("Reusing existing refresh token (legacy plaintext)");
+      } catch (decryptError) {
+        const message = decryptError instanceof Error ? decryptError.message : String(decryptError);
+        // If the stored token isn't base64, it's likely legacy plaintext; otherwise fail closed.
+        const looksBase64 = /^[A-Za-z0-9+/]+={0,2}$/.test(storedRefreshToken) && storedRefreshToken.length % 4 === 0;
+        if (!looksBase64) {
+          refreshToken = storedRefreshToken;
+          logStep("Reusing existing refresh token (legacy plaintext)");
+        } else {
+          logStep("Failed to decrypt stored refresh token", { error: message });
+          throw new Error("Failed to decrypt stored refresh token. Please reconnect Google Workspace.");
+        }
       }
     }
   }
