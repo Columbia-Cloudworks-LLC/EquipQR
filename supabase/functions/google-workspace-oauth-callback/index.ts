@@ -20,15 +20,56 @@ import {
   resolveProductionUrl,
   resolveFallbackProductionUrl,
   buildGoogleOAuthErrorRedirectUrl,
-  buildGoogleAccessDeniedRedirectUrl,
   buildSuccessRedirectUrl,
 } from "./gw-oauth-success-redirect.ts";
 import {
-  GW_OAUTH_ERROR_CODES,
   resolveGoogleWorkspaceOAuthErrorCode,
+  resolveGoogleOAuthCallbackErrorCode,
 } from "./gw-oauth-user-error.ts";
 
 const FUNCTION_NAME = "google-workspace-oauth-callback";
+
+interface OAuthSessionRedirectRow {
+  redirect_url: string | null;
+  origin_url: string | null;
+}
+
+async function peekOAuthRedirectContext(
+  supabaseClient: ReturnType<typeof createAdminSupabaseClient>,
+  sessionToken: string,
+  resolvedProductionUrl: string,
+) {
+  const { data, error } = await supabaseClient
+    .from("google_workspace_oauth_sessions")
+    .select("redirect_url, origin_url")
+    .eq("session_token", sessionToken)
+    .maybeSingle<OAuthSessionRedirectRow>();
+
+  if (error) {
+    logStep("Failed to peek OAuth session redirect context", {
+      message: error.message,
+    });
+    return {
+      originUrl: null as string | null,
+      redirectUrl: null as string | null,
+      resolvedProductionUrl,
+    };
+  }
+
+  if (!data) {
+    return {
+      originUrl: null as string | null,
+      redirectUrl: null as string | null,
+      resolvedProductionUrl,
+    };
+  }
+
+  return {
+    originUrl: data.origin_url,
+    redirectUrl: data.redirect_url,
+    resolvedProductionUrl,
+  };
+}
 
 /**
  * Returns CORS headers for the OAuth callback. Extends the shared origin-
@@ -87,12 +128,44 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     });
 
     if (error) {
+      const googleErrorCode = resolveGoogleOAuthCallbackErrorCode(error);
+      let errorRedirectContext = callbackRedirectContext;
+
+      if (stateParam) {
+        try {
+          const state = parseOAuthState(stateParam);
+          validateOAuthStateTimestamp(state);
+          const supabaseClient = createAdminSupabaseClient();
+          errorRedirectContext = await peekOAuthRedirectContext(
+            supabaseClient,
+            state.sessionToken,
+            resolvedProductionUrl,
+          );
+        } catch (stateError) {
+          const stateErrorMessage = stateError instanceof Error
+            ? stateError.message
+            : String(stateError);
+          logStep("Could not resolve OAuth redirect context from Google error callback", {
+            googleError: error,
+            message: stateErrorMessage,
+          });
+        }
+      }
+
+      logStep("Google OAuth callback returned error", {
+        googleError: error,
+        googleErrorDescription: errorDescription,
+        mappedErrorCode: googleErrorCode,
+        hasRedirectUrl: !!errorRedirectContext.redirectUrl,
+        correlation_id: ctx.correlationId,
+      });
+
       return Response.redirect(
-        buildGoogleAccessDeniedRedirectUrl(
-          callbackRedirectContext,
-          GW_OAUTH_ERROR_CODES.ACCESS_DENIED,
-          ctx.correlationId,
-        ),
+        buildGoogleOAuthErrorRedirectUrl({
+          ...errorRedirectContext,
+          errorCode: googleErrorCode,
+          supportRef: ctx.correlationId,
+        }),
         302,
       );
     }

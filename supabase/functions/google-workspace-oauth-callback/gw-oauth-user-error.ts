@@ -71,7 +71,25 @@ export function resolveGoogleWorkspaceOAuthErrorCode(
   return GW_OAUTH_ERROR_CODES.OAUTH_FAILED;
 }
 
+export function resolveGoogleOAuthCallbackErrorCode(
+  googleError: string | null,
+): GoogleWorkspaceOAuthErrorCode {
+  switch (googleError) {
+    case "access_denied":
+      return GW_OAUTH_ERROR_CODES.ACCESS_DENIED;
+    case "invalid_scope":
+    case "unauthorized_client":
+      return GW_OAUTH_ERROR_CODES.MISCONFIGURED;
+    case "temporarily_unavailable":
+    case "server_error":
+      return GW_OAUTH_ERROR_CODES.OAUTH_FAILED;
+    default:
+      return GW_OAUTH_ERROR_CODES.OAUTH_FAILED;
+  }
+}
+
 export const __gwOauthUserErrorTestables = {
   mapMessageToErrorCode,
   resolveGoogleWorkspaceOAuthErrorCode,
+  resolveGoogleOAuthCallbackErrorCode,
 };

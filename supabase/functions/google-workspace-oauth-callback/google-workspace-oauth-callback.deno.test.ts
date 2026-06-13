@@ -290,6 +290,15 @@ Deno.test({
   },
 });
 
+Deno.test("resolveGoogleOAuthCallbackErrorCode maps Google callback errors", () => {
+  const { resolveGoogleOAuthCallbackErrorCode } = __gwOauthUserErrorTestables;
+
+  assertEquals(resolveGoogleOAuthCallbackErrorCode("access_denied"), "access_denied");
+  assertEquals(resolveGoogleOAuthCallbackErrorCode("invalid_scope"), "misconfigured");
+  assertEquals(resolveGoogleOAuthCallbackErrorCode("server_error"), "oauth_failed");
+  assertEquals(resolveGoogleOAuthCallbackErrorCode(null), "oauth_failed");
+});
+
 Deno.test("resolveGoogleWorkspaceOAuthErrorCode maps internal messages to safe codes", () => {
   const { resolveGoogleWorkspaceOAuthErrorCode } = __gwOauthUserErrorTestables;
 
