@@ -15,6 +15,11 @@ import {
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 export const GOOGLE_PICKER_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
 export const GOOGLE_WORKSPACE_REQUIRED_SCOPES = [
+  // Required for oauth2/v3 userinfo in the Edge callback after a fresh consent
+  // (include_granted_scopes no longer backfills these once the grant is revoked).
+  'openid',
+  'email',
+  'profile',
   'https://www.googleapis.com/auth/admin.directory.user.readonly',
   'https://www.googleapis.com/auth/spreadsheets',
   'https://www.googleapis.com/auth/drive.file',

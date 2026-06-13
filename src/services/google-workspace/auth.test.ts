@@ -41,6 +41,14 @@ describe('generateGoogleWorkspaceAuthUrl', () => {
       p_redirect_url: '/dashboard/onboarding/workspace',
       p_origin_url: expect.any(String),
     });
+
+    const scope = parsed.searchParams.get('scope') ?? '';
+    expect(scope).toContain('openid');
+    expect(scope).toContain('email');
+    expect(scope).toContain('profile');
+    expect(scope).toContain('admin.directory.user.readonly');
+    expect(parsed.searchParams.get('access_type')).toBe('offline');
+    expect(parsed.searchParams.get('prompt')).toBe('consent');
   });
 
   it('derives redirect_uri from VITE_SUPABASE_URL when override is unset', async () => {
