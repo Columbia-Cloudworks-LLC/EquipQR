@@ -4,7 +4,7 @@ import PageHeader from '@/components/layout/PageHeader';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Clock3 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import { SUPPORT_DOCS_URL } from '@/lib/documentationUrl';
 
 type WorkspaceAccessGateMode = 'blocked' | 'pending' | 'error';
@@ -16,6 +16,7 @@ interface WorkspaceAccessGateProps {
 }
 
 const WorkspaceAccessGate: React.FC<WorkspaceAccessGateProps> = ({ mode, domain, onRetry }) => {
+  const { signOut } = useAuth();
   const isPending = mode === 'pending';
   const isError = mode === 'error';
 
@@ -76,8 +77,14 @@ const WorkspaceAccessGate: React.FC<WorkspaceAccessGateProps> = ({ mode, domain,
                 Help Center
               </a>
             </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/auth">Sign out</Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                void signOut();
+              }}
+            >
+              Sign out
             </Button>
           </div>
         </AlertDescription>

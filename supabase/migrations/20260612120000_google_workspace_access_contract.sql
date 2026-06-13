@@ -68,6 +68,10 @@ DECLARE
   v_workspace_org_id uuid;
   v_connected boolean := false;
 BEGIN
+  IF auth.uid() IS NOT NULL AND p_user_id IS DISTINCT FROM auth.uid() THEN
+    RETURN;
+  END IF;
+
   SELECT u.email INTO v_email
   FROM auth.users u
   WHERE u.id = p_user_id;
@@ -137,7 +141,11 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.get_workspace_onboarding_state(uuid) IS
-  'Returns workspace onboarding and claimed-domain access posture for a user.';
+  'Returns workspace onboarding and claimed-domain access posture for a user. Self-only when auth.uid() is present.';
+
+REVOKE ALL ON FUNCTION public.get_workspace_onboarding_state(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.get_workspace_onboarding_state(uuid) FROM anon;
+REVOKE ALL ON FUNCTION public.get_workspace_onboarding_state(uuid) FROM authenticated;
 
 -- rpc-authenticated-grant-allowed: get_workspace_onboarding_state
 GRANT EXECUTE ON FUNCTION public.get_workspace_onboarding_state(uuid) TO authenticated, service_role;
@@ -619,11 +627,17 @@ BEGIN
   result := jsonb_build_object(
     'success', true,
     'organization_id', invitation_record.organization_id,
-    'organization_name', org_name,
+    'organization_name', COALESCE(org_name, 'Unknown Organization'),
     'role', invitation_record.role
   );
 
   RETURN result;
+
+EXCEPTION
+  WHEN unique_violation THEN
+    RETURN jsonb_build_object('success', false, 'error', 'User is already a member of this organization');
+  WHEN OTHERS THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Failed to accept invitation: ' || SQLERRM);
 END;
 $$;
 
@@ -696,6 +710,13 @@ $$;
 
 COMMENT ON FUNCTION public.disconnect_google_workspace(uuid, boolean) IS
   'Disconnects Google Workspace OAuth credentials and directory cache. Keeps workspace_domains claimed unless also_unclaim_domain is true.';
+
+REVOKE ALL ON FUNCTION public.disconnect_google_workspace(uuid, boolean) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.disconnect_google_workspace(uuid, boolean) FROM anon;
+REVOKE ALL ON FUNCTION public.disconnect_google_workspace(uuid, boolean) FROM authenticated;
+
+-- rpc-authenticated-grant-allowed: disconnect_google_workspace
+GRANT EXECUTE ON FUNCTION public.disconnect_google_workspace(uuid, boolean) TO authenticated, service_role;
 
 -- =============================================================================
 -- reconcile_google_workspace_directory: revoke stale workspace-derived access
