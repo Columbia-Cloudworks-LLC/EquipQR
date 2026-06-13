@@ -20,7 +20,7 @@ async function findOrgScopedDomainClaim(
   const { data, error } = await supabaseClient
     .from("workspace_domains")
     .select("organization_id")
-    .eq("domain", params.domain)
+    .ilike("domain", params.domain)
     .eq("organization_id", params.effectiveOrgId)
     .maybeSingle();
 

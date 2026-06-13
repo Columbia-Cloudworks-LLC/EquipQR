@@ -1,7 +1,5 @@
--- Migration: reconcile Google Workspace directory by sync run timestamp
--- Purpose: avoid shipping full active google_user_id arrays over HTTP for large tenants
-
-DROP FUNCTION IF EXISTS public.reconcile_google_workspace_directory(uuid, text[]);
+-- Migration: reconcile only marks newly-stale directory users suspended
+-- Purpose: avoid rewriting already-suspended rows on every sync run
 
 CREATE OR REPLACE FUNCTION public.reconcile_google_workspace_directory(
   p_organization_id uuid,
@@ -75,7 +73,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.reconcile_google_workspace_directory(uuid, timestamptz) IS
-  'Marks directory users not refreshed during the sync run as suspended and revokes workspace-derived memberships/claims for inactive directory users.';
+  'Marks active directory users not refreshed during the sync run as suspended and revokes workspace-derived memberships/claims for inactive directory users.';
 
 REVOKE ALL ON FUNCTION public.reconcile_google_workspace_directory(uuid, timestamptz) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.reconcile_google_workspace_directory(uuid, timestamptz) FROM anon;

@@ -13,15 +13,13 @@ import {
 } from "../_shared/google-workspace-token.ts";
 import { MissingSecretError } from "../_shared/require-secret.ts";
 import { googleApiFetch } from "../_shared/google-api-retry.ts";
+import {
+  reconcileGoogleWorkspaceDirectory,
+  type ReconcileResult,
+} from "./gw-sync-reconcile.ts";
 
 interface SyncRequest {
   organizationId: string;
-}
-
-interface ReconcileResult {
-  directory_marked_suspended: number;
-  members_deactivated: number;
-  claims_revoked: number;
 }
 
 interface GoogleDirectoryUser {
@@ -229,20 +227,24 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
     logStep("Directory upsert complete", { totalUsers, pagesProcessed });
 
-    const { data: reconcileData, error: reconcileError } = await adminClient.rpc(
-      "reconcile_google_workspace_directory",
-      {
-        p_organization_id: organizationId,
-        p_sync_started_at: nowIso,
-      },
-    );
-
-    if (reconcileError) {
-      logStep("Directory reconcile error", { error: reconcileError.message });
+    let reconcile: ReconcileResult;
+    try {
+      const reconcileOutcome = await reconcileGoogleWorkspaceDirectory(adminClient, {
+        organizationId,
+        syncStartedAt: nowIso,
+      });
+      reconcile = reconcileOutcome.reconcile;
+      if (reconcileOutcome.skippedDueToSchemaDrift) {
+        logStep("Directory reconcile skipped — timestamptz RPC not deployed yet", {
+          organizationId,
+        });
+      }
+    } catch (reconcileError) {
+      const message = reconcileError instanceof Error ? reconcileError.message : String(reconcileError);
+      logStep("Directory reconcile error", { error: message });
       return createErrorResponse("Failed to reconcile directory access", 500);
     }
 
-    const reconcile = (reconcileData ?? {}) as ReconcileResult;
     logStep("Sync complete", {
       totalUsers,
       pagesProcessed,

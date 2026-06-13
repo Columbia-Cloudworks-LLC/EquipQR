@@ -2,7 +2,6 @@ import { assertEquals, assertRejects } from "jsr:@std/assert@1";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import {
   GoogleWorkspaceOAuthUserError,
-  GW_OAUTH_ERROR_CODES,
 } from "./gw-oauth-user-error.ts";
 import {
   __gwOauthCredentialsStoreTestables,
@@ -29,7 +28,7 @@ function createWorkspaceDomainsMock(options: {
 
       return {
         select: () => ({
-          eq: (_column: string, _value: string) => ({
+          ilike: (_column: string, _value: string) => ({
             eq: (_orgColumn: string, _orgValue: string) => ({
               maybeSingle: () => {
                 lookupCount += 1;
