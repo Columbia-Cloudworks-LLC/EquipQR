@@ -15,6 +15,7 @@ import { MissingSecretError } from "../_shared/require-secret.ts";
 import { googleApiFetch } from "../_shared/google-api-retry.ts";
 import {
   reconcileGoogleWorkspaceDirectory,
+  formatReconcileErrorForLog,
   type ReconcileResult,
 } from "./gw-sync-reconcile.ts";
 
@@ -240,8 +241,8 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
         });
       }
     } catch (reconcileError) {
-      const message = reconcileError instanceof Error ? reconcileError.message : String(reconcileError);
-      logStep("Directory reconcile error", { error: message });
+      const errorDetails = formatReconcileErrorForLog(reconcileError);
+      logStep("Directory reconcile error", errorDetails);
       return createErrorResponse("Failed to reconcile directory access", 500);
     }
 
