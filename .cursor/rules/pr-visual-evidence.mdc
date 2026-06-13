@@ -1,0 +1,61 @@
+---
+description: "Hard gate — every product PR must include local-stack screenshots and GIF evidence uploaded for inline GitHub display."
+alwaysApply: true
+---
+# PR Visual Evidence (mandatory)
+
+Every **product/runtime PR** must include visual proof captured from the **local dev stack** (`http://localhost:8080`). This gate is **not skippable** when opening or updating a PR that touches user-visible behavior.
+
+## Required artifacts
+
+| Artifact | Minimum | Source |
+|----------|---------|--------|
+| Screenshots | 1+ labeled PNGs showing the changed UI/states | Playwright `e2e/pr-evidence/*.spec.ts` |
+| GIF | 1 demo GIF of the flow | Playwright video converted via `ffmpeg` in capture script |
+
+Workflow-only PRs (`.cursor/**`, `AGENTS.md`, `scripts/mcp.template.json`) are exempt.
+
+## Agent workflow (before `gh pr create`)
+
+1. **Author or update** a focused spec under `e2e/pr-evidence/` when existing specs do not cover the change. Do **not** rely on `smoke-dashboard.spec.ts` when the PR changes specific UI.
+2. **Capture** on the local stack:
+   ```powershell
+   .\scripts\pr-evidence\Invoke-PrEvidence.ps1 `
+     -Flow "<short-slug>" `
+     -Spec "e2e/pr-evidence/<feature>.spec.ts"
+   ```
+3. **Merge** `tmp/pr-evidence/<slug>/evidence-markdown.md` into the PR body under **Screenshots/Videos** (or paste the generated section verbatim).
+4. **After** `gh pr create`, **publish** the evidence comment (hosted URLs for inline playback):
+   ```powershell
+   .\scripts\pr-evidence\Invoke-PrEvidence.ps1 `
+     -Flow "<short-slug>" `
+     -Spec "e2e/pr-evidence/<feature>.spec.ts" `
+     -PrNumber <num> `
+     -Publish
+   ```
+
+If capture fails, **stop before opening the PR** — fix the spec or stack; do not open a PR without evidence.
+
+## When to add new Playwright specs
+
+- New route, form, dialog, integration UI, or UX change: **add** `e2e/pr-evidence/<feature>.spec.ts`.
+- Use `evidenceScreenshot()` from `e2e/pr-evidence/shared/evidence-helpers.ts` at each meaningful state.
+- Reuse `equipqr-test` fixtures (`gotoDashboard`, personas) for deterministic seeded data.
+
+## Storage and display
+
+- Upload target: preview Supabase public bucket `landing-page-images` under `pr-evidence/{branch}/`.
+- Upload uses `scripts/upload-screenshot.ts` with `OP_SERVICE_ACCOUNT_TOKEN` reads (see `scripts/pr-evidence/README.md`).
+- GitHub renders `![alt](https://...supabase.co/...)` inline in PR bodies and comments.
+
+## Handoff requirements
+
+PR handoff must cite:
+
+- Capture command run (copy-pasteable).
+- Spec file path.
+- Confirmation that screenshots **and** GIF were uploaded (or PR comment URL after `-Publish`).
+
+## Relationship to local verify
+
+This rule complements `local-verify-before-preview-push.mdc`. Local E2E proves correctness; PR visual evidence proves **what changed** for reviewers at a glance.

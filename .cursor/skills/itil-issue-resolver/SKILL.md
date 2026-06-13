@@ -137,10 +137,15 @@ git switch -c <type>/issue-<number>-<slug> origin/preview
 git add <specific-files>
 git commit -m "<conventional message>"
 git push -u origin HEAD
-gh pr create --base preview --head <branch> --title "<title>" --body-file <body-file>
+# Mandatory PR visual evidence (product/runtime) — see .cursor/rules/pr-visual-evidence.mdc
+.\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts"
+gh pr create --base preview --head <branch> --title "<title>" --body-file <body-file-with-evidence-markdown>
+.\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
 ```
 
 Use `Fixes #<number>` or `Closes #<number>` in the commit body or PR body when the issue should close after integration.
+
+Merge `tmp/pr-evidence/<slug>/evidence-markdown.md` into the PR body. Add `e2e/pr-evidence/<feature>.spec.ts` when no existing spec covers the UI change.
 
 ### 7. Report Completion
 
@@ -149,6 +154,7 @@ Final response should include:
 - Issue/change resolved.
 - Commit SHA and push target, or PR URL.
 - Verification commands and outcomes.
+- PR visual evidence: capture command, spec path, uploaded screenshot/GIF URLs or PR comment link (when a PR was opened).
 - Acceptance criteria status.
 - Any follow-up or blocker.
 

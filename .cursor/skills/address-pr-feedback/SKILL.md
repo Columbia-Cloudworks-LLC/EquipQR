@@ -331,6 +331,8 @@ Or short messages with multiple `-m` flags.
 
 Push to the PR branch. Per workspace workflow: push proactively once verification passes (feature branches / preview policy as in `.cursor/rules/branching.mdc`).
 
+When the feedback pass changes user-visible UI, **re-capture PR visual evidence** per `.cursor/rules/pr-visual-evidence.mdc` and post an updated `-Publish` comment before Step 8.
+
 ### Step 8: Track Deferred Items, Thread Replies, Summary Comment
 
 **Script (recommended):** prepare JSON manifests and a summary markdown file (see [`scripts/pr-feedback/README.md`](../../../scripts/pr-feedback/README.md)), then run:

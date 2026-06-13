@@ -60,6 +60,7 @@ Before `git push origin preview` or `gh pr create --base preview`, the agent rep
 - Verification commands run (copy-pasteable).
 - Pass/fail outcome for each layer (Fallow, lint, tests, E2E).
 - For integrations/OAuth: what signal proved success (log line, RPC result, UI state).
+- **PR visual evidence** (when opening/updating a product PR): capture command, spec path, and confirmation that screenshots + GIF were uploaded per `pr-visual-evidence.mdc` (include PR comment link after `-Publish`).
 
 ## Relationship to branching
 

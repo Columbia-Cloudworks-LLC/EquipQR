@@ -1,0 +1,102 @@
+#Requires -Version 5.1
+<#
+.SYNOPSIS
+  Capture, upload, and optionally publish PR visual evidence as a GitHub PR comment.
+
+.PARAMETER Flow
+  Short slug for artifacts (e.g. gw-disconnect-ux).
+
+.PARAMETER Spec
+  Playwright spec under e2e/pr-evidence/. Defaults to smoke-dashboard fallback.
+
+.PARAMETER PrNumber
+  When set with -Publish, posts the evidence markdown as a PR comment.
+
+.PARAMETER Publish
+  Upload artifacts and post PR comment. Requires -PrNumber.
+
+.PARAMETER CaptureOnly
+  Skip upload/publish (local artifact generation only).
+
+.EXAMPLE
+  .\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow gw-disconnect -Spec e2e/pr-evidence/gw-disconnect.spec.ts -PrNumber 1050 -Publish
+#>
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory)][string]$Flow,
+
+    [string]$Spec = 'e2e/pr-evidence/smoke-dashboard.spec.ts',
+
+    [int]$PrNumber = 0,
+
+    [switch]$Publish,
+
+    [switch]$CaptureOnly,
+
+    [string]$BaseUrl = 'http://localhost:8080',
+
+    [switch]$SkipStackStart
+)
+
+$ErrorActionPreference = 'Stop'
+
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $here 'PrEvidenceCommon.ps1')
+
+$repoRoot = Get-PrEvidenceRepoRoot
+Set-Location -LiteralPath $repoRoot
+
+$flowSlug = ($Flow.ToLower() -replace '[^a-z0-9-]+', '-' -replace '-+', '-' -replace '^-|-$', '')
+$artifactDir = Join-Path $repoRoot ('tmp\pr-evidence\{0}' -f $flowSlug)
+$manifestPath = Join-Path $artifactDir 'manifest.json'
+$markdownPath = Join-Path $artifactDir 'evidence-markdown.md'
+
+$captureParams = @{
+    Flow    = $Flow
+    Spec    = $Spec
+    BaseUrl = $BaseUrl
+}
+if ($SkipStackStart) {
+    $captureParams['SkipStackStart'] = $true
+}
+
+& (Join-Path $here 'Invoke-PrEvidenceCapture.ps1') @captureParams
+
+if ($CaptureOnly) {
+    Write-Host ('[PR evidence] Capture-only complete: {0}' -f $artifactDir)
+    exit 0
+}
+
+$publishJsonFile = Join-Path $artifactDir 'publish-result.json'
+$publishOutput = & (Join-Path $here 'Publish-PrEvidence.ps1') -ManifestPath $manifestPath -MarkdownOut $markdownPath -Json
+$publishOutput | Set-Content -LiteralPath $publishJsonFile -Encoding utf8
+$publishResult = $publishOutput | ConvertFrom-Json
+
+if ($Publish) {
+    if ($PrNumber -le 0) {
+        throw '-Publish requires -PrNumber.'
+    }
+
+    Assert-PrEvidenceCommandExists 'gh'
+
+    $commentMarker = '<!-- pr-visual-evidence -->'
+    $body = @(
+        $commentMarker,
+        [string]$publishResult.markdown
+    ) -join [Environment]::NewLine
+
+    $bodyFile = Join-Path $artifactDir 'pr-comment-body.md'
+    Set-Content -LiteralPath $bodyFile -Value $body -Encoding utf8
+
+    $create = Invoke-PrEvidenceNative -FilePath 'gh' -Arguments @(
+        'pr', 'comment', [string]$PrNumber, '--body-file', $bodyFile
+    )
+    if ($create.ExitCode -ne 0) {
+        throw "gh pr comment failed: $($create.Text)"
+    }
+
+    Write-Host ('[PR evidence] Posted comment on PR #{0}: {1}' -f $PrNumber, $create.Text.Trim())
+}
+
+Write-Host ('[PR evidence] Done. Markdown: {0}' -f $markdownPath)
+exit 0

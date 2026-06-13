@@ -77,6 +77,9 @@
     "demo:v2:compose:on": "node scripts/demo-record-v2.mjs run --scenario=executive-overview --compose-scenes --capture-scene-clips",
     "demo:v2:compose:off": "node scripts/demo-record-v2.mjs run --scenario=executive-overview --no-compose-scenes",
     "demo:v2:dry-run": "node scripts/demo-record-v2.mjs suite --suite=core --dry-run",
+    "pr-evidence:capture": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/pr-evidence/Invoke-PrEvidenceCapture.ps1",
+    "pr-evidence:publish": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/pr-evidence/Publish-PrEvidence.ps1",
+    "pr-evidence": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/pr-evidence/Invoke-PrEvidence.ps1",
     "generate:state-vectors": "node scripts/generate-state-vectors.mjs"
   },
   "dependencies": {

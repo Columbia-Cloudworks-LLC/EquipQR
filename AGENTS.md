@@ -120,6 +120,7 @@ Use when the agent hits **interactive or consent-bound** limits:
 | Full secrets map, sync scripts, rotation | `docs/ops/agent-secrets-and-access.md` |
 | Branching / preview push policy | `.cursor/rules/branching.mdc` |
 | Local E2E gate before preview push | `.cursor/rules/local-verify-before-preview-push.mdc` |
+| PR visual evidence (screenshots + GIF) | `.cursor/rules/pr-visual-evidence.mdc` |
 | Pre-commit Fallow gate | `.cursor/rules/fallow-before-commit.mdc` |
 | PowerShell / git conventions | `.cursor/rules/git-powershell.mdc` |
 | Workflow artifact commits | `.cursor/rules/workflow-artifacts.mdc` |
@@ -138,6 +139,7 @@ When capturing a new secrets or access lesson, update **this file** and, if deta
 ## Learned User Preferences
 
 - **No preview push without local E2E.** As of 2026-06-13, local dev has production parity. Never push to `preview` until the agent has verified the change locally end-to-end with zero manual user steps (see `local-verify-before-preview-push.mdc`).
+- **No product PR without visual evidence.** Every product/runtime PR must include local-stack screenshots and a GIF uploaded for inline GitHub display (`pr-visual-evidence.mdc`, `scripts/pr-evidence/`). Add `e2e/pr-evidence/<feature>.spec.ts` when existing specs do not cover the change.
 - Use the Columbia Cloudworks Workspace tenant (`columbiacloudworks.com`) and the Columbia Cloudworks Google account for GCP Console OAuth edits on `equipqr-prod`; use the real EquipQR Connect flow for Google Workspace integration validation; do not provision parallel Google orgs unless explicitly asked.
 - Plans for unattended parallel agent execution (Build in Parallel) must branch off `preview`, open a PR to `preview`, and include automatable acceptance criteria verifiable without human intervention.
 - When triaging PR feedback, address every Qodo Code Review item—action required, review recommended, and optional—not only the required block.
