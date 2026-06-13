@@ -191,7 +191,7 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
                   ) : (
                     <ShieldAlert className="h-3.5 w-3.5 mr-1.5" />
                   )}
-                  Grant permissions
+                  Finish authorization
                 </Button>
                 <Button
                   variant="outline"
@@ -214,8 +214,9 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
         {connectionHealth === 'missing_permissions' && (
           <Alert>
             <AlertDescription className="text-sm">
-              Google Drive, Docs, and Sheets exports need additional Google permissions. Grant
-              permissions to authorize the missing scopes, or disconnect to start onboarding again.
+              EquipQR still needs Google approval for directory sync and export features (Drive,
+              Docs, and Sheets). Click Finish authorization to complete the same one-time consent
+              flow used during onboarding.
             </AlertDescription>
           </Alert>
         )}

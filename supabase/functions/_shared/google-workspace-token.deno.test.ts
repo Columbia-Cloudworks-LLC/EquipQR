@@ -7,10 +7,12 @@ import {
   GOOGLE_SCOPES,
 } from "./google-workspace-token.ts";
 
-const { resolveGoogleWorkspaceScopes, buildCredentialsRefreshUpdate } = __testables;
+const { mergeGoogleWorkspaceScopeStrings, resolveGoogleWorkspaceScopes, buildCredentialsRefreshUpdate } =
+  __testables;
 
-const TEST_ENCRYPTION_KEY = "7FqX2mNk9pRt6vWz4HcJ3Lb8DgY1As0u";
+const DIRECTORY_SCOPE = GOOGLE_SCOPES.DIRECTORY_READONLY;
 const STORED_SCOPES = [
+  DIRECTORY_SCOPE,
   GOOGLE_SCOPES.DRIVE_READONLY,
   GOOGLE_SCOPES.DRIVE_FILE,
 ].join(" ");
@@ -19,6 +21,9 @@ const REFRESHED_SCOPES = [
   GOOGLE_SCOPES.DRIVE_FILE,
   GOOGLE_SCOPES.DOCUMENTS,
 ].join(" ");
+const INCREMENTAL_REFRESH_SCOPES = GOOGLE_SCOPES.DOCUMENTS;
+
+const TEST_ENCRYPTION_KEY = "7FqX2mNk9pRt6vWz4HcJ3Lb8DgY1As0u";
 
 async function withGoogleWorkspaceEnv(fn: () => Promise<void>): Promise<void> {
   const prior: Record<string, string | undefined> = {
@@ -88,10 +93,17 @@ function createCredentialsMock(storedScopes: string | null, encryptedRefreshToke
   return { client, captured };
 }
 
-Deno.test("resolveGoogleWorkspaceScopes prefers refreshed scope over stored scopes", () => {
+Deno.test("mergeGoogleWorkspaceScopeStrings deduplicates and combines scope strings", () => {
   assertEquals(
-    resolveGoogleWorkspaceScopes(REFRESHED_SCOPES, STORED_SCOPES),
-    REFRESHED_SCOPES,
+    mergeGoogleWorkspaceScopeStrings(STORED_SCOPES, INCREMENTAL_REFRESH_SCOPES),
+    `${STORED_SCOPES} ${INCREMENTAL_REFRESH_SCOPES}`,
+  );
+});
+
+Deno.test("resolveGoogleWorkspaceScopes merges incremental refresh grants with stored scopes", () => {
+  assertEquals(
+    resolveGoogleWorkspaceScopes(INCREMENTAL_REFRESH_SCOPES, STORED_SCOPES),
+    `${STORED_SCOPES} ${INCREMENTAL_REFRESH_SCOPES}`,
   );
 });
 
@@ -107,11 +119,15 @@ Deno.test("buildCredentialsRefreshUpdate omits scopes when refresh response has 
   assertEquals("scopes" in update, false);
 });
 
-Deno.test("buildCredentialsRefreshUpdate persists scopes when refresh response includes scope", () => {
+Deno.test("buildCredentialsRefreshUpdate merges refreshed scopes with stored scopes", () => {
   const expiresAt = new Date("2026-06-01T12:00:00.000Z");
-  const update = buildCredentialsRefreshUpdate({ scope: REFRESHED_SCOPES }, expiresAt);
+  const update = buildCredentialsRefreshUpdate(
+    { scope: INCREMENTAL_REFRESH_SCOPES },
+    expiresAt,
+    STORED_SCOPES,
+  );
 
-  assertEquals(update.scopes, REFRESHED_SCOPES);
+  assertEquals(update.scopes, `${STORED_SCOPES} ${INCREMENTAL_REFRESH_SCOPES}`);
 });
 
 Deno.test("getGoogleWorkspaceAccessToken preserves stored scopes when refresh omits scope", async () => {
@@ -167,13 +183,15 @@ Deno.test("getGoogleWorkspaceAccessToken returns and persists refreshed scopes w
           ),
         );
 
+      const mergedScopes = mergeGoogleWorkspaceScopeStrings(STORED_SCOPES, REFRESHED_SCOPES);
+
       const result = await getGoogleWorkspaceAccessToken(
         client as unknown as SupabaseClient,
         "org-1",
       );
 
-      assertEquals(result.scopes, REFRESHED_SCOPES);
-      assertEquals(captured.updatePayload?.scopes, REFRESHED_SCOPES);
+      assertEquals(result.scopes, mergedScopes);
+      assertEquals(captured.updatePayload?.scopes, mergedScopes);
     } finally {
       globalThis.fetch = originalFetch;
     }

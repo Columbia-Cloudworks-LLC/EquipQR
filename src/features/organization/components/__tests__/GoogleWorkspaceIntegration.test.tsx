@@ -75,9 +75,6 @@ vi.mock('@tanstack/react-query', async () => {
 import { GoogleWorkspaceIntegration } from '../GoogleWorkspaceIntegration';
 
 const fullWorkspaceScopes = [
-  'openid',
-  'email',
-  'profile',
   'https://www.googleapis.com/auth/admin.directory.user.readonly',
   'https://www.googleapis.com/auth/spreadsheets',
   'https://www.googleapis.com/auth/drive.file',
@@ -131,7 +128,7 @@ describe('GoogleWorkspaceIntegration', () => {
     expect(screen.queryByRole('button', { name: /^Reconnect$/ })).not.toBeInTheDocument();
   });
 
-  it('shows grant permissions state when required scopes are missing', () => {
+  it('shows finish authorization state when required scopes are missing', () => {
     mockGetConnectionStatus.mockReturnValue({
       is_connected: true,
       domain: 'example.com',
@@ -141,11 +138,11 @@ describe('GoogleWorkspaceIntegration', () => {
     customRender(<GoogleWorkspaceIntegration currentUserRole="owner" />);
 
     expect(screen.getByText('Permissions needed')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /grant permissions/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /finish authorization/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Reconnect$/ })).not.toBeInTheDocument();
   });
 
-  it('starts OAuth flow from grant permissions action', () => {
+  it('starts OAuth flow from finish authorization action', () => {
     mockGetConnectionStatus.mockReturnValue({
       is_connected: true,
       domain: 'example.com',
@@ -154,7 +151,7 @@ describe('GoogleWorkspaceIntegration', () => {
 
     customRender(<GoogleWorkspaceIntegration currentUserRole="owner" />);
 
-    fireEvent.click(screen.getByRole('button', { name: /grant permissions/i }));
+    fireEvent.click(screen.getByRole('button', { name: /finish authorization/i }));
     expect(mockConnect).toHaveBeenCalledTimes(1);
   });
 

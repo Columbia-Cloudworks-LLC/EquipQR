@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   evaluateGoogleWorkspaceConnectionHealth,
   generateGoogleWorkspaceAuthUrl,
+  GOOGLE_WORKSPACE_FEATURE_SCOPES,
   GOOGLE_WORKSPACE_REQUIRED_SCOPES,
   hasAllGoogleScopes,
 } from './auth';
@@ -94,7 +95,7 @@ describe('generateGoogleWorkspaceAuthUrl', () => {
 });
 
 describe('evaluateGoogleWorkspaceConnectionHealth', () => {
-  const fullScopes = GOOGLE_WORKSPACE_REQUIRED_SCOPES.join(' ');
+  const fullFeatureScopes = GOOGLE_WORKSPACE_FEATURE_SCOPES.join(' ');
 
   it('returns disconnected when not connected', () => {
     expect(evaluateGoogleWorkspaceConnectionHealth({ is_connected: false, scopes: null })).toBe(
@@ -103,20 +104,40 @@ describe('evaluateGoogleWorkspaceConnectionHealth', () => {
     expect(evaluateGoogleWorkspaceConnectionHealth(null)).toBe('disconnected');
   });
 
-  it('returns healthy when all required scopes are granted', () => {
+  it('returns healthy when all feature scopes are granted', () => {
     expect(
-      evaluateGoogleWorkspaceConnectionHealth({ is_connected: true, scopes: fullScopes }),
+      evaluateGoogleWorkspaceConnectionHealth({ is_connected: true, scopes: fullFeatureScopes }),
     ).toBe('healthy');
-    expect(hasAllGoogleScopes(fullScopes, GOOGLE_WORKSPACE_REQUIRED_SCOPES)).toBe(true);
+    expect(hasAllGoogleScopes(fullFeatureScopes, GOOGLE_WORKSPACE_FEATURE_SCOPES)).toBe(true);
   });
 
-  it('returns missing_permissions when connected but scopes are incomplete', () => {
+  it('returns healthy when identity scopes are omitted from stored scope string', () => {
+    expect(
+      evaluateGoogleWorkspaceConnectionHealth({ is_connected: true, scopes: fullFeatureScopes }),
+    ).toBe('healthy');
+  });
+
+  it('returns missing_permissions when connected but feature scopes are incomplete', () => {
     expect(
       evaluateGoogleWorkspaceConnectionHealth({
         is_connected: true,
         scopes: 'https://www.googleapis.com/auth/admin.directory.user.readonly',
       }),
     ).toBe('missing_permissions');
+  });
+
+  it('requests identity and feature scopes in the default OAuth URL', async () => {
+    rpcMock.mockResolvedValue({
+      data: [{ session_token: 'session-token', nonce: 'nonce-token' }],
+      error: null,
+    });
+
+    const url = await generateGoogleWorkspaceAuthUrl({ organizationId: 'org-123' });
+    const scope = new URL(url).searchParams.get('scope') ?? '';
+
+    for (const requiredScope of GOOGLE_WORKSPACE_REQUIRED_SCOPES) {
+      expect(scope).toContain(requiredScope);
+    }
   });
 });
 
