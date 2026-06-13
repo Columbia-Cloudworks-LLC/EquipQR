@@ -436,7 +436,7 @@ SELECT is(
 SELECT * FROM finish();
 ROLLBACK;
 BEGIN;
-SELECT plan(9);
+SELECT plan(10);
 
 -- ============================================
 -- Google Workspace access contract regression
@@ -628,8 +628,11 @@ SELECT lives_ok(
 
 -- TEST 6: disconnect clears directory cache and releases domain claim
 RESET role;
-SELECT set_config('request.jwt.claims', '{"sub":"40000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
-SET LOCAL role = 'authenticated';
+SET LOCAL role = 'service_role';
+
+INSERT INTO workspace_domains (domain, organization_id)
+VALUES ('extra-contract.test', '40000000-aaaa-0000-0000-000000000001'::uuid)
+ON CONFLICT (domain) DO NOTHING;
 
 INSERT INTO google_workspace_credentials (
   organization_id, domain, refresh_token, access_token_expires_at
@@ -639,6 +642,10 @@ INSERT INTO google_workspace_credentials (
   'encrypted-test-token',
   now() + interval '1 hour'
 ) ON CONFLICT DO NOTHING;
+
+RESET role;
+SELECT set_config('request.jwt.claims', '{"sub":"40000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+SET LOCAL role = 'authenticated';
 
 SELECT is(
   (public.disconnect_google_workspace(
@@ -653,6 +660,14 @@ SELECT is(
   (SELECT count(*)::int FROM workspace_domains WHERE domain = 'claimed-contract.test'),
   0,
   'disconnect releases workspace_domains claim'
+);
+
+SELECT is(
+  (SELECT count(*)::int
+     FROM workspace_domains
+    WHERE organization_id = '40000000-aaaa-0000-0000-000000000001'::uuid),
+  0,
+  'disconnect releases all workspace domain claims for the organization'
 );
 
 -- TEST 7: reconcile deactivates workspace-derived members when directory user is suspended

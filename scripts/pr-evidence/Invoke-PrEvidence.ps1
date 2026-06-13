@@ -56,6 +56,20 @@ $artifactDir = Join-Path $repoRoot ('tmp\pr-evidence\{0}' -f $flowSlug)
 $manifestPath = Join-Path $artifactDir 'manifest.json'
 $markdownPath = Join-Path $artifactDir 'evidence-markdown.md'
 
+function Resolve-PrEvidenceArtifactPath {
+    param([string]$RelativeOrAbsolutePath)
+
+    if ([string]::IsNullOrWhiteSpace($RelativeOrAbsolutePath)) {
+        return $null
+    }
+
+    if ([System.IO.Path]::IsPathRooted($RelativeOrAbsolutePath)) {
+        return $RelativeOrAbsolutePath
+    }
+
+    return Join-Path $repoRoot (($RelativeOrAbsolutePath -replace '/', '\'))
+}
+
 function Test-PrEvidenceCapturedManifest {
     param([string]$Path)
 
@@ -70,16 +84,31 @@ function Test-PrEvidenceCapturedManifest {
         return $false
     }
 
-    $screenshotCount = @($manifest.screenshots).Count
-    if ($screenshotCount -eq 0) {
+    if (-not $manifest.screenshots) {
         return $false
+    }
+
+    $screenshots = @($manifest.screenshots)
+    if ($screenshots.Count -lt 1) {
+        return $false
+    }
+
+    foreach ($shot in $screenshots) {
+        if (-not $shot -or [string]::IsNullOrWhiteSpace([string]$shot.localPath)) {
+            return $false
+        }
+
+        $shotFull = Resolve-PrEvidenceArtifactPath -RelativeOrAbsolutePath $shot.localPath
+        if (-not (Test-Path -LiteralPath $shotFull)) {
+            return $false
+        }
     }
 
     if ([string]::IsNullOrWhiteSpace([string]$manifest.gif)) {
         return $false
     }
 
-    $gifFull = Join-Path $repoRoot (($manifest.gif -replace '/', '\'))
+    $gifFull = Resolve-PrEvidenceArtifactPath -RelativeOrAbsolutePath $manifest.gif
     return Test-Path -LiteralPath $gifFull
 }
 

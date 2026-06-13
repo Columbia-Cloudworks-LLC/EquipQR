@@ -49,16 +49,9 @@ BEGIN
   WHERE organization_id = p_organization_id;
   GET DIAGNOSTICS v_directory_users_deleted = ROW_COUNT;
 
-  IF v_domain IS NOT NULL THEN
-    DELETE FROM public.workspace_domains
-    WHERE organization_id = p_organization_id
-      AND public.normalize_domain(domain) = public.normalize_domain(v_domain);
-    GET DIAGNOSTICS v_domain_unclaimed = ROW_COUNT;
-  ELSE
-    DELETE FROM public.workspace_domains
-    WHERE organization_id = p_organization_id;
-    GET DIAGNOSTICS v_domain_unclaimed = ROW_COUNT;
-  END IF;
+  DELETE FROM public.workspace_domains
+  WHERE organization_id = p_organization_id;
+  GET DIAGNOSTICS v_domain_unclaimed = ROW_COUNT;
 
   RETURN jsonb_build_object(
     'success', true,
