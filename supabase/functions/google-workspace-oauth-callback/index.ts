@@ -32,11 +32,15 @@ const FUNCTION_NAME = "google-workspace-oauth-callback";
 async function peekOAuthRedirectContext(
   supabaseClient: ReturnType<typeof createAdminSupabaseClient>,
   sessionToken: string,
+  nonce: string,
   resolvedProductionUrl: string,
 ) {
   const { data, error } = await supabaseClient.rpc(
-    "peek_google_workspace_oauth_session_redirect",
-    { p_session_token: sessionToken },
+    "peek_google_workspace_oauth_session",
+    {
+      p_session_token: sessionToken,
+      p_nonce: nonce,
+    },
   );
 
   if (error) {
@@ -134,6 +138,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
           errorRedirectContext = await peekOAuthRedirectContext(
             supabaseClient,
             state.sessionToken,
+            state.nonce,
             resolvedProductionUrl,
           );
         } catch (stateError) {
