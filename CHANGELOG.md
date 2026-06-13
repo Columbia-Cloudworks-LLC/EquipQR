@@ -10,9 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [3.8.7] - 2026-06-13
+
 ### Fixed
 
-- **Google Workspace OAuth reconnect after revoke** — Workspace connect now requests openid, mail, and profile explicitly so the OAuth callback can load Google userinfo after a clean revoke at Google Account permissions (previously those scopes were inherited only via include_granted_scopes).
+- **Google Workspace OAuth reconnect after revoke** — Workspace connect now requests openid, email, and profile explicitly so the OAuth callback can load Google userinfo after a clean revoke at Google Account permissions (previously those scopes were inherited only via include_granted_scopes).
 - **Google Workspace OAuth return handling on Integrations** — Connect and reconnect flows return to Organization Integrations with success and error toasts instead of silently failing when the callback redirects with query parameters.
 
 ### Added
@@ -2025,7 +2027,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.6...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.7...HEAD
+[3.8.7]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.6...v3.8.7
 [3.8.6]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.5...v3.8.6
 [3.8.5]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.4...v3.8.5
 [3.8.4]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.3...v3.8.4
