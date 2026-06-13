@@ -54,6 +54,18 @@ describe('useOrganizationIntegrationOAuthCallbacks', () => {
     expect(mockToastSuccess).not.toHaveBeenCalled();
   });
 
+  it('does not show success toast when gw_error and gw_connected are both present', () => {
+    renderHook(() => useOrganizationIntegrationOAuthCallbacks(), {
+      wrapper: wrapper([
+        '/dashboard/organization/integrations?gw_error=oauth_failed&gw_connected=true',
+      ]),
+    });
+
+    expect(mockToastError).toHaveBeenCalledTimes(1);
+    expect(mockToastSuccess).not.toHaveBeenCalled();
+    expect(mockInvalidateQueries).not.toHaveBeenCalled();
+  });
+
   it('shows Google Workspace success toast and invalidates workspace queries', () => {
     renderHook(() => useOrganizationIntegrationOAuthCallbacks(), {
       wrapper: wrapper(['/dashboard/organization/integrations?gw_connected=true']),

@@ -47,6 +47,7 @@ export function useOrganizationIntegrationOAuthCallbacks() {
       newParams.delete('gw_error');
       newParams.delete('gw_error_description');
       newParams.delete('gw_ref');
+      newParams.delete('gw_connected');
       setSearchParams(newParams, { replace: true });
       return;
     }

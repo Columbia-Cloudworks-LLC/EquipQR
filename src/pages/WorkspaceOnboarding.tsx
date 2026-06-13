@@ -63,7 +63,7 @@ const WorkspaceOnboarding = () => {
   useEffect(() => {
     if (gwError || gwConnected) {
       // Show toast for success
-      if (gwConnected === 'true') {
+      if (gwConnected === 'true' && !gwError) {
         toast({
           title: 'Google Workspace connected',
           description: 'Your organization is now connected to Google Workspace.',
