@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { googleWorkspace } from '@/lib/queryKeys';
+import { getGoogleWorkspaceOAuthErrorMessage } from '@/utils/google-workspace-oauth-errors';
 
 /**
  * Handles QuickBooks and Google Workspace OAuth callback query params on any
@@ -38,17 +39,19 @@ export function useOrganizationIntegrationOAuthCallbacks() {
 
   useEffect(() => {
     const error = searchParams.get('gw_error');
-    const errorDescription = searchParams.get('gw_error_description');
-    const success = searchParams.get('gw_connected');
+    const supportRef = searchParams.get('gw_ref');
 
     if (error) {
-      toast.error(errorDescription || 'Failed to connect Google Workspace');
+      toast.error(getGoogleWorkspaceOAuthErrorMessage(error, supportRef));
       const newParams = new URLSearchParams(searchParams);
       newParams.delete('gw_error');
       newParams.delete('gw_error_description');
+      newParams.delete('gw_ref');
       setSearchParams(newParams, { replace: true });
       return;
     }
+
+    const success = searchParams.get('gw_connected');
 
     if (success === 'true') {
       toast.success('Google Workspace reconnected successfully!');

@@ -1,6 +1,6 @@
 import { createAdminSupabaseClient, withCorrelationId } from "../_shared/supabase-clients.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
+import { requireSecret } from "../_shared/require-secret.ts";
 import { logStep } from "./gw-oauth-validation.ts";
 import { parseOAuthState, validateOAuthStateTimestamp } from "./gw-oauth-state.ts";
 import {
@@ -23,6 +23,10 @@ import {
   buildGoogleAccessDeniedRedirectUrl,
   buildSuccessRedirectUrl,
 } from "./gw-oauth-success-redirect.ts";
+import {
+  GW_OAUTH_ERROR_CODES,
+  resolveGoogleWorkspaceOAuthErrorCode,
+} from "./gw-oauth-user-error.ts";
 
 const FUNCTION_NAME = "google-workspace-oauth-callback";
 
@@ -83,14 +87,11 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     });
 
     if (error) {
-      const userFriendlyError = error === "access_denied"
-        ? "Google Workspace connection was cancelled"
-        : "Google Workspace connection failed";
       return Response.redirect(
         buildGoogleAccessDeniedRedirectUrl(
           callbackRedirectContext,
-          error,
-          userFriendlyError,
+          GW_OAUTH_ERROR_CODES.ACCESS_DENIED,
+          ctx.correlationId,
         ),
         302,
       );
@@ -194,35 +195,21 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       resolvedProductionUrl: callbackRedirectContext.resolvedProductionUrl || fallbackProductionUrl,
     };
 
-    if (error instanceof MissingSecretError) {
-      return Response.redirect(
-        buildGoogleOAuthErrorRedirectUrl({
-          ...errorRedirectContext,
-          errorCode: "oauth_failed",
-          userMessage:
-            "Google Workspace OAuth is not configured. Please contact your administrator.",
-        }),
-        302,
-      );
-    }
-
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage, correlation_id: ctx.correlationId });
-
-    const typedError = error as { code?: string; name?: string } | null | undefined;
-    const isNotAdminError =
-      !!typedError &&
-      (typedError.code === "not_workspace_admin" ||
-        typedError.name === "NotWorkspaceAdminError");
-    const errorCode = isNotAdminError ? "not_workspace_admin" : "oauth_failed";
-
-    const userMessage =
-      errorMessage || "Failed to connect Google Workspace. Please try again.";
-    const errorUrl = buildGoogleOAuthErrorRedirectUrl({
-      ...errorRedirectContext,
+    const errorCode = resolveGoogleWorkspaceOAuthErrorCode(error);
+    logStep("ERROR", {
+      message: errorMessage,
       errorCode,
-      userMessage,
+      correlation_id: ctx.correlationId,
     });
-    return Response.redirect(errorUrl, 302);
+
+    return Response.redirect(
+      buildGoogleOAuthErrorRedirectUrl({
+        ...errorRedirectContext,
+        errorCode,
+        supportRef: ctx.correlationId,
+      }),
+      302,
+    );
   }
 }));

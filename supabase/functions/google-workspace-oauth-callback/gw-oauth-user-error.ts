@@ -1,0 +1,77 @@
+import { MissingSecretError } from "../_shared/require-secret.ts";
+
+export const GW_OAUTH_ERROR_CODES = {
+  ACCESS_DENIED: "access_denied",
+  NOT_WORKSPACE_ADMIN: "not_workspace_admin",
+  SESSION_EXPIRED: "session_expired",
+  OAUTH_FAILED: "oauth_failed",
+  MISCONFIGURED: "misconfigured",
+  CONSUMER_ACCOUNT: "consumer_account",
+  INVALID_GRANT: "invalid_grant",
+  CSRF_ERROR: "csrf_error",
+} as const;
+
+export type GoogleWorkspaceOAuthErrorCode =
+  typeof GW_OAUTH_ERROR_CODES[keyof typeof GW_OAUTH_ERROR_CODES];
+
+export class GoogleWorkspaceOAuthUserError extends Error {
+  readonly code: GoogleWorkspaceOAuthErrorCode;
+
+  constructor(code: GoogleWorkspaceOAuthErrorCode, logMessage?: string) {
+    super(logMessage ?? code);
+    this.name = "GoogleWorkspaceOAuthUserError";
+    this.code = code;
+  }
+}
+
+function mapMessageToErrorCode(message: string): GoogleWorkspaceOAuthErrorCode {
+  if (message.includes("Invalid or expired OAuth session")) {
+    return GW_OAUTH_ERROR_CODES.SESSION_EXPIRED;
+  }
+  if (message.includes("OAuth nonce mismatch")) {
+    return GW_OAUTH_ERROR_CODES.CSRF_ERROR;
+  }
+  if (message.includes("Consumer Google accounts")) {
+    return GW_OAUTH_ERROR_CODES.CONSUMER_ACCOUNT;
+  }
+  if (
+    message.includes("Only Google Workspace administrators") ||
+    message.includes("Only Google Workspace administrators can connect")
+  ) {
+    return GW_OAUTH_ERROR_CODES.NOT_WORKSPACE_ADMIN;
+  }
+  if (message.includes("Authorization code expired or already used")) {
+    return GW_OAUTH_ERROR_CODES.INVALID_GRANT;
+  }
+  if (
+    message.includes("OAuth configuration error") ||
+    message.includes("Invalid OAuth redirect") ||
+    message.includes("not configured")
+  ) {
+    return GW_OAUTH_ERROR_CODES.MISCONFIGURED;
+  }
+  return GW_OAUTH_ERROR_CODES.OAUTH_FAILED;
+}
+
+export function resolveGoogleWorkspaceOAuthErrorCode(
+  error: unknown,
+): GoogleWorkspaceOAuthErrorCode {
+  if (error instanceof GoogleWorkspaceOAuthUserError) {
+    return error.code;
+  }
+
+  if (error instanceof MissingSecretError) {
+    return GW_OAUTH_ERROR_CODES.MISCONFIGURED;
+  }
+
+  if (error instanceof Error) {
+    return mapMessageToErrorCode(error.message);
+  }
+
+  return GW_OAUTH_ERROR_CODES.OAUTH_FAILED;
+}
+
+export const __gwOauthUserErrorTestables = {
+  mapMessageToErrorCode,
+  resolveGoogleWorkspaceOAuthErrorCode,
+};

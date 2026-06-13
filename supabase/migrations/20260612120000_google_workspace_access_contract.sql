@@ -637,7 +637,10 @@ EXCEPTION
   WHEN unique_violation THEN
     RETURN jsonb_build_object('success', false, 'error', 'User is already a member of this organization');
   WHEN OTHERS THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Failed to accept invitation: ' || SQLERRM);
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', 'Failed to accept invitation. Please try again or contact support.'
+    );
 END;
 $$;
 

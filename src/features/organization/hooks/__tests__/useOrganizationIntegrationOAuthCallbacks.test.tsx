@@ -41,14 +41,16 @@ describe('useOrganizationIntegrationOAuthCallbacks', () => {
     mockToastError.mockReset();
   });
 
-  it('shows Google Workspace error toast and clears gw_error params', () => {
+  it('maps Google Workspace error codes to safe toast messages and clears callback params', () => {
     renderHook(() => useOrganizationIntegrationOAuthCallbacks(), {
       wrapper: wrapper([
-        '/dashboard/organization/integrations?gw_error=oauth_failed&gw_error_description=Token+missing',
+        '/dashboard/organization/integrations?gw_error=oauth_failed&gw_error_description=internal+postgres+constraint+users_pkey&gw_ref=corr-123',
       ]),
     });
 
-    expect(mockToastError).toHaveBeenCalledWith('Token missing');
+    expect(mockToastError).toHaveBeenCalledWith(
+      'Failed to connect Google Workspace. Please try again. Reference: corr-123',
+    );
     expect(mockToastSuccess).not.toHaveBeenCalled();
   });
 

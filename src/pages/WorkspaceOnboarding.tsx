@@ -24,6 +24,7 @@ import {
 } from '@/services/google-workspace';
 import { generateGoogleWorkspaceAuthUrl, isGoogleWorkspaceConfigured } from '@/services/google-workspace/auth';
 import { isConsumerGoogleDomain } from '@/utils/google-workspace';
+import { getGoogleWorkspaceOAuthErrorMessage } from '@/utils/google-workspace-oauth-errors';
 import { googleWorkspace } from '@/lib/queryKeys';
 import { useGoogleWorkspaceMemberSelection } from '@/features/organization/hooks/useGoogleWorkspaceMemberSelection';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
@@ -52,8 +53,11 @@ const WorkspaceOnboarding = () => {
 
   // Handle OAuth callback parameters
   const gwError = searchParams.get('gw_error');
-  const gwErrorDescription = searchParams.get('gw_error_description');
+  const gwSupportRef = searchParams.get('gw_ref');
   const gwConnected = searchParams.get('gw_connected');
+  const gwErrorMessage = gwError
+    ? getGoogleWorkspaceOAuthErrorMessage(gwError, gwSupportRef)
+    : null;
 
   // Clear query params after displaying them
   useEffect(() => {
@@ -72,6 +76,7 @@ const WorkspaceOnboarding = () => {
       const newParams = new URLSearchParams(searchParams);
       newParams.delete('gw_error');
       newParams.delete('gw_error_description');
+      newParams.delete('gw_ref');
       newParams.delete('gw_connected');
       setSearchParams(newParams, { replace: true });
     }
@@ -243,11 +248,11 @@ const WorkspaceOnboarding = () => {
 
       <div className="space-y-6">
         {/* Error Alert */}
-        {gwError && gwErrorDescription && (
+        {gwErrorMessage && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Connection Failed</AlertTitle>
-            <AlertDescription>{gwErrorDescription}</AlertDescription>
+            <AlertDescription>{gwErrorMessage}</AlertDescription>
           </Alert>
         )}
 

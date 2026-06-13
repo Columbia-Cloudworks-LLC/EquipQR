@@ -54,23 +54,25 @@ function buildCallbackRedirectUrl(
 export function buildGoogleOAuthErrorRedirectUrl(
   params: GoogleWorkspaceCallbackRedirectContext & {
     errorCode: string;
-    userMessage: string;
+    supportRef?: string | null;
   },
 ): string {
-  return buildCallbackRedirectUrl(params, {
-    gw_error: params.errorCode,
-    gw_error_description: params.userMessage,
-  });
+  const queryParams: Record<string, string> = { gw_error: params.errorCode };
+  if (params.supportRef) {
+    queryParams.gw_ref = params.supportRef;
+  }
+  return buildCallbackRedirectUrl(params, queryParams);
 }
 
 export function buildGoogleAccessDeniedRedirectUrl(
   params: GoogleWorkspaceCallbackRedirectContext,
-  error: string,
-  userFriendlyError: string,
+  errorCode: string,
+  supportRef?: string | null,
 ): string {
-  return buildCallbackRedirectUrl(params, {
-    gw_error: error,
-    gw_error_description: userFriendlyError,
+  return buildGoogleOAuthErrorRedirectUrl({
+    ...params,
+    errorCode,
+    supportRef,
   });
 }
 

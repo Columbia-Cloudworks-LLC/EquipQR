@@ -7,6 +7,7 @@ import { __stateTestables } from "./gw-oauth-state.ts";
 import { __gwOauthRedirectUriTestables } from "./gw-oauth-redirect-uri.ts";
 import { __gwOauthGoogleApiTestables } from "./gw-oauth-google-api.ts";
 import { __gwOauthSuccessRedirectTestables } from "./gw-oauth-success-redirect.ts";
+import { __gwOauthUserErrorTestables } from "./gw-oauth-user-error.ts";
 
 const {
   normalizeDomain,
@@ -203,11 +204,11 @@ Deno.test({
       redirectUrl: "/dashboard/organization/integrations",
       resolvedProductionUrl: "https://preview.equipqr.app",
       errorCode: "oauth_failed",
-      userMessage: "Google Workspace refresh token missing. Please reconnect.",
+      supportRef: "corr-abc123",
     });
     assertEquals(
       url,
-      "https://preview.equipqr.app/dashboard/organization/integrations?gw_error=oauth_failed&gw_error_description=Google+Workspace+refresh+token+missing.+Please+reconnect.",
+      "https://preview.equipqr.app/dashboard/organization/integrations?gw_error=oauth_failed&gw_ref=corr-abc123",
     );
   });
 });
@@ -287,4 +288,25 @@ Deno.test({
       }
     }
   },
+});
+
+Deno.test("resolveGoogleWorkspaceOAuthErrorCode maps internal messages to safe codes", () => {
+  const { resolveGoogleWorkspaceOAuthErrorCode } = __gwOauthUserErrorTestables;
+
+  assertEquals(
+    resolveGoogleWorkspaceOAuthErrorCode(
+      new Error("Invalid or expired OAuth session. Please try again."),
+    ),
+    "session_expired",
+  );
+  assertEquals(
+    resolveGoogleWorkspaceOAuthErrorCode(
+      new Error("Only Google Workspace administrators can connect their organization to EquipQR."),
+    ),
+    "not_workspace_admin",
+  );
+  assertEquals(
+    resolveGoogleWorkspaceOAuthErrorCode(new Error("unexpected internal failure")),
+    "oauth_failed",
+  );
 });
