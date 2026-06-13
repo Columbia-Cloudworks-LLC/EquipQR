@@ -15,6 +15,7 @@ export interface WorkspaceOnboardingState {
   has_workspace_membership?: boolean;
   has_pending_invitation?: boolean;
   has_pending_claim?: boolean;
+  has_other_organization_membership?: boolean;
 }
 
 export interface WorkspaceConnectionStatus {

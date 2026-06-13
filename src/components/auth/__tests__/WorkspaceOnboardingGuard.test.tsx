@@ -87,6 +87,25 @@ describe('WorkspaceOnboardingGuard', () => {
     expect(screen.queryByText('Dashboard content')).not.toBeInTheDocument();
   });
 
+  it('renders children for claimed-domain users with membership in another organization', () => {
+    mockOnboardingState.mockReturnValue({
+      domain_status: 'claimed',
+      domain: 'claimed.test',
+      has_workspace_membership: false,
+      has_other_organization_membership: true,
+      has_pending_invitation: false,
+      has_pending_claim: false,
+    });
+
+    customRender(
+      <WorkspaceOnboardingGuard>
+        <div>Dashboard content</div>
+      </WorkspaceOnboardingGuard>,
+    );
+
+    expect(screen.getByText('Dashboard content')).toBeInTheDocument();
+  });
+
   it('shows pending state for claimed-domain users with pending claim', () => {
     mockOnboardingState.mockReturnValue({
       domain_status: 'claimed',

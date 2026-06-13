@@ -86,7 +86,6 @@ $token = Get-OpServiceAccountToken -Write:(-not $ReadOnly)
 
 $inner = @"
 param(
-    [string]`$Token,
     [string]`$Action,
     [string]`$Item,
     [string]`$Vault,
@@ -97,7 +96,9 @@ param(
     [switch]`$DryRun
 )
 `$ErrorActionPreference = 'Stop'
-`$env:OP_SERVICE_ACCOUNT_TOKEN = `$Token
+if (-not `$env:OP_SERVICE_ACCOUNT_TOKEN) {
+    throw 'OP_SERVICE_ACCOUNT_TOKEN is not set in the child process environment.'
+}
 
 `$opArgs = New-Object System.Collections.Generic.List[string]
 
@@ -155,11 +156,13 @@ $itemArg = if ($Item) { $Item } else { '' }
 $templateArg = if ($TemplatePath) { $TemplatePath } else { '' }
 $titleArg = if ($Title) { $Title } else { '' }
 
+$previousOpServiceAccountToken = $env:OP_SERVICE_ACCOUNT_TOKEN
+$env:OP_SERVICE_ACCOUNT_TOKEN = $token
+
 $argList = @(
     '-NoProfile',
     '-ExecutionPolicy', 'Bypass',
     '-File', $helperPath,
-    '-Token', $token,
     '-Action', $Action,
     '-Item', $itemArg,
     '-Vault', $Vault
@@ -183,8 +186,18 @@ if ($Assignment.Count -gt 0) {
     }
 }
 
-$p = Start-Process -FilePath 'powershell.exe' -ArgumentList $argList -Wait -PassThru `
-    -RedirectStandardOutput $logPath -RedirectStandardError $errPath -WindowStyle Hidden
+try {
+    $p = Start-Process -FilePath 'powershell.exe' -ArgumentList $argList -Wait -PassThru `
+        -RedirectStandardOutput $logPath -RedirectStandardError $errPath -WindowStyle Hidden
+}
+finally {
+    if ($null -ne $previousOpServiceAccountToken) {
+        $env:OP_SERVICE_ACCOUNT_TOKEN = $previousOpServiceAccountToken
+    }
+    else {
+        Remove-Item Env:OP_SERVICE_ACCOUNT_TOKEN -ErrorAction SilentlyContinue
+    }
+}
 
 Get-Content $logPath -ErrorAction SilentlyContinue | Write-Host
 Get-Content $errPath -ErrorAction SilentlyContinue | Write-Host

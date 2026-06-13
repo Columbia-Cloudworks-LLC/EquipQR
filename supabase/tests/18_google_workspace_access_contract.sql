@@ -436,7 +436,7 @@ SELECT is(
 SELECT * FROM finish();
 ROLLBACK;
 BEGIN;
-SELECT plan(8);
+SELECT plan(9);
 
 -- ============================================
 -- Google Workspace access contract regression

@@ -224,11 +224,13 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
     logStep("Directory upsert complete", { totalUsers, pagesProcessed });
 
+    const dedupedGoogleUserIds = [...new Set(syncedGoogleUserIds)];
+
     const { data: reconcileData, error: reconcileError } = await adminClient.rpc(
       "reconcile_google_workspace_directory",
       {
         p_organization_id: organizationId,
-        p_active_google_user_ids: syncedGoogleUserIds,
+        p_active_google_user_ids: dedupedGoogleUserIds,
       },
     );
 

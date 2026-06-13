@@ -11,7 +11,8 @@ interface WorkspaceOnboardingGuardProps {
 
 /**
  * Blocks dashboard access for Google users on claimed Workspace domains who lack
- * explicit authorization via membership, invitation, or import claim.
+ * explicit authorization via workspace membership, invitation, import claim, or
+ * active membership in another organization.
  */
 const WorkspaceOnboardingGuard: React.FC<WorkspaceOnboardingGuardProps> = ({ children }) => {
   const { user } = useAuth();
@@ -41,7 +42,7 @@ const WorkspaceOnboardingGuard: React.FC<WorkspaceOnboardingGuardProps> = ({ chi
     return <>{children}</>;
   }
 
-  if (onboardingState.has_workspace_membership) {
+  if (onboardingState.has_workspace_membership || onboardingState.has_other_organization_membership) {
     return <>{children}</>;
   }
 
