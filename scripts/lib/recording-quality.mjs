@@ -53,10 +53,24 @@ export async function probeVideoDimensions(videoPath) {
         return;
       }
 
-      resolve({
-        width: Number.parseInt(parts[0], 10),
-        height: Number.parseInt(parts[1], 10),
-      });
+      const width = Number.parseInt(parts[0], 10);
+      const height = Number.parseInt(parts[1], 10);
+      if (
+        !Number.isFinite(width) ||
+        width <= 0 ||
+        !Number.isFinite(height) ||
+        height <= 0
+      ) {
+        const detail = stderr.trim() ? ` stderr: ${stderr.trim()}` : '';
+        reject(
+          new Error(
+            `Invalid ffprobe dimensions for ${videoPath}: ${stdout.trim()}${detail}`,
+          ),
+        );
+        return;
+      }
+
+      resolve({ width, height });
     });
   });
 }

@@ -48,6 +48,7 @@ async function main() {
   await ensureBinaryAvailable('playwright-cli');
   if (!parsedArgs.videoOnly) {
     await ensureBinaryAvailable('ffmpeg');
+    await ensureBinaryAvailable('ffprobe');
   }
 
   await ensureDemoDirectory();

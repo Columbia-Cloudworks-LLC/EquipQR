@@ -64,6 +64,17 @@ const outputDir = runConfig.outputDir || path.join(
   artifactContext || 'desktop-test',
 );
 
+const realAuthVideo = showPlaywrightAnnotations
+  ? {
+      mode: 'on' as const,
+      size: videoSize,
+      show: videoAnnotations,
+    }
+  : {
+      mode: 'on' as const,
+      size: videoSize,
+    };
+
 const ownerStorage = path.join(authDir, 'owner.json');
 
 const realAuthStorageRaw = process.env.E2E_REAL_AUTH_STORAGE_STATE?.trim();
@@ -137,7 +148,7 @@ export default defineConfig({
       use: {
         baseURL: realAuthBaseURL,
         viewport: runConfig.desktopViewport,
-        video: { mode: 'on' as const, size: runConfig.videoSize },
+        video: realAuthVideo,
         ...(vercelAutomationBypassHeaders
           ? { extraHTTPHeaders: vercelAutomationBypassHeaders }
           : {}),
@@ -152,7 +163,7 @@ export default defineConfig({
       use: {
         baseURL: realAuthBaseURL,
         viewport: runConfig.desktopViewport,
-        video: { mode: 'on' as const, size: runConfig.videoSize },
+        video: realAuthVideo,
         ...(realAuthStorageExists && realAuthStorageState
           ? { storageState: realAuthStorageState }
           : {}),

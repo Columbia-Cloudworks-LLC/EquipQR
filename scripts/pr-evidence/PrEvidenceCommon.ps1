@@ -211,6 +211,8 @@ function Get-PrEvidenceGifFfmpegFilter {
         [int]$ViewportHeight = 0
     )
 
+    Assert-PrEvidenceCommandExists 'node'
+
     if ($ViewportWidth -le 0) {
         $ViewportWidth = [int]($env:PR_EVIDENCE_VIEWPORT_WIDTH)
         if ($ViewportWidth -le 0) { $ViewportWidth = 1920 }
@@ -257,6 +259,7 @@ function Convert-PrEvidenceWebmToGif {
 
     Assert-PrEvidenceCommandExists 'ffmpeg'
     Assert-PrEvidenceCommandExists 'ffprobe'
+    Assert-PrEvidenceCommandExists 'node'
 
     $webmFull = if ([System.IO.Path]::IsPathRooted($WebmPath)) { $WebmPath } else { Join-Path (Get-PrEvidenceRepoRoot) $WebmPath }
     $gifFull = if ([System.IO.Path]::IsPathRooted($GifPath)) { $GifPath } else { Join-Path (Get-PrEvidenceRepoRoot) $GifPath }
