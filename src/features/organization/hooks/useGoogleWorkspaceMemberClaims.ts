@@ -8,6 +8,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAppToast } from '@/hooks/useAppToast';
+import { googleWorkspace } from '@/lib/queryKeys';
 import { logger } from '@/utils/logger';
 import { getAuthClaims } from '@/lib/authClaims';
 
@@ -33,7 +34,7 @@ export interface GoogleWorkspaceMemberClaim {
  */
 export const useGoogleWorkspaceMemberClaims = (organizationId: string) => {
   return useQuery({
-    queryKey: ['gws-member-claims', organizationId],
+    queryKey: googleWorkspace.memberClaims(organizationId),
     queryFn: async (): Promise<GoogleWorkspaceMemberClaim[]> => {
       if (!organizationId) return [];
 
@@ -136,7 +137,7 @@ export const useRevokeGoogleWorkspaceMemberClaim = (organizationId: string) => {
       return Array.isArray(data) ? data[0] : data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gws-member-claims', organizationId] });
+      queryClient.invalidateQueries({ queryKey: googleWorkspace.memberClaims(organizationId) });
       appToast.success({ description: 'Pending member removed' });
     },
     onError: (error) => {

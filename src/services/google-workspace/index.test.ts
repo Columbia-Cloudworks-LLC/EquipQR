@@ -129,7 +129,13 @@ describe('Google Workspace Service Functions', () => {
   describe('syncGoogleWorkspaceUsers', () => {
     it('returns synced user count on success', async () => {
       invokeMock.mockResolvedValue({
-        data: { success: true, usersSynced: 25 },
+        data: {
+          success: true,
+          usersSynced: 25,
+          directoryMarkedSuspended: 1,
+          membersDeactivated: 2,
+          claimsRevoked: 1,
+        },
         error: null,
       });
 
@@ -138,7 +144,12 @@ describe('Google Workspace Service Functions', () => {
       expect(invokeMock).toHaveBeenCalledWith('google-workspace-sync-users', {
         body: { organizationId: 'org-123' },
       });
-      expect(result).toEqual({ usersSynced: 25 });
+      expect(result).toEqual({
+        usersSynced: 25,
+        directoryMarkedSuspended: 1,
+        membersDeactivated: 2,
+        claimsRevoked: 1,
+      });
     });
 
     it('throws an error on invoke failure', async () => {
@@ -150,14 +161,44 @@ describe('Google Workspace Service Functions', () => {
       await expect(syncGoogleWorkspaceUsers('org-123')).rejects.toThrow('Function invocation failed');
     });
 
-    it('throws an error when success is false', async () => {
+    it('throws Request failed when success is false without an error payload', async () => {
       invokeMock.mockResolvedValue({
         data: { success: false },
         error: null,
       });
 
+      await expect(syncGoogleWorkspaceUsers('org-123')).rejects.toThrow('Request failed');
+    });
+
+    it('throws the edge function error message from a non-2xx invoke response', async () => {
+      const response = new Response(
+        JSON.stringify({ error: 'Failed to reconcile directory access' }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+
+      invokeMock.mockResolvedValue({
+        data: null,
+        error: Object.assign(new Error('Edge Function returned a non-2xx status code'), {
+          context: response,
+        }),
+      });
+
       await expect(syncGoogleWorkspaceUsers('org-123')).rejects.toThrow(
-        'Failed to sync Google Workspace users'
+        'Failed to reconcile directory access',
+      );
+    });
+
+    it('throws the edge function error message when success is false with error', async () => {
+      invokeMock.mockResolvedValue({
+        data: { success: false, error: 'Google Workspace is not connected' },
+        error: null,
+      });
+
+      await expect(syncGoogleWorkspaceUsers('org-123')).rejects.toThrow(
+        'Google Workspace is not connected'
       );
     });
   });

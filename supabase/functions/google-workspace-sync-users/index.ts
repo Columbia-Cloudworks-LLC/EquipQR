@@ -2,6 +2,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 import {
   createAdminSupabaseClient,
   createErrorResponse,
+  createJsonResponse,
   verifyOrgAdmin,
   withCorrelationId,
   requireAuthenticatedPost,
@@ -12,6 +13,11 @@ import {
 } from "../_shared/google-workspace-token.ts";
 import { MissingSecretError } from "../_shared/require-secret.ts";
 import { googleApiFetch } from "../_shared/google-api-retry.ts";
+import {
+  reconcileGoogleWorkspaceDirectory,
+  formatReconcileErrorForLog,
+  type ReconcileResult,
+} from "./gw-sync-reconcile.ts";
 
 interface SyncRequest {
   organizationId: string;
@@ -158,7 +164,14 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       }, { label: "directory-sync" });
 
       if (!response.ok) {
-        logStep("Directory API error", { status: response.status });
+        let directoryApiError: string | undefined;
+        try {
+          const errorPayload = await response.json() as { error?: { message?: string } };
+          directoryApiError = errorPayload.error?.message;
+        } catch {
+          // Response was not JSON
+        }
+        logStep("Directory API error", { status: response.status, directoryApiError });
         return createErrorResponse(`Failed to fetch Google Workspace users (HTTP ${response.status})`, 502);
       }
 
@@ -213,11 +226,45 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       }
     }
 
-    logStep("Sync complete", { totalUsers, pagesProcessed });
+    logStep("Directory upsert complete", { totalUsers, pagesProcessed });
 
-    return new Response(JSON.stringify({ success: true, usersSynced: totalUsers }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    let reconcile: ReconcileResult;
+    try {
+      const reconcileOutcome = await reconcileGoogleWorkspaceDirectory(adminClient, {
+        organizationId,
+        syncStartedAt: nowIso,
+      });
+      reconcile = reconcileOutcome.reconcile;
+      if (reconcileOutcome.skippedDueToSchemaDrift) {
+        logStep("Directory reconcile skipped — timestamptz RPC not deployed yet", {
+          organizationId,
+        });
+      }
+    } catch (reconcileError) {
+      const errorDetails = formatReconcileErrorForLog(reconcileError);
+      logStep("Directory reconcile error", {
+        organizationId,
+        syncStartedAt: nowIso,
+        ...errorDetails,
+      });
+      return createErrorResponse("Failed to reconcile directory access", 500);
+    }
+
+    logStep("Sync complete", {
+      totalUsers,
+      pagesProcessed,
+      directoryMarkedSuspended: reconcile.directory_marked_suspended ?? 0,
+      membersDeactivated: reconcile.members_deactivated ?? 0,
+      claimsRevoked: reconcile.claims_revoked ?? 0,
     });
+
+    return createJsonResponse({
+      success: true,
+      usersSynced: totalUsers,
+      directoryMarkedSuspended: reconcile.directory_marked_suspended ?? 0,
+      membersDeactivated: reconcile.members_deactivated ?? 0,
+      claimsRevoked: reconcile.claims_revoked ?? 0,
+    }, 200, { req });
   } catch (error) {
     if (error instanceof MissingSecretError) {
       return createErrorResponse(error, 500);

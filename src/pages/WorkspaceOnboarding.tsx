@@ -24,7 +24,10 @@ import {
 } from '@/services/google-workspace';
 import { generateGoogleWorkspaceAuthUrl, isGoogleWorkspaceConfigured } from '@/services/google-workspace/auth';
 import { isConsumerGoogleDomain } from '@/utils/google-workspace';
+import { getGoogleWorkspaceOAuthErrorMessage } from '@/utils/google-workspace-oauth-errors';
+import { googleWorkspace } from '@/lib/queryKeys';
 import { useGoogleWorkspaceMemberSelection } from '@/features/organization/hooks/useGoogleWorkspaceMemberSelection';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
 const WorkspaceOnboarding = () => {
@@ -32,6 +35,7 @@ const WorkspaceOnboarding = () => {
   const { refreshSession } = useSession();
   const { switchOrganization } = useOrganization();
   const { toast } = useAppToast();
+  const { formatDate } = useFormatTimestamp();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -49,14 +53,17 @@ const WorkspaceOnboarding = () => {
 
   // Handle OAuth callback parameters
   const gwError = searchParams.get('gw_error');
-  const gwErrorDescription = searchParams.get('gw_error_description');
+  const gwSupportRef = searchParams.get('gw_ref');
   const gwConnected = searchParams.get('gw_connected');
+  const gwErrorMessage = gwError
+    ? getGoogleWorkspaceOAuthErrorMessage(gwError, gwSupportRef)
+    : null;
 
   // Clear query params after displaying them
   useEffect(() => {
     if (gwError || gwConnected) {
       // Show toast for success
-      if (gwConnected === 'true') {
+      if (gwConnected === 'true' && !gwError) {
         toast({
           title: 'Google Workspace connected',
           description: 'Your organization is now connected to Google Workspace.',
@@ -69,6 +76,7 @@ const WorkspaceOnboarding = () => {
       const newParams = new URLSearchParams(searchParams);
       newParams.delete('gw_error');
       newParams.delete('gw_error_description');
+      newParams.delete('gw_ref');
       newParams.delete('gw_connected');
       setSearchParams(newParams, { replace: true });
     }
@@ -86,14 +94,14 @@ const WorkspaceOnboarding = () => {
   const workspaceOrgId = onboardingState?.workspace_org_id || null;
 
   const { data: connectionStatus } = useQuery({
-    queryKey: ['google-workspace', 'connection', workspaceOrgId],
+    queryKey: googleWorkspace.connection(workspaceOrgId ?? ''),
     queryFn: () => getGoogleWorkspaceConnectionStatus(workspaceOrgId!),
     enabled: !!workspaceOrgId,
     staleTime: 60 * 1000,
   });
 
   const { data: directoryUsers = [] } = useQuery({
-    queryKey: ['google-workspace', 'directory-users', workspaceOrgId],
+    queryKey: googleWorkspace.directoryUsers(workspaceOrgId ?? ''),
     queryFn: () => listWorkspaceDirectoryUsers(workspaceOrgId!),
     enabled: !!workspaceOrgId && connectionStatus?.is_connected,
     staleTime: 60 * 1000,
@@ -113,7 +121,7 @@ const WorkspaceOnboarding = () => {
     try {
       // For first-time setup, don't pass organization_id - the callback will create one
       const authUrl = await generateGoogleWorkspaceAuthUrl({
-        organizationId: workspaceOrgId || '',
+        ...(workspaceOrgId ? { organizationId: workspaceOrgId } : {}),
         redirectUrl: '/dashboard/onboarding/workspace',
       });
       window.location.href = authUrl;
@@ -132,8 +140,15 @@ const WorkspaceOnboarding = () => {
     setIsSyncing(true);
     try {
       const result = await syncGoogleWorkspaceUsers(workspaceOrgId);
-      toast({ title: 'Directory synced', description: `${result.usersSynced} users loaded.` });
-      await queryClient.invalidateQueries({ queryKey: ['google-workspace', 'directory-users', workspaceOrgId] });
+      const revocationSummary =
+        result.membersDeactivated > 0 || result.claimsRevoked > 0
+          ? ` ${result.membersDeactivated} access revoked, ${result.claimsRevoked} claims revoked.`
+          : '';
+      toast({
+        title: 'Directory synced',
+        description: `${result.usersSynced} users loaded.${revocationSummary}`,
+      });
+      await queryClient.invalidateQueries({ queryKey: googleWorkspace.directoryUsers(workspaceOrgId) });
     } catch (error) {
       toast({
         title: 'Failed to sync users',
@@ -158,7 +173,7 @@ const WorkspaceOnboarding = () => {
         description: `Disconnected from ${result.domain}. You can reconnect anytime.`,
       });
       // Invalidate queries to refresh state
-      await queryClient.invalidateQueries({ queryKey: ['google-workspace'] });
+      await queryClient.invalidateQueries({ queryKey: googleWorkspace.root });
       await refetch();
     } catch (error) {
       toast({
@@ -233,11 +248,11 @@ const WorkspaceOnboarding = () => {
 
       <div className="space-y-6">
         {/* Error Alert */}
-        {gwError && gwErrorDescription && (
+        {gwErrorMessage && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Connection Failed</AlertTitle>
-            <AlertDescription>{gwErrorDescription}</AlertDescription>
+            <AlertDescription>{gwErrorMessage}</AlertDescription>
           </Alert>
         )}
 
@@ -297,12 +312,11 @@ const WorkspaceOnboarding = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <div>Connected domain: {connectionStatus.domain}</div>
-                  <div>Connected on: {connectionStatus.connected_at ? new Date(connectionStatus.connected_at).toLocaleDateString() : 'Unknown'}</div>
+                  <div>Connected on: {connectionStatus.connected_at ? formatDate(connectionStatus.connected_at) : 'Unknown'}</div>
                 </div>
                 
-                {/* Disconnect option - for testing/development */}
                 <div className="pt-4 border-t">
-                  <p className="text-sm font-medium mb-2">Disconnect</p>
+                  <p className="text-sm font-medium mb-2">Disconnect Google Workspace</p>
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -319,7 +333,8 @@ const WorkspaceOnboarding = () => {
                     )}
                   </Button>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Disconnect to test the OAuth flow again. The domain will remain claimed, so reconnecting will use the same organization.
+                    Disconnect removes OAuth credentials and the cached directory snapshot, but keeps your
+                    domain claimed so users cannot self-join. Reconnect anytime to restore sync.
                   </p>
                 </div>
               </CardContent>

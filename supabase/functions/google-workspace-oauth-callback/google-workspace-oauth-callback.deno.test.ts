@@ -7,6 +7,7 @@ import { __stateTestables } from "./gw-oauth-state.ts";
 import { __gwOauthRedirectUriTestables } from "./gw-oauth-redirect-uri.ts";
 import { __gwOauthGoogleApiTestables } from "./gw-oauth-google-api.ts";
 import { __gwOauthSuccessRedirectTestables } from "./gw-oauth-success-redirect.ts";
+import { __gwOauthUserErrorTestables } from "./gw-oauth-user-error.ts";
 
 const {
   normalizeDomain,
@@ -22,7 +23,7 @@ const {
 const { parseOAuthState, validateOAuthStateTimestamp } = __stateTestables;
 const { buildOAuthRedirectUri, resolveOAuthRedirectBaseUrl } = __gwOauthRedirectUriTestables;
 const { extractUserDomain } = __gwOauthGoogleApiTestables;
-const { buildSuccessRedirectUrl, resolveFallbackProductionUrl } = __gwOauthSuccessRedirectTestables;
+const { buildSuccessRedirectUrl, resolveFallbackProductionUrl, buildGoogleOAuthErrorRedirectUrl } = __gwOauthSuccessRedirectTestables;
 
 function withEnv(updates: Record<string, string | undefined>, fn: () => void): void {
   const previous = new Map<string, string | undefined>();
@@ -194,6 +195,25 @@ Deno.test({
 });
 
 Deno.test({
+  name: "buildGoogleOAuthErrorRedirectUrl honors integrations redirectUrl from OAuth session",
+  permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
+}, () => {
+  withEnv({ PUBLIC_SITE_URL: "https://preview.equipqr.app", PRODUCTION_URL: "https://equipqr.app" }, () => {
+    const url = buildGoogleOAuthErrorRedirectUrl({
+      originUrl: "https://preview.equipqr.app",
+      redirectUrl: "/dashboard/organization/integrations",
+      resolvedProductionUrl: "https://preview.equipqr.app",
+      errorCode: "oauth_failed",
+      supportRef: "corr-abc123",
+    });
+    assertEquals(
+      url,
+      "https://preview.equipqr.app/dashboard/organization/integrations?gw_error=oauth_failed&gw_ref=corr-abc123",
+    );
+  });
+});
+
+Deno.test({
   name: "resolveFallbackProductionUrl falls back when PRODUCTION_URL is untrusted",
   permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
   fn: () => {
@@ -268,4 +288,40 @@ Deno.test({
       }
     }
   },
+});
+
+Deno.test("resolveGoogleOAuthCallbackErrorCode maps Google callback errors", () => {
+  const { resolveGoogleOAuthCallbackErrorCode } = __gwOauthUserErrorTestables;
+
+  assertEquals(resolveGoogleOAuthCallbackErrorCode("access_denied"), "access_denied");
+  assertEquals(resolveGoogleOAuthCallbackErrorCode("invalid_scope"), "misconfigured");
+  assertEquals(resolveGoogleOAuthCallbackErrorCode("server_error"), "oauth_failed");
+  assertEquals(resolveGoogleOAuthCallbackErrorCode(null), "oauth_failed");
+});
+
+Deno.test("resolveGoogleWorkspaceOAuthErrorCode maps internal messages to safe codes", () => {
+  const { resolveGoogleWorkspaceOAuthErrorCode } = __gwOauthUserErrorTestables;
+
+  assertEquals(
+    resolveGoogleWorkspaceOAuthErrorCode(
+      new Error("Invalid or expired OAuth session. Please try again."),
+    ),
+    "session_expired",
+  );
+  assertEquals(
+    resolveGoogleWorkspaceOAuthErrorCode(
+      new Error("Only Google Workspace administrators can connect their organization to EquipQR."),
+    ),
+    "not_workspace_admin",
+  );
+  assertEquals(
+    resolveGoogleWorkspaceOAuthErrorCode(
+      new Error("This Google Workspace domain is already linked to another EquipQR organization."),
+    ),
+    "domain_already_linked",
+  );
+  assertEquals(
+    resolveGoogleWorkspaceOAuthErrorCode(new Error("unexpected internal failure")),
+    "oauth_failed",
+  );
 });
