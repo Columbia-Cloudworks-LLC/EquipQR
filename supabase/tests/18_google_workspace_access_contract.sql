@@ -351,7 +351,7 @@ SET primary_email = EXCLUDED.primary_email,
 SELECT has_function(
   'public',
   'reconcile_google_workspace_directory',
-  ARRAY['uuid', 'text[]'],
+  ARRAY['uuid', 'timestamptz'],
   'directory reconciliation RPC exists'
 );
 
@@ -359,7 +359,7 @@ SELECT lives_ok(
   $$
     SELECT public.reconcile_google_workspace_directory(
       '18000000-0000-0000-0000-000000000001'::uuid,
-      ARRAY[]::text[]
+      now()
     )
   $$,
   'directory reconciliation runs for a completed sync snapshot'
@@ -678,7 +678,7 @@ WHERE organization_id = '40000000-aaaa-0000-0000-000000000001'::uuid
 SELECT is(
   (public.reconcile_google_workspace_directory(
     '40000000-aaaa-0000-0000-000000000001'::uuid,
-    ARRAY['gw-active-1']
+    now()
   )->>'members_deactivated')::int,
   1,
   'reconcile deactivates workspace-derived members for suspended directory users'
@@ -686,7 +686,7 @@ SELECT is(
 
 -- TEST 8: reconcile function is service_role only
 SELECT is(
-  has_function_privilege('authenticated', 'public.reconcile_google_workspace_directory(uuid, text[])', 'EXECUTE'),
+  has_function_privilege('authenticated', 'public.reconcile_google_workspace_directory(uuid, timestamptz)', 'EXECUTE'),
   false,
   'reconcile_google_workspace_directory is not executable by authenticated'
 );

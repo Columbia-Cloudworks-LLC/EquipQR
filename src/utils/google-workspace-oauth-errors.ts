@@ -8,6 +8,8 @@ const GOOGLE_WORKSPACE_OAUTH_ERROR_MESSAGES: Record<string, string> = {
   consumer_account: 'Consumer Google accounts cannot use Google Workspace integration.',
   invalid_grant: 'The authorization link expired or was already used. Please try again.',
   csrf_error: 'We could not verify this connection request. Please try again.',
+  domain_already_linked:
+    'This Google Workspace domain is already linked to another EquipQR organization.',
   oauth_failed: 'Failed to connect Google Workspace. Please try again.',
 };
 

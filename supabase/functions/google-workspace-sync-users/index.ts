@@ -153,7 +153,6 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       last_synced_at: string;
       updated_at: string;
     }> = [];
-    const syncedGoogleUserIds: string[] = [];
     let totalUsers = 0;
     let pagesProcessed = 0;
 
@@ -195,7 +194,6 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       }));
 
       pendingRows.push(...rows);
-      syncedGoogleUserIds.push(...rows.map((row) => row.google_user_id));
       totalUsers += rows.length;
 
       // Batch upsert when we've collected enough users to reduce DB round trips
@@ -231,13 +229,11 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
     logStep("Directory upsert complete", { totalUsers, pagesProcessed });
 
-    const dedupedGoogleUserIds = [...new Set(syncedGoogleUserIds)];
-
     const { data: reconcileData, error: reconcileError } = await adminClient.rpc(
       "reconcile_google_workspace_directory",
       {
         p_organization_id: organizationId,
-        p_active_google_user_ids: dedupedGoogleUserIds,
+        p_sync_started_at: nowIso,
       },
     );
 

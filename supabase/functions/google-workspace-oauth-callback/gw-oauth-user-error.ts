@@ -9,6 +9,7 @@ export const GW_OAUTH_ERROR_CODES = {
   CONSUMER_ACCOUNT: "consumer_account",
   INVALID_GRANT: "invalid_grant",
   CSRF_ERROR: "csrf_error",
+  DOMAIN_ALREADY_LINKED: "domain_already_linked",
 } as const;
 
 export type GoogleWorkspaceOAuthErrorCode =
@@ -49,6 +50,9 @@ function mapMessageToErrorCode(message: string): GoogleWorkspaceOAuthErrorCode {
     message.includes("not configured")
   ) {
     return GW_OAUTH_ERROR_CODES.MISCONFIGURED;
+  }
+  if (message.includes("already linked to another EquipQR organization")) {
+    return GW_OAUTH_ERROR_CODES.DOMAIN_ALREADY_LINKED;
   }
   return GW_OAUTH_ERROR_CODES.OAUTH_FAILED;
 }

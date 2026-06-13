@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import { decryptToken, encryptToken, getTokenEncryptionKey } from "../_shared/crypto.ts";
 import type { GoogleTokenResponse } from "./gw-oauth-google-api.ts";
+import {
+  GoogleWorkspaceOAuthUserError,
+  GW_OAUTH_ERROR_CODES,
+} from "./gw-oauth-user-error.ts";
 import { logStep, normalizeDomain } from "./gw-oauth-validation.ts";
 
 export const DOMAIN_ALREADY_LINKED_ERROR =
@@ -79,7 +83,10 @@ async function resolveWorkspaceDomainClaim(
       domain: params.domain,
       organizationId: params.effectiveOrgId,
     });
-    throw new Error(DOMAIN_ALREADY_LINKED_ERROR);
+    throw new GoogleWorkspaceOAuthUserError(
+      GW_OAUTH_ERROR_CODES.DOMAIN_ALREADY_LINKED,
+      DOMAIN_ALREADY_LINKED_ERROR,
+    );
   }
 
   logStep("Domain claim insert failed", {

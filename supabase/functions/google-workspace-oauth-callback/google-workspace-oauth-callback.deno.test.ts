@@ -315,6 +315,12 @@ Deno.test("resolveGoogleWorkspaceOAuthErrorCode maps internal messages to safe c
     "not_workspace_admin",
   );
   assertEquals(
+    resolveGoogleWorkspaceOAuthErrorCode(
+      new Error("This Google Workspace domain is already linked to another EquipQR organization."),
+    ),
+    "domain_already_linked",
+  );
+  assertEquals(
     resolveGoogleWorkspaceOAuthErrorCode(new Error("unexpected internal failure")),
     "oauth_failed",
   );

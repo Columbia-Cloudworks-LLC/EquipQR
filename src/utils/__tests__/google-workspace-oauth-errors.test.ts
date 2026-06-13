@@ -14,6 +14,12 @@ describe('getGoogleWorkspaceOAuthErrorMessage', () => {
     );
   });
 
+  it('maps domain_already_linked to a specific user-facing message', () => {
+    expect(getGoogleWorkspaceOAuthErrorMessage('domain_already_linked')).toBe(
+      'This Google Workspace domain is already linked to another EquipQR organization.',
+    );
+  });
+
   it('appends a support reference when provided', () => {
     expect(getGoogleWorkspaceOAuthErrorMessage('oauth_failed', 'corr-123')).toBe(
       'Failed to connect Google Workspace. Please try again. Reference: corr-123',

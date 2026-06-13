@@ -1,6 +1,10 @@
 import { assertEquals, assertRejects } from "jsr:@std/assert@1";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import {
+  GoogleWorkspaceOAuthUserError,
+  GW_OAUTH_ERROR_CODES,
+} from "./gw-oauth-user-error.ts";
+import {
   __gwOauthCredentialsStoreTestables,
   DOMAIN_ALREADY_LINKED_ERROR,
 } from "./gw-oauth-credentials-store.ts";
@@ -108,7 +112,7 @@ Deno.test("resolveWorkspaceDomainClaim fails closed when unique violation has no
       effectiveOrgId: "org-1",
       domain: "example.com",
     }),
-    Error,
+    GoogleWorkspaceOAuthUserError,
     DOMAIN_ALREADY_LINKED_ERROR,
   );
 });

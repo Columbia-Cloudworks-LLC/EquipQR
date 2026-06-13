@@ -60,7 +60,7 @@ RETURNS TABLE(
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_email text;
@@ -158,7 +158,7 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'public'
+SET search_path TO public, pg_temp
 AS $$
 DECLARE
   new_org_id uuid;
@@ -310,7 +310,7 @@ RETURNS TABLE(
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_domain text;
@@ -427,7 +427,7 @@ CREATE OR REPLACE FUNCTION public.select_google_workspace_members(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_user_id uuid;
@@ -570,7 +570,7 @@ CREATE OR REPLACE FUNCTION public.accept_invitation_atomic(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'public'
+SET search_path TO public, pg_temp
 SET row_security TO 'off'
 AS $$
 DECLARE
@@ -684,7 +684,7 @@ CREATE OR REPLACE FUNCTION public.disconnect_google_workspace(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_user_id uuid;
@@ -761,7 +761,7 @@ CREATE OR REPLACE FUNCTION public.reconcile_google_workspace_directory(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_directory_marked_suspended int := 0;
