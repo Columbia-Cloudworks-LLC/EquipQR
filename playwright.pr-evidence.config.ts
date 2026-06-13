@@ -19,6 +19,7 @@ const vercelAutomationBypassHeaders = resolveVercelAutomationBypassHeaders();
 
 const prEvidenceUse = {
   ...devices['Desktop Chrome'],
+  deviceScaleFactor: 1,
   viewport: PR_EVIDENCE_VIEWPORT,
   screenshot: 'on' as const,
   video: { mode: 'on' as const, size: PR_EVIDENCE_VIEWPORT },
