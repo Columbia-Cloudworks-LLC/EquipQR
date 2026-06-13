@@ -167,8 +167,17 @@ describe('Google Workspace Service Functions', () => {
         error: null,
       });
 
+      await expect(syncGoogleWorkspaceUsers('org-123')).rejects.toThrow('Request failed');
+    });
+
+    it('throws the edge function error message when success is false with error', async () => {
+      invokeMock.mockResolvedValue({
+        data: { success: false, error: 'Google Workspace is not connected' },
+        error: null,
+      });
+
       await expect(syncGoogleWorkspaceUsers('org-123')).rejects.toThrow(
-        'Failed to sync Google Workspace users'
+        'Google Workspace is not connected'
       );
     });
   });

@@ -137,7 +137,9 @@ When capturing a new secrets or access lesson, update **this file** and, if deta
 ## Learned User Preferences
 
 - Use the Columbia Cloudworks Workspace tenant (`columbiacloudworks.com`) and the real EquipQR Connect flow for Google Workspace integration validation; do not provision parallel Google orgs unless explicitly asked.
-- Ship substantial Google Workspace or identity-contract changes via a feature branch and PR to `preview` with automatable acceptance criteria in the PR body.
+- Plans for unattended parallel agent execution (Build in Parallel) must branch off `preview`, open a PR to `preview`, and include automatable acceptance criteria verifiable without human intervention.
+- When triaging PR feedback, address every Qodo Code Review item—action required, review recommended, and optional—not only the required block.
+- Scan resolved review threads for regressions introduced by commits pushed after the PR opened; avoid fix-and-regress cycles.
 
 ## Learned Workspace Facts
 
@@ -147,3 +149,6 @@ When capturing a new secrets or access lesson, update **this file** and, if deta
 - `equipqr.info` is served by the separate `equipqr-docs` Vercel project, which builds from `main` only, so Help Center fixes on `preview` reach equipqr.info only after a `preview → main` release; VitePress fails closed on dead links to `srcExclude`d `docs/ops/**` content.
 - Returning visitors on `equipqr.info` may still have the SPA Workbox service worker stranded on that origin (normal reload shows the app shell; hard reload shows docs); remediation is the kill-switch `docs/public/sw.js` that clears caches, reloads clients, and unregisters itself.
 - Never call `window.matchMedia` at module scope in hooks: `src/test/setup.ts` mocks `matchMedia` in `beforeAll` (after module evaluation), so guard inside `getSnapshot`/`subscribe` like `use-prefers-reduced-motion.tsx`.
+- Google Workspace OAuth callback error redirects must validate the stored OAuth session via `validate_google_workspace_oauth_session` (nonce, expiry, used_at) before restoring redirect context; unsigned `state` fields alone are not sufficient.
+- OAuth callback URL handlers must clear `gw_connected` when processing `gw_error` so mixed query params cannot trigger conflicting success toasts or spurious cache invalidation.
+- New `SECURITY DEFINER` functions should use `SET search_path = public, pg_temp`, matching the repo hardening convention in existing migrations.
