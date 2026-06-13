@@ -166,6 +166,9 @@ export default defineConfig({
         baseURL: realAuthBaseURL,
         viewport: runConfig.desktopViewport,
         video: realAuthVideo,
+        ...(vercelAutomationBypassHeaders
+          ? { extraHTTPHeaders: vercelAutomationBypassHeaders }
+          : {}),
         ...(realAuthStorageExists && realAuthStorageState
           ? { storageState: realAuthStorageState }
           : {}),
