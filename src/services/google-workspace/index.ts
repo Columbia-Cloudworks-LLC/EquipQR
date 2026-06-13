@@ -323,18 +323,15 @@ export interface DisconnectWorkspaceResult {
 
 /**
  * Disconnect Google Workspace integration for an organization.
- * This removes OAuth credentials and optionally unclaims the domain.
- * 
+ * Clears OAuth credentials, cached directory users, and releases the workspace domain claim.
+ *
  * @param organizationId - The organization to disconnect
- * @param alsoUnclaimDomain - If true, also removes the domain claim allowing full re-onboarding
  */
 export async function disconnectGoogleWorkspace(
   organizationId: string,
-  alsoUnclaimDomain: boolean = false
 ): Promise<DisconnectWorkspaceResult> {
   const { data, error } = await supabase.rpc('disconnect_google_workspace', {
     p_organization_id: organizationId,
-    p_also_unclaim_domain: alsoUnclaimDomain,
   });
 
   if (error) {

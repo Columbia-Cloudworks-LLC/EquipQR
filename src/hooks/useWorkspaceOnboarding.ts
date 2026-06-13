@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { getWorkspaceOnboardingState } from '@/services/google-workspace';
+import { googleWorkspace } from '@/lib/queryKeys';
 import { isGoogleUser } from '@/utils/google-workspace';
 
 /**
@@ -12,7 +13,7 @@ export const useWorkspaceOnboardingState = () => {
   const shouldQuery = !!user?.id && isGoogleUser(user);
 
   return useQuery({
-    queryKey: ['workspace-onboarding', user?.id],
+    queryKey: googleWorkspace.onboardingState(user?.id ?? ''),
     queryFn: () => getWorkspaceOnboardingState(user!.id),
     enabled: shouldQuery,
     staleTime: 60 * 1000,

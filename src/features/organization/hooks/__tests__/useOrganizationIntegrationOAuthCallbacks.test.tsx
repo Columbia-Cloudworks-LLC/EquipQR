@@ -71,7 +71,7 @@ describe('useOrganizationIntegrationOAuthCallbacks', () => {
       wrapper: wrapper(['/dashboard/organization/integrations?gw_connected=true']),
     });
 
-    expect(mockToastSuccess).toHaveBeenCalledWith('Google Workspace reconnected successfully!');
+    expect(mockToastSuccess).toHaveBeenCalledWith('Google Workspace connected successfully!');
     expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['google-workspace'] });
   });
 });

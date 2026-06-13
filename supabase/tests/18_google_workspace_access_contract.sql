@@ -413,7 +413,7 @@ SELECT lives_ok(
       false
     )
   $$,
-  'disconnect_google_workspace runs without unclaiming domain'
+  'disconnect_google_workspace runs and releases domain claim'
 );
 
 SELECT is(
@@ -429,8 +429,8 @@ SELECT is(
      FROM public.workspace_domains
     WHERE domain = 'contract.test'
       AND organization_id = (SELECT id FROM gws_contract_ids WHERE label = 'org')),
-  1,
-  'disconnect keeps workspace domain claimed by default'
+  0,
+  'disconnect releases workspace domain claim'
 );
 
 SELECT * FROM finish();
@@ -626,7 +626,7 @@ SELECT lives_ok(
   'import accepts active directory users'
 );
 
--- TEST 6: disconnect clears directory cache but keeps domain claimed
+-- TEST 6: disconnect clears directory cache and releases domain claim
 RESET role;
 SELECT set_config('request.jwt.claims', '{"sub":"40000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 SET LOCAL role = 'authenticated';
@@ -651,8 +651,8 @@ SELECT is(
 
 SELECT is(
   (SELECT count(*)::int FROM workspace_domains WHERE domain = 'claimed-contract.test'),
-  1,
-  'disconnect keeps workspace_domains claimed by default'
+  0,
+  'disconnect releases workspace_domains claim'
 );
 
 -- TEST 7: reconcile deactivates workspace-derived members when directory user is suspended

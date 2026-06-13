@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { generateGoogleWorkspaceAuthUrl } from './auth';
+import {
+  evaluateGoogleWorkspaceConnectionHealth,
+  generateGoogleWorkspaceAuthUrl,
+  GOOGLE_WORKSPACE_REQUIRED_SCOPES,
+  hasAllGoogleScopes,
+} from './auth';
 
 const rpcMock = vi.fn();
 
@@ -85,6 +90,33 @@ describe('generateGoogleWorkspaceAuthUrl', () => {
     expect(parsed.searchParams.get('redirect_uri')).toBe(
       'https://olsdirkvvfegvclbpgrg.supabase.co/functions/v1/google-workspace-oauth-callback',
     );
+  });
+});
+
+describe('evaluateGoogleWorkspaceConnectionHealth', () => {
+  const fullScopes = GOOGLE_WORKSPACE_REQUIRED_SCOPES.join(' ');
+
+  it('returns disconnected when not connected', () => {
+    expect(evaluateGoogleWorkspaceConnectionHealth({ is_connected: false, scopes: null })).toBe(
+      'disconnected',
+    );
+    expect(evaluateGoogleWorkspaceConnectionHealth(null)).toBe('disconnected');
+  });
+
+  it('returns healthy when all required scopes are granted', () => {
+    expect(
+      evaluateGoogleWorkspaceConnectionHealth({ is_connected: true, scopes: fullScopes }),
+    ).toBe('healthy');
+    expect(hasAllGoogleScopes(fullScopes, GOOGLE_WORKSPACE_REQUIRED_SCOPES)).toBe(true);
+  });
+
+  it('returns missing_permissions when connected but scopes are incomplete', () => {
+    expect(
+      evaluateGoogleWorkspaceConnectionHealth({
+        is_connected: true,
+        scopes: 'https://www.googleapis.com/auth/admin.directory.user.readonly',
+      }),
+    ).toBe('missing_permissions');
   });
 });
 

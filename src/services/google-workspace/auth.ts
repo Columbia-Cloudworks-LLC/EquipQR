@@ -41,12 +41,12 @@ export const GOOGLE_EXPORT_DESTINATION_REQUIRED_SCOPES = [
  * - drive.readonly: Validate and read selected Drive destination metadata
  * - documents: Create and format Google Docs (for polished work order packets)
  * 
- * **Re-authentication for existing organizations:**
+ * **Grant permissions for existing organizations:**
  * Organizations that connected before these scopes were added will only have
  * admin.directory.user.readonly. When they try to use Sheets/Drive features,
  * the backend will return a 403 with code "insufficient_scopes". The frontend
- * should prompt them to reconnect Google Workspace in Organization Settings
- * to grant the new permissions.
+ * should prompt them to use Grant permissions on Organization Integrations
+ * to authorize the additional scopes.
  */
 const DEFAULT_SCOPES = GOOGLE_WORKSPACE_REQUIRED_SCOPES.join(' ');
 
@@ -64,6 +64,22 @@ export function hasAllGoogleScopes(
   );
 
   return requiredScopes.every((scope) => grantedScopes.has(scope));
+}
+
+export type GoogleWorkspaceConnectionHealth = 'disconnected' | 'healthy' | 'missing_permissions';
+
+export function evaluateGoogleWorkspaceConnectionHealth(
+  status: { is_connected: boolean; scopes: string | null } | null | undefined,
+): GoogleWorkspaceConnectionHealth {
+  if (!status?.is_connected) {
+    return 'disconnected';
+  }
+
+  if (hasAllGoogleScopes(status.scopes, GOOGLE_WORKSPACE_REQUIRED_SCOPES)) {
+    return 'healthy';
+  }
+
+  return 'missing_permissions';
 }
 
 export interface GoogleWorkspaceAuthConfig {
