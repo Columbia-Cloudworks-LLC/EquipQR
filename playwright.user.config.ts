@@ -129,6 +129,7 @@ export default defineConfig({
       name: 'critical',
       dependencies: ['setup'],
       grep: /@critical/,
+      grepInvert: /@google-oauth/,
       use: {
         storageState: ownerStorage,
       },
@@ -137,6 +138,7 @@ export default defineConfig({
       name: 'full',
       dependencies: ['setup'],
       grep: /@full/,
+      grepInvert: /@google-oauth/,
       use: {
         storageState: ownerStorage,
       },
