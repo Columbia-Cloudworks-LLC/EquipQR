@@ -75,8 +75,8 @@ if ($isAdmin) {
 
 $SUPABASE_API_PORT = '54321'
 $DEFAULT_EDGE_ENV_FILE = Join-Path $repoRoot 'supabase\functions\.env'
-$DEFAULT_OP_ENVIRONMENT_ID = 'f4rdrusaoxvzwngz2jxs7vy7ye'
-$DEFAULT_OP_APP_ENV_ID = 'ylilu4hpf6nq6bfm5ykg6nh2kq'
+$DEFAULT_OP_EDGE_ITEM = 'edge-env-local-dev'
+$DEFAULT_OP_APP_ITEM = 'app-env-local-dev'
 
 $fail = $false
 
@@ -278,17 +278,17 @@ Write-Host "        All pre-flight checks passed."
 
 # ---------- 1b. 1Password sync ----------
 Write-Host ""
-Write-Host " [1b/11] Syncing 1Password environments early..."
-$OP_APP_ENV_ID = $env:EQUIPQR_OP_APP_ENVIRONMENT_ID
-if (-not $OP_APP_ENV_ID) { $OP_APP_ENV_ID = $DEFAULT_OP_APP_ENV_ID }
-$OP_ENV_ID = $env:EQUIPQR_OP_ENVIRONMENT_ID
-if (-not $OP_ENV_ID) { $OP_ENV_ID = $DEFAULT_OP_ENVIRONMENT_ID }
+Write-Host " [1b/11] Syncing 1Password item env files early..."
+$OP_APP_ITEM = $env:EQUIPQR_OP_APP_ITEM
+if (-not $OP_APP_ITEM) { $OP_APP_ITEM = $DEFAULT_OP_APP_ITEM }
+$OP_EDGE_ITEM = $env:EQUIPQR_OP_EDGE_ITEM
+if (-not $OP_EDGE_ITEM) { $OP_EDGE_ITEM = $DEFAULT_OP_EDGE_ITEM }
 
 $opCli = Get-Command op -ErrorAction SilentlyContinue
 if ($opCli) {
-    Write-Host "        Syncing app + edge env from 1Password"
-    Write-Host "          App:  $OP_APP_ENV_ID"
-    Write-Host "          Edge: $OP_ENV_ID"
+    Write-Host "        Syncing app + edge env from 1Password items"
+    Write-Host "          App:  $OP_APP_ITEM"
+    Write-Host "          Edge: $OP_EDGE_ITEM"
 
     # Run both helpers IN-PROCESS (no `powershell -NoProfile -File` shell-out)
     # so they share the same OP_SESSION_* env vars and any 1Password Desktop
@@ -303,7 +303,7 @@ if ($opCli) {
     $oldOpEap = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
-        & $syncScript -AppEnvironmentId $OP_APP_ENV_ID -EdgeEnvironmentId $OP_ENV_ID -ApiPort $SUPABASE_API_PORT
+        & $syncScript -AppItem $OP_APP_ITEM -EdgeItem $OP_EDGE_ITEM -ApiPort $SUPABASE_API_PORT
         $syncExit = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $oldOpEap

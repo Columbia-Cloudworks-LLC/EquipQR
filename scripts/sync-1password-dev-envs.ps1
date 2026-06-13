@@ -1,6 +1,8 @@
 param(
-    [string]$AppEnvironmentId = "ylilu4hpf6nq6bfm5ykg6nh2kq",
-    [string]$EdgeEnvironmentId = "f4rdrusaoxvzwngz2jxs7vy7ye",
+    [Alias('AppEnvironmentId')]
+    [string]$AppItem = "app-env-local-dev",
+    [Alias('EdgeEnvironmentId')]
+    [string]$EdgeItem = "edge-env-local-dev",
     [int]$ApiPort = 54321,
     [switch]$AppOnly,
     [switch]$EdgeOnly
@@ -11,6 +13,13 @@ $ErrorActionPreference = "Stop"
 if ($AppOnly -and $EdgeOnly) {
     Write-Host "       ERROR: Use at most one of -AppOnly and -EdgeOnly."
     exit 2
+}
+
+if (-not $env:OP_SERVICE_ACCOUNT_TOKEN) {
+    $userScopeToken = [Environment]::GetEnvironmentVariable('OP_SERVICE_ACCOUNT_TOKEN', 'User')
+    if ($userScopeToken) {
+        $env:OP_SERVICE_ACCOUNT_TOKEN = $userScopeToken
+    }
 }
 
 $doApp = $true
@@ -37,17 +46,48 @@ function Add-EnvLines {
     }
 }
 
-function Read-OpEnvironmentRaw {
-    param([string]$EnvironmentId)
-    $opOutput = & op environment read $EnvironmentId 2>$null
+function Read-OpItemEnvLines {
+    param([string]$Item)
+
+    $opOutput = & op item get $Item --vault "EquipQR Agents" --format json 2>$null
     if ($LASTEXITCODE -ne 0) {
-        return @{ Ok = $false; ExitCode = $LASTEXITCODE; Raw = $null }
+        return @{ Ok = $false; ExitCode = $LASTEXITCODE; Lines = @(); Reason = 'op item get failed' }
     }
-    $opRaw = ($opOutput -join [Environment]::NewLine).Trim()
-    if ([string]::IsNullOrWhiteSpace($opRaw)) {
-        return @{ Ok = $false; ExitCode = 1; Raw = $null }
+
+    $itemJson = ($opOutput -join [Environment]::NewLine)
+    try {
+        $opItem = $itemJson | ConvertFrom-Json
+    } catch {
+        return @{ Ok = $false; ExitCode = 1; Lines = @(); Reason = 'op item JSON parse failed' }
     }
-    return @{ Ok = $true; ExitCode = 0; Raw = $opRaw }
+
+    $lines = [System.Collections.Generic.List[string]]::new()
+
+    if ($opItem.notesPlain) {
+        foreach ($line in ($opItem.notesPlain -split '\r?\n')) {
+            if ($line -match '^\s*#' -or $line -match '^\s*$') { continue }
+            if ($line -match '^\s*[A-Za-z][A-Za-z0-9_]*\s*=') {
+                $lines.Add($line)
+            }
+        }
+    }
+
+    foreach ($field in @($opItem.fields)) {
+        if (-not $field.label -or $null -eq $field.value) { continue }
+        $key = ([string]$field.label).Trim()
+        if ($key -notmatch '^[A-Za-z][A-Za-z0-9_]*$') { continue }
+
+        $value = [string]$field.value
+        if ([string]::IsNullOrWhiteSpace($value)) { continue }
+
+        $lines.Add("$($key.ToUpperInvariant())=$value")
+    }
+
+    if ($lines.Count -eq 0) {
+        return @{ Ok = $false; ExitCode = 1; Lines = @(); Reason = 'no env-like fields found on item' }
+    }
+
+    return @{ Ok = $true; ExitCode = 0; Lines = $lines.ToArray(); Reason = 'ok' }
 }
 
 function Write-EnvFile {
@@ -103,9 +143,9 @@ $anyFailure = $false
 
 if ($doApp) {
     $targetPath = Join-Path $workspaceRoot ".env"
-    $read = Read-OpEnvironmentRaw -EnvironmentId $AppEnvironmentId
+    $read = Read-OpItemEnvLines -Item $AppItem
     if (-not $read.Ok) {
-        Write-Host "       WARNING: op environment read failed for app env (exit $($read.ExitCode))."
+        Write-Host "       WARNING: Could not read app item '$AppItem' (exit $($read.ExitCode)): $($read.Reason)."
         $anyFailure = $true
     } else {
         $result = [ordered]@{}
@@ -113,7 +153,7 @@ if ($doApp) {
             $existingLines = Get-Content -LiteralPath $targetPath
             Add-EnvLines -Result $result -Lines $existingLines -Overwrite $false
         }
-        $opLines = $read.Raw -split '\r?\n'
+        $opLines = $read.Lines
         Add-EnvLines -Result $result -Lines $opLines -Overwrite $true
         $mirrorStats = Sync-AppViteMirrors -Result $result
         Write-EnvFile -Path $targetPath -Result $result
@@ -127,9 +167,9 @@ if ($doEdge) {
     $localSupabaseUrl = "http://localhost:$ApiPort"
     $localQbRedirect = "$localSupabaseUrl/functions/v1/quickbooks-oauth-callback"
 
-    $read = Read-OpEnvironmentRaw -EnvironmentId $EdgeEnvironmentId
+    $read = Read-OpItemEnvLines -Item $EdgeItem
     if (-not $read.Ok) {
-        Write-Host "       WARNING: op environment read failed for edge env (exit $($read.ExitCode))."
+        Write-Host "       WARNING: Could not read edge item '$EdgeItem' (exit $($read.ExitCode)): $($read.Reason)."
         $anyFailure = $true
     } else {
         $result = [ordered]@{}
@@ -137,7 +177,7 @@ if ($doEdge) {
             $existingLines = Get-Content -LiteralPath $targetPath
             Add-EnvLines -Result $result -Lines $existingLines -Overwrite $false
         }
-        $opLines = $read.Raw -split '\r?\n'
+        $opLines = $read.Lines
         Add-EnvLines -Result $result -Lines $opLines -Overwrite $true
 
         $result['INTUIT_REDIRECT_URI'] = $localQbRedirect
