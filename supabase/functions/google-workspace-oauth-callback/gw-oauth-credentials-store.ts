@@ -3,28 +3,41 @@ import { decryptToken, encryptToken, getTokenEncryptionKey } from "../_shared/cr
 import type { GoogleTokenResponse } from "./gw-oauth-google-api.ts";
 import { logStep, normalizeDomain } from "./gw-oauth-validation.ts";
 
-const DOMAIN_ALREADY_LINKED_ERROR =
+export const DOMAIN_ALREADY_LINKED_ERROR =
   "This Google Workspace domain is already linked to another EquipQR organization.";
+
+const DOMAIN_CLAIM_VERIFY_ERROR =
+  "Failed to verify workspace domain claim. Please try again.";
+
+async function findOrgScopedDomainClaim(
+  supabaseClient: SupabaseClient,
+  params: { effectiveOrgId: string; domain: string },
+): Promise<{ data: { organization_id: string } | null; error: { message: string } | null }> {
+  const { data, error } = await supabaseClient
+    .from("workspace_domains")
+    .select("organization_id")
+    .eq("domain", params.domain)
+    .eq("organization_id", params.effectiveOrgId)
+    .maybeSingle();
+
+  return { data, error };
+}
 
 async function resolveWorkspaceDomainClaim(
   supabaseClient: SupabaseClient,
   params: { effectiveOrgId: string; domain: string },
 ): Promise<{ insertedNewClaim: boolean }> {
-  const { data: existingDomain, error: domainLookupError } = await supabaseClient
-    .from("workspace_domains")
-    .select("organization_id")
-    .eq("domain", params.domain)
-    .maybeSingle();
+  const { data: existingOrgClaim, error: existingOrgClaimError } = await findOrgScopedDomainClaim(
+    supabaseClient,
+    params,
+  );
 
-  if (domainLookupError) {
-    logStep("Domain claim lookup failed", { error: domainLookupError.message });
-    throw new Error("Failed to verify workspace domain claim. Please try again.");
+  if (existingOrgClaimError) {
+    logStep("Org-scoped domain claim lookup failed", { error: existingOrgClaimError.message });
+    throw new Error(DOMAIN_CLAIM_VERIFY_ERROR);
   }
 
-  if (existingDomain) {
-    if (existingDomain.organization_id !== params.effectiveOrgId) {
-      throw new Error(DOMAIN_ALREADY_LINKED_ERROR);
-    }
+  if (existingOrgClaim) {
     return { insertedNewClaim: false };
   }
 
@@ -44,26 +57,29 @@ async function resolveWorkspaceDomainClaim(
   }
 
   if (domainInsertError.code === "23505") {
-    const { data: conflictingDomain, error: conflictLookupError } = await supabaseClient
-      .from("workspace_domains")
-      .select("organization_id")
-      .eq("domain", params.domain)
-      .maybeSingle();
+    const { data: sameOrgClaim, error: conflictLookupError } = await findOrgScopedDomainClaim(
+      supabaseClient,
+      params,
+    );
 
     if (conflictLookupError) {
       logStep("Domain claim conflict lookup failed", { error: conflictLookupError.message });
-      throw new Error("Failed to verify workspace domain claim. Please try again.");
+      throw new Error(DOMAIN_CLAIM_VERIFY_ERROR);
     }
 
-    if (conflictingDomain && conflictingDomain.organization_id !== params.effectiveOrgId) {
-      throw new Error(DOMAIN_ALREADY_LINKED_ERROR);
+    if (sameOrgClaim) {
+      logStep("Workspace domain claim race resolved for same organization", {
+        domain: params.domain,
+        organizationId: params.effectiveOrgId,
+      });
+      return { insertedNewClaim: false };
     }
 
-    logStep("Workspace domain claim race resolved for same organization", {
+    logStep("Domain claim unique violation without org-scoped match", {
       domain: params.domain,
       organizationId: params.effectiveOrgId,
     });
-    return { insertedNewClaim: false };
+    throw new Error(DOMAIN_ALREADY_LINKED_ERROR);
   }
 
   logStep("Domain claim insert failed", {
@@ -222,3 +238,8 @@ export async function storeGoogleWorkspaceCredentials(
 
   logStep("Credentials stored successfully");
 }
+
+export const __gwOauthCredentialsStoreTestables = {
+  resolveWorkspaceDomainClaim,
+  findOrgScopedDomainClaim,
+};
