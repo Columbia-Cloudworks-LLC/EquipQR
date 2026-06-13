@@ -82,12 +82,25 @@ if (-not (Test-Path -LiteralPath $specFull)) {
 $env:PR_EVIDENCE_FLOW = $flowSlug
 $env:PR_EVIDENCE_BASE_URL = $BaseUrl
 
-Write-Host "[PR evidence] Running Playwright capture: $Spec (flow=$flowSlug)"
+$specText = Get-Content -LiteralPath $specFull -Raw
+$usesRealAuth = $specText -match '@real-auth'
+$playwrightProject = if ($usesRealAuth) { 'pr-evidence-real-auth' } else { 'pr-evidence' }
+
+if ($usesRealAuth) {
+    $loadGoogleAuth = Join-Path $repoRoot 'scripts\e2e\Load-GoogleLocalAuthEnv.ps1'
+    if (-not (Test-Path -LiteralPath $loadGoogleAuth)) {
+        throw "Real-auth PR evidence spec requires $loadGoogleAuth"
+    }
+    . $loadGoogleAuth -BaseUrl $BaseUrl
+    Write-Host '[PR evidence] Using pr-evidence-real-auth project with captured Google storage state.'
+}
+
+Write-Host "[PR evidence] Running Playwright capture: $Spec (flow=$flowSlug, project=$playwrightProject)"
 
 $pwArgs = @(
     'playwright', 'test', $Spec,
     '--config', 'playwright.pr-evidence.config.ts',
-    '--project', 'pr-evidence'
+    '--project', $playwrightProject
 )
 
 $pwResult = Invoke-PrEvidenceNative -FilePath 'npx' -Arguments $pwArgs

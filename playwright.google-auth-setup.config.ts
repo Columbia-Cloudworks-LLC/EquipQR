@@ -1,4 +1,3 @@
-// fallow-ignore-file unused-file
 import path from 'path';
 import { defineConfig, devices } from '@playwright/test';
 import { resolveRealAuthBaseUrl } from './e2e/user/shared/real-auth-config';

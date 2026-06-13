@@ -89,17 +89,17 @@ function Set-PrEvidenceUploadEnvironment {
     Assert-PrEvidenceCommandExists 'op'
 
     $urlRead = Invoke-PrEvidenceNative -FilePath 'op' -Arguments @(
-        'read', 'op://EquipQR Agents/app-env-preview-public/VITE_SUPABASE_URL'
+        'read', 'op://EquipQR Agents/app-env-preview-public/SUPABASE_URL'
     )
     if ($urlRead.ExitCode -ne 0) {
-        throw "op read VITE_SUPABASE_URL failed: $($urlRead.Text)"
+        throw "op read SUPABASE_URL failed: $($urlRead.Text)"
     }
 
     $keyRead = Invoke-PrEvidenceNative -FilePath 'op' -Arguments @(
-        'read', 'op://EquipQR Agents/edge-env-preview-secrets/SUPABASE_SERVICE_ROLE_KEY'
+        'read', 'op://EquipQR Agents/supabase-write/preview_service_role_key'
     )
     if ($keyRead.ExitCode -ne 0) {
-        throw "op read SUPABASE_SERVICE_ROLE_KEY failed: $($keyRead.Text)"
+        throw "op read preview_service_role_key failed: $($keyRead.Text)"
     }
 
     $env:SUPABASE_URL = $urlRead.Text.Trim()
@@ -109,13 +109,19 @@ function Set-PrEvidenceUploadEnvironment {
 function Test-PrEvidenceLocalStack {
     param([string]$BaseUrl = 'http://localhost:8080')
 
+    $repoRoot = Get-PrEvidenceRepoRoot
+    $preflightModule = Join-Path $repoRoot 'scripts\lib\e2e-stack-preflight.mjs'
+    if (-not (Test-Path -LiteralPath $preflightModule)) {
+        throw "Stack preflight module not found: $preflightModule"
+    }
+    $preflightUrl = ([System.Uri]::new((Resolve-Path -LiteralPath $preflightModule).Path)).AbsoluteUri
+
     $probeScript = @"
-import { evaluateLocalStack } from './scripts/lib/e2e-stack-preflight.mjs';
+import { evaluateLocalStack } from '$preflightUrl';
 const result = await evaluateLocalStack({ appUrl: '$BaseUrl' });
 console.log(JSON.stringify(result));
 "@
 
-    $repoRoot = Get-PrEvidenceRepoRoot
     $tempScript = Join-Path $env:TEMP ("pr-evidence-probe-{0}.mjs" -f ([guid]::NewGuid().ToString('N')))
     Set-Content -LiteralPath $tempScript -Value $probeScript -Encoding utf8
 
