@@ -42,9 +42,17 @@ vi.mock('@/hooks/useAuth', () => ({
   }),
 }));
 
+const mockCanManageWorkspace = vi.hoisted(() => vi.fn(() => true));
+
 vi.mock('@/hooks/useSession', () => ({
   useSession: () => ({
     refreshSession: vi.fn().mockResolvedValue(undefined),
+  }),
+}));
+
+vi.mock('@/features/organization/hooks/useGoogleWorkspaceManageAccess', () => ({
+  useGoogleWorkspaceManageAccess: () => ({
+    canManage: mockCanManageWorkspace(),
   }),
 }));
 
@@ -118,6 +126,8 @@ describe('WorkspaceOnboarding', () => {
     mockConnectionStatus.mockReset();
     mockDirectoryUsers.mockReset();
     mockSetSearchParams.mockReset();
+    mockCanManageWorkspace.mockReset();
+    mockCanManageWorkspace.mockReturnValue(true);
   });
 
   it('shows connect button for unclaimed domain', () => {
@@ -217,6 +227,7 @@ describe('WorkspaceOnboarding', () => {
     expect(screen.getByText(/google workspace connected/i)).toBeInTheDocument();
     expect(screen.getByText(/connected domain: example.com/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /sync directory/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /disconnect google workspace/i })).toBeInTheDocument();
     expect(screen.getByText('alice@example.com')).toBeInTheDocument();
     expect(screen.getByText('Alice Smith')).toBeInTheDocument();
   });
@@ -251,6 +262,31 @@ describe('WorkspaceOnboarding', () => {
         description: '10 users loaded.',
       });
     });
+  });
+
+  it('hides disconnect action for non-admin workspace members', () => {
+    mockCanManageWorkspace.mockReturnValue(false);
+    mockOnboardingState.mockReturnValue({
+      email: 'test@example.com',
+      domain: 'example.com',
+      domain_status: 'claimed',
+      workspace_org_id: 'org-123',
+      is_workspace_connected: true,
+    });
+    mockConnectionStatus.mockReturnValue({
+      is_connected: true,
+      domain: 'example.com',
+      connected_at: '2026-01-18T00:00:00Z',
+    });
+    mockDirectoryUsers.mockReturnValue([]);
+
+    customRender(<WorkspaceOnboarding />);
+
+    expect(screen.getByText(/google workspace connected/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /disconnect google workspace/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/only organization owners and admins can disconnect google workspace/i),
+    ).toBeInTheDocument();
   });
 
   it('shows message for consumer domains', () => {

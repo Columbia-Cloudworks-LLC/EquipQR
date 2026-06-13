@@ -28,6 +28,7 @@ import { googleWorkspace } from '@/lib/queryKeys';
 import { useGoogleWorkspaceMemberSelection } from '@/features/organization/hooks/useGoogleWorkspaceMemberSelection';
 import { GoogleWorkspaceDisconnectDialog } from '@/features/organization/components/GoogleWorkspaceDisconnectDialog';
 import { useGoogleWorkspaceDisconnect } from '@/features/organization/hooks/useGoogleWorkspaceDisconnect';
+import { useGoogleWorkspaceManageAccess } from '@/features/organization/hooks/useGoogleWorkspaceManageAccess';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
@@ -94,6 +95,7 @@ const WorkspaceOnboarding = () => {
 
   const workspaceOrgId = onboardingState?.workspace_org_id || null;
 
+  const { canManage: canManageWorkspaceDisconnect } = useGoogleWorkspaceManageAccess(workspaceOrgId);
   const disconnectMutation = useGoogleWorkspaceDisconnect(workspaceOrgId ?? undefined);
 
   const { data: connectionStatus } = useQuery({
@@ -304,27 +306,35 @@ const WorkspaceOnboarding = () => {
                 </div>
                 
                 <div className="pt-4 border-t">
-                  <p className="text-sm font-medium mb-2">Disconnect Google Workspace</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setDisconnectDialogOpen(true)}
-                    disabled={disconnectMutation.isPending}
-                  >
-                    {disconnectMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Disconnecting...
-                      </>
-                    ) : (
-                      'Disconnect Google Workspace'
-                    )}
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Disconnect removes OAuth credentials, clears the cached directory snapshot, and
-                    releases your domain claim so you can start Google Workspace onboarding from the
-                    beginning.
-                  </p>
+                  {canManageWorkspaceDisconnect ? (
+                    <>
+                      <p className="text-sm font-medium mb-2">Disconnect Google Workspace</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setDisconnectDialogOpen(true)}
+                        disabled={disconnectMutation.isPending}
+                      >
+                        {disconnectMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Disconnecting...
+                          </>
+                        ) : (
+                          'Disconnect Google Workspace'
+                        )}
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Disconnect removes OAuth credentials, clears the cached directory snapshot, and
+                        releases your domain claim so you can start Google Workspace onboarding from the
+                        beginning.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Only organization owners and admins can disconnect Google Workspace.
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -404,7 +414,7 @@ const WorkspaceOnboarding = () => {
       </div>
 
       <GoogleWorkspaceDisconnectDialog
-        open={disconnectDialogOpen}
+        open={disconnectDialogOpen && canManageWorkspaceDisconnect}
         onOpenChange={setDisconnectDialogOpen}
         onConfirm={handleConfirmDisconnect}
         isPending={disconnectMutation.isPending}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { disconnectGoogleWorkspace } from '@/services/google-workspace';
 import { googleWorkspace } from '@/lib/queryKeys';
 import { useAppToast } from '@/hooks/useAppToast';
+import { assertCanManageGoogleWorkspaceIntegration } from '@/features/organization/utils/googleWorkspaceManageAccess';
 
 export function useGoogleWorkspaceDisconnect(organizationId: string | undefined) {
   const queryClient = useQueryClient();
@@ -14,6 +15,8 @@ export function useGoogleWorkspaceDisconnect(organizationId: string | undefined)
       if (!organizationId) {
         throw new Error('Organization is required to disconnect Google Workspace.');
       }
+
+      await assertCanManageGoogleWorkspaceIntegration(organizationId);
       return disconnectGoogleWorkspace(organizationId);
     },
     onSuccess: async (result) => {

@@ -22,6 +22,7 @@ import { IntegrationNotConfiguredCard } from '@/features/organization/components
 import { GoogleWorkspaceDisconnectDialog } from '@/features/organization/components/GoogleWorkspaceDisconnectDialog';
 import { useGoogleWorkspaceConnect } from '@/features/organization/hooks/useGoogleWorkspaceConnect';
 import { useGoogleWorkspaceDisconnect } from '@/features/organization/hooks/useGoogleWorkspaceDisconnect';
+import { canManageGoogleWorkspaceIntegration } from '@/features/organization/utils/googleWorkspaceManageAccess';
 
 interface GoogleWorkspaceIntegrationProps {
   currentUserRole: 'owner' | 'admin' | 'member';
@@ -34,7 +35,7 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
   const [isSyncing, setIsSyncing] = useState(false);
   const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
 
-  const canManage = currentUserRole === 'owner' || currentUserRole === 'admin';
+  const canManage = canManageGoogleWorkspaceIntegration(currentUserRole);
   const isConfigured = isGoogleWorkspaceConfigured();
   const organizationId = currentOrganization?.id;
 
