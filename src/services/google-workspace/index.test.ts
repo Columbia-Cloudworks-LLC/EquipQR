@@ -161,13 +161,34 @@ describe('Google Workspace Service Functions', () => {
       await expect(syncGoogleWorkspaceUsers('org-123')).rejects.toThrow('Function invocation failed');
     });
 
-    it('throws an error when success is false', async () => {
+    it('throws Request failed when success is false without an error payload', async () => {
       invokeMock.mockResolvedValue({
         data: { success: false },
         error: null,
       });
 
       await expect(syncGoogleWorkspaceUsers('org-123')).rejects.toThrow('Request failed');
+    });
+
+    it('throws the edge function error message from a non-2xx invoke response', async () => {
+      const response = new Response(
+        JSON.stringify({ error: 'Failed to reconcile directory access' }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+
+      invokeMock.mockResolvedValue({
+        data: null,
+        error: Object.assign(new Error('Edge Function returned a non-2xx status code'), {
+          context: response,
+        }),
+      });
+
+      await expect(syncGoogleWorkspaceUsers('org-123')).rejects.toThrow(
+        'Failed to reconcile directory access',
+      );
     });
 
     it('throws the edge function error message when success is false with error', async () => {

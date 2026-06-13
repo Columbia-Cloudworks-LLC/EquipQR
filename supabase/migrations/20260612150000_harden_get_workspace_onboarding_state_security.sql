@@ -14,7 +14,7 @@ RETURNS TABLE(
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_email text;
@@ -39,7 +39,9 @@ BEGIN
   SELECT d.organization_id
   INTO v_workspace_org_id
   FROM public.workspace_domains d
-  WHERE public.normalize_domain(d.domain) = public.normalize_domain(v_domain);
+  WHERE public.normalize_domain(d.domain) = public.normalize_domain(v_domain)
+  ORDER BY d.created_at DESC
+  LIMIT 1;
 
   IF v_workspace_org_id IS NOT NULL THEN
     SELECT EXISTS (

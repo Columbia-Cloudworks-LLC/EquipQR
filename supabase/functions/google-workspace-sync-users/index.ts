@@ -242,7 +242,11 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       }
     } catch (reconcileError) {
       const errorDetails = formatReconcileErrorForLog(reconcileError);
-      logStep("Directory reconcile error", errorDetails);
+      logStep("Directory reconcile error", {
+        organizationId,
+        syncStartedAt: nowIso,
+        ...errorDetails,
+      });
       return createErrorResponse("Failed to reconcile directory access", 500);
     }
 
