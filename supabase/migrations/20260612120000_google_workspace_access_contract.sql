@@ -290,6 +290,10 @@ $$;
 COMMENT ON FUNCTION public.handle_new_user() IS
   'Trigger for new user registration. Creates profile and personal org when allowed; never auto-joins claimed Workspace domains without explicit claim or invitation.';
 
+REVOKE ALL ON FUNCTION public.handle_new_user() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.handle_new_user() FROM anon;
+REVOKE ALL ON FUNCTION public.handle_new_user() FROM authenticated;
+
 -- =============================================================================
 -- auto_provision_workspace_organization: claim/reuse org without bulk user migration
 -- =============================================================================
@@ -406,6 +410,9 @@ $$;
 COMMENT ON FUNCTION public.auto_provision_workspace_organization(uuid, text, text) IS
   'Atomically provisions or reuses an owner-managed organization for a Workspace domain without migrating same-domain users by default.';
 
+REVOKE ALL ON FUNCTION public.auto_provision_workspace_organization(uuid, text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.auto_provision_workspace_organization(uuid, text, text) FROM anon;
+REVOKE ALL ON FUNCTION public.auto_provision_workspace_organization(uuid, text, text) FROM authenticated;
 GRANT EXECUTE ON FUNCTION public.auto_provision_workspace_organization(uuid, text, text) TO service_role;
 
 -- =============================================================================
@@ -545,6 +552,13 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.select_google_workspace_members(uuid, text[], text[]) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.select_google_workspace_members(uuid, text[], text[]) FROM anon;
+REVOKE ALL ON FUNCTION public.select_google_workspace_members(uuid, text[], text[]) FROM authenticated;
+
+-- rpc-authenticated-grant-allowed: select_google_workspace_members
+GRANT EXECUTE ON FUNCTION public.select_google_workspace_members(uuid, text[], text[]) TO authenticated, service_role;
+
 -- =============================================================================
 -- accept_invitation_atomic: tag invitation-derived memberships
 -- =============================================================================
@@ -564,6 +578,14 @@ DECLARE
   org_name TEXT;
   result jsonb;
 BEGIN
+  IF auth.uid() IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+
+  IF p_user_id IS DISTINCT FROM auth.uid() THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Unauthorized');
+  END IF;
+
   SELECT id, organization_id, email, role, status, expires_at, accepted_by
   INTO invitation_record
   FROM organization_invitations
@@ -643,6 +665,13 @@ EXCEPTION
     );
 END;
 $$;
+
+REVOKE ALL ON FUNCTION public.accept_invitation_atomic(uuid, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.accept_invitation_atomic(uuid, uuid) FROM anon;
+REVOKE ALL ON FUNCTION public.accept_invitation_atomic(uuid, uuid) FROM authenticated;
+
+-- rpc-authenticated-grant-allowed: accept_invitation_atomic
+GRANT EXECUTE ON FUNCTION public.accept_invitation_atomic(uuid, uuid) TO authenticated, service_role;
 
 -- =============================================================================
 -- disconnect_google_workspace: clear directory cache, keep domain claimed

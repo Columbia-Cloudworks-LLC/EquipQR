@@ -3,7 +3,7 @@
 -- sync must revoke only Workspace-derived access.
 
 BEGIN;
-SELECT plan(15);
+SELECT plan(16);
 
 CREATE TEMP TABLE gws_contract_ids (
   label text PRIMARY KEY,
