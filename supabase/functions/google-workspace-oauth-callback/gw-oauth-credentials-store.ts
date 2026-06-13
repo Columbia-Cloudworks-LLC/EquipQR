@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
-import { encryptToken, getTokenEncryptionKey } from "../_shared/crypto.ts";
+import { decryptToken, encryptToken, getTokenEncryptionKey } from "../_shared/crypto.ts";
 import type { GoogleTokenResponse } from "./gw-oauth-google-api.ts";
 import { logStep, normalizeDomain } from "./gw-oauth-validation.ts";
 
@@ -16,6 +16,15 @@ export async function storeGoogleWorkspaceCredentials(
 ): Promise<void> {
   const domain = normalizeDomain(params.domain);
 
+  let encryptionKey: string;
+  try {
+    encryptionKey = getTokenEncryptionKey();
+  } catch (keyError) {
+    const keyErrorMsg = keyError instanceof Error ? keyError.message : String(keyError);
+    logStep("Encryption key configuration error", { error: keyErrorMsg });
+    throw new Error(`Encryption key error: ${keyErrorMsg}`);
+  }
+
   let refreshToken = params.tokenData.refresh_token || null;
   if (!refreshToken) {
     // Look up existing credentials using normalized domain for consistency
@@ -26,23 +35,23 @@ export async function storeGoogleWorkspaceCredentials(
       .eq("domain", domain)
       .maybeSingle();
 
-    refreshToken = existingCreds?.refresh_token || null;
+    const storedRefreshToken = existingCreds?.refresh_token || null;
+    if (storedRefreshToken) {
+      try {
+        refreshToken = await decryptToken(storedRefreshToken, encryptionKey);
+        logStep("Reusing existing refresh token from stored credentials");
+      } catch {
+        // Legacy plaintext storage fallback
+        refreshToken = storedRefreshToken;
+        logStep("Reusing existing refresh token (legacy plaintext)");
+      }
+    }
   }
 
   if (!refreshToken) {
     throw new Error(
       "Google Workspace refresh token missing. Revoke EquipQR at myaccount.google.com/permissions and reconnect.",
     );
-  }
-
-  // Encrypt the refresh token before storing
-  let encryptionKey: string;
-  try {
-    encryptionKey = getTokenEncryptionKey();
-  } catch (keyError) {
-    const keyErrorMsg = keyError instanceof Error ? keyError.message : String(keyError);
-    logStep("Encryption key configuration error", { error: keyErrorMsg });
-    throw new Error(`Encryption key error: ${keyErrorMsg}`);
   }
 
   let encryptedRefreshToken: string;
@@ -112,4 +121,40 @@ export async function storeGoogleWorkspaceCredentials(
   }
   
   logStep("Credentials stored successfully");
+
+  const { data: existingDomain, error: domainLookupError } = await supabaseClient
+    .from("workspace_domains")
+    .select("organization_id")
+    .eq("domain", domain)
+    .maybeSingle();
+
+  if (domainLookupError) {
+    logStep("Domain claim lookup failed", { error: domainLookupError.message });
+    throw new Error("Failed to verify workspace domain claim. Please try again.");
+  }
+
+  if (existingDomain && existingDomain.organization_id !== params.effectiveOrgId) {
+    throw new Error(
+      "This Google Workspace domain is already linked to another EquipQR organization.",
+    );
+  }
+
+  if (!existingDomain) {
+    const { error: domainInsertError } = await supabaseClient
+      .from("workspace_domains")
+      .insert({
+        domain,
+        organization_id: params.effectiveOrgId,
+      });
+
+    if (domainInsertError) {
+      logStep("Domain claim insert failed", {
+        code: domainInsertError.code,
+        message: domainInsertError.message,
+      });
+      throw new Error("Failed to claim workspace domain. Please try again or contact support.");
+    }
+
+    logStep("Workspace domain claimed", { domain, organizationId: params.effectiveOrgId });
+  }
 }

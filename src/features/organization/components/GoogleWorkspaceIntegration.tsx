@@ -45,6 +45,9 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
         organizationId: currentOrganization.id,
         redirectUrl: ORGANIZATION_INTEGRATIONS_PATH,
       });
+      // #region agent log
+      fetch('http://127.0.0.1:7776/ingest/26b6bb04-469b-48e6-b456-11b92b718dcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7b871a'},body:JSON.stringify({sessionId:'7b871a',runId:'oauth-start',hypothesisId:'C',location:'GoogleWorkspaceIntegration.tsx:handleConnect',message:'Starting Google Workspace OAuth',data:{organizationId:currentOrganization.id,redirectUrl:ORGANIZATION_INTEGRATIONS_PATH,origin:window.location.origin},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       window.location.href = authUrl;
     } catch (error) {
       toast({

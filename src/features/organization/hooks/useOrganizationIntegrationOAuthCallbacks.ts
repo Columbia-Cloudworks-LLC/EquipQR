@@ -40,6 +40,13 @@ export function useOrganizationIntegrationOAuthCallbacks() {
   useEffect(() => {
     const error = searchParams.get('gw_error');
     const supportRef = searchParams.get('gw_ref');
+    const success = searchParams.get('gw_connected');
+
+    if (error || success) {
+      // #region agent log
+      fetch('http://127.0.0.1:7776/ingest/26b6bb04-469b-48e6-b456-11b92b718dcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7b871a'},body:JSON.stringify({sessionId:'7b871a',runId:'oauth-callback',hypothesisId:error?'A':'B',location:'useOrganizationIntegrationOAuthCallbacks.ts',message:'Google Workspace OAuth callback params',data:{path:window.location.pathname,gw_error:error,gw_connected:success,gw_ref:supportRef,origin:window.location.origin},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+    }
 
     if (error) {
       toast.error(getGoogleWorkspaceOAuthErrorMessage(error, supportRef));
@@ -51,8 +58,6 @@ export function useOrganizationIntegrationOAuthCallbacks() {
       setSearchParams(newParams, { replace: true });
       return;
     }
-
-    const success = searchParams.get('gw_connected');
 
     if (success === 'true') {
       toast.success('Google Workspace reconnected successfully!');

@@ -166,7 +166,14 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       }, { label: "directory-sync" });
 
       if (!response.ok) {
-        logStep("Directory API error", { status: response.status });
+        let directoryApiError: string | undefined;
+        try {
+          const errorPayload = await response.json() as { error?: { message?: string } };
+          directoryApiError = errorPayload.error?.message;
+        } catch {
+          // Response was not JSON
+        }
+        logStep("Directory API error", { status: response.status, directoryApiError });
         return createErrorResponse(`Failed to fetch Google Workspace users (HTTP ${response.status})`, 502);
       }
 
