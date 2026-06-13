@@ -13,6 +13,8 @@ Opt-in Playwright project for validating connected vendor integrations on **prev
 
 ## Capture storage state (one-time / refresh)
 
+### Preview (Google sign-in + QuickBooks)
+
 1. Install Chromium if needed: `npx playwright install chromium`
 2. Capture auth in a headed browser:
 
@@ -31,6 +33,33 @@ npx playwright codegen "https://preview.equipqr.app/auth?tab=signin" `
 
 Never commit `tmp/playwright/auth/nicholas-google-qbo.json`. It contains live session cookies.
 
+### Local dev (Google sign-in + Google Workspace)
+
+Quick-login personas cannot complete Google Workspace OAuth. Capture storage state once in a headed browser:
+
+```powershell
+# Local stack must be running (.\dev-start.bat)
+npm run e2e:google-auth:capture
+```
+
+In the opened browser:
+
+1. Click **Continue with Google** and sign in as `nicholas.king@columbiacloudworks.com`.
+2. If Google Workspace is not connected on Integrations, click **Connect Google Workspace** and finish consent (one-time setup).
+3. Wait for the setup script to save `tmp/playwright/auth/google-workspace-local.json`.
+
+### Run local Google Docs export test (headless replay)
+
+```powershell
+. .\scripts\e2e\Load-GoogleLocalAuthEnv.ps1
+npx playwright test e2e/user/full/google-workspace-local.integration.spec.ts `
+  --config playwright.user.config.ts --project google-oauth-local --reporter=line
+```
+
+Optional: set `E2E_GOOGLE_DOCS_WORK_ORDER_ID` to a **completed** work order UUID in your org; otherwise the spec picks the first completed row from the work orders list.
+
+The test exports a work order to Google Docs and opens the returned `document_url` on `docs.google.com` to confirm the session is authenticated. It does **not** exercise connect/disconnect flows.
+
 ## Required environment variables
 
 | Variable | Required for | Description |
@@ -39,7 +68,8 @@ Never commit `tmp/playwright/auth/nicholas-google-qbo.json`. It contains live se
 | `E2E_REAL_AUTH_BASE_URL` | Optional | Defaults to `https://preview.equipqr.app` |
 | `VERCEL_AUTOMATION_BYPASS_SECRET` | Protected preview runs | Vercel Deployment Protection bypass secret from `op://EquipQR Agents/vercel-automation-bypass/VERCEL_AUTOMATION_BYPASS_SECRET` |
 | `E2E_QBO_WORK_ORDER_ID` | Export test only | Known-safe **completed** preview work order UUID (`1660137f-a803-4510-9a0a-96c7048d0eb4`) |
-| `E2E_ALLOW_QBO_PRODUCTION_DRAFTS` | Export test only | Must be `true` to opt in to production draft invoice create/update |
+| `E2E_ALLOW_QBO_PRODUCTION_DRAFTS` | QBO export test only | Must be `true` to opt in to production draft invoice create/update |
+| `E2E_GOOGLE_DOCS_WORK_ORDER_ID` | Local Google Docs export | Optional completed work order UUID for `google-workspace-local.integration.spec.ts` |
 
 Load the Vercel bypass secret before running tests against protected preview:
 

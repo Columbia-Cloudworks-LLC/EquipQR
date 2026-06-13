@@ -2,6 +2,16 @@
 
 > Operational reference for the two service accounts that act as Cursor agent identities against Google Cloud organization `476784721717` (`columbiacloudworks.com`). Documents the role posture, invocation patterns, security trade-offs, and the reapply procedure for new orgs or new projects.
 
+## Human Google sign-in (Admin Console / GCP Console UI)
+
+When gcloud MCP impersonation is insufficient (OAuth client redirect URIs, Workspace user security, Admin Console policy), agents may sign in through the browser using Columbia Cloudworks Agents vault item `Google (Business)`:
+
+```powershell
+. .\scripts\e2e\Load-GoogleBusinessEnv.ps1
+```
+
+See `docs/ops/agent-secrets-and-access.md` for vault UUID, item IDs, and `op://` rules.
+
 ## Two-SA model
 
 The Cursor agents in this workspace operate as one of two service accounts, both children of the `equipqr-prod` project, both org-wide as of 2026-04:
