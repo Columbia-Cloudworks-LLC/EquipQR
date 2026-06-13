@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+### Fixed
+
+- **Google Workspace OAuth reconnect after revoke** — Workspace connect now requests openid, mail, and profile explicitly so the OAuth callback can load Google userinfo after a clean revoke at Google Account permissions (previously those scopes were inherited only via include_granted_scopes).
+- **Google Workspace OAuth return handling on Integrations** — Connect and reconnect flows return to Organization Integrations with success and error toasts instead of silently failing when the callback redirects with query parameters.
+
+### Added
+
+- **Google Workspace access contract** — Claimed Workspace domains no longer auto-join on Google sign-in; administrators must import directory users or send standard invitations. Directory sync reconciles suspended/removed users and revokes only Workspace-derived access, and disconnect clears OAuth credentials and the directory cache while keeping the domain claimed.
+
 ## [3.8.6] - 2026-06-10
 
 ### Fixed

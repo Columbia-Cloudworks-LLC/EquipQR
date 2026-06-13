@@ -131,3 +131,19 @@ Use when the agent hits **interactive or consent-bound** limits:
 This handbook is **rebuilt from scratch** as of 2026-06-13. Add product- and compliance-specific lessons back incrementally — do not paste the old monolithic `AGENTS.md` wholesale. Prefer `docs/ops/` for long runbooks; keep this file under ~200 lines for agent context efficiency.
 
 When capturing a new secrets or access lesson, update **this file** and, if detailed, **`docs/ops/agent-secrets-and-access.md`** in the same change.
+
+---
+
+## Learned User Preferences
+
+- Use the Columbia Cloudworks Workspace tenant (`columbiacloudworks.com`) and the real EquipQR Connect flow for Google Workspace integration validation; do not provision parallel Google orgs unless explicitly asked.
+- Ship substantial Google Workspace or identity-contract changes via a feature branch and PR to `preview` with automatable acceptance criteria in the PR body.
+
+## Learned Workspace Facts
+
+- Google Workspace OAuth must explicitly request `openid`, `email`, and `profile`; after revoking EquipQR in Google Account permissions, `include_granted_scopes` no longer backfills identity scopes and the Edge callback userinfo step fails without them.
+- Google Workspace access contract: claimed domains block automatic self-join; membership requires explicit import or invite; directory sync revokes Workspace-derived access for suspended or removed users; disconnect clears OAuth credentials and cached directory data but keeps the domain claimed.
+- Preview Google Workspace integration testing uses the Columbia Cloudworks org with `columbiacloudworks.com` mapped in `workspace_domains`.
+- `equipqr.info` is served by the separate `equipqr-docs` Vercel project, which builds from `main` only, so Help Center fixes on `preview` reach equipqr.info only after a `preview → main` release; VitePress fails closed on dead links to `srcExclude`d `docs/ops/**` content.
+- Returning visitors on `equipqr.info` may still have the SPA Workbox service worker stranded on that origin (normal reload shows the app shell; hard reload shows docs); remediation is the kill-switch `docs/public/sw.js` that clears caches, reloads clients, and unregisters itself.
+- Never call `window.matchMedia` at module scope in hooks: `src/test/setup.ts` mocks `matchMedia` in `beforeAll` (after module evaluation), so guard inside `getSnapshot`/`subscribe` like `use-prefers-reduced-motion.tsx`.
