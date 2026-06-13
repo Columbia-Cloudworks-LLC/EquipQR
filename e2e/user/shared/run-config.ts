@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { RECORDING_VIEWPORT } from '../../../scripts/lib/recording-quality.mjs';
 
 export type ActionOverlayMode = 'none' | 'debug' | 'marketing';
 export type UserRegressionRunProfile = 'test' | 'watch' | 'demo';
@@ -40,9 +41,9 @@ const DEFAULT_CONFIG: UserRegressionRunConfig = {
   viewportMode: 'desktop',
   recordingTitle: '',
   outputDir: '',
-  desktopViewport: { width: 1280, height: 720 },
+  desktopViewport: RECORDING_VIEWPORT,
   mobileViewport: { width: 390, height: 844 },
-  videoSize: { width: 1280, height: 720 },
+  videoSize: RECORDING_VIEWPORT,
   slowMoMs: 0,
   stagePauseMs: 0,
   watchPauseMs: 0,

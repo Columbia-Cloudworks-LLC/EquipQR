@@ -79,10 +79,11 @@ if (-not (Test-Path -LiteralPath $specFull)) {
     throw "PR evidence spec not found: $Spec"
 }
 
+$recordingViewport = Get-PrEvidenceRecordingViewport
 $env:PR_EVIDENCE_FLOW = $flowSlug
 $env:PR_EVIDENCE_BASE_URL = $BaseUrl
-$env:PR_EVIDENCE_VIEWPORT_WIDTH = '1280'
-$env:PR_EVIDENCE_VIEWPORT_HEIGHT = '960'
+$env:PR_EVIDENCE_VIEWPORT_WIDTH = [string]$recordingViewport.width
+$env:PR_EVIDENCE_VIEWPORT_HEIGHT = [string]$recordingViewport.height
 
 $specText = Get-Content -LiteralPath $specFull -Raw
 $usesRealAuth = $specText -match '@real-auth'
@@ -132,6 +133,10 @@ $manifest = [ordered]@{
     spec       = $Spec
     baseUrl    = $BaseUrl
     capturedAt = (Get-Date).ToUniversalTime().ToString('o')
+    viewport   = [ordered]@{
+        width  = [int]$recordingViewport.width
+        height = [int]$recordingViewport.height
+    }
     screenshots = @(
         $screenshotFiles | ForEach-Object {
             $relative = ('tmp/pr-evidence/{0}/screenshots/{1}' -f $flowSlug, $_.Name)

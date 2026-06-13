@@ -186,9 +186,9 @@ function Read-RunConfigDefaults {
         overlayMode = 'none'
         viewportMode = 'desktop'
         recordingTitle = ''
-        desktopViewport = [ordered]@{ width = 1280; height = 720 }
+        desktopViewport = [ordered]@{ width = 1920; height = 1080 }
         mobileViewport = [ordered]@{ width = 390; height = 844 }
-        videoSize = [ordered]@{ width = 1280; height = 720 }
+        videoSize = [ordered]@{ width = 1920; height = 1080 }
         slowMoMs = 0
         stagePauseMs = 1000
         watchPauseMs = 5000
@@ -313,7 +313,7 @@ function Invoke-PlaywrightViewportRun {
     $desktopViewport = if ($resolvedRunProfile -eq 'demo') {
         New-ViewportSize -Width 1920 -Height 1080
     } else {
-        Resolve-ViewportSize -Configured $defaultRunConfig.desktopViewport -FallbackWidth 1280 -FallbackHeight 720
+        Resolve-ViewportSize -Configured $defaultRunConfig.desktopViewport -FallbackWidth 1920 -FallbackHeight 1080
     }
     $mobileViewport = Resolve-ViewportSize -Configured $defaultRunConfig.mobileViewport -FallbackWidth 390 -FallbackHeight 844
     $videoSize = if ($Viewport -eq 'mobile') { $mobileViewport } else { $desktopViewport }

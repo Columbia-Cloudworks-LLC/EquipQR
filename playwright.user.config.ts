@@ -136,7 +136,8 @@ export default defineConfig({
       grepInvert: /@google-oauth/,
       use: {
         baseURL: realAuthBaseURL,
-        viewport: { width: 1280, height: 720 },
+        viewport: runConfig.desktopViewport,
+        video: { mode: 'on' as const, size: runConfig.videoSize },
         ...(vercelAutomationBypassHeaders
           ? { extraHTTPHeaders: vercelAutomationBypassHeaders }
           : {}),
@@ -150,7 +151,8 @@ export default defineConfig({
       grep: /@google-oauth/,
       use: {
         baseURL: realAuthBaseURL,
-        viewport: { width: 1280, height: 960 },
+        viewport: runConfig.desktopViewport,
+        video: { mode: 'on' as const, size: runConfig.videoSize },
         ...(realAuthStorageExists && realAuthStorageState
           ? { storageState: realAuthStorageState }
           : {}),

@@ -173,6 +173,36 @@ function Get-PrEvidenceVideoDimensions {
     }
 }
 
+function Get-PrEvidenceRecordingViewport {
+    $repoRoot = Get-PrEvidenceRepoRoot
+    $modulePath = Join-Path $repoRoot 'scripts\lib\recording-quality.mjs'
+    if (-not (Test-Path -LiteralPath $modulePath)) {
+        throw "Recording quality module not found: $modulePath"
+    }
+    $moduleUrl = ([System.Uri]::new((Resolve-Path -LiteralPath $modulePath).Path)).AbsoluteUri
+
+    $script = @"
+import { RECORDING_VIEWPORT } from '$moduleUrl';
+console.log(JSON.stringify(RECORDING_VIEWPORT));
+"@
+
+    $tempScript = Join-Path $env:TEMP ("pr-evidence-viewport-{0}.mjs" -f ([guid]::NewGuid().ToString('N')))
+    Set-Content -LiteralPath $tempScript -Value $script -Encoding utf8
+
+    try {
+        $result = Invoke-PrEvidenceNative -FilePath 'node' -Arguments @($tempScript)
+        if ($result.ExitCode -ne 0) {
+            throw "Recording viewport lookup failed: $($result.Text)"
+        }
+        return ($result.Text.Trim() | ConvertFrom-Json)
+    }
+    finally {
+        if (Test-Path -LiteralPath $tempScript) {
+            Remove-Item -LiteralPath $tempScript -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 function Get-PrEvidenceGifFfmpegFilter {
     param(
         [Parameter(Mandatory)][int]$InputWidth,
@@ -183,11 +213,11 @@ function Get-PrEvidenceGifFfmpegFilter {
 
     if ($ViewportWidth -le 0) {
         $ViewportWidth = [int]($env:PR_EVIDENCE_VIEWPORT_WIDTH)
-        if ($ViewportWidth -le 0) { $ViewportWidth = 1280 }
+        if ($ViewportWidth -le 0) { $ViewportWidth = 1920 }
     }
     if ($ViewportHeight -le 0) {
         $ViewportHeight = [int]($env:PR_EVIDENCE_VIEWPORT_HEIGHT)
-        if ($ViewportHeight -le 0) { $ViewportHeight = 960 }
+        if ($ViewportHeight -le 0) { $ViewportHeight = 1080 }
     }
 
     $repoRoot = Get-PrEvidenceRepoRoot

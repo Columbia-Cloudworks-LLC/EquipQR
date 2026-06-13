@@ -4,10 +4,23 @@ import {
   computePlaywrightScaledContentRect,
   PR_EVIDENCE_VIEWPORT,
 } from '../../../scripts/lib/pr-evidence-video.mjs';
+import {
+  RECORDING_GIF_FPS,
+  RECORDING_GIF_OUTPUT_WIDTH,
+  RECORDING_VIEWPORT,
+} from '../../../scripts/lib/recording-quality.mjs';
 
-describe('pr-evidence-video', () => {
-  it('crops legacy 1280x720 recordings to top-left scaled viewport (960x720)', () => {
-    const crop = computePlaywrightScaledContentRect(1280, 720, PR_EVIDENCE_VIEWPORT);
+describe('recording-quality / pr-evidence-video', () => {
+  it('uses shared 1920x1080 recording viewport', () => {
+    expect(PR_EVIDENCE_VIEWPORT).toEqual(RECORDING_VIEWPORT);
+    expect(RECORDING_VIEWPORT).toEqual({ width: 1920, height: 1080 });
+  });
+
+  it('crops legacy 1280x720 recordings captured with 1280x960 viewport', () => {
+    const crop = computePlaywrightScaledContentRect(1280, 720, {
+      width: 1280,
+      height: 960,
+    });
 
     expect(crop).toEqual({
       cropWidth: 960,
@@ -17,20 +30,22 @@ describe('pr-evidence-video', () => {
     });
   });
 
-  it('keeps full frame when video size matches viewport', () => {
-    const crop = computePlaywrightScaledContentRect(1280, 960, PR_EVIDENCE_VIEWPORT);
+  it('keeps full frame when video size matches recording viewport', () => {
+    const crop = computePlaywrightScaledContentRect(1920, 1080, RECORDING_VIEWPORT);
 
     expect(crop).toEqual({
-      cropWidth: 1280,
-      cropHeight: 960,
+      cropWidth: 1920,
+      cropHeight: 1080,
       cropX: 0,
       cropY: 0,
     });
   });
 
-  it('builds ffmpeg filter with left-anchored crop, fps, and scale', () => {
-    const filter = buildPrEvidenceGifFfmpegFilter(1280, 720, PR_EVIDENCE_VIEWPORT);
+  it('builds high-quality ffmpeg filter for current recordings', () => {
+    const filter = buildPrEvidenceGifFfmpegFilter(1920, 1080, RECORDING_VIEWPORT);
 
-    expect(filter).toBe('crop=960:720:0:0,fps=10,scale=960:-1:flags=lanczos');
+    expect(filter).toBe(
+      `crop=1920:1080:0:0,fps=${RECORDING_GIF_FPS},scale=${RECORDING_GIF_OUTPUT_WIDTH}:-1:flags=lanczos`,
+    );
   });
 });

@@ -1,6 +1,7 @@
 import path from 'path';
 import { defineConfig, devices } from '@playwright/test';
 import { resolveRealAuthBaseUrl } from './e2e/user/shared/real-auth-config';
+import { RECORDING_VIEWPORT } from './scripts/lib/recording-quality.mjs';
 
 const repoRoot = process.cwd();
 const outputDir = path.join(repoRoot, 'tmp', 'playwright', 'google-auth-setup');
@@ -18,10 +19,10 @@ export default defineConfig({
   use: {
     ...devices['Desktop Chrome'],
     headless: false,
-    viewport: { width: 1280, height: 960 },
+    viewport: RECORDING_VIEWPORT,
     baseURL: resolveRealAuthBaseUrl(),
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    video: { mode: 'retain-on-failure' as const, size: RECORDING_VIEWPORT },
   },
 });
