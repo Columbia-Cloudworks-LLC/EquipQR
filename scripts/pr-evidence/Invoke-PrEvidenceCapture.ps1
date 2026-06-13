@@ -81,6 +81,8 @@ if (-not (Test-Path -LiteralPath $specFull)) {
 
 $env:PR_EVIDENCE_FLOW = $flowSlug
 $env:PR_EVIDENCE_BASE_URL = $BaseUrl
+$env:PR_EVIDENCE_VIEWPORT_WIDTH = '1280'
+$env:PR_EVIDENCE_VIEWPORT_HEIGHT = '960'
 
 $specText = Get-Content -LiteralPath $specFull -Raw
 $usesRealAuth = $specText -match '@real-auth'

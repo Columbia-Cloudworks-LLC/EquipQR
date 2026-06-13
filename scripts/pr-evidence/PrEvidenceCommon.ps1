@@ -145,6 +145,80 @@ console.log(JSON.stringify(result));
     }
 }
 
+function Get-PrEvidenceVideoDimensions {
+    param([Parameter(Mandatory)][string]$VideoPath)
+
+    Assert-PrEvidenceCommandExists 'ffprobe'
+
+    $result = Invoke-PrEvidenceNative -FilePath 'ffprobe' -Arguments @(
+        '-v', 'error',
+        '-select_streams', 'v:0',
+        '-show_entries', 'stream=width,height',
+        '-of', 'csv=p=0:s=x',
+        $VideoPath
+    )
+
+    if ($result.ExitCode -ne 0) {
+        throw "ffprobe failed for ${VideoPath}: $($result.Text)"
+    }
+
+    $parts = $result.Text.Trim() -split 'x'
+    if ($parts.Count -ne 2) {
+        throw "Unexpected ffprobe dimensions for ${VideoPath}: $($result.Text)"
+    }
+
+    return [pscustomobject]@{
+        Width  = [int]$parts[0]
+        Height = [int]$parts[1]
+    }
+}
+
+function Get-PrEvidenceGifFfmpegFilter {
+    param(
+        [Parameter(Mandatory)][int]$InputWidth,
+        [Parameter(Mandatory)][int]$InputHeight,
+        [int]$ViewportWidth = 0,
+        [int]$ViewportHeight = 0
+    )
+
+    if ($ViewportWidth -le 0) {
+        $ViewportWidth = [int]($env:PR_EVIDENCE_VIEWPORT_WIDTH)
+        if ($ViewportWidth -le 0) { $ViewportWidth = 1280 }
+    }
+    if ($ViewportHeight -le 0) {
+        $ViewportHeight = [int]($env:PR_EVIDENCE_VIEWPORT_HEIGHT)
+        if ($ViewportHeight -le 0) { $ViewportHeight = 960 }
+    }
+
+    $repoRoot = Get-PrEvidenceRepoRoot
+    $modulePath = Join-Path $repoRoot 'scripts\lib\pr-evidence-video.mjs'
+    if (-not (Test-Path -LiteralPath $modulePath)) {
+        throw "PR evidence video helper not found: $modulePath"
+    }
+    $moduleUrl = ([System.Uri]::new((Resolve-Path -LiteralPath $modulePath).Path)).AbsoluteUri
+
+    $script = @"
+import { buildPrEvidenceGifFfmpegFilter } from '$moduleUrl';
+console.log(buildPrEvidenceGifFfmpegFilter($InputWidth, $InputHeight, { width: $ViewportWidth, height: $ViewportHeight }));
+"@
+
+    $tempScript = Join-Path $env:TEMP ("pr-evidence-filter-{0}.mjs" -f ([guid]::NewGuid().ToString('N')))
+    Set-Content -LiteralPath $tempScript -Value $script -Encoding utf8
+
+    try {
+        $result = Invoke-PrEvidenceNative -FilePath 'node' -Arguments @($tempScript)
+        if ($result.ExitCode -ne 0) {
+            throw "PR evidence GIF filter build failed: $($result.Text)"
+        }
+        return $result.Text.Trim()
+    }
+    finally {
+        if (Test-Path -LiteralPath $tempScript) {
+            Remove-Item -LiteralPath $tempScript -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 function Convert-PrEvidenceWebmToGif {
     param(
         [Parameter(Mandatory)][string]$WebmPath,
@@ -152,6 +226,7 @@ function Convert-PrEvidenceWebmToGif {
     )
 
     Assert-PrEvidenceCommandExists 'ffmpeg'
+    Assert-PrEvidenceCommandExists 'ffprobe'
 
     $webmFull = if ([System.IO.Path]::IsPathRooted($WebmPath)) { $WebmPath } else { Join-Path (Get-PrEvidenceRepoRoot) $WebmPath }
     $gifFull = if ([System.IO.Path]::IsPathRooted($GifPath)) { $GifPath } else { Join-Path (Get-PrEvidenceRepoRoot) $GifPath }
@@ -165,10 +240,15 @@ function Convert-PrEvidenceWebmToGif {
         New-Item -ItemType Directory -Path $gifDir -Force | Out-Null
     }
 
+    $dimensions = Get-PrEvidenceVideoDimensions -VideoPath $webmFull
+    $videoFilter = Get-PrEvidenceGifFfmpegFilter -InputWidth $dimensions.Width -InputHeight $dimensions.Height
+
+    Write-Host ("[PR evidence] GIF crop from {0}x{1} using filter: {2}" -f $dimensions.Width, $dimensions.Height, $videoFilter)
+
     $args = @(
         '-y',
         '-i', $webmFull,
-        '-vf', 'fps=10,scale=960:-1:flags=lanczos',
+        '-vf', $videoFilter,
         $gifFull
     )
 

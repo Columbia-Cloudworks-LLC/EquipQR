@@ -35,7 +35,7 @@ Agents **must** capture screenshots and a GIF from the local dev stack before op
 
 - Local stack at `http://localhost:8080` (or pass `-BaseUrl`)
 - Playwright Chromium: `npx playwright install chromium`
-- `ffmpeg` on PATH (GIF conversion)
+- `ffmpeg` and `ffprobe` on PATH (GIF conversion crops to viewport aspect ratio)
 - `OP_SERVICE_ACCOUNT_TOKEN` (User scope) for preview Supabase upload reads
 - `gh` authenticated when using `-Publish`
 
