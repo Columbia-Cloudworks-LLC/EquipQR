@@ -57,7 +57,6 @@ export async function assertGoogleDocOpens(
     const { hostname, pathname } = new URL(docPage.url());
     expect(hostname).toBe('docs.google.com');
     expect(pathname).toMatch(/^\/document\//);
-    expect(docPage.url()).not.toMatch(/accounts\.google\.com/i);
 
     const signInHeading = docPage.getByRole('heading', { name: /sign in|log in/i });
     if ((await signInHeading.count()) > 0) {

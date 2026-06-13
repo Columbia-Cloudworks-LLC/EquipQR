@@ -77,4 +77,5 @@ REVOKE ALL ON FUNCTION public.disconnect_google_workspace(uuid, boolean) FROM PU
 REVOKE ALL ON FUNCTION public.disconnect_google_workspace(uuid, boolean) FROM anon;
 REVOKE ALL ON FUNCTION public.disconnect_google_workspace(uuid, boolean) FROM authenticated;
 
+-- rpc-authenticated-grant-allowed: disconnect_google_workspace
 GRANT EXECUTE ON FUNCTION public.disconnect_google_workspace(uuid, boolean) TO authenticated, service_role;

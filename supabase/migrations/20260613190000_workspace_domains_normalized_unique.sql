@@ -2,6 +2,9 @@
 -- Purpose: prevent get_workspace_onboarding_state() from failing when duplicate
 --          normalized domain rows exist in workspace_domains
 
+-- Supabase Preview runs statements outside an implicit transaction; LOCK TABLE requires one.
+BEGIN;
+
 -- Block concurrent writes while deduping and building the normalized unique index.
 LOCK TABLE public.workspace_domains IN SHARE ROW EXCLUSIVE MODE;
 
@@ -37,6 +40,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS workspace_domains_normalized_domain_unique
 
 COMMENT ON INDEX public.workspace_domains_normalized_domain_unique IS
   'Ensures workspace domain claims are unique after normalization (case/whitespace insensitive).';
+
+COMMIT;
 
 CREATE OR REPLACE FUNCTION public.get_workspace_onboarding_state(p_user_id uuid)
 RETURNS TABLE(

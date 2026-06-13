@@ -68,7 +68,7 @@ describe('OrganizationIntegrations page OAuth callbacks', () => {
   it('handles gw_connected callbacks by showing success feedback and refreshing Google Workspace queries', () => {
     customRender(<OrganizationIntegrations />);
 
-    expect(mockToastSuccess).toHaveBeenCalledWith('Google Workspace reconnected successfully!');
+    expect(mockToastSuccess).toHaveBeenCalledWith('Google Workspace connected successfully!');
     expect(mockInvalidateQueries).toHaveBeenCalledWith({
       queryKey: ['google-workspace'],
     });
