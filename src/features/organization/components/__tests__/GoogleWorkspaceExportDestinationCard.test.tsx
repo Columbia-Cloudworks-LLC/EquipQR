@@ -30,6 +30,13 @@ vi.mock('@/features/organization/hooks/useGoogleWorkspaceConnectionStatus', () =
   useGoogleWorkspaceConnectionStatus: (...args: unknown[]) => mockConnectionStatus(...args),
 }));
 
+vi.mock('@/features/organization/hooks/useGoogleWorkspaceConnect', () => ({
+  useGoogleWorkspaceConnect: () => ({
+    connect: vi.fn(),
+    isConnecting: false,
+  }),
+}));
+
 vi.mock('@/features/organization/hooks/useGoogleWorkspaceExportDestination', () => ({
   useGoogleWorkspaceExportDestination: (...args: unknown[]) => mockExportDestination(...args),
 }));
@@ -109,7 +116,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
     });
   });
 
-  it('blocks folder selection and shows reconnect guidance when required scopes are missing', () => {
+  it('blocks folder selection and shows grant permissions guidance when required scopes are missing', () => {
     mockConnectionStatus.mockReturnValue({
       isConnected: true,
       domain: 'example.com',
@@ -129,8 +136,9 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
     customRender(<GoogleWorkspaceExportDestinationCard currentUserRole="owner" />);
 
     expect(
-      screen.getByText(/reconnect google workspace to refresh drive permissions before choosing an organization folder/i)
+      screen.getByText(/grant google drive permissions before choosing an organization folder/i)
     ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /grant drive permissions/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /choose organization folder/i })).toBeDisabled();
   });
 
@@ -141,7 +149,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
     expect(screen.getByText(/authorized by admin@example.com/i)).toBeInTheDocument();
   });
 
-  it('shows a reconnect message when destination save fails because drive scopes are stale', async () => {
+  it('shows a grant permissions message when destination save fails because drive scopes are stale', async () => {
     const user = userEvent.setup();
     const setDestination = vi.fn().mockRejectedValue(
       Object.assign(new Error('Stale scopes'), { code: 'insufficient_scopes' })
@@ -166,9 +174,9 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
 
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith({
-        title: 'Reconnect Google Workspace',
+        title: 'Grant Google Drive permissions',
         description:
-          'Google Workspace needs updated Drive permissions. Reconnect Google Workspace on the Integrations page, then try again.',
+          'Google Workspace needs updated Drive permissions. Use Grant permissions on the Integrations page, then try again.',
         variant: 'error',
       });
     });
@@ -201,7 +209,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
       expect(mockToast).toHaveBeenCalledWith({
         title: 'Google Workspace Connection Expired',
         description:
-          'Your Google Workspace connection expired or was revoked. Reconnect Google Workspace on the Integrations page, then try again.',
+          'Your Google Workspace connection expired or was revoked. Disconnect and connect again on the Integrations page, then try again.',
         variant: 'error',
       });
     });

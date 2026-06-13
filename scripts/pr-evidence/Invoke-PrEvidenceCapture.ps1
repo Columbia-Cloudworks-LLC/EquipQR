@@ -54,7 +54,7 @@ New-Item -ItemType Directory -Path $playwrightOutput -Force | Out-Null
 $stack = Test-PrEvidenceLocalStack -BaseUrl $BaseUrl
 if (-not $stack.AppReady) {
     if ($SkipStackStart) {
-        throw "Local app not reachable at $BaseUrl. Start the stack with .\dev-start.bat or omit -SkipStackStart."
+        throw "Local stack probe failed for $BaseUrl (appReady=$($stack.AppReady), supabaseReady=$($stack.SupabaseReady)). Start the stack with .\dev-start.bat or omit -SkipStackStart."
     }
 
     Write-Host "[PR evidence] Local stack not ready; starting dev-start.bat ..."
@@ -79,15 +79,31 @@ if (-not (Test-Path -LiteralPath $specFull)) {
     throw "PR evidence spec not found: $Spec"
 }
 
+$recordingViewport = Get-PrEvidenceRecordingViewport
 $env:PR_EVIDENCE_FLOW = $flowSlug
 $env:PR_EVIDENCE_BASE_URL = $BaseUrl
+$env:PR_EVIDENCE_VIEWPORT_WIDTH = [string]$recordingViewport.width
+$env:PR_EVIDENCE_VIEWPORT_HEIGHT = [string]$recordingViewport.height
 
-Write-Host "[PR evidence] Running Playwright capture: $Spec (flow=$flowSlug)"
+$specText = Get-Content -LiteralPath $specFull -Raw
+$usesRealAuth = $specText -match '@real-auth'
+$playwrightProject = if ($usesRealAuth) { 'pr-evidence-real-auth' } else { 'pr-evidence' }
+
+if ($usesRealAuth) {
+    $loadGoogleAuth = Join-Path $repoRoot 'scripts\e2e\Load-GoogleLocalAuthEnv.ps1'
+    if (-not (Test-Path -LiteralPath $loadGoogleAuth)) {
+        throw "Real-auth PR evidence spec requires $loadGoogleAuth"
+    }
+    . $loadGoogleAuth -BaseUrl $BaseUrl
+    Write-Host '[PR evidence] Using pr-evidence-real-auth project with captured Google storage state.'
+}
+
+Write-Host "[PR evidence] Running Playwright capture: $Spec (flow=$flowSlug, project=$playwrightProject)"
 
 $pwArgs = @(
     'playwright', 'test', $Spec,
     '--config', 'playwright.pr-evidence.config.ts',
-    '--project', 'pr-evidence'
+    '--project', $playwrightProject
 )
 
 $pwResult = Invoke-PrEvidenceNative -FilePath 'npx' -Arguments $pwArgs
@@ -117,6 +133,10 @@ $manifest = [ordered]@{
     spec       = $Spec
     baseUrl    = $BaseUrl
     capturedAt = (Get-Date).ToUniversalTime().ToString('o')
+    viewport   = [ordered]@{
+        width  = [int]$recordingViewport.width
+        height = [int]$recordingViewport.height
+    }
     screenshots = @(
         $screenshotFiles | ForEach-Object {
             $relative = ('tmp/pr-evidence/{0}/screenshots/{1}' -f $flowSlug, $_.Name)

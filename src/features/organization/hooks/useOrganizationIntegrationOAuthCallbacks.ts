@@ -54,7 +54,7 @@ export function useOrganizationIntegrationOAuthCallbacks() {
     }
 
     if (success === 'true') {
-      toast.success('Google Workspace reconnected successfully!');
+      toast.success('Google Workspace connected successfully!');
       queryClient.invalidateQueries({ queryKey: googleWorkspace.root });
 
       const newParams = new URLSearchParams(searchParams);

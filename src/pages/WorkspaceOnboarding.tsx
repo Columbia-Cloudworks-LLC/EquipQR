@@ -20,13 +20,15 @@ import {
   listWorkspaceDirectoryUsers,
   selectGoogleWorkspaceMembers,
   syncGoogleWorkspaceUsers,
-  disconnectGoogleWorkspace,
 } from '@/services/google-workspace';
 import { generateGoogleWorkspaceAuthUrl, isGoogleWorkspaceConfigured } from '@/services/google-workspace/auth';
 import { isConsumerGoogleDomain } from '@/utils/google-workspace';
 import { getGoogleWorkspaceOAuthErrorMessage } from '@/utils/google-workspace-oauth-errors';
 import { googleWorkspace } from '@/lib/queryKeys';
 import { useGoogleWorkspaceMemberSelection } from '@/features/organization/hooks/useGoogleWorkspaceMemberSelection';
+import { GoogleWorkspaceDisconnectDialog } from '@/features/organization/components/GoogleWorkspaceDisconnectDialog';
+import { useGoogleWorkspaceDisconnect } from '@/features/organization/hooks/useGoogleWorkspaceDisconnect';
+import { useGoogleWorkspaceManageAccess } from '@/features/organization/hooks/useGoogleWorkspaceManageAccess';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
@@ -43,7 +45,7 @@ const WorkspaceOnboarding = () => {
 
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [adminEmails, setAdminEmails] = useState<Set<string>>(new Set());
   const { toggleEmail, toggleAdmin, clearSelection } = useGoogleWorkspaceMemberSelection(
@@ -92,6 +94,9 @@ const WorkspaceOnboarding = () => {
   const isConsumerDomain = isConsumerGoogleDomain(domain);
 
   const workspaceOrgId = onboardingState?.workspace_org_id || null;
+
+  const { canManage: canManageWorkspaceDisconnect } = useGoogleWorkspaceManageAccess(workspaceOrgId);
+  const disconnectMutation = useGoogleWorkspaceDisconnect(workspaceOrgId ?? undefined);
 
   const { data: connectionStatus } = useQuery({
     queryKey: googleWorkspace.connection(workspaceOrgId ?? ''),
@@ -160,30 +165,15 @@ const WorkspaceOnboarding = () => {
     }
   };
 
-  const handleDisconnect = async () => {
-    if (!workspaceOrgId) return;
-    
-    if (!window.confirm('This will disconnect Google Workspace but keep the domain claimed. You can reconnect anytime. Continue?')) return;
-    
-    setIsDisconnecting(true);
-    try {
-      const result = await disconnectGoogleWorkspace(workspaceOrgId, false);
-      toast({
-        title: 'Google Workspace disconnected',
-        description: `Disconnected from ${result.domain}. You can reconnect anytime.`,
-      });
-      // Invalidate queries to refresh state
-      await queryClient.invalidateQueries({ queryKey: googleWorkspace.root });
-      await refetch();
-    } catch (error) {
-      toast({
-        title: 'Failed to disconnect',
-        description: error instanceof Error ? error.message : 'Please try again.',
-        variant: 'error',
-      });
-    } finally {
-      setIsDisconnecting(false);
-    }
+  const handleConfirmDisconnect = () => {
+    disconnectMutation.mutate(undefined, {
+      onSuccess: async () => {
+        await refetch();
+      },
+      onSettled: () => {
+        setDisconnectDialogOpen(false);
+      },
+    });
   };
 
   const handleAddMembers = async () => {
@@ -316,26 +306,35 @@ const WorkspaceOnboarding = () => {
                 </div>
                 
                 <div className="pt-4 border-t">
-                  <p className="text-sm font-medium mb-2">Disconnect Google Workspace</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleDisconnect}
-                    disabled={isDisconnecting}
-                  >
-                    {isDisconnecting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Disconnecting...
-                      </>
-                    ) : (
-                      'Disconnect Google Workspace'
-                    )}
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Disconnect removes OAuth credentials and the cached directory snapshot, but keeps your
-                    domain claimed so users cannot self-join. Reconnect anytime to restore sync.
-                  </p>
+                  {canManageWorkspaceDisconnect ? (
+                    <>
+                      <p className="text-sm font-medium mb-2">Disconnect Google Workspace</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setDisconnectDialogOpen(true)}
+                        disabled={disconnectMutation.isPending}
+                      >
+                        {disconnectMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Disconnecting...
+                          </>
+                        ) : (
+                          'Disconnect Google Workspace'
+                        )}
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Disconnect removes OAuth credentials, clears the cached directory snapshot, and
+                        releases your domain claim so you can start Google Workspace onboarding from the
+                        beginning.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Only organization owners and admins can disconnect Google Workspace.
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -413,6 +412,13 @@ const WorkspaceOnboarding = () => {
           </>
         )}
       </div>
+
+      <GoogleWorkspaceDisconnectDialog
+        open={disconnectDialogOpen && canManageWorkspaceDisconnect}
+        onOpenChange={setDisconnectDialogOpen}
+        onConfirm={handleConfirmDisconnect}
+        isPending={disconnectMutation.isPending}
+      />
     </Page>
   );
 };

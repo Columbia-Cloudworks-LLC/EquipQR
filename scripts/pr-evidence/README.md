@@ -18,6 +18,9 @@ Agents **must** capture screenshots and a GIF from the local dev stack before op
   -Spec "e2e/pr-evidence/my-feature.spec.ts" `
   -PrNumber 1234 `
   -Publish
+
+# -Publish reuses an existing capture in tmp/pr-evidence/{flow}/ (no Playwright re-run).
+# Pass -Recapture to force a fresh capture when publishing.
 ```
 
 ## Scripts
@@ -32,7 +35,7 @@ Agents **must** capture screenshots and a GIF from the local dev stack before op
 
 - Local stack at `http://localhost:8080` (or pass `-BaseUrl`)
 - Playwright Chromium: `npx playwright install chromium`
-- `ffmpeg` on PATH (GIF conversion)
+- `ffmpeg` and `ffprobe` on PATH (GIF conversion uses shared 1920×1080 recording profile from `scripts/lib/recording-quality.mjs`)
 - `OP_SERVICE_ACCOUNT_TOKEN` (User scope) for preview Supabase upload reads
 - `gh` authenticated when using `-Publish`
 

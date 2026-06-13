@@ -12,6 +12,8 @@ This file is the **starting point** for agents working in this repo. It is inten
 
 All agent-facing credentials live in the **EquipQR Agents** 1Password vault. Do not invent parallel secret stores, commit `.env` files, or paste secret values into chat, commits, or PR bodies.
 
+**Columbia Cloudworks Agents** vault (`mrviyowmjwrxv7syobdlhnmawa`) holds maintainer Google sign-in for **admin.google.com** and **console.cloud.google.com** (`Google (Business)` item). Agents may load it via `.\scripts\e2e\Load-GoogleBusinessEnv.ps1` when browser automation is the unblock path. Local Playwright Google E2E uses **captured storage state** for `nicholas.king@columbiacloudworks.com` (`npm run e2e:google-auth:capture`) — not password or backup-code login in test runs.
+
 | Item pattern | Purpose |
 |---|---|
 | `app-env-local-dev` | Local Vite `.env` (via `dev-start.bat`) |
@@ -21,6 +23,7 @@ All agent-facing credentials live in the **EquipQR Agents** 1Password vault. Do 
 | `github-read` / `github-write` | GitHub MCP tiers |
 | `gcp-read` / editor impersonation | GCP viewer + `gcloud-write` MCP |
 | `supabase-write`, `vercel-write` | Vendor CLI write tokens |
+| `Google (Business)` (Columbia Cloudworks Agents, item id `ukvy6bzwb2ikq5cfeambgcq5u4`) | Workspace admin + GCP Console browser sign-in for agent unblock |
 
 Naming convention for MCP-backed items: `<service>-<access-tier>` (not env tier). See `docs/ops/agent-secrets-and-access.md` for the full map and sync scripts.
 
@@ -75,9 +78,10 @@ Agents operate in **tiers**. Default to the lowest tier that completes the task.
 
 ### Tier A — Read-only (no approval needed)
 
-- `op read` / `op item get` with read SAT
+- `op read` / `op item get` with read SAT (EquipQR Agents **and** Columbia Cloudworks Agents vaults)
 - `github-read` MCP, `gcloud` viewer MCP, Supabase MCP reads, Datadog/Better Stack read tools
 - Local `npm test`, lint, scoped verification
+- Google Admin / GCP Console browser sign-in via `.\scripts\e2e\Load-GoogleBusinessEnv.ps1` when fixing Workspace or OAuth client blockers
 
 ### Tier B — Maintainer User-scope env (already granted on dev machine)
 
@@ -100,7 +104,8 @@ Use when the agent hits **interactive or consent-bound** limits:
 |---|---|
 | MCP server not authenticated | "Please authorize **&lt;server&gt;** in Cursor → MCP (browser OAuth)." Then retry once. |
 | Google Workspace connect/disconnect on **preview cloud** only | "Please complete **Connect Google Workspace** on preview.equipqr.app; I'll watch edge logs / DB row count." Local GW flows are agent-automated via browser MCP — do not ask the user to click through local OAuth. |
-| GCP mutation needed | "Approve **gcloud-write** / editor SA impersonation for: &lt;exact change&gt;." Never `gcloud config set account`. |
+| Google Admin Console (2SV, OAuth clients, user security) | Prefer agent browser sign-in with `Load-GoogleBusinessEnv.ps1` first; ask the maintainer only if Columbia Cloudworks Agents read fails or the change needs their personal approval. |
+| GCP mutation needed | Approve **gcloud-write** / editor SA impersonation for: &lt;exact change&gt;. Use `Load-GoogleBusinessEnv.ps1` for Console UI edits when impersonation is blocked. Never `gcloud config set account`. |
 | GitHub mutation beyond agent PAT | "Approve **github-write** MCP or run: &lt;exact gh command&gt;." |
 | Supabase production promotion | Explicit `/release` or hotfix language only. |
 | Cursor Smart Mode blocks a command | User approves via the **native approval card** in Cursor; agent retries with `request_smart_mode_approval` when applicable. |
@@ -139,24 +144,27 @@ When capturing a new secrets or access lesson, update **this file** and, if deta
 ## Learned User Preferences
 
 - **No preview push without local E2E.** As of 2026-06-13, local dev has production parity. Never push to `preview` until the agent has verified the change locally end-to-end with zero manual user steps (see `local-verify-before-preview-push.mdc`).
-- **No product PR without visual evidence.** Every product/runtime PR must include local-stack screenshots and a GIF uploaded for inline GitHub display (`pr-visual-evidence.mdc`, `scripts/pr-evidence/`). Add `e2e/pr-evidence/<feature>.spec.ts` when existing specs do not cover the change.
+- **No product PR without visual evidence.** Every product/runtime PR must include local-stack screenshots and a GIF uploaded for inline GitHub display (`pr-visual-evidence.mdc`, `scripts/pr-evidence/`). Add `e2e/pr-evidence/<feature>.spec.ts` when existing specs do not cover the change. `Invoke-PrEvidence -Publish` reuses existing `tmp/pr-evidence/{flow}/` artifacts; pass `-Recapture` only to re-run Playwright.
+- **Do not assume the local dev stack is down when a probe fails after an earlier successful capture** — verify probe/script logic (e.g. HTTP 304 vs `fetch().ok`) with an independent check before restarting or reporting stack failure.
+- **Edited `.ts`/`.tsx` files must pass ESLint with `--max-warnings 0` before the agent continues** (Cursor `lint-on-edit` hook treats warnings as blocking).
 - Use the Columbia Cloudworks Workspace tenant (`columbiacloudworks.com`) and the Columbia Cloudworks Google account for GCP Console OAuth edits on `equipqr-prod`; use the real EquipQR Connect flow for Google Workspace integration validation; do not provision parallel Google orgs unless explicitly asked.
+- When blocked on Google Admin or GCP Console UI, load `Google (Business)` from Columbia Cloudworks Agents vault (`mrviyowmjwrxv7syobdlhnmawa`) via `.\scripts\e2e\Load-GoogleBusinessEnv.ps1` before asking the maintainer to sign in manually.
 - Plans for unattended parallel agent execution (Build in Parallel) must branch off `preview`, open a PR to `preview`, and include automatable acceptance criteria verifiable without human intervention.
 - When triaging PR feedback, address every Qodo Code Review item—action required, review recommended, and optional—not only the required block.
 - Scan resolved review threads for regressions introduced by commits pushed after the PR opened; avoid fix-and-regress cycles.
+- Local Playwright Google E2E uses captured storage state for `nicholas.king@columbiacloudworks.com` via `npm run e2e:google-auth:capture` and `.\scripts\e2e\Load-GoogleLocalAuthEnv.ps1` — replay cookies headlessly; do not automate Google password or backup codes per test run.
 
 ## Learned Workspace Facts
 
 - Google Workspace OAuth must explicitly request `openid`, `email`, and `profile`; after revoking EquipQR in Google Account permissions, `include_granted_scopes` no longer backfills identity scopes and the Edge callback userinfo step fails without them.
-- Google Workspace access contract: claimed domains block automatic self-join; membership requires explicit import or invite; directory sync revokes Workspace-derived access for suspended or removed users; disconnect clears OAuth credentials and cached directory data but keeps the domain claimed.
+- Google Workspace access contract: claimed domains block automatic self-join; membership requires explicit import or invite; directory sync revokes Workspace-derived access for suspended or removed users; **disconnect clears OAuth credentials, cached directory data, and releases the workspace domain claim** so onboarding can restart from scratch.
 - Preview Google Workspace integration testing uses the Columbia Cloudworks org with `columbiacloudworks.com` mapped in `workspace_domains`.
 - `equipqr.info` is served by the separate `equipqr-docs` Vercel project, which builds from `main` only, so Help Center fixes on `preview` reach equipqr.info only after a `preview → main` release; VitePress fails closed on dead links to `srcExclude`d `docs/ops/**` content.
-- Returning visitors on `equipqr.info` may still have the SPA Workbox service worker stranded on that origin (normal reload shows the app shell; hard reload shows docs); remediation is the kill-switch `docs/public/sw.js` that clears caches, reloads clients, and unregisters itself.
-- Never call `window.matchMedia` at module scope in hooks: `src/test/setup.ts` mocks `matchMedia` in `beforeAll` (after module evaluation), so guard inside `getSnapshot`/`subscribe` like `use-prefers-reduced-motion.tsx`.
 - Google Workspace OAuth callback error redirects must validate the stored OAuth session via `validate_google_workspace_oauth_session` (nonce, expiry, used_at) before restoring redirect context; unsigned `state` fields alone are not sufficient.
 - OAuth callback URL handlers must clear `gw_connected` when processing `gw_error` so mixed query params cannot trigger conflicting success toasts or spurious cache invalidation.
 - New `SECURITY DEFINER` functions should use `SET search_path = public, pg_temp`, matching the repo hardening convention in existing migrations.
-- Local Google sign-in (Supabase Auth) and Google Workspace Connect use separate GCP OAuth clients; register `http://localhost:54321` and `http://127.0.0.1:54321` redirect URIs on each client for local dev (`/auth/v1/callback` vs `/functions/v1/google-workspace-oauth-callback`).
-- Supabase Management API `external_google_secret` may return a non-`GOCSPX-*` value that fails Google token exchange; source Supabase Auth Google secrets from GCP Console, not the Management API alone (`bootstrap-local-google-auth.ps1` rejects non-`GOCSPX-*` values).
-- UTF-8 em dashes in `.ps1` scripts break parsing under Windows PowerShell 5.1 (`dev-start.bat`); use ASCII hyphens only in repo PowerShell scripts.
-- Local Edge OAuth token exchange requires `GW_OAUTH_REDIRECT_BASE_URL=http://localhost:54321` (and QB equivalent) in `supabase/functions/.env`; internal Docker `SUPABASE_URL` is `http://kong:8000` — restart with `npx supabase stop` / `start`, not edge-container-only restart, after env changes.
+- Local dev OAuth uses separate GCP clients for Supabase Auth sign-in vs Google Workspace Connect; register `http://localhost:54321` and `http://127.0.0.1:54321` redirect URIs on each (`/auth/v1/callback` vs `/functions/v1/google-workspace-oauth-callback`); set `GW_OAUTH_REDIRECT_BASE_URL=http://localhost:54321` in `supabase/functions/.env` and restart with `npx supabase stop` / `start` after env changes; source Auth Google secrets from GCP (`GOCSPX-*`), not Supabase Management API alone.
+- Columbia Cloudworks Agents 1Password vault UUID `mrviyowmjwrxv7syobdlhnmawa` holds `Google (Business)` (item id `ukvy6bzwb2ikq5cfeambgcq5u4`) for agent browser sign-in; `op://` references must use item IDs when titles contain parentheses.
+- PR evidence upload reads `SUPABASE_URL` from `app-env-preview-public` and `preview_service_role_key` from `supabase-write` (not `VITE_SUPABASE_URL` or `edge-env-preview-secrets`).
+- Local stack preflight (`scripts/lib/e2e-stack-preflight.mjs`) treats HTTP 200–499 as reachable; `fetch().ok` alone false-negatives on **304 Not Modified** after a prior probe.
+- PR evidence and local recordings share `scripts/lib/recording-quality.mjs` (1920×1080 viewport, 15 fps GIF export at 1280px width). Playwright `recordVideo.size` must match the viewport; ffmpeg left-crops legacy letterboxing when sizes diverge.

@@ -14,6 +14,8 @@ import {
   GOOGLE_EXPORT_DESTINATION_REQUIRED_SCOPES,
   hasAllGoogleScopes,
 } from '@/services/google-workspace/auth';
+import { ORGANIZATION_INTEGRATIONS_PATH } from '@/features/organization/constants/routes';
+import { useGoogleWorkspaceConnect } from '@/features/organization/hooks/useGoogleWorkspaceConnect';
 import { GoogleDriveDestinationPickerDialog } from './GoogleDriveDestinationPickerDialog';
 import { getGoogleWorkspaceDestinationSaveErrorToast } from '@/features/organization/utils/googleWorkspaceDestinationSaveError';
 
@@ -40,12 +42,18 @@ export function GoogleWorkspaceExportDestinationCard({
     enabled: canManage,
   });
 
-  const needsReconnectForDestination =
+  const needsGrantForDestination =
     isGoogleWorkspaceConnected &&
     !hasAllGoogleScopes(
       connectionStatus?.scopes,
       GOOGLE_EXPORT_DESTINATION_REQUIRED_SCOPES
     );
+
+  const { connect: grantDrivePermissions, isConnecting: isGrantingPermissions } =
+    useGoogleWorkspaceConnect({
+      organizationId: currentOrganization?.id,
+      redirectUrl: ORGANIZATION_INTEGRATIONS_PATH,
+    });
 
   const {
     destination,
@@ -151,7 +159,7 @@ export function GoogleWorkspaceExportDestinationCard({
               variant="ghost"
               size="sm"
               onClick={() => setPickerOpen(true)}
-              disabled={!isGoogleWorkspaceConnected || isSettingDestination || needsReconnectForDestination}
+              disabled={!isGoogleWorkspaceConnected || isSettingDestination || needsGrantForDestination}
             >
               {isSettingDestination ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
@@ -248,10 +256,23 @@ export function GoogleWorkspaceExportDestinationCard({
           </p>
         )}
 
-        {needsReconnectForDestination && (
+        {needsGrantForDestination && (
           <Alert>
-            <AlertDescription className="text-sm">
-              Reconnect Google Workspace to refresh Drive permissions before choosing an organization folder.
+            <AlertDescription className="text-sm space-y-3">
+              <p>
+                Grant Google Drive permissions before choosing an organization folder for exports.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={grantDrivePermissions}
+                disabled={isGrantingPermissions}
+              >
+                {isGrantingPermissions ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                ) : null}
+                Grant Drive permissions
+              </Button>
             </AlertDescription>
           </Alert>
         )}

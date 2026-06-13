@@ -19,6 +19,7 @@ If no feature spec exists yet, `smoke-dashboard.spec.ts` is the fallback — **d
 3. Add short `evidencePause` calls so GIF playback is readable.
 4. Prefer Alex Apex (`gotoDashboard` fixture) unless RBAC requires another persona.
 5. Keep specs deterministic — use seeded data from `supabase/seeds/`.
+6. **Google Workspace flows** (`@real-auth`): quick-login personas cannot connect Google Workspace. Tag the spec `@real-auth`, capture Google sign-in with `npm run e2e:google-auth:capture`, then run capture with `E2E_REAL_AUTH_STORAGE_STATE` set. See `docs/ops/playwright-real-auth-integrations.md`.
 
 Example skeleton:
 

@@ -14,17 +14,17 @@ import {
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 export const GOOGLE_PICKER_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
-export const GOOGLE_WORKSPACE_REQUIRED_SCOPES = [
-  // Required for oauth2/v3 userinfo in the Edge callback after a fresh consent
-  // (include_granted_scopes no longer backfills these once the grant is revoked).
-  'openid',
-  'email',
-  'profile',
+export const GOOGLE_WORKSPACE_IDENTITY_SCOPES = ['openid', 'email', 'profile'] as const;
+export const GOOGLE_WORKSPACE_FEATURE_SCOPES = [
   'https://www.googleapis.com/auth/admin.directory.user.readonly',
   'https://www.googleapis.com/auth/spreadsheets',
   'https://www.googleapis.com/auth/drive.file',
   'https://www.googleapis.com/auth/drive.readonly',
   'https://www.googleapis.com/auth/documents',
+] as const;
+export const GOOGLE_WORKSPACE_REQUIRED_SCOPES = [
+  ...GOOGLE_WORKSPACE_IDENTITY_SCOPES,
+  ...GOOGLE_WORKSPACE_FEATURE_SCOPES,
 ] as const;
 export const GOOGLE_EXPORT_DESTINATION_REQUIRED_SCOPES = [
   'https://www.googleapis.com/auth/drive.file',
@@ -41,12 +41,13 @@ export const GOOGLE_EXPORT_DESTINATION_REQUIRED_SCOPES = [
  * - drive.readonly: Validate and read selected Drive destination metadata
  * - documents: Create and format Google Docs (for polished work order packets)
  * 
- * **Re-authentication for existing organizations:**
- * Organizations that connected before these scopes were added will only have
- * admin.directory.user.readonly. When they try to use Sheets/Drive features,
- * the backend will return a 403 with code "insufficient_scopes". The frontend
- * should prompt them to reconnect Google Workspace in Organization Settings
- * to grant the new permissions.
+ * Connect and Grant permissions both request the full scope set below (directory,
+ * Sheets, Drive, and Docs). Identity scopes (openid/email/profile) support the
+ * OAuth callback userinfo step and are not shown in the Integrations health badge.
+ *
+ * **Grant permissions for legacy organizations:**
+ * Organizations that connected before export scopes were added may only have directory
+ * access stored. Grant permissions re-runs the same full-scope OAuth consent flow.
  */
 const DEFAULT_SCOPES = GOOGLE_WORKSPACE_REQUIRED_SCOPES.join(' ');
 
@@ -64,6 +65,22 @@ export function hasAllGoogleScopes(
   );
 
   return requiredScopes.every((scope) => grantedScopes.has(scope));
+}
+
+export type GoogleWorkspaceConnectionHealth = 'disconnected' | 'healthy' | 'missing_permissions';
+
+export function evaluateGoogleWorkspaceConnectionHealth(
+  status: { is_connected: boolean; scopes: string | null } | null | undefined,
+): GoogleWorkspaceConnectionHealth {
+  if (!status?.is_connected) {
+    return 'disconnected';
+  }
+
+  if (hasAllGoogleScopes(status.scopes, GOOGLE_WORKSPACE_FEATURE_SCOPES)) {
+    return 'healthy';
+  }
+
+  return 'missing_permissions';
 }
 
 export interface GoogleWorkspaceAuthConfig {

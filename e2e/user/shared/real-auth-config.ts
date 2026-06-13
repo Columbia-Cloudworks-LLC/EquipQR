@@ -3,16 +3,24 @@ import path from 'path';
 
 const TRUTHY = new Set(['1', 'true', 'yes', 'on']);
 
+/** Default captured storage file for Google sign-in + Workspace flows on local dev. */
+export const DEFAULT_GOOGLE_WORKSPACE_LOCAL_AUTH_PATH = 'tmp/playwright/auth/google-workspace-local.json';
+
 export function isTruthyEnv(value: string | undefined): boolean {
   if (!value?.trim()) return false;
   return TRUTHY.has(value.trim().toLowerCase());
 }
 
+/** Path where Google real-auth capture writes storage state (env override or default). */
+export function resolveGoogleWorkspaceAuthStoragePath(): string {
+  const raw = process.env.E2E_REAL_AUTH_STORAGE_STATE?.trim();
+  const relative = raw || DEFAULT_GOOGLE_WORKSPACE_LOCAL_AUTH_PATH;
+  return path.resolve(relative);
+}
+
 /** Resolved path to the captured Playwright storage state, or null if unset/missing. */
 export function resolveRealAuthStorageState(): string | null {
-  const raw = process.env.E2E_REAL_AUTH_STORAGE_STATE?.trim();
-  if (!raw) return null;
-  const resolved = path.resolve(raw);
+  const resolved = resolveGoogleWorkspaceAuthStoragePath();
   return fs.existsSync(resolved) ? resolved : null;
 }
 
@@ -38,6 +46,12 @@ export function resolveQboWorkOrderId(): string | null {
   return raw || null;
 }
 
+/** Optional completed work order UUID for local Google Docs export proof. */
+export function resolveGoogleDocsWorkOrderId(): string | null {
+  const raw = process.env.E2E_GOOGLE_DOCS_WORK_ORDER_ID?.trim();
+  return raw || null;
+}
+
 export function isQboProductionDraftsAllowed(): boolean {
   return isTruthyEnv(process.env.E2E_ALLOW_QBO_PRODUCTION_DRAFTS);
 }
@@ -57,9 +71,13 @@ export function hasRealAuthExportPrerequisites(): boolean {
 export function missingRealAuthStorageMessage(): string {
   const raw = process.env.E2E_REAL_AUTH_STORAGE_STATE?.trim();
   if (!raw) {
-    return 'Set E2E_REAL_AUTH_STORAGE_STATE to a captured Playwright storage file (see docs/ops/playwright-real-auth-integrations.md).';
+    return (
+      `Capture Google sign-in storage with npm run e2e:google-auth:capture ` +
+      `(writes ${DEFAULT_GOOGLE_WORKSPACE_LOCAL_AUTH_PATH}) or set E2E_REAL_AUTH_STORAGE_STATE. ` +
+      'See docs/ops/playwright-real-auth-integrations.md.'
+    );
   }
-  return `E2E_REAL_AUTH_STORAGE_STATE points to a missing file: ${path.resolve(raw)}. Re-capture with playwright codegen --save-storage.`;
+  return `E2E_REAL_AUTH_STORAGE_STATE points to a missing file: ${path.resolve(raw)}. Re-capture with npm run e2e:google-auth:capture.`;
 }
 
 export function getProductionQuickBooksInvoiceUrl(invoiceId: string): string {

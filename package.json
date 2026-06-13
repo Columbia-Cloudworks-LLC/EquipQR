@@ -80,6 +80,7 @@
     "pr-evidence:capture": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/pr-evidence/Invoke-PrEvidenceCapture.ps1",
     "pr-evidence:publish": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/pr-evidence/Publish-PrEvidence.ps1",
     "pr-evidence": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/pr-evidence/Invoke-PrEvidence.ps1",
+    "e2e:google-auth:capture": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$env:E2E_REAL_AUTH_BASE_URL='http://localhost:8080'; npx playwright test --config=playwright.google-auth-setup.config.ts --headed\"",
     "generate:state-vectors": "node scripts/generate-state-vectors.mjs"
   },
   "dependencies": {

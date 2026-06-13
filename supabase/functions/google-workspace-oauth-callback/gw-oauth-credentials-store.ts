@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import { decryptToken, encryptToken, getTokenEncryptionKey } from "../_shared/crypto.ts";
+import { mergeGoogleWorkspaceScopeStrings } from "../_shared/google-workspace-token.ts";
 import type { GoogleTokenResponse } from "./gw-oauth-google-api.ts";
 import {
   GoogleWorkspaceOAuthUserError,
@@ -188,7 +189,7 @@ export async function storeGoogleWorkspaceCredentials(
 
   const { data: existingRecord, error: selectError } = await supabaseClient
     .from("google_workspace_credentials")
-    .select("id")
+    .select("id, scopes")
     .eq("organization_id", params.effectiveOrgId)
     .eq("domain", domain)
     .maybeSingle();
@@ -209,13 +210,17 @@ export async function storeGoogleWorkspaceCredentials(
 
   let upsertError: { message: string; code?: string; details?: string; hint?: string } | null = null;
 
+  const resolvedScopes = existingRecord
+    ? mergeGoogleWorkspaceScopeStrings(existingRecord.scopes, params.tokenData.scope)
+    : (params.tokenData.scope || null);
+
   if (existingRecord) {
     const { error } = await supabaseClient
       .from("google_workspace_credentials")
       .update({
         refresh_token: encryptedRefreshToken,
         access_token_expires_at: params.accessTokenExpiresAt.toISOString(),
-        scopes: params.tokenData.scope || null,
+        scopes: resolvedScopes,
         connected_email: params.userEmail,
         updated_at: params.now.toISOString(),
       })
@@ -229,7 +234,7 @@ export async function storeGoogleWorkspaceCredentials(
         domain,
         refresh_token: encryptedRefreshToken,
         access_token_expires_at: params.accessTokenExpiresAt.toISOString(),
-        scopes: params.tokenData.scope || null,
+        scopes: resolvedScopes,
         connected_email: params.userEmail,
         updated_at: params.now.toISOString(),
       });
