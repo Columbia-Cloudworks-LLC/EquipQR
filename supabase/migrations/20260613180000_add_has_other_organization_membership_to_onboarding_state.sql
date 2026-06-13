@@ -1,7 +1,9 @@
 -- Migration: expose cross-org membership in workspace onboarding state
 -- Purpose: allow dashboard access for Google users on claimed domains who belong to a different org
 
-CREATE OR REPLACE FUNCTION public.get_workspace_onboarding_state(p_user_id uuid)
+DROP FUNCTION IF EXISTS public.get_workspace_onboarding_state(uuid);
+
+CREATE FUNCTION public.get_workspace_onboarding_state(p_user_id uuid)
 RETURNS TABLE(
   email text,
   domain text,
