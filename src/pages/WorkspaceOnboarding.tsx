@@ -62,9 +62,6 @@ const WorkspaceOnboarding = () => {
   // Clear query params after displaying them
   useEffect(() => {
     if (gwError || gwConnected) {
-      // #region agent log
-      fetch('http://127.0.0.1:7776/ingest/26b6bb04-469b-48e6-b456-11b92b718dcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7b871a'},body:JSON.stringify({sessionId:'7b871a',runId:'oauth-callback',hypothesisId:gwError?'A':'B',location:'WorkspaceOnboarding.tsx',message:'Workspace onboarding OAuth callback params',data:{path:window.location.pathname,gw_error:gwError,gw_connected:gwConnected,gw_ref:gwSupportRef,workspaceOrgId:onboardingState?.workspace_org_id ?? null,onboardingDomain:onboardingState?.domain ?? null,domainStatus:onboardingState?.domain_status,isWorkspaceConnected:onboardingState?.is_workspace_connected,origin:window.location.origin},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       // Show toast for success
       if (gwConnected === 'true' && !gwError) {
         toast({
@@ -83,7 +80,7 @@ const WorkspaceOnboarding = () => {
       newParams.delete('gw_connected');
       setSearchParams(newParams, { replace: true });
     }
-  }, [gwError, gwConnected, gwSupportRef, onboardingState, searchParams, setSearchParams, toast, refetch, refreshSession]);
+  }, [gwError, gwConnected, searchParams, setSearchParams, toast, refetch, refreshSession]);
 
   const isGoogleUser = useMemo(() => {
     const provider = (user?.app_metadata as { provider?: string })?.provider;

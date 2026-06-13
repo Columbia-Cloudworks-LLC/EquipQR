@@ -149,16 +149,10 @@ export async function syncGoogleWorkspaceUsers(organizationId: string): Promise<
   });
 
   if (error) {
-    // #region agent log
-    fetch('http://127.0.0.1:7776/ingest/26b6bb04-469b-48e6-b456-11b92b718dcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7b871a'},body:JSON.stringify({sessionId:'7b871a',runId:'sync',hypothesisId:'D',location:'google-workspace/index.ts:syncGoogleWorkspaceUsers',message:'sync invoke error',data:{organizationId,errorMessage:error.message},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     await throwGoogleWorkspaceInvokeError(error);
   }
 
   if (!data?.success) {
-    // #region agent log
-    fetch('http://127.0.0.1:7776/ingest/26b6bb04-469b-48e6-b456-11b92b718dcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7b871a'},body:JSON.stringify({sessionId:'7b871a',runId:'sync',hypothesisId:'D',location:'google-workspace/index.ts:syncGoogleWorkspaceUsers',message:'sync response not successful',data:{organizationId,responseError:data?.error,code:data?.code},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     throwGoogleWorkspaceResponseError(data ?? {});
   }
 
