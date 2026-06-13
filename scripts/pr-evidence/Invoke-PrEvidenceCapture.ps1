@@ -54,7 +54,7 @@ New-Item -ItemType Directory -Path $playwrightOutput -Force | Out-Null
 $stack = Test-PrEvidenceLocalStack -BaseUrl $BaseUrl
 if (-not $stack.AppReady) {
     if ($SkipStackStart) {
-        throw "Local app not reachable at $BaseUrl. Start the stack with .\dev-start.bat or omit -SkipStackStart."
+        throw "Local stack probe failed for $BaseUrl (appReady=$($stack.AppReady), supabaseReady=$($stack.SupabaseReady)). Start the stack with .\dev-start.bat or omit -SkipStackStart."
     }
 
     Write-Host "[PR evidence] Local stack not ready; starting dev-start.bat ..."

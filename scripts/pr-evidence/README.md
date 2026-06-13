@@ -18,6 +18,9 @@ Agents **must** capture screenshots and a GIF from the local dev stack before op
   -Spec "e2e/pr-evidence/my-feature.spec.ts" `
   -PrNumber 1234 `
   -Publish
+
+# -Publish reuses an existing capture in tmp/pr-evidence/{flow}/ (no Playwright re-run).
+# Pass -Recapture to force a fresh capture when publishing.
 ```
 
 ## Scripts

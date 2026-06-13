@@ -18,6 +18,9 @@
 .PARAMETER CaptureOnly
   Skip upload/publish (local artifact generation only).
 
+.PARAMETER Recapture
+  Force a fresh Playwright capture even when publishing existing artifacts.
+
 .EXAMPLE
   .\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow gw-disconnect -Spec e2e/pr-evidence/gw-disconnect.spec.ts -PrNumber 1050 -Publish
 #>
@@ -32,6 +35,8 @@ param(
     [switch]$Publish,
 
     [switch]$CaptureOnly,
+
+    [switch]$Recapture,
 
     [string]$BaseUrl = 'http://localhost:8080',
 
@@ -51,16 +56,55 @@ $artifactDir = Join-Path $repoRoot ('tmp\pr-evidence\{0}' -f $flowSlug)
 $manifestPath = Join-Path $artifactDir 'manifest.json'
 $markdownPath = Join-Path $artifactDir 'evidence-markdown.md'
 
-$captureParams = @{
-    Flow    = $Flow
-    Spec    = $Spec
-    BaseUrl = $BaseUrl
-}
-if ($SkipStackStart) {
-    $captureParams['SkipStackStart'] = $true
+function Test-PrEvidenceCapturedManifest {
+    param([string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $false
+    }
+
+    try {
+        $manifest = Get-Content -LiteralPath $Path -Raw -Encoding utf8 | ConvertFrom-Json
+    }
+    catch {
+        return $false
+    }
+
+    $screenshotCount = @($manifest.screenshots).Count
+    if ($screenshotCount -eq 0) {
+        return $false
+    }
+
+    if ([string]::IsNullOrWhiteSpace([string]$manifest.gif)) {
+        return $false
+    }
+
+    $gifFull = Join-Path $repoRoot (($manifest.gif -replace '/', '\'))
+    return Test-Path -LiteralPath $gifFull
 }
 
-& (Join-Path $here 'Invoke-PrEvidenceCapture.ps1') @captureParams
+$shouldCapture = $true
+if ($Publish -and -not $Recapture -and (Test-PrEvidenceCapturedManifest -Path $manifestPath)) {
+    $shouldCapture = $false
+    Write-Host ('[PR evidence] Reusing existing capture at {0}' -f $artifactDir)
+}
+
+if ($Publish -and $shouldCapture -and -not (Test-PrEvidenceCapturedManifest -Path $manifestPath)) {
+    throw ('No captured evidence found at {0}. Run capture first: .\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow {1} -Spec {2} -CaptureOnly' -f $artifactDir, $Flow, $Spec)
+}
+
+if ($shouldCapture) {
+    $captureParams = @{
+        Flow    = $Flow
+        Spec    = $Spec
+        BaseUrl = $BaseUrl
+    }
+    if ($SkipStackStart) {
+        $captureParams['SkipStackStart'] = $true
+    }
+
+    & (Join-Path $here 'Invoke-PrEvidenceCapture.ps1') @captureParams
+}
 
 if ($CaptureOnly) {
     Write-Host ('[PR evidence] Capture-only complete: {0}' -f $artifactDir)
