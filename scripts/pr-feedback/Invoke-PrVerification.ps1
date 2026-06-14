@@ -76,6 +76,7 @@ try {
     }
 
     $steps = [System.Collections.Generic.List[object]]::new()
+    $steps.Add([pscustomobject]@{ Name = 'npm ci --prefer-offline --no-audit'; Args = @('ci', '--prefer-offline', '--no-audit') })
     $steps.Add([pscustomobject]@{ Name = 'npm run lint'; Args = @('run', 'lint') })
     $steps.Add([pscustomobject]@{ Name = $typeCheckCmd.Name; Args = $typeCheckCmd.Args })
 
