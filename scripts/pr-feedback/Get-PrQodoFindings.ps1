@@ -136,6 +136,7 @@ $summary = [ordered]@{
         reviewRecommended  = @($openFindings | Where-Object { $_.bucket -eq 'reviewRecommended' }).Count
         optional           = @($openFindings | Where-Object { $_.bucket -eq 'optional' }).Count
     }
+    parseOk            = [string]::IsNullOrEmpty($parseError)
     parseError         = $parseError
 }
 
@@ -156,4 +157,5 @@ else {
     if ($parseError) { Write-Host "Note: $parseError" }
 }
 
+if ($parseError -and -not $reviewInProgress) { exit 1 }
 exit 0

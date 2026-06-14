@@ -64,23 +64,26 @@ function Get-PrChecksSummary {
     $failed = @($checks | Where-Object { $_.bucket -eq 'fail' })
     $pending = @($checks | Where-Object { $_.bucket -eq 'pending' })
     $passed = @($checks | Where-Object { $_.bucket -eq 'pass' })
-    $other = @($checks | Where-Object { $_.bucket -notin @('pass', 'fail', 'pending') })
+    $other = @($checks | Where-Object { $_.bucket -notin @('pass', 'fail', 'pending', 'skipping') })
 
-    $isGreen = ($failed.Count -eq 0 -and $pending.Count -eq 0)
+    $isGreen = ($failed.Count -eq 0 -and $pending.Count -eq 0 -and $other.Count -eq 0 -and $checks.Count -gt 0)
     $hasPending = ($pending.Count -gt 0)
     $hasFailed = ($failed.Count -gt 0)
+    $hasOther = ($other.Count -gt 0)
 
     return [ordered]@{
         pullRequestNumber = $PrNumber
         isGreen           = $isGreen
         hasPending        = $hasPending
         hasFailed         = $hasFailed
+        hasOther          = $hasOther
         passCount         = $passed.Count
         failCount         = $failed.Count
         pendingCount      = $pending.Count
         otherCount        = $other.Count
         failedChecks      = @($failed)
         pendingChecks     = @($pending)
+        otherChecks       = @($other)
         checks            = @($checks)
     }
 }
@@ -113,6 +116,11 @@ else {
             Write-Host "  PENDING: $($c.name)"
         }
     }
+    if ($summary.hasOther) {
+        foreach ($c in $summary.otherChecks) {
+            Write-Host "  OTHER ($($c.bucket)): $($c.name)"
+        }
+    }
     if ($summary.isGreen) {
         Write-Host 'CI: green'
     }
@@ -120,4 +128,5 @@ else {
 
 if ($summary.hasPending) { exit 8 }
 if ($summary.hasFailed) { exit 1 }
+if ($summary.hasOther) { exit 1 }
 exit 0

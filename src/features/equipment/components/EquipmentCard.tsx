@@ -101,7 +101,10 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
       role="button"
       tabIndex={0}
       onClick={handleCardClick}
-      onKeyDown={(e) => handleKeyboardActivation(e, handleCardClick)}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        handleKeyboardActivation(e, handleCardClick);
+      }}
     >
       {statusRailClass ? (
         <div

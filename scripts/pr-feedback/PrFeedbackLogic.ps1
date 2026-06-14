@@ -99,7 +99,7 @@ function Parse-QodoFindingsFromReviewBody {
         [string]$Body
     )
     $section = Get-QodoReviewCurrentSection -Body $Body
-    $badgePattern = '<img[^>]+badge/([^"?]+)[^>]*>'
+    $badgePattern = '<img[^>]+badge/(Action_required|Review_recommended|Optional)[^>]*>'
     $summaryPattern = '<details>\s*<summary>\s*((?:\s*\d+\.\s*)[\s\S]*?)</summary>'
 
     $open = [System.Collections.Generic.List[object]]::new()

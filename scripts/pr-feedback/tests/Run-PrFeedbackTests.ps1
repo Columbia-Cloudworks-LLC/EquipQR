@@ -56,5 +56,25 @@ Assert-Equal -Expected 2 -Actual $parsed.resolvedCount -Message 'qodo resolvedCo
 Assert-Equal -Expected 'actionRequired' -Actual $parsed.openFindings[0].bucket -Message 'first open bucket'
 Assert-Equal -Expected 'reviewRecommended' -Actual $parsed.openFindings[1].bucket -Message 'second open bucket'
 
+$qodoWithNestedBadge = @'
+<img src="https://img.shields.io/badge/Action_required-634FD1?style=flat-square" height="20px" alt="Action required">
+<details>
+<summary>  1.  First action item <code>🐞 Bug</code></summary>
+</details>
+<img src="https://img.shields.io/badge/custom-634FD1?style=flat-square" height="20px" alt="custom">
+<details>
+<summary>  2.  Second action item <code>🐞 Bug</code></summary>
+</details>
+<img src="https://img.shields.io/badge/Review_recommended-634FD1?style=flat-square" height="20px" alt="Remediation recommended">
+<details>
+<summary>  3.  Recommended item <code>📘 Rule violation</code></summary>
+</details>
+'@
+$nestedParsed = Parse-QodoFindingsFromReviewBody -Body $qodoWithNestedBadge
+Assert-Equal -Expected 3 -Actual $nestedParsed.openCount -Message 'nested badge openCount'
+Assert-Equal -Expected 'actionRequired' -Actual $nestedParsed.openFindings[0].bucket -Message 'nested first bucket'
+Assert-Equal -Expected 'actionRequired' -Actual $nestedParsed.openFindings[1].bucket -Message 'nested second bucket'
+Assert-Equal -Expected 'reviewRecommended' -Actual $nestedParsed.openFindings[2].bucket -Message 'nested third bucket'
+
 Write-Host "PrFeedbackLogic: OK"
 exit 0
