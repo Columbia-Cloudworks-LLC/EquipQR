@@ -13,22 +13,45 @@ import type { EquipmentPMStatus } from '@/features/equipment/hooks/useEquipmentP
 interface EquipmentCardWorkOrderMenuProps {
   equipmentId: string;
   pmStatus?: EquipmentPMStatus;
-  onQuickAction: (e: React.MouseEvent, path: string) => void;
-  variant?: 'default' | 'icon';
+  onQuickAction?: (e: React.MouseEvent, path: string) => void;
+  onCreatePMWorkOrder?: () => void;
+  onCreateGenericWorkOrder?: () => void;
+  variant?: 'default' | 'icon' | 'mobile-bar';
 }
 
 export function EquipmentCardWorkOrderMenu({
   equipmentId,
   pmStatus,
   onQuickAction,
+  onCreatePMWorkOrder,
+  onCreateGenericWorkOrder,
   variant = 'default',
 }: EquipmentCardWorkOrderMenuProps) {
   const isPmOverdue = getPMComplianceLevel(pmStatus) === 'overdue';
   const pmWorkOrderPath = `/dashboard/equipment/${equipmentId}?createWorkOrder=pm`;
   const genericWorkOrderPath = `/dashboard/equipment/${equipmentId}?createWorkOrder=generic`;
 
+  const handlePMWorkOrder = (e: React.MouseEvent) => {
+    if (onCreatePMWorkOrder) {
+      onCreatePMWorkOrder();
+      return;
+    }
+    onQuickAction?.(e, pmWorkOrderPath);
+  };
+
+  const handleGenericWorkOrder = (e: React.MouseEvent) => {
+    if (onCreateGenericWorkOrder) {
+      onCreateGenericWorkOrder();
+      return;
+    }
+    onQuickAction?.(e, genericWorkOrderPath);
+  };
+
+  const menuAlign = variant === 'icon' ? 'end' : 'start';
+
   return (
     <div
+      className={variant === 'mobile-bar' ? 'flex-1 min-w-0' : undefined}
       onClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => e.stopPropagation()}
       role="presentation"
@@ -44,6 +67,17 @@ export function EquipmentCardWorkOrderMenu({
             >
               <Plus className="h-4 w-4" />
             </Button>
+          ) : variant === 'mobile-bar' ? (
+            <Button
+              size="sm"
+              variant={isPmOverdue ? 'destructive' : 'default'}
+              className="w-full min-w-0 min-h-[44px] gap-1 px-2 xs:gap-1.5 xs:px-3"
+              aria-label="Work order actions"
+            >
+              <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="truncate">Work Order</span>
+              <ChevronDown className="h-4 w-4 shrink-0 opacity-70" aria-hidden="true" />
+            </Button>
           ) : (
             <Button
               variant={isPmOverdue ? 'destructive' : 'secondary'}
@@ -56,12 +90,12 @@ export function EquipmentCardWorkOrderMenu({
             </Button>
           )}
         </DropdownMenuTrigger>
-        <DropdownMenuContent align={variant === 'icon' ? 'end' : 'start'} className="w-56">
-          <DropdownMenuItem onClick={(e) => onQuickAction(e, pmWorkOrderPath)}>
+        <DropdownMenuContent align={menuAlign} className="w-56">
+          <DropdownMenuItem onClick={handlePMWorkOrder}>
             <Wrench className="mr-2 h-4 w-4" />
             New PM Work Order
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={(e) => onQuickAction(e, genericWorkOrderPath)}>
+          <DropdownMenuItem onClick={handleGenericWorkOrder}>
             <Plus className="mr-2 h-4 w-4" />
             Create Generic Work Order
           </DropdownMenuItem>
