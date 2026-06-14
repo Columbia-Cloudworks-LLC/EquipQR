@@ -18,7 +18,7 @@ import { WorkOrderGoogleDriveExportSubmenu } from './WorkOrderGoogleDriveExportS
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import type { WorkOrderFileExportHandlers } from '@/features/work-orders/types/workOrderFileExportHandlers';
 
-export interface WorkOrderExportMenuContentProps {
+export interface WorkOrderExportMenuContentProps extends WorkOrderFileExportHandlers {
   workOrderId: string;
   workOrderStatus: WorkOrderStatus;
   equipmentTeamId?: string | null;
@@ -33,7 +33,7 @@ export interface WorkOrderExportMenuContentProps {
   isGeneratingPdf: boolean;
   onDelete: () => void;
   isDeleting: boolean;
-} & WorkOrderFileExportHandlers;
+}
 
 export const WorkOrderExportMenuContent: React.FC<WorkOrderExportMenuContentProps> = ({
   workOrderId,

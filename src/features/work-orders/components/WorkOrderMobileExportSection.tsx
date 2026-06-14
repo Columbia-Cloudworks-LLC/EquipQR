@@ -18,7 +18,7 @@ import {
 } from '@/features/work-orders/components/googleDriveExportPresentation';
 import type { WorkOrderFileExportHandlers } from '@/features/work-orders/types/workOrderFileExportHandlers';
 
-export interface WorkOrderMobileExportSectionProps {
+export interface WorkOrderMobileExportSectionProps extends WorkOrderFileExportHandlers {
   workOrderId: string;
   organizationId?: string;
   isManager: boolean;
@@ -28,7 +28,7 @@ export interface WorkOrderMobileExportSectionProps {
   isGeneratingPdf: boolean;
   onDownloadWorksheet: () => void;
   isGeneratingWorksheet: boolean;
-} & WorkOrderFileExportHandlers;
+}
 
 interface GoogleDriveMobileRowProps extends GoogleDriveExportRowConfig {
   onAction: (action: () => void) => void;

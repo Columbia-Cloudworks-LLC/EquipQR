@@ -32,7 +32,7 @@ import { isQuickBooksEnabled } from '@/lib/flags';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import type { WorkOrderFileExportHandlers } from '@/features/work-orders/types/workOrderFileExportHandlers';
 
-interface MobileWorkOrderActionSheetProps {
+interface MobileWorkOrderActionSheetProps extends WorkOrderFileExportHandlers {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   workOrderId: string;
@@ -47,7 +47,7 @@ interface MobileWorkOrderActionSheetProps {
   isGeneratingPdf: boolean;
   onDownloadWorksheet: () => void;
   isGeneratingWorksheet: boolean;
-} & WorkOrderFileExportHandlers;
+}
 
 export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProps> = ({
   open,
