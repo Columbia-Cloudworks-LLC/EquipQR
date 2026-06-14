@@ -59,6 +59,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
 
   const handleValidatedSubmit = (data: EquipmentFormData) => {
     if (!isEdit && isAdmin && isUnassignedTeam(data.team_id)) {
+      setPendingUnassignedSelect(false);
       setPendingSubmitData(data);
       setShowUnassignedConfirm(true);
       return;
@@ -69,12 +70,11 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
   const handleConfirmUnassigned = () => {
     if (pendingSubmitData) {
       onSubmit(pendingSubmitData);
-      setPendingSubmitData(null);
-    }
-    if (pendingUnassignedSelect) {
+    } else if (pendingUnassignedSelect) {
       form.setValue('team_id', '');
-      setPendingUnassignedSelect(false);
     }
+    setPendingSubmitData(null);
+    setPendingUnassignedSelect(false);
     setShowUnassignedConfirm(false);
   };
 
@@ -82,6 +82,14 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
     setPendingSubmitData(null);
     setPendingUnassignedSelect(true);
     setShowUnassignedConfirm(true);
+  };
+
+  const handleUnassignedConfirmOpenChange = (open: boolean) => {
+    setShowUnassignedConfirm(open);
+    if (!open) {
+      setPendingSubmitData(null);
+      setPendingUnassignedSelect(false);
+    }
   };
 
   return (
@@ -125,7 +133,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={showUnassignedConfirm} onOpenChange={setShowUnassignedConfirm}>
+      <AlertDialog open={showUnassignedConfirm} onOpenChange={handleUnassignedConfirmOpenChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Continue without a team?</AlertDialogTitle>
@@ -135,14 +143,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                setPendingSubmitData(null);
-                setPendingUnassignedSelect(false);
-              }}
-            >
-              Go back
-            </AlertDialogCancel>
+            <AlertDialogCancel>Go back</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmUnassigned}>
               Continue without a team
             </AlertDialogAction>
