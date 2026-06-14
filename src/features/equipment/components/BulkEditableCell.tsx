@@ -99,6 +99,12 @@ export const BulkEditableCell: React.FC<BulkEditableCellProps> = ({
     setEditValue(stringifyForInput(value));
   }, [value]);
 
+  useEffect(() => {
+    if (isEditing && type !== 'select') {
+      inputRef.current?.focus();
+    }
+  }, [isEditing, type]);
+
   const enterEdit = () => {
     setEditValue(stringifyForInput(value));
     setIsEditing(true);
@@ -207,7 +213,6 @@ export const BulkEditableCell: React.FC<BulkEditableCellProps> = ({
       <Input
         ref={inputRef}
         type={type === 'number' ? 'number' : 'text'}
-        autoFocus
         value={editValue}
         onChange={(e) => setEditValue(e.target.value)}
         onKeyDown={handleKeyDown}

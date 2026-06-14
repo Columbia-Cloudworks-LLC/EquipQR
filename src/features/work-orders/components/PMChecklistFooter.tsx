@@ -94,7 +94,7 @@ export function PMChecklistFooter({
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-base font-semibold">General Notes</label>
+          <label htmlFor="pm-general-notes" className="text-base font-semibold">General Notes</label>
           <VoiceInputButton
             isListening={isListening}
             onToggle={toggleListening}
@@ -103,6 +103,7 @@ export function PMChecklistFooter({
         </div>
         <div className="relative">
           <Textarea
+            id="pm-general-notes"
             placeholder="Add general notes about this PM..."
             value={notes}
             onChange={(e) => onNotesChange(e.target.value)}

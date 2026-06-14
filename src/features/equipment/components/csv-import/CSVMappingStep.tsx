@@ -94,14 +94,14 @@ export const CSVMappingStep: React.FC<CSVMappingStepProps> = ({
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <label className="text-sm font-medium">
+            <label htmlFor="csv-team-select" className="text-sm font-medium">
               Assign new equipment to team (optional)
             </label>
             <Select
               value={selectedTeamId || 'none'}
               onValueChange={(value) => onTeamChange(value === 'none' ? null : value)}
             >
-              <SelectTrigger>
+              <SelectTrigger id="csv-team-select">
                 <SelectValue placeholder="Select team..." />
               </SelectTrigger>
               <SelectContent>

@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { handleKeyboardActivation } from '@/components/a11y/keyboard';
 import { Search, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -384,12 +385,17 @@ export function InventoryItemDetailDialogs({
                 alternateGroups.filteredGroups.map((group) => (
                   <div
                     key={group.id}
+                    role="button"
+                    tabIndex={0}
                     className={`p-3 rounded cursor-pointer hover:bg-muted/50 ${
                       alternateGroups.selectedGroupId === group.id
                         ? 'bg-primary/10 border border-primary'
                         : 'border border-transparent'
                     }`}
                     onClick={() => alternateGroups.setSelectedGroupId(group.id)}
+                    onKeyDown={(e) =>
+                      handleKeyboardActivation(e, () => alternateGroups.setSelectedGroupId(group.id))
+                    }
                   >
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{group.name}</p>

@@ -12,7 +12,7 @@ import { SUPPORT_DOCS_URL } from '@/lib/documentationUrl';
 import { APP_VERSION } from '@/lib/version';
 
 const linkClassName =
-  'whitespace-nowrap text-muted-foreground/70 hover:text-foreground transition-colors no-underline hover:underline';
+  'whitespace-nowrap text-muted-foreground hover:text-foreground transition-colors no-underline hover:underline';
 
 const legalLinks = [
   { to: '/terms-of-service', label: 'Terms of Service' },
@@ -27,7 +27,7 @@ export default function LegalFooter() {
   return (
     <footer className="hidden md:block border-t border-border bg-background/50 backdrop-blur-sm mt-auto">
       <div className="container mx-auto px-4 py-2">
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs leading-tight text-muted-foreground/70">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs leading-tight text-muted-foreground">
           <p className="inline-flex min-w-0 flex-wrap items-center gap-x-1">
             <span className="whitespace-nowrap">
               © {currentYear} EquipQR™ v{APP_VERSION}
@@ -62,7 +62,7 @@ export default function LegalFooter() {
 
             <DropdownMenu>
               <DropdownMenuTrigger
-                className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-sm text-xs text-muted-foreground/70 outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-sm text-xs text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 aria-label="Legal links"
               >
                 Legal

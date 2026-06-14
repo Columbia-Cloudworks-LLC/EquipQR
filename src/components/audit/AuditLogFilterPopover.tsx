@@ -39,7 +39,7 @@ const AuditLogFilterPopover: React.FC<AuditLogFilterPopoverProps> = ({
         <>
           {/* Entity Type */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-muted-foreground">Entity Type</label>
+            <span className="text-xs text-muted-foreground">Entity Type</span>
             <Select
               value={filters.entityType ?? 'all'}
               onValueChange={(v) =>
@@ -65,7 +65,7 @@ const AuditLogFilterPopover: React.FC<AuditLogFilterPopoverProps> = ({
 
           {/* Action */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-muted-foreground">Action</label>
+            <span className="text-xs text-muted-foreground">Action</span>
             <Select
               value={filters.action ?? 'all'}
               onValueChange={(v) =>

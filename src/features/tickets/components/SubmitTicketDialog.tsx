@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useMountFocus } from '@/components/a11y/keyboard';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,7 @@ const SubmitTicketDialog: React.FC<SubmitTicketDialogProps> = ({
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const titleInputRef = useMountFocus<HTMLInputElement>(open);
 
   const resetForm = () => {
     setTitle('');
@@ -119,13 +121,13 @@ const SubmitTicketDialog: React.FC<SubmitTicketDialogProps> = ({
           <div className="space-y-2">
             <Label htmlFor="ticket-title">Title</Label>
             <Input
+              ref={titleInputRef}
               id="ticket-title"
               placeholder="Brief summary of the issue"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={200}
               disabled={isPending}
-              autoFocus
             />
           </div>
 

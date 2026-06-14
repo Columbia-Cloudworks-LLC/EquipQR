@@ -75,14 +75,15 @@ export function AlternateGroupMembersSection({
                       <Star className="h-4 w-4 text-warning shrink-0" />
                     )}
                     <div className="min-w-0">
-                      <p
-                        className="font-medium cursor-pointer hover:text-primary truncate"
+                      <button
+                        type="button"
+                        className="font-medium cursor-pointer hover:text-primary truncate text-left"
                         onClick={() =>
                           navigate(`/dashboard/inventory/${member.inventory_item_id}`)
                         }
                       >
                         {member.inventory_name || 'Unknown Item'}
-                      </p>
+                      </button>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         {member.inventory_sku && <span>SKU: {member.inventory_sku}</span>}
                         <span>Qty: {member.quantity_on_hand}</span>

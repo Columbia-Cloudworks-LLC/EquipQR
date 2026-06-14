@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useMountFocus } from '@/components/a11y/keyboard';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -65,6 +66,8 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
   const [isSaving, setIsSaving] = useState(false);
+  const textInputRef = useMountFocus<HTMLInputElement>(isEditing && type !== 'textarea' && type !== 'select');
+  const textareaRef = useMountFocus<HTMLTextAreaElement>(isEditing && type === 'textarea');
 
   // Update editValue when value prop changes
   React.useEffect(() => {
@@ -168,13 +171,13 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
     <div className={`flex items-center gap-2 ${className}`}>
       {type === 'textarea' ? (
         <Textarea
+          ref={textareaRef}
           id={fieldId}
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className="min-h-[60px]"
-          autoFocus
         />
       ) : type === 'select' && selectOptions ? (
         <Select value={editValue} onValueChange={setEditValue}>
@@ -191,13 +194,13 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
         </Select>
       ) : (
         <Input
+          ref={textInputRef}
           id={fieldId}
           type={type}
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          autoFocus
         />
       )}
       <div className="flex gap-1">

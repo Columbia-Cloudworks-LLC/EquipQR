@@ -77,13 +77,6 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
     onShowQRCode(equipment.id);
   };
 
-  const handleCardKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleCardClick();
-    }
-  };
-
   const handleQuickAction = (e: React.MouseEvent, path: string) => {
     e.stopPropagation();
     if (isOfflineEquipmentId(equipment.id)) {
@@ -105,10 +98,6 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
         viewMode === 'grid' && "flex flex-col md:h-full"
       )}
       onClick={handleCardClick}
-      onKeyDown={handleCardKeyDown}
-      role="button"
-      tabIndex={0}
-      aria-label={`Open details for ${equipment.name}`}
     >
       {statusRailClass ? (
         <div

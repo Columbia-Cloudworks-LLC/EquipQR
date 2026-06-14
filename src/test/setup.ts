@@ -278,14 +278,16 @@ beforeAll(() => {
 
   // A11y checks for Dialog components
   const checkDialogA11y = () => {
-    const dialogContents = document.querySelectorAll('[role="dialog"]');
+    const dialogContents = document.querySelectorAll('[data-equipqr-dialog-content="true"][data-state="open"]');
     dialogContents.forEach((dialog) => {
-      if (dialog.getAttribute('data-state') === 'open') {
-        const hasDescription = dialog.querySelector('[data-description], [aria-describedby]') ||
-                              dialog.hasAttribute('aria-describedby');
-        if (!hasDescription) {
-          console.error(`A11y Error: DialogContent is missing DialogDescription. All open dialogs must include a description for accessibility.`);
-        }
+      const describedBy = dialog.getAttribute('aria-describedby');
+      const hasDescription =
+        (describedBy != null && describedBy.length > 0) ||
+        dialog.querySelector('[id][data-radix-dialog-description], [id][data-slot="dialog-description"]') != null;
+      if (!hasDescription) {
+        throw new Error(
+          'DialogContent is missing DialogDescription. All open dialogs must include a description for accessibility.',
+        );
       }
     });
   };
@@ -309,6 +311,8 @@ beforeAll(() => {
       clearInterval(a11yCheckInterval);
     }
   };
+
+  globalWithA11y.startA11yChecks?.();
 
   // Ensure consistent global objects across Node versions
   if (typeof global.structuredClone === 'undefined') {

@@ -168,7 +168,8 @@ describe('EquipmentScanner', () => {
     act(() => {
       hoisted.scannerState.lastOnDecode?.({ data: 'https://evil.example/not-equipqr' });
     });
-    expect(await screen.findByText(/not an equipqr link/i)).toBeInTheDocument();
+    const errorAlert = await screen.findByRole('alert');
+    expect(errorAlert).toHaveTextContent(/not an equipqr link/i);
     expect(hoisted.mockStop).toHaveBeenCalled();
   });
 
@@ -265,7 +266,8 @@ describe('EquipmentScanner', () => {
     act(() => {
       hoisted.scannerState.lastOnDecode?.({ data: 'https://evil.example/x' });
     });
-    await screen.findByText(/not an equipqr link/i);
+    const errorAlert = await screen.findByRole('alert');
+    expect(errorAlert).toHaveTextContent(/not an equipqr link/i);
     const destroysBefore = hoisted.mockDestroy.mock.calls.length;
     await user.click(screen.getByRole('button', { name: /retry scan/i }));
     await waitFor(() => expect(hoisted.mockDestroy.mock.calls.length).toBeGreaterThan(destroysBefore));

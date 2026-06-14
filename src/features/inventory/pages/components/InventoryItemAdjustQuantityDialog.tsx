@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Minus, Plus } from 'lucide-react';
+import { useMountFocus } from '@/components/a11y/keyboard';
 import { cn } from '@/lib/utils';
 
 type InventoryItemAdjustQuantityDialogProps = {
@@ -54,6 +55,9 @@ export function InventoryItemAdjustQuantityDialog({
   onCancelInput,
   onSubmitMore,
 }: InventoryItemAdjustQuantityDialogProps) {
+  const addInputRef = useMountFocus<HTMLInputElement>(showAddInput);
+  const subtractInputRef = useMountFocus<HTMLInputElement>(showSubtractInput);
+
   const content = (
     <div
       className={cn(
@@ -74,12 +78,12 @@ export function InventoryItemAdjustQuantityDialog({
           {showAddInput ? (
             <div className="space-y-3">
               <Input
+                ref={addInputRef}
                 type="number"
                 min="1"
                 value={adjustmentAmount}
                 onChange={(e) => onAdjustmentAmountChange(Math.max(1, parseInt(e.target.value, 10) || 1))}
                 placeholder="Enter amount to add"
-                autoFocus
               />
               <div className="flex gap-2">
                 <Button variant="outline" onClick={onCancelInput} className="flex-1">
@@ -111,12 +115,12 @@ export function InventoryItemAdjustQuantityDialog({
           {showSubtractInput ? (
             <div className="space-y-3">
               <Input
+                ref={subtractInputRef}
                 type="number"
                 min="1"
                 value={adjustmentAmount}
                 onChange={(e) => onAdjustmentAmountChange(Math.max(1, parseInt(e.target.value, 10) || 1))}
                 placeholder="Enter amount to take"
-                autoFocus
               />
               <div className="flex gap-2">
                 <Button variant="outline" onClick={onCancelInput} className="flex-1">

@@ -96,7 +96,7 @@ export function DateTimePicker({
             mode="single"
             selected={selectedDate}
             onSelect={handleDateSelect}
-            autoFocus
+            initialFocus
             className={cn("pointer-events-auto")}
           />
           <div className="mt-3 flex items-center gap-2 pt-3 border-t">

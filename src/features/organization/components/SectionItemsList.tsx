@@ -41,7 +41,7 @@ function VirtualItemRow({
     <div style={style} className="px-0.5 pb-1">
       <ChecklistItemRow
         item={item}
-        autoFocus={isNewlyAdded}
+        focusOnMount={isNewlyAdded}
         index={index}
         totalInSection={items.length}
         sections={sections}
@@ -211,7 +211,7 @@ export function SectionItemsList({
           <ChecklistItemRow
             key={item.id}
             item={item}
-            autoFocus={isNewlyAdded}
+            focusOnMount={isNewlyAdded}
             index={index}
             totalInSection={sectionItems.length}
             sections={sections}

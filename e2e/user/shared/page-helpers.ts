@@ -41,28 +41,50 @@ export async function openSidebarLink(page: Page, linkName: RegExp | string): Pr
   await setActionOverlay(page, `Loaded ${String(linkName)}`);
 }
 
-async function openMobileNavigationIfAvailable(page: Page): Promise<boolean> {
-  const mobileMenuButton = page.getByRole('button', { name: /open menu/i }).first();
-  if (!(await mobileMenuButton.isVisible({ timeout: 750 }).catch(() => false))) {
-    return false;
+async function openMobileNavigationIfAvailable(page: Page): Promise<void> {
+  const sheet = page.locator('[data-mobile="true"][data-sidebar="sidebar"]');
+  if (await sheet.isVisible({ timeout: 500 }).catch(() => false)) {
+    return;
   }
 
-  await clickWithDemoCue(mobileMenuButton, 'Open mobile navigation');
-  await expect(page.locator('[data-mobile="true"][data-sidebar="sidebar"]')).toBeVisible({
-    timeout: 10_000,
-  });
-  return true;
+  const primaryNav = page.getByRole('navigation', { name: 'Primary navigation' });
+  if (!(await primaryNav.isVisible({ timeout: 2_000 }).catch(() => false))) {
+    return;
+  }
+
+  const bottomNavMenu = primaryNav.getByRole('button', { name: /open navigation menu/i });
+  await expect(bottomNavMenu).toBeVisible({ timeout: 30_000 });
+  await clickWithDemoCue(bottomNavMenu, 'Open mobile navigation');
+  await expect(sheet).toBeVisible({ timeout: 10_000 });
 }
 
 async function getVisibleNavigationLink(page: Page, linkName: RegExp | string) {
-  const link = page.getByRole('link', { name: linkName }).first();
-  if (await link.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    return link;
+  const sidebarNav = page.getByRole('navigation', { name: 'Main navigation' });
+  if (await sidebarNav.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    const sidebarLink = sidebarNav.getByRole('link', { name: linkName }).first();
+    await sidebarLink.scrollIntoViewIfNeeded().catch(() => undefined);
+    await expect(sidebarLink).toBeVisible({ timeout: 30_000 });
+    return sidebarLink;
   }
 
-  await openMobileNavigationIfAvailable(page);
-  await expect(link).toBeVisible({ timeout: 30_000 });
-  return link;
+  const globalLink = page.getByRole('link', { name: linkName }).first();
+  if (await globalLink.isVisible({ timeout: 10_000 }).catch(() => false)) {
+    return globalLink;
+  }
+
+  const primaryNav = page.getByRole('navigation', { name: 'Primary navigation' });
+  if (await primaryNav.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    await openMobileNavigationIfAvailable(page);
+    const sheetLink = page
+      .locator('[data-mobile="true"][data-sidebar="sidebar"]')
+      .getByRole('link', { name: linkName })
+      .first();
+    await expect(sheetLink).toBeVisible({ timeout: 30_000 });
+    return sheetLink;
+  }
+
+  await expect(globalLink).toBeVisible({ timeout: 30_000 });
+  return globalLink;
 }
 
 export async function expectNavigationLinkVisible(
@@ -77,8 +99,15 @@ export async function expectNavigationLinkHidden(
   page: Page,
   linkName: RegExp | string,
 ): Promise<void> {
+  const sidebarNav = page.getByRole('navigation', { name: 'Main navigation' });
+  if (await sidebarNav.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    await expect(sidebarNav.getByRole('link', { name: linkName })).toHaveCount(0);
+    return;
+  }
+
   await openMobileNavigationIfAvailable(page);
-  await expect(page.getByRole('link', { name: linkName })).toHaveCount(0);
+  const sheet = page.locator('[data-mobile="true"][data-sidebar="sidebar"]');
+  await expect(sheet.getByRole('link', { name: linkName })).toHaveCount(0);
 }
 
 export function attachConsoleErrorCollector(page: Page): string[] {

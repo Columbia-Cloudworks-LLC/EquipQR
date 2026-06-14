@@ -52,6 +52,7 @@ const EquipmentScanner: React.FC = () => {
   const [hasFlash, setHasFlash] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
   const [isImageScanning, setIsImageScanning] = useState(false);
+  const [liveMessage, setLiveMessage] = useState('');
 
   const stopScannerSafe = useCallback(() => {
     try {
@@ -79,11 +80,13 @@ const EquipmentScanner: React.FC = () => {
         stopScannerSafe();
         setPhase('error');
         setErrorMessage(parsed.message);
+        setLiveMessage(parsed.message);
         return;
       }
       handledDecodeRef.current = true;
       stopScannerSafe();
       setPhase('decoded');
+      setLiveMessage('QR code recognized. Opening link.');
       if (source === 'camera') {
         markPendingFeedback();
       }
@@ -255,6 +258,9 @@ const EquipmentScanner: React.FC = () => {
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+            {liveMessage}
+          </div>
           {(phase === 'error' || (phase === 'no-camera' && errorMessage)) && errorMessage && (
             <Alert variant="destructive" role="alert">
               <AlertCircle className="h-4 w-4" />

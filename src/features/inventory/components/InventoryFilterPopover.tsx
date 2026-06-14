@@ -40,7 +40,7 @@ const InventoryFilterPopover: React.FC<InventoryFilterPopoverProps> = ({
           {/* Location */}
           {uniqueLocations.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-muted-foreground">Location</label>
+              <span className="text-xs text-muted-foreground">Location</span>
               <InventoryLocationFilterSelect
                 value={filters.location ?? '__all__'}
                 onValueChange={(v) =>

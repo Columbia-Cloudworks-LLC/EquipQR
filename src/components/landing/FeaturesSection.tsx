@@ -168,7 +168,7 @@ const FeaturesSection = ({ id }: { id?: string }) => {
                 </div>
 
                 {/* Feature list */}
-                <ul className="flex flex-col flex-grow px-6 py-5 space-y-4" role="list">
+                <ul className="flex flex-col flex-grow px-6 py-5 space-y-4">
                   {pillar.features.map((feature) => (
                     <li key={feature.title} className="list-none">
                       <Link

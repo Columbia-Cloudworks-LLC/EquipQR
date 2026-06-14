@@ -78,7 +78,7 @@ const BottomNav: React.FC = () => {
         "animate-slide-up"
       )}
       role="navigation"
-      aria-label="Main navigation"
+      aria-label="Primary navigation"
     >
       <div className="flex items-stretch justify-around px-2">
         {navItems.map((item) => {
@@ -147,7 +147,7 @@ const BottomNav: React.FC = () => {
             // Focus styles
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md"
           )}
-          aria-label="Open menu"
+          aria-label="Open navigation menu"
         >
           <div className="p-1.5 rounded-lg">
             <Menu className="h-5 w-5" />
