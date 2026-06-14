@@ -10,6 +10,7 @@ import {
   requireAuthenticatedPost,
   verifyOrgAdmin,
   createErrorResponse,
+  createJsonResponse,
   handleCorsPreflightIfNeeded,
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
@@ -76,10 +77,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
     const validationError = validateDocxExportRequest(body);
     if (validationError) {
-      return new Response(JSON.stringify(validationError), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createJsonResponse(validationError, 400, { req });
     }
 
     const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
@@ -127,16 +125,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       );
     }
 
-    const workOrderId = filters?.workOrderId;
-    if (!workOrderId) {
-      return new Response(
-        JSON.stringify({
-          code: "single_work_order_required",
-          error: "DOCX download only supports a single work order.",
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    const workOrderId = filters!.workOrderId!;
 
     const packetData = await buildSingleWorkOrderGoogleDocData(
       supabase,
@@ -181,13 +170,17 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
         },
       });
     } finally {
-      const deleteResult = await deleteGoogleDriveFile(tokenResult.accessToken, doc.id);
-      if (deleteResult.outcome !== "deleted" && deleteResult.outcome !== "not_found") {
-        console.error(
-          "[EXPORT-WORK-ORDERS-DOCX] Temp doc cleanup failed:",
-          doc.id,
-          deleteResult,
-        );
+      try {
+        const deleteResult = await deleteGoogleDriveFile(tokenResult.accessToken, doc.id);
+        if (deleteResult.outcome !== "deleted" && deleteResult.outcome !== "not_found") {
+          console.error(
+            "[EXPORT-WORK-ORDERS-DOCX] Temp doc cleanup failed:",
+            doc.id,
+            deleteResult,
+          );
+        }
+      } catch (cleanupError) {
+        console.error("[EXPORT-WORK-ORDERS-DOCX] Temp doc cleanup threw:", doc.id, cleanupError);
       }
     }
   } catch (error) {
