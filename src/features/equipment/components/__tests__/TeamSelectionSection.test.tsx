@@ -230,10 +230,10 @@ describe('TeamSelectionSection', () => {
   });
 
   describe('Admin vs Non-Admin', () => {
-    it('shows "optional" placeholder for admins', () => {
+    it('shows unassigned label for admins by default', () => {
       render(<TestWrapper isAdmin={true} />);
-      
-      expect(screen.getByText('Select a team (optional)')).toBeInTheDocument();
+
+      expect(screen.getByText('No team assigned')).toBeInTheDocument();
     });
 
     it('shows required placeholder for non-admins', () => {
@@ -278,10 +278,11 @@ describe('TeamSelectionSection', () => {
   describe('Team Options', () => {
     it('displays team names in dropdown', async () => {
       render(<TestWrapper isAdmin={true} />);
-      
-      screen.getByText('Select a team (optional)');
-      // Teams should be available when dropdown is opened
-      // This would require interaction testing
+
+      fireEvent.click(screen.getByRole('combobox'));
+      const listbox = await screen.findByRole('listbox');
+      expect(within(listbox).getByRole('option', { name: /Team 1/ })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: /Team 2/ })).toBeInTheDocument();
     });
 
     it('displays team descriptions when available', () => {

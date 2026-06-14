@@ -18,6 +18,7 @@ import {
   Notifications,
   Settings,
   WorkspaceOnboarding,
+  GettingStartedOnboarding,
   Reports,
   InventoryList,
   BulkInventory,
@@ -53,6 +54,7 @@ export const dashboardRouteElements = (
     <Route path="/notifications" element={<Notifications />} />
     <Route path="/settings" element={<Settings />} />
     <Route path="/onboarding/workspace" element={<WorkspaceOnboarding />} />
+    <Route path="/onboarding/getting-started" element={<GettingStartedOnboarding />} />
     <Route path="/reports" element={<Reports />} />
     <Route path="/inventory" element={<InventoryList />} />
     <Route path="/inventory/bulk" element={<BulkInventory />} />

@@ -17,7 +17,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════════
 -- Define the list of INTENDED organization IDs from our seeds
 -- ═══════════════════════════════════════════════════════════════════════════════
--- These are the 8 organizations we intentionally seeded in 03_organizations.sql
+-- These are the organizations we intentionally seeded (03_organizations.sql + 30_e2e_onboarding_fixture.sql)
 -- Any organization NOT in this list was created by the trigger and should be removed.
 
 DO $$
@@ -32,7 +32,9 @@ DECLARE
     '660e8400-e29b-41d4-a716-446655440004'::uuid,  -- Amanda's Equipment Services
     '660e8400-e29b-41d4-a716-446655440005'::uuid,  -- Tom's Field Services
     '660e8400-e29b-41d4-a716-446655440006'::uuid,  -- Mike's Repair Shop
-    '660e8400-e29b-41d4-a716-446655440007'::uuid   -- Multi Org Consulting
+    '660e8400-e29b-41d4-a716-446655440007'::uuid,  -- Multi Org Consulting
+    -- E2E onboarding fixture (Fresh Start Equipment Co)
+    '660e8400-e29b-41d4-a716-446655440009'::uuid   -- Fresh Start Equipment Co
   ];
   deleted_org_count int;
   deleted_member_count int;

@@ -304,9 +304,10 @@ describe('QRCodeDisplay', () => {
       render(<QRCodeDisplay {...defaultProps} />);
       
       expect(screen.getByText('How to use:')).toBeInTheDocument();
+      expect(screen.getByText(/Copy the URL and paste it into your preferred QR app/)).toBeInTheDocument();
+      expect(screen.getByText(/Or download the PNG\/JPG image and print it/)).toBeInTheDocument();
       expect(screen.getByText(/Print this QR code and attach it to the equipment/)).toBeInTheDocument();
-      expect(screen.getByText(/Users can scan it with any QR code scanner/)).toBeInTheDocument();
-      expect(screen.getByText(/Scans are automatically logged with location data/)).toBeInTheDocument();
+      expect(screen.getByText(/Scans open this equipment's details and are logged automatically/)).toBeInTheDocument();
     });
   });
 
