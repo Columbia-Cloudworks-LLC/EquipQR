@@ -86,8 +86,6 @@ describe('WorkOrderDetailsDesktopHeader', () => {
       canAddNotes: true,
       canAddImages: true,
     },
-    canEdit: true,
-    onEditClick: vi.fn(),
     equipmentTeamId: 'team-1',
     equipment: {
       id: 'eq-1',

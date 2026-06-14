@@ -16,17 +16,22 @@ import ClickableAddress from '@/components/ui/ClickableAddress';
 import { humanizeAttributeKey, humanizeAttributeValue } from '@/features/work-orders/utils/workOrderHelpers';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import type { EffectiveLocation } from '@/utils/effectiveLocation';
+import InlineEditField from '@/features/equipment/components/InlineEditField';
 
 interface WorkOrderDetailsInfoProps {
   workOrder: EnhancedWorkOrder;
   equipment: Equipment | null;
   effectiveLocation?: EffectiveLocation | null;
+  canEditDescription?: boolean;
+  onSaveDescription?: (description: string) => Promise<void>;
 }
 
 const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
   workOrder,
   equipment,
   effectiveLocation,
+  canEditDescription = false,
+  onSaveDescription,
 }) => {
   const { formatDateTime } = useFormatTimestamp();
   const isMobile = useIsMobile();
@@ -73,9 +78,21 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Description */}
-        <p className="text-muted-foreground leading-relaxed text-sm">
-          {workOrder.description}
-        </p>
+        {canEditDescription && onSaveDescription ? (
+          <InlineEditField
+            value={workOrder.description ?? ''}
+            onSave={onSaveDescription}
+            canEdit={canEditDescription}
+            type="textarea"
+            placeholder="Add a work order description"
+            className="text-sm text-muted-foreground leading-relaxed"
+            editAriaLabel="Edit description"
+          />
+        ) : (
+          <p className="text-muted-foreground leading-relaxed text-sm">
+            {workOrder.description}
+          </p>
+        )}
 
         {/* Equipment Information - Collapsible on mobile */}
         {equipment && (

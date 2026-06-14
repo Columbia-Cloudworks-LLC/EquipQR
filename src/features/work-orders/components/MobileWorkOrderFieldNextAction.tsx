@@ -1,7 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   CheckCircle2,
   ClipboardList,
@@ -222,9 +221,7 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
         workOrder.status !== 'cancelled' &&
         (permissions.canAddNotes || permissions.canUpload) ? (
           <div className="space-y-2">
-            <Badge variant="secondary" className="min-h-[32px]">
-              View-only - capture only
-            </Badge>
+            <p className="text-sm font-medium text-muted-foreground">View-only — capture only</p>
             {noteAndPhotoRow}
           </div>
         ) : null}

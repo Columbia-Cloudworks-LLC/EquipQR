@@ -7,7 +7,8 @@ import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 import type { WorkOrderServerSnapshot } from '@/services/offlineQueueService';
-import { workOrders, organization, preventiveMaintenance } from '@/lib/queryKeys';
+import { preventiveMaintenance } from '@/lib/queryKeys';
+import { invalidateWorkOrderCaches } from '@/features/work-orders/utils/invalidateWorkOrderQueries';
 
 export interface UpdateWorkOrderData {
   title?: string;
@@ -73,13 +74,7 @@ export const useUpdateWorkOrder = () => {
       const { workOrderId } = variables;
       const orgId = currentOrganization?.id ?? '';
 
-      queryClient.invalidateQueries({ queryKey: workOrders.enhancedList(orgId) });
-      queryClient.invalidateQueries({ queryKey: workOrders.legacyList(orgId) });
-      queryClient.invalidateQueries({ queryKey: workOrders.optimized(orgId) });
-      queryClient.invalidateQueries({ queryKey: workOrders.teamBasedList(orgId) });
-      queryClient.invalidateQueries({ queryKey: organization(orgId).dashboardStats() });
-      queryClient.invalidateQueries({ queryKey: workOrders.legacyById(orgId, workOrderId) });
-      queryClient.invalidateQueries({ queryKey: workOrders.enhancedById(orgId, workOrderId) });
+      invalidateWorkOrderCaches(queryClient, orgId, workOrderId);
       queryClient.invalidateQueries({ queryKey: preventiveMaintenance.byWorkOrder(workOrderId) });
       
       toast({

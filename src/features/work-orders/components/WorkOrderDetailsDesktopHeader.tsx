@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { WorkOrderDeleteConfirmDialog } from '@/features/work-orders/components/WorkOrderDeleteConfirmDialog';
-import { Edit, Info, Download, MoreHorizontal } from 'lucide-react';
+import { Info, Download, MoreHorizontal } from 'lucide-react';
 import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
 import { WorkOrderData, PermissionLevels, EquipmentData, PMData } from '@/features/work-orders/types/workOrderDetails';
 import {
@@ -37,8 +37,6 @@ interface WorkOrderDetailsDesktopHeaderProps {
   workOrder: WorkOrderData;
   formMode: string;
   permissionLevels: PermissionLevels;
-  canEdit: boolean;
-  onEditClick: () => void;
   /** Team ID derived from the equipment assigned to this work order */
   equipmentTeamId?: string | null;
   /** Equipment data for PDF export */
@@ -59,8 +57,6 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   workOrder,
   formMode,
   permissionLevels,
-  canEdit,
-  onEditClick,
   equipmentTeamId,
   equipment,
   pmData,
@@ -201,16 +197,6 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           }
           actions={
             <>
-              {canEdit && (
-                <Button
-                  variant="outline"
-                  onClick={onEditClick}
-                  aria-label={formMode === 'requestor' ? 'Edit work order request' : 'Edit work order'}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  {formMode === 'requestor' ? 'Edit Request' : 'Edit'}
-                </Button>
-              )}
               {showActionsMenu && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

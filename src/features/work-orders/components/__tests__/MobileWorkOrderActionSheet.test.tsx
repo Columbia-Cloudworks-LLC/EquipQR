@@ -51,8 +51,6 @@ describe('MobileWorkOrderActionSheet', () => {
     organizationId: 'org-1',
     isManager: true,
     onViewFullDetails: vi.fn(),
-    canEdit: true,
-    onEdit: vi.fn(),
     onOpenPdfDialog: vi.fn(),
     onOpenDrivePdfDialog: vi.fn(),
     isGeneratingPdf: false,
@@ -105,14 +103,14 @@ describe('MobileWorkOrderActionSheet', () => {
     expect(screen.getByRole('button', { name: /field worksheet/i })).toBeInTheDocument();
   });
 
-  it('shows Admin section with edit and delete requiring DELETE confirmation', async () => {
+  it('shows Admin section with delete requiring DELETE confirmation', async () => {
     render(
       <MemoryRouter>
         <MobileWorkOrderActionSheet {...baseProps} />
       </MemoryRouter>,
     );
     expect(screen.getByText('Admin')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /edit work order/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /edit work order/i })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /delete work order/i }));
     expect(screen.getByRole('alertdialog')).toBeInTheDocument();
     expect(screen.getByText(/All uploaded images/)).toBeInTheDocument();

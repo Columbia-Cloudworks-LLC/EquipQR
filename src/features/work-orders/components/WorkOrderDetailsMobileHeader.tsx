@@ -1,24 +1,20 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Edit, Download, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, Download, MoreHorizontal } from 'lucide-react';
 
 interface WorkOrderDetailsMobileHeaderProps {
   workOrder: {
     title: string;
   };
-  canEdit: boolean;
   showExports?: boolean;
-  onEditClick: () => void;
   /** Opens unified overflow/actions sheet */
   onOpenActionSheet: () => void;
 }
 
 export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeaderProps> = ({
   workOrder,
-  canEdit,
   showExports = false,
-  onEditClick,
   onOpenActionSheet,
 }) => {
   return (
@@ -37,16 +33,6 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
           </Button>
 
           <div className="flex shrink-0 items-center gap-0.5">
-            {canEdit && (
-              <Button
-                variant="outline"
-                onClick={onEditClick}
-                className="min-h-[44px] min-w-[44px] px-3 touch-manipulation"
-                aria-label="Edit work order"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-            )}
             <Button
               variant={showExports ? 'outline' : 'ghost'}
               onClick={() => void onOpenActionSheet()}

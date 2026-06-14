@@ -7,8 +7,6 @@ import { WorkOrderDetailsMobileHeader } from '../WorkOrderDetailsMobileHeader';
 describe('WorkOrderDetailsMobileHeader', () => {
   const baseProps = {
     workOrder: { title: 'Hydraulic Pump Inspection' },
-    canEdit: true,
-    onEditClick: vi.fn(),
     onOpenActionSheet: vi.fn(),
   };
 
@@ -41,8 +39,8 @@ describe('WorkOrderDetailsMobileHeader', () => {
     expect(baseProps.onOpenActionSheet).toHaveBeenCalledTimes(1);
   });
 
-  it('omits edit when canEdit is false', () => {
-    render(<WorkOrderDetailsMobileHeader {...baseProps} canEdit={false} />);
+  it('does not render a full edit work order button', () => {
+    render(<WorkOrderDetailsMobileHeader {...baseProps} />);
 
     expect(screen.queryByRole('button', { name: /edit work order/i })).not.toBeInTheDocument();
   });

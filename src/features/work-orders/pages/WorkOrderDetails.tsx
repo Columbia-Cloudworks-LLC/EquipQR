@@ -21,13 +21,12 @@ import { useWorkOrderDetailsStagger } from '@/features/work-orders/hooks/useWork
 import { useWorkOrderDetailsPMInitialization } from '@/features/work-orders/hooks/useWorkOrderDetailsPMInitialization';
 import { useWorkOrderDetailsMobileWorkflow } from '@/features/work-orders/hooks/useWorkOrderDetailsMobileWorkflow';
 import { useWorkOrderDetailsNotesComposer } from '@/features/work-orders/hooks/useWorkOrderDetailsNotesComposer';
+import { useWorkOrderInlineFieldSave } from '@/features/work-orders/hooks/useWorkOrderInlineFieldSave';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useOfflineQueue } from '@/contexts/OfflineQueueContext';
 import {
-  buildMobileEquipmentSummary,
   buildMobileWorkOrderAssigneeSummary,
-  buildMobileWorkOrderSummary,
   buildOfflineSyncState,
   buildWorkOrderAssigneeSummary,
   buildWorkOrderTeamSummary,
@@ -119,21 +118,10 @@ const WorkOrderDetails = () => {
   const { data: linkedEquipment = [] } = useWorkOrderEquipment(workOrderId || '');
 
   const {
-    isEditFormOpen,
     showMobileSidebar,
     setShowMobileSidebar,
-    handleEditWorkOrder,
-    handleCloseEditForm,
-    handleUpdateWorkOrder,
     handleStatusUpdate,
     handlePMUpdate,
-    showPMWarning,
-    setShowPMWarning,
-    pmChangeType,
-    handleConfirmPMChange,
-    handleCancelPMChange,
-    getPMDataDetails,
-    isUpdating,
   } = useWorkOrderDetailsActions(workOrderId || '', currentOrganization?.id || '', pmData);
 
   const workTimer = useWorkTimer(workOrderId);
@@ -170,6 +158,14 @@ const WorkOrderDetails = () => {
       notesSectionRef,
       isOnline: offlineQueue.isOnline,
     });
+
+  const { saveField } = useWorkOrderInlineFieldSave(workOrderId || '', workOrder?.updated_at);
+  const handleSaveDescription = React.useCallback(
+    async (description: string) => {
+      await saveField('description', description);
+    },
+    [saveField],
+  );
 
   useWorkOrderDetailsActionQuery({
     actionParam,
@@ -236,6 +232,8 @@ const WorkOrderDetails = () => {
     footerRoleEligible,
   });
   const hideInlineNoteAddButton = shouldHideInlineNoteAddButton(showMobileActionFooter, workOrder.status);
+  const canEditInlineFields = canEdit && !isWorkOrderLocked;
+  const canEditAssignment = permissionLevels.canAssign && !isWorkOrderLocked;
 
   const canCompletePmGate = !workOrder.has_pm || pmData?.status === 'completed';
   const pmChecklist = getPMChecklistStats(pmData?.checklist_data);
@@ -243,18 +241,6 @@ const WorkOrderDetails = () => {
   const teamSummary = buildWorkOrderTeamSummary(workOrder, equipment);
   const assigneeNameSummary = buildWorkOrderAssigneeSummary(workOrder.assigneeName);
   const mobileAssigneeSummary = buildMobileWorkOrderAssigneeSummary(workOrder.assigneeName);
-  const compactWorkOrderSummary = buildMobileWorkOrderSummary({
-    status: workOrder.status,
-    priority: workOrder.priority,
-    dueDate: workOrder.due_date,
-  });
-  const compactEquipmentSummary = equipment
-    ? buildMobileEquipmentSummary({
-        id: equipment.id,
-        name: equipment.name,
-        status: equipment.status,
-      })
-    : undefined;
 
   const scrollToPMSection = () => {
     pmSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -264,9 +250,7 @@ const WorkOrderDetails = () => {
     <div className="min-h-screen bg-background texture-grain">
       <WorkOrderDetailsMobileHeader
         workOrder={{ title: workOrder.title }}
-        canEdit={canEdit}
         showExports={permissionLevels.isManager}
-        onEditClick={handleEditWorkOrder}
         onOpenActionSheet={() => setShowMobileActionSheet(true)}
       />
 
@@ -274,8 +258,6 @@ const WorkOrderDetails = () => {
         workOrder={workOrder}
         formMode={formMode}
         permissionLevels={permissionLevels}
-        canEdit={canEdit}
-        onEditClick={handleEditWorkOrder}
         equipmentTeamId={equipment?.team_id}
         equipment={equipment ? {
           id: equipment.id,
@@ -328,8 +310,6 @@ const WorkOrderDetails = () => {
               showMobileActionFooter={showMobileActionFooter}
               footerRoleEligible={footerRoleEligible}
               syncState={syncState}
-              compactWorkOrderSummary={compactWorkOrderSummary}
-              compactEquipmentSummary={compactEquipmentSummary}
               teamSummary={teamSummary}
               assigneeNameSummary={assigneeNameSummary}
               mobileAssigneeSummary={mobileAssigneeSummary}
@@ -341,11 +321,15 @@ const WorkOrderDetails = () => {
               onAcceptWorkOrder={() => setShowFieldAcceptDialog(true)}
               onStartWork={startMobileWorkOrder}
               onResumeWork={pauseResumeMobileWorkOrder}
+              onPutAssignedOnHold={putAssignedMobileWorkOrderOnHold}
               onContinueChecklist={scrollToPMSection}
               onAddNote={openNotesComposer}
               onAddPhoto={openPhotoCapture}
               onComplete={() => setShowMobileCompleteDialog(true)}
               onRetrySync={offlineQueue.retryFailed}
+              canEditInlineFields={canEditInlineFields}
+              canEditAssignment={canEditAssignment}
+              onSaveDescription={handleSaveDescription}
             />
           ) : (
             <WorkOrderDetailsDesktopContent
@@ -370,6 +354,8 @@ const WorkOrderDetails = () => {
               notesSectionRef={notesSectionRef}
               stagger={stagger}
               onPMUpdate={handlePMUpdate}
+              canEditInlineFields={canEditInlineFields}
+              onSaveDescription={handleSaveDescription}
             />
           )}
         </div>
@@ -393,26 +379,14 @@ const WorkOrderDetails = () => {
       <WorkOrderDetailsOverlays
         isMobile={isMobile}
         workOrder={workOrder}
-        pmData={pmData}
         organizationId={currentOrganization.id}
         equipmentTeamId={equipment?.team_id}
         permissionLevels={permissionLevels}
-        canEdit={canEdit}
         canAddNotes={canAddNotes}
         canCompletePmGate={canCompletePmGate}
         showMobileActionFooter={showMobileActionFooter}
         syncState={syncState}
         workTimer={workTimer}
-        isEditFormOpen={isEditFormOpen}
-        onCloseEditForm={handleCloseEditForm}
-        onUpdateWorkOrder={handleUpdateWorkOrder}
-        isUpdating={isUpdating}
-        showPMWarning={showPMWarning}
-        onPMWarningOpenChange={setShowPMWarning}
-        onConfirmPMChange={handleConfirmPMChange}
-        onCancelPMChange={handleCancelPMChange}
-        pmChangeType={pmChangeType}
-        pmDataDetails={getPMDataDetails()}
         showMobilePDFDialog={showMobilePDFDialog}
         onMobilePDFDialogOpenChange={setShowMobilePDFDialog}
         mobilePdfDialogFocusDrive={mobilePdfDialogFocusDrive}
@@ -426,7 +400,6 @@ const WorkOrderDetails = () => {
         isMobileSavingToDrive={exports.isMobileSavingToDrive}
         showMobileActionSheet={showMobileActionSheet}
         onMobileActionSheetOpenChange={setShowMobileActionSheet}
-        onEditWorkOrder={handleEditWorkOrder}
         onViewFullDetails={() => {
           setShowMobileActionSheet(false);
           setShowMobileSidebar(true);

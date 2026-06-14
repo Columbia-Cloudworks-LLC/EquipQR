@@ -1,28 +1,22 @@
 import React from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { CheckCircle } from 'lucide-react';
-import WorkOrderForm from '@/features/work-orders/components/WorkOrderForm';
-import { PMChangeWarningDialog } from '@/features/work-orders/components/PMChangeWarningDialog';
 import { WorkOrderPDFExportDialog } from '@/features/work-orders/components/WorkOrderPDFExportDialog';
 import { MobileWorkOrderActionSheet } from '@/features/work-orders/components/MobileWorkOrderActionSheet';
 import { MobileWorkOrderActionFooter } from '@/features/work-orders/components/MobileWorkOrderActionFooter';
 import WorkOrderAcceptanceModal from '@/features/work-orders/components/WorkOrderAcceptanceModal';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import type { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
-import type { PMData } from '@/features/work-orders/types/workOrderDetails';
-import type { WorkOrderUpdateData } from '@/features/work-orders/types/workOrder';
 import type { UseMutationResult } from '@tanstack/react-query';
 
 type WorkOrderDetailsOverlaysProps = {
   isMobile: boolean;
   workOrder: WorkOrder;
-  pmData: PMData | null | undefined;
   organizationId: string;
   equipmentTeamId?: string | null;
   permissionLevels: {
     isManager: boolean;
   };
-  canEdit: boolean;
   canAddNotes: boolean;
   canCompletePmGate: boolean;
   showMobileActionFooter: boolean;
@@ -34,16 +28,6 @@ type WorkOrderDetailsOverlaysProps = {
     start: () => void;
     pause: () => void;
   };
-  isEditFormOpen: boolean;
-  onCloseEditForm: () => void;
-  onUpdateWorkOrder: (data: WorkOrderUpdateData, hasPm: boolean, equipmentId: string) => void;
-  isUpdating: boolean;
-  showPMWarning: boolean;
-  onPMWarningOpenChange: (open: boolean) => void;
-  onConfirmPMChange: () => void;
-  onCancelPMChange: () => void;
-  pmChangeType: 'disable' | 'change_template';
-  pmDataDetails: { hasNotes: boolean; hasCompletedItems: boolean };
   showMobilePDFDialog: boolean;
   onMobilePDFDialogOpenChange: (open: boolean) => void;
   mobilePdfDialogFocusDrive: boolean;
@@ -57,7 +41,6 @@ type WorkOrderDetailsOverlaysProps = {
   isMobileSavingToDrive: boolean;
   showMobileActionSheet: boolean;
   onMobileActionSheetOpenChange: (open: boolean) => void;
-  onEditWorkOrder: () => void;
   onViewFullDetails: () => void;
   onDownloadWorksheet: () => Promise<void>;
   isMobileWorksheetGenerating: boolean;
@@ -95,26 +78,14 @@ type WorkOrderDetailsOverlaysProps = {
 export function WorkOrderDetailsOverlays({
   isMobile,
   workOrder,
-  pmData,
   organizationId,
   equipmentTeamId,
   permissionLevels,
-  canEdit,
   canAddNotes,
   canCompletePmGate,
   showMobileActionFooter,
   syncState,
   workTimer,
-  isEditFormOpen,
-  onCloseEditForm,
-  onUpdateWorkOrder,
-  isUpdating,
-  showPMWarning,
-  onPMWarningOpenChange,
-  onConfirmPMChange,
-  onCancelPMChange,
-  pmChangeType,
-  pmDataDetails,
   showMobilePDFDialog,
   onMobilePDFDialogOpenChange,
   mobilePdfDialogFocusDrive,
@@ -128,7 +99,6 @@ export function WorkOrderDetailsOverlays({
   isMobileSavingToDrive,
   showMobileActionSheet,
   onMobileActionSheetOpenChange,
-  onEditWorkOrder,
   onViewFullDetails,
   onDownloadWorksheet,
   isMobileWorksheetGenerating,
@@ -164,25 +134,6 @@ export function WorkOrderDetailsOverlays({
 }: WorkOrderDetailsOverlaysProps) {
   return (
     <>
-      <WorkOrderForm
-        open={isEditFormOpen}
-        onClose={onCloseEditForm}
-        workOrder={workOrder}
-        onSubmit={(data) => onUpdateWorkOrder(data, workOrder.has_pm, workOrder.equipment_id)}
-        isUpdating={isUpdating}
-        pmData={pmData}
-      />
-
-      <PMChangeWarningDialog
-        open={showPMWarning}
-        onOpenChange={onPMWarningOpenChange}
-        onConfirm={onConfirmPMChange}
-        onCancel={onCancelPMChange}
-        changeType={pmChangeType}
-        hasExistingNotes={pmDataDetails.hasNotes}
-        hasCompletedItems={pmDataDetails.hasCompletedItems}
-      />
-
       <WorkOrderPDFExportDialog
         open={showMobilePDFDialog}
         onOpenChange={onMobilePDFDialogOpenChange}
@@ -205,8 +156,6 @@ export function WorkOrderDetailsOverlays({
           equipmentTeamId={equipmentTeamId}
           organizationId={organizationId}
           isManager={permissionLevels.isManager}
-          canEdit={canEdit}
-          onEdit={onEditWorkOrder}
           onViewFullDetails={onViewFullDetails}
           onOpenPdfDialog={onOpenMobilePdfDialog}
           onOpenDrivePdfDialog={onOpenMobileDrivePdfDialog}

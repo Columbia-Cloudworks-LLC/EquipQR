@@ -82,6 +82,21 @@ vi.mock('@/contexts/OfflineQueueContext', () => ({
     failedCount: 0,
     retryFailed: vi.fn(),
   })),
+  useOfflineQueueOptional: vi.fn(() => undefined),
+}));
+
+vi.mock('@/features/work-orders/hooks/useWorkOrderInlineFieldSave', () => ({
+  useWorkOrderInlineFieldSave: vi.fn(() => ({
+    saveField: vi.fn(),
+    isSaving: false,
+  })),
+}));
+
+vi.mock('@/hooks/useQuickWorkOrderAssignment', () => ({
+  useQuickWorkOrderAssignment: vi.fn(() => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  })),
 }));
 
 vi.mock('@/hooks/useAuth', () => ({

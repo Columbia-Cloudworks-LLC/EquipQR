@@ -60,6 +60,45 @@ export const getStatusColor = (status: string): string => {
 };
 
 /**
+ * Text-only status color for detail views (no badge chrome).
+ */
+export const getWorkOrderStatusTextColor = (status: string): string => {
+  switch (status) {
+    case 'submitted':
+      return 'text-info';
+    case 'accepted':
+      return 'text-primary';
+    case 'assigned':
+    case 'in_progress':
+      return 'text-warning';
+    case 'on_hold':
+      return 'text-muted-foreground';
+    case 'completed':
+      return 'text-success';
+    case 'cancelled':
+      return 'text-destructive';
+    default:
+      return 'text-foreground';
+  }
+};
+
+/**
+ * Text-only priority color for detail views (no badge chrome).
+ */
+export const getPriorityTextColor = (priority: string): string => {
+  switch (priority) {
+    case 'high':
+      return 'text-destructive';
+    case 'medium':
+      return 'text-warning';
+    case 'low':
+      return 'text-success';
+    default:
+      return 'text-muted-foreground';
+  }
+};
+
+/**
  * Get shadcn Badge variant for status
  */
 const getStatusBadgeVariant = (status: WorkOrderStatus): 'default' | 'secondary' | 'outline' | 'destructive' => {

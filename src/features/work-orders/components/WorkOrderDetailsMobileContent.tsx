@@ -1,4 +1,14 @@
-import React from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
@@ -15,7 +25,11 @@ import {
 } from '@/features/work-orders/components/WorkOrderDetailsSharedCards';
 import { WorkOrderDetailsMobile } from '@/features/work-orders/components/WorkOrderDetailsMobile';
 import { MobileWorkOrderCompactSummary } from '@/features/work-orders/components/MobileWorkOrderCompactSummary';
+import { MobileWorkOrderStatusSheet } from '@/features/work-orders/components/MobileWorkOrderStatusSheet';
 import { MobileWorkOrderFieldNextAction } from '@/features/work-orders/components/MobileWorkOrderFieldNextAction';
+import { buildWorkOrderStatusActions } from '@/features/work-orders/utils/buildWorkOrderStatusActions';
+import { useWorkOrderStatusChangeHandlers } from '@/features/work-orders/hooks/useWorkOrderStatusChangeHandlers';
+import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import type { EquipmentWithTeam } from '@/features/equipment/services/EquipmentService';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import type { PMChecklistStats } from '@/features/work-orders/utils/pmChecklistStats';
@@ -60,9 +74,6 @@ export interface WorkOrderDetailsMobileContentProps {
     pendingCount: number;
     failedCount: number;
   };
-  compactWorkOrderSummary: { status: string; priority: string; due_date?: string | null };
-  compactEquipmentSummary?: { id: string; name: string; status: string };
-  teamSummary?: TeamSummary;
   assigneeNameSummary?: AssigneeNameSummary;
   mobileAssigneeSummary?: { id: string; name: string };
   mobileReviewOpen: boolean;
@@ -73,11 +84,15 @@ export interface WorkOrderDetailsMobileContentProps {
   onAcceptWorkOrder: () => void;
   onStartWork: () => void;
   onResumeWork: () => void;
+  onPutAssignedOnHold: () => void;
   onContinueChecklist: () => void;
   onAddNote: () => void;
   onAddPhoto: () => void;
   onComplete: () => void;
   onRetrySync: () => void;
+  canEditInlineFields?: boolean;
+  canEditAssignment?: boolean;
+  onSaveDescription?: (description: string) => Promise<void>;
 }
 
 export function WorkOrderDetailsMobileContent({
@@ -100,8 +115,6 @@ export function WorkOrderDetailsMobileContent({
   showMobileActionFooter,
   footerRoleEligible,
   syncState,
-  compactWorkOrderSummary,
-  compactEquipmentSummary,
   teamSummary,
   assigneeNameSummary,
   mobileAssigneeSummary,
@@ -113,20 +126,188 @@ export function WorkOrderDetailsMobileContent({
   onAcceptWorkOrder,
   onStartWork,
   onResumeWork,
+  onPutAssignedOnHold,
   onContinueChecklist,
   onAddNote,
   onAddPhoto,
   onComplete,
   onRetrySync,
+  canEditInlineFields = false,
+  canEditAssignment = false,
+  onSaveDescription,
 }: WorkOrderDetailsMobileContentProps) {
+  const [showStatusSheet, setShowStatusSheet] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+
+  const pmIncomplete =
+    !!workOrder.has_pm &&
+    pmData?.status !== 'completed' &&
+    (pmChecklist.total > 0 ? pmChecklist.progress < pmChecklist.total : true);
+
+  const {
+    updateStatusMutation,
+    acceptanceMutation,
+    isManager,
+    isTechnician,
+    canPerformStatusActions,
+    canCompleteWorkOrder,
+  } = useWorkOrderStatusChangeHandlers(
+    {
+      id: workOrder.id,
+      status: workOrder.status,
+      has_pm: workOrder.has_pm ?? false,
+      assignee_id: workOrder.assignee_id,
+      created_by: workOrder.created_by,
+    },
+    currentOrganization.id,
+    () => {
+      setShowStatusSheet(false);
+      onAcceptWorkOrder();
+    },
+    () => {
+      setShowStatusSheet(false);
+      setShowCancelDialog(true);
+    },
+    () => {
+      setShowStatusSheet(false);
+      onComplete();
+    },
+  );
+
+  const canChangeStatus =
+    footerRoleEligible &&
+    !isWorkOrderLocked &&
+    workOrder.status !== 'completed' &&
+    workOrder.status !== 'cancelled' &&
+    canPerformStatusActions();
+
+  const routeStatusChange = useCallback(
+    (newStatus: WorkOrderStatus) => {
+      setShowStatusSheet(false);
+
+      switch (newStatus) {
+        case 'accepted':
+          onAcceptWorkOrder();
+          return;
+        case 'in_progress':
+          if (workOrder.status === 'on_hold') {
+            onResumeWork();
+          } else {
+            onStartWork();
+          }
+          return;
+        case 'on_hold':
+          if (workOrder.status === 'assigned' || workOrder.status === 'accepted') {
+            onPutAssignedOnHold();
+          } else {
+            onResumeWork();
+          }
+          return;
+        case 'completed':
+          onComplete();
+          return;
+        case 'cancelled':
+          setShowCancelDialog(true);
+          return;
+        default:
+          return;
+      }
+    },
+    [
+      onAcceptWorkOrder,
+      onComplete,
+      onPutAssignedOnHold,
+      onResumeWork,
+      onStartWork,
+      workOrder.status,
+    ],
+  );
+
+  const statusActions = useMemo(
+    () =>
+      buildWorkOrderStatusActions({
+        status: workOrder.status,
+        canPerformStatusActions: canChangeStatus,
+        isManager,
+        isTechnician,
+        canComplete: canCompleteWorkOrder(),
+        onStatusChange: (status) => {
+          routeStatusChange(status as WorkOrderStatus);
+        },
+      }),
+    [
+      canChangeStatus,
+      canCompleteWorkOrder,
+      isManager,
+      isTechnician,
+      routeStatusChange,
+      workOrder.status,
+    ],
+  );
+
+  const handleConfirmCancel = useCallback(async () => {
+    try {
+      await updateStatusMutation.mutateAsync({
+        workOrderId: workOrder.id,
+        status: 'cancelled',
+        organizationId: currentOrganization.id,
+      });
+      setShowCancelDialog(false);
+    } catch {
+      // Mutation surfaces errors via toast/global handler
+    }
+  }, [currentOrganization.id, updateStatusMutation, workOrder.id]);
+
   return (
     <>
       <MobileWorkOrderCompactSummary
-        workOrder={compactWorkOrderSummary}
-        equipment={compactEquipmentSummary}
-        team={teamSummary}
+        workOrder={{
+          id: workOrder.id,
+          status: workOrder.status,
+          priority: workOrder.priority,
+          due_date: workOrder.due_date ?? undefined,
+          assignee_id: workOrder.assignee_id,
+          updated_at: workOrder.updated_at,
+          equipment_id: workOrder.equipment_id,
+          organization_id: workOrder.organization_id,
+          equipmentTeamId: equipment?.team_id,
+        }}
         assignee={assigneeNameSummary}
+        organizationId={currentOrganization.id}
+        canEditFields={canEditInlineFields}
+        canEditAssignment={canEditAssignment}
+        canChangeStatus={canChangeStatus}
+        onStatusPress={canChangeStatus ? () => setShowStatusSheet(true) : undefined}
       />
+
+      <MobileWorkOrderStatusSheet
+        open={showStatusSheet}
+        onOpenChange={setShowStatusSheet}
+        currentStatus={workOrder.status}
+        actions={statusActions}
+        isPending={updateStatusMutation.isPending || acceptanceMutation.isPending}
+      />
+
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel work order?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This work order will be marked as cancelled. Logged hours, notes, and costs are preserved.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={updateStatusMutation.isPending}>Go back</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={updateStatusMutation.isPending}
+              onClick={() => void handleConfirmCancel()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {updateStatusMutation.isPending ? 'Cancelling...' : 'Cancel work order'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div {...stagger(0)}>
         <WorkOrderDetailsMobile
@@ -159,6 +340,8 @@ export function WorkOrderDetailsMobileContent({
           team={teamSummary}
           assignee={mobileAssigneeSummary}
           effectiveLocation={workOrder.effectiveLocation}
+          canEditDescription={canEditInlineFields}
+          onSaveDescription={onSaveDescription}
         />
       </div>
 

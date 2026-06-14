@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/sheet';
 import {
   PanelRight,
-  PencilLine,
   MoreHorizontal,
   Trash2,
 } from 'lucide-react';
@@ -42,8 +41,6 @@ interface MobileWorkOrderActionSheetProps {
   isManager: boolean;
   /** Opens sidebar / overlay with metadata (mobile) */
   onViewFullDetails: () => void;
-  canEdit?: boolean;
-  onEdit?: () => void;
   onOpenPdfDialog: () => void;
   onOpenDrivePdfDialog: () => void;
   isGeneratingPdf: boolean;
@@ -72,8 +69,6 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
   organizationId,
   isManager,
   onViewFullDetails,
-  canEdit = false,
-  onEdit,
   onOpenPdfDialog,
   onOpenDrivePdfDialog,
   isGeneratingPdf,
@@ -106,7 +101,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
   const deleteWorkOrderMutation = useDeleteWorkOrder();
   const { data: imageData } = useWorkOrderImageCount(workOrderId);
   const canDelete = permissions.hasRole(['owner', 'admin']);
-  const showAdminSection = Boolean((canEdit && onEdit) || canDelete);
+  const showAdminSection = canDelete;
 
   const handleAction = (action: () => void) => {
     action();
@@ -208,16 +203,6 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Admin
                   </p>
-                  {canEdit && onEdit ? (
-                    <Button
-                      variant="outline"
-                      className="h-12 w-full justify-start gap-2"
-                      onClick={() => handleAction(onEdit)}
-                    >
-                      <PencilLine className="h-5 w-5" aria-hidden />
-                      <span className="text-sm font-medium">Edit work order</span>
-                    </Button>
-                  ) : null}
                   {canDelete ? (
                     <Button
                       variant="outline"
