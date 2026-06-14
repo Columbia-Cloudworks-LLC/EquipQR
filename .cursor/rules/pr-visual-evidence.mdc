@@ -4,7 +4,7 @@ alwaysApply: true
 ---
 # PR Visual Evidence (mandatory)
 
-Every **product/runtime PR** must include visual proof captured from the **local dev stack** (`http://localhost:8080`). This gate is **not skippable** when opening or updating a PR that touches user-visible behavior.
+Part of the full **`pr-merge-ready-workflow.mdc`** handoff. Every **product/runtime PR** must include visual proof captured from the **local dev stack** (`http://localhost:8080`). This gate is **not skippable** when opening or updating a PR that touches user-visible behavior.
 
 ## Required artifacts
 

@@ -131,23 +131,29 @@ git push origin preview
 
 **Linked worktree or user-requested formal PR:**
 
+Follow **`.cursor/rules/pr-merge-ready-workflow.mdc`** in full — branch, verify, evidence, open PR, babysit CI + Qodo until merge-ready. Summary commands:
+
 ```powershell
 git fetch origin preview
 git switch -c <type>/issue-<number>-<slug> origin/preview
-git add <specific-files>
-git commit -m "<conventional message>"
-git push -u origin HEAD
-# Mandatory PR visual evidence (product/runtime) — see .cursor/rules/pr-visual-evidence.mdc
+# ... implement, verify (Fallow, npm ci, lint, test:ci, build, E2E) ...
 .\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts"
+git push -u origin HEAD
 gh pr create --base preview --head <branch> --title "<title>" --body-file <body-file-with-evidence-markdown>
 .\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
+gh pr checks <num> --watch
+# Poll Get-PrQodoFindings until openCount=0; clear threads — see pr-merge-ready-workflow.mdc
 ```
 
 Use `Fixes #<number>` or `Closes #<number>` in the commit body or PR body when the issue should close after integration.
 
 Merge `tmp/pr-evidence/<slug>/evidence-markdown.md` into the PR body. Add `e2e/pr-evidence/<feature>.spec.ts` when no existing spec covers the UI change.
 
+**Do not hand off after `gh pr create`.** Merge-ready exit criteria are defined in `pr-merge-ready-workflow.mdc`.
+
 ### 7. Report Completion
+
+For **PR paths**, handoff only when **`pr-merge-ready-workflow.mdc`** exit criteria pass — not when the PR is merely opened.
 
 Final response should include:
 

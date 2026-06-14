@@ -19,6 +19,8 @@ description: >-
 
 End-to-end workflow for triaging PR review comments, implementing fixes, and posting structured responses. Optimized for **Agent Mode + Composer 2.5** from the start — no mandatory Plan Mode gate unless the feedback round is genuinely complex or ambiguous.
 
+**Same merge-ready standard as new PRs:** exit criteria match **`.cursor/rules/pr-merge-ready-workflow.mdc`** (CI green, Qodo `openCount=0`, threads clear). This skill covers the **feedback loop** on an already-open PR; opening a PR for the first time also follows that rule end-to-end.
+
 ## Priority order (mandatory)
 
 Before triaging human or bot comments, establish CI and Qodo state:

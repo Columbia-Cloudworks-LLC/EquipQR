@@ -1,0 +1,120 @@
+---
+description: "Authoritative feature-branch PR workflow — open through merge-ready (CI green, Qodo openCount=0, evidence, threads clear). Same standard every time."
+alwaysApply: true
+---
+# PR Merge-Ready Workflow (authoritative)
+
+Every **product/runtime PR into `preview`** follows this end-to-end standard. **Opening a PR is not handoff** — the agent owns the branch until merge-ready exit criteria pass.
+
+Applies to: linked worktrees, explicit user PR requests, `itil-issue-resolver` integrate-via-PR path, plans that authorize a feature branch, and any skill that says "open a PR."
+
+Direct push to `preview` from the main worktree skips this file (see `branching.mdc`) but still requires `local-verify-before-preview-push.mdc`.
+
+## Merge-ready exit criteria (all required)
+
+| Gate | Verify |
+|------|--------|
+| Local verify | Fallow clean, lint, type-check, targeted/`test:ci`, build when relevant, local E2E per change type |
+| PR visual evidence | Screenshots + GIF in PR body; `-Publish` comment when product UI changed |
+| CI green | `gh pr checks <num> --watch` — all required jobs pass |
+| Qodo complete | `Get-PrQodoFindings.ps1 -Json` → `reviewInProgress: false` |
+| Qodo resolved | Same JSON → `openCount: 0` (action required, review recommended, **and** optional — all buckets) |
+| Threads clear | `Get-PrFeedbackThreads.ps1 -Json` → zero unresolved non-outdated threads |
+| Mergeable | `gh pr view <num> --json mergeable,mergeStateStatus` → mergeable |
+
+Do **not** report "PR opened" or walk away while any row is failing or pending.
+
+## Phase 1 — Branch and implement
+
+```powershell
+git fetch origin preview
+git switch -c feat/<short-slug> origin/preview
+```
+
+Implement with focused commits. Run Fallow before each commit per `fallow-before-commit.mdc`.
+
+## Phase 2 — Local verification (before first push)
+
+Run in order:
+
+1. Fallow (both scans)
+2. **`npm ci --prefer-offline --no-audit`** when lockfile/deps changed or before first PR open — on Windows, run `.\dev-stop.bat` first if EPERM/EBUSY is possible (`dev-stack-lifecycle.mdc`). Linux CI is authoritative if local `npm ci` is blocked by file locks after a successful prior install.
+3. `npm run lint`, `npm run type-check`, `npm run test:ci`, `npm run build`, `npm run verify:spa-routing` when applicable
+4. Ensure stack healthy via batch files (`dev-stack-lifecycle.mdc`); use `.\dev-start.bat -Force` when migrations/seeds affect E2E
+5. Local E2E / PR evidence capture per `local-verify-before-preview-push.mdc` and `pr-visual-evidence.mdc`
+
+## Phase 3 — Open PR
+
+```powershell
+git push -u origin HEAD
+```
+
+Write PR body to a UTF-8 file (never inline `gh pr create --body` on Windows — `git-powershell.mdc`). Include visual evidence markdown from `tmp/pr-evidence/<flow>/evidence-markdown.md`.
+
+```powershell
+gh pr create --base preview --head feat/<short-slug> --title "<conventional title>" --body-file "$env:TEMP\pr-<slug>-body.md"
+.\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
+```
+
+## Phase 4 — Babysit until merge-ready
+
+Repeat until all exit criteria pass:
+
+### 4a — CI first
+
+```powershell
+gh pr checks <num> --watch
+```
+
+If red: fix on branch, Fallow + local verify, push, return to 4a. CI failures outrank review comments.
+
+### 4b — Qodo
+
+Poll after green CI on latest push:
+
+```powershell
+Start-Sleep -Seconds 90
+.\scripts\pr-feedback\Get-PrQodoFindings.ps1 -PullRequestNumber <num> -Json
+```
+
+Wait until `reviewInProgress: false`, then until `openCount: 0`. Address **every** unstriked finding in all three buckets — not only "action required." Push fixes, re-watch CI, re-poll Qodo.
+
+### 4c — Inline threads
+
+```powershell
+.\scripts\pr-feedback\Get-PrFeedbackThreads.ps1 -PullRequestNumber <num> -Json
+```
+
+Resolve or reply; push code fixes when needed. Audit resolved threads for regressions from post-open commits.
+
+### 4d — Final snapshot
+
+```powershell
+.\scripts\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <num> -Json
+.\scripts\pr-feedback\Get-PrQodoFindings.ps1 -PullRequestNumber <num> -Json
+.\scripts\pr-feedback\Get-PrFeedbackThreads.ps1 -PullRequestNumber <num> -Json
+gh pr view <num> --json mergeable,mergeStateStatus,url
+```
+
+Post a merge-ready handoff comment citing CI run URL, Qodo parent comment URL with `openCount=0`, and evidence links.
+
+## Fix-forward patterns (from production PRs)
+
+- **Migration validator:** register RPCs in `scripts/security-definer-rpc-allowlists.json`; add `-- rpc-authenticated-grant-allowed:` markers per function.
+- **CodeQL:** fix findings on changed files; avoid dynamic `RegExp` construction from user/path input in E2E specs when a literal pattern suffices.
+- **Qodo product bugs:** implement fix, push, wait for strikethrough — do not hand off with open items.
+- **E2E fixture drift:** reset idempotent test org state (e.g. `e2e/user/shared/fresh-start-reset.ts`) before evidence capture; ensure seed cleanup allowlists include fixture orgs.
+
+## Relationship to other rules
+
+- **`pr-ci-gate-before-open.mdc`:** CI parity install + green checks — subset of this workflow.
+- **`pr-visual-evidence.mdc`:** capture and publish requirements.
+- **`address-pr-feedback/SKILL.md`:** triage loop for review rounds after open — same exit criteria; use when user asks to address feedback on an existing PR.
+- **`branching.mdc`:** when to PR vs direct-push.
+
+## Stop conditions (escalate, do not abandon PR)
+
+- Qodo never posts within 30 minutes after green CI — report PR number and head SHA.
+- Finding requires product decision outside scope — post question on PR, stop babysit loop.
+- CI failure unrelated to PR scope persists after merging latest `origin/preview` — report with failing job link.
+- Merge conflict — merge/rebase `origin/preview`, re-verify, push, restart Phase 4.

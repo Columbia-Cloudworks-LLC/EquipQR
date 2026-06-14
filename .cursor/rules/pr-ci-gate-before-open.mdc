@@ -10,9 +10,10 @@ Local lint/tests/build are **necessary but not sufficient** for feature-branch P
 
 1. **Never run `gh pr create` until CI-parity install succeeds locally:**
    ```powershell
+   .\dev-stop.bat   # on Windows when Vite/stack may hold native binary locks
    npm ci --prefer-offline --no-audit
    ```
-   If this fails, fix lockfile / `.npmrc` / dependency peers **before** push or PR open. Do **not** rely on `npm install --legacy-peer-deps` alone when `npm ci` would fail — if you needed `--legacy-peer-deps`, ensure `.npmrc` sets `legacy-peer-deps=true` and re-run `npm ci`.
+   If this fails, fix lockfile / `.npmrc` / dependency peers **before** push or PR open. On Windows EPERM/EBUSY during `npm ci`, stop the stack per `dev-stack-lifecycle.mdc` and retry; if still blocked locally, ensure CI passes on push (Linux clean install). Do **not** rely on `npm install --legacy-peer-deps` alone when `npm ci` would fail — if you needed `--legacy-peer-deps`, ensure `.npmrc` sets `legacy-peer-deps=true` and re-run `npm ci`.
 
 2. **After `git push` to the PR branch, wait for required checks before handoff:**
    ```powershell
@@ -37,12 +38,13 @@ Run **in order** after dependency changes or before first PR open:
 3. `npm run lint`, `npm run type-check`, `npm run test:ci`, `npm run build`, `npm run verify:spa-routing`
 4. Local E2E per `local-verify-before-preview-push.mdc`
 5. PR visual evidence per `pr-visual-evidence.mdc` when UI changed
-6. Push → **`gh pr checks --watch`** until required jobs pass
+6. Push → **`gh pr checks --watch`** until required jobs pass, then complete **`pr-merge-ready-workflow.mdc`** (Qodo `openCount=0`, threads clear) before handoff.
 
 ## Relationship to other rules
 
-- **`local-verify-before-preview-push.mdc`:** adds E2E and product verification; this rule adds **install parity + GitHub CI green**.
-- **`branching.mdc`:** linked-worktree PR flow is not complete until this gate passes — not merely "open PR and let CI run."
+- **`pr-merge-ready-workflow.mdc`:** full open-through-merge-ready standard; this rule covers install parity + CI green within that flow.
+- **`local-verify-before-preview-push.mdc`:** adds E2E and product verification before push/open.
+- **`branching.mdc`:** linked-worktree PR flow is not complete until merge-ready criteria pass — not merely "open PR and let CI run."
 - **Direct push to `preview`:** still requires local verify; optional `gh pr checks` only applies when a PR exists. Feature branches use this rule in full.
 
 ## Stop conditions

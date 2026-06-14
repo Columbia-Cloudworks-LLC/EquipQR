@@ -124,13 +124,16 @@ Use when the agent hits **interactive or consent-bound** limits:
 |---|---|
 | Full secrets map, sync scripts, rotation | `docs/ops/agent-secrets-and-access.md` |
 | Branching / preview push policy | `.cursor/rules/branching.mdc` |
+| **Dev stack stop/start (batch files only)** | `.cursor/rules/dev-stack-lifecycle.mdc` |
 | Local E2E gate before preview push | `.cursor/rules/local-verify-before-preview-push.mdc` |
+| **PR open → merge-ready (CI + Qodo + evidence)** | `.cursor/rules/pr-merge-ready-workflow.mdc` |
 | PR visual evidence (screenshots + GIF) | `.cursor/rules/pr-visual-evidence.mdc` |
 | PR CI gate (`npm ci` + green checks before handoff) | `.cursor/rules/pr-ci-gate-before-open.mdc` |
 | Pre-commit Fallow gate | `.cursor/rules/fallow-before-commit.mdc` |
 | PowerShell / git conventions | `.cursor/rules/git-powershell.mdc` |
 | Workflow artifact commits | `.cursor/rules/workflow-artifacts.mdc` |
 | Implementation skills | `.cursor/skills/itil-issue-resolver/SKILL.md` |
+| PR feedback triage (existing PRs) | `.cursor/skills/address-pr-feedback/SKILL.md` |
 
 ---
 
@@ -144,6 +147,8 @@ When capturing a new secrets or access lesson, update **this file** and, if deta
 
 ## Learned User Preferences
 
+- **Dev stack: batch files only; cycle freely.** Use `dev-stop.bat` / `dev-start.bat` / `dev-start.bat -Force` for the **entire** stack — never partial Supabase/Docker restarts or `npm ci` while Vite is running. Agents may stop/start without asking when verification requires it (`dev-stack-lifecycle.mdc`).
+- **PR handoff = merge-ready, every time.** Feature-branch PRs follow the full open → CI green → Qodo `openCount=0` → threads clear → evidence published loop (`pr-merge-ready-workflow.mdc`). Do not open a PR and walk away.
 - **No preview push without local E2E.** As of 2026-06-13, local dev has production parity. Never push to `preview` until the agent has verified the change locally end-to-end with zero manual user steps (see `local-verify-before-preview-push.mdc`).
 - **No product PR without visual evidence.** Every product/runtime PR must include local-stack screenshots and a GIF uploaded for inline GitHub display (`pr-visual-evidence.mdc`, `scripts/pr-evidence/`). Add `e2e/pr-evidence/<feature>.spec.ts` when existing specs do not cover the change; use `-MobileViewport` for phone UX (see `e2e/pr-evidence/mobile-work-order-details.spec.ts`). `Invoke-PrEvidence -Publish` reuses existing `tmp/pr-evidence/{flow}/` artifacts; pass `-Recapture` only to re-run Playwright.
 - **No PR handoff with red CI.** Run `npm ci --prefer-offline --no-audit` before opening a feature-branch PR (matches GitHub Actions). After push, watch `gh pr checks <num> --watch` until required jobs pass — never open a PR and walk away on failing Lint/Test/Security/Build. If local install needed `--legacy-peer-deps`, commit `.npmrc` so CI can install too. See `pr-ci-gate-before-open.mdc`.
@@ -154,7 +159,7 @@ When capturing a new secrets or access lesson, update **this file** and, if deta
 - Plans for unattended parallel agent execution (Build in Parallel) must branch off `preview`, open a PR to `preview`, and include automatable acceptance criteria verifiable without human intervention.
 - When triaging PR feedback, address every Qodo Code Review item—action required, review recommended, and optional—not only the required block; scan resolved threads for regressions from commits pushed after the PR opened.
 - Local Playwright Google and QuickBooks E2E use captured storage state (`npm run e2e:google-auth:capture` / `e2e:quickbooks-auth:capture` with `Load-GoogleLocalAuthEnv.ps1` / `Load-QuickBooksLocalAuthEnv.ps1`) — replay headlessly; complete OAuth only during capture runs.
-- When restarting local Supabase after edge env or function changes, stop the entire stack, wait for it to go down, then start and wait for readiness — do not restart individual Docker containers.
+- When restarting local Supabase after edge env or function changes, use `.\dev-stop.bat` then `.\dev-start.bat` (or `-Force` when migrations/seeds changed) — full stack only, per `dev-stack-lifecycle.mdc`.
 - Work orders after creation use inline edit on the details page (assignment, priority, due date, description)—matching equipment details—not a full "Edit work order" dialog or extra navigation.
 - When a mutation changes a field shown on a details page, invalidate React Query cache for that record's detail key plus dependent list keys so the UI re-renders with server state.
 

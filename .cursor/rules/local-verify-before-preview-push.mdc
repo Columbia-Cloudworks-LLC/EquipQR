@@ -42,13 +42,18 @@ Pick the **smallest credible E2E proof** that covers the user-visible outcome. P
 
 ### Local stack health
 
-Before E2E, ensure the stack is up and env is current:
+Before E2E, ensure the stack is up and env is current. Follow **`dev-stack-lifecycle.mdc`** — batch files only:
 
 ```powershell
-.\dev-start.bat
-# After editing supabase/functions/.env overrides: full restart, not docker-only
-npx supabase stop; npx supabase start -x logflare -x vector
+.\dev-stop.bat
+.\dev-start.bat          # normal restart
+# or
+.\dev-start.bat -Force   # DB reset, migrations/seeds, types regen
 ```
+
+Agents may run stop/start **without asking** when verification or dependency work requires a clean stack. After edge env changes under `supabase/functions/.env`, use a **full** batch-file cycle — not partial Docker-only restarts.
+
+Before `npm ci` on Windows, stop the stack if native binary EPERM/EBUSY is possible.
 
 OAuth redirect mismatches locally almost always mean `GW_OAUTH_REDIRECT_BASE_URL` / `QB_OAUTH_REDIRECT_BASE_URL` missing from the edge runtime — see `scripts/sync-local-supabase-env.ps1`.
 
