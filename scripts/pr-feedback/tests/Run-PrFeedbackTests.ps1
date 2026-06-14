@@ -30,5 +30,31 @@ Assert-Equal -Expected 1 -Actual $b.workingSet.Count -Message 'workingSet.Count'
 Assert-Equal -Expected 2 -Actual $b.outdatedOpenSet.Count -Message 'outdatedOpenSet.Count'
 Assert-Equal -Expected 't2' -Actual $b.workingSet[0].id -Message 'working id'
 
+# Qodo finding resolution detection
+Assert-Equal -Expected $true -Actual (Test-QodoFindingSummaryResolved -SummaryHtml '<s>Cleanup aborts DOCX download</s> <code>✓ Resolved</code>') -Message 'resolved via s tag'
+Assert-Equal -Expected $false -Actual (Test-QodoFindingSummaryResolved -SummaryHtml '  3.  Error CORS opts omitted <code>🐞 Bug</code>') -Message 'open finding'
+
+$qodoSample = @'
+<img src="https://img.shields.io/badge/Action_required-634FD1?style=flat-square" height="20px" alt="Action required">
+<details>
+<summary>  1.  <s>DOCX function bypasses response helpers</s> <code>✓ Resolved</code></summary>
+</details>
+<details>
+<summary>  2.  Error CORS opts omitted <code>🐞 Bug</code></summary>
+</details>
+<img src="https://img.shields.io/badge/Review_recommended-634FD1?style=flat-square" height="20px" alt="Remediation recommended">
+<details>
+<summary>  3.  <s>Wildcard CORS in exports</s> <code>✓ Resolved</code></summary>
+</details>
+<details>
+<summary>  4.  Missing test coverage <code>📘 Rule violation</code></summary>
+</details>
+'@
+$parsed = Parse-QodoFindingsFromReviewBody -Body $qodoSample
+Assert-Equal -Expected 2 -Actual $parsed.openCount -Message 'qodo openCount'
+Assert-Equal -Expected 2 -Actual $parsed.resolvedCount -Message 'qodo resolvedCount'
+Assert-Equal -Expected 'actionRequired' -Actual $parsed.openFindings[0].bucket -Message 'first open bucket'
+Assert-Equal -Expected 'reviewRecommended' -Actual $parsed.openFindings[1].bucket -Message 'second open bucket'
+
 Write-Host "PrFeedbackLogic: OK"
 exit 0
