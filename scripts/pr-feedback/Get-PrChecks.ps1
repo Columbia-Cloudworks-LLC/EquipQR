@@ -77,6 +77,7 @@ function Get-PrChecksSummary {
         hasPending        = $hasPending
         hasFailed         = $hasFailed
         hasOther          = $hasOther
+        hasNoChecks       = ($checks.Count -eq 0)
         passCount         = $passed.Count
         failCount         = $failed.Count
         pendingCount      = $pending.Count
@@ -121,12 +122,16 @@ else {
             Write-Host "  OTHER ($($c.bucket)): $($c.name)"
         }
     }
+    if ($summary.hasNoChecks) {
+        Write-Host '  NO CHECKS: gh pr checks returned an empty list'
+    }
     if ($summary.isGreen) {
         Write-Host 'CI: green'
     }
 }
 
-if ($summary.hasPending) { exit 8 }
+if ($summary.hasPending -or $summary.hasNoChecks) { exit 8 }
 if ($summary.hasFailed) { exit 1 }
 if ($summary.hasOther) { exit 1 }
+if (-not $summary.isGreen) { exit 1 }
 exit 0
