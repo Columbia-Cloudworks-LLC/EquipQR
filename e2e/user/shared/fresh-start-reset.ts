@@ -83,3 +83,26 @@ export async function resetFreshStartOnboardingFixture(): Promise<void> {
     throw new Error(`Fresh Start reset: onboarding flag clear failed — ${onboardingError.message}`);
   }
 }
+
+const PARTIAL_SETUP_TEAM_ID = '880e8400-e29b-41d4-a716-446655440099';
+
+/**
+ * Resets Fresh Start to partial onboarding state: one team, no equipment, onboarding incomplete.
+ */
+export async function seedFreshStartOneTeamOnly(): Promise<void> {
+  await resetFreshStartOnboardingFixture();
+
+  const admin = createClient(LOCAL_SUPABASE_URL, resolveLocalServiceRoleKey(), {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const { error: teamError } = await admin.from('teams').insert({
+    id: PARTIAL_SETUP_TEAM_ID,
+    organization_id: freshStartOrgId,
+    name: 'Partial Setup Crew',
+    description: 'E2E partial onboarding fixture (team only)',
+  });
+  if (teamError) {
+    throw new Error(`Fresh Start partial setup: team insert failed — ${teamError.message}`);
+  }
+}

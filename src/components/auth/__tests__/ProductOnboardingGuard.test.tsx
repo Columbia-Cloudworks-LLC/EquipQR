@@ -116,6 +116,20 @@ describe('ProductOnboardingGuard', () => {
     expect(screen.getByText('Dashboard content')).toBeInTheDocument();
   });
 
+  it('renders children for established org admin without completed_at', () => {
+    mockStatus.mockReturnValue({
+      needs_onboarding: false,
+      is_org_admin: true,
+      teams_count: 2,
+      equipment_count: 3,
+      completed_at: null,
+    });
+
+    renderGuard('/dashboard');
+
+    expect(screen.getByText('Dashboard content')).toBeInTheDocument();
+  });
+
   it('bypasses guard for non-admin members', () => {
     mockStatus.mockReturnValue({
       needs_onboarding: false,
@@ -128,6 +142,21 @@ describe('ProductOnboardingGuard', () => {
     renderGuard('/dashboard');
 
     expect(screen.getByText('Dashboard content')).toBeInTheDocument();
+  });
+
+  it('renders dashboard for established org admin with null completed_at', () => {
+    mockStatus.mockReturnValue({
+      needs_onboarding: false,
+      is_org_admin: true,
+      teams_count: 2,
+      equipment_count: 3,
+      completed_at: null,
+    });
+
+    renderGuard('/dashboard');
+
+    expect(screen.getByText('Dashboard content')).toBeInTheDocument();
+    expect(screen.getByTestId('location-probe')).toHaveTextContent('/dashboard');
   });
 
   it('does not redirect when already on getting-started route', () => {

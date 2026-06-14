@@ -69,3 +69,15 @@ INSERT INTO public.organization_members (
   -- Multi Org Consulting - owned by multi@equipqr.test
   ('cc0e8400-e29b-41d4-a716-446655440043'::uuid, '660e8400-e29b-41d4-a716-446655440007'::uuid, 'bb0e8400-e29b-41d4-a716-446655440008'::uuid, 'owner', 'active', '2023-11-01 00:00:00+00')
 ON CONFLICT (id) DO NOTHING;
+
+-- Established seeded orgs (Apex, Metro, Valley, Industrial) skip product onboarding wizard.
+UPDATE public.organization_members
+SET product_onboarding_completed_at = COALESCE(product_onboarding_completed_at, NOW())
+WHERE status = 'active'
+  AND role IN ('owner', 'admin')
+  AND organization_id IN (
+    '660e8400-e29b-41d4-a716-446655440000'::uuid,
+    '660e8400-e29b-41d4-a716-446655440001'::uuid,
+    '660e8400-e29b-41d4-a716-446655440002'::uuid,
+    '660e8400-e29b-41d4-a716-446655440003'::uuid
+  );
