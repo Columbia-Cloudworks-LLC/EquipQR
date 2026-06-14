@@ -4954,7 +4954,7 @@ export type Database = {
       get_product_onboarding_status: {
         Args: { p_organization_id: string }
         Returns: {
-          completed_at: string | null
+          completed_at: string
           equipment_count: number
           is_org_admin: boolean
           needs_onboarding: boolean
