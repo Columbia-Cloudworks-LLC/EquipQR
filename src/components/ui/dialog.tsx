@@ -48,6 +48,7 @@ const DialogContent = React.forwardRef<
       <DialogOverlay />
       <DialogPrimitive.Content
         ref={ref}
+        data-equipqr-dialog-content="true"
         className={cn(
           // Mobile-safe: constrain to viewport (dynamic viewport units) and allow internal scrolling.
           // Many dialogs in the app contain long forms/lists; without this, mobile users can get "trapped"

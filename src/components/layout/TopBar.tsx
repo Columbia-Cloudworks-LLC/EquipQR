@@ -25,7 +25,7 @@ const TopBar: React.FC = () => {
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
-          aria-label="Open menu"
+          aria-label="Open sidebar"
           className="-ml-1 h-8 w-8 p-1 flex-shrink-0 sm:hidden"
         >
           <img

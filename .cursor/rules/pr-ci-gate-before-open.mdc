@@ -1,0 +1,52 @@
+---
+description: "Hard gate — no PR open or handoff until npm ci parity passes and GitHub required CI checks are green on the pushed branch."
+alwaysApply: true
+---
+# PR CI Gate (mandatory before open and handoff)
+
+Local lint/tests/build are **necessary but not sufficient** for feature-branch PRs. CI runs a **clean `npm ci`** on Linux runners; that path must pass before `gh pr create` and before the agent marks the PR workflow complete.
+
+## Hard rules
+
+1. **Never run `gh pr create` until CI-parity install succeeds locally:**
+   ```powershell
+   npm ci --prefer-offline --no-audit
+   ```
+   If this fails, fix lockfile / `.npmrc` / dependency peers **before** push or PR open. Do **not** rely on `npm install --legacy-peer-deps` alone when `npm ci` would fail — if you needed `--legacy-peer-deps`, ensure `.npmrc` sets `legacy-peer-deps=true` and re-run `npm ci`.
+
+2. **After `git push` to the PR branch, wait for required checks before handoff:**
+   ```powershell
+   gh pr checks <number> --watch
+   ```
+   Or poll until all required jobs pass:
+   ```powershell
+   gh pr checks <number>
+   ```
+   **Do not** report the PR as complete, walk away, or publish final summary while Lint, Test shards, Security Scan, or Build jobs are failing or pending.
+
+3. **If checks fail after push:** fix on the same branch, push again, re-watch until green. Post a brief PR comment only after the fix push if the maintainer needs context.
+
+4. **Handoff must cite CI status:** include `gh pr checks` output or a link to the green workflow run. "Local tests passed" is not an acceptable substitute for red CI.
+
+## Minimum CI-parity gate (feature PRs)
+
+Run **in order** after dependency changes or before first PR open:
+
+1. Fallow (both scans) per `fallow-before-commit.mdc`
+2. **`npm ci --prefer-offline --no-audit`** — must exit 0 (matches `.github/workflows/ci.yml`)
+3. `npm run lint`, `npm run type-check`, `npm run test:ci`, `npm run build`, `npm run verify:spa-routing`
+4. Local E2E per `local-verify-before-preview-push.mdc`
+5. PR visual evidence per `pr-visual-evidence.mdc` when UI changed
+6. Push → **`gh pr checks --watch`** until required jobs pass
+
+## Relationship to other rules
+
+- **`local-verify-before-preview-push.mdc`:** adds E2E and product verification; this rule adds **install parity + GitHub CI green**.
+- **`branching.mdc`:** linked-worktree PR flow is not complete until this gate passes — not merely "open PR and let CI run."
+- **Direct push to `preview`:** still requires local verify; optional `gh pr checks` only applies when a PR exists. Feature branches use this rule in full.
+
+## Stop conditions
+
+- Stop before `gh pr create` if `npm ci` fails locally.
+- Stop handoff if required checks are red — fix or report blocker; do not leave a failing PR for the maintainer to discover.
+- Stop if fixes require secrets/OAuth the agent cannot run in CI (report explicitly).

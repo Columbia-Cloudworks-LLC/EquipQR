@@ -143,7 +143,7 @@ const AssetQRCodeDisplay: React.FC<AssetQRCodeDisplayProps> = ({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">QR Code URL:</label>
+            <span className="text-sm font-medium text-foreground">QR Code URL:</span>
             <div className="flex items-center gap-2">
               <div className="flex-1 p-2 bg-muted rounded border text-sm font-mono break-all text-muted-foreground">
                 {qrCodeUrl}

@@ -42,7 +42,7 @@ export default function WhyDifferentSection() {
         >
           Why EquipQR is Different
         </h2>
-        <ul className="mx-auto max-w-4xl space-y-4" role="list">
+        <ul className="mx-auto max-w-4xl space-y-4">
           {bullets.map(({ icon: Icon, title, text }, index) => (
             <li key={title} className="list-none">
               <LandingReveal delayMs={index * 60}>

@@ -34,7 +34,7 @@ const NotificationsFilterPopover: React.FC<NotificationsFilterPopoverProps> = ({
         <>
           {/* Type */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-muted-foreground">Type</label>
+            <span className="text-xs text-muted-foreground">Type</span>
             <Select value={filterType} onValueChange={onFilterTypeChange}>
               <SelectTrigger className="h-8 text-sm" aria-label="Filter by notification type">
                 <SelectValue placeholder="All types" />
@@ -65,7 +65,7 @@ const NotificationsFilterPopover: React.FC<NotificationsFilterPopoverProps> = ({
 
           {/* Read status */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-muted-foreground">Read status</label>
+            <span className="text-xs text-muted-foreground">Read status</span>
             <Select value={filterRead} onValueChange={onFilterReadChange}>
               <SelectTrigger className="h-8 text-sm" aria-label="Filter by read status">
                 <SelectValue placeholder="All" />

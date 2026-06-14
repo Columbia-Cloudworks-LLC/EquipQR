@@ -2,6 +2,10 @@ import React from 'react';
 import { PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import {
+  ChartAccessibleSummary,
+  type ChartSummaryItem,
+} from '@/components/a11y/ChartAccessibleSummary';
 
 export interface DonutChartDatum {
   status: string;
@@ -12,6 +16,16 @@ export interface DonutChartDatum {
 
 export function donutEntryPercent(count: number, totalCount: number): number {
   return totalCount > 0 ? Math.round((count / totalCount) * 100) : 0;
+}
+
+export function buildDonutChartSummaryItems(
+  data: DonutChartDatum[],
+  totalCount: number,
+): ChartSummaryItem[] {
+  return data.map((entry) => ({
+    label: entry.label,
+    value: `${entry.count} (${donutEntryPercent(entry.count, totalCount)}%)`,
+  }));
 }
 
 export function createDonutTooltipContent(
@@ -130,10 +144,25 @@ export const DonutWidgetDesktopChart: React.FC<DonutWidgetDesktopChartProps> = (
   onSliceClick,
   cellStrokeDasharray,
   legendLabelClassName = 'truncate capitalize text-muted-foreground',
-}) => (
+}) => {
+  const summaryId = React.useId();
+  const summaryItems = buildDonutChartSummaryItems(data, totalCount);
+
+  return (
   <div className="hidden md:flex items-center justify-center">
+    <ChartAccessibleSummary
+      id={summaryId}
+      title="Chart data summary"
+      items={summaryItems}
+      srOnly
+    />
     <div className="flex items-center gap-6">
-      <div className="h-40 w-40 flex-shrink-0">
+      <div
+        className="h-40 w-40 flex-shrink-0"
+        role="img"
+        aria-label="Donut chart breakdown"
+        aria-describedby={summaryId}
+      >
         <PieChart width={160} height={160}>
           <Pie
             data={data}
@@ -183,4 +212,5 @@ export const DonutWidgetDesktopChart: React.FC<DonutWidgetDesktopChartProps> = (
       </div>
     </div>
   </div>
-);
+  );
+};

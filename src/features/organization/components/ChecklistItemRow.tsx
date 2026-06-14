@@ -30,7 +30,7 @@ import type { ChecklistItemRowCallbacks } from '@/features/organization/componen
 
 export interface ChecklistItemRowProps extends ChecklistItemRowCallbacks {
   item: PMChecklistItem;
-  autoFocus?: boolean;
+  focusOnMount?: boolean;
   index: number;
   totalInSection: number;
   sections: string[];
@@ -46,7 +46,7 @@ export interface ChecklistItemRowProps extends ChecklistItemRowCallbacks {
 
 export const ChecklistItemRow = memo(function ChecklistItemRow({
   item,
-  autoFocus,
+  focusOnMount,
   index,
   totalInSection,
   sections,
@@ -78,11 +78,11 @@ export const ChecklistItemRow = memo(function ChecklistItemRow({
   }, [item.id, item.title, item.description]);
 
   useEffect(() => {
-    if (autoFocus && titleRef.current) {
+    if (focusOnMount && titleRef.current) {
       titleRef.current.focus();
       titleRef.current.select();
     }
-  }, [autoFocus]);
+  }, [focusOnMount]);
 
   const commitTitle = () => {
     if (titleInput !== item.title) {

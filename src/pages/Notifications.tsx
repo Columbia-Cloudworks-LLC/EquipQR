@@ -1,6 +1,7 @@
 // fallow-ignore-file code-duplication
 // Duplication rationale: Notifications page reuses display formatting helpers
 import React, { useState } from 'react';
+import { handleKeyboardActivation } from '@/components/a11y/keyboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -167,6 +168,8 @@ const Notifications: React.FC = () => {
                 return (
                 <div
                   key={notification.id}
+                  role="button"
+                  tabIndex={0}
                   className={`p-4 rounded-lg border transition-colors cursor-pointer hover:bg-muted/50 ${
                     isActionRequired
                       ? 'bg-primary/5 border-primary/40 border-l-4'
@@ -175,6 +178,9 @@ const Notifications: React.FC = () => {
                         : 'bg-muted/30 border-primary/20'
                   }`}
                   onClick={() => handleNotificationClick(notification)}
+                  onKeyDown={(e) =>
+                    handleKeyboardActivation(e, () => handleNotificationClick(notification))
+                  }
                 >
                   <div className="flex gap-4">
                     <div className="text-2xl flex-shrink-0 mt-1">

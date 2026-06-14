@@ -68,9 +68,13 @@ const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({
       {/* PM label */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <span tabIndex={0} className="inline-flex shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Preventive Maintenance Checklist">
+          <button
+            type="button"
+            className="inline-flex shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Preventive Maintenance Checklist"
+          >
             <Wrench className="h-4 w-4 text-muted-foreground" />
-          </span>
+          </button>
         </TooltipTrigger>
         <TooltipContent side="top">
           <p className="text-sm">Preventive Maintenance Checklist</p>
@@ -94,8 +98,8 @@ const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({
       {!isCompact && (
       <Tooltip>
         <TooltipTrigger asChild>
-          <span
-            tabIndex={0}
+          <button
+            type="button"
             className="inline-flex shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label={isCompleted ? 'Checklist complete' : 'Checklist incomplete'}
           >
@@ -104,7 +108,7 @@ const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({
             ) : (
               <CircleDashed className="h-4 w-4 text-muted-foreground" />
             )}
-          </span>
+          </button>
         </TooltipTrigger>
         <TooltipContent side="top">
           <p className="text-sm">

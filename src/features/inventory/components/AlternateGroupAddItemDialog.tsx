@@ -1,4 +1,5 @@
 import React from 'react';
+import { handleKeyboardActivation } from '@/components/a11y/keyboard';
 import { Search, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,12 +63,15 @@ function AddItemDialogBody({
           filteredItems.map((item) => (
             <div
               key={item.id}
+              role="button"
+              tabIndex={0}
               className={`p-2 rounded cursor-pointer hover:bg-muted/50 transition-colors ${
                 selectedItemId === item.id
                   ? 'bg-primary/15 border-2 border-primary ring-2 ring-primary/20'
                   : 'border border-transparent'
               }`}
               onClick={() => onSelectItem(item.id)}
+              onKeyDown={(e) => handleKeyboardActivation(e, () => onSelectItem(item.id))}
             >
               <div className="flex items-start justify-between gap-2">
                 <div>

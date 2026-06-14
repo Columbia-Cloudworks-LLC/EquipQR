@@ -30,5 +30,51 @@ Assert-Equal -Expected 1 -Actual $b.workingSet.Count -Message 'workingSet.Count'
 Assert-Equal -Expected 2 -Actual $b.outdatedOpenSet.Count -Message 'outdatedOpenSet.Count'
 Assert-Equal -Expected 't2' -Actual $b.workingSet[0].id -Message 'working id'
 
+# Qodo finding resolution detection
+Assert-Equal -Expected $true -Actual (Test-QodoFindingSummaryResolved -SummaryHtml '<s>Cleanup aborts DOCX download</s> <code>✓ Resolved</code>') -Message 'resolved via s tag'
+Assert-Equal -Expected $false -Actual (Test-QodoFindingSummaryResolved -SummaryHtml '  3.  Error CORS opts omitted <code>🐞 Bug</code>') -Message 'open finding'
+
+$qodoSample = @'
+<img src="https://img.shields.io/badge/Action_required-634FD1?style=flat-square" height="20px" alt="Action required">
+<details>
+<summary>  1.  <s>DOCX function bypasses response helpers</s> <code>✓ Resolved</code></summary>
+</details>
+<details>
+<summary>  2.  Error CORS opts omitted <code>🐞 Bug</code></summary>
+</details>
+<img src="https://img.shields.io/badge/Review_recommended-634FD1?style=flat-square" height="20px" alt="Remediation recommended">
+<details>
+<summary>  3.  <s>Wildcard CORS in exports</s> <code>✓ Resolved</code></summary>
+</details>
+<details>
+<summary>  4.  Missing test coverage <code>📘 Rule violation</code></summary>
+</details>
+'@
+$parsed = Parse-QodoFindingsFromReviewBody -Body $qodoSample
+Assert-Equal -Expected 2 -Actual $parsed.openCount -Message 'qodo openCount'
+Assert-Equal -Expected 2 -Actual $parsed.resolvedCount -Message 'qodo resolvedCount'
+Assert-Equal -Expected 'actionRequired' -Actual $parsed.openFindings[0].bucket -Message 'first open bucket'
+Assert-Equal -Expected 'reviewRecommended' -Actual $parsed.openFindings[1].bucket -Message 'second open bucket'
+
+$qodoWithNestedBadge = @'
+<img src="https://img.shields.io/badge/Action_required-634FD1?style=flat-square" height="20px" alt="Action required">
+<details>
+<summary>  1.  First action item <code>🐞 Bug</code></summary>
+</details>
+<img src="https://img.shields.io/badge/custom-634FD1?style=flat-square" height="20px" alt="custom">
+<details>
+<summary>  2.  Second action item <code>🐞 Bug</code></summary>
+</details>
+<img src="https://img.shields.io/badge/Review_recommended-634FD1?style=flat-square" height="20px" alt="Remediation recommended">
+<details>
+<summary>  3.  Recommended item <code>📘 Rule violation</code></summary>
+</details>
+'@
+$nestedParsed = Parse-QodoFindingsFromReviewBody -Body $qodoWithNestedBadge
+Assert-Equal -Expected 3 -Actual $nestedParsed.openCount -Message 'nested badge openCount'
+Assert-Equal -Expected 'actionRequired' -Actual $nestedParsed.openFindings[0].bucket -Message 'nested first bucket'
+Assert-Equal -Expected 'actionRequired' -Actual $nestedParsed.openFindings[1].bucket -Message 'nested second bucket'
+Assert-Equal -Expected 'reviewRecommended' -Actual $nestedParsed.openFindings[2].bucket -Message 'nested third bucket'
+
 Write-Host "PrFeedbackLogic: OK"
 exit 0

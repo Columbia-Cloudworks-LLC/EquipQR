@@ -8,6 +8,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { List, useListRef, type RowComponentProps } from 'react-window';
 import { Badge } from '@/components/ui/badge';
+import { handleKeyboardActivation } from '@/components/a11y/keyboard';
 import { cn } from '@/lib/utils';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { ChangesSummary } from '@/components/audit/ChangesDiff';
@@ -103,6 +104,8 @@ function AuditListRow({
       aria-selected={rootRole === false ? undefined : selected}
       data-testid="audit-log-list-row"
       onClick={onClick}
+      onKeyDown={(e) => handleKeyboardActivation(e, onClick)}
+      tabIndex={rootRole === 'option' ? 0 : undefined}
       className={cn(
         'group flex items-center gap-3 h-9 px-3 cursor-pointer text-xs',
         'border-b border-border/40 last:border-b-0 transition-colors',

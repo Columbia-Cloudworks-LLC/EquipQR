@@ -130,7 +130,7 @@ const DevQuickLogin: React.FC<DevQuickLoginProps> = ({ onAuthFailure }) => {
 
       <div className="space-y-3">
         <Select value={selectedEmail} onValueChange={setSelectedEmail}>
-          <SelectTrigger className="w-full bg-background">
+          <SelectTrigger className="w-full bg-background" aria-label="Select a test account">
             <SelectValue placeholder="Select a test account..." />
           </SelectTrigger>
           <SelectContent>

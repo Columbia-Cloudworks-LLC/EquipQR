@@ -126,6 +126,7 @@ Use when the agent hits **interactive or consent-bound** limits:
 | Branching / preview push policy | `.cursor/rules/branching.mdc` |
 | Local E2E gate before preview push | `.cursor/rules/local-verify-before-preview-push.mdc` |
 | PR visual evidence (screenshots + GIF) | `.cursor/rules/pr-visual-evidence.mdc` |
+| PR CI gate (`npm ci` + green checks before handoff) | `.cursor/rules/pr-ci-gate-before-open.mdc` |
 | Pre-commit Fallow gate | `.cursor/rules/fallow-before-commit.mdc` |
 | PowerShell / git conventions | `.cursor/rules/git-powershell.mdc` |
 | Workflow artifact commits | `.cursor/rules/workflow-artifacts.mdc` |
@@ -145,6 +146,7 @@ When capturing a new secrets or access lesson, update **this file** and, if deta
 
 - **No preview push without local E2E.** As of 2026-06-13, local dev has production parity. Never push to `preview` until the agent has verified the change locally end-to-end with zero manual user steps (see `local-verify-before-preview-push.mdc`).
 - **No product PR without visual evidence.** Every product/runtime PR must include local-stack screenshots and a GIF uploaded for inline GitHub display (`pr-visual-evidence.mdc`, `scripts/pr-evidence/`). Add `e2e/pr-evidence/<feature>.spec.ts` when existing specs do not cover the change; use `-MobileViewport` for phone UX (see `e2e/pr-evidence/mobile-work-order-details.spec.ts`). `Invoke-PrEvidence -Publish` reuses existing `tmp/pr-evidence/{flow}/` artifacts; pass `-Recapture` only to re-run Playwright.
+- **No PR handoff with red CI.** Run `npm ci --prefer-offline --no-audit` before opening a feature-branch PR (matches GitHub Actions). After push, watch `gh pr checks <num> --watch` until required jobs pass — never open a PR and walk away on failing Lint/Test/Security/Build. If local install needed `--legacy-peer-deps`, commit `.npmrc` so CI can install too. See `pr-ci-gate-before-open.mdc`.
 - **Do not assume the local dev stack is down when a probe fails after an earlier successful capture** — verify probe/script logic (e.g. HTTP 304 vs `fetch().ok`) with an independent check before restarting or reporting stack failure.
 - **Edited `.ts`/`.tsx` files must pass ESLint with `--max-warnings 0` before the agent continues** (Cursor `lint-on-edit` hook treats warnings as blocking).
 - Use the Columbia Cloudworks Workspace tenant (`columbiacloudworks.com`) and the Columbia Cloudworks Google account for GCP Console OAuth edits on `equipqr-prod`; use the real EquipQR Connect flow for Google Workspace integration validation; do not provision parallel Google orgs unless explicitly asked.

@@ -49,7 +49,13 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
           </div>
         </div>
 
-        <h1 className="text-xl font-bold leading-tight line-clamp-3">{workOrder.title}</h1>
+        <h1
+          className="text-xl font-bold leading-tight line-clamp-3"
+          data-route-heading="true"
+          tabIndex={-1}
+        >
+          {workOrder.title}
+        </h1>
       </div>
     </div>
   );

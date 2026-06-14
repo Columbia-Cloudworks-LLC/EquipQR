@@ -45,7 +45,7 @@ const EquipmentFilterPopover: React.FC<EquipmentFilterPopoverProps> = ({
         <>
           {/* Status */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-muted-foreground">Status</label>
+            <span className="text-xs text-muted-foreground">Status</span>
             <EquipmentStatusSelect
               value={filters.status}
               onValueChange={(value) => onFilterChange('status', value)}
@@ -65,7 +65,7 @@ const EquipmentFilterPopover: React.FC<EquipmentFilterPopoverProps> = ({
 
           {/* Manufacturer */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-muted-foreground">Manufacturer</label>
+            <span className="text-xs text-muted-foreground">Manufacturer</span>
             <EquipmentManufacturerSelect
               value={filters.manufacturer}
               onValueChange={(value) => onFilterChange('manufacturer', value)}
@@ -79,7 +79,7 @@ const EquipmentFilterPopover: React.FC<EquipmentFilterPopoverProps> = ({
 
           {/* Location */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-muted-foreground">Location</label>
+            <span className="text-xs text-muted-foreground">Location</span>
             <EquipmentLocationSelect
               value={filters.location}
               onValueChange={(value) => onFilterChange('location', value)}

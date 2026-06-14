@@ -20,6 +20,7 @@ As of 2026-06-13, the local dev stack has **production parity** (Auth, Edge Func
 
 Run in order; all must pass:
 
+0. **CI-parity install** — `npm ci --prefer-offline --no-audit` (same as GitHub Actions). Required after any `package.json` / lockfile / `.npmrc` change and before opening a feature-branch PR. See `pr-ci-gate-before-open.mdc`.
 1. **Fallow** — both scans per `fallow-before-commit.mdc` (before commit).
 2. **Static checks** — `npm run lint`, `npm run type-check`.
 3. **Targeted tests** — Vitest for touched behavior; add/update tests when behavior changed.
@@ -57,8 +58,10 @@ Reference: `docs/technical/e2e-user-regression.md`, `docs/technical/testing-guid
 
 Before `git push origin preview` or `gh pr create --base preview`, the agent report must include:
 
+- **`npm ci --prefer-offline --no-audit` pass** when dependencies changed or before first PR open on a feature branch.
 - Verification commands run (copy-pasteable).
-- Pass/fail outcome for each layer (Fallow, lint, tests, E2E).
+- Pass/fail outcome for each layer (Fallow, npm ci, lint, tests, E2E).
+- For feature-branch PRs: **`gh pr checks` green** (or `--watch` completed) per `pr-ci-gate-before-open.mdc` — do not hand off with failing CI.
 - For integrations/OAuth: what signal proved success (log line, RPC result, UI state).
 - **PR visual evidence** (when opening/updating a product PR): capture command, spec path, and confirmation that screenshots + GIF were uploaded per `pr-visual-evidence.mdc` (include PR comment link after `-Publish`).
 

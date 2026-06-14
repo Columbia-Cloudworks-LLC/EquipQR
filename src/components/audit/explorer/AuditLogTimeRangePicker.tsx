@@ -139,7 +139,7 @@ export function AuditLogTimeRangePicker({
               Custom range
             </p>
             <div className="grid grid-cols-2 gap-2">
-              <label className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1">
                 <span className="text-[10px] text-muted-foreground">From</span>
                 <Input
                   type="date"
@@ -148,8 +148,8 @@ export function AuditLogTimeRangePicker({
                   className="h-8 text-xs"
                   aria-label="Custom range start date"
                 />
-              </label>
-              <label className="flex flex-col gap-1">
+              </div>
+              <div className="flex flex-col gap-1">
                 <span className="text-[10px] text-muted-foreground">To</span>
                 <Input
                   type="date"
@@ -158,7 +158,7 @@ export function AuditLogTimeRangePicker({
                   className="h-8 text-xs"
                   aria-label="Custom range end date"
                 />
-              </label>
+              </div>
             </div>
             <div className="flex justify-end gap-2 pt-1">
               <Button
