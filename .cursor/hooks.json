@@ -10,6 +10,10 @@
           "failClosed": true
         },
         {
+          "command": "powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File .\\.cursor\\hooks\\markdown-lint-on-edit.ps1",
+          "failClosed": true
+        },
+        {
           "command": "powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File .\\.cursor\\hooks\\strict-type-check.ps1"
         },
         {

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint-cli2/v0.20.0/schema/markdownlint-cli2-config-schema.json",
+  "config": {
+    "default": true,
+    "MD013": false,
+    "MD024": false,
+    "MD025": false,
+    "MD033": false,
+    "MD036": false,
+    "MD041": false
+  },
+  "frontMatter": "^---\\s*\\n[\\s\\S]*?\\n---\\s*\\n",
+  "globs": ["**/*.md", "**/*.mdc"],
+  "gitignore": true
+}
