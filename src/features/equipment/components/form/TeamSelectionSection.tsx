@@ -53,7 +53,7 @@ const TeamSelectionSection: React.FC<TeamSelectionSectionProps> = ({
             <FormItem>
               <TeamPickerWithCreate
                 value={field.value && field.value !== 'unassigned' ? field.value : ''}
-                onChange={(teamId) => field.onChange(teamId || 'unassigned')}
+                onChange={(teamId) => field.onChange(teamId)}
                 requireTeam={!isAdmin}
                 showBillingCallout
                 allowUnassigned={isAdmin}

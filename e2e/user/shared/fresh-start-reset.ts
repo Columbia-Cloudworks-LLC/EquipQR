@@ -1,20 +1,45 @@
+import { execSync } from 'node:child_process';
 import { createClient } from '@supabase/supabase-js';
 import { freshStartOrgId } from './seed-data';
 
 const LOCAL_SUPABASE_URL =
   process.env.PR_EVIDENCE_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? 'http://127.0.0.1:54321';
 
-/** Local Supabase CLI default service role JWT (demo only — not production). */
-const LOCAL_SERVICE_ROLE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ??
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+function resolveLocalServiceRoleKey(): string {
+  const fromEnv = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (fromEnv) {
+    return fromEnv;
+  }
+
+  try {
+    const statusJson = execSync('npx supabase status -o json', {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const status = JSON.parse(statusJson) as {
+      SERVICE_ROLE_KEY?: string;
+      service_role_key?: string;
+    };
+    const key = status.SERVICE_ROLE_KEY ?? status.service_role_key;
+    if (key) {
+      return key;
+    }
+  } catch {
+    // Fall through to explicit error below.
+  }
+
+  throw new Error(
+    'Fresh Start reset requires SUPABASE_SERVICE_ROLE_KEY or a running local Supabase stack (`npx supabase status -o json`).',
+  );
+}
 
 /**
  * Resets the Fresh Start E2E org to wizard-ready state (no teams/equipment, onboarding incomplete).
  * Safe to call before each onboarding evidence capture; uses service role against local Supabase.
  */
 export async function resetFreshStartOnboardingFixture(): Promise<void> {
-  const admin = createClient(LOCAL_SUPABASE_URL, LOCAL_SERVICE_ROLE_KEY, {
+  const admin = createClient(LOCAL_SUPABASE_URL, resolveLocalServiceRoleKey(), {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 

@@ -25,10 +25,7 @@ const ProductOnboardingGuard: React.FC<ProductOnboardingGuardProps> = ({ childre
 
   const onboardingCheckPending =
     orgContextLoading ||
-    !organizationId ||
-    isPending ||
-    isLoading ||
-    (!isFetched && !isError);
+    (Boolean(organizationId) && (isPending || isLoading || (!isFetched && !isError)));
 
   if (onboardingCheckPending) {
     return (

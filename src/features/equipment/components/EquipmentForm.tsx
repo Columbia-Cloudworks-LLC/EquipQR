@@ -72,7 +72,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
       setPendingSubmitData(null);
     }
     if (pendingUnassignedSelect) {
-      form.setValue('team_id', 'unassigned');
+      form.setValue('team_id', '');
       setPendingUnassignedSelect(false);
     }
     setShowUnassignedConfirm(false);

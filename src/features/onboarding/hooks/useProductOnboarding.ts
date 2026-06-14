@@ -14,7 +14,12 @@ export function useProductOnboardingStatus() {
 
   return useQuery({
     queryKey: productOnboarding(organizationId ?? '', userId ?? ''),
-    queryFn: () => getProductOnboardingStatus(organizationId!),
+    queryFn: () => {
+      if (!organizationId) {
+        throw new Error('Organization context is required for onboarding status');
+      }
+      return getProductOnboardingStatus(organizationId);
+    },
     enabled: Boolean(organizationId && userId),
   });
 }
