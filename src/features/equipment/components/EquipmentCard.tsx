@@ -17,6 +17,7 @@ import type { EquipmentPMStatus } from '@/features/equipment/hooks/useEquipmentP
 import type { MergedEquipment } from '@/features/equipment/hooks/useOfflineMergedEquipment';
 import { isOfflineEquipmentId } from '@/features/equipment/hooks/useOfflineMergedEquipment';
 import { toast } from 'sonner';
+import { handleKeyboardActivation } from '@/components/a11y/keyboard';
 
 interface Equipment {
   id: string;
@@ -97,7 +98,10 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
         statusTintClass,
         viewMode === 'grid' && "flex flex-col md:h-full"
       )}
+      role="button"
+      tabIndex={0}
       onClick={handleCardClick}
+      onKeyDown={(e) => handleKeyboardActivation(e, handleCardClick)}
     >
       {statusRailClass ? (
         <div

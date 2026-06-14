@@ -404,9 +404,10 @@ const InventoryItemCompatibilityTab: React.FC<InventoryItemCompatibilityTabProps
                             }
                           }}
                           onKeyDown={(e) => {
-                            if (part.inventory_item_id && !isCurrentItem) {
+                            const linkedItemId = part.inventory_item_id;
+                            if (linkedItemId && !isCurrentItem) {
                               handleKeyboardActivation(e, () =>
-                                onNavigateToInventoryItem(part.inventory_item_id!),
+                                onNavigateToInventoryItem(linkedItemId),
                               );
                             }
                           }}
