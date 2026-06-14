@@ -7,8 +7,6 @@ import { freshStartOrgId } from '../user/shared/seed-data';
 import { resetFreshStartOnboardingFixture } from '../user/shared/fresh-start-reset';
 import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
 
-const GETTING_STARTED_PATH = '/dashboard/onboarding/getting-started';
-
 test.describe('PR evidence: getting-started onboarding @pr-evidence', () => {
   test('captures onboarding wizard through QR step and finished dashboard', async ({ browser }) => {
     await resetFreshStartOnboardingFixture();
@@ -19,7 +17,7 @@ test.describe('PR evidence: getting-started onboarding @pr-evidence', () => {
 
     try {
       await page.goto('/dashboard');
-      await expect(page).toHaveURL(new RegExp(GETTING_STARTED_PATH.replace(/\//g, '\\/')), {
+      await expect(page).toHaveURL(/\/dashboard\/onboarding\/getting-started\/?$/, {
         timeout: 60_000,
       });
       await expectNoAppErrorBoundary(page);
