@@ -274,7 +274,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
         selection_kind: 'folder',
         drive_id: null,
         parent_id: 'folder-123',
-        display_name: 'Ops Exports',
+        display_name: 'Marketing',
         web_view_link: null,
         configured_by: 'user-123',
         folder_by_team: true,
@@ -289,7 +289,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
 
     rerender(<GoogleWorkspaceExportDestinationCard currentUserRole="owner" />);
 
-    expect(screen.getByText('Ops Exports')).toBeInTheDocument();
+    expect(screen.getByText('Marketing')).toBeInTheDocument();
     expect(screen.getByText('My Drive folder')).toBeInTheDocument();
   });
 
@@ -302,7 +302,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
         selection_kind: 'folder',
         drive_id: null,
         parent_id: 'folder-123',
-        display_name: 'Ops Exports',
+        display_name: 'Marketing',
         web_view_link: null,
         configured_by: 'user-1',
         folder_by_team: true,
@@ -317,7 +317,11 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
 
     customRender(<GoogleWorkspaceExportDestinationCard currentUserRole="owner" />);
 
-    expect(screen.getByText('Folder Organization')).toBeInTheDocument();
+    expect(screen.getByText('Subfolder routing')).toBeInTheDocument();
+    expect(screen.getByText(/example export path/i)).toBeInTheDocument();
+    expect(
+      screen.getByText('Marketing / Field Service / Work Order Packet'),
+    ).toBeInTheDocument();
 
     const teamCheckbox = screen.getByRole('checkbox', { name: /organize by team/i });
     const equipmentCheckbox = screen.getByRole('checkbox', { name: /organize by equipment/i });
@@ -329,7 +333,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
   it('hides folder organization checkboxes when no destination is configured', () => {
     customRender(<GoogleWorkspaceExportDestinationCard currentUserRole="owner" />);
 
-    expect(screen.queryByText('Folder Organization')).not.toBeInTheDocument();
+    expect(screen.queryByText('Subfolder routing')).not.toBeInTheDocument();
   });
 
   it('calls setDestination with folder flag when a checkbox is toggled', async () => {
@@ -344,7 +348,7 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
         selection_kind: 'folder',
         drive_id: null,
         parent_id: 'folder-123',
-        display_name: 'Ops Exports',
+        display_name: 'Marketing',
         web_view_link: null,
         configured_by: 'user-1',
         folder_by_team: true,

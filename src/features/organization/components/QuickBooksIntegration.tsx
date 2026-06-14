@@ -31,6 +31,12 @@ import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
 import { toast } from 'sonner';
 import { IntegrationLoadingCard } from '@/features/organization/components/IntegrationLoadingCard';
 import { IntegrationNotConfiguredCard } from '@/features/organization/components/IntegrationNotConfiguredCard';
+import {
+  IntegrationCardHeader,
+  IntegrationCardLayout,
+  IntegrationInlineActions,
+  integrationActionButtonClassName,
+} from '@/features/organization/components/IntegrationCardLayout';
 
 interface QuickBooksIntegrationProps {
   /** @deprecated - No longer used. Permission is now derived from useQuickBooksAccess hook. */
@@ -124,18 +130,16 @@ export const QuickBooksIntegration = ({
 
   if (statusError) {
     return (
-      <div className="rounded-lg border p-4 space-y-3">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-medium">QuickBooks Online</p>
-            <p className="text-xs text-muted-foreground">Export work orders as draft invoices</p>
-          </div>
-        </div>
+      <IntegrationCardLayout>
+        <IntegrationCardHeader
+          title="QuickBooks Online"
+          description="Export work orders as draft invoices"
+        />
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>Failed to check connection status.</AlertDescription>
         </Alert>
-      </div>
+      </IntegrationCardLayout>
     );
   }
 
@@ -144,30 +148,32 @@ export const QuickBooksIntegration = ({
   const isRefreshTokenExpired = connectionStatus?.isRefreshTokenValid === false;
 
   return (
-    <div className="rounded-lg border p-4 space-y-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium">QuickBooks Online</p>
-            {isConnected ? (
-              <Badge variant="outline" className="bg-success/10 text-success border-success/30 text-xs">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Connected
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="text-xs">Not connected</Badge>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Export work orders as draft invoices
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          {isConnected ? (
-            <>
+    <IntegrationCardLayout>
+      <IntegrationCardHeader
+        title="QuickBooks Online"
+        description="Export work orders as draft invoices"
+        badge={
+          isConnected ? (
+            <Badge variant="outline" className="bg-success/10 text-success border-success/30 text-xs">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Connected
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="text-xs">
+              Not connected
+            </Badge>
+          )
+        }
+        actions={
+          isConnected ? (
+            <IntegrationInlineActions>
               {isRefreshTokenExpired ? (
-                <Button size="sm" onClick={handleConnect} disabled={isConnecting}>
+                <Button
+                  size="sm"
+                  className={integrationActionButtonClassName}
+                  onClick={handleConnect}
+                  disabled={isConnecting}
+                >
                   {isConnecting && <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" />}
                   Reconnect
                 </Button>
@@ -175,6 +181,7 @@ export const QuickBooksIntegration = ({
                 <Button
                   variant="outline"
                   size="sm"
+                  className={`flex-1 ${integrationActionButtonClassName}`}
                   onClick={handleDisconnect}
                   disabled={disconnectMutation.isPending}
                 >
@@ -186,7 +193,7 @@ export const QuickBooksIntegration = ({
                   Disconnect
                 </Button>
               )}
-              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" asChild>
                 <a
                   href="https://appcenter.intuit.com/app/connect"
                   target="_blank"
@@ -196,9 +203,14 @@ export const QuickBooksIntegration = ({
                   <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                 </a>
               </Button>
-            </>
+            </IntegrationInlineActions>
           ) : (
-            <Button size="sm" onClick={handleConnect} disabled={isConnecting}>
+            <Button
+              size="sm"
+              className={integrationActionButtonClassName}
+              onClick={handleConnect}
+              disabled={isConnecting}
+            >
               {isConnecting ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
               ) : (
@@ -206,9 +218,9 @@ export const QuickBooksIntegration = ({
               )}
               Connect
             </Button>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       {/* Token status alerts — only shown when connected with issues */}
       {isConnected && isRefreshTokenExpired && (
@@ -221,15 +233,15 @@ export const QuickBooksIntegration = ({
       )}
 
       {isConnected && !isRefreshTokenExpired && isTokenExpiring && (
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5" />
+        <div className="flex flex-col gap-2 rounded-md border border-border/60 bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between sm:bg-transparent sm:p-0 sm:border-0">
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Clock className="h-3.5 w-3.5 shrink-0" />
             Access token will refresh automatically
           </span>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="h-7 text-xs"
+            className={`h-9 text-xs ${integrationActionButtonClassName}`}
             onClick={() => refreshMutation.mutate()}
             disabled={refreshMutation.isPending}
           >
@@ -238,7 +250,7 @@ export const QuickBooksIntegration = ({
           </Button>
         </div>
       )}
-    </div>
+    </IntegrationCardLayout>
   );
 };
 
