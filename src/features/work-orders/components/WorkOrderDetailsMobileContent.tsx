@@ -139,11 +139,6 @@ export function WorkOrderDetailsMobileContent({
   const [showStatusSheet, setShowStatusSheet] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
 
-  const pmIncomplete =
-    !!workOrder.has_pm &&
-    pmData?.status !== 'completed' &&
-    (pmChecklist.total > 0 ? pmChecklist.progress < pmChecklist.total : true);
-
   const {
     updateStatusMutation,
     acceptanceMutation,

@@ -13,9 +13,10 @@ import {
   Loader2,
   Trash2,
 } from 'lucide-react';
-import { WorkOrderQuickBooksExportSubmenu } from '@/features/work-orders/components/WorkOrderQuickBooksExportSubmenu';
-import { WorkOrderGoogleDriveExportSubmenu } from '@/features/work-orders/components/WorkOrderGoogleDriveExportSubmenu';
+import { WorkOrderQuickBooksExportSubmenu } from './WorkOrderQuickBooksExportSubmenu';
+import { WorkOrderGoogleDriveExportSubmenu } from './WorkOrderGoogleDriveExportSubmenu';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
+import type { WorkOrderFileExportHandlers } from '@/features/work-orders/types/workOrderFileExportHandlers';
 
 export interface WorkOrderExportMenuContentProps {
   workOrderId: string;
@@ -30,21 +31,9 @@ export interface WorkOrderExportMenuContentProps {
   onOpenPdfDialog: () => void;
   onOpenDrivePdfDialog: () => void;
   isGeneratingPdf: boolean;
-  onDownloadXlsx: () => void;
-  isExportingXlsx: boolean;
-  onDownloadCsv: () => void;
-  isExportingCsv: boolean;
-  onDownloadDocx: () => void;
-  isExportingDocx: boolean;
-  docxDisabled?: boolean;
-  onDriveDocs: () => void;
-  isExportingToDocs: boolean;
-  onDriveSheets: () => void;
-  isExportingToSheets: boolean;
   onDelete: () => void;
   isDeleting: boolean;
-  isExportBusy: boolean;
-}
+} & WorkOrderFileExportHandlers;
 
 export const WorkOrderExportMenuContent: React.FC<WorkOrderExportMenuContentProps> = ({
   workOrderId,

@@ -2,6 +2,10 @@ import { type Page, expect } from '@playwright/test';
 
 export const INTEGRATIONS_PATH = '/dashboard/organization/integrations';
 
+function isIntegrationsPageUrl(url: URL): boolean {
+  return url.pathname.includes(INTEGRATIONS_PATH);
+}
+
 /**
  * The integrations page wraps all vendors in an outer shadcn Card (also rounded-lg border).
  * Scope to the inner card whose title paragraph is exactly "QuickBooks Online".
@@ -68,7 +72,7 @@ export async function openIntegrationsPage(page: Page, baseUrl: string): Promise
       }
 
       await page
-        .waitForURL(new RegExp(`${integrationsPath.replace(/\//g, '\\/')}`), { timeout: 30_000 })
+        .waitForURL(isIntegrationsPageUrl, { timeout: 30_000 })
         .catch(() => undefined);
 
       if (page.url().includes(integrationsPath) && !page.url().includes('/auth')) {
@@ -77,7 +81,7 @@ export async function openIntegrationsPage(page: Page, baseUrl: string): Promise
     }
   }
 
-  await page.waitForURL(new RegExp(`${integrationsPath.replace(/\//g, '\\/')}`), {
+  await page.waitForURL(isIntegrationsPageUrl, {
     timeout: 60_000,
   });
   expect(page.url()).toContain(integrationsPath);

@@ -7,6 +7,7 @@ import { MobileWorkOrderActionFooter } from '@/features/work-orders/components/M
 import WorkOrderAcceptanceModal from '@/features/work-orders/components/WorkOrderAcceptanceModal';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import type { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
+import type { WorkOrderFileExportHandlers } from '@/features/work-orders/types/workOrderFileExportHandlers';
 import type { UseMutationResult } from '@tanstack/react-query';
 
 type WorkOrderDetailsOverlaysProps = {
@@ -44,18 +45,6 @@ type WorkOrderDetailsOverlaysProps = {
   onViewFullDetails: () => void;
   onDownloadWorksheet: () => Promise<void>;
   isMobileWorksheetGenerating: boolean;
-  onDownloadXlsx: () => void;
-  isExportingXlsx: boolean;
-  onDownloadCsv: () => void;
-  isExportingCsv: boolean;
-  onDownloadDocx: () => void;
-  isExportingDocx: boolean;
-  docxDisabled: boolean;
-  onDriveDocs: () => void;
-  isExportingToDocs: boolean;
-  onDriveSheets: () => void;
-  isExportingToSheets: boolean;
-  isExportBusy: boolean;
   showMobileCompleteDialog: boolean;
   onMobileCompleteDialogOpenChange: (open: boolean) => void;
   mobileStatusMutation: Pick<UseMutationResult<unknown, unknown, unknown, unknown>, 'isPending'>;
@@ -73,7 +62,7 @@ type WorkOrderDetailsOverlaysProps = {
   onScrollToChecklist: () => void;
   onRequestAccept: () => void;
   onRetrySync: () => void;
-};
+} & WorkOrderFileExportHandlers;
 
 export function WorkOrderDetailsOverlays({
   isMobile,

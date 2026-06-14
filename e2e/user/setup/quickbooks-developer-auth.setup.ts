@@ -45,10 +45,12 @@ setup(
       .poll(
         async () => {
           if (await signedIn.isVisible().catch(() => false)) return true;
-          const url = page.url();
-          if (/developer\.intuit\.com\/app\/developer/i.test(url)) return true;
+          const { hostname, pathname } = new URL(page.url());
+          if (hostname === 'developer.intuit.com' && pathname.startsWith('/app/developer')) {
+            return true;
+          }
           if (await signInButton.isVisible().catch(() => false)) return false;
-          return /developer\.intuit\.com/i.test(url) && !page.url().includes('accounts.intuit.com');
+          return hostname === 'developer.intuit.com';
         },
         { timeout: SIGN_IN_TIMEOUT_MS, intervals: [2000] },
       )

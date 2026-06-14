@@ -12,38 +12,15 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Download, ExternalLink, FileSpreadsheet, FileText, Loader2, RefreshCw } from 'lucide-react';
-import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
-import { useGoogleWorkspaceExportDestination } from '@/features/organization/hooks/useGoogleWorkspaceExportDestination';
-import { useLatestExportArtifact } from '@/features/work-orders/hooks/useLatestExportArtifact';
+import type { GoogleDriveExportRowConfig } from '@/features/work-orders/components/googleDriveExportRowTypes';
+import { useWorkOrderGoogleDriveExportState } from '@/features/work-orders/hooks/useWorkOrderGoogleDriveExportState';
 import {
-  GOOGLE_DRIVE_ARTIFACT_KINDS,
-  GOOGLE_DRIVE_EXPORT_CHANNELS,
-} from '@/features/work-orders/constants/googleDriveExportArtifacts';
-import {
-  canExportWorkOrderGoogleDoc,
-  canExportWorkOrderGooglePdf,
-  canExportWorkOrderGoogleSheets,
-} from '@/features/work-orders/utils/googleDriveExportAvailability';
-import {
-  getGoogleDriveArtifactDisplay,
   getGoogleDriveCreateAvailability,
   getGoogleDriveOpenAvailability,
   getGoogleDriveUpdateAvailability,
 } from '@/features/work-orders/components/googleDriveExportPresentation';
 
-interface GoogleDriveFormatSubmenuProps {
-  label: string;
-  createLabel: string;
-  updateLabel: string;
-  openLabel: string;
-  canExport: boolean;
-  isBusy: boolean;
-  hasLinkedArtifact: boolean;
-  webViewLink: string | null;
-  createIcon: React.ReactNode;
-  updateIcon: React.ReactNode;
-  onCreate: () => void;
-  onUpdate: () => void;
+interface GoogleDriveFormatSubmenuProps extends GoogleDriveExportRowConfig {
   /** Defer actions until after nested dropdown closes (required for dialog open from PDF submenu). */
   deferActions?: boolean;
 }
@@ -185,47 +162,19 @@ export const WorkOrderGoogleDriveExportSubmenu: React.FC<WorkOrderGoogleDriveExp
   onExportSheets,
   isExportingSheets,
 }) => {
-  const { isConnected, connectionStatus } = useGoogleWorkspaceConnectionStatus({ organizationId });
-  const { destination } = useGoogleWorkspaceExportDestination(organizationId, isManager);
-  const hasDestination = Boolean(destination);
-
-  const availabilityOptions = {
+  const {
     isConnected,
-    scopes: connectionStatus?.scopes,
     hasDestination,
-  };
+    organizationId: orgId,
+    canExportDocs,
+    canExportPdf,
+    canExportSheets,
+    docsDisplay,
+    pdfDisplay,
+    sheetsDisplay,
+  } = useWorkOrderGoogleDriveExportState({ workOrderId, organizationId, isManager });
 
-  const canExportDocs = canExportWorkOrderGoogleDoc(availabilityOptions);
-  const canExportPdf = canExportWorkOrderGooglePdf(availabilityOptions);
-  const canExportSheets = canExportWorkOrderGoogleSheets(availabilityOptions);
-
-  const { data: docsArtifact } = useLatestExportArtifact(
-    organizationId,
-    workOrderId,
-    GOOGLE_DRIVE_EXPORT_CHANNELS.DOCS,
-    GOOGLE_DRIVE_ARTIFACT_KINDS.INTERNAL_PACKET,
-    Boolean(organizationId),
-  );
-  const { data: pdfArtifact } = useLatestExportArtifact(
-    organizationId,
-    workOrderId,
-    GOOGLE_DRIVE_EXPORT_CHANNELS.PDF,
-    GOOGLE_DRIVE_ARTIFACT_KINDS.SERVICE_REPORT_PDF,
-    Boolean(organizationId),
-  );
-  const { data: sheetsArtifact } = useLatestExportArtifact(
-    organizationId,
-    workOrderId,
-    GOOGLE_DRIVE_EXPORT_CHANNELS.SHEETS,
-    GOOGLE_DRIVE_ARTIFACT_KINDS.INTERNAL_PACKET,
-    Boolean(organizationId),
-  );
-
-  const docsDisplay = getGoogleDriveArtifactDisplay(docsArtifact);
-  const pdfDisplay = getGoogleDriveArtifactDisplay(pdfArtifact);
-  const sheetsDisplay = getGoogleDriveArtifactDisplay(sheetsArtifact);
-
-  if (!isConnected || !hasDestination || !organizationId) {
+  if (!isConnected || !hasDestination || !orgId) {
     return null;
   }
 

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { test as setup, expect } from '@playwright/test';
+import { test as setup } from '@playwright/test';
 import { resolveQuickBooksLocalAuthStoragePath, resolveRealAuthBaseUrl } from '../shared/real-auth-config';
 import {
   assertQuickBooksConnected,

@@ -9,24 +9,14 @@ import {
   Loader2,
   RefreshCw,
 } from 'lucide-react';
-import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
-import { useGoogleWorkspaceExportDestination } from '@/features/organization/hooks/useGoogleWorkspaceExportDestination';
-import { useLatestExportArtifact } from '@/features/work-orders/hooks/useLatestExportArtifact';
+import type { GoogleDriveExportRowConfig } from '@/features/work-orders/components/googleDriveExportRowTypes';
+import { useWorkOrderGoogleDriveExportState } from '@/features/work-orders/hooks/useWorkOrderGoogleDriveExportState';
 import {
-  GOOGLE_DRIVE_ARTIFACT_KINDS,
-  GOOGLE_DRIVE_EXPORT_CHANNELS,
-} from '@/features/work-orders/constants/googleDriveExportArtifacts';
-import {
-  canExportWorkOrderGoogleDoc,
-  canExportWorkOrderGooglePdf,
-  canExportWorkOrderGoogleSheets,
-} from '@/features/work-orders/utils/googleDriveExportAvailability';
-import {
-  getGoogleDriveArtifactDisplay,
   getGoogleDriveCreateAvailability,
   getGoogleDriveOpenAvailability,
   getGoogleDriveUpdateAvailability,
 } from '@/features/work-orders/components/googleDriveExportPresentation';
+import type { WorkOrderFileExportHandlers } from '@/features/work-orders/types/workOrderFileExportHandlers';
 
 export interface WorkOrderMobileExportSectionProps {
   workOrderId: string;
@@ -36,35 +26,11 @@ export interface WorkOrderMobileExportSectionProps {
   onOpenPdfDialog: () => void;
   onOpenDrivePdfDialog: () => void;
   isGeneratingPdf: boolean;
-  onDownloadXlsx: () => void;
-  isExportingXlsx: boolean;
-  onDownloadCsv: () => void;
-  isExportingCsv: boolean;
-  onDownloadDocx: () => void;
-  isExportingDocx: boolean;
-  docxDisabled?: boolean;
   onDownloadWorksheet: () => void;
   isGeneratingWorksheet: boolean;
-  onDriveDocs: () => void;
-  isExportingToDocs: boolean;
-  onDriveSheets: () => void;
-  isExportingToSheets: boolean;
-  isExportBusy: boolean;
-}
+} & WorkOrderFileExportHandlers;
 
-interface GoogleDriveMobileRowProps {
-  label: string;
-  createLabel: string;
-  updateLabel: string;
-  openLabel: string;
-  canExport: boolean;
-  isBusy: boolean;
-  hasLinkedArtifact: boolean;
-  webViewLink: string | null;
-  createIcon: React.ReactNode;
-  updateIcon: React.ReactNode;
-  onCreate: () => void;
-  onUpdate: () => void;
+interface GoogleDriveMobileRowProps extends GoogleDriveExportRowConfig {
   onAction: (action: () => void) => void;
 }
 
@@ -172,46 +138,15 @@ export function WorkOrderMobileExportSection({
   isExportingToSheets,
   isExportBusy,
 }: WorkOrderMobileExportSectionProps) {
-  const { isConnected, connectionStatus } = useGoogleWorkspaceConnectionStatus({ organizationId });
-  const { destination } = useGoogleWorkspaceExportDestination(organizationId, isManager);
-  const hasDestination = Boolean(destination);
-
-  const availabilityOptions = {
-    isConnected,
-    scopes: connectionStatus?.scopes,
-    hasDestination,
-  };
-
-  const canExportDocs = canExportWorkOrderGoogleDoc(availabilityOptions);
-  const canExportPdf = canExportWorkOrderGooglePdf(availabilityOptions);
-  const canExportSheets = canExportWorkOrderGoogleSheets(availabilityOptions);
-  const showGoogleDrive = isConnected && hasDestination && Boolean(organizationId);
-
-  const { data: docsArtifact } = useLatestExportArtifact(
-    organizationId,
-    workOrderId,
-    GOOGLE_DRIVE_EXPORT_CHANNELS.DOCS,
-    GOOGLE_DRIVE_ARTIFACT_KINDS.INTERNAL_PACKET,
-    Boolean(organizationId),
-  );
-  const { data: pdfArtifact } = useLatestExportArtifact(
-    organizationId,
-    workOrderId,
-    GOOGLE_DRIVE_EXPORT_CHANNELS.PDF,
-    GOOGLE_DRIVE_ARTIFACT_KINDS.SERVICE_REPORT_PDF,
-    Boolean(organizationId),
-  );
-  const { data: sheetsArtifact } = useLatestExportArtifact(
-    organizationId,
-    workOrderId,
-    GOOGLE_DRIVE_EXPORT_CHANNELS.SHEETS,
-    GOOGLE_DRIVE_ARTIFACT_KINDS.INTERNAL_PACKET,
-    Boolean(organizationId),
-  );
-
-  const docsDisplay = getGoogleDriveArtifactDisplay(docsArtifact);
-  const pdfDisplay = getGoogleDriveArtifactDisplay(pdfArtifact);
-  const sheetsDisplay = getGoogleDriveArtifactDisplay(sheetsArtifact);
+  const {
+    canExportDocs,
+    canExportPdf,
+    canExportSheets,
+    showGoogleDrive,
+    docsDisplay,
+    pdfDisplay,
+    sheetsDisplay,
+  } = useWorkOrderGoogleDriveExportState({ workOrderId, organizationId, isManager });
 
   if (!isManager) {
     return null;

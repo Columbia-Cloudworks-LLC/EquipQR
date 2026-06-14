@@ -1,8 +1,4 @@
-import {
-  MOBILE_RECORDING_VIEWPORT,
-  RECORDING_GIF_OUTPUT_WIDTH,
-  RECORDING_VIEWPORT,
-} from './recording-quality.mjs';
+import { RECORDING_GIF_OUTPUT_WIDTH, RECORDING_VIEWPORT } from './recording-quality.mjs';
 
 export {
   RECORDING_VIEWPORT as PR_EVIDENCE_VIEWPORT,

@@ -25,6 +25,34 @@ const PRIORITY_OPTIONS = [
   { value: 'high', label: 'High' },
 ];
 
+interface MobileDueDateStatusContentProps {
+  formattedDueDate: string;
+  overdue: boolean;
+  dueSoon: boolean;
+}
+
+function MobileDueDateStatusContent({
+  formattedDueDate,
+  overdue,
+  dueSoon,
+}: MobileDueDateStatusContentProps) {
+  return (
+    <>
+      {overdue ? (
+        <AlertCircle className="h-5 w-5 shrink-0" aria-hidden />
+      ) : dueSoon ? (
+        <AlertTriangle className="h-5 w-5 shrink-0 text-warning" aria-hidden />
+      ) : (
+        <Clock className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
+      )}
+      <span className="font-medium text-foreground">Due date</span>
+      <span className="truncate font-semibold">{formattedDueDate}</span>
+      {overdue ? <span className="text-sm font-semibold">(Overdue)</span> : null}
+      {dueSoon && !overdue ? <span className="text-sm font-semibold">(Due soon)</span> : null}
+    </>
+  );
+}
+
 export interface MobileWorkOrderCompactSummaryProps {
   workOrder: {
     id: string;
@@ -84,17 +112,11 @@ export const MobileWorkOrderCompactSummary: React.FC<MobileWorkOrderCompactSumma
       )}
       aria-live="polite"
     >
-      {overdue ? (
-        <AlertCircle className="h-5 w-5 shrink-0" aria-hidden />
-      ) : dueSoon ? (
-        <AlertTriangle className="h-5 w-5 shrink-0 text-warning" aria-hidden />
-      ) : (
-        <Clock className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
-      )}
-      <span className="font-medium text-foreground">Due date</span>
-      <span className="truncate font-semibold">{formatDate(dueDate)}</span>
-      {overdue ? <span className="text-sm font-semibold">(Overdue)</span> : null}
-      {dueSoon && !overdue ? <span className="text-sm font-semibold">(Due soon)</span> : null}
+      <MobileDueDateStatusContent
+        formattedDueDate={formatDate(dueDate)}
+        overdue={overdue}
+        dueSoon={dueSoon}
+      />
     </span>
   ) : (
     <span className="inline-flex min-w-0 items-center gap-2 text-base text-muted-foreground">
@@ -114,17 +136,11 @@ export const MobileWorkOrderCompactSummary: React.FC<MobileWorkOrderCompactSumma
       aria-live="polite"
     >
       <div className={cn('flex min-w-0 flex-wrap items-center gap-2 text-base', mobileInlineEditValueClassName)}>
-        {overdue ? (
-          <AlertCircle className="h-5 w-5 shrink-0" aria-hidden />
-        ) : dueSoon ? (
-          <AlertTriangle className="h-5 w-5 shrink-0 text-warning" aria-hidden />
-        ) : (
-          <Clock className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
-        )}
-        <span className="font-medium text-foreground">Due date</span>
-        <span className="truncate font-semibold">{formatDate(dueDate)}</span>
-        {overdue ? <span className="text-sm font-semibold">(Overdue)</span> : null}
-        {dueSoon && !overdue ? <span className="text-sm font-semibold">(Due soon)</span> : null}
+        <MobileDueDateStatusContent
+          formattedDueDate={formatDate(dueDate)}
+          overdue={overdue}
+          dueSoon={dueSoon}
+        />
       </div>
     </div>
   ) : null;
