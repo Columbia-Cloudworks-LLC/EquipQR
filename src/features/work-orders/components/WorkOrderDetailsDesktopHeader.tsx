@@ -103,6 +103,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
     } : null,
     pmData: pmData as PreventativeMaintenance | null,
     organizationName,
+    organizationId,
     teamId: equipmentTeamId,
   });
 
@@ -142,7 +143,10 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
 
   const openPdfDialog = (focusDrive: boolean) => {
     setPdfDialogFocusDrive(focusDrive);
-    setShowPDFDialog(true);
+    // Defer so nested export dropdowns can close before the dialog opens (Radix focus trap).
+    window.setTimeout(() => {
+      setShowPDFDialog(true);
+    }, 0);
   };
 
   const truncatedId = workOrder.id.substring(0, 8).toUpperCase();
@@ -232,9 +236,9 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                       showExports={showExports}
                       showQuickBooks={showQuickBooks}
                       showGoogleDrive={showGoogleDrive}
-                      canExportGoogleDoc={canExportGoogleDoc}
                       canDelete={canDelete}
                       organizationId={organizationId}
+                      isManager={permissionLevels.isManager}
                       onOpenPdfDialog={() => openPdfDialog(false)}
                       onOpenDrivePdfDialog={() => openPdfDialog(true)}
                       isGeneratingPdf={isGenerating || isSavingToDrive}

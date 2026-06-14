@@ -18,6 +18,10 @@ vi.mock('../WorkOrderQuickBooksExportSubmenu', () => ({
   WorkOrderQuickBooksExportSubmenu: () => <span>QuickBooks</span>,
 }));
 
+vi.mock('../WorkOrderGoogleDriveExportSubmenu', () => ({
+  WorkOrderGoogleDriveExportSubmenu: () => <span>Google Drive</span>,
+}));
+
 vi.mock('../WorkOrderPDFExportDialog', () => ({
   WorkOrderPDFExportDialog: () => null,
 }));

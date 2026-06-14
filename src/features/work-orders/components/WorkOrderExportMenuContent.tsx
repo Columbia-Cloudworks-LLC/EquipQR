@@ -14,6 +14,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { WorkOrderQuickBooksExportSubmenu } from '@/features/work-orders/components/WorkOrderQuickBooksExportSubmenu';
+import { WorkOrderGoogleDriveExportSubmenu } from '@/features/work-orders/components/WorkOrderGoogleDriveExportSubmenu';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 
 export interface WorkOrderExportMenuContentProps {
@@ -23,9 +24,9 @@ export interface WorkOrderExportMenuContentProps {
   showExports: boolean;
   showQuickBooks: boolean;
   showGoogleDrive: boolean;
-  canExportGoogleDoc: boolean;
   canDelete: boolean;
   organizationId?: string;
+  isManager: boolean;
   onOpenPdfDialog: () => void;
   onOpenDrivePdfDialog: () => void;
   isGeneratingPdf: boolean;
@@ -52,9 +53,9 @@ export const WorkOrderExportMenuContent: React.FC<WorkOrderExportMenuContentProp
   showExports,
   showQuickBooks,
   showGoogleDrive,
-  canExportGoogleDoc,
   canDelete,
   organizationId,
+  isManager,
   onOpenPdfDialog,
   onOpenDrivePdfDialog,
   isGeneratingPdf,
@@ -128,44 +129,17 @@ export const WorkOrderExportMenuContent: React.FC<WorkOrderExportMenuContentProp
           </DropdownMenuSub>
 
           {showGoogleDrive && (
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>Google Drive</DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem
-                  onClick={onDriveDocs}
-                  disabled={!canExportGoogleDoc || isExportingToDocs || isExportBusy || !organizationId}
-                >
-                  {isExportingToDocs ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <FileText className="h-4 w-4 mr-2" />
-                  )}
-                  Docs
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={onOpenDrivePdfDialog}
-                  disabled={isGeneratingPdf || isExportBusy}
-                >
-                  {isGeneratingPdf ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4 mr-2" />
-                  )}
-                  PDF
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={onDriveSheets}
-                  disabled={isExportingToSheets || isExportBusy || !organizationId}
-                >
-                  {isExportingToSheets ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <FileSpreadsheet className="h-4 w-4 mr-2" />
-                  )}
-                  Sheets
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
+            <WorkOrderGoogleDriveExportSubmenu
+              workOrderId={workOrderId}
+              organizationId={organizationId}
+              isManager={isManager}
+              onOpenPdfDialog={onOpenDrivePdfDialog}
+              isPdfBusy={isGeneratingPdf}
+              onExportDocs={onDriveDocs}
+              isExportingDocs={isExportingToDocs}
+              onExportSheets={onDriveSheets}
+              isExportingSheets={isExportingToSheets}
+            />
           )}
         </>
       )}

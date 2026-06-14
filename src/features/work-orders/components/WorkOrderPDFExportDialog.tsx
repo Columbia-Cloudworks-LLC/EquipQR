@@ -32,6 +32,11 @@ interface WorkOrderPDFExportDialogProps {
   focusDriveAction?: boolean;
 }
 
+const exportDialogFooterClassName =
+  'flex-col-reverse gap-2 sm:flex-col sm:justify-stretch sm:space-x-0';
+
+const exportDialogActionClassName = 'w-full sm:w-full';
+
 /**
  * Dialog for exporting a work order as a service report PDF.
  * Allows the user to optionally include cost items (off by default).
@@ -51,6 +56,8 @@ export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> =
   const [includeCosts, setIncludeCosts] = useState(false);
   
   const isAnyExporting = isExporting || isSavingToDrive;
+  const showDriveAction =
+    isGoogleWorkspaceConnected && hasOrganizationDriveDestination && onSaveToDrive;
 
   // Reset state when dialog closes (via Cancel, backdrop click, or escape key)
   useEffect(() => {
@@ -84,81 +91,79 @@ export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> =
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="sm">
+      <DialogContent size="sm" className="overflow-y-visible">
         <DialogHeader>
           <DialogTitle>{SERVICE_REPORT_EXPORT_POLICY.title}</DialogTitle>
           <DialogDescription>
-            {SERVICE_REPORT_EXPORT_POLICY.description}
+            {SERVICE_REPORT_EXPORT_POLICY.description} Includes work order summary,
+            equipment, PM checklist, and public notes.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4 space-y-4">
-          <p className="text-sm text-muted-foreground">
-            The PDF will include work order details, equipment information, 
-            customer context (when available), the PM checklist (if applicable), and public notes with photos.
-          </p>
+        {showCostsOption && (
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="include-costs"
+              checked={includeCosts}
+              onCheckedChange={(checked) => setIncludeCosts(checked === true)}
+            />
+            <Label 
+              htmlFor="include-costs" 
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Include itemized costs
+            </Label>
+          </div>
+        )}
 
-          {showCostsOption && (
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="include-costs"
-                checked={includeCosts}
-                onCheckedChange={(checked) => setIncludeCosts(checked === true)}
-              />
-              <Label 
-                htmlFor="include-costs" 
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Include itemized costs
-              </Label>
-            </div>
-          )}
-        </div>
-
-        <DialogFooter className="flex-col gap-2 sm:flex-row">
+        <DialogFooter className={exportDialogFooterClassName}>
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={isAnyExporting}
+            className={exportDialogActionClassName}
           >
             Cancel
           </Button>
-          
-          {/* Google Drive button - only shown when connected and folder configured */}
-          {isGoogleWorkspaceConnected && hasOrganizationDriveDestination && onSaveToDrive && (
+
+          {showDriveAction && (
             <Button
               variant={focusDriveAction ? 'default' : 'outline'}
               onClick={handleSaveToDrive}
               disabled={isAnyExporting}
+              className={exportDialogActionClassName}
+              aria-label="Save Service Report PDF to organization Drive"
             >
               {isSavingToDrive ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving to Drive...
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                  Saving to Drive…
                 </>
               ) : (
                 <>
-                  <CloudUpload className="h-4 w-4 mr-2" />
-                  Save Service Report PDF to organization Drive
+                  <CloudUpload className="h-4 w-4 shrink-0" />
+                  Save to Drive
                 </>
               )}
             </Button>
           )}
-          
+
           <Button
             onClick={handleExport}
             disabled={isAnyExporting}
             variant={focusDriveAction ? 'outline' : 'default'}
+            className={exportDialogActionClassName}
+            aria-label="Download Service Report PDF"
           >
             {isExporting ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Generating...
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                Generating…
               </>
             ) : (
               <>
-                <Download className="h-4 w-4 mr-2" />
-                Download Service Report PDF
+                <Download className="h-4 w-4 shrink-0" />
+                Download PDF
               </>
             )}
           </Button>
@@ -167,4 +172,3 @@ export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> =
     </Dialog>
   );
 };
-

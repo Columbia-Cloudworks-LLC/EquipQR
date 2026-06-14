@@ -55,6 +55,7 @@ export function useWorkOrderDetailsExports({
     ),
     pmData,
     organizationName,
+    organizationId: organizationId || undefined,
     teamId: equipment?.team_id,
   });
 
