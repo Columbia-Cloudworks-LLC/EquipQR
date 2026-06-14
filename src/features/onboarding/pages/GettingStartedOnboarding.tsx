@@ -49,6 +49,14 @@ const GettingStartedOnboarding = () => {
   const [equipmentId, setEquipmentId] = useState('');
   const [equipmentName, setEquipmentName] = useState('');
 
+  useEffect(() => {
+    setStep(1);
+    setStepInitialized(false);
+    setTeamId('');
+    setEquipmentId('');
+    setEquipmentName('');
+  }, [organizationId]);
+
   const initialStep = useMemo(() => {
     if (!status) {
       return 1;

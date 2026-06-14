@@ -72,7 +72,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Established seeded orgs (Apex, Metro, Valley, Industrial) skip product onboarding wizard.
 UPDATE public.organization_members
-SET product_onboarding_completed_at = COALESCE(product_onboarding_completed_at, NOW())
+SET product_onboarding_completed_at = COALESCE(product_onboarding_completed_at, '2024-01-01 00:00:00+00'::timestamptz)
 WHERE status = 'active'
   AND role IN ('owner', 'admin')
   AND organization_id IN (

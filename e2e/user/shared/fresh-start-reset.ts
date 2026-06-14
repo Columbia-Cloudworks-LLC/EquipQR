@@ -1,9 +1,11 @@
 import { execSync } from 'node:child_process';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { freshStartOrgId } from './seed-data';
 
 const LOCAL_SUPABASE_URL =
   process.env.PR_EVIDENCE_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? 'http://127.0.0.1:54321';
+
+const PARTIAL_SETUP_TEAM_ID = '880e8400-e29b-41d4-a716-446655440099';
 
 function resolveLocalServiceRoleKey(): string {
   const fromEnv = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
@@ -34,15 +36,14 @@ function resolveLocalServiceRoleKey(): string {
   );
 }
 
-/**
- * Resets the Fresh Start E2E org to wizard-ready state (no teams/equipment, onboarding incomplete).
- * Safe to call before each onboarding evidence capture; uses service role against local Supabase.
- */
-export async function resetFreshStartOnboardingFixture(): Promise<void> {
-  const admin = createClient(LOCAL_SUPABASE_URL, resolveLocalServiceRoleKey(), {
+/** Local E2E fixture helper — service role is required to reset seeded org state outside RLS. */
+function createFreshStartAdminClient(): SupabaseClient {
+  return createClient(LOCAL_SUPABASE_URL, resolveLocalServiceRoleKey(), {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+}
 
+async function resetFreshStartOnboardingFixtureWithAdmin(admin: SupabaseClient): Promise<void> {
   const { error: equipmentError } = await admin
     .from('equipment')
     .delete()
@@ -84,18 +85,7 @@ export async function resetFreshStartOnboardingFixture(): Promise<void> {
   }
 }
 
-const PARTIAL_SETUP_TEAM_ID = '880e8400-e29b-41d4-a716-446655440099';
-
-/**
- * Resets Fresh Start to partial onboarding state: one team, no equipment, onboarding incomplete.
- */
-export async function seedFreshStartOneTeamOnly(): Promise<void> {
-  await resetFreshStartOnboardingFixture();
-
-  const admin = createClient(LOCAL_SUPABASE_URL, resolveLocalServiceRoleKey(), {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-
+async function insertFreshStartPartialTeam(admin: SupabaseClient): Promise<void> {
   const { error: teamError } = await admin.from('teams').insert({
     id: PARTIAL_SETUP_TEAM_ID,
     organization_id: freshStartOrgId,
@@ -105,4 +95,25 @@ export async function seedFreshStartOneTeamOnly(): Promise<void> {
   if (teamError) {
     throw new Error(`Fresh Start partial setup: team insert failed — ${teamError.message}`);
   }
+}
+
+/**
+ * Resets the Fresh Start E2E org to wizard-ready state (no teams/equipment, onboarding incomplete).
+ * Safe to call before each onboarding evidence capture; uses service role against local Supabase.
+ */
+export async function resetFreshStartOnboardingFixture(
+  options?: { seedOneTeam?: boolean },
+): Promise<void> {
+  const admin = createFreshStartAdminClient();
+  await resetFreshStartOnboardingFixtureWithAdmin(admin);
+  if (options?.seedOneTeam) {
+    await insertFreshStartPartialTeam(admin);
+  }
+}
+
+/**
+ * Resets Fresh Start to partial onboarding state: one team, no equipment, onboarding incomplete.
+ */
+export async function seedFreshStartOneTeamOnly(): Promise<void> {
+  await resetFreshStartOnboardingFixture({ seedOneTeam: true });
 }

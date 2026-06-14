@@ -1,7 +1,5 @@
-import React from 'react';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, render } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render } from '@testing-library/react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { TestProviders } from '@/test/utils/TestProviders';
 import GettingStartedOnboarding from '@/features/onboarding/pages/GettingStartedOnboarding';
