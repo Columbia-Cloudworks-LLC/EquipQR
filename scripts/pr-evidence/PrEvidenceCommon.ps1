@@ -237,8 +237,8 @@ function Get-PrEvidenceGifFfmpegFilter {
     $script = @"
 import { buildPrEvidenceGifFfmpegFilter, resolvePrEvidenceGifOutputWidth } from '$moduleUrl';
 const viewport = { width: $ViewportWidth, height: $ViewportHeight };
-const fps = viewport.width < 768 ? 6 : 10;
-const outputWidth = Math.min(resolvePrEvidenceGifOutputWidth(viewport), 1024);
+const fps = viewport.width < 768 ? 6 : 8;
+const outputWidth = Math.min(resolvePrEvidenceGifOutputWidth(viewport), 896);
 console.log(buildPrEvidenceGifFfmpegFilter($InputWidth, $InputHeight, viewport, outputWidth, fps));
 "@
 
@@ -283,7 +283,7 @@ function Convert-PrEvidenceWebmToGif {
 
     $dimensions = Get-PrEvidenceVideoDimensions -VideoPath $webmFull
     $videoFilter = Get-PrEvidenceGifFfmpegFilter -InputWidth $dimensions.Width -InputHeight $dimensions.Height
-    $paletteColors = if ([int]($env:PR_EVIDENCE_VIEWPORT_WIDTH) -gt 0 -and [int]($env:PR_EVIDENCE_VIEWPORT_WIDTH) -lt 768) { 96 } else { 128 }
+    $paletteColors = if ([int]($env:PR_EVIDENCE_VIEWPORT_WIDTH) -gt 0 -and [int]($env:PR_EVIDENCE_VIEWPORT_WIDTH) -lt 768) { 96 } else { 96 }
     $paletteFilter = "$videoFilter,split[s0][s1];[s0]palettegen=max_colors=$paletteColors[p];[s1][p]paletteuse=dither=bayer"
 
     Write-Host ("[PR evidence] GIF crop from {0}x{1} using filter: {2}" -f $dimensions.Width, $dimensions.Height, $paletteFilter)
