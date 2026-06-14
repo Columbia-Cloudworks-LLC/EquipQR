@@ -11,6 +11,7 @@ import {
   verifyOrgAdmin,
   createErrorResponse,
   handleCorsPreflightIfNeeded,
+  withCorrelationId,
 } from "../_shared/supabase-clients.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import {
@@ -54,7 +55,7 @@ function hasRequiredDocsExportScopes(scopes: string | null | undefined): boolean
   );
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withCorrelationId(async (req, _ctx) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
@@ -180,6 +181,6 @@ Deno.serve(async (req) => {
     console.error("[EXPORT-WORK-ORDERS-DOCX] Export error:", error);
     return createErrorResponse("An unexpected error occurred", 500);
   }
-});
+}));
 
 export const __testables = { validateDocxExportRequest, hasRequiredDocsExportScopes };

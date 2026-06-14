@@ -10,6 +10,7 @@ import {
   createErrorResponse,
   handleCorsPreflightIfNeeded,
   requireAuthenticatedPost,
+  withCorrelationId,
 } from "../_shared/supabase-clients.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { escapeCSVValue } from "../_shared/csv-export.ts";
@@ -31,7 +32,7 @@ function generateSummaryCsv(allRows: ReturnType<typeof buildAllRows>): string {
   return [headerLine, ...dataLines].join("\n");
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withCorrelationId(async (req, _ctx) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
@@ -80,4 +81,4 @@ Deno.serve(async (req) => {
     console.error("[EXPORT-WORK-ORDERS-CSV] Export error:", error);
     return createErrorResponse("An unexpected error occurred", 500);
   }
-});
+}));
