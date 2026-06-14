@@ -100,6 +100,18 @@ if ($usesRealAuth) {
     Write-Host '[PR evidence] Using pr-evidence-real-auth project with captured Google storage state.'
 }
 
+if ($Spec -match 'getting-started-onboarding') {
+    Write-Host '[PR evidence] Pre-reset Fresh Start onboarding fixture (before Playwright video)...'
+    $resetScript = Join-Path $repoRoot 'scripts\pr-evidence\reset-fresh-start-onboarding.ts'
+    if (-not (Test-Path -LiteralPath $resetScript)) {
+        throw "Fresh Start reset script not found: $resetScript"
+    }
+    $resetResult = Invoke-PrEvidenceNative -FilePath 'npx' -Arguments @('tsx', $resetScript)
+    if ($resetResult.ExitCode -ne 0) {
+        throw "Fresh Start onboarding reset failed:`n$($resetResult.Text)"
+    }
+}
+
 Write-Host "[PR evidence] Running Playwright capture: $Spec (flow=$flowSlug, project=$playwrightProject)"
 
 $pwArgs = @(
