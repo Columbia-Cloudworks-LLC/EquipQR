@@ -37,6 +37,7 @@ import {
 import { WorkOrderDetailsMobileContent } from '@/features/work-orders/components/WorkOrderDetailsMobileContent';
 import { WorkOrderDetailsDesktopContent } from '@/features/work-orders/components/WorkOrderDetailsDesktopContent';
 import { WorkOrderDetailsOverlays } from '@/features/work-orders/components/WorkOrderDetailsOverlays';
+import { PMChangeWarningDialog } from '@/features/work-orders/components/PMChangeWarningDialog';
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
@@ -122,7 +123,15 @@ const WorkOrderDetails = () => {
     setShowMobileSidebar,
     handleStatusUpdate,
     handlePMUpdate,
+    showPMWarning,
+    setShowPMWarning,
+    pmChangeType,
+    handleConfirmPMChange,
+    handleCancelPMChange,
+    getPMDataDetails,
   } = useWorkOrderDetailsActions(workOrderId || '', currentOrganization?.id || '', pmData);
+
+  const pmWarningDetails = useMemo(() => getPMDataDetails(), [getPMDataDetails]);
 
   const workTimer = useWorkTimer(workOrderId);
   const offlineQueue = useOfflineQueue();
@@ -435,6 +444,18 @@ const WorkOrderDetails = () => {
         onScrollToChecklist={scrollToPMSection}
         onRequestAccept={() => setShowFieldAcceptDialog(true)}
         onRetrySync={offlineQueue.retryFailed}
+      />
+
+      <PMChangeWarningDialog
+        open={showPMWarning}
+        onOpenChange={setShowPMWarning}
+        onConfirm={() => {
+          void handleConfirmPMChange();
+        }}
+        onCancel={handleCancelPMChange}
+        changeType={pmChangeType}
+        hasExistingNotes={pmWarningDetails.hasNotes}
+        hasCompletedItems={pmWarningDetails.hasCompletedItems}
       />
     </div>
   );

@@ -6,7 +6,7 @@ import {
   resolveRealAuthStorageState,
   resolveVercelAutomationBypassHeaders,
 } from './e2e/user/shared/real-auth-config';
-import { PR_EVIDENCE_VIEWPORT } from './scripts/lib/pr-evidence-video.mjs';
+import { PR_EVIDENCE_VIEWPORT, resolvePrEvidenceViewport } from './scripts/lib/pr-evidence-video.mjs';
 
 const repoRoot = process.cwd();
 const flowSlug = (process.env.PR_EVIDENCE_FLOW || 'change').replace(/[^a-z0-9-]/gi, '-');
@@ -17,12 +17,15 @@ const realAuthStorage = resolveRealAuthStorageState();
 const realAuthBaseUrl = resolveRealAuthBaseUrl();
 const vercelAutomationBypassHeaders = resolveVercelAutomationBypassHeaders();
 
+const prEvidenceViewport = resolvePrEvidenceViewport(PR_EVIDENCE_VIEWPORT);
+const prEvidenceDevice = prEvidenceViewport.width < 768 ? devices['Pixel 7'] : devices['Desktop Chrome'];
+
 const prEvidenceUse = {
-  ...devices['Desktop Chrome'],
+  ...prEvidenceDevice,
   deviceScaleFactor: 1,
-  viewport: PR_EVIDENCE_VIEWPORT,
+  viewport: prEvidenceViewport,
   screenshot: 'on' as const,
-  video: { mode: 'on' as const, size: PR_EVIDENCE_VIEWPORT },
+  video: { mode: 'on' as const, size: prEvidenceViewport },
   trace: 'off' as const,
 };
 

@@ -26,7 +26,9 @@ param(
 
     [string]$BaseUrl = 'http://localhost:8080',
 
-    [switch]$SkipStackStart
+    [switch]$SkipStackStart,
+
+    [switch]$MobileViewport
 )
 
 $ErrorActionPreference = 'Stop'
@@ -79,7 +81,7 @@ if (-not (Test-Path -LiteralPath $specFull)) {
     throw "PR evidence spec not found: $Spec"
 }
 
-$recordingViewport = Get-PrEvidenceRecordingViewport
+$recordingViewport = Get-PrEvidenceRecordingViewport -MobileViewport:$MobileViewport
 $env:PR_EVIDENCE_FLOW = $flowSlug
 $env:PR_EVIDENCE_BASE_URL = $BaseUrl
 $env:PR_EVIDENCE_VIEWPORT_WIDTH = [string]$recordingViewport.width
