@@ -27,42 +27,33 @@ export async function countDriveFolderChildren(
   folderId: string,
 ): Promise<number> {
   const escapedFolderId = folderId.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-  let total = 0;
-  let pageToken: string | undefined;
+  const params = new URLSearchParams({
+    q: `'${escapedFolderId}' in parents and trashed=false`,
+    fields: "nextPageToken,files(id)",
+    pageSize: "100",
+    supportsAllDrives: "true",
+    includeItemsFromAllDrives: "true",
+  });
 
-  do {
-    const params = new URLSearchParams({
-      q: `'${escapedFolderId}' in parents and trashed=false`,
-      fields: "nextPageToken,files(id)",
-      pageSize: "100",
-      supportsAllDrives: "true",
-      includeItemsFromAllDrives: "true",
-    });
+  const response = await googleApiFetch(
+    `${DRIVE_FILES_URL}?${params.toString()}`,
+    {
+      method: "GET",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+    { label: "drive-count-folder-children" },
+  );
 
-    if (pageToken) {
-      params.set("pageToken", pageToken);
-    }
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Failed to inspect folder contents: ${response.status} ${body}`);
+  }
 
-    const response = await googleApiFetch(
-      `${DRIVE_FILES_URL}?${params.toString()}`,
-      {
-        method: "GET",
-        headers: { Authorization: `Bearer ${accessToken}` },
-      },
-      { label: "drive-count-folder-children" },
-    );
+  const data: { files?: Array<{ id: string }>; nextPageToken?: string } = await response.json();
+  const pageCount = data.files?.length ?? 0;
 
-    if (!response.ok) {
-      const body = await response.text().catch(() => "");
-      throw new Error(`Failed to inspect folder contents: ${response.status} ${body}`);
-    }
-
-    const data: { files?: Array<{ id: string }>; nextPageToken?: string } = await response.json();
-    total += data.files?.length ?? 0;
-    pageToken = data.nextPageToken;
-  } while (pageToken);
-
-  return total;
+  // One page is enough for empty checks and delete confirmation; UI shows "N+" when N !== 1.
+  return pageCount;
 }
 
 export async function createDriveFolder(

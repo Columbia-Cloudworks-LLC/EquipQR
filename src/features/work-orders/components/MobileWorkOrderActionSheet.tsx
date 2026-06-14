@@ -32,7 +32,7 @@ import { isQuickBooksEnabled } from '@/lib/flags';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import type { WorkOrderFileExportHandlers } from '@/features/work-orders/types/workOrderFileExportHandlers';
 
-interface MobileWorkOrderActionSheetProps extends WorkOrderFileExportHandlers {
+interface MobileWorkOrderActionSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   workOrderId: string;
@@ -47,6 +47,7 @@ interface MobileWorkOrderActionSheetProps extends WorkOrderFileExportHandlers {
   isGeneratingPdf: boolean;
   onDownloadWorksheet: () => void;
   isGeneratingWorksheet: boolean;
+  fileExportHandlers?: WorkOrderFileExportHandlers;
 }
 
 export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProps> = ({
@@ -63,18 +64,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
   isGeneratingPdf,
   onDownloadWorksheet,
   isGeneratingWorksheet,
-  onDownloadXlsx,
-  isExportingXlsx,
-  onDownloadCsv,
-  isExportingCsv,
-  onDownloadDocx,
-  isExportingDocx,
-  docxDisabled = false,
-  onDriveDocs,
-  isExportingToDocs,
-  onDriveSheets,
-  isExportingToSheets,
-  isExportBusy,
+  fileExportHandlers,
 }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -140,7 +130,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
               </Button>
             </div>
 
-            {isManager && (
+            {isManager && fileExportHandlers && (
               <>
                 <Separator />
                 <WorkOrderMobileExportSection
@@ -151,20 +141,20 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
                   onOpenPdfDialog={onOpenPdfDialog}
                   onOpenDrivePdfDialog={onOpenDrivePdfDialog}
                   isGeneratingPdf={isGeneratingPdf}
-                  onDownloadXlsx={onDownloadXlsx}
-                  isExportingXlsx={isExportingXlsx}
-                  onDownloadCsv={onDownloadCsv}
-                  isExportingCsv={isExportingCsv}
-                  onDownloadDocx={onDownloadDocx}
-                  isExportingDocx={isExportingDocx}
-                  docxDisabled={docxDisabled}
+                  onDownloadXlsx={fileExportHandlers.onDownloadXlsx}
+                  isExportingXlsx={fileExportHandlers.isExportingXlsx}
+                  onDownloadCsv={fileExportHandlers.onDownloadCsv}
+                  isExportingCsv={fileExportHandlers.isExportingCsv}
+                  onDownloadDocx={fileExportHandlers.onDownloadDocx}
+                  isExportingDocx={fileExportHandlers.isExportingDocx}
+                  docxDisabled={fileExportHandlers.docxDisabled}
                   onDownloadWorksheet={onDownloadWorksheet}
                   isGeneratingWorksheet={isGeneratingWorksheet}
-                  onDriveDocs={onDriveDocs}
-                  isExportingToDocs={isExportingToDocs}
-                  onDriveSheets={onDriveSheets}
-                  isExportingToSheets={isExportingToSheets}
-                  isExportBusy={isExportBusy}
+                  onDriveDocs={fileExportHandlers.onDriveDocs}
+                  isExportingToDocs={fileExportHandlers.isExportingToDocs}
+                  onDriveSheets={fileExportHandlers.onDriveSheets}
+                  isExportingToSheets={fileExportHandlers.isExportingToSheets}
+                  isExportBusy={fileExportHandlers.isExportBusy}
                 />
               </>
             )}

@@ -40,18 +40,30 @@ export const WorkOrderQuickBooksExportSubmenu: React.FC<WorkOrderQuickBooksExpor
   const featureEnabled = isQuickBooksEnabled();
   const { data: canExport = false } = useQuickBooksAccess();
 
+  const organizationId = currentOrganization?.id;
+
   const { data: connectionStatus, isLoading: connectionLoading } = useQuery({
-    queryKey: ['quickbooks', 'connection', currentOrganization?.id],
-    queryFn: () => getConnectionStatus(currentOrganization!.id),
-    enabled: !!currentOrganization?.id && canExport && featureEnabled,
+    queryKey: ['quickbooks', 'connection', organizationId],
+    queryFn: () => {
+      if (!organizationId) {
+        throw new Error('Organization is required for QuickBooks connection status');
+      }
+      return getConnectionStatus(organizationId);
+    },
+    enabled: !!organizationId && canExport && featureEnabled,
     staleTime: 60 * 1000,
   });
 
   const { data: teamMapping, isLoading: mappingLoading } = useQuery({
-    queryKey: ['quickbooks', 'team-mapping', currentOrganization?.id, teamId],
-    queryFn: () => getTeamCustomerMapping(currentOrganization!.id, teamId!),
+    queryKey: ['quickbooks', 'team-mapping', organizationId, teamId],
+    queryFn: () => {
+      if (!organizationId || !teamId) {
+        throw new Error('Organization and team are required for QuickBooks team mapping');
+      }
+      return getTeamCustomerMapping(organizationId, teamId);
+    },
     enabled:
-      !!currentOrganization?.id && !!teamId && canExport && featureEnabled && connectionStatus?.isConnected,
+      !!organizationId && !!teamId && canExport && featureEnabled && connectionStatus?.isConnected,
   });
 
   const { data: existingExport } = useQuickBooksLastExport(

@@ -24,6 +24,8 @@ export async function getLatestExportArtifact(
     .eq('export_channel', exportChannel)
     .eq('artifact_kind', artifactKind)
     .eq('status', 'current')
+    .order('last_exported_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (error) {

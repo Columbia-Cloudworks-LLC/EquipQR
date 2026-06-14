@@ -151,18 +151,24 @@ export function WorkOrderDetailsOverlays({
           isGeneratingPdf={isMobilePDFGenerating}
           onDownloadWorksheet={onDownloadWorksheet}
           isGeneratingWorksheet={isMobileWorksheetGenerating}
-          onDownloadXlsx={onDownloadXlsx}
-          isExportingXlsx={isExportingXlsx}
-          onDownloadCsv={onDownloadCsv}
-          isExportingCsv={isExportingCsv}
-          onDownloadDocx={onDownloadDocx}
-          isExportingDocx={isExportingDocx}
-          docxDisabled={docxDisabled}
-          onDriveDocs={onDriveDocs}
-          isExportingToDocs={isExportingToDocs}
-          onDriveSheets={onDriveSheets}
-          isExportingToSheets={isExportingToSheets}
-          isExportBusy={isExportBusy}
+          fileExportHandlers={
+            permissionLevels.isManager
+              ? {
+                  onDownloadXlsx,
+                  isExportingXlsx,
+                  onDownloadCsv,
+                  isExportingCsv,
+                  onDownloadDocx,
+                  isExportingDocx,
+                  docxDisabled,
+                  onDriveDocs,
+                  isExportingToDocs,
+                  onDriveSheets,
+                  isExportingToSheets,
+                  isExportBusy,
+                }
+              : undefined
+          }
         />
       )}
 

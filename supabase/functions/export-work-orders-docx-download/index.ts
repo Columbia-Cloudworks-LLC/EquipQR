@@ -13,7 +13,7 @@ import {
   handleCorsPreflightIfNeeded,
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   getGoogleWorkspaceAccessToken,
   GoogleWorkspaceTokenError,
@@ -56,6 +56,7 @@ function hasRequiredDocsExportScopes(scopes: string | null | undefined): boolean
 }
 
 Deno.serve(withCorrelationId(async (req, _ctx) => {
+  const corsHeaders = getCorsHeaders(req);
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
@@ -126,7 +127,17 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       );
     }
 
-    const workOrderId = filters!.workOrderId!;
+    const workOrderId = filters?.workOrderId;
+    if (!workOrderId) {
+      return new Response(
+        JSON.stringify({
+          code: "single_work_order_required",
+          error: "DOCX download only supports a single work order.",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const packetData = await buildSingleWorkOrderGoogleDocData(
       supabase,
       organizationId,
@@ -153,23 +164,32 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     const dateStr = new Date().toISOString().split("T")[0];
     const title = `${packetData.workOrder.title} — Internal Packet ${dateStr} (download)`;
     const doc = await createGoogleDocInFolder(tokenResult.accessToken, title, targetParentId);
-    const packet = buildExecutivePacketRequests(packetData);
+    try {
+      const packet = buildExecutivePacketRequests(packetData);
 
-    if (packet.requests.length > 0) {
-      await batchUpdateGoogleDoc(tokenResult.accessToken, doc.id, packet.requests);
+      if (packet.requests.length > 0) {
+        await batchUpdateGoogleDoc(tokenResult.accessToken, doc.id, packet.requests);
+      }
+
+      const docxBuffer = await exportGoogleDriveFile(tokenResult.accessToken, doc.id, DOCX_MIME);
+      const shortId = workOrderId.slice(0, 8);
+      return new Response(docxBuffer, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": DOCX_MIME,
+          "Content-Disposition": `attachment; filename="work_order_${shortId}_internal_packet_${dateStr}.docx"`,
+        },
+      });
+    } finally {
+      const deleteResult = await deleteGoogleDriveFile(tokenResult.accessToken, doc.id);
+      if (deleteResult.outcome !== "deleted" && deleteResult.outcome !== "not_found") {
+        console.error(
+          "[EXPORT-WORK-ORDERS-DOCX] Temp doc cleanup failed:",
+          doc.id,
+          deleteResult,
+        );
+      }
     }
-
-    const docxBuffer = await exportGoogleDriveFile(tokenResult.accessToken, doc.id, DOCX_MIME);
-    await deleteGoogleDriveFile(tokenResult.accessToken, doc.id);
-
-    const shortId = workOrderId.slice(0, 8);
-    return new Response(docxBuffer, {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": DOCX_MIME,
-        "Content-Disposition": `attachment; filename="work_order_${shortId}_internal_packet_${dateStr}.docx"`,
-      },
-    });
   } catch (error) {
     if (error instanceof GoogleWorkspaceTokenError) {
       return new Response(

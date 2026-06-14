@@ -12,7 +12,7 @@ import {
   requireAuthenticatedPost,
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { escapeCSVValue } from "../_shared/csv-export.ts";
 import {
   fetchWorkOrdersWithData,
@@ -33,6 +33,7 @@ function generateSummaryCsv(allRows: ReturnType<typeof buildAllRows>): string {
 }
 
 Deno.serve(withCorrelationId(async (req, _ctx) => {
+  const corsHeaders = getCorsHeaders(req);
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 

@@ -56,18 +56,20 @@ describe('MobileWorkOrderActionSheet', () => {
     isGeneratingPdf: false,
     onDownloadWorksheet: vi.fn(),
     isGeneratingWorksheet: false,
-    onDownloadXlsx: vi.fn(),
-    isExportingXlsx: false,
-    onDownloadCsv: vi.fn(),
-    isExportingCsv: false,
-    onDownloadDocx: vi.fn(),
-    isExportingDocx: false,
-    docxDisabled: false,
-    onDriveDocs: vi.fn(),
-    isExportingToDocs: false,
-    onDriveSheets: vi.fn(),
-    isExportingToSheets: false,
-    isExportBusy: false,
+    fileExportHandlers: {
+      onDownloadXlsx: vi.fn(),
+      isExportingXlsx: false,
+      onDownloadCsv: vi.fn(),
+      isExportingCsv: false,
+      onDownloadDocx: vi.fn(),
+      isExportingDocx: false,
+      docxDisabled: false,
+      onDriveDocs: vi.fn(),
+      isExportingToDocs: false,
+      onDriveSheets: vi.fn(),
+      isExportingToSheets: false,
+      isExportBusy: false,
+    },
   };
 
   beforeEach(() => {
@@ -87,6 +89,16 @@ describe('MobileWorkOrderActionSheet', () => {
     const pdfIdx = buttons.findIndex((b) => b.textContent?.includes('PDF'));
     expect(viewIdx).toBeGreaterThanOrEqual(0);
     expect(pdfIdx).toBeGreaterThan(viewIdx);
+  });
+
+  it('omits download exports for non-managers', () => {
+    render(
+      <MemoryRouter>
+        <MobileWorkOrderActionSheet {...baseProps} isManager={false} fileExportHandlers={undefined} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByText('Download')).not.toBeInTheDocument();
   });
 
   it('shows desktop-parity download formats for managers', () => {
