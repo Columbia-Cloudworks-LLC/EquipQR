@@ -174,16 +174,21 @@ function Get-PrEvidenceVideoDimensions {
 }
 
 function Get-PrEvidenceRecordingViewport {
+    param(
+        [switch]$MobileViewport
+    )
+
     $repoRoot = Get-PrEvidenceRepoRoot
     $modulePath = Join-Path $repoRoot 'scripts\lib\recording-quality.mjs'
     if (-not (Test-Path -LiteralPath $modulePath)) {
         throw "Recording quality module not found: $modulePath"
     }
     $moduleUrl = ([System.Uri]::new((Resolve-Path -LiteralPath $modulePath).Path)).AbsoluteUri
+    $exportName = if ($MobileViewport) { 'MOBILE_RECORDING_VIEWPORT' } else { 'RECORDING_VIEWPORT' }
 
     $script = @"
-import { RECORDING_VIEWPORT } from '$moduleUrl';
-console.log(JSON.stringify(RECORDING_VIEWPORT));
+import { $exportName } from '$moduleUrl';
+console.log(JSON.stringify($exportName));
 "@
 
     $tempScript = Join-Path $env:TEMP ("pr-evidence-viewport-{0}.mjs" -f ([guid]::NewGuid().ToString('N')))
@@ -230,8 +235,10 @@ function Get-PrEvidenceGifFfmpegFilter {
     $moduleUrl = ([System.Uri]::new((Resolve-Path -LiteralPath $modulePath).Path)).AbsoluteUri
 
     $script = @"
-import { buildPrEvidenceGifFfmpegFilter } from '$moduleUrl';
-console.log(buildPrEvidenceGifFfmpegFilter($InputWidth, $InputHeight, { width: $ViewportWidth, height: $ViewportHeight }));
+import { buildPrEvidenceGifFfmpegFilter, resolvePrEvidenceGifOutputWidth } from '$moduleUrl';
+const viewport = { width: $ViewportWidth, height: $ViewportHeight };
+const fps = viewport.width < 768 ? 6 : 15;
+console.log(buildPrEvidenceGifFfmpegFilter($InputWidth, $InputHeight, viewport, resolvePrEvidenceGifOutputWidth(viewport), fps));
 "@
 
     $tempScript = Join-Path $env:TEMP ("pr-evidence-filter-{0}.mjs" -f ([guid]::NewGuid().ToString('N')))
@@ -275,13 +282,15 @@ function Convert-PrEvidenceWebmToGif {
 
     $dimensions = Get-PrEvidenceVideoDimensions -VideoPath $webmFull
     $videoFilter = Get-PrEvidenceGifFfmpegFilter -InputWidth $dimensions.Width -InputHeight $dimensions.Height
+    $paletteColors = if ([int]($env:PR_EVIDENCE_VIEWPORT_WIDTH) -gt 0 -and [int]($env:PR_EVIDENCE_VIEWPORT_WIDTH) -lt 768) { 96 } else { 256 }
+    $paletteFilter = "$videoFilter,split[s0][s1];[s0]palettegen=max_colors=$paletteColors[p];[s1][p]paletteuse=dither=bayer"
 
-    Write-Host ("[PR evidence] GIF crop from {0}x{1} using filter: {2}" -f $dimensions.Width, $dimensions.Height, $videoFilter)
+    Write-Host ("[PR evidence] GIF crop from {0}x{1} using filter: {2}" -f $dimensions.Width, $dimensions.Height, $paletteFilter)
 
     $args = @(
         '-y',
         '-i', $webmFull,
-        '-vf', $videoFilter,
+        '-vf', $paletteFilter,
         $gifFull
     )
 

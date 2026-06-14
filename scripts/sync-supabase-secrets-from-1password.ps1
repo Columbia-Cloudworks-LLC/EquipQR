@@ -447,6 +447,25 @@ foreach ($var in $optional) {
     $resolved[$var] = $v
 }
 
+# QuickBooks environment policy (preview = sandbox; production = live QBO API).
+function Apply-QboEnvironmentPolicy {
+    param(
+        [string]$Item,
+        [hashtable]$Secrets
+    )
+    if ($Item -eq 'edge-env-preview-secrets') {
+        $Secrets['QBO_USE_SANDBOX'] = 'true'
+        Write-Ok 'Preview policy: QBO_USE_SANDBOX=true (Intuit sandbox companies only).'
+        return
+    }
+    if ($Secrets.ContainsKey('QBO_USE_SANDBOX')) {
+        $Secrets.Remove('QBO_USE_SANDBOX')
+        Write-Ok 'Production policy: QBO_USE_SANDBOX omitted (production QuickBooks API).'
+    }
+}
+
+Apply-QboEnvironmentPolicy -Item $OpItem -Secrets $resolved
+
 if ($Check) {
     Write-Step "Fetching remote digest map for $ProjectRef..."
     $remote = Get-RemoteDigestMap -Ref $ProjectRef

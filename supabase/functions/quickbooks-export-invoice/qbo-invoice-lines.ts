@@ -458,7 +458,6 @@ export async function buildInvoiceLines(
     publicNotesText: string;
   },
 ): Promise<InvoiceSalesLines> {
-  void ctx.workOrder;
   const laborMatchedCosts = costs.filter(isExplicitLaborCostRow);
   const partCosts = costs.filter((cost) => !isExplicitLaborCostRow(cost));
 
@@ -509,11 +508,6 @@ export async function buildInvoiceLines(
   if (laborTotalCents > 0) primary = "labor";
   else if (partsTotalCents > 0) primary = "parts";
 
-  // Return early before any QBO network calls when the work order has no billable lines.
-  if (primary === null) {
-    return [];
-  }
-
   const lazyIncomeRef = (() => {
     let cached: Promise<{ value: string; name?: string }> | null = null;
     return () => {
@@ -524,6 +518,30 @@ export async function buildInvoiceLines(
   const partsItemType = resolveQboInvoicePartsItemType();
 
   const lines: InvoiceSalesLines = [];
+
+  if (primary === null) {
+    const laborItem = await getOrCreateSalesItem(
+      accessToken,
+      realmId,
+      QBO_INVOICE_ITEM_NAMES.labor,
+      "Service",
+      lazyIncomeRef,
+    );
+    const fallbackDescription = capLineDescription(
+      ctx.workOrder.title?.trim() || "Labor",
+    );
+    lines.push({
+      Amount: 0,
+      DetailType: "SalesItemLineDetail",
+      Description: fallbackDescription,
+      SalesItemLineDetail: {
+        ItemRef: laborItem,
+        Qty: 1,
+        UnitPrice: 0,
+      },
+    });
+    return lines;
+  }
 
   const laborShortDescription = loggedHours > 0
     ? `Labor (${laborQty.toFixed(2)} hrs)`

@@ -5,7 +5,6 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Plus,
   Camera,
@@ -21,6 +20,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { getWorkOrderStatusTextColor } from '@/features/work-orders/utils/workOrderHelpers';
 import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
 
 export type MobileFooterSyncState = {
@@ -192,19 +192,18 @@ export const MobileWorkOrderActionFooter: React.FC<MobileWorkOrderActionFooterPr
 
       <div className="space-y-2 p-3 pb-safe-bottom">
         <div className="flex items-center justify-between gap-2">
-          <Badge
-            variant="outline"
+          <span
             className={cn(
-              'text-xs',
+              'text-sm font-semibold',
               isOnHold
-                ? 'border-warning/30 bg-warning/10 text-warning'
+                ? 'text-warning'
                 : isInProgress
-                  ? 'border-success/30 bg-success/10 text-success'
-                  : 'bg-muted text-foreground',
+                  ? 'text-success'
+                  : getWorkOrderStatusTextColor(workOrder.status),
             )}
           >
             {formatFooterStatusBadge(workOrder.status)}
-          </Badge>
+          </span>
 
           {showTimerRow && timerDisplay ? (
             <button

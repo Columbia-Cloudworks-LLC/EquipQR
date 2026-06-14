@@ -19,6 +19,11 @@ import { googleWorkspace } from '@/lib/queryKeys';
 import { ORGANIZATION_INTEGRATIONS_PATH } from '@/features/organization/constants/routes';
 import { IntegrationLoadingCard } from '@/features/organization/components/IntegrationLoadingCard';
 import { IntegrationNotConfiguredCard } from '@/features/organization/components/IntegrationNotConfiguredCard';
+import {
+  IntegrationCardHeader,
+  IntegrationCardLayout,
+  integrationActionButtonClassName,
+} from '@/features/organization/components/IntegrationCardLayout';
 import { GoogleWorkspaceDisconnectDialog } from '@/features/organization/components/GoogleWorkspaceDisconnectDialog';
 import { useGoogleWorkspaceConnect } from '@/features/organization/hooks/useGoogleWorkspaceConnect';
 import { useGoogleWorkspaceDisconnect } from '@/features/organization/hooks/useGoogleWorkspaceDisconnect';
@@ -126,91 +131,105 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
 
   return (
     <>
-      <div className="rounded-lg border p-4 space-y-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-medium">Google Workspace</p>
-              {statusBadge}
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {connectionHealth === 'disconnected'
-                ? 'Import and manage organization members'
-                : `Domain: ${connectionStatus?.domain || 'Unknown'}`}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            {connectionHealth === 'disconnected' && (
-              <Button size="sm" onClick={connect} disabled={isConnecting}>
-                {isConnecting ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                ) : (
-                  <Link2 className="h-3.5 w-3.5 mr-1.5" />
-                )}
-                Connect
-              </Button>
-            )}
-
-            {connectionHealth === 'healthy' && (
-              <>
-                <Button size="sm" onClick={handleSync} disabled={isSyncing}>
-                  {isSyncing ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                  ) : (
-                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                  )}
-                  Sync Directory
-                </Button>
+      <IntegrationCardLayout>
+        <IntegrationCardHeader
+          title="Google Workspace"
+          description={
+            connectionHealth === 'disconnected'
+              ? 'Import and manage organization members'
+              : `Domain: ${connectionStatus?.domain || 'Unknown'}`
+          }
+          badge={statusBadge}
+          actions={
+            <>
+              {connectionHealth === 'disconnected' && (
                 <Button
-                  variant="outline"
                   size="sm"
-                  onClick={() => setDisconnectDialogOpen(true)}
-                  disabled={disconnectMutation.isPending}
+                  className={integrationActionButtonClassName}
+                  onClick={connect}
+                  disabled={isConnecting}
                 >
-                  {disconnectMutation.isPending ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                  ) : (
-                    <Unlink className="h-3.5 w-3.5 mr-1.5" />
-                  )}
-                  Disconnect
-                </Button>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="/dashboard/organization">
-                    <Users className="h-3.5 w-3.5 mr-1.5" />
-                    Members
-                  </Link>
-                </Button>
-              </>
-            )}
-
-            {connectionHealth === 'missing_permissions' && (
-              <>
-                <Button size="sm" onClick={connect} disabled={isConnecting}>
                   {isConnecting ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
                   ) : (
-                    <ShieldAlert className="h-3.5 w-3.5 mr-1.5" />
+                    <Link2 className="h-3.5 w-3.5 mr-1.5" />
                   )}
-                  Finish authorization
+                  Connect
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setDisconnectDialogOpen(true)}
-                  disabled={disconnectMutation.isPending}
-                >
-                  {disconnectMutation.isPending ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                  ) : (
-                    <Unlink className="h-3.5 w-3.5 mr-1.5" />
-                  )}
-                  Disconnect
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
+              )}
+
+              {connectionHealth === 'healthy' && (
+                <>
+                  <Button
+                    size="sm"
+                    className={integrationActionButtonClassName}
+                    onClick={handleSync}
+                    disabled={isSyncing}
+                  >
+                    {isSyncing ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                    ) : (
+                      <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    Sync Directory
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={integrationActionButtonClassName}
+                    onClick={() => setDisconnectDialogOpen(true)}
+                    disabled={disconnectMutation.isPending}
+                  >
+                    {disconnectMutation.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                    ) : (
+                      <Unlink className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    Disconnect
+                  </Button>
+                  <Button variant="ghost" size="sm" className={integrationActionButtonClassName} asChild>
+                    <Link to="/dashboard/organization">
+                      <Users className="h-3.5 w-3.5 mr-1.5" />
+                      Members
+                    </Link>
+                  </Button>
+                </>
+              )}
+
+              {connectionHealth === 'missing_permissions' && (
+                <>
+                  <Button
+                    size="sm"
+                    className={integrationActionButtonClassName}
+                    onClick={connect}
+                    disabled={isConnecting}
+                  >
+                    {isConnecting ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                    ) : (
+                      <ShieldAlert className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    Finish authorization
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={integrationActionButtonClassName}
+                    onClick={() => setDisconnectDialogOpen(true)}
+                    disabled={disconnectMutation.isPending}
+                  >
+                    {disconnectMutation.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                    ) : (
+                      <Unlink className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    Disconnect
+                  </Button>
+                </>
+              )}
+            </>
+          }
+        />
 
         {connectionHealth === 'missing_permissions' && (
           <Alert>
@@ -228,7 +247,7 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
             access the organization.
           </p>
         )}
-      </div>
+      </IntegrationCardLayout>
 
       <GoogleWorkspaceDisconnectDialog
         open={disconnectDialogOpen}

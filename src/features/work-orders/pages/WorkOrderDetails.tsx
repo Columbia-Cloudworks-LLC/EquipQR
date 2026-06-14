@@ -21,13 +21,12 @@ import { useWorkOrderDetailsStagger } from '@/features/work-orders/hooks/useWork
 import { useWorkOrderDetailsPMInitialization } from '@/features/work-orders/hooks/useWorkOrderDetailsPMInitialization';
 import { useWorkOrderDetailsMobileWorkflow } from '@/features/work-orders/hooks/useWorkOrderDetailsMobileWorkflow';
 import { useWorkOrderDetailsNotesComposer } from '@/features/work-orders/hooks/useWorkOrderDetailsNotesComposer';
+import { useWorkOrderInlineFieldSave } from '@/features/work-orders/hooks/useWorkOrderInlineFieldSave';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useOfflineQueue } from '@/contexts/OfflineQueueContext';
 import {
-  buildMobileEquipmentSummary,
   buildMobileWorkOrderAssigneeSummary,
-  buildMobileWorkOrderSummary,
   buildOfflineSyncState,
   buildWorkOrderAssigneeSummary,
   buildWorkOrderTeamSummary,
@@ -38,6 +37,7 @@ import {
 import { WorkOrderDetailsMobileContent } from '@/features/work-orders/components/WorkOrderDetailsMobileContent';
 import { WorkOrderDetailsDesktopContent } from '@/features/work-orders/components/WorkOrderDetailsDesktopContent';
 import { WorkOrderDetailsOverlays } from '@/features/work-orders/components/WorkOrderDetailsOverlays';
+import { PMChangeWarningDialog } from '@/features/work-orders/components/PMChangeWarningDialog';
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
@@ -119,12 +119,8 @@ const WorkOrderDetails = () => {
   const { data: linkedEquipment = [] } = useWorkOrderEquipment(workOrderId || '');
 
   const {
-    isEditFormOpen,
     showMobileSidebar,
     setShowMobileSidebar,
-    handleEditWorkOrder,
-    handleCloseEditForm,
-    handleUpdateWorkOrder,
     handleStatusUpdate,
     handlePMUpdate,
     showPMWarning,
@@ -133,8 +129,9 @@ const WorkOrderDetails = () => {
     handleConfirmPMChange,
     handleCancelPMChange,
     getPMDataDetails,
-    isUpdating,
   } = useWorkOrderDetailsActions(workOrderId || '', currentOrganization?.id || '', pmData);
+
+  const pmWarningDetails = useMemo(() => getPMDataDetails(), [getPMDataDetails]);
 
   const workTimer = useWorkTimer(workOrderId);
   const offlineQueue = useOfflineQueue();
@@ -148,6 +145,8 @@ const WorkOrderDetails = () => {
     setShowFieldAcceptDialog,
     showMobilePDFDialog,
     setShowMobilePDFDialog,
+    mobilePdfDialogFocusDrive,
+    openMobilePdfDialog,
     mobileReviewOpen,
     setMobileReviewOpen,
     mobileStatusMutation,
@@ -169,6 +168,14 @@ const WorkOrderDetails = () => {
       isOnline: offlineQueue.isOnline,
     });
 
+  const { saveField } = useWorkOrderInlineFieldSave(workOrderId || '', workOrder?.updated_at);
+  const handleSaveDescription = React.useCallback(
+    async (description: string) => {
+      await saveField('description', description);
+    },
+    [saveField],
+  );
+
   useWorkOrderDetailsActionQuery({
     actionParam,
     shouldAutoOpenNoteForm,
@@ -179,7 +186,7 @@ const WorkOrderDetails = () => {
     setSearchParams,
     notesSectionRef,
     pmSectionRef,
-    onAutoOpenPDFDialog: () => setShowMobilePDFDialog(true),
+    onAutoOpenPDFDialog: () => openMobilePdfDialog(false),
   });
 
   const exports = useWorkOrderDetailsExports({
@@ -234,6 +241,8 @@ const WorkOrderDetails = () => {
     footerRoleEligible,
   });
   const hideInlineNoteAddButton = shouldHideInlineNoteAddButton(showMobileActionFooter, workOrder.status);
+  const canEditInlineFields = canEdit && !isWorkOrderLocked;
+  const canEditAssignment = permissionLevels.canAssign && !isWorkOrderLocked;
 
   const canCompletePmGate = !workOrder.has_pm || pmData?.status === 'completed';
   const pmChecklist = getPMChecklistStats(pmData?.checklist_data);
@@ -241,18 +250,6 @@ const WorkOrderDetails = () => {
   const teamSummary = buildWorkOrderTeamSummary(workOrder, equipment);
   const assigneeNameSummary = buildWorkOrderAssigneeSummary(workOrder.assigneeName);
   const mobileAssigneeSummary = buildMobileWorkOrderAssigneeSummary(workOrder.assigneeName);
-  const compactWorkOrderSummary = buildMobileWorkOrderSummary({
-    status: workOrder.status,
-    priority: workOrder.priority,
-    dueDate: workOrder.due_date,
-  });
-  const compactEquipmentSummary = equipment
-    ? buildMobileEquipmentSummary({
-        id: equipment.id,
-        name: equipment.name,
-        status: equipment.status,
-      })
-    : undefined;
 
   const scrollToPMSection = () => {
     pmSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -262,8 +259,7 @@ const WorkOrderDetails = () => {
     <div className="min-h-screen bg-background texture-grain">
       <WorkOrderDetailsMobileHeader
         workOrder={{ title: workOrder.title }}
-        canEdit={canEdit}
-        onEditClick={handleEditWorkOrder}
+        showExports={permissionLevels.isManager}
         onOpenActionSheet={() => setShowMobileActionSheet(true)}
       />
 
@@ -271,8 +267,6 @@ const WorkOrderDetails = () => {
         workOrder={workOrder}
         formMode={formMode}
         permissionLevels={permissionLevels}
-        canEdit={canEdit}
-        onEditClick={handleEditWorkOrder}
         equipmentTeamId={equipment?.team_id}
         equipment={equipment ? {
           id: equipment.id,
@@ -325,8 +319,6 @@ const WorkOrderDetails = () => {
               showMobileActionFooter={showMobileActionFooter}
               footerRoleEligible={footerRoleEligible}
               syncState={syncState}
-              compactWorkOrderSummary={compactWorkOrderSummary}
-              compactEquipmentSummary={compactEquipmentSummary}
               teamSummary={teamSummary}
               assigneeNameSummary={assigneeNameSummary}
               mobileAssigneeSummary={mobileAssigneeSummary}
@@ -338,11 +330,15 @@ const WorkOrderDetails = () => {
               onAcceptWorkOrder={() => setShowFieldAcceptDialog(true)}
               onStartWork={startMobileWorkOrder}
               onResumeWork={pauseResumeMobileWorkOrder}
+              onPutAssignedOnHold={putAssignedMobileWorkOrderOnHold}
               onContinueChecklist={scrollToPMSection}
               onAddNote={openNotesComposer}
               onAddPhoto={openPhotoCapture}
               onComplete={() => setShowMobileCompleteDialog(true)}
               onRetrySync={offlineQueue.retryFailed}
+              canEditInlineFields={canEditInlineFields}
+              canEditAssignment={canEditAssignment}
+              onSaveDescription={handleSaveDescription}
             />
           ) : (
             <WorkOrderDetailsDesktopContent
@@ -367,6 +363,8 @@ const WorkOrderDetails = () => {
               notesSectionRef={notesSectionRef}
               stagger={stagger}
               onPMUpdate={handlePMUpdate}
+              canEditInlineFields={canEditInlineFields}
+              onSaveDescription={handleSaveDescription}
             />
           )}
         </div>
@@ -390,28 +388,19 @@ const WorkOrderDetails = () => {
       <WorkOrderDetailsOverlays
         isMobile={isMobile}
         workOrder={workOrder}
-        pmData={pmData}
         organizationId={currentOrganization.id}
         equipmentTeamId={equipment?.team_id}
         permissionLevels={permissionLevels}
-        canEdit={canEdit}
         canAddNotes={canAddNotes}
         canCompletePmGate={canCompletePmGate}
         showMobileActionFooter={showMobileActionFooter}
         syncState={syncState}
         workTimer={workTimer}
-        isEditFormOpen={isEditFormOpen}
-        onCloseEditForm={handleCloseEditForm}
-        onUpdateWorkOrder={handleUpdateWorkOrder}
-        isUpdating={isUpdating}
-        showPMWarning={showPMWarning}
-        onPMWarningOpenChange={setShowPMWarning}
-        onConfirmPMChange={handleConfirmPMChange}
-        onCancelPMChange={handleCancelPMChange}
-        pmChangeType={pmChangeType}
-        pmDataDetails={getPMDataDetails()}
         showMobilePDFDialog={showMobilePDFDialog}
         onMobilePDFDialogOpenChange={setShowMobilePDFDialog}
+        mobilePdfDialogFocusDrive={mobilePdfDialogFocusDrive}
+        onOpenMobilePdfDialog={() => openMobilePdfDialog(false)}
+        onOpenMobileDrivePdfDialog={() => openMobilePdfDialog(true)}
         onMobilePDFExport={exports.handleMobilePDFExport}
         isMobilePDFGenerating={exports.isMobilePDFGenerating}
         isGoogleWorkspaceConnected={exports.isGoogleWorkspaceConnected}
@@ -420,19 +409,24 @@ const WorkOrderDetails = () => {
         isMobileSavingToDrive={exports.isMobileSavingToDrive}
         showMobileActionSheet={showMobileActionSheet}
         onMobileActionSheetOpenChange={setShowMobileActionSheet}
-        onEditWorkOrder={handleEditWorkOrder}
         onViewFullDetails={() => {
           setShowMobileActionSheet(false);
           setShowMobileSidebar(true);
         }}
         onDownloadWorksheet={exports.handleMobileDownloadWorksheet}
         isMobileWorksheetGenerating={exports.isMobileWorksheetGenerating}
-        onExportExcel={() => exports.exportSingle(workOrder.id)}
-        isExportingExcel={exports.isExportingSingle}
-        onExportGoogleDoc={
-          exports.canExportGoogleDoc ? () => exports.exportSingleToDocs(workOrder.id) : undefined
-        }
-        isExportingGoogleDoc={exports.isExportingSingleToDocs}
+        onDownloadXlsx={() => exports.exportSingle(workOrder.id)}
+        isExportingXlsx={exports.isExportingSingle}
+        onDownloadCsv={() => exports.exportSingleCsv(workOrder.id)}
+        isExportingCsv={exports.isExportingSingleCsv}
+        onDownloadDocx={() => exports.exportSingleDocx(workOrder.id)}
+        isExportingDocx={exports.isExportingSingleDocx}
+        docxDisabled={!exports.canExportGoogleDoc}
+        onDriveDocs={() => exports.exportSingleToDocs(workOrder.id)}
+        isExportingToDocs={exports.isExportingSingleToDocs}
+        onDriveSheets={() => exports.exportSingleToSheets(workOrder.id)}
+        isExportingToSheets={exports.isExportingSingleToSheets}
+        isExportBusy={exports.isExportBusy}
         showMobileCompleteDialog={showMobileCompleteDialog}
         onMobileCompleteDialogOpenChange={setShowMobileCompleteDialog}
         mobileStatusMutation={mobileStatusMutation}
@@ -450,6 +444,18 @@ const WorkOrderDetails = () => {
         onScrollToChecklist={scrollToPMSection}
         onRequestAccept={() => setShowFieldAcceptDialog(true)}
         onRetrySync={offlineQueue.retryFailed}
+      />
+
+      <PMChangeWarningDialog
+        open={showPMWarning}
+        onOpenChange={setShowPMWarning}
+        onConfirm={() => {
+          void handleConfirmPMChange();
+        }}
+        onCancel={handleCancelPMChange}
+        changeType={pmChangeType}
+        hasExistingNotes={pmWarningDetails.hasNotes}
+        hasCompletedItems={pmWarningDetails.hasCompletedItems}
       />
     </div>
   );

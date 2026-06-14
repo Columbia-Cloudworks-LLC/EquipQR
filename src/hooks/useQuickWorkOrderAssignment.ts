@@ -3,33 +3,61 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
+import { invalidateWorkOrderCaches } from '@/features/work-orders/utils/invalidateWorkOrderQueries';
+
+type WorkOrderStatus = Database['public']['Enums']['work_order_status'];
 
 interface QuickAssignmentVariables {
   workOrderId: string;
   assigneeId?: string | null;
   organizationId: string;
+  /** Preserve workflow state when reassigning from details/list inline editors. */
+  currentStatus?: WorkOrderStatus;
+}
+
+export function resolveStatusAfterAssignment(
+  currentStatus: WorkOrderStatus | undefined,
+  assigneeId: string | null | undefined,
+): WorkOrderStatus {
+  if (!currentStatus) {
+    return assigneeId ? 'assigned' : 'submitted';
+  }
+
+  if (assigneeId) {
+    if (currentStatus === 'submitted' || currentStatus === 'accepted') {
+      return 'assigned';
+    }
+    return currentStatus;
+  }
+
+  if (currentStatus === 'assigned') {
+    return 'accepted';
+  }
+
+  return currentStatus;
 }
 
 export const useQuickWorkOrderAssignment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ workOrderId, assigneeId }: QuickAssignmentVariables) => {
-      // Determine the new status based on assignment
-      let newStatus: Database['public']['Enums']['work_order_status'] = 'submitted';
-      if (assigneeId) {
-        newStatus = 'assigned';
-      }
+    mutationFn: async ({ workOrderId, assigneeId, currentStatus }: QuickAssignmentVariables) => {
+      const newStatus = resolveStatusAfterAssignment(currentStatus, assigneeId);
 
       const updateData: Database['public']['Tables']['work_orders']['Update'] = {
         assignee_id: assigneeId || null,
-        status: newStatus
+        status: newStatus,
       };
 
-      // Only set acceptance_date if actually assigning
       if (assigneeId) {
-        updateData.acceptance_date = new Date().toISOString();
-      } else {
+        if (
+          newStatus === 'assigned'
+          || newStatus === 'accepted'
+          || newStatus === 'in_progress'
+        ) {
+          updateData.acceptance_date = new Date().toISOString();
+        }
+      } else if (newStatus === 'accepted' || newStatus === 'submitted') {
         updateData.acceptance_date = null;
       }
 
@@ -43,27 +71,8 @@ export const useQuickWorkOrderAssignment = () => {
     onSuccess: (_, { assigneeId, organizationId, workOrderId }: QuickAssignmentVariables) => {
       const message = assigneeId ? 'Work order assigned successfully' : 'Work order unassigned successfully';
       toast.success(message);
-      
-      // Invalidate specific work order queries (used by work order details page)
-      queryClient.invalidateQueries({ queryKey: ['workOrder', organizationId, workOrderId] });
-      queryClient.invalidateQueries({ queryKey: ['workOrder', 'enhanced', organizationId, workOrderId] });
-      
-      // Invalidate all work order related queries with partial matching
-      queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['workOrders', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['team-based-work-orders', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardStats', organizationId] });
-      
-      // Also invalidate with partial matching to catch any other work order queries
-      queryClient.invalidateQueries({ 
-        queryKey: ['work-orders'], 
-        exact: false 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['workOrders'], 
-        exact: false 
-      });
+
+      invalidateWorkOrderCaches(queryClient, organizationId, workOrderId);
     },
     onError: (error) => {
       logger.error('Error assigning work order', error);

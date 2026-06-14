@@ -9,7 +9,7 @@ type ToastFn = (props: {
 export function handleGoogleWorkspaceExportError(
   toast: ToastFn,
   error: Error & { code?: string },
-  destination: 'Sheets' | 'Docs',
+  destination: 'Sheets' | 'Docs' | 'PDF',
 ): boolean {
   if (error.code === 'insufficient_scopes' || error.code === 'not_connected') {
     toast({

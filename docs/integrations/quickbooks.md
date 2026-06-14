@@ -36,6 +36,21 @@ Configure these secrets in Supabase Dashboard → Edge Functions → Secrets:
 | `INTUIT_CLIENT_ID` | Your Intuit app's Client ID |
 | `INTUIT_CLIENT_SECRET` | Your Intuit app's Client Secret |
 | `PUBLIC_SITE_URL` | Public app origin for OAuth success redirects (`https://equipqr.app` prod, `https://preview.equipqr.app` preview) |
+| `QBO_USE_SANDBOX` | Set to `true` on **local dev and preview** so Edge Functions call the sandbox QBO API. Omit on production. |
+
+### Environment matrix (sandbox vs production)
+
+| Tier | App `VITE_INTUIT_CLIENT_ID` | Edge `INTUIT_*` | `QBO_USE_SANDBOX` | QBO companies | Invoice UI |
+|------|------------------------------|-----------------|-------------------|---------------|--------------|
+| Local | Development | Development | `true` (via `sync-local-supabase-env.ps1`) | Sandbox | `app.sandbox.qbo.intuit.com` |
+| Preview | Development | Development | `true` (via secrets sync) | Sandbox | `app.sandbox.qbo.intuit.com` |
+| Production | Production | Production | unset | Live | `app.qbo.intuit.com` |
+
+**Why both Development keys and `QBO_USE_SANDBOX`?** Intuit OAuth with Development credentials authorizes **sandbox** companies. The API host flag ensures token refresh and invoice export hit `sandbox-quickbooks.api.intuit.com` instead of the production API (mixing them yields 403s).
+
+After switching preview to sandbox, **disconnect and reconnect** QuickBooks on preview.equipqr.app so stored tokens match the sandbox realm.
+
+Client-side: align `VITE_INTUIT_CLIENT_ID` in `app-env-preview-public` with `INTUIT_CLIENT_ID` in `edge-env-preview-secrets` (same Development client ID).
 
 **OAuth redirect URI (derived — do not set separate redirect base secrets)**
 
@@ -246,9 +261,12 @@ deno test --allow-env --allow-net=quickbooks.api.intuit.com ./quickbooks-export-
 
 ### Local Development
 
-1. Configure the production Intuit app credentials used by EquipQR.
-2. Register the local callback URI in Intuit if testing OAuth locally.
-3. Use `ngrok` or similar only when Intuit requires a publicly reachable callback for a local test.
+1. Use Intuit **Development** app credentials (same keys as preview sandbox).
+2. Run `.\scripts\sync-local-supabase-env.ps1` so `supabase/functions/.env` includes `QBO_USE_SANDBOX=true`.
+3. Register the local callback URI in the Intuit Developer Portal (Development app → Keys & OAuth).
+4. Capture the integration once: `npm run e2e:quickbooks-auth:capture` (see `docs/ops/playwright-real-auth-integrations.md`).
+5. Restart Supabase after env changes: `npx supabase stop; npx supabase start -x logflare -x vector`
+6. Probe the QBO API from the shell: `.\scripts\qbo\Invoke-QboQuery.ps1 -StatusOnly`.
 
 ## API Reference
 

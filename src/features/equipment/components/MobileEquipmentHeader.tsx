@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, QrCode, MapPin, Calendar, Trash2, Clock } from 'lucide-react';
+import { ArrowLeft, QrCode, MapPin, Calendar, Trash2, Clock, ChevronRight } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import { getStatusColor, EQUIPMENT_STATUS_OPTIONS } from '@/features/equipment/utils/equipmentHelpers';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
@@ -73,16 +73,20 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
         {/* Working Hours KPI */}
         {onShowWorkingHours && (
           <button
+            type="button"
             onClick={onShowWorkingHours}
-            className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors text-left w-full"
+            aria-label={`Working hours: ${equipment.working_hours?.toLocaleString() || '0'}. Tap to log hours.`}
+            className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors text-left w-full min-h-[44px] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
-            <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <Clock className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">Working Hours</p>
               <p className="text-sm text-muted-foreground">
                 {equipment.working_hours?.toLocaleString() || '0'} hours
+                <span className="text-muted-foreground/80"> · Tap to log</span>
               </p>
             </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
           </button>
         )}
         

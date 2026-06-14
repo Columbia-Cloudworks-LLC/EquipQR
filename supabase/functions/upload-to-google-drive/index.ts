@@ -9,11 +9,13 @@
  */
 
 import {
+  createAdminSupabaseClient,
   createUserSupabaseClient,
   createErrorResponse,
   handleCorsPreflightIfNeeded,
 } from "../_shared/supabase-clients.ts";
 import { GoogleWorkspaceTokenError } from "../_shared/google-workspace-token.ts";
+import { trackGoogleDriveExportArtifact } from "../_shared/record-export-artifacts.ts";
 import {
   ALLOWED_MIME_TYPES,
   logStep,
@@ -24,10 +26,14 @@ import {
 import { decodeBase64Content, isDecodedSizeAllowed } from "./gdrive-decode.ts";
 import { uploadToDrive } from "./gdrive-upload-api.ts";
 import { authorizeDriveUpload } from "./gdrive-auth.ts";
+import { resolvePdfUploadParentId } from "./gdrive-upload-destination.ts";
 import {
   driveUploadSuccessResponse,
   tokenErrorResponse,
 } from "./gdrive-error-responses.ts";
+
+const PDF_EXPORT_CHANNEL = "google_drive";
+const PDF_ARTIFACT_KIND = "service_report_pdf";
 
 Deno.serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -58,6 +64,7 @@ Deno.serve(async (req) => {
       contentBase64,
       mimeType = "application/pdf",
       parentId,
+      workOrderId,
     } = body;
 
     if (!ALLOWED_MIME_TYPES.includes(mimeType as typeof ALLOWED_MIME_TYPES[number])) {
@@ -72,7 +79,7 @@ Deno.serve(async (req) => {
       return authResult;
     }
 
-    const { destinationParentId, accessToken } = authResult;
+    const { destination, accessToken, userId } = authResult;
 
     if (!filename) {
       return createErrorResponse("Missing required field: filename", 400);
@@ -88,6 +95,7 @@ Deno.serve(async (req) => {
     const sanitizedFilename = sanitizeFilename(filename);
     logStep("Processing upload request", {
       organizationId,
+      workOrderId,
       originalFilename: filename,
       sanitizedFilename,
       mimeType,
@@ -104,7 +112,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    logStep("Uploading file to Drive", { filename: sanitizedFilename, size: fileBytes.length });
+    let uploadParentId = destination.parent_id;
+    const warnings: string[] = [];
+
+    if (workOrderId) {
+      const resolvedDestination = await resolvePdfUploadParentId(supabase, {
+        accessToken,
+        organizationId,
+        workOrderId,
+        destination,
+      });
+      uploadParentId = resolvedDestination.parentId;
+      warnings.push(...resolvedDestination.warnings);
+    }
+
+    logStep("Uploading file to Drive", {
+      filename: sanitizedFilename,
+      size: fileBytes.length,
+      parentId: uploadParentId,
+    });
 
     let driveFile;
     try {
@@ -113,7 +139,7 @@ Deno.serve(async (req) => {
         sanitizedFilename,
         fileBytes,
         mimeType,
-        destinationParentId,
+        uploadParentId,
       );
     } catch (uploadError) {
       if (uploadError instanceof GoogleWorkspaceTokenError) {
@@ -122,10 +148,36 @@ Deno.serve(async (req) => {
       throw uploadError;
     }
 
-    logStep("Upload complete", { fileId: driveFile.id, webViewLink: driveFile.webViewLink });
-    return driveUploadSuccessResponse(driveFile);
+    const webViewLink = driveFile.webViewLink
+      ?? `https://drive.google.com/file/d/${driveFile.id}/view`;
+
+    let replacedPrevious = false;
+
+    if (workOrderId) {
+      const adminClient = createAdminSupabaseClient();
+      const artifactResult = await trackGoogleDriveExportArtifact(adminClient, {
+        organizationId,
+        recordId: workOrderId,
+        exportChannel: PDF_EXPORT_CHANNEL,
+        artifactKind: PDF_ARTIFACT_KIND,
+        providerFileId: driveFile.id,
+        webViewLink,
+        providerParentId: uploadParentId,
+        userId,
+        accessToken,
+      });
+      replacedPrevious = artifactResult.replacedPrevious;
+      warnings.push(...artifactResult.warnings);
+    }
+
+    logStep("Upload complete", { fileId: driveFile.id, webViewLink, replacedPrevious });
+    return driveUploadSuccessResponse(
+      { ...driveFile, webViewLink },
+      { replacedPrevious, warnings: warnings.length > 0 ? warnings : undefined },
+    );
   } catch (error) {
     console.error("[UPLOAD-TO-GOOGLE-DRIVE] Upload error:", error);
-    return createErrorResponse("An unexpected error occurred", 500);
+    const message = error instanceof Error ? error.message : String(error);
+    return createErrorResponse(message || "An unexpected error occurred", 500);
   }
 });

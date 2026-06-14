@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { WorkOrderDeleteConfirmDialog } from '@/features/work-orders/components/WorkOrderDeleteConfirmDialog';
-import { Edit, Info, Download, FileSpreadsheet, Loader2, MoreHorizontal, Trash2, FileText, ExternalLink, ClipboardList } from 'lucide-react';
+import { Info, Download, MoreHorizontal } from 'lucide-react';
 import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
 import { WorkOrderData, PermissionLevels, EquipmentData, PMData } from '@/features/work-orders/types/workOrderDetails';
 import {
@@ -15,15 +15,11 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import PageHeader from '@/components/layout/PageHeader';
-import { QuickBooksExportButton } from './QuickBooksExportButton';
 import { WorkOrderPDFExportDialog } from './WorkOrderPDFExportDialog';
+import { WorkOrderExportMenuContent } from './WorkOrderExportMenuContent';
 import { useWorkOrderPDF } from '@/features/work-orders/hooks/useWorkOrderPDFData';
 import { useWorkOrderExcelExport } from '@/features/work-orders/hooks/useWorkOrderExcelExport';
 import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
@@ -36,14 +32,11 @@ import { isQuickBooksEnabled } from '@/lib/flags';
 import QuickBooksInvoiceStatusBadge from './QuickBooksInvoiceStatusBadge';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { canExportWorkOrderGoogleDoc } from '@/features/work-orders/utils/googleDocsExportAvailability';
-import { useLatestExportArtifact } from '@/features/work-orders/hooks/useLatestExportArtifact';
 
 interface WorkOrderDetailsDesktopHeaderProps {
   workOrder: WorkOrderData;
   formMode: string;
   permissionLevels: PermissionLevels;
-  canEdit: boolean;
-  onEditClick: () => void;
   /** Team ID derived from the equipment assigned to this work order */
   equipmentTeamId?: string | null;
   /** Equipment data for PDF export */
@@ -64,8 +57,6 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   workOrder,
   formMode,
   permissionLevels,
-  canEdit,
-  onEditClick,
   equipmentTeamId,
   equipment,
   pmData,
@@ -73,6 +64,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   organizationId
 }) => {
   const [showPDFDialog, setShowPDFDialog] = useState(false);
+  const [pdfDialogFocusDrive, setPdfDialogFocusDrive] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const navigate = useNavigate();
   const permissions = useUnifiedPermissions();
@@ -93,7 +85,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
     }
   };
 
-  const { downloadPDF, isGenerating, saveToDrive, isSavingToDrive, downloadFieldWorksheet, isGeneratingWorksheet } = useWorkOrderPDF({
+  const { downloadPDF, isGenerating, saveToDrive, isSavingToDrive } = useWorkOrderPDF({
     workOrder,
     equipment: equipment ? {
       id: equipment.id,
@@ -107,10 +99,22 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
     } : null,
     pmData: pmData as PreventativeMaintenance | null,
     organizationName,
+    organizationId,
     teamId: equipmentTeamId,
   });
 
-  const { exportSingle, isExportingSingle, exportSingleToDocs, isExportingSingleToDocs } = useWorkOrderExcelExport(
+  const {
+    exportSingle,
+    isExportingSingle,
+    exportSingleToDocs,
+    isExportingSingleToDocs,
+    exportSingleToSheets,
+    isExportingSingleToSheets,
+    exportSingleCsv,
+    isExportingSingleCsv,
+    exportSingleDocx,
+    isExportingSingleDocx,
+  } = useWorkOrderExcelExport(
     organizationId,
     organizationName ?? ''
   );
@@ -125,14 +129,6 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
     hasDestination: Boolean(googleDocsDestination),
   });
 
-  const { data: lastDocArtifact } = useLatestExportArtifact(
-    organizationId,
-    'work_order',
-    workOrder?.id,
-    'google_docs',
-    'internal_packet',
-  );
-
   const handlePDFExport = async (options: { includeCosts: boolean }) => {
     await downloadPDF(options);
   };
@@ -141,17 +137,27 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
     await saveToDrive(options);
   };
 
-  const handleDownloadWorksheet = async () => {
-    try {
-      await downloadFieldWorksheet();
-    } catch {
-      // Error toast is shown by the hook
-    }
+  const openPdfDialog = (focusDrive: boolean) => {
+    setPdfDialogFocusDrive(focusDrive);
+    // Defer so nested export dropdowns can close before the dialog opens (Radix focus trap).
+    window.setTimeout(() => {
+      setShowPDFDialog(true);
+    }, 0);
   };
 
   const truncatedId = workOrder.id.substring(0, 8).toUpperCase();
   const showExports = permissionLevels.isManager;
   const showActionsMenu = showExports || showQuickBooks || canDelete;
+  const actionsMenuLabel = showExports ? 'Export' : 'Actions';
+  const showGoogleDrive = isGoogleWorkspaceConnected && Boolean(googleDocsDestination);
+  const isExportBusy =
+    isExportingSingle
+    || isExportingSingleToDocs
+    || isExportingSingleToSheets
+    || isExportingSingleCsv
+    || isExportingSingleDocx
+    || isGenerating
+    || isSavingToDrive;
 
   return (
     <TooltipProvider>
@@ -191,108 +197,52 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           }
           actions={
             <>
-              {canEdit && (
-                <Button
-                  variant="outline"
-                  onClick={onEditClick}
-                  aria-label={formMode === 'requestor' ? 'Edit work order request' : 'Edit work order'}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  {formMode === 'requestor' ? 'Edit Request' : 'Edit'}
-                </Button>
-              )}
               {showActionsMenu && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" aria-label="Actions">
-                      <MoreHorizontal className="h-4 w-4" />
+                    <Button variant="outline" aria-label={actionsMenuLabel}>
+                      {showExports ? (
+                        <>
+                          <Download className="h-4 w-4 mr-2" />
+                          Export
+                        </>
+                      ) : (
+                        <>
+                          <MoreHorizontal className="h-4 w-4 mr-2" />
+                          Actions
+                        </>
+                      )}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    {showExports && (
-                      <>
-                        <DropdownMenuLabel>Exports</DropdownMenuLabel>
-                        <DropdownMenuGroup>
-                          <DropdownMenuItem
-                            onClick={() => setShowPDFDialog(true)}
-                            disabled={isGenerating}
-                          >
-                            <Download className="h-4 w-4 mr-2" />
-                            Service Report PDF
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={handleDownloadWorksheet}
-                            disabled={isGeneratingWorksheet}
-                          >
-                            {isGeneratingWorksheet ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                              <ClipboardList className="h-4 w-4 mr-2" />
-                            )}
-                            Printable Field Worksheet
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => exportSingle(workOrder.id)}
-                            disabled={isExportingSingle || isExportingSingleToDocs || !organizationId}
-                          >
-                            {isExportingSingle ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                              <FileSpreadsheet className="h-4 w-4 mr-2" />
-                            )}
-                            Internal Work Order Packet
-                          </DropdownMenuItem>
-                          {canExportGoogleDoc && (
-                            <DropdownMenuItem
-                              onClick={() => exportSingleToDocs(workOrder.id)}
-                              disabled={isExportingSingle || isExportingSingleToDocs || !organizationId}
-                            >
-                              {isExportingSingleToDocs ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              ) : (
-                                <FileText className="h-4 w-4 mr-2" />
-                              )}
-                              Internal Work Order Packet (Google Doc)
-                            </DropdownMenuItem>
-                          )}
-                          {lastDocArtifact?.web_view_link && (
-                            <DropdownMenuItem
-                              onClick={() => window.open(lastDocArtifact.web_view_link, '_blank', 'noopener,noreferrer')}
-                            >
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              Open Last Google Doc
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuGroup>
-                      </>
-                    )}
-                    {showQuickBooks && (
-                      <>
-                        {showExports && <DropdownMenuSeparator />}
-                        <DropdownMenuLabel>Integrations</DropdownMenuLabel>
-                        <DropdownMenuGroup>
-                          <QuickBooksExportButton
-                            workOrderId={workOrder.id}
-                            teamId={equipmentTeamId ?? null}
-                            workOrderStatus={workOrder.status}
-                            asMenuItem
-                          />
-                        </DropdownMenuGroup>
-                      </>
-                    )}
-                    {canDelete && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => setShowDeleteDialog(true)}
-                          disabled={deleteWorkOrderMutation.isPending}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Work Order
-                        </DropdownMenuItem>
-                      </>
-                    )}
+                    <WorkOrderExportMenuContent
+                      workOrderId={workOrder.id}
+                      workOrderStatus={workOrder.status}
+                      equipmentTeamId={equipmentTeamId}
+                      showExports={showExports}
+                      showQuickBooks={showQuickBooks}
+                      showGoogleDrive={showGoogleDrive}
+                      canDelete={canDelete}
+                      organizationId={organizationId}
+                      isManager={permissionLevels.isManager}
+                      onOpenPdfDialog={() => openPdfDialog(false)}
+                      onOpenDrivePdfDialog={() => openPdfDialog(true)}
+                      isGeneratingPdf={isGenerating || isSavingToDrive}
+                      onDownloadXlsx={() => exportSingle(workOrder.id)}
+                      isExportingXlsx={isExportingSingle}
+                      onDownloadCsv={() => exportSingleCsv(workOrder.id)}
+                      isExportingCsv={isExportingSingleCsv}
+                      onDownloadDocx={() => exportSingleDocx(workOrder.id)}
+                      isExportingDocx={isExportingSingleDocx}
+                      docxDisabled={!canExportGoogleDoc}
+                      onDriveDocs={() => exportSingleToDocs(workOrder.id)}
+                      isExportingToDocs={isExportingSingleToDocs}
+                      onDriveSheets={() => exportSingleToSheets(workOrder.id)}
+                      isExportingToSheets={isExportingSingleToSheets}
+                      onDelete={() => setShowDeleteDialog(true)}
+                      isDeleting={deleteWorkOrderMutation.isPending}
+                      isExportBusy={isExportBusy}
+                    />
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -310,6 +260,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           hasOrganizationDriveDestination={Boolean(googleDocsDestination)}
           onSaveToDrive={handleSaveToDrive}
           isSavingToDrive={isSavingToDrive}
+          focusDriveAction={pdfDialogFocusDrive}
         />
 
         <WorkOrderDeleteConfirmDialog

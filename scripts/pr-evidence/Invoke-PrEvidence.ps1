@@ -40,7 +40,9 @@ param(
 
     [string]$BaseUrl = 'http://localhost:8080',
 
-    [switch]$SkipStackStart
+    [switch]$SkipStackStart,
+
+    [switch]$MobileViewport
 )
 
 $ErrorActionPreference = 'Stop'
@@ -130,6 +132,9 @@ if ($shouldCapture) {
     }
     if ($SkipStackStart) {
         $captureParams['SkipStackStart'] = $true
+    }
+    if ($MobileViewport) {
+        $captureParams['MobileViewport'] = $true
     }
 
     & (Join-Path $here 'Invoke-PrEvidenceCapture.ps1') @captureParams

@@ -3,6 +3,7 @@ import path from 'path';
 import { defineConfig, devices } from '@playwright/test';
 import { loadUserRegressionRunConfig } from './e2e/user/shared/run-config';
 import {
+  resolveQuickBooksLocalAuthStoragePath,
   resolveRealAuthBaseUrl,
   resolveVercelAutomationBypassHeaders,
 } from './e2e/user/shared/real-auth-config';
@@ -83,6 +84,10 @@ const realAuthStorageState = realAuthStorageRaw
   : null;
 const realAuthStorageExists =
   realAuthStorageState !== null && fs.existsSync(realAuthStorageState);
+const qbLocalStorageState = process.env.E2E_QB_LOCAL_AUTH_STORAGE_STATE?.trim()
+  ? path.resolve(process.env.E2E_QB_LOCAL_AUTH_STORAGE_STATE.trim())
+  : resolveQuickBooksLocalAuthStoragePath();
+const qbLocalStorageExists = fs.existsSync(qbLocalStorageState);
 const realAuthBaseURL = resolveRealAuthBaseUrl();
 const vercelAutomationBypassHeaders = resolveVercelAutomationBypassHeaders();
 
@@ -129,7 +134,7 @@ export default defineConfig({
       name: 'critical',
       dependencies: ['setup'],
       grep: /@critical/,
-      grepInvert: /@google-oauth/,
+      grepInvert: /@google-oauth|@quickbooks-local/,
       use: {
         storageState: ownerStorage,
       },
@@ -138,7 +143,7 @@ export default defineConfig({
       name: 'full',
       dependencies: ['setup'],
       grep: /@full/,
-      grepInvert: /@google-oauth/,
+      grepInvert: /@google-oauth|@quickbooks-local/,
       use: {
         storageState: ownerStorage,
       },
@@ -172,6 +177,19 @@ export default defineConfig({
         ...(realAuthStorageExists && realAuthStorageState
           ? { storageState: realAuthStorageState }
           : {}),
+      },
+    },
+    {
+      name: 'quickbooks-local',
+      grep: /@quickbooks-local/,
+      use: {
+        baseURL: realAuthBaseURL,
+        viewport: runConfig.desktopViewport,
+        video: realAuthVideo,
+        ...(vercelAutomationBypassHeaders
+          ? { extraHTTPHeaders: vercelAutomationBypassHeaders }
+          : {}),
+        ...(qbLocalStorageExists ? { storageState: qbLocalStorageState } : {}),
       },
     },
   ],

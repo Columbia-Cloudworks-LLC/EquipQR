@@ -11,6 +11,7 @@ interface WorkOrderAssignmentSelectorProps {
   workOrder: AssignmentWorkOrderContext & {
     assignee_id?: string | null;
     assigneeId?: string | null;
+    status?: import('@/features/work-orders/types/workOrder').WorkOrderStatus;
   };
   organizationId: string;
   onCancel: () => void;
@@ -37,7 +38,8 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
       quickAssignmentMutation.mutate({
         workOrderId: workOrder.id,
         assigneeId: null,
-        organizationId
+        organizationId,
+        currentStatus: workOrder.status,
       }, {
         onSuccess: () => {
           onCancel();
@@ -52,7 +54,8 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
     quickAssignmentMutation.mutate({
       workOrderId: workOrder.id,
       assigneeId: option.id,
-      organizationId
+      organizationId,
+      currentStatus: workOrder.status,
     }, {
       onSuccess: () => {
         onCancel();

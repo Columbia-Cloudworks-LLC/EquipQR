@@ -1,6 +1,9 @@
 /** Shared Playwright recording dimensions for PR evidence, demos, and E2E video capture. */
 export const RECORDING_VIEWPORT = { width: 1920, height: 1080 };
 
+/** Mobile PR evidence viewport (Pixel-class phone). */
+export const MOBILE_RECORDING_VIEWPORT = { width: 390, height: 844 };
+
 /** GIF frame rate for all local recording exports (PR evidence + demo GIFs). */
 export const RECORDING_GIF_FPS = 15;
 

@@ -9,7 +9,6 @@
 
 import { useState, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast as sonnerToast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { buildWorkOrderExportCountQuery } from '@/features/reports/utils/exportCountQueries';
 import { logger } from '@/utils/logger';
@@ -20,17 +19,21 @@ import { workOrderExports, exportArtifacts } from '@/lib/queryKeys';
 import { downloadBlob } from '@/utils/exportUtils';
 import {
   generateSingleWorkOrderPacketFilename,
+  generateSingleWorkOrderCsvFilename,
+  generateSingleWorkOrderDocxFilename,
   generateWorkOrderExportFilename,
   parseWorkOrderExportError,
   postWorkOrderExport,
 } from '@/features/work-orders/services/workOrderExportPost';
 import { handleGoogleWorkspaceExportError } from '@/features/work-orders/utils/googleWorkspaceExportToasts';
+import { showGoogleDriveExportSuccessToast } from '@/features/work-orders/utils/googleWorkspaceExportSuccessToast';
 
 /** Response from the export-work-orders-to-google-sheets function */
 interface GoogleSheetsExportResponse {
   spreadsheetId: string;
   spreadsheetUrl: string;
   workOrderCount: number;
+  replacedPrevious?: boolean;
 }
 
 interface GoogleDocsExportResponse {
@@ -161,6 +164,9 @@ export function useWorkOrderExcelExport(
   const queryClient = useQueryClient();
   const [isExportingSingle, setIsExportingSingle] = useState(false);
   const [isExportingSingleToDocs, setIsExportingSingleToDocs] = useState(false);
+  const [isExportingSingleToSheets, setIsExportingSingleToSheets] = useState(false);
+  const [isExportingSingleCsv, setIsExportingSingleCsv] = useState(false);
+  const [isExportingSingleDocx, setIsExportingSingleDocx] = useState(false);
 
   // Mutation for bulk export via edge function
   const bulkExportMutation = useMutation({
@@ -196,13 +202,16 @@ export function useWorkOrderExcelExport(
       }
       return exportWorkOrdersToGoogleSheets(organizationId, filters);
     },
-    onSuccess: (result) => {
-      // Open the spreadsheet in a new tab
-      window.open(result.spreadsheetUrl, '_blank', 'noopener,noreferrer');
-      toast({
-        title: 'Export Complete',
-        description: `Created Google Sheet in your organization Drive folder for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName} (${result.workOrderCount} work orders).`,
-      });
+    onSuccess: (result, filters) => {
+      if (organizationId && filters.workOrderId) {
+        void queryClient.invalidateQueries({
+          queryKey: exportArtifacts.byRecord(organizationId, 'work_order', filters.workOrderId),
+        });
+      }
+      const desc = result.replacedPrevious
+        ? `Updated Google Sheet in your organization Drive folder for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName} (${result.workOrderCount} work orders).`
+        : `Created Google Sheet in your organization Drive folder for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName} (${result.workOrderCount} work orders).`;
+      showGoogleDriveExportSuccessToast(desc, result.spreadsheetUrl);
     },
     onError: (error: Error & { code?: string }) => {
       logger.error('Google Sheets export error', error);
@@ -226,13 +235,7 @@ export function useWorkOrderExcelExport(
       const desc = result.replacedPrevious
         ? `Updated Google Doc in your organization Drive folder for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`
         : `Created Google Doc in your organization Drive folder for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`;
-      sonnerToast.success('Export Complete', {
-        description: desc,
-        action: {
-          label: 'Open',
-          onClick: () => window.open(result.webViewLink, '_blank', 'noopener,noreferrer'),
-        },
-      });
+      showGoogleDriveExportSuccessToast(desc, result.webViewLink);
       if (result.warnings?.length) {
         toast({
           title: 'Some Photo Pages Need Review',
@@ -332,13 +335,7 @@ export function useWorkOrderExcelExport(
         const desc = result.replacedPrevious
           ? `Updated Google Doc in your organization Drive folder for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`
           : `Created Google Doc in your organization Drive folder for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`;
-        sonnerToast.success('Export Complete', {
-          description: desc,
-          action: {
-            label: 'Open',
-            onClick: () => window.open(result.webViewLink, '_blank', 'noopener,noreferrer'),
-          },
-        });
+        showGoogleDriveExportSuccessToast(desc, result.webViewLink);
         if (result.warnings?.length) {
           toast({
             title: 'Some Photo Pages Need Review',
@@ -353,6 +350,114 @@ export function useWorkOrderExcelExport(
       }
     },
     [organizationId, toast, queryClient]
+  );
+
+  const exportSingleToSheets = useCallback(
+    async (workOrderId: string) => {
+      if (!organizationId || !workOrderId) {
+        toast({
+          title: 'Export Failed',
+          description: 'Organization and work order are required.',
+          variant: 'error',
+        });
+        return;
+      }
+
+      setIsExportingSingleToSheets(true);
+      try {
+        const result = await exportWorkOrdersToGoogleSheets(organizationId, {
+          workOrderId,
+          dateField: 'created_date',
+        });
+        void queryClient.invalidateQueries({
+          queryKey: exportArtifacts.byRecord(organizationId, 'work_order', workOrderId),
+        });
+        const desc = result.replacedPrevious
+          ? `Updated Google Sheet in your organization Drive folder for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`
+          : `Created Google Sheet in your organization Drive folder for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`;
+        showGoogleDriveExportSuccessToast(desc, result.spreadsheetUrl);
+      } catch (error) {
+        handleGoogleWorkspaceExportError(toast, error as Error & { code?: string }, 'Sheets');
+      } finally {
+        setIsExportingSingleToSheets(false);
+      }
+    },
+    [organizationId, toast, queryClient],
+  );
+
+  const exportSingleCsv = useCallback(
+    async (workOrderId: string) => {
+      if (!organizationId || !workOrderId) {
+        toast({
+          title: 'Export Failed',
+          description: 'Organization and work order are required.',
+          variant: 'error',
+        });
+        return;
+      }
+
+      setIsExportingSingleCsv(true);
+      try {
+        const response = await postWorkOrderExport('export-work-orders-csv', organizationId, {
+          workOrderId,
+          dateField: 'created_date',
+        });
+        if (!response.ok) {
+          throw await parseWorkOrderExportError(response);
+        }
+        const blob = await response.blob();
+        downloadBlob(blob, generateSingleWorkOrderCsvFilename(workOrderId));
+        toast({
+          title: 'Export Complete',
+          description: 'Work order CSV has been downloaded.',
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to export CSV';
+        toast({
+          title: 'Export Failed',
+          description: errorMessage,
+          variant: 'error',
+        });
+      } finally {
+        setIsExportingSingleCsv(false);
+      }
+    },
+    [organizationId, toast],
+  );
+
+  const exportSingleDocx = useCallback(
+    async (workOrderId: string) => {
+      if (!organizationId || !workOrderId) {
+        toast({
+          title: 'Export Failed',
+          description: 'Organization and work order are required.',
+          variant: 'error',
+        });
+        return;
+      }
+
+      setIsExportingSingleDocx(true);
+      try {
+        const response = await postWorkOrderExport('export-work-orders-docx-download', organizationId, {
+          workOrderId,
+          dateField: 'created_date',
+        });
+        if (!response.ok) {
+          throw await parseWorkOrderExportError(response);
+        }
+        const blob = await response.blob();
+        downloadBlob(blob, generateSingleWorkOrderDocxFilename(workOrderId));
+        toast({
+          title: 'Export Complete',
+          description: `${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName} DOCX has been downloaded.`,
+        });
+      } catch (error) {
+        handleGoogleWorkspaceExportError(toast, error as Error & { code?: string }, 'Docs');
+      } finally {
+        setIsExportingSingleDocx(false);
+      }
+    },
+    [organizationId, toast],
   );
 
   return {
@@ -379,6 +484,12 @@ export function useWorkOrderExcelExport(
     exportToDocsError: docsExportMutation.error?.message ?? null,
     exportSingleToDocs,
     isExportingSingleToDocs,
+    exportSingleToSheets,
+    isExportingSingleToSheets,
+    exportSingleCsv,
+    isExportingSingleCsv,
+    exportSingleDocx,
+    isExportingSingleDocx,
   };
 }
 
