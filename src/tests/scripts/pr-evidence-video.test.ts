@@ -1,15 +1,24 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
+  buildPrEvidenceGifEncodingConfig,
   buildPrEvidenceGifFfmpegFilter,
   computePlaywrightScaledContentRect,
+  PR_EVIDENCE_GIF_DEFAULT_LEADIN_SKIP_SECONDS,
+  PR_EVIDENCE_GIF_FPS_DESKTOP,
+  PR_EVIDENCE_GIF_FPS_MOBILE,
+  PR_EVIDENCE_GIF_MAX_OUTPUT_WIDTH,
+  PR_EVIDENCE_GIF_PALETTE_COLORS,
   PR_EVIDENCE_VIEWPORT,
   PR_EVIDENCE_MOBILE_VIEWPORT,
+  resolvePrEvidenceGifFps,
+  resolvePrEvidenceGifOutputWidthForUpload,
+  resolvePrEvidenceGifPaletteColors,
+  resolvePrEvidenceGifStartSeconds,
   resolvePrEvidenceViewport,
   resolvePrEvidenceGifOutputWidth,
 } from '../../../scripts/lib/pr-evidence-video.mjs';
 import {
   MOBILE_RECORDING_VIEWPORT,
-  RECORDING_GIF_FPS,
   RECORDING_GIF_OUTPUT_WIDTH,
   RECORDING_VIEWPORT,
 } from '../../../scripts/lib/recording-quality.mjs';
@@ -27,10 +36,12 @@ describe('recording-quality / pr-evidence-video', () => {
 
   const originalWidth = process.env.PR_EVIDENCE_VIEWPORT_WIDTH;
   const originalHeight = process.env.PR_EVIDENCE_VIEWPORT_HEIGHT;
+  const originalGifStart = process.env.PR_EVIDENCE_GIF_START_SECONDS;
 
   beforeEach(() => {
     delete process.env.PR_EVIDENCE_VIEWPORT_WIDTH;
     delete process.env.PR_EVIDENCE_VIEWPORT_HEIGHT;
+    delete process.env.PR_EVIDENCE_GIF_START_SECONDS;
   });
 
   afterEach(() => {
@@ -43,6 +54,11 @@ describe('recording-quality / pr-evidence-video', () => {
       delete process.env.PR_EVIDENCE_VIEWPORT_HEIGHT;
     } else {
       process.env.PR_EVIDENCE_VIEWPORT_HEIGHT = originalHeight;
+    }
+    if (originalGifStart === undefined) {
+      delete process.env.PR_EVIDENCE_GIF_START_SECONDS;
+    } else {
+      process.env.PR_EVIDENCE_GIF_START_SECONDS = originalGifStart;
     }
   });
 
@@ -57,6 +73,38 @@ describe('recording-quality / pr-evidence-video', () => {
   it('resolvePrEvidenceGifOutputWidth keeps mobile GIFs at native width', () => {
     expect(resolvePrEvidenceGifOutputWidth(RECORDING_VIEWPORT)).toBe(RECORDING_GIF_OUTPUT_WIDTH);
     expect(resolvePrEvidenceGifOutputWidth(MOBILE_RECORDING_VIEWPORT)).toBe(MOBILE_RECORDING_VIEWPORT.width);
+  });
+
+  it('resolvePrEvidenceGifOutputWidthForUpload caps desktop width for bucket limits', () => {
+    expect(resolvePrEvidenceGifOutputWidthForUpload(RECORDING_VIEWPORT)).toBe(
+      PR_EVIDENCE_GIF_MAX_OUTPUT_WIDTH,
+    );
+    expect(resolvePrEvidenceGifOutputWidthForUpload(MOBILE_RECORDING_VIEWPORT)).toBe(
+      MOBILE_RECORDING_VIEWPORT.width,
+    );
+  });
+
+  it('resolvePrEvidenceGifFps uses shared mobile/desktop defaults', () => {
+    expect(resolvePrEvidenceGifFps(RECORDING_VIEWPORT)).toBe(PR_EVIDENCE_GIF_FPS_DESKTOP);
+    expect(resolvePrEvidenceGifFps(MOBILE_RECORDING_VIEWPORT)).toBe(PR_EVIDENCE_GIF_FPS_MOBILE);
+  });
+
+  it('resolvePrEvidenceGifStartSeconds trims lead-in only on longer clips', () => {
+    expect(resolvePrEvidenceGifStartSeconds(2)).toBe(0);
+    expect(resolvePrEvidenceGifStartSeconds(4)).toBe(PR_EVIDENCE_GIF_DEFAULT_LEADIN_SKIP_SECONDS);
+
+    process.env.PR_EVIDENCE_GIF_START_SECONDS = '1.5';
+    expect(resolvePrEvidenceGifStartSeconds(10)).toBe(1.5);
+  });
+
+  it('buildPrEvidenceGifEncodingConfig centralizes upload encoding defaults', () => {
+    expect(buildPrEvidenceGifEncodingConfig(RECORDING_VIEWPORT, 10)).toEqual({
+      fps: PR_EVIDENCE_GIF_FPS_DESKTOP,
+      outputWidth: PR_EVIDENCE_GIF_MAX_OUTPUT_WIDTH,
+      paletteColors: PR_EVIDENCE_GIF_PALETTE_COLORS,
+      startSeconds: PR_EVIDENCE_GIF_DEFAULT_LEADIN_SKIP_SECONDS,
+    });
+    expect(resolvePrEvidenceGifPaletteColors()).toBe(PR_EVIDENCE_GIF_PALETTE_COLORS);
   });
 
   it('crops legacy 1280x720 recordings captured with 1280x960 viewport', () => {
@@ -85,10 +133,16 @@ describe('recording-quality / pr-evidence-video', () => {
   });
 
   it('builds high-quality ffmpeg filter for current recordings', () => {
-    const filter = buildPrEvidenceGifFfmpegFilter(1920, 1080, RECORDING_VIEWPORT);
+    const filter = buildPrEvidenceGifFfmpegFilter(
+      1920,
+      1080,
+      RECORDING_VIEWPORT,
+      PR_EVIDENCE_GIF_MAX_OUTPUT_WIDTH,
+      PR_EVIDENCE_GIF_FPS_DESKTOP,
+    );
 
     expect(filter).toBe(
-      `crop=1920:1080:0:0,fps=${RECORDING_GIF_FPS},scale=${RECORDING_GIF_OUTPUT_WIDTH}:-1:flags=lanczos`,
+      `crop=1920:1080:0:0,fps=${PR_EVIDENCE_GIF_FPS_DESKTOP},scale=${PR_EVIDENCE_GIF_MAX_OUTPUT_WIDTH}:-1:flags=lanczos`,
     );
   });
 });

@@ -1,11 +1,16 @@
 import { test, expect } from '../user/fixtures/equipqr-test';
 import { pinContextToOrg } from '../user/shared/auth-helpers';
+import { resetFreshStartOnboardingFixture } from '../user/shared/fresh-start-reset';
 import { authStatePath, freshStartOrgId } from '../user/shared/seed-data';
 import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
 
 test.use({ storageState: authStatePath('onboardingOwner') });
 
 test.describe('PR evidence: getting-started onboarding @pr-evidence', () => {
+  test.beforeAll(async () => {
+    await resetFreshStartOnboardingFixture();
+  });
+
   test.beforeEach(async ({ context }) => {
     await pinContextToOrg(context, freshStartOrgId);
   });

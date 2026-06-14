@@ -32,3 +32,80 @@ export function resolvePrEvidenceGifOutputWidth(viewport = RECORDING_VIEWPORT) {
   }
   return RECORDING_GIF_OUTPUT_WIDTH;
 }
+
+/** Max GIF width for Supabase landing-page-images bucket (5MB file_size_limit). */
+export const PR_EVIDENCE_GIF_MAX_OUTPUT_WIDTH = 896;
+
+/** GIF fps tuned for PR evidence uploads (desktop). */
+export const PR_EVIDENCE_GIF_FPS_DESKTOP = 8;
+
+/** GIF fps for mobile PR evidence captures. */
+export const PR_EVIDENCE_GIF_FPS_MOBILE = 6;
+
+/** Palette colors for PR evidence GIF encoding (mobile + desktop). */
+export const PR_EVIDENCE_GIF_PALETTE_COLORS = 96;
+
+/** Apply lead-in trim when source WebM exceeds this duration (seconds). */
+export const PR_EVIDENCE_GIF_LEADIN_SKIP_THRESHOLD_SECONDS = 3;
+
+/** Default lead-in trim when threshold exceeded (seconds). */
+export const PR_EVIDENCE_GIF_DEFAULT_LEADIN_SKIP_SECONDS = 2;
+
+/**
+ * @param {{ width: number, height: number }} viewport
+ * @returns {number}
+ */
+export function resolvePrEvidenceGifFps(viewport = RECORDING_VIEWPORT) {
+  return viewport.width < 768 ? PR_EVIDENCE_GIF_FPS_MOBILE : PR_EVIDENCE_GIF_FPS_DESKTOP;
+}
+
+/**
+ * Cap GIF width for Supabase upload limits while keeping mobile at native width.
+ * @param {{ width: number, height: number }} viewport
+ * @returns {number}
+ */
+export function resolvePrEvidenceGifOutputWidthForUpload(viewport = RECORDING_VIEWPORT) {
+  return Math.min(resolvePrEvidenceGifOutputWidth(viewport), PR_EVIDENCE_GIF_MAX_OUTPUT_WIDTH);
+}
+
+/**
+ * @returns {number}
+ */
+export function resolvePrEvidenceGifPaletteColors() {
+  return PR_EVIDENCE_GIF_PALETTE_COLORS;
+}
+
+/**
+ * Resolve ffmpeg -ss skip for PR evidence GIF conversion.
+ * Env PR_EVIDENCE_GIF_START_SECONDS overrides; otherwise trim lead-in only on longer clips.
+ * @param {number} durationSeconds
+ * @returns {number}
+ */
+export function resolvePrEvidenceGifStartSeconds(durationSeconds) {
+  const fromEnv = Number.parseFloat(process.env.PR_EVIDENCE_GIF_START_SECONDS ?? '');
+  if (Number.isFinite(fromEnv) && fromEnv >= 0) {
+    return fromEnv;
+  }
+  if (durationSeconds > PR_EVIDENCE_GIF_LEADIN_SKIP_THRESHOLD_SECONDS) {
+    return PR_EVIDENCE_GIF_DEFAULT_LEADIN_SKIP_SECONDS;
+  }
+  return 0;
+}
+
+/**
+ * Shared PR evidence GIF encoding parameters for PowerShell/ffmpeg callers.
+ * @param {{ width: number, height: number }} viewport
+ * @param {number} durationSeconds
+ * @returns {{ fps: number, outputWidth: number, paletteColors: number, startSeconds: number }}
+ */
+export function buildPrEvidenceGifEncodingConfig(
+  viewport = RECORDING_VIEWPORT,
+  durationSeconds = 0,
+) {
+  return {
+    fps: resolvePrEvidenceGifFps(viewport),
+    outputWidth: resolvePrEvidenceGifOutputWidthForUpload(viewport),
+    paletteColors: resolvePrEvidenceGifPaletteColors(),
+    startSeconds: resolvePrEvidenceGifStartSeconds(durationSeconds),
+  };
+}
