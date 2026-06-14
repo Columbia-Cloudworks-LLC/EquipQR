@@ -14,7 +14,7 @@ export function IntegrationCardLayout({ children, className }: IntegrationCardLa
     <div
       className={cn(
         'space-y-3 py-4 first:pt-0 last:pb-0',
-        'sm:rounded-lg sm:border sm:border-border/60 sm:bg-card sm:p-4 sm:py-4',
+        'sm:rounded-lg sm:border sm:border-border/60 sm:bg-card sm:p-4 sm:first:pt-4 sm:last:pb-4',
         className,
       )}
     >

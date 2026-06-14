@@ -160,7 +160,7 @@ Final response should include:
 - Issue/change resolved.
 - Commit SHA and push target, or PR URL.
 - Verification commands and outcomes.
-- PR visual evidence: capture command, spec path, uploaded screenshot/GIF URLs or PR comment link (when a PR was opened).
+- PR visual evidence: capture command, spec path, uploaded screenshot/MP4 URLs or PR comment link (when a PR was opened).
 - Acceptance criteria status.
 - Any follow-up or blocker.
 

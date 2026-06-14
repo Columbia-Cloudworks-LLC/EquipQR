@@ -346,6 +346,220 @@ console.log(buildPrEvidenceGifFfmpegFilter($InputWidth, $InputHeight, viewport, 
     }
 }
 
+function Set-PrEvidenceGitHubUploadEnvironment {
+    $sessionToken = [Environment]::GetEnvironmentVariable('GH_SESSION_TOKEN', 'User')
+    if (-not [string]::IsNullOrWhiteSpace($sessionToken)) {
+        $env:GH_SESSION_TOKEN = $sessionToken
+    }
+
+    Assert-PrEvidenceCommandExists 'gh'
+}
+
+function Get-PrEvidenceMp4EncodingConfig {
+    param(
+        [int]$ViewportWidth = 0,
+        [int]$ViewportHeight = 0,
+        [double]$DurationSeconds = 0
+    )
+
+    Assert-PrEvidenceCommandExists 'node'
+
+    if ($ViewportWidth -le 0) {
+        $ViewportWidth = [int]($env:PR_EVIDENCE_VIEWPORT_WIDTH)
+        if ($ViewportWidth -le 0) { $ViewportWidth = 1920 }
+    }
+    if ($ViewportHeight -le 0) {
+        $ViewportHeight = [int]($env:PR_EVIDENCE_VIEWPORT_HEIGHT)
+        if ($ViewportHeight -le 0) { $ViewportHeight = 1080 }
+    }
+
+    $repoRoot = Get-PrEvidenceRepoRoot
+    $modulePath = Join-Path $repoRoot 'scripts\lib\pr-evidence-video.mjs'
+    if (-not (Test-Path -LiteralPath $modulePath)) {
+        throw "PR evidence video helper not found: $modulePath"
+    }
+    $moduleUrl = ([System.Uri]::new((Resolve-Path -LiteralPath $modulePath).Path)).AbsoluteUri
+
+    $durationLiteral = Format-PrEvidenceInvariantNumber -Value $DurationSeconds
+
+    $script = @"
+import { buildPrEvidenceMp4EncodingConfig } from '$moduleUrl';
+const viewport = { width: $ViewportWidth, height: $ViewportHeight };
+console.log(JSON.stringify(buildPrEvidenceMp4EncodingConfig(viewport, $durationLiteral)));
+"@
+
+    $tempScript = Join-Path $env:TEMP ("pr-evidence-mp4-encoding-{0}.mjs" -f ([guid]::NewGuid().ToString('N')))
+    Set-Content -LiteralPath $tempScript -Value $script -Encoding utf8
+
+    try {
+        $result = Invoke-PrEvidenceNative -FilePath 'node' -Arguments @($tempScript)
+        if ($result.ExitCode -ne 0) {
+            throw "PR evidence MP4 encoding config lookup failed: $($result.Text)"
+        }
+        return ($result.Text.Trim() | ConvertFrom-Json)
+    }
+    finally {
+        if (Test-Path -LiteralPath $tempScript) {
+            Remove-Item -LiteralPath $tempScript -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+function Get-PrEvidenceMp4FfmpegFilter {
+    param(
+        [Parameter(Mandatory)][int]$InputWidth,
+        [Parameter(Mandatory)][int]$InputHeight,
+        [int]$ViewportWidth = 0,
+        [int]$ViewportHeight = 0
+    )
+
+    Assert-PrEvidenceCommandExists 'node'
+
+    if ($ViewportWidth -le 0) {
+        $ViewportWidth = [int]($env:PR_EVIDENCE_VIEWPORT_WIDTH)
+        if ($ViewportWidth -le 0) { $ViewportWidth = 1920 }
+    }
+    if ($ViewportHeight -le 0) {
+        $ViewportHeight = [int]($env:PR_EVIDENCE_VIEWPORT_HEIGHT)
+        if ($ViewportHeight -le 0) { $ViewportHeight = 1080 }
+    }
+
+    $repoRoot = Get-PrEvidenceRepoRoot
+    $modulePath = Join-Path $repoRoot 'scripts\lib\pr-evidence-video.mjs'
+    if (-not (Test-Path -LiteralPath $modulePath)) {
+        throw "PR evidence video helper not found: $modulePath"
+    }
+    $moduleUrl = ([System.Uri]::new((Resolve-Path -LiteralPath $modulePath).Path)).AbsoluteUri
+
+    $script = @"
+import { buildPrEvidenceMp4FfmpegFilter } from '$moduleUrl';
+const viewport = { width: $ViewportWidth, height: $ViewportHeight };
+console.log(buildPrEvidenceMp4FfmpegFilter($InputWidth, $InputHeight, viewport));
+"@
+
+    $tempScript = Join-Path $env:TEMP ("pr-evidence-mp4-filter-{0}.mjs" -f ([guid]::NewGuid().ToString('N')))
+    Set-Content -LiteralPath $tempScript -Value $script -Encoding utf8
+
+    try {
+        $result = Invoke-PrEvidenceNative -FilePath 'node' -Arguments @($tempScript)
+        if ($result.ExitCode -ne 0) {
+            throw "PR evidence MP4 filter build failed: $($result.Text)"
+        }
+        return $result.Text.Trim()
+    }
+    finally {
+        if (Test-Path -LiteralPath $tempScript) {
+            Remove-Item -LiteralPath $tempScript -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+function Convert-PrEvidenceWebmToMp4 {
+    param(
+        [Parameter(Mandatory)][string]$WebmPath,
+        [Parameter(Mandatory)][string]$Mp4Path
+    )
+
+    Assert-PrEvidenceCommandExists 'ffmpeg'
+    Assert-PrEvidenceCommandExists 'ffprobe'
+    Assert-PrEvidenceCommandExists 'node'
+
+    $webmFull = if ([System.IO.Path]::IsPathRooted($WebmPath)) { $WebmPath } else { Join-Path (Get-PrEvidenceRepoRoot) $WebmPath }
+    $mp4Full = if ([System.IO.Path]::IsPathRooted($Mp4Path)) { $Mp4Path } else { Join-Path (Get-PrEvidenceRepoRoot) $Mp4Path }
+
+    if (-not (Test-Path -LiteralPath $webmFull)) {
+        throw "WebM not found for MP4 conversion: $webmFull"
+    }
+
+    $mp4Dir = Split-Path -Parent $mp4Full
+    if (-not (Test-Path -LiteralPath $mp4Dir)) {
+        New-Item -ItemType Directory -Path $mp4Dir -Force | Out-Null
+    }
+
+    $dimensions = Get-PrEvidenceVideoDimensions -VideoPath $webmFull
+    $durationSeconds = Get-PrEvidenceVideoDuration -VideoPath $webmFull
+    $encoding = Get-PrEvidenceMp4EncodingConfig -DurationSeconds $durationSeconds
+    $videoFilter = Get-PrEvidenceMp4FfmpegFilter -InputWidth $dimensions.Width -InputHeight $dimensions.Height
+
+    Write-Host ("[PR evidence] MP4 crop from {0}x{1} using filter: {2}" -f $dimensions.Width, $dimensions.Height, $videoFilter)
+
+    $args = @(
+        '-y',
+        '-i', $webmFull,
+        '-vf', $videoFilter,
+        '-c:v', 'libx264',
+        '-preset', [string]$encoding.preset,
+        '-crf', [string]$encoding.crf,
+        '-pix_fmt', 'yuv420p',
+        '-an',
+        '-movflags', '+faststart',
+        $mp4Full
+    )
+
+    $startSeconds = ConvertTo-PrEvidenceInvariantDouble -Text ([string]$encoding.startSeconds)
+    if ($startSeconds -gt 0) {
+        $startSecondsArg = Format-PrEvidenceInvariantNumber -Value $startSeconds
+        Write-Host ("[PR evidence] Trimming {0}s lead-in (duration={1}s)" -f $startSecondsArg, (Format-PrEvidenceInvariantNumber -Value $durationSeconds))
+        $args = @(
+            '-y',
+            '-ss', $startSecondsArg,
+            '-i', $webmFull,
+            '-vf', $videoFilter,
+            '-c:v', 'libx264',
+            '-preset', [string]$encoding.preset,
+            '-crf', [string]$encoding.crf,
+            '-pix_fmt', 'yuv420p',
+            '-an',
+            '-movflags', '+faststart',
+            $mp4Full
+        )
+    }
+
+    $result = Invoke-PrEvidenceNative -FilePath 'ffmpeg' -Arguments $args
+    if ($result.ExitCode -ne 0) {
+        throw "ffmpeg MP4 conversion failed: $($result.Text)"
+    }
+}
+
+function Publish-PrEvidenceGitHubVideo {
+    param(
+        [Parameter(Mandatory)][string]$Mp4Path,
+        [string]$Repo = 'Columbia-Cloudworks-LLC/EquipQR'
+    )
+
+    Assert-PrEvidenceCommandExists 'npx'
+
+    $mp4Full = if ([System.IO.Path]::IsPathRooted($Mp4Path)) { $Mp4Path } else { Join-Path (Get-PrEvidenceRepoRoot) $Mp4Path }
+    if (-not (Test-Path -LiteralPath $mp4Full)) {
+        throw "MP4 missing on disk: $mp4Full"
+    }
+
+    Set-PrEvidenceGitHubUploadEnvironment
+
+    $env:OUTPUT_JSON = 'true'
+    $upload = Invoke-PrEvidenceNative -FilePath 'npx' -Arguments @(
+        'tsx', 'scripts/upload-github-asset.ts', $mp4Full, '--repo', $Repo
+    )
+    Remove-Item Env:OUTPUT_JSON -ErrorAction SilentlyContinue
+
+    if ($upload.ExitCode -ne 0) {
+        throw "GitHub video upload failed: $($upload.Text)"
+    }
+
+    $parsed = $upload.Text | ConvertFrom-Json
+    if (-not $parsed.success) {
+        throw "GitHub video upload failed: $($parsed.error)"
+    }
+
+    return [pscustomobject]@{
+        kind         = 'video'
+        label        = 'demo'
+        publicUrl    = [string]$parsed.publicUrl
+        markdownLine = [string]$parsed.markdownLine
+        contentType  = [string]$parsed.contentType
+    }
+}
+
 function Convert-PrEvidenceWebmToGif {
     param(
         [Parameter(Mandatory)][string]$WebmPath,

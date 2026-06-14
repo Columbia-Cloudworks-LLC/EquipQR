@@ -81,37 +81,26 @@ foreach ($shot in @($manifest.screenshots)) {
     }
 }
 
-if ($manifest.gif) {
-    $gifLocal = Join-Path $repoRoot (($manifest.gif -replace '/', '\'))
-    if (-not (Test-Path -LiteralPath $gifLocal)) {
-        throw "GIF missing on disk: $gifLocal"
+if ($manifest.video) {
+    $videoLocal = Join-Path $repoRoot (($manifest.video -replace '/', '\'))
+    if (-not (Test-Path -LiteralPath $videoLocal)) {
+        throw "MP4 missing on disk: $videoLocal"
     }
 
-    $gifStorage = ('pr-evidence/{0}/{1}-demo.gif' -f $branchSlug, $manifest.flow)
-    $env:OUTPUT_JSON = 'true'
-    $gifUpload = Invoke-PrEvidenceNative -FilePath 'npx' -Arguments @(
-        'tsx', 'scripts/upload-screenshot.ts', $gifLocal, $gifStorage, 'landing-page-images'
-    )
-    Remove-Item Env:OUTPUT_JSON -ErrorAction SilentlyContinue
-
-    if ($gifUpload.ExitCode -ne 0) {
-        throw "GIF upload failed: $($gifUpload.Text)"
-    }
-
-    $gifParsed = $gifUpload.Text | ConvertFrom-Json
-    if (-not $gifParsed.success) {
-        throw "GIF upload failed: $($gifParsed.error)"
-    }
-
+    $videoUpload = Publish-PrEvidenceGitHubVideo -Mp4Path $videoLocal
     $uploads += [ordered]@{
-        kind       = 'gif'
-        label      = 'demo'
-        publicUrl  = $gifParsed.publicUrl
-        storagePath = $gifParsed.storagePath
+        kind         = $videoUpload.kind
+        label        = $videoUpload.label
+        publicUrl    = $videoUpload.publicUrl
+        markdownLine = $videoUpload.markdownLine
+        contentType  = $videoUpload.contentType
     }
 }
+elseif ($manifest.gif) {
+    throw 'Manifest still references demo.gif. Re-run capture to produce demo.mp4 for GitHub inline video evidence.'
+}
 else {
-    throw 'Manifest has no demo.gif. Re-run capture; GIF is required for PR evidence.'
+    throw 'Manifest has no demo.mp4. Re-run capture; MP4 demo video is required for PR evidence.'
 }
 
 $lines = @(
@@ -121,11 +110,11 @@ $lines = @(
     ''
 )
 
-$gifItem = @($uploads | Where-Object { $_.kind -eq 'gif' })[0]
-if ($gifItem) {
+$videoItem = @($uploads | Where-Object { $_.kind -eq 'video' })[0]
+if ($videoItem) {
     $lines += '### Flow demo'
     $lines += ''
-    $lines += ('![{0} demo]({1})' -f $manifest.flow, $gifItem.publicUrl)
+    $lines += [string]$videoItem.markdownLine
     $lines += ''
 }
 
@@ -142,7 +131,7 @@ if ($shots.Count -gt 0) {
     }
 }
 
-$lines += '_Evidence uploaded from local Playwright capture (`scripts/pr-evidence/`)._'
+$lines += '_Screenshots uploaded to preview Supabase Storage; flow demo MP4 uploaded to GitHub user-attachments for inline playback._'
 
 $markdown = ($lines -join [Environment]::NewLine)
 

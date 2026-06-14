@@ -1,6 +1,6 @@
 # PR visual evidence (Playwright)
 
-Every product PR must include **screenshots and at least one GIF** demonstrating the change on the **local dev stack** (`http://localhost:8080`). Agents capture artifacts here, upload them to Supabase Storage, and embed public URLs in the PR body and/or a dedicated PR comment.
+Every product PR must include **screenshots and at least one MP4 demo video** demonstrating the change on the **local dev stack** (`http://localhost:8080`). Agents capture artifacts here, upload screenshots to Supabase Storage, upload the demo video to GitHub user-attachments, and embed public URLs in the PR body and/or a dedicated PR comment.
 
 ## When to add a spec
 
@@ -16,7 +16,7 @@ If no feature spec exists yet, `smoke-dashboard.spec.ts` is the fallback — **d
 
 1. Copy the pattern from `smoke-dashboard.spec.ts`.
 2. Use `evidenceScreenshot(page, '01-step-label')` at each meaningful state (before, during, after).
-3. Add short `evidencePause` calls so GIF playback is readable.
+3. Add short `evidencePause` calls so demo video playback is readable.
 4. Prefer Alex Apex (`gotoDashboard` fixture) unless RBAC requires another persona.
 5. Keep specs deterministic — use seeded data from `supabase/seeds/`.
 6. **Google Workspace flows** (`@real-auth`): quick-login personas cannot connect Google Workspace. Tag the spec `@real-auth`, capture Google sign-in with `npm run e2e:google-auth:capture`, then run capture with `E2E_REAL_AUTH_STORAGE_STATE` set. See `docs/ops/playwright-real-auth-integrations.md`.
@@ -55,6 +55,6 @@ test.describe('my feature @pr-evidence', () => {
   -Publish
 ```
 
-Artifacts land under `tmp/pr-evidence/{flow}/` (gitignored). Published URLs use the preview Supabase `landing-page-images` bucket under `pr-evidence/{branch}/`.
+Artifacts land under `tmp/pr-evidence/{flow}/` (gitignored). Screenshot URLs use the preview Supabase `landing-page-images` bucket under `pr-evidence/{branch}/`. Demo video URLs are GitHub `user-attachments` links for inline playback.
 
 See `scripts/pr-evidence/README.md` for full operator docs.

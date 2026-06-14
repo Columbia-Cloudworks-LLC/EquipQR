@@ -29,7 +29,7 @@
 
 ## Screenshots/Videos
 
-**Required for product/runtime PRs:** local-stack screenshots and at least one GIF, captured via `scripts/pr-evidence/` and uploaded for inline GitHub display. Paste the generated section from `tmp/pr-evidence/<flow>/evidence-markdown.md` below (or confirm the `<!-- pr-visual-evidence -->` PR comment was posted).
+**Required for product/runtime PRs:** local-stack screenshots and at least one H.264 MP4 demo video, captured via `scripts/pr-evidence/` and uploaded for inline GitHub display. Paste the generated section from `tmp/pr-evidence/<flow>/evidence-markdown.md` below (or confirm the `<!-- pr-visual-evidence -->` PR comment was posted).
 
 <details open>
 <summary>📸 Visual evidence (local dev stack)</summary>

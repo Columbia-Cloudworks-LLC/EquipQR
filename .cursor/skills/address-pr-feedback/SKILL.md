@@ -332,7 +332,7 @@ When fixes change user-visible behavior, capture fresh evidence per `.cursor/rul
 ```
 
 - Author or update `e2e/pr-evidence/<feature>.spec.ts` when existing specs do not cover the remediated UI.
-- Merge screenshot/GIF markdown from `tmp/pr-evidence/<slug>/evidence-markdown.md` into the **summary comment** (not only the PR body) so reviewers see remediation proof inline.
+- Merge screenshot/MP4 markdown from `tmp/pr-evidence/<slug>/evidence-markdown.md` into the **summary comment** (not only the PR body) so reviewers see remediation proof inline.
 - If capture fails, fix the spec or local stack before pushing — do not push UI fixes without evidence when the rule applies.
 
 ### Step 7: Commit and Push

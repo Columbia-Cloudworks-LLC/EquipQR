@@ -1,4 +1,8 @@
-import { RECORDING_GIF_OUTPUT_WIDTH, RECORDING_VIEWPORT } from './recording-quality.mjs';
+import {
+  RECORDING_GIF_OUTPUT_WIDTH,
+  RECORDING_VIEWPORT,
+  computePlaywrightScaledContentRect,
+} from './recording-quality.mjs';
 
 export {
   RECORDING_VIEWPORT as PR_EVIDENCE_VIEWPORT,
@@ -106,6 +110,50 @@ export function buildPrEvidenceGifEncodingConfig(
     fps: resolvePrEvidenceGifFps(viewport),
     outputWidth: resolvePrEvidenceGifOutputWidthForUpload(viewport),
     paletteColors: resolvePrEvidenceGifPaletteColors(),
+    startSeconds: resolvePrEvidenceGifStartSeconds(durationSeconds),
+  };
+}
+
+/** H.264 CRF for PR evidence MP4 exports (GitHub inline video). */
+export const PR_EVIDENCE_MP4_CRF = 23;
+
+/** x264 preset balancing size and encode speed for local capture runs. */
+export const PR_EVIDENCE_MP4_PRESET = 'fast';
+
+/**
+ * Crop-only ffmpeg filter for PR evidence MP4 (full recording resolution).
+ * @param {number} inputWidth
+ * @param {number} inputHeight
+ * @param {{ width: number, height: number }} viewport
+ * @returns {string}
+ */
+export function buildPrEvidenceMp4FfmpegFilter(
+  inputWidth,
+  inputHeight,
+  viewport = RECORDING_VIEWPORT,
+) {
+  const { cropWidth, cropHeight, cropX, cropY } = computePlaywrightScaledContentRect(
+    inputWidth,
+    inputHeight,
+    viewport,
+  );
+
+  return `crop=${cropWidth}:${cropHeight}:${cropX}:${cropY}`;
+}
+
+/**
+ * Shared PR evidence MP4 encoding parameters for PowerShell/ffmpeg callers.
+ * @param {{ width: number, height: number }} viewport
+ * @param {number} durationSeconds
+ * @returns {{ crf: number, preset: string, startSeconds: number }}
+ */
+export function buildPrEvidenceMp4EncodingConfig(
+  viewport = RECORDING_VIEWPORT,
+  durationSeconds = 0,
+) {
+  return {
+    crf: PR_EVIDENCE_MP4_CRF,
+    preset: PR_EVIDENCE_MP4_PRESET,
     startSeconds: resolvePrEvidenceGifStartSeconds(durationSeconds),
   };
 }

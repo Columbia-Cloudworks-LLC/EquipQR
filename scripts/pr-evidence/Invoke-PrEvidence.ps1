@@ -106,12 +106,12 @@ function Test-PrEvidenceCapturedManifest {
         }
     }
 
-    if ([string]::IsNullOrWhiteSpace([string]$manifest.gif)) {
+    if ([string]::IsNullOrWhiteSpace([string]$manifest.video)) {
         return $false
     }
 
-    $gifFull = Resolve-PrEvidenceArtifactPath -RelativeOrAbsolutePath $manifest.gif
-    return Test-Path -LiteralPath $gifFull
+    $videoFull = Resolve-PrEvidenceArtifactPath -RelativeOrAbsolutePath $manifest.video
+    return Test-Path -LiteralPath $videoFull
 }
 
 $shouldCapture = $true

@@ -1,5 +1,5 @@
 ---
-description: "Hard gate — every product PR must include local-stack screenshots and GIF evidence uploaded for inline GitHub display."
+description: "Hard gate — every product PR must include local-stack screenshots and MP4 demo video uploaded for inline GitHub display."
 alwaysApply: true
 ---
 # PR Visual Evidence (mandatory)
@@ -11,7 +11,7 @@ Part of the full **`pr-merge-ready-workflow.mdc`** handoff. Every **product/runt
 | Artifact | Minimum | Source |
 |----------|---------|--------|
 | Screenshots | 1+ labeled PNGs showing the changed UI/states | Playwright `e2e/pr-evidence/*.spec.ts` |
-| GIF | 1 demo GIF of the flow | Playwright video converted via `ffmpeg` in capture script |
+| Demo video | 1 H.264 MP4 of the flow | Playwright WebM converted via `ffmpeg` in capture script, uploaded to GitHub user-attachments |
 
 Workflow-only PRs (`.cursor/**`, `AGENTS.md`, `scripts/mcp.template.json`) are exempt.
 
@@ -44,9 +44,9 @@ If capture fails, **stop before opening the PR** — fix the spec or stack; do n
 
 ## Storage and display
 
-- Upload target: preview Supabase public bucket `landing-page-images` under `pr-evidence/{branch}/`.
-- Upload uses `scripts/upload-screenshot.ts` with `OP_SERVICE_ACCOUNT_TOKEN` reads (see `scripts/pr-evidence/README.md`).
-- GitHub renders `![alt](https://...supabase.co/...)` inline in PR bodies and comments.
+- **Screenshots:** preview Supabase public bucket `landing-page-images` under `pr-evidence/{branch}/` via `scripts/upload-screenshot.ts` with `OP_SERVICE_ACCOUNT_TOKEN`.
+- **Demo video:** GitHub user-attachments via `scripts/upload-github-asset.ts` with **`GH_SESSION_TOKEN`** (browser `user_session` cookie — not a PAT). See `scripts/pr-evidence/README.md` for one-time setup (`gh image extract-token`).
+- GitHub renders the demo as an **inline video player** when the markdown is a bare `https://github.com/user-attachments/assets/...` URL on its own line. Screenshots still use `![alt](https://...supabase.co/...)`.
 
 ## Handoff requirements
 
@@ -54,7 +54,7 @@ PR handoff must cite:
 
 - Capture command run (copy-pasteable).
 - Spec file path.
-- Confirmation that screenshots **and** GIF were uploaded (or PR comment URL after `-Publish`).
+- Confirmation that screenshots **and** demo MP4 were uploaded (or PR comment URL after `-Publish`).
 
 ## Relationship to local verify
 

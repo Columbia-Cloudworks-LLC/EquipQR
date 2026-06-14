@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Capture PR visual evidence (screenshots + GIF) from the local dev stack via Playwright.
+  Capture PR visual evidence (screenshots + MP4 demo video) from the local dev stack via Playwright.
 
 .PARAMETER Flow
   Short slug for artifact folder names (e.g. gw-disconnect-ux).
@@ -126,15 +126,15 @@ if ($pwResult.ExitCode -ne 0) {
 }
 
 $webm = Find-PrEvidenceWebm -SearchRoot $playwrightOutput
-$gifRelative = ('tmp/pr-evidence/{0}/demo.gif' -f $flowSlug)
-$gifFull = Join-Path $repoRoot ($gifRelative -replace '/', '\')
+$mp4Relative = ('tmp/pr-evidence/{0}/demo.mp4' -f $flowSlug)
+$mp4Full = Join-Path $repoRoot ($mp4Relative -replace '/', '\')
 
 if ($webm) {
-    Write-Host "[PR evidence] Converting Playwright video to GIF ..."
-    Convert-PrEvidenceWebmToGif -WebmPath $webm -GifPath $gifFull
+    Write-Host '[PR evidence] Converting Playwright video to H.264 MP4 ...'
+    Convert-PrEvidenceWebmToMp4 -WebmPath $webm -Mp4Path $mp4Full
 }
 else {
-    Write-Warning '[PR evidence] No video.webm found; demo.gif was not generated.'
+    Write-Warning '[PR evidence] No video.webm found; demo.mp4 was not generated.'
 }
 
 $screenshotFiles = @(Get-ChildItem -LiteralPath $screenshotsDir -Filter '*.png' -File -ErrorAction SilentlyContinue)
@@ -160,13 +160,13 @@ $manifest = [ordered]@{
             }
         }
     )
-    gif = if (Test-Path -LiteralPath $gifFull) { ($gifRelative -replace '\\', '/') } else { $null }
+    video = if (Test-Path -LiteralPath $mp4Full) { ($mp4Relative -replace '\\', '/') } else { $null }
 }
 
 $manifestPath = Join-Path $artifactDir 'manifest.json'
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $manifestPath -Encoding utf8
 
-Write-Host ('[PR evidence] Capture complete: {0} screenshot(s), gif={1}' -f $screenshotFiles.Count, [bool]$manifest.gif)
+Write-Host ('[PR evidence] Capture complete: {0} screenshot(s), video={1}' -f $screenshotFiles.Count, [bool]$manifest.video)
 Write-Host ('[PR evidence] Manifest: {0}' -f $manifestPath)
 
 exit 0

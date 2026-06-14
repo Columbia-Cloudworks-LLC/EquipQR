@@ -2,12 +2,16 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   buildPrEvidenceGifEncodingConfig,
   buildPrEvidenceGifFfmpegFilter,
+  buildPrEvidenceMp4EncodingConfig,
+  buildPrEvidenceMp4FfmpegFilter,
   computePlaywrightScaledContentRect,
   PR_EVIDENCE_GIF_DEFAULT_LEADIN_SKIP_SECONDS,
   PR_EVIDENCE_GIF_FPS_DESKTOP,
   PR_EVIDENCE_GIF_FPS_MOBILE,
   PR_EVIDENCE_GIF_MAX_OUTPUT_WIDTH,
   PR_EVIDENCE_GIF_PALETTE_COLORS,
+  PR_EVIDENCE_MP4_CRF,
+  PR_EVIDENCE_MP4_PRESET,
   PR_EVIDENCE_VIEWPORT,
   PR_EVIDENCE_MOBILE_VIEWPORT,
   resolvePrEvidenceGifFps,
@@ -144,5 +148,18 @@ describe('recording-quality / pr-evidence-video', () => {
     expect(filter).toBe(
       `crop=1920:1080:0:0,fps=${PR_EVIDENCE_GIF_FPS_DESKTOP},scale=${PR_EVIDENCE_GIF_MAX_OUTPUT_WIDTH}:-1:flags=lanczos`,
     );
+  });
+
+  it('buildPrEvidenceMp4EncodingConfig centralizes H.264 defaults', () => {
+    expect(buildPrEvidenceMp4EncodingConfig(RECORDING_VIEWPORT, 10)).toEqual({
+      crf: PR_EVIDENCE_MP4_CRF,
+      preset: PR_EVIDENCE_MP4_PRESET,
+      startSeconds: PR_EVIDENCE_GIF_DEFAULT_LEADIN_SKIP_SECONDS,
+    });
+  });
+
+  it('buildPrEvidenceMp4FfmpegFilter crops without downscaling for GitHub upload', () => {
+    const filter = buildPrEvidenceMp4FfmpegFilter(1920, 1080, RECORDING_VIEWPORT);
+    expect(filter).toBe('crop=1920:1080:0:0');
   });
 });
