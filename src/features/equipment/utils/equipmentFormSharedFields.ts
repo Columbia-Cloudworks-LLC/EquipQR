@@ -16,7 +16,8 @@ export function mapEquipmentFormSharedFields(data: EquipmentFormData) {
     custom_attributes: (data.custom_attributes || {}) as Record<string, unknown>,
     image_url: data.image_url || null,
     last_known_location: data.last_known_location || null,
-    team_id: data.team_id || null,
+    team_id:
+      !data.team_id || data.team_id === 'unassigned' ? null : data.team_id,
     default_pm_template_id: data.default_pm_template_id || null,
     assigned_location_street: data.assigned_location_street || null,
     assigned_location_city: data.assigned_location_city || null,

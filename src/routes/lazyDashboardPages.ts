@@ -25,6 +25,9 @@ export const PMTemplateView = lazy(() => import('@/features/pm-templates/pages/P
 export const PMTemplateEditor = lazy(() => import('@/features/pm-templates/pages/PMTemplateEditor'));
 export const Notifications = lazy(() => import('@/pages/Notifications'));
 export const WorkspaceOnboarding = lazy(() => import('@/pages/WorkspaceOnboarding'));
+export const GettingStartedOnboarding = lazy(
+  () => import('@/features/onboarding/pages/GettingStartedOnboarding'),
+);
 export const InventoryList = lazy(() => import('@/features/inventory/pages/InventoryList'));
 export const BulkInventory = lazy(() => import('@/features/inventory/pages/BulkInventory'));
 export const InventoryItemDetail = lazy(() => import('@/features/inventory/pages/InventoryItemDetail'));

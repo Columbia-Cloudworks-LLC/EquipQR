@@ -1830,33 +1830,39 @@ export type Database = {
       }
       organization_members: {
         Row: {
+          access_source: string | null
           activated_slot_at: string | null
           can_manage_quickbooks: boolean
           id: string
           joined_date: string
           organization_id: string
+          product_onboarding_completed_at: string | null
           role: string
           slot_purchase_id: string | null
           status: string
           user_id: string
         }
         Insert: {
+          access_source?: string | null
           activated_slot_at?: string | null
           can_manage_quickbooks?: boolean
           id?: string
           joined_date?: string
           organization_id: string
+          product_onboarding_completed_at?: string | null
           role?: string
           slot_purchase_id?: string | null
           status?: string
           user_id: string
         }
         Update: {
+          access_source?: string | null
           activated_slot_at?: string | null
           can_manage_quickbooks?: boolean
           id?: string
           joined_date?: string
           organization_id?: string
+          product_onboarding_completed_at?: string | null
           role?: string
           slot_purchase_id?: string | null
           status?: string
@@ -4419,6 +4425,10 @@ export type Database = {
       cleanup_old_notifications: { Args: never; Returns: undefined }
       cleanup_stale_gws_directory_users: { Args: never; Returns: number }
       clear_rls_context: { Args: never; Returns: undefined }
+      complete_product_onboarding: {
+        Args: { p_organization_id: string }
+        Returns: undefined
+      }
       count_equipment_matching_pm_rules: {
         Args: { p_organization_id: string; p_rules: Json }
         Returns: number
@@ -4692,6 +4702,16 @@ export type Database = {
           total_work_orders_series: number[]
         }[]
       }
+      get_effective_pm_interval_policy_for_equipment: {
+        Args: { p_equipment_id: string }
+        Returns: {
+          interval_type: string
+          interval_value: number
+          schedule_mode: string
+          source: string
+          template_name: string
+        }[]
+      }
       get_equipment_for_inventory_item_rules: {
         Args: { p_item_id: string; p_organization_id: string }
         Returns: {
@@ -4707,16 +4727,6 @@ export type Database = {
           name: string
           serial_number: string
           status: string
-        }[]
-      }
-      get_effective_pm_interval_policy_for_equipment: {
-        Args: { p_equipment_id: string }
-        Returns: {
-          interval_type: string | null
-          interval_value: number | null
-          schedule_mode: string
-          source: string
-          template_name: string | null
         }[]
       }
       get_equipment_pm_status: {
@@ -4941,6 +4951,16 @@ export type Database = {
         Args: { p_workspace_org_id: string }
         Returns: Json
       }
+      get_product_onboarding_status: {
+        Args: { p_organization_id: string }
+        Returns: {
+          completed_at: string | null
+          equipment_count: number
+          is_org_admin: boolean
+          needs_onboarding: boolean
+          teams_count: number
+        }[]
+      }
       get_quickbooks_connection_status: {
         Args: { p_organization_id: string }
         Returns: {
@@ -5033,6 +5053,10 @@ export type Database = {
           domain: string
           domain_status: string
           email: string
+          has_other_organization_membership: boolean
+          has_pending_claim: boolean
+          has_pending_invitation: boolean
+          has_workspace_membership: boolean
           is_workspace_connected: boolean
           workspace_org_id: string
         }[]
@@ -5221,6 +5245,13 @@ export type Database = {
         }
         Returns: undefined
       }
+      peek_google_workspace_oauth_session: {
+        Args: { p_nonce: string; p_session_token: string }
+        Returns: {
+          origin_url: string
+          redirect_url: string
+        }[]
+      }
       prepare_account_deletion: {
         Args: {
           p_actor_id?: string
@@ -5237,6 +5268,10 @@ export type Database = {
       process_all_pending_departures: { Args: never; Returns: Json }
       process_departure_batch: {
         Args: { p_batch_size?: number; p_queue_id: string }
+        Returns: Json
+      }
+      reconcile_google_workspace_directory: {
+        Args: { p_organization_id: string; p_sync_started_at: string }
         Returns: Json
       }
       refresh_quickbooks_tokens_manual: {

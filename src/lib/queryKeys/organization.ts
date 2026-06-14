@@ -47,3 +47,6 @@ export const dashboardPreferences = {
   byUserOrg: (userId: string, orgId: string) =>
     ['dashboard-preferences', userId, orgId] as const,
 };
+
+export const productOnboarding = (orgId: string, userId: string) =>
+  ['product-onboarding', orgId, userId] as const;

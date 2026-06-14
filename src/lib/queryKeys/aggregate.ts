@@ -1,4 +1,12 @@
-import { organization, team, teams, teamStats, workspacePersonalOrgMerge, dashboardPreferences } from './organization';
+import {
+  organization,
+  team,
+  teams,
+  teamStats,
+  workspacePersonalOrgMerge,
+  dashboardPreferences,
+  productOnboarding,
+} from './organization';
 import { equipment, equipmentWorkingHours } from './equipment';
 import {
   workOrders,
@@ -31,6 +39,7 @@ export const queryKeys = {
   workspacePersonalOrgMerge,
   tickets,
   dashboardPreferences,
+  productOnboarding,
   pmStatus,
   pmIntervalPolicies,
   exportArtifacts,

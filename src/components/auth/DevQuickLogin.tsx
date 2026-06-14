@@ -38,6 +38,8 @@ const DEV_USERS = [
   { email: 'owner@valley.test', name: 'Victor Valley', role: 'Owner', org: 'Valley Landscaping (Free)' },
   // Industrial Rentals Corp
   { email: 'owner@industrial.test', name: 'Irene Industrial', role: 'Owner', org: 'Industrial Rentals' },
+  // Fresh onboarding org (no teams/equipment)
+  { email: 'owner@freshstart.test', name: 'Fresh Start Owner', role: 'Owner', org: 'Fresh Start Equipment' },
   // Multi-org user
   { email: 'multi@equipqr.test', name: 'Multi Org User', role: 'Member', org: 'ALL Organizations' },
 ] as const;
@@ -63,6 +65,10 @@ const USER_GROUPS = [
   {
     label: 'Industrial Rentals (Premium)',
     users: DEV_USERS.filter((u) => u.org === 'Industrial Rentals'),
+  },
+  {
+    label: 'Fresh Start (Onboarding)',
+    users: DEV_USERS.filter((u) => u.org === 'Fresh Start Equipment'),
   },
   {
     label: 'Multi-Org Testing',
