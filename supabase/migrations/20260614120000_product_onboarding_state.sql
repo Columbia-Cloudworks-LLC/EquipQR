@@ -124,5 +124,6 @@ REVOKE ALL ON FUNCTION public.complete_product_onboarding(uuid) FROM anon;
 
 GRANT EXECUTE ON FUNCTION public.get_product_onboarding_status(uuid) TO authenticated, service_role;
 
+-- rpc-authenticated-grant-allowed: get_product_onboarding_status
 -- rpc-authenticated-grant-allowed: complete_product_onboarding
 GRANT EXECUTE ON FUNCTION public.complete_product_onboarding(uuid) TO authenticated, service_role;
