@@ -148,6 +148,8 @@ const WorkOrderDetails = () => {
     setShowFieldAcceptDialog,
     showMobilePDFDialog,
     setShowMobilePDFDialog,
+    mobilePdfDialogFocusDrive,
+    openMobilePdfDialog,
     mobileReviewOpen,
     setMobileReviewOpen,
     mobileStatusMutation,
@@ -179,7 +181,7 @@ const WorkOrderDetails = () => {
     setSearchParams,
     notesSectionRef,
     pmSectionRef,
-    onAutoOpenPDFDialog: () => setShowMobilePDFDialog(true),
+    onAutoOpenPDFDialog: () => openMobilePdfDialog(false),
   });
 
   const exports = useWorkOrderDetailsExports({
@@ -263,6 +265,7 @@ const WorkOrderDetails = () => {
       <WorkOrderDetailsMobileHeader
         workOrder={{ title: workOrder.title }}
         canEdit={canEdit}
+        showExports={permissionLevels.isManager}
         onEditClick={handleEditWorkOrder}
         onOpenActionSheet={() => setShowMobileActionSheet(true)}
       />
@@ -412,6 +415,9 @@ const WorkOrderDetails = () => {
         pmDataDetails={getPMDataDetails()}
         showMobilePDFDialog={showMobilePDFDialog}
         onMobilePDFDialogOpenChange={setShowMobilePDFDialog}
+        mobilePdfDialogFocusDrive={mobilePdfDialogFocusDrive}
+        onOpenMobilePdfDialog={() => openMobilePdfDialog(false)}
+        onOpenMobileDrivePdfDialog={() => openMobilePdfDialog(true)}
         onMobilePDFExport={exports.handleMobilePDFExport}
         isMobilePDFGenerating={exports.isMobilePDFGenerating}
         isGoogleWorkspaceConnected={exports.isGoogleWorkspaceConnected}
@@ -427,12 +433,18 @@ const WorkOrderDetails = () => {
         }}
         onDownloadWorksheet={exports.handleMobileDownloadWorksheet}
         isMobileWorksheetGenerating={exports.isMobileWorksheetGenerating}
-        onExportExcel={() => exports.exportSingle(workOrder.id)}
-        isExportingExcel={exports.isExportingSingle}
-        onExportGoogleDoc={
-          exports.canExportGoogleDoc ? () => exports.exportSingleToDocs(workOrder.id) : undefined
-        }
-        isExportingGoogleDoc={exports.isExportingSingleToDocs}
+        onDownloadXlsx={() => exports.exportSingle(workOrder.id)}
+        isExportingXlsx={exports.isExportingSingle}
+        onDownloadCsv={() => exports.exportSingleCsv(workOrder.id)}
+        isExportingCsv={exports.isExportingSingleCsv}
+        onDownloadDocx={() => exports.exportSingleDocx(workOrder.id)}
+        isExportingDocx={exports.isExportingSingleDocx}
+        docxDisabled={!exports.canExportGoogleDoc}
+        onDriveDocs={() => exports.exportSingleToDocs(workOrder.id)}
+        isExportingToDocs={exports.isExportingSingleToDocs}
+        onDriveSheets={() => exports.exportSingleToSheets(workOrder.id)}
+        isExportingToSheets={exports.isExportingSingleToSheets}
+        isExportBusy={exports.isExportBusy}
         showMobileCompleteDialog={showMobileCompleteDialog}
         onMobileCompleteDialogOpenChange={setShowMobileCompleteDialog}
         mobileStatusMutation={mobileStatusMutation}

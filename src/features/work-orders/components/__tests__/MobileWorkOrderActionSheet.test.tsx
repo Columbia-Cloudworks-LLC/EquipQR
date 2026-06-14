@@ -28,6 +28,19 @@ vi.mock('../QuickBooksExportButton', () => ({
   QuickBooksExportButton: () => <div>QB export</div>,
 }));
 
+vi.mock('../WorkOrderMobileExportSection', () => ({
+  WorkOrderMobileExportSection: () => (
+    <div>
+      <p>Download</p>
+      <button type="button">DOCX</button>
+      <button type="button">PDF</button>
+      <button type="button">XLSX</button>
+      <button type="button">CSV</button>
+      <button type="button">Field Worksheet</button>
+    </div>
+  ),
+}));
+
 describe('MobileWorkOrderActionSheet', () => {
   const baseProps = {
     open: true,
@@ -35,36 +48,61 @@ describe('MobileWorkOrderActionSheet', () => {
     workOrderId: 'wo-1',
     workOrderStatus: 'in_progress' as const,
     equipmentTeamId: 'team-1',
+    organizationId: 'org-1',
     isManager: true,
     onViewFullDetails: vi.fn(),
     canEdit: true,
     onEdit: vi.fn(),
-    onDownloadPDF: vi.fn(),
+    onOpenPdfDialog: vi.fn(),
+    onOpenDrivePdfDialog: vi.fn(),
+    isGeneratingPdf: false,
     onDownloadWorksheet: vi.fn(),
     isGeneratingWorksheet: false,
-    onExportExcel: vi.fn(),
-    isExportingExcel: false,
-    onExportGoogleDoc: vi.fn(),
-    isExportingGoogleDoc: false,
+    onDownloadXlsx: vi.fn(),
+    isExportingXlsx: false,
+    onDownloadCsv: vi.fn(),
+    isExportingCsv: false,
+    onDownloadDocx: vi.fn(),
+    isExportingDocx: false,
+    docxDisabled: false,
+    onDriveDocs: vi.fn(),
+    isExportingToDocs: false,
+    onDriveSheets: vi.fn(),
+    isExportingToSheets: false,
+    isExportBusy: false,
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('lists View full details before Office tools', () => {
+  it('lists View full details before Download exports', () => {
     render(
       <MemoryRouter>
         <MobileWorkOrderActionSheet {...baseProps} />
       </MemoryRouter>,
     );
     expect(screen.getByText('More work order options')).toBeInTheDocument();
-    expect(screen.getByText('Office tools')).toBeInTheDocument();
+    expect(screen.getByText('Download')).toBeInTheDocument();
     const buttons = screen.getAllByRole('button');
     const viewIdx = buttons.findIndex((b) => b.textContent?.includes('View full details'));
-    const pdfIdx = buttons.findIndex((b) => b.textContent?.includes('Service Report PDF'));
+    const pdfIdx = buttons.findIndex((b) => b.textContent?.includes('PDF'));
     expect(viewIdx).toBeGreaterThanOrEqual(0);
     expect(pdfIdx).toBeGreaterThan(viewIdx);
+  });
+
+  it('shows desktop-parity download formats for managers', () => {
+    render(
+      <MemoryRouter>
+        <MobileWorkOrderActionSheet {...baseProps} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('button', { name: 'DOCX' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'PDF' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'XLSX' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'CSV' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /field worksheet/i })).toBeInTheDocument();
   });
 
   it('shows Admin section with edit and delete requiring DELETE confirmation', async () => {

@@ -46,6 +46,9 @@ type WorkOrderDetailsOverlaysProps = {
   pmDataDetails: { hasNotes: boolean; hasCompletedItems: boolean };
   showMobilePDFDialog: boolean;
   onMobilePDFDialogOpenChange: (open: boolean) => void;
+  mobilePdfDialogFocusDrive: boolean;
+  onOpenMobilePdfDialog: () => void;
+  onOpenMobileDrivePdfDialog: () => void;
   onMobilePDFExport: (options: { includeCosts: boolean }) => Promise<void>;
   isMobilePDFGenerating: boolean;
   isGoogleWorkspaceConnected: boolean;
@@ -58,10 +61,18 @@ type WorkOrderDetailsOverlaysProps = {
   onViewFullDetails: () => void;
   onDownloadWorksheet: () => Promise<void>;
   isMobileWorksheetGenerating: boolean;
-  onExportExcel: () => void;
-  isExportingExcel: boolean;
-  onExportGoogleDoc?: () => void;
-  isExportingGoogleDoc: boolean;
+  onDownloadXlsx: () => void;
+  isExportingXlsx: boolean;
+  onDownloadCsv: () => void;
+  isExportingCsv: boolean;
+  onDownloadDocx: () => void;
+  isExportingDocx: boolean;
+  docxDisabled: boolean;
+  onDriveDocs: () => void;
+  isExportingToDocs: boolean;
+  onDriveSheets: () => void;
+  isExportingToSheets: boolean;
+  isExportBusy: boolean;
   showMobileCompleteDialog: boolean;
   onMobileCompleteDialogOpenChange: (open: boolean) => void;
   mobileStatusMutation: Pick<UseMutationResult<unknown, unknown, unknown, unknown>, 'isPending'>;
@@ -106,6 +117,9 @@ export function WorkOrderDetailsOverlays({
   pmDataDetails,
   showMobilePDFDialog,
   onMobilePDFDialogOpenChange,
+  mobilePdfDialogFocusDrive,
+  onOpenMobilePdfDialog,
+  onOpenMobileDrivePdfDialog,
   onMobilePDFExport,
   isMobilePDFGenerating,
   isGoogleWorkspaceConnected,
@@ -118,10 +132,18 @@ export function WorkOrderDetailsOverlays({
   onViewFullDetails,
   onDownloadWorksheet,
   isMobileWorksheetGenerating,
-  onExportExcel,
-  isExportingExcel,
-  onExportGoogleDoc,
-  isExportingGoogleDoc,
+  onDownloadXlsx,
+  isExportingXlsx,
+  onDownloadCsv,
+  isExportingCsv,
+  onDownloadDocx,
+  isExportingDocx,
+  docxDisabled,
+  onDriveDocs,
+  isExportingToDocs,
+  onDriveSheets,
+  isExportingToSheets,
+  isExportBusy,
   showMobileCompleteDialog,
   onMobileCompleteDialogOpenChange,
   mobileStatusMutation,
@@ -171,6 +193,7 @@ export function WorkOrderDetailsOverlays({
         hasOrganizationDriveDestination={Boolean(googleDocsDestination)}
         onSaveToDrive={onMobileSaveToDrive}
         isSavingToDrive={isMobileSavingToDrive}
+        focusDriveAction={mobilePdfDialogFocusDrive}
       />
 
       {isMobile && (
@@ -180,17 +203,28 @@ export function WorkOrderDetailsOverlays({
           workOrderId={workOrder.id}
           workOrderStatus={workOrder.status}
           equipmentTeamId={equipmentTeamId}
+          organizationId={organizationId}
           isManager={permissionLevels.isManager}
           canEdit={canEdit}
           onEdit={onEditWorkOrder}
           onViewFullDetails={onViewFullDetails}
-          onDownloadPDF={() => onMobilePDFDialogOpenChange(true)}
+          onOpenPdfDialog={onOpenMobilePdfDialog}
+          onOpenDrivePdfDialog={onOpenMobileDrivePdfDialog}
+          isGeneratingPdf={isMobilePDFGenerating}
           onDownloadWorksheet={onDownloadWorksheet}
           isGeneratingWorksheet={isMobileWorksheetGenerating}
-          onExportExcel={onExportExcel}
-          isExportingExcel={isExportingExcel}
-          onExportGoogleDoc={onExportGoogleDoc}
-          isExportingGoogleDoc={isExportingGoogleDoc}
+          onDownloadXlsx={onDownloadXlsx}
+          isExportingXlsx={isExportingXlsx}
+          onDownloadCsv={onDownloadCsv}
+          isExportingCsv={isExportingCsv}
+          onDownloadDocx={onDownloadDocx}
+          isExportingDocx={isExportingDocx}
+          docxDisabled={docxDisabled}
+          onDriveDocs={onDriveDocs}
+          isExportingToDocs={isExportingToDocs}
+          onDriveSheets={onDriveSheets}
+          isExportingToSheets={isExportingToSheets}
+          isExportBusy={isExportBusy}
         />
       )}
 

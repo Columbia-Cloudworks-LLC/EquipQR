@@ -1,6 +1,6 @@
 import React from 'react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen } from '@/test/utils/test-utils';
 import { WorkOrderDetailsMobileHeader } from '../WorkOrderDetailsMobileHeader';
 
@@ -11,6 +11,10 @@ describe('WorkOrderDetailsMobileHeader', () => {
     onEditClick: vi.fn(),
     onOpenActionSheet: vi.fn(),
   };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('renders title and back link', () => {
     render(<WorkOrderDetailsMobileHeader {...baseProps} />);
@@ -24,6 +28,15 @@ describe('WorkOrderDetailsMobileHeader', () => {
     render(<WorkOrderDetailsMobileHeader {...baseProps} />);
 
     await user.click(screen.getByRole('button', { name: /open actions and settings/i }));
+
+    expect(baseProps.onOpenActionSheet).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses Export label when showExports is true', async () => {
+    const user = userEvent.setup();
+    render(<WorkOrderDetailsMobileHeader {...baseProps} showExports />);
+
+    await user.click(screen.getByRole('button', { name: /^export$/i }));
 
     expect(baseProps.onOpenActionSheet).toHaveBeenCalledTimes(1);
   });

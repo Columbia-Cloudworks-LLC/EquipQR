@@ -1,16 +1,13 @@
 /**
  * Mobile Work Order Action Sheet
- * 
- * A bottom sheet that consolidates all work order actions for mobile users.
- * Sections are role-gated:
- * - Office tools: Service Report PDF, Internal Work Order Packet (visible to managers/admins)
- * - QuickBooks: Export (visible only to users with can_manage_quickbooks)
+ *
+ * Consolidates work order actions for mobile users.
+ * Export options mirror the desktop Export menu (Download + Google Drive + QuickBooks + Admin).
  */
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { WorkOrderDeleteConfirmDialog } from '@/features/work-orders/components/WorkOrderDeleteConfirmDialog';
 import {
@@ -21,16 +18,12 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import {
-  Download,
-  ClipboardList,
-  Loader2,
-  FileSpreadsheet,
-  FileText,
   PanelRight,
   PencilLine,
   MoreHorizontal,
   Trash2,
 } from 'lucide-react';
+import { WorkOrderMobileExportSection } from '@/features/work-orders/components/WorkOrderMobileExportSection';
 import { QuickBooksExportButton } from './QuickBooksExportButton';
 import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
@@ -45,18 +38,29 @@ interface MobileWorkOrderActionSheetProps {
   workOrderId: string;
   workOrderStatus: WorkOrderStatus;
   equipmentTeamId?: string | null;
+  organizationId?: string;
   isManager: boolean;
   /** Opens sidebar / overlay with metadata (mobile) */
   onViewFullDetails: () => void;
   canEdit?: boolean;
   onEdit?: () => void;
-  onDownloadPDF: () => void;
+  onOpenPdfDialog: () => void;
+  onOpenDrivePdfDialog: () => void;
+  isGeneratingPdf: boolean;
   onDownloadWorksheet: () => void;
   isGeneratingWorksheet: boolean;
-  onExportExcel: () => void;
-  isExportingExcel: boolean;
-  onExportGoogleDoc?: () => void;
-  isExportingGoogleDoc?: boolean;
+  onDownloadXlsx: () => void;
+  isExportingXlsx: boolean;
+  onDownloadCsv: () => void;
+  isExportingCsv: boolean;
+  onDownloadDocx: () => void;
+  isExportingDocx: boolean;
+  docxDisabled?: boolean;
+  onDriveDocs: () => void;
+  isExportingToDocs: boolean;
+  onDriveSheets: () => void;
+  isExportingToSheets: boolean;
+  isExportBusy: boolean;
 }
 
 export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProps> = ({
@@ -65,17 +69,28 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
   workOrderId,
   workOrderStatus,
   equipmentTeamId,
+  organizationId,
   isManager,
   onViewFullDetails,
   canEdit = false,
   onEdit,
-  onDownloadPDF,
+  onOpenPdfDialog,
+  onOpenDrivePdfDialog,
+  isGeneratingPdf,
   onDownloadWorksheet,
   isGeneratingWorksheet,
-  onExportExcel,
-  isExportingExcel,
-  onExportGoogleDoc,
-  isExportingGoogleDoc = false,
+  onDownloadXlsx,
+  isExportingXlsx,
+  onDownloadCsv,
+  isExportingCsv,
+  onDownloadDocx,
+  isExportingDocx,
+  docxDisabled = false,
+  onDriveDocs,
+  isExportingToDocs,
+  onDriveSheets,
+  isExportingToSheets,
+  isExportBusy,
 }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -113,15 +128,19 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="rounded-t-xl pb-safe-bottom">
-          <SheetHeader className="text-left pb-4">
+        <SheetContent
+          side="bottom"
+          className="flex max-h-[85dvh] flex-col gap-0 rounded-t-xl p-0 pb-safe-bottom"
+        >
+          <SheetHeader className="shrink-0 space-y-1 border-b px-6 pb-4 pt-6 text-left">
             <SheetTitle>More work order options</SheetTitle>
             <SheetDescription>
               Field tools stay in the footer. Office and admin options are here.
             </SheetDescription>
           </SheetHeader>
 
-          <div className="space-y-4">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
+            <div className="space-y-4 pb-2">
             {/* Details — always first */}
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -137,66 +156,32 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
               </Button>
             </div>
 
-            {/* Office tools / exports */}
             {isManager && (
               <>
                 <Separator />
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Office tools
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant="outline"
-                      className="h-14 flex-col gap-1"
-                      onClick={() => handleAction(onDownloadPDF)}
-                    >
-                      <Download className="h-5 w-5" />
-                      <span className="text-xs">Service Report PDF</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="h-14 flex-col gap-1"
-                      onClick={() => handleAction(onDownloadWorksheet)}
-                      disabled={isGeneratingWorksheet}
-                    >
-                      {isGeneratingWorksheet ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <ClipboardList className="h-5 w-5" />
-                      )}
-                      <span className="text-xs">Field Worksheet</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="h-14 flex-col gap-1"
-                      onClick={() => handleAction(onExportExcel)}
-                      disabled={isExportingExcel}
-                    >
-                      {isExportingExcel ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <FileSpreadsheet className="h-5 w-5" />
-                      )}
-                      <span className="text-xs">Internal Work Order Packet</span>
-                    </Button>
-                    {onExportGoogleDoc && (
-                      <Button
-                        variant="outline"
-                        className="h-14 flex-col gap-1"
-                        onClick={() => handleAction(onExportGoogleDoc)}
-                        disabled={isExportingGoogleDoc}
-                      >
-                        {isExportingGoogleDoc ? (
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                        ) : (
-                          <FileText className="h-5 w-5" />
-                        )}
-                        <span className="text-xs">Google Doc Packet</span>
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                <WorkOrderMobileExportSection
+                  workOrderId={workOrderId}
+                  organizationId={organizationId}
+                  isManager={isManager}
+                  onAction={handleAction}
+                  onOpenPdfDialog={onOpenPdfDialog}
+                  onOpenDrivePdfDialog={onOpenDrivePdfDialog}
+                  isGeneratingPdf={isGeneratingPdf}
+                  onDownloadXlsx={onDownloadXlsx}
+                  isExportingXlsx={isExportingXlsx}
+                  onDownloadCsv={onDownloadCsv}
+                  isExportingCsv={isExportingCsv}
+                  onDownloadDocx={onDownloadDocx}
+                  isExportingDocx={isExportingDocx}
+                  docxDisabled={docxDisabled}
+                  onDownloadWorksheet={onDownloadWorksheet}
+                  isGeneratingWorksheet={isGeneratingWorksheet}
+                  onDriveDocs={onDriveDocs}
+                  isExportingToDocs={isExportingToDocs}
+                  onDriveSheets={onDriveSheets}
+                  isExportingToSheets={isExportingToSheets}
+                  isExportBusy={isExportBusy}
+                />
               </>
             )}
 
@@ -250,6 +235,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
                 </div>
               </>
             )}
+            </div>
           </div>
         </SheetContent>
       </Sheet>

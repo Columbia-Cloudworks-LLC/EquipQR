@@ -1,13 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Edit, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, Edit, Download, MoreHorizontal } from 'lucide-react';
 
 interface WorkOrderDetailsMobileHeaderProps {
   workOrder: {
     title: string;
   };
   canEdit: boolean;
+  showExports?: boolean;
   onEditClick: () => void;
   /** Opens unified overflow/actions sheet */
   onOpenActionSheet: () => void;
@@ -16,6 +17,7 @@ interface WorkOrderDetailsMobileHeaderProps {
 export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeaderProps> = ({
   workOrder,
   canEdit,
+  showExports = false,
   onEditClick,
   onOpenActionSheet,
 }) => {
@@ -46,13 +48,17 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
               </Button>
             )}
             <Button
-              variant="ghost"
+              variant={showExports ? 'outline' : 'ghost'}
               onClick={() => void onOpenActionSheet()}
               className="min-h-[44px] min-w-[44px] touch-manipulation"
-              aria-label="Open actions and settings"
-              title="Open actions and settings"
+              aria-label={showExports ? 'Export' : 'Open actions and settings'}
+              title={showExports ? 'Export' : 'Open actions and settings'}
             >
-              <MoreHorizontal className="h-6 w-6" aria-hidden />
+              {showExports ? (
+                <Download className="h-5 w-5" aria-hidden />
+              ) : (
+                <MoreHorizontal className="h-6 w-6" aria-hidden />
+              )}
             </Button>
           </div>
         </div>

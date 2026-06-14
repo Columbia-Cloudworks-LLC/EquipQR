@@ -27,8 +27,18 @@ export function useWorkOrderDetailsExports({
   organizationName = '',
   isManager,
 }: UseWorkOrderDetailsExportsParams) {
-  const { exportSingle, isExportingSingle, exportSingleToDocs, isExportingSingleToDocs } =
-    useWorkOrderExcelExport(organizationId, organizationName);
+  const {
+    exportSingle,
+    isExportingSingle,
+    exportSingleToDocs,
+    isExportingSingleToDocs,
+    exportSingleToSheets,
+    isExportingSingleToSheets,
+    exportSingleCsv,
+    isExportingSingleCsv,
+    exportSingleDocx,
+    isExportingSingleDocx,
+  } = useWorkOrderExcelExport(organizationId, organizationName);
 
   const {
     downloadPDF: downloadMobilePDF,
@@ -89,17 +99,37 @@ export function useWorkOrderDetailsExports({
     }
   };
 
+  const showGoogleDrive =
+    isGoogleWorkspaceConnected && Boolean(googleDocsDestination) && Boolean(organizationId);
+
+  const isExportBusy =
+    isExportingSingle
+    || isExportingSingleToDocs
+    || isExportingSingleToSheets
+    || isExportingSingleCsv
+    || isExportingSingleDocx
+    || isMobilePDFGenerating
+    || isMobileSavingToDrive;
+
   return {
     exportSingle,
     isExportingSingle,
     exportSingleToDocs,
     isExportingSingleToDocs,
+    exportSingleToSheets,
+    isExportingSingleToSheets,
+    exportSingleCsv,
+    isExportingSingleCsv,
+    exportSingleDocx,
+    isExportingSingleDocx,
     isMobilePDFGenerating,
     isMobileSavingToDrive,
     isMobileWorksheetGenerating,
     isGoogleWorkspaceConnected,
     googleDocsDestination,
     canExportGoogleDoc,
+    showGoogleDrive,
+    isExportBusy,
     handleMobilePDFExport,
     handleMobileSaveToDrive,
     handleMobileDownloadWorksheet,

@@ -23,7 +23,15 @@ export function useWorkOrderDetailsMobileWorkflow({
   const [showMobileCompleteDialog, setShowMobileCompleteDialog] = useState(false);
   const [showFieldAcceptDialog, setShowFieldAcceptDialog] = useState(false);
   const [showMobilePDFDialog, setShowMobilePDFDialog] = useState(false);
+  const [mobilePdfDialogFocusDrive, setMobilePdfDialogFocusDrive] = useState(false);
   const [mobileReviewOpen, setMobileReviewOpen] = useState(false);
+
+  const openMobilePdfDialog = useCallback((focusDrive = false) => {
+    setMobilePdfDialogFocusDrive(focusDrive);
+    window.setTimeout(() => {
+      setShowMobilePDFDialog(true);
+    }, 0);
+  }, []);
 
   const mobileStatusMutation = useWorkOrderStatusUpdate();
   const fieldAcceptanceMutation = useWorkOrderAcceptance();
@@ -117,6 +125,8 @@ export function useWorkOrderDetailsMobileWorkflow({
     setShowFieldAcceptDialog,
     showMobilePDFDialog,
     setShowMobilePDFDialog,
+    mobilePdfDialogFocusDrive,
+    openMobilePdfDialog,
     mobileReviewOpen,
     setMobileReviewOpen,
     mobileStatusMutation,
