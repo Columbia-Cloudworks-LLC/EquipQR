@@ -1,6 +1,20 @@
 #Requires -Version 5.1
 # Shared helpers for scripts/pr-evidence/*.ps1 (dot-source only). ASCII-only for PS 5.1.
 
+function Get-PrEvidenceInvariantCulture {
+    return [System.Globalization.CultureInfo]::InvariantCulture
+}
+
+function Format-PrEvidenceInvariantNumber {
+    param([double]$Value)
+    return $Value.ToString((Get-PrEvidenceInvariantCulture))
+}
+
+function ConvertTo-PrEvidenceInvariantDouble {
+    param([string]$Text)
+    return [double]::Parse($Text.Trim(), (Get-PrEvidenceInvariantCulture))
+}
+
 function Get-PrEvidenceScriptDirectory {
     return Split-Path -Parent $MyInvocation.ScriptName
 }
@@ -224,7 +238,7 @@ function Get-PrEvidenceVideoDuration {
         throw "ffprobe duration failed for ${VideoPath}: $($result.Text)"
     }
 
-    $duration = [double]$result.Text.Trim()
+    $duration = ConvertTo-PrEvidenceInvariantDouble -Text $result.Text
     if (-not [double]::IsFinite($duration) -or $duration -lt 0) {
         throw "Unexpected ffprobe duration for ${VideoPath}: $($result.Text)"
     }
@@ -257,10 +271,12 @@ function Get-PrEvidenceGifEncodingConfig {
     }
     $moduleUrl = ([System.Uri]::new((Resolve-Path -LiteralPath $modulePath).Path)).AbsoluteUri
 
+    $durationLiteral = Format-PrEvidenceInvariantNumber -Value $DurationSeconds
+
     $script = @"
 import { buildPrEvidenceGifEncodingConfig } from '$moduleUrl';
 const viewport = { width: $ViewportWidth, height: $ViewportHeight };
-console.log(JSON.stringify(buildPrEvidenceGifEncodingConfig(viewport, $DurationSeconds)));
+console.log(JSON.stringify(buildPrEvidenceGifEncodingConfig(viewport, $durationLiteral)));
 "@
 
     $tempScript = Join-Path $env:TEMP ("pr-evidence-encoding-{0}.mjs" -f ([guid]::NewGuid().ToString('N')))
@@ -368,12 +384,13 @@ function Convert-PrEvidenceWebmToGif {
         $gifFull
     )
 
-    $startSeconds = [double]$encoding.startSeconds
+    $startSeconds = ConvertTo-PrEvidenceInvariantDouble -Text ([string]$encoding.startSeconds)
     if ($startSeconds -gt 0) {
-        Write-Host ("[PR evidence] Trimming {0}s lead-in (duration={1}s)" -f $startSeconds, $durationSeconds)
+        $startSecondsArg = Format-PrEvidenceInvariantNumber -Value $startSeconds
+        Write-Host ("[PR evidence] Trimming {0}s lead-in (duration={1}s)" -f $startSecondsArg, (Format-PrEvidenceInvariantNumber -Value $durationSeconds))
         $args = @(
             '-y',
-            '-ss', ([string]$startSeconds),
+            '-ss', $startSecondsArg,
             '-i', $webmFull,
             '-vf', $paletteFilter,
             $gifFull
