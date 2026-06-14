@@ -22,12 +22,8 @@ test.describe('PR evidence: product onboarding bypass @pr-evidence', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible({
       timeout: 30_000,
     });
-    await evidencePause(page, 800);
-    await evidenceScreenshot(page, '01-established-owner-dashboard-no-wizard');
-
-    await page.evaluate(() => window.scrollBy(0, 400));
     await evidencePause(page, 600);
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await evidencePause(page, 500);
+    await evidenceScreenshot(page, '01-established-owner-dashboard-no-wizard');
+    await evidencePause(page, 400);
   });
 });
