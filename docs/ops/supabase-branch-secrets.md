@@ -71,8 +71,11 @@ The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be
 
 | Secret Name | Required For | Example Value | Notes |
 |------------|--------------|---------------|-------|
-| `INTUIT_CLIENT_ID` | All QuickBooks functions | `Q0...` | QuickBooks OAuth client ID |
-| `INTUIT_CLIENT_SECRET` | All QuickBooks functions | `...` | QuickBooks OAuth client secret |
+| `INTUIT_CLIENT_ID` | All QuickBooks functions | `Q0...` | QuickBooks OAuth client ID — **Development** keys on preview/local, **Production** keys on main |
+| `INTUIT_CLIENT_SECRET` | All QuickBooks functions | `...` | QuickBooks OAuth client secret (pair with client ID tier above) |
+| `QBO_USE_SANDBOX` | All QuickBooks functions | `true` | **Preview only.** Routes QBO Data API calls to `sandbox-quickbooks.api.intuit.com`. Injected automatically by `sync-supabase-secrets-from-1password.ps1` for `edge-env-preview-secrets`; must **not** be set on production. |
+
+> **Preview/local sandbox contract:** Use Intuit Developer Portal **Development** keys (`INTUIT_CLIENT_ID` / `INTUIT_CLIENT_SECRET`) together with `QBO_USE_SANDBOX=true`. OAuth connects sandbox companies; invoice links use `app.sandbox.qbo.intuit.com`. Production (`main`) uses Production keys with no `QBO_USE_SANDBOX`.
 
 OAuth callback URIs are derived from `SUPABASE_URL` — do **not** set `QB_OAUTH_REDIRECT_BASE_URL` or `GW_OAUTH_REDIRECT_BASE_URL` for normal environments. See [URL config external cleanup](url-config-external-cleanup.md).
 

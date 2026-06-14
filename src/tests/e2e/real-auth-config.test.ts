@@ -3,9 +3,12 @@ import path from 'path';
 import {
   DEFAULT_GOOGLE_WORKSPACE_LOCAL_AUTH_PATH,
   getProductionQuickBooksInvoiceUrl,
+  getQuickBooksInvoiceUrl,
   hasRealAuthExportPrerequisites,
+  isQboDraftExportAllowed,
   isQboProductionDraftsAllowed,
   isTruthyEnv,
+  resolveExpectedQboEnvironment,
   resolveGoogleDocsWorkOrderId,
   resolveGoogleWorkspaceAuthStoragePath,
   resolveRealAuthBaseUrl,
@@ -60,6 +63,24 @@ describe('real-auth-config', () => {
     );
   });
 
+  it('builds sandbox QuickBooks invoice URLs', () => {
+    expect(getQuickBooksInvoiceUrl('12345', 'sandbox')).toBe(
+      'https://app.sandbox.qbo.intuit.com/app/invoice?txnId=12345',
+    );
+  });
+
+  it('defaults preview real-auth export to sandbox unless production drafts are opted in', () => {
+    delete process.env.E2E_ALLOW_QBO_DRAFTS;
+    delete process.env.E2E_ALLOW_QBO_PRODUCTION_DRAFTS;
+    expect(resolveExpectedQboEnvironment()).toBe('sandbox');
+
+    process.env.E2E_ALLOW_QBO_DRAFTS = 'true';
+    expect(resolveExpectedQboEnvironment()).toBe('sandbox');
+
+    process.env.E2E_ALLOW_QBO_PRODUCTION_DRAFTS = 'true';
+    expect(resolveExpectedQboEnvironment()).toBe('production');
+  });
+
   it('builds Vercel protection bypass headers when the secret is present', () => {
     process.env.VERCEL_AUTOMATION_BYPASS_SECRET = 'bypass-secret';
 
@@ -86,8 +107,10 @@ describe('real-auth-config', () => {
   it('requires all export prerequisites', () => {
     delete process.env.E2E_REAL_AUTH_STORAGE_STATE;
     delete process.env.E2E_QBO_WORK_ORDER_ID;
+    delete process.env.E2E_ALLOW_QBO_DRAFTS;
     delete process.env.E2E_ALLOW_QBO_PRODUCTION_DRAFTS;
     expect(hasRealAuthExportPrerequisites()).toBe(false);
+    expect(isQboDraftExportAllowed()).toBe(false);
     expect(isQboProductionDraftsAllowed()).toBe(false);
   });
 });

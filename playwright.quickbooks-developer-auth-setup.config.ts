@@ -1,6 +1,9 @@
 import { defineRealAuthSetupPlaywrightConfig } from './e2e/user/shared/real-auth-setup-playwright-config';
 
 export default defineRealAuthSetupPlaywrightConfig({
-  outputSubdir: 'google-auth-setup',
-  testMatch: /google-real-auth\.setup\.ts/,
+  outputSubdir: 'quickbooks-developer-auth-setup',
+  testMatch: /quickbooks-developer-auth\.setup\.ts/,
+  use: {
+    baseURL: undefined,
+  },
 });

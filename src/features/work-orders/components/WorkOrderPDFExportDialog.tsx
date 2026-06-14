@@ -28,6 +28,8 @@ interface WorkOrderPDFExportDialogProps {
   onSaveToDrive?: (options: { includeCosts: boolean }) => Promise<void>;
   /** Whether saving to Google Drive is in progress */
   isSavingToDrive?: boolean;
+  /** When true, emphasize the Save to Drive action (opened from Google Drive > PDF) */
+  focusDriveAction?: boolean;
 }
 
 /**
@@ -44,6 +46,7 @@ export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> =
   hasOrganizationDriveDestination = false,
   onSaveToDrive,
   isSavingToDrive = false,
+  focusDriveAction = false,
 }) => {
   const [includeCosts, setIncludeCosts] = useState(false);
   
@@ -124,7 +127,7 @@ export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> =
           {/* Google Drive button - only shown when connected and folder configured */}
           {isGoogleWorkspaceConnected && hasOrganizationDriveDestination && onSaveToDrive && (
             <Button
-              variant="outline"
+              variant={focusDriveAction ? 'default' : 'outline'}
               onClick={handleSaveToDrive}
               disabled={isAnyExporting}
             >
@@ -145,6 +148,7 @@ export const WorkOrderPDFExportDialog: React.FC<WorkOrderPDFExportDialogProps> =
           <Button
             onClick={handleExport}
             disabled={isAnyExporting}
+            variant={focusDriveAction ? 'outline' : 'default'}
           >
             {isExporting ? (
               <>
