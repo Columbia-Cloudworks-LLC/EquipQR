@@ -1,6 +1,20 @@
 #Requires -Version 5.1
 # Shared helpers for scripts/pr-evidence/*.ps1 (dot-source only). ASCII-only for PS 5.1.
 
+function Get-PrEvidenceInvariantCulture {
+    return [System.Globalization.CultureInfo]::InvariantCulture
+}
+
+function Format-PrEvidenceInvariantNumber {
+    param([double]$Value)
+    return $Value.ToString((Get-PrEvidenceInvariantCulture))
+}
+
+function ConvertTo-PrEvidenceInvariantDouble {
+    param([string]$Text)
+    return [double]::Parse($Text.Trim(), (Get-PrEvidenceInvariantCulture))
+}
+
 function Get-PrEvidenceScriptDirectory {
     return Split-Path -Parent $MyInvocation.ScriptName
 }
@@ -208,6 +222,80 @@ console.log(JSON.stringify($exportName));
     }
 }
 
+function Get-PrEvidenceVideoDuration {
+    param([Parameter(Mandatory)][string]$VideoPath)
+
+    Assert-PrEvidenceCommandExists 'ffprobe'
+
+    $result = Invoke-PrEvidenceNative -FilePath 'ffprobe' -Arguments @(
+        '-v', 'error',
+        '-show_entries', 'format=duration',
+        '-of', 'default=noprint_wrappers=1:nokey=1',
+        $VideoPath
+    )
+
+    if ($result.ExitCode -ne 0) {
+        throw "ffprobe duration failed for ${VideoPath}: $($result.Text)"
+    }
+
+    $duration = ConvertTo-PrEvidenceInvariantDouble -Text $result.Text
+    if (-not [double]::IsFinite($duration) -or $duration -lt 0) {
+        throw "Unexpected ffprobe duration for ${VideoPath}: $($result.Text)"
+    }
+
+    return $duration
+}
+
+function Get-PrEvidenceGifEncodingConfig {
+    param(
+        [int]$ViewportWidth = 0,
+        [int]$ViewportHeight = 0,
+        [double]$DurationSeconds = 0
+    )
+
+    Assert-PrEvidenceCommandExists 'node'
+
+    if ($ViewportWidth -le 0) {
+        $ViewportWidth = [int]($env:PR_EVIDENCE_VIEWPORT_WIDTH)
+        if ($ViewportWidth -le 0) { $ViewportWidth = 1920 }
+    }
+    if ($ViewportHeight -le 0) {
+        $ViewportHeight = [int]($env:PR_EVIDENCE_VIEWPORT_HEIGHT)
+        if ($ViewportHeight -le 0) { $ViewportHeight = 1080 }
+    }
+
+    $repoRoot = Get-PrEvidenceRepoRoot
+    $modulePath = Join-Path $repoRoot 'scripts\lib\pr-evidence-video.mjs'
+    if (-not (Test-Path -LiteralPath $modulePath)) {
+        throw "PR evidence video helper not found: $modulePath"
+    }
+    $moduleUrl = ([System.Uri]::new((Resolve-Path -LiteralPath $modulePath).Path)).AbsoluteUri
+
+    $durationLiteral = Format-PrEvidenceInvariantNumber -Value $DurationSeconds
+
+    $script = @"
+import { buildPrEvidenceGifEncodingConfig } from '$moduleUrl';
+const viewport = { width: $ViewportWidth, height: $ViewportHeight };
+console.log(JSON.stringify(buildPrEvidenceGifEncodingConfig(viewport, $durationLiteral)));
+"@
+
+    $tempScript = Join-Path $env:TEMP ("pr-evidence-encoding-{0}.mjs" -f ([guid]::NewGuid().ToString('N')))
+    Set-Content -LiteralPath $tempScript -Value $script -Encoding utf8
+
+    try {
+        $result = Invoke-PrEvidenceNative -FilePath 'node' -Arguments @($tempScript)
+        if ($result.ExitCode -ne 0) {
+            throw "PR evidence GIF encoding config lookup failed: $($result.Text)"
+        }
+        return ($result.Text.Trim() | ConvertFrom-Json)
+    }
+    finally {
+        if (Test-Path -LiteralPath $tempScript) {
+            Remove-Item -LiteralPath $tempScript -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 function Get-PrEvidenceGifFfmpegFilter {
     param(
         [Parameter(Mandatory)][int]$InputWidth,
@@ -235,10 +323,10 @@ function Get-PrEvidenceGifFfmpegFilter {
     $moduleUrl = ([System.Uri]::new((Resolve-Path -LiteralPath $modulePath).Path)).AbsoluteUri
 
     $script = @"
-import { buildPrEvidenceGifFfmpegFilter, resolvePrEvidenceGifOutputWidth } from '$moduleUrl';
+import { buildPrEvidenceGifEncodingConfig, buildPrEvidenceGifFfmpegFilter } from '$moduleUrl';
 const viewport = { width: $ViewportWidth, height: $ViewportHeight };
-const fps = viewport.width < 768 ? 6 : 15;
-console.log(buildPrEvidenceGifFfmpegFilter($InputWidth, $InputHeight, viewport, resolvePrEvidenceGifOutputWidth(viewport), fps));
+const { fps, outputWidth } = buildPrEvidenceGifEncodingConfig(viewport, 0);
+console.log(buildPrEvidenceGifFfmpegFilter($InputWidth, $InputHeight, viewport, outputWidth, fps));
 "@
 
     $tempScript = Join-Path $env:TEMP ("pr-evidence-filter-{0}.mjs" -f ([guid]::NewGuid().ToString('N')))
@@ -281,8 +369,10 @@ function Convert-PrEvidenceWebmToGif {
     }
 
     $dimensions = Get-PrEvidenceVideoDimensions -VideoPath $webmFull
+    $durationSeconds = Get-PrEvidenceVideoDuration -VideoPath $webmFull
+    $encoding = Get-PrEvidenceGifEncodingConfig -DurationSeconds $durationSeconds
     $videoFilter = Get-PrEvidenceGifFfmpegFilter -InputWidth $dimensions.Width -InputHeight $dimensions.Height
-    $paletteColors = if ([int]($env:PR_EVIDENCE_VIEWPORT_WIDTH) -gt 0 -and [int]($env:PR_EVIDENCE_VIEWPORT_WIDTH) -lt 768) { 96 } else { 256 }
+    $paletteColors = [int]$encoding.paletteColors
     $paletteFilter = "$videoFilter,split[s0][s1];[s0]palettegen=max_colors=$paletteColors[p];[s1][p]paletteuse=dither=bayer"
 
     Write-Host ("[PR evidence] GIF crop from {0}x{1} using filter: {2}" -f $dimensions.Width, $dimensions.Height, $paletteFilter)
@@ -293,6 +383,19 @@ function Convert-PrEvidenceWebmToGif {
         '-vf', $paletteFilter,
         $gifFull
     )
+
+    $startSeconds = ConvertTo-PrEvidenceInvariantDouble -Text ([string]$encoding.startSeconds)
+    if ($startSeconds -gt 0) {
+        $startSecondsArg = Format-PrEvidenceInvariantNumber -Value $startSeconds
+        Write-Host ("[PR evidence] Trimming {0}s lead-in (duration={1}s)" -f $startSecondsArg, (Format-PrEvidenceInvariantNumber -Value $durationSeconds))
+        $args = @(
+            '-y',
+            '-ss', $startSecondsArg,
+            '-i', $webmFull,
+            '-vf', $paletteFilter,
+            $gifFull
+        )
+    }
 
     $result = Invoke-PrEvidenceNative -FilePath 'ffmpeg' -Arguments $args
     if ($result.ExitCode -ne 0) {
