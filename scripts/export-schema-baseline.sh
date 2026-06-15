@@ -12,7 +12,7 @@ if [[ -z "${DATABASE_URL:-}" ]]; then
   exit 1
 fi
 
-echo "Dumping preview schema to supabase/schema.sql ..."
+echo "Dumping production schema to supabase/schema.sql ..."
 supabase db dump --db-url "$DATABASE_URL" \
   --schema public \
   --schema storage \

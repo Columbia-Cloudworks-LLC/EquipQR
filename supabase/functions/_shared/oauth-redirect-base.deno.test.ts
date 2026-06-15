@@ -4,10 +4,10 @@ import {
   resolveOAuthRedirectBaseUrl,
 } from "./oauth-redirect-base.ts";
 
-Deno.test("resolveOAuthRedirectBaseUrl derives from SUPABASE_URL when override unset", () => {
+Deno.test("resolveOAuthRedirectBaseUrl maps legacy preview project URL to custom Supabase hostname", () => {
   assertEquals(
     resolveOAuthRedirectBaseUrl(undefined, "https://olsdirkvvfegvclbpgrg.supabase.co"),
-    "https://olsdirkvvfegvclbpgrg.supabase.co",
+    "https://supabase.equipqr.app",
   );
 });
 
@@ -17,14 +17,14 @@ Deno.test("resolveOAuthRedirectBaseUrl normalizes retired preview Supabase hostn
       "https://supabase.preview.equipqr.app",
       "https://olsdirkvvfegvclbpgrg.supabase.co",
     ),
-    "https://olsdirkvvfegvclbpgrg.supabase.co",
+    "https://supabase.equipqr.app",
   );
 });
 
 Deno.test("resolveOAuthRedirectBaseUrl falls back to SUPABASE_URL when override is whitespace-only", () => {
   assertEquals(
     resolveOAuthRedirectBaseUrl("   ", "https://olsdirkvvfegvclbpgrg.supabase.co"),
-    "https://olsdirkvvfegvclbpgrg.supabase.co",
+    "https://supabase.equipqr.app",
   );
 });
 
@@ -34,7 +34,7 @@ Deno.test("resolveOAuthRedirectBaseUrl normalizes stale preview Supabase app hos
       "https://preview.supabase.app",
       "https://olsdirkvvfegvclbpgrg.supabase.co",
     ),
-    "https://olsdirkvvfegvclbpgrg.supabase.co",
+    "https://supabase.equipqr.app",
   );
 });
 

@@ -2,7 +2,7 @@ name: Deploy to Vercel
 
 on:
   push:
-    branches: [main, preview]
+    branches: [main]
 
 permissions:
   contents: read
@@ -11,7 +11,7 @@ jobs:
   notify-deployment:
     name: Notify Deployment
     runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/preview'
+    if: github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout code
@@ -70,16 +70,12 @@ jobs:
         run: |
           Write-Host "🚀 Deployment triggered for $env:GITHUB_REF_NAME branch"
           Write-Host "Version: ${{ steps.version_win.outputs.version }}"
-          $envName = if ($env:GITHUB_REF -eq 'refs/heads/main') { 'production' } else { 'preview' }
-          Write-Host "Environment: $envName"
+          Write-Host "Environment: production"
           Write-Host "Vercel will handle the actual deployment automatically"
           Write-Host ""
           Write-Host "Expected URLs:"
-          if ($env:GITHUB_REF -eq 'refs/heads/main') {
-            Write-Host "  Production: https://equipqr.app"
-          } else {
-            Write-Host "  Preview: https://preview.equipqr.app"
-          }
+          Write-Host "  Production: https://equipqr.app"
+          Write-Host "  PR previews: per-PR Vercel URL; preview.equipqr.app aliases latest Preview deployment"
 
       - name: Deployment notification (Unix)
         if: runner.os != 'Windows'
@@ -87,13 +83,10 @@ jobs:
         run: |
           echo "🚀 Deployment triggered for ${{ github.ref_name }} branch"
           echo "Version: ${{ steps.version.outputs.version }}"
-          echo "Environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}"
+          echo "Environment: production"
           echo "Vercel will handle the actual deployment automatically"
           echo ""
           echo "Expected URLs:"
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "  Production: https://equipqr.app"
-          else
-            echo "  Preview: https://preview.equipqr.app"
-          fi
+          echo "  Production: https://equipqr.app"
+          echo "  PR previews: per-PR Vercel URL; preview.equipqr.app aliases latest Preview deployment"
 

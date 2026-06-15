@@ -256,15 +256,14 @@ sql_paths = ['./seeds/*.sql']
 # Branching.
 #
 # Per-branch overrides (e.g. seed files for ephemeral preview branches) would
-# go in [remotes.<branch_name>] blocks below. The [remotes.staging] block
-# below is for the LONG-LIVED preview Supabase project (olsdirkvvfegvclbpgrg),
-# which is distinct from per-PR ephemeral branches.
+# go in [remotes.<branch_name>] blocks below.
 #
-# See docs/ops/supabase-branching.md for the runbook.
+# LEGACY (#1033): [remotes.staging] pointed at persistent preview olsdirkvvfegvclbpgrg.
+# Cloud preview now uses production (ymxkzronkhwxzcdcbnwq). Remove this block after
+# olsdirk decommission.
+#
+# See docs/ops/preview-architecture-migration.md and docs/ops/supabase-branching.md.
 
-# Staging/Preview Branch Configuration
-# This configuration allows Supabase CLI to deploy to the preview branch project
-# when working with the staging environment. The preview branch is a persistent
-# branch that mirrors the production schema but uses separate data.
+# Legacy staging remote — pending removal after olsdirk decommission
 [remotes.staging]
 project_id = "olsdirkvvfegvclbpgrg"

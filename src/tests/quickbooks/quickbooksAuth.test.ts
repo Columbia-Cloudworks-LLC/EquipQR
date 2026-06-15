@@ -207,7 +207,7 @@ describe('QuickBooks Auth Utilities', () => {
       const parsed = new URL(url);
 
       expect(parsed.searchParams.get('redirect_uri')).toBe(
-        'https://olsdirkvvfegvclbpgrg.supabase.co/functions/v1/quickbooks-oauth-callback',
+        'https://supabase.equipqr.app/functions/v1/quickbooks-oauth-callback',
       );
     });
 
@@ -226,7 +226,7 @@ describe('QuickBooks Auth Utilities', () => {
       const parsed = new URL(url);
 
       expect(parsed.searchParams.get('redirect_uri')).toBe(
-        'https://olsdirkvvfegvclbpgrg.supabase.co/functions/v1/quickbooks-oauth-callback',
+        'https://supabase.equipqr.app/functions/v1/quickbooks-oauth-callback',
       );
     });
   });

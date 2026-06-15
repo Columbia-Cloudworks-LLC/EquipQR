@@ -283,23 +283,15 @@ function Get-RemoteDigestMap {
     if ($joined.Trim() -eq '[]') {
         return @{}
     }
-    $outputLines = $joined -split "`r?`n"
-    $startLine = -1
-    $endLine = -1
-    for ($i = 0; $i -lt $outputLines.Count; $i++) {
-        $trimmed = $outputLines[$i].Trim()
-        if ($startLine -lt 0 -and ($trimmed -eq '[' -or $trimmed.StartsWith('[{'))) {
-            $startLine = $i
-        }
-        if ($startLine -ge 0 -and ($trimmed -eq ']' -or $trimmed.EndsWith('}]'))) {
-            $endLine = $i
-        }
-    }
-    if ($startLine -lt 0 -or $endLine -lt $startLine) {
-        Write-Fail "Could not parse secrets list JSON (no array boundary line). First 400 chars: $($joined.Substring(0, [Math]::Min(400, $joined.Length)))"
+    # Supabase CLI may prefix JSON with spinner/ANSI progress on stderr (merged via 2>&1).
+    $cleaned = [regex]::Replace($joined, '\x1B\[[0-9;?]*[ -/]*[@-~]', '')
+    $startIdx = $cleaned.IndexOf('[')
+    $endIdx = $cleaned.LastIndexOf(']')
+    if ($startIdx -lt 0 -or $endIdx -le $startIdx) {
+        Write-Fail "Could not parse secrets list JSON (no JSON array in CLI output). First 400 chars: $($cleaned.Substring(0, [Math]::Min(400, $cleaned.Length)))"
         exit 1
     }
-    $jsonOnly = ($outputLines[$startLine..$endLine] -join "`n")
+    $jsonOnly = $cleaned.Substring($startIdx, $endIdx - $startIdx + 1)
     try {
         $data = $jsonOnly | ConvertFrom-Json
     }

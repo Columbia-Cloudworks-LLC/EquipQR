@@ -72,7 +72,7 @@ describe('generateGoogleWorkspaceAuthUrl', () => {
 
     const parsed = new URL(url);
     expect(parsed.searchParams.get('redirect_uri')).toBe(
-      'https://olsdirkvvfegvclbpgrg.supabase.co/functions/v1/google-workspace-oauth-callback',
+      'https://supabase.equipqr.app/functions/v1/google-workspace-oauth-callback',
     );
   });
 
@@ -90,7 +90,7 @@ describe('generateGoogleWorkspaceAuthUrl', () => {
 
     const parsed = new URL(url);
     expect(parsed.searchParams.get('redirect_uri')).toBe(
-      'https://olsdirkvvfegvclbpgrg.supabase.co/functions/v1/google-workspace-oauth-callback',
+      'https://supabase.equipqr.app/functions/v1/google-workspace-oauth-callback',
     );
   });
 });

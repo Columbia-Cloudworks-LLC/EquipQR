@@ -8,8 +8,8 @@
 
 /** Retired custom hostnames that must normalize to the project default URL. */
 const RETIRED_OAUTH_REDIRECT_BASE_URLS: Record<string, string> = {
-  "https://preview.supabase.app": "https://olsdirkvvfegvclbpgrg.supabase.co",
-  "https://supabase.preview.equipqr.app": "https://olsdirkvvfegvclbpgrg.supabase.co",
+  "https://preview.supabase.app": "https://supabase.equipqr.app",
+  "https://supabase.preview.equipqr.app": "https://supabase.equipqr.app",
 };
 
 /**
@@ -18,6 +18,7 @@ const RETIRED_OAUTH_REDIRECT_BASE_URLS: Record<string, string> = {
  */
 const CANONICAL_OAUTH_REDIRECT_BASE_BY_SUPABASE_URL: Record<string, string> = {
   "https://ymxkzronkhwxzcdcbnwq.supabase.co": "https://supabase.equipqr.app",
+  "https://olsdirkvvfegvclbpgrg.supabase.co": "https://supabase.equipqr.app",
 };
 
 export function resolveOAuthRedirectBaseUrl(

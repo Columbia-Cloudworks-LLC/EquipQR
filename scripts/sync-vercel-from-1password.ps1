@@ -91,6 +91,78 @@ function Write-Fail { param([string]$M) Write-Host "  [sync-vercel] FAIL $M" -Fo
 # columns: name, value (masked), environments (comma-separated), created.
 # We extract the first whitespace-delimited token of each data row and only
 # keep rows whose environments column contains $TargetEnv.
+$OP_VAULT = 'tgo2m6qbct5otqeqirjocn3joa'  # EquipQR Agents
+
+function Resolve-OpFieldLabels {
+    param([string]$VercelVarName)
+    $canonical = $VercelVarName.ToLower()
+    $stripVite = $canonical -replace '^vite_', ''
+    $labels = New-Object System.Collections.Generic.List[string]
+    [void]$labels.Add($canonical)
+    if ($stripVite -ne $canonical) {
+        [void]$labels.Add($stripVite)
+        [void]$labels.Add("vite_$stripVite")
+    }
+    return $labels.ToArray()
+}
+
+function Read-OpFieldForVercelVar {
+    param(
+        [string]$OpItem,
+        [string]$VercelVarName
+    )
+    foreach ($label in (Resolve-OpFieldLabels -VercelVarName $VercelVarName)) {
+        $value = & op read "op://$OP_VAULT/$OpItem/$label" 2>$null
+        if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($value)) {
+            return $value.Trim()
+        }
+    }
+    return $null
+}
+
+function Get-VercelProjectEnvsFromApi {
+    param([string]$Token)
+    $uri = "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID/env?teamId=$VERCEL_TEAM_ID"
+    $headers = @{ Authorization = "Bearer $Token" }
+    return (Invoke-RestMethod -Method Get -Uri $uri -Headers $headers).envs
+}
+
+function Set-VercelEnvViaApi {
+    param(
+        [string]$Token,
+        [string]$Key,
+        [string]$Value,
+        [string]$TargetEnv
+    )
+    $target = @($TargetEnv)
+    $headers = @{
+        Authorization = "Bearer $Token"
+        'Content-Type'  = 'application/json'
+    }
+    $existing = Get-VercelProjectEnvsFromApi -Token $Token | Where-Object {
+        $_.key -eq $Key -and ($_.target -contains $TargetEnv)
+    } | Select-Object -First 1
+
+    if ($null -ne $existing -and -not [string]::IsNullOrWhiteSpace($existing.id)) {
+        $body = @{ value = $Value; target = @($existing.target | Where-Object { $_ -ne 'staging' }) } | ConvertTo-Json -Compress
+        if ($body -match '"target":\[\]') {
+            $body = (@{ value = $Value; target = $target } | ConvertTo-Json -Compress)
+        }
+        $uri = "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID/env/$($existing.id)?teamId=$VERCEL_TEAM_ID"
+        Invoke-RestMethod -Method Patch -Uri $uri -Headers $headers -Body $body | Out-Null
+        return
+    }
+
+    $createBody = @{
+        key    = $Key
+        value  = $Value
+        type   = 'encrypted'
+        target = $target
+    } | ConvertTo-Json -Compress
+    $createUri = "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env?teamId=$VERCEL_TEAM_ID"
+    Invoke-RestMethod -Method Post -Uri $createUri -Headers $headers -Body $createBody | Out-Null
+}
+
 function Get-VercelEnvVarNames {
     param(
         [string]$RawOutput,
@@ -140,7 +212,6 @@ if (Get-Command vercel -ErrorAction SilentlyContinue) {
 }
 Write-Ok "Using Vercel CLI: $vercelCmdLabel"
 
-$OP_VAULT = 'tgo2m6qbct5otqeqirjocn3joa'  # EquipQR Agents
 $vercelTokenItem = 'vercel-write'
 $vercelToken = & op read "op://$OP_VAULT/$vercelTokenItem/VERCEL_TOKEN" 2>$null
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($vercelToken)) {
@@ -196,15 +267,12 @@ foreach ($envName in $envsToProcess) {
     $existingVars = Get-VercelEnvVarNames -RawOutput $vercelEnvOutput -TargetEnv $envName
 
     foreach ($var in $cfg.Vars) {
-        # 1Password field labels are stored in lowercase to match the
-        # convention used by .github/workflows/* and .github/actions/load-1p-secrets.
-        $opField = $var.ToLower()
-        $opValue = & op read "op://$OP_VAULT/$opItem/$opField" 2>$null
-        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($opValue)) {
-            Write-Warn "  ${var}: missing in 1Password (op://$OP_VAULT/$opItem/$opField)"
+        $opValue = Read-OpFieldForVercelVar -OpItem $opItem -VercelVarName $var
+        if ([string]::IsNullOrEmpty($opValue)) {
+            $hint = (Resolve-OpFieldLabels -VercelVarName $var) -join ', '
+            Write-Warn "  ${var}: missing in 1Password (tried: $hint on $opItem)"
             continue
         }
-        $opValue = $opValue.Trim()
 
         if ($Check) {
             if ($existingVars.Contains($var)) {
@@ -214,17 +282,18 @@ foreach ($envName in $envsToProcess) {
                 $totalDrift++
             }
         } else {
-            Write-Step "  Setting ${var} in ${envName}..."
-            $addArgs = @($vercelPrefix) + @('env', 'add', $var, $envName, '--scope', $VERCEL_TEAM_ID, '--force')
-            if (-not [string]::IsNullOrEmpty($env:VERCEL_TOKEN)) {
-                $addArgs += @('--token', $env:VERCEL_TOKEN)
+            Write-Step "  Setting ${var} in ${envName} via Vercel API..."
+            if ([string]::IsNullOrEmpty($env:VERCEL_TOKEN)) {
+                Write-Fail "    ${var} skipped — VERCEL_TOKEN required for API upsert"
+                continue
             }
-            $opValue | & $vercelExe @addArgs
-            if ($LASTEXITCODE -eq 0) {
+            try {
+                Set-VercelEnvViaApi -Token $env:VERCEL_TOKEN -Key $var -Value $opValue -TargetEnv $envName
                 Write-Ok "    ${var} applied"
                 $totalApplied++
-            } else {
-                Write-Fail "    ${var} failed (vercel env add exit $LASTEXITCODE)"
+            }
+            catch {
+                Write-Fail "    ${var} failed ($($_.Exception.Message))"
             }
         }
     }

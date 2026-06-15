@@ -179,7 +179,7 @@ The project includes a complete `vercel.json` configuration file with:
 - **SPA Routing**: Non-static app routes rewritten to the empty SPA shell (`dist/app-shell.html`); marketing routes served from prerendered `index.html` files. Vercel (`vercel.json` + `cleanUrls`) rewrites extensionless paths to `/app-shell`; Netlify (`netlify.toml`, `public/_redirects`) targets `/app-shell.html` because that host lacks Vercel cleanUrls behavior.
 - **Security Headers**: X-Content-Type-Options, X-Frame-Options, Referrer-Policy
 - **Performance Headers**: Long-term caching for static assets
-- **Branch Deployment**: Automatic deployment for main and preview branches
+- **Branch Deployment**: Automatic Preview deployments for PRs; Production builds on `main` (promote manually)
 
 > **Adding a new domain alias?** When you bring a new Vercel alias / custom domain online (e.g. `preview.equipqr.app`, a new branch URL, or a tenant subdomain), the upstream Google Maps API key's HTTP-referrer allowlist must also be widened or the Fleet Map will fail at runtime with `RefererNotAllowedMapError`. See [Google Maps API key — HTTP referrer allowlist](./supabase-branch-secrets.md#google-maps-api-key--http-referrer-allowlist).
 
@@ -202,8 +202,10 @@ Configure these environment variables in your Vercel project dashboard:
 > **Important**: Vercel env vars are build-time only (`VITE_*` prefix). Edge Function runtime secrets (e.g., `GOOGLE_MAPS_BROWSER_KEY`, OAuth secrets) must be set in the **Supabase Dashboard**, not Vercel. See [Secrets Checklist](#secrets-checklist) below.
 
 #### Branch Configuration
-- **Production**: merges to `main` trigger Vercel production-environment builds for **equipqr.app**, but **traffic stays on the prior deployment until you manually promote** in the Vercel dashboard. Treat `main` as the release candidate branch, not instantaneous production HTML/JS cutover.
-- **Preview**: `preview` branch deploys to `preview.equipqr.app`
+- **Production**: merges to `main` trigger Vercel production-environment builds for **equipqr.app**, but **traffic stays on the prior deployment until you manually promote** in the Vercel dashboard.
+- **Preview**: PRs and non-`main` pushes get Vercel **Preview** deployments. **`preview.equipqr.app`** is aliased to the latest Preview build by `.github/workflows/preview-domain-alias.yml` (not the retired custom **`staging`** environment or git branch `preview`).
+
+See `docs/ops/preview-architecture-migration.md` (#1033) for the full cutover plan.
 
 ### Production release readiness (Supabase + Vercel gate)
 
@@ -836,13 +838,15 @@ EquipQR™ is designed to work with Supabase for backend functionality:
 
 ### Supabase Branch Configuration
 
-EquipQR™ uses Supabase Branching for environment management:
-- **Production Branch**: `ymxkzronkhwxzcdcbnwq` (main branch)
-- **Preview/Staging Branch**: `olsdirkvvfegvclbpgrg` (preview branch)
+EquipQR uses Supabase branching for **ephemeral PR validation** and a single production project for cloud runtime:
 
-The `supabase/config.toml` file includes a `[remotes.staging]` section that configures the preview branch for Supabase CLI operations.
+- **Production (and cloud preview app):** `ymxkzronkhwxzcdcbnwq` — API `https://supabase.equipqr.app`
+- **Ephemeral PR branches:** Auto-created when `supabase/**` changes on a PR
+- **Retired persistent preview branch:** `olsdirkvvfegvclbpgrg` — decommission after #1033 cutover
 
-**⚠️ Important**: Edge Function secrets are branch-specific. You must configure secrets separately for each branch. See [Supabase Branch Secrets Configuration](./supabase-branch-secrets.md) for detailed instructions.
+`preview.equipqr.app` (Vercel Preview) uses **`VITE_SUPABASE_URL=https://supabase.equipqr.app`** from `app-env-preview-public`, not the olsdirk project URL.
+
+See `docs/ops/preview-architecture-migration.md` and `docs/ops/supabase-branch-secrets.md`.
 
 ### Supabase Configuration
 EquipQR™ uses Supabase for all backend functionality. Ensure proper configuration:

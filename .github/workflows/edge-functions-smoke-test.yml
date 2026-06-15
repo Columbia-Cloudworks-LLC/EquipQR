@@ -40,10 +40,8 @@ name: Edge Functions Smoke Test
 #      `vite_supabase_url` labels even while `supabase-write` stays canonical
 #      for CI probes.
 #
-#   3. Project URLs are the stable *.supabase.co hostnames derived from the
-#      documented project refs (preview olsdirkvvfegvclbpgrg, production
-#      ymxkzronkhwxzcdcbnwq). Custom domains are intentionally not used here
-#      so CI does not depend on Supabase Dashboard custom-hostname registration.
+#   3. Project URL: production Supabase (`ymxkzronkhwxzcdcbnwq`). Cloud preview
+#      (`preview.equipqr.app`) shares this project after #1033; olsdirk retired.
 #
 #   4. When OP_SERVICE_ACCOUNT_TOKEN is empty (e.g. fork PRs that can't
 #      access secrets), the load step degrades gracefully and the probe
@@ -53,12 +51,18 @@ name: Edge Functions Smoke Test
 
 on:
   push:
-    branches: [preview, main]
+    branches: [main]
     paths:
       - 'supabase/functions/**'
       - '.github/workflows/edge-functions-smoke-test.yml'
       # Trigger when the composite action this workflow depends on changes,
       # otherwise YAML/auth fixes to the action skip CI validation.
+      - '.github/actions/load-1p-secrets/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/functions/**'
+      - '.github/workflows/edge-functions-smoke-test.yml'
       - '.github/actions/load-1p-secrets/**'
   workflow_dispatch:
 
@@ -77,15 +81,9 @@ jobs:
         id: target
         shell: bash
         run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "env=production" >> $GITHUB_OUTPUT
-            echo "supabase_url=https://ymxkzronkhwxzcdcbnwq.supabase.co" >> $GITHUB_OUTPUT
-            echo "anon_op_field=prod_anon_public_key" >> $GITHUB_OUTPUT
-          else
-            echo "env=preview" >> $GITHUB_OUTPUT
-            echo "supabase_url=https://olsdirkvvfegvclbpgrg.supabase.co" >> $GITHUB_OUTPUT
-            echo "anon_op_field=preview_anon_public_key" >> $GITHUB_OUTPUT
-          fi
+          echo "env=production" >> $GITHUB_OUTPUT
+          echo "supabase_url=https://ymxkzronkhwxzcdcbnwq.supabase.co" >> $GITHUB_OUTPUT
+          echo "anon_op_field=prod_anon_public_key" >> $GITHUB_OUTPUT
 
       - name: Load Supabase anon key from 1Password
         uses: ./.github/actions/load-1p-secrets
