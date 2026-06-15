@@ -64,7 +64,7 @@ Register the derived callback URI in the Intuit Developer Portal:
 | Environment | Intuit redirect URI |
 |-------------|---------------------|
 | Production | `https://supabase.equipqr.app/functions/v1/quickbooks-oauth-callback` |
-| Preview | `https://olsdirkvvfegvclbpgrg.supabase.co/functions/v1/quickbooks-oauth-callback` |
+| Preview | `https://supabase.equipqr.app/functions/v1/quickbooks-oauth-callback` |
 | Local | `http://localhost:54321/functions/v1/quickbooks-oauth-callback` |
 
 Legacy `VITE_QB_OAUTH_REDIRECT_BASE_URL` / `QB_OAUTH_REDIRECT_BASE_URL` overrides are deprecated. Remove them from Vercel and Supabase secrets if still present; OAuth callbacks are derived from the Supabase URL as described above.

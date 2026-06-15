@@ -161,22 +161,22 @@ All vendor OAuth callbacks use **`https://supabase.equipqr.app/functions/v1/...`
 
 Inventory, cost model, architecture proposal. **Stop here for maintainer sign-off before decommission.**
 
-### Phase 2 — Secrets pipeline hardening (safe before cutover)
+### Phase 2 — Secrets pipeline hardening ✅
 
 1. Fix `sync-supabase-secrets-from-1password.ps1 -Check` CLI JSON parsing (spinner/ANSI on stderr).
-2. Replace placeholder `TOKEN_ENCRYPTION_KEY` in `edge-env-prod-secrets` via `op-item-mutate.ps1` (maintainer: generate with `openssl rand -base64 32`; **do not copy preview key** if prod GW tokens exist).
-3. Align 1Password field labels with sync scripts (`SUPABASE_URL` vs `vite_supabase_url` mismatch in `-Check` warnings).
-4. Extend `secrets-drift-check.yml` / document rotate-and-verify playbook in `agent-secrets-and-access.md`.
+2. Replace placeholder `TOKEN_ENCRYPTION_KEY` in `edge-env-prod-secrets` via `op-item-mutate.ps1`.
+3. Align 1Password field labels with sync scripts; REST API path for Vercel Preview env upsert.
+4. Rotate-and-verify playbook in `agent-secrets-and-access.md`.
 
-### Phase 3 — Cutover (requires approval)
+### Phase 3 — Cutover (in progress)
 
-1. Update Vercel preview env + `app-env-preview-public` → prod Supabase URL/anon key.
-2. Merge preview edge secrets into prod project (sandbox vars scoped to preview deployments only where possible).
-3. Update docs, E2E defaults, `config.toml` remotes, smoke tests, schema export secret.
-4. Validate GW + QB on `preview.equipqr.app` and local stack.
-5. Remove/disable `configure-supabase-auth.yml`; update `secrets-fanout.yml`.
-6. Vendor console cleanup (remove **olsdirk** redirect URIs).
-7. **Decommission** Supabase branch `olsdirkvvfegvclbpgrg`.
+1. ✅ Update Vercel preview env + `app-env-preview-public` → prod Supabase URL/anon key.
+2. ⏳ Merge preview edge secrets into prod project (sandbox vars scoped where possible).
+3. ✅ Update docs, OAuth redirect maps, smoke/export workflows, `config.toml` comments.
+4. ⏳ Validate GW + QB on `preview.equipqr.app` and local stack.
+5. ✅ Remove `configure-supabase-auth.yml`; simplify `secrets-fanout.yml`.
+6. ⏳ Vendor console cleanup (remove **olsdirk** redirect URIs).
+7. ⏳ **Decommission** Supabase branch `olsdirkvvfegvclbpgrg`.
 
 ### Phase 4 — Verification
 

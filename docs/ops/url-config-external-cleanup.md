@@ -18,7 +18,7 @@ Register these exact URIs in Intuit and Google Cloud consoles:
 | Environment | QuickBooks callback | Google Workspace callback |
 |-------------|---------------------|---------------------------|
 | Local | `http://localhost:54321/functions/v1/quickbooks-oauth-callback` | `http://localhost:54321/functions/v1/google-workspace-oauth-callback` |
-| Preview | `https://olsdirkvvfegvclbpgrg.supabase.co/functions/v1/quickbooks-oauth-callback` | `https://olsdirkvvfegvclbpgrg.supabase.co/functions/v1/google-workspace-oauth-callback` |
+| Preview (cloud) | `https://supabase.equipqr.app/functions/v1/quickbooks-oauth-callback` | `https://supabase.equipqr.app/functions/v1/google-workspace-oauth-callback` |
 | Production | `https://supabase.equipqr.app/functions/v1/quickbooks-oauth-callback` | `https://supabase.equipqr.app/functions/v1/google-workspace-oauth-callback` |
 
 ## Vercel (preview + production)

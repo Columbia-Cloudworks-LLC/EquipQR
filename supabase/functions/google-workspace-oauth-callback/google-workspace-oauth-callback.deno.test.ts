@@ -159,7 +159,7 @@ Deno.test("resolveOAuthRedirectBaseUrl normalizes retired preview Supabase hostn
       "https://supabase.preview.equipqr.app",
       "https://olsdirkvvfegvclbpgrg.supabase.co",
     ),
-    "https://olsdirkvvfegvclbpgrg.supabase.co",
+    "https://supabase.equipqr.app",
   );
 });
 
