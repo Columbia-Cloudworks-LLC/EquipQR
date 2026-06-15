@@ -9,15 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [3.9.0] - 2026-06-14
+
+### Added
+
+- **Getting Started onboarding wizard** — Organization owners and administrators who have not completed product onboarding are guided through creating their first team, adding equipment, and affixing a QR code before accessing the full dashboard.
+- **Work order export menu** — Unified export dropdown on work order details with QuickBooks invoice export, Google Drive submenus (PDF, Docs, Sheets), and direct CSV/DOCX downloads on desktop and mobile.
+- **Google Drive export folder management** — Organization administrators can create and delete the shared Google Drive export destination folder from Organization Integrations.
+- **Mobile work order actions** — Inline assignee editing, a dedicated status sheet, and a mobile export section on work order details for field workflows.
+- **Accessibility (WCAG 2.1 AA)** — Keyboard navigation helpers, screen-reader chart summaries, jsx-a11y structural fixes, and axe regression coverage across critical dashboard flows.
+
 ### Changed
 
 - **Google Workspace disconnect** — Organization Integrations replaces the healthy-state Reconnect action with Disconnect (confirmation dialog) and contextual Grant permissions when scopes are incomplete; disconnect always clears OAuth credentials, the cached directory, and the workspace domain claim so onboarding can restart from scratch.
+- **Work order assignment and status on mobile** — Improved inline assignment editing and status management on work order detail pages.
 
 ### Fixed
 
+- **Product onboarding eligibility** — Established organizations that already have a team and equipment no longer get redirected to the Getting Started wizard.
 - **Google Workspace OAuth scope storage** — Re-authorization merges incremental consent grants with stored scopes instead of overwriting them with a partial grant list.
 - **Google Workspace connection health** — Permissions-needed state evaluates feature scopes only, so missing openid/email/profile no longer shows a false Permissions needed badge after a successful connect.
-- **Local dev 1Password sync** — `dev-start.bat` now syncs `.env` files from editable 1Password items (`app-env-local-dev`, `edge-env-local-dev`) instead of the unsupported `op environment read` command.
+- **Google Workspace disconnect permissions** — Disconnect and manage-access actions are limited to organization owners and administrators.
+- **QuickBooks customer search authentication** — Customer search surfaces clearer reconnect guidance when QuickBooks returns 401 or 403 authentication errors.
+- **Work order PDF Save to Google Drive** — PDF exports save reliably to the organization Google Drive destination folder.
 
 ## [3.8.7] - 2026-06-13
 
@@ -2036,7 +2051,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.7...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.9.0...HEAD
+[3.9.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.7...v3.9.0
 [3.8.7]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.6...v3.8.7
 [3.8.6]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.5...v3.8.6
 [3.8.5]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.4...v3.8.5
