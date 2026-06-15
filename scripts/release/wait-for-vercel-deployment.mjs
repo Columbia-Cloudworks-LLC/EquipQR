@@ -158,10 +158,41 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+/** @param {string} name */
+function isSafeGithubOutputName(name) {
+  return /^[A-Za-z0-9_]+$/.test(name);
+}
+
+/** @param {string} value */
+function sanitizeGithubOutputScalar(value) {
+  return String(value).replace(/[\r\n]/g, '');
+}
+
+/** @param {string} url */
+function isSafeVercelDeploymentUrl(url) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:') return false;
+    return parsed.hostname.endsWith('.vercel.app') || parsed.hostname.endsWith('.equipqr.app');
+  } catch {
+    return false;
+  }
+}
+
+/** @param {string} id */
+function isSafeVercelDeploymentId(id) {
+  return /^[A-Za-z0-9_-]+$/.test(id);
+}
+
 function writeGithubStepOutput(name, value) {
   const outputFile = process.env.GITHUB_OUTPUT || '';
-  if (!outputFile || !name) return;
-  appendFileSync(outputFile, `${name}=${value}\n`);
+  if (!outputFile || !name || !isSafeGithubOutputName(name)) return;
+
+  const scalar = sanitizeGithubOutputScalar(value);
+  if (name === 'deployment_url' && !isSafeVercelDeploymentUrl(scalar)) return;
+  if (name === 'deployment_id' && !isSafeVercelDeploymentId(scalar)) return;
+
+  appendFileSync(outputFile, `${name}=${scalar}\n`);
 }
 
 async function main() {
