@@ -43,7 +43,7 @@
     "db:rpc-inventory": "node scripts/generate-security-definer-rpc-inventory.mjs",
     "verify:rpc-allowlists": "node scripts/validate-security-definer-allowlist-sync.mjs",
     "fallow:scan": "npx --yes fallow@2.88.0 dead-code --format json --quiet",
-    "fallow:audit": "npx --yes fallow@2.88.0 audit --base origin/preview --gate new-only --format json --quiet",
+    "fallow:audit": "npx --yes fallow@2.88.0 audit --base origin/main --gate new-only --format json --quiet",
     "fallow:dupes": "npx --yes fallow@2.88.0 dupes --format json --quiet",
     "fallow:health": "npx --yes fallow@2.88.0 health --score --hotspots --targets --format json --quiet",
     "fallow:fix:preview": "npx --yes fallow@2.88.0 fix --dry-run --format json --quiet",

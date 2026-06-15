@@ -157,9 +157,13 @@ passwords, Supabase keys, or session tokens.
 
 ## Hosting Platforms
 
-EquipQR™ is hosted on Vercel. The `main` branch promotes to `equipqr.app`,
-and the `preview` branch promotes to `preview.equipqr.app`. SSL, CDN, and
-custom domain routing are managed in the Vercel dashboard.
+EquipQR™ is hosted on Vercel. The `main` branch promotes to `equipqr.app` after
+**Production Release Readiness** runs **`vercel promote`**. **`preview.equipqr.app`**
+is the stable pre-production hostname on Vercel **Preview** (latest work branch build,
+not a git branch named `preview`). SSL, CDN, and custom domain routing are managed
+in the Vercel dashboard.
+
+See **`docs/ops/git-and-deploy.md`** for the authoritative git/deploy loop.
 
 ### Vercel Deployment
 ```bash

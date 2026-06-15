@@ -1,120 +1,72 @@
-# EquipQR Development Lifecycle (Cursor Plugin-First)
+# EquipQR Development Lifecycle
 
-## Purpose
+Authoritative day-to-day workflow. See also [`docs/ops/git-and-deploy.md`](../ops/git-and-deploy.md).
 
-This document is the source of truth for how EquipQR is built and released day to day.
-It is written for:
+## Ground truth
 
-- the current solo developer workflow, and
-- onboarding new contributors so they can follow the same process without guessing.
+- **`main`** is the only long-lived git branch.
+- Branch off **`main`** for work (`feat/*`, `fix/*`, any name).
+- **`preview.equipqr.app`** is the stable pre-production URL — it should reflect whatever you last pushed while working, regardless of branch name.
+- Ship via **PR into `main`**. Production promotes automatically when **Production Release Readiness** is green after merge.
 
-## Ground Truth
-
-- The active development branch is `preview`.
-- Work is committed directly to `preview` (no long-lived feature branches in current practice).
-- Every push to `preview` updates `preview.equipqr.app`.
-- Pull requests are used to merge `preview` into `main` when unreleased work is ready.
-- Promotion to production is manual after `main` updates and verification is complete.
-
-## Why This Works
-
-This model keeps feedback loops fast:
-
-1. Build and test quickly on `preview`.
-2. Validate against near-production data and behavior on `preview.equipqr.app`.
-3. Run full CI/CD and migration checks before `main`.
-4. Keep a final manual promotion gate before production.
-
-## Lifecycle Overview
+## Lifecycle
 
 ```text
-Plan in Cursor -> Implement on preview -> Push preview -> Validate preview env
--> Open PR (preview -> main) -> CI/CD + migration checks + conversations resolved
--> Merge to main -> Verify main deployment output
--> Manual promote to production
+Plan → branch off main → implement → verify locally
+→ push work branch → preview.equipqr.app updates
+→ PR to main → CI green → merge
+→ Production Release Readiness → equipqr.app
 ```
 
-## Step-by-Step Workflow
+## Steps
 
-### 1) Plan the change in Cursor
+### 1) Plan
 
-- Use Cursor Ask/Plan mode to define scope and risks.
-- Use plugin-provided capabilities and repository docs for architecture, test coverage, and UI/UX reviews.
-- Keep plan docs under `docs/plans/` when the change is non-trivial.
+Use Cursor Plan/Agent mode for non-trivial changes. Store plans under `docs/plans/` when helpful.
 
-### 2) Implement on `preview`
+### 2) Branch and implement
 
-- Pull latest `preview`.
-- Build the change locally.
-- Run relevant checks (`lint`, `typecheck`, tests, and any targeted manual checks).
-- Commit directly to `preview` in logical, reviewable chunks.
+```powershell
+git fetch origin main
+git switch -c feat/<short-name> origin/main
+```
 
-### 3) Push `preview` and validate staging behavior
+Run local stack via `dev-start.bat`. Gate: lint, type-check, targeted tests, smallest credible E2E proof.
 
-- Push commits to `preview`.
-- Confirm the updated environment at `preview.equipqr.app`.
-- Validate:
-  - intended feature behavior,
-  - migration effects,
-  - authentication/permissions behavior,
-  - data shape and integration behavior.
+### 3) Push and validate preview
 
-This environment is treated as a near-production proving ground.
+```powershell
+git push -u origin HEAD
+```
 
-### 4) Open PR from `preview` to `main`
+- Vercel creates a Preview deployment for the branch.
+- **`preview.equipqr.app`** aliases to the latest successful Preview build (see `preview-domain-alias.yml`).
+- Validate behavior on the stable preview hostname before opening a PR.
 
-- PR is the release gate, not branch fan-out.
-- CI/CD runs on the release candidate and includes migration/deployment checks.
-- Resolve all review conversations and open concerns.
-- Re-test in preview as needed until confidence is high.
+### 4) PR to main
 
-### 5) Merge to `main` when release-ready
+```powershell
+gh pr create --base main --head feat/<short-name> --title "feat: ..." --body-file "$env:TEMP\pr-body.md"
+```
 
-- Merge only after:
-  - checks are green,
-  - conversations are resolved,
-  - preview validation is satisfactory.
-- `main` update triggers Vercel pipeline behavior for the release path.
+Requirements: CI green, visual evidence for UI changes, Qodo/threads clear per team policy.
 
-### 6) Manual promotion to production
+### 5) Merge and production
 
-- Perform final human verification.
-- Manually promote the validated deployment to production.
-- Treat this as the last line of defense against accidental regressions.
+Merge the PR. On push to `main`:
 
-## Cursor Usage Model
+1. Vercel builds a staged Production deployment.
+2. **Production Release Readiness** applies migrations, strict schema drift, waits for the build, runs **`vercel promote`**.
 
-Cursor modes and plugins are the standard workflow in EquipQR:
+No manual Vercel dashboard promote step.
 
-- Cursor modes (`Ask`, `Plan`, `Agent`) control interaction style.
-- Cursor plugins provide external integrations and documentation assistance.
-- Keep custom command usage minimal (`reflect` only).
+## Release-ready checklist
 
-Practical sequence used in EquipQR:
+- Validated on **`preview.equipqr.app`** (or local stack for non-UI backend changes).
+- CI green on PR to **`main`**.
+- Migrations/auth-sensitive paths verified locally when applicable.
+- Review threads and automated review items addressed.
 
-1. Plan (`Ask`/`Plan` mode).
-2. Build (`Agent` mode).
-3. Pre-ship checks (lint, typecheck, tests, targeted QA).
-4. Release ops (PR from `preview` to `main`, then merge flow).
+## Onboarding
 
-## Definition of Release-Ready
-
-A change is release-ready when all are true:
-
-- Feature behavior is validated in `preview.equipqr.app`.
-- CI/CD checks pass.
-- Migration and auth-sensitive behaviors are verified.
-- Code review conversations are closed.
-- The solo owner is satisfied with quality and risk level.
-
-## Onboarding Notes for New Contributors
-
-Even if additional developers join, start by following this exact model:
-
-- Treat `preview` as integration/release branch.
-- Validate in preview environment early and often.
-- Use PR-to-`main` as the formal promotion gate.
-- Keep manual production promotion until team confidence and automation maturity justify changing it.
-
-If team size or release cadence changes, update this document first, then update
-`docs/ops/ci-cd-pipeline.md` and `docs/ops/deployment.md` to match.
+New contributors follow the same model: **`main` only**, preview hostname for QA, PR to **`main`**. Do not create or target a git **`preview`** branch.

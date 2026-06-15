@@ -140,7 +140,7 @@ For technical details on CI/CD workflows including version tagging, see [`docs/o
 
 ### Making Changes
 
-1. Branch off `origin/preview`: `git switch -c feat/<short-name> origin/preview`
+1. Branch off `origin/main`: `git switch -c feat/<short-name> origin/main`
 2. Follow the coding guidelines below
 3. Write tests for new features
 4. Run linting and tests before pushing:
@@ -156,15 +156,15 @@ For technical details on CI/CD workflows including version tagging, see [`docs/o
 # Push your feature branch
 git push -u origin feat/<short-name>
 
-# Open a PR targeting preview
-gh pr create --base preview --head feat/<short-name> --title "Your feature description"
+# Open a PR targeting main
+gh pr create --base main --head feat/<short-name> --title "Your feature description"
 ```
 
 ## CI/CD Policy
 
-### Preview Branch (`preview`)
+### Pull requests to `main`
 
-**On Pull Requests** (e.g., `feat/*` → `preview`):
+**On Pull Requests** (e.g., `feat/*` → `main`):
 - ✅ Linting (ESLint)
 - ✅ Type checking (TypeScript)
 - ✅ Unit tests with coverage
@@ -360,7 +360,7 @@ describe('Feature Journey', () => {
 ### Requirements
 
 1. **All Changes Require Pull Requests**
-   - No direct commits to `main` or `preview` branches (except emergency hotfixes with post-merge review)
+   - No direct commits to `main` (except emergency hotfixes with post-merge review)
    - All changes must go through a Pull Request (PR) workflow
    - PRs must be created from feature branches (`feat/`, `fix/`, etc.)
 
@@ -449,14 +449,14 @@ In rare cases, emergency hotfixes may bypass normal PR approval:
 
 ### Review Process
 
-1. Create PR from a feature branch to `preview` (or `preview` to `main` for releases)
+1. Create PR from a feature branch to `main`
 2. CI checks run automatically
 3. Address any failing checks
 4. Request review from maintainers
 5. Make requested changes
 6. Maintainer approves and merges
-7. Deployment triggered
-8. After successful deployment, maintainer updates version in `package.json` (tag is created automatically on merge to `main`)
+7. **Production Release Readiness** runs migrations, schema drift, and **`vercel promote`**
+8. Version tags are created automatically when `package.json` changes on `main`
 
 ### Merge Strategy
 

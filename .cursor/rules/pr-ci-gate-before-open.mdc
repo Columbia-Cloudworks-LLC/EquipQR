@@ -45,7 +45,7 @@ Run **in order** after dependency changes or before first PR open:
 - **`pr-merge-ready-workflow.mdc`:** full open-through-merge-ready standard; this rule covers install parity + CI green within that flow.
 - **`local-verify-before-preview-push.mdc`:** adds E2E and product verification before push/open.
 - **`branching.mdc`:** linked-worktree PR flow is not complete until merge-ready criteria pass — not merely "open PR and let CI run."
-- **Direct push to `preview`:** still requires local verify; optional `gh pr checks` only applies when a PR exists. Feature branches use this rule in full.
+- **Direct push to `main`:** blocked by branch protection; merge via PR after local verify. Feature branches use this rule in full.
 
 ## Stop conditions
 

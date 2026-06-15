@@ -1,12 +1,24 @@
-# Preview Architecture Migration (#1033)
+# Preview Architecture Migration (#1033) — historical
 
-Operational architecture proposal for reducing persistent preview infrastructure cost and complexity. **Status: Phase 1 approved (2026-06-15) — maintainer confirmed main-centric solo workflow. Phase 3 cutover pending implementation.**
+**Cutover complete (2026-06-14).** Authoritative workflow: **`docs/ops/git-and-deploy.md`**.
+
+This document records the migration from git branch `preview` + persistent Supabase branch `olsdirk` to **main-centric solo development** with Vercel Preview + `preview.equipqr.app` as a stable hostname (not a git branch).
 
 Related: [GitHub #1033](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/1033) (Linear COL-310).
 
 ---
 
-## Current state (confirmed 2026-06-14)
+## Target state (current)
+
+| Layer | Pre-production | Production |
+|-------|----------------|------------|
+| Git | Work branches → PR **`main`** | **`main`** |
+| Frontend | **`preview.equipqr.app`** (latest Vercel Preview build) | **`equipqr.app`** (after `vercel promote`) |
+| Supabase | Production project + ephemeral PR branches | `supabase.equipqr.app` |
+
+---
+
+## Previous state (retired)
 
 | Layer | Persistent preview today | Production |
 |-------|--------------------------|------------|

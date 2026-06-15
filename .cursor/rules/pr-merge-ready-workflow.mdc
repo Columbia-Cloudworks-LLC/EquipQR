@@ -4,11 +4,11 @@ alwaysApply: true
 ---
 # PR Merge-Ready Workflow (authoritative)
 
-Every **product/runtime PR into `preview`** follows this end-to-end standard. **Opening a PR is not handoff** — the agent owns the branch until merge-ready exit criteria pass.
+Every **product/runtime PR into `main`** follows this end-to-end standard. **Opening a PR is not handoff** — the agent owns the branch until merge-ready exit criteria pass.
 
 Applies to: linked worktrees, explicit user PR requests, `itil-issue-resolver` integrate-via-PR path, plans that authorize a feature branch, and any skill that says "open a PR."
 
-Direct push to `preview` from the main worktree skips this file (see `branching.mdc`) but still requires `local-verify-before-preview-push.mdc`.
+Direct push to `main` is blocked by branch protection; merge via PR after `local-verify-before-preview-push.mdc`.
 
 ## Merge-ready exit criteria (all required)
 
@@ -27,8 +27,8 @@ Do **not** report "PR opened" or walk away while any row is failing or pending.
 ## Phase 1 — Branch and implement
 
 ```powershell
-git fetch origin preview
-git switch -c feat/<short-slug> origin/preview
+git fetch origin main
+git switch -c feat/<short-slug> origin/main
 ```
 
 Implement with focused commits. Run Fallow before each commit per `fallow-before-commit.mdc`.
@@ -52,7 +52,7 @@ git push -u origin HEAD
 Write PR body to a UTF-8 file (never inline `gh pr create --body` on Windows — `git-powershell.mdc`). Include visual evidence markdown from `tmp/pr-evidence/<flow>/evidence-markdown.md`.
 
 ```powershell
-gh pr create --base preview --head feat/<short-slug> --title "<conventional title>" --body-file "$env:TEMP\pr-<slug>-body.md"
+gh pr create --base main --head feat/<short-slug> --title "<conventional title>" --body-file "$env:TEMP\pr-<slug>-body.md"
 .\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
 ```
 
@@ -116,5 +116,5 @@ Post a merge-ready handoff comment citing CI run URL, Qodo parent comment URL wi
 
 - Qodo never posts within 30 minutes after green CI — report PR number and head SHA.
 - Finding requires product decision outside scope — post question on PR, stop babysit loop.
-- CI failure unrelated to PR scope persists after merging latest `origin/preview` — report with failing job link.
-- Merge conflict — merge/rebase `origin/preview`, re-verify, push, restart Phase 4.
+- CI failure unrelated to PR scope persists after merging latest `origin/main` — report with failing job link.
+- Merge conflict — merge/rebase `origin/main`, re-verify, push, restart Phase 4.

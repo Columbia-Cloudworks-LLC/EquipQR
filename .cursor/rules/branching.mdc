@@ -4,20 +4,22 @@ alwaysApply: true
 ---
 # Branching Model (authoritative)
 
-The remote has two long-lived branches:
+See **`docs/ops/git-and-deploy.md`** for the full solo-developer deploy loop.
+
+## Branches
 
 | Branch | Role | Deploys to |
 |--------|------|------------|
-| `main` | Production source of truth | equipqr.app (Vercel Production) |
-| `preview` | **Legacy — being retired (#1033).** Do not branch off or target in new work. | — |
+| **`main`** | Production source of truth | equipqr.app (after Production Release Readiness + `vercel promote`) |
+| **`feat/*`, `fix/*`, etc.** | Short-lived work branches | Vercel **Preview**; **`preview.equipqr.app`** aliases latest Preview build |
 
-There is **no `dev` branch**. Solo-developer workflow: **one feature branch at a time → PR → `main`.**
+There is **no git `preview` integration branch** and **no `dev` branch**.
 
 ## Rules for agents
 
-1. **Branch off `main`** for new feature, fix, refactor, chore, or experimental work — unless the user explicitly says **hotfix** (still branches off `main` for the fix PR).
-2. **All PRs target `main` by default.** Do not open PRs into `preview`.
-3. When the GitHub default branch and this rule disagree on integration flow, **this rule wins** for day-to-day work. Production releases merge to `main`; **Production Release Readiness** auto-promotes Vercel production traffic when green.
+1. **Branch off `main`** for new feature, fix, refactor, chore, or experimental work.
+2. **All PRs target `main` by default.** Never open PRs into a git branch named `preview`.
+3. When GitHub defaults or old docs disagree, **this rule wins**.
 4. Before creating a branch:
    ```powershell
    git fetch origin main
@@ -27,20 +29,16 @@ There is **no `dev` branch**. Solo-developer workflow: **one feature branch at a
    ```powershell
    gh pr create --base main --head feat/<short-name> --title "<conventional-commit title>"
    ```
-6. **Preview / QA URLs:**
-   - Each PR gets a Vercel **Preview** deployment URL automatically.
-   - Stable hostname **`preview.equipqr.app`** tracks the latest successful **Preview** deployment (not the retired Vercel custom `staging` environment or git `preview` branch).
-   - Supabase **ephemeral PR branches** validate `supabase/**` changes while the PR is open.
-   - Integration OAuth (Google Workspace, QuickBooks): verify on the **local stack** before merge (`local-verify-before-preview-push.mdc`).
-7. **Hotfix:** Branch off `origin/main`, PR into `main`, deploy via production promotion.
-8. **Local E2E before merge.** No merge to `main` until `local-verify-before-preview-push.mdc` passes with zero user manual steps.
-9. **Worktree gates the workflow tempo:**
-   - **Main worktree (`C:\Users\viral\EquipQR`) on `main`:** direct push after local verification when the user authorizes push-to-main (protected branch — typically merge via PR).
-   - **Linked worktrees (`~/.cursor/worktrees/EquipQR/`):** formal PR merge-ready workflow per `pr-merge-ready-workflow.mdc`.
-   - **`main` stays protected.** Never force-push to `main`.
+6. **Pre-production hostname (`preview.equipqr.app`):**
+   - Stable Vercel **Preview** URL for your latest work — **not** tied to a git branch named `preview`.
+   - Any push to a work branch can update it via `preview-domain-alias.yml`.
+   - Supabase **ephemeral PR branches** validate `supabase/**` on PRs to `main`.
+   - OAuth (Google Workspace, QuickBooks): verify on the **local stack** before merge.
+7. **Hotfix:** Branch off `origin/main`, PR into `main`.
+8. **Local E2E before push/PR.** No push and no PR open until `local-verify-before-preview-push.mdc` passes with zero user manual steps.
+9. **Worktree tempo:**
+   - **Main worktree:** merge via PR to `main` after local verify (protected branch).
+   - **Linked worktrees:** full merge-ready workflow per `pr-merge-ready-workflow.mdc`.
+   - **Never force-push to `main`.**
 
 See git-powershell.mdc for Windows worktree cleanup gotchas.
-
-## Why this changed (#1033)
-
-Persistent git `preview` + Supabase branch `olsdirk` duplicated PR preview + ephemeral branching. Solo velocity is **feature → main** with Vercel Preview + Supabase PR branches for schema validation.

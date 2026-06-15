@@ -43,7 +43,7 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 | **Production** | Push to `main` (auto-promote via Production Release Readiness) | https://equipqr.app | `https://supabase.equipqr.app` (`ymxkzronkhwxzcdcbnwq`) |
 | **Preview** | PRs and non-`main` pushes (Vercel Preview) | https://preview.equipqr.app (alias → latest Preview deployment) | Same production API (`supabase.equipqr.app`) |
 
-> **Migration (#1033):** The persistent git `preview` branch, Vercel custom **`staging`** environment, and Supabase branch **`olsdirkvvfegvclbpgrg`** are being retired. See `docs/ops/preview-architecture-migration.md`.
+> **Migration (#1033) complete.** Authoritative git/deploy loop: **`docs/ops/git-and-deploy.md`**. Retired: git `preview` branch, Vercel custom **`staging`**, Supabase branch **`olsdirkvvfegvclbpgrg`**. History: `docs/ops/preview-architecture-migration.md`.
 
 ## GitHub Actions Workflows
 
