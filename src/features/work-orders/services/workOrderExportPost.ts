@@ -51,3 +51,13 @@ export function generateSingleWorkOrderPacketFilename(workOrderId: string): stri
   const timestamp = new Date().toISOString().split('T')[0];
   return `work_order_${workOrderId.slice(0, 8)}_internal_packet_${timestamp}.xlsx`;
 }
+
+export function generateSingleWorkOrderCsvFilename(workOrderId: string): string {
+  const timestamp = new Date().toISOString().split('T')[0];
+  return `work_order_${workOrderId.slice(0, 8)}_${timestamp}.csv`;
+}
+
+export function generateSingleWorkOrderDocxFilename(workOrderId: string): string {
+  const timestamp = new Date().toISOString().split('T')[0];
+  return `work_order_${workOrderId.slice(0, 8)}_internal_packet_${timestamp}.docx`;
+}

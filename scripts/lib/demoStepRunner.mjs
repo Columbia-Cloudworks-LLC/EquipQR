@@ -1,5 +1,6 @@
 import { spawn } from 'child_process';
 import { createDemoStepActions } from './demoStepActions.mjs';
+import { RECORDING_VIEWPORT } from './recording-quality.mjs';
 
 /**
  * @param {number} ms
@@ -71,7 +72,7 @@ function markerSeen(output, marker) {
   return output.includes(marker);
 }
 
-const DESKTOP_DEMO_VIEWPORT = { width: 1920, height: 1080 };
+const DESKTOP_DEMO_VIEWPORT = RECORDING_VIEWPORT;
 const DEMO_POST_ACTION_PAUSE_MS = 450;
 
 /**

@@ -6,7 +6,30 @@ Operational reference for Cursor agents and headless automation. Columbia Cloudw
 
 ## Vault and tokens
 
-**Vault:** `EquipQR Agents`
+**Primary vault:** `EquipQR Agents` (`tgo2m6qbct5otqeqirjocn3joa`)
+
+**Columbia Cloudworks Agents vault:** `mrviyowmjwrxv7syobdlhnmawa` — maintainer Google sign-in for admin.google.com and console.cloud.google.com. Readable with the same `OP_SERVICE_ACCOUNT_TOKEN` as EquipQR Agents.
+
+| Item | Item ID | Purpose |
+|---|---|---|
+| `Google (Business)` | `ukvy6bzwb2ikq5cfeambgcq5u4` | Workspace admin + GCP Console browser sign-in (`username`, `password`) |
+| `Google (Test User)` | `hlp7llqbvfm7mmic2z2e43ftem` | Alternate test-user record (Playwright E2E still uses EquipQR Agents `google-login`) |
+| `wordpress-mcp` | `ywccaftp6lat6kuq2fomu7byn4` | WordPress MCP credentials |
+
+Load Google Business credentials for browser automation:
+
+```powershell
+. .\scripts\e2e\Load-GoogleBusinessEnv.ps1
+# Sets GOOGLE_BUSINESS_EMAIL and GOOGLE_BUSINESS_PASSWORD
+```
+
+**op:// note:** titles with parentheses break `op read` URIs. Use vault UUID + item ID:
+
+```powershell
+op read op://mrviyowmjwrxv7syobdlhnmawa/ukvy6bzwb2ikq5cfeambgcq5u4/username
+```
+
+Constants and helpers: `scripts/op/columbia-cloudworks-agents-vault.ps1`.
 
 | Token env var | Service account | Permissions | Typical use |
 |---|---|---|---|

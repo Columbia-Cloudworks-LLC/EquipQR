@@ -54,7 +54,7 @@ const SingleItemAlertStrip: React.FC<{ order: HighPriorityWorkOrder }> = ({ orde
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-destructive">{order.title}</p>
         {(order.equipmentName || overdueLabel) && (
-          <p className="truncate text-xs text-destructive/70">
+          <p className="truncate text-xs text-destructive">
             {overdueLabel ?? order.equipmentName}
           </p>
         )}

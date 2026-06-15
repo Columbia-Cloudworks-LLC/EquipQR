@@ -75,8 +75,8 @@ if ($isAdmin) {
 
 $SUPABASE_API_PORT = '54321'
 $DEFAULT_EDGE_ENV_FILE = Join-Path $repoRoot 'supabase\functions\.env'
-$DEFAULT_OP_ENVIRONMENT_ID = 'f4rdrusaoxvzwngz2jxs7vy7ye'
-$DEFAULT_OP_APP_ENV_ID = 'ylilu4hpf6nq6bfm5ykg6nh2kq'
+$DEFAULT_OP_EDGE_ITEM = 'edge-env-local-dev'
+$DEFAULT_OP_APP_ITEM = 'app-env-local-dev'
 
 $fail = $false
 
@@ -116,6 +116,115 @@ function Test-Port8080Listening {
 function Test-Port5174Listening {
     $conns = Get-NetTCPConnection -LocalPort 5174 -State Listen -ErrorAction SilentlyContinue
     return [bool]$conns
+}
+
+function Test-RootNodeModulesHealthy {
+    $viteBin = Join-Path $repoRoot 'node_modules\.bin\vite.cmd'
+    $vitePkg = Join-Path $repoRoot 'node_modules\vite\package.json'
+    return (Test-Path -LiteralPath $viteBin) -and (Test-Path -LiteralPath $vitePkg)
+}
+
+function Test-DocsNodeModulesHealthy {
+    $docsRoot = Join-Path $repoRoot 'docs'
+    $vitepressBin = Join-Path $docsRoot 'node_modules\.bin\vitepress.cmd'
+    $vitepressPkg = Join-Path $docsRoot 'node_modules\vitepress\package.json'
+    return (Test-Path -LiteralPath $vitepressBin) -and (Test-Path -LiteralPath $vitepressPkg)
+}
+
+function Install-RootNodeModules {
+    param([string]$Reason)
+
+    Write-Host "        $Reason"
+    Write-Host '        Running npm ci --prefer-offline --no-audit...'
+    & npm ci --prefer-offline --no-audit
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "        npm ci failed (exit $LASTEXITCODE) - retrying with npm install..."
+        & npm install --prefer-offline --no-audit
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host '        FAIL: Could not install root dependencies.'
+            Write-Host '        Close other Node/Vite processes and retry dev-start.bat -Force.'
+            exit 1
+        }
+    }
+    if (-not (Test-RootNodeModulesHealthy)) {
+        Write-Host '        FAIL: node_modules is still incomplete after install (missing vite .bin shim).'
+        Write-Host '        Try: dev-stop.bat, delete node_modules, then dev-start.bat -Force'
+        exit 1
+    }
+    Write-Host '        Root dependencies installed successfully.'
+}
+
+function Install-DocsNodeModules {
+    param([string]$Reason)
+
+    Write-Host "        $Reason"
+    Write-Host '        Running npm --prefix docs ci --prefer-offline --no-audit...'
+    & npm --prefix docs ci --prefer-offline --no-audit
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "        docs npm ci failed (exit $LASTEXITCODE) - retrying with npm install..."
+        & npm --prefix docs install --prefer-offline --no-audit
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host '        FAIL: Could not install docs dependencies.'
+            exit 1
+        }
+    }
+    if (-not (Test-DocsNodeModulesHealthy)) {
+        Write-Host '        FAIL: docs/node_modules is still incomplete after install (missing vitepress .bin shim).'
+        exit 1
+    }
+    Write-Host '        Docs dependencies installed successfully.'
+}
+
+function Start-DevBackgroundProcess {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Name,
+        [Parameter(Mandatory)]
+        [string]$WorkingDirectory,
+        [Parameter(Mandatory)]
+        [string]$FilePath,
+        [Parameter(Mandatory)]
+        [string[]]$ArgumentList
+    )
+
+    $logDir = Join-Path $repoRoot 'tmp\dev-logs'
+    if (-not (Test-Path -LiteralPath $logDir)) {
+        New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+    }
+    $stdoutLog = Join-Path $logDir "$Name.stdout.log"
+    $stderrLog = Join-Path $logDir "$Name.stderr.log"
+    '' | Set-Content -Path $stdoutLog -Encoding utf8
+    '' | Set-Content -Path $stderrLog -Encoding utf8
+
+    Write-Host "        Starting $Name in background (logs: tmp\dev-logs\$Name.*.log)"
+
+    $proc = Start-Process `
+        -FilePath $FilePath `
+        -ArgumentList $ArgumentList `
+        -WorkingDirectory $WorkingDirectory `
+        -WindowStyle Hidden `
+        -RedirectStandardOutput $stdoutLog `
+        -RedirectStandardError $stderrLog `
+        -PassThru
+
+    if (-not $proc) {
+        Write-Host "        FAIL: Could not start background process for $Name."
+        exit 1
+    }
+
+    return $proc
+}
+
+function Import-SupabaseDotEnv {
+    param([string]$Path = (Join-Path $repoRoot 'supabase\.env'))
+    if (-not (Test-Path -LiteralPath $Path)) { return $false }
+    foreach ($line in [System.IO.File]::ReadLines($Path)) {
+        if ($line -match '^\s*#' -or $line -match '^\s*$') { continue }
+        if ($line -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$') {
+            [Environment]::SetEnvironmentVariable($matches[1], $matches[2], 'Process')
+        }
+    }
+    return $true
 }
 
 function Test-DevStackAlreadyRunningForForce {
@@ -278,17 +387,17 @@ Write-Host "        All pre-flight checks passed."
 
 # ---------- 1b. 1Password sync ----------
 Write-Host ""
-Write-Host " [1b/11] Syncing 1Password environments early..."
-$OP_APP_ENV_ID = $env:EQUIPQR_OP_APP_ENVIRONMENT_ID
-if (-not $OP_APP_ENV_ID) { $OP_APP_ENV_ID = $DEFAULT_OP_APP_ENV_ID }
-$OP_ENV_ID = $env:EQUIPQR_OP_ENVIRONMENT_ID
-if (-not $OP_ENV_ID) { $OP_ENV_ID = $DEFAULT_OP_ENVIRONMENT_ID }
+Write-Host " [1b/11] Syncing 1Password item env files early..."
+$OP_APP_ITEM = $env:EQUIPQR_OP_APP_ITEM
+if (-not $OP_APP_ITEM) { $OP_APP_ITEM = $DEFAULT_OP_APP_ITEM }
+$OP_EDGE_ITEM = $env:EQUIPQR_OP_EDGE_ITEM
+if (-not $OP_EDGE_ITEM) { $OP_EDGE_ITEM = $DEFAULT_OP_EDGE_ITEM }
 
 $opCli = Get-Command op -ErrorAction SilentlyContinue
 if ($opCli) {
-    Write-Host "        Syncing app + edge env from 1Password"
-    Write-Host "          App:  $OP_APP_ENV_ID"
-    Write-Host "          Edge: $OP_ENV_ID"
+    Write-Host "        Syncing app + edge env from 1Password items"
+    Write-Host "          App:  $OP_APP_ITEM"
+    Write-Host "          Edge: $OP_EDGE_ITEM"
 
     # Run both helpers IN-PROCESS (no `powershell -NoProfile -File` shell-out)
     # so they share the same OP_SESSION_* env vars and any 1Password Desktop
@@ -303,13 +412,27 @@ if ($opCli) {
     $oldOpEap = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
-        & $syncScript -AppEnvironmentId $OP_APP_ENV_ID -EdgeEnvironmentId $OP_ENV_ID -ApiPort $SUPABASE_API_PORT
+        & $syncScript -AppItem $OP_APP_ITEM -EdgeItem $OP_EDGE_ITEM -ApiPort $SUPABASE_API_PORT
         $syncExit = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $oldOpEap
     }
     if ($syncExit -ne 0) {
         Write-Host "        WARNING: One or both 1Password env syncs failed. Using existing .env and $DEFAULT_EDGE_ENV_FILE."
+    }
+
+    $supabaseAuthSyncScript = Join-Path $repoRoot 'scripts\sync-local-supabase-auth-env.ps1'
+    if (Test-Path -LiteralPath $supabaseAuthSyncScript) {
+        $oldSupaAuthEap = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            & $supabaseAuthSyncScript -ApiPort $SUPABASE_API_PORT
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "        WARNING: Could not sync supabase\.env Google Auth vars. Run scripts\bootstrap-local-google-auth.ps1 once."
+            }
+        } finally {
+            $ErrorActionPreference = $oldSupaAuthEap
+        }
     }
 
 } else {
@@ -319,29 +442,21 @@ if ($opCli) {
 # ---------- 2. node_modules ----------
 Write-Host ""
 Write-Host " [2/11] Checking node_modules..."
-if (Test-Path -LiteralPath (Join-Path $repoRoot 'node_modules')) {
-    Write-Host "        node_modules exists - skipping npm ci."
+if ((Test-Path -LiteralPath (Join-Path $repoRoot 'node_modules')) -and (Test-RootNodeModulesHealthy)) {
+    Write-Host '        node_modules OK (vite .bin present) - skipping npm ci.'
+} elseif (Test-Path -LiteralPath (Join-Path $repoRoot 'node_modules')) {
+    Install-RootNodeModules -Reason 'node_modules exists but is incomplete (common after a partial npm ci) - repairing...'
 } else {
-    Write-Host "        node_modules not found - running npm ci..."
-    & npm ci
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "        FAIL: npm ci failed."
-        exit 1
-    }
-    Write-Host "        npm ci completed successfully."
+    Install-RootNodeModules -Reason 'node_modules not found - installing...'
 }
 
 $docsNodeModules = Join-Path $repoRoot 'docs\node_modules'
-if (Test-Path -LiteralPath $docsNodeModules) {
-    Write-Host "        docs/node_modules exists - skipping docs npm ci."
+if ((Test-Path -LiteralPath $docsNodeModules) -and (Test-DocsNodeModulesHealthy)) {
+    Write-Host '        docs/node_modules OK (vitepress .bin present) - skipping docs npm ci.'
+} elseif (Test-Path -LiteralPath $docsNodeModules) {
+    Install-DocsNodeModules -Reason 'docs/node_modules exists but is incomplete - repairing...'
 } else {
-    Write-Host "        docs/node_modules not found - running npm --prefix docs ci..."
-    & npm --prefix docs ci
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "        FAIL: npm --prefix docs ci failed."
-        exit 1
-    }
-    Write-Host "        docs npm ci completed successfully."
+    Install-DocsNodeModules -Reason 'docs/node_modules not found - installing...'
 }
 
 # ---------- 3. Stale containers ----------
@@ -413,6 +528,12 @@ if ($statusExit -eq 0) {
     try {
         $r = Invoke-WebRequest -Uri "http://127.0.0.1:$SUPABASE_API_PORT/rest/v1/" -Method HEAD -TimeoutSec 3 -UseBasicParsing -ErrorAction Stop
         if ($r.StatusCode -lt 500) {
+            $googleEnabled = docker inspect supabase_auth_ymxkzronkhwxzcdcbnwq --format '{{range .Config.Env}}{{println .}}{{end}}' 2>$null |
+                Select-String 'GOTRUE_EXTERNAL_GOOGLE_ENABLED=true'
+            if (-not $googleEnabled) {
+                Write-Host "        WARNING: Supabase is up but Google sign-in is disabled in the auth container."
+                Write-Host "        Run dev-stop.bat then dev-start.bat (or restart Supabase after sync-local-supabase-auth-env.ps1)."
+            }
             $needStart = $false
             Write-Host "        Supabase API is already responding - skipped start."
         }
@@ -424,6 +545,9 @@ if ($statusExit -eq 0) {
 
 if ($needStart) {
     Write-Host "        Starting Supabase (this may take a few minutes on first run)..."
+    if (-not (Import-SupabaseDotEnv)) {
+        Write-Host "        WARNING: supabase\.env missing - Google sign-in will fail until scripts\bootstrap-local-google-auth.ps1 runs."
+    }
     # Exclude logflare (Logflare analytics) and vector (its log shipper) on
     # Windows hosts. Vector requires Docker to be exposed on tcp://localhost:2375
     # (the Docker SDK over an unauthenticated TCP socket). Without that,
@@ -715,8 +839,15 @@ if (Test-EdgeFunctionsServeRunning) {
     } catch {
         Write-Host "        WARNING: Could not confirm local API - functions serve may verify JWT."
     }
-    $edgeCmd = "cd /d `"$repoRoot`" && npx supabase functions serve $EDGE_SERVE_FLAGS"
-    Start-Process cmd -ArgumentList @('/k', $edgeCmd) -WindowStyle Normal
+    $edgeArgs = @('supabase', 'functions', 'serve', '--env-file', $EDGE_ENV_FILE)
+    if ($EDGE_SERVE_FLAGS -match '--no-verify-jwt') {
+        $edgeArgs += '--no-verify-jwt'
+    }
+    $null = Start-DevBackgroundProcess `
+        -Name 'edge-functions' `
+        -WorkingDirectory $repoRoot `
+        -FilePath 'npx.cmd' `
+        -ArgumentList $edgeArgs
 
     Write-Host "        Waiting for Edge Functions serve process (up to 45s)..."
     $timeout = 45
@@ -801,8 +932,12 @@ if ($listen5174) {
         exit 1
     }
 } else {
-    Write-Host "        Launching docs in a new window..."
-    Start-Process cmd -ArgumentList @('/k', "cd /d `"$repoRoot`" && npm run docs:dev") -WindowStyle Normal
+    Write-Host '        Launching docs in background...'
+    $null = Start-DevBackgroundProcess `
+        -Name 'docs' `
+        -WorkingDirectory $repoRoot `
+        -FilePath 'npm.cmd' `
+        -ArgumentList @('run', 'docs:dev')
 
     Write-Host "        Waiting for docs (up to 45s)..."
     $timeout = 45
@@ -838,8 +973,16 @@ if ($listen8080) {
         exit 1
     }
 } else {
-    Write-Host "        Launching Vite in a new window..."
-    Start-Process cmd -ArgumentList @('/k', "cd /d `"$repoRoot`" && npm run dev") -WindowStyle Normal
+    if (-not (Test-RootNodeModulesHealthy)) {
+        Write-Host '        FAIL: vite is not installed in node_modules. Re-run dev-start.bat (step 2 repairs dependencies).'
+        exit 1
+    }
+    Write-Host '        Launching Vite in background...'
+    $null = Start-DevBackgroundProcess `
+        -Name 'vite' `
+        -WorkingDirectory $repoRoot `
+        -FilePath 'npm.cmd' `
+        -ArgumentList @('run', 'dev')
 
     Write-Host "        Waiting for Vite (up to 45s)..."
     $timeout = 45
@@ -910,6 +1053,8 @@ Write-Host "  Database:       localhost:54322                $DB_STATUS"
 Write-Host "  Frontend:       http://localhost:8080          $FRONTEND_STATUS"
 Write-Host "  Docs:           http://localhost:5174          $DOCS_STATUS"
 Write-Host "  Edge Functions: (via Supabase API)             $FUNCTIONS_STATUS"
+Write-Host ""
+Write-Host "  Background logs: tmp\dev-logs\ (vite, docs, edge-functions)"
 Write-Host ""
 Write-Host " ============================================"
 if (-not $fail) {

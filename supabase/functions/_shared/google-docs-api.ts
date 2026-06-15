@@ -199,3 +199,33 @@ export async function moveGoogleDriveFileToParent(
     throw new Error(`Failed to move Drive file into organization folder: ${moveResponse.status} ${errorBody}`);
   }
 }
+
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+/**
+ * Exports a Google Workspace file (Docs, Sheets, etc.) to a downloadable format.
+ */
+export async function exportGoogleDriveFile(
+  accessToken: string,
+  fileId: string,
+  mimeType: string = DOCX_MIME,
+): Promise<ArrayBuffer> {
+  const params = new URLSearchParams({ mimeType });
+  const response = await googleApiFetch(
+    `${DRIVE_FILES_URL}/${encodeURIComponent(fileId)}/export?${params.toString()}`,
+    {
+      method: "GET",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+    { label: "drive-export-file" },
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => "");
+    throw new Error(`Failed to export Drive file: ${response.status} ${errorBody}`);
+  }
+
+  return await response.arrayBuffer();
+}
+
+export { DOCX_MIME };

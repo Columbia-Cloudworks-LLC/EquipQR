@@ -11,12 +11,15 @@ const mockUseGoogleWorkspaceExportDestination = vi.fn();
 const mockUseUnifiedPermissions = vi.fn();
 const mockUseDeleteWorkOrder = vi.fn();
 const mockUseWorkOrderImageCount = vi.fn();
-const mockUseLatestExportArtifact = vi.fn();
 const mockUseQuickBooksAccess = vi.fn();
 const mockIsQuickBooksEnabled = vi.fn();
 
-vi.mock('../QuickBooksExportButton', () => ({
-  QuickBooksExportButton: () => null,
+vi.mock('../WorkOrderQuickBooksExportSubmenu', () => ({
+  WorkOrderQuickBooksExportSubmenu: () => <span>QuickBooks</span>,
+}));
+
+vi.mock('../WorkOrderGoogleDriveExportSubmenu', () => ({
+  WorkOrderGoogleDriveExportSubmenu: () => <span>Google Drive</span>,
 }));
 
 vi.mock('../WorkOrderPDFExportDialog', () => ({
@@ -51,10 +54,6 @@ vi.mock('@/features/work-orders/hooks/useWorkOrderImageCount', () => ({
   useWorkOrderImageCount: (...args: unknown[]) => mockUseWorkOrderImageCount(...args),
 }));
 
-vi.mock('@/features/work-orders/hooks/useLatestExportArtifact', () => ({
-  useLatestExportArtifact: (...args: unknown[]) => mockUseLatestExportArtifact(...args),
-}));
-
 vi.mock('@/hooks/useQuickBooksAccess', () => ({
   useQuickBooksAccess: (...args: unknown[]) => mockUseQuickBooksAccess(...args),
 }));
@@ -87,8 +86,6 @@ describe('WorkOrderDetailsDesktopHeader', () => {
       canAddNotes: true,
       canAddImages: true,
     },
-    canEdit: true,
-    onEditClick: vi.fn(),
     equipmentTeamId: 'team-1',
     equipment: {
       id: 'eq-1',
@@ -107,8 +104,6 @@ describe('WorkOrderDetailsDesktopHeader', () => {
       isGenerating: false,
       saveToDrive: vi.fn(),
       isSavingToDrive: false,
-      downloadFieldWorksheet: vi.fn(),
-      isGeneratingWorksheet: false,
     });
 
     mockUseWorkOrderExcelExport.mockReturnValue({
@@ -116,6 +111,12 @@ describe('WorkOrderDetailsDesktopHeader', () => {
       isExportingSingle: false,
       exportSingleToDocs: vi.fn(),
       isExportingSingleToDocs: false,
+      exportSingleToSheets: vi.fn(),
+      isExportingSingleToSheets: false,
+      exportSingleCsv: vi.fn(),
+      isExportingSingleCsv: false,
+      exportSingleDocx: vi.fn(),
+      isExportingSingleDocx: false,
     });
 
     mockUseGoogleWorkspaceConnectionStatus.mockReturnValue({
@@ -148,10 +149,6 @@ describe('WorkOrderDetailsDesktopHeader', () => {
       data: { count: 0 },
     });
 
-    mockUseLatestExportArtifact.mockReturnValue({
-      data: null,
-    });
-
     mockUseQuickBooksAccess.mockReturnValue({ data: false });
     mockIsQuickBooksEnabled.mockReturnValue(false);
   });
@@ -160,7 +157,6 @@ describe('WorkOrderDetailsDesktopHeader', () => {
     render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
 
     expect(screen.getByRole('heading', { name: baseProps.workOrder.title })).toBeInTheDocument();
-    // PageHeader renders meta in both desktop and mobile slots
     expect(screen.getAllByText('Completed')).toHaveLength(2);
     expect(screen.getAllByText(/High\s+Priority/)).toHaveLength(2);
   });
@@ -172,15 +168,15 @@ describe('WorkOrderDetailsDesktopHeader', () => {
     expect(screen.getByText('WO-WO-1')).toBeInTheDocument();
   });
 
-  it('shows Exports section label for managers', async () => {
+  it('shows grouped export submenus for managers', async () => {
     const user = userEvent.setup();
     render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
 
-    await user.click(screen.getByRole('button', { name: 'Actions' }));
+    await user.click(screen.getByRole('button', { name: 'Export' }));
 
-    expect(screen.getByText('Exports')).toBeInTheDocument();
-    expect(screen.getByText('Service Report PDF')).toBeInTheDocument();
-    expect(screen.getByText('Internal Work Order Packet')).toBeInTheDocument();
+    expect(screen.getByText('Download')).toBeInTheDocument();
+    expect(screen.getByText('Google Drive')).toBeInTheDocument();
+    expect(screen.getByText('Delete Work Order')).toBeInTheDocument();
   });
 
   it('hides exports when user is not a manager', async () => {
@@ -191,81 +187,52 @@ describe('WorkOrderDetailsDesktopHeader', () => {
       />,
     );
 
-    // Actions menu still renders (canDelete is true via hasRole mock)
     const actionsBtn = screen.queryByRole('button', { name: 'Actions' });
     if (actionsBtn) {
       const user = userEvent.setup();
       await user.click(actionsBtn);
-      expect(screen.queryByText('Exports')).not.toBeInTheDocument();
-      expect(screen.queryByText('Service Report PDF')).not.toBeInTheDocument();
+      expect(screen.queryByText('Download')).not.toBeInTheDocument();
+      expect(screen.queryByText('Google Drive')).not.toBeInTheDocument();
     }
   });
 
-  it('hides the Google Doc export action when the Workspace grant is missing Docs scope', async () => {
+  it('hides Google Drive submenu when Workspace is not connected', async () => {
     const user = userEvent.setup();
-
-    render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
-
-    await user.click(screen.getByRole('button', { name: 'Actions' }));
-
-    expect(screen.queryByText('Internal Work Order Packet (Google Doc)')).not.toBeInTheDocument();
-  });
-
-  it('shows "Open Last Google Doc" when an artifact exists', async () => {
-    const user = userEvent.setup();
-
-    mockUseLatestExportArtifact.mockReturnValue({
-      data: {
-        id: 'art-1',
-        provider_file_id: 'doc-abc',
-        web_view_link: 'https://docs.google.com/document/d/doc-abc/edit',
-        last_exported_at: '2026-04-04T12:00:00Z',
-        export_channel: 'google_docs',
-        artifact_kind: 'internal_packet',
-      },
+    mockUseGoogleWorkspaceConnectionStatus.mockReturnValue({
+      isConnected: false,
+      connectionStatus: { scopes: '' },
     });
 
     render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
 
-    await user.click(screen.getByRole('button', { name: 'Actions' }));
+    await user.click(screen.getByRole('button', { name: 'Export' }));
 
-    expect(screen.getByText('Open Last Google Doc')).toBeInTheDocument();
+    expect(screen.getByText('Download')).toBeInTheDocument();
+    expect(screen.queryByText('Google Drive')).not.toBeInTheDocument();
   });
 
-  it('hides "Open Last Google Doc" when no artifact exists', async () => {
-    const user = userEvent.setup();
-
-    mockUseLatestExportArtifact.mockReturnValue({ data: null });
-
-    render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
-
-    await user.click(screen.getByRole('button', { name: 'Actions' }));
-
-    expect(screen.queryByText('Open Last Google Doc')).not.toBeInTheDocument();
-  });
-
-  it('shows Integrations section when QuickBooks is enabled and accessible', async () => {
+  it('shows QuickBooks submenu when QuickBooks is enabled and accessible', async () => {
     const user = userEvent.setup();
     mockIsQuickBooksEnabled.mockReturnValue(true);
     mockUseQuickBooksAccess.mockReturnValue({ data: true });
 
     render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
 
-    await user.click(screen.getByRole('button', { name: 'Actions' }));
+    await user.click(screen.getByRole('button', { name: 'Export' }));
 
-    expect(screen.getByText('Integrations')).toBeInTheDocument();
+    expect(screen.getByText('QuickBooks')).toBeInTheDocument();
   });
 
-  it('hides Integrations section when QuickBooks is disabled', async () => {
+  it('hides QuickBooks submenu when QuickBooks is disabled', async () => {
     const user = userEvent.setup();
     mockIsQuickBooksEnabled.mockReturnValue(false);
     mockUseQuickBooksAccess.mockReturnValue({ data: true });
 
     render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
 
-    await user.click(screen.getByRole('button', { name: 'Actions' }));
+    await user.click(screen.getByRole('button', { name: 'Export' }));
 
-    expect(screen.queryByText('Integrations')).not.toBeInTheDocument();
+    expect(screen.queryByText('QuickBooks')).not.toBeInTheDocument();
   });
 
   it('hides Delete when user is not owner or admin', async () => {
@@ -276,7 +243,7 @@ describe('WorkOrderDetailsDesktopHeader', () => {
 
     render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
 
-    await user.click(screen.getByRole('button', { name: 'Actions' }));
+    await user.click(screen.getByRole('button', { name: 'Export' }));
 
     expect(screen.queryByText('Delete Work Order')).not.toBeInTheDocument();
   });
@@ -293,6 +260,7 @@ describe('WorkOrderDetailsDesktopHeader', () => {
       />,
     );
 
+    expect(screen.queryByRole('button', { name: 'Export' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Actions' })).not.toBeInTheDocument();
   });
 

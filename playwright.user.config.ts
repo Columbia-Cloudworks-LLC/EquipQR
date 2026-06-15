@@ -3,6 +3,7 @@ import path from 'path';
 import { defineConfig, devices } from '@playwright/test';
 import { loadUserRegressionRunConfig } from './e2e/user/shared/run-config';
 import {
+  resolveQuickBooksLocalAuthStoragePath,
   resolveRealAuthBaseUrl,
   resolveVercelAutomationBypassHeaders,
 } from './e2e/user/shared/real-auth-config';
@@ -64,6 +65,17 @@ const outputDir = runConfig.outputDir || path.join(
   artifactContext || 'desktop-test',
 );
 
+const realAuthVideo = showPlaywrightAnnotations
+  ? {
+      mode: 'on' as const,
+      size: videoSize,
+      show: videoAnnotations,
+    }
+  : {
+      mode: 'on' as const,
+      size: videoSize,
+    };
+
 const ownerStorage = path.join(authDir, 'owner.json');
 
 const realAuthStorageRaw = process.env.E2E_REAL_AUTH_STORAGE_STATE?.trim();
@@ -72,6 +84,10 @@ const realAuthStorageState = realAuthStorageRaw
   : null;
 const realAuthStorageExists =
   realAuthStorageState !== null && fs.existsSync(realAuthStorageState);
+const qbLocalStorageState = process.env.E2E_QB_LOCAL_AUTH_STORAGE_STATE?.trim()
+  ? path.resolve(process.env.E2E_QB_LOCAL_AUTH_STORAGE_STATE.trim())
+  : resolveQuickBooksLocalAuthStoragePath();
+const qbLocalStorageExists = fs.existsSync(qbLocalStorageState);
 const realAuthBaseURL = resolveRealAuthBaseUrl();
 const vercelAutomationBypassHeaders = resolveVercelAutomationBypassHeaders();
 
@@ -112,12 +128,13 @@ export default defineConfig({
   projects: [
     {
       name: 'setup',
-      testMatch: /auth\.setup\.ts/,
+      testMatch: /(?:^|\/)auth\.setup\.ts$/,
     },
     {
       name: 'critical',
       dependencies: ['setup'],
       grep: /@critical/,
+      grepInvert: /@google-oauth|@quickbooks-local/,
       use: {
         storageState: ownerStorage,
       },
@@ -126,6 +143,7 @@ export default defineConfig({
       name: 'full',
       dependencies: ['setup'],
       grep: /@full/,
+      grepInvert: /@google-oauth|@quickbooks-local/,
       use: {
         storageState: ownerStorage,
       },
@@ -133,15 +151,45 @@ export default defineConfig({
     {
       name: 'real-auth-integrations',
       grep: /@real-auth/,
+      grepInvert: /@google-oauth/,
       use: {
         baseURL: realAuthBaseURL,
-        viewport: { width: 1280, height: 720 },
+        viewport: runConfig.desktopViewport,
+        video: realAuthVideo,
         ...(vercelAutomationBypassHeaders
           ? { extraHTTPHeaders: vercelAutomationBypassHeaders }
           : {}),
         ...(realAuthStorageExists && realAuthStorageState
           ? { storageState: realAuthStorageState }
           : {}),
+      },
+    },
+    {
+      name: 'google-oauth-local',
+      grep: /@google-oauth/,
+      use: {
+        baseURL: realAuthBaseURL,
+        viewport: runConfig.desktopViewport,
+        video: realAuthVideo,
+        ...(vercelAutomationBypassHeaders
+          ? { extraHTTPHeaders: vercelAutomationBypassHeaders }
+          : {}),
+        ...(realAuthStorageExists && realAuthStorageState
+          ? { storageState: realAuthStorageState }
+          : {}),
+      },
+    },
+    {
+      name: 'quickbooks-local',
+      grep: /@quickbooks-local/,
+      use: {
+        baseURL: realAuthBaseURL,
+        viewport: runConfig.desktopViewport,
+        video: realAuthVideo,
+        ...(vercelAutomationBypassHeaders
+          ? { extraHTTPHeaders: vercelAutomationBypassHeaders }
+          : {}),
+        ...(qbLocalStorageExists ? { storageState: qbLocalStorageState } : {}),
       },
     },
   ],

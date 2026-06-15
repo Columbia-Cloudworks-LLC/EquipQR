@@ -123,6 +123,26 @@
       "problemMatcher": []
     },
     {
+      "label": "EquipQR: Start Full Dev Stack (Reset DB)",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\dev-start.ps1",
+        "-Force"
+      ],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "group": "equipqr-dev",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "EquipQR: Stop Dev Stack",
       "type": "shell",
       "command": "powershell.exe",

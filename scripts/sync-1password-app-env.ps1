@@ -1,6 +1,7 @@
 param(
-    [string]$EnvironmentId = "ylilu4hpf6nq6bfm5ykg6nh2kq"
+    [Alias('EnvironmentId')]
+    [string]$Item = "app-env-local-dev"
 )
 
 $ErrorActionPreference = "Stop"
-& "$PSScriptRoot\sync-1password-dev-envs.ps1" -AppEnvironmentId $EnvironmentId -AppOnly
+& "$PSScriptRoot\sync-1password-dev-envs.ps1" -AppItem $Item -AppOnly

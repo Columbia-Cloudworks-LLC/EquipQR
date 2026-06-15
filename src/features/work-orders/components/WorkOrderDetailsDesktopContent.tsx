@@ -46,6 +46,8 @@ export interface WorkOrderDetailsDesktopContentProps {
   notesSectionRef: React.RefObject<HTMLDivElement | null>;
   stagger: StaggerProps;
   onPMUpdate: () => void;
+  canEditInlineFields?: boolean;
+  onSaveDescription?: (description: string) => Promise<void>;
 }
 
 export function WorkOrderDetailsDesktopContent({
@@ -70,6 +72,8 @@ export function WorkOrderDetailsDesktopContent({
   notesSectionRef,
   stagger,
   onPMUpdate,
+  canEditInlineFields = false,
+  onSaveDescription,
 }: WorkOrderDetailsDesktopContentProps) {
   return (
     <>
@@ -78,6 +82,8 @@ export function WorkOrderDetailsDesktopContent({
           workOrder={workOrder}
           equipment={equipment}
           effectiveLocation={workOrder.effectiveLocation}
+          canEditDescription={canEditInlineFields}
+          onSaveDescription={onSaveDescription}
         />
       </div>
 

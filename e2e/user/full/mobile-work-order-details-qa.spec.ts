@@ -1,5 +1,6 @@
 import { type BrowserContext, type Locator, type Page } from '@playwright/test';
 import { test, expect } from '../fixtures/equipqr-test';
+import { assertNoAxeViolations } from '../shared/axe-helpers';
 import { seedWorkOrders } from '../shared/seed-data';
 import { clickWithDemoCue } from '../shared/page-helpers';
 
@@ -24,6 +25,16 @@ test.use({
 });
 
 test.describe('mobile work order details field QA @full', () => {
+  test('passes WCAG 2.1 AA on mobile work order detail', async ({ page, assertHealthyShell }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(`/dashboard/work-orders/${seedWorkOrders.oilChange.id}`);
+    await assertHealthyShell();
+    await expect(
+      page.getByRole('heading', { name: new RegExp(seedWorkOrders.oilChange.title, 'i') }).first(),
+    ).toBeVisible({ timeout: 60_000 });
+    await assertNoAxeViolations(page);
+  });
+
   test('stays field-ready on slow 4G with reduced motion enabled', async ({
     page,
     context,
@@ -41,13 +52,15 @@ test.describe('mobile work order details field QA @full', () => {
 
     const restoreNetwork = await emulateSlow4G(context, page);
     try {
-      await expect(page.getByText(/high priority/i).filter({ visible: true }).first()).toBeVisible({
+      await expect(page.getByText(/^high$/i).filter({ visible: true }).first()).toBeVisible({
         timeout: 30_000,
       });
-      await expect(page.getByText(/in progress/i).filter({ visible: true }).first()).toBeVisible({
+      await expect(
+        page.getByRole('button', { name: /status:.*in progress/i }).first(),
+      ).toBeVisible({
         timeout: 30_000,
       });
-      await expect(page.getByRole('button', { name: /open actions and settings/i })).toBeVisible();
+      await expect(page.getByRole('button', { name: /export|open actions and settings/i })).toBeVisible();
       await expect(page.getByRole('button', { name: /^note$/i }).first()).toBeVisible();
       await expect(page.getByRole('button', { name: /put work order on hold/i }).first()).toBeVisible();
       await expect(page.getByRole('button', { name: /^complete$/i }).first()).toBeVisible();
@@ -56,10 +69,10 @@ test.describe('mobile work order details field QA @full', () => {
       await expect(page.locator('body')).toHaveJSProperty('clientWidth', MOBILE_VIEWPORT.width);
       await expectReducedMotion(page);
       await expectTouchTarget(page.getByRole('link', { name: /work orders/i }).first(), 'Back to work orders');
-      await expectTouchTarget(page.getByRole('button', { name: /edit work order/i }).first(), 'Edit work order');
+      await expectTouchTarget(page.getByRole('button', { name: /edit priority/i }).first(), 'Edit priority');
       await expectTouchTarget(
-        page.getByRole('button', { name: /open actions and settings/i }).first(),
-        'Open actions and settings',
+        page.getByRole('button', { name: /export|open actions and settings/i }).first(),
+        'Header actions',
       );
       await expectTouchTarget(page.getByRole('button', { name: /^note$/i }).first(), 'Note quick action');
       await expectTouchTarget(
@@ -163,7 +176,5 @@ async function expectTouchTarget(locator: Locator, label: string): Promise<void>
 async function expectHeaderFocusOrder(page: Page): Promise<void> {
   await page.getByRole('link', { name: /work orders/i }).first().focus();
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('button', { name: /edit work order/i }).first()).toBeFocused();
-  await page.keyboard.press('Tab');
-  await expect(page.getByRole('button', { name: /open actions and settings/i }).first()).toBeFocused();
+  await expect(page.getByRole('button', { name: /export|open actions and settings/i }).first()).toBeFocused();
 }

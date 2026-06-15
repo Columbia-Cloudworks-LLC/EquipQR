@@ -9,6 +9,10 @@
 export const QBO_API_BASE_PRODUCTION =
   "https://quickbooks.api.intuit.com";
 
+/** Sandbox base URL for the QuickBooks Data API (v3). */
+export const QBO_API_BASE_SANDBOX =
+  "https://sandbox-quickbooks.api.intuit.com";
+
 /** Intuit OAuth 2.0 token endpoint (same for sandbox and production). */
 export const QBO_TOKEN_URL =
   "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
@@ -24,11 +28,33 @@ export const QBO_TOKEN_URL =
  */
 export const QBO_MINOR_VERSION = 70;
 
-/** Resolved base URL for the QuickBooks Data API. EquipQR uses production QBO only. */
-export const QBO_API_BASE = QBO_API_BASE_PRODUCTION;
+const envFlagTrue = (value: string | undefined): boolean => {
+  if (!value?.trim()) return false;
+  const normalized = value.trim().toLowerCase();
+  return normalized === "1" ||
+    normalized === "true" ||
+    normalized === "yes" ||
+    normalized === "on";
+};
+
+/** Resolve QBO Data API host. Local dev with sandbox companies sets QBO_USE_SANDBOX=true. */
+export function resolveQboApiBase(): string {
+  const explicit = Deno.env.get("QBO_API_BASE")?.trim();
+  if (explicit) return explicit.replace(/\/+$/, "");
+  if (envFlagTrue(Deno.env.get("QBO_USE_SANDBOX"))) {
+    return QBO_API_BASE_SANDBOX;
+  }
+  return QBO_API_BASE_PRODUCTION;
+}
+
+/** Resolved base URL for the QuickBooks Data API. */
+export const QBO_API_BASE = resolveQboApiBase();
+
+export type QboEnvironmentLabel = "sandbox" | "production";
 
 /** Human-readable environment label stored in export logs. */
-export const QBO_ENVIRONMENT: "production" = "production";
+export const QBO_ENVIRONMENT: QboEnvironmentLabel =
+  QBO_API_BASE.includes("sandbox-quickbooks") ? "sandbox" : "production";
 
 const envOrDefault = (value: string | undefined, fallback: string): string =>
   value && value.trim().length > 0 ? value.trim() : fallback;

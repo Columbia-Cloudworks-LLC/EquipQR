@@ -11,6 +11,7 @@ interface WorkOrderAssignmentSelectorProps {
   workOrder: AssignmentWorkOrderContext & {
     assignee_id?: string | null;
     assigneeId?: string | null;
+    status?: import('@/features/work-orders/types/workOrder').WorkOrderStatus;
   };
   organizationId: string;
   onCancel: () => void;
@@ -37,7 +38,8 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
       quickAssignmentMutation.mutate({
         workOrderId: workOrder.id,
         assigneeId: null,
-        organizationId
+        organizationId,
+        currentStatus: workOrder.status,
       }, {
         onSuccess: () => {
           onCancel();
@@ -52,7 +54,8 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
     quickAssignmentMutation.mutate({
       workOrderId: workOrder.id,
       assigneeId: option.id,
-      organizationId
+      organizationId,
+      currentStatus: workOrder.status,
     }, {
       onSuccess: () => {
         onCancel();
@@ -69,7 +72,7 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
   return (
     <div className="space-y-4">
       <div>
-        <label className="text-sm font-medium text-muted-foreground mb-2 block">
+        <label htmlFor="work-order-assignment-select" className="text-sm font-medium text-muted-foreground mb-2 block">
           Change Assignment
         </label>
         <Select
@@ -77,7 +80,7 @@ const WorkOrderAssignmentSelector: React.FC<WorkOrderAssignmentSelectorProps> = 
           onValueChange={setSelectedValue}
           disabled={disabled || optionsLoading || quickAssignmentMutation.isPending}
         >
-          <SelectTrigger>
+          <SelectTrigger id="work-order-assignment-select">
             <SelectValue placeholder="Select new assignee..." />
           </SelectTrigger>
           <SelectContent>

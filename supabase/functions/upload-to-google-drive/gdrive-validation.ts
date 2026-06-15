@@ -22,6 +22,7 @@ export interface UploadRequest {
   contentBase64: string;
   mimeType?: string;
   parentId?: string;
+  workOrderId?: string;
 }
 
 export interface DriveFileResponse {

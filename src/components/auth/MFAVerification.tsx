@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useMFA } from '@/hooks/useMFA';
@@ -14,6 +14,12 @@ const MFAVerification: React.FC<MFAVerificationProps> = ({ onSuccess, onError })
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const otpContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const firstInput = otpContainerRef.current?.querySelector('input');
+    firstInput?.focus();
+  }, []);
 
   const handleVerify = useCallback(async (verifyCode: string) => {
     if (verifyCode.length !== 6) return;
@@ -57,7 +63,7 @@ const MFAVerification: React.FC<MFAVerificationProps> = ({ onSuccess, onError })
         </p>
       </div>
 
-      <div className="flex flex-col items-center space-y-4">
+      <div ref={otpContainerRef} className="flex flex-col items-center space-y-4">
         <InputOTP
           maxLength={6}
           value={code}
@@ -66,7 +72,6 @@ const MFAVerification: React.FC<MFAVerificationProps> = ({ onSuccess, onError })
           aria-label="Verification code"
           aria-invalid={error ? 'true' : 'false'}
           aria-describedby={error ? 'mfa-verify-error' : undefined}
-          autoFocus
         >
           <InputOTPGroup>
             <InputOTPSlot index={0} />

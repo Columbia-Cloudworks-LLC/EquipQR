@@ -94,8 +94,11 @@ Follow local patterns and existing service boundaries. Preserve organization sco
 
 ### 5. Verify
 
+Follow `.cursor/rules/local-verify-before-preview-push.mdc` — **no push to preview until this phase passes with zero user manual steps.**
+
 Choose the smallest credible gate:
 
+- Always run Fallow (both scans) before commit per `fallow-before-commit.mdc`.
 - Always run lint/type checks when product code changed:
   ```powershell
   npm run lint
@@ -106,12 +109,15 @@ Choose the smallest credible gate:
   npm test -- <test-paths>
   ```
 - Run `npm run build` when routing, bundling, PWA, Vite, or env wiring may be affected.
-- For UI changes, smoke the affected route with the browser MCP when practical.
+- For UI changes, smoke the affected route with browser MCP or `.\dev-test.bat` critical when a spec exists.
+- For OAuth/integrations, exercise the flow on the local stack (browser MCP + edge logs + RPC/DB confirmation).
 - For migrations/RLS/edge functions, run the relevant Supabase or Deno checks when the local stack is healthy.
 
-If verification fails outside the change scope, report the blocker instead of broadening the work silently.
+If verification fails outside the change scope, report the blocker instead of broadening the work silently. If E2E cannot be automated locally, **stop before integrate** — do not push to preview.
 
 ### 6. Integrate
+
+**Prerequisite:** Section 5 completed; cite verification commands and outcomes in the handoff.
 
 Follow the current worktree policy:
 
@@ -125,24 +131,36 @@ git push origin preview
 
 **Linked worktree or user-requested formal PR:**
 
+Follow **`.cursor/rules/pr-merge-ready-workflow.mdc`** in full — branch, verify, evidence, open PR, babysit CI + Qodo until merge-ready. Summary commands:
+
 ```powershell
 git fetch origin preview
 git switch -c <type>/issue-<number>-<slug> origin/preview
-git add <specific-files>
-git commit -m "<conventional message>"
+# ... implement, verify (Fallow, npm ci, lint, test:ci, build, E2E) ...
+.\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts"
 git push -u origin HEAD
-gh pr create --base preview --head <branch> --title "<title>" --body-file <body-file>
+gh pr create --base preview --head <branch> --title "<title>" --body-file <body-file-with-evidence-markdown>
+.\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
+gh pr checks <num> --watch
+# Poll Get-PrQodoFindings until openCount=0; clear threads — see pr-merge-ready-workflow.mdc
 ```
 
 Use `Fixes #<number>` or `Closes #<number>` in the commit body or PR body when the issue should close after integration.
 
+Merge `tmp/pr-evidence/<slug>/evidence-markdown.md` into the PR body. Add `e2e/pr-evidence/<feature>.spec.ts` when no existing spec covers the UI change.
+
+**Do not hand off after `gh pr create`.** Merge-ready exit criteria are defined in `pr-merge-ready-workflow.mdc`.
+
 ### 7. Report Completion
+
+For **PR paths**, handoff only when **`pr-merge-ready-workflow.mdc`** exit criteria pass — not when the PR is merely opened.
 
 Final response should include:
 
 - Issue/change resolved.
 - Commit SHA and push target, or PR URL.
 - Verification commands and outcomes.
+- PR visual evidence: capture command, spec path, uploaded screenshot/MP4 URLs or PR comment link (when a PR was opened).
 - Acceptance criteria status.
 - Any follow-up or blocker.
 

@@ -52,13 +52,11 @@ export const WorkOrderDesktopIdentityStrip: React.FC<WorkOrderDesktopIdentityStr
         )}
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
-        <div onClick={(e) => e.stopPropagation()}>
-          <WorkOrderQuickActions
-            workOrderId={workOrder.id}
-            workOrderStatus={workOrder.status}
-            equipmentTeamId={workOrder.equipmentTeamId ?? workOrder.team_id}
-          />
-        </div>
+        <WorkOrderQuickActions
+          workOrderId={workOrder.id}
+          workOrderStatus={workOrder.status}
+          equipmentTeamId={workOrder.equipmentTeamId ?? workOrder.team_id}
+        />
         <Badge className={getStatusColor(workOrder.status)}>
           {formatStatus(workOrder.status)}
         </Badge>

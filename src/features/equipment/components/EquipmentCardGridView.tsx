@@ -174,8 +174,6 @@ export function EquipmentCardGridView({
 
       <div
         className="mt-auto flex items-center gap-2 border-t border-border/80 bg-muted/20 px-4 py-2.5"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
         role="group"
         aria-label="Equipment actions"
       >
@@ -188,7 +186,10 @@ export function EquipmentCardGridView({
           variant="ghost"
           size="sm"
           className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-          onClick={(e) => onQuickAction(e, `/dashboard/equipment/${equipment.id}?tab=scan-history`)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onQuickAction(e, `/dashboard/equipment/${equipment.id}?tab=scan-history`);
+          }}
         >
           <History className="h-3.5 w-3.5" />
           History

@@ -6,6 +6,7 @@ import { SimpleOrganizationProvider } from '@/contexts/SimpleOrganizationProvide
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import WorkspaceOnboardingGuard from '@/components/auth/WorkspaceOnboardingGuard';
+import ProductOnboardingGuard from '@/components/auth/ProductOnboardingGuard';
 import MFAEnforcementGuard from '@/components/auth/MFAEnforcementGuard';
 import IdleSessionTimeoutGuard from '@/components/auth/IdleSessionTimeoutGuard';
 import { BugReportProvider } from '@/features/tickets/context/BugReportContext';
@@ -24,6 +25,7 @@ export const DashboardRouteLayout = () => (
     <SimpleOrganizationProvider>
       <MFAEnforcementGuard>
         <WorkspaceOnboardingGuard>
+          <ProductOnboardingGuard>
           <OptionalOfflineQueueProvider>
             <TeamProvider>
               <SelectedTeamProvider>
@@ -73,6 +75,7 @@ export const DashboardRouteLayout = () => (
               </SelectedTeamProvider>
             </TeamProvider>
           </OptionalOfflineQueueProvider>
+          </ProductOnboardingGuard>
         </WorkspaceOnboardingGuard>
       </MFAEnforcementGuard>
     </SimpleOrganizationProvider>

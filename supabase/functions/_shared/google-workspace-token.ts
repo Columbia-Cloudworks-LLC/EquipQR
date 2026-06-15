@@ -229,7 +229,7 @@ export async function getGoogleWorkspaceAccessToken(
   if (updateCredentials) {
     await adminClient
       .from("google_workspace_credentials")
-      .update(buildCredentialsRefreshUpdate(tokenData, accessTokenExpiresAt))
+      .update(buildCredentialsRefreshUpdate(tokenData, accessTokenExpiresAt, creds.scopes))
       .eq("organization_id", organizationId)
       .eq("domain", creds.domain);
   }
@@ -245,23 +245,46 @@ export async function getGoogleWorkspaceAccessToken(
 }
 
 /**
- * Prefer refreshed OAuth scope string; fall back to stored credentials when Google
- * omits scope on refresh (common for refresh-token grants).
+ * Merge one or more space-delimited Google OAuth scope strings into a deduplicated list.
+ * Incremental authorization often returns only newly granted scopes; merge preserves prior grants.
+ */
+export function mergeGoogleWorkspaceScopeStrings(
+  ...scopeStrings: (string | null | undefined)[]
+): string | null {
+  const merged = new Set<string>();
+
+  for (const scopeString of scopeStrings) {
+    if (!scopeString) continue;
+    for (const scope of scopeString.split(/\s+/)) {
+      const trimmed = scope.trim();
+      if (trimmed) {
+        merged.add(trimmed);
+      }
+    }
+  }
+
+  return merged.size > 0 ? [...merged].join(" ") : null;
+}
+
+/**
+ * Merge refreshed and stored scopes. Google may omit scope on refresh or return only
+ * incremental grants from the latest consent screen.
  */
 export function resolveGoogleWorkspaceScopes(
   refreshedScope: string | undefined,
   storedScopes: string | null | undefined,
 ): string | undefined {
-  return refreshedScope ?? storedScopes ?? undefined;
+  return mergeGoogleWorkspaceScopeStrings(storedScopes, refreshedScope) ?? undefined;
 }
 
 /**
  * Build the credentials-row update after a successful token refresh.
- * Only overwrites stored scopes when the refresh response includes scope.
+ * Merges refreshed scopes with stored scopes when Google returns a partial scope string.
  */
 export function buildCredentialsRefreshUpdate(
   tokenData: Pick<GoogleRefreshResponse, "scope">,
   accessTokenExpiresAt: Date,
+  storedScopes?: string | null,
 ): { access_token_expires_at: string; updated_at: string; scopes?: string } {
   const update: { access_token_expires_at: string; updated_at: string; scopes?: string } = {
     access_token_expires_at: accessTokenExpiresAt.toISOString(),
@@ -269,7 +292,7 @@ export function buildCredentialsRefreshUpdate(
   };
 
   if (tokenData.scope) {
-    update.scopes = tokenData.scope;
+    update.scopes = mergeGoogleWorkspaceScopeStrings(storedScopes, tokenData.scope) ?? tokenData.scope;
   }
 
   return update;
@@ -301,6 +324,7 @@ export const GOOGLE_SCOPES = {
 } as const;
 
 export const __testables = {
+  mergeGoogleWorkspaceScopeStrings,
   resolveGoogleWorkspaceScopes,
   buildCredentialsRefreshUpdate,
 };

@@ -5,11 +5,12 @@ Use these scripts from the repo root to replace long `gh` / `git` command chains
 | Script | Purpose |
 | --- | --- |
 | `Get-PrContext.ps1` | PR metadata, owner/repo slug, dirty-tree preflight |
+| `Get-PrChecks.ps1` | `gh pr checks` — `-Json` for pass/fail/pending summary; `-Watch` to block until checks finish |
 | `Get-PrFeedbackThreads.ps1` | GraphQL review threads → `workingSet` / `outdatedOpenSet` |
 | `Get-PrReviewBodies.ps1` | Top-level PR reviews (bodies / states) |
-| `Invoke-PrVerification.ps1` | Full local gate: `npm run lint` → TypeScript → `npm test` → `npm run build` (use sparingly on large suites; targeted PR feedback prefers lint + `tsc` + scoped `npm test -- <path>` — see `.cursor/skills/address-pr-feedback/SKILL.md` Step 6) |
+| `Get-PrQodoFindings.ps1` | Qodo persistent **Code Review** parent comment — open vs struck-through findings |
+| `Invoke-PrVerification.ps1` | Full local gate: `npm run lint` → TypeScript → `npm test` → `npm run build` (use sparingly on large suites; targeted PR feedback prefers lint + `tsc` + scoped `npm test -- <path>` — see `.cursor/skills/address-pr-feedback/SKILL.md` Step 5) |
 | `Publish-PrFeedbackResponses.ps1` | Deferred issues, inline replies, top-level PR comment |
-| `Get-PrChecks.ps1` | `gh pr checks` |
 
 Shared: `PrFeedbackCommon.ps1` (dot-sourced), `PrFeedbackLogic.ps1` (classification helpers).
 
@@ -22,6 +23,13 @@ Shared: `PrFeedbackCommon.ps1` (dot-sourced), `PrFeedbackLogic.ps1` (classificat
 # Thread sets for triage
 .\scripts\pr-feedback\Get-PrFeedbackThreads.ps1 -Json | Set-Content .\tmp\threads.json -Encoding utf8
 
+# CI gate — wait if pending, fix if failed before comment triage
+.\scripts\pr-feedback\Get-PrChecks.ps1 -Json
+.\scripts\pr-feedback\Get-PrChecks.ps1 -Watch
+
+# Qodo open findings (unstriked items in parent comment)
+.\scripts\pr-feedback\Get-PrQodoFindings.ps1 -Json | Set-Content .\tmp\qodo.json -Encoding utf8
+
 # Local gates (same order as address-pr-feedback / raise skills)
 .\scripts\pr-feedback\Invoke-PrVerification.ps1
 
@@ -30,8 +38,8 @@ Shared: `PrFeedbackCommon.ps1` (dot-sourced), `PrFeedbackLogic.ps1` (classificat
   -ThreadRepliesFile .\tmp\replies.json `
   -SummaryBodyFile .\tmp\pr-feedback-response.md
 
-# CI spot-check
-.\scripts\pr-feedback\Get-PrChecks.ps1
+# CI watch after push (handoff gate)
+.\scripts\pr-feedback\Get-PrChecks.ps1 -Watch
 ```
 
 ## JSON manifests for `Publish-PrFeedbackResponses.ps1`

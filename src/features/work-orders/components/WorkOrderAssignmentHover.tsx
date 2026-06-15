@@ -9,7 +9,9 @@ import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';
 
 interface WorkOrderAssignmentHoverProps {
-  workOrder: AssignmentWorkOrderContext;
+  workOrder: AssignmentWorkOrderContext & {
+    status?: import('@/features/work-orders/types/workOrder').WorkOrderStatus;
+  };
   children: React.ReactNode;
   disabled?: boolean;
 }
@@ -48,7 +50,8 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
       await assignmentMutation.mutateAsync({
         workOrderId: workOrder.id,
         assigneeId,
-        organizationId
+        organizationId,
+        currentStatus: workOrder.status,
       });
       
       toast({

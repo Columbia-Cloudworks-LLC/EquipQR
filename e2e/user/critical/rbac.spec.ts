@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/equipqr-test';
-import { newPersonaPage, pinContextToApex } from '../shared/auth-helpers';
+import { newPersonaPage, pinContextToApex, gotoDashboardRoute } from '../shared/auth-helpers';
 import {
   expectNavigationLinkHidden,
   expectNavigationLinkVisible,
@@ -7,8 +7,8 @@ import {
 } from '../shared/page-helpers';
 
 test.describe('RBAC @critical', () => {
-  test('owner sees admin-only sidebar items', async ({ page }) => {
-    await page.goto('/dashboard');
+  test('owner sees admin-only sidebar items', async ({ page, gotoDashboard }) => {
+    await gotoDashboard('/');
     await expectNavigationLinkVisible(page, /pm templates/i);
     await expectNavigationLinkVisible(page, /audit log/i);
     await expectNavigationLinkVisible(page, /dsr cockpit/i);
@@ -17,7 +17,7 @@ test.describe('RBAC @critical', () => {
   test('admin sees admin-only sidebar items', async ({ browser }) => {
     const { context, page } = await newPersonaPage(browser, 'admin');
     await pinContextToApex(context);
-    await page.goto('/dashboard');
+    await gotoDashboardRoute(page, '/');
     await expectNavigationLinkVisible(page, /pm templates/i);
     await expectNavigationLinkVisible(page, /audit log/i);
     await pauseForWatchMode(page);

@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
-import { workOrders, organization } from '@/lib/queryKeys';
+import { invalidateWorkOrderCaches } from '@/features/work-orders/utils/invalidateWorkOrderQueries';
 
 interface StatusUpdateData {
   workOrderId: string;
@@ -45,7 +45,7 @@ export const useWorkOrderStatusUpdate = () => {
 
       return { data: result.data, queuedOffline: false };
     },
-    onSuccess: ({ queuedOffline }) => {
+    onSuccess: ({ queuedOffline }, { workOrderId }) => {
       if (queuedOffline) {
         toast({
           title: 'Saved offline',
@@ -55,13 +55,7 @@ export const useWorkOrderStatusUpdate = () => {
       }
 
       if (currentOrganization?.id) {
-        const orgId = currentOrganization.id;
-        queryClient.invalidateQueries({ queryKey: workOrders.enhancedList(orgId) });
-        queryClient.invalidateQueries({ queryKey: workOrders.legacyList(orgId) });
-        queryClient.invalidateQueries({ queryKey: workOrders.optimized(orgId) });
-        queryClient.invalidateQueries({ queryKey: workOrders.teamBasedList(orgId) });
-        queryClient.invalidateQueries({ queryKey: organization(orgId).dashboardStats() });
-        queryClient.invalidateQueries({ queryKey: workOrders.root, exact: false });
+        invalidateWorkOrderCaches(queryClient, currentOrganization.id, workOrderId);
       }
 
       toast({

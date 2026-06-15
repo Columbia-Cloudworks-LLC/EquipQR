@@ -1,4 +1,5 @@
 import React from 'react';
+import { handleKeyboardActivation } from '@/components/a11y/keyboard';
 import {
   Plus,
   Minus,
@@ -184,8 +185,13 @@ const InventoryItemCompatibilityTab: React.FC<InventoryItemCompatibilityTabProps
               {equipmentMatchedByRules.map((equipment) => (
                 <div
                   key={equipment.equipment_id}
+                  role="button"
+                  tabIndex={0}
                   className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
                   onClick={() => onNavigateToEquipment(equipment.equipment_id)}
+                  onKeyDown={(e) =>
+                    handleKeyboardActivation(e, () => onNavigateToEquipment(equipment.equipment_id))
+                  }
                 >
                   <div className="flex-1 min-w-0">
                     <p className="font-medium">{equipment.name}</p>
@@ -255,8 +261,13 @@ const InventoryItemCompatibilityTab: React.FC<InventoryItemCompatibilityTabProps
             {compatibleEquipment.map((equipment) => (
               <div key={equipment.id} className="flex items-center justify-between p-3 border rounded-lg">
                 <div
-                  className="flex-1 min-w-0 cursor-pointer hover:text-primary"
+                  role="button"
+                  tabIndex={0}
+                  className="flex-1 min-w-0 cursor-pointer hover:text-primary text-left"
                   onClick={() => onNavigateToEquipment(equipment.id)}
+                  onKeyDown={(e) =>
+                    handleKeyboardActivation(e, () => onNavigateToEquipment(equipment.id))
+                  }
                 >
                   <p className="font-medium">{equipment.name}</p>
                   <p className="text-sm text-muted-foreground">
@@ -380,6 +391,8 @@ const InventoryItemCompatibilityTab: React.FC<InventoryItemCompatibilityTabProps
                       return (
                         <div
                           key={idx}
+                          role={part.inventory_item_id && !isCurrentItem ? 'button' : undefined}
+                          tabIndex={part.inventory_item_id && !isCurrentItem ? 0 : undefined}
                           className={`flex items-center justify-between p-2 rounded border ${
                             isCurrentItem
                               ? 'border-primary bg-primary/5'
@@ -388,6 +401,14 @@ const InventoryItemCompatibilityTab: React.FC<InventoryItemCompatibilityTabProps
                           onClick={() => {
                             if (part.inventory_item_id && !isCurrentItem) {
                               onNavigateToInventoryItem(part.inventory_item_id);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            const linkedItemId = part.inventory_item_id;
+                            if (linkedItemId && !isCurrentItem) {
+                              handleKeyboardActivation(e, () =>
+                                onNavigateToInventoryItem(linkedItemId),
+                              );
                             }
                           }}
                         >

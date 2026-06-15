@@ -1,16 +1,18 @@
 import React from 'react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen } from '@/test/utils/test-utils';
 import { WorkOrderDetailsMobileHeader } from '../WorkOrderDetailsMobileHeader';
 
 describe('WorkOrderDetailsMobileHeader', () => {
   const baseProps = {
     workOrder: { title: 'Hydraulic Pump Inspection' },
-    canEdit: true,
-    onEditClick: vi.fn(),
     onOpenActionSheet: vi.fn(),
   };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('renders title and back link', () => {
     render(<WorkOrderDetailsMobileHeader {...baseProps} />);
@@ -28,8 +30,17 @@ describe('WorkOrderDetailsMobileHeader', () => {
     expect(baseProps.onOpenActionSheet).toHaveBeenCalledTimes(1);
   });
 
-  it('omits edit when canEdit is false', () => {
-    render(<WorkOrderDetailsMobileHeader {...baseProps} canEdit={false} />);
+  it('uses Export label when showExports is true', async () => {
+    const user = userEvent.setup();
+    render(<WorkOrderDetailsMobileHeader {...baseProps} showExports />);
+
+    await user.click(screen.getByRole('button', { name: /^export$/i }));
+
+    expect(baseProps.onOpenActionSheet).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not render a full edit work order button', () => {
+    render(<WorkOrderDetailsMobileHeader {...baseProps} />);
 
     expect(screen.queryByRole('button', { name: /edit work order/i })).not.toBeInTheDocument();
   });

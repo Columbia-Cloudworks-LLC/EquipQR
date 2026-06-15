@@ -13,7 +13,7 @@ project_id = "ymxkzronkhwxzcdcbnwq"
 [auth]
 enabled = true
 # For local development, use the Vite dev server URL
-site_url = "http://localhost:5173"
+site_url = "http://localhost:8080"
 # Additional redirect URLs for OAuth and auth flows
 additional_redirect_urls = [
   "http://localhost:5173/**",
@@ -27,6 +27,11 @@ additional_redirect_urls = [
   # Update this if the Vercel project is renamed.
   "https://equip-qr-*.vercel.app/**"
 ]
+
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
 
 # =============================================================================
 # STORAGE CONFIGURATION
@@ -156,9 +161,19 @@ verify_jwt = false
 verify_jwt = false
 # JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()
 
+[functions.manage-google-drive-destination-folder]
+verify_jwt = false
+# JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()
+
 [functions.export-work-orders-to-google-docs]
 verify_jwt = false
 # JWT verification disabled at runtime level - function performs its own auth via supabase.auth.getUser()
+
+[functions.export-work-orders-csv]
+verify_jwt = false
+
+[functions.export-work-orders-docx-download]
+verify_jwt = false
 
 [functions.create-ticket]
 verify_jwt = false

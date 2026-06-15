@@ -137,6 +137,12 @@ describe('useWorkOrderUpdate', () => {
       queryKey: ['organization', 'org-1', 'dashboard-stats']
     });
     expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ['work-orders', 'detail', 'org-1', 'wo-1']
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ['work-orders', 'org-1', 'wo-1']
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ['workOrder', 'org-1', 'wo-1']
     });
     expect(invalidateSpy).toHaveBeenCalledWith({

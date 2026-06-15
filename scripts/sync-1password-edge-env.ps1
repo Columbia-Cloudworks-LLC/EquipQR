@@ -1,7 +1,8 @@
 param(
-    [string]$EnvironmentId = "f4rdrusaoxvzwngz2jxs7vy7ye",
+    [Alias('EnvironmentId')]
+    [string]$Item = "edge-env-local-dev",
     [int]$ApiPort = 54321
 )
 
 $ErrorActionPreference = "Stop"
-& "$PSScriptRoot\sync-1password-dev-envs.ps1" -EdgeEnvironmentId $EnvironmentId -ApiPort $ApiPort -EdgeOnly
+& "$PSScriptRoot\sync-1password-dev-envs.ps1" -EdgeItem $Item -ApiPort $ApiPort -EdgeOnly

@@ -16,7 +16,13 @@ const CURRENT_ORG_STORAGE_KEY = 'equipqr_current_organization';
 
 export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [currentOrganizationId, setCurrentOrganizationId] = useState<string | null>(null);
+  const [currentOrganizationId, setCurrentOrganizationId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(CURRENT_ORG_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  });
   const lastMismatchSyncAttemptRef = useRef<string | null>(null);
   
   // Get session context to keep them synchronized

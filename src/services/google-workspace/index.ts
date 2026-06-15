@@ -239,10 +239,101 @@ export async function listGoogleDriveDestinations(input: {
   return data as GoogleDriveDestinationBrowseResponse;
 }
 
-/**
- * List Google Workspace directory users for an organization.
- * @param organizationId - The organization ID
- */
+export async function createGoogleDriveDestinationFolder(input: {
+  organizationId: string;
+  parentId: string;
+  driveId?: string | null;
+  name: string;
+}): Promise<GoogleDriveDestinationBrowseItem> {
+  const { data, error } = await supabase.functions.invoke('manage-google-drive-destination-folder', {
+    body: {
+      action: 'create',
+      organizationId: input.organizationId,
+      parentId: input.parentId,
+      driveId: input.driveId ?? null,
+      name: input.name,
+    },
+  });
+
+  if (error) {
+    await throwGoogleWorkspaceInvokeError(error as Error & { context?: unknown });
+  }
+
+  if (data?.error) {
+    throwGoogleWorkspaceResponseError(data);
+  }
+
+  return data.folder as GoogleDriveDestinationBrowseItem;
+}
+
+export type GoogleDriveDestinationFolderDeleteResult = {
+  deleted: true;
+  folderId: string;
+  hadContents: boolean;
+  childCount: number;
+};
+
+export class GoogleDriveFolderDeleteConfirmationRequiredError extends Error {
+  constructor(
+    message: string,
+    readonly childCount: number,
+  ) {
+    super(message);
+    this.name = 'GoogleDriveFolderDeleteConfirmationRequiredError';
+  }
+}
+
+export async function deleteGoogleDriveDestinationFolder(input: {
+  organizationId: string;
+  folderId: string;
+  confirmDataLoss?: boolean;
+}): Promise<GoogleDriveDestinationFolderDeleteResult> {
+  const { data, error } = await supabase.functions.invoke('manage-google-drive-destination-folder', {
+    body: {
+      action: 'delete',
+      organizationId: input.organizationId,
+      folderId: input.folderId,
+      confirmDataLoss: input.confirmDataLoss ?? false,
+    },
+  });
+
+  if (error) {
+    const response = (error as Error & { context?: unknown }).context;
+    if (response instanceof Response) {
+      const payload = await response.clone().json().catch(() => null) as {
+        error?: string;
+        code?: string;
+        childCount?: number;
+      } | null;
+
+      if (payload?.code === 'folder_not_empty_requires_confirmation') {
+        throw new GoogleDriveFolderDeleteConfirmationRequiredError(
+          payload.error ?? 'Folder is not empty',
+          payload.childCount ?? 0,
+        );
+      }
+
+      if (payload?.error) {
+        throwGoogleWorkspaceResponseError(payload);
+      }
+    }
+
+    await throwGoogleWorkspaceInvokeError(error as Error & { context?: unknown });
+  }
+
+  if (data?.error) {
+    if (data.code === 'folder_not_empty_requires_confirmation') {
+      throw new GoogleDriveFolderDeleteConfirmationRequiredError(
+        data.error,
+        data.childCount ?? 0,
+      );
+    }
+    throwGoogleWorkspaceResponseError(data);
+  }
+
+  return data as GoogleDriveDestinationFolderDeleteResult;
+}
+
 export async function listWorkspaceDirectoryUsers(
   organizationId: string
 ): Promise<WorkspaceDirectoryUser[]> {
@@ -323,18 +414,15 @@ export interface DisconnectWorkspaceResult {
 
 /**
  * Disconnect Google Workspace integration for an organization.
- * This removes OAuth credentials and optionally unclaims the domain.
- * 
+ * Clears OAuth credentials, cached directory users, and releases the workspace domain claim.
+ *
  * @param organizationId - The organization to disconnect
- * @param alsoUnclaimDomain - If true, also removes the domain claim allowing full re-onboarding
  */
 export async function disconnectGoogleWorkspace(
   organizationId: string,
-  alsoUnclaimDomain: boolean = false
 ): Promise<DisconnectWorkspaceResult> {
   const { data, error } = await supabase.rpc('disconnect_google_workspace', {
     p_organization_id: organizationId,
-    p_also_unclaim_domain: alsoUnclaimDomain,
   });
 
   if (error) {

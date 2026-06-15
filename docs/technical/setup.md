@@ -21,7 +21,7 @@ npm ci
 
 ### 3. Environment Setup (1Password Preferred)
 
-If you have access to the EquipQR 1Password environments, use `dev-start.bat` as the default setup path. It syncs app `.env` and Edge Function `supabase/functions/.env` automatically.
+If you have access to the EquipQR Agents 1Password vault, use `dev-start.bat` as the default setup path. It syncs app `.env` from the editable `app-env-local-dev` item and Edge Function `supabase/functions/.env` from the editable `edge-env-local-dev` item automatically.
 
 ```powershell
 # Optional: verify 1Password CLI is available

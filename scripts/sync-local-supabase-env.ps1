@@ -82,12 +82,16 @@ Write-ManagedBlock -FilePath $viteLocalEnvPath -CreateIfMissing $true -BlockLine
 Write-ManagedBlock -FilePath $edgeEnvPath -CreateIfMissing $false -BlockLines @(
     "INTUIT_REDIRECT_URI=$quickbooksRedirectUri"
     "PUBLIC_SITE_URL=http://localhost:8080"
+    "GW_OAUTH_REDIRECT_BASE_URL=$localSupabaseBaseUrl"
+    "QB_OAUTH_REDIRECT_BASE_URL=$localSupabaseBaseUrl"
+    "QBO_USE_SANDBOX=true"
 ) -KeysToReplace @(
     "SUPABASE_URL"
     "INTUIT_REDIRECT_URI"
     "PUBLIC_SITE_URL"
     "QB_OAUTH_REDIRECT_BASE_URL"
     "GW_OAUTH_REDIRECT_BASE_URL"
+    "QBO_USE_SANDBOX"
 )
 
 Write-Host "       Updated local env overrides for Supabase API port $ApiPort."

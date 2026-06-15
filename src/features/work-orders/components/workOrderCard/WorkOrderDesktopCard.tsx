@@ -74,8 +74,6 @@ export const WorkOrderDesktopCard: React.FC<WorkOrderCardProps> = memo(({
         {!isTerminal && (
           <div
             className="flex items-center justify-end mt-3 pt-3 border-t"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
             role="group"
             aria-label="Work order actions"
           >

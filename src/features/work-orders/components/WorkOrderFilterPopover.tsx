@@ -52,7 +52,7 @@ const WorkOrderFilterPopover: React.FC<WorkOrderFilterPopoverProps> = ({
         <>
           {/* Status */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-muted-foreground">Status</label>
+            <span className="text-xs text-muted-foreground">Status</span>
             <WorkOrderStatusFilterSelect
               value={filters.statusFilter}
               onValueChange={(v) => onFilterChange('statusFilter', v)}
@@ -61,7 +61,7 @@ const WorkOrderFilterPopover: React.FC<WorkOrderFilterPopoverProps> = ({
 
           {/* Assignee */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-muted-foreground">Assignee</label>
+            <span className="text-xs text-muted-foreground">Assignee</span>
             <Select
               value={filters.assigneeFilter}
               onValueChange={(v) => onFilterChange('assigneeFilter', v)}
@@ -79,7 +79,7 @@ const WorkOrderFilterPopover: React.FC<WorkOrderFilterPopoverProps> = ({
 
           {/* Priority */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-muted-foreground">Priority</label>
+            <span className="text-xs text-muted-foreground">Priority</span>
             <WorkOrderPriorityFilterSelect
               value={filters.priorityFilter}
               onValueChange={(v) => onFilterChange('priorityFilter', v)}
@@ -88,7 +88,7 @@ const WorkOrderFilterPopover: React.FC<WorkOrderFilterPopoverProps> = ({
 
           {/* Due Date */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-muted-foreground">Due Date</label>
+            <span className="text-xs text-muted-foreground">Due Date</span>
             <WorkOrderDueDateFilterSelect
               value={filters.dueDateFilter}
               onValueChange={(v) => onFilterChange('dueDateFilter', v)}
@@ -97,7 +97,7 @@ const WorkOrderFilterPopover: React.FC<WorkOrderFilterPopoverProps> = ({
 
           {/* Invoice */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-muted-foreground">Invoice</label>
+            <span className="text-xs text-muted-foreground">Invoice</span>
             <WorkOrderInvoiceFilterSelect
               value={filters.invoiceFilter}
               onValueChange={(v) => onFilterChange('invoiceFilter', v)}

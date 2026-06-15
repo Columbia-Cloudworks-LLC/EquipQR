@@ -44,4 +44,11 @@ describe('PageHeader', () => {
       expect(root?.className).toContain('lg:space-y-2');
     });
   });
+
+  it('exposes route heading focus target for RouteAnnouncer', () => {
+    render(<PageHeader title="Equipment" />);
+    const heading = screen.getByRole('heading', { level: 1, name: 'Equipment' });
+    expect(heading).toHaveAttribute('data-route-heading', 'true');
+    expect(heading).toHaveAttribute('tabindex', '-1');
+  });
 });

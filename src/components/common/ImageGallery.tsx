@@ -135,16 +135,19 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
             {images.map((image) => (
               <div key={image.id} className="relative group">
                 <div className="aspect-square bg-muted rounded-lg overflow-hidden relative">
+                <button
+                  type="button"
+                  className="block w-full h-full p-0 border-0 bg-transparent cursor-pointer overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={() => setSelectedImage(image)}
+                  onKeyDown={(e) => handleImagePreviewKeyDown(e, image)}
+                  aria-label={`Open image ${image.file_name}`}
+                >
                   <img
                     src={image.file_url}
-                    alt={image.file_name}
-                    className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
-                    onClick={() => setSelectedImage(image)}
-                    onKeyDown={(e) => handleImagePreviewKeyDown(e, image)}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`Open image ${image.file_name}`}
+                    alt=""
+                    className="w-full h-full object-cover hover:scale-105 transition-transform pointer-events-none"
                   />
+                </button>
                   
                   {/* Display Image Indicator */}
                   {currentDisplayImage === image.file_url && (

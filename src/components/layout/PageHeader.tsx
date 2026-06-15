@@ -95,7 +95,11 @@ const PageHeader: React.FC<PageHeaderProps> = ({
         <div className="min-w-0 flex-1 space-y-1">
           {/* Title row with inline meta on desktop */}
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+            <h1
+              className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl"
+              data-route-heading="true"
+              tabIndex={-1}
+            >
               {title}
             </h1>
             {/* Meta badges/labels - inline with title on desktop (and mobile when inlineMetaOnMobile) */}

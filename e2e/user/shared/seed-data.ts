@@ -4,6 +4,7 @@ export const apexOrgId = '660e8400-e29b-41d4-a716-446655440000';
 export const metroOrgId = '660e8400-e29b-41d4-a716-446655440001';
 export const valleyOrgId = '660e8400-e29b-41d4-a716-446655440002';
 export const industrialOrgId = '660e8400-e29b-41d4-a716-446655440003';
+export const freshStartOrgId = '660e8400-e29b-41d4-a716-446655440009';
 
 export const orgIds = {
   apex: apexOrgId,
@@ -120,6 +121,7 @@ export type PersonaKey =
   | 'metroTech'
   | 'valleyOwner'
   | 'industrialOwner'
+  | 'onboardingOwner'
   | 'multiOrg';
 
 export const personas: Record<
@@ -168,6 +170,12 @@ export const personas: Record<
     orgLabel: 'Industrial Rentals',
     defaultOrgId: industrialOrgId,
   },
+  onboardingOwner: {
+    displayName: 'Fresh Start Owner',
+    email: 'owner@freshstart.test',
+    orgLabel: 'Fresh Start Equipment Co',
+    defaultOrgId: freshStartOrgId,
+  },
   multiOrg: {
     displayName: 'Multi Org User',
     email: 'multi@equipqr.test',
@@ -184,6 +192,7 @@ export const setupPersonas: PersonaKey[] = [
   'metroTech',
   'valleyOwner',
   'industrialOwner',
+  'onboardingOwner',
   'multiOrg',
 ];
 

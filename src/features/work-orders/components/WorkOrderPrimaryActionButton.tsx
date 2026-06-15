@@ -131,7 +131,10 @@ export const WorkOrderPrimaryActionButton: React.FC<WorkOrderPrimaryActionButton
         <Button
           variant={primaryAction.variant}
           size="sm"
-          onClick={primaryAction.action}
+          onClick={(e) => {
+            e.stopPropagation();
+            primaryAction.action();
+          }}
           disabled={updateStatusMutation.isPending || acceptanceMutation.isPending || primaryAction.disabled}
           className="font-medium"
           title={primaryAction.tooltip}

@@ -822,24 +822,32 @@ Deno.test("buildPMInvoiceDescription includes technician attribution when checkl
   assertMatch(text, /no checklist rows were recorded/);
 });
 
-// Fix 3: Empty work order returns [] without any QuickBooks fetch
-Deno.test("buildInvoiceLines returns empty array for a work order with no billable totals without any fetch", async () => {
+// Completed work orders without costs/hours still export via a zero-dollar Labor line.
+Deno.test("buildInvoiceLines emits zero-dollar labor line when no billable totals exist", async () => {
   const originalFetch = globalThis.fetch;
-  let fetchCallCount = 0;
   try {
-    globalThis.fetch = () => {
-      fetchCallCount++;
-      return Promise.resolve(new Response("should not be called", { status: 500 }));
+    globalThis.fetch = (_input: RequestInfo | URL) => {
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            QueryResponse: { Item: [{ Id: "labor-id", Name: QBO_INVOICE_ITEM_NAMES.labor }] },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
     };
 
     const lines = await buildInvoiceLines("tok", REALM, [], [], {
-      workOrder: minimalWorkOrder as never,
+      workOrder: { ...minimalWorkOrder, title: "Technician-Created WO" } as never,
       pm: null,
       publicNotesText: "",
     });
 
-    assertEquals(lines.length, 0);
-    assertEquals(fetchCallCount, 0, "No QuickBooks API calls should be made for empty work orders");
+    assertEquals(lines.length, 1);
+    assertEquals(lines[0].Amount, 0);
+    assertEquals(lines[0].Description, "Technician-Created WO");
+    assertEquals(lines[0].SalesItemLineDetail.Qty, 1);
+    assertEquals(lines[0].SalesItemLineDetail.UnitPrice, 0);
   } finally {
     restoreFetch(originalFetch);
   }

@@ -17,6 +17,7 @@ import type { EquipmentPMStatus } from '@/features/equipment/hooks/useEquipmentP
 import type { MergedEquipment } from '@/features/equipment/hooks/useOfflineMergedEquipment';
 import { isOfflineEquipmentId } from '@/features/equipment/hooks/useOfflineMergedEquipment';
 import { toast } from 'sonner';
+import { handleKeyboardActivation } from '@/components/a11y/keyboard';
 
 interface Equipment {
   id: string;
@@ -77,13 +78,6 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
     onShowQRCode(equipment.id);
   };
 
-  const handleCardKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleCardClick();
-    }
-  };
-
   const handleQuickAction = (e: React.MouseEvent, path: string) => {
     e.stopPropagation();
     if (isOfflineEquipmentId(equipment.id)) {
@@ -104,11 +98,13 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
         statusTintClass,
         viewMode === 'grid' && "flex flex-col md:h-full"
       )}
-      onClick={handleCardClick}
-      onKeyDown={handleCardKeyDown}
       role="button"
       tabIndex={0}
-      aria-label={`Open details for ${equipment.name}`}
+      onClick={handleCardClick}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        handleKeyboardActivation(e, handleCardClick);
+      }}
     >
       {statusRailClass ? (
         <div

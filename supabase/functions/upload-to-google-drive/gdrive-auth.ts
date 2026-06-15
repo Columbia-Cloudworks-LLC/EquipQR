@@ -19,8 +19,13 @@ import { tokenErrorResponse, rateLimitResponse } from "./gdrive-error-responses.
 
 export interface AuthorizedDriveUpload {
   organizationId: string;
-  destinationParentId: string;
+  destination: {
+    parent_id: string;
+    folder_by_team: boolean | null;
+    folder_by_equipment: boolean | null;
+  };
   accessToken: string;
+  userId: string;
 }
 
 export async function authorizeDriveUpload(
@@ -49,7 +54,7 @@ export async function authorizeDriveUpload(
 
   const { data: orgDestination, error: destinationError } = await supabase
     .from("organization_google_export_destinations")
-    .select("parent_id")
+    .select("parent_id, folder_by_team, folder_by_equipment")
     .eq("organization_id", organizationId)
     .eq("document_type", "work-orders-internal-packet")
     .maybeSingle();
@@ -60,7 +65,7 @@ export async function authorizeDriveUpload(
   }
 
   const destinationParentId = orgDestination?.parent_id ?? parentId ?? null;
-  if (!destinationParentId) {
+  if (!destinationParentId || !orgDestination?.parent_id) {
     return createJsonResponse(
       {
         error: "Organization Drive folder is not configured. Set an organization folder in Organization Settings before saving to Drive.",
@@ -107,7 +112,12 @@ export async function authorizeDriveUpload(
 
   return {
     organizationId,
-    destinationParentId,
+    destination: {
+      parent_id: orgDestination.parent_id,
+      folder_by_team: orgDestination.folder_by_team,
+      folder_by_equipment: orgDestination.folder_by_equipment,
+    },
     accessToken: tokenResult.accessToken,
+    userId: user.id,
   };
 }

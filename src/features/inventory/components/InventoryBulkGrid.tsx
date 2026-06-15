@@ -19,6 +19,7 @@ import { useBulkGridDisplayValue } from '@/hooks/useBulkGridDisplayValue';
 import { BulkPendingApplyDialog } from '@/components/bulk-edit/BulkPendingApplyDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
+import { handleKeyboardActivation } from '@/components/a11y/keyboard';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
 
 import {
@@ -99,6 +100,7 @@ function InventoryBulkListRow({
       role="row"
       style={{ ...style, display: 'flex', width: TOTAL_COL_WIDTH }}
       aria-selected={isSelected}
+      tabIndex={0}
       className={cn(
         'border-b transition-colors',
         isSelected && 'bg-muted/30',
@@ -106,6 +108,7 @@ function InventoryBulkListRow({
         'cursor-pointer hover:bg-muted/20'
       )}
       onClick={(e) => handleRowClick(row.id, e)}
+      onKeyDown={(e) => handleKeyboardActivation(e, () => onToggleSelected(row.id))}
     >
       <div
         style={{ width: COL.select, flexShrink: 0 }}

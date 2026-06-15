@@ -199,8 +199,14 @@ const EquipmentDetails = () => {
         {isMobile && (
           <MobileEquipmentActionBar
             equipmentId={equipment.id}
-            onCreateWorkOrder={() => setIsWorkOrderFormOpen(true)}
-            onLogHours={() => setIsWorkingHoursModalOpen(true)}
+            onCreatePMWorkOrder={() => {
+              setWorkOrderCreateMode('pm');
+              setIsWorkOrderFormOpen(true);
+            }}
+            onCreateGenericWorkOrder={() => {
+              setWorkOrderCreateMode('generic');
+              setIsWorkOrderFormOpen(true);
+            }}
             onAddNote={() => setActiveTab('notes')}
           />
         )}

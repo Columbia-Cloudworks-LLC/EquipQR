@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { handleKeyboardActivation, useMountFocus } from '@/components/a11y/keyboard';
 import { CheckCircle2, ChevronRight, ChevronLeft, Star, Search, Package } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useInventoryItems } from '@/features/inventory/hooks/useInventory';
@@ -45,6 +46,8 @@ export const AlternateGroupCreateWizard: React.FC<WizardProps> = ({
   const { toast } = useAppToast();
 
   const [step, setStep] = useState(1);
+  const nameInputRef = useMountFocus<HTMLInputElement>(step === 1);
+  const searchInputRef = useMountFocus<HTMLInputElement>(step === 2);
 
   // Step 1: group details
   const [name, setName] = useState('');
@@ -236,11 +239,11 @@ export const AlternateGroupCreateWizard: React.FC<WizardProps> = ({
               Name <span className="text-destructive">*</span>
             </Label>
             <Input
+              ref={nameInputRef}
               id="wizard-name"
               placeholder="e.g., Oil Filter — CAT D6T Compatible"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              autoFocus
             />
             {nameError && <p className="text-sm text-destructive">{nameError}</p>}
           </div>
@@ -330,11 +333,11 @@ export const AlternateGroupCreateWizard: React.FC<WizardProps> = ({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
+              ref={searchInputRef}
               placeholder="Search by name or SKU..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
-              autoFocus
             />
           </div>
 
@@ -354,10 +357,13 @@ export const AlternateGroupCreateWizard: React.FC<WizardProps> = ({
                 return (
                   <div
                     key={item.id}
+                    role="button"
+                    tabIndex={0}
                     className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-muted/50 transition-colors ${
                       isSelected ? 'bg-primary/5' : ''
                     }`}
                     onClick={() => toggleItem(item.id)}
+                    onKeyDown={(e) => handleKeyboardActivation(e, () => toggleItem(item.id))}
                   >
                     <Checkbox
                       checked={isSelected}

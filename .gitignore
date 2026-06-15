@@ -36,6 +36,7 @@ tmpclaude-*-cwd
 .env
 .env.*
 !.env.example
+supabase/.env
 
 # Private keys and credentials
 *.pem
@@ -100,3 +101,4 @@ public/sitemap.xml
 public/__mobile-frame.html
 public/__viewport-probe.html
 
+node_modules_broken/@tailwindcss/.oxide-win32-x64-msvc-EpFgz722.old/tailwindcss-oxide.win32-x64-msvc.node

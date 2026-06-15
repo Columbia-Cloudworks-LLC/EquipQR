@@ -1,26 +1,20 @@
 import { type Page } from '@playwright/test';
 import { test, expect } from '../fixtures/equipqr-test';
+import { INTEGRATIONS_PATH, assertQuickBooksConnected } from '../shared/quickbooks-auth-helpers';
 import {
-  getProductionQuickBooksInvoiceUrl,
+  getQuickBooksInvoiceUrl,
   hasRealAuthExportPrerequisites,
   hasRealAuthStorageState,
   missingRealAuthExportMessage,
   missingRealAuthStorageMessage,
+  resolveExpectedQboEnvironment,
   resolveQboWorkOrderId,
 } from '../shared/real-auth-config';
-
-const INTEGRATIONS_PATH = '/dashboard/organization/integrations';
 
 async function assertAuthenticatedDashboard(page: Page): Promise<void> {
   await page.goto('/dashboard');
   await expect(page).toHaveURL(/\/dashboard/i, { timeout: 60_000 });
   await expect(page).not.toHaveURL(/\/auth/i);
-}
-
-async function assertQuickBooksConnected(page: Page): Promise<void> {
-  await expect(page.getByText('QuickBooks Online').first()).toBeVisible({ timeout: 60_000 });
-  const qbCard = page.locator('div.rounded-lg.border').filter({ hasText: 'QuickBooks Online' });
-  await expect(qbCard.getByText('Connected').first()).toBeVisible({ timeout: 60_000 });
 }
 
 async function assertGoogleWorkspaceHealthy(page: Page): Promise<void> {
@@ -35,20 +29,27 @@ async function assertGoogleWorkspaceHealthy(page: Page): Promise<void> {
   await expect(driveCard.getByText('Configured').first()).toBeVisible({ timeout: 60_000 });
 }
 
-async function assertIntuitInvoicePage(page: Page, invoiceId: string): Promise<void> {
-  const invoiceUrl = getProductionQuickBooksInvoiceUrl(invoiceId);
+async function assertIntuitInvoicePage(
+  page: Page,
+  invoiceId: string,
+  environment: 'sandbox' | 'production',
+): Promise<void> {
+  const invoiceUrl = getQuickBooksInvoiceUrl(invoiceId, environment);
   await page.goto(invoiceUrl, { waitUntil: 'domcontentloaded', timeout: 120_000 });
 
   const { hostname, pathname } = new URL(page.url());
-  expect(hostname).toBe('app.qbo.intuit.com');
+  const expectedHost =
+    environment === 'production' ? 'app.qbo.intuit.com' : 'app.sandbox.qbo.intuit.com';
+  expect(hostname).toBe(expectedHost);
   expect(pathname).not.toMatch(/signin|login/i);
   expect(hostname).not.toBe('accounts.intuit.com');
 
   const signInHeading = page.getByRole('heading', { name: /sign in|log in/i });
   if ((await signInHeading.count()) > 0) {
+    const qboHost = environment === 'production' ? 'app.qbo.intuit.com' : 'app.sandbox.qbo.intuit.com';
     throw new Error(
-      'QuickBooks session is not authenticated. Re-capture tmp/playwright/auth/nicholas-google-qbo.json ' +
-        'after signing into https://app.qbo.intuit.com in the same browser context.',
+      `QuickBooks session is not authenticated. Re-capture tmp/playwright/auth/nicholas-google-qbo.json ` +
+        `after signing into https://${qboHost} in the same browser context.`,
     );
   }
 
@@ -84,14 +85,18 @@ test.describe('real-auth integrations @real-auth', () => {
 
     await expect(page.getByText(/completed/i).first()).toBeVisible({ timeout: 60_000 });
 
-    const actionsButton = page.getByRole('button', { name: 'Actions' });
-    await expect(actionsButton).toBeVisible({ timeout: 60_000 });
-    await actionsButton.click();
+    const exportButton = page.getByRole('button', { name: 'Export' });
+    await expect(exportButton).toBeVisible({ timeout: 60_000 });
+    await exportButton.click();
+
+    await page.getByRole('menuitem', { name: 'QuickBooks' }).click();
 
     const exportItem = page.getByRole('menuitem', {
-      name: /export to quickbooks|update invoice/i,
+      name: /Create New Invoice|Update Invoice/i,
     });
     await expect(exportItem).toBeVisible({ timeout: 30_000 });
+
+    const expectedEnvironment = resolveExpectedQboEnvironment();
 
     const exportResponsePromise = page.waitForResponse(
       (response) =>
@@ -115,12 +120,12 @@ test.describe('real-auth integrations @real-auth', () => {
 
     expect(exportBody.success).toBe(true);
     expect(exportBody.invoice_id).toBeTruthy();
-    expect(exportBody.environment).toBe('production');
+    expect(exportBody.environment).toBe(expectedEnvironment);
 
     await expect(page.getByText(/invoice .* (created|updated) in quickbooks/i).first()).toBeVisible({
       timeout: 60_000,
     });
 
-    await assertIntuitInvoicePage(page, exportBody.invoice_id!);
+    await assertIntuitInvoicePage(page, exportBody.invoice_id!, expectedEnvironment);
   });
 });

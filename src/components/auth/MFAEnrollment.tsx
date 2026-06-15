@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useMountFocus } from '@/components/a11y/keyboard';
 import { Button } from '@/components/ui/button';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useMFA } from '@/hooks/useMFA';
@@ -32,6 +33,7 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const otpRef = useMountFocus<React.ElementRef<typeof InputOTP>>(step === 'verify');
 
   // Clear the "copied" timeout on unmount to prevent state updates after unmount
   useEffect(() => {
@@ -189,6 +191,7 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
 
           <div className="flex flex-col items-center space-y-4">
             <InputOTP
+              ref={otpRef}
               maxLength={6}
               value={code}
               onChange={handleCodeChange}
@@ -196,7 +199,6 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
               aria-label="Verification code"
               aria-invalid={error ? 'true' : 'false'}
               aria-describedby={error ? 'mfa-enroll-error' : undefined}
-              autoFocus
             >
               <InputOTPGroup>
                 <InputOTPSlot index={0} />

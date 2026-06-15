@@ -1,0 +1,75 @@
+---
+description: "Hard gate — no push to preview until local end-to-end verification passes with zero user manual steps. Agent runs all checks autonomously."
+alwaysApply: true
+---
+# Local Verify Before Preview Push
+
+As of 2026-06-13, the local dev stack has **production parity** (Auth, Edge Functions, Google Workspace Connect, etc.). Treat that as the mandatory pre-push gate.
+
+## Hard rule
+
+**Do not push to `origin/preview` and do not open/merge a PR into `preview` until the change is verified locally end-to-end with zero manual user intervention.**
+
+- "Verified" means the agent ran the checks, observed pass signals, and can cite commands + outcomes in the handoff.
+- "Zero manual intervention" means no asking the maintainer to click OAuth, reload, sign in, or confirm behavior. Use shell, Vitest, Playwright, Supabase CLI, edge logs, and **browser MCP** instead.
+- If the change cannot be verified locally without a human step, **stop before push** and report the blocker. Do not push and hope preview works.
+
+**Exception:** workflow-only paths (`.cursor/**`, `AGENTS.md`, `scripts/mcp.template.json`) still follow `workflow-artifacts.mdc` — Fallow clean, no product E2E required.
+
+## Minimum gate (every product/runtime change)
+
+Run in order; all must pass:
+
+0. **CI-parity install** — `npm ci --prefer-offline --no-audit` (same as GitHub Actions). Required after any `package.json` / lockfile / `.npmrc` change and before opening a feature-branch PR. See `pr-ci-gate-before-open.mdc`.
+1. **Fallow** — both scans per `fallow-before-commit.mdc` (before commit).
+2. **Static checks** — `npm run lint`, `npm run type-check`.
+3. **Targeted tests** — Vitest for touched behavior; add/update tests when behavior changed.
+4. **Build** — `npm run build` when routing, env wiring, Vite, or PWA may be affected.
+
+## End-to-end gate (by change type)
+
+Pick the **smallest credible E2E proof** that covers the user-visible outcome. Prefer existing automation first.
+
+| Change touches | Local E2E proof (agent-run) |
+|---|---|
+| UI route / form / dashboard flow | Browser MCP smoke on `http://localhost:8080` **or** `.\dev-test.bat` critical when a spec exists |
+| Broad UX / release-sensitive | `.\dev-test.bat full` (headless) |
+| Edge Function / OAuth callback | `deno test` in function dir if present; then exercise callback path on local stack; confirm via edge logs + DB/RPC read |
+| Google sign-in (Supabase Auth) | Browser MCP: complete Google login locally; confirm session in app |
+| Google Workspace Connect / disconnect | Browser MCP on integrations page; complete flow locally; confirm `gw_connected` redirect or RPC `get_google_workspace_connection_status` |
+| Migration / RLS | Apply locally; run targeted tests + RPC/policy check against local Supabase |
+| Env / sync scripts | Run the sync script; restart affected service; re-probe the env var or HTTP endpoint |
+
+### Local stack health
+
+Before E2E, ensure the stack is up and env is current. Follow **`dev-stack-lifecycle.mdc`** — batch files only:
+
+```powershell
+.\dev-stop.bat
+.\dev-start.bat          # normal restart
+# or
+.\dev-start.bat -Force   # DB reset, migrations/seeds, types regen
+```
+
+Agents may run stop/start **without asking** when verification or dependency work requires a clean stack. After edge env changes under `supabase/functions/.env`, use a **full** batch-file cycle — not partial Docker-only restarts.
+
+Before `npm ci` on Windows, stop the stack if native binary EPERM/EBUSY is possible.
+
+OAuth redirect mismatches locally almost always mean `GW_OAUTH_REDIRECT_BASE_URL` / `QB_OAUTH_REDIRECT_BASE_URL` missing from the edge runtime — see `scripts/sync-local-supabase-env.ps1`.
+
+Reference: `docs/technical/e2e-user-regression.md`, `docs/technical/testing-guidelines.md`.
+
+## Push handoff requirements
+
+Before `git push origin preview` or `gh pr create --base preview`, the agent report must include:
+
+- **`npm ci --prefer-offline --no-audit` pass** when dependencies changed or before first PR open on a feature branch.
+- Verification commands run (copy-pasteable).
+- Pass/fail outcome for each layer (Fallow, npm ci, lint, tests, E2E).
+- For feature-branch PRs: **`gh pr checks` green** (or `--watch` completed) per `pr-ci-gate-before-open.mdc` — do not hand off with failing CI.
+- For integrations/OAuth: what signal proved success (log line, RPC result, UI state).
+- **PR visual evidence** (when opening/updating a product PR): capture command, spec path, and confirmation that screenshots + demo MP4 were uploaded per `pr-visual-evidence.mdc` (include PR comment link after `-Publish`).
+
+## Relationship to branching
+
+This gate **supersedes speed-over-safety** for preview pushes. Direct push on the main worktree remains authorized **after** this gate passes — still no push to `main` except release/hotfix flows.

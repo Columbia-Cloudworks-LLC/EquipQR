@@ -3,38 +3,59 @@ import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { customRender } from '@/test/utils/renderUtils';
 
-// Hoisted mocks
-const { mockGenerateAuthUrl, mockSyncUsers, mockGetConnectionStatus } = vi.hoisted(() => ({
+const {
+  mockGenerateAuthUrl,
+  mockSyncUsers,
+  mockGetConnectionStatus,
+  mockConnect,
+  mockDisconnectMutate,
+} = vi.hoisted(() => ({
   mockGenerateAuthUrl: vi.fn(),
   mockSyncUsers: vi.fn(),
   mockGetConnectionStatus: vi.fn(),
+  mockConnect: vi.fn(),
+  mockDisconnectMutate: vi.fn(),
 }));
 
-// Mock services
 vi.mock('@/services/google-workspace', () => ({
   getGoogleWorkspaceConnectionStatus: (...args: unknown[]) => mockGetConnectionStatus(...args),
   syncGoogleWorkspaceUsers: (...args: unknown[]) => mockSyncUsers(...args),
 }));
 
-vi.mock('@/services/google-workspace/auth', () => ({
-  generateGoogleWorkspaceAuthUrl: (...args: unknown[]) => mockGenerateAuthUrl(...args),
-  isGoogleWorkspaceConfigured: () => true,
+vi.mock('@/services/google-workspace/auth', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/services/google-workspace/auth')>();
+  return {
+    ...actual,
+    generateGoogleWorkspaceAuthUrl: (...args: unknown[]) => mockGenerateAuthUrl(...args),
+    isGoogleWorkspaceConfigured: () => true,
+  };
+});
+
+vi.mock('@/features/organization/hooks/useGoogleWorkspaceConnect', () => ({
+  useGoogleWorkspaceConnect: () => ({
+    connect: mockConnect,
+    isConnecting: false,
+  }),
 }));
 
-// Mock OrganizationContext
+vi.mock('@/features/organization/hooks/useGoogleWorkspaceDisconnect', () => ({
+  useGoogleWorkspaceDisconnect: () => ({
+    mutate: mockDisconnectMutate,
+    isPending: false,
+  }),
+}));
+
 vi.mock('@/contexts/OrganizationContext', () => ({
   useOrganization: () => ({
     currentOrganization: { id: 'org-123', name: 'Test Org' },
   }),
 }));
 
-// Mock useAppToast
 const mockToast = vi.fn();
 vi.mock('@/hooks/useAppToast', () => ({
   useAppToast: () => ({ toast: mockToast }),
 }));
 
-// Mock TanStack Query
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual<typeof import('@tanstack/react-query')>('@tanstack/react-query');
   return {
@@ -46,29 +67,34 @@ vi.mock('@tanstack/react-query', async () => {
       if (!enabled) {
         return { data: undefined, isLoading: false };
       }
-      // Return mock data based on mockGetConnectionStatus
       return { data: mockGetConnectionStatus(), isLoading: false };
     },
   };
 });
 
-// Import after mocks
 import { GoogleWorkspaceIntegration } from '../GoogleWorkspaceIntegration';
+
+const fullWorkspaceScopes = [
+  'https://www.googleapis.com/auth/admin.directory.user.readonly',
+  'https://www.googleapis.com/auth/spreadsheets',
+  'https://www.googleapis.com/auth/drive.file',
+  'https://www.googleapis.com/auth/drive.readonly',
+  'https://www.googleapis.com/auth/documents',
+].join(' ');
 
 describe('GoogleWorkspaceIntegration', () => {
   beforeEach(() => {
     mockGenerateAuthUrl.mockReset();
     mockSyncUsers.mockReset();
     mockGetConnectionStatus.mockReset();
+    mockConnect.mockReset();
+    mockDisconnectMutate.mockReset();
     mockToast.mockReset();
   });
 
   it('renders nothing for non-admin users', () => {
-    customRender(
-      <GoogleWorkspaceIntegration currentUserRole="member" />
-    );
+    customRender(<GoogleWorkspaceIntegration currentUserRole="member" />);
 
-    // Component returns null for non-admin users, so no content should be present
     expect(screen.queryByText('Google Workspace')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Connect$/ })).not.toBeInTheDocument();
   });
@@ -77,101 +103,117 @@ describe('GoogleWorkspaceIntegration', () => {
     mockGetConnectionStatus.mockReturnValue({
       is_connected: false,
       domain: null,
+      scopes: null,
     });
 
     customRender(<GoogleWorkspaceIntegration currentUserRole="admin" />);
 
     expect(screen.getByText('Google Workspace')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Connect$/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Reconnect$/ })).not.toBeInTheDocument();
   });
 
-  it('renders sync button when connected', () => {
+  it('renders sync and disconnect actions when healthy connected', () => {
     mockGetConnectionStatus.mockReturnValue({
       is_connected: true,
       domain: 'example.com',
+      scopes: fullWorkspaceScopes,
     });
 
     customRender(<GoogleWorkspaceIntegration currentUserRole="owner" />);
 
     expect(screen.getByText(/Domain: example.com/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /sync directory/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Disconnect$/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Reconnect$/ })).not.toBeInTheDocument();
   });
 
-  it('shows reconnect action when connected and starts OAuth flow from it', async () => {
+  it('shows finish authorization state when required scopes are missing', () => {
     mockGetConnectionStatus.mockReturnValue({
       is_connected: true,
       domain: 'example.com',
-    });
-    mockGenerateAuthUrl.mockResolvedValue('https://accounts.google.com/oauth/authorize?...');
-
-    const originalLocation = window.location;
-    Object.defineProperty(window, 'location', {
-      value: { href: '' },
-      writable: true,
+      scopes: 'https://www.googleapis.com/auth/admin.directory.user.readonly',
     });
 
     customRender(<GoogleWorkspaceIntegration currentUserRole="owner" />);
 
-    const reconnectButton = screen.getByRole('button', { name: /^Reconnect$/ });
-    fireEvent.click(reconnectButton);
+    expect(screen.getByText('Permissions needed')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sync directory/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /finish authorization/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Reconnect$/ })).not.toBeInTheDocument();
+  });
 
-    await waitFor(() => {
-      expect(mockGenerateAuthUrl).toHaveBeenCalledWith({
-        organizationId: 'org-123',
-        redirectUrl: '/dashboard/organization/integrations',
-      });
+  it('shows sync directory when connected with unknown null scopes', () => {
+    mockGetConnectionStatus.mockReturnValue({
+      is_connected: true,
+      domain: 'example.com',
+      scopes: null,
     });
 
-    Object.defineProperty(window, 'location', {
-      value: originalLocation,
-      writable: true,
+    customRender(<GoogleWorkspaceIntegration currentUserRole="owner" />);
+
+    expect(screen.getByText('Permissions needed')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sync directory/i })).toBeInTheDocument();
+  });
+
+  it('starts OAuth flow from finish authorization action', () => {
+    mockGetConnectionStatus.mockReturnValue({
+      is_connected: true,
+      domain: 'example.com',
+      scopes: 'https://www.googleapis.com/auth/admin.directory.user.readonly',
+    });
+
+    customRender(<GoogleWorkspaceIntegration currentUserRole="owner" />);
+
+    fireEvent.click(screen.getByRole('button', { name: /finish authorization/i }));
+    expect(mockConnect).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens disconnect dialog and calls disconnect mutation on confirm', async () => {
+    mockGetConnectionStatus.mockReturnValue({
+      is_connected: true,
+      domain: 'example.com',
+      scopes: fullWorkspaceScopes,
+    });
+
+    customRender(<GoogleWorkspaceIntegration currentUserRole="owner" />);
+
+    fireEvent.click(screen.getByRole('button', { name: /^Disconnect$/ }));
+
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+    expect(screen.getByText('Disconnect Google Workspace?')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Disconnect Google Workspace$/ }));
+
+    await waitFor(() => {
+      expect(mockDisconnectMutate).toHaveBeenCalledTimes(1);
     });
   });
 
-  it('initiates OAuth flow when connect button is clicked', async () => {
+  it('initiates OAuth flow when connect button is clicked', () => {
     mockGetConnectionStatus.mockReturnValue({
       is_connected: false,
       domain: null,
-    });
-    mockGenerateAuthUrl.mockResolvedValue('https://accounts.google.com/oauth/authorize?...');
-
-    // Mock window.location
-    const originalLocation = window.location;
-    Object.defineProperty(window, 'location', {
-      value: { href: '' },
-      writable: true,
+      scopes: null,
     });
 
     customRender(<GoogleWorkspaceIntegration currentUserRole="admin" />);
 
-    const connectButton = screen.getByRole('button', { name: /^Connect$/ });
-    fireEvent.click(connectButton);
-
-    await waitFor(() => {
-      expect(mockGenerateAuthUrl).toHaveBeenCalledWith({
-        organizationId: 'org-123',
-        redirectUrl: '/dashboard/organization/integrations',
-      });
-    });
-
-    // Restore window.location
-    Object.defineProperty(window, 'location', {
-      value: originalLocation,
-      writable: true,
-    });
+    fireEvent.click(screen.getByRole('button', { name: /^Connect$/ }));
+    expect(mockConnect).toHaveBeenCalledTimes(1);
   });
 
   it('syncs users when sync button is clicked', async () => {
     mockGetConnectionStatus.mockReturnValue({
       is_connected: true,
       domain: 'example.com',
+      scopes: fullWorkspaceScopes,
     });
     mockSyncUsers.mockResolvedValue({ usersSynced: 15 });
 
     customRender(<GoogleWorkspaceIntegration currentUserRole="admin" />);
 
-    const syncButton = screen.getByRole('button', { name: /sync directory/i });
-    fireEvent.click(syncButton);
+    fireEvent.click(screen.getByRole('button', { name: /sync directory/i }));
 
     await waitFor(() => {
       expect(mockSyncUsers).toHaveBeenCalledWith('org-123');
@@ -189,39 +231,18 @@ describe('GoogleWorkspaceIntegration', () => {
     mockGetConnectionStatus.mockReturnValue({
       is_connected: true,
       domain: 'example.com',
+      scopes: fullWorkspaceScopes,
     });
     mockSyncUsers.mockRejectedValue(new Error('Failed to sync'));
 
     customRender(<GoogleWorkspaceIntegration currentUserRole="admin" />);
 
-    const syncButton = screen.getByRole('button', { name: /sync directory/i });
-    fireEvent.click(syncButton);
+    fireEvent.click(screen.getByRole('button', { name: /sync directory/i }));
 
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith({
         title: 'Failed to sync users',
         description: 'Failed to sync',
-        variant: 'error',
-      });
-    });
-  });
-
-  it('shows error toast when connect fails', async () => {
-    mockGetConnectionStatus.mockReturnValue({
-      is_connected: false,
-      domain: null,
-    });
-    mockGenerateAuthUrl.mockRejectedValue(new Error('OAuth config error'));
-
-    customRender(<GoogleWorkspaceIntegration currentUserRole="admin" />);
-
-    const connectButton = screen.getByRole('button', { name: /^Connect$/ });
-    fireEvent.click(connectButton);
-
-    await waitFor(() => {
-      expect(mockToast).toHaveBeenCalledWith({
-        title: 'Failed to connect Google Workspace',
-        description: 'OAuth config error',
         variant: 'error',
       });
     });

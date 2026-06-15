@@ -11,8 +11,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const scenariosPath = path.join(__dirname, '..', 'demo-scenarios.json');
 
+import { RECORDING_VIEWPORT } from './recording-quality.mjs';
+
 export const defaultViewportByProfile = {
-  desktop: { width: 1920, height: 1080 },
+  desktop: RECORDING_VIEWPORT,
   mobile: { width: 390, height: 844 },
 };
 

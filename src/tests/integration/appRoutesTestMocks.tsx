@@ -15,8 +15,33 @@ vi.mock('@/contexts/useUser', () => ({
 }));
 
 vi.mock('@/hooks/useSimpleOrganization', () => ({
-  useSimpleOrganization: () => ({ currentOrganization: null }),
+  useSimpleOrganization: () => ({
+    currentOrganization: { id: 'test-org' },
+    organizationId: 'test-org',
+    isLoading: false,
+  }),
   useSimpleOrganizationSafe: () => null,
+}));
+
+vi.mock('@/features/onboarding/hooks/useProductOnboarding', () => ({
+  useProductOnboardingStatus: () => ({
+    data: {
+      needs_onboarding: false,
+      is_org_admin: true,
+      teams_count: 1,
+      equipment_count: 1,
+      completed_at: '2026-01-01T00:00:00Z',
+    },
+    isLoading: false,
+    isError: false,
+    isPending: false,
+    isFetched: true,
+  }),
+  useCompleteProductOnboarding: () => ({
+    mutate: vi.fn(),
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
 }));
 
 vi.mock('@/hooks/useMFA', () => ({

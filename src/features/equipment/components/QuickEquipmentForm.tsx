@@ -1,18 +1,12 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Forklift, Info, Loader2, Wrench } from 'lucide-react';
+import { Forklift, Info, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import TeamPickerWithCreate from '@/features/teams/components/TeamPickerWithCreate';
 import {
   Tooltip,
   TooltipContent,
@@ -269,46 +263,30 @@ export const QuickEquipmentForm: React.FC<QuickEquipmentFormProps> = ({
           </div>
 
           {/* Team Selector */}
-          <div className="space-y-2">
-            <Label htmlFor="team_id">Assign to Team *</Label>
-            {isLoadingTeams ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading teams...
-              </div>
-            ) : availableTeams.length === 0 ? (
-              <Alert variant="destructive">
-                <AlertDescription>
-                  You don't have permission to create equipment for any team.
-                </AlertDescription>
-              </Alert>
-            ) : availableTeams.length === 1 ? (
-              <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md border text-sm">
-                <Wrench className="h-4 w-4 text-muted-foreground" />
-                <span>{availableTeams[0].name}</span>
-              </div>
-            ) : (
-              <Select
-                value={form.watch('team_id')}
-                onValueChange={(value) => setValue('team_id', value)}
-                disabled={isSubmitting}
-              >
-                <SelectTrigger id="team_id">
-                  <SelectValue placeholder="Select team" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableTeams.map((team) => (
-                    <SelectItem key={team.id} value={team.id}>
-                      {team.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            {errors.team_id && (
-              <p className="text-sm text-destructive">{errors.team_id.message}</p>
-            )}
-          </div>
+          {isLoadingTeams ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading teams...
+            </div>
+          ) : availableTeams.length === 0 ? (
+            <Alert variant="destructive">
+              <AlertDescription>
+                You don&apos;t have permission to create equipment for any team.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <TeamPickerWithCreate
+              value={form.watch('team_id')}
+              onChange={(value) => setValue('team_id', value, { shouldValidate: true })}
+              requireTeam
+              showBillingCallout
+              teamFilter={(team) => canCreateForTeam(team.id)}
+              id="quick-equipment-team"
+            />
+          )}
+          {errors.team_id && (
+            <p className="text-sm text-destructive">{errors.team_id.message}</p>
+          )}
 
           {/* Equipment Name (auto-generated, editable) */}
           <div className="space-y-2">

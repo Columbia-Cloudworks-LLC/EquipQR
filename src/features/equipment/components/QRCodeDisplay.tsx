@@ -14,10 +14,10 @@ interface QRCodeDisplayProps {
 }
 
 const EQUIPMENT_QR_INSTRUCTIONS = [
-  'Print this QR code and attach it to the equipment',
-  'Users can scan it with any QR code scanner',
-  "They'll be taken directly to this equipment's details",
-  'Scans are automatically logged with location data',
+  'Copy the URL and paste it into your preferred QR app if that is how you generate printable codes',
+  'Or download the PNG/JPG image and print it from your computer or phone',
+  'Print this QR code and attach it to the equipment where technicians can scan it',
+  "Scans open this equipment's details and are logged automatically",
 ];
 
 const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({

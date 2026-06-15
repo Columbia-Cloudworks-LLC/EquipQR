@@ -50,7 +50,7 @@ const OrganizationIntegrations = () => {
         </div>
 
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="px-3 py-4 sm:px-6 sm:py-6">
             <OrganizationIntegrationsPanel currentUserRole={currentUserRole} />
           </CardContent>
         </Card>

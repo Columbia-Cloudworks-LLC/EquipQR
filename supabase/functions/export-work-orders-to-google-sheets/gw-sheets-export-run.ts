@@ -2,6 +2,8 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "../_shared/cors.ts";
 import { moveGoogleDriveFileToParent } from "../_shared/google-docs-api.ts";
 import { GoogleWorkspaceTokenError } from "../_shared/google-workspace-token.ts";
+import { createAdminSupabaseClient } from "../_shared/supabase-clients.ts";
+import { trackGoogleDriveExportArtifact } from "../_shared/record-export-artifacts.ts";
 import {
   fetchWorkOrdersWithData,
   buildAllRows,
@@ -16,6 +18,8 @@ import {
 } from "./gw-sheets-api.ts";
 
 const REPORT_TYPE = "work-orders-google-sheets";
+const SHEETS_EXPORT_CHANNEL = "google_sheets";
+const SHEETS_ARTIFACT_KIND = "internal_packet";
 
 export interface SheetsExportRunParams {
   supabase: SupabaseClient;
@@ -30,6 +34,8 @@ interface SheetsExportRunSuccess {
   spreadsheetId: string;
   spreadsheetUrl: string;
   workOrderCount: number;
+  replacedPrevious?: boolean;
+  warnings?: string[];
 }
 
 export function buildSpreadsheetTitle(date = new Date()): string {
@@ -153,17 +159,39 @@ export async function runSheetsExport(
     await populateSpreadsheet(accessToken, spreadsheetId, allRows);
     await formatSpreadsheet(accessToken, spreadsheetId, sheetNames.length);
 
+    let replacedPrevious = false;
+    const warnings: string[] = [];
+
+    if (filters.workOrderId) {
+      const adminClient = createAdminSupabaseClient();
+      const artifactResult = await trackGoogleDriveExportArtifact(adminClient, {
+        organizationId,
+        recordId: filters.workOrderId,
+        exportChannel: SHEETS_EXPORT_CHANNEL,
+        artifactKind: SHEETS_ARTIFACT_KIND,
+        providerFileId: spreadsheetId,
+        webViewLink: spreadsheetUrl,
+        providerParentId: organizationFolderId,
+        userId,
+        accessToken,
+      });
+      replacedPrevious = artifactResult.replacedPrevious;
+      warnings.push(...artifactResult.warnings);
+    }
+
     if (exportLogId) {
       await markExportLogCompleted(supabase, exportLogId, data.workOrders.length);
     }
 
-    logStep("Export complete", { spreadsheetId, workOrderCount: data.workOrders.length });
+    logStep("Export complete", { spreadsheetId, workOrderCount: data.workOrders.length, replacedPrevious });
 
     return new Response(
       JSON.stringify({
         spreadsheetId,
         spreadsheetUrl,
         workOrderCount: data.workOrders.length,
+        replacedPrevious,
+        warnings: warnings.length > 0 ? warnings : undefined,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

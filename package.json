@@ -1,7 +1,7 @@
 {
   "name": "equipqr",
   "private": true,
-  "version": "3.8.7",
+  "version": "3.9.0",
   "type": "module",
   "engines": {
     "node": "24.x"
@@ -18,6 +18,7 @@
     "build": "tsx scripts/generate-sitemap.ts && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
+    "lint:md": "markdownlint-cli2 \"**/*.{md,mdc}\"",
     "preview": "vite preview",
     "verify:preview-access": "node scripts/verify-preview-access.mjs",
     "verify:spa-routing": "node scripts/verify-spa-shell.mjs",
@@ -77,6 +78,12 @@
     "demo:v2:compose:on": "node scripts/demo-record-v2.mjs run --scenario=executive-overview --compose-scenes --capture-scene-clips",
     "demo:v2:compose:off": "node scripts/demo-record-v2.mjs run --scenario=executive-overview --no-compose-scenes",
     "demo:v2:dry-run": "node scripts/demo-record-v2.mjs suite --suite=core --dry-run",
+    "pr-evidence:capture": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/pr-evidence/Invoke-PrEvidenceCapture.ps1",
+    "pr-evidence:publish": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/pr-evidence/Publish-PrEvidence.ps1",
+    "pr-evidence": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/pr-evidence/Invoke-PrEvidence.ps1",
+    "e2e:google-auth:capture": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$env:E2E_REAL_AUTH_BASE_URL='http://localhost:8080'; npx playwright test --config=playwright.google-auth-setup.config.ts --headed\"",
+    "e2e:quickbooks-auth:capture": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$env:E2E_REAL_AUTH_BASE_URL='http://localhost:8080'; npx playwright test --config=playwright.quickbooks-auth-setup.config.ts --headed\"",
+    "e2e:quickbooks-developer-auth:capture": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"npx playwright test --config=playwright.quickbooks-developer-auth-setup.config.ts --headed\"",
     "generate:state-vectors": "node scripts/generate-state-vectors.mjs"
   },
   "dependencies": {
@@ -150,6 +157,7 @@
     }
   ],
   "devDependencies": {
+    "@axe-core/playwright": "4.11.3",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.60.0",
     "@size-limit/file": "^12.1.0",
@@ -168,6 +176,7 @@
     "@vitest/coverage-v8": "4.1.8",
     "d3-geo": "3.1.1",
     "eslint": "^10.4.1",
+    "eslint-plugin-jsx-a11y": "6.10.2",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
@@ -175,6 +184,7 @@
     "istanbul-lib-report": "^3.0.1",
     "istanbul-reports": "^3.2.0",
     "jsdom": "29.1.1",
+    "markdownlint-cli2": "0.20.0",
     "postcss": "^8.5.14",
     "size-limit": "^12.1.0",
     "supabase": "2.103.0",

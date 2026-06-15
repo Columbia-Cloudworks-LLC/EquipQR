@@ -22,7 +22,10 @@ export function rateLimitResponse(): Response {
   );
 }
 
-export function driveUploadSuccessResponse(driveFile: DriveFileResponse): Response {
+export function driveUploadSuccessResponse(
+  driveFile: DriveFileResponse,
+  extras?: { replacedPrevious?: boolean; warnings?: string[] },
+): Response {
   return new Response(
     JSON.stringify({
       id: driveFile.id,
@@ -30,6 +33,8 @@ export function driveUploadSuccessResponse(driveFile: DriveFileResponse): Respon
       mimeType: driveFile.mimeType,
       webViewLink: driveFile.webViewLink,
       webContentLink: driveFile.webContentLink,
+      replacedPrevious: extras?.replacedPrevious,
+      warnings: extras?.warnings,
     }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );

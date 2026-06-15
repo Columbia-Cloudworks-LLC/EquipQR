@@ -1,7 +1,10 @@
 ---
-description: "Dev:kong502,gcloud stderr,types gen,maps CSP,WinNAT"
-globs: "{dev-start.ps1,dev-stop.ps1,scripts/**/*.ps1,supabase/functions/**}"
+description: "Dev:kong502,gcloud stderr,types gen,maps CSP,WinNAT,stack cycle"
+globs: "{dev-start.ps1,dev-stop.ps1,dev-start.bat,dev-stop.bat,scripts/**/*.ps1,supabase/functions/**}"
 ---
+## 0. First response: full stack cycle
+**When:** flaky probes, EPERM on `npm ci`, missing `vite.cmd`, Kong 502, or unknown stack health.
+**Fix:** `.\dev-stop.bat` then `.\dev-start.bat` or `.\dev-start.bat -Force` per **`dev-stack-lifecycle.mdc`**. Do not patch in place across multiple turns.
 ## 1. Kong 502 on `/functions/v1/*` after `dev-start.bat`
 **Signature:** 502 on `/functions/v1/*`; kong upstream stale edge_runtime IP.
 **Root cause:** Kong upstream cache stale after `functions serve` recreates the container.

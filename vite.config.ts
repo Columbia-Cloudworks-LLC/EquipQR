@@ -93,7 +93,12 @@ export default defineConfig(({ mode }) => ({
     headers: {
       "Permissions-Policy": "camera=(self), microphone=(), geolocation=(self)",
       "Content-Security-Policy": buildCsp({ dev: true }),
-    }
+    },
+    // Playwright PR evidence and E2E write locked files under tmp/; watching them
+    // causes Vite to crash with EBUSY on Windows when videos are recorded.
+    watch: {
+      ignored: ['**/tmp/**', '**/playwright-report/**', '**/test-results/**'],
+    },
   },
   plugins: [
     mode === 'development' && httpLogger(),

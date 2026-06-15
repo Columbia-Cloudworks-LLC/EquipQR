@@ -1,4 +1,5 @@
 import { resolveScenarioSelection, expandScenarioSteps } from './demoScenarioEngine.mjs';
+import { RECORDING_VIEWPORT } from './recording-quality.mjs';
 
 /**
  * @param {{
@@ -19,8 +20,8 @@ export function buildOrchestratorPlan(opts) {
       scenarioId: expanded.id,
       title: expanded.title,
       flowToken: expanded.flowToken,
-      viewport: { width: 1920, height: 1080 },
-      videoSize: { width: 1920, height: 1080 },
+      viewport: RECORDING_VIEWPORT,
+      videoSize: RECORDING_VIEWPORT,
       sceneCount: expanded.scenes.length,
       scenes: expanded.scenes.map((scene) => ({
         sceneId: scene.id,
