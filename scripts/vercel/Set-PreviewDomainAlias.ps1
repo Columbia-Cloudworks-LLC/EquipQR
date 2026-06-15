@@ -25,6 +25,21 @@ $ErrorActionPreference = 'Stop'
 
 $VERCEL_TEAM_SLUG = 'columbia-cloudworks-llc'
 $PREVIEW_HOST = 'preview.equipqr.app'
+$AllowedPreviewHostPattern = '^(equipqr|equip-qr)-[a-z0-9-]+\.vercel\.app$'
+
+function Test-PreviewDeploymentHost {
+    param([Parameter(Mandatory = $true)][string]$HostOnly)
+
+    if ($HostOnly -eq $PREVIEW_HOST) {
+        throw "DeploymentUrl must be a Vercel preview hostname, not $PREVIEW_HOST itself."
+    }
+    if ($HostOnly -notmatch '\.vercel\.app$') {
+        throw "DeploymentUrl must be a *.vercel.app hostname (got '$HostOnly')."
+    }
+    if ($HostOnly -notmatch $AllowedPreviewHostPattern) {
+        throw "DeploymentUrl '$HostOnly' is not an allowed EquipQR Preview deployment hostname."
+    }
+}
 
 function Get-VercelToken {
     if (-not [string]::IsNullOrWhiteSpace($env:VERCEL_TOKEN)) {
@@ -46,6 +61,8 @@ $hostOnly = ($DeploymentUrl -replace '^https?://', '' -replace '/+$', '').Trim()
 if ([string]::IsNullOrWhiteSpace($hostOnly)) {
     throw 'DeploymentUrl resolved to an empty hostname.'
 }
+
+Test-PreviewDeploymentHost -HostOnly $hostOnly
 
 $vercelToken = Get-VercelToken
 $vercelExe = if (Get-Command vercel -ErrorAction SilentlyContinue) { 'vercel' } else { 'npx' }

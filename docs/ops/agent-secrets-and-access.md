@@ -98,7 +98,7 @@ Verify MCP wiring: `.\scripts\op-mcp-doctor.ps1` (expect 13/13 green on maintain
 Google Workspace OAuth requires **matching client ID** in:
 
 1. `app-env-preview-public` → `GOOGLE_WORKSPACE_CLIENT_ID` → baked into Vite as `VITE_GOOGLE_WORKSPACE_CLIENT_ID`
-2. `edge-env-prod-secrets` → `GOOGLE_WORKSPACE_CLIENT_ID` + `GOOGLE_WORKSPACE_CLIENT_SECRET` (cloud preview uses production Supabase; `edge-env-preview-secrets` retires with branch `olsdirk`)
+2. `edge-env-prod-secrets` → `GOOGLE_WORKSPACE_CLIENT_ID` + `GOOGLE_WORKSPACE_CLIENT_SECRET` (cloud preview and production share this item after #1033)
 
 After vault edit:
 
@@ -114,7 +114,6 @@ Use this end-to-end loop after any secret rotation in 1Password. Never paste sec
 
 ```powershell
 $env:OP_SERVICE_ACCOUNT_TOKEN = [Environment]::GetEnvironmentVariable('OP_SERVICE_ACCOUNT_TOKEN','User')
-.\scripts\sync-supabase-secrets-from-1password.ps1 -Check -OpItem edge-env-preview-secrets
 .\scripts\sync-supabase-secrets-from-1password.ps1 -Check -OpItem edge-env-prod-secrets
 .\scripts\sync-vercel-from-1password.ps1 -Check -Environment preview
 .\scripts\sync-vercel-from-1password.ps1 -Check -Environment production
@@ -134,10 +133,7 @@ For `TOKEN_ENCRYPTION_KEY` on production: generate a **new** key; do not copy th
 **3. Apply to targets**
 
 ```powershell
-# Preview edge (scheduled CI also runs this every 6h via secrets-fanout.yml)
-.\scripts\sync-supabase-secrets-from-1password.ps1 -OpItem edge-env-preview-secrets
-
-# Production edge — apply only when maintainer authorizes; CI drift check is check-only
+# Production edge (serves preview.equipqr.app and equipqr.app) — apply only when maintainer authorizes
 .\scripts\sync-supabase-secrets-from-1password.ps1 -OpItem edge-env-prod-secrets
 
 # Vercel public env
@@ -161,7 +157,7 @@ For `TOKEN_ENCRYPTION_KEY` on production: generate a **new** key; do not copy th
 
 **6. Re-run `-Check`** — all four commands must exit 0 before closing a rotation task.
 
-See also `docs/ops/preview-architecture-migration.md` (#1033) for retiring persistent preview Supabase `olsdirk` and consolidating on `edge-env-prod-secrets`.
+See also `docs/ops/preview-architecture-migration.md` (#1033) for consolidating cloud preview on `edge-env-prod-secrets`.
 
 ---
 
@@ -188,7 +184,7 @@ When blocked, post:
 
 1. **Blocked on:** (e.g. "1Password vault write", "Supabase production migrate", "Google OAuth consent")
 2. **Already tried:** (e.g. "inline op item edit — stdin pipe failure; detached script works")
-3. **Request:** (e.g. "Please authorize Supabase MCP for project olsdirkvvfegvclbpgrg" or "Please click Connect Google Workspace on preview integrations page")
+3. **Request:** (e.g. "Please authorize Supabase MCP for project ymxkzronkhwxzcdcbnwq" or "Please click Connect Google Workspace on preview integrations page")
 4. **Verify after:** (e.g. "I'll confirm `google_workspace_credentials` row count = 1")
 
 ---

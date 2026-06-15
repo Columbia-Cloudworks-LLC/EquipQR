@@ -16,8 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
       github.event.deployment_status.state == 'success' &&
+      contains(github.event.deployment_status.environment, 'Preview') &&
       !contains(github.event.deployment_status.environment, 'equipqr-docs') &&
       !contains(github.event.deployment_status.environment, 'Production') &&
+      !contains(github.event.deployment_status.environment, 'production') &&
       github.event.deployment_status.environment_url != ''
     steps:
       - name: Checkout
