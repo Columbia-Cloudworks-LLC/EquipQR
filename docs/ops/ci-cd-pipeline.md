@@ -155,7 +155,7 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 - SPA routing (all routes → `/index.html`)
 - Security headers (HSTS, X-Frame-Options, etc.)
 - Asset caching (1 year for `/assets/*`)
-- Auto-deploy enabled for `main` only (`git.deploymentEnabled.main: true`)
+- Auto-deploy on git push: **`main`** (production build) and **`preview`** (Preview environment for release integration and `preview.equipqr.app` alias). Feature-branch PRs also receive per-PR Preview URLs via the GitHub integration.
 
 **Preview hostname:** `preview.equipqr.app` is attached to the standard **Preview** environment (not the retired custom **`staging`** environment).
 
