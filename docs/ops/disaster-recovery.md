@@ -23,8 +23,8 @@ EquipQR™ uses Supabase as its backend platform, which provides robust backup a
 
 | Environment | Project Ref | Purpose |
 |-------------|-------------|---------|
-| **Production** | `ymxkzronkhwxzcdcbnwq` | Live production database |
-| **Staging/Preview** | `olsdirkvvfegvclbpgrg` | Preview and testing environment |
+| **Production** | `ymxkzronkhwxzcdcbnwq` | Live production database (also serves cloud preview via `supabase.equipqr.app`) |
+| **Legacy preview branch** | `olsdirkvvfegvclbpgrg` | **Retiring (#1033)** — decommission after cutover validation |
 
 ### Recovery Time Objective (RTO)
 

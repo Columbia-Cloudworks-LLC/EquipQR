@@ -29,19 +29,24 @@ const ALLOWED_ORIGINS = [
  *
  * Vercel generates preview URLs in these forms:
  *   - <project>-<hash>-<team>.vercel.app
- *   - <project>-<team>.vercel.app
  *
- * We anchor to the "equip-qr" project slug so only deployments from
- * this Vercel project are accepted — not arbitrary third-party Vercel sites.
+ * We anchor to the EquipQR Vercel project slug (`equipqr`; legacy `equip-qr` still
+ * accepted) so only deployments from this Vercel project are accepted — not
+ * arbitrary third-party Vercel sites.
  *
  * The env var VERCEL_PROJECT_SLUG lets operators override the slug without a
  * code change (e.g. if the Vercel project is renamed).
  */
-function getVercelPreviewPattern(): RegExp {
-  const slug = Deno.env.get("VERCEL_PROJECT_SLUG") || "equip-qr";
-  // Escape any regex-special characters in the slug
-  const escaped = slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`^https://${escaped}-.+\\.vercel\\.app$`);
+function getVercelPreviewPatterns(): RegExp[] {
+  const override = Deno.env.get("VERCEL_PROJECT_SLUG")?.trim();
+  const slugs = override ? [override] : ["equipqr", "equip-qr"];
+  const team = (Deno.env.get("VERCEL_TEAM_SLUG")?.trim() ||
+    "columbia-cloudworks-llc")
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return slugs.map((slug) => {
+    const escaped = slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`^https://${escaped}-.+-${team}\\.vercel\\.app$`);
+  });
 }
 
 /**
@@ -52,7 +57,7 @@ export function isAllowedOrigin(origin: string): boolean {
   if (ALLOWED_ORIGINS.includes(origin)) {
     return true;
   }
-  return getVercelPreviewPattern().test(origin);
+  return getVercelPreviewPatterns().some((pattern) => pattern.test(origin));
 }
 
 /** The default production origin used as a safe fallback. */

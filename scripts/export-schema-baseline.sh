@@ -12,7 +12,7 @@ if [[ -z "${DATABASE_URL:-}" ]]; then
   exit 1
 fi
 
-echo "Dumping preview schema to supabase/schema.sql ..."
+echo "Dumping production schema to supabase/schema.sql ..."
 supabase db dump --db-url "$DATABASE_URL" \
   --schema public \
   --schema storage \
@@ -77,7 +77,7 @@ policies = json.load(open(policies_path, encoding='utf-8'))["rows"]
 
 lines = [
     "-- EquipQR RLS reference baseline (read-only documentation artifact)",
-    "-- Source: preview Supabase project olsdirkvvfegvclbpgrg",
+    "-- Source: production Supabase project ymxkzronkhwxzcdcbnwq",
     f"-- Generated (UTC): {generated_at}",
     "-- Regenerate: ./scripts/export-schema-baseline.sh (CI) or .\\scripts\\export-schema-baseline.ps1 (Windows)",
     "-- Do NOT apply this file directly; use supabase/migrations for changes.",

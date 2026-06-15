@@ -1,6 +1,8 @@
 # Supabase Branch Secrets Configuration
 
-This guide documents the Edge Function secrets that must be configured for each Supabase branch (production and preview/staging).
+> **Migration (#1033):** Cloud preview (`preview.equipqr.app`) now uses the **production** Supabase project (`supabase.equipqr.app`) with secrets from `edge-env-prod-secrets`. The persistent preview branch `olsdirkvvfegvclbpgrg` and `edge-env-preview-secrets` are being retired. Sections below that reference **olsdirk** remain accurate until that branch is decommissioned; see `docs/ops/preview-architecture-migration.md`.
+
+This guide documents the Edge Function secrets that must be configured for each Supabase branch (production and, until retired, persistent preview).
 
 ## Overview
 

@@ -27,37 +27,34 @@ EquipQR is a comprehensive fleet equipment management platform built with React,
 
 ## Branching Model
 
-EquipQR uses a two-branch strategy with feature branches to maintain code quality and controlled releases. The authoritative policy lives in [`.cursor/rules/branching.mdc`](.cursor/rules/branching.mdc); this section summarizes it.
+EquipQR uses a **solo-developer, main-centric** flow (#1033). Authoritative policy: [`.cursor/rules/branching.mdc`](.cursor/rules/branching.mdc).
 
 ### Branch Environments
 
 | Branch | Purpose | Deployment | Public URL |
 |--------|---------|------------|------------|
-| `preview` | Integration / day-to-day work | Auto-deploy on push | preview.equipqr.app |
-| `main` | Production source of truth | Manual promotion | equipqr.app |
+| `main` | Production source of truth | Vercel Production (manual promotion gate) | equipqr.app |
+| `feat/*` | One feature at a time | Vercel **Preview** per PR | Per-PR URL + `preview.equipqr.app` (latest Preview) |
 
-> There is no long-lived `dev` branch. Treat `preview` as the integration branch; create short-lived feature branches off `origin/preview` and target `preview` in PRs.
+> The legacy git `preview` integration branch and Vercel custom **`staging`** environment are retired. Supabase ephemeral PR branches validate `supabase/**` changes.
 
 ### Branch Flow
 
-1. **Feature branches** (off `preview`)
-   - Branch from `origin/preview`: `git switch -c feat/<short-name> origin/preview`
-   - Open PR with `--base preview`
-   - All CI checks must pass before merge
+1. **Feature branches** (off `main`)
+   - `git fetch origin main` then `git switch -c feat/<short-name> origin/main`
+   - Open PR with `--base main`
+   - CI + Supabase PR branch (when migrations change) must pass before merge
 
-2. **Staging** (`preview` branch)
-   - Feature branches merge into `preview` via Pull Request
-   - Triggers CI checks
-   - Deploys to preview.equipqr.app automatically on push
+2. **Preview QA**
+   - Vercel assigns a URL per PR automatically
+   - `preview.equipqr.app` tracks the latest successful **Preview** deployment (`preview-domain-alias.yml`)
 
-3. **Production** (`main` branch)
-   - Open `preview → main` PR only on explicit release language ("release", "promote", `/raise`)
-   - Triggers strict CI checks
-   - After merge to `main`, production is promoted manually as a final gate
+3. **Production** (`main`)
+   - Merge feature PR → `main`
+   - Promote to production on Vercel when ready
 
-4. **Hotfixes** (direct to `main`)
-   - Emergency fixes branch off `origin/main`, PR into `main`
-   - Always followed by a merge of `main` back into `preview` so the two do not diverge
+4. **Hotfixes**
+   - Branch off `origin/main`, PR into `main`, then promote
 
 **Note**: Version tags are created automatically when `package.json` is updated on `main`. See [Versioning & Release Process](#versioning--release-process) below.
 

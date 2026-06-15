@@ -73,6 +73,36 @@ Deno.test({
 });
 
 Deno.test({
+  name: "isValidRedirectUrl allows preview.equipqr.app when PUBLIC_SITE_URL is production",
+  permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
+  fn: () => {
+    withEnv({ PUBLIC_SITE_URL: "https://equipqr.app", PRODUCTION_URL: "https://equipqr.app" }, () => {
+      assertEquals(
+        isValidRedirectUrl("https://preview.equipqr.app/dashboard/organization/integrations", "https://equipqr.app"),
+        true,
+      );
+    });
+  },
+});
+
+Deno.test({
+  name: "buildSuccessRedirectUrl returns preview origin when shared prod edge uses production PUBLIC_SITE_URL",
+  permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
+}, () => {
+  withEnv({ PUBLIC_SITE_URL: "https://equipqr.app", PRODUCTION_URL: "https://equipqr.app" }, () => {
+    const url = buildSuccessRedirectUrl({
+      originUrl: "https://preview.equipqr.app",
+      redirectUrl: "/dashboard/organization/integrations",
+      resolvedProductionUrl: "https://equipqr.app",
+    });
+    assertEquals(
+      url,
+      "https://preview.equipqr.app/dashboard/organization/integrations?gw_connected=true",
+    );
+  });
+});
+
+Deno.test({
   name: "isValidRedirectUrl rejects loopback and broad Vercel hosts in deployed contexts",
   permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
 }, () => {
@@ -159,7 +189,7 @@ Deno.test("resolveOAuthRedirectBaseUrl normalizes retired preview Supabase hostn
       "https://supabase.preview.equipqr.app",
       "https://olsdirkvvfegvclbpgrg.supabase.co",
     ),
-    "https://olsdirkvvfegvclbpgrg.supabase.co",
+    "https://supabase.equipqr.app",
   );
 });
 

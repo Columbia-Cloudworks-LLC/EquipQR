@@ -1,0 +1,42 @@
+name: Preview Domain Alias
+
+# Keeps preview.equipqr.app on the standard Vercel Preview environment
+# (replaces the retired custom "staging" environment tied to git preview branch).
+
+on:
+  deployment_status:
+
+permissions:
+  contents: read
+  deployments: read
+
+jobs:
+  alias-preview-domain:
+    name: Alias preview.equipqr.app
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      contains(github.event.deployment_status.environment, 'Preview') &&
+      !contains(github.event.deployment_status.environment, 'equipqr-docs') &&
+      !contains(github.event.deployment_status.environment, 'Production') &&
+      !contains(github.event.deployment_status.environment, 'production') &&
+      github.event.deployment_status.environment_url != ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 24
+
+      - name: Install 1Password CLI
+        uses: 1password/install-cli-action@8d006a0d0a4fd505af7f7ce589e7f768385ff5e4
+
+      - name: Point preview.equipqr.app at Preview deployment
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          DEPLOYMENT_URL: ${{ github.event.deployment_status.environment_url }}
+        run: |
+          set -euo pipefail
+          pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/vercel/Set-PreviewDomainAlias.ps1 -DeploymentUrl "$DEPLOYMENT_URL"

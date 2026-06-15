@@ -1,45 +1,46 @@
 ---
-description: "Git branching model for EquipQR — apply when creating branches, committing, pushing, or opening PRs. preview is the integration branch; never target main directly."
+description: "Git branching model for EquipQR — apply when creating branches, committing, pushing, or opening PRs. main is production; feature branches PR into main."
 alwaysApply: true
 ---
 # Branching Model (authoritative)
 
-The remote has only two long-lived branches:
+The remote has two long-lived branches:
 
 | Branch | Role | Deploys to |
 |--------|------|------------|
-| `main` | Production source of truth | equipqr.app (manual promotion) |
-| `preview` | Integration / day-to-day work | preview.equipqr.app (auto on push) |
+| `main` | Production source of truth | equipqr.app (Vercel Production) |
+| `preview` | **Legacy — being retired (#1033).** Do not branch off or target in new work. | — |
 
-There is **no `dev` branch** despite what older sections of `CONTRIBUTING.md` suggest. Treat `preview` as the integration branch.
+There is **no `dev` branch**. Solo-developer workflow: **one feature branch at a time → PR → `main`.**
 
 ## Rules for agents
 
-1. **Always branch off `preview`** for new feature, fix, refactor, chore, or experimental work — never off `main` — unless the user explicitly says "hotfix" or "off main".
-2. **All PRs target `preview` by default.** Only open a `preview → main` PR when the user explicitly says "release", "raise", "promote to main", or similar release language.
-3. When the GitHub default branch (`main`) and this rule disagree, **this rule wins**. Do not rely on `git symbolic-ref refs/remotes/origin/HEAD`, the GitHub API `default_branch` field, or `gh pr create` defaults to choose a base.
-4. Before creating a branch, run `git fetch origin preview` and branch from `origin/preview`, e.g.:
+1. **Branch off `main`** for new feature, fix, refactor, chore, or experimental work — unless the user explicitly says **hotfix** (still branches off `main` for the fix PR).
+2. **All PRs target `main` by default.** Do not open PRs into `preview`.
+3. When the GitHub default branch and this rule disagree on integration flow, **this rule wins** for day-to-day work. Production releases still promote `main` on Vercel manually when ready.
+4. Before creating a branch:
    ```powershell
-   git fetch origin preview
-   git switch -c feat/<short-name> origin/preview
+   git fetch origin main
+   git switch -c feat/<short-name> origin/main
    ```
-5. When opening a PR, pass `--base preview` explicitly:
+5. When opening a PR:
    ```powershell
-   gh pr create --base preview --head <branch> --title "<conventional-commit title>"
+   gh pr create --base main --head feat/<short-name> --title "<conventional-commit title>"
    ```
-6. **Hotfix exception:** If and only if the user says "hotfix", branch off `origin/main`, PR into `main`, then immediately open a follow-up PR (or merge) to bring `main` back into `preview` so the two don't diverge.
-7. **Release flow** (only on explicit user request like `/raise`, "release", "promote"):
-   - Open PR `preview → main`.
-   - After merge to `main`, do not auto-promote production; the human flips the production gate in Vercel.
-8. **Local E2E before preview.** No push to `origin/preview` and no PR into `preview` until `local-verify-before-preview-push.mdc` passes with zero user manual steps. The agent runs Fallow, static checks, targeted tests, and the smallest credible local E2E proof (Playwright, browser MCP, edge logs, RPC checks). If verification cannot be automated locally, stop and report — do not push.
-9. **Worktree gates the workflow tempo.** The user's standing instruction is binary based on where the agent is running:
-   - **Main worktree (`C:\Users\viral\EquipQR`) on `preview` → direct push after local verification.** Commit and `git push origin preview` once the gate in rule 8 passes (admin bypass on required checks is the user's intentional setup). Do **not** open a PR, do **not** wait for CI, and do **not** prompt for confirmation before pushing — authorization to implement includes authorization to push **after** verification. Skipping this fast path on every micro-edit burns the user's time and tokens; that is the explicit complaint that produced this rule.
-   - **Linked worktrees (paths under `~/.cursor/worktrees/EquipQR/`) → formal PR flow.** Follow **`pr-merge-ready-workflow.mdc`** end-to-end: branch off `origin/preview`, local verification, PR visual evidence, push, open PR, publish evidence, **`gh pr checks --watch` until green**, poll Qodo until **`openCount: 0`**, clear threads — then merge-ready handoff. Do not stop at "PR opened."
-   - **`main` stays protected regardless.** Never direct-push to `main`. `main` only updates via a merged `preview → main` PR (the `/raise` flow) or an explicit hotfix, per rules 6 and 7.
-   - Runtime risk on `preview` is acceptable only **after** local E2E verification — not as a substitute for it.
+6. **Preview / QA URLs:**
+   - Each PR gets a Vercel **Preview** deployment URL automatically.
+   - Stable hostname **`preview.equipqr.app`** tracks the latest successful **Preview** deployment (not the retired Vercel custom `staging` environment or git `preview` branch).
+   - Supabase **ephemeral PR branches** validate `supabase/**` changes while the PR is open.
+   - Integration OAuth (Google Workspace, QuickBooks): verify on the **local stack** before merge (`local-verify-before-preview-push.mdc`).
+7. **Hotfix:** Branch off `origin/main`, PR into `main`, deploy via production promotion.
+8. **Local E2E before merge.** No merge to `main` until `local-verify-before-preview-push.mdc` passes with zero user manual steps.
+9. **Worktree gates the workflow tempo:**
+   - **Main worktree (`C:\Users\viral\EquipQR`) on `main`:** direct push after local verification when the user authorizes push-to-main (protected branch — typically merge via PR).
+   - **Linked worktrees (`~/.cursor/worktrees/EquipQR/`):** formal PR merge-ready workflow per `pr-merge-ready-workflow.mdc`.
+   - **`main` stays protected.** Never force-push to `main`.
 
 See git-powershell.mdc for Windows worktree cleanup gotchas.
 
-## Why this exists
+## Why this changed (#1033)
 
-The repo follows GitLab Flow with environment branches: `feature → preview → main → production`. This is intentional and matches the deployment wiring (preview.equipqr.app on `preview`, equipqr.app on `main`). Agents that default to `main` because GitHub says so will create PRs that bypass the preview environment and break the release gate.
+Persistent git `preview` + Supabase branch `olsdirk` duplicated PR preview + ephemeral branching. Solo velocity is **feature → main** with Vercel Preview + Supabase PR branches for schema validation.

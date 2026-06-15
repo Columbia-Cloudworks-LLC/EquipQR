@@ -1,5 +1,5 @@
 -- EquipQR RLS reference baseline (read-only documentation artifact)
--- Source: preview Supabase project olsdirkvvfegvclbpgrg
+-- Source: production Supabase project ymxkzronkhwxzcdcbnwq
 -- Generated (UTC): 2026-06-02T13:25:49Z
 -- Regenerate: .\scripts\export-schema-baseline.ps1
 -- Do NOT apply this file directly; use supabase/migrations for changes.

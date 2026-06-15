@@ -97,8 +97,7 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "main": true,
-      "preview": true
+      "main": true
     }
   },
   "github": {

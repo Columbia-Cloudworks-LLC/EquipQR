@@ -185,7 +185,7 @@ Spec file: `e2e/user/full/real-auth-integrations.spec.ts`
 | `Export failed:` toast | Intuit API / mapping / tax errors | Check edge function response in Playwright trace |
 | `QuickBooks Setup Required` | Team customer mapping missing | Map team in Team Settings |
 | Tests skipped | Missing env vars | Set variables per table above |
-| QBO OAuth sends the browser to `supabase.preview.equipqr.app` | Stale Vercel build or retired hostname in vendor console | Ensure `VITE_SUPABASE_URL` is `https://olsdirkvvfegvclbpgrg.supabase.co` and Intuit redirect URI matches the derived callback URL |
+| QBO OAuth sends the browser to `olsdirk` or `supabase.preview.equipqr.app` | Stale Vercel build or retired hostname | Ensure `VITE_SUPABASE_URL` is `https://supabase.equipqr.app` on Vercel Preview and Intuit redirect URI matches `https://supabase.equipqr.app/functions/v1/quickbooks-oauth-callback` |
 
 ## Safety rails
 

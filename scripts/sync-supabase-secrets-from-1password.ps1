@@ -22,11 +22,11 @@
   digests of 1Password values. Prints names and match/mismatch only.
 
 .PARAMETER OpItem
-  1Password item name: `edge-env-preview-secrets` or `edge-env-prod-secrets`.
+  1Password item name: `edge-env-prod-secrets` (cloud preview shares production Supabase).
 
 .EXAMPLE
-  .\scripts\sync-supabase-secrets-from-1password.ps1 -Check -OpItem edge-env-preview-secrets
-  .\scripts\sync-supabase-secrets-from-1password.ps1 -OpItem edge-env-preview-secrets
+  .\scripts\sync-supabase-secrets-from-1password.ps1 -Check -OpItem edge-env-prod-secrets
+  .\scripts\sync-supabase-secrets-from-1password.ps1 -OpItem edge-env-prod-secrets
 #>
 [CmdletBinding()]
 param(
@@ -44,32 +44,6 @@ $SUPABASE_TOKEN_ITEM = 'supabase-write'
 $SUPABASE_TOKEN_FIELD = 'SUPABASE_ACCESS_TOKEN'
 
 $EDGE_ITEM_CONFIG = @{
-    'edge-env-preview-secrets' = @{
-        AllowedProjectRef = 'olsdirkvvfegvclbpgrg'
-        RequiredVars      = @(
-            'RESEND_API_KEY',
-            'HCAPTCHA_SECRET_KEY',
-            'TOKEN_ENCRYPTION_KEY',
-            'KDF_SALT',
-            'INTUIT_CLIENT_ID',
-            'INTUIT_CLIENT_SECRET',
-            'GOOGLE_WORKSPACE_CLIENT_ID',
-            'GOOGLE_WORKSPACE_CLIENT_SECRET',
-            'GOOGLE_MAPS_SERVER_KEY',
-            'GOOGLE_MAPS_BROWSER_KEY',
-            'GOOGLE_MAPS_MAP_ID',
-            'VAPID_PUBLIC_KEY',
-            'VAPID_PRIVATE_KEY',
-            'VAPID_SUBJECT',
-            'PUBLIC_SITE_URL'
-        )
-        OptionalVars      = @(
-            'GITHUB_PAT',
-            'GITHUB_WEBHOOK_SECRET',
-            'PRODUCTION_URL',
-            'SUPER_ADMIN_ORG_ID'
-        )
-    }
     'edge-env-prod-secrets'    = @{
         AllowedProjectRef = 'ymxkzronkhwxzcdcbnwq'
         RequiredVars      = @(
@@ -93,7 +67,9 @@ $EDGE_ITEM_CONFIG = @{
             'GITHUB_PAT',
             'GITHUB_WEBHOOK_SECRET',
             'PRODUCTION_URL',
-            'SUPER_ADMIN_ORG_ID'
+            'SUPER_ADMIN_ORG_ID',
+            'GW_OAUTH_REDIRECT_BASE_URL',
+            'QB_OAUTH_REDIRECT_BASE_URL'
         )
     }
 }
@@ -279,23 +255,15 @@ function Get-RemoteDigestMap {
     if ($joined.Trim() -eq '[]') {
         return @{}
     }
-    $outputLines = $joined -split "`r?`n"
-    $startLine = -1
-    $endLine = -1
-    for ($i = 0; $i -lt $outputLines.Count; $i++) {
-        $trimmed = $outputLines[$i].Trim()
-        if ($startLine -lt 0 -and ($trimmed -eq '[' -or $trimmed.StartsWith('[{'))) {
-            $startLine = $i
-        }
-        if ($startLine -ge 0 -and ($trimmed -eq ']' -or $trimmed.EndsWith('}]'))) {
-            $endLine = $i
-        }
-    }
-    if ($startLine -lt 0 -or $endLine -lt $startLine) {
-        Write-Fail "Could not parse secrets list JSON (no array boundary line). First 400 chars: $($joined.Substring(0, [Math]::Min(400, $joined.Length)))"
+    # Supabase CLI may prefix JSON with spinner/ANSI progress on stderr (merged via 2>&1).
+    $cleaned = [regex]::Replace($joined, '\x1B\[[0-9;?]*[ -/]*[@-~]', '')
+    $startIdx = $cleaned.IndexOf('[')
+    $endIdx = $cleaned.LastIndexOf(']')
+    if ($startIdx -lt 0 -or $endIdx -le $startIdx) {
+        Write-Fail "Could not parse secrets list JSON (no JSON array in CLI output). First 400 chars: $($cleaned.Substring(0, [Math]::Min(400, $cleaned.Length)))"
         exit 1
     }
-    $jsonOnly = ($outputLines[$startLine..$endLine] -join "`n")
+    $jsonOnly = $cleaned.Substring($startIdx, $endIdx - $startIdx + 1)
     try {
         $data = $jsonOnly | ConvertFrom-Json
     }
@@ -447,24 +415,18 @@ foreach ($var in $optional) {
     $resolved[$var] = $v
 }
 
-# QuickBooks environment policy (preview = sandbox; production = live QBO API).
+# QuickBooks environment policy (production = live QBO API; omit QBO_USE_SANDBOX).
 function Apply-QboEnvironmentPolicy {
     param(
-        [string]$Item,
         [hashtable]$Secrets
     )
-    if ($Item -eq 'edge-env-preview-secrets') {
-        $Secrets['QBO_USE_SANDBOX'] = 'true'
-        Write-Ok 'Preview policy: QBO_USE_SANDBOX=true (Intuit sandbox companies only).'
-        return
-    }
     if ($Secrets.ContainsKey('QBO_USE_SANDBOX')) {
         $Secrets.Remove('QBO_USE_SANDBOX')
         Write-Ok 'Production policy: QBO_USE_SANDBOX omitted (production QuickBooks API).'
     }
 }
 
-Apply-QboEnvironmentPolicy -Item $OpItem -Secrets $resolved
+Apply-QboEnvironmentPolicy -Secrets $resolved
 
 if ($Check) {
     Write-Step "Fetching remote digest map for $ProjectRef..."

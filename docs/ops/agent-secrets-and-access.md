@@ -98,13 +98,66 @@ Verify MCP wiring: `.\scripts\op-mcp-doctor.ps1` (expect 13/13 green on maintain
 Google Workspace OAuth requires **matching client ID** in:
 
 1. `app-env-preview-public` → `GOOGLE_WORKSPACE_CLIENT_ID` → baked into Vite as `VITE_GOOGLE_WORKSPACE_CLIENT_ID`
-2. `edge-env-preview-secrets` → `GOOGLE_WORKSPACE_CLIENT_ID` + `GOOGLE_WORKSPACE_CLIENT_SECRET`
+2. `edge-env-prod-secrets` → `GOOGLE_WORKSPACE_CLIENT_ID` + `GOOGLE_WORKSPACE_CLIENT_SECRET` (cloud preview and production share this item after #1033)
 
 After vault edit:
 
 1. `.\scripts\sync-vercel-from-1password.ps1 -Environment preview`
-2. Redeploy staging (`preview.equipqr.app` alias)
-3. Confirm edge secrets via `sync-supabase-secrets-from-1password.ps1 -Check` (preview project `olsdirkvvfegvclbpgrg`)
+2. Redeploy the latest Vercel Preview deployment (or wait for `preview-domain-alias.yml` after the next Preview deploy)
+3. Confirm edge secrets via `sync-supabase-secrets-from-1password.ps1 -Check -OpItem edge-env-prod-secrets`
+
+### Rotate-and-verify playbook (preview + production)
+
+Use this end-to-end loop after any secret rotation in 1Password. Never paste secret values into chat, commits, or PR bodies.
+
+**1. Read-only digest check (before change)**
+
+```powershell
+$env:OP_SERVICE_ACCOUNT_TOKEN = [Environment]::GetEnvironmentVariable('OP_SERVICE_ACCOUNT_TOKEN','User')
+.\scripts\sync-supabase-secrets-from-1password.ps1 -Check -OpItem edge-env-prod-secrets
+.\scripts\sync-vercel-from-1password.ps1 -Check -Environment preview
+.\scripts\sync-vercel-from-1password.ps1 -Check -Environment production
+```
+
+**2. Rotate in 1Password** (detached writes only)
+
+```powershell
+# Dry-run first
+.\scripts\op-item-mutate.ps1 -Action Edit -Item "edge-env-prod-secrets" -Vault "EquipQR Agents" `
+  -Assignment "TOKEN_ENCRYPTION_KEY[text]=<openssl rand -base64 32 output>" -DryRun
+# Apply without -DryRun when dry-run looks correct
+```
+
+For `TOKEN_ENCRYPTION_KEY` on production: generate a **new** key; do not copy the preview value. Rotating production encryption keys invalidates existing Google Workspace refresh tokens unless a re-encryption migration runs first — coordinate with maintainers before prod rotation.
+
+**3. Apply to targets**
+
+```powershell
+# Production edge (serves preview.equipqr.app and equipqr.app) — apply only when maintainer authorizes
+.\scripts\sync-supabase-secrets-from-1password.ps1 -OpItem edge-env-prod-secrets
+
+# Vercel public env
+.\scripts\sync-vercel-from-1password.ps1 -Environment preview
+.\scripts\sync-vercel-from-1password.ps1 -Environment production
+```
+
+**4. Redeploy affected surfaces**
+
+- Vercel: trigger redeploy of `preview` branch (or production promotion) so baked `VITE_*` values refresh.
+- Supabase Edge: secrets apply immediately; invoke a smoke edge function if unsure (`edge-functions-smoke-test.yml` or local `dev-start.bat` + integration path).
+
+**5. Smoke verify**
+
+| Surface | Signal |
+|---------|--------|
+| Preview GW | `/dashboard/organization/integrations` — Connect / sync users |
+| Preview QB | Connect sandbox company; `quickbooks_credentials` row present |
+| Production GW/QB | Repeat on `equipqr.app` after prod apply only |
+| Drift CI | `secrets-drift-check.yml` daily run green on both edge items |
+
+**6. Re-run `-Check`** — all four commands must exit 0 before closing a rotation task.
+
+See also `docs/ops/preview-architecture-migration.md` (#1033) for consolidating cloud preview on `edge-env-prod-secrets`.
 
 ---
 
@@ -131,7 +184,7 @@ When blocked, post:
 
 1. **Blocked on:** (e.g. "1Password vault write", "Supabase production migrate", "Google OAuth consent")
 2. **Already tried:** (e.g. "inline op item edit — stdin pipe failure; detached script works")
-3. **Request:** (e.g. "Please authorize Supabase MCP for project olsdirkvvfegvclbpgrg" or "Please click Connect Google Workspace on preview integrations page")
+3. **Request:** (e.g. "Please authorize Supabase MCP for project ymxkzronkhwxzcdcbnwq" or "Please click Connect Google Workspace on preview integrations page")
 4. **Verify after:** (e.g. "I'll confirm `google_workspace_credentials` row count = 1")
 
 ---

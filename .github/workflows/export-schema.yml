@@ -1,7 +1,10 @@
 name: Export Database Schema
 
-# Exports preview Supabase schema + RLS reference artifacts for agents/reviewers.
+# Exports production Supabase schema + RLS reference artifacts for agents/reviewers.
 # Reference-only: does not modify migrations or apply schema changes.
+#
+# PREVIEW_DATABASE_URL (GitHub secret name unchanged) should point at the production
+# pooler after #1033 cutover — see docs/ops/preview-architecture-migration.md.
 #
 # Artifacts:
 # - supabase/schema.sql (public, storage, auth, pgmq_public)
@@ -20,7 +23,7 @@ permissions:
 
 jobs:
   export-schema:
-    name: Export Schema from Preview
+    name: Export Schema from Production
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: github.actor != 'github-actions[bot]'
@@ -36,7 +39,7 @@ jobs:
         with:
           version: 2.72.8
 
-      - name: Export schema and RLS baseline from preview project
+      - name: Export schema and RLS baseline from production project
         id: export-schema
         run: |
           if [ -z "$DATABASE_URL" ]; then

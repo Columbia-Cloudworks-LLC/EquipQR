@@ -1,3 +1,4 @@
+import { isAllowedOrigin } from "../_shared/origin-validation.ts";
 import { resolvePublicSiteUrl } from "../_shared/public-site-url.ts";
 
 export const STATE_TTL_MS = 60 * 60 * 1000;
@@ -59,6 +60,10 @@ export function isValidRedirectUrl(redirectUrl: string | null, productionUrl: st
     ].filter((domain): domain is string => !!domain));
 
     if (allowedDomains.has(url.hostname)) {
+      return true;
+    }
+
+    if (isAllowedOrigin(url.origin)) {
       return true;
     }
 

@@ -1,4 +1,4 @@
-# One-time (or refresh) bootstrap: copy preview Supabase Auth Google credentials
+# One-time (or refresh) bootstrap: copy production Supabase Auth Google credentials
 # into app-env-local-dev and align Workspace client ID for local Vite env.
 param(
     [string]$AppItem = 'app-env-local-dev',
@@ -11,19 +11,19 @@ if (-not $env:OP_SERVICE_ACCOUNT_TOKEN) {
     $env:OP_SERVICE_ACCOUNT_TOKEN = [Environment]::GetEnvironmentVariable('OP_SERVICE_ACCOUNT_TOKEN', 'User')
 }
 if (-not $env:OP_SERVICE_ACCOUNT_TOKEN) {
-    throw 'OP_SERVICE_ACCOUNT_TOKEN is required to read preview auth config.'
+    throw 'OP_SERVICE_ACCOUNT_TOKEN is required to read production auth config.'
 }
 
 $token = (op read 'op://EquipQR Agents/supabase-write/SUPABASE_ACCESS_TOKEN').Trim()
 $headers = @{ Authorization = "Bearer $token"; 'Content-Type' = 'application/json' }
-$preview = Invoke-RestMethod -Uri 'https://api.supabase.com/v1/projects/olsdirkvvfegvclbpgrg/config/auth' -Headers $headers -Method Get
+$prodAuth = Invoke-RestMethod -Uri 'https://api.supabase.com/v1/projects/ymxkzronkhwxzcdcbnwq/config/auth' -Headers $headers -Method Get
 
-$authClientId = $preview.external_google_client_id.Trim()
-$authSecret = $preview.external_google_secret.Trim()
+$authClientId = $prodAuth.external_google_client_id.Trim()
+$authSecret = $prodAuth.external_google_secret.Trim()
 if ($authSecret -notmatch '^GOCSPX-') {
     throw @"
 Supabase Management API external_google_secret is not a usable Google OAuth client secret (expected GOCSPX-*).
-Copy the secret from GCP Console -> EquipQR Google Login (Dev / Preview) -> Client secrets, then update preview Supabase Auth and app-env-local-dev manually.
+Copy the secret from GCP Console -> EquipQR Google Login -> Client secrets, then update production Supabase Auth and app-env-local-dev manually.
 "@
 }
 $workspaceClientId = (op read "op://EquipQR Agents/$EdgeItem/GOOGLE_WORKSPACE_CLIENT_ID").Trim()

@@ -12,8 +12,8 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 │  ┌─────────┐    ┌────────────────────────────────────────────────────────┐ │
 │  │  Push   │───▶│                  GitHub Actions                        │ │
 │  │ to Git  │    │  ┌─────────────┐  ┌──────────┐  ┌───────────────────┐  │ │
-│  └─────────┘    │  │ CI Workflow │  │ Deploy   │  │ Configure Auth    │  │ │
-│                 │  │ (parallel)  │  │ Workflow │  │ (4min delay)      │  │ │
+│  └─────────┘    │  │ CI Workflow │  │ Deploy   │  │ Preview Domain    │  │ │
+│                 │  │ (parallel)  │  │ Workflow │  │ Alias (on deploy) │  │ │
 │                 │  └─────────────┘  └──────────┘  └───────────────────┘  │ │
 │                 └────────────────────────────────────────────────────────┘ │
 │                                       │                                     │
@@ -21,32 +21,35 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 │  ┌─────────────────────────────────────────────────────────────────────────┐│
 │  │                         External Services                               ││
 │  │  ┌──────────────────┐    ┌─────────────────────────────────────────┐   ││
-│  │  │     Vercel       │───▶│        Supabase-Vercel Integration      │   ││
-│  │  │ (auto-deploys)   │    │  (sets Site URL to per-commit URL)     │   ││
-│  │  └──────────────────┘    └─────────────────────────────────────────┘   ││
-│  │           │                              │                              ││
-│  │           ▼                              ▼                              ││
+│  │  │     Vercel       │    │   Preview Domain Alias workflow       │   ││
+│  │  │ (auto-deploys)   │    │   (preview.equipqr.app → latest       │   ││
+│  │  └──────────────────┘    │    Preview deployment URL)            │   ││
+│  │           │                └─────────────────────────────────────────┘   ││
+│  │           ▼                              │                              ││
 │  │  ┌──────────────────┐    ┌─────────────────────────────────────────┐   ││
-│  │  │   Live Site      │    │   Configure Supabase Auth Workflow      │   ││
-│  │  │ equipqr.app or   │    │   (runs AFTER Vercel/Supabase finish)   │   ││
-│  │  │ preview.equipqr  │    │   Sets correct Site URL & Redirects    │   ││
-│  │  └──────────────────┘    └─────────────────────────────────────────┘   ││
+│  │  │   Live Site      │    │   Shared Supabase (supabase.equipqr.app) │   ││
+│  │  │ equipqr.app or   │    │   Preview + Production cloud app        │   ││
+│  │  │ preview.equipqr  │    │   (schema validated via ephemeral PR    │   ││
+│  │  └──────────────────┘    │    branches when supabase/** changes)   │   ││
+│  │                          └─────────────────────────────────────────┘   ││
 │  └─────────────────────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Environments
 
-| Environment | Branch | Frontend URL | Supabase Project ID |
-|-------------|--------|--------------|---------------------|
-| **Production** | `main` | https://equipqr.app | `ymxkzronkhwxzcdcbnwq` |
-| **Preview/Staging** | `preview` | https://preview.equipqr.app | `olsdirkvvfegvclbpgrg` |
+| Environment | Git trigger | Frontend URL | Supabase API |
+|-------------|-------------|--------------|--------------|
+| **Production** | Push to `main` (manual promote in Vercel) | https://equipqr.app | `https://supabase.equipqr.app` (`ymxkzronkhwxzcdcbnwq`) |
+| **Preview** | PRs and non-`main` pushes (Vercel Preview) | https://preview.equipqr.app (alias → latest Preview deployment) | Same production API (`supabase.equipqr.app`) |
+
+> **Migration (#1033):** The persistent git `preview` branch, Vercel custom **`staging`** environment, and Supabase branch **`olsdirkvvfegvclbpgrg`** are being retired. See `docs/ops/preview-architecture-migration.md`.
 
 ## GitHub Actions Workflows
 
 ### 1. Continuous Integration (`ci.yml`)
 
-**Trigger:** Push or PR to `main` or `preview` branches
+**Trigger:** Push or PR to `main`
 
 **Purpose:** Validate code quality, run tests, and ensure build works
 
@@ -68,27 +71,21 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 
 ### 2. Deploy Workflow (`deploy.yml`)
 
-**Trigger:** Push to `main` or `preview` branches
+**Trigger:** Push to `main`
 
-**Purpose:** Notification workflow for Vercel deployments
+**Purpose:** Notification workflow for Vercel production deployments
 
-> **Note:** Actual deployment is handled by Vercel's GitHub integration, not this workflow. This workflow provides deployment notifications and version tracking.
+> **Note:** Actual deployment is handled by Vercel's GitHub integration, not this workflow. Preview deployments (PRs and non-`main` branches) are also automatic; `preview-domain-alias.yml` keeps `preview.equipqr.app` on the latest Preview build.
 
-### 3. Configure Supabase Auth (`configure-supabase-auth.yml`)
+### 3. Preview Domain Alias (`preview-domain-alias.yml`)
 
-**Trigger:** Push to `preview` branch
+**Trigger:** Successful Vercel Preview `deployment_status` (excludes `equipqr-docs` and Production)
 
-**Purpose:** Fix OAuth redirect URLs after Supabase-Vercel integration overwrites them
-
-**Important:** This workflow includes a **4-minute delay** to ensure it runs AFTER:
-1. Vercel deployment completes (~2-3 minutes)
-2. Supabase-Vercel integration sets incorrect URLs
+**Purpose:** Point `preview.equipqr.app` at the deployment URL from the Preview environment
 
 **What it does:**
-- Sets `site_url` to `https://preview.equipqr.app`
-- Sets `uri_allow_list` to include preview URL and localhost variants for OAuth callbacks
-
-**Related Issue:** [#512 - Google OAuth redirects to per-commit Vercel URL](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/512)
+- Runs `scripts/vercel/Set-PreviewDomainAlias.ps1` with `DEPLOYMENT_URL` from the GitHub deployment event
+- Replaces the retired custom Vercel **`staging`** environment (which was tied to git branch `preview`)
 
 ### 4. Auto Version Tag (`version-tag.yml`)
 
@@ -112,7 +109,7 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 
 **Trigger:** Push to `main` branch, or manual dispatch
 
-**Purpose:** Export the database schema from the preview Supabase project and commit it to the repository
+**Purpose:** Export the database schema from the **production** Supabase project and commit it to the repository
 
 **What it does:**
 - Uses Supabase CLI to dump schema from preview project
@@ -127,9 +124,9 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 - Useful for onboarding and documentation
 - Easy schema review in PRs
 
-**Required Secret:** `PREVIEW_DATABASE_URL`
+**Required Secret:** `PREVIEW_DATABASE_URL` (GitHub secret name unchanged; value should point at production pooler after #1033 cutover)
 - Format: `postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres`
-- Obtain from: Supabase Dashboard → Preview Project → Settings → Database → Connection string (URI)
+- Obtain from: Supabase Dashboard → Production Project (`ymxkzronkhwxzcdcbnwq`) → Settings → Database → Connection string (URI)
 
 ---
 
@@ -149,16 +146,18 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
    - Assigns domain aliases based on branch
 
 **Branch to Domain Mapping:**
-| Branch | Production Alias | Per-commit URL Pattern |
-|--------|-----------------|------------------------|
-| `main` | `equipqr.app` | `equipqr-<hash>-columbia-cloudworks-llc.vercel.app` |
-| `preview` | `preview.equipqr.app` | `equipqr-<hash>-columbia-cloudworks-llc.vercel.app` |
+| Git context | Vercel target | Stable alias |
+|-------------|---------------|--------------|
+| `main` | Production | `equipqr.app` (manual promote) |
+| PR / non-`main` push | Preview | Per-deployment URL; `preview.equipqr.app` aliased via `preview-domain-alias.yml` |
 
 **Key Settings (`vercel.json`):**
 - SPA routing (all routes → `/index.html`)
 - Security headers (HSTS, X-Frame-Options, etc.)
 - Asset caching (1 year for `/assets/*`)
-- Auto-deploy enabled for `main` and `preview`
+- Auto-deploy enabled for `main` only (`git.deploymentEnabled.main: true`)
+
+**Preview hostname:** `preview.equipqr.app` is attached to the standard **Preview** environment (not the retired custom **`staging`** environment).
 
 **Environment Variables (Vercel Dashboard):**
 - `VITE_SUPABASE_URL` - Supabase project URL
@@ -193,74 +192,42 @@ Local preview: from repo root, `npm run docs:dev` or `npm run docs:preview` afte
 **Configuration File:** `supabase/config.toml`
 
 **Projects:**
-- **Production:** `ymxkzronkhwxzcdcbnwq` (linked by default)
-- **Preview/Staging:** `olsdirkvvfegvclbpgrg` (configured as `[remotes.staging]`)
+- **Production (and cloud preview app):** `ymxkzronkhwxzcdcbnwq` — API `https://supabase.equipqr.app`
+- **Ephemeral PR branches:** Created automatically when `supabase/**` changes on a PR (schema validation only)
+- **Retired persistent preview branch:** `olsdirkvvfegvclbpgrg` — decommission after #1033 cutover (see `preview-architecture-migration.md`)
 
-#### Supabase-Vercel Integration
+#### Auth Site URL (production Supabase)
 
-**What it does:**
-The Supabase-Vercel integration automatically configures Supabase Auth settings when Vercel deploys:
-- Sets `site_url` to the Vercel deployment URL
-- May update `uri_allow_list` (redirect URIs)
+Cloud preview (`preview.equipqr.app`) uses the **same** Supabase project as production. Auth `site_url` and redirect URIs should include:
 
-**The Problem:**
-For preview deployments, this sets the Site URL to a per-commit URL like:
-```
-https://equipqr-abc123-columbia-cloudworks-llc.vercel.app
-```
+- `https://preview.equipqr.app/**`
+- `https://equipqr.app/**`
+- Local dev URLs (`http://localhost:8080/**`, etc.)
 
-Instead of the stable alias:
-```
-https://preview.equipqr.app
-```
-
-This breaks Google OAuth because the redirect URL doesn't match Google's authorized redirect URIs.
-
-**The Solution:**
-The `configure-supabase-auth.yml` workflow runs 4 minutes after push to `preview`, giving Vercel and the Supabase integration time to complete. It then uses the Supabase Management API to set the correct URLs.
-
-#### Supabase Management API
-
-The `scripts/configure-supabase-auth.mjs` script uses the Management API:
-
-```
-PATCH /v1/projects/{project_id}/config/auth
-```
-
-**Required Secret:** `SUPABASE_ACCESS_TOKEN`
-- Obtain from: Supabase Dashboard → Account → Access Tokens
-- Add to: GitHub repository secrets
-
-**Payload format:**
-```json
-{
-  "site_url": "https://preview.equipqr.app",
-  "uri_allow_list": "https://preview.equipqr.app/**,http://localhost:5173/**,..."
-}
-```
-
-> **Important:** `uri_allow_list` must be a comma-separated string, not an array.
+The retired `configure-supabase-auth.yml` workflow (which patched **olsdirk** after each `preview` branch deploy) is removed under the main-centric model.
 
 ---
 
 ## Deployment Timeline
 
-When you push to the `preview` branch, here's what happens:
+When you open or update a PR (Preview deployment):
 
 | Time | Event |
 |------|-------|
-| 0:00 | Push to `preview` branch |
-| 0:01 | GitHub Actions workflows start (CI, Deploy, Configure Auth) |
-| 0:01 | Vercel receives webhook, starts building |
-| 0:30 | CI: lint-and-typecheck completes |
-| ~1:30 | CI: tests complete |
-| ~2:00 | Vercel: build completes, deploys to per-commit URL |
-| ~2:30 | Vercel: assigns `preview.equipqr.app` alias |
-| ~2:30 | Supabase-Vercel integration: sets Site URL to per-commit URL ❌ |
-| ~3:00 | CI: build + quality-gates complete |
-| 4:00 | Configure Auth workflow: wakes from sleep |
-| 4:05 | Configure Auth workflow: sets correct Site URL ✅ |
-| ~4:10 | All complete, OAuth works correctly |
+| 0:00 | Push to feature branch or PR synchronize |
+| 0:01 | GitHub Actions CI starts |
+| 0:01 | Vercel receives webhook, starts Preview build |
+| ~2:00 | Vercel Preview deployment ready |
+| ~2:01 | `preview-domain-alias.yml`: `preview.equipqr.app` → deployment URL |
+| ~3:00 | CI complete |
+
+When you merge to `main`:
+
+| Time | Event |
+|------|-------|
+| 0:00 | Push to `main` |
+| 0:01 | CI + Production Release Readiness workflows |
+| ~2:00 | Vercel Production build ready (manual promote to `equipqr.app`) |
 
 ---
 
@@ -323,13 +290,12 @@ See [Deployment Guide - Self-Hosted Runner Setup](./deployment.md#self-hosted-ru
 
 ### OAuth redirects to wrong URL (preview)
 
-**Symptom:** Google OAuth redirects to `equipqr-xxx.vercel.app` instead of `preview.equipqr.app`
+**Symptom:** Google OAuth redirects to a per-commit Vercel URL instead of `preview.equipqr.app`
 
-**Cause:** Supabase-Vercel integration overwrote the Site URL
-
-**Solution:** 
-1. Wait 5-6 minutes after push for Configure Auth workflow to complete
-2. If still wrong, manually run: `node scripts/configure-supabase-auth.mjs --environment preview`
+**Checks:**
+1. Confirm `preview-domain-alias.yml` ran after the latest Preview deployment (GitHub Deployments tab).
+2. Confirm Vercel Preview env has `VITE_SUPABASE_URL=https://supabase.equipqr.app` (`sync-vercel-from-1password.ps1 -Check -Environment preview`).
+3. Confirm Supabase Auth redirect URIs include `https://preview.equipqr.app/**` on the production project (`ymxkzronkhwxzcdcbnwq`).
 
 ### CI failing on self-hosted runner
 
@@ -370,13 +336,13 @@ See [Deployment Guide - Self-Hosted Runner Setup](./deployment.md#self-hosted-ru
 |------|---------|
 | `.github/workflows/ci.yml` | Continuous integration (lint, test, build, security) |
 | `.github/workflows/deploy.yml` | Deployment notifications |
-| `.github/workflows/configure-supabase-auth.yml` | Fix OAuth URLs after Vercel deploy |
+| `.github/workflows/preview-domain-alias.yml` | Alias `preview.equipqr.app` to latest Preview deployment |
 | `.github/workflows/version-tag.yml` | Auto-create git tags on version bump |
 | `.github/workflows/deployment-status.yml` | Log deployment status from Vercel |
-| `.github/workflows/export-schema.yml` | Export database schema from preview to `supabase/schema.sql` |
+| `.github/workflows/export-schema.yml` | Export database schema from production to `supabase/schema.sql` |
 | `.github/runner-config.yml` | Runner type configuration |
 | `vercel.json` | Vercel deployment configuration |
 | `supabase/config.toml` | Supabase CLI configuration |
-| `scripts/configure-supabase-auth.mjs` | Supabase auth configuration script |
+| `scripts/vercel/Set-PreviewDomainAlias.ps1` | CLI helper for preview domain alias |
 | `scripts/switch-runner-type.ps1` | Toggle self-hosted/GitHub-hosted runners |
 | `scripts/test-ci.mjs` | CI test runner with coverage validation |
