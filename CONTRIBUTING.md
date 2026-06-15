@@ -36,7 +36,7 @@ EquipQR uses a **solo-developer, main-centric** flow (#1033). Authoritative poli
 | `main` | Production source of truth | Vercel Production (manual promotion gate) | equipqr.app |
 | `feat/*` | One feature at a time | Vercel **Preview** per PR | Per-PR URL + `preview.equipqr.app` (latest Preview) |
 
-> The legacy git `preview` integration branch and Vercel custom **`staging`** environment are retired. Supabase ephemeral PR branches validate `supabase/**` changes.
+> Git branch **`preview`** is kept as a **Vercel domain anchor** for `preview.equipqr.app` only — not an integration branch. The retired Vercel custom **`staging`** environment and persistent Supabase preview branch are gone. Ephemeral Supabase PR branches validate `supabase/**` changes.
 
 ### Branch Flow
 

@@ -187,7 +187,7 @@ See **[Git and Deploy](../ops/git-and-deploy.md)** and **[Development Lifecycle]
 
 2. **Implement, verify locally, commit**
 
-3. **Push work branch** — Vercel Preview builds; **`preview.equipqr.app`** tracks latest Preview deploy
+3. **Push work branch** — Vercel Preview builds; test on the commit-specific **`*.vercel.app`** URL (optional: **`preview.equipqr.app`** when git **`preview`** is updated in Vercel)
 
    ```powershell
    git push -u origin HEAD

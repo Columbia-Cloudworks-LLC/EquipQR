@@ -108,10 +108,11 @@ Maintainer decision: **solo developer, one feature at a time, no persistent git 
 | Question | Decision | Rationale |
 |----------|----------|-----------|
 | Git integration branch | **`main` only** | Solo workflow; no queue of features merging through `preview` |
-| Feature workflow | `feat/*` → PR → **`main`** | Vercel deploys a preview URL per PR; merge promotes to `equipqr.app` |
+| Git branch **`preview`** | **Keep (domain anchor)** | Vercel requires a branch to bind **`preview.equipqr.app`**; not used for feature PRs |
+| Feature workflow | `feat/*` → PR → **`main`** | Validate on commit-specific **`*.vercel.app`** Preview URL per push |
 | Supabase schema validation | **Ephemeral PR branches** (existing) | Created when PR touches `supabase/**`; auto-deleted on merge/close (~$0.32/PR) |
-| Persistent git `preview` branch | **Retire** | No multi-team integration need; nested branches ad-hoc only |
-| `preview.equipqr.app` | **Keep on Vercel Preview** | Stable hostname; `preview-domain-alias.yml` points it at the latest Preview deployment |
+| Persistent git `preview` **integration** branch | **Retired** | No feat → preview → main train |
+| `preview.equipqr.app` | **Keep on Vercel Preview** | Vercel UI: custom domain bound to git branch **`preview`** (optional QA hostname) |
 | Decommission `olsdirk`? | **Yes, after cutover** | Duplicate Supabase project; ~$10/mo + duplicate secret ops |
 | Production Supabase | **`ymxkzronkhwxzcdcbnwq` / `supabase.equipqr.app`** | Single backend for production and PR previews that need live backend |
 | `configure-supabase-auth.yml` | **Remove** | Tied to `preview` branch + olsdirk; obsolete under main-centric flow |

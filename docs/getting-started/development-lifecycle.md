@@ -4,16 +4,16 @@ Authoritative day-to-day workflow. See also [`docs/ops/git-and-deploy.md`](../op
 
 ## Ground truth
 
-- **`main`** is the only long-lived git branch.
-- Branch off **`main`** for work (`feat/*`, `fix/*`, any name).
-- **`preview.equipqr.app`** is the stable pre-production URL — it should reflect whatever you last pushed while working, regardless of branch name.
-- Ship via **PR into `main`**. Production promotes automatically when **Production Release Readiness** is green after merge.
+- **`main`** is the production branch; branch off **`main`** for work.
+- Git branch **`preview`** exists only so Vercel can bind **`preview.equipqr.app`** (dashboard requires a branch). It is **not** where feature work lands.
+- **Default QA URL:** the commit-specific Vercel Preview link (`*.vercel.app`) after you push a work branch — not `preview.equipqr.app`.
+- Ship via **PR into `main`**. Production promotes when **Production Release Readiness** is green.
 
 ## Lifecycle
 
 ```text
 Plan → branch off main → implement → verify locally
-→ push work branch → preview.equipqr.app updates
+→ push work branch → test on *.vercel.app Preview URL
 → PR to main → CI green → merge
 → Production Release Readiness → equipqr.app
 ```
@@ -33,15 +33,15 @@ git switch -c feat/<short-name> origin/main
 
 Run local stack via `dev-start.bat`. Gate: lint, type-check, targeted tests, smallest credible E2E proof.
 
-### 3) Push and validate preview
+### 3) Push and validate on Preview
 
 ```powershell
 git push -u origin HEAD
 ```
 
 - Vercel creates a Preview deployment for the branch.
-- **`preview.equipqr.app`** aliases to the latest successful Preview build (see `preview-domain-alias.yml`).
-- Validate behavior on the stable preview hostname before opening a PR.
+- Open the deployment URL from the PR or Vercel dashboard (`equipqr-<hash>-columbia-cloudworks-llc.vercel.app`).
+- **`preview.equipqr.app`** is optional (bound to git **`preview`** in Vercel); use it only when you need that fixed hostname.
 
 ### 4) PR to main
 
@@ -62,11 +62,11 @@ No manual Vercel dashboard promote step.
 
 ## Release-ready checklist
 
-- Validated on **`preview.equipqr.app`** (or local stack for non-UI backend changes).
+- Validated on the **Preview deployment URL**, local stack, or both (as appropriate).
 - CI green on PR to **`main`**.
 - Migrations/auth-sensitive paths verified locally when applicable.
 - Review threads and automated review items addressed.
 
 ## Onboarding
 
-New contributors follow the same model: **`main` only**, preview hostname for QA, PR to **`main`**. Do not create or target a git **`preview`** branch.
+Branch off **`main`**, PR to **`main`**. Do not open feature PRs into git **`preview`**. The **`preview`** branch is a Vercel domain anchor, not a development queue.

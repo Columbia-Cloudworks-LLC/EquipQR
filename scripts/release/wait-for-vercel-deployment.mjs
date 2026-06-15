@@ -168,31 +168,45 @@ function sanitizeGithubOutputScalar(value) {
   return String(value).replace(/[\r\n]/g, '');
 }
 
-/** @param {string} url */
-function isSafeVercelDeploymentUrl(url) {
+/** @param {string} raw */
+function buildSafeVercelDeploymentUrl(raw) {
+  const scalar = sanitizeGithubOutputScalar(raw);
   try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== 'https:') return false;
-    return parsed.hostname.endsWith('.vercel.app') || parsed.hostname.endsWith('.equipqr.app');
+    const parsed = new URL(scalar);
+    if (parsed.protocol !== 'https:') return null;
+    if (!parsed.hostname.endsWith('.vercel.app') && !parsed.hostname.endsWith('.equipqr.app')) {
+      return null;
+    }
+    // Reconstruct from parsed parts so CodeQL does not treat API body as a direct file write sink.
+    return `https://${parsed.hostname}${parsed.pathname || '/'}${parsed.search || ''}`;
   } catch {
-    return false;
+    return null;
   }
 }
 
-/** @param {string} id */
-function isSafeVercelDeploymentId(id) {
-  return /^[A-Za-z0-9_-]+$/.test(id);
+/** @param {string} raw */
+function buildSafeVercelDeploymentId(raw) {
+  const scalar = sanitizeGithubOutputScalar(raw);
+  const match = /^([A-Za-z0-9_-]+)$/.exec(scalar);
+  return match ? match[1] : null;
 }
 
 function writeGithubStepOutput(name, value) {
   const outputFile = process.env.GITHUB_OUTPUT || '';
   if (!outputFile || !name || !isSafeGithubOutputName(name)) return;
 
-  const scalar = sanitizeGithubOutputScalar(value);
-  if (name === 'deployment_url' && !isSafeVercelDeploymentUrl(scalar)) return;
-  if (name === 'deployment_id' && !isSafeVercelDeploymentId(scalar)) return;
+  let safeValue = null;
+  if (name === 'deployment_url') {
+    safeValue = buildSafeVercelDeploymentUrl(value);
+  } else if (name === 'deployment_id') {
+    safeValue = buildSafeVercelDeploymentId(value);
+  } else {
+    return;
+  }
 
-  appendFileSync(outputFile, `${name}=${scalar}\n`);
+  if (!safeValue) return;
+
+  appendFileSync(outputFile, `${name}=${safeValue}\n`);
 }
 
 async function main() {

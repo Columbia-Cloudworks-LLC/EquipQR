@@ -11,15 +11,16 @@ See **`docs/ops/git-and-deploy.md`** for the full solo-developer deploy loop.
 | Branch | Role | Deploys to |
 |--------|------|------------|
 | **`main`** | Production source of truth | equipqr.app (after Production Release Readiness + `vercel promote`) |
-| **`feat/*`, `fix/*`, etc.** | Short-lived work branches | Vercel **Preview**; **`preview.equipqr.app`** aliases latest Preview build |
+| **`feat/*`, `fix/*`, etc.** | Short-lived work branches | Vercel **Preview** → commit-specific `*.vercel.app` URL |
+| **`preview`** | **Vercel domain anchor only** (not integration) | **`preview.equipqr.app`** when Vercel Preview domain is bound to this branch |
 
-There is **no git `preview` integration branch** and **no `dev` branch**.
+There is **no `dev` branch**. Do **not** use git **`preview`** as an integration branch or PR target.
 
 ## Rules for agents
 
 1. **Branch off `main`** for new feature, fix, refactor, chore, or experimental work.
-2. **All PRs target `main` by default.** Never open PRs into a git branch named `preview`.
-3. When GitHub defaults or old docs disagree, **this rule wins**.
+2. **All PRs target `main` by default.** Never open PRs into git **`preview`**.
+3. When GitHub defaults or old docs disagree, **this rule wins** for day-to-day work.
 4. Before creating a branch:
    ```powershell
    git fetch origin main
@@ -29,9 +30,9 @@ There is **no git `preview` integration branch** and **no `dev` branch**.
    ```powershell
    gh pr create --base main --head feat/<short-name> --title "<conventional-commit title>"
    ```
-6. **Pre-production hostname (`preview.equipqr.app`):**
-   - Stable Vercel **Preview** URL for your latest work — **not** tied to a git branch named `preview`.
-   - Any push to a work branch can update it via `preview-domain-alias.yml`.
+6. **Pre-production testing:**
+   - **Primary:** commit-specific Vercel Preview URL (`equipqr-<hash>-columbia-cloudworks-llc.vercel.app` pattern) after pushing a work branch.
+   - **Optional:** **`preview.equipqr.app`** — fixed hostname tied to git branch **`preview`** in Vercel; not required for every feature.
    - Supabase **ephemeral PR branches** validate `supabase/**` on PRs to `main`.
    - OAuth (Google Workspace, QuickBooks): verify on the **local stack** before merge.
 7. **Hotfix:** Branch off `origin/main`, PR into `main`.

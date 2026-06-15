@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Organization admin layout** — Members, Settings, and Integrations are separate pages with a shared sub-navigation instead of tabs on a single settings screen.
 - **Production release automation** — Production Release Readiness now runs `vercel promote` after migrations and schema drift pass, so equipqr.app updates without a manual Vercel dashboard promote.
-- **Git and deploy workflow** — Development branches off `main` only; `preview.equipqr.app` is the stable pre-production hostname on Vercel Preview (not a long-lived git `preview` branch).
+- **Git and deploy workflow** — Development branches off `main` only; git branch **`preview`** kept as a Vercel domain anchor for optional **`preview.equipqr.app`**; default QA is each push’s **`*.vercel.app`** Preview URL.
 
 ### Fixed
 

@@ -95,6 +95,12 @@
       ]
     }
   ],
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "preview": true
+    }
+  },
   "github": {
     "deploymentEnabled": true,
     "autoAlias": false
