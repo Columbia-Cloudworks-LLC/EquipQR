@@ -14,6 +14,7 @@ export const Teams = lazy(() => import('@/features/teams/pages/Teams'));
 export const TeamDetails = lazy(() => import('@/features/teams/pages/TeamDetails'));
 export const FleetMap = lazy(() => import('@/features/fleet-map/pages/FleetMap'));
 export const Organization = lazy(() => import('@/features/organization/pages/Organization'));
+export const OrganizationMembers = lazy(() => import('@/features/organization/pages/OrganizationMembers'));
 export const OrganizationIntegrations = lazy(() => import('@/features/organization/pages/OrganizationIntegrations'));
 export const Settings = lazy(() => import('@/pages/Settings'));
 export const Reports = lazy(() => import('@/features/reports/pages/Reports'));

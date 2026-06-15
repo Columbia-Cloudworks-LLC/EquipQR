@@ -3,12 +3,21 @@ import { test, expect } from '../fixtures/equipqr-test';
 const INTEGRATIONS_PATH = '/dashboard/organization/integrations';
 
 test.describe('organization and integrations @full', () => {
-  test('organization page loads', async ({ gotoDashboard, page, assertHealthyShell }) => {
+  test('organization settings page loads', async ({ gotoDashboard, page, assertHealthyShell }) => {
     await gotoDashboard('/organization');
     await assertHealthyShell();
-    await expect(page.getByText(/organization|members/i).first()).toBeVisible({
+    await expect(page.getByRole('heading', { name: /organization settings/i })).toBeVisible({
       timeout: 60_000,
     });
+  });
+
+  test('organization members page loads', async ({ gotoDashboard, page, assertHealthyShell }) => {
+    await gotoDashboard('/organization/members');
+    await assertHealthyShell();
+    await expect(page.getByRole('heading', { name: /^members$/i })).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.getByRole('button', { name: /invite member/i })).toBeVisible();
   });
 
   test('canonical integrations page shows disconnected vendor cards', async ({

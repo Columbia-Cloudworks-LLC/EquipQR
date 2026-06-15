@@ -3,6 +3,7 @@
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useOrganizationIntegrationOAuthCallbacks } from '@/features/organization/hooks/useOrganizationIntegrationOAuthCallbacks';
 import OrganizationIntegrationsPanel from '@/features/organization/components/OrganizationIntegrationsPanel';
+import { OrganizationSubnav } from '@/features/organization/components/OrganizationSubnav';
 import RestrictedOrganizationAccess from '@/features/organization/components/RestrictedOrganizationAccess';
 import Page from '@/components/layout/Page';
 import { Card, CardContent } from '@/components/ui/card';
@@ -39,14 +40,20 @@ const OrganizationIntegrations = () => {
   return (
     <Page maxWidth="7xl" padding="responsive">
       <div className="space-y-4 sm:space-y-6">
-        <div className="pb-4 border-b">
-          <div className="flex items-center gap-2">
-            <Plug className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Integrations</h1>
+        <OrganizationSubnav />
+
+        <div className="pb-1 sm:pb-4 border-b">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg border bg-muted/40 p-2.5 shrink-0">
+              <Plug className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Integrations</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Connect third-party services for {currentOrganization.name}
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            Connect third-party services for {currentOrganization.name}
-          </p>
         </div>
 
         <Card>

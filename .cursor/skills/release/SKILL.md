@@ -18,7 +18,7 @@ End-to-end workflow to prepare EquipQR for production promotion: align with `ori
 
 **Opening the release PR is not handoff.** The agent owns the PR until every CI check passes and every review comment — including Qodo optional/review-recommended items, CodeQL/GHAS findings, and unresolved `github-copilot` threads — is addressed.
 
-This is the explicit release gate. It does **not** auto-promote production traffic in Vercel — merging to `main` is the release candidate; the human promotes production manually.
+This is the explicit release gate. Merging to `main` is the release candidate; **Production Release Readiness** auto-promotes production traffic in Vercel after migrations and schema drift pass.
 
 ## Mandatory Rules
 

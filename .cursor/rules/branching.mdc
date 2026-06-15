@@ -17,7 +17,7 @@ There is **no `dev` branch**. Solo-developer workflow: **one feature branch at a
 
 1. **Branch off `main`** for new feature, fix, refactor, chore, or experimental work — unless the user explicitly says **hotfix** (still branches off `main` for the fix PR).
 2. **All PRs target `main` by default.** Do not open PRs into `preview`.
-3. When the GitHub default branch and this rule disagree on integration flow, **this rule wins** for day-to-day work. Production releases still promote `main` on Vercel manually when ready.
+3. When the GitHub default branch and this rule disagree on integration flow, **this rule wins** for day-to-day work. Production releases merge to `main`; **Production Release Readiness** auto-promotes Vercel production traffic when green.
 4. Before creating a branch:
    ```powershell
    git fetch origin main

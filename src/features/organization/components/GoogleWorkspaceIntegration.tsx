@@ -17,7 +17,7 @@ import {
   isGoogleWorkspaceConfigured,
 } from '@/services/google-workspace/auth';
 import { googleWorkspace } from '@/lib/queryKeys';
-import { ORGANIZATION_INTEGRATIONS_PATH } from '@/features/organization/constants/routes';
+import { ORGANIZATION_INTEGRATIONS_PATH, ORGANIZATION_MEMBERS_PATH } from '@/features/organization/constants/routes';
 import { IntegrationLoadingCard } from '@/features/organization/components/IntegrationLoadingCard';
 import { IntegrationNotConfiguredCard } from '@/features/organization/components/IntegrationNotConfiguredCard';
 import {
@@ -192,7 +192,7 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
                     Disconnect
                   </Button>
                   <Button variant="ghost" size="sm" className={integrationActionButtonClassName} asChild>
-                    <Link to="/dashboard/organization">
+                    <Link to={ORGANIZATION_MEMBERS_PATH}>
                       <Users className="h-3.5 w-3.5 mr-1.5" />
                       Members
                     </Link>

@@ -16,7 +16,8 @@ export const ROUTE_LABELS: Record<string, string> = {
   '/dashboard/part-lookup': 'Part Lookup',
   '/dashboard/alternate-groups': 'Part Alternates',
   '/dashboard/teams': 'Teams',
-  '/dashboard/organization': 'Organization',
+  '/dashboard/organization': 'Settings',
+  '/dashboard/organization/members': 'Members',
   '/dashboard/organization/integrations': 'Integrations',
   '/dashboard/pm-templates': 'PM Templates',
   '/dashboard/pm-templates/new': 'New PM Template',
@@ -45,6 +46,7 @@ export const ROUTES_WITH_PAGE_H1 = new Set([
   '/dashboard/settings',
   '/dashboard/support',
   '/dashboard/organization',
+  '/dashboard/organization/members',
   '/dashboard/organization/integrations',
 ]);
 

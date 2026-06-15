@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.9.2] - 2026-06-15
+
+### Added
+
+- **Dedicated organization Members page** — Member invites and Google Workspace import live at Organization → Members with a mobile-first action bar so Import and Invite stay on screen on phones.
+
+### Changed
+
+- **Organization admin layout** — Members, Settings, and Integrations are separate pages with a shared sub-navigation instead of tabs on a single settings screen.
+- **Production release automation** — Production Release Readiness now runs `vercel promote` after migrations and schema drift pass, so equipqr.app updates without a manual Vercel dashboard promote.
+
+### Fixed
+
+- **Mobile organization settings** — Privacy toggles and save actions stack cleanly on narrow viewports instead of crowding controls off-screen.
+
 
 ## [3.9.1] - 2026-06-15
 

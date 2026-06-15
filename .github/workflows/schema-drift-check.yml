@@ -69,6 +69,7 @@ on:
       - '.github/workflows/schema-drift-check.yml'
       - '.github/workflows/production-release-readiness.yml'
       - 'scripts/release/wait-for-vercel-deployment.mjs'
+      - 'scripts/release/promote-vercel-production.mjs'
       - '.github/actions/load-1p-secrets/**'
   workflow_dispatch:
 

@@ -40,7 +40,7 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 
 | Environment | Git trigger | Frontend URL | Supabase API |
 |-------------|-------------|--------------|--------------|
-| **Production** | Push to `main` (manual promote in Vercel) | https://equipqr.app | `https://supabase.equipqr.app` (`ymxkzronkhwxzcdcbnwq`) |
+| **Production** | Push to `main` (auto-promote via Production Release Readiness) | https://equipqr.app | `https://supabase.equipqr.app` (`ymxkzronkhwxzcdcbnwq`) |
 | **Preview** | PRs and non-`main` pushes (Vercel Preview) | https://preview.equipqr.app (alias → latest Preview deployment) | Same production API (`supabase.equipqr.app`) |
 
 > **Migration (#1033):** The persistent git `preview` branch, Vercel custom **`staging`** environment, and Supabase branch **`olsdirkvvfegvclbpgrg`** are being retired. See `docs/ops/preview-architecture-migration.md`.
@@ -148,7 +148,7 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 **Branch to Domain Mapping:**
 | Git context | Vercel target | Stable alias |
 |-------------|---------------|--------------|
-| `main` | Production | `equipqr.app` (manual promote) |
+| `main` | Production | `equipqr.app` (auto-promote after release readiness) |
 | PR / non-`main` push | Preview | Per-deployment URL; `preview.equipqr.app` aliased via `preview-domain-alias.yml` |
 
 **Key Settings (`vercel.json`):**
@@ -227,7 +227,7 @@ When you merge to `main`:
 |------|-------|
 | 0:00 | Push to `main` |
 | 0:01 | CI + Production Release Readiness workflows |
-| ~2:00 | Vercel Production build ready (manual promote to `equipqr.app`) |
+| ~2:00 | Vercel Production build ready; Production Release Readiness promotes to `equipqr.app` |
 
 ---
 

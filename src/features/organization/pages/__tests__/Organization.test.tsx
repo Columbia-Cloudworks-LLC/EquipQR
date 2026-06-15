@@ -69,12 +69,12 @@ vi.mock('@/hooks/usePagePermissions', () => ({
   }),
 }));
 
-vi.mock('@/features/organization/components/OrganizationHeader', () => ({
-  default: () => <div>Organization Header</div>,
+vi.mock('@/features/organization/components/OrganizationSubnav', () => ({
+  OrganizationSubnav: () => <div>Organization Subnav</div>,
 }));
 
-vi.mock('@/features/organization/components/OrganizationTabs', () => ({
-  default: () => <div>Organization Tabs</div>,
+vi.mock('@/features/organization/components/OrganizationSettings', () => ({
+  OrganizationSettings: () => <div>Organization Settings</div>,
 }));
 
 vi.mock('@/features/organization/components/RestrictedOrganizationAccess', () => ({
@@ -109,9 +109,10 @@ describe('Organization page OAuth callbacks', () => {
     expect(options).toEqual({ replace: true });
   });
 
-  it('renders organization tabs for admin users', () => {
+  it('renders organization settings for admin users', () => {
     customRender(<Organization />);
 
-    expect(screen.getByText('Organization Tabs')).toBeInTheDocument();
+    expect(screen.getByText('Organization Subnav')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Organization Settings' })).toBeInTheDocument();
   });
 });

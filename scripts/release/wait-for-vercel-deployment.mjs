@@ -15,11 +15,13 @@
  *   VERCEL_WAIT_TIMEOUT_MINUTES — default 45
  *   VERCEL_FETCH_TIMEOUT_MS — per-request HTTP timeout (default 45000)
  *
- * READY deployment URL is printed to stdout / ::notice:: only (not written to
- * GITHUB_OUTPUT) so static analysis does not treat API-derived URLs as file writes.
+ * When GITHUB_OUTPUT is set (GitHub Actions), writes deployment_url and
+ * deployment_id for the follow-up promote step.
  *
- * Does not run `vercel promote`.
+ * Does not run `vercel promote` — see promote-vercel-production.mjs.
  */
+
+import { appendFileSync } from 'node:fs';
 
 const DEFAULT_TEAM = 'team_78VeGDURoofThjZNJOKEBpP5';
 const DEFAULT_PROJECT = 'prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA';
@@ -156,6 +158,12 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+function writeGithubStepOutput(name, value) {
+  const outputFile = process.env.GITHUB_OUTPUT || '';
+  if (!outputFile || !name) return;
+  appendFileSync(outputFile, `${name}=${value}\n`);
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   if (argv.includes('--help') || argv.includes('-h')) {
@@ -256,9 +264,18 @@ async function main() {
         process.exit(1);
       }
 
+      const deploymentId = ready.uid || ready.id || '';
+      writeGithubStepOutput('deployment_url', url);
+      if (deploymentId) {
+        writeGithubStepOutput('deployment_id', deploymentId);
+      }
+
       process.stdout.write(`::notice::Vercel deployment READY: ${url}\n`);
+      if (deploymentId) {
+        process.stdout.write(`::notice::Vercel deployment id: ${deploymentId}\n`);
+      }
       process.stdout.write(
-        `Safe to manually promote this build to production (equipqr.app) after verifying migrations — use the URL above or matching deployment in the Vercel dashboard.\n`,
+        `Production release readiness will promote this deployment to equipqr.app in the next workflow step.\n`,
       );
 
       process.exit(0);

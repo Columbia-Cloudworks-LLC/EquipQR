@@ -36,7 +36,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "@/components/ui/sidebar-context";
 import Logo from "@/components/ui/Logo";
-import { ORGANIZATION_INTEGRATIONS_PATH } from "@/features/organization/constants/routes";
+import { ORGANIZATION_INTEGRATIONS_PATH, ORGANIZATION_MEMBERS_PATH } from "@/features/organization/constants/routes";
 
 interface NavigationItem {
   title: string;
@@ -74,7 +74,7 @@ const navigationGroups: NavigationGroup[] = [
     label: "Infrastructure",
     items: [
       { title: "Teams", url: "/dashboard/teams", icon: Users },
-      { title: "Organization", url: "/dashboard/organization", icon: Building },
+      { title: "Organization", url: ORGANIZATION_MEMBERS_PATH, icon: Building },
       { title: "Integrations", url: ORGANIZATION_INTEGRATIONS_PATH, icon: Plug, adminOnly: true },
     ],
   },
@@ -132,7 +132,10 @@ const AppSidebar = () => {
     currentOrganization?.userRole === 'admin';
 
   const renderNavItem = (item: NavigationItem) => {
-    const isActive = location.pathname === item.url;
+    const isActive =
+      item.url === ORGANIZATION_MEMBERS_PATH
+        ? location.pathname.startsWith('/dashboard/organization')
+        : location.pathname === item.url;
     return (
       <SidebarMenuItem key={item.title}>
         <SidebarMenuButton
