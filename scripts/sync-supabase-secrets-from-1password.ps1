@@ -67,7 +67,9 @@ $EDGE_ITEM_CONFIG = @{
             'GITHUB_PAT',
             'GITHUB_WEBHOOK_SECRET',
             'PRODUCTION_URL',
-            'SUPER_ADMIN_ORG_ID'
+            'SUPER_ADMIN_ORG_ID',
+            'GW_OAUTH_REDIRECT_BASE_URL',
+            'QB_OAUTH_REDIRECT_BASE_URL'
         )
     }
     'edge-env-prod-secrets'    = @{
@@ -93,7 +95,9 @@ $EDGE_ITEM_CONFIG = @{
             'GITHUB_PAT',
             'GITHUB_WEBHOOK_SECRET',
             'PRODUCTION_URL',
-            'SUPER_ADMIN_ORG_ID'
+            'SUPER_ADMIN_ORG_ID',
+            'GW_OAUTH_REDIRECT_BASE_URL',
+            'QB_OAUTH_REDIRECT_BASE_URL'
         )
     }
 }

@@ -10,12 +10,21 @@ const RETIRED_OAUTH_REDIRECT_BASE_URLS: Record<string, string> = {
   'https://supabase.preview.equipqr.app': 'https://olsdirkvvfegvclbpgrg.supabase.co',
 };
 
+/** Matches edge `oauth-redirect-base.ts` — custom API domain vs auto-injected project URL. */
+const CANONICAL_OAUTH_REDIRECT_BASE_BY_SUPABASE_URL: Record<string, string> = {
+  'https://ymxkzronkhwxzcdcbnwq.supabase.co': 'https://supabase.equipqr.app',
+};
+
 export function resolveOAuthRedirectBaseUrl(
   configuredBaseUrl: string | undefined,
   fallbackBaseUrl: string,
 ): string {
   const rawBaseUrl = (configuredBaseUrl || fallbackBaseUrl).trim().replace(/\/+$/, '');
-  return RETIRED_OAUTH_REDIRECT_BASE_URLS[rawBaseUrl] ?? rawBaseUrl;
+  return (
+    RETIRED_OAUTH_REDIRECT_BASE_URLS[rawBaseUrl] ??
+    CANONICAL_OAUTH_REDIRECT_BASE_BY_SUPABASE_URL[rawBaseUrl] ??
+    rawBaseUrl
+  );
 }
 
 export function assertValidOAuthRedirectBase(oauthRedirectBaseUrl: string): void {
