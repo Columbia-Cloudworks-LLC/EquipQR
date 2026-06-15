@@ -22,11 +22,11 @@
   digests of 1Password values. Prints names and match/mismatch only.
 
 .PARAMETER OpItem
-  1Password item name: `edge-env-preview-secrets` or `edge-env-prod-secrets`.
+  1Password item name: `edge-env-prod-secrets` (cloud preview shares production Supabase).
 
 .EXAMPLE
-  .\scripts\sync-supabase-secrets-from-1password.ps1 -Check -OpItem edge-env-preview-secrets
-  .\scripts\sync-supabase-secrets-from-1password.ps1 -OpItem edge-env-preview-secrets
+  .\scripts\sync-supabase-secrets-from-1password.ps1 -Check -OpItem edge-env-prod-secrets
+  .\scripts\sync-supabase-secrets-from-1password.ps1 -OpItem edge-env-prod-secrets
 #>
 [CmdletBinding()]
 param(
@@ -44,34 +44,6 @@ $SUPABASE_TOKEN_ITEM = 'supabase-write'
 $SUPABASE_TOKEN_FIELD = 'SUPABASE_ACCESS_TOKEN'
 
 $EDGE_ITEM_CONFIG = @{
-    'edge-env-preview-secrets' = @{
-        AllowedProjectRef = 'olsdirkvvfegvclbpgrg'
-        RequiredVars      = @(
-            'RESEND_API_KEY',
-            'HCAPTCHA_SECRET_KEY',
-            'TOKEN_ENCRYPTION_KEY',
-            'KDF_SALT',
-            'INTUIT_CLIENT_ID',
-            'INTUIT_CLIENT_SECRET',
-            'GOOGLE_WORKSPACE_CLIENT_ID',
-            'GOOGLE_WORKSPACE_CLIENT_SECRET',
-            'GOOGLE_MAPS_SERVER_KEY',
-            'GOOGLE_MAPS_BROWSER_KEY',
-            'GOOGLE_MAPS_MAP_ID',
-            'VAPID_PUBLIC_KEY',
-            'VAPID_PRIVATE_KEY',
-            'VAPID_SUBJECT',
-            'PUBLIC_SITE_URL'
-        )
-        OptionalVars      = @(
-            'GITHUB_PAT',
-            'GITHUB_WEBHOOK_SECRET',
-            'PRODUCTION_URL',
-            'SUPER_ADMIN_ORG_ID',
-            'GW_OAUTH_REDIRECT_BASE_URL',
-            'QB_OAUTH_REDIRECT_BASE_URL'
-        )
-    }
     'edge-env-prod-secrets'    = @{
         AllowedProjectRef = 'ymxkzronkhwxzcdcbnwq'
         RequiredVars      = @(
@@ -443,24 +415,18 @@ foreach ($var in $optional) {
     $resolved[$var] = $v
 }
 
-# QuickBooks environment policy (preview = sandbox; production = live QBO API).
+# QuickBooks environment policy (production = live QBO API; omit QBO_USE_SANDBOX).
 function Apply-QboEnvironmentPolicy {
     param(
-        [string]$Item,
         [hashtable]$Secrets
     )
-    if ($Item -eq 'edge-env-preview-secrets') {
-        $Secrets['QBO_USE_SANDBOX'] = 'true'
-        Write-Ok 'Preview policy: QBO_USE_SANDBOX=true (Intuit sandbox companies only).'
-        return
-    }
     if ($Secrets.ContainsKey('QBO_USE_SANDBOX')) {
         $Secrets.Remove('QBO_USE_SANDBOX')
         Write-Ok 'Production policy: QBO_USE_SANDBOX omitted (production QuickBooks API).'
     }
 }
 
-Apply-QboEnvironmentPolicy -Item $OpItem -Secrets $resolved
+Apply-QboEnvironmentPolicy -Secrets $resolved
 
 if ($Check) {
     Write-Step "Fetching remote digest map for $ProjectRef..."

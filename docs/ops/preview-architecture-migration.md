@@ -168,7 +168,7 @@ Inventory, cost model, architecture proposal. **Stop here for maintainer sign-of
 3. Align 1Password field labels with sync scripts; REST API path for Vercel Preview env upsert.
 4. Rotate-and-verify playbook in `agent-secrets-and-access.md`.
 
-### Phase 3 — Cutover (in progress)
+### Phase 3 — Cutover (complete)
 
 1. ✅ Update Vercel preview env + `app-env-preview-public` → prod Supabase URL/anon key.
 2. ✅ Align preview GW/QB client IDs with prod edge (`app-env-preview-public` ↔ `edge-env-prod-secrets`).
@@ -176,10 +176,11 @@ Inventory, cost model, architecture proposal. **Stop here for maintainer sign-of
 4. ✅ Validate GW + QB on `preview.equipqr.app` (2026-06-15); edge callbacks accept preview origin via `isAllowedOrigin`.
 5. ✅ Remove `configure-supabase-auth.yml`; simplify `secrets-fanout.yml`; prod Auth allowlist includes `https://preview.equipqr.app/**`.
 6. ✅ Repoint `PREVIEW_DATABASE_URL` GitHub secret → production pooler (`ymxkzronkhwxzcdcbnwq`).
-7. ⏳ Vendor console cleanup (remove **olsdirk** redirect URIs).
-8. ⏳ **Decommission** Supabase branch `olsdirkvvfegvclbpgrg` (after schema export + script cleanup).
+7. ✅ Vendor console cleanup (remove **olsdirk** redirect URIs).
+8. ✅ Decommission Supabase branch `olsdirkvvfegvclbpgrg`; remove `[remotes.staging]` from `config.toml`.
+9. ✅ Retire GitHub Environment fan-out (empty `secrets-map.yml`; repo-level `OP_SERVICE_ACCOUNT_TOKEN` only).
 
-### Phase 4 — Verification
+### Phase 4 — Verification (in progress)
 
 Per `local-verify-before-preview-push.mdc`: Fallow, lint, type-check, targeted tests, OAuth smoke on new target, CI green.
 
@@ -187,13 +188,7 @@ Per `local-verify-before-preview-push.mdc`: Fallow, lint, type-check, targeted t
 
 ## Rollback
 
-If OAuth or integrations fail after cutover:
-
-1. Restore Vercel preview `VITE_SUPABASE_URL` to **olsdirk** (if branch not yet deleted).
-2. Re-enable `configure-supabase-auth.yml` run manually.
-3. Re-run `sync-supabase-secrets-from-1password.ps1 -OpItem edge-env-preview-secrets`.
-
-Do **not** delete `olsdirk` until at least one successful preview GW/QB cycle on the new architecture.
+If OAuth or integrations fail after cutover, restore Vercel preview `VITE_*` from `app-env-preview-public` via `sync-vercel-from-1password.ps1 -Environment preview` and verify prod edge secrets with `-Check -OpItem edge-env-prod-secrets`. The retired `olsdirk` branch cannot be restored once deleted.
 
 ---
 

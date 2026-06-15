@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param(
     [switch]$DryRun,
-    [ValidateSet('Preview', 'staging', 'copilot')]
+    [ValidateSet('Preview')]
     [string]$Environment,
     [switch]$OnlyDrifted
 )
