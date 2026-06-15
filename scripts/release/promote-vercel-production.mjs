@@ -80,10 +80,10 @@ async function verifyPromotedDeployment({ token, teamId, deploymentRef, sha }) {
     timeoutMs: 45_000,
   });
   if (!fetched.ok) {
-    process.stdout.write(
-      `::warning title=promote-vercel-production::Post-promote verification skipped: ${fetched.detail}\n`,
+    process.stderr.write(
+      `::error title=promote-vercel-production::Post-promote verification failed: ${fetched.detail}\n`,
     );
-    return true;
+    return false;
   }
 
   const d = fetched.deployment;

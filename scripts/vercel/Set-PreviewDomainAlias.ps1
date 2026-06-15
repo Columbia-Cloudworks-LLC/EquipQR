@@ -4,8 +4,8 @@
   Point preview.equipqr.app at a Vercel Preview deployment URL.
 
 .DESCRIPTION
-  Used after Preview deployments so the stable hostname tracks the latest
-  Preview environment build (not the retired custom "staging" environment).
+  Used when git branch `preview` deploys so preview.equipqr.app tracks that
+  domain-anchor deployment (not arbitrary feat/* Preview builds).
 
 .PARAMETER DeploymentUrl
   Hostname or URL of the Preview deployment (e.g. equipqr-abc123-columbia-cloudworks-llc.vercel.app).

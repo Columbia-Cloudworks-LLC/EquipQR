@@ -1,7 +1,7 @@
 name: Preview Domain Alias
 
-# Keeps preview.equipqr.app on the standard Vercel Preview environment
-# (replaces the retired custom "staging" environment tied to git preview branch).
+# Keeps preview.equipqr.app on deployments from git branch `preview` only
+# (domain anchor — not every Vercel Preview build from feat/* branches).
 
 on:
   deployment_status:
@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
       github.event.deployment_status.state == 'success' &&
+      github.event.deployment.ref == 'preview' &&
       contains(github.event.deployment_status.environment, 'Preview') &&
       !contains(github.event.deployment_status.environment, 'equipqr-docs') &&
       !contains(github.event.deployment_status.environment, 'Production') &&

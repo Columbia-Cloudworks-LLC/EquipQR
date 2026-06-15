@@ -134,7 +134,8 @@ const AppSidebar = () => {
   const renderNavItem = (item: NavigationItem) => {
     const isActive =
       item.url === ORGANIZATION_MEMBERS_PATH
-        ? location.pathname.startsWith('/dashboard/organization')
+        ? location.pathname.startsWith('/dashboard/organization') &&
+          !location.pathname.startsWith(ORGANIZATION_INTEGRATIONS_PATH)
         : location.pathname === item.url;
     return (
       <SidebarMenuItem key={item.title}>

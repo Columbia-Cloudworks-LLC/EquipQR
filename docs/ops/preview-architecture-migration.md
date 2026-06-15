@@ -155,7 +155,7 @@ All vendor OAuth callbacks use **`https://supabase.equipqr.app/functions/v1/...`
 
 - Deleted Vercel custom environment **`staging`** (slug `staging`, branch matcher `preview`).
 - Reattached **`preview.equipqr.app`** to the standard Preview deployment (not custom staging).
-- Added `.github/workflows/preview-domain-alias.yml` + `scripts/vercel/Set-PreviewDomainAlias.ps1` to keep the hostname on the latest Preview build.
+- Added `.github/workflows/preview-domain-alias.yml` + `scripts/vercel/Set-PreviewDomainAlias.ps1` to point **`preview.equipqr.app`** at deployments from git branch **`preview`** only (domain anchor, not every feat/* Preview build).
 - Synced Vercel **Preview** env vars from `app-env-preview-public` → **`https://supabase.equipqr.app`** (production Supabase API).
 - GitHub **`staging`** environment removed from `.github/secrets-map.yml` (use **Preview** only).
 

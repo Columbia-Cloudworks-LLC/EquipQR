@@ -68,7 +68,7 @@ $edge = (op read "op://EquipQR Agents/edge-env-prod-secrets/GOOGLE_WORKSPACE_CLI
 "appEdgeAligned=$($app -eq $edge)"
 ```
 
-After changing `app-env-preview-public`, run `.\scripts\sync-vercel-from-1password.ps1 -Environment preview` and confirm `preview.equipqr.app` aliases the latest **Vercel Preview** deployment (see `preview-domain-alias.yml`, not the retired custom `staging` environment).
+After changing `app-env-preview-public`, run `.\scripts\sync-vercel-from-1password.ps1 -Environment preview` and confirm `preview.equipqr.app` is bound to git branch **`preview`** in Vercel (optional hostname; `preview-domain-alias.yml` runs only when that branch deploys).
 
 ---
 

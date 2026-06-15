@@ -34,7 +34,7 @@ EquipQR uses a **solo-developer, main-centric** flow (#1033). Authoritative poli
 | Branch | Purpose | Deployment | Public URL |
 |--------|---------|------------|------------|
 | `main` | Production source of truth | Vercel Production (manual promotion gate) | equipqr.app |
-| `feat/*` | One feature at a time | Vercel **Preview** per PR | Per-PR URL + `preview.equipqr.app` (latest Preview) |
+| **`feat/*`** | One feature at a time | Vercel **Preview** per PR | Commit-specific `*.vercel.app` URL |
 
 > Git branch **`preview`** is kept as a **Vercel domain anchor** for `preview.equipqr.app` only — not an integration branch. The retired Vercel custom **`staging`** environment and persistent Supabase preview branch are gone. Ephemeral Supabase PR branches validate `supabase/**` changes.
 
@@ -46,8 +46,8 @@ EquipQR uses a **solo-developer, main-centric** flow (#1033). Authoritative poli
    - CI + Supabase PR branch (when migrations change) must pass before merge
 
 2. **Preview QA**
-   - Vercel assigns a URL per PR automatically
-   - `preview.equipqr.app` tracks the latest successful **Preview** deployment (`preview-domain-alias.yml`)
+   - Vercel assigns a commit-specific URL per push/PR — use that for day-to-day validation
+   - **`preview.equipqr.app`** is optional: Vercel binds it to git branch **`preview`**; `preview-domain-alias.yml` re-aliases only when that branch deploys
 
 3. **Production** (`main`)
    - Merge feature PR → `main`

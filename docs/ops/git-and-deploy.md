@@ -23,7 +23,7 @@ Open PRs with `--base main` only.
 |-----|---------|
 | **https://equipqr.app** | Production (after Production Release Readiness + `vercel promote`) |
 | **`https://<project>-<hash>-columbia-cloudworks-llc.vercel.app`** | **Default for day-to-day QA** — every Preview deploy on a work branch or PR gets a commit-specific URL (also linked on the PR / Vercel deployment). |
-| **https://preview.equipqr.app** | **Optional** stable Preview hostname — Vercel binds this to git branch **`preview`** (dashboard setting). Use when you want a fixed URL; not required to validate feature work. |
+| **https://preview.equipqr.app** | **Optional** stable Preview hostname — Vercel binds this to git branch **`preview`** (dashboard setting). When that branch deploys, `preview-domain-alias.yml` points the custom domain at that deployment. Not updated by arbitrary `feat/*` Preview builds. |
 
 Do **not** confuse git branch **`preview`** (domain anchor) with Vercel environment **Preview** (all non-production deploys).
 

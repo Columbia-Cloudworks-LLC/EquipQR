@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Mobile organization settings** — Privacy toggles and save actions stack cleanly on narrow viewports instead of crowding controls off-screen.
 
 
-## [3.9.1] - 2026-06-15
+## [3.9.1] - 2026-06-13
 
 ### Fixed
 
