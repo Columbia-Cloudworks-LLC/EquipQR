@@ -87,7 +87,10 @@ jobs:
           VERCEL_TEAM_ID: team_78VeGDURoofThjZNJOKEBpP5
           VERCEL_PROJECT_ID: prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA
           GITHUB_SHA: ${{ github.sha }}
-        run: node scripts/release/wait-for-vercel-deployment.mjs
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/release/wait-for-vercel-deployment.mjs >> "$GITHUB_OUTPUT"
 
       - name: Promote Vercel deployment to production
         env:
