@@ -40,7 +40,8 @@ const ALLOWED_ORIGINS = [
 function getVercelPreviewPatterns(): RegExp[] {
   const override = Deno.env.get("VERCEL_PROJECT_SLUG")?.trim();
   const slugs = override ? [override] : ["equipqr", "equip-qr"];
-  const team = (Deno.env.get("VERCEL_TEAM_SLUG") || "columbia-cloudworks-llc")
+  const team = (Deno.env.get("VERCEL_TEAM_SLUG")?.trim() ||
+    "columbia-cloudworks-llc")
     .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return slugs.map((slug) => {
     const escaped = slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

@@ -23,9 +23,14 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$VERCEL_TEAM_SLUG = 'columbia-cloudworks-llc'
+$VERCEL_TEAM_SLUG = if ([string]::IsNullOrWhiteSpace($env:VERCEL_TEAM_SLUG)) {
+    'columbia-cloudworks-llc'
+} else {
+    $env:VERCEL_TEAM_SLUG.Trim()
+}
 $PREVIEW_HOST = 'preview.equipqr.app'
-$AllowedPreviewHostPattern = '^(equipqr|equip-qr)-[a-z0-9-]+-columbia-cloudworks-llc\.vercel\.app$'
+$escapedTeamSlug = [regex]::Escape($VERCEL_TEAM_SLUG)
+$AllowedPreviewHostPattern = "^(equipqr|equip-qr)-[a-z0-9-]+-${escapedTeamSlug}\.vercel\.app$"
 
 function Test-PreviewDeploymentHost {
     param([Parameter(Mandatory = $true)][string]$HostOnly)
