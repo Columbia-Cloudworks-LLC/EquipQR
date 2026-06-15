@@ -32,12 +32,16 @@ Environment:
 `);
 }
 
-function deploymentRefFromEnv() {
+function deploymentPromoteRefFromEnv() {
   const url = (process.env.VERCEL_DEPLOYMENT_URL || '').trim();
   if (url) return url;
   const id = (process.env.VERCEL_DEPLOYMENT_ID || '').trim();
   if (id) return id;
   return '';
+}
+
+function deploymentVerifyIdFromEnv() {
+  return (process.env.VERCEL_DEPLOYMENT_ID || '').trim();
 }
 
 async function fetchDeployment({ token, teamId, deploymentId, timeoutMs }) {
@@ -70,13 +74,20 @@ async function fetchDeployment({ token, teamId, deploymentId, timeoutMs }) {
   }
 }
 
-async function verifyPromotedDeployment({ token, teamId, deploymentRef, sha }) {
+async function verifyPromotedDeployment({ token, teamId, deploymentId, sha }) {
   if (!sha) return true;
+
+  if (!deploymentId) {
+    process.stderr.write(
+      '::error title=promote-vercel-production::Post-promote verification requires VERCEL_DEPLOYMENT_ID when GITHUB_SHA is set.\n',
+    );
+    return false;
+  }
 
   const fetched = await fetchDeployment({
     token,
     teamId,
-    deploymentId: deploymentRef,
+    deploymentId,
     timeoutMs: 45_000,
   });
   if (!fetched.ok) {
@@ -164,7 +175,8 @@ async function main() {
   const teamId = process.env.VERCEL_TEAM_ID || DEFAULT_TEAM;
   const timeout = (process.env.VERCEL_PROMOTE_TIMEOUT || '5m').trim() || '5m';
   const sha = process.env.GITHUB_SHA || process.env.VERCEL_COMMIT_SHA || '';
-  const deploymentRef = deploymentRefFromEnv();
+  const deploymentPromoteRef = deploymentPromoteRefFromEnv();
+  const deploymentVerifyId = deploymentVerifyIdFromEnv();
 
   if (!token || token.startsWith('op://')) {
     process.stderr.write(
@@ -172,14 +184,14 @@ async function main() {
     );
     process.exit(1);
   }
-  if (!deploymentRef) {
+  if (!deploymentPromoteRef) {
     process.stderr.write(
       '::error title=promote-vercel-production::VERCEL_DEPLOYMENT_URL or VERCEL_DEPLOYMENT_ID is required.\n',
     );
     process.exit(1);
   }
 
-  const promoted = runVercelPromote({ deploymentRef, token, teamId, timeout });
+  const promoted = runVercelPromote({ deploymentRef: deploymentPromoteRef, token, teamId, timeout });
   if (!promoted) {
     process.exit(1);
   }
@@ -187,7 +199,7 @@ async function main() {
   const verified = await verifyPromotedDeployment({
     token,
     teamId,
-    deploymentRef,
+    deploymentId: deploymentVerifyId,
     sha,
   });
   if (!verified) {
