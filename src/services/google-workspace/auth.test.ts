@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
+  canSyncGoogleWorkspaceDirectory,
   evaluateGoogleWorkspaceConnectionHealth,
   generateGoogleWorkspaceAuthUrl,
   GOOGLE_WORKSPACE_FEATURE_SCOPES,
@@ -138,6 +139,34 @@ describe('evaluateGoogleWorkspaceConnectionHealth', () => {
     for (const requiredScope of GOOGLE_WORKSPACE_REQUIRED_SCOPES) {
       expect(scope).toContain(requiredScope);
     }
+  });
+});
+
+describe('canSyncGoogleWorkspaceDirectory', () => {
+  it('returns false when disconnected', () => {
+    expect(canSyncGoogleWorkspaceDirectory({ is_connected: false, scopes: null })).toBe(false);
+  });
+
+  it('allows sync when connected with unknown null scopes', () => {
+    expect(canSyncGoogleWorkspaceDirectory({ is_connected: true, scopes: null })).toBe(true);
+  });
+
+  it('allows sync when directory scope is granted', () => {
+    expect(
+      canSyncGoogleWorkspaceDirectory({
+        is_connected: true,
+        scopes: 'https://www.googleapis.com/auth/admin.directory.user.readonly',
+      }),
+    ).toBe(true);
+  });
+
+  it('blocks sync when connected without directory scope', () => {
+    expect(
+      canSyncGoogleWorkspaceDirectory({
+        is_connected: true,
+        scopes: 'https://www.googleapis.com/auth/spreadsheets',
+      }),
+    ).toBe(false);
   });
 });
 

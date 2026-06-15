@@ -143,6 +143,19 @@ describe('GoogleWorkspaceIntegration', () => {
     expect(screen.queryByRole('button', { name: /^Reconnect$/ })).not.toBeInTheDocument();
   });
 
+  it('shows sync directory when connected with unknown null scopes', () => {
+    mockGetConnectionStatus.mockReturnValue({
+      is_connected: true,
+      domain: 'example.com',
+      scopes: null,
+    });
+
+    customRender(<GoogleWorkspaceIntegration currentUserRole="owner" />);
+
+    expect(screen.getByText('Permissions needed')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sync directory/i })).toBeInTheDocument();
+  });
+
   it('starts OAuth flow from finish authorization action', () => {
     mockGetConnectionStatus.mockReturnValue({
       is_connected: true,

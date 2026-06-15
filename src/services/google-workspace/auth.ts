@@ -88,8 +88,15 @@ export function evaluateGoogleWorkspaceConnectionHealth(
 export function canSyncGoogleWorkspaceDirectory(
   status: { is_connected: boolean; scopes: string | null } | null | undefined,
 ): boolean {
-  return !!status?.is_connected
-    && hasAllGoogleScopes(status.scopes, [GOOGLE_WORKSPACE_DIRECTORY_SCOPE]);
+  if (!status?.is_connected) {
+    return false;
+  }
+
+  if (!status.scopes?.trim()) {
+    return true;
+  }
+
+  return hasAllGoogleScopes(status.scopes, [GOOGLE_WORKSPACE_DIRECTORY_SCOPE]);
 }
 
 export interface GoogleWorkspaceAuthConfig {
