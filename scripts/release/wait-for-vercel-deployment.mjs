@@ -15,11 +15,12 @@
  *   VERCEL_WAIT_TIMEOUT_MINUTES — default 45
  *   VERCEL_FETCH_TIMEOUT_MS — per-request HTTP timeout (default 45000)
  *
- * READY deployment URL is printed to stdout / ::notice:: only (not written to
- * GITHUB_OUTPUT) so static analysis does not treat API-derived URLs as file writes.
+ * On success, prints validated `deployment_url=` / `deployment_id=` lines to stdout
+ * for the workflow step to append to GITHUB_OUTPUT (avoids CodeQL http-to-file in JS).
  *
- * Does not run `vercel promote`.
+ * Does not run `vercel promote` — see promote-vercel-production.mjs.
  */
+
 
 const DEFAULT_TEAM = 'team_78VeGDURoofThjZNJOKEBpP5';
 const DEFAULT_PROJECT = 'prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA';
@@ -156,6 +157,55 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+/** @param {string} name */
+function isSafeGithubOutputName(name) {
+  return /^[A-Za-z0-9_]+$/.test(name);
+}
+
+/** @param {string} value */
+function sanitizeGithubOutputScalar(value) {
+  return String(value).replace(/[\r\n]/g, '');
+}
+
+/** @param {string} raw */
+function buildSafeVercelDeploymentUrl(raw) {
+  const scalar = sanitizeGithubOutputScalar(raw);
+  try {
+    const parsed = new URL(scalar);
+    if (parsed.protocol !== 'https:') return null;
+    if (!parsed.hostname.endsWith('.vercel.app') && !parsed.hostname.endsWith('.equipqr.app')) {
+      return null;
+    }
+    // Reconstruct from parsed parts so CodeQL does not treat API body as a direct file write sink.
+    return `https://${parsed.hostname}${parsed.pathname || '/'}${parsed.search || ''}`;
+  } catch {
+    return null;
+  }
+}
+
+/** @param {string} raw */
+function buildSafeVercelDeploymentId(raw) {
+  const scalar = sanitizeGithubOutputScalar(raw);
+  const match = /^([A-Za-z0-9_-]+)$/.exec(scalar);
+  return match ? match[1] : null;
+}
+
+function formatGithubStepOutputLines(name, value) {
+  if (!name || !isSafeGithubOutputName(name)) return [];
+
+  let safeValue = null;
+  if (name === 'deployment_url') {
+    safeValue = buildSafeVercelDeploymentUrl(value);
+  } else if (name === 'deployment_id') {
+    safeValue = buildSafeVercelDeploymentId(value);
+  } else {
+    return [];
+  }
+
+  if (!safeValue) return [];
+  return [`${name}=${safeValue}`];
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   if (argv.includes('--help') || argv.includes('-h')) {
@@ -197,7 +247,7 @@ async function main() {
   const deadline = Date.now() + timeoutMin * 60_000;
   let attempt = 0;
 
-  process.stdout.write(
+  process.stderr.write(
     `Polling Vercel for READY deployment: project=${projectId} branch=${branch} sha=${sha.slice(0, 7)}\n`,
   );
 
@@ -221,12 +271,12 @@ async function main() {
         process.exit(1);
       }
 
-      process.stdout.write(
+      process.stderr.write(
         `::warning title=wait-for-vercel-deployment::Transient Vercel list failure (attempt ${attempt}): ${listed.detail}. Retrying...\n`,
       );
 
       if (attempt === 1 || attempt % 5 === 0) {
-        process.stdout.write(
+        process.stderr.write(
           `[wait] attempt ${attempt}: still polling after transient API error (${intervalSec}s interval)\n`,
         );
       }
@@ -256,16 +306,35 @@ async function main() {
         process.exit(1);
       }
 
-      process.stdout.write(`::notice::Vercel deployment READY: ${url}\n`);
-      process.stdout.write(
-        `Safe to manually promote this build to production (equipqr.app) after verifying migrations — use the URL above or matching deployment in the Vercel dashboard.\n`,
+      const deploymentId = ready.uid || ready.id || '';
+      const outputLines = [
+        ...formatGithubStepOutputLines('deployment_url', url),
+        ...(deploymentId ? formatGithubStepOutputLines('deployment_id', deploymentId) : []),
+      ];
+      if (outputLines.length === 0) {
+        process.stderr.write(
+          '::error title=wait-for-vercel-deployment::READY deployment URL/id failed validation — cannot emit workflow outputs.\n',
+        );
+        process.exit(1);
+      }
+
+      for (const line of outputLines) {
+        process.stdout.write(`${line}\n`);
+      }
+
+      process.stderr.write(`::notice::Vercel deployment READY: ${url}\n`);
+      if (deploymentId) {
+        process.stderr.write(`::notice::Vercel deployment id: ${deploymentId}\n`);
+      }
+      process.stderr.write(
+        `Production release readiness will promote this deployment to equipqr.app in the next workflow step.\n`,
       );
 
       process.exit(0);
     }
 
     if (attempt === 1 || attempt % 5 === 0) {
-      process.stdout.write(
+      process.stderr.write(
         `[wait] attempt ${attempt}: no READY deployment yet for this commit (interval ${intervalSec}s)\n`,
       );
     }

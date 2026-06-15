@@ -157,9 +157,13 @@ passwords, Supabase keys, or session tokens.
 
 ## Hosting Platforms
 
-EquipQR™ is hosted on Vercel. The `main` branch promotes to `equipqr.app`,
-and the `preview` branch promotes to `preview.equipqr.app`. SSL, CDN, and
-custom domain routing are managed in the Vercel dashboard.
+EquipQR™ is hosted on Vercel. The `main` branch promotes to `equipqr.app` after
+**Production Release Readiness** runs **`vercel promote`**. **`preview.equipqr.app`**
+is the stable pre-production hostname on Vercel **Preview** (latest work branch build,
+not a git branch named `preview`). SSL, CDN, and custom domain routing are managed
+in the Vercel dashboard.
+
+See **`docs/ops/git-and-deploy.md`** for the authoritative git/deploy loop.
 
 ### Vercel Deployment
 ```bash
@@ -179,7 +183,7 @@ The project includes a complete `vercel.json` configuration file with:
 - **SPA Routing**: Non-static app routes rewritten to the empty SPA shell (`dist/app-shell.html`); marketing routes served from prerendered `index.html` files. Vercel (`vercel.json` + `cleanUrls`) rewrites extensionless paths to `/app-shell`; Netlify (`netlify.toml`, `public/_redirects`) targets `/app-shell.html` because that host lacks Vercel cleanUrls behavior.
 - **Security Headers**: X-Content-Type-Options, X-Frame-Options, Referrer-Policy
 - **Performance Headers**: Long-term caching for static assets
-- **Branch Deployment**: Automatic Preview deployments for PRs; Production builds on `main` (promote manually)
+- **Branch Deployment**: Automatic Preview deployments for PRs; Production builds on `main` (promoted automatically by Production Release Readiness)
 
 > **Adding a new domain alias?** When you bring a new Vercel alias / custom domain online (e.g. `preview.equipqr.app`, a new branch URL, or a tenant subdomain), the upstream Google Maps API key's HTTP-referrer allowlist must also be widened or the Fleet Map will fail at runtime with `RefererNotAllowedMapError`. See [Google Maps API key — HTTP referrer allowlist](./supabase-branch-secrets.md#google-maps-api-key--http-referrer-allowlist).
 
@@ -202,7 +206,7 @@ Configure these environment variables in your Vercel project dashboard:
 > **Important**: Vercel env vars are build-time only (`VITE_*` prefix). Edge Function runtime secrets (e.g., `GOOGLE_MAPS_BROWSER_KEY`, OAuth secrets) must be set in the **Supabase Dashboard**, not Vercel. See [Secrets Checklist](#secrets-checklist) below.
 
 #### Branch Configuration
-- **Production**: merges to `main` trigger Vercel production-environment builds for **equipqr.app**, but **traffic stays on the prior deployment until you manually promote** in the Vercel dashboard.
+- **Production**: merges to `main` trigger Vercel production-environment builds for **equipqr.app**. Traffic stays on the prior deployment until **Production Release Readiness** runs `vercel promote` after migrations and schema drift pass.
 - **Preview**: PRs and non-`main` pushes get Vercel **Preview** deployments. **`preview.equipqr.app`** is aliased to the latest Preview build by `.github/workflows/preview-domain-alias.yml` (not the retired custom **`staging`** environment or git branch `preview`).
 
 See `docs/ops/preview-architecture-migration.md` (#1033) for the full cutover plan.
@@ -214,8 +218,9 @@ Pushes to `main` run **Production Release Readiness** (`.github/workflows/produc
 1. Applies pending SQL migrations to the **production** Supabase project (`supabase link` + `supabase db push --include-all`).
 2. Re-runs the schema drift script in **strict** mode so `schema_migrations` matches `supabase/migrations/` by name.
 3. Polls the Vercel API until the **READY** deployment for the same `github.sha` on `main` exists for the SPA project (`prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA`).
+4. Runs `vercel promote` for that deployment so **equipqr.app** serves the new build without a manual dashboard step.
 
-It does **not** run `vercel promote`. The maintainer manually promotes in the Vercel dashboard when this workflow is green; the job summary lists the deployment URL and states that promotion to `equipqr.app` is safe.
+When this workflow is green, production traffic should already match the merged commit.
 
 **GitHub / 1Password:** `OP_SERVICE_ACCOUNT_TOKEN` must remain a repo-level secret. The workflow loads:
 

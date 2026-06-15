@@ -1,6 +1,6 @@
 ---
 name: itil-issue-resolver
-description: Primary EquipQR implementation workflow for one approved issue or small change. Use when the user asks to resolve, implement, execute, or fix a single issue after the scope is clear. Uses subagents for discovery when useful, implements focused changes, verifies them, and integrates through the repo's current preview workflow.
+description: Primary EquipQR implementation workflow for one approved issue or small change. Use when the user asks to resolve, implement, execute, or fix a single issue after the scope is clear. Uses subagents for discovery when useful, implements focused changes, verifies them, and integrates via PR to main (or push on work branch before PR).
 ---
 
 # ITIL Issue Resolver
@@ -28,8 +28,8 @@ If the request is still unclear, use:
 1. Work on one issue or change only.
 2. Check idempotency before creating branches, comments, or PRs.
 3. Respect `.cursor/rules/branching.mdc`:
-   - Main worktree on `preview`: commit and push directly to `origin preview` when the user authorized the change.
-   - Linked worktree: branch from `origin/preview`, push the branch, and open a PR into `preview`.
+   - Main worktree: push work branch after local verify; open PR to `main` when ready.
+   - Linked worktree: branch from `origin/main`, push the branch, and open a PR into `main`.
    - Never direct-push to `main`.
 4. Use subagents only when they reduce uncertainty:
    - `explore` for broad impact discovery.
@@ -113,7 +113,7 @@ Choose the smallest credible gate:
 - For OAuth/integrations, exercise the flow on the local stack (browser MCP + edge logs + RPC/DB confirmation).
 - For migrations/RLS/edge functions, run the relevant Supabase or Deno checks when the local stack is healthy.
 
-If verification fails outside the change scope, report the blocker instead of broadening the work silently. If E2E cannot be automated locally, **stop before integrate** — do not push to preview.
+If verification fails outside the change scope, report the blocker instead of broadening the work silently. If E2E cannot be automated locally, **stop before integrate** — do not push.
 
 ### 6. Integrate
 
@@ -121,12 +121,12 @@ If verification fails outside the change scope, report the blocker instead of br
 
 Follow the current worktree policy:
 
-**Main worktree on `preview`:**
+**Work branch (push before PR):**
 
 ```powershell
 git add <specific-files>
 git commit -m "<conventional message>"
-git push origin preview
+git push -u origin HEAD
 ```
 
 **Linked worktree or user-requested formal PR:**
@@ -134,12 +134,12 @@ git push origin preview
 Follow **`.cursor/rules/pr-merge-ready-workflow.mdc`** in full — branch, verify, evidence, open PR, babysit CI + Qodo until merge-ready. Summary commands:
 
 ```powershell
-git fetch origin preview
-git switch -c <type>/issue-<number>-<slug> origin/preview
+git fetch origin main
+git switch -c <type>/issue-<number>-<slug> origin/main
 # ... implement, verify (Fallow, npm ci, lint, test:ci, build, E2E) ...
 .\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts"
 git push -u origin HEAD
-gh pr create --base preview --head <branch> --title "<title>" --body-file <body-file-with-evidence-markdown>
+gh pr create --base main --head <branch> --title "<title>" --body-file <body-file-with-evidence-markdown>
 .\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
 gh pr checks <num> --watch
 # Poll Get-PrQodoFindings until openCount=0; clear threads — see pr-merge-ready-workflow.mdc

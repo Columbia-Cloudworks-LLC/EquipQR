@@ -17,12 +17,12 @@ name: Schema Drift Check
 #                   Genuinely unknown remote migrations; operator must create a
 #                   placeholder file or repair the history entry. Blocks release PRs.
 #
-# On PRs targeting `main` (preview -> main release), all three categories fail the
-# check — production must be fully aligned before merge.
+# On PRs targeting `main`, all three categories fail the check — production must be
+# fully aligned before merge.
 # SCHEMA_DRIFT_STRICT=true hard-fails on all three categories (used after db push
 # in production-release-readiness.yml).
-# Warn-only on PRs targeting `preview` and on pushes (drift is expected during
-# day-to-day preview work).
+# Warn-only on pushes to `main` when not in strict mode (drift may exist briefly
+# during migration work on open PRs).
 #
 # Why match pending by NAME, not VERSION:
 #   The Supabase MCP apply_migration tool records wall-clock timestamps instead of
@@ -52,16 +52,12 @@ name: Schema Drift Check
 #      red-light every PR.
 
 on:
-  # pull_request has no paths: filter so preview→main release PRs always run
-  # this gate even when the diff does not touch migrations (drift can exist from
-  # earlier merges). push keeps paths: to limit noise on routine preview pushes.
   pull_request:
     branches:
       - main
-      - preview
   push:
     branches:
-      - preview
+      - main
     paths:
       - 'supabase/migrations/**'
       - '.github/scripts/check-schema-drift.js'
@@ -69,6 +65,7 @@ on:
       - '.github/workflows/schema-drift-check.yml'
       - '.github/workflows/production-release-readiness.yml'
       - 'scripts/release/wait-for-vercel-deployment.mjs'
+      - 'scripts/release/promote-vercel-production.mjs'
       - '.github/actions/load-1p-secrets/**'
   workflow_dispatch:
 

@@ -1,18 +1,18 @@
 ---
-description: "Hard gate — no push to preview until local end-to-end verification passes with zero user manual steps. Agent runs all checks autonomously."
+description: "Hard gate — no push or PR to main until local end-to-end verification passes with zero user manual steps. Agent runs all checks autonomously."
 alwaysApply: true
 ---
-# Local Verify Before Preview Push
+# Local Verify Before Push / PR to Main
 
 As of 2026-06-13, the local dev stack has **production parity** (Auth, Edge Functions, Google Workspace Connect, etc.). Treat that as the mandatory pre-push gate.
 
 ## Hard rule
 
-**Do not push to `origin/preview` and do not open/merge a PR into `preview` until the change is verified locally end-to-end with zero manual user intervention.**
+**Do not push a work branch and do not open/merge a PR into `main` until the change is verified locally end-to-end with zero manual user intervention.**
 
 - "Verified" means the agent ran the checks, observed pass signals, and can cite commands + outcomes in the handoff.
 - "Zero manual intervention" means no asking the maintainer to click OAuth, reload, sign in, or confirm behavior. Use shell, Vitest, Playwright, Supabase CLI, edge logs, and **browser MCP** instead.
-- If the change cannot be verified locally without a human step, **stop before push** and report the blocker. Do not push and hope preview works.
+- If the change cannot be verified locally without a human step, **stop before push** and report the blocker.
 
 **Exception:** workflow-only paths (`.cursor/**`, `AGENTS.md`, `scripts/mcp.template.json`) still follow `workflow-artifacts.mdc` — Fallow clean, no product E2E required.
 
@@ -61,7 +61,7 @@ Reference: `docs/technical/e2e-user-regression.md`, `docs/technical/testing-guid
 
 ## Push handoff requirements
 
-Before `git push origin preview` or `gh pr create --base preview`, the agent report must include:
+Before `git push -u origin HEAD` or `gh pr create --base main`, the agent report must include:
 
 - **`npm ci --prefer-offline --no-audit` pass** when dependencies changed or before first PR open on a feature branch.
 - Verification commands run (copy-pasteable).
@@ -72,4 +72,4 @@ Before `git push origin preview` or `gh pr create --base preview`, the agent rep
 
 ## Relationship to branching
 
-This gate **supersedes speed-over-safety** for preview pushes. Direct push on the main worktree remains authorized **after** this gate passes — still no push to `main` except release/hotfix flows.
+This gate **supersedes speed-over-safety** for pushes and PRs to **`main`**. See `docs/ops/git-and-deploy.md`.

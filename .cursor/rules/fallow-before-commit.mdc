@@ -35,7 +35,7 @@ This baseline must be preserved on every commit going forward.
 
 - **`exitCode=1` is a hard blocker.** Any Fallow finding — unused export, unused file, or duplication — must be resolved before committing. This is not optional and not something to "review and proceed."
 - **Run both scans.** The primary `fallow` summary covers unused exports/files; `fallow dupes` is a separate required gate for clone groups. Do not commit when either scan reports findings.
-- **No `origin/main` baseline.** When debugging the `preview` branch, run Fallow against the current working branch state only. Never pass `--base origin/main` or `--changed-since origin/main` as the baseline for preview work.
+- **No `origin/main` baseline for day-to-day Fallow.** Run Fallow against the current working branch state only. Never pass `--base origin/main` or `--changed-since origin/main` unless a skill explicitly requires it (e.g. `fallow:audit`).
 - **Exception for pre-existing findings only.** If a finding was already present on `preview` before the current branch started (e.g. inherited from a dependency update outside your control), document it explicitly in the commit message and plan before pushing. Do not self-grant this exception for code you wrote.
 - **`exitCode=2+` is always a hard blocker** (runtime error — invalid config, parse failure). Fix before committing.
 - **Never run `fallow watch`** in agent sessions.

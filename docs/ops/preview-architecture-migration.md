@@ -1,12 +1,24 @@
-# Preview Architecture Migration (#1033)
+# Preview Architecture Migration (#1033) — historical
 
-Operational architecture proposal for reducing persistent preview infrastructure cost and complexity. **Status: Phase 1 approved (2026-06-15) — maintainer confirmed main-centric solo workflow. Phase 3 cutover pending implementation.**
+**Cutover complete (2026-06-14).** Authoritative workflow: **`docs/ops/git-and-deploy.md`**.
+
+This document records the migration from git branch `preview` + persistent Supabase branch `olsdirk` to **main-centric solo development** with Vercel Preview + `preview.equipqr.app` as a stable hostname (not a git branch).
 
 Related: [GitHub #1033](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/1033) (Linear COL-310).
 
 ---
 
-## Current state (confirmed 2026-06-14)
+## Target state (current)
+
+| Layer | Pre-production | Production |
+|-------|----------------|------------|
+| Git | Work branches → PR **`main`** | **`main`** |
+| Frontend | **`preview.equipqr.app`** (latest Vercel Preview build) | **`equipqr.app`** (after `vercel promote`) |
+| Supabase | Production project + ephemeral PR branches | `supabase.equipqr.app` |
+
+---
+
+## Previous state (retired)
 
 | Layer | Persistent preview today | Production |
 |-------|--------------------------|------------|
@@ -96,10 +108,11 @@ Maintainer decision: **solo developer, one feature at a time, no persistent git 
 | Question | Decision | Rationale |
 |----------|----------|-----------|
 | Git integration branch | **`main` only** | Solo workflow; no queue of features merging through `preview` |
-| Feature workflow | `feat/*` → PR → **`main`** | Vercel deploys a preview URL per PR; merge promotes to `equipqr.app` |
+| Git branch **`preview`** | **Keep (domain anchor)** | Vercel requires a branch to bind **`preview.equipqr.app`**; not used for feature PRs |
+| Feature workflow | `feat/*` → PR → **`main`** | Validate on commit-specific **`*.vercel.app`** Preview URL per push |
 | Supabase schema validation | **Ephemeral PR branches** (existing) | Created when PR touches `supabase/**`; auto-deleted on merge/close (~$0.32/PR) |
-| Persistent git `preview` branch | **Retire** | No multi-team integration need; nested branches ad-hoc only |
-| `preview.equipqr.app` | **Keep on Vercel Preview** | Stable hostname; `preview-domain-alias.yml` points it at the latest Preview deployment |
+| Persistent git `preview` **integration** branch | **Retired** | No feat → preview → main train |
+| `preview.equipqr.app` | **Keep on Vercel Preview** | Vercel UI: custom domain bound to git branch **`preview`** (optional QA hostname) |
 | Decommission `olsdirk`? | **Yes, after cutover** | Duplicate Supabase project; ~$10/mo + duplicate secret ops |
 | Production Supabase | **`ymxkzronkhwxzcdcbnwq` / `supabase.equipqr.app`** | Single backend for production and PR previews that need live backend |
 | `configure-supabase-auth.yml` | **Remove** | Tied to `preview` branch + olsdirk; obsolete under main-centric flow |
@@ -142,7 +155,7 @@ All vendor OAuth callbacks use **`https://supabase.equipqr.app/functions/v1/...`
 
 - Deleted Vercel custom environment **`staging`** (slug `staging`, branch matcher `preview`).
 - Reattached **`preview.equipqr.app`** to the standard Preview deployment (not custom staging).
-- Added `.github/workflows/preview-domain-alias.yml` + `scripts/vercel/Set-PreviewDomainAlias.ps1` to keep the hostname on the latest Preview build.
+- Added `.github/workflows/preview-domain-alias.yml` + `scripts/vercel/Set-PreviewDomainAlias.ps1` to point **`preview.equipqr.app`** at deployments from git branch **`preview`** only (domain anchor, not every feat/* Preview build).
 - Synced Vercel **Preview** env vars from `app-env-preview-public` → **`https://supabase.equipqr.app`** (production Supabase API).
 - GitHub **`staging`** environment removed from `.github/secrets-map.yml` (use **Preview** only).
 

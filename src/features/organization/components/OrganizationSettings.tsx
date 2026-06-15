@@ -181,7 +181,7 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
                           {...field}
                           disabled={isUpdating}
                           placeholder="Enter organization name"
-                          className="max-w-md"
+                          className="w-full max-w-md"
                         />
                       </FormControl>
                       <FormMessage />
@@ -207,7 +207,7 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
                     <FormItem>
                       <FormLabel className="text-sm font-medium">Background Color</FormLabel>
                       <FormControl>
-                        <div className="flex items-center gap-2 max-w-xs">
+                        <div className="flex flex-wrap items-center gap-2 max-w-md">
                           {showColorSwatch && (
                             <div
                               className="w-9 h-9 rounded border border-input shrink-0"
@@ -219,7 +219,7 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
                             disabled={isUpdating}
                             placeholder="#ffffff"
                             type="text"
-                            className="w-32 font-mono text-sm"
+                            className="w-full min-w-0 flex-1 sm:w-32 font-mono text-sm"
                           />
                           <input
                             type="color"
@@ -239,8 +239,8 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
                   )}
                 />
 
-                <div className="border-t pt-4 flex justify-end">
-                  <Button type="submit" size="sm" disabled={isUpdating || !form.formState.isDirty}>
+                <div className="border-t pt-4 flex justify-stretch sm:justify-end">
+                  <Button type="submit" size="sm" disabled={isUpdating || !form.formState.isDirty} className="w-full sm:w-auto">
                     {isUpdating ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
@@ -265,8 +265,8 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
             </p>
           </div>
           <div className="md:col-span-2">
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5 pr-4">
+            <div className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-0.5">
                 <Label className="text-sm font-medium leading-none">
                   QR Scan Location Collection
                 </Label>
@@ -274,7 +274,7 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
                   When enabled, QR code scans capture GPS coordinates for the Fleet Map.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 self-start sm:self-center">
                 {isTogglingPrivacy && (
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 )}

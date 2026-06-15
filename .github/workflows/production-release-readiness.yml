@@ -2,15 +2,13 @@ name: Production Release Readiness
 
 # After a merge to `main`, applies pending Supabase migrations to the production
 # project, verifies production schema_migrations alignment (strict drift check),
-# then waits until the Vercel deployment for the same commit is READY.
-#
-# Final Vercel production promotion stays manual (`equipqr.app`); when this
-# workflow is green, use the READY URL from the wait step logs or Vercel to promote.
+# waits until the Vercel deployment for the same commit is READY, then promotes
+# that deployment so equipqr.app serves the new build.
 #
 # Required 1Password fields (EquipQR Agents vault), loaded via OP_SERVICE_ACCOUNT_TOKEN:
 #   - supabase-write / SUPABASE_ACCESS_TOKEN
 #   - supabase-write / prod_db_password  (production DB password for `supabase link`)
-#   - vercel-write / VERCEL_TOKEN         (Vercel token for deployment polling)
+#   - vercel-write / VERCEL_TOKEN         (Vercel token for deployment polling + promote)
 
 on:
   push:
@@ -22,7 +20,7 @@ permissions:
 
 jobs:
   production-release-readiness:
-    name: Migrate, verify schema, wait for Vercel
+    name: Migrate, verify schema, promote Vercel
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -84,11 +82,25 @@ jobs:
         run: node .github/scripts/check-schema-drift.js
 
       - name: Wait for Vercel deployment (main, READY)
+        id: wait_vercel
         env:
           VERCEL_TEAM_ID: team_78VeGDURoofThjZNJOKEBpP5
           VERCEL_PROJECT_ID: prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA
           GITHUB_SHA: ${{ github.sha }}
-        run: node scripts/release/wait-for-vercel-deployment.mjs
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/release/wait-for-vercel-deployment.mjs >> "$GITHUB_OUTPUT"
+
+      - name: Promote Vercel deployment to production
+        env:
+          VERCEL_TEAM_ID: team_78VeGDURoofThjZNJOKEBpP5
+          VERCEL_PROJECT_ID: prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA
+          VERCEL_DEPLOYMENT_URL: ${{ steps.wait_vercel.outputs.deployment_url }}
+          VERCEL_DEPLOYMENT_ID: ${{ steps.wait_vercel.outputs.deployment_id }}
+          GITHUB_SHA: ${{ github.sha }}
+          VERCEL_PROMOTE_TIMEOUT: 5m
+        run: node scripts/release/promote-vercel-production.mjs
 
       - name: Release readiness summary
         if: success()
@@ -99,9 +111,8 @@ jobs:
             echo "## Production release readiness"
             echo ""
             echo "- **Supabase:** migrations applied to production; strict schema drift check passed."
-            echo "- **Vercel:** main deployment READY — copy the deployment URL from the **Wait for Vercel deployment** step logs (\`::notice::Vercel deployment READY:\`) or open the matching deployment for this commit in the Vercel dashboard."
+            echo "- **Vercel:** main deployment READY and **promoted to production** (\`equipqr.app\`)."
+            echo "- **Deployment:** ${{ steps.wait_vercel.outputs.deployment_url }}"
             echo ""
-            echo "### Manual promotion"
-            echo ""
-            echo "This workflow does **not** run \`vercel promote\`. When the steps above are green, it is **safe to manually promote** that deployment so traffic for **equipqr.app** matches this build."
+            echo "No manual Vercel dashboard promote is required when this workflow succeeds."
           } >> "$GITHUB_STEP_SUMMARY"

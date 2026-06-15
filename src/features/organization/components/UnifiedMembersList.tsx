@@ -166,38 +166,61 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base">
-            Members ({unifiedMembers.length})
+      <CardHeader className="pb-3 space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <CardTitle className="text-base sm:text-lg">
+            Team roster ({unifiedMembers.length})
           </CardTitle>
           {canInviteMembers && (
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
               {isGwsConnected && (
-                <Button onClick={() => setImportSheetOpen(true)} size="sm" variant="ghost">
-                  <Users className="mr-2 h-4 w-4" />
+                <Button
+                  onClick={() => setImportSheetOpen(true)}
+                  size="sm"
+                  variant="outline"
+                  className="w-full sm:w-auto justify-center"
+                >
+                  <Users className="h-4 w-4 sm:mr-2" />
                   Import from Google
                 </Button>
               )}
-              <Button onClick={() => setInviteDialogOpen(true)} size="sm">
-                <UserPlus className="mr-2 h-4 w-4" />
+              <Button
+                onClick={() => setInviteDialogOpen(true)}
+                size="sm"
+                className="w-full sm:w-auto justify-center"
+              >
+                <UserPlus className="h-4 w-4 sm:mr-2" />
                 Invite Member
               </Button>
             </div>
           )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-3 sm:px-6">
         {unifiedMembers.length === 0 ? (
-          <div className="text-center py-8">
+          <div className="text-center py-8 px-2">
             <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
             <h3 className="text-sm font-semibold mb-1">No members yet</h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground mb-4">
               {canInviteMembers
                 ? 'Invite members to start building your team.'
                 : 'No members in this organization yet.'
               }
             </p>
+            {canInviteMembers && (
+              <div className="flex flex-col gap-2 max-w-sm mx-auto sm:flex-row sm:justify-center">
+                {isGwsConnected && (
+                  <Button onClick={() => setImportSheetOpen(true)} variant="outline" className="w-full sm:w-auto">
+                    <Users className="h-4 w-4 mr-2" />
+                    Import from Google
+                  </Button>
+                )}
+                <Button onClick={() => setInviteDialogOpen(true)} className="w-full sm:w-auto">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Invite Member
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <TooltipProvider>

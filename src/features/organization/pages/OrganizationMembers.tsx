@@ -1,37 +1,23 @@
 // fallow-ignore-file code-duplication
-// Duplication rationale: Org settings route shares org hub page shell with members/integrations siblings
-import { useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+// Duplication rationale: Members route shares org hub page shell with settings/integrations siblings
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
 import { usePendingWorkspaceMergeRequests } from '@/features/organization/hooks/useWorkspacePersonalOrgMerge';
-import { useOrganizationIntegrationOAuthCallbacks } from '@/features/organization/hooks/useOrganizationIntegrationOAuthCallbacks';
-import {
-  ORGANIZATION_INTEGRATIONS_PATH,
-  ORGANIZATION_MEMBERS_PATH,
-} from '@/features/organization/constants/routes';
-import { OrganizationSettings } from '@/features/organization/components/OrganizationSettings';
+import { usePagePermissions } from '@/hooks/usePagePermissions';
 import { OrganizationSubnav } from '@/features/organization/components/OrganizationSubnav';
+import UnifiedMembersList from '@/features/organization/components/UnifiedMembersList';
 import RestrictedOrganizationAccess from '@/features/organization/components/RestrictedOrganizationAccess';
 import { WorkspaceMergeRequestsCard } from '@/features/organization/components/WorkspaceMergeRequestsCard';
 import Page from '@/components/layout/Page';
-import { Card, CardContent } from '@/components/ui/card';
-import { Settings } from 'lucide-react';
+import { Users } from 'lucide-react';
+import { useMemo } from 'react';
 
-const Organization = () => {
+const OrganizationMembers = () => {
   const { currentOrganization, isLoading } = useOrganization();
-  const navigate = useNavigate();
-  useOrganizationIntegrationOAuthCallbacks();
-
-  useEffect(() => {
-    if (window.location.hash === '#integrations') {
-      navigate(ORGANIZATION_INTEGRATIONS_PATH, { replace: true });
-      return;
-    }
-    if (window.location.hash === '#members') {
-      navigate(ORGANIZATION_MEMBERS_PATH, { replace: true });
-    }
-  }, [navigate]);
-
+  const { data: members = [], isLoading: membersLoading } = useOrganizationMembersQuery(
+    currentOrganization?.id || '',
+  );
+  const permissions = usePagePermissions(currentOrganization);
   const { data: mergeRequests = [] } = usePendingWorkspaceMergeRequests();
 
   const currentUserRole: 'owner' | 'admin' | 'member' = currentOrganization?.userRole || 'member';
@@ -51,7 +37,7 @@ const Organization = () => {
       <Page maxWidth="7xl" padding="responsive">
         <div className="space-y-4 sm:space-y-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Organization Settings</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Members</h1>
             <p className="text-sm sm:text-base text-muted-foreground">Loading...</p>
           </div>
         </div>
@@ -103,25 +89,27 @@ const Organization = () => {
         <div className="pb-1 sm:pb-4 border-b">
           <div className="flex items-start gap-3">
             <div className="rounded-lg border bg-muted/40 p-2.5 shrink-0">
-              <Settings className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              <Users className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Organization Settings</h1>
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Members</h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Update branding, privacy, and organization details for {currentOrganization.name}.
+                Invite teammates and import users from Google Workspace for {currentOrganization.name}.
               </p>
             </div>
           </div>
         </div>
 
-        <Card>
-          <CardContent className="px-3 py-4 sm:px-6 sm:py-6">
-            <OrganizationSettings organization={currentOrganization} currentUserRole={currentUserRole} />
-          </CardContent>
-        </Card>
+        <UnifiedMembersList
+          members={members}
+          organizationId={currentOrganization.id}
+          currentUserRole={currentUserRole}
+          isLoading={membersLoading}
+          canInviteMembers={!!permissions?.canInviteMembers}
+        />
       </div>
     </Page>
   );
 };
 
-export default Organization;
+export default OrganizationMembers;

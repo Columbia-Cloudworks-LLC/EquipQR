@@ -40,10 +40,10 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 
 | Environment | Git trigger | Frontend URL | Supabase API |
 |-------------|-------------|--------------|--------------|
-| **Production** | Push to `main` (manual promote in Vercel) | https://equipqr.app | `https://supabase.equipqr.app` (`ymxkzronkhwxzcdcbnwq`) |
+| **Production** | Push to `main` (auto-promote via Production Release Readiness) | https://equipqr.app | `https://supabase.equipqr.app` (`ymxkzronkhwxzcdcbnwq`) |
 | **Preview** | PRs and non-`main` pushes (Vercel Preview) | https://preview.equipqr.app (alias → latest Preview deployment) | Same production API (`supabase.equipqr.app`) |
 
-> **Migration (#1033):** The persistent git `preview` branch, Vercel custom **`staging`** environment, and Supabase branch **`olsdirkvvfegvclbpgrg`** are being retired. See `docs/ops/preview-architecture-migration.md`.
+> **Migration (#1033) complete.** Authoritative git/deploy loop: **`docs/ops/git-and-deploy.md`**. Retired: git `preview` branch, Vercel custom **`staging`**, Supabase branch **`olsdirkvvfegvclbpgrg`**. History: `docs/ops/preview-architecture-migration.md`.
 
 ## GitHub Actions Workflows
 
@@ -148,14 +148,14 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 **Branch to Domain Mapping:**
 | Git context | Vercel target | Stable alias |
 |-------------|---------------|--------------|
-| `main` | Production | `equipqr.app` (manual promote) |
+| `main` | Production | `equipqr.app` (auto-promote after release readiness) |
 | PR / non-`main` push | Preview | Per-deployment URL; `preview.equipqr.app` aliased via `preview-domain-alias.yml` |
 
 **Key Settings (`vercel.json`):**
 - SPA routing (all routes → `/index.html`)
 - Security headers (HSTS, X-Frame-Options, etc.)
 - Asset caching (1 year for `/assets/*`)
-- Auto-deploy enabled for `main` only (`git.deploymentEnabled.main: true`)
+- Auto-deploy on git push: **`main`** (production build) and **`preview`** (Preview environment for release integration and `preview.equipqr.app` alias). Feature-branch PRs also receive per-PR Preview URLs via the GitHub integration.
 
 **Preview hostname:** `preview.equipqr.app` is attached to the standard **Preview** environment (not the retired custom **`staging`** environment).
 
@@ -227,7 +227,7 @@ When you merge to `main`:
 |------|-------|
 | 0:00 | Push to `main` |
 | 0:01 | CI + Production Release Readiness workflows |
-| ~2:00 | Vercel Production build ready (manual promote to `equipqr.app`) |
+| ~2:00 | Vercel Production build ready; Production Release Readiness promotes to `equipqr.app` |
 
 ---
 

@@ -174,37 +174,26 @@ npm run type-check
 npm run build
 ```
 
-#### Git Workflow (Current Preview-First Model)
+#### Git Workflow (main-centric)
 
-EquipQR currently uses a solo-developer, preview-first flow:
+See **[Git and Deploy](../ops/git-and-deploy.md)** and **[Development Lifecycle](./development-lifecycle.md)**.
 
-1. **Pull latest `preview`**
+1. **Branch off `main`**
 
-   ```bash
-   git checkout preview
-   git pull origin preview
+   ```powershell
+   git fetch origin main
+   git switch -c feat/<short-name> origin/main
    ```
 
-2. **Implement and commit on `preview`**
+2. **Implement, verify locally, commit**
 
-   ```bash
-   git add .
-   git commit -m "feat: add new feature description"
+3. **Push work branch** — Vercel Preview builds; test on the commit-specific **`*.vercel.app`** URL (optional: **`preview.equipqr.app`** when git **`preview`** is updated in Vercel)
+
+   ```powershell
+   git push -u origin HEAD
    ```
 
-3. **Push `preview` and validate `preview.equipqr.app`**
-
-   ```bash
-   git push origin preview
-   ```
-
-4. **Open PR from `preview` to `main` when unreleased changes are ready**
-   - Let CI/CD finish.
-   - Resolve conversations and verify release readiness.
-   - Merge to `main`, then manually promote to production.
-
-For the complete planning-to-release lifecycle (Cursor plugin-first workflow), see
-[Development Lifecycle](./development-lifecycle.md).
+4. **Open PR to `main`**, CI green, merge → **Production Release Readiness** auto-promotes **equipqr.app**
 
 ## Project Structure Deep Dive
 
