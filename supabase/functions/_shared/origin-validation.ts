@@ -29,7 +29,6 @@ const ALLOWED_ORIGINS = [
  *
  * Vercel generates preview URLs in these forms:
  *   - <project>-<hash>-<team>.vercel.app
- *   - <project>-<team>.vercel.app
  *
  * We anchor to the EquipQR Vercel project slug (`equipqr`; legacy `equip-qr` still
  * accepted) so only deployments from this Vercel project are accepted — not
@@ -41,9 +40,11 @@ const ALLOWED_ORIGINS = [
 function getVercelPreviewPatterns(): RegExp[] {
   const override = Deno.env.get("VERCEL_PROJECT_SLUG")?.trim();
   const slugs = override ? [override] : ["equipqr", "equip-qr"];
+  const team = (Deno.env.get("VERCEL_TEAM_SLUG") || "columbia-cloudworks-llc")
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return slugs.map((slug) => {
     const escaped = slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return new RegExp(`^https://${escaped}-.+\\.vercel\\.app$`);
+    return new RegExp(`^https://${escaped}-.+-${team}\\.vercel\\.app$`);
   });
 }
 

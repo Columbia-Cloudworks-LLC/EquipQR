@@ -25,7 +25,7 @@ $ErrorActionPreference = 'Stop'
 
 $VERCEL_TEAM_SLUG = 'columbia-cloudworks-llc'
 $PREVIEW_HOST = 'preview.equipqr.app'
-$AllowedPreviewHostPattern = '^(equipqr|equip-qr)-[a-z0-9-]+\.vercel\.app$'
+$AllowedPreviewHostPattern = '^(equipqr|equip-qr)-[a-z0-9-]+-columbia-cloudworks-llc\.vercel\.app$'
 
 function Test-PreviewDeploymentHost {
     param([Parameter(Mandatory = $true)][string]$HostOnly)
