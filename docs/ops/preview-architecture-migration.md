@@ -171,12 +171,13 @@ Inventory, cost model, architecture proposal. **Stop here for maintainer sign-of
 ### Phase 3 — Cutover (in progress)
 
 1. ✅ Update Vercel preview env + `app-env-preview-public` → prod Supabase URL/anon key.
-2. ⏳ Merge preview edge secrets into prod project (sandbox vars scoped where possible).
+2. ✅ Align preview GW/QB client IDs with prod edge (`app-env-preview-public` ↔ `edge-env-prod-secrets`).
 3. ✅ Update docs, OAuth redirect maps, smoke/export workflows, `config.toml` comments.
-4. ⏳ Validate GW + QB on `preview.equipqr.app` and local stack.
-5. ✅ Remove `configure-supabase-auth.yml`; simplify `secrets-fanout.yml`.
-6. ⏳ Vendor console cleanup (remove **olsdirk** redirect URIs).
-7. ⏳ **Decommission** Supabase branch `olsdirkvvfegvclbpgrg`.
+4. ✅ Validate GW + QB on `preview.equipqr.app` (2026-06-15); edge callbacks accept preview origin via `isAllowedOrigin`.
+5. ✅ Remove `configure-supabase-auth.yml`; simplify `secrets-fanout.yml`; prod Auth allowlist includes `https://preview.equipqr.app/**`.
+6. ✅ Repoint `PREVIEW_DATABASE_URL` GitHub secret → production pooler (`ymxkzronkhwxzcdcbnwq`).
+7. ⏳ Vendor console cleanup (remove **olsdirk** redirect URIs).
+8. ⏳ **Decommission** Supabase branch `olsdirkvvfegvclbpgrg` (after schema export + script cleanup).
 
 ### Phase 4 — Verification
 

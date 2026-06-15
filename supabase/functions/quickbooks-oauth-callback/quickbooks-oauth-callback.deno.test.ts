@@ -141,6 +141,36 @@ Deno.test({
 });
 
 Deno.test({
+  name: "isValidRedirectUrl allows preview.equipqr.app when PUBLIC_SITE_URL is production",
+  permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
+}, () => {
+  withEnv({ PUBLIC_SITE_URL: "https://equipqr.app", PRODUCTION_URL: undefined }, () => {
+    assertEquals(
+      isValidRedirectUrl("https://preview.equipqr.app/dashboard/organization", "https://equipqr.app"),
+      true,
+    );
+  });
+});
+
+Deno.test({
+  name: "buildSuccessRedirectUrl returns preview origin when shared prod edge uses production PUBLIC_SITE_URL",
+  permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
+}, () => {
+  withEnv({ PUBLIC_SITE_URL: "https://equipqr.app", PRODUCTION_URL: undefined }, () => {
+    const url = buildSuccessRedirectUrl({
+      productionUrl: "https://equipqr.app",
+      originUrl: "https://preview.equipqr.app",
+      redirectUrl: "/dashboard/organization/integrations",
+      realmId: "realm-preview-1",
+    });
+    assertEquals(
+      url,
+      "https://preview.equipqr.app/dashboard/organization/integrations?qb_connected=true&realm_id=realm-preview-1",
+    );
+  });
+});
+
+Deno.test({
   name: "buildSuccessRedirectUrl uses default org path when redirect is invalid",
   permissions: { env: ["PUBLIC_SITE_URL", "PRODUCTION_URL"] },
 }, () => {

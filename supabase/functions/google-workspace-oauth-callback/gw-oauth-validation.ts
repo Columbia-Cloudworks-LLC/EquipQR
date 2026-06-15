@@ -1,3 +1,4 @@
+import { isAllowedOrigin } from "../_shared/origin-validation.ts";
 import { resolvePublicSiteUrl } from "../_shared/public-site-url.ts";
 
 // OAuth state validation constants
@@ -113,6 +114,12 @@ export function isValidRedirectUrl(urlToValidate: string | null, productionUrl: 
     ].filter((domain): domain is string => !!domain));
 
     if (allowedDomains.has(url.hostname)) {
+      return true;
+    }
+
+    // Cloud preview and PR deployments store window.location.origin even when
+    // PUBLIC_SITE_URL points at production (shared Supabase project post-#1033).
+    if (isAllowedOrigin(url.origin)) {
       return true;
     }
 

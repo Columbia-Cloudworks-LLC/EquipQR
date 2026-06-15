@@ -1,4 +1,4 @@
-# Export preview-sourced schema and RLS reference artifacts for agents/reviewers.
+# Export production-sourced schema and RLS reference artifacts for agents/reviewers.
 # Does not modify migrations or apply schema changes.
 #
 # Usage:
@@ -7,7 +7,7 @@
 #
 # Requires:
 #   - npx / Supabase CLI
-#   - Linked preview project OR preview_db_password in 1Password (EquipQR Agents)
+#   - Linked production project OR prod_db_password in 1Password (EquipQR Agents)
 
 [CmdletBinding()]
 param(
@@ -21,16 +21,16 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
 
-function Get-OpPreviewPassword {
+function Get-OpProdPassword {
     if (-not (Get-Command op -ErrorAction SilentlyContinue)) {
-        throw '1Password CLI (op) is required to resolve preview_db_password.'
+        throw '1Password CLI (op) is required to resolve prod_db_password.'
     }
     if (-not $env:OP_SERVICE_ACCOUNT_TOKEN) {
         $env:OP_SERVICE_ACCOUNT_TOKEN = [Environment]::GetEnvironmentVariable('OP_SERVICE_ACCOUNT_TOKEN', 'User')
     }
-    $password = op read 'op://EquipQR Agents/supabase-write/preview_db_password' 2>$null
+    $password = op read 'op://EquipQR Agents/supabase-write/prod_db_password' 2>$null
     if (-not $password) {
-        throw 'Could not resolve preview_db_password from 1Password.'
+        throw 'Could not resolve prod_db_password from 1Password.'
     }
     return $password
 }
@@ -115,15 +115,15 @@ function Invoke-SupabaseJsonQuery {
 }
 
 if (-not $SkipLink) {
-    $previewPassword = Get-OpPreviewPassword
+    $prodPassword = Get-OpProdPassword
     Invoke-NpxSupabase -Arguments @(
-        'supabase', 'link', '--project-ref', 'olsdirkvvfegvclbpgrg',
-        '--password', $previewPassword, '--yes'
+        'supabase', 'link', '--project-ref', 'ymxkzronkhwxzcdcbnwq',
+        '--password', $prodPassword, '--yes'
     ) | Out-Null
 }
 
 if (-not $SkipSchemaDump) {
-    Write-Host 'Dumping preview schema to supabase/schema.sql ...'
+    Write-Host 'Dumping production schema to supabase/schema.sql ...'
     Invoke-NpxSupabase -Arguments @(
         'supabase', 'db', 'dump', '--linked',
         '--schema', 'public',
@@ -134,7 +134,7 @@ if (-not $SkipSchemaDump) {
     ) | Out-Null
 }
 
-Write-Host 'Querying RLS catalog from preview ...'
+Write-Host 'Querying RLS catalog from production ...'
 $tableResult = Invoke-SupabaseJsonQuery -SqlFile 'scripts/export-rls-tables.sql'
 $policyResult = Invoke-SupabaseJsonQuery -SqlFile 'scripts/export-rls-policies-query.sql'
 
@@ -143,7 +143,7 @@ $schemaPath = Join-Path $repoRoot 'supabase/rls-policies.sql'
 $lines = New-Object System.Collections.Generic.List[string]
 
 $lines.Add('-- EquipQR RLS reference baseline (read-only documentation artifact)')
-$lines.Add('-- Source: preview Supabase project olsdirkvvfegvclbpgrg')
+$lines.Add('-- Source: production Supabase project ymxkzronkhwxzcdcbnwq')
 $lines.Add("-- Generated (UTC): $generatedAt")
 $lines.Add('-- Regenerate: .\scripts\export-schema-baseline.ps1')
 $lines.Add('-- Do NOT apply this file directly; use supabase/migrations for changes.')
