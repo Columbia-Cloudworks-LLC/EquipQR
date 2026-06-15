@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [3.9.1] - 2026-06-15
+
+### Fixed
+
+- **Preview Google Workspace and QuickBooks connect** — Connect and reconnect on preview.equipqr.app now return to Organization Integrations after OAuth instead of failing when the callback lands with query parameters.
+
+### Changed
+
+- **Preview environment** — Preview at preview.equipqr.app now shares the production data backend used by equipqr.app, so pull-request previews validate against real integration callbacks without maintaining a separate preview database.
+
 ## [3.9.0] - 2026-06-14
 
 ### Added
@@ -2051,7 +2061,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.9.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.9.1...HEAD
+[3.9.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.9.0...v3.9.1
 [3.9.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.7...v3.9.0
 [3.8.7]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.6...v3.8.7
 [3.8.6]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.5...v3.8.6
