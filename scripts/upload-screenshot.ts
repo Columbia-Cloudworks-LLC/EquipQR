@@ -122,9 +122,9 @@ if (!fs.existsSync(filePath)) {
   process.exit(1);
 }
 
-// Validate file is an image
+// Validate file type (images and PR evidence MP4/WebM)
 const ext = path.extname(filePath).toLowerCase();
-const validExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif'];
+const validExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif', '.mp4', '.webm'];
 if (!validExtensions.includes(ext)) {
   if (isJsonModeEarly) {
     console.log(JSON.stringify({
@@ -258,8 +258,10 @@ function getMimeType(ext: string): string {
     '.webp': 'image/webp',
     '.gif': 'image/gif',
     '.avif': 'image/avif',
+    '.mp4': 'video/mp4',
+    '.webm': 'video/webm',
   };
-  return mimeTypes[ext] || 'image/png';
+  return mimeTypes[ext] || 'application/octet-stream';
 }
 
 // Run upload

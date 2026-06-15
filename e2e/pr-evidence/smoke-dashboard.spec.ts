@@ -12,6 +12,6 @@ test.describe('PR evidence smoke @pr-evidence', () => {
     await assertHealthyShell();
     await evidencePause(page, 800);
     await evidenceScreenshot(page, '01-dashboard-overview');
-    await expect(page.getByRole('navigation').or(page.locator('[data-testid="app-sidebar"]'))).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible();
   });
 });

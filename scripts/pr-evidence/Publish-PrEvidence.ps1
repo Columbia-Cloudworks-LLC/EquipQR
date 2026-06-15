@@ -87,7 +87,14 @@ if ($manifest.video) {
         throw "MP4 missing on disk: $videoLocal"
     }
 
-    $videoUpload = Publish-PrEvidenceGitHubVideo -Mp4Path $videoLocal
+    $videoUpload = $null
+    try {
+        $videoUpload = Publish-PrEvidenceGitHubVideo -Mp4Path $videoLocal
+    }
+    catch {
+        Write-Host ("[PR evidence] WARN GitHub video upload unavailable; using Supabase Storage fallback." -f $_.Exception.Message) -ForegroundColor Yellow
+        $videoUpload = Publish-PrEvidenceSupabaseVideo -Mp4Path $videoLocal -BranchSlug $branchSlug -Flow $manifest.flow
+    }
     $uploads += [ordered]@{
         kind         = $videoUpload.kind
         label        = $videoUpload.label

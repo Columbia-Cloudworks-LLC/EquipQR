@@ -110,10 +110,10 @@ function Set-PrEvidenceUploadEnvironment {
     }
 
     $keyRead = Invoke-PrEvidenceNative -FilePath 'op' -Arguments @(
-        'read', 'op://EquipQR Agents/supabase-write/preview_service_role_key'
+        'read', 'op://EquipQR Agents/supabase-write/prod_service_role_key'
     )
     if ($keyRead.ExitCode -ne 0) {
-        throw "op read preview_service_role_key failed: $($keyRead.Text)"
+        throw "op read prod_service_role_key failed: $($keyRead.Text)"
     }
 
     $env:SUPABASE_URL = $urlRead.Text.Trim()
@@ -518,6 +518,48 @@ function Convert-PrEvidenceWebmToMp4 {
     $result = Invoke-PrEvidenceNative -FilePath 'ffmpeg' -Arguments $args
     if ($result.ExitCode -ne 0) {
         throw "ffmpeg MP4 conversion failed: $($result.Text)"
+    }
+}
+
+function Publish-PrEvidenceSupabaseVideo {
+    param(
+        [Parameter(Mandatory)][string]$Mp4Path,
+        [Parameter(Mandatory)][string]$BranchSlug,
+        [Parameter(Mandatory)][string]$Flow
+    )
+
+    Assert-PrEvidenceCommandExists 'npx'
+
+    $mp4Full = if ([System.IO.Path]::IsPathRooted($Mp4Path)) { $Mp4Path } else { Join-Path (Get-PrEvidenceRepoRoot) $Mp4Path }
+    if (-not (Test-Path -LiteralPath $mp4Full)) {
+        throw "MP4 missing on disk: $mp4Full"
+    }
+
+    Set-PrEvidenceUploadEnvironment
+
+    $storagePath = ('pr-evidence/{0}/{1}-demo.mp4' -f $BranchSlug, $Flow)
+    $env:OUTPUT_JSON = 'true'
+    $upload = Invoke-PrEvidenceNative -FilePath 'npx' -Arguments @(
+        'tsx', 'scripts/upload-screenshot.ts', $mp4Full, $storagePath, 'landing-page-images'
+    )
+    Remove-Item Env:OUTPUT_JSON -ErrorAction SilentlyContinue
+
+    if ($upload.ExitCode -ne 0) {
+        throw "Supabase video upload failed: $($upload.Text)"
+    }
+
+    $parsed = $upload.Text | ConvertFrom-Json
+    if (-not $parsed.success) {
+        throw "Supabase video upload failed: $($parsed.error)"
+    }
+
+    $publicUrl = [string]$parsed.publicUrl
+    return [pscustomobject]@{
+        kind         = 'video'
+        label        = 'demo'
+        publicUrl    = $publicUrl
+        markdownLine = "[Release demo (MP4)]($publicUrl)"
+        contentType  = 'video/mp4'
     }
 }
 
