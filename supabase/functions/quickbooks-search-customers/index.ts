@@ -194,10 +194,10 @@ serveQuickBooksFunction(FUNCTION_NAME, logStep, async ({
         logStep("QuickBooks API error", { status: qbResponse.status, intuit_tid: intuitTid });
 
         // Handle specific error cases
-        if (qbResponse.status === 401) {
+        if (qbResponse.status === 401 || qbResponse.status === 403) {
           return new Response(JSON.stringify({
             success: false,
-            error: "QuickBooks authentication failed. Please reconnect QuickBooks."
+            error: "QuickBooks authentication failed. Disconnect and reconnect QuickBooks on this environment (sandbox vs production company mismatch)."
           }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
