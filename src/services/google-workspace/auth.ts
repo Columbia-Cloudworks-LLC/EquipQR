@@ -22,6 +22,8 @@ export const GOOGLE_WORKSPACE_FEATURE_SCOPES = [
   'https://www.googleapis.com/auth/drive.readonly',
   'https://www.googleapis.com/auth/documents',
 ] as const;
+export const GOOGLE_WORKSPACE_DIRECTORY_SCOPE =
+  'https://www.googleapis.com/auth/admin.directory.user.readonly' as const;
 export const GOOGLE_WORKSPACE_REQUIRED_SCOPES = [
   ...GOOGLE_WORKSPACE_IDENTITY_SCOPES,
   ...GOOGLE_WORKSPACE_FEATURE_SCOPES,
@@ -81,6 +83,13 @@ export function evaluateGoogleWorkspaceConnectionHealth(
   }
 
   return 'missing_permissions';
+}
+
+export function canSyncGoogleWorkspaceDirectory(
+  status: { is_connected: boolean; scopes: string | null } | null | undefined,
+): boolean {
+  return !!status?.is_connected
+    && hasAllGoogleScopes(status.scopes, [GOOGLE_WORKSPACE_DIRECTORY_SCOPE]);
 }
 
 export interface GoogleWorkspaceAuthConfig {

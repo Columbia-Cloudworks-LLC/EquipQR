@@ -17,4 +17,8 @@ describe('resolveStatusAfterAssignment', () => {
   it('moves assigned to accepted when unassigning', () => {
     expect(resolveStatusAfterAssignment('assigned', null)).toBe('accepted');
   });
+
+  it('moves in_progress to accepted when unassigning', () => {
+    expect(resolveStatusAfterAssignment('in_progress', null)).toBe('accepted');
+  });
 });

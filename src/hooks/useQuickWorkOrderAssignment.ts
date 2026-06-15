@@ -30,7 +30,7 @@ export function resolveStatusAfterAssignment(
     return currentStatus;
   }
 
-  if (currentStatus === 'assigned') {
+  if (currentStatus === 'assigned' || currentStatus === 'in_progress') {
     return 'accepted';
   }
 

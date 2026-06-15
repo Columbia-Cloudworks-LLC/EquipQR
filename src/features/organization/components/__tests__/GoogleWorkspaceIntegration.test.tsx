@@ -138,6 +138,7 @@ describe('GoogleWorkspaceIntegration', () => {
     customRender(<GoogleWorkspaceIntegration currentUserRole="owner" />);
 
     expect(screen.getByText('Permissions needed')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sync directory/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /finish authorization/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Reconnect$/ })).not.toBeInTheDocument();
   });

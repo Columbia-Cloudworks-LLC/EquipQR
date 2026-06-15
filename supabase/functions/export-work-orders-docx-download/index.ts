@@ -72,7 +72,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     const { organizationId, filters } = body;
 
     if (!organizationId) {
-      return createErrorResponse("Missing required field: organizationId", 400);
+      return createErrorResponse("Missing required field: organizationId", 400, { req });
     }
 
     const validationError = validateDocxExportRequest(body);
@@ -82,7 +82,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
     const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
     if (!isAdmin) {
-      return createErrorResponse("Forbidden: Only owners and admins can export reports", 403);
+      return createErrorResponse("Forbidden: Only owners and admins can export reports", 403, { req });
     }
 
     const rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
@@ -99,16 +99,17 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
     if (destinationError) {
       console.error("[EXPORT-WORK-ORDERS-DOCX] Failed to load destination:", destinationError);
-      return createErrorResponse("An internal error occurred", 500);
+      return createErrorResponse("An internal error occurred", 500, { req });
     }
 
     if (!destination?.parent_id) {
-      return new Response(
-        JSON.stringify({
+      return createJsonResponse(
+        {
           error: "Organization Drive folder is not configured. Set an organization folder in Organization Settings before exporting.",
           code: "missing_destination",
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        },
+        400,
+        { req },
       );
     }
 
@@ -116,12 +117,13 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     const tokenResult = await getGoogleWorkspaceAccessToken(adminClient, organizationId);
 
     if (!hasRequiredDocsExportScopes(tokenResult.scopes)) {
-      return new Response(
-        JSON.stringify({
+      return createJsonResponse(
+        {
           error: "Google Workspace is connected but does not have permission to create and edit Google Docs.",
           code: "insufficient_scopes",
-        }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        },
+        403,
+        { req },
       );
     }
 
@@ -185,14 +187,15 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     }
   } catch (error) {
     if (error instanceof GoogleWorkspaceTokenError) {
-      return new Response(
-        JSON.stringify({ error: error.message, code: error.code }),
-        { status: error.code === "not_connected" ? 400 : 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      return createJsonResponse(
+        { error: error.message, code: error.code },
+        error.code === "not_connected" ? 400 : 403,
+        { req },
       );
     }
 
     console.error("[EXPORT-WORK-ORDERS-DOCX] Export error:", error);
-    return createErrorResponse("An unexpected error occurred", 500);
+    return createErrorResponse("An unexpected error occurred", 500, { req });
   }
 }));
 

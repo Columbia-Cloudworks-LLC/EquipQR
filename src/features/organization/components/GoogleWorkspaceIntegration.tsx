@@ -12,6 +12,7 @@ import {
   syncGoogleWorkspaceUsers,
 } from '@/services/google-workspace';
 import {
+  canSyncGoogleWorkspaceDirectory,
   evaluateGoogleWorkspaceConnectionHealth,
   isGoogleWorkspaceConfigured,
 } from '@/services/google-workspace/auth';
@@ -59,6 +60,7 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
   });
 
   const connectionHealth = evaluateGoogleWorkspaceConnectionHealth(connectionStatus);
+  const canSyncDirectory = canSyncGoogleWorkspaceDirectory(connectionStatus);
 
   const handleSync = async () => {
     if (!organizationId) return;
@@ -160,19 +162,21 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
 
               {connectionHealth === 'healthy' && (
                 <>
-                  <Button
-                    size="sm"
-                    className={integrationActionButtonClassName}
-                    onClick={handleSync}
-                    disabled={isSyncing}
-                  >
-                    {isSyncing ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                    ) : (
-                      <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                    )}
-                    Sync Directory
-                  </Button>
+                  {canSyncDirectory && (
+                    <Button
+                      size="sm"
+                      className={integrationActionButtonClassName}
+                      onClick={handleSync}
+                      disabled={isSyncing}
+                    >
+                      {isSyncing ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                      ) : (
+                        <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                      )}
+                      Sync Directory
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -198,6 +202,21 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
 
               {connectionHealth === 'missing_permissions' && (
                 <>
+                  {canSyncDirectory && (
+                    <Button
+                      size="sm"
+                      className={integrationActionButtonClassName}
+                      onClick={handleSync}
+                      disabled={isSyncing}
+                    >
+                      {isSyncing ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                      ) : (
+                        <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                      )}
+                      Sync Directory
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     className={integrationActionButtonClassName}

@@ -48,12 +48,12 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     const { organizationId, filters } = body;
 
     if (!organizationId) {
-      return createErrorResponse("Missing required field: organizationId", 400);
+      return createErrorResponse("Missing required field: organizationId", 400, { req });
     }
 
     const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
     if (!isAdmin) {
-      return createErrorResponse("Forbidden: Only owners and admins can export reports", 403);
+      return createErrorResponse("Forbidden: Only owners and admins can export reports", 403, { req });
     }
 
     const rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
@@ -63,7 +63,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
     const data = await fetchWorkOrdersWithData(supabase, organizationId, filters);
     if (data.workOrders.length === 0) {
-      return createErrorResponse("No work orders found matching the filters", 404);
+      return createErrorResponse("No work orders found matching the filters", 404, { req });
     }
 
     const csvContent = generateSummaryCsv(buildAllRows(data));
@@ -80,6 +80,6 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     });
   } catch (error) {
     console.error("[EXPORT-WORK-ORDERS-CSV] Export error:", error);
-    return createErrorResponse("An unexpected error occurred", 500);
+    return createErrorResponse("An unexpected error occurred", 500, { req });
   }
 }));
