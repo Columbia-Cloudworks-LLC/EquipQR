@@ -22,8 +22,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, '..');
 const isWindows = process.platform === 'win32';
 
-// 5 minutes per shard on Linux CI; Windows native IPC can be slower — allow 10 minutes.
-const TEST_TIMEOUT_MS = isWindows ? 10 * 60 * 1000 : 5 * 60 * 1000;
+// 10 minutes per shard on Linux CI; Windows native IPC can be slower — allow 10 minutes.
+const TEST_TIMEOUT_MS = 10 * 60 * 1000;
 
 const args = process.argv.slice(2);
 const shardArg = args.find((a) => a.startsWith('--shard='));

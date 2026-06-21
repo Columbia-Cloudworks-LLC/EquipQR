@@ -49,7 +49,7 @@
     "fallow:fix:preview": "npx --yes fallow@2.88.0 fix --dry-run --format json --quiet",
     "db:start": "supabase start",
     "test:ci": "node scripts/test-ci-entry.mjs",
-    "test:ci:sharded": "node scripts/test-ci-sharded.mjs --shards=4",
+    "test:ci:sharded": "node scripts/test-ci-sharded.mjs --shards=6",
     "test:shard": "node scripts/test-ci-shard.mjs",
     "coverage:merge": "node scripts/merge-coverage.mjs",
     "analyze": "npm run build && npx vite-bundle-analyzer",

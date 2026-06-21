@@ -140,8 +140,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
-        shard_total: [4]
+        shard: [1, 2, 3, 4, 5, 6]
+        shard_total: [6]
 
     steps:
     - name: Checkout code
@@ -191,6 +191,7 @@ jobs:
       run: node scripts/test-ci-shard.mjs --shard=${{ matrix.shard }}/${{ matrix.shard_total }}
       env:
         CI: 'true'
+        NODE_OPTIONS: '--max-old-space-size=4096'
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
