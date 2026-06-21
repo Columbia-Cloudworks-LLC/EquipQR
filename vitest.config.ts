@@ -19,13 +19,12 @@ export default defineConfig({
     testTimeout: 10000,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['supabase/**', 'node_modules/**'],
-    // Vitest 4 fork IPC on Windows breaks on large suites (vitest-dev/vitest#8861).
-    // Full `npm run test:ci` on Windows runs via WSL (scripts/test-ci-windows.mjs).
-    // These settings keep ad-hoc native runs (single files / small batches) stable.
+    // Vitest 4 fork IPC can spiral on large suites (vitest-dev/vitest#8861).
+    // CI: one fork per shard; matrix supplies parallelism. Windows: serial native runs.
     pool: 'forks',
     isolate: true,
-    fileParallelism: isWindows ? false : true,
-    maxWorkers: isCI ? 2 : isWindows ? 1 : undefined,
+    fileParallelism: isCI ? false : isWindows ? false : true,
+    maxWorkers: isCI ? 1 : isWindows ? 1 : undefined,
     // Ensure hooks don't hang
     hookTimeout: 30000,
     teardownTimeout: 10000,
