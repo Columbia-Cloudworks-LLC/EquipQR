@@ -7,8 +7,7 @@
  * when running large sharded suites with coverage (see vitest-dev/vitest#8861).
  * Single-file runs work; full-suite native Windows runs do not.
  *
- * This script runs the same sharded CI flow inside WSL Ubuntu on ext4
- * (~/EquipQR), matching Linux CI behavior.
+ * This script runs the same sharded CI flow inside WSL on ext4, matching Linux CI behavior.
  */
 
 import { spawnSync } from 'child_process';
@@ -17,6 +16,9 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, '..');
+
+/** Ephemeral WSL sync target — never use a user-owned project directory. */
+const WSL_SANDBOX = '$HOME/.cache/equipqr/test-ci';
 
 function toWslPath(winPath) {
   const resolved = path.resolve(winPath);
@@ -33,6 +35,12 @@ const repoWsl = toWslPath(repoRoot);
 
 const bashScript = `
 set -euo pipefail
+SANDBOX="${WSL_SANDBOX}"
+if [ "$SANDBOX" != "$HOME/.cache/equipqr/test-ci" ]; then
+  echo "❌ Unexpected sandbox path: $SANDBOX"
+  exit 1
+fi
+mkdir -p "$SANDBOX"
 export NVM_DIR="$HOME/.nvm"
 if [ -s "$NVM_DIR/nvm.sh" ]; then
   . "$NVM_DIR/nvm.sh"
@@ -41,18 +49,28 @@ else
   exit 1
 fi
 nvm use 24 >/dev/null 2>&1 || nvm install 24
-rsync -a --delete --exclude node_modules --exclude coverage --exclude coverage-shards --exclude tmp --exclude .git "${repoWsl}/" "$HOME/EquipQR/"
-cd "$HOME/EquipQR"
+echo "⚠️  Overwriting WSL sandbox at $SANDBOX"
+rsync -a --delete --exclude node_modules --exclude coverage --exclude coverage-shards --exclude tmp --exclude .git "${repoWsl}/" "$SANDBOX/"
+cd "$SANDBOX"
 npm ci --prefer-offline --no-audit
 export CI=true
 node scripts/test-ci-sharded.mjs --shards=4
 `.trim();
 
-console.log('🪟 Windows detected — running sharded test:ci inside WSL Ubuntu (Linux CI parity)...');
-console.log(`   Source: ${repoWsl}`);
-console.log('   Target: ~/EquipQR (ext4)\n');
+const wslDistro = process.env.WSL_DISTRO?.trim();
+const wslArgs = wslDistro ? ['-d', wslDistro, '--', 'bash', '-lc', bashScript] : ['--', 'bash', '-lc', bashScript];
 
-const result = spawnSync('wsl', ['-d', 'Ubuntu', '--', 'bash', '-lc', bashScript], {
+console.log('🪟 Windows detected — running sharded test:ci inside WSL (Linux CI parity)...');
+console.log(`   Source: ${repoWsl}`);
+console.log(`   Target: ${WSL_SANDBOX} (ephemeral sandbox; contents will be overwritten)`);
+if (wslDistro) {
+  console.log(`   WSL distro: ${wslDistro} (from WSL_DISTRO)`);
+} else {
+  console.log('   WSL distro: default (set WSL_DISTRO to override)');
+}
+console.log('');
+
+const result = spawnSync('wsl', wslArgs, {
   cwd: repoRoot,
   stdio: 'inherit',
   env: process.env,

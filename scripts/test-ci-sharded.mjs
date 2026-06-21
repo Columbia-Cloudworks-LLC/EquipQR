@@ -10,7 +10,7 @@
  * writing artifacts under coverage-shards/coverage-shard-<N>/ before merge.
  */
 
-import { spawn, spawnSync } from 'child_process';
+import { spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

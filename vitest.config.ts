@@ -19,12 +19,14 @@ export default defineConfig({
     testTimeout: 10000,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['supabase/**', 'node_modules/**'],
-    // Vitest 4 fork IPC can spiral on large suites (vitest-dev/vitest#8861).
-    // CI: one fork per shard; matrix supplies parallelism. Windows: serial native runs.
+    // Forks pool for process isolation; tuned to actually use the CI runner.
+    // ubuntu-latest has 4 vCPUs and ~16GB. Combined with CI sharding (--shard=N/M),
+    // maxWorkers keeps fork count bounded while exploiting parallelism.
+    // Native Windows runs stay serial (vitest-dev/vitest#8861); WSL test:ci uses Linux settings.
     pool: 'forks',
     isolate: true,
-    fileParallelism: isCI ? false : isWindows ? false : true,
-    maxWorkers: isCI ? 1 : isWindows ? 1 : undefined,
+    fileParallelism: isWindows ? false : true,
+    maxWorkers: isWindows ? 1 : isCI ? 2 : undefined,
     // Ensure hooks don't hang
     hookTimeout: 30000,
     teardownTimeout: 10000,
