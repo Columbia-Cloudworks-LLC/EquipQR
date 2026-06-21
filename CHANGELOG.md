@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Dependency refresh** — Consolidated June 2026 npm and GitHub Actions updates (React 19.2.7, Radix UI patches, TanStack Query 5.101, React Router 7.17, Vitest 4.1.9, and CI workflow action pins) superseding Dependabot PRs #1046–#1064.
+- **Dependency refresh** — Consolidated June 2026 npm and GitHub Actions updates (React 19.2.7, Radix UI patches, TanStack Query 5.101, React Router 7.17, and CI workflow action pins) superseding Dependabot PRs #1046–#1064. Vitest held at **4.1.8** (Dependabot #1051 skipped) due to worker IPC stack overflow in 4.1.9 under forked CI shards.
 
 ## [3.9.2] - 2026-06-14
 
