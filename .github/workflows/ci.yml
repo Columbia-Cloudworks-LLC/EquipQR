@@ -40,7 +40,7 @@ jobs:
       pull-requests: read
     steps:
     - name: Checkout code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
     - name: Setup Node.js
       uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
@@ -145,7 +145,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
     - name: Setup Node.js ${{ env.NODE_VERSION }}
       uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
@@ -213,7 +213,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
     - name: Setup Node.js
       uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
@@ -251,7 +251,7 @@ jobs:
       run: node scripts/coverage-ratchet.mjs
 
     - name: Upload merged coverage to Codecov
-      uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354
+      uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f
       with:
         files: ./coverage/lcov.info
         flags: unittests
@@ -281,7 +281,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
     - name: Download coverage artifacts
       uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
@@ -305,7 +305,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
     - name: Setup Node.js
       uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
@@ -340,13 +340,13 @@ jobs:
       continue-on-error: true
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@7211b7c8077ea37d8641b6271f6a365a22a5fbfa
+      uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e
       with:
         languages: javascript
         queries: security-and-quality
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@7211b7c8077ea37d8641b6271f6a365a22a5fbfa
+      uses: github/codeql-action/analyze@8aad20d150bbac5944a9f9d289da16a4b0d87c1e
       with:
         category: "/language:javascript"
 
@@ -358,7 +358,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
     - name: Setup Node.js
       uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
@@ -531,7 +531,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
     - name: Setup Node.js
       uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e

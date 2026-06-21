@@ -1,6 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
   "ignoreDependencies": [
+    "size-limit",
     "@size-limit/file",
     "tailwindcss-animate",
     "us-atlas",
@@ -36,6 +37,9 @@
     "scripts/reconcile-advisor-rpc-warnings.mjs",
     "scripts/supabase-fix-migrations.mjs",
     "scripts/test-ci.mjs",
+    "scripts/test-ci-entry.mjs",
+    "scripts/test-ci-sharded.mjs",
+    "scripts/test-ci-windows.mjs",
     "scripts/upload-screenshot.ts"
   ],
   "ignoreExports": [

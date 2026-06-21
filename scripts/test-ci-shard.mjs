@@ -22,9 +22,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, '..');
 const isWindows = process.platform === 'win32';
 
-// 5 minutes is the previous full-suite ceiling; a single shard should finish
-// well under that, so this is a generous safety net.
-const TEST_TIMEOUT_MS = 5 * 60 * 1000;
+// 5 minutes per shard on Linux CI; Windows native IPC can be slower — allow 10 minutes.
+const TEST_TIMEOUT_MS = isWindows ? 10 * 60 * 1000 : 5 * 60 * 1000;
 
 const args = process.argv.slice(2);
 const shardArg = args.find((a) => a.startsWith('--shard='));
@@ -36,14 +35,14 @@ if (!shardArg) {
 const [shardIndex, shardTotal] = shardArg.replace('--shard=', '').split('/');
 console.log(`🧪 Running shard ${shardIndex}/${shardTotal} with coverage...`);
 
-const npxBin = isWindows ? 'npx.cmd' : 'npx';
-const vitestArgs = ['vitest', 'run', '--coverage', shardArg];
+const vitestCli = path.join(repoRoot, 'node_modules', 'vitest', 'vitest.mjs');
+const vitestArgs = ['run', '--coverage', shardArg];
 
-const vitestProcess = spawn(npxBin, vitestArgs, {
+const vitestProcess = spawn(process.execPath, [vitestCli, ...vitestArgs], {
   stdio: 'inherit',
   env: { ...process.env, CI: 'true' },
   cwd: repoRoot,
-  shell: isWindows,
+  shell: false,
 });
 
 let cleanupStarted = false;

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.9.3] - 2026-06-20
+
+### Changed
+
+- **Dependency refresh** — Consolidated June 2026 npm and GitHub Actions updates (React 19.2.7, Radix UI patches, TanStack Query 5.101, React Router 7.17, Vitest 4.1.9, and CI workflow action pins) superseding Dependabot PRs #1046–#1064.
+
 ## [3.9.2] - 2026-06-14
 
 ### Added
@@ -2077,7 +2083,9 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.9.1...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.9.3...HEAD
+[3.9.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.9.2...v3.9.3
+[3.9.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.9.1...v3.9.2
 [3.9.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.9.0...v3.9.1
 [3.9.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.7...v3.9.0
 [3.8.7]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.8.6...v3.8.7
