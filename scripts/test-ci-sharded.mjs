@@ -4,7 +4,7 @@
  * Run the Vitest suite in CI-style shards, merge coverage, and ratchet thresholds.
  *
  * Usage:
- *   node scripts/test-ci-sharded.mjs [--shards=8]
+ *   node scripts/test-ci-sharded.mjs [--shards=4]
  *
  * Mirrors GitHub Actions: four parallel jobs locally run sequentially here, each
  * writing artifacts under coverage-shards/coverage-shard-<N>/ before merge.
@@ -20,7 +20,7 @@ const repoRoot = path.join(__dirname, '..');
 
 const args = process.argv.slice(2);
 const shardsArg = args.find((a) => a.startsWith('--shards='));
-const shardTotal = shardsArg ? Number.parseInt(shardsArg.split('=')[1], 10) : 8;
+const shardTotal = shardsArg ? Number.parseInt(shardsArg.split('=')[1], 10) : 4;
 
 if (!Number.isFinite(shardTotal) || shardTotal < 1) {
   console.error('❌ Invalid --shards=N value');

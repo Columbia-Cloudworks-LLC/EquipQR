@@ -19,9 +19,10 @@ export default defineConfig({
     testTimeout: 10000,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['supabase/**', 'node_modules/**'],
-    // CI matrix supplies parallelism; each job runs one fork serially to avoid
-    // vitest fork IPC serialize loops on heavy shards (vitest-dev/vitest#8861).
-    // Native Windows stays serial; local dev keeps default parallelism.
+    // Forks pool for process isolation; tuned to actually use the CI runner.
+    // ubuntu-latest has 4 vCPUs and ~16GB. Combined with CI sharding (--shard=N/M),
+    // serial workers per job avoid vitest fork IPC hangs on heavy Radix/jsdom shards.
+    // Native Windows stays serial (vitest-dev/vitest#8861); WSL test:ci uses Linux settings.
     pool: 'forks',
     isolate: true,
     fileParallelism: isWindows ? false : isCI ? false : true,

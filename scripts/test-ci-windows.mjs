@@ -54,7 +54,7 @@ rsync -a --delete --exclude node_modules --exclude coverage --exclude coverage-s
 cd "$SANDBOX"
 npm ci --prefer-offline --no-audit
 export CI=true
-node scripts/test-ci-sharded.mjs --shards=8
+node scripts/test-ci-sharded.mjs --shards=4
 `.trim();
 
 const wslDistro = process.env.WSL_DISTRO?.trim();

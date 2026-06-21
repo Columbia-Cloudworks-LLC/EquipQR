@@ -135,13 +135,13 @@ jobs:
     # clock by exploiting the matrix.
     name: Test Suite (shard ${{ matrix.shard }}/${{ matrix.shard_total }})
     runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
-    timeout-minutes: 15
+    timeout-minutes: 10
 
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
-        shard_total: [8]
+        shard: [1, 2, 3, 4]
+        shard_total: [4]
 
     steps:
     - name: Checkout code
