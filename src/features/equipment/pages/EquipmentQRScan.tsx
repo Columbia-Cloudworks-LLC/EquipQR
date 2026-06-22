@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import EquipQRIcon from '@/components/ui/EquipQRIcon';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSession } from '@/hooks/useSession';
 import { saveOrganizationPreference } from '@/utils/sessionPersistence';
 import type { Database } from '@/integrations/supabase/types';
 import type { Role } from '@/types/permissions';
@@ -57,18 +58,12 @@ const EquipmentQRScan = () => {
   const [searchParams] = useSearchParams();
   const orgIdFromUrl = searchParams.get('org') ?? undefined;
   const { user, isLoading: authLoading } = useAuth();
-  const { currentOrganization } = useOrganization();
+  const { currentOrganization, organizationId } = useOrganization();
+  const { sessionData } = useSession();
   const isOnline = useBrowserOnline();
-  const trustedOrgId = currentOrganization?.id;
-  /** Offline cache reads use session org; cold-offline boot falls back to last persisted org. */
-  const persistedOrgId = (() => {
-    try {
-      return localStorage.getItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY) ?? undefined;
-    } catch {
-      return undefined;
-    }
-  })();
-  const cacheOrgId = trustedOrgId ?? (!isOnline ? persistedOrgId : undefined);
+  /** Prefer hydrated org object; fall back to provider/session org ids for cold-offline cache reads. */
+  const cacheOrgId =
+    currentOrganization?.id ?? organizationId ?? sessionData?.currentOrganizationId ?? undefined;
   const { data: cachedEquipment } = useEquipmentById(cacheOrgId, equipmentId);
   const [payload, setPayload] = useState<EquipmentQRPayload | null>(null);
   const latestPmQuery = useLatestCompletedPMDetails(
