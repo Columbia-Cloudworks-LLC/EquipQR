@@ -119,6 +119,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
       workOrderId = response.data.id;
       replay.registerWorkOrder(item.id, workOrderId, queueService);
       queueService.updatePayload(item.id, { syncedWorkOrderId: workOrderId });
+      item.payload.syncedWorkOrderId = workOrderId;
     } else {
       replay.registerWorkOrder(item.id, workOrderId, queueService);
     }
@@ -136,6 +137,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
         noteContent: payload.creationPhotoNote,
       });
       queueService.updatePayload(item.id, { creationImagesSynced: true });
+      item.payload.creationImagesSynced = true;
     }
 
     // Initialize the PM record alongside the work order. This used to be a
@@ -652,7 +654,11 @@ export class OfflineQueueProcessor {
         this.queueService.remove(item.id);
       }
 
-      await cleanupQueueItemBlobs(item.userId, item.organizationId, item);
+      await cleanupQueueItemBlobs(
+        item.userId,
+        item.organizationId,
+        this.queueService.getById(item.id) ?? item,
+      );
 
       return { outcome: 'succeeded', conflict: result.conflict };
     } catch (error) {

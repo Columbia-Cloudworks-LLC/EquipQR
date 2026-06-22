@@ -59,9 +59,17 @@ const EquipmentQRScan = () => {
   const { user, isLoading: authLoading } = useAuth();
   const { currentOrganization } = useOrganization();
   const isOnline = useBrowserOnline();
-  /** Offline cache reads must use trusted org context — never URL params alone. */
   const trustedOrgId = currentOrganization?.id;
-  const { data: cachedEquipment } = useEquipmentById(trustedOrgId, equipmentId);
+  /** Offline cache reads use session org; cold-offline boot falls back to last persisted org. */
+  const persistedOrgId = (() => {
+    try {
+      return localStorage.getItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY) ?? undefined;
+    } catch {
+      return undefined;
+    }
+  })();
+  const cacheOrgId = trustedOrgId ?? (!isOnline ? persistedOrgId : undefined);
+  const { data: cachedEquipment } = useEquipmentById(cacheOrgId, equipmentId);
   const [payload, setPayload] = useState<EquipmentQRPayload | null>(null);
   const latestPmQuery = useLatestCompletedPMDetails(
     payload?.equipment.id,
@@ -240,8 +248,8 @@ const EquipmentQRScan = () => {
       !isOnline &&
       !!cachedEquipment &&
       !!equipmentId &&
-      !!trustedOrgId &&
-      cachedEquipment.organization_id === trustedOrgId;
+      !!cacheOrgId &&
+      cachedEquipment.organization_id === cacheOrgId;
 
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
