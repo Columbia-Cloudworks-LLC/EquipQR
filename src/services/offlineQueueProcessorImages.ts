@@ -1,5 +1,9 @@
 import { deleteOfflineImageRefs, loadOfflineImageFiles } from './offlineBlobStore';
-import type { OfflineQueueImageRef, OfflineQueueItem } from './offlineQueueService';
+import type {
+  OfflineQueueImageRef,
+  OfflineQueueItem,
+  OfflineQueuedWorkOrderCreatePayload,
+} from './offlineQueueService';
 import { OfflineQueueService } from './offlineQueueService';
 
 export async function loadQueueItemImageFiles(
@@ -20,6 +24,13 @@ export async function cleanupQueueItemBlobs(
   orgId: string,
   item: OfflineQueueItem,
 ): Promise<void> {
+  if (item.type === 'work_order_create') {
+    const payload = item.payload as OfflineQueuedWorkOrderCreatePayload;
+    if (payload.imageRefs?.length && payload.creationImagesSynced !== true) {
+      return;
+    }
+  }
+
   const refs = OfflineQueueService.collectImageRefsFromItem(item);
   if (refs.length) {
     await deleteOfflineImageRefs(userId, orgId, refs);

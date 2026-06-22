@@ -86,6 +86,10 @@ interface OfflineQueueItemBase {
 /** Queued work-order create payload — images stored as blob refs, not File[]. */
 export type OfflineQueuedWorkOrderCreatePayload = Omit<CreateWorkOrderData, 'images'> & {
   imageRefs?: OfflineQueueImageRef[];
+  /** Set after server create succeeds so retries skip duplicate creates. */
+  syncedWorkOrderId?: string;
+  /** Set after creation photos upload succeeds during replay. */
+  creationImagesSynced?: boolean;
 };
 
 export interface OfflineQueueCreateItem extends OfflineQueueItemBase {

@@ -50,4 +50,18 @@ describe('offlineBlobStore', () => {
     await deleteOfflineImageRefs('user-1', 'org-1', ['ref-1', 'ref-2']);
     expect(del).toHaveBeenCalledTimes(2);
   });
+
+  it('rolls back partially staged blobs when a later file fails', async () => {
+    const first = new File(['a'], 'a.jpg', { type: 'image/jpeg' });
+    const second = new File(['b'], 'b.jpg', { type: 'image/jpeg' });
+    vi.mocked(set)
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new DOMException('quota', 'QuotaExceededError'));
+    vi.mocked(del).mockResolvedValue(undefined);
+
+    await expect(stageOfflineImages('user-1', 'org-1', [first, second])).rejects.toThrow(
+      /quota exceeded/i,
+    );
+    expect(del).toHaveBeenCalled();
+  });
 });

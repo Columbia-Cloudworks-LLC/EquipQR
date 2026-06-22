@@ -60,6 +60,9 @@ export async function stageOfflineImages(
       } satisfies OfflineBlobRecord);
       refs.push(refId);
     } catch (error) {
+      if (refs.length) {
+        await deleteOfflineImageRefs(userId, orgId, refs);
+      }
       if (error instanceof DOMException && error.name === 'QuotaExceededError') {
         toast.error('Photo storage full', {
           description:

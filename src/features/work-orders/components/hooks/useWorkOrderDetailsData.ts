@@ -21,10 +21,11 @@ import type { Tables } from '@/integrations/supabase/types';
 export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId?: string) => {
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
+  const viewingOfflinePlaceholder = isOfflineId(workOrderId || '');
 
   const { data: serverWorkOrder, isLoading: workOrderLoading } = useWorkOrderById(
     currentOrganization?.id || '',
-    workOrderId || ''
+    viewingOfflinePlaceholder ? '' : workOrderId || '',
   );
   const offlineWorkOrder = useOfflineQueuedWorkOrder(workOrderId);
   const workOrder = serverWorkOrder ?? offlineWorkOrder ?? undefined;
@@ -37,11 +38,11 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
 
   // Fetch PM data for specific equipment if work order has PM enabled
   const { data: serverPmData, isLoading: pmLoading, isError: pmError } = usePMByWorkOrderAndEquipment(
-    workOrderId || '',
+    viewingOfflinePlaceholder ? '' : workOrderId || '',
     selectedEquipmentId || workOrder?.equipment_id || ''
   );
   const offlinePmData = useOfflineQueuedPm(
-    isOfflineId(workOrderId || '') ? workOrderId : undefined,
+    viewingOfflinePlaceholder ? workOrderId : undefined,
     selectedEquipmentId || workOrder?.equipment_id || undefined,
   );
   const pmData = serverPmData ?? offlinePmData ?? undefined;

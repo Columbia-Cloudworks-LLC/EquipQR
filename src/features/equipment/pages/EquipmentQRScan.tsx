@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import EquipQRIcon from '@/components/ui/EquipQRIcon';
 import { useAuth } from '@/hooks/useAuth';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { saveOrganizationPreference } from '@/utils/sessionPersistence';
 import type { Database } from '@/integrations/supabase/types';
 import type { Role } from '@/types/permissions';
@@ -54,10 +55,13 @@ function getStatusLabel(status: EquipmentStatus): string {
 const EquipmentQRScan = () => {
   const { equipmentId } = useParams<{ equipmentId: string }>();
   const [searchParams] = useSearchParams();
-  const orgId = searchParams.get('org') ?? undefined;
+  const orgIdFromUrl = searchParams.get('org') ?? undefined;
   const { user, isLoading: authLoading } = useAuth();
+  const { currentOrganization } = useOrganization();
   const isOnline = useBrowserOnline();
-  const { data: cachedEquipment } = useEquipmentById(orgId, equipmentId);
+  /** Offline cache reads must use trusted org context — never URL params alone. */
+  const trustedOrgId = currentOrganization?.id;
+  const { data: cachedEquipment } = useEquipmentById(trustedOrgId, equipmentId);
   const [payload, setPayload] = useState<EquipmentQRPayload | null>(null);
   const latestPmQuery = useLatestCompletedPMDetails(
     payload?.equipment.id,
@@ -78,10 +82,10 @@ const EquipmentQRScan = () => {
     if (authLoading) return;
     if (user || !equipmentId) return;
 
-    const orgParam = orgId ? `&org=${orgId}` : '';
+    const orgParam = orgIdFromUrl ? `&org=${orgIdFromUrl}` : '';
     sessionStorage.setItem('pendingRedirect', `/qr/equipment/${equipmentId}?qr=true${orgParam}`);
     window.location.replace('/auth?tab=signin');
-  }, [authLoading, equipmentId, user, orgId]);
+  }, [authLoading, equipmentId, user, orgIdFromUrl]);
 
   useEffect(() => {
     if (authLoading || !user || !equipmentId) return;
@@ -90,7 +94,7 @@ const EquipmentQRScan = () => {
     setIsLoading(true);
     setError(null);
 
-    fetchEquipmentQRPayload(equipmentId, orgId)
+    fetchEquipmentQRPayload(equipmentId, orgIdFromUrl)
       .then(result => {
         if (!cancelled) {
           setPayload(result);
@@ -109,7 +113,7 @@ const EquipmentQRScan = () => {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, equipmentId, user, orgId]);
+  }, [authLoading, equipmentId, user, orgIdFromUrl]);
 
   const heroEquipmentId = payload?.equipment.id;
   const heroOrganizationId = payload?.organization.id;
@@ -232,7 +236,12 @@ const EquipmentQRScan = () => {
   }
 
   if (error || !payload) {
-    const canOpenCachedEquipment = !isOnline && !!cachedEquipment && !!equipmentId;
+    const canOpenCachedEquipment =
+      !isOnline &&
+      !!cachedEquipment &&
+      !!equipmentId &&
+      !!trustedOrgId &&
+      cachedEquipment.organization_id === trustedOrgId;
 
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">

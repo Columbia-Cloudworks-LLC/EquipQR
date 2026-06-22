@@ -89,28 +89,53 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
     const payload = item.payload;
     const resolvedEquipmentId = replay.resolveEquipmentId(payload.equipmentId);
 
-    const assigneeId = payload.assigneeId;
-    let status: 'submitted' | 'assigned' = 'submitted';
-    if (assigneeId) {
-      status = 'assigned';
+    let workOrderId = payload.syncedWorkOrderId;
+
+    if (!workOrderId) {
+      const assigneeId = payload.assigneeId;
+      let status: 'submitted' | 'assigned' = 'submitted';
+      if (assigneeId) {
+        status = 'assigned';
+      }
+
+      const response = await service.create({
+        title: payload.title,
+        description: payload.description,
+        equipment_id: resolvedEquipmentId,
+        priority: payload.priority,
+        due_date: payload.dueDate,
+        estimated_hours: undefined,
+        assignee_id: assigneeId,
+        team_id: undefined,
+        status,
+        created_by: claims.sub,
+        has_pm: payload.hasPM || false,
+      });
+
+      if (!response.success || !response.data?.id) {
+        throw new Error(response.error || 'Sync failed: work order create');
+      }
+
+      workOrderId = response.data.id;
+      replay.registerWorkOrder(item.id, workOrderId, queueService);
+      queueService.updatePayload(item.id, { syncedWorkOrderId: workOrderId });
+    } else {
+      replay.registerWorkOrder(item.id, workOrderId, queueService);
     }
 
-    const response = await service.create({
-      title: payload.title,
-      description: payload.description,
-      equipment_id: resolvedEquipmentId,
-      priority: payload.priority,
-      due_date: payload.dueDate,
-      estimated_hours: undefined,
-      assignee_id: assigneeId,
-      team_id: undefined,
-      status,
-      created_by: claims.sub,
-      has_pm: payload.hasPM || false,
-    });
-
-    if (!response.success) {
-      throw new Error(response.error || 'Sync failed: work order create');
+    if (payload.imageRefs?.length && !payload.creationImagesSynced) {
+      const images = await loadQueueItemImageFiles(
+        item.userId,
+        item.organizationId,
+        payload.imageRefs,
+      );
+      await attachWorkOrderCreationImages({
+        workOrderId,
+        organizationId: item.organizationId,
+        images,
+        noteContent: payload.creationPhotoNote,
+      });
+      queueService.updatePayload(item.id, { creationImagesSynced: true });
     }
 
     // Initialize the PM record alongside the work order. This used to be a
@@ -120,7 +145,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
     // the template's checklist if one was provided, otherwise fall back to
     // the default forklift checklist (matching the online path's behavior
     // in `useInitializePMChecklist.ts`).
-    if (payload.hasPM && response.data?.id && resolvedEquipmentId) {
+    if (payload.hasPM && resolvedEquipmentId) {
       try {
         let checklistData: PMChecklistItem[] = defaultForkliftChecklist;
         let notes = 'PM checklist initialized from queued offline work order.';
@@ -143,7 +168,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
         }
 
         const pmRecord = await createPM({
-          workOrderId: response.data.id,
+          workOrderId,
           equipmentId: resolvedEquipmentId,
           organizationId: item.organizationId,
           checklistData,
@@ -157,7 +182,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
 
         if (!pmRecord) {
           logger.warn(
-            `PM init returned null during offline sync for work order ${response.data.id}; ` +
+            `PM init returned null during offline sync for work order ${workOrderId}; ` +
               're-queuing pm_init for retry.',
           );
           return {
@@ -168,7 +193,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
                 organizationId: item.organizationId,
                 userId: claims.sub,
                 payload: {
-                  workOrderId: response.data.id,
+                  workOrderId,
                   equipmentId: resolvedEquipmentId,
                   templateId: payload.pmTemplateId,
                 },
@@ -180,7 +205,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
         // The work order itself succeeded; re-queue a pm_init so the PM
         // checklist is retried independently rather than lost on transient failure.
         logger.warn(
-          `PM init failed during offline sync for work order ${response.data.id}; ` +
+          `PM init failed during offline sync for work order ${workOrderId}; ` +
             'a pm_init item has been re-queued for retry.',
           pmError,
         );
@@ -192,7 +217,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
               organizationId: item.organizationId,
               userId: claims.sub,
               payload: {
-                workOrderId: response.data.id,
+                workOrderId,
                 equipmentId: resolvedEquipmentId,
                 templateId: payload.pmTemplateId,
               },
@@ -200,24 +225,6 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
           ],
         };
       }
-    }
-
-    if (response.data?.id) {
-      replay.registerWorkOrder(item.id, response.data.id, queueService);
-    }
-
-    if (response.data?.id && payload.imageRefs?.length) {
-      const images = await loadQueueItemImageFiles(
-        item.userId,
-        item.organizationId,
-        payload.imageRefs,
-      );
-      await attachWorkOrderCreationImages({
-        workOrderId: response.data.id,
-        organizationId: item.organizationId,
-        images,
-        noteContent: payload.creationPhotoNote,
-      });
     }
 
     return { success: true };
