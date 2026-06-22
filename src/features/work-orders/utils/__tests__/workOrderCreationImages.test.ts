@@ -13,12 +13,14 @@ describe('workOrderCreationImages', () => {
     Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
   });
 
-  it('does not append when offline and incoming files exist', () => {
+  it('appends photos when offline for offline queue staging', () => {
     Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
 
     const existing = [new File(['a'], 'keep.jpg', { type: 'image/jpeg' })];
-    const incoming = [new File(['b'], 'reject.jpg', { type: 'image/jpeg' })];
-    expect(validateAndAppendWorkOrderCreationImages(existing, incoming)).toEqual(existing);
+    const incoming = [new File(['b'], 'stage.jpg', { type: 'image/jpeg' })];
+    const out = validateAndAppendWorkOrderCreationImages(existing, incoming);
+    expect(out).toHaveLength(2);
+    expect(out[1].name).toBe('stage.jpg');
   });
 
   it('appends valid jpeg files up to max count', () => {

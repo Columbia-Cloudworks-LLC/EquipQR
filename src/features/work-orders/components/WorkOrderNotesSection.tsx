@@ -104,6 +104,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
             hoursWorked,
             isPrivate,
             machineHours,
+            images,
           );
           if (result.queuedOffline) {
             return { queuedOffline: true as const, hadImages: images.length > 0 };

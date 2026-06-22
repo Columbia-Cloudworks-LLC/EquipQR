@@ -1,10 +1,17 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
-import { equipmentFormSchema, EquipmentFormData, EquipmentRecord } from '@/features/equipment/types/equipment';
+import { useSession } from '@/hooks/useSession';
+import {
+  createEquipmentValidationSchema,
+  equipmentFormSchema,
+  EquipmentFormData,
+  EquipmentRecord,
+} from '@/features/equipment/types/equipment';
+import { createValidationContext } from '@/utils/validationHelpers';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { toast } from 'sonner';
@@ -20,10 +27,30 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
   const queryClient = useQueryClient();
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
+  const { sessionData } = useSession();
   const offlineCtx = useOfflineQueueOptional();
 
+  const validationSchema = useMemo(() => {
+    if (initialData || !currentOrganization) {
+      return equipmentFormSchema;
+    }
+
+    const isOrgAdmin =
+      currentOrganization.userRole === 'owner' || currentOrganization.userRole === 'admin';
+    const context = createValidationContext(
+      currentOrganization.userRole,
+      isOrgAdmin,
+      sessionData?.teamMemberships.map((membership) => ({
+        team_id: membership.teamId,
+        role: membership.role,
+      })) ?? [],
+    );
+
+    return createEquipmentValidationSchema(context);
+  }, [currentOrganization, initialData, sessionData?.teamMemberships]);
+
   const form = useForm<EquipmentFormData>({
-    resolver: zodResolver(equipmentFormSchema),
+    resolver: zodResolver(validationSchema),
     defaultValues: buildEquipmentFormDefaultValues(initialData),
   });
 

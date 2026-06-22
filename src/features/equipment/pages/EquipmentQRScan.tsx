@@ -7,6 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import EquipQRIcon from '@/components/ui/EquipQRIcon';
 import { useAuth } from '@/hooks/useAuth';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSession } from '@/hooks/useSession';
+import {
+  mergeAllowedOrganizationIds,
+  resolveValidatedOrganizationId,
+} from '@/utils/trustedOrganizationScope';
 import { saveOrganizationPreference } from '@/utils/sessionPersistence';
 import type { Database } from '@/integrations/supabase/types';
 import type { Role } from '@/types/permissions';
@@ -22,6 +28,8 @@ import { recordScanFollowUpEvent } from '@/features/equipment/services/scanFollo
 import { logger } from '@/utils/logger';
 import { useLatestCompletedPMDetails } from '@/features/pm-templates/hooks/usePMData';
 import EquipmentQRLastPMCard from '@/features/equipment/components/qr/EquipmentQRLastPMCard';
+import { useBrowserOnline } from '@/hooks/useBrowserOnline';
+import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
 
 type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 
@@ -52,8 +60,22 @@ function getStatusLabel(status: EquipmentStatus): string {
 const EquipmentQRScan = () => {
   const { equipmentId } = useParams<{ equipmentId: string }>();
   const [searchParams] = useSearchParams();
-  const orgId = searchParams.get('org') ?? undefined;
+  const orgIdFromUrl = searchParams.get('org') ?? undefined;
   const { user, isLoading: authLoading } = useAuth();
+  const { currentOrganization, organizationId, organizations } = useOrganization();
+  const { sessionData } = useSession();
+  const isOnline = useBrowserOnline();
+  const allowedOrgIds = mergeAllowedOrganizationIds(
+    organizations.map((org) => org.id),
+    sessionData?.organizations?.map((org) => org.id) ?? [],
+  );
+  const cacheOrgId = resolveValidatedOrganizationId({
+    currentOrganizationId: currentOrganization?.id,
+    sessionOrganizationId: sessionData?.currentOrganizationId,
+    persistedOrganizationId: organizationId,
+    allowedOrganizationIds: allowedOrgIds,
+  });
+  const { data: cachedEquipment } = useEquipmentById(cacheOrgId, equipmentId);
   const [payload, setPayload] = useState<EquipmentQRPayload | null>(null);
   const latestPmQuery = useLatestCompletedPMDetails(
     payload?.equipment.id,
@@ -74,10 +96,10 @@ const EquipmentQRScan = () => {
     if (authLoading) return;
     if (user || !equipmentId) return;
 
-    const orgParam = orgId ? `&org=${orgId}` : '';
+    const orgParam = orgIdFromUrl ? `&org=${orgIdFromUrl}` : '';
     sessionStorage.setItem('pendingRedirect', `/qr/equipment/${equipmentId}?qr=true${orgParam}`);
     window.location.replace('/auth?tab=signin');
-  }, [authLoading, equipmentId, user, orgId]);
+  }, [authLoading, equipmentId, user, orgIdFromUrl]);
 
   useEffect(() => {
     if (authLoading || !user || !equipmentId) return;
@@ -86,7 +108,7 @@ const EquipmentQRScan = () => {
     setIsLoading(true);
     setError(null);
 
-    fetchEquipmentQRPayload(equipmentId, orgId)
+    fetchEquipmentQRPayload(equipmentId, orgIdFromUrl)
       .then(result => {
         if (!cancelled) {
           setPayload(result);
@@ -105,7 +127,7 @@ const EquipmentQRScan = () => {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, equipmentId, user, orgId]);
+  }, [authLoading, equipmentId, user, orgIdFromUrl]);
 
   const heroEquipmentId = payload?.equipment.id;
   const heroOrganizationId = payload?.organization.id;
@@ -228,6 +250,13 @@ const EquipmentQRScan = () => {
   }
 
   if (error || !payload) {
+    const canOpenCachedEquipment =
+      !isOnline &&
+      !!cachedEquipment &&
+      !!equipmentId &&
+      !!cacheOrgId &&
+      cachedEquipment.organization_id === cacheOrgId;
+
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
@@ -240,9 +269,21 @@ const EquipmentQRScan = () => {
           <CardContent className="space-y-4">
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error || 'Equipment not found'}</AlertDescription>
+              <AlertDescription>
+                {canOpenCachedEquipment
+                  ? 'You are offline. Open the cached equipment record from your last session, or reconnect to load live QR details.'
+                  : error || 'Equipment not found'}
+              </AlertDescription>
             </Alert>
-            <Button className="w-full" onClick={() => window.location.assign('/dashboard')}>
+            {canOpenCachedEquipment ? (
+              <Button
+                className="w-full"
+                onClick={() => window.location.assign(`/dashboard/equipment/${equipmentId}`)}
+              >
+                Open Cached Equipment
+              </Button>
+            ) : null}
+            <Button className="w-full" variant={canOpenCachedEquipment ? 'outline' : 'default'} onClick={() => window.location.assign('/dashboard')}>
               Go to Dashboard
             </Button>
           </CardContent>

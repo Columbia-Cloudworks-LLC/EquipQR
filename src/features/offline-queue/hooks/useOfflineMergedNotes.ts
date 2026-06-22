@@ -68,6 +68,11 @@ export function useOfflineMergedNotes<T extends { id: string }>(
         author_id: item.userId,
         author_name: user?.user_metadata?.full_name ?? 'You',
         images: [],
+        _pendingPhotoCount:
+          Array.isArray((payload as { imageRefs?: unknown[] }).imageRefs) &&
+          (payload as { imageRefs?: unknown[] }).imageRefs!.length > 0
+            ? (payload as { imageRefs: unknown[] }).imageRefs.length
+            : undefined,
         _isPendingSync: true,
       } as T & { _isPendingSync?: boolean };
     });

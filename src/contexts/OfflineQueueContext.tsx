@@ -71,6 +71,7 @@ export const OfflineQueueProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Bump this to force re-reads from localStorage after mutations
   const [revision, setRevision] = useState(0);
   const syncLockRef = useRef(false);
+  const bootSyncAttemptedRef = useRef(false);
 
   // Stable service & processor instances (re-created when user/org changes)
   const queueService = useMemo(() => {
@@ -149,6 +150,23 @@ export const OfflineQueueProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return () => clearTimeout(timer);
     }
   }, [isOnline, pendingCount, isSyncing, syncNow]);
+
+  // Drain pending queue on app boot while online (tab reopen scenario)
+  useEffect(() => {
+    if (pendingCount === 0) {
+      bootSyncAttemptedRef.current = false;
+    }
+  }, [pendingCount]);
+
+  useEffect(() => {
+    if (!isOnline || pendingCount === 0 || isSyncing || !processor) return;
+    if (bootSyncAttemptedRef.current) return;
+    bootSyncAttemptedRef.current = true;
+    const timer = setTimeout(() => {
+      syncNow();
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [processor, isOnline, pendingCount, isSyncing, syncNow]);
 
   // ── Enqueue ────────────────────────────────────────────────────────────
 

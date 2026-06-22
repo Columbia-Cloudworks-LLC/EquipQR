@@ -49,7 +49,7 @@ export function showQueuedNoteCreateToasts(
   if (options.combinedOfflineMessage) {
     toast.success(
       hadImages
-        ? 'Note saved offline. Attach images when you reconnect.'
+        ? 'Note saved offline — text and photos will sync when you reconnect.'
         : 'Note saved offline — will sync when you reconnect.',
     );
     return;

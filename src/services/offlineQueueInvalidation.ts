@@ -42,10 +42,14 @@ export function invalidateOfflineSyncQueries(queryClient: QueryClient, items: Of
       queryClient.invalidateQueries({ queryKey: ['workOrders', orgId] });
       queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', orgId] });
       queryClient.invalidateQueries({ queryKey: ['team-based-work-orders', orgId] });
+      queryClient.invalidateQueries({ queryKey: ['work-order-notes-with-images'] });
+      queryClient.invalidateQueries({ queryKey: ['work-order-images'] });
     }
     if (hasEquipmentItems) {
       queryClient.invalidateQueries({ queryKey: equipment.root });
       queryClient.invalidateQueries({ queryKey: ['equipment', orgId] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-notes-with-images'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-images'] });
     }
     if (hasPMItems) {
       queryClient.invalidateQueries({ queryKey: preventiveMaintenance.root });

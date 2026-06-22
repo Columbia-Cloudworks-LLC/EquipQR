@@ -22,6 +22,11 @@ import type {
 } from '@/features/equipment/services/EquipmentService';
 import type { UpdateWorkingHoursData } from '@/features/equipment/services/equipmentWorkingHoursService';
 import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import {
+  rewriteQueueItemsPlaceholders,
+  type PlaceholderRemap,
+} from './offlineQueuePlaceholders';
+import { collectImageRefIds } from './offlineQueueImageRefs';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -57,6 +62,14 @@ export type OfflineQueueItemType =
 
 export type OfflineQueueItemStatus = 'pending' | 'processing' | 'failed';
 
+/** Metadata pointer to a blob in offlineBlobStore — never embed binary in JSON. */
+export interface OfflineQueueImageRef {
+  blobKey: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+
 interface OfflineQueueItemBase {
   id: string;
   type: OfflineQueueItemType;
@@ -70,9 +83,18 @@ interface OfflineQueueItemBase {
   lastError?: string;
 }
 
+/** Queued work-order create payload — images stored as blob refs, not File[]. */
+export type OfflineQueuedWorkOrderCreatePayload = Omit<CreateWorkOrderData, 'images'> & {
+  imageRefs?: OfflineQueueImageRef[];
+  /** Set after server create succeeds so retries skip duplicate creates. */
+  syncedWorkOrderId?: string;
+  /** Set after creation photos upload succeeds during replay. */
+  creationImagesSynced?: boolean;
+};
+
 export interface OfflineQueueCreateItem extends OfflineQueueItemBase {
   type: 'work_order_create';
-  payload: CreateWorkOrderData;
+  payload: OfflineQueuedWorkOrderCreatePayload;
 }
 
 /** Field values captured from the server at the moment the user opened the edit form. */
@@ -121,6 +143,7 @@ export interface OfflineQueueWorkOrderNoteItem extends OfflineQueueItemBase {
     hoursWorked?: number;
     machineHours?: number;
     isPrivate?: boolean;
+    imageRefs?: OfflineQueueImageRef[];
   };
 }
 
@@ -159,6 +182,7 @@ export interface OfflineQueueEquipmentNoteItem extends OfflineQueueItemBase {
     hoursWorked?: number;
     machineHours?: number;
     isPrivate?: boolean;
+    imageRefs?: OfflineQueueImageRef[];
   };
 }
 
@@ -652,6 +676,33 @@ export class OfflineQueueService {
       return { ...i, status: 'pending' as const, retryCount: 0, lastError: undefined };
     });
     this.persist(queue);
+  }
+
+  /**
+   * Rewrite placeholder ids in all pending/processing/failed queue items after
+   * a parent create syncs. Persists immediately so remaps survive tab close.
+   */
+  applyPlaceholderRemap(remap: PlaceholderRemap): void {
+    const queue = this.getAll();
+    if (queue.length === 0) return;
+    const rewritten = rewriteQueueItemsPlaceholders(queue, remap);
+    this.persist(rewritten);
+  }
+
+  /** Collect image blob keys referenced by a queue item (for cleanup). */
+  static collectImageRefsFromItem(item: OfflineQueueItem): string[] {
+    const payload = item.payload as Record<string, unknown>;
+    const refs = payload.imageRefs;
+    if (!Array.isArray(refs)) return [];
+    return collectImageRefIds(
+      refs.filter((ref): ref is OfflineQueueImageRef => {
+        return (
+          ref !== null &&
+          typeof ref === 'object' &&
+          typeof (ref as OfflineQueueImageRef).blobKey === 'string'
+        );
+      }),
+    );
   }
 
   // ── Internals ────────────────────────────────────────────────────────────

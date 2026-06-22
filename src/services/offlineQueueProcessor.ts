@@ -53,6 +53,16 @@ import {
 } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { pmChecklistTemplatesService } from '@/features/pm-templates/services/pmChecklistTemplatesService';
 import { requireAuthClaims } from '@/lib/authClaims';
+import { OfflineReplayContext } from './offlineQueueReplayContext';
+import {
+  cleanupQueueItemBlobs,
+  loadQueueItemImageFiles,
+} from './offlineQueueProcessorImages';
+import { attachWorkOrderCreationImages } from '@/features/work-orders/services/workOrderNotesService';
+import {
+  parseOfflinePmPlaceholder,
+  parseOfflineWorkOrderPlaceholder,
+} from './offlineQueuePlaceholders';
 
 // ─── Conflict info ───────────────────────────────────────────────────────────
 
@@ -66,37 +76,68 @@ export interface ConflictInfo {
 
 type QueueItemHandler<T extends OfflineQueueItem = OfflineQueueItem> = (
   item: T,
+  replay: OfflineReplayContext,
+  queueService: OfflineQueueService,
 ) => Promise<{ success: boolean; conflict?: ConflictInfo; followUpItems?: OfflineQueueEnqueueInput[] }>;
 
-const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
-  work_order_create: (async (item: OfflineQueueCreateItem) => {
+function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<never>> {
+  return {
+  work_order_create: (async (item: OfflineQueueCreateItem, replay, queueService) => {
     const claims = await requireAuthClaims('Session expired — please sign in again');
 
     const service = new WorkOrderService(item.organizationId);
     const payload = item.payload;
+    const resolvedEquipmentId = replay.resolveEquipmentId(payload.equipmentId);
 
-    const assigneeId = payload.assigneeId;
-    let status: 'submitted' | 'assigned' = 'submitted';
-    if (assigneeId) {
-      status = 'assigned';
+    let workOrderId = payload.syncedWorkOrderId;
+
+    if (!workOrderId) {
+      const assigneeId = payload.assigneeId;
+      let status: 'submitted' | 'assigned' = 'submitted';
+      if (assigneeId) {
+        status = 'assigned';
+      }
+
+      const response = await service.create({
+        title: payload.title,
+        description: payload.description,
+        equipment_id: resolvedEquipmentId,
+        priority: payload.priority,
+        due_date: payload.dueDate,
+        estimated_hours: undefined,
+        assignee_id: assigneeId,
+        team_id: undefined,
+        status,
+        created_by: claims.sub,
+        has_pm: payload.hasPM || false,
+      });
+
+      if (!response.success || !response.data?.id) {
+        throw new Error(response.error || 'Sync failed: work order create');
+      }
+
+      workOrderId = response.data.id;
+      replay.registerWorkOrder(item.id, workOrderId, queueService);
+      queueService.updatePayload(item.id, { syncedWorkOrderId: workOrderId });
+      item.payload.syncedWorkOrderId = workOrderId;
+    } else {
+      replay.registerWorkOrder(item.id, workOrderId, queueService);
     }
 
-    const response = await service.create({
-      title: payload.title,
-      description: payload.description,
-      equipment_id: payload.equipmentId,
-      priority: payload.priority,
-      due_date: payload.dueDate,
-      estimated_hours: undefined,
-      assignee_id: assigneeId,
-      team_id: undefined,
-      status,
-      created_by: claims.sub,
-      has_pm: payload.hasPM || false,
-    });
-
-    if (!response.success) {
-      throw new Error(response.error || 'Sync failed: work order create');
+    if (payload.imageRefs?.length && !payload.creationImagesSynced) {
+      const images = await loadQueueItemImageFiles(
+        item.userId,
+        item.organizationId,
+        payload.imageRefs,
+      );
+      await attachWorkOrderCreationImages({
+        workOrderId,
+        organizationId: item.organizationId,
+        images,
+        noteContent: payload.creationPhotoNote,
+      });
+      queueService.updatePayload(item.id, { creationImagesSynced: true });
+      item.payload.creationImagesSynced = true;
     }
 
     // Initialize the PM record alongside the work order. This used to be a
@@ -106,7 +147,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
     // the template's checklist if one was provided, otherwise fall back to
     // the default forklift checklist (matching the online path's behavior
     // in `useInitializePMChecklist.ts`).
-    if (payload.hasPM && response.data?.id && payload.equipmentId) {
+    if (payload.hasPM && resolvedEquipmentId) {
       try {
         let checklistData: PMChecklistItem[] = defaultForkliftChecklist;
         let notes = 'PM checklist initialized from queued offline work order.';
@@ -129,17 +170,21 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
         }
 
         const pmRecord = await createPM({
-          workOrderId: response.data.id,
-          equipmentId: payload.equipmentId,
+          workOrderId,
+          equipmentId: resolvedEquipmentId,
           organizationId: item.organizationId,
           checklistData,
           notes,
           templateId: payload.pmTemplateId,
         });
 
+        if (pmRecord?.id) {
+          replay.registerPm(item.id, pmRecord.id, queueService);
+        }
+
         if (!pmRecord) {
           logger.warn(
-            `PM init returned null during offline sync for work order ${response.data.id}; ` +
+            `PM init returned null during offline sync for work order ${workOrderId}; ` +
               're-queuing pm_init for retry.',
           );
           return {
@@ -150,8 +195,8 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
                 organizationId: item.organizationId,
                 userId: claims.sub,
                 payload: {
-                  workOrderId: response.data.id,
-                  equipmentId: payload.equipmentId,
+                  workOrderId,
+                  equipmentId: resolvedEquipmentId,
                   templateId: payload.pmTemplateId,
                 },
               } as OfflineQueueEnqueueInput,
@@ -162,7 +207,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
         // The work order itself succeeded; re-queue a pm_init so the PM
         // checklist is retried independently rather than lost on transient failure.
         logger.warn(
-          `PM init failed during offline sync for work order ${response.data.id}; ` +
+          `PM init failed during offline sync for work order ${workOrderId}; ` +
             'a pm_init item has been re-queued for retry.',
           pmError,
         );
@@ -174,8 +219,8 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
               organizationId: item.organizationId,
               userId: claims.sub,
               payload: {
-                workOrderId: response.data.id,
-                equipmentId: payload.equipmentId,
+                workOrderId,
+                equipmentId: resolvedEquipmentId,
                 templateId: payload.pmTemplateId,
               },
             } as OfflineQueueEnqueueInput,
@@ -187,17 +232,22 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
     return { success: true };
   }) as QueueItemHandler<never>,
 
-  work_order_update: (async (item: OfflineQueueUpdateItem) => {
+  work_order_update: (async (item: OfflineQueueUpdateItem, replay) => {
     const { workOrderId, data, changedFields, serverUpdatedAt, serverSnapshot } = item.payload;
-    return syncWorkOrderOfflineUpdate(item.organizationId, workOrderId, data, {
+    return syncWorkOrderOfflineUpdate(
+      item.organizationId,
+      replay.resolveWorkOrderId(workOrderId),
+      data,
+      {
       changedFields,
       serverUpdatedAt,
       serverSnapshot,
     });
   }) as QueueItemHandler<never>,
 
-  work_order_status: (async (item: OfflineQueueStatusItem) => {
+  work_order_status: (async (item: OfflineQueueStatusItem, replay) => {
     const { workOrderId, newStatus, serverUpdatedAt } = item.payload;
+    const resolvedWorkOrderId = replay.resolveWorkOrderId(workOrderId);
 
     // ── Server-wins conflict detection for status ──
     // If the server status changed while we were offline, server wins.
@@ -205,7 +255,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
       const { data: current, error: fetchErr } = await supabase
         .from('work_orders')
         .select('status, updated_at')
-        .eq('id', workOrderId)
+        .eq('id', resolvedWorkOrderId)
         .eq('organization_id', item.organizationId)
         .single();
 
@@ -219,11 +269,11 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
         // e.g., we wanted to mark "in_progress" but it's already "completed"
         const terminalStatuses = ['completed', 'cancelled'];
         if (terminalStatuses.includes(serverStatus) && !terminalStatuses.includes(newStatus)) {
-          logger.warn(`Status conflict: WO ${workOrderId} is already ${serverStatus}, skipping offline ${newStatus}`);
+          logger.warn(`Status conflict: WO ${resolvedWorkOrderId} is already ${serverStatus}, skipping offline ${newStatus}`);
           return {
             success: true,
             conflict: {
-              workOrderId,
+              workOrderId: resolvedWorkOrderId,
               type: 'status_conflict' as const,
               details: `Work order is already "${serverStatus}" on the server. Your offline "${newStatus}" change was skipped.`,
             },
@@ -231,7 +281,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
         }
 
         // If server is in same or earlier state, apply our change
-        logger.info(`Applying offline status ${newStatus} to WO ${workOrderId} (server: ${serverStatus})`);
+        logger.info(`Applying offline status ${newStatus} to WO ${resolvedWorkOrderId} (server: ${serverStatus})`);
       }
     }
 
@@ -251,7 +301,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
     const { error } = await supabase
       .from('work_orders')
       .update(updateData)
-      .eq('id', workOrderId)
+      .eq('id', resolvedWorkOrderId)
       .eq('organization_id', item.organizationId)
       .select()
       .single();
@@ -260,82 +310,93 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
     return { success: true };
   }) as QueueItemHandler<never>,
 
-  work_order_note: (async (item: OfflineQueueWorkOrderNoteItem) => {
+  work_order_note: (async (item: OfflineQueueWorkOrderNoteItem, replay) => {
     await requireAuthClaims('Session expired — please sign in again');
 
-    const { workOrderId, content, hoursWorked = 0, isPrivate = false, machineHours } = item.payload;
+    const { workOrderId, content, hoursWorked = 0, isPrivate = false, machineHours, imageRefs } =
+      item.payload;
+    const images = await loadQueueItemImageFiles(item.userId, item.organizationId, imageRefs);
     await createWorkOrderNoteWithImages(
-      workOrderId,
+      replay.resolveWorkOrderId(workOrderId),
       content,
       hoursWorked,
       isPrivate,
-      [],
+      images,
       item.organizationId,
       machineHours,
     );
     return { success: true };
   }) as QueueItemHandler<never>,
 
-  equipment_create: (async (item: OfflineQueueEquipmentCreateItem) => {
+  equipment_create: (async (item: OfflineQueueEquipmentCreateItem, replay, queueService) => {
     const result = await EquipmentService.createQuick(item.organizationId, item.payload);
     if (!result.success || !result.data) {
       throw new Error(result.error || 'Sync failed: equipment create');
     }
+    const serverId = String(result.data.id);
+    replay.registerEquipment(item.id, serverId, queueService);
     return { success: true };
   }) as QueueItemHandler<never>,
 
-  equipment_create_full: (async (item: OfflineQueueEquipmentCreateFullItem) => {
+  equipment_create_full: (async (item: OfflineQueueEquipmentCreateFullItem, replay, queueService) => {
     const result = await EquipmentService.create(item.organizationId, item.payload);
     if (!result.success || !result.data) {
       throw new Error(result.error || 'Sync failed: equipment create (full)');
     }
+    const serverId = String(result.data.id);
+    replay.registerEquipment(item.id, serverId, queueService);
     return { success: true };
   }) as QueueItemHandler<never>,
 
-  equipment_update: (async (item: OfflineQueueEquipmentUpdateItem) => {
+  equipment_update: (async (item: OfflineQueueEquipmentUpdateItem, replay) => {
     const { equipmentId, data } = item.payload;
-    const result = await EquipmentService.update(item.organizationId, equipmentId, data);
+    const result = await EquipmentService.update(
+      item.organizationId,
+      replay.resolveEquipmentId(equipmentId),
+      data,
+    );
     if (!result.success || !result.data) {
       throw new Error(result.error || 'Sync failed: equipment update');
     }
     return { success: true };
   }) as QueueItemHandler<never>,
 
-  equipment_hours: (async (item: OfflineQueueEquipmentHoursItem) => {
-    await updateEquipmentWorkingHours(item.payload);
+  equipment_hours: (async (item: OfflineQueueEquipmentHoursItem, replay) => {
+    await updateEquipmentWorkingHours({
+      ...item.payload,
+      equipmentId: replay.resolveEquipmentId(item.payload.equipmentId),
+    });
     return { success: true };
   }) as QueueItemHandler<never>,
 
-  equipment_note: (async (item: OfflineQueueEquipmentNoteItem) => {
+  equipment_note: (async (item: OfflineQueueEquipmentNoteItem, replay) => {
     await requireAuthClaims('Session expired — please sign in again');
 
-    const { equipmentId, content, hoursWorked = 0, isPrivate = false, machineHours } = item.payload;
+    const { equipmentId, content, hoursWorked = 0, isPrivate = false, machineHours, imageRefs } =
+      item.payload;
+    const images = await loadQueueItemImageFiles(item.userId, item.organizationId, imageRefs);
     await createEquipmentNoteWithImages(
-      equipmentId,
+      replay.resolveEquipmentId(equipmentId),
       content,
       hoursWorked,
       isPrivate,
-      [],
+      images,
       item.organizationId,
       machineHours,
     );
     return { success: true };
   }) as QueueItemHandler<never>,
 
-  pm_init: (async (item: OfflineQueuePMInitItem) => {
+  pm_init: (async (item: OfflineQueuePMInitItem, replay, queueService) => {
     await requireAuthClaims('Session expired — please sign in again');
 
     const { workOrderId, equipmentId, templateId, checklistData, notes } = item.payload;
+    const resolvedWorkOrderId = replay.resolveWorkOrderId(workOrderId);
+    const resolvedEquipmentId = replay.resolveEquipmentId(equipmentId);
 
-    // Resolve placeholder work-order id (`offline-<queue-item-id>`) by
-    // refusing to apply: the offline-aware mutation layer should NEVER queue
-    // a `pm_init` against an unsynced placeholder because the work-order
-    // sync itself takes care of PM init via the `work_order_create` handler
-    // above. Surface this clearly so a developer sees the misuse.
-    if (workOrderId.startsWith('offline-')) {
+    if (parseOfflineWorkOrderPlaceholder(resolvedWorkOrderId)) {
       throw new Error(
-        `pm_init queued against unsynced offline work order ${workOrderId} ` +
-          '— the work_order_create handler is responsible for initial PM creation.',
+        `pm_init depends on unsynced work order ${workOrderId} — parent create must sync first.`,
       );
     }
 
@@ -360,8 +421,8 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
     }
 
     const pmRecord = await createPM({
-      workOrderId,
-      equipmentId,
+      workOrderId: resolvedWorkOrderId,
+      equipmentId: resolvedEquipmentId,
       organizationId: item.organizationId,
       checklistData: resolvedChecklist,
       notes: resolvedNotes,
@@ -369,13 +430,17 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
     });
 
     if (!pmRecord) {
-      throw new Error(`Sync failed: PM init returned null for work order ${workOrderId}`);
+      throw new Error(`Sync failed: PM init returned null for work order ${resolvedWorkOrderId}`);
+    }
+
+    if (pmRecord.id) {
+      replay.registerPm(item.id, pmRecord.id, queueService);
     }
 
     return { success: true };
   }) as QueueItemHandler<never>,
 
-  pm_update: (async (item: OfflineQueuePMUpdateItem) => {
+  pm_update: (async (item: OfflineQueuePMUpdateItem, replay) => {
     await requireAuthClaims('Session expired — please sign in again');
 
     const {
@@ -389,10 +454,10 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
       completedBy,
     } = item.payload;
 
-    if (pmId.startsWith('offline-')) {
+    const resolvedPmId = replay.resolvePmId(pmId);
+    if (parseOfflinePmPlaceholder(resolvedPmId)) {
       throw new Error(
-        `pm_update queued against unsynced offline PM ${pmId} ` +
-          '— init must succeed before updates can apply.',
+        `pm_update depends on unsynced PM ${pmId} — parent init must sync first.`,
       );
     }
 
@@ -406,7 +471,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
       const { data: current, error: fetchErr } = await supabase
         .from('preventative_maintenance')
         .select('updated_at, status')
-        .eq('id', pmId)
+        .eq('id', resolvedPmId)
         .eq('organization_id', item.organizationId)
         .single();
 
@@ -422,11 +487,11 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
         // Server moved this PM to a terminal state while the client was
         // offline — discard our edits to avoid overwriting a completed or
         // cancelled record behind the user's back.
-        logger.warn(`PM ${pmId} reached terminal status '${current.status}' on server; offline edits discarded`);
+        logger.warn(`PM ${resolvedPmId} reached terminal status '${current.status}' on server; offline edits discarded`);
         return {
           success: true,
           conflict: {
-            workOrderId: pmId,
+            workOrderId: resolvedPmId,
             type: 'status_conflict',
             details: `PM was ${current.status} on the server while offline. Your offline checklist edits were discarded.`,
           },
@@ -434,7 +499,7 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
       }
     }
 
-    const updated = await updatePM(pmId, {
+    const updated = await updatePM(resolvedPmId, {
       checklistData,
       notes,
       status,
@@ -444,31 +509,34 @@ const HANDLER_MAP: Record<OfflineQueueItem['type'], QueueItemHandler<never>> = {
     }, item.organizationId);
 
     if (!updated) {
-      throw new Error(`Sync failed: PM update returned null for ${pmId}`);
+      throw new Error(`Sync failed: PM update returned null for ${resolvedPmId}`);
     }
 
     return { success: true };
   }) as QueueItemHandler<never>,
 
-  pm_delete: (async (item: OfflineQueuePMDeleteItem) => {
+  pm_delete: (async (item: OfflineQueuePMDeleteItem, replay) => {
     await requireAuthClaims('Session expired — please sign in again');
 
     const { pmId } = item.payload;
-    if (pmId.startsWith('offline-')) {
+    const resolvedPmId = replay.resolvePmId(pmId);
+    if (parseOfflinePmPlaceholder(resolvedPmId)) {
       throw new Error(
-        `pm_delete queued against unsynced offline PM ${pmId} ` +
-          '— init must succeed before deletion can apply.',
+        `pm_delete depends on unsynced PM ${pmId} — parent init must sync first.`,
       );
     }
 
-    const deleted = await deletePM(pmId, item.organizationId);
+    const deleted = await deletePM(resolvedPmId, item.organizationId);
     if (!deleted) {
-      throw new Error(`Sync failed: PM delete returned false for ${pmId}`);
+      throw new Error(`Sync failed: PM delete returned false for ${resolvedPmId}`);
     }
 
     return { success: true };
   }) as QueueItemHandler<never>,
-};
+  };
+}
+
+const HANDLER_MAP = createHandlerMap();
 
 // ─── Processor ───────────────────────────────────────────────────────────────
 
@@ -514,13 +582,14 @@ export class OfflineQueueProcessor {
 
     this.queueService.compact();
 
+    const replay = new OfflineReplayContext();
     const items = this.queueService.getAll().filter(i => i.status === 'pending');
     let succeeded = 0;
     let failed = 0;
     const conflicts: ConflictInfo[] = [];
 
     for (const item of items) {
-      const outcome = await this.processQueueItem(item);
+      const outcome = await this.processQueueItem(item, replay);
       if (!outcome) {
         continue;
       }
@@ -544,6 +613,7 @@ export class OfflineQueueProcessor {
 
   private async processQueueItem(
     item: OfflineQueueItem,
+    replay: OfflineReplayContext,
   ): Promise<{ outcome: 'succeeded' | 'failed' | 'retry'; conflict?: ConflictInfo } | null> {
     if (this._processedInSession.has(item.id)) {
       return null;
@@ -559,7 +629,7 @@ export class OfflineQueueProcessor {
     }
 
     try {
-      const result = await handler(item as never);
+      const result = await handler(item as never, replay, this.queueService);
       this._processedInSession.add(item.id);
 
       if (result.followUpItems?.length) {
@@ -583,6 +653,12 @@ export class OfflineQueueProcessor {
       } else {
         this.queueService.remove(item.id);
       }
+
+      await cleanupQueueItemBlobs(
+        item.userId,
+        item.organizationId,
+        this.queueService.getById(item.id) ?? item,
+      );
 
       return { outcome: 'succeeded', conflict: result.conflict };
     } catch (error) {

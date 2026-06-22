@@ -1,19 +1,15 @@
 import { useCallback, useState } from 'react';
 
-export function useAttachedNoteImages(options?: {
+export function useAttachedNoteImages(_options?: {
   onAddWhileOffline?: () => void;
 }) {
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
 
   const handleImagesAdd = useCallback(
     (files: File[]) => {
-      if (!navigator.onLine) {
-        options?.onAddWhileOffline?.();
-        return;
-      }
       setAttachedImages((prev) => [...prev, ...files]);
     },
-    [options],
+    [],
   );
 
   const handleImageRemove = useCallback((index: number) => {
