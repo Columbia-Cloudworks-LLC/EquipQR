@@ -9,6 +9,10 @@ import EquipQRIcon from '@/components/ui/EquipQRIcon';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useSession } from '@/hooks/useSession';
+import {
+  mergeAllowedOrganizationIds,
+  resolveValidatedOrganizationId,
+} from '@/utils/trustedOrganizationScope';
 import { saveOrganizationPreference } from '@/utils/sessionPersistence';
 import type { Database } from '@/integrations/supabase/types';
 import type { Role } from '@/types/permissions';
@@ -58,15 +62,19 @@ const EquipmentQRScan = () => {
   const [searchParams] = useSearchParams();
   const orgIdFromUrl = searchParams.get('org') ?? undefined;
   const { user, isLoading: authLoading } = useAuth();
-  const { currentOrganization, organizationId } = useOrganization();
+  const { currentOrganization, organizationId, organizations } = useOrganization();
   const { sessionData } = useSession();
   const isOnline = useBrowserOnline();
-  /** Prefer hydrated org object; fall back to provider/session org ids for cold-offline cache reads. */
-  const cacheOrgId =
-    currentOrganization?.id ??
-    sessionData?.currentOrganizationId ??
-    organizationId ??
-    undefined;
+  const allowedOrgIds = mergeAllowedOrganizationIds(
+    organizations.map((org) => org.id),
+    sessionData?.organizations.map((org) => org.id) ?? [],
+  );
+  const cacheOrgId = resolveValidatedOrganizationId({
+    currentOrganizationId: currentOrganization?.id,
+    sessionOrganizationId: sessionData?.currentOrganizationId,
+    persistedOrganizationId: organizationId,
+    allowedOrganizationIds: allowedOrgIds,
+  });
   const { data: cachedEquipment } = useEquipmentById(cacheOrgId, equipmentId);
   const [payload, setPayload] = useState<EquipmentQRPayload | null>(null);
   const latestPmQuery = useLatestCompletedPMDetails(

@@ -7,6 +7,10 @@ import { logger } from '@/utils/logger';
 import { setActivePersistenceScope } from '@/lib/queryPersistence';
 import { mapOrganizationRowsToSessionOrganizations } from '@/utils/mapOrganizationToSession';
 import {
+  mergeAllowedOrganizationIds,
+  resolveValidatedOrganizationId,
+} from '@/utils/trustedOrganizationScope';
+import {
   SimpleOrganizationContext,
   SimpleOrganization,
   SimpleOrganizationContextType,
@@ -270,10 +274,16 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
   // data. When the user signs out or no org is selected, scope is cleared
   // and the persister becomes a no-op until a real scope reappears.
   useEffect(() => {
-    const scopedOrgId =
-      currentOrganization?.id ??
-      sessionContext?.sessionData?.currentOrganizationId ??
-      currentOrganizationId;
+    const allowedOrgIds = mergeAllowedOrganizationIds(
+      organizations.map((org) => org.id),
+      sessionContext?.sessionData?.organizations.map((org) => org.id) ?? [],
+    );
+    const scopedOrgId = resolveValidatedOrganizationId({
+      currentOrganizationId: currentOrganization?.id,
+      sessionOrganizationId: sessionContext?.sessionData?.currentOrganizationId,
+      persistedOrganizationId: currentOrganizationId,
+      allowedOrganizationIds: allowedOrgIds,
+    });
     if (user?.id && scopedOrgId) {
       setActivePersistenceScope({ userId: user.id, orgId: scopedOrgId });
     } else {
@@ -283,7 +293,9 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     user?.id,
     currentOrganization?.id,
     currentOrganizationId,
+    organizations,
     sessionContext?.sessionData?.currentOrganizationId,
+    sessionContext?.sessionData?.organizations,
   ]);
 
   // Monitor state changes for debugging (removed excessive logging)
