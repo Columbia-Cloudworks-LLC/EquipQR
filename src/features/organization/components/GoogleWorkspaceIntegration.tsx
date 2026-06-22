@@ -45,10 +45,19 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
   const isConfigured = isGoogleWorkspaceConfigured();
   const organizationId = currentOrganization?.id;
 
-  const { connect, isConnecting } = useGoogleWorkspaceConnect({
+  const { connect: connectDirectory, isConnecting: isConnectingDirectory } = useGoogleWorkspaceConnect({
     organizationId,
     redirectUrl: ORGANIZATION_INTEGRATIONS_PATH,
+    consentMode: 'directory',
   });
+
+  const { connect: connectExport, isConnecting: isConnectingExport } = useGoogleWorkspaceConnect({
+    organizationId,
+    redirectUrl: ORGANIZATION_INTEGRATIONS_PATH,
+    consentMode: 'export',
+  });
+
+  const isConnecting = isConnectingDirectory || isConnectingExport;
 
   const disconnectMutation = useGoogleWorkspaceDisconnect(organizationId);
 
@@ -148,7 +157,7 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
                 <Button
                   size="sm"
                   className={integrationActionButtonClassName}
-                  onClick={connect}
+                  onClick={connectDirectory}
                   disabled={isConnecting}
                 >
                   {isConnecting ? (
@@ -220,7 +229,7 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
                   <Button
                     size="sm"
                     className={integrationActionButtonClassName}
-                    onClick={connect}
+                    onClick={connectExport}
                     disabled={isConnecting}
                   >
                     {isConnecting ? (
@@ -253,9 +262,9 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
         {connectionHealth === 'missing_permissions' && (
           <Alert>
             <AlertDescription className="text-sm">
-              EquipQR still needs Google approval for directory sync and export features (Drive,
-              Docs, and Sheets). Click Finish authorization to complete the same one-time consent
-              flow used during onboarding.
+              Directory access is connected. EquipQR still needs Google approval for export
+              features (Drive, Docs, and Sheets). Click Finish authorization to grant those
+              scopes incrementally without losing directory sync access.
             </AlertDescription>
           </Alert>
         )}

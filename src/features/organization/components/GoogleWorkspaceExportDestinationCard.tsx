@@ -57,6 +57,7 @@ export function GoogleWorkspaceExportDestinationCard({
     useGoogleWorkspaceConnect({
       organizationId: currentOrganization?.id,
       redirectUrl: ORGANIZATION_INTEGRATIONS_PATH,
+      consentMode: 'export',
     });
 
   const {

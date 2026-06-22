@@ -185,6 +185,11 @@ verify_jwt = false
 # GitHub webhook endpoint -- no JWT available. Security is handled via HMAC-SHA256
 # signature verification using the GITHUB_WEBHOOK_SECRET environment variable.
 
+[functions.google-risc-receiver]
+verify_jwt = false
+# Google Cross-Account Protection (RISC) endpoint. Google posts Security Event Tokens
+# without Supabase JWTs. Validation uses Google JWKS signature + issuer/audience checks.
+
 [functions.send-push-notification]
 verify_jwt = false
 # Called from database via pg_net when notifications are inserted.

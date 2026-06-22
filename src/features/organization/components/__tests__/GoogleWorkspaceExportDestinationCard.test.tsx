@@ -9,11 +9,15 @@ const {
   mockExportDestination,
   mockListGoogleDriveDestinations,
   mockToast,
+  mockUseGoogleWorkspaceConnect,
+  mockGrantDrivePermissions,
 } = vi.hoisted(() => ({
   mockConnectionStatus: vi.fn(),
   mockExportDestination: vi.fn(),
   mockListGoogleDriveDestinations: vi.fn(),
   mockToast: vi.fn(),
+  mockUseGoogleWorkspaceConnect: vi.fn(),
+  mockGrantDrivePermissions: vi.fn(),
 }));
 
 vi.mock('@/contexts/OrganizationContext', () => ({
@@ -31,10 +35,8 @@ vi.mock('@/features/organization/hooks/useGoogleWorkspaceConnectionStatus', () =
 }));
 
 vi.mock('@/features/organization/hooks/useGoogleWorkspaceConnect', () => ({
-  useGoogleWorkspaceConnect: () => ({
-    connect: vi.fn(),
-    isConnecting: false,
-  }),
+  useGoogleWorkspaceConnect: (options: { consentMode?: 'directory' | 'export' }) =>
+    mockUseGoogleWorkspaceConnect(options),
 }));
 
 vi.mock('@/features/organization/hooks/useGoogleWorkspaceExportDestination', () => ({
@@ -92,6 +94,14 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
     mockExportDestination.mockReset();
     mockListGoogleDriveDestinations.mockReset();
     mockToast.mockReset();
+    mockUseGoogleWorkspaceConnect.mockReset();
+    mockGrantDrivePermissions.mockReset();
+
+    mockUseGoogleWorkspaceConnect.mockImplementation((options: { consentMode?: 'directory' | 'export' }) => ({
+      connect: mockGrantDrivePermissions,
+      isConnecting: false,
+      consentMode: options?.consentMode,
+    }));
 
     mockConnectedStatus();
 
@@ -140,6 +150,9 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /grant drive permissions/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /choose organization folder/i })).toBeDisabled();
+    expect(mockUseGoogleWorkspaceConnect).toHaveBeenCalledWith(
+      expect.objectContaining({ consentMode: 'export' }),
+    );
   });
 
   it('shows connected admin email and organization file storage title', () => {
@@ -375,3 +388,4 @@ describe('GoogleWorkspaceExportDestinationCard', () => {
     });
   });
 });
+

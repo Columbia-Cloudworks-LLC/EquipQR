@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.9.4] - 2026-06-22
+
+### Added
+
+- **Google Cross-Account Protection (RISC)** — New `google-risc-receiver` edge function validates Google Security Event Tokens and disconnects affected Google Workspace credentials on token/session revocation events.
+
+### Changed
+
+- **Incremental Google Workspace OAuth consent** — Initial Connect and onboarding request directory scopes only; export scopes (Drive, Docs, Sheets) are requested in context via Finish authorization or Grant Drive permissions.
+- **Google Auth Platform branding** — Privacy Policy, Terms of Service, and developer contact verified in GCP console for OAuth app verification.
+
+### Fixed
+
+- **Google OAuth compliance (#1065)** — Addresses Project Checkup alerts for incremental authorization and Cross-Account Protection; legacy browser settings remain a console-side client configuration item pending Google re-scan.
+
 ## [3.9.3] - 2026-06-20
 
 ### Changed

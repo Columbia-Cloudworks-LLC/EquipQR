@@ -191,7 +191,7 @@ async function deriveKey(secret: string): Promise<CryptoKey> {
     {
       name: 'PBKDF2',
       hash: 'SHA-256',
-      salt: getKdfSalt(),
+      salt: getKdfSalt() as Uint8Array<ArrayBuffer>,
       iterations: PBKDF2_ITERATIONS,
     },
     keyMaterial,
