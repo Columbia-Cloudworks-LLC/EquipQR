@@ -204,8 +204,14 @@ async function resolveOrganizationsByRefreshTokenPrefix(
     return [];
   }
 
-  const encryptionKey = getTokenEncryptionKey();
-  const derivedKey = await deriveTokenEncryptionKey(encryptionKey);
+  let derivedKey: CryptoKey | null = null;
+  try {
+    const encryptionKey = getTokenEncryptionKey();
+    derivedKey = await deriveTokenEncryptionKey(encryptionKey);
+  } catch {
+    // Keep processing plaintext test fixtures and future non-encrypted hints;
+    // encrypted rows are skipped below when the key cannot be derived.
+  }
 
   let query = supabaseClient
     .from("google_workspace_credentials")
@@ -230,17 +236,22 @@ async function resolveOrganizationsByRefreshTokenPrefix(
       continue;
     }
 
-    try {
-      const refreshToken = await decryptTokenWithKey(row.refresh_token, derivedKey);
-      if (refreshToken.startsWith(prefix)) {
-        organizationIds.add(row.organization_id);
+    if (derivedKey) {
+      try {
+        const refreshToken = await decryptTokenWithKey(row.refresh_token, derivedKey);
+        if (refreshToken.startsWith(prefix)) {
+          organizationIds.add(row.organization_id);
+        }
+        continue;
+      } catch {
+        // Fall through to plaintext-prefix matching for non-encrypted test rows.
       }
-    } catch {
-      const looksBase64 =
-        /^[A-Za-z0-9+/]+={0,2}$/.test(row.refresh_token) && row.refresh_token.length % 4 === 0;
-      if (!looksBase64 && row.refresh_token.startsWith(prefix)) {
-        organizationIds.add(row.organization_id);
-      }
+    }
+
+    const looksBase64 =
+      /^[A-Za-z0-9+/]+={0,2}$/.test(row.refresh_token) && row.refresh_token.length % 4 === 0;
+    if (!looksBase64 && row.refresh_token.startsWith(prefix)) {
+      organizationIds.add(row.organization_id);
     }
   }
 

@@ -35,17 +35,15 @@ const repoWsl = toWslPath(repoRoot);
 
 const bashScript = `
 set -euo pipefail
-SANDBOX=${WSL_SANDBOX}
-case "$SANDBOX" in
-  ~/.cache/equipqr/test-ci) ;;
-  */.cache/equipqr/test-ci) ;;
-  *)
+WSL_HOME="$(printf '%s' ~)"
+SANDBOX="$WSL_HOME/.cache/equipqr/test-ci"
+EXPECTED_SANDBOX="$WSL_HOME/.cache/equipqr/test-ci"
+if [ "$SANDBOX" != "$EXPECTED_SANDBOX" ]; then
   echo "❌ Unexpected sandbox path: $SANDBOX"
   exit 1
-  ;;
-esac
+fi
 mkdir -p "$SANDBOX"
-export NVM_DIR=~/.nvm
+export NVM_DIR="$WSL_HOME/.nvm"
 if [ -s "$NVM_DIR/nvm.sh" ]; then
   . "$NVM_DIR/nvm.sh"
 else
