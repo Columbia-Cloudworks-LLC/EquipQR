@@ -117,9 +117,11 @@ describe('EquipmentSortHeader', () => {
 
     it('handles large numbers', () => {
       render(<EquipmentSortHeader {...defaultProps} resultCount={1000} totalCount={5000} />);
-      
-      expect(screen.getByText('1000')).toBeInTheDocument();
-      expect(screen.getByText('5000')).toBeInTheDocument();
+
+      const countText = screen.getAllByText((_, element) => {
+        return element?.textContent?.replace(/\s+/g, ' ').trim() === 'Showing 1000 of 5000 equipment';
+      });
+      expect(countText.length).toBeGreaterThan(0);
     });
   });
 

@@ -259,7 +259,7 @@ describe('PMTemplates Page', () => {
       );
 
       expect(screen.getByText('PM Templates')).toBeInTheDocument();
-      expect(screen.getByText(/Manage preventative maintenance checklist templates/)).toBeInTheDocument();
+      expect(screen.getByText(/Manage PM checklist templates and assign them as the default on equipment in bulk/)).toBeInTheDocument();
     });
   });
 
@@ -414,8 +414,11 @@ describe('PMTemplates Page', () => {
 
       expect(screen.getByText(pmFixtures.forklift.name)).toBeInTheDocument();
       expect(screen.getByText(pmFixtures.forklift.description)).toBeInTheDocument();
-      expect(screen.getByText(`Sections (${pmFixtures.forklift.sections.length})`)).toBeInTheDocument();
-      expect(screen.getAllByText('Total Items:')[0]).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          `${pmFixtures.forklift.sections.length} sections · ${pmFixtures.forklift.itemCount} items`,
+        ),
+      ).toBeInTheDocument();
       expect(screen.getByText('Global')).toBeInTheDocument();
       expect(screen.getByText('Protected')).toBeInTheDocument();
     });
@@ -429,7 +432,7 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
-      const assignButton = screen.getAllByRole('button', { name: 'Apply Template' })[0];
+      const assignButton = screen.getAllByRole('button', { name: 'Apply to Equipment' })[0];
       fireEvent.click(assignButton);
 
       await waitFor(() => {

@@ -52,17 +52,30 @@ const sheetVariants = cva(
 
 interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
-  VariantProps<typeof sheetVariants> { }
+  VariantProps<typeof sheetVariants> {
+  /** Leave the mobile bottom nav bar visible and tappable (overlay + panel inset). */
+  reserveMobileBottomNav?: boolean;
+}
 
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
->(({ side = "right", className, children, ...props }, ref) => (
+>(({ side = "right", className, children, reserveMobileBottomNav = false, ...props }, ref) => (
   <SheetPortal>
-    <SheetOverlay />
+    <SheetOverlay
+      className={cn(
+        reserveMobileBottomNav && "bottom-[var(--mobile-bottom-nav-height)]",
+      )}
+    />
     <SheetPrimitive.Content
       ref={ref}
-      className={cn(sheetVariants({ side }), className)}
+      className={cn(
+        sheetVariants({ side }),
+        reserveMobileBottomNav &&
+          (side === "right" || side === "left") &&
+          "!top-0 !bottom-[var(--mobile-bottom-nav-height)] !h-[calc(100dvh-var(--mobile-bottom-nav-height))]",
+        className,
+      )}
       {...props}
     >
       {children}

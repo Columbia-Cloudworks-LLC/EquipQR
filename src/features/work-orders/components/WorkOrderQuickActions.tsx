@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Plus, Download } from 'lucide-react';
+import { MoreHorizontal, Plus, Download, ClipboardList } from 'lucide-react';
 import { QuickBooksExportButton } from './QuickBooksExportButton';
 import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
 import { isQuickBooksEnabled } from '@/lib/flags';
@@ -47,6 +47,10 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
     navigate(`/dashboard/work-orders/${workOrderId}?action=download-pdf`);
   };
 
+  const handlePrintFieldWorksheet = () => {
+    navigate(`/dashboard/work-orders/${workOrderId}?action=download-worksheet`);
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -69,6 +73,10 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
         <DropdownMenuItem onClick={handleDownloadPDF}>
           <Download className="h-4 w-4 mr-2" />
           Service Report PDF
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handlePrintFieldWorksheet}>
+          <ClipboardList className="h-4 w-4 mr-2" />
+          Print Field Worksheet
         </DropdownMenuItem>
         {showQuickBooks && (
           <>

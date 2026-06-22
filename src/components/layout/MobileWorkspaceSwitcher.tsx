@@ -39,7 +39,7 @@ interface MobileWorkspaceSwitcherProps {
  * Mobile-only workspace control for the TopBar.
  *
  * Shows the full organization name (up to two lines) and team filter on a
- * second line, then opens a bottom sheet with readable org/team pickers.
+ * second line, then opens a top sheet with readable org/team pickers.
  */
 const MobileWorkspaceSwitcher: React.FC<MobileWorkspaceSwitcherProps> = ({
   showTeamSegment,
@@ -56,8 +56,8 @@ const MobileWorkspaceSwitcher: React.FC<MobileWorkspaceSwitcherProps> = ({
   const canCreateTeams = canCreateTeam();
 
   const handleOrganizationSwitch = (organizationId: string) => {
+    if (organizationId === currentOrganization.id) return;
     switchOrganization(organizationId);
-    setOpen(false);
     navigate('/dashboard');
   };
 
@@ -104,7 +104,7 @@ const MobileWorkspaceSwitcher: React.FC<MobileWorkspaceSwitcherProps> = ({
         )}
       </Button>
 
-      <SheetContent side="bottom" className="max-h-[85vh] rounded-t-xl px-4 pb-8 pt-6">
+      <SheetContent side="top" className="max-h-[85vh] rounded-b-xl px-4 pb-8 pt-6">
         <SheetHeader className="text-left">
           <SheetTitle>Workspace</SheetTitle>
           <SheetDescription>

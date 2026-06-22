@@ -4550,6 +4550,10 @@ export type Database = {
         Args: { p_also_unclaim_domain?: boolean; p_organization_id: string }
         Returns: Json
       }
+      disconnect_google_workspace_internal: {
+        Args: { p_organization_id: string }
+        Returns: Json
+      }
       disconnect_quickbooks: {
         Args: { p_organization_id: string; p_realm_id?: string }
         Returns: {

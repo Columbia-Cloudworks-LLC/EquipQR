@@ -6,26 +6,22 @@ import {
   SortAsc,
   SortDesc,
 } from 'lucide-react';
-import type { InventorySortField } from '@/features/inventory/types/inventory';
-import {
-  isNumericSortField,
-  isTextSortField,
-} from '@/features/inventory/utils/inventorySortOrderLabel';
+import type { ListSortFieldKind } from '@/components/common/listSortFieldKind';
 
-interface InventorySortOrderIconProps {
-  sortBy: InventorySortField | undefined;
+interface ListSortOrderIconProps {
+  kind: ListSortFieldKind;
   sortOrder: 'asc' | 'desc';
   className?: string;
 }
 
-export function InventorySortOrderIcon({
-  sortBy,
+export function ListSortOrderIcon({
+  kind,
   sortOrder,
   className = 'h-5 w-5',
-}: InventorySortOrderIconProps) {
+}: ListSortOrderIconProps) {
   const ascending = sortOrder === 'asc';
 
-  if (isTextSortField(sortBy)) {
+  if (kind === 'text') {
     return ascending ? (
       <ArrowDownAZ className={className} aria-hidden />
     ) : (
@@ -33,7 +29,7 @@ export function InventorySortOrderIcon({
     );
   }
 
-  if (isNumericSortField(sortBy)) {
+  if (kind === 'numeric') {
     return ascending ? (
       <ArrowDown01 className={className} aria-hidden />
     ) : (

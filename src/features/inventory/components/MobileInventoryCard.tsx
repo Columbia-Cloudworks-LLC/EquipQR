@@ -3,10 +3,10 @@ import {
   MoreVertical,
   MapPin,
   Layers,
+  QrCode,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,8 +16,8 @@ import {
   InventoryItemActionsMenu,
   type InventoryItemActionHandlers,
 } from '@/features/inventory/components/InventoryItemActionsMenu';
+import { InventoryStockBar } from '@/features/inventory/components/InventoryStockBar';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
-import { getStockHealthListBadgeClassName } from '@/features/inventory/utils/stockHealth';
 import { cn } from '@/lib/utils';
 
 /** Quantity display: out of stock vs low-but-available vs healthy. */
@@ -50,8 +50,10 @@ const MobileInventoryCard: React.FC<MobileInventoryCardProps> = ({
   onManageAlternateGroups,
   groupCount = 0,
 }) => {
-  const stockBadge = getStockHealthListBadgeClassName(item);
-  const shouldShowStockBadge = item.isLowStock ?? item.quantity_on_hand <= item.low_stock_threshold;
+  const handleQRClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onShowQR(item);
+  };
 
   return (
     <Card
@@ -67,66 +69,83 @@ const MobileInventoryCard: React.FC<MobileInventoryCardProps> = ({
       tabIndex={0}
       aria-label={`Open inventory item ${item.name}`}
     >
-      <CardContent className="px-4 py-3.5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1 space-y-2">
-            <h3 className="text-base font-semibold leading-snug line-clamp-2 text-foreground">
+      <CardContent className="px-3 py-3">
+        <div className="grid min-w-0 grid-cols-[1fr_auto] gap-x-2.5 gap-y-1">
+          <div className="col-start-1 row-start-1 min-w-0">
+            <h3 className="line-clamp-2 text-base font-semibold leading-snug text-foreground">
               {item.name}
             </h3>
-            <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
-              <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-snug text-muted-foreground">
-                <span className="shrink-0 text-muted-foreground/90">SKU: {item.sku || '—'}</span>
-                {item.location ? (
-                  <>
-                    <span className="text-muted-foreground/40" aria-hidden>
-                      ·
-                    </span>
-                    <span className="inline-flex min-w-0 items-center gap-1">
-                      <MapPin className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
-                      <span className="truncate">{item.location}</span>
-                    </span>
-                  </>
-                ) : null}
-                {groupCount > 0 && (
-                  <>
-                    <span className="text-muted-foreground/40" aria-hidden>·</span>
-                    <span className="inline-flex items-center gap-1">
-                      <Layers className="h-3 w-3 shrink-0 opacity-80" aria-hidden />
-                      {groupCount} group{groupCount > 1 ? 's' : ''}
-                    </span>
-                  </>
-                )}
-              </p>
-              <div className="flex shrink-0 items-baseline gap-1.5 tabular-nums">
-                <span
-                  className={cn(
-                    'text-2xl font-bold leading-none tracking-tight',
-                    getQuantityClassName(item)
-                  )}
-                >
-                  {item.quantity_on_hand}
-                </span>
-                <span className="pb-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                  on hand
-                </span>
-              </div>
-            </div>
           </div>
-          <div className="flex shrink-0 flex-col items-end gap-2">
+
+          <div className="col-start-2 row-start-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 -mr-1 text-muted-foreground hover:text-foreground"
+              onClick={handleQRClick}
+              aria-label={`Show QR code for ${item.name}`}
+            >
+              <QrCode className="h-4 w-4" aria-hidden />
+            </Button>
+          </div>
+
+          <div className="col-start-1 col-span-2 row-start-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-snug text-muted-foreground">
+            <span className="shrink-0 text-muted-foreground/90">SKU: {item.sku || '—'}</span>
+            {item.location ? (
+              <>
+                <span className="text-muted-foreground/40" aria-hidden>
+                  ·
+                </span>
+                <span className="inline-flex min-w-0 items-center gap-1">
+                  <MapPin className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+                  <span className="truncate">{item.location}</span>
+                </span>
+              </>
+            ) : null}
+            {groupCount > 0 && (
+              <>
+                <span className="text-muted-foreground/40" aria-hidden>
+                  ·
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Layers className="h-3 w-3 shrink-0 opacity-80" aria-hidden />
+                  {groupCount} group{groupCount > 1 ? 's' : ''}
+                </span>
+              </>
+            )}
+          </div>
+
+          <div className="col-start-1 row-start-3 min-w-0 space-y-1.5 pt-0.5">
+            <div className="flex items-baseline gap-1.5 tabular-nums">
+              <span
+                className={cn(
+                  'text-2xl font-bold leading-none tracking-tight',
+                  getQuantityClassName(item)
+                )}
+              >
+                {item.quantity_on_hand}
+              </span>
+              <span className="pb-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                on hand
+              </span>
+            </div>
+            <InventoryStockBar
+              quantityOnHand={item.quantity_on_hand}
+              lowStockThreshold={item.low_stock_threshold}
+            />
+          </div>
+
+          <div className="col-start-2 row-start-3 self-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
-                  className={cn(
-                    'h-11 w-11 min-h-11 min-w-11 shrink-0 touch-manipulation',
-                    'border-border/80 bg-background/80 active:scale-[0.97] active:bg-muted',
-                    'motion-reduce:active:scale-100'
-                  )}
+                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
                   aria-label={`More actions for ${item.name}`}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <MoreVertical className="h-5 w-5" />
+                  <MoreVertical className="h-4 w-4" aria-hidden />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
@@ -142,17 +161,6 @@ const MobileInventoryCard: React.FC<MobileInventoryCardProps> = ({
                 />
               </DropdownMenuContent>
             </DropdownMenu>
-            {shouldShowStockBadge && (
-              <Badge
-                variant="outline"
-                className={cn(
-                  'max-w-[11rem] shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold leading-tight',
-                  stockBadge.className
-                )}
-              >
-                {stockBadge.label}
-              </Badge>
-            )}
           </div>
         </div>
       </CardContent>

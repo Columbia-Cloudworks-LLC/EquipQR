@@ -44,6 +44,8 @@ export interface WorkOrderCardProps {
   isUpdating?: boolean;
   /** Is the accept action in progress */
   isAccepting?: boolean;
+  /** Opens QR + print dialog (mobile list cards) */
+  onShowQR?: (workOrder: WorkOrder) => void;
   /**
    * Hint that this card is in the initial viewport. When true, the
    * equipment thumbnail loads eagerly with `fetchpriority=high` so Chrome

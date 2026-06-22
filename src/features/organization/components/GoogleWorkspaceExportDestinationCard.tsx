@@ -21,6 +21,7 @@ import {
   IntegrationCardLayout,
   integrationActionButtonClassName,
 } from '@/features/organization/components/IntegrationCardLayout';
+import { GoogleWorkspaceMarkIcon } from '@/components/icons/GoogleWorkspaceMarkIcon';
 import { GoogleDriveExportFolderOrganizationSection } from '@/features/organization/components/GoogleDriveExportFolderOrganizationSection';
 
 interface GoogleWorkspaceExportDestinationCardProps {
@@ -140,6 +141,7 @@ export function GoogleWorkspaceExportDestinationCard({
       <IntegrationCardLayout>
         <IntegrationCardHeader
           title="Google Drive File Storage"
+          icon={<GoogleWorkspaceMarkIcon />}
           description={
             <>
               <p>

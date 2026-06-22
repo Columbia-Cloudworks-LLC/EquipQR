@@ -134,6 +134,9 @@
     --z-fixed: 1030;
     --z-modal-backdrop: 1040;
     --z-modal: 1050;
+
+    /* Mobile bottom nav clearance (matches FAB offset at bottom-[78px]) */
+    --mobile-bottom-nav-height: calc(4.875rem + env(safe-area-inset-bottom, 0px));
     --z-popover: 1060;
     --z-tooltip: 1070;
     --z-toast: 1080;

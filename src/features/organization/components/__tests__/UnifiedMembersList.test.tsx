@@ -80,6 +80,29 @@ vi.mock('@/features/organization/hooks/useOrganizationMembers', () => ({
   useRemoveMember: vi.fn().mockReturnValue({ mutateAsync: mockRemoveMember, isPending: false }),
 }));
 
+const { mockUpdateQuickBooks, mockAddPartsManager, mockRemovePartsManager } = vi.hoisted(() => ({
+  mockUpdateQuickBooks: vi.fn().mockResolvedValue({}),
+  mockAddPartsManager: vi.fn().mockResolvedValue({}),
+  mockRemovePartsManager: vi.fn().mockResolvedValue({}),
+}));
+
+vi.mock('@/hooks/useQuickBooksAccess', () => ({
+  useUpdateQuickBooksPermission: vi.fn().mockReturnValue({
+    mutateAsync: mockUpdateQuickBooks,
+    isPending: false,
+  }),
+}));
+
+vi.mock('@/features/inventory/hooks/usePartsManagers', () => ({
+  usePartsManagers: vi.fn().mockReturnValue({ data: [], isLoading: false }),
+  useAddPartsManager: vi.fn().mockReturnValue({ mutateAsync: mockAddPartsManager, isPending: false }),
+  useRemovePartsManager: vi.fn().mockReturnValue({ mutateAsync: mockRemovePartsManager, isPending: false }),
+}));
+
+vi.mock('@/lib/flags', () => ({
+  isQuickBooksEnabled: vi.fn().mockReturnValue(true),
+}));
+
 // Hoisted mocks for GWS claims
 const { mockRevokeGwsClaim } = vi.hoisted(() => ({
   mockRevokeGwsClaim: vi.fn().mockResolvedValue({}),
@@ -125,6 +148,7 @@ vi.mock('@/features/organization/components/SimplifiedInvitationDialog', () => (
 // Import component after mocks to ensure they take effect
 import UnifiedMembersList from '../UnifiedMembersList';
 import { useGoogleWorkspaceMemberClaims } from '@/features/organization/hooks/useGoogleWorkspaceMemberClaims';
+import { usePartsManagers } from '@/features/inventory/hooks/usePartsManagers';
 
 describe('UnifiedMembersList', () => {
   const baseMembers: RealOrganizationMember[] = [
@@ -182,6 +206,33 @@ describe('UnifiedMembersList', () => {
     const inviteBtn = await screen.findByRole('button', { name: /invite member/i });
     // With billing disabled by default, invitations are never blocked
     expect(inviteBtn).not.toBeDisabled();
+  });
+
+  it('shows parts manager toggle on mobile for member-role users', async () => {
+    vi.mocked(usePartsManagers).mockReturnValue({
+      data: [],
+      isLoading: false,
+    } as ReturnType<typeof usePartsManagers>);
+
+    customRender(
+      <UnifiedMembersList
+        members={baseMembers}
+        organizationId="org-1"
+        currentUserRole="admin"
+        isLoading={false}
+        canInviteMembers={true}
+      />
+    );
+
+    await screen.findAllByText('Bob Member');
+
+    const partsManagerSwitch = screen.getByRole('switch', { name: 'Parts manager' });
+    fireEvent.click(partsManagerSwitch);
+
+    expect(mockAddPartsManager).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      userId: 'u-2',
+    });
   });
 
   it('shows role select for editable members and triggers role change', async () => {

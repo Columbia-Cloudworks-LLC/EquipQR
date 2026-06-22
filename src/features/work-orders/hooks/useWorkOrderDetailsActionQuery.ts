@@ -5,6 +5,7 @@ type UseWorkOrderDetailsActionQueryParams = {
   actionParam: string | null;
   shouldAutoOpenNoteForm: boolean;
   shouldAutoOpenPDFDialog: boolean;
+  shouldAutoDownloadWorksheet: boolean;
   shouldAutoFocusPM: boolean;
   workOrderLoading: boolean;
   hasWorkOrder: boolean;
@@ -12,12 +13,14 @@ type UseWorkOrderDetailsActionQueryParams = {
   notesSectionRef: React.RefObject<HTMLDivElement | null>;
   pmSectionRef: React.RefObject<HTMLDivElement | null>;
   onAutoOpenPDFDialog: () => void;
+  onAutoDownloadWorksheet: () => void;
 };
 
 export function useWorkOrderDetailsActionQuery({
   actionParam,
   shouldAutoOpenNoteForm,
   shouldAutoOpenPDFDialog,
+  shouldAutoDownloadWorksheet,
   shouldAutoFocusPM,
   workOrderLoading,
   hasWorkOrder,
@@ -25,6 +28,7 @@ export function useWorkOrderDetailsActionQuery({
   notesSectionRef,
   pmSectionRef,
   onAutoOpenPDFDialog,
+  onAutoDownloadWorksheet,
 }: UseWorkOrderDetailsActionQueryParams) {
   const actionHandledRef = useRef(false);
 
@@ -34,6 +38,10 @@ export function useWorkOrderDetailsActionQuery({
 
     if (shouldAutoOpenPDFDialog) {
       onAutoOpenPDFDialog();
+      actionHandledRef.current = true;
+      setSearchParams({}, { replace: true });
+    } else if (shouldAutoDownloadWorksheet) {
+      void onAutoDownloadWorksheet();
       actionHandledRef.current = true;
       setSearchParams({}, { replace: true });
     } else if (shouldAutoOpenNoteForm) {
@@ -58,6 +66,7 @@ export function useWorkOrderDetailsActionQuery({
     }
   }, [
     shouldAutoOpenPDFDialog,
+    shouldAutoDownloadWorksheet,
     shouldAutoOpenNoteForm,
     shouldAutoFocusPM,
     hasWorkOrder,
@@ -66,6 +75,7 @@ export function useWorkOrderDetailsActionQuery({
     notesSectionRef,
     pmSectionRef,
     onAutoOpenPDFDialog,
+    onAutoDownloadWorksheet,
   ]);
 
   useEffect(() => {

@@ -58,19 +58,6 @@ export function InventoryListPageActions({
         </div>
       )}
 
-      {canManage && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onOpenManagersSheet}
-          className="h-10 gap-2 px-3 sm:hidden touch-manipulation"
-          data-testid="inventory-mobile-parts-managers"
-        >
-          <Users className="h-4 w-4 shrink-0" aria-hidden />
-          <span className="text-sm font-medium">Parts Managers</span>
-        </Button>
-      )}
     </div>
   );
 }

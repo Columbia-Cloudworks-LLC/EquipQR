@@ -9,8 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Copy, Edit, Trash2, Wrench, Users, Shield, Globe, Lock, Settings2, Timer, Calendar, Search, ExternalLink } from 'lucide-react';
+import { Plus, Copy, Edit, Trash2, Wrench, Users, Shield, Globe, Lock, Settings2, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 import { TemplateAssignmentDialog } from '@/features/pm-templates/components/TemplateAssignmentDialog';
 import { PMTemplateRulesDialog } from '@/features/pm-templates/components/PMTemplateRulesDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -62,10 +64,21 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
   const navigate = useNavigate();
   const handleView = () => navigate(`/dashboard/pm-templates/${template.id}`);
 
+  const sectionCount = sections.length;
+  const intervalLabel =
+    template.interval_value && template.interval_type
+      ? `Every ${template.interval_value} ${template.interval_type === 'hours' ? 'hrs' : 'days'}`
+      : null;
+  const summaryParts = [
+    `${sectionCount} section${sectionCount === 1 ? '' : 's'}`,
+    `${totalItems} item${totalItems === 1 ? '' : 's'}`,
+    intervalLabel,
+  ].filter(Boolean);
+
   return (
     <Card className="h-full flex flex-col hover:bg-muted/50 transition-colors">
       <CardHeader
-        className="flex-grow cursor-pointer"
+        className="cursor-pointer pb-3"
         role="button"
         tabIndex={0}
         onClick={handleView}
@@ -77,9 +90,9 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
         }}
         aria-label={`Open details for template ${template.name}`}
       >
-        <div className="flex items-start justify-between">
-          <CardTitle className="text-lg line-clamp-2">{template.name}</CardTitle>
-          <div className="flex flex-wrap gap-1 ml-2">
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-base line-clamp-1 min-w-0">{template.name}</CardTitle>
+          <div className="flex shrink-0 flex-wrap justify-end gap-1">
             {!isOrgTemplate && (
               <Badge variant="secondary" className="text-xs">
                 <Globe className="w-3 h-3 mr-1" />
@@ -92,55 +105,16 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
                 Protected
               </Badge>
             )}
-            {template.interval_value && template.interval_type && (
-              <Badge variant="outline" className="text-xs">
-                {template.interval_type === 'hours' ? (
-                  <Timer className="w-3 h-3 mr-1" />
-                ) : (
-                  <Calendar className="w-3 h-3 mr-1" />
-                )}
-                Every {template.interval_value} {template.interval_type === 'hours' ? 'hrs' : 'days'}
-              </Badge>
-            )}
           </div>
         </div>
-        
+
         {template.description && (
-          <p className="text-sm text-muted-foreground line-clamp-3 mt-2">
+          <p className="text-sm text-muted-foreground line-clamp-2 mt-1.5">
             {template.description}
           </p>
         )}
 
-        <div className="space-y-3 mt-4">
-          {/* Section breakdown */}
-          <div>
-            <h4 className="text-sm font-medium mb-2">Sections ({sections.length})</h4>
-            <div className="space-y-1">
-              {sections.slice(0, 3).map((section, index) => (
-                <div key={index} className="flex justify-between text-xs text-muted-foreground">
-                  <span className="truncate">{section.name}</span>
-                  <span>{section.count} items</span>
-                </div>
-              ))}
-              {sections.length > 3 && (
-                <div className="text-xs text-muted-foreground">
-                  +{sections.length - 3} more sections
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Total items */}
-          <div className="flex justify-between text-sm">
-            <span className="font-medium">Total Items:</span>
-            <span>{totalItems}</span>
-          </div>
-
-          <div className="flex items-center gap-1 text-xs text-primary mt-2">
-            <ExternalLink className="w-3 h-3" />
-            <span>View details</span>
-          </div>
-        </div>
+        <p className="text-xs text-muted-foreground mt-2">{summaryParts.join(' · ')}</p>
       </CardHeader>
 
       <CardContent className="pt-0">
@@ -149,10 +123,14 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
             onClick={() => onApply(template.id)} 
             className="w-full"
             size="sm"
+            title="Set this template as the default PM on one or more equipment records"
           >
             <Wrench className="mr-2 h-4 w-4" />
-            Apply Template
+            Apply to Equipment
           </Button>
+          <p className="text-xs text-muted-foreground text-center px-1">
+            Bulk-set as the default PM template on selected equipment
+          </p>
           
           <div className="flex gap-2">
             <Button
@@ -236,6 +214,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
 
 const PMTemplates = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { currentOrganization } = useOrganization();
   const { hasRole } = usePermissions();
   const { restrictions } = useSimplifiedOrganizationRestrictions();
@@ -348,15 +327,19 @@ const PMTemplates = () => {
   
   const showUpgradeMessage = !canCreateCustomTemplates && isAdmin;
 
+  const showMobileFab = isMobile && isAdmin && canCreateCustomTemplates;
+
   return (
     <Page maxWidth="7xl" padding="responsive">
-      <div className="space-y-6">
+      <div className={cn('space-y-6', showMobileFab && 'pb-28')}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold">PM Templates</h1>
             <p className="text-muted-foreground mt-1">
-              <span className="hidden sm:inline">Manage preventative maintenance checklist templates for your organization.</span>
-              <span className="sm:hidden">Manage PM checklist templates.</span>
+              <span className="hidden sm:inline">
+                Manage PM checklist templates and assign them as the default on equipment in bulk.
+              </span>
+              <span className="sm:hidden">Manage PM templates and assign them to equipment.</span>
             </p>
           </div>
           {isAdmin && (
@@ -364,7 +347,7 @@ const PMTemplates = () => {
               onClick={handleCreateTemplate}
               disabled={!canCreateCustomTemplates}
               title={!canCreateCustomTemplates ? 'Custom PM templates require user licenses' : ''}
-              className="w-full sm:w-auto"
+              className="hidden sm:inline-flex"
             >
               {!canCreateCustomTemplates && <Lock className="mr-2 h-4 w-4" />}
               <Plus className="mr-2 h-4 w-4" />
@@ -400,14 +383,14 @@ const PMTemplates = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {[...Array(6)].map((_, i) => (
             <Card key={i} className="animate-pulse">
-              <CardHeader className="space-y-3">
-                <div className="h-6 bg-muted rounded w-3/4"></div>
+              <CardHeader className="space-y-2 pb-3">
+                <div className="h-5 bg-muted rounded w-3/4"></div>
                 <div className="h-4 bg-muted rounded w-full"></div>
-                <div className="h-4 bg-muted rounded w-2/3"></div>
+                <div className="h-3 bg-muted rounded w-1/2"></div>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="h-10 bg-muted rounded"></div>
-                <div className="h-10 bg-muted rounded"></div>
+              <CardContent className="space-y-2 pt-0">
+                <div className="h-9 bg-muted rounded"></div>
+                <div className="h-9 bg-muted rounded"></div>
               </CardContent>
             </Card>
           ))}
@@ -536,6 +519,23 @@ const PMTemplates = () => {
           open={!!rulesDialogTemplate}
           onClose={handleCloseRulesDialog}
         />
+      )}
+
+      {showMobileFab && (
+        <Button
+          type="button"
+          size="icon"
+          onClick={handleCreateTemplate}
+          aria-label="New template"
+          className={cn(
+            'fixed bottom-[78px] right-4 z-fixed h-14 w-14 rounded-full shadow-elevation-3',
+            'touch-manipulation transition-transform duration-100 active:scale-[0.97]',
+            'motion-reduce:active:scale-100',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          )}
+        >
+          <Plus className="h-6 w-6" aria-hidden />
+        </Button>
       )}
       </div>
     </Page>

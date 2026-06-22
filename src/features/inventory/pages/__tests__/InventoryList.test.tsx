@@ -156,25 +156,21 @@ describe('InventoryList — mobile', () => {
     } as unknown as ReturnType<typeof useInventoryModule.useInventoryItems>));
   });
 
-  it('renders mobile stats, search, and Sort & Filter', async () => {
+  it('renders mobile search, personalization, and filter controls', async () => {
     render(<InventoryList />);
 
     await waitFor(() => {
       expect(screen.getByText('Healthy Part')).toBeInTheDocument();
     });
-    const statBlock = screen.getByText(/^items$/).closest('div');
-    expect(statBlock).toHaveTextContent('2');
-    expect(statBlock).toHaveTextContent('items');
-    expect(
-      screen.getByRole('button', { name: /show 1 low stock items only/i })
-    ).toBeInTheDocument();
     const search = screen.getByRole('textbox', { name: /search inventory by name, sku, or id/i });
     expect(search).toBeInTheDocument();
     expect(search).toHaveAttribute('placeholder', 'Search by name, SKU, or ID…');
-    expect(screen.getByRole('button', { name: /sort and filter/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /open personalization/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /open filters/i })).toBeInTheDocument();
+    expect(screen.queryByText(/^items$/)).not.toBeInTheDocument();
   });
 
-  it('toggles low stock filter when the low stock chip is pressed', async () => {
+  it('toggles low stock filter from the filter sheet', async () => {
     const user = userEvent.setup();
     render(<InventoryList />);
 
@@ -183,21 +179,22 @@ describe('InventoryList — mobile', () => {
     });
     expect(screen.getByText('Low Stock Part')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /show 1 low stock items only/i }));
+    await user.click(screen.getByRole('button', { name: /open filters/i }));
+    await user.click(screen.getByRole('switch', { name: /low stock only/i }));
 
     await waitFor(() => {
       expect(screen.queryByText('Healthy Part')).not.toBeInTheDocument();
     });
     expect(screen.getByText('Low Stock Part')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /low stock filter on/i }));
+    await user.click(screen.getByRole('switch', { name: /low stock only/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Healthy Part')).toBeInTheDocument();
     });
   });
 
-  it('opens sort & filter sheet with sort controls', async () => {
+  it('opens personalization sheet with sort controls', async () => {
     const user = userEvent.setup();
     render(<InventoryList />);
 
@@ -205,10 +202,10 @@ describe('InventoryList — mobile', () => {
       expect(screen.getByText('Healthy Part')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: /^sort and filter$/i }));
+    await user.click(screen.getByRole('button', { name: /^open personalization$/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /sort & filter/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /personalize list/i })).toBeInTheDocument();
     });
     expect(screen.getByText(/sort by/i)).toBeInTheDocument();
   });
@@ -257,7 +254,7 @@ describe('InventoryList — mobile', () => {
     });
   });
 
-  it('shows labeled Parts Managers on mobile when user can manage parts managers', async () => {
+  it('shows parts managers footer link on mobile when user can manage parts managers', async () => {
     vi.mocked(usePermissionsModule.usePermissions).mockImplementation(() => ({
       canManageInventory: () => true,
       canManagePartsManagers: () => true,
@@ -269,20 +266,36 @@ describe('InventoryList — mobile', () => {
       expect(screen.getByText('Healthy Part')).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId('inventory-mobile-parts-managers')).toBeInTheDocument();
-    expect(screen.getByTestId('inventory-mobile-parts-managers')).toHaveTextContent(
-      'Parts Managers'
+    const footer = screen.getByTestId('inventory-parts-managers-footer');
+    expect(footer).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Update parts managers' })).toHaveAttribute(
+      'href',
+      '/dashboard/organization/members',
     );
+    expect(screen.queryByTestId('inventory-mobile-parts-managers')).not.toBeInTheDocument();
   });
 
-  it('shows Low stock badge on low-stock mobile cards', async () => {
+  it('shows stock meter on mobile cards instead of a low stock badge', async () => {
     render(<InventoryList />);
 
     await waitFor(() => {
       expect(screen.getByText('Low Stock Part')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Low stock')).toBeInTheDocument();
+    expect(screen.queryByText('Low stock')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('progressbar').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('shows QR code button on mobile inventory cards', async () => {
+    render(<InventoryList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByRole('button', { name: /show qr code for healthy part/i }),
+    ).toBeInTheDocument();
   });
 
   it('uses lightweight inventory metadata instead of a second full inventory query', async () => {
@@ -326,7 +339,7 @@ describe('InventoryList — mobile', () => {
     render(<InventoryList />);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /show 7 low stock items only/i })).toBeInTheDocument();
+      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
     });
 
     expect(inventoryHookMocks.useInventoryListMetadata).toHaveBeenCalledWith('org-1');
@@ -381,7 +394,8 @@ describe('InventoryList — desktop table', () => {
     });
     expect(screen.getByRole('button', { name: /manage table columns/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /saved views/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /sort and filter/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /open personalization/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /open filters/i })).not.toBeInTheDocument();
   });
 
   it('shows inventory health summary on desktop', async () => {

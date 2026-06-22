@@ -26,6 +26,7 @@ import type {
 } from '@/features/inventory/types/inventory';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { InventoryListPageActions } from '@/features/inventory/components/InventoryListPageActions';
+import { InventoryPartsManagersFooterLink } from '@/features/inventory/components/InventoryPartsManagersFooterLink';
 import { InventoryListFilterToolbar } from '@/features/inventory/components/InventoryListFilterToolbar';
 import { InventoryListDesktopTable } from '@/features/inventory/components/InventoryListDesktopTable';
 import { InventoryListMobileList } from '@/features/inventory/components/InventoryListMobileList';
@@ -228,18 +229,6 @@ const InventoryList = () => {
     navigate(`/dashboard/inventory/${itemId}?alternateAction=add`);
   };
 
-  const handleMobileResetSortAndFilters = () => {
-    setFilters((prev) => ({
-      ...prev,
-      search: '',
-      lowStockOnly: false,
-      location: undefined,
-      sortBy: 'name',
-      sortOrder: 'asc',
-    }));
-    setQuickFilters([]);
-  };
-
   const handleToggleQuickFilter = (filter: InventoryQuickFilterKey) => {
     setQuickFilters((prev) =>
       prev.includes(filter) ? prev.filter((f) => f !== filter) : [...prev, filter],
@@ -407,7 +396,6 @@ const InventoryList = () => {
             }));
             setQuickFilters([]);
           }}
-          onClearSheetFilters={handleMobileResetSortAndFilters}
         />
 
         {viewModels.length === 0 ? (
@@ -463,6 +451,10 @@ const InventoryList = () => {
             onEditItem={handleEditItem}
             onManageAlternateGroups={handleManageAlternateGroups}
           />
+        )}
+
+        {isMobile && canManage && (
+          <InventoryPartsManagersFooterLink className="sm:hidden" />
         )}
 
         <InventoryListDialogs

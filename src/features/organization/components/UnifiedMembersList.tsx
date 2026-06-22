@@ -16,6 +16,11 @@ import { useRequestWorkspaceMerge } from '@/features/organization/hooks/useWorks
 import { useGoogleWorkspaceMemberClaims, useRevokeGoogleWorkspaceMemberClaim } from '@/features/organization/hooks/useGoogleWorkspaceMemberClaims';
 import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
 import { useUpdateQuickBooksPermission } from '@/hooks/useQuickBooksAccess';
+import {
+  useAddPartsManager,
+  usePartsManagers,
+  useRemovePartsManager,
+} from '@/features/inventory/hooks/usePartsManagers';
 import { useAuth } from '@/hooks/useAuth';
 import { GoogleWorkspaceMemberImportSheet } from './GoogleWorkspaceMemberImportSheet';
 import type { OrganizationMember } from '@/features/organization/types/organization';
@@ -61,12 +66,21 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
   const removeMember = useRemoveMember(organizationId);
   const revokeGwsClaim = useRevokeGoogleWorkspaceMemberClaim(organizationId);
   const updateQuickBooksPermission = useUpdateQuickBooksPermission(organizationId);
+  const { data: partsManagers = [] } = usePartsManagers(organizationId);
+  const addPartsManager = useAddPartsManager();
+  const removePartsManager = useRemovePartsManager();
   const requestWorkspaceMerge = useRequestWorkspaceMerge();
   const { user } = useAuth();
 
   const canManageMembers = currentUserRole === 'owner' || currentUserRole === 'admin';
   const isOwner = currentUserRole === 'owner';
+  const canManagePartsManagers = canManageMembers;
   const quickBooksEnabled = isQuickBooksEnabled();
+
+  const partsManagerUserIds = useMemo(
+    () => new Set(partsManagers.map((manager) => manager.user_id)),
+    [partsManagers],
+  );
 
   const unifiedMembers = useMemo(
     () => buildUnifiedMembers({ members, invitations, gwsClaims }),
@@ -122,6 +136,30 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
       targetUserId: userId,
       canManageQuickBooks: canManage,
     });
+  };
+
+  const handlePartsManagerToggle = async (userId: string, isPartsManager: boolean) => {
+    if (isPartsManager) {
+      await addPartsManager.mutateAsync({ organizationId, userId });
+      return;
+    }
+
+    await removePartsManager.mutateAsync({ organizationId, userId });
+  };
+
+  const permissionContext = {
+    isOwner,
+    quickBooksEnabled,
+    canManagePartsManagers,
+  };
+
+  const permissionProps = {
+    permissionContext,
+    partsManagerUserIds,
+    quickBooksPending: updateQuickBooksPermission.isPending,
+    partsManagerPending: addPartsManager.isPending || removePartsManager.isPending,
+    onQuickBooksToggle: handleQuickBooksToggle,
+    onPartsManagerToggle: handlePartsManagerToggle,
   };
 
   const handleRequestDataMerge = (member: { userId?: string }) => {
@@ -226,12 +264,12 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
           <TooltipProvider>
             <UnifiedMembersDesktopTable
               {...memberListProps}
-              isOwner={isOwner}
-              quickBooksEnabled={quickBooksEnabled}
-              quickBooksPending={updateQuickBooksPermission.isPending}
-              onQuickBooksToggle={handleQuickBooksToggle}
+              {...permissionProps}
             />
-            <UnifiedMembersMobileList {...memberListProps} />
+            <UnifiedMembersMobileList
+              {...memberListProps}
+              {...permissionProps}
+            />
           </TooltipProvider>
         )}
 
