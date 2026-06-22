@@ -517,14 +517,17 @@ export const TemplateAssignmentDialog: React.FC<TemplateAssignmentDialogProps> =
 
   const activeFilterCount = countActiveTemplateAssignmentFilters(filters);
 
-  const equipmentWithExistingTemplates = useMemo(
-    () => filteredEquipment.filter((item) => item.default_pm_template_id),
-    [filteredEquipment],
+  const equipmentIdsWithExistingTemplate = useMemo(
+    () =>
+      new Set(
+        equipment.filter((item) => item.default_pm_template_id).map((item) => item.id),
+      ),
+    [equipment],
   );
 
-  const showReplaceWarning =
-    equipmentWithExistingTemplates.length > 0 &&
-    selectedEquipment.some((id) => equipmentWithExistingTemplates.some((item) => item.id === id));
+  const showReplaceWarning = selectedEquipment.some((id) =>
+    equipmentIdsWithExistingTemplate.has(id),
+  );
 
   const resetState = () => {
     setSelectedEquipment([]);
