@@ -14,36 +14,19 @@ export async function disconnectGoogleWorkspaceForOrganization(
   supabaseClient: SupabaseClient,
   organizationId: string,
 ): Promise<GoogleWorkspaceDisconnectResult> {
-  const { count: credentialsDeleted, error: credentialsError } = await supabaseClient
-    .from("google_workspace_credentials")
-    .delete({ count: "exact" })
-    .eq("organization_id", organizationId);
+  const { data, error } = await supabaseClient.rpc("disconnect_google_workspace_internal", {
+    p_organization_id: organizationId,
+  });
 
-  if (credentialsError) {
-    throw new Error(`Failed to delete Google Workspace credentials: ${credentialsError.message}`);
+  if (error) {
+    throw new Error(`Failed to disconnect Google Workspace: ${error.message}`);
   }
 
-  const { count: directoryUsersDeleted, error: directoryError } = await supabaseClient
-    .from("google_workspace_directory_users")
-    .delete({ count: "exact" })
-    .eq("organization_id", organizationId);
-
-  if (directoryError) {
-    throw new Error(`Failed to delete Google Workspace directory cache: ${directoryError.message}`);
-  }
-
-  const { count: domainUnclaimed, error: domainError } = await supabaseClient
-    .from("workspace_domains")
-    .delete({ count: "exact" })
-    .eq("organization_id", organizationId);
-
-  if (domainError) {
-    throw new Error(`Failed to release workspace domain claim: ${domainError.message}`);
-  }
+  const result = (data ?? {}) as Record<string, unknown>;
 
   return {
-    credentialsDeleted: credentialsDeleted ?? 0,
-    directoryUsersDeleted: directoryUsersDeleted ?? 0,
-    domainUnclaimed: domainUnclaimed ?? 0,
+    credentialsDeleted: Number(result.credentials_deleted ?? 0),
+    directoryUsersDeleted: Number(result.directory_users_deleted ?? 0),
+    domainUnclaimed: Number(result.domain_unclaimed ?? 0),
   };
 }

@@ -56,9 +56,9 @@ export function parseSecurityEventToken(token: string): SecurityEventTokenPayloa
   return decodeJwtPart<SecurityEventTokenPayload>(parts[1]!);
 }
 
-async function fetchGoogleJwks(): Promise<GoogleJwksResponse> {
+async function fetchGoogleJwks(forceRefresh = false): Promise<GoogleJwksResponse> {
   const now = Date.now();
-  if (cachedJwks && now - cachedJwksFetchedAt < JWKS_CACHE_MS) {
+  if (!forceRefresh && cachedJwks && now - cachedJwksFetchedAt < JWKS_CACHE_MS) {
     return cachedJwks;
   }
 
@@ -70,6 +70,19 @@ async function fetchGoogleJwks(): Promise<GoogleJwksResponse> {
   cachedJwks = await response.json() as GoogleJwksResponse;
   cachedJwksFetchedAt = now;
   return cachedJwks;
+}
+
+async function resolveGoogleSigningJwk(kid: string): Promise<GoogleJwk> {
+  let jwks = await fetchGoogleJwks();
+  let jwk = jwks.keys.find((key) => key.kid === kid);
+  if (!jwk) {
+    jwks = await fetchGoogleJwks(true);
+    jwk = jwks.keys.find((key) => key.kid === kid);
+  }
+  if (!jwk) {
+    throw new Error("Unable to resolve Google signing key");
+  }
+  return jwk;
 }
 
 function audienceMatches(payloadAud: string | string[], acceptedAudiences: string[]): boolean {
@@ -91,11 +104,7 @@ export async function verifyGoogleSecurityEventToken(
     throw new Error("Unsupported security event token algorithm");
   }
 
-  const jwks = await fetchGoogleJwks();
-  const jwk = jwks.keys.find((key) => key.kid === header.kid);
-  if (!jwk) {
-    throw new Error("Unable to resolve Google signing key");
-  }
+  const jwk = await resolveGoogleSigningJwk(header.kid);
 
   const key = await crypto.subtle.importKey(
     "jwk",
@@ -189,11 +198,17 @@ function emailDomain(email: string): string | null {
 async function resolveOrganizationsByRefreshTokenPrefix(
   supabaseClient: SupabaseClient,
   prefix: string,
+  scopedOrganizationIds: string[],
 ): Promise<string[]> {
+  if (prefix.length < 6 || scopedOrganizationIds.length === 0) {
+    return [];
+  }
+
   const encryptionKey = getTokenEncryptionKey();
   const { data, error } = await supabaseClient
     .from("google_workspace_credentials")
-    .select("organization_id, refresh_token");
+    .select("organization_id, refresh_token")
+    .in("organization_id", scopedOrganizationIds);
 
   if (error) {
     throw new Error(`Failed to load Google Workspace credentials: ${error.message}`);
@@ -260,22 +275,16 @@ export async function resolveOrganizationIdsForRiscHints(
   hints: RiscSubjectHint[],
 ): Promise<string[]> {
   const organizationIds = new Set<string>();
+  const scopedOrganizationIds = new Set<string>();
+  const refreshTokenPrefixes: string[] = [];
 
   for (const hint of hints) {
-    if (hint.refreshTokenPrefix) {
-      for (const organizationId of await resolveOrganizationsByRefreshTokenPrefix(
-        supabaseClient,
-        hint.refreshTokenPrefix,
-      )) {
-        organizationIds.add(organizationId);
-      }
-    }
-
     if (hint.googleUserId) {
       for (const organizationId of await resolveOrganizationsByGoogleUserId(
         supabaseClient,
         hint.googleUserId,
       )) {
+        scopedOrganizationIds.add(organizationId);
         organizationIds.add(organizationId);
       }
     }
@@ -285,8 +294,23 @@ export async function resolveOrganizationIdsForRiscHints(
         supabaseClient,
         hint.email,
       )) {
+        scopedOrganizationIds.add(organizationId);
         organizationIds.add(organizationId);
       }
+    }
+
+    if (hint.refreshTokenPrefix) {
+      refreshTokenPrefixes.push(hint.refreshTokenPrefix);
+    }
+  }
+
+  for (const prefix of refreshTokenPrefixes) {
+    for (const organizationId of await resolveOrganizationsByRefreshTokenPrefix(
+      supabaseClient,
+      prefix,
+      [...scopedOrganizationIds],
+    )) {
+      organizationIds.add(organizationId);
     }
   }
 

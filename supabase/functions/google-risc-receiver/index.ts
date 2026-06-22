@@ -36,7 +36,7 @@ export async function handleGoogleRiscRequest(
     verifyToken: typeof verifyGoogleSecurityEventToken;
     disconnectOrganizations: typeof disconnectOrganizationsForRiscPayload;
     createServiceClient: () => ReturnType<typeof createAdminSupabaseClient>;
-    acceptedAudiences: string[];
+    resolveAcceptedAudiences: () => string[];
   },
 ): Promise<Response> {
   const corsResponse = handleCorsPreflightIfNeeded(req, { useValidatedOrigin: true });
@@ -53,9 +53,11 @@ export async function handleGoogleRiscRequest(
     return createErrorResponse("Missing security event token", 400, { req });
   }
 
+  const acceptedAudiences = deps.resolveAcceptedAudiences();
+
   let payload;
   try {
-    payload = await deps.verifyToken(rawBody, deps.acceptedAudiences);
+    payload = await deps.verifyToken(rawBody, acceptedAudiences);
   } catch (error) {
     logStep("Security event token rejected", {
       reason: error instanceof Error ? error.message : "unknown",
@@ -86,7 +88,7 @@ Deno.serve(withCorrelationId(async (req) => {
       verifyToken: verifyGoogleSecurityEventToken,
       disconnectOrganizations: disconnectOrganizationsForRiscPayload,
       createServiceClient: () => createAdminSupabaseClient(),
-      acceptedAudiences: resolveAcceptedAudiences(),
+      resolveAcceptedAudiences,
     });
   } catch (error) {
     if (error instanceof MissingSecretError) {

@@ -34,6 +34,7 @@ export const GOOGLE_WORKSPACE_DIRECTORY_CONSENT_SCOPES = [
   GOOGLE_WORKSPACE_DIRECTORY_SCOPE,
 ] as const;
 export const GOOGLE_EXPORT_CONSENT_SCOPES = [
+  ...GOOGLE_WORKSPACE_IDENTITY_SCOPES,
   'https://www.googleapis.com/auth/spreadsheets',
   ...GOOGLE_EXPORT_DESTINATION_REQUIRED_SCOPES,
 ] as const;
@@ -208,40 +209,5 @@ export function isGoogleWorkspaceConfigured(): boolean {
   const clientId = import.meta.env.VITE_GOOGLE_WORKSPACE_CLIENT_ID;
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   return Boolean(clientId && supabaseUrl);
-}
-
-export interface GooglePickerConfig {
-  apiKey: string;
-  appId: string;
-  /** Shared OAuth web client ID used by Workspace and Picker token flow. */
-  clientId: string;
-  scope: string;
-}
-
-function getGooglePickerConfig(): GooglePickerConfig {
-  const apiKey = import.meta.env.VITE_GOOGLE_PICKER_API_KEY;
-  const appId = import.meta.env.VITE_GOOGLE_PICKER_APP_ID;
-  const clientId = import.meta.env.VITE_GOOGLE_WORKSPACE_CLIENT_ID;
-
-  if (!apiKey || !appId || !clientId) {
-    throw new Error(
-      'Google Picker is not configured. Missing VITE_GOOGLE_PICKER_API_KEY, VITE_GOOGLE_PICKER_APP_ID, or VITE_GOOGLE_WORKSPACE_CLIENT_ID (shared OAuth client; VITE_GOOGLE_PICKER_CLIENT_ID is not used).'
-    );
-  }
-
-  return {
-    apiKey,
-    appId,
-    clientId,
-    scope: GOOGLE_PICKER_SCOPE,
-  };
-}
-
-function isGooglePickerConfigured(): boolean {
-  return Boolean(
-    import.meta.env.VITE_GOOGLE_PICKER_API_KEY &&
-    import.meta.env.VITE_GOOGLE_PICKER_APP_ID &&
-    import.meta.env.VITE_GOOGLE_WORKSPACE_CLIENT_ID
-  );
 }
 

@@ -86,7 +86,7 @@ Deno.test("handleGoogleRiscRequest rejects missing token bodies", async () => {
       createServiceClient: () => {
         throw new Error("should not create client");
       },
-      acceptedAudiences: [TEST_AUDIENCE],
+      resolveAcceptedAudiences: () => [TEST_AUDIENCE],
     },
   );
 
@@ -114,7 +114,7 @@ Deno.test("handleGoogleRiscRequest returns 401 for invalid tokens without loggin
         createServiceClient: () => {
           throw new Error("should not create client");
         },
-        acceptedAudiences: [TEST_AUDIENCE],
+        resolveAcceptedAudiences: () => [TEST_AUDIENCE],
       },
     );
 
@@ -143,7 +143,7 @@ Deno.test("handleGoogleRiscRequest acknowledges verification events without disc
       createServiceClient: () => {
         throw new Error("should not create client");
       },
-      acceptedAudiences: [TEST_AUDIENCE],
+      resolveAcceptedAudiences: () => [TEST_AUDIENCE],
     },
   );
 
@@ -169,7 +169,7 @@ Deno.test("handleGoogleRiscRequest disconnects organizations for supported revoc
       })),
       disconnectOrganizations: async () => ({ disconnectedOrganizationIds: ["org-1"] }),
       createServiceClient: () => ({}) as never,
-      acceptedAudiences: [TEST_AUDIENCE],
+      resolveAcceptedAudiences: () => [TEST_AUDIENCE],
     },
   );
 
@@ -192,7 +192,7 @@ Deno.test("handleGoogleRiscRequest no-ops unsupported events", async () => {
       })),
       disconnectOrganizations: async () => ({ disconnectedOrganizationIds: [] }),
       createServiceClient: () => ({}) as never,
-      acceptedAudiences: [TEST_AUDIENCE],
+      resolveAcceptedAudiences: () => [TEST_AUDIENCE],
     },
   );
 
@@ -215,7 +215,7 @@ Deno.test("handleGoogleRiscRequest allows CORS preflight", async () => {
       createServiceClient: () => {
         throw new Error("should not create client");
       },
-      acceptedAudiences: [TEST_AUDIENCE],
+      resolveAcceptedAudiences: () => [TEST_AUDIENCE],
     },
   );
 

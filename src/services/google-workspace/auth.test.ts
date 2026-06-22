@@ -79,6 +79,7 @@ describe('generateGoogleWorkspaceAuthUrl', () => {
 
     const parsed = new URL(url);
     expect(parseScopeSet(url)).toEqual(new Set(GOOGLE_EXPORT_CONSENT_SCOPES));
+    expect(parseScopeSet(url).has('https://www.googleapis.com/auth/admin.directory.user.readonly')).toBe(false);
     expect(parsed.searchParams.get('include_granted_scopes')).toBe('true');
     expect(parsed.searchParams.get('access_type')).toBe('offline');
     expect(parsed.searchParams.get('prompt')).toBe('consent');
