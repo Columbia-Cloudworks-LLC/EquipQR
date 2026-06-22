@@ -273,20 +273,14 @@ export const useMarkAllNotificationsAsRead = () => {
       const claims = await getAuthClaims();
       if (!claims) throw new Error('User not authenticated');
 
-      const markUnreadAsRead = () =>
-        supabase
-          .from('notifications')
-          .update({ read: true })
-          .eq('user_id', claims.sub)
-          .eq('read', false);
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', claims.sub)
+        .eq('organization_id', organizationId)
+        .eq('read', false);
 
-      const [orgResult, globalResult] = await Promise.all([
-        markUnreadAsRead().eq('organization_id', organizationId).eq('is_global', false),
-        markUnreadAsRead().eq('is_global', true),
-      ]);
-
-      if (orgResult.error) throw orgResult.error;
-      if (globalResult.error) throw globalResult.error;
+      if (error) throw error;
     },
     onSuccess: (_, organizationId) => {
       queryClient.invalidateQueries({ queryKey: ['notifications', organizationId] });
