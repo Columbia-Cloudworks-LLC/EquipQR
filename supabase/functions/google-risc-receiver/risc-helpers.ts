@@ -312,3 +312,9 @@ export async function disconnectOrganizationsForRiscPayload(
 
   return { disconnectedOrganizationIds };
 }
+
+/** Test helper to reset JWKS cache between Deno tests. */
+export function resetGoogleJwksCacheForTests(): void {
+  cachedJwks = null;
+  cachedJwksFetchedAt = 0;
+}
