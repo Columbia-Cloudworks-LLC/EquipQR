@@ -232,6 +232,7 @@ beforeAll(() => {
   // Suppress specific warnings to reduce noise in test output
   const originalWarn = console.warn;
   const originalError = console.error;
+  let reportingConsoleError = false;
   
   console.warn = (...args) => {
     // Suppress React Router Future Flag warnings during tests
@@ -243,8 +244,14 @@ beforeAll(() => {
   };
   
   console.error = (...args) => {
+    if (reportingConsoleError) {
+      return;
+    }
     // Suppress specific warnings and expected error messages during tests
     const message = args[0]?.toString() || '';
+    if (message.includes('Maximum call stack size exceeded')) {
+      return;
+    }
     if (message.includes('Warning: An update to') ||
         message.includes('not wrapped in act(...)') ||
         // Suppress expected error messages from tests
@@ -273,7 +280,12 @@ beforeAll(() => {
         message.includes('Permission denied')) {
       return;
     }
-    originalError.apply(console, args);
+    try {
+      reportingConsoleError = true;
+      originalError.apply(console, args);
+    } finally {
+      reportingConsoleError = false;
+    }
   };
 
   // A11y checks for Dialog components

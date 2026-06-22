@@ -1,8 +1,10 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { platform } from 'node:os';
 
 const isCI = process.env.CI === 'true';
+const isWindows = platform() === 'win32';
 // When sharding, thresholds apply to partial coverage and will always fail.
 // The merged-report ratchet in coverage-ratchet.mjs handles threshold enforcement.
 const isShardRun = process.argv.some((a) => a.startsWith('--shard='));
@@ -18,15 +20,13 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['supabase/**', 'node_modules/**'],
     // Forks pool for process isolation; tuned to actually use the CI runner.
-    // ubuntu-latest has 4 vCPUs and ~16GB. Single-fork sequential mode was
-    // a legacy workaround for Supabase realtime / open-handle hangs that are
-    // now mitigated by the global mock in src/test/setup.ts. Combined with
-    // CI sharding (--shard=N/M), maxWorkers keeps fork count bounded while
-    // exploiting parallelism (Vitest 4: poolOptions merged into top-level options).
+    // ubuntu-latest has 4 vCPUs and ~16GB. Combined with CI sharding (--shard=N/M),
+    // serial workers per job avoid vitest fork IPC hangs on heavy Radix/jsdom shards.
+    // Native Windows stays serial (vitest-dev/vitest#8861); WSL test:ci uses Linux settings.
     pool: 'forks',
     isolate: true,
-    maxWorkers: isCI ? 2 : undefined,
-    fileParallelism: true,
+    fileParallelism: isWindows ? false : isCI ? false : true,
+    maxWorkers: isWindows ? 1 : isCI ? 1 : undefined,
     // Ensure hooks don't hang
     hookTimeout: 30000,
     teardownTimeout: 10000,

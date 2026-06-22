@@ -25,7 +25,8 @@ test.describe('auth lifecycle @critical', () => {
 
   test('email password sign-in reaches dashboard', async ({ page }) => {
     await signInWithEmailPassword(page, personas.admin.email);
-    await expect(page.getByRole('heading', { name: /dashboard/i }).first()).toBeVisible({
+    await expect(page).toHaveURL(/\/dashboard/i, { timeout: 60_000 });
+    await expect(page.getByRole('button', { name: /user menu/i })).toBeVisible({
       timeout: 60_000,
     });
   });
