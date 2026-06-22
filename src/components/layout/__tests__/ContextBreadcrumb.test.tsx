@@ -254,7 +254,7 @@ describe('ContextBreadcrumb', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('keeps the mobile workspace sheet open after org switch and closes it after team selection', async () => {
+  it('closes the mobile workspace sheet after org switch and after team selection', async () => {
     mockIsMobileRef.current = true;
     const user = userEvent.setup();
     const switchOrganization = vi.fn();
@@ -318,7 +318,13 @@ describe('ContextBreadcrumb', () => {
     );
 
     expect(switchOrganization).toHaveBeenCalledWith('org-2');
-    expect(screen.getByRole('dialog', { name: /workspace/i })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: /workspace/i })).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', {
+        name: /workspace: apex construction company, all teams/i,
+      }),
+    );
 
     await user.click(screen.getByRole('button', { name: /^all teams$/i }));
 
