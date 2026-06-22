@@ -273,27 +273,18 @@ export const useMarkAllNotificationsAsRead = () => {
       const claims = await getAuthClaims();
       if (!claims) throw new Error('User not authenticated');
 
-      const { error: orgError } = await supabase
+      const { error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('user_id', claims.sub)
-        .eq('organization_id', organizationId)
-        .eq('is_global', false)
-        .eq('read', false);
+        .eq('read', false)
+        .or(`and(organization_id.eq.${organizationId},is_global.eq.false),is_global.eq.true`);
 
-      if (orgError) throw orgError;
-
-      const { error: globalError } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('user_id', claims.sub)
-        .eq('is_global', true)
-        .eq('read', false);
-
-      if (globalError) throw globalError;
+      if (error) throw error;
     },
     onSuccess: (_, organizationId) => {
       queryClient.invalidateQueries({ queryKey: ['notifications', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('All notifications marked as read');
     },
     onError: (error) => {

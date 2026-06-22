@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -318,7 +318,9 @@ describe('ContextBreadcrumb', () => {
     );
 
     expect(switchOrganization).toHaveBeenCalledWith('org-2');
-    expect(screen.queryByRole('dialog', { name: /workspace/i })).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /workspace/i })).not.toBeInTheDocument();
+    });
 
     await user.click(
       screen.getByRole('button', {
@@ -329,7 +331,9 @@ describe('ContextBreadcrumb', () => {
     await user.click(screen.getByRole('button', { name: /^all teams$/i }));
 
     expect(setSelectedTeamId).toHaveBeenCalledWith(null);
-    expect(screen.queryByRole('dialog', { name: /workspace/i })).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /workspace/i })).not.toBeInTheDocument();
+    });
   });
 
   it('omits the brand-icon row on mobile H1 routes (logo lives in the sidebar trigger slot now)', () => {
