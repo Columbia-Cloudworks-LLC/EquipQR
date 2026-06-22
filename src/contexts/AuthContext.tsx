@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { getSafeRedirectPath } from '@/utils/redirectValidation';
 import { schedulePendingTermsAcceptanceFlush } from '@/lib/termsAcceptanceRecording';
+import { clearOfflineBlobsForUser } from '@/services/offlineBlobStore';
 
 /**
  * Throttle duration for applying pending admin grants.
@@ -200,6 +201,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
+    const userId = user?.id;
     try {
       // Let Supabase handle all auth storage cleanup
       const { error } = await supabase.auth.signOut();
@@ -225,6 +227,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Reset local state
       setUser(null);
       setSession(null);
+
+      if (userId) {
+        void clearOfflineBlobsForUser(userId);
+      }
     }
   };
 

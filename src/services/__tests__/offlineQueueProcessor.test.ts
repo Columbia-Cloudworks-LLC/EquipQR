@@ -83,6 +83,11 @@ vi.mock('@/features/pm-templates/services/preventativeMaintenanceService', async
   };
 });
 
+vi.mock('@/services/offlineQueueProcessorImages', () => ({
+  loadQueueItemImageFiles: vi.fn(async () => []),
+  cleanupQueueItemBlobs: vi.fn(async () => undefined),
+}));
+
 vi.mock('sonner', () => ({
   toast: { error: vi.fn(), warning: vi.fn(), success: vi.fn(), info: vi.fn() },
 }));
@@ -558,5 +563,51 @@ describe('OfflineQueueProcessor', () => {
     expect(result.failed).toBe(0);
     expect(queueService.getCount()).toBe(0);
     expect(mockDeletePM).toHaveBeenCalledWith('pm-123', ORG_ID);
+  });
+
+  it('remaps offline equipment id before work order create replay', async () => {
+    const equipItem = queueService.enqueue({
+      type: 'equipment_create',
+      payload: {
+        name: 'Field Unit',
+        manufacturer: 'CAT',
+        model: '320',
+        serial_number: 'SN-OFFLINE-1',
+        working_hours: 100,
+        team_id: 'team-1',
+      },
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+
+    mockEquipmentCreateQuick.mockResolvedValueOnce({
+      success: true,
+      data: { id: 'server-equip-999' },
+    });
+
+    queueService.enqueue({
+      type: 'work_order_create',
+      payload: {
+        title: 'Chained offline WO',
+        description: 'After equip create',
+        equipmentId: `offline-equip-${equipItem.id}`,
+        priority: 'medium',
+      },
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+
+    mockCreate.mockResolvedValueOnce({
+      success: true,
+      data: { id: 'server-wo-888' },
+    });
+
+    const result = await processor.processAll();
+
+    expect(result.succeeded).toBe(2);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ equipment_id: 'server-equip-999' }),
+    );
+    expect(queueService.getCount()).toBe(0);
   });
 });

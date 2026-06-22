@@ -1,6 +1,9 @@
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkOrderById } from '@/features/work-orders/hooks/useWorkOrders';
+import { useOfflineQueuedWorkOrder } from '@/features/work-orders/hooks/useOfflineQueuedWorkOrder';
+import { useOfflineQueuedPm } from '@/features/work-orders/hooks/useOfflineQueuedPm';
+import { isOfflineId } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
 import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
 import { usePMByWorkOrderAndEquipment } from '@/features/pm-templates/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
@@ -19,10 +22,12 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
 
-  const { data: workOrder, isLoading: workOrderLoading } = useWorkOrderById(
+  const { data: serverWorkOrder, isLoading: workOrderLoading } = useWorkOrderById(
     currentOrganization?.id || '',
     workOrderId || ''
   );
+  const offlineWorkOrder = useOfflineQueuedWorkOrder(workOrderId);
+  const workOrder = serverWorkOrder ?? offlineWorkOrder ?? undefined;
 
   const { data: freshEquipment } = useEquipmentById(
     currentOrganization?.id,
@@ -31,10 +36,15 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
   const equipment = freshEquipment ?? workOrder?.equipment ?? undefined;
 
   // Fetch PM data for specific equipment if work order has PM enabled
-  const { data: pmData, isLoading: pmLoading, isError: pmError } = usePMByWorkOrderAndEquipment(
+  const { data: serverPmData, isLoading: pmLoading, isError: pmError } = usePMByWorkOrderAndEquipment(
     workOrderId || '',
     selectedEquipmentId || workOrder?.equipment_id || ''
   );
+  const offlinePmData = useOfflineQueuedPm(
+    isOfflineId(workOrderId || '') ? workOrderId : undefined,
+    selectedEquipmentId || workOrder?.equipment_id || undefined,
+  );
+  const pmData = serverPmData ?? offlinePmData ?? undefined;
 
   const permissionLevels = useWorkOrderPermissionLevels();
 

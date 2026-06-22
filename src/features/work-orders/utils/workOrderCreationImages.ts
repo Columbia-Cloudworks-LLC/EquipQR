@@ -22,11 +22,6 @@ export function validateAndAppendWorkOrderCreationImages(
   existing: File[],
   incoming: File[],
 ): File[] {
-  if (typeof navigator !== 'undefined' && !navigator.onLine && incoming.length > 0) {
-    toast.error(OFFLINE_CREATION_PHOTOS_MESSAGE);
-    return existing;
-  }
-
   const accepted = new Set<string>(WORK_ORDER_CREATION_IMAGE_TYPES);
   const next = [...existing];
 

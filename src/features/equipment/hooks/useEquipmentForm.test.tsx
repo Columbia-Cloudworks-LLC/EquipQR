@@ -30,8 +30,20 @@ vi.mock('@/hooks/usePermissions', () => ({
   })),
 }));
 
-vi.mock('@/hooks/useSimpleOrganization', () => ({
-  useSimpleOrganization: () => ({ currentOrganization: { id: 'org-1', name: 'Org 1' } }),
+vi.mock('@/contexts/OrganizationContext', () => ({
+  useOrganization: () => ({
+    currentOrganization: { id: 'org-1', name: 'Org 1', userRole: 'owner' },
+  }),
+}));
+
+vi.mock('@/hooks/useSession', () => ({
+  useSession: () => ({
+    sessionData: {
+      teamMemberships: [
+        { teamId: 'team-1', teamName: 'Team 1', role: 'manager', joinedDate: '2025-01-01' },
+      ],
+    },
+  }),
 }));
 
 vi.mock('@/hooks/useAuth', () => ({

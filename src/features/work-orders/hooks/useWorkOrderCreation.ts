@@ -10,7 +10,6 @@ import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 import { attachWorkOrderCreationImages } from '@/features/work-orders/services/workOrderNotesService';
 import { workOrders as workOrderQueryKeys, workOrderMetrics } from '@/lib/queryKeys';
-import { OFFLINE_CREATION_PHOTOS_MESSAGE } from '@/features/work-orders/utils/workOrderCreationImages';
 
 export interface CreateWorkOrderData {
   title: string;
@@ -49,11 +48,6 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: str
       }
       if (!user) {
         throw new Error('User not authenticated');
-      }
-
-      if (data.images?.length && typeof navigator !== 'undefined' && !navigator.onLine) {
-        toast.error(OFFLINE_CREATION_PHOTOS_MESSAGE);
-        throw new Error('Cannot create work order with photos while offline');
       }
 
       // Auto-assign logic for single-user organizations

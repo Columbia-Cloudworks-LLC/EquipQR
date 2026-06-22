@@ -41,6 +41,17 @@ vi.mock('@/utils/logger', () => ({
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
 
+vi.mock('../offlineQueueImageRefs', () => ({
+  stageQueueImageRefs: vi.fn(async (_userId: string, _orgId: string, files: File[]) =>
+    files.map((file, index) => ({
+      blobKey: `blob-${index}`,
+      fileName: file.name,
+      mimeType: file.type,
+      sizeBytes: file.size,
+    })),
+  ),
+}));
+
 const USER_ID = 'user-123';
 const ORG_ID = 'org-456';
 
@@ -89,15 +100,18 @@ describe('OfflineAwareWorkOrderService', () => {
       });
     });
 
-    it('throws instead of queuing when offline and creation photos are attached', async () => {
+    it('queues offline work orders with staged creation photos', async () => {
       Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
 
       const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
-      await expect(
-        svc.createWorkOrder({ ...makeCreateData(), images: [jpegFile()] }),
-      ).rejects.toThrow(/Photos need a connection/);
+      const result = await svc.createWorkOrder({ ...makeCreateData(), images: [jpegFile()] });
 
-      expect(queueReader.getCount()).toBe(0);
+      expect(result.queuedOffline).toBe(true);
+      expect(queueReader.getCount()).toBe(1);
+      const item = queueReader.getAll()[0];
+      expect(item.type).toBe('work_order_create');
+      expect((item.payload as { imageRefs?: unknown[] }).imageRefs).toHaveLength(1);
+
       Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
     });
 
@@ -130,17 +144,16 @@ describe('OfflineAwareWorkOrderService', () => {
       expect(queueReader.getCount()).toBe(1);
     });
 
-    it('does not queue on network error when creation photos are attached', async () => {
+    it('queues on network error when creation photos are attached', async () => {
       Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
 
       mockCreate.mockRejectedValueOnce(new TypeError('Failed to fetch'));
 
       const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
-      await expect(
-        svc.createWorkOrder({ ...makeCreateData(), images: [jpegFile()] }),
-      ).rejects.toThrow(/stable connection/);
+      const result = await svc.createWorkOrder({ ...makeCreateData(), images: [jpegFile()] });
 
-      expect(queueReader.getCount()).toBe(0);
+      expect(result.queuedOffline).toBe(true);
+      expect(queueReader.getCount()).toBe(1);
     });
 
     it('throws on non-network errors (permission, validation)', async () => {
@@ -317,14 +330,14 @@ describe('OfflineAwareWorkOrderService', () => {
       expect(queueReader.getCount()).toBe(0);
     });
 
-    it('throws when workOrderId is an offline placeholder', async () => {
+    it('queues pm_init when workOrderId is an offline placeholder', async () => {
       Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
 
       const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
-      await expect(
-        svc.initPM({ ...pmInput, workOrderId: 'offline-placeholder-123' }),
-      ).rejects.toThrow();
-      expect(queueReader.getCount()).toBe(0);
+      const result = await svc.initPM({ ...pmInput, workOrderId: 'offline-placeholder-123' });
+
+      expect(result.queuedOffline).toBe(true);
+      expect(queueReader.getCount()).toBe(1);
 
       Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
     });

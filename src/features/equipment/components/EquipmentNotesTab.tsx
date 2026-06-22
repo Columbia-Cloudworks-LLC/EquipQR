@@ -95,6 +95,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
             hoursWorked,
             isPrivate,
             machineHours,
+            images,
           );
           if (result.queuedOffline) {
             return { queuedOffline: true as const, hadImages: images.length > 0 };

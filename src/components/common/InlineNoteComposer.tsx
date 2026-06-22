@@ -119,11 +119,6 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
   valueRef.current = value;
 
   const handleFilesAdd = useCallback((files: File[]) => {
-    if (typeof navigator !== 'undefined' && !navigator.onLine && files.length > 0) {
-      toast.error('Photos need a connection. Text notes can still be saved offline.');
-      return;
-    }
-
     const validFiles: File[] = [];
     
     for (const file of files) {
@@ -172,10 +167,6 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
     setDragActive(false);
 
     const files = Array.from(e.dataTransfer.files);
-    if (typeof navigator !== 'undefined' && !navigator.onLine && files.some((f) => f.type.startsWith('image/'))) {
-      toast.error('Photos need a connection. Text notes can still be saved offline.');
-      return;
-    }
     handleFilesAdd(files);
   }, [handleFilesAdd]);
 
@@ -185,8 +176,6 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
 
     const clipboardData = e.clipboardData;
     if (!clipboardData) return;
-
-    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
 
     // Extract image files from clipboard
     const imageFiles: File[] = [];
@@ -206,11 +195,6 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
 
     // If no images in clipboard, allow default text paste
     if (imageFiles.length === 0) return;
-
-    if (isOffline && imageFiles.length > 0) {
-      toast.error('Photos need a connection. Text notes can still be saved offline.');
-      return;
-    }
 
     // Prevent default paste behavior when images are present
     e.preventDefault();
@@ -275,10 +259,6 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
   }, [value, attachedImages, machineHours, isPrivate, showMachineHours, showPrivateToggle, onSubmit]);
 
   const handleAttachClick = useCallback(() => {
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      toast.error('Photos need a connection. Text notes can still be saved offline.');
-      return;
-    }
     fileInputRef.current?.click();
   }, []);
 

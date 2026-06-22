@@ -22,6 +22,8 @@ import { recordScanFollowUpEvent } from '@/features/equipment/services/scanFollo
 import { logger } from '@/utils/logger';
 import { useLatestCompletedPMDetails } from '@/features/pm-templates/hooks/usePMData';
 import EquipmentQRLastPMCard from '@/features/equipment/components/qr/EquipmentQRLastPMCard';
+import { useBrowserOnline } from '@/hooks/useBrowserOnline';
+import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
 
 type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 
@@ -54,6 +56,8 @@ const EquipmentQRScan = () => {
   const [searchParams] = useSearchParams();
   const orgId = searchParams.get('org') ?? undefined;
   const { user, isLoading: authLoading } = useAuth();
+  const isOnline = useBrowserOnline();
+  const { data: cachedEquipment } = useEquipmentById(orgId, equipmentId);
   const [payload, setPayload] = useState<EquipmentQRPayload | null>(null);
   const latestPmQuery = useLatestCompletedPMDetails(
     payload?.equipment.id,
@@ -228,6 +232,8 @@ const EquipmentQRScan = () => {
   }
 
   if (error || !payload) {
+    const canOpenCachedEquipment = !isOnline && !!cachedEquipment && !!equipmentId;
+
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
@@ -240,9 +246,21 @@ const EquipmentQRScan = () => {
           <CardContent className="space-y-4">
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error || 'Equipment not found'}</AlertDescription>
+              <AlertDescription>
+                {canOpenCachedEquipment
+                  ? 'You are offline. Open the cached equipment record from your last session, or reconnect to load live QR details.'
+                  : error || 'Equipment not found'}
+              </AlertDescription>
             </Alert>
-            <Button className="w-full" onClick={() => window.location.assign('/dashboard')}>
+            {canOpenCachedEquipment ? (
+              <Button
+                className="w-full"
+                onClick={() => window.location.assign(`/dashboard/equipment/${equipmentId}`)}
+              >
+                Open Cached Equipment
+              </Button>
+            ) : null}
+            <Button className="w-full" variant={canOpenCachedEquipment ? 'outline' : 'default'} onClick={() => window.location.assign('/dashboard')}>
               Go to Dashboard
             </Button>
           </CardContent>

@@ -33,7 +33,8 @@ import type {
 } from '@/features/equipment/services/EquipmentService';
 import type { UpdateWorkingHoursData } from '@/features/equipment/services/equipmentWorkingHoursService';
 import { OfflineQueueService, OfflineQueuePayloadError } from './offlineQueueService';
-import type { WorkOrderServerSnapshot } from './offlineQueueService';
+import type { WorkOrderServerSnapshot, OfflineQueueImageRef } from './offlineQueueService';
+import { stageQueueImageRefs } from './offlineQueueImageRefs';
 import type {
   PMChecklistItem,
   PreventativeMaintenance,
@@ -83,11 +84,6 @@ export class OfflineAwareWorkOrderService {
   ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
     // ── TIER 1: Fast pre-check — skip network entirely when offline ──
     if (!navigator.onLine) {
-      if (data.images?.length) {
-        throw new Error(
-          'Photos need a connection. Text-only work orders can still be saved offline.',
-        );
-      }
       return this.queueCreate(data, resolvedAssigneeId);
     }
 
@@ -119,11 +115,6 @@ export class OfflineAwareWorkOrderService {
     } catch (error) {
       // Fallback: if it's a network error, queue locally
       if (isNetworkError(error)) {
-        if (data.images?.length) {
-          throw new Error('Photos need a stable connection to upload. Try again when online.', {
-            cause: error,
-          });
-        }
         return this.queueCreate(data, resolvedAssigneeId);
       }
       throw error;
@@ -209,14 +200,24 @@ export class OfflineAwareWorkOrderService {
 
   // ── Private queue helpers ──────────────────────────────────────────────
 
-  private queueCreate(
+  private async queueCreate(
     data: CreateWorkOrderData,
     resolvedAssigneeId?: string,
-  ): OfflineAwareResult<{ id: string; [key: string]: unknown }> {
+  ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
     try {
+      const { images, ...payloadWithoutImages } = data;
+      let imageRefs: OfflineQueueImageRef[] | undefined;
+      if (images?.length) {
+        imageRefs = await stageQueueImageRefs(this.userId, this.orgId, images);
+      }
+
       const item = this.queueService.enqueue({
         type: 'work_order_create',
-        payload: { ...data, assigneeId: resolvedAssigneeId ?? data.assigneeId },
+        payload: {
+          ...payloadWithoutImages,
+          assigneeId: resolvedAssigneeId ?? data.assigneeId,
+          imageRefs,
+        },
         organizationId: this.orgId,
         userId: this.userId,
       });
@@ -363,21 +364,33 @@ export class OfflineAwareWorkOrderService {
     hoursWorked: number = 0,
     isPrivate: boolean = false,
     machineHours?: number,
+    images: File[] = [],
   ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
-    if (!navigator.onLine) return this.queueEquipmentNote(equipmentId, content, hoursWorked, isPrivate, machineHours);
+    if (!navigator.onLine) {
+      return this.queueEquipmentNote(equipmentId, content, hoursWorked, isPrivate, machineHours, images);
+    }
     try {
       const note = await createEquipmentNoteWithImages(
         equipmentId,
         content,
         hoursWorked,
         isPrivate,
-        [],
+        images,
         this.orgId,
         machineHours,
       );
       return { data: note, queuedOffline: false };
     } catch (error) {
-      if (isNetworkError(error)) return this.queueEquipmentNote(equipmentId, content, hoursWorked, isPrivate, machineHours);
+      if (isNetworkError(error)) {
+        return this.queueEquipmentNote(
+          equipmentId,
+          content,
+          hoursWorked,
+          isPrivate,
+          machineHours,
+          images,
+        );
+      }
       throw error;
     }
   }
@@ -390,21 +403,40 @@ export class OfflineAwareWorkOrderService {
     hoursWorked: number = 0,
     isPrivate: boolean = false,
     machineHours?: number,
+    images: File[] = [],
   ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
-    if (!navigator.onLine) return this.queueWorkOrderNote(workOrderId, content, hoursWorked, isPrivate, machineHours);
+    if (!navigator.onLine) {
+      return this.queueWorkOrderNote(
+        workOrderId,
+        content,
+        hoursWorked,
+        isPrivate,
+        machineHours,
+        images,
+      );
+    }
     try {
       const note = await createWorkOrderNoteWithImages(
         workOrderId,
         content,
         hoursWorked,
         isPrivate,
-        [],
+        images,
         this.orgId,
         machineHours,
       );
       return { data: note, queuedOffline: false };
     } catch (error) {
-      if (isNetworkError(error)) return this.queueWorkOrderNote(workOrderId, content, hoursWorked, isPrivate, machineHours);
+      if (isNetworkError(error)) {
+        return this.queueWorkOrderNote(
+          workOrderId,
+          content,
+          hoursWorked,
+          isPrivate,
+          machineHours,
+          images,
+        );
+      }
       throw error;
     }
   }
@@ -495,17 +527,30 @@ export class OfflineAwareWorkOrderService {
     }
   }
 
-  private queueEquipmentNote(
+  private async queueEquipmentNote(
     equipmentId: string,
     content: string,
     hoursWorked: number,
     isPrivate: boolean,
     machineHours?: number,
-  ): OfflineAwareResult<{ id: string; [key: string]: unknown }> {
+    images: File[] = [],
+  ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
     try {
+      let imageRefs: OfflineQueueImageRef[] | undefined;
+      if (images.length) {
+        imageRefs = await stageQueueImageRefs(this.userId, this.orgId, images);
+      }
+
       const item = this.queueService.enqueue({
         type: 'equipment_note',
-        payload: { equipmentId, content, hoursWorked, isPrivate, ...(machineHours !== undefined ? { machineHours } : {}) },
+        payload: {
+          equipmentId,
+          content,
+          hoursWorked,
+          isPrivate,
+          ...(machineHours !== undefined ? { machineHours } : {}),
+          ...(imageRefs?.length ? { imageRefs } : {}),
+        },
         organizationId: this.orgId,
         userId: this.userId,
       });
@@ -518,17 +563,30 @@ export class OfflineAwareWorkOrderService {
     }
   }
 
-  private queueWorkOrderNote(
+  private async queueWorkOrderNote(
     workOrderId: string,
     content: string,
     hoursWorked: number,
     isPrivate: boolean,
     machineHours?: number,
-  ): OfflineAwareResult<{ id: string; [key: string]: unknown }> {
+    images: File[] = [],
+  ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
     try {
+      let imageRefs: OfflineQueueImageRef[] | undefined;
+      if (images.length) {
+        imageRefs = await stageQueueImageRefs(this.userId, this.orgId, images);
+      }
+
       const item = this.queueService.enqueue({
         type: 'work_order_note',
-        payload: { workOrderId, content, hoursWorked, isPrivate, ...(machineHours !== undefined ? { machineHours } : {}) },
+        payload: {
+          workOrderId,
+          content,
+          hoursWorked,
+          isPrivate,
+          ...(machineHours !== undefined ? { machineHours } : {}),
+          ...(imageRefs?.length ? { imageRefs } : {}),
+        },
         organizationId: this.orgId,
         userId: this.userId,
       });
@@ -631,9 +689,6 @@ export class OfflineAwareWorkOrderService {
     notes?: string;
   }): OfflineAwareResult<PreventativeMaintenance> {
     try {
-      if (input.workOrderId.startsWith('offline-')) {
-        throw new Error('Cannot queue PM init for an offline placeholder work order ID');
-      }
       const item = this.queueService.enqueue({
         type: 'pm_init',
         payload: {
