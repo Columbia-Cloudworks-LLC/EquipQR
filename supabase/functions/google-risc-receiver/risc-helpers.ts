@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
-import { decryptToken, getTokenEncryptionKey } from "../_shared/crypto.ts";
+import { decryptTokenWithKey, deriveTokenEncryptionKey, getTokenEncryptionKey } from "../_shared/crypto.ts";
 import { disconnectGoogleWorkspaceForOrganization } from "../_shared/google-workspace-disconnect.ts";
 
 export const GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs";
@@ -205,6 +205,8 @@ async function resolveOrganizationsByRefreshTokenPrefix(
   }
 
   const encryptionKey = getTokenEncryptionKey();
+  const derivedKey = await deriveTokenEncryptionKey(encryptionKey);
+
   let query = supabaseClient
     .from("google_workspace_credentials")
     .select("organization_id, refresh_token");
@@ -229,7 +231,7 @@ async function resolveOrganizationsByRefreshTokenPrefix(
     }
 
     try {
-      const refreshToken = await decryptToken(row.refresh_token, encryptionKey);
+      const refreshToken = await decryptTokenWithKey(row.refresh_token, derivedKey);
       if (refreshToken.startsWith(prefix)) {
         organizationIds.add(row.organization_id);
       }
