@@ -132,6 +132,11 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
   };
 
   const handleQuickBooksToggle = async (userId: string, canManage: boolean) => {
+    if (!isOwner || !quickBooksEnabled) {
+      toast.error('You do not have permission to manage QuickBooks access');
+      return;
+    }
+
     await updateQuickBooksPermission.mutateAsync({
       targetUserId: userId,
       canManageQuickBooks: canManage,
@@ -139,6 +144,11 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
   };
 
   const handlePartsManagerToggle = async (userId: string, isPartsManager: boolean) => {
+    if (!canManagePartsManagers) {
+      toast.error('You do not have permission to manage Parts Managers');
+      return;
+    }
+
     if (isPartsManager) {
       await addPartsManager.mutateAsync({ organizationId, userId });
       return;
