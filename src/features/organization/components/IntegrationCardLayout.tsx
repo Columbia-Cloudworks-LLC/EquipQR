@@ -28,6 +28,7 @@ type IntegrationCardHeaderProps = {
   badge?: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
+  icon?: ReactNode;
 };
 
 export function IntegrationCardHeader({
@@ -35,20 +36,26 @@ export function IntegrationCardHeader({
   badge,
   description,
   actions,
+  icon,
 }: IntegrationCardHeaderProps) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 space-y-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            {typeof title === 'string' ? <p className="text-sm font-medium">{title}</p> : title}
-            {badge}
-          </div>
-          {description ? (
-            <div className="text-xs text-muted-foreground [&_p]:mt-0.5 [&_p+p]:mt-1">
-              {description}
-            </div>
+        <div className="flex min-w-0 items-start gap-2.5">
+          {icon ? (
+            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center">{icon}</span>
           ) : null}
+          <div className="min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              {typeof title === 'string' ? <p className="text-sm font-medium">{title}</p> : title}
+              {badge}
+            </div>
+            {description ? (
+              <div className="text-xs text-muted-foreground [&_p]:mt-0.5 [&_p+p]:mt-1">
+                {description}
+              </div>
+            ) : null}
+          </div>
         </div>
 
         {actions ? (

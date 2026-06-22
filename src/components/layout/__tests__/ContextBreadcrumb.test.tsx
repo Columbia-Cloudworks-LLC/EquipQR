@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -56,12 +56,14 @@ const renderWithTeamContext = (
     selectedTeamId?: SelectedTeamId;
     setSelectedTeamId?: (id: SelectedTeamId) => void;
     initialEntries?: string[];
+    orgValue?: ReturnType<typeof createMockSimpleOrgValue>;
   } = {},
 ) => {
   const teamMemberships = options.teamMemberships ?? [];
   const selectedTeamId = options.selectedTeamId ?? null;
   const setSelectedTeamId = options.setSelectedTeamId ?? vi.fn();
   const initialEntries = options.initialEntries ?? ['/'];
+  const orgValue = options.orgValue ?? createMockSimpleOrgValue();
 
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -71,7 +73,7 @@ const renderWithTeamContext = (
     <MemoryRouter initialEntries={initialEntries}>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <SimpleOrganizationContext.Provider value={createMockSimpleOrgValue()}>
+          <SimpleOrganizationContext.Provider value={orgValue}>
             <TeamContext.Provider
               value={{
                 teamMemberships,
@@ -250,6 +252,88 @@ describe('ContextBreadcrumb', () => {
     expect(
       screen.queryByRole('button', { name: /switch organization/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('closes the mobile workspace sheet after org switch and after team selection', async () => {
+    mockIsMobileRef.current = true;
+    const user = userEvent.setup();
+    const switchOrganization = vi.fn();
+    const setSelectedTeamId = vi.fn();
+
+    const orgs = [
+      {
+        id: 'org-1',
+        name: 'Apex Construction Company',
+        plan: 'free' as const,
+        memberCount: 1,
+        maxMembers: 10,
+        features: [],
+        userRole: 'owner' as const,
+        userStatus: 'active' as const,
+      },
+      {
+        id: 'org-2',
+        name: 'Metro Equipment Services',
+        plan: 'free' as const,
+        memberCount: 1,
+        maxMembers: 10,
+        features: [],
+        userRole: 'member' as const,
+        userStatus: 'active' as const,
+      },
+    ];
+
+    renderWithTeamContext({
+      teamMemberships: [
+        {
+          team_id: 't-heavy',
+          team_name: 'Heavy Equipment Team',
+          role: 'manager',
+          joined_date: '2026-01-01',
+        },
+      ],
+      setSelectedTeamId,
+      initialEntries: ['/dashboard/equipment'],
+      orgValue: {
+        ...createMockSimpleOrgValue({
+          organizations: orgs,
+          currentOrganization: orgs[0],
+          organizationId: orgs[0].id,
+        }),
+        switchOrganization,
+      },
+    });
+
+    await user.click(
+      screen.getByRole('button', {
+        name: /workspace: apex construction company, all teams/i,
+      }),
+    );
+
+    const sheet = screen.getByRole('dialog', { name: /workspace/i });
+    expect(sheet).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: /metro equipment services/i }),
+    );
+
+    expect(switchOrganization).toHaveBeenCalledWith('org-2');
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /workspace/i })).not.toBeInTheDocument();
+    });
+
+    await user.click(
+      screen.getByRole('button', {
+        name: /workspace: apex construction company, all teams/i,
+      }),
+    );
+
+    await user.click(screen.getByRole('button', { name: /^all teams$/i }));
+
+    expect(setSelectedTeamId).toHaveBeenCalledWith(null);
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /workspace/i })).not.toBeInTheDocument();
+    });
   });
 
   it('omits the brand-icon row on mobile H1 routes (logo lives in the sidebar trigger slot now)', () => {

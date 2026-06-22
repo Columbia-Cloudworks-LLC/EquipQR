@@ -19,7 +19,6 @@ type InventoryListFilterToolbarProps = {
   quickFilterChips?: React.ReactNode;
   onFilterChange: (patch: Partial<InventoryFilters>) => void;
   onClearFilters: () => void;
-  onClearSheetFilters: () => void;
 };
 
 export function InventoryListFilterToolbar({
@@ -38,18 +37,14 @@ export function InventoryListFilterToolbar({
   quickFilterChips,
   onFilterChange,
   onClearFilters,
-  onClearSheetFilters,
 }: InventoryListFilterToolbarProps) {
   if (isMobile) {
     return (
       <MobileInventoryToolbar
         filters={filters}
         onFilterChange={onFilterChange}
-        onClearSheetFilters={onClearSheetFilters}
+        onClearFilters={onClearFilters}
         uniqueLocations={uniqueLocations}
-        resultCount={resultCount}
-        lowStockOrgWide={lowStockOrgWide}
-        activeFilterCount={activeFilterCount}
       />
     );
   }

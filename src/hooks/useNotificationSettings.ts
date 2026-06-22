@@ -284,6 +284,7 @@ export const useMarkAllNotificationsAsRead = () => {
     },
     onSuccess: (_, organizationId) => {
       queryClient.invalidateQueries({ queryKey: ['notifications', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('All notifications marked as read');
     },
     onError: (error) => {

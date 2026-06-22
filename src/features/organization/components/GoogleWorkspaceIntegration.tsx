@@ -18,6 +18,7 @@ import {
 } from '@/services/google-workspace/auth';
 import { googleWorkspace } from '@/lib/queryKeys';
 import { ORGANIZATION_INTEGRATIONS_PATH, ORGANIZATION_MEMBERS_PATH } from '@/features/organization/constants/routes';
+import { GoogleWorkspaceMarkIcon } from '@/components/icons/GoogleWorkspaceMarkIcon';
 import { IntegrationLoadingCard } from '@/features/organization/components/IntegrationLoadingCard';
 import { IntegrationNotConfiguredCard } from '@/features/organization/components/IntegrationNotConfiguredCard';
 import {
@@ -29,6 +30,8 @@ import { GoogleWorkspaceDisconnectDialog } from '@/features/organization/compone
 import { useGoogleWorkspaceConnect } from '@/features/organization/hooks/useGoogleWorkspaceConnect';
 import { useGoogleWorkspaceDisconnect } from '@/features/organization/hooks/useGoogleWorkspaceDisconnect';
 import { canManageGoogleWorkspaceIntegration } from '@/features/organization/utils/googleWorkspaceManageAccess';
+
+const googleWorkspaceMark = <GoogleWorkspaceMarkIcon />;
 
 interface GoogleWorkspaceIntegrationProps {
   currentUserRole: 'owner' | 'admin' | 'member';
@@ -117,6 +120,7 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
       <IntegrationNotConfiguredCard
         title="Google Workspace"
         description="Import and manage organization members"
+        icon={googleWorkspaceMark}
       />
     );
   }
@@ -145,6 +149,7 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
       <IntegrationCardLayout>
         <IntegrationCardHeader
           title="Google Workspace"
+          icon={googleWorkspaceMark}
           description={
             connectionHealth === 'disconnected'
               ? 'Import and manage organization members'

@@ -1,18 +1,19 @@
 // fallow-ignore-file code-duplication
 // Duplication rationale: Mobile toolbar mirrors desktop filter field wiring
 import React from 'react';
-import { Search, SlidersHorizontal, Check, X } from 'lucide-react';
+import { Search, Filter, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   Sheet,
-  SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { MobileListPersonalizationSheet } from '@/components/common/MobileListPersonalizationSheet';
+import { MobileToolbarSheetContent } from '@/components/common/MobileToolbarSheetContent';
 import {
   Select,
   SelectContent,
@@ -20,13 +21,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { HorizontalChipRow } from '@/components/layout/HorizontalChipRow';
+import { ListSortFieldControls } from '@/components/common/ListSortFieldControls';
 import type { WorkOrderFilters as FiltersType } from '@/features/work-orders/types/workOrder';
 import type { QuickFilterPreset, SortField, SortDirection } from '@/features/work-orders/hooks/useWorkOrderFilters';
 import type { WorkOrderFiltersToolbarProps } from '@/features/work-orders/types/workOrderFiltersToolbarTypes';
 import {
-  WORK_ORDER_SORT_OPTIONS,
   WORK_ORDER_QUICK_FILTER_PRESETS,
+  WORK_ORDER_SORT_FIELD_OPTIONS,
+  getWorkOrderSortFieldDefaultOrder,
 } from '@/features/work-orders/constants/workOrderSortOptions';
 import {
   WorkOrderStatusFilterSelect,
@@ -36,7 +38,13 @@ import {
 } from '@/features/work-orders/components/WorkOrderFilterSelectFields';
 import { formatInvoiceFilterLabel } from '@/features/work-orders/utils/invoiceFilterLabels';
 
-export type MobileWorkOrderToolbarProps = WorkOrderFiltersToolbarProps;
+export type MobileWorkOrderToolbarProps = Omit<
+  WorkOrderFiltersToolbarProps,
+  'resultCount' | 'totalCount'
+>;
+
+const DEFAULT_SORT_FIELD: SortField = 'created';
+const DEFAULT_SORT_DIRECTION: SortDirection = 'desc';
 
 const MobileWorkOrderToolbar: React.FC<MobileWorkOrderToolbarProps> = ({
   filters,
@@ -50,8 +58,6 @@ const MobileWorkOrderToolbar: React.FC<MobileWorkOrderToolbarProps> = ({
   sortField,
   sortDirection,
   onSortChange,
-  resultCount,
-  totalCount,
 }) => {
   const mobileSearchInputId = 'work-order-search-mobile';
   const mobileStatusFilterId = 'work-order-status-filter-mobile';
@@ -60,36 +66,31 @@ const MobileWorkOrderToolbar: React.FC<MobileWorkOrderToolbarProps> = ({
   const mobileDueDateFilterId = 'work-order-due-date-filter-mobile';
   const mobileInvoiceFilterId = 'work-order-invoice-filter-mobile';
 
-  const hasSearch = filters.searchQuery.length > 0;
-  const hasActiveFilters = activeFilterCount > 0 || hasSearch;
-  const sheetFilterCount = activeFilterCount + (hasSearch ? 1 : 0);
+  const [isPersonalizationOpen, setIsPersonalizationOpen] = React.useState(false);
 
-  const handleSheetOpenChange = (open: boolean) => {
+  const hasNonDefaultSort =
+    sortField !== DEFAULT_SORT_FIELD || sortDirection !== DEFAULT_SORT_DIRECTION;
+
+  const handleFilterSheetOpenChange = (open: boolean) => {
     onShowMobileFiltersChange(open);
+  };
+
+  const handleSortFieldChange = (field: string) => {
+    if (sortField === field) {
+      onSortChange(field as SortField, sortDirection === 'asc' ? 'desc' : 'asc');
+      return;
+    }
+    onSortChange(field as SortField, getWorkOrderSortFieldDefaultOrder(field));
+  };
+
+  const toggleSortOrder = () => {
+    onSortChange(sortField, sortDirection === 'asc' ? 'desc' : 'asc');
   };
 
   return (
     <div className="space-y-2.5">
-      {/* Glanceable count */}
-      <div className="flex flex-wrap items-center gap-2" aria-live="polite" aria-atomic="false">
-        <div className="inline-flex items-baseline gap-1.5 rounded-md border border-border/80 bg-muted/30 px-3 py-1.5">
-          <span className="text-lg font-semibold tabular-nums text-foreground">{resultCount}</span>
-          <span className="text-sm font-medium text-muted-foreground">
-            {resultCount === 1 ? 'work order' : 'work orders'}
-          </span>
-          {hasActiveFilters && resultCount !== totalCount && (
-            <span className="text-xs text-muted-foreground">of {totalCount}</span>
-          )}
-          {hasActiveFilters && (
-            <Badge variant="secondary" className="ml-0.5 text-[10px] font-semibold uppercase tracking-wide">
-              Filtered
-            </Badge>
-          )}
-        </div>
-      </div>
-
-      {/* Search + Sort & Filter */}
-      <div className="flex items-stretch gap-2">
+      {/* Search + Personalization + Filters */}
+      <div className="flex items-center gap-2">
         <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -101,56 +102,79 @@ const MobileWorkOrderToolbar: React.FC<MobileWorkOrderToolbarProps> = ({
             aria-label="Search work orders"
           />
         </div>
-        <Sheet open={showMobileFilters} onOpenChange={handleSheetOpenChange}>
+
+        <MobileListPersonalizationSheet
+          open={isPersonalizationOpen}
+          onOpenChange={setIsPersonalizationOpen}
+          hasNonDefaultSort={hasNonDefaultSort}
+          description="Change how work orders are sorted on this device."
+        >
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Sort by
+            </p>
+            <ListSortFieldControls
+              sortField={sortField}
+              sortOrder={sortDirection}
+              options={WORK_ORDER_SORT_FIELD_OPTIONS}
+              onFieldChange={handleSortFieldChange}
+              onOrderToggle={toggleSortOrder}
+              fieldSelectAriaLabel="Sort work orders by field"
+            />
+          </div>
+        </MobileListPersonalizationSheet>
+
+        <Sheet open={showMobileFilters} onOpenChange={handleFilterSheetOpenChange}>
           <SheetTrigger asChild>
             <Button
               variant="outline"
-              className="h-11 shrink-0 gap-2 px-3"
+              size="icon"
+              className="relative h-11 w-11 shrink-0"
               aria-label={
-                sheetFilterCount > 0
-                  ? `Sort and filter, ${sheetFilterCount} active`
-                  : 'Sort and filter'
+                activeFilterCount > 0
+                  ? `Open filters, ${activeFilterCount} active`
+                  : 'Open filters'
               }
             >
-              <SlidersHorizontal className="h-4 w-4 shrink-0" aria-hidden />
-              <span className="text-xs font-medium sm:text-sm">Sort & Filter</span>
-              {sheetFilterCount > 0 && (
-                <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-[10px] leading-none">
-                  {sheetFilterCount}
+              <Filter className="h-4 w-4" aria-hidden />
+              {activeFilterCount > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="absolute -right-1 -top-1 h-5 min-w-5 px-1 text-[10px]"
+                >
+                  {activeFilterCount}
                 </Badge>
               )}
             </Button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="max-h-[min(85vh,560px)] overflow-y-auto pb-safe-bottom">
+          <MobileToolbarSheetContent>
             <SheetHeader className="pb-2 text-left">
-              <SheetTitle>Sort & filter</SheetTitle>
+              <SheetTitle>Filter work orders</SheetTitle>
               <SheetDescription>
-                Change sort order or narrow the list. Team scope is set from the breadcrumb at the top of the screen.
+                Narrow the list by status, assignee, priority, due date, or invoice. Team scope is
+                set from the breadcrumb at the top of the screen.
               </SheetDescription>
             </SheetHeader>
             <div className="space-y-6 pb-8 pt-2">
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Sort by
-                </p>
-                <Select
-                  value={`${sortField}:${sortDirection}`}
-                  onValueChange={(v) => {
-                    const [field, dir] = v.split(':') as [SortField, SortDirection];
-                    onSortChange(field, dir);
-                  }}
-                >
-                  <SelectTrigger className="h-11" aria-label="Sort work orders">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {WORK_ORDER_SORT_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium">Quick filters</h3>
+                <div className="flex flex-wrap gap-2">
+                  {WORK_ORDER_QUICK_FILTER_PRESETS.map((preset) => {
+                    const isActive = activePresets.has(preset.value);
+                    return (
+                      <Button
+                        key={preset.value}
+                        size="sm"
+                        variant={isActive ? 'default' : 'outline'}
+                        className="min-h-11 whitespace-nowrap"
+                        onClick={() => onQuickFilter(preset.value)}
+                      >
+                        {isActive && <Check className="mr-1 h-3 w-3" aria-hidden />}
+                        {preset.label}
+                      </Button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -227,36 +251,15 @@ const MobileWorkOrderToolbar: React.FC<MobileWorkOrderToolbarProps> = ({
               <Button
                 variant="outline"
                 className="h-12 w-full touch-manipulation"
+                disabled={activeFilterCount === 0}
                 onClick={onClearFilters}
               >
-                Reset sort & filters
+                Clear all filters
               </Button>
             </div>
-          </SheetContent>
+          </MobileToolbarSheetContent>
         </Sheet>
       </div>
-
-      {/* Quick filter chips */}
-      <HorizontalChipRow ariaLabel="Quick filter options" className="-mx-1 px-1" gap="gap-1.5">
-        {WORK_ORDER_QUICK_FILTER_PRESETS.map((preset) => {
-          const isActive = activePresets.has(preset.value);
-          return (
-            <Button
-              key={preset.value}
-              size="sm"
-              variant={isActive ? 'default' : 'outline'}
-              className="min-h-9 flex-shrink-0 whitespace-nowrap px-3 text-xs"
-              onClick={() => {
-                onQuickFilter(preset.value);
-                onShowMobileFiltersChange(false);
-              }}
-            >
-              {isActive && <Check className="mr-1 h-3 w-3" />}
-              {preset.label}
-            </Button>
-          );
-        })}
-      </HorizontalChipRow>
 
       {/* Active sheet-filter chips */}
       {activeFilterCount > 0 && (

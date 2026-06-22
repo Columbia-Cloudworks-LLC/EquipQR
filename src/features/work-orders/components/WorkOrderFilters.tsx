@@ -38,8 +38,6 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersToolbarProps> = ({
         sortField={sortField}
         sortDirection={sortDirection}
         onSortChange={onSortChange}
-        resultCount={resultCount}
-        totalCount={totalCount}
       />
     );
   }

@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Plus, ShieldCheck, Users } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamBasedWorkOrders, useTeamBasedAccess } from '@/features/teams/hooks/useTeamBasedWorkOrders';
@@ -11,7 +11,7 @@ import { useWorkOrderFilters } from '@/features/work-orders/hooks/useWorkOrderFi
 import { useUser } from '@/contexts/useUser';
 import { useSelectedTeam } from '@/hooks/useSelectedTeam';
 import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
-import { WorkOrderAcceptanceModalState, WorkOrderData } from '@/features/work-orders/types/workOrder';
+import type { WorkOrder, WorkOrderAcceptanceModalState, WorkOrderData } from '@/features/work-orders/types/workOrder';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { SortDirection, SortField } from '@/features/work-orders/hooks/useWorkOrderFilters';
@@ -22,10 +22,13 @@ import WorkOrderAcceptanceModal from '@/features/work-orders/components/WorkOrde
 import { AutoAssignmentBanner } from '@/features/work-orders/components/AutoAssignmentBanner';
 import { WorkOrderFilters } from '@/features/work-orders/components/WorkOrderFilters';
 import { WorkOrdersList } from '@/features/work-orders/components/WorkOrdersList';
+import WorkOrderQRCodeDisplay from '@/features/work-orders/components/WorkOrderQRCodeDisplay';
 import { useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
 import { useOfflineMergedWorkOrders } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
+import { MobileListGlanceCount } from '@/components/common/MobileListGlanceCount';
 
 const VALID_SORT_FIELDS: readonly SortField[] = ['created', 'due_date', 'priority', 'status'];
 const VALID_SORT_DIRECTIONS: readonly SortDirection[] = ['asc', 'desc'];
@@ -33,6 +36,7 @@ const VALID_SORT_DIRECTIONS: readonly SortDirection[] = ['asc', 'desc'];
 const WorkOrders = () => {
   const [showForm, setShowForm] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [qrWorkOrder, setQrWorkOrder] = useState<WorkOrder | null>(null);
   const [acceptanceModal, setAcceptanceModal] = useState<WorkOrderAcceptanceModalState>({
     open: false,
     workOrder: null
@@ -41,6 +45,7 @@ const WorkOrders = () => {
   const { currentOrganization } = useOrganization();
   const { currentUser } = useUser();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initializedFromUrl = useRef(false);
   const { selectedTeamId, setSelectedTeamId } = useSelectedTeam();
@@ -209,6 +214,16 @@ const WorkOrders = () => {
     // In the future, this could open a dedicated assignment modal
   };
 
+  const handleShowQR = useCallback((workOrder: WorkOrder) => {
+    setQrWorkOrder(workOrder);
+  }, []);
+
+  const handlePrintFieldWorksheet = useCallback(() => {
+    if (!qrWorkOrder) return;
+    setQrWorkOrder(null);
+    navigate(`/dashboard/work-orders/${qrWorkOrder.id}?action=download-worksheet`);
+  }, [navigate, qrWorkOrder]);
+
   const isLoading = teamAccessLoading || workOrdersLoading;
 
   if (isLoading) {
@@ -300,7 +315,7 @@ const WorkOrders = () => {
           />
         )}
 
-        <div className={isMobile ? 'space-y-2.5' : 'space-y-4'}>
+        <div className={cn(isMobile && 'space-y-2.5 pb-24', !isMobile && 'space-y-4')}>
           <div
             className={
               isMobile
@@ -336,7 +351,19 @@ const WorkOrders = () => {
             onCreateClick={() => setShowForm(true)}
             onAssignClick={handleAssignClick}
             onReopenClick={() => undefined}
+            onShowQR={handleShowQR}
           />
+
+          {isMobile && totalCount > 0 && (
+            <MobileListGlanceCount
+              resultCount={filteredWorkOrders.length}
+              totalCount={totalCount}
+              hasActiveFilters={hasActiveFilters}
+              singularLabel="work order"
+              pluralLabel="work orders"
+              className="border-t pt-4"
+            />
+          )}
         </div>
 
         {isMobile && (
@@ -368,6 +395,14 @@ const WorkOrders = () => {
           onAccept={handleAcceptance}
         />
       )}
+
+      <WorkOrderQRCodeDisplay
+        open={qrWorkOrder !== null}
+        onClose={() => setQrWorkOrder(null)}
+        workOrderId={qrWorkOrder?.id ?? ''}
+        workOrderTitle={qrWorkOrder?.title}
+        onPrintFieldWorksheet={handlePrintFieldWorksheet}
+      />
       </div>
     </Page>
   );

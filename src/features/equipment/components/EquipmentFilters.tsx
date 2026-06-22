@@ -57,6 +57,10 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
         onQuickFilter={onQuickFilter}
         filterOptions={filterOptions}
         activeQuickFilter={activeQuickFilter}
+        sortConfig={sortConfig}
+        onSortChange={onSortChange}
+        viewMode={viewMode}
+        onViewModeChange={onViewModeChange}
       />
     );
   }

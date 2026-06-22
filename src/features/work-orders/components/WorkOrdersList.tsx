@@ -18,6 +18,7 @@ interface WorkOrdersListProps {
   onCreateClick: () => void;
   onAssignClick?: () => void;
   onReopenClick?: () => void;
+  onShowQR?: (workOrder: WorkOrder) => void;
 }
 
 export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
@@ -30,7 +31,8 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
   activePresets,
   onCreateClick,
   onAssignClick,
-  onReopenClick
+  onReopenClick,
+  onShowQR,
 }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -57,7 +59,7 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
   const ABOVE_FOLD_COUNT = 6;
 
   return (
-    <div className={cn('space-y-4', isMobile && 'space-y-2.5 pb-24')}>
+    <div className={cn('space-y-4', isMobile && 'space-y-2.5')}>
       {workOrders.map((order, index) => (
         // Avoid content-visibility (cv-auto): it breaks Radix Tooltip positioning
         // (getBoundingClientRect) for PM segment tooltips on list cards.
@@ -72,6 +74,7 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
             isAccepting={isAccepting}
             onAssignClick={onAssignClick}
             onReopenClick={onReopenClick}
+            onShowQR={isMobile ? onShowQR : undefined}
             isAboveTheFold={index < ABOVE_FOLD_COUNT}
           />
         </div>

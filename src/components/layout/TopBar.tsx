@@ -4,7 +4,6 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useSidebar } from '@/components/ui/sidebar-context';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import NotificationBell from '@/components/notifications/NotificationBell';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import ContextBreadcrumb from './ContextBreadcrumb';
 import QuickBooksStatusIndicator from './QuickBooksStatusIndicator';
@@ -42,7 +41,6 @@ const TopBar: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2">
-          {organizationId && <NotificationBell organizationId={organizationId} />}
           {organizationId && <QuickBooksStatusIndicator organizationId={organizationId} />}
           <UserProfileMenu />
         </div>

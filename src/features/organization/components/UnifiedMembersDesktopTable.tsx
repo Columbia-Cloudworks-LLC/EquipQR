@@ -1,11 +1,16 @@
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  UnifiedMemberPartsManagerControl,
+  UnifiedMemberQuickBooksControl,
+} from '@/features/organization/components/UnifiedMemberPermissionRows';
+import { PartsManagerMarkIcon } from '@/components/icons/PartsManagerMarkIcon';
+import { QuickBooksMarkIcon } from '@/components/icons/QuickBooksMarkIcon';
 import { UnifiedMemberAvatar } from '@/features/organization/components/UnifiedMemberAvatar';
 import { UnifiedMemberRowActions } from '@/features/organization/components/UnifiedMemberRowActions';
-import type { UnifiedMember } from '@/features/organization/utils/buildUnifiedMembers';
+import type { UnifiedMembersListViewProps } from '@/features/organization/components/unifiedMembersListViewProps';
 import {
   getUnifiedMemberStatusBadgeVariant,
   getStatusIcon,
@@ -16,48 +21,32 @@ import { getRoleBadgeVariant } from '@/utils/badgeVariants';
 
 const thClass = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground';
 
-type UnifiedMembersDesktopTableProps = {
-  unifiedMembers: UnifiedMember[];
-  canManageMembers: boolean;
-  isOwner: boolean;
-  quickBooksEnabled: boolean;
-  currentUserId?: string;
-  resendPending: boolean;
-  cancelPending: boolean;
-  removePending: boolean;
-  revokeGwsPending: boolean;
-  mergePending: boolean;
-  quickBooksPending: boolean;
-  onRoleChange: (memberId: string, newRole: 'admin' | 'member') => void;
-  onQuickBooksToggle: (userId: string, canManage: boolean) => void;
-  onResendInvitation: (invitationId: string) => void;
-  onCancelInvitation: (invitationId: string) => void;
-  onRevokeGwsClaim: (claimId: string) => void;
-  onRequestDataMerge: (member: UnifiedMember) => void;
-  onRemoveMember: (memberId: string, memberName: string) => void;
-};
-
 export function UnifiedMembersDesktopTable({
   unifiedMembers,
   canManageMembers,
-  isOwner,
-  quickBooksEnabled,
   currentUserId,
   resendPending,
   cancelPending,
   removePending,
   revokeGwsPending,
   mergePending,
+  permissionContext,
+  partsManagerUserIds,
   quickBooksPending,
+  partsManagerPending,
   onRoleChange,
   onQuickBooksToggle,
+  onPartsManagerToggle,
   onResendInvitation,
   onCancelInvitation,
   onRevokeGwsClaim,
   onRequestDataMerge,
   onRemoveMember,
-}: UnifiedMembersDesktopTableProps) {
+}: UnifiedMembersListViewProps) {
   const { formatDate } = useFormatTimestamp();
+  const { isOwner, quickBooksEnabled, canManagePartsManagers } = permissionContext;
+  const showQuickBooksColumn = isOwner && quickBooksEnabled;
+  const showPartsManagerColumn = canManagePartsManagers;
 
   return (
     <div className="hidden sm:block">
@@ -68,12 +57,28 @@ export function UnifiedMembersDesktopTable({
             <TableHead className={thClass}>Email</TableHead>
             <TableHead className={thClass}>Role</TableHead>
             <TableHead className={thClass}>Status</TableHead>
-            {isOwner && quickBooksEnabled && (
+            {showQuickBooksColumn && (
               <TableHead className={thClass}>
                 <Tooltip>
-                  <TooltipTrigger className="cursor-help uppercase">QuickBooks</TooltipTrigger>
+                  <TooltipTrigger className="cursor-help inline-flex items-center gap-1.5 uppercase">
+                    <QuickBooksMarkIcon />
+                    QuickBooks
+                  </TooltipTrigger>
                   <TooltipContent>
                     <p className="max-w-xs">Allow admin to manage QuickBooks integration (connect, disconnect, export invoices)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TableHead>
+            )}
+            {showPartsManagerColumn && (
+              <TableHead className={thClass}>
+                <Tooltip>
+                  <TooltipTrigger className="cursor-help inline-flex items-center gap-1.5 uppercase">
+                    <PartsManagerMarkIcon />
+                    Parts Manager
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">Allow member to create, edit, and manage inventory items</p>
                   </TooltipContent>
                 </Tooltip>
               </TableHead>
@@ -147,39 +152,27 @@ export function UnifiedMembersDesktopTable({
                   </Badge>
                 )}
               </TableCell>
-              {isOwner && quickBooksEnabled && (
+              {showQuickBooksColumn && (
                 <TableCell className="py-3">
-                  {member.type === 'member' && member.organizationRole === 'admin' ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div>
-                          <Switch
-                            checked={member.canManageQuickBooks ?? false}
-                            onCheckedChange={(checked) => {
-                              if (!member.userId) return;
-                              onQuickBooksToggle(member.userId, checked);
-                            }}
-                            disabled={quickBooksPending}
-                            aria-label="Toggle QuickBooks management permission"
-                          />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{member.canManageQuickBooks ? 'Revoke QuickBooks access' : 'Grant QuickBooks access'}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : member.organizationRole === 'owner' ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="text-xs text-muted-foreground italic">Always</div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Owners always have QuickBooks management permission</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
-                  )}
+                  <UnifiedMemberQuickBooksControl
+                    member={member}
+                    context={permissionContext}
+                    quickBooksPending={quickBooksPending}
+                    onQuickBooksToggle={onQuickBooksToggle}
+                    layout="desktop"
+                  />
+                </TableCell>
+              )}
+              {showPartsManagerColumn && (
+                <TableCell className="py-3">
+                  <UnifiedMemberPartsManagerControl
+                    member={member}
+                    context={permissionContext}
+                    isPartsManager={member.userId ? partsManagerUserIds.has(member.userId) : false}
+                    partsManagerPending={partsManagerPending}
+                    onPartsManagerToggle={onPartsManagerToggle}
+                    layout="desktop"
+                  />
                 </TableCell>
               )}
               {canManageMembers && (

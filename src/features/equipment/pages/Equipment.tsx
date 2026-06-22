@@ -24,7 +24,6 @@ import PageHeader from '@/components/layout/PageHeader';
 import EquipmentForm from '@/features/equipment/components/EquipmentForm';
 import QRCodeDisplay from '@/features/equipment/components/QRCodeDisplay';
 import { EquipmentFilters } from '@/features/equipment/components/EquipmentFilters';
-import EquipmentSortHeader from '@/features/equipment/components/EquipmentSortHeader';
 import EquipmentGrid from '@/features/equipment/components/EquipmentGrid';
 import EquipmentLoadingState from '@/features/equipment/components/EquipmentLoadingState';
 // `ImportCsvWizard` statically imports `papaparse` (~45 KB gzipped). Most
@@ -265,18 +264,6 @@ const Equipment = () => {
           ) : undefined
         }
       />
-
-      {/* Mobile-only: sort + view mode below the filter bar */}
-      {isMobile && (
-        <EquipmentSortHeader
-          sortConfig={sortConfig}
-          onSortChange={updateSort}
-          resultCount={totalFilteredCount}
-          totalCount={equipment.length}
-          viewMode={viewMode}
-          onViewModeChange={handleViewModeChange}
-        />
-      )}
 
       <EquipmentGrid
         equipment={mergedEquipment}

@@ -31,6 +31,20 @@ vi.mock('@/features/tickets/context/BugReportContext', () => ({
   useBugReport: () => ({ openBugReport: openBugReportMock }),
 }));
 
+vi.mock('@/contexts/OrganizationContext', () => ({
+  useOrganization: () => ({
+    organizationId: 'org-1',
+    switchOrganization: vi.fn(),
+  }),
+}));
+
+vi.mock('@/hooks/useOrganizationNotifications', () => ({
+  useOrganizationNotifications: () => ({
+    notifications: [],
+    unreadCount: 0,
+  }),
+}));
+
 import UserProfileMenu from '../UserProfileMenu';
 
 describe('UserProfileMenu', () => {
@@ -56,7 +70,7 @@ describe('UserProfileMenu', () => {
 
     expect(await screen.findByText('Test User')).toBeInTheDocument();
     expect(screen.getByText('test@example.com')).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: /settings/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^settings$/i })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: /help center/i })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: /support & tickets/i })).toBeInTheDocument();
     expect(

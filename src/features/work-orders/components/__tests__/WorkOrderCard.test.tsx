@@ -27,6 +27,12 @@ vi.mock('../WorkOrderQuickActions', () => ({
   WorkOrderQuickActions: () => <div data-testid="quick-actions" />,
 }));
 
+vi.mock('sonner', () => ({
+  toast: {
+    info: vi.fn(),
+  },
+}));
+
 vi.mock('../WorkOrderPrimaryActionButton', () => ({
   WorkOrderPrimaryActionButton: () => <button type="button">Primary action</button>,
 }));
@@ -168,6 +174,49 @@ describe('WorkOrderCard', () => {
       expect(screen.getByText('Replace hydraulic line')).toBeInTheDocument();
       expect(screen.getByText('Alex Tech')).toBeInTheDocument();
       expect(screen.getByText(/Due relative:2026-12-10/)).toBeInTheDocument();
+      expect(screen.getByTestId('quick-actions')).toBeInTheDocument();
+    });
+
+    it('shows QR button when onShowQR is provided', async () => {
+      const onShowQR = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        <WorkOrderCard
+          workOrder={baseWorkOrder}
+          variant="mobile"
+          onNavigate={mockOnNavigate}
+          onShowQR={onShowQR}
+        />,
+      );
+
+      const qrButton = screen.getByRole('button', {
+        name: /show qr code and print options for replace hydraulic line/i,
+      });
+      await user.click(qrButton);
+      expect(onShowQR).toHaveBeenCalledWith(baseWorkOrder);
+    });
+
+    it('blocks QR for pending sync work orders', async () => {
+      const onShowQR = vi.fn();
+      const user = userEvent.setup();
+      const { toast } = await import('sonner');
+
+      render(
+        <WorkOrderCard
+          workOrder={{ ...baseWorkOrder, _isPendingSync: true } as WorkOrder}
+          variant="mobile"
+          onNavigate={mockOnNavigate}
+          onShowQR={onShowQR}
+        />,
+      );
+
+      const qrButton = screen.getByRole('button', {
+        name: /show qr code and print options for replace hydraulic line/i,
+      });
+      await user.click(qrButton);
+      expect(onShowQR).not.toHaveBeenCalled();
+      expect(toast.info).toHaveBeenCalled();
     });
 
     it('shows overdue styling label when due date passed', () => {

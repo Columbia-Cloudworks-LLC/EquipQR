@@ -47,6 +47,7 @@ const WorkOrderDetails = () => {
   const actionParam = searchParams.get('action');
   const shouldAutoOpenNoteForm = actionParam === 'add-note';
   const shouldAutoOpenPDFDialog = actionParam === 'download-pdf';
+  const shouldAutoDownloadWorksheet = actionParam === 'download-worksheet';
   const shouldAutoFocusPM = actionParam === 'pm';
   const notesSectionRef = useRef<HTMLDivElement>(null);
   const pmSectionRef = useRef<HTMLDivElement>(null);
@@ -176,19 +177,6 @@ const WorkOrderDetails = () => {
     [saveField],
   );
 
-  useWorkOrderDetailsActionQuery({
-    actionParam,
-    shouldAutoOpenNoteForm,
-    shouldAutoOpenPDFDialog,
-    shouldAutoFocusPM,
-    workOrderLoading,
-    hasWorkOrder: Boolean(workOrder),
-    setSearchParams,
-    notesSectionRef,
-    pmSectionRef,
-    onAutoOpenPDFDialog: () => openMobilePdfDialog(false),
-  });
-
   const exports = useWorkOrderDetailsExports({
     workOrder,
     equipment,
@@ -196,6 +184,21 @@ const WorkOrderDetails = () => {
     organizationId: currentOrganization?.id,
     organizationName: currentOrganization?.name,
     isManager: permissionLevels.isManager,
+  });
+
+  useWorkOrderDetailsActionQuery({
+    actionParam,
+    shouldAutoOpenNoteForm,
+    shouldAutoOpenPDFDialog,
+    shouldAutoDownloadWorksheet,
+    shouldAutoFocusPM,
+    workOrderLoading,
+    hasWorkOrder: Boolean(workOrder),
+    setSearchParams,
+    notesSectionRef,
+    pmSectionRef,
+    onAutoOpenPDFDialog: () => openMobilePdfDialog(false),
+    onAutoDownloadWorksheet: exports.handleMobileDownloadWorksheet,
   });
 
   if (!workOrderId) {

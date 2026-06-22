@@ -1,18 +1,31 @@
 import React from 'react';
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Filter, X } from 'lucide-react';
-import { HorizontalChipRow } from '@/components/layout/HorizontalChipRow';
-import { EquipmentFilters } from '@/features/equipment/hooks/useEquipmentFiltering';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Sheet,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetDescription,
+} from '@/components/ui/sheet';
+import { MobileListPersonalizationSheet } from '@/components/common/MobileListPersonalizationSheet';
+import { MobileToolbarSheetContent } from '@/components/common/MobileToolbarSheetContent';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Search, Filter, X, LayoutGrid, List, Check } from 'lucide-react';
+import { ListSortFieldControls } from '@/components/common/ListSortFieldControls';
+import type { EquipmentFilters, SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
+import type { EquipmentViewMode } from '@/features/equipment/components/EquipmentCard';
 import {
   EquipmentLocationSelect,
   EquipmentManufacturerSelect,
   EquipmentStatusSelect,
 } from '@/features/equipment/components/EquipmentFilterSelects';
 import { EQUIPMENT_QUICK_FILTERS } from '@/features/equipment/components/equipmentFilterConstants';
+import {
+  EQUIPMENT_SORT_FIELD_OPTIONS,
+  getEquipmentSortFieldDefaultOrder,
+} from '@/features/equipment/components/equipmentSortOptions';
 
 // Team is intentionally not part of FilterOptions here — the team scope is
 // owned by the global TopBar `useSelectedTeam`.
@@ -33,7 +46,13 @@ interface MobileEquipmentFiltersProps {
   onQuickFilter: (preset: string) => void;
   filterOptions: FilterOptions;
   activeQuickFilter?: string | null;
+  sortConfig: SortConfig;
+  onSortChange: (field: string, direction?: 'asc' | 'desc') => void;
+  viewMode: EquipmentViewMode;
+  onViewModeChange: (mode: EquipmentViewMode) => void;
 }
+
+const DEFAULT_SORT: SortConfig = { field: 'name', direction: 'asc' };
 
 export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
   filters,
@@ -45,27 +64,48 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
   onQuickFilter,
   filterOptions,
   activeQuickFilter,
+  sortConfig,
+  onSortChange,
+  viewMode,
+  onViewModeChange,
 }) => {
-  const [isSheetOpen, setIsSheetOpen] = React.useState(showMobileFilters);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(showMobileFilters);
+  const [isPersonalizationOpen, setIsPersonalizationOpen] = React.useState(false);
   const mobileSearchInputId = 'equipment-search-mobile';
   const mobileStatusFilterId = 'equipment-status-filter-mobile';
   const mobileManufacturerFilterId = 'equipment-manufacturer-filter-mobile';
   const mobileLocationFilterId = 'equipment-location-filter-mobile';
+  const mobileSortSelectId = 'equipment-sort-select-mobile';
+
+  const hasNonDefaultSort =
+    sortConfig.field !== DEFAULT_SORT.field || sortConfig.direction !== DEFAULT_SORT.direction;
 
   React.useEffect(() => {
-    setIsSheetOpen(showMobileFilters);
+    setIsFilterSheetOpen(showMobileFilters);
   }, [showMobileFilters]);
 
-  const handleSheetOpenChange = (open: boolean) => {
-    setIsSheetOpen(open);
+  const handleFilterSheetOpenChange = (open: boolean) => {
+    setIsFilterSheetOpen(open);
     onShowMobileFiltersChange(open);
+  };
+
+  const handleSortFieldChange = (field: string) => {
+    if (sortConfig.field === field) {
+      onSortChange(field, sortConfig.direction === 'asc' ? 'desc' : 'asc');
+      return;
+    }
+    onSortChange(field, getEquipmentSortFieldDefaultOrder(field));
+  };
+
+  const toggleSortOrder = () => {
+    onSortChange(sortConfig.field, sortConfig.direction === 'asc' ? 'desc' : 'asc');
   };
 
   return (
     <div className="space-y-3">
-      {/* Row 1: Search + Filters (icon-only) */}
+      {/* Search + Personalization + Filters */}
       <div className="flex items-center gap-2">
-        <div className="relative flex-1">
+        <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id={mobileSearchInputId}
@@ -73,18 +113,79 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
             value={filters.search}
             onChange={(e) => onFilterChange('search', e.target.value)}
             className="h-11 pl-9"
+            aria-label="Search equipment"
           />
         </div>
 
-        <Sheet open={isSheetOpen} onOpenChange={handleSheetOpenChange}>
+        <MobileListPersonalizationSheet
+          open={isPersonalizationOpen}
+          onOpenChange={setIsPersonalizationOpen}
+          hasNonDefaultSort={hasNonDefaultSort}
+          description="Change how equipment is sorted and displayed on this device."
+        >
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Sort by
+            </p>
+            <ListSortFieldControls
+              sortField={sortConfig.field}
+              sortOrder={sortConfig.direction}
+              options={EQUIPMENT_SORT_FIELD_OPTIONS}
+              onFieldChange={handleSortFieldChange}
+              onOrderToggle={toggleSortOrder}
+              fieldSelectAriaLabel="Sort equipment by field"
+              selectTriggerId={mobileSortSelectId}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              View mode
+            </p>
+            <div
+              className="grid grid-cols-2 gap-2"
+              role="radiogroup"
+              aria-label="Equipment view mode"
+            >
+              <Button
+                    type="button"
+                    variant={viewMode === 'grid' ? 'default' : 'outline'}
+                    className="h-11 gap-2"
+                    onClick={() => onViewModeChange('grid')}
+                    aria-label="Grid view"
+                    aria-checked={viewMode === 'grid'}
+                    role="radio"
+                  >
+                    <LayoutGrid className="h-4 w-4" aria-hidden />
+                    Grid
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={viewMode === 'list' ? 'default' : 'outline'}
+                    className="h-11 gap-2"
+                    onClick={() => onViewModeChange('list')}
+                    aria-label="List view"
+                    aria-checked={viewMode === 'list'}
+                    role="radio"
+                  >
+                    <List className="h-4 w-4" aria-hidden />
+                    List
+                  </Button>
+                </div>
+              </div>
+        </MobileListPersonalizationSheet>
+
+        <Sheet open={isFilterSheetOpen} onOpenChange={handleFilterSheetOpenChange}>
           <SheetTrigger asChild>
             <Button
               variant="outline"
               size="icon"
-              className="relative h-11 w-11"
-              aria-label="Open filters"
+              className="relative h-11 w-11 shrink-0"
+              aria-label={
+                activeFilterCount > 0 ? `Open filters, ${activeFilterCount} active` : 'Open filters'
+              }
             >
-              <Filter className="h-4 w-4" />
+              <Filter className="h-4 w-4" aria-hidden />
               {activeFilterCount > 0 && (
                 <Badge
                   variant="secondary"
@@ -96,88 +197,96 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
             </Button>
           </SheetTrigger>
 
-          <SheetContent side="bottom" className="h-[calc(100dvh-2rem)] p-0">
-          <div className="p-6 pb-0">
-            <SheetHeader className="pb-4">
-              <SheetTitle>Filter Equipment</SheetTitle>
-              <SheetDescription>
-                Filter equipment by status, manufacturer, or location. Team scope
-                is set from the breadcrumb at the top of the screen.
-              </SheetDescription>
-            </SheetHeader>
-          </div>
+          <MobileToolbarSheetContent className="flex flex-col overflow-hidden p-0">
+            <div className="shrink-0 p-6 pb-4">
+              <SheetHeader>
+                <SheetTitle>Filter Equipment</SheetTitle>
+                <SheetDescription>
+                  Filter equipment by status, manufacturer, or location. Team scope is set from the
+                  breadcrumb at the top of the screen.
+                </SheetDescription>
+              </SheetHeader>
+            </div>
 
-          <ScrollArea className="h-[calc(100dvh-2rem-100px)] px-6">
-            <div className="space-y-4 pb-6">
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium">Filters</h3>
-
+            <ScrollArea className="min-h-0 flex-1 px-6">
+              <div className="space-y-6 pb-6">
                 <div className="space-y-3">
-                  <div>
-                    <label htmlFor={mobileStatusFilterId} className="mb-2 block text-sm font-medium">Status</label>
-                    <EquipmentStatusSelect
-                      value={filters.status}
-                      onValueChange={(value) => onFilterChange('status', value)}
-                      placeholder="All Status"
-                      triggerId={mobileStatusFilterId}
-                      triggerClassName="h-12"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor={mobileManufacturerFilterId} className="mb-2 block text-sm font-medium">Manufacturer</label>
-                    <EquipmentManufacturerSelect
-                      value={filters.manufacturer}
-                      onValueChange={(value) => onFilterChange('manufacturer', value)}
-                      manufacturers={filterOptions.manufacturers}
-                      triggerId={mobileManufacturerFilterId}
-                      triggerClassName="h-12"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor={mobileLocationFilterId} className="mb-2 block text-sm font-medium">Location</label>
-                    <EquipmentLocationSelect
-                      value={filters.location}
-                      onValueChange={(value) => onFilterChange('location', value)}
-                      locations={filterOptions.locations}
-                      triggerId={mobileLocationFilterId}
-                      triggerClassName="h-12"
-                    />
+                  <h3 className="text-sm font-medium">Quick filters</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {EQUIPMENT_QUICK_FILTERS.map((preset) => {
+                      const isActive = activeQuickFilter === preset.value;
+                      return (
+                        <Button
+                          key={preset.value}
+                          size="sm"
+                          variant={isActive ? 'default' : 'outline'}
+                          className="min-h-11 whitespace-nowrap"
+                          onClick={() => onQuickFilter(preset.value)}
+                        >
+                          {isActive && <Check className="mr-1 h-3 w-3" aria-hidden />}
+                          {preset.label}
+                        </Button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Clear All Button */}
-                <Button
-                  variant="outline"
-                  onClick={onClearFilters}
-                  className="h-12 w-full"
-                >
-                  Clear All Filters
-                </Button>
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Filters</h3>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label htmlFor={mobileStatusFilterId} className="mb-2 block text-sm font-medium">
+                        Status
+                      </label>
+                      <EquipmentStatusSelect
+                        value={filters.status}
+                        onValueChange={(value) => onFilterChange('status', value)}
+                        placeholder="All Status"
+                        triggerId={mobileStatusFilterId}
+                        triggerClassName="h-12"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor={mobileManufacturerFilterId}
+                        className="mb-2 block text-sm font-medium"
+                      >
+                        Manufacturer
+                      </label>
+                      <EquipmentManufacturerSelect
+                        value={filters.manufacturer}
+                        onValueChange={(value) => onFilterChange('manufacturer', value)}
+                        manufacturers={filterOptions.manufacturers}
+                        triggerId={mobileManufacturerFilterId}
+                        triggerClassName="h-12"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor={mobileLocationFilterId} className="mb-2 block text-sm font-medium">
+                        Location
+                      </label>
+                      <EquipmentLocationSelect
+                        value={filters.location}
+                        onValueChange={(value) => onFilterChange('location', value)}
+                        locations={filterOptions.locations}
+                        triggerId={mobileLocationFilterId}
+                        triggerClassName="h-12"
+                      />
+                    </div>
+                  </div>
+
+                  <Button variant="outline" onClick={onClearFilters} className="h-12 w-full">
+                    Clear All Filters
+                  </Button>
+                </div>
               </div>
-            </div>
-          </ScrollArea>
-          </SheetContent>
+            </ScrollArea>
+          </MobileToolbarSheetContent>
         </Sheet>
       </div>
-
-      <HorizontalChipRow ariaLabel="Quick filter options">
-        {EQUIPMENT_QUICK_FILTERS.map((preset) => (
-          <Button
-            key={preset.value}
-            size="sm"
-            variant={activeQuickFilter === preset.value ? 'default' : 'outline'}
-            className="shrink-0 whitespace-nowrap min-h-11"
-            onClick={() => {
-              onQuickFilter(preset.value);
-              handleSheetOpenChange(false);
-            }}
-          >
-            {preset.label}
-          </Button>
-        ))}
-      </HorizontalChipRow>
 
       {/* Active Filter Summary with Clear All */}
       {activeFilterCount > 0 && (
@@ -213,12 +322,7 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
               />
             </Badge>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="min-h-11 px-3 text-sm"
-            onClick={onClearFilters}
-          >
+          <Button variant="ghost" size="sm" className="min-h-11 px-3 text-sm" onClick={onClearFilters}>
             Clear all
           </Button>
         </div>

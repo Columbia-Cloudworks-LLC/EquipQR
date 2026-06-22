@@ -29,6 +29,7 @@ import {
 } from '@/services/quickbooks';
 import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
 import { toast } from 'sonner';
+import { QuickBooksMarkIcon } from '@/components/icons/QuickBooksMarkIcon';
 import { IntegrationLoadingCard } from '@/features/organization/components/IntegrationLoadingCard';
 import { IntegrationNotConfiguredCard } from '@/features/organization/components/IntegrationNotConfiguredCard';
 import {
@@ -37,6 +38,8 @@ import {
   IntegrationInlineActions,
   integrationActionButtonClassName,
 } from '@/features/organization/components/IntegrationCardLayout';
+
+const quickBooksMark = <QuickBooksMarkIcon />;
 
 interface QuickBooksIntegrationProps {
   /** @deprecated - No longer used. Permission is now derived from useQuickBooksAccess hook. */
@@ -124,6 +127,7 @@ export const QuickBooksIntegration = ({
       <IntegrationNotConfiguredCard
         title="QuickBooks Online"
         description="Export work orders as draft invoices"
+        icon={quickBooksMark}
       />
     );
   }
@@ -134,6 +138,7 @@ export const QuickBooksIntegration = ({
         <IntegrationCardHeader
           title="QuickBooks Online"
           description="Export work orders as draft invoices"
+          icon={quickBooksMark}
         />
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
@@ -152,6 +157,7 @@ export const QuickBooksIntegration = ({
       <IntegrationCardHeader
         title="QuickBooks Online"
         description="Export work orders as draft invoices"
+        icon={quickBooksMark}
         badge={
           isConnected ? (
             <Badge variant="outline" className="bg-success/10 text-success border-success/30 text-xs">
