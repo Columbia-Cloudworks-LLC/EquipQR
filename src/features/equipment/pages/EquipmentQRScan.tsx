@@ -67,7 +67,7 @@ const EquipmentQRScan = () => {
   const isOnline = useBrowserOnline();
   const allowedOrgIds = mergeAllowedOrganizationIds(
     organizations.map((org) => org.id),
-    sessionData?.organizations.map((org) => org.id) ?? [],
+    sessionData?.organizations?.map((org) => org.id) ?? [],
   );
   const cacheOrgId = resolveValidatedOrganizationId({
     currentOrganizationId: currentOrganization?.id,

@@ -276,7 +276,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
   useEffect(() => {
     const allowedOrgIds = mergeAllowedOrganizationIds(
       organizations.map((org) => org.id),
-      sessionContext?.sessionData?.organizations.map((org) => org.id) ?? [],
+      sessionContext?.sessionData?.organizations?.map((org) => org.id) ?? [],
     );
     const scopedOrgId = resolveValidatedOrganizationId({
       currentOrganizationId: currentOrganization?.id,
