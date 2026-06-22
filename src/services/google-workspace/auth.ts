@@ -13,7 +13,6 @@ import {
 } from '@/services/oauthSessionHelpers';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-const GOOGLE_PICKER_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
 export const GOOGLE_WORKSPACE_IDENTITY_SCOPES = ['openid', 'email', 'profile'] as const;
 export const GOOGLE_WORKSPACE_FEATURE_SCOPES = [
   'https://www.googleapis.com/auth/admin.directory.user.readonly',

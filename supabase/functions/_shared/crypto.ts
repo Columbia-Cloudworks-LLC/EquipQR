@@ -229,29 +229,32 @@ export async function encryptToken(plaintext: string, secret: string): Promise<s
   return btoa(String.fromCharCode(...combined));
 }
 
+export async function deriveTokenEncryptionKey(secret: string): Promise<CryptoKey> {
+  return deriveKey(secret);
+}
+
+export async function decryptTokenWithKey(encrypted: string, key: CryptoKey): Promise<string> {
+  const combined = Uint8Array.from(atob(encrypted), (c) => c.charCodeAt(0));
+  const iv = combined.slice(0, IV_LENGTH);
+  const ciphertext = combined.slice(IV_LENGTH);
+
+  const plaintext = await crypto.subtle.decrypt(
+    { name: ALGORITHM, iv },
+    key,
+    ciphertext,
+  );
+
+  const decoder = new TextDecoder();
+  return decoder.decode(plaintext);
+}
+
 /**
  * Decrypts a base64-encoded ciphertext string that was encrypted with encryptToken.
  * Returns the original plaintext string.
  */
 export async function decryptToken(encrypted: string, secret: string): Promise<string> {
   const key = await deriveKey(secret);
-  
-  // Decode from base64
-  const combined = Uint8Array.from(atob(encrypted), c => c.charCodeAt(0));
-  
-  // Extract IV and ciphertext
-  const iv = combined.slice(0, IV_LENGTH);
-  const ciphertext = combined.slice(IV_LENGTH);
-  
-  // Decrypt
-  const plaintext = await crypto.subtle.decrypt(
-    { name: ALGORITHM, iv },
-    key,
-    ciphertext
-  );
-  
-  const decoder = new TextDecoder();
-  return decoder.decode(plaintext);
+  return decryptTokenWithKey(encrypted, key);
 }
 
 /**
