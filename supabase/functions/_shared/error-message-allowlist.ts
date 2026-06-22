@@ -82,6 +82,8 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   // Validation errors
   /^Method not allowed$/,
   /^Invalid JSON body$/,
+  /^Missing security event token$/,
+  /^Invalid security event token$/,
   /^Missing required field/,
   // Single-field validation errors - uses the same allowlist as multi-field to maintain consistency
   // Explicit field name allowlist prevents matching sensitive fields like "password" or "api_key"
@@ -199,3 +201,4 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
 function isErrorAllowlisted(errorMessage: string): boolean {
   return SAFE_ERROR_PATTERNS.some((pattern) => pattern.test(errorMessage));
 }
+

@@ -5,11 +5,13 @@ import { useAppToast } from '@/hooks/useAppToast';
 interface UseGoogleWorkspaceConnectOptions {
   organizationId: string | undefined;
   redirectUrl: string;
+  consentMode?: 'directory' | 'export';
 }
 
 export function useGoogleWorkspaceConnect({
   organizationId,
   redirectUrl,
+  consentMode = 'directory',
 }: UseGoogleWorkspaceConnectOptions) {
   const { toast } = useAppToast();
   const [isConnecting, setIsConnecting] = useState(false);
@@ -24,6 +26,7 @@ export function useGoogleWorkspaceConnect({
       const authUrl = await generateGoogleWorkspaceAuthUrl({
         organizationId,
         redirectUrl,
+        consentMode,
       });
       window.location.href = authUrl;
     } catch (error) {
@@ -34,7 +37,7 @@ export function useGoogleWorkspaceConnect({
       });
       setIsConnecting(false);
     }
-  }, [organizationId, redirectUrl, toast]);
+  }, [organizationId, redirectUrl, consentMode, toast]);
 
   return { connect, isConnecting };
 }

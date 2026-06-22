@@ -3,12 +3,18 @@ import {
   canSyncGoogleWorkspaceDirectory,
   evaluateGoogleWorkspaceConnectionHealth,
   generateGoogleWorkspaceAuthUrl,
+  GOOGLE_EXPORT_CONSENT_SCOPES,
+  GOOGLE_WORKSPACE_DIRECTORY_CONSENT_SCOPES,
   GOOGLE_WORKSPACE_FEATURE_SCOPES,
-  GOOGLE_WORKSPACE_REQUIRED_SCOPES,
   hasAllGoogleScopes,
 } from './auth';
 
 const rpcMock = vi.fn();
+
+function parseScopeSet(url: string): Set<string> {
+  const scope = new URL(url).searchParams.get('scope') ?? '';
+  return new Set(scope.split(/\s+/).filter(Boolean));
+}
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -23,7 +29,7 @@ describe('generateGoogleWorkspaceAuthUrl', () => {
     vi.stubEnv('VITE_SUPABASE_URL', 'https://supabase.test');
   });
 
-  it('builds a Google OAuth URL with a session-backed state', async () => {
+  it('builds a directory-first Google OAuth URL with a session-backed state', async () => {
     rpcMock.mockResolvedValue({
       data: [{ session_token: 'session-token', nonce: 'nonce-token' }],
       error: null,
@@ -49,13 +55,35 @@ describe('generateGoogleWorkspaceAuthUrl', () => {
       p_origin_url: expect.any(String),
     });
 
-    const scope = parsed.searchParams.get('scope') ?? '';
-    expect(scope).toContain('openid');
-    expect(scope).toContain('email');
-    expect(scope).toContain('profile');
-    expect(scope).toContain('admin.directory.user.readonly');
+    const scopeSet = parseScopeSet(url);
+    expect(scopeSet).toEqual(new Set(GOOGLE_WORKSPACE_DIRECTORY_CONSENT_SCOPES));
+    expect(scopeSet).not.toContain('https://www.googleapis.com/auth/spreadsheets');
+    expect(scopeSet).not.toContain('https://www.googleapis.com/auth/drive.file');
+    expect(scopeSet).not.toContain('https://www.googleapis.com/auth/drive.readonly');
+    expect(scopeSet).not.toContain('https://www.googleapis.com/auth/documents');
     expect(parsed.searchParams.get('access_type')).toBe('offline');
     expect(parsed.searchParams.get('prompt')).toBe('consent');
+    expect(parsed.searchParams.get('include_granted_scopes')).toBe('true');
+  });
+
+  it('builds an export-consent OAuth URL with export scopes requested incrementally', async () => {
+    rpcMock.mockResolvedValue({
+      data: [{ session_token: 'session-token', nonce: 'nonce-token' }],
+      error: null,
+    });
+
+    const url = await generateGoogleWorkspaceAuthUrl({
+      organizationId: 'org-123',
+      consentMode: 'export',
+    });
+
+    const parsed = new URL(url);
+    expect(parseScopeSet(url)).toEqual(new Set(GOOGLE_EXPORT_CONSENT_SCOPES));
+    expect(parseScopeSet(url).has('https://www.googleapis.com/auth/admin.directory.user.readonly')).toBe(false);
+    expect(parsed.searchParams.get('include_granted_scopes')).toBe('true');
+    expect(parsed.searchParams.get('access_type')).toBe('offline');
+    expect(parsed.searchParams.get('prompt')).toBe('consent');
+    expect(parsed.searchParams.get('include_granted_scopes')).toBe('true');
   });
 
   it('derives redirect_uri from VITE_SUPABASE_URL when override is unset', async () => {
@@ -127,18 +155,15 @@ describe('evaluateGoogleWorkspaceConnectionHealth', () => {
     ).toBe('missing_permissions');
   });
 
-  it('requests identity and feature scopes in the default OAuth URL', async () => {
+  it('requests identity and directory scopes in the default OAuth URL', async () => {
     rpcMock.mockResolvedValue({
       data: [{ session_token: 'session-token', nonce: 'nonce-token' }],
       error: null,
     });
 
     const url = await generateGoogleWorkspaceAuthUrl({ organizationId: 'org-123' });
-    const scope = new URL(url).searchParams.get('scope') ?? '';
 
-    for (const requiredScope of GOOGLE_WORKSPACE_REQUIRED_SCOPES) {
-      expect(scope).toContain(requiredScope);
-    }
+    expect(parseScopeSet(url)).toEqual(new Set(GOOGLE_WORKSPACE_DIRECTORY_CONSENT_SCOPES));
   });
 });
 
@@ -169,4 +194,3 @@ describe('canSyncGoogleWorkspaceDirectory', () => {
     ).toBe(false);
   });
 });
-

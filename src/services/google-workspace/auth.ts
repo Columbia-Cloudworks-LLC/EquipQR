@@ -13,7 +13,6 @@ import {
 } from '@/services/oauthSessionHelpers';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-export const GOOGLE_PICKER_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
 export const GOOGLE_WORKSPACE_IDENTITY_SCOPES = ['openid', 'email', 'profile'] as const;
 export const GOOGLE_WORKSPACE_FEATURE_SCOPES = [
   'https://www.googleapis.com/auth/admin.directory.user.readonly',
@@ -24,34 +23,43 @@ export const GOOGLE_WORKSPACE_FEATURE_SCOPES = [
 ] as const;
 export const GOOGLE_WORKSPACE_DIRECTORY_SCOPE =
   'https://www.googleapis.com/auth/admin.directory.user.readonly' as const;
-export const GOOGLE_WORKSPACE_REQUIRED_SCOPES = [
-  ...GOOGLE_WORKSPACE_IDENTITY_SCOPES,
-  ...GOOGLE_WORKSPACE_FEATURE_SCOPES,
-] as const;
 export const GOOGLE_EXPORT_DESTINATION_REQUIRED_SCOPES = [
   'https://www.googleapis.com/auth/drive.file',
   'https://www.googleapis.com/auth/drive.readonly',
   'https://www.googleapis.com/auth/documents',
 ] as const;
+export const GOOGLE_WORKSPACE_DIRECTORY_CONSENT_SCOPES = [
+  ...GOOGLE_WORKSPACE_IDENTITY_SCOPES,
+  GOOGLE_WORKSPACE_DIRECTORY_SCOPE,
+] as const;
+export const GOOGLE_EXPORT_CONSENT_SCOPES = [
+  ...GOOGLE_WORKSPACE_IDENTITY_SCOPES,
+  'https://www.googleapis.com/auth/spreadsheets',
+  ...GOOGLE_EXPORT_DESTINATION_REQUIRED_SCOPES,
+] as const;
+
+export type GoogleWorkspaceConsentMode = 'directory' | 'export';
+
+function scopesForConsentMode(consentMode: GoogleWorkspaceConsentMode): string {
+  if (consentMode === 'export') {
+    return GOOGLE_EXPORT_CONSENT_SCOPES.join(' ');
+  }
+
+  return GOOGLE_WORKSPACE_DIRECTORY_CONSENT_SCOPES.join(' ');
+}
 
 /**
- * Default OAuth scopes for Google Workspace integration.
- * 
- * - admin.directory.user.readonly: Read user directory for member import
- * - spreadsheets: Create and write to Google Sheets (for work order exports)
- * - drive.file: Create/update files in Google Drive (for PDF uploads)
- * - drive.readonly: Validate and read selected Drive destination metadata
- * - documents: Create and format Google Docs (for polished work order packets)
- * 
- * Connect and Grant permissions both request the full scope set below (directory,
- * Sheets, Drive, and Docs). Identity scopes (openid/email/profile) support the
- * OAuth callback userinfo step and are not shown in the Integrations health badge.
+ * OAuth scopes for Google Workspace integration use incremental authorization.
  *
- * **Grant permissions for legacy organizations:**
- * Organizations that connected before export scopes were added may only have directory
- * access stored. Grant permissions re-runs the same full-scope OAuth consent flow.
+ * - **Directory connect** (default): identity scopes plus admin.directory.user.readonly
+ *   for member import and directory sync during onboarding or first Connect.
+ * - **Export consent**: Drive, Docs, and Sheets scopes requested in context when admins
+ *   finish authorization or grant export permissions.
+ *
+ * Identity scopes (openid/email/profile) support the OAuth callback userinfo step and
+ * are not shown in the Integrations health badge.
  */
-const DEFAULT_SCOPES = GOOGLE_WORKSPACE_REQUIRED_SCOPES.join(' ');
+const DEFAULT_CONSENT_MODE: GoogleWorkspaceConsentMode = 'directory';
 
 export function hasAllGoogleScopes(
   currentScopes: string | null | undefined,
@@ -104,8 +112,13 @@ export interface GoogleWorkspaceAuthConfig {
   organizationId?: string;
   /** URL to redirect to after OAuth flow completes */
   redirectUrl?: string;
-  /** OAuth scopes to request (defaults to directory + spreadsheets + drive.file) */
+  /** OAuth scopes to request (overrides consentMode when set explicitly) */
   scopes?: string;
+  /**
+   * Incremental consent stage. Directory connect is the default; export requests
+   * Drive/Docs/Sheets scopes in context after directory access is granted.
+   */
+  consentMode?: GoogleWorkspaceConsentMode;
   /** 
    * Origin URL of the caller. Required when calling from non-browser contexts 
    * (e.g., Edge Functions or server-side code). In browsers, defaults to window.location.origin.
@@ -174,11 +187,14 @@ export async function generateGoogleWorkspaceAuthUrl(
 
   const state: OAuthState = createOAuthStatePayload(sessionToken, nonce);
 
+  const consentMode = config.consentMode ?? DEFAULT_CONSENT_MODE;
+  const scope = config.scopes ?? scopesForConsentMode(consentMode);
+
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: config.scopes || DEFAULT_SCOPES,
+    scope,
     access_type: 'offline',
     prompt: 'consent',
     include_granted_scopes: 'true',
@@ -192,40 +208,5 @@ export function isGoogleWorkspaceConfigured(): boolean {
   const clientId = import.meta.env.VITE_GOOGLE_WORKSPACE_CLIENT_ID;
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   return Boolean(clientId && supabaseUrl);
-}
-
-export interface GooglePickerConfig {
-  apiKey: string;
-  appId: string;
-  /** Shared OAuth web client ID used by Workspace and Picker token flow. */
-  clientId: string;
-  scope: string;
-}
-
-function getGooglePickerConfig(): GooglePickerConfig {
-  const apiKey = import.meta.env.VITE_GOOGLE_PICKER_API_KEY;
-  const appId = import.meta.env.VITE_GOOGLE_PICKER_APP_ID;
-  const clientId = import.meta.env.VITE_GOOGLE_WORKSPACE_CLIENT_ID;
-
-  if (!apiKey || !appId || !clientId) {
-    throw new Error(
-      'Google Picker is not configured. Missing VITE_GOOGLE_PICKER_API_KEY, VITE_GOOGLE_PICKER_APP_ID, or VITE_GOOGLE_WORKSPACE_CLIENT_ID (shared OAuth client; VITE_GOOGLE_PICKER_CLIENT_ID is not used).'
-    );
-  }
-
-  return {
-    apiKey,
-    appId,
-    clientId,
-    scope: GOOGLE_PICKER_SCOPE,
-  };
-}
-
-function isGooglePickerConfigured(): boolean {
-  return Boolean(
-    import.meta.env.VITE_GOOGLE_PICKER_API_KEY &&
-    import.meta.env.VITE_GOOGLE_PICKER_APP_ID &&
-    import.meta.env.VITE_GOOGLE_WORKSPACE_CLIENT_ID
-  );
 }
 

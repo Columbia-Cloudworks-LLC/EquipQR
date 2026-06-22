@@ -459,6 +459,8 @@ const EXACT_SAFE_ERROR_MESSAGE_BY_INPUT = new Map<string, string>([
   ["Gone", "Gone"],
   ["Method not allowed", "Method not allowed"],
   ["Invalid JSON body", "Invalid JSON body"],
+  ["Missing security event token", "Missing security event token"],
+  ["Invalid security event token", "Invalid security event token"],
   ["Invitation not found", "Invitation not found"],
   [
     "Invalid base64 content. The file data may be corrupted or incorrectly encoded.",
@@ -965,3 +967,4 @@ async function decorateResponseWithCorrelationId(
     headers,
   });
 }
+

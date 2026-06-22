@@ -313,6 +313,18 @@ EquipQR uses these scopes for Google Workspace features:
 | `https://www.googleapis.com/auth/drive.readonly` | Picker browsing/selection in browser UI | `src/services/google-workspace/auth.ts` |
 | `https://www.googleapis.com/auth/documents` | Format Google Docs executive packets via `batchUpdate` | `src/services/google-workspace/auth.ts` |
 
+**Incremental consent:** Connect/onboarding requests directory scopes first; export scopes are requested in context via Finish authorization or Grant Drive permissions (`consentMode: 'export'` in `src/services/google-workspace/auth.ts`).
+
+### Google Cross-Account Protection (RISC)
+
+Production receiver URL:
+
+`https://supabase.equipqr.app/functions/v1/google-risc-receiver`
+
+Register this endpoint in **Google Cloud Console → Google Auth Platform → Project Checkup → Cross-Account Protection** for the **EquipQR Google Workspace OAuth** client (`GOOGLE_WORKSPACE_CLIENT_ID` on edge). Google sends Security Event Tokens (`application/secevent+jwt`) without Supabase JWTs; the edge function validates signatures against Google JWKS and disconnects affected Workspace credentials on revocation events.
+
+Expected verification signal after registration: Google posts a RISC **verification** event and Project Checkup marks Cross-Account Protection as configured (may take a re-scan after deploy).
+
 > **Workspace OAuth audit logs**: Failures in the Workspace OAuth flow (consent, token exchange, Admin SDK directory reads) are captured by the Workspace tenant, not the `equipqr-prod` Cloud project. To make those logs queryable via Cloud Logging at the org tier, see [`docs/ops/observability.md`](observability.md) — it documents the Admin Console toggle, the org-level `gcloud logging read` queries, and the IAM grants required for agent-driven verification.
 
 > **Common mistake**: Setting a secret in Vercel when it should be in Supabase (or vice versa). The `GOOGLE_MAPS_BROWSER_KEY` is a frequent offender — it is served by a Supabase Edge Function at runtime, not baked into the Vercel build.

@@ -17,11 +17,12 @@ Must be a Google Workspace super-admin for your domain and an EquipQR Organizati
 
 1. Open **Dashboard → Organization → Integrations** (or **Dashboard → Onboarding → Workspace** for first-time setup).
 2. Click **Connect Google Workspace** and sign in with a Google Workspace administrator account.
-3. Approve the requested scopes on the Google consent screen. EquipQR requests directory access plus Drive, Docs, and Sheets permissions in a single flow so exports and member sync work immediately after onboarding.
+3. Approve the **directory** scopes on the Google consent screen. EquipQR requests identity plus `admin.directory.user.readonly` first so member import and directory sync can start immediately after onboarding.
+4. When you configure Google Drive export destinations or click **Finish authorization** on Integrations, EquipQR requests Drive, Docs, and Sheets scopes **in context** using incremental authorization (`include_granted_scopes=true`).
 
-## Finish authorization (legacy connections only)
+## Finish authorization (export scopes)
 
-If Google Workspace shows **Permissions needed**, the organization connected before export scopes were added or Google returned a partial scope list. Click **Finish authorization** to run the same full-scope consent flow used during onboarding.
+If Google Workspace shows **Permissions needed**, directory sync is connected but export scopes are still missing. Click **Finish authorization** to grant Drive, Docs, and Sheets permissions without repeating the directory consent step.
 
 ## Sync and import members
 

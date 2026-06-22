@@ -128,6 +128,7 @@ const WorkspaceOnboarding = () => {
       const authUrl = await generateGoogleWorkspaceAuthUrl({
         ...(workspaceOrgId ? { organizationId: workspaceOrgId } : {}),
         redirectUrl: '/dashboard/onboarding/workspace',
+        consentMode: 'directory',
       });
       window.location.href = authUrl;
     } catch (error) {

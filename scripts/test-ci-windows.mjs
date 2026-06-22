@@ -18,7 +18,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, '..');
 
 /** Ephemeral WSL sync target — never use a user-owned project directory. */
-const WSL_SANDBOX = '$HOME/.cache/equipqr/test-ci';
+const WSL_SANDBOX = '~/.cache/equipqr/test-ci';
 
 function toWslPath(winPath) {
   const resolved = path.resolve(winPath);
@@ -35,13 +35,15 @@ const repoWsl = toWslPath(repoRoot);
 
 const bashScript = `
 set -euo pipefail
-SANDBOX="${WSL_SANDBOX}"
-if [ "$SANDBOX" != "$HOME/.cache/equipqr/test-ci" ]; then
+WSL_HOME="$(printf '%s' ~)"
+SANDBOX="$WSL_HOME/.cache/equipqr/test-ci"
+EXPECTED_SANDBOX="$WSL_HOME/.cache/equipqr/test-ci"
+if [ "$SANDBOX" != "$EXPECTED_SANDBOX" ]; then
   echo "❌ Unexpected sandbox path: $SANDBOX"
   exit 1
 fi
 mkdir -p "$SANDBOX"
-export NVM_DIR="$HOME/.nvm"
+export NVM_DIR="$WSL_HOME/.nvm"
 if [ -s "$NVM_DIR/nvm.sh" ]; then
   . "$NVM_DIR/nvm.sh"
 else
