@@ -200,15 +200,23 @@ async function resolveOrganizationsByRefreshTokenPrefix(
   prefix: string,
   scopedOrganizationIds: string[],
 ): Promise<string[]> {
-  if (prefix.length < 6 || scopedOrganizationIds.length === 0) {
+  if (prefix.length < 6) {
     return [];
   }
 
   const encryptionKey = getTokenEncryptionKey();
-  const { data, error } = await supabaseClient
+  let query = supabaseClient
     .from("google_workspace_credentials")
-    .select("organization_id, refresh_token")
-    .in("organization_id", scopedOrganizationIds);
+    .select("organization_id, refresh_token");
+
+  if (scopedOrganizationIds.length > 0) {
+    query = query.in("organization_id", scopedOrganizationIds);
+  } else {
+    // Token-only RISC events lack email/user hints; scan recent credentials with a hard cap.
+    query = query.order("updated_at", { ascending: false }).limit(100);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`Failed to load Google Workspace credentials: ${error.message}`);
@@ -226,7 +234,11 @@ async function resolveOrganizationsByRefreshTokenPrefix(
         organizationIds.add(row.organization_id);
       }
     } catch {
-      // Skip rows that cannot be decrypted; do not log token material.
+      const looksBase64 =
+        /^[A-Za-z0-9+/]+={0,2}$/.test(row.refresh_token) && row.refresh_token.length % 4 === 0;
+      if (!looksBase64 && row.refresh_token.startsWith(prefix)) {
+        organizationIds.add(row.organization_id);
+      }
     }
   }
 

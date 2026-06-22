@@ -4,6 +4,7 @@ import {
   hasSupportedRevocationEvents,
   isVerificationOnlyEvent,
   parseSecurityEventToken,
+  resolveOrganizationIdsForRiscHints,
   RISC_REVOCATION_EVENT_TYPES,
   RISC_VERIFICATION_EVENT,
 } from "./risc-helpers.ts";
@@ -199,6 +200,64 @@ Deno.test("handleGoogleRiscRequest no-ops unsupported events", async () => {
   assertEquals(response.status, 200);
   const body = await response.json();
   assertEquals(body.disconnectedOrganizationIds, []);
+});
+
+Deno.test({
+  name: "resolveOrganizationIdsForRiscHints resolves token-only refresh prefix via bounded scan",
+  permissions: { env: true },
+  fn: async () => {
+    const previousKey = Deno.env.get("TOKEN_ENCRYPTION_KEY");
+    Deno.env.set("TOKEN_ENCRYPTION_KEY", "dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcw==");
+
+    try {
+      const calls: string[] = [];
+      const supabaseClient = {
+        from: (table: string) => {
+          calls.push(table);
+          if (table === "google_workspace_credentials") {
+            return {
+              select: () => ({
+                order: () => ({
+                  limit: () =>
+                    Promise.resolve({
+                      data: [{
+                        organization_id: "org-token-only",
+                        refresh_token: "legacy-plaintext-token-abc123suffix",
+                      }],
+                      error: null,
+                    }),
+                }),
+                in: () => Promise.resolve({ data: [], error: null }),
+              }),
+            };
+          }
+
+          if (table === "google_workspace_directory_users") {
+            return {
+              select: () => ({
+                eq: () => Promise.resolve({ data: [], error: null }),
+              }),
+            };
+          }
+
+          throw new Error(`Unexpected table ${table}`);
+        },
+      } as unknown as import("npm:@supabase/supabase-js@2.45.0").SupabaseClient;
+
+      const organizationIds = await resolveOrganizationIdsForRiscHints(supabaseClient, [{
+        refreshTokenPrefix: "legacy-plaintext-token",
+      }]);
+
+      assertEquals(organizationIds.includes("org-token-only"), true);
+      assertEquals(calls.includes("google_workspace_credentials"), true);
+    } finally {
+      if (previousKey === undefined) {
+        Deno.env.delete("TOKEN_ENCRYPTION_KEY");
+      } else {
+        Deno.env.set("TOKEN_ENCRYPTION_KEY", previousKey);
+      }
+    }
+  },
 });
 
 Deno.test("handleGoogleRiscRequest allows CORS preflight", async () => {
