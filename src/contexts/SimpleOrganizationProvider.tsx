@@ -270,13 +270,21 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
   // data. When the user signs out or no org is selected, scope is cleared
   // and the persister becomes a no-op until a real scope reappears.
   useEffect(() => {
-    const scopedOrgId = currentOrganization?.id ?? currentOrganizationId;
+    const scopedOrgId =
+      currentOrganization?.id ??
+      sessionContext?.sessionData?.currentOrganizationId ??
+      currentOrganizationId;
     if (user?.id && scopedOrgId) {
       setActivePersistenceScope({ userId: user.id, orgId: scopedOrgId });
     } else {
       setActivePersistenceScope(null);
     }
-  }, [user?.id, currentOrganization?.id, currentOrganizationId]);
+  }, [
+    user?.id,
+    currentOrganization?.id,
+    currentOrganizationId,
+    sessionContext?.sessionData?.currentOrganizationId,
+  ]);
 
   // Monitor state changes for debugging (removed excessive logging)
 

@@ -63,7 +63,10 @@ const EquipmentQRScan = () => {
   const isOnline = useBrowserOnline();
   /** Prefer hydrated org object; fall back to provider/session org ids for cold-offline cache reads. */
   const cacheOrgId =
-    currentOrganization?.id ?? organizationId ?? sessionData?.currentOrganizationId ?? undefined;
+    currentOrganization?.id ??
+    sessionData?.currentOrganizationId ??
+    organizationId ??
+    undefined;
   const { data: cachedEquipment } = useEquipmentById(cacheOrgId, equipmentId);
   const [payload, setPayload] = useState<EquipmentQRPayload | null>(null);
   const latestPmQuery = useLatestCompletedPMDetails(
