@@ -29,8 +29,10 @@ const mockTeam = {
   created_at: new Date().toISOString(),
 };
 
+const mockUseTeam = vi.fn(() => ({ data: mockTeam, isLoading: false }));
+
 vi.mock('@/features/teams/hooks/useTeamManagement', () => ({
-  useTeam: vi.fn(() => ({ data: mockTeam, isLoading: false })),
+  useTeam: (...args: unknown[]) => mockUseTeam(...args),
   useTeamMutations: vi.fn(() => ({ deleteTeam: { mutateAsync: vi.fn() } })),
 }));
 
@@ -79,5 +81,13 @@ describe('TeamDetails permissions gating', () => {
     perms.canManageTeam = () => true; // permission layer should return true for admins
     render(<TeamDetails />);
     expect(screen.getByText('Add Member')).toBeInTheDocument();
+  });
+
+  it('renders Team not found card without crashing when team is missing (#1076)', () => {
+    mockUseTeam.mockReturnValueOnce({ data: null, isLoading: false });
+    render(<TeamDetails />);
+    expect(screen.getByText('Team not found')).toBeInTheDocument();
+    expect(screen.getByText('Back to Teams')).toBeInTheDocument();
+    expect(screen.getByText('Return to Teams')).toBeInTheDocument();
   });
 });

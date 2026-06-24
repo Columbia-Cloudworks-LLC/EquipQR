@@ -3,16 +3,17 @@ import { getTeamBasedDashboardStats } from '@/features/teams/services/teamBasedD
 import { getFleetEfficiency } from '@/features/teams/services/teamFleetEfficiencyService';
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
 import { getTeamBasedWorkOrders } from '@/features/teams/services/teamBasedWorkOrderService';
-import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
-import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
+import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
+import { dashboard as dashboardKeys } from '@/lib/queryKeys/dashboard';
+import { useDashboardTeamQueryContext } from '@/features/dashboard/hooks/useDashboardTeamQueryContext';
 
 export const useTeamBasedDashboardStats = (organizationId?: string) => {
-  const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
-  const { isManager } = useWorkOrderPermissionLevels();
-  const userTeamIds = getUserTeamIds();
+  const { userTeamIds, isManager, selectedTeamId, teamsLoading } = useDashboardTeamQueryContext();
 
   return useQuery({
-    queryKey: ['team-based-dashboard-stats', organizationId, userTeamIds, isManager],
+    queryKey: organizationId
+      ? dashboardKeys(organizationId, selectedTeamId).teamBasedStats(userTeamIds, isManager)
+      : ['team-based-dashboard-stats', organizationId],
     queryFn: () => {
       if (!organizationId) {
         return {
@@ -27,12 +28,9 @@ export const useTeamBasedDashboardStats = (organizationId?: string) => {
           totalTeams: 0,
         };
       }
-      return getTeamBasedDashboardStats(organizationId, userTeamIds, isManager);
+      return getTeamBasedDashboardStats(organizationId, userTeamIds, isManager, selectedTeamId);
     },
     enabled: !!organizationId && !teamsLoading,
-    // Stale time bumped from 30s to 2 min and window-focus refetch disabled.
-    // Field technicians on Slow 4G frequently background and resume the app;
-    // every focus event used to trigger a full dashboard refetch.
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
@@ -40,17 +38,22 @@ export const useTeamBasedDashboardStats = (organizationId?: string) => {
 };
 
 export const useTeamBasedEquipment = (organizationId?: string) => {
-  const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
-  const { isManager } = useWorkOrderPermissionLevels();
-  const userTeamIds = getUserTeamIds();
+  const { userTeamIds, isManager, selectedTeamId, teamsLoading } = useDashboardTeamQueryContext();
 
   return useQuery({
-    queryKey: ['team-based-equipment', organizationId, userTeamIds, isManager],
+    queryKey: organizationId
+      ? dashboardKeys(organizationId, selectedTeamId).teamBasedEquipment(userTeamIds, isManager)
+      : ['team-based-equipment', organizationId],
     queryFn: async () => {
       if (!organizationId) {
         return [];
       }
-      const result = await EquipmentService.getTeamAccessibleEquipment(organizationId, userTeamIds, isManager);
+      const result = await EquipmentService.getTeamAccessibleEquipment(
+        organizationId,
+        userTeamIds,
+        isManager,
+        selectedTeamId,
+      );
       return result.success && result.data ? result.data : [];
     },
     enabled: !!organizationId && !teamsLoading,
@@ -61,17 +64,17 @@ export const useTeamBasedEquipment = (organizationId?: string) => {
 };
 
 export const useTeamBasedRecentWorkOrders = (organizationId?: string) => {
-  const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
-  const { isManager } = useWorkOrderPermissionLevels();
-  const userTeamIds = getUserTeamIds();
+  const { userTeamIds, isManager, selectedTeamId, teamsLoading } = useDashboardTeamQueryContext();
 
   return useQuery({
-    queryKey: ['team-based-recent-work-orders', organizationId, userTeamIds, isManager],
+    queryKey: organizationId
+      ? dashboardKeys(organizationId, selectedTeamId).teamBasedRecentWorkOrders(userTeamIds, isManager)
+      : ['team-based-recent-work-orders', organizationId],
     queryFn: () => {
       if (!organizationId) {
         return [];
       }
-      return getTeamBasedWorkOrders(organizationId, userTeamIds, isManager, {});
+      return getTeamBasedWorkOrders(organizationId, userTeamIds, isManager, {}, selectedTeamId);
     },
     enabled: !!organizationId && !teamsLoading,
     staleTime: 2 * 60 * 1000,
@@ -81,17 +84,24 @@ export const useTeamBasedRecentWorkOrders = (organizationId?: string) => {
 };
 
 export const useTeamFleetEfficiency = (organizationId?: string) => {
-  const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
-  const { isManager } = useWorkOrderPermissionLevels();
-  const userTeamIds = getUserTeamIds();
+  const { userTeamIds, isManager, selectedTeamId, teamsLoading } = useDashboardTeamQueryContext();
 
   return useQuery({
-    queryKey: ['team-fleet-efficiency', organizationId, userTeamIds, isManager],
-    queryFn: () => {
+    queryKey: organizationId
+      ? dashboardKeys(organizationId, selectedTeamId).teamFleetEfficiency(userTeamIds, isManager)
+      : ['team-fleet-efficiency', organizationId],
+    queryFn: async () => {
       if (!organizationId) {
         return [];
       }
-      return getFleetEfficiency(organizationId, userTeamIds, isManager);
+      const points = await getFleetEfficiency(organizationId, userTeamIds, isManager);
+      if (selectedTeamId === UNASSIGNED_TEAM_ID) {
+        return [];
+      }
+      if (selectedTeamId) {
+        return points.filter((point) => point.teamId === selectedTeamId);
+      }
+      return points;
     },
     enabled: !!organizationId && !teamsLoading,
     staleTime: 2 * 60 * 1000,
@@ -102,14 +112,12 @@ export const useTeamFleetEfficiency = (organizationId?: string) => {
 
 // Hook for checking if user has team-based dashboard access
 export const useTeamBasedDashboardAccess = () => {
-  const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
-  const { isManager } = useWorkOrderPermissionLevels();
-  const userTeamIds = getUserTeamIds();
+  const { userTeamIds, isManager, teamsLoading } = useDashboardTeamQueryContext();
 
   return {
     userTeamIds,
-    hasTeamAccess: userTeamIds.length > 0 || isManager, // Managers have access even without teams
+    hasTeamAccess: userTeamIds.length > 0 || isManager,
     isManager,
-    isLoading: teamsLoading
+    isLoading: teamsLoading,
   };
 };

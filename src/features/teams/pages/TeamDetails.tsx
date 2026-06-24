@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronRight, Settings, Users, Trash2, Plus, Edit, Forklift, ClipboardList, MoreVertical } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Settings, Users, Trash2, Plus, Edit, Forklift, ClipboardList, MoreVertical } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeam, useTeamMutations } from '@/features/teams/hooks/useTeamManagement';
 import { usePermissions } from '@/hooks/usePermissions';

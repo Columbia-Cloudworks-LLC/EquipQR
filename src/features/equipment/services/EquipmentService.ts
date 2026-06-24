@@ -15,6 +15,8 @@ import {
 } from '@/services/batchMutationResultHelpers';
 import { queryOrgScopedEquipmentNotes, queryOrgScopedEquipmentScans } from '@/services/equipmentOrgScopedQueries';
 import { flattenAndResolveEquipmentImages } from '@/features/equipment/utils/equipmentTeamFlatten';
+import { applySelectedTeamFilter } from '@/features/dashboard/utils/dashboardTeamScope';
+import type { SelectedTeamId } from '@/contexts/selected-team-context';
 
 // Use Supabase types for Equipment
 export type Equipment = Tables<'equipment'>;
@@ -967,7 +969,8 @@ export class EquipmentService {
   static async getTeamAccessibleEquipment(
     organizationId: string,
     userTeamIds: string[],
-    isOrgAdmin: boolean = false
+    isOrgAdmin: boolean = false,
+    selectedTeamId?: SelectedTeamId,
   ): Promise<ApiResponse<Equipment[]>> {
     try {
       let query = supabase
@@ -990,6 +993,10 @@ export class EquipmentService {
           // Users with no team memberships see no equipment
           return createServiceSuccessResponse([]);
         }
+      }
+
+      if (selectedTeamId !== undefined) {
+        query = applySelectedTeamFilter(query, selectedTeamId);
       }
 
       const { data, error } = await query.order('name', { ascending: true });

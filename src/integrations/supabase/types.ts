@@ -4690,7 +4690,12 @@ export type Database = {
       }
       get_current_user_id: { Args: never; Returns: string }
       get_dashboard_trends: {
-        Args: { p_days?: number; p_org_id: string }
+        Args: {
+          p_days?: number
+          p_org_id: string
+          p_team_id?: string
+          p_unassigned?: boolean
+        }
         Returns: {
           needs_attention_delta: number
           needs_attention_direction: string

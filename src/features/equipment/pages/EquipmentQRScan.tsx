@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import EquipQRIcon from '@/components/ui/EquipQRIcon';
 import { useAuth } from '@/hooks/useAuth';
-import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSimpleOrganizationSafe } from '@/hooks/useSimpleOrganization';
 import { useSession } from '@/hooks/useSession';
 import {
   mergeAllowedOrganizationIds,
@@ -62,7 +62,10 @@ const EquipmentQRScan = () => {
   const [searchParams] = useSearchParams();
   const orgIdFromUrl = searchParams.get('org') ?? undefined;
   const { user, isLoading: authLoading } = useAuth();
-  const { currentOrganization, organizationId, organizations } = useOrganization();
+  const orgContext = useSimpleOrganizationSafe();
+  const currentOrganization = orgContext?.currentOrganization ?? null;
+  const organizationId = orgContext?.organizationId ?? null;
+  const organizations = orgContext?.organizations ?? [];
   const { sessionData } = useSession();
   const isOnline = useBrowserOnline();
   const allowedOrgIds = mergeAllowedOrganizationIds(
