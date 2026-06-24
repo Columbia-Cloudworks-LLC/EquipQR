@@ -289,6 +289,69 @@ describe('EquipmentService', () => {
     });
   });
 
+  describe('findBySerial', () => {
+    it('returns null without querying when the serial is blank', async () => {
+      const result = await EquipmentService.findBySerial(organizationId, '   ');
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBeNull();
+      expect(supabase.from as ReturnType<typeof vi.fn>).not.toHaveBeenCalled();
+    });
+
+    it('returns a minimal match (with team name) when an existing serial is found', async () => {
+      const mockQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: {
+            id: 'eq-existing',
+            name: 'JLG 519',
+            manufacturer: 'JLG',
+            model: '519',
+            serial_number: '123456789',
+            status: 'active',
+            team_id: 'team-1',
+            team: { name: '3-A Equipment' },
+          },
+          error: null,
+        }),
+      };
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+
+      const result = await EquipmentService.findBySerial(organizationId, '123456789');
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({
+        id: 'eq-existing',
+        name: 'JLG 519',
+        manufacturer: 'JLG',
+        model: '519',
+        serial_number: '123456789',
+        status: 'active',
+        team_id: 'team-1',
+        team_name: '3-A Equipment',
+      });
+    });
+
+    it('returns null when no equipment has the serial', async () => {
+      const mockQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+      };
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+
+      const result = await EquipmentService.findBySerial(organizationId, 'no-match');
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBeNull();
+    });
+  });
+
   describe('getStatusCounts', () => {
     it('should return status counts', async () => {
       const mockEquipment = [

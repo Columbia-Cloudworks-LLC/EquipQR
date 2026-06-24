@@ -8,12 +8,22 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentManufacturersAndModels } from '@/features/equipment/hooks/useEquipment';
 import { type EquipmentFormData, generateEquipmentName } from '@/features/equipment/types/equipment';
 import { useManufacturerModelSuggestions } from '@/features/equipment/utils/manufacturerModelLookup';
+import type { DuplicateEquipmentMatch } from '@/features/equipment/services/EquipmentService';
+import { DuplicateSerialWarning } from '@/features/equipment/components/DuplicateSerialWarning';
 
 interface EquipmentBasicInfoSectionProps {
   form: UseFormReturn<EquipmentFormData>;
+  /** Existing record sharing the entered serial number, if any (non-blocking warning). */
+  duplicateMatch?: DuplicateEquipmentMatch | null;
+  /** Called when the operator follows the link to the existing record. */
+  onDuplicateNavigate?: () => void;
 }
 
-const EquipmentBasicInfoSection: React.FC<EquipmentBasicInfoSectionProps> = ({ form }) => {
+const EquipmentBasicInfoSection: React.FC<EquipmentBasicInfoSectionProps> = ({
+  form,
+  duplicateMatch,
+  onDuplicateNavigate,
+}) => {
   const { currentOrganization } = useOrganization();
   
   // Get manufacturer/model suggestions from existing equipment
@@ -164,6 +174,13 @@ const EquipmentBasicInfoSection: React.FC<EquipmentBasicInfoSectionProps> = ({ f
                 <Input placeholder="e.g., 12345678" {...field} />
               </FormControl>
               <FormMessage />
+              {duplicateMatch && (
+                <DuplicateSerialWarning
+                  match={duplicateMatch}
+                  inline
+                  onNavigate={onDuplicateNavigate}
+                />
+              )}
             </FormItem>
           )}
         />

@@ -253,6 +253,23 @@ export interface QuickEquipmentCreateData {
   name: string;
 }
 
+/**
+ * Minimal existing-equipment projection returned by `findBySerial`. Used by the
+ * create form to warn an operator that a record with the same serial number
+ * already exists in the org (non-blocking) and by the offline queue processor
+ * to replay a create idempotently when the record already landed server-side.
+ */
+export interface DuplicateEquipmentMatch {
+  id: string;
+  name: string;
+  manufacturer: string | null;
+  model: string | null;
+  serial_number: string | null;
+  status: Equipment['status'];
+  team_id: string | null;
+  team_name: string | null;
+}
+
 export interface EquipmentNote extends Tables<'notes'> {
   authorName?: string;
 }
@@ -594,8 +611,59 @@ export class EquipmentService {
   }
 
   /**
+   * Look up an existing equipment record by exact serial number within an org.
+   *
+   * Serial numbers are NOT enforced unique (see migration
+   * `20260623210000_equipment_serial_drop_unique.sql`). This lookup powers the
+   * non-blocking "possible duplicate" warning in the create form and the
+   * idempotent offline-create replay. Returns the oldest matching record, or
+   * `null` when the serial is blank or unused.
+   */
+  static async findBySerial(
+    organizationId: string,
+    serialNumber: string,
+  ): Promise<ApiResponse<DuplicateEquipmentMatch | null>> {
+    try {
+      const trimmed = serialNumber.trim();
+      if (!trimmed) return createServiceSuccessResponse(null);
+
+      const { data, error } = await supabase
+        .from('equipment')
+        .select('id, name, manufacturer, model, serial_number, status, team_id, team:team_id(name)')
+        .eq('organization_id', organizationId)
+        .eq('serial_number', trimmed)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        logger.error('Error looking up equipment by serial:', error);
+        return createServiceErrorResponse(error, 'EquipmentService error');
+      }
+
+      if (!data) return createServiceSuccessResponse(null);
+
+      const teamRelation = (data as { team?: { name?: string | null } | { name?: string | null }[] | null }).team;
+      const team = Array.isArray(teamRelation) ? teamRelation[0] : teamRelation;
+
+      return createServiceSuccessResponse({
+        id: data.id,
+        name: data.name,
+        manufacturer: data.manufacturer,
+        model: data.model,
+        serial_number: data.serial_number,
+        status: data.status,
+        team_id: data.team_id,
+        team_name: team?.name ?? null,
+      });
+    } catch (error) {
+      return createServiceErrorResponse(error, 'EquipmentService error');
+    }
+  }
+
+  /**
    * Create equipment with minimal data (quick creation during work order creation)
-   * 
+   *
    * Auto-generates description and sets sensible defaults for optional fields.
    * Used when technicians create equipment inline while creating work orders.
    */

@@ -449,6 +449,49 @@ describe('OfflineQueueProcessor', () => {
     expect(mockEquipmentCreate).toHaveBeenCalledWith(ORG_ID, payload);
   });
 
+  it('does not re-create equipment when the queue item already synced (idempotent replay)', async () => {
+    const item = createPendingItem({
+      type: 'equipment_create_full',
+      payload: {
+        name: 'Excavator', manufacturer: 'Komatsu', model: 'PC200',
+        serial_number: 'SN-002', team_id: 'team-1', status: 'active',
+        location: 'Yard A',
+        // Marker proving a prior attempt already created the row server-side.
+        syncedEquipmentId: 'eq-already-created',
+      },
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
+
+    const result = await processor.processAll();
+
+    expect(result.succeeded).toBe(1);
+    expect(result.failed).toBe(0);
+    // Critical: the create RPC must NOT run again for an already-synced item.
+    expect(mockEquipmentCreate).not.toHaveBeenCalled();
+    expect(queueService.getCount()).toBe(0);
+  });
+
+  it('records syncedEquipmentId after a successful equipment_create_full so retries are idempotent', async () => {
+    const item = createPendingItem({
+      type: 'equipment_create_full',
+      retryCount: 0,
+      maxRetries: 5,
+      payload: {
+        name: 'Excavator', manufacturer: 'Komatsu', model: 'PC200',
+        serial_number: 'SN-DUP', team_id: 'team-1', status: 'active', location: 'Yard A',
+      },
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
+
+    // First processAll succeeds and removes the item; assert create ran once.
+    mockEquipmentCreate.mockResolvedValueOnce({ success: true, data: { id: 'eq-dup-1' } });
+    const result = await processor.processAll();
+
+    expect(result.succeeded).toBe(1);
+    expect(mockEquipmentCreate).toHaveBeenCalledTimes(1);
+    expect(queueService.getCount()).toBe(0);
+  });
+
   it('processes equipment_update via EquipmentService.update()', async () => {
     const item = createPendingItem({
       type: 'equipment_update',

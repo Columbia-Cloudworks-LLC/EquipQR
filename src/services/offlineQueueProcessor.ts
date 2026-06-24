@@ -329,21 +329,35 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
   }) as QueueItemHandler<never>,
 
   equipment_create: (async (item: OfflineQueueEquipmentCreateItem, replay, queueService) => {
+    // Idempotent replay: if this exact queue item already created a row in a
+    // prior attempt, reuse the server id instead of creating a duplicate.
+    // Serials are intentionally non-unique, so we cannot rely on a serial
+    // collision to detect a prior success — we track it per queue item.
+    if (item.payload.syncedEquipmentId) {
+      replay.registerEquipment(item.id, item.payload.syncedEquipmentId, queueService);
+      return { success: true };
+    }
     const result = await EquipmentService.createQuick(item.organizationId, item.payload);
     if (!result.success || !result.data) {
       throw new Error(result.error || 'Sync failed: equipment create');
     }
     const serverId = String(result.data.id);
+    queueService.updatePayload(item.id, { syncedEquipmentId: serverId });
     replay.registerEquipment(item.id, serverId, queueService);
     return { success: true };
   }) as QueueItemHandler<never>,
 
   equipment_create_full: (async (item: OfflineQueueEquipmentCreateFullItem, replay, queueService) => {
+    if (item.payload.syncedEquipmentId) {
+      replay.registerEquipment(item.id, item.payload.syncedEquipmentId, queueService);
+      return { success: true };
+    }
     const result = await EquipmentService.create(item.organizationId, item.payload);
     if (!result.success || !result.data) {
       throw new Error(result.error || 'Sync failed: equipment create (full)');
     }
     const serverId = String(result.data.id);
+    queueService.updatePayload(item.id, { syncedEquipmentId: serverId });
     replay.registerEquipment(item.id, serverId, queueService);
     return { success: true };
   }) as QueueItemHandler<never>,

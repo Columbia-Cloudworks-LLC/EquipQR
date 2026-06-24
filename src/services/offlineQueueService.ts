@@ -149,12 +149,16 @@ export interface OfflineQueueWorkOrderNoteItem extends OfflineQueueItemBase {
 
 export interface OfflineQueueEquipmentCreateItem extends OfflineQueueItemBase {
   type: 'equipment_create';
-  payload: QuickEquipmentCreateData;
+  /** `syncedEquipmentId` is set after a successful replay so a retry of the
+   *  same queue item never creates a second row (serials are not unique). */
+  payload: QuickEquipmentCreateData & { syncedEquipmentId?: string };
 }
 
 export interface OfflineQueueEquipmentCreateFullItem extends OfflineQueueItemBase {
   type: 'equipment_create_full';
-  payload: EquipmentCreateData;
+  /** `syncedEquipmentId` is set after a successful replay so a retry of the
+   *  same queue item never creates a second row (serials are not unique). */
+  payload: EquipmentCreateData & { syncedEquipmentId?: string };
 }
 
 export interface OfflineQueueEquipmentUpdateItem extends OfflineQueueItemBase {
@@ -501,6 +505,27 @@ export class OfflineQueueService {
     }
 
     const currentQueue = this.getAll();
+
+    // Dedupe: an accidental double-submit of the same equipment create (same
+    // type + identical payload) while offline should not queue two rows. We
+    // match on the serialized payload so a deliberately different second record
+    // (even one sharing a serial number) is still queued — serials are not
+    // unique. Only pending/processing items are considered.
+    if (input.type === 'equipment_create' || input.type === 'equipment_create_full') {
+      const existingDuplicate = currentQueue.find(
+        qi =>
+          qi.type === input.type &&
+          (qi.status === 'pending' || qi.status === 'processing') &&
+          JSON.stringify(qi.payload) === serialized,
+      );
+      if (existingDuplicate) {
+        logger.info('Skipping duplicate offline equipment create enqueue', {
+          queueItemId: existingDuplicate.id,
+          type: input.type,
+        });
+        return existingDuplicate;
+      }
+    }
 
     // Guard: total queue storage budget
     const currentTotalSize = currentQueue.reduce((sum, qi) => sum + qi.payloadSizeBytes, 0);

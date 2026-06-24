@@ -26,17 +26,26 @@ interface WorkOrderWithImages {
 
 // Check if user is admin of organization
 const checkAdminAccess = async (orgId: string): Promise<void> => {
-  const userId = await requireAuthUserIdFromClaims();
+  const userId = await requireAuthUserIdFromClaims(
+    'Your session is still loading. Please wait a moment and try again.',
+  );
 
+  // `maybeSingle` so a missing membership row resolves to `null` instead of
+  // throwing a PostgREST "no rows" error — that distinction lets us return a
+  // precise message rather than a generic failure.
   const { data: member, error } = await supabase
     .from('organization_members')
     .select('role')
     .eq('user_id', userId)
     .eq('organization_id', orgId)
     .eq('status', 'active')
-    .single();
+    .maybeSingle();
 
-  if (error || !member || !['owner', 'admin'].includes(member.role)) {
+  if (error) {
+    throw new Error('Could not verify your permissions. Please check your connection and try again.');
+  }
+
+  if (!member || !['owner', 'admin'].includes(member.role)) {
     throw new Error('Permission denied: You must be an admin or owner to delete equipment');
   }
 };
@@ -171,6 +180,14 @@ export const deleteEquipmentCascade = async (equipmentId: string, orgId: string)
     await checkAdminAccess(orgId);
 
     logger.info(`Starting cascade deletion for equipment ${equipmentId}`);
+
+    // NOTE: We intentionally keep this explicit cascade rather than relying on
+    // a single `DELETE FROM equipment` + DB ON DELETE CASCADE. While equipment
+    // -> work_orders is CASCADE, `work_order_notes` has NO foreign key to
+    // `work_orders` (verified in prod): deleting the equipment row would orphan
+    // work-order notes and leave their images (and storage objects) behind.
+    // Deleting each work order via `deleteWorkOrder` cleans notes, images,
+    // costs, status history, and PMs correctly.
 
     // Step 1: Collect all data that needs to be deleted
     logger.info('Collecting equipment note images...');

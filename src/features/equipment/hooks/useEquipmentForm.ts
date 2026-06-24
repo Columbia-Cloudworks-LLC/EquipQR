@@ -22,6 +22,20 @@ import {
   toEquipmentUpdateData,
 } from '@/features/equipment/utils/equipmentFormMappers';
 
+/**
+ * Map a raw equipment mutation error to an operator-friendly message. Permission
+ * (RLS) denials get an actionable hint; everything else falls back to a generic
+ * message. Duplicate-serial (23505) can no longer occur after migration
+ * `20260623210000_equipment_serial_drop_unique.sql`.
+ */
+const getEquipmentMutationErrorMessage = (error: unknown, fallback: string): string => {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  if (/permission denied|row-level security|42501/i.test(message)) {
+    return 'You do not have permission to do this. You must be an org admin, or a manager or technician on the selected team.';
+  }
+  return fallback;
+};
+
 export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () => void) => {
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -111,7 +125,7 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
     },
     onError: (error) => {
       console.error('Equipment creation error:', error);
-      toast.error('Failed to create equipment');
+      toast.error(getEquipmentMutationErrorMessage(error, 'Failed to create equipment'));
     }
   });
 
@@ -178,7 +192,7 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
     },
     onError: (error) => {
       console.error('Equipment update error:', error);
-      toast.error('Failed to update equipment');
+      toast.error(getEquipmentMutationErrorMessage(error, 'Failed to update equipment'));
     }
   });
 

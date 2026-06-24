@@ -3,6 +3,7 @@ import '@fontsource/jetbrains-mono/400.css';
 import '@fontsource/jetbrains-mono/500.css';
 import '@fontsource/jetbrains-mono/600.css';
 import '@fontsource/jetbrains-mono/700.css';
+import { toast } from 'sonner';
 import App from './App.tsx'
 import './index.css'
 import { initConsoleErrorCapture } from '@/features/tickets/utils/consoleErrorBuffer';
@@ -27,6 +28,25 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
     try {
       const registration = await navigator.serviceWorker.register('/sw.js', {
         scope: '/',
+      });
+
+      // Surface a non-intrusive prompt when a new build is installed so the
+      // user can refresh on their own terms. This avoids the stale-shell
+      // chunk-load failure where the in-memory app references purged chunks.
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            toast('A new version of EquipQR is available.', {
+              duration: Infinity,
+              action: {
+                label: 'Refresh',
+                onClick: () => window.location.reload(),
+              },
+            });
+          }
+        });
       });
 
       // Check for updates hourly so a deployed shell upgrade is picked up

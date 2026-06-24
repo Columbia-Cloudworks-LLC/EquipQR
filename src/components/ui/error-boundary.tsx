@@ -3,6 +3,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { isChunkLoadError, reloadOnceForChunkError } from '@/utils/chunkLoadError';
 
 interface Props {
   children: ReactNode;
@@ -28,6 +29,13 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Stale-deploy chunk 404: recover by reloading once to fetch the fresh
+    // shell instead of showing a dead "Try again" that re-imports the missing
+    // chunk. Guarded so a genuinely broken chunk cannot loop.
+    if (isChunkLoadError(error) && reloadOnceForChunkError('error-boundary')) {
+      return;
+    }
+
     console.error('ErrorBoundary caught an error:', error, errorInfo);
 
     // Move focus to the fallback so keyboard and screen-reader users are alerted.
