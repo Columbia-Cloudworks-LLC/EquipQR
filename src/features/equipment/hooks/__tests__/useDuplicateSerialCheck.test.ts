@@ -32,7 +32,7 @@ describe('resolveDuplicateSerialAtSubmit', () => {
       'org-1',
       'SN-1',
       undefined,
-      { match, checkedSerial: 'SN-1', isChecking: false },
+      { match, checkedSerial: 'SN-1', isChecking: false, hasValidatedMatch: true },
     );
 
     expect(result).toEqual(match);
@@ -58,10 +58,36 @@ describe('resolveDuplicateSerialAtSubmit', () => {
       'org-1',
       'SN-FAST',
       undefined,
-      { match: null, checkedSerial: 'SN-OLD', isChecking: false },
+      { match: null, checkedSerial: 'SN-OLD', isChecking: false, hasValidatedMatch: true },
     );
 
     expect(mockFindBySerial).toHaveBeenCalledWith('org-1', 'SN-FAST');
     expect(result?.serial_number).toBe('SN-FAST');
+  });
+
+  it('performs immediate lookup when hook has not validated the submitted serial yet', async () => {
+    mockFindBySerial.mockResolvedValueOnce({
+      success: true,
+      data: {
+        id: 'eq-3',
+        name: 'Reopened form',
+        manufacturer: 'CAT',
+        model: '320',
+        serial_number: 'SN-REOPEN',
+        status: 'active',
+        team_id: 'team-1',
+        team_name: 'Heavy Equipment Team',
+      } satisfies DuplicateEquipmentMatch,
+    });
+
+    const result = await resolveDuplicateSerialAtSubmit(
+      'org-1',
+      'SN-REOPEN',
+      undefined,
+      { match: null, checkedSerial: 'SN-REOPEN', isChecking: false, hasValidatedMatch: false },
+    );
+
+    expect(mockFindBySerial).toHaveBeenCalledWith('org-1', 'SN-REOPEN');
+    expect(result?.id).toBe('eq-3');
   });
 });

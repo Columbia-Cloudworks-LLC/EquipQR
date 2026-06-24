@@ -23,6 +23,8 @@ export interface DuplicateSerialResult {
   isChecking: boolean;
   /** Serial value that produced the current `match` (debounced). */
   checkedSerial: string;
+  /** True once the debounced query has settled for `checkedSerial`. */
+  hasValidatedMatch: boolean;
 }
 
 const DEBOUNCE_MS = 400;
@@ -36,12 +38,17 @@ export async function resolveDuplicateSerialAtSubmit(
   orgId: string | undefined,
   submittedSerial: string,
   excludeEquipmentId: string | undefined,
-  current: Pick<DuplicateSerialResult, 'match' | 'checkedSerial' | 'isChecking'>,
+  current: Pick<DuplicateSerialResult, 'match' | 'checkedSerial' | 'isChecking' | 'hasValidatedMatch'>,
 ): Promise<DuplicateEquipmentMatch | null> {
   const trimmed = submittedSerial.trim();
   if (!orgId || !trimmed) return null;
 
-  if (!current.isChecking && current.checkedSerial === trimmed) {
+  const hookResultIsCurrent =
+    !current.isChecking &&
+    current.checkedSerial === trimmed &&
+    current.hasValidatedMatch;
+
+  if (hookResultIsCurrent) {
     return current.match;
   }
 
@@ -77,7 +84,7 @@ export function useDuplicateSerialCheck(
   const orgId = currentOrganization?.id;
   const queryEnabled = enabled && !!orgId && debounced.length > 0;
 
-  const { data, isFetching } = useQuery({
+  const { data, isFetching, isFetched } = useQuery({
     queryKey: ['equipment-serial-check', orgId, debounced],
     enabled: queryEnabled,
     staleTime: 30_000,
@@ -96,5 +103,6 @@ export function useDuplicateSerialCheck(
     match,
     isChecking: queryEnabled && isFetching,
     checkedSerial: debounced,
+    hasValidatedMatch: queryEnabled && isFetched && !isFetching,
   };
 }
