@@ -1,7 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { SelectedTeamId } from '@/contexts/selected-team-context';
+import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 import {
   applySelectedTeamFilter,
+  isAllTeamsScope,
   resolveDashboardEquipmentIdScope,
   selectedTeamIdToRpcParams,
 } from '@/features/dashboard/utils/dashboardTeamScope';
@@ -103,13 +105,37 @@ export interface EquipmentStatusRow {
 export async function fetchEquipmentByStatus(
   organizationId: string,
   selectedTeamId: SelectedTeamId | undefined = null,
+  userTeamIds: string[] = [],
+  isOrgAdmin: boolean = false,
 ): Promise<EquipmentStatusRow[]> {
+  if (!isOrgAdmin) {
+    if (selectedTeamId === UNASSIGNED_TEAM_ID) {
+      return [];
+    }
+    if (isAllTeamsScope(selectedTeamId) && userTeamIds.length === 0) {
+      return [];
+    }
+    if (
+      selectedTeamId &&
+      selectedTeamId !== UNASSIGNED_TEAM_ID &&
+      !userTeamIds.includes(selectedTeamId)
+    ) {
+      return [];
+    }
+  }
+
   let query = supabase
     .from('equipment')
     .select('status')
     .eq('organization_id', organizationId);
 
-  query = applySelectedTeamFilter(query, selectedTeamId);
+  if (isAllTeamsScope(selectedTeamId)) {
+    if (!isOrgAdmin) {
+      query = query.in('team_id', userTeamIds);
+    }
+  } else {
+    query = applySelectedTeamFilter(query, selectedTeamId);
+  }
 
   const { data: rows, error } = await query;
 

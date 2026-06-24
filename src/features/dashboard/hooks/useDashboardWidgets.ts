@@ -6,7 +6,7 @@ import {
   fetchDashboardTrends,
   type DashboardTrends,
 } from '@/features/dashboard/services/dashboardWidgetService';
-import { useDashboardWidgetTeamScope } from '@/features/dashboard/hooks/useDashboardTeamQueryContext';
+import { useDashboardTeamQueryContext } from '@/features/dashboard/hooks/useDashboardTeamQueryContext';
 import { dashboard as dashboardKeys } from '@/lib/queryKeys/dashboard';
 
 /**
@@ -33,11 +33,11 @@ export interface PMStatusCount {
 }
 
 export function usePMCompliance(organizationId: string | undefined) {
-  const { selectedTeamId, userTeamIds, isManager } = useDashboardWidgetTeamScope();
+  const { selectedTeamId, userTeamIds, isManager, teamsLoading } = useDashboardTeamQueryContext();
 
   return useQuery({
     queryKey: organizationId
-      ? dashboardKeys(organizationId, selectedTeamId).pmCompliance()
+      ? dashboardKeys(organizationId, selectedTeamId).pmCompliance(userTeamIds, isManager)
       : ['dashboard-pm-compliance', organizationId],
     queryFn: async (): Promise<PMStatusCount[]> => {
       if (!organizationId) return [];
@@ -69,7 +69,7 @@ export function usePMCompliance(organizationId: string | undefined) {
           color: STATUS_CONFIG[status as keyof typeof STATUS_CONFIG]?.color ?? 'hsl(var(--muted))',
         }));
     },
-    enabled: !!organizationId,
+    enabled: !!organizationId && !teamsLoading,
     staleTime: 60 * 1000,
   });
 }
@@ -91,16 +91,21 @@ export interface StatusCount {
 }
 
 export function useEquipmentByStatus(organizationId: string | undefined) {
-  const { selectedTeamId } = useDashboardWidgetTeamScope();
+  const { selectedTeamId, userTeamIds, isManager, teamsLoading } = useDashboardTeamQueryContext();
 
   return useQuery({
     queryKey: organizationId
-      ? dashboardKeys(organizationId, selectedTeamId).equipmentByStatus()
+      ? dashboardKeys(organizationId, selectedTeamId).equipmentByStatus(userTeamIds, isManager)
       : ['dashboard-equipment-by-status', organizationId],
     queryFn: async (): Promise<StatusCount[]> => {
       if (!organizationId) return [];
 
-      const rows = await fetchEquipmentByStatus(organizationId, selectedTeamId);
+      const rows = await fetchEquipmentByStatus(
+        organizationId,
+        selectedTeamId,
+        userTeamIds,
+        isManager,
+      );
 
       const counts = new Map<string, number>();
       for (const row of rows) {
@@ -114,7 +119,7 @@ export function useEquipmentByStatus(organizationId: string | undefined) {
         label: STATUS_LABELS[status] ?? status,
       }));
     },
-    enabled: !!organizationId,
+    enabled: !!organizationId && !teamsLoading,
     staleTime: 60 * 1000,
   });
 }
@@ -127,17 +132,17 @@ export interface CostRawItem {
 }
 
 export function useCostTrend(organizationId: string | undefined) {
-  const { selectedTeamId, userTeamIds, isManager } = useDashboardWidgetTeamScope();
+  const { selectedTeamId, userTeamIds, isManager, teamsLoading } = useDashboardTeamQueryContext();
 
   return useQuery({
     queryKey: organizationId
-      ? dashboardKeys(organizationId, selectedTeamId).costTrend()
+      ? dashboardKeys(organizationId, selectedTeamId).costTrend(userTeamIds, isManager)
       : ['dashboard-cost-trend', organizationId],
     queryFn: async (): Promise<CostRawItem[]> => {
       if (!organizationId) return [];
       return fetchCostTrendData(organizationId, selectedTeamId, userTeamIds, isManager);
     },
-    enabled: !!organizationId,
+    enabled: !!organizationId && !teamsLoading,
     staleTime: 60 * 1000,
   });
 }
@@ -154,7 +159,7 @@ export function useDashboardTrends(
     enabled: boolean = true,
     days: number = 7
   ) {
-    const { selectedTeamId } = useDashboardWidgetTeamScope();
+    const { selectedTeamId } = useDashboardTeamQueryContext();
 
     return useQuery({
       queryKey: organizationId

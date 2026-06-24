@@ -16,16 +16,3 @@ export function useDashboardTeamQueryContext() {
     teamsLoading,
   };
 }
-
-/** Widget hooks that do not gate on team membership loading. */
-export function useDashboardWidgetTeamScope() {
-  const { selectedTeamId } = useSelectedTeam();
-  const { getUserTeamIds } = useTeamMembership();
-  const { isManager } = useWorkOrderPermissionLevels();
-
-  return {
-    selectedTeamId,
-    userTeamIds: getUserTeamIds(),
-    isManager,
-  };
-}

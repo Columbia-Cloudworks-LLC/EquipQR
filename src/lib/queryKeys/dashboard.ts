@@ -9,8 +9,11 @@ export const dashboard = (orgId: string, selectedTeamId: SelectedTeamId | undefi
     ['team-based-recent-work-orders', orgId, selectedTeamId ?? 'all', userTeamIds, isManager] as const,
   teamFleetEfficiency: (userTeamIds: string[], isManager: boolean) =>
     ['team-fleet-efficiency', orgId, selectedTeamId ?? 'all', userTeamIds, isManager] as const,
-  pmCompliance: () => ['dashboard-pm-compliance', orgId, selectedTeamId ?? 'all'] as const,
-  equipmentByStatus: () => ['dashboard-equipment-by-status', orgId, selectedTeamId ?? 'all'] as const,
-  costTrend: () => ['dashboard-cost-trend', orgId, selectedTeamId ?? 'all'] as const,
+  pmCompliance: (userTeamIds: string[], isManager: boolean) =>
+    ['dashboard-pm-compliance', orgId, selectedTeamId ?? 'all', userTeamIds, isManager] as const,
+  equipmentByStatus: (userTeamIds: string[], isManager: boolean) =>
+    ['dashboard-equipment-by-status', orgId, selectedTeamId ?? 'all', userTeamIds, isManager] as const,
+  costTrend: (userTeamIds: string[], isManager: boolean) =>
+    ['dashboard-cost-trend', orgId, selectedTeamId ?? 'all', userTeamIds, isManager] as const,
   trends: (days: number) => ['dashboard-trends', orgId, selectedTeamId ?? 'all', days] as const,
 });
