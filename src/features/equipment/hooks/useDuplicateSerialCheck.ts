@@ -88,6 +88,8 @@ export function useDuplicateSerialCheck(
     queryKey: ['equipment-serial-check', orgId, debounced],
     enabled: queryEnabled,
     staleTime: 30_000,
+    retry: false,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       if (!orgId) return null;
       const res = await EquipmentService.findBySerial(orgId, debounced);
