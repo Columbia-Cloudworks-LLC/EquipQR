@@ -9,12 +9,6 @@ vi.mock('@/features/equipment/services/EquipmentService', () => ({
   },
 }));
 
-vi.mock('@/features/equipment/services/EquipmentService', () => ({
-  EquipmentService: {
-    findBySerial: vi.fn(),
-  },
-}));
-
 const mockFindBySerial = vi.mocked(EquipmentService.findBySerial);
 
 describe('resolveDuplicateSerialAtSubmit', () => {

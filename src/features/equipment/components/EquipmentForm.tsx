@@ -50,7 +50,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
   const serialNumber = form.watch('serial_number');
   const duplicateCheck = useDuplicateSerialCheck(serialNumber, {
     excludeEquipmentId: equipment?.id,
-    enabled: !isEdit,
+    enabled: open && !isEdit,
   });
   const { match: duplicateMatch } = duplicateCheck;
 
