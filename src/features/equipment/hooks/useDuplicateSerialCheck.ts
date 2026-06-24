@@ -84,7 +84,7 @@ export function useDuplicateSerialCheck(
   const orgId = currentOrganization?.id;
   const queryEnabled = enabled && !!orgId && debounced.length > 0;
 
-  const { data, isFetching, isFetched } = useQuery({
+  const { data, isFetching, isSuccess } = useQuery({
     queryKey: ['equipment-serial-check', orgId, debounced],
     enabled: queryEnabled,
     staleTime: 30_000,
@@ -103,6 +103,6 @@ export function useDuplicateSerialCheck(
     match,
     isChecking: queryEnabled && isFetching,
     checkedSerial: debounced,
-    hasValidatedMatch: queryEnabled && isFetched && !isFetching,
+    hasValidatedMatch: queryEnabled && isSuccess && !isFetching,
   };
 }
