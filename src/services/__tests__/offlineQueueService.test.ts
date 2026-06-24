@@ -61,6 +61,25 @@ describe('OfflineQueueService', () => {
 
   // ── Equipment create dedupe ───────────────────────────────────────────────
 
+  it('persists syncedEquipmentId on the queue item without growing payload', () => {
+    const svc = createService();
+    const queued = svc.enqueue({
+      type: 'equipment_create_full',
+      payload: {
+        name: 'Excavator', manufacturer: 'Komatsu', model: 'PC200',
+        serial_number: 'SN-MARK', status: 'active', location: 'Yard A',
+        team_id: 'team-1',
+      } as OfflineQueueEnqueueInput['payload'],
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+
+    expect(svc.updateSyncedEquipmentId(queued.id, 'eq-server-99')).toBe(true);
+    const stored = svc.getById(queued.id);
+    expect(stored?.syncedEquipmentId).toBe('eq-server-99');
+    expect(stored?.payload).not.toHaveProperty('syncedEquipmentId');
+  });
+
   it('dedupes an identical pending equipment_create_full enqueue', () => {
     const svc = createService();
     const input: OfflineQueueEnqueueInput = {

@@ -1,5 +1,7 @@
 
 import React, { useState } from 'react';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import type { DuplicateEquipmentMatch } from '@/features/equipment/services/EquipmentService';
 import {
   Dialog,
   DialogContent,
@@ -30,7 +32,7 @@ import EquipmentFormActions from './form/EquipmentFormActions';
 import TeamSelectionSection from './form/TeamSelectionSection';
 import { DuplicateSerialWarning } from './DuplicateSerialWarning';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useDuplicateSerialCheck } from '@/features/equipment/hooks/useDuplicateSerialCheck';
+import { useDuplicateSerialCheck, resolveDuplicateSerialAtSubmit } from '@/features/equipment/hooks/useDuplicateSerialCheck';
 
 interface EquipmentFormProps {
   open: boolean;
@@ -44,16 +46,19 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
   const { hasRole } = usePermissions();
   const isAdmin = hasRole(['owner', 'admin']);
 
+  const { currentOrganization } = useOrganization();
   const serialNumber = form.watch('serial_number');
-  const { match: duplicateMatch } = useDuplicateSerialCheck(serialNumber, {
+  const duplicateCheck = useDuplicateSerialCheck(serialNumber, {
     excludeEquipmentId: equipment?.id,
   });
+  const { match: duplicateMatch } = duplicateCheck;
 
   const [showUnassignedConfirm, setShowUnassignedConfirm] = useState(false);
   const [pendingSubmitData, setPendingSubmitData] = useState<EquipmentFormData | null>(null);
   const [pendingUnassignedSelect, setPendingUnassignedSelect] = useState(false);
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
   const [pendingDuplicateData, setPendingDuplicateData] = useState<EquipmentFormData | null>(null);
+  const [confirmDuplicateMatch, setConfirmDuplicateMatch] = useState<DuplicateEquipmentMatch | null>(null);
 
   const handleCustomAttributeChange = (attributes: CustomAttribute[]) => {
     const attributesObject = attributes.reduce((acc, attr) => {
@@ -78,13 +83,20 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
     onSubmit(data);
   };
 
-  const handleValidatedSubmit = (data: EquipmentFormData) => {
-    // Duplicate serials are a warning, never a block. On create, if an existing
-    // record shares the serial, ask the operator to confirm before continuing.
-    if (!isEdit && duplicateMatch) {
-      setPendingDuplicateData(data);
-      setShowDuplicateConfirm(true);
-      return;
+  const handleValidatedSubmit = async (data: EquipmentFormData) => {
+    if (!isEdit) {
+      const matchForSubmit = await resolveDuplicateSerialAtSubmit(
+        currentOrganization?.id,
+        data.serial_number,
+        equipment?.id,
+        duplicateCheck,
+      );
+      if (matchForSubmit) {
+        setConfirmDuplicateMatch(matchForSubmit);
+        setPendingDuplicateData(data);
+        setShowDuplicateConfirm(true);
+        return;
+      }
     }
     finalizeSubmit(data);
   };
@@ -93,12 +105,16 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
     const data = pendingDuplicateData;
     setShowDuplicateConfirm(false);
     setPendingDuplicateData(null);
+    setConfirmDuplicateMatch(null);
     if (data) finalizeSubmit(data);
   };
 
   const handleDuplicateConfirmOpenChange = (next: boolean) => {
     setShowDuplicateConfirm(next);
-    if (!next) setPendingDuplicateData(null);
+    if (!next) {
+      setPendingDuplicateData(null);
+      setConfirmDuplicateMatch(null);
+    }
   };
 
   const handleConfirmUnassigned = () => {
@@ -199,8 +215,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
               this is a separate piece of equipment.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {duplicateMatch && (
-            <DuplicateSerialWarning match={duplicateMatch} onNavigate={onClose} />
+          {confirmDuplicateMatch && (
+            <DuplicateSerialWarning match={confirmDuplicateMatch} onNavigate={onClose} />
           )}
           <AlertDialogFooter>
             <AlertDialogCancel>Go back</AlertDialogCancel>

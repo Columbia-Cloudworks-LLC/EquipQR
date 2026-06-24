@@ -81,6 +81,11 @@ interface OfflineQueueItemBase {
   status: OfflineQueueItemStatus;
   payloadSizeBytes: number;
   lastError?: string;
+  /**
+   * Server equipment id after a successful equipment_create* replay. Stored
+   * outside payload so persistence is not subject to payload size limits.
+   */
+  syncedEquipmentId?: string;
 }
 
 /** Queued work-order create payload — images stored as blob refs, not File[]. */
@@ -149,16 +154,12 @@ export interface OfflineQueueWorkOrderNoteItem extends OfflineQueueItemBase {
 
 export interface OfflineQueueEquipmentCreateItem extends OfflineQueueItemBase {
   type: 'equipment_create';
-  /** `syncedEquipmentId` is set after a successful replay so a retry of the
-   *  same queue item never creates a second row (serials are not unique). */
-  payload: QuickEquipmentCreateData & { syncedEquipmentId?: string };
+  payload: QuickEquipmentCreateData;
 }
 
 export interface OfflineQueueEquipmentCreateFullItem extends OfflineQueueItemBase {
   type: 'equipment_create_full';
-  /** `syncedEquipmentId` is set after a successful replay so a retry of the
-   *  same queue item never creates a second row (serials are not unique). */
-  payload: EquipmentCreateData & { syncedEquipmentId?: string };
+  payload: EquipmentCreateData;
 }
 
 export interface OfflineQueueEquipmentUpdateItem extends OfflineQueueItemBase {
@@ -641,6 +642,23 @@ export class OfflineQueueService {
    * Merges `updates` into the existing payload — does NOT replace it entirely.
    * Returns true if the item was found and updated.
    */
+  /**
+   * Persist the server equipment id for an equipment create queue item without
+   * touching payload bytes (avoids MAX_ITEM_SIZE_BYTES failures).
+   */
+  updateSyncedEquipmentId(id: string, serverEquipmentId: string): boolean {
+    const queue = this.getAll();
+    const idx = queue.findIndex(i => i.id === id);
+    if (idx === -1) return false;
+
+    queue[idx] = {
+      ...queue[idx],
+      syncedEquipmentId: serverEquipmentId,
+    };
+    this.persist(queue);
+    return true;
+  }
+
   updatePayload(id: string, updates: Record<string, unknown>): boolean {
     const queue = this.getAll();
     const idx = queue.findIndex(i => i.id === id);

@@ -21,9 +21,35 @@ export interface DuplicateSerialResult {
   match: DuplicateEquipmentMatch | null;
   /** True while a lookup for the current serial is in flight. */
   isChecking: boolean;
+  /** Serial value that produced the current `match` (debounced). */
+  checkedSerial: string;
 }
 
 const DEBOUNCE_MS = 400;
+
+/**
+ * Resolve duplicate-serial match for submit-time gating. Uses the debounced
+ * hook result when it already matches the submitted serial; otherwise performs
+ * an immediate lookup so fast submit after typing is accurate.
+ */
+export async function resolveDuplicateSerialAtSubmit(
+  orgId: string | undefined,
+  submittedSerial: string,
+  excludeEquipmentId: string | undefined,
+  current: Pick<DuplicateSerialResult, 'match' | 'checkedSerial' | 'isChecking'>,
+): Promise<DuplicateEquipmentMatch | null> {
+  const trimmed = submittedSerial.trim();
+  if (!orgId || !trimmed) return null;
+
+  if (!current.isChecking && current.checkedSerial === trimmed) {
+    return current.match;
+  }
+
+  const res = await EquipmentService.findBySerial(orgId, trimmed);
+  const raw = res.success ? res.data ?? null : null;
+  if (raw && excludeEquipmentId && raw.id === excludeEquipmentId) return null;
+  return raw;
+}
 
 /**
  * Non-blocking duplicate-serial detection for the equipment create/edit form.
@@ -69,5 +95,6 @@ export function useDuplicateSerialCheck(
   return {
     match,
     isChecking: queryEnabled && isFetching,
+    checkedSerial: debounced,
   };
 }

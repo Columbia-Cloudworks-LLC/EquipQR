@@ -452,12 +452,11 @@ describe('OfflineQueueProcessor', () => {
   it('does not re-create equipment when the queue item already synced (idempotent replay)', async () => {
     const item = createPendingItem({
       type: 'equipment_create_full',
+      syncedEquipmentId: 'eq-already-created',
       payload: {
         name: 'Excavator', manufacturer: 'Komatsu', model: 'PC200',
         serial_number: 'SN-002', team_id: 'team-1', status: 'active',
         location: 'Yard A',
-        // Marker proving a prior attempt already created the row server-side.
-        syncedEquipmentId: 'eq-already-created',
       },
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
@@ -483,13 +482,33 @@ describe('OfflineQueueProcessor', () => {
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
 
-    // First processAll succeeds and removes the item; assert create ran once.
     mockEquipmentCreate.mockResolvedValueOnce({ success: true, data: { id: 'eq-dup-1' } });
     const result = await processor.processAll();
 
     expect(result.succeeded).toBe(1);
     expect(mockEquipmentCreate).toHaveBeenCalledTimes(1);
     expect(queueService.getCount()).toBe(0);
+  });
+
+  it('skips create on replay when syncedEquipmentId is persisted on the queue item', async () => {
+    const itemId = crypto.randomUUID();
+    const item = createPendingItem({
+      id: itemId,
+      type: 'equipment_create_full',
+      retryCount: 1,
+      maxRetries: 5,
+      syncedEquipmentId: 'eq-persisted',
+      payload: {
+        name: 'Excavator', manufacturer: 'Komatsu', model: 'PC200',
+        serial_number: 'SN-REPLAY', team_id: 'team-1', status: 'active', location: 'Yard A',
+      },
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
+
+    const result = await processor.processAll();
+
+    expect(result.succeeded).toBe(1);
+    expect(mockEquipmentCreate).not.toHaveBeenCalled();
   });
 
   it('processes equipment_update via EquipmentService.update()', async () => {

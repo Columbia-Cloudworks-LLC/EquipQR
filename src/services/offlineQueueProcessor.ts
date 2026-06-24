@@ -64,6 +64,32 @@ import {
   parseOfflineWorkOrderPlaceholder,
 } from './offlineQueuePlaceholders';
 
+// ─── Equipment create idempotency ────────────────────────────────────────────
+
+type EquipmentCreateQueueItem =
+  | OfflineQueueEquipmentCreateItem
+  | OfflineQueueEquipmentCreateFullItem;
+
+/** Legacy payloads may still carry syncedEquipmentId inside payload. */
+function getSyncedEquipmentId(item: EquipmentCreateQueueItem): string | undefined {
+  const legacy = (item.payload as { syncedEquipmentId?: string }).syncedEquipmentId;
+  return item.syncedEquipmentId ?? legacy;
+}
+
+function persistSyncedEquipmentId(
+  item: EquipmentCreateQueueItem,
+  serverId: string,
+  queueService: OfflineQueueService,
+): void {
+  const persisted = queueService.updateSyncedEquipmentId(item.id, serverId);
+  if (!persisted) {
+    throw new Error(
+      'Equipment was created on the server but the offline idempotency marker could not be saved. Retry sync after refreshing the page.',
+    );
+  }
+  item.syncedEquipmentId = serverId;
+}
+
 // ─── Conflict info ───────────────────────────────────────────────────────────
 
 export interface ConflictInfo {
@@ -331,10 +357,9 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
   equipment_create: (async (item: OfflineQueueEquipmentCreateItem, replay, queueService) => {
     // Idempotent replay: if this exact queue item already created a row in a
     // prior attempt, reuse the server id instead of creating a duplicate.
-    // Serials are intentionally non-unique, so we cannot rely on a serial
-    // collision to detect a prior success — we track it per queue item.
-    if (item.payload.syncedEquipmentId) {
-      replay.registerEquipment(item.id, item.payload.syncedEquipmentId, queueService);
+    const existingId = getSyncedEquipmentId(item);
+    if (existingId) {
+      replay.registerEquipment(item.id, existingId, queueService);
       return { success: true };
     }
     const result = await EquipmentService.createQuick(item.organizationId, item.payload);
@@ -342,14 +367,15 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
       throw new Error(result.error || 'Sync failed: equipment create');
     }
     const serverId = String(result.data.id);
-    queueService.updatePayload(item.id, { syncedEquipmentId: serverId });
+    persistSyncedEquipmentId(item, serverId, queueService);
     replay.registerEquipment(item.id, serverId, queueService);
     return { success: true };
   }) as QueueItemHandler<never>,
 
   equipment_create_full: (async (item: OfflineQueueEquipmentCreateFullItem, replay, queueService) => {
-    if (item.payload.syncedEquipmentId) {
-      replay.registerEquipment(item.id, item.payload.syncedEquipmentId, queueService);
+    const existingId = getSyncedEquipmentId(item);
+    if (existingId) {
+      replay.registerEquipment(item.id, existingId, queueService);
       return { success: true };
     }
     const result = await EquipmentService.create(item.organizationId, item.payload);
@@ -357,7 +383,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
       throw new Error(result.error || 'Sync failed: equipment create (full)');
     }
     const serverId = String(result.data.id);
-    queueService.updatePayload(item.id, { syncedEquipmentId: serverId });
+    persistSyncedEquipmentId(item, serverId, queueService);
     replay.registerEquipment(item.id, serverId, queueService);
     return { success: true };
   }) as QueueItemHandler<never>,

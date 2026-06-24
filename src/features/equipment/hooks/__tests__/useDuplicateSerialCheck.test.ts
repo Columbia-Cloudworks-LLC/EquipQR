@@ -1,0 +1,64 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { resolveDuplicateSerialAtSubmit } from '../useDuplicateSerialCheck';
+import { EquipmentService } from '@/features/equipment/services/EquipmentService';
+
+vi.mock('@/features/equipment/services/EquipmentService', () => ({
+  EquipmentService: {
+    findBySerial: vi.fn(),
+  },
+}));
+
+const mockFindBySerial = vi.mocked(EquipmentService.findBySerial);
+
+describe('resolveDuplicateSerialAtSubmit', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('reuses debounced hook result when checkedSerial matches submitted serial', async () => {
+    const match = {
+      id: 'eq-1',
+      name: 'CAT 320',
+      manufacturer: 'Caterpillar',
+      model: '320',
+      serial_number: 'SN-1',
+      status: 'active' as const,
+      team_name: 'Heavy Equipment Team',
+    };
+
+    const result = await resolveDuplicateSerialAtSubmit(
+      'org-1',
+      'SN-1',
+      undefined,
+      { match, checkedSerial: 'SN-1', isChecking: false },
+    );
+
+    expect(result).toEqual(match);
+    expect(mockFindBySerial).not.toHaveBeenCalled();
+  });
+
+  it('performs immediate lookup when submit serial differs from debounced checkedSerial', async () => {
+    mockFindBySerial.mockResolvedValueOnce({
+      success: true,
+      data: {
+        id: 'eq-2',
+        name: 'New match',
+        manufacturer: 'Bobcat',
+        model: 'S770',
+        serial_number: 'SN-FAST',
+        status: 'active',
+        team_name: null,
+      },
+    });
+
+    const result = await resolveDuplicateSerialAtSubmit(
+      'org-1',
+      'SN-FAST',
+      undefined,
+      { match: null, checkedSerial: 'SN-OLD', isChecking: false },
+    );
+
+    expect(mockFindBySerial).toHaveBeenCalledWith('org-1', 'SN-FAST');
+    expect(result?.serial_number).toBe('SN-FAST');
+  });
+});
