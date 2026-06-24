@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.10.0] - 2026-06-24
+
+### Fixed
+
+- **Equipment QR scan crash (#1074)** — Public `/qr/equipment/:equipmentId` routes no longer throw outside `SimpleOrganizationProvider`; unauthenticated users are redirected to sign-in with `pendingRedirect` preserved.
+- **Dashboard team filter (#1075)** — Key Metrics, chart widgets, recent lists, and KPI sparklines respect the TopBar team scope (All / Unassigned / specific team) via client query filters and an updated `get_dashboard_trends` RPC.
+- **Team details not-found crash (#1076)** — Missing teams render the existing "Team not found" card instead of crashing on an undefined `ArrowLeft` icon.
+
 ## [3.9.4] - 2026-06-22
 
 ### Added

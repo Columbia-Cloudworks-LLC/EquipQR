@@ -6,6 +6,8 @@ import {
   fetchDashboardTrends,
   type DashboardTrends,
 } from '@/features/dashboard/services/dashboardWidgetService';
+import { useDashboardTeamQueryContext } from '@/features/dashboard/hooks/useDashboardTeamQueryContext';
+import { dashboard as dashboardKeys } from '@/lib/queryKeys/dashboard';
 
 /**
  * TanStack Query hooks for dashboard widgets.
@@ -31,12 +33,21 @@ export interface PMStatusCount {
 }
 
 export function usePMCompliance(organizationId: string | undefined) {
+  const { selectedTeamId, userTeamIds, isManager, teamsLoading } = useDashboardTeamQueryContext();
+
   return useQuery({
-    queryKey: ['dashboard-pm-compliance', organizationId],
+    queryKey: organizationId
+      ? dashboardKeys(organizationId, selectedTeamId).pmCompliance(userTeamIds, isManager)
+      : ['dashboard-pm-compliance', organizationId],
     queryFn: async (): Promise<PMStatusCount[]> => {
       if (!organizationId) return [];
 
-      const { rows, overdueRows } = await fetchPMComplianceData(organizationId);
+      const { rows, overdueRows } = await fetchPMComplianceData(
+        organizationId,
+        selectedTeamId,
+        userTeamIds,
+        isManager,
+      );
       const overdueIds = new Set(overdueRows.map((r) => r.id));
 
       const counts = new Map<string, number>();
@@ -58,7 +69,7 @@ export function usePMCompliance(organizationId: string | undefined) {
           color: STATUS_CONFIG[status as keyof typeof STATUS_CONFIG]?.color ?? 'hsl(var(--muted))',
         }));
     },
-    enabled: !!organizationId,
+    enabled: !!organizationId && !teamsLoading,
     staleTime: 60 * 1000,
   });
 }
@@ -80,12 +91,21 @@ export interface StatusCount {
 }
 
 export function useEquipmentByStatus(organizationId: string | undefined) {
+  const { selectedTeamId, userTeamIds, isManager, teamsLoading } = useDashboardTeamQueryContext();
+
   return useQuery({
-    queryKey: ['dashboard-equipment-by-status', organizationId],
+    queryKey: organizationId
+      ? dashboardKeys(organizationId, selectedTeamId).equipmentByStatus(userTeamIds, isManager)
+      : ['dashboard-equipment-by-status', organizationId],
     queryFn: async (): Promise<StatusCount[]> => {
       if (!organizationId) return [];
 
-      const rows = await fetchEquipmentByStatus(organizationId);
+      const rows = await fetchEquipmentByStatus(
+        organizationId,
+        selectedTeamId,
+        userTeamIds,
+        isManager,
+      );
 
       const counts = new Map<string, number>();
       for (const row of rows) {
@@ -99,7 +119,7 @@ export function useEquipmentByStatus(organizationId: string | undefined) {
         label: STATUS_LABELS[status] ?? status,
       }));
     },
-    enabled: !!organizationId,
+    enabled: !!organizationId && !teamsLoading,
     staleTime: 60 * 1000,
   });
 }
@@ -112,13 +132,17 @@ export interface CostRawItem {
 }
 
 export function useCostTrend(organizationId: string | undefined) {
+  const { selectedTeamId, userTeamIds, isManager, teamsLoading } = useDashboardTeamQueryContext();
+
   return useQuery({
-    queryKey: ['dashboard-cost-trend', organizationId],
+    queryKey: organizationId
+      ? dashboardKeys(organizationId, selectedTeamId).costTrend(userTeamIds, isManager)
+      : ['dashboard-cost-trend', organizationId],
     queryFn: async (): Promise<CostRawItem[]> => {
       if (!organizationId) return [];
-      return fetchCostTrendData(organizationId);
+      return fetchCostTrendData(organizationId, selectedTeamId, userTeamIds, isManager);
     },
-    enabled: !!organizationId,
+    enabled: !!organizationId && !teamsLoading,
     staleTime: 60 * 1000,
   });
 }
@@ -127,29 +151,25 @@ export function useCostTrend(organizationId: string | undefined) {
 
 /**
  * Real historical data for the four DashboardStatsGrid KPIs. Fed directly into
- * StatsCard `sparkline` and `trend` props. Team-scoped via the same pattern as
- * useTeamBasedDashboardStats so trend context matches the current-value chip.
- *
- * staleTime is intentionally higher than the point-in-time stats (5 min vs 30s)
- * because historical trends don't move often and sparkline re-renders are
- * visually noisy.
+ * StatsCard `sparkline` and `trend` props. Team-scoped via the TopBar selection
+ * passed to get_dashboard_trends (intersected server-side with RBAC).
  */
 export function useDashboardTrends(
     organizationId: string | undefined,
     enabled: boolean = true,
     days: number = 7
   ) {
+    const { selectedTeamId, teamsLoading } = useDashboardTeamQueryContext();
+
     return useQuery({
-      queryKey: [
-        'dashboard-trends',
-        organizationId,
-        days,
-      ],
+      queryKey: organizationId
+        ? dashboardKeys(organizationId, selectedTeamId).trends(days)
+        : ['dashboard-trends', organizationId, days],
       queryFn: async (): Promise<DashboardTrends | null> => {
         if (!organizationId) return null;
-        return fetchDashboardTrends(organizationId, days);
+        return fetchDashboardTrends(organizationId, days, selectedTeamId);
       },
-      enabled: !!organizationId && enabled,
+      enabled: !!organizationId && enabled && !teamsLoading,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   });

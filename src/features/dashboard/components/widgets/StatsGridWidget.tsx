@@ -10,7 +10,7 @@ const StatsGridWidget: React.FC = () => {
   const { data: stats, isLoading: statsLoading } = useTeamBasedDashboardStats(organizationId);
   const { data: workOrders } = useTeamBasedRecentWorkOrders(organizationId);
 
-  // Trend data (issue #589) — team scope is derived server-side by the RPC.
+  // Trend data (issue #589) — scoped via TopBar team filter through get_dashboard_trends RPC.
   const { data: trends } = useDashboardTrends(organizationId);
 
   const activeWorkOrdersCount = workOrders?.filter((wo) => wo.status !== 'completed').length || 0;

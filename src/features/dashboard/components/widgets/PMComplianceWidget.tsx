@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import EmptyState from '@/components/ui/empty-state';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentByStatus, usePMCompliance } from '@/features/dashboard/hooks/useDashboardWidgets';
+import { useTeamBasedEquipment } from '@/features/teams/hooks/useTeamBasedDashboard';
 import { useOrgEquipmentPMStatuses } from '@/features/equipment/hooks/useEquipmentPMStatus';
 import { getPMComplianceLevel } from '@/features/equipment/hooks/useEquipmentPMStatus';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -55,7 +56,16 @@ const PMComplianceWidget: React.FC = () => {
 
   const { data, isLoading } = usePMCompliance(organizationId);
   const { data: equipmentByStatus } = useEquipmentByStatus(organizationId);
-  const { data: pmStatuses } = useOrgEquipmentPMStatuses(organizationId);
+  const { data: pmStatusesRaw } = useOrgEquipmentPMStatuses(organizationId);
+  const { data: scopedEquipment } = useTeamBasedEquipment(organizationId);
+  const scopedEquipmentIds = React.useMemo(
+    () => new Set((scopedEquipment ?? []).map((item) => item.id)),
+    [scopedEquipment],
+  );
+  const pmStatuses = React.useMemo(
+    () => (pmStatusesRaw ?? []).filter((status) => scopedEquipmentIds.has(status.equipment_id)),
+    [pmStatusesRaw, scopedEquipmentIds],
+  );
   const totalCount = useDonutStatusCountTotal(data);
 
   const compliancePct = React.useMemo(() => {

@@ -5,6 +5,11 @@ import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
 import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
 import { applyWorkOrderSupabaseFilters } from '@/features/work-orders/utils/workOrderSupabaseFilters';
+import type { SelectedTeamId } from '@/contexts/selected-team-context';
+import {
+  isAllTeamsScope,
+  resolveDashboardEquipmentIdScope,
+} from '@/features/dashboard/utils/dashboardTeamScope';
 
 /**
  * TeamBasedWorkOrder extends WorkOrder with camelCase aliases for backward compatibility.
@@ -35,7 +40,8 @@ export const getTeamBasedWorkOrders = async (
   organizationId: string,
   userTeamIds: string[],
   isOrgAdmin: boolean = false,
-  filters: TeamBasedWorkOrderFilters = {}
+  filters: TeamBasedWorkOrderFilters = {},
+  selectedTeamId: SelectedTeamId | undefined = null,
 ): Promise<TeamBasedWorkOrder[]> => {
   try {
     // Org admins can see all work orders in the org — scoping by organization_id
@@ -101,9 +107,32 @@ export const getTeamBasedWorkOrders = async (
       // here ensures org-admin queries are consistent with non-admin queries.
       .not('equipment_id', 'is', null);
 
-    if (!isOrgAdmin) {
-      const result = await EquipmentService.getAccessibleEquipmentIds(organizationId, userTeamIds, isOrgAdmin);
-      const accessibleEquipmentIds = result.success && result.data ? result.data : [];
+    const equipmentScope = await resolveDashboardEquipmentIdScope(
+      organizationId,
+      selectedTeamId,
+      userTeamIds,
+      isOrgAdmin,
+    );
+
+    if (equipmentScope.type === 'none') {
+      return [];
+    }
+
+    const needsEquipmentFilter =
+      equipmentScope.type === 'ids' || !isOrgAdmin || !isAllTeamsScope(selectedTeamId);
+
+    if (needsEquipmentFilter) {
+      let accessibleEquipmentIds: string[] = [];
+      if (equipmentScope.type === 'ids') {
+        accessibleEquipmentIds = equipmentScope.ids;
+      } else {
+        const result = await EquipmentService.getAccessibleEquipmentIds(
+          organizationId,
+          userTeamIds,
+          isOrgAdmin,
+        );
+        accessibleEquipmentIds = result.success && result.data ? result.data : [];
+      }
 
       if (accessibleEquipmentIds.length === 0) {
         return [];

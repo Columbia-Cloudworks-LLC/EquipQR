@@ -1,4 +1,12 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { SelectedTeamId } from '@/contexts/selected-team-context';
+import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
+import {
+  applySelectedTeamFilter,
+  isAllTeamsScope,
+  resolveDashboardEquipmentIdScope,
+  selectedTeamIdToRpcParams,
+} from '@/features/dashboard/utils/dashboardTeamScope';
 
 /**
  * Dashboard widget service layer.
@@ -16,17 +24,39 @@ export interface PMOverdueRow {
  * org. Queries the `preventative_maintenance` table (not work_orders) so that
  * the PM compliance donut chart reflects actual PM status distribution.
  */
-export async function fetchPMComplianceData(organizationId: string) {
+export async function fetchPMComplianceData(
+  organizationId: string,
+  selectedTeamId: SelectedTeamId | undefined = null,
+  userTeamIds: string[] = [],
+  isOrgAdmin: boolean = false,
+) {
   const twoYearsAgo = new Date();
   twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
   const cutoff = twoYearsAgo.toISOString();
 
-  const { data: pmRows, error: pmError } = await supabase
+  const equipmentScope = await resolveDashboardEquipmentIdScope(
+    organizationId,
+    selectedTeamId,
+    userTeamIds,
+    isOrgAdmin,
+  );
+
+  if (equipmentScope.type === 'none') {
+    return { rows: [], overdueRows: [] };
+  }
+
+  let pmQuery = supabase
     .from('preventative_maintenance')
-    .select('id, status, work_order_id')
+    .select('id, status, work_order_id, equipment_id')
     .eq('organization_id', organizationId)
     .not('template_id', 'is', null)
     .gte('created_at', cutoff);
+
+  if (equipmentScope.type === 'ids') {
+    pmQuery = pmQuery.in('equipment_id', equipmentScope.ids);
+  }
+
+  const { data: pmRows, error: pmError } = await pmQuery;
 
   if (pmError) throw pmError;
 
@@ -72,11 +102,42 @@ export interface EquipmentStatusRow {
  * aggregate (RPC/view with GROUP BY + COUNT) would further reduce transfer
  * for very large fleets — tracked for future optimization.
  */
-export async function fetchEquipmentByStatus(organizationId: string): Promise<EquipmentStatusRow[]> {
-  const { data: rows, error } = await supabase
+export async function fetchEquipmentByStatus(
+  organizationId: string,
+  selectedTeamId: SelectedTeamId | undefined = null,
+  userTeamIds: string[] = [],
+  isOrgAdmin: boolean = false,
+): Promise<EquipmentStatusRow[]> {
+  if (!isOrgAdmin) {
+    if (selectedTeamId === UNASSIGNED_TEAM_ID) {
+      return [];
+    }
+    if (isAllTeamsScope(selectedTeamId) && userTeamIds.length === 0) {
+      return [];
+    }
+    if (
+      selectedTeamId &&
+      selectedTeamId !== UNASSIGNED_TEAM_ID &&
+      !userTeamIds.includes(selectedTeamId)
+    ) {
+      return [];
+    }
+  }
+
+  let query = supabase
     .from('equipment')
     .select('status')
     .eq('organization_id', organizationId);
+
+  if (isAllTeamsScope(selectedTeamId)) {
+    if (!isOrgAdmin) {
+      query = query.in('team_id', userTeamIds);
+    }
+  } else {
+    query = applySelectedTeamFilter(query, selectedTeamId);
+  }
+
+  const { data: rows, error } = await query;
 
   if (error) throw error;
   return rows ?? [];
@@ -93,16 +154,38 @@ export interface CostRow {
  * Fetch work order costs for the last 12 months, scoped to an organisation
  * via an inner join on work_orders.organization_id.
  */
-export async function fetchCostTrendData(organizationId: string): Promise<CostRow[]> {
+export async function fetchCostTrendData(
+  organizationId: string,
+  selectedTeamId: SelectedTeamId | undefined = null,
+  userTeamIds: string[] = [],
+  isOrgAdmin: boolean = false,
+): Promise<CostRow[]> {
   const twelveMonthsAgo = new Date();
   twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 
-  const { data, error } = await supabase
+  const equipmentScope = await resolveDashboardEquipmentIdScope(
+    organizationId,
+    selectedTeamId,
+    userTeamIds,
+    isOrgAdmin,
+  );
+
+  if (equipmentScope.type === 'none') {
+    return [];
+  }
+
+  let query = supabase
     .from('work_order_costs')
-    .select('total_price_cents, created_at, work_orders!inner(organization_id)')
+    .select('total_price_cents, created_at, work_orders!inner(organization_id, equipment_id)')
     .eq('work_orders.organization_id', organizationId)
     .gte('created_at', twelveMonthsAgo.toISOString())
     .order('created_at', { ascending: true });
+
+  if (equipmentScope.type === 'ids') {
+    query = query.in('work_orders.equipment_id', equipmentScope.ids);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
 
@@ -153,11 +236,15 @@ const emptyTrends = (days: number): DashboardTrends => ({
    */
 export async function fetchDashboardTrends(
     organizationId: string,
-    days = 7
+    days = 7,
+    selectedTeamId: SelectedTeamId | undefined = null,
   ): Promise<DashboardTrends> {
+    const { p_team_id, p_unassigned } = selectedTeamIdToRpcParams(selectedTeamId);
     const { data, error } = await supabase.rpc('get_dashboard_trends', {
       p_org_id: organizationId,
       p_days: days,
+      p_team_id,
+      p_unassigned,
     });
 
   if (error) throw error;
