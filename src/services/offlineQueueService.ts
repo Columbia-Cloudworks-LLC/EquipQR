@@ -81,6 +81,11 @@ interface OfflineQueueItemBase {
   status: OfflineQueueItemStatus;
   payloadSizeBytes: number;
   lastError?: string;
+  /**
+   * Server equipment id after a successful equipment_create* replay. Stored
+   * outside payload so persistence is not subject to payload size limits.
+   */
+  syncedEquipmentId?: string;
 }
 
 /** Queued work-order create payload — images stored as blob refs, not File[]. */
@@ -502,6 +507,27 @@ export class OfflineQueueService {
 
     const currentQueue = this.getAll();
 
+    // Dedupe: an accidental double-submit of the same equipment create (same
+    // type + identical payload) while offline should not queue two rows. We
+    // match on the serialized payload so a deliberately different second record
+    // (even one sharing a serial number) is still queued — serials are not
+    // unique. Only pending/processing items are considered.
+    if (input.type === 'equipment_create' || input.type === 'equipment_create_full') {
+      const existingDuplicate = currentQueue.find(
+        qi =>
+          qi.type === input.type &&
+          (qi.status === 'pending' || qi.status === 'processing') &&
+          JSON.stringify(qi.payload) === serialized,
+      );
+      if (existingDuplicate) {
+        logger.info('Skipping duplicate offline equipment create enqueue', {
+          queueItemId: existingDuplicate.id,
+          type: input.type,
+        });
+        return existingDuplicate;
+      }
+    }
+
     // Guard: total queue storage budget
     const currentTotalSize = currentQueue.reduce((sum, qi) => sum + qi.payloadSizeBytes, 0);
     if (currentTotalSize + sizeBytes > MAX_QUEUE_SIZE_BYTES) {
@@ -616,6 +642,23 @@ export class OfflineQueueService {
    * Merges `updates` into the existing payload — does NOT replace it entirely.
    * Returns true if the item was found and updated.
    */
+  /**
+   * Persist the server equipment id for an equipment create queue item without
+   * touching payload bytes (avoids MAX_ITEM_SIZE_BYTES failures).
+   */
+  updateSyncedEquipmentId(id: string, serverEquipmentId: string): boolean {
+    const queue = this.getAll();
+    const idx = queue.findIndex(i => i.id === id);
+    if (idx === -1) return false;
+
+    queue[idx] = {
+      ...queue[idx],
+      syncedEquipmentId: serverEquipmentId,
+    };
+    this.persist(queue);
+    return true;
+  }
+
   updatePayload(id: string, updates: Record<string, unknown>): boolean {
     const queue = this.getAll();
     const idx = queue.findIndex(i => i.id === id);

@@ -1,5 +1,7 @@
 
 import React, { useState } from 'react';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import type { DuplicateEquipmentMatch } from '@/features/equipment/services/EquipmentService';
 import {
   Dialog,
   DialogContent,
@@ -28,7 +30,9 @@ import EquipmentStatusLocationSection from './form/EquipmentStatusLocationSectio
 import EquipmentNotesSection from './form/EquipmentNotesSection';
 import EquipmentFormActions from './form/EquipmentFormActions';
 import TeamSelectionSection from './form/TeamSelectionSection';
+import { DuplicateSerialWarning } from './DuplicateSerialWarning';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useDuplicateSerialCheck, resolveDuplicateSerialAtSubmit } from '@/features/equipment/hooks/useDuplicateSerialCheck';
 
 interface EquipmentFormProps {
   open: boolean;
@@ -42,9 +46,20 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
   const { hasRole } = usePermissions();
   const isAdmin = hasRole(['owner', 'admin']);
 
+  const { currentOrganization } = useOrganization();
+  const serialNumber = form.watch('serial_number');
+  const duplicateCheck = useDuplicateSerialCheck(serialNumber, {
+    excludeEquipmentId: equipment?.id,
+    enabled: open && !isEdit,
+  });
+  const { match: duplicateMatch } = duplicateCheck;
+
   const [showUnassignedConfirm, setShowUnassignedConfirm] = useState(false);
   const [pendingSubmitData, setPendingSubmitData] = useState<EquipmentFormData | null>(null);
   const [pendingUnassignedSelect, setPendingUnassignedSelect] = useState(false);
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
+  const [pendingDuplicateData, setPendingDuplicateData] = useState<EquipmentFormData | null>(null);
+  const [confirmDuplicateMatch, setConfirmDuplicateMatch] = useState<DuplicateEquipmentMatch | null>(null);
 
   const handleCustomAttributeChange = (attributes: CustomAttribute[]) => {
     const attributesObject = attributes.reduce((acc, attr) => {
@@ -57,7 +72,9 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
 
   const isUnassignedTeam = (teamId?: string) => !teamId || teamId === 'unassigned';
 
-  const handleValidatedSubmit = (data: EquipmentFormData) => {
+  // Run the unassigned-team confirmation gate, then submit. Called either
+  // directly or after the operator acknowledges a possible-duplicate serial.
+  const finalizeSubmit = (data: EquipmentFormData) => {
     if (!isEdit && isAdmin && isUnassignedTeam(data.team_id)) {
       setPendingUnassignedSelect(false);
       setPendingSubmitData(data);
@@ -65,6 +82,40 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
       return;
     }
     onSubmit(data);
+  };
+
+  const handleValidatedSubmit = async (data: EquipmentFormData) => {
+    if (!isEdit) {
+      const matchForSubmit = await resolveDuplicateSerialAtSubmit(
+        currentOrganization?.id,
+        data.serial_number,
+        equipment?.id,
+        duplicateCheck,
+      );
+      if (matchForSubmit) {
+        setConfirmDuplicateMatch(matchForSubmit);
+        setPendingDuplicateData(data);
+        setShowDuplicateConfirm(true);
+        return;
+      }
+    }
+    finalizeSubmit(data);
+  };
+
+  const handleConfirmDuplicate = () => {
+    const data = pendingDuplicateData;
+    setShowDuplicateConfirm(false);
+    setPendingDuplicateData(null);
+    setConfirmDuplicateMatch(null);
+    if (data) finalizeSubmit(data);
+  };
+
+  const handleDuplicateConfirmOpenChange = (next: boolean) => {
+    setShowDuplicateConfirm(next);
+    if (!next) {
+      setPendingDuplicateData(null);
+      setConfirmDuplicateMatch(null);
+    }
   };
 
   const handleConfirmUnassigned = () => {
@@ -112,7 +163,11 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
               />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <EquipmentBasicInfoSection form={form} />
+                <EquipmentBasicInfoSection
+                  form={form}
+                  duplicateMatch={isEdit ? null : duplicateMatch}
+                  onDuplicateNavigate={onClose}
+                />
                 <EquipmentStatusLocationSection form={form} />
               </div>
 
@@ -146,6 +201,28 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
             <AlertDialogCancel>Go back</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmUnassigned}>
               Continue without a team
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDuplicateConfirm} onOpenChange={handleDuplicateConfirmOpenChange}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>This serial number already exists</AlertDialogTitle>
+            <AlertDialogDescription>
+              Another equipment record in this organization already uses this serial number.
+              Review it below to make sure you are not creating a duplicate. You can continue if
+              this is a separate piece of equipment.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {confirmDuplicateMatch && (
+            <DuplicateSerialWarning match={confirmDuplicateMatch} onNavigate={onClose} />
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go back</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDuplicate}>
+              Create anyway
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

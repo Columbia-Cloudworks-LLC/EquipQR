@@ -59,6 +59,72 @@ describe('OfflineQueueService', () => {
     localStorage.clear();
   });
 
+  // ── Equipment create dedupe ───────────────────────────────────────────────
+
+  it('persists syncedEquipmentId on the queue item without growing payload', () => {
+    const svc = createService();
+    const queued = svc.enqueue({
+      type: 'equipment_create_full',
+      payload: {
+        name: 'Excavator', manufacturer: 'Komatsu', model: 'PC200',
+        serial_number: 'SN-MARK', status: 'active', location: 'Yard A',
+        team_id: 'team-1',
+      } as OfflineQueueEnqueueInput['payload'],
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+
+    expect(svc.updateSyncedEquipmentId(queued.id, 'eq-server-99')).toBe(true);
+    const stored = svc.getById(queued.id);
+    expect(stored?.syncedEquipmentId).toBe('eq-server-99');
+    expect(stored?.payload).not.toHaveProperty('syncedEquipmentId');
+  });
+
+  it('dedupes an identical pending equipment_create_full enqueue', () => {
+    const svc = createService();
+    const input: OfflineQueueEnqueueInput = {
+      type: 'equipment_create_full',
+      payload: {
+        name: 'Excavator', manufacturer: 'Komatsu', model: 'PC200',
+        serial_number: 'SN-DUP', status: 'active', location: 'Yard A',
+        team_id: 'team-1',
+      } as OfflineQueueEnqueueInput['payload'],
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    };
+
+    const first = svc.enqueue(input);
+    const second = svc.enqueue(input);
+
+    // Second identical submit returns the SAME item; only one row is queued.
+    expect(second.id).toBe(first.id);
+    expect(svc.getCount()).toBe(1);
+  });
+
+  it('still queues a second equipment create that differs (e.g. same serial, different name)', () => {
+    const svc = createService();
+    const base = {
+      manufacturer: 'Komatsu', model: 'PC200', serial_number: 'SN-SHARED',
+      status: 'active', location: 'Yard A', team_id: 'team-1',
+    };
+
+    svc.enqueue({
+      type: 'equipment_create_full',
+      payload: { ...base, name: 'Excavator A' } as OfflineQueueEnqueueInput['payload'],
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+    svc.enqueue({
+      type: 'equipment_create_full',
+      payload: { ...base, name: 'Excavator B' } as OfflineQueueEnqueueInput['payload'],
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+
+    // Duplicates are allowed: two distinct intended records both queue.
+    expect(svc.getCount()).toBe(2);
+  });
+
   // ── Basic CRUD ──────────────────────────────────────────────────────────
 
   it('starts with an empty queue', () => {

@@ -6,8 +6,15 @@ import EquipmentBasicInfoSection from '../form/EquipmentBasicInfoSection';
 import { equipmentFormSchema, EquipmentFormData } from '@/features/equipment/types/equipment';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form } from '@/components/ui/form';
+import type { DuplicateEquipmentMatch } from '@/features/equipment/services/EquipmentService';
 
-const TestWrapper = ({ defaultValues }: { defaultValues?: Partial<EquipmentFormData> }) => {
+const TestWrapper = ({
+  defaultValues,
+  duplicateMatch,
+}: {
+  defaultValues?: Partial<EquipmentFormData>;
+  duplicateMatch?: DuplicateEquipmentMatch | null;
+}) => {
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentFormSchema),
     defaultValues: {
@@ -23,9 +30,20 @@ const TestWrapper = ({ defaultValues }: { defaultValues?: Partial<EquipmentFormD
 
   return (
     <Form {...form}>
-      <EquipmentBasicInfoSection form={form} />
+      <EquipmentBasicInfoSection form={form} duplicateMatch={duplicateMatch} />
     </Form>
   );
+};
+
+const SAMPLE_MATCH: DuplicateEquipmentMatch = {
+  id: 'eq-existing',
+  name: 'JLG Boom Lift',
+  manufacturer: 'JLG',
+  model: '519',
+  serial_number: '123456789',
+  status: 'active',
+  team_id: 'team-1',
+  team_name: '3-A Equipment',
 };
 
 describe('EquipmentBasicInfoSection', () => {
@@ -87,6 +105,28 @@ describe('EquipmentBasicInfoSection', () => {
       expect(manufacturerInput.value).toBe('Test Manufacturer');
       expect(modelInput.value).toBe('Test Model');
       expect(serialInput.value).toBe('TEST123');
+    });
+  });
+
+  describe('Duplicate serial warning', () => {
+    it('does not render a warning when there is no duplicate match', () => {
+      render(<TestWrapper />);
+
+      expect(
+        screen.queryByText(/Possible duplicate/i),
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders a non-blocking warning with a link to the existing record', () => {
+      render(<TestWrapper duplicateMatch={SAMPLE_MATCH} />);
+
+      expect(
+        screen.getByText(/Possible duplicate — equipment with this serial already exists/i),
+      ).toBeInTheDocument();
+      expect(screen.getByText('JLG Boom Lift')).toBeInTheDocument();
+
+      const link = screen.getByRole('link', { name: /View existing equipment/i });
+      expect(link).toHaveAttribute('href', '/dashboard/equipment/eq-existing');
     });
   });
 
