@@ -159,7 +159,7 @@ export function useDashboardTrends(
     enabled: boolean = true,
     days: number = 7
   ) {
-    const { selectedTeamId } = useDashboardTeamQueryContext();
+    const { selectedTeamId, teamsLoading } = useDashboardTeamQueryContext();
 
     return useQuery({
       queryKey: organizationId
@@ -169,7 +169,7 @@ export function useDashboardTrends(
         if (!organizationId) return null;
         return fetchDashboardTrends(organizationId, days, selectedTeamId);
       },
-      enabled: !!organizationId && enabled,
+      enabled: !!organizationId && enabled && !teamsLoading,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   });
