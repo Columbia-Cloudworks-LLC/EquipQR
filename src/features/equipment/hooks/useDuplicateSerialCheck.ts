@@ -91,7 +91,10 @@ export function useDuplicateSerialCheck(
     queryFn: async () => {
       if (!orgId) return null;
       const res = await EquipmentService.findBySerial(orgId, debounced);
-      return res.success ? res.data ?? null : null;
+      if (!res.success) {
+        throw new Error(res.error ?? 'Duplicate serial lookup failed');
+      }
+      return res.data ?? null;
     },
   });
 
