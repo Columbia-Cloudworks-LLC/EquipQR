@@ -33,7 +33,9 @@ BEGIN
   USING public.work_order_images wi
   WHERE wi.work_order_id = p_work_order_id
     AND o.bucket_id = 'work-order-images'
-    AND o.name = wi.file_url;
+    AND o.name = wi.file_url
+    AND (storage.foldername(o.name))[2] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    AND ((storage.foldername(o.name))[2])::uuid = p_work_order_id;
 
   DELETE FROM public.work_order_images WHERE work_order_id = p_work_order_id;
   DELETE FROM public.work_order_notes WHERE work_order_id = p_work_order_id;

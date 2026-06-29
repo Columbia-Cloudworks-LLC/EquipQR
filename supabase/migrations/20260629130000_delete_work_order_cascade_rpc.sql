@@ -6,7 +6,7 @@ CREATE OR REPLACE FUNCTION public.delete_work_order_cascade(p_work_order_id uuid
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO public
+SET search_path = ''
 AS $$
 DECLARE
   v_org_id uuid;
@@ -46,7 +46,8 @@ BEGIN
     'organization_id', v_org_id
   );
 EXCEPTION WHEN OTHERS THEN
-  RETURN jsonb_build_object('success', false, 'error', SQLERRM);
+  RAISE LOG 'delete_work_order_cascade failed for %: %', p_work_order_id, SQLERRM;
+  RETURN jsonb_build_object('success', false, 'error', 'Deletion failed');
 END;
 $$;
 
