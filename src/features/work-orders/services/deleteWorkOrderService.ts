@@ -31,6 +31,7 @@ export const getWorkOrderImageCount = async (workOrderId: string): Promise<WorkO
 
 export const deleteWorkOrderCascade = async (workOrderId: string): Promise<void> => {
   try {
+    // Storage + row deletes run atomically in delete_work_order_cascade (SECURITY DEFINER RPC).
     const { data, error } = await supabase.rpc('delete_work_order_cascade', {
       p_work_order_id: workOrderId,
     });
