@@ -76,6 +76,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   const showQuickBooks = isQuickBooksEnabled() && canManageQuickBooks;
 
   const handleDeleteConfirm = async () => {
+    if (!canDelete) return;
     try {
       await deleteWorkOrderMutation.mutateAsync(workOrder.id);
       setShowDeleteDialog(false);

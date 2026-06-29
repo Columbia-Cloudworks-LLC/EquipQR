@@ -247,6 +247,10 @@ const WorkOrders = () => {
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
+    if (!canDeleteWorkOrders) {
+      setDeleteTarget(null);
+      return;
+    }
     try {
       await deleteWorkOrderMutation.mutateAsync(deleteTarget.id);
       setDeleteTarget(null);
