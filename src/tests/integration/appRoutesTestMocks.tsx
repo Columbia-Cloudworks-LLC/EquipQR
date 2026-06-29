@@ -86,6 +86,17 @@ vi.mock('@/pages/DoNotSellOrShare', () => ({
 vi.mock('@/pages/dsr/CockpitPage', () => ({ default: () => <div data-testid="dsr-cockpit-page">DSR Cockpit</div> }));
 vi.mock('@/pages/dsr/CasePage', () => ({ default: () => <div data-testid="dsr-case-page">DSR Case</div> }));
 vi.mock('@/components/layout/AppSidebar', () => ({ default: () => <div data-testid="app-sidebar">Sidebar</div> }));
+
+vi.mock('@/features/inventory/hooks/useInventoryAccess', () => ({
+  useInventoryAccess: () => ({
+    canView: true,
+    canEdit: true,
+    isPartsManager: false,
+    isPartsConsumer: false,
+    isLoading: false,
+    currentOrganization: { id: 'test-org' },
+  }),
+}));
 vi.mock('@/lib/flags', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/flags')>();
   return {

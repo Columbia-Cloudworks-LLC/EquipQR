@@ -2,9 +2,11 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { PartsManagerMarkIcon } from '@/components/icons/PartsManagerMarkIcon';
+import { PartsConsumerMarkIcon } from '@/components/icons/PartsConsumerMarkIcon';
 import { QuickBooksMarkIcon } from '@/components/icons/QuickBooksMarkIcon';
 import type { UnifiedMember } from '@/features/organization/utils/buildUnifiedMembers';
 import {
+  getPartsConsumerPermissionDisplay,
   getPartsManagerPermissionDisplay,
   getQuickBooksPermissionDisplay,
   shouldShowMobilePermissionSection,
@@ -17,10 +19,13 @@ type UnifiedMemberPermissionRowsProps = {
   member: UnifiedMember;
   context: UnifiedMemberPermissionContext;
   isPartsManager: boolean;
+  isPartsConsumer: boolean;
   quickBooksPending: boolean;
   partsManagerPending: boolean;
+  partsConsumerPending: boolean;
   onQuickBooksToggle: (userId: string, canManage: boolean) => void;
   onPartsManagerToggle: (userId: string, isPartsManager: boolean) => void;
+  onPartsConsumerToggle: (userId: string, isPartsConsumer: boolean) => void;
   layout?: 'mobile' | 'desktop';
 };
 
@@ -264,14 +269,80 @@ export function UnifiedMemberPartsManagerControl({
   );
 }
 
+export function UnifiedMemberPartsConsumerControl({
+  member,
+  context,
+  isPartsConsumer,
+  partsConsumerPending,
+  onPartsConsumerToggle,
+  layout = 'desktop',
+}: Pick<
+  UnifiedMemberPermissionRowsProps,
+  | 'member'
+  | 'context'
+  | 'isPartsConsumer'
+  | 'partsConsumerPending'
+  | 'onPartsConsumerToggle'
+  | 'layout'
+>) {
+  const display = getPartsConsumerPermissionDisplay(member, context);
+  const icon = <PartsConsumerMarkIcon />;
+
+  if (display === 'hidden') {
+    return null;
+  }
+
+  if (display === 'not-applicable') {
+    return layout === 'desktop' ? (
+      <DesktopPermissionControl icon={icon} label="Parts consumer">
+        <span className="text-xs text-muted-foreground">—</span>
+      </DesktopPermissionControl>
+    ) : null;
+  }
+
+  if (layout === 'desktop') {
+    return (
+      <DesktopPermissionControl icon={icon} label="Parts consumer">
+        <Switch
+          checked={isPartsConsumer}
+          onCheckedChange={(checked) => {
+            if (!member.userId) return;
+            onPartsConsumerToggle(member.userId, checked);
+          }}
+          disabled={partsConsumerPending}
+          aria-label="Toggle parts consumer permission"
+        />
+      </DesktopPermissionControl>
+    );
+  }
+
+  return (
+    <PermissionToggleRow
+      id={`pc-${member.id}`}
+      icon={icon}
+      label="Parts consumer"
+      description="View inventory, part lookup, and alternates"
+      checked={isPartsConsumer}
+      disabled={partsConsumerPending}
+      onCheckedChange={(checked) => {
+        if (!member.userId) return;
+        onPartsConsumerToggle(member.userId, checked);
+      }}
+    />
+  );
+}
+
 export function UnifiedMemberPermissionRows({
   member,
   context,
   isPartsManager,
+  isPartsConsumer,
   quickBooksPending,
   partsManagerPending,
+  partsConsumerPending,
   onQuickBooksToggle,
   onPartsManagerToggle,
+  onPartsConsumerToggle,
   layout = 'mobile',
 }: UnifiedMemberPermissionRowsProps) {
   if (layout === 'desktop') {
@@ -301,6 +372,14 @@ export function UnifiedMemberPermissionRows({
           isPartsManager={isPartsManager}
           partsManagerPending={partsManagerPending}
           onPartsManagerToggle={onPartsManagerToggle}
+          layout="mobile"
+        />
+        <UnifiedMemberPartsConsumerControl
+          member={member}
+          context={context}
+          isPartsConsumer={isPartsConsumer}
+          partsConsumerPending={partsConsumerPending}
+          onPartsConsumerToggle={onPartsConsumerToggle}
           layout="mobile"
         />
       </div>

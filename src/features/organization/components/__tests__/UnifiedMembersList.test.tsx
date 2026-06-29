@@ -80,10 +80,12 @@ vi.mock('@/features/organization/hooks/useOrganizationMembers', () => ({
   useRemoveMember: vi.fn().mockReturnValue({ mutateAsync: mockRemoveMember, isPending: false }),
 }));
 
-const { mockUpdateQuickBooks, mockAddPartsManager, mockRemovePartsManager } = vi.hoisted(() => ({
+const { mockUpdateQuickBooks, mockAddPartsManager, mockRemovePartsManager, mockAddPartsConsumer, mockRemovePartsConsumer } = vi.hoisted(() => ({
   mockUpdateQuickBooks: vi.fn().mockResolvedValue({}),
   mockAddPartsManager: vi.fn().mockResolvedValue({}),
   mockRemovePartsManager: vi.fn().mockResolvedValue({}),
+  mockAddPartsConsumer: vi.fn().mockResolvedValue({}),
+  mockRemovePartsConsumer: vi.fn().mockResolvedValue({}),
 }));
 
 vi.mock('@/hooks/useQuickBooksAccess', () => ({
@@ -97,6 +99,12 @@ vi.mock('@/features/inventory/hooks/usePartsManagers', () => ({
   usePartsManagers: vi.fn().mockReturnValue({ data: [], isLoading: false }),
   useAddPartsManager: vi.fn().mockReturnValue({ mutateAsync: mockAddPartsManager, isPending: false }),
   useRemovePartsManager: vi.fn().mockReturnValue({ mutateAsync: mockRemovePartsManager, isPending: false }),
+}));
+
+vi.mock('@/features/inventory/hooks/usePartsConsumers', () => ({
+  usePartsConsumers: vi.fn().mockReturnValue({ data: [], isLoading: false }),
+  useAddPartsConsumer: vi.fn().mockReturnValue({ mutateAsync: mockAddPartsConsumer, isPending: false }),
+  useRemovePartsConsumer: vi.fn().mockReturnValue({ mutateAsync: mockRemovePartsConsumer, isPending: false }),
 }));
 
 vi.mock('@/lib/flags', () => ({
@@ -230,6 +238,28 @@ describe('UnifiedMembersList', () => {
     fireEvent.click(partsManagerSwitch);
 
     expect(mockAddPartsManager).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      userId: 'u-2',
+    });
+  });
+
+  it('shows parts consumer toggle on mobile for member-role users', async () => {
+    customRender(
+      <UnifiedMembersList
+        members={baseMembers}
+        organizationId="org-1"
+        currentUserRole="admin"
+        isLoading={false}
+        canInviteMembers={true}
+      />
+    );
+
+    await screen.findAllByText('Bob Member');
+
+    const partsConsumerSwitch = screen.getByRole('switch', { name: 'Parts consumer' });
+    fireEvent.click(partsConsumerSwitch);
+
+    expect(mockAddPartsConsumer).toHaveBeenCalledWith({
       organizationId: 'org-1',
       userId: 'u-2',
     });

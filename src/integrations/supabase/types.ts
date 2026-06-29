@@ -2297,6 +2297,35 @@ export type Database = {
           },
         ]
       }
+      parts_consumers: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parts_consumers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parts_managers: {
         Row: {
           assigned_at: string
@@ -4293,6 +4322,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: number
       }
+      assert_inventory_read_access: {
+        Args: { p_organization_id: string }
+        Returns: undefined
+      }
       auto_provision_workspace_organization: {
         Args: {
           p_domain: string
@@ -4325,6 +4358,10 @@ export type Database = {
       calculate_organization_billing: {
         Args: { org_id: string }
         Returns: Json
+      }
+      can_access_inventory: {
+        Args: { p_organization_id: string; p_user_id?: string }
+        Returns: boolean
       }
       can_manage_inventory: {
         Args: { p_organization_id: string; p_user_id?: string }
@@ -5137,6 +5174,10 @@ export type Database = {
       }
       is_organization_member: {
         Args: { org_id: string; user_uuid: string }
+        Returns: boolean
+      }
+      is_parts_consumer: {
+        Args: { p_organization_id: string; p_user_id?: string }
         Returns: boolean
       }
       is_parts_manager: {

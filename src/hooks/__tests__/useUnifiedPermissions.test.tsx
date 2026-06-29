@@ -602,6 +602,69 @@ describe('useUnifiedPermissions', () => {
     });
   });
 
+  describe('Inventory Permissions', () => {
+    describe('as an Admin', () => {
+      beforeEach(() => {
+        setupUnifiedPermissionsPersonaMocks('admin');
+      });
+
+      it('can view inventory without extra grants', () => {
+        const { result } = renderHook(() => useUnifiedPermissions(), {
+          wrapper: createUnifiedPermissionsWrapper(),
+        });
+
+        expect(result.current.inventory.canViewAny(false, false)).toBe(true);
+        expect(result.current.inventory.getPermissions(false, false).canView).toBe(true);
+      });
+
+      it('can manage inventory without parts manager grant', () => {
+        const { result } = renderHook(() => useUnifiedPermissions(), {
+          wrapper: createUnifiedPermissionsWrapper(),
+        });
+
+        expect(result.current.inventory.canManageAny(false)).toBe(true);
+        expect(result.current.inventory.getPermissions(false, false).canCreate).toBe(true);
+      });
+    });
+
+    describe('as a Technician', () => {
+      beforeEach(() => {
+        setupUnifiedPermissionsPersonaMocks('technician');
+      });
+
+      it('cannot view inventory by default', () => {
+        const { result } = renderHook(() => useUnifiedPermissions(), {
+          wrapper: createUnifiedPermissionsWrapper(),
+        });
+
+        expect(result.current.inventory.canViewAny(false, false)).toBe(false);
+        expect(result.current.inventory.getPermissions(false, false).canView).toBe(false);
+      });
+
+      it('can view inventory as parts consumer only', () => {
+        const { result } = renderHook(() => useUnifiedPermissions(), {
+          wrapper: createUnifiedPermissionsWrapper(),
+        });
+
+        const permissions = result.current.inventory.getPermissions(false, true);
+        expect(permissions.canView).toBe(true);
+        expect(permissions.canCreate).toBe(false);
+        expect(permissions.canEdit).toBe(false);
+      });
+
+      it('can manage inventory when parts manager grant is present', () => {
+        const { result } = renderHook(() => useUnifiedPermissions(), {
+          wrapper: createUnifiedPermissionsWrapper(),
+        });
+
+        const permissions = result.current.inventory.getPermissions(true, false);
+        expect(permissions.canView).toBe(true);
+        expect(permissions.canCreate).toBe(true);
+        expect(permissions.canEdit).toBe(true);
+      });
+    });
+  });
+
   describe('Equipment Notes Permissions', () => {
     describe('as an Admin', () => {
       beforeEach(() => {

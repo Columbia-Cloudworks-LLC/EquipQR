@@ -24,12 +24,14 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/components/ui/sidebar-context';
+import { useInventoryAccess } from '@/features/inventory/hooks/useInventoryAccess';
 
 interface NavItem {
   label: string;
   shortLabel?: string; // Optional shorter label for small screens
   href: string;
   icon: LucideIcon;
+  inventoryAccessRequired?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -41,13 +43,17 @@ const navItems: NavItem[] = [
     icon: ScanLine,
   },
   { label: 'Equipment', href: '/dashboard/equipment', icon: Forklift },
-  { label: 'Inventory', href: '/dashboard/inventory', icon: Warehouse },
+  { label: 'Inventory', href: '/dashboard/inventory', icon: Warehouse, inventoryAccessRequired: true },
   { label: 'Work Orders', shortLabel: 'Orders', href: '/dashboard/work-orders', icon: ClipboardList },
 ];
 
 const BottomNav: React.FC = () => {
   const location = useLocation();
   const { setOpenMobile } = useSidebar();
+  const { canView: canViewInventory } = useInventoryAccess();
+  const visibleNavItems = navItems.filter(
+    (item) => !item.inventoryAccessRequired || canViewInventory,
+  );
 
   const isActive = (item: NavItem) => {
     const { href } = item;
@@ -81,7 +87,7 @@ const BottomNav: React.FC = () => {
       aria-label="Primary navigation"
     >
       <div className="flex items-stretch justify-around px-2">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const active = isActive(item);
           const Icon = item.icon;
           

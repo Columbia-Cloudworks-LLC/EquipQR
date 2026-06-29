@@ -516,6 +516,30 @@ describe('usePermissions', () => {
       
       expect(result.current.canManagePartsManagers()).toBe(false);
     });
+
+    it('canViewInventory returns false for plain member without grants', () => {
+      const { result } = renderPermissionsForRole('member');
+      
+      expect(result.current.canViewInventory(false, false)).toBe(false);
+    });
+
+    it('canViewInventory returns true for parts consumer grant', () => {
+      const { result } = renderPermissionsForRole('member');
+      
+      expect(result.current.canViewInventory(false, true)).toBe(true);
+    });
+
+    it('canViewInventory returns true for parts manager grant', () => {
+      const { result } = renderPermissionsForRole('member');
+      
+      expect(result.current.canViewInventory(true, false)).toBe(true);
+    });
+
+    it('canManagePartsConsumers returns true for admin', () => {
+      const { result } = renderPermissionsForRole('admin');
+      
+      expect(result.current.canManagePartsConsumers()).toBe(true);
+    });
   });
 
   describe('Team Utility Functions', () => {

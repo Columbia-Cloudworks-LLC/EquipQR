@@ -22,11 +22,14 @@ export function UnifiedMembersMobileList({
   mergePending,
   permissionContext,
   partsManagerUserIds,
+  partsConsumerUserIds,
   quickBooksPending,
   partsManagerPending,
+  partsConsumerPending,
   onRoleChange,
   onQuickBooksToggle,
   onPartsManagerToggle,
+  onPartsConsumerToggle,
   onResendInvitation,
   onCancelInvitation,
   onRevokeGwsClaim,
@@ -93,10 +96,13 @@ export function UnifiedMembersMobileList({
             member={member}
             context={permissionContext}
             isPartsManager={member.userId ? partsManagerUserIds.has(member.userId) : false}
+            isPartsConsumer={member.userId ? partsConsumerUserIds.has(member.userId) : false}
             quickBooksPending={quickBooksPending}
             partsManagerPending={partsManagerPending}
+            partsConsumerPending={partsConsumerPending}
             onQuickBooksToggle={onQuickBooksToggle}
             onPartsManagerToggle={onPartsManagerToggle}
+            onPartsConsumerToggle={onPartsConsumerToggle}
             layout="mobile"
           />
         </div>

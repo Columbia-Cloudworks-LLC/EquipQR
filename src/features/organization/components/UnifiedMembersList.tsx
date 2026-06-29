@@ -21,6 +21,11 @@ import {
   usePartsManagers,
   useRemovePartsManager,
 } from '@/features/inventory/hooks/usePartsManagers';
+import {
+  useAddPartsConsumer,
+  usePartsConsumers,
+  useRemovePartsConsumer,
+} from '@/features/inventory/hooks/usePartsConsumers';
 import { useAuth } from '@/hooks/useAuth';
 import { GoogleWorkspaceMemberImportSheet } from './GoogleWorkspaceMemberImportSheet';
 import type { OrganizationMember } from '@/features/organization/types/organization';
@@ -67,19 +72,28 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
   const revokeGwsClaim = useRevokeGoogleWorkspaceMemberClaim(organizationId);
   const updateQuickBooksPermission = useUpdateQuickBooksPermission(organizationId);
   const { data: partsManagers = [] } = usePartsManagers(organizationId);
+  const { data: partsConsumers = [] } = usePartsConsumers(organizationId);
   const addPartsManager = useAddPartsManager();
   const removePartsManager = useRemovePartsManager();
+  const addPartsConsumer = useAddPartsConsumer();
+  const removePartsConsumer = useRemovePartsConsumer();
   const requestWorkspaceMerge = useRequestWorkspaceMerge();
   const { user } = useAuth();
 
   const canManageMembers = currentUserRole === 'owner' || currentUserRole === 'admin';
   const isOwner = currentUserRole === 'owner';
   const canManagePartsManagers = canManageMembers;
+  const canManagePartsConsumers = canManageMembers;
   const quickBooksEnabled = isQuickBooksEnabled();
 
   const partsManagerUserIds = useMemo(
     () => new Set(partsManagers.map((manager) => manager.user_id)),
     [partsManagers],
+  );
+
+  const partsConsumerUserIds = useMemo(
+    () => new Set(partsConsumers.map((consumer) => consumer.user_id)),
+    [partsConsumers],
   );
 
   const unifiedMembers = useMemo(
@@ -157,19 +171,37 @@ const UnifiedMembersList: React.FC<UnifiedMembersListProps> = ({
     await removePartsManager.mutateAsync({ organizationId, userId });
   };
 
+  const handlePartsConsumerToggle = async (userId: string, isPartsConsumer: boolean) => {
+    if (!canManagePartsConsumers) {
+      toast.error('You do not have permission to manage Parts Consumers');
+      return;
+    }
+
+    if (isPartsConsumer) {
+      await addPartsConsumer.mutateAsync({ organizationId, userId });
+      return;
+    }
+
+    await removePartsConsumer.mutateAsync({ organizationId, userId });
+  };
+
   const permissionContext = {
     isOwner,
     quickBooksEnabled,
     canManagePartsManagers,
+    canManagePartsConsumers,
   };
 
   const permissionProps = {
     permissionContext,
     partsManagerUserIds,
+    partsConsumerUserIds,
     quickBooksPending: updateQuickBooksPermission.isPending,
     partsManagerPending: addPartsManager.isPending || removePartsManager.isPending,
+    partsConsumerPending: addPartsConsumer.isPending || removePartsConsumer.isPending,
     onQuickBooksToggle: handleQuickBooksToggle,
     onPartsManagerToggle: handlePartsManagerToggle,
+    onPartsConsumerToggle: handlePartsConsumerToggle,
   };
 
   const handleRequestDataMerge = (member: { userId?: string }) => {

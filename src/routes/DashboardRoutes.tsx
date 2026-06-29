@@ -32,6 +32,7 @@ import {
   DSRCockpitPage,
   DSRCasePage,
 } from '@/routes/lazyDashboardPages';
+import { InventoryAccessGuard } from '@/features/inventory/components/InventoryAccessGuard';
 
 export const dashboardRouteElements = (
   <>
@@ -58,12 +59,12 @@ export const dashboardRouteElements = (
     <Route path="/onboarding/workspace" element={<WorkspaceOnboarding />} />
     <Route path="/onboarding/getting-started" element={<GettingStartedOnboarding />} />
     <Route path="/reports" element={<Reports />} />
-    <Route path="/inventory" element={<InventoryList />} />
-    <Route path="/inventory/bulk" element={<BulkInventory />} />
-    <Route path="/inventory/:itemId" element={<InventoryItemDetail />} />
-    <Route path="/part-lookup" element={<PartLookup />} />
-    <Route path="/alternate-groups" element={<AlternateGroupsPage />} />
-    <Route path="/alternate-groups/:groupId" element={<AlternateGroupDetail />} />
+    <Route path="/inventory" element={<InventoryAccessGuard><InventoryList /></InventoryAccessGuard>} />
+    <Route path="/inventory/bulk" element={<InventoryAccessGuard><BulkInventory /></InventoryAccessGuard>} />
+    <Route path="/inventory/:itemId" element={<InventoryAccessGuard><InventoryItemDetail /></InventoryAccessGuard>} />
+    <Route path="/part-lookup" element={<InventoryAccessGuard title="Part lookup access required"><PartLookup /></InventoryAccessGuard>} />
+    <Route path="/alternate-groups" element={<InventoryAccessGuard title="Alternate groups access required"><AlternateGroupsPage /></InventoryAccessGuard>} />
+    <Route path="/alternate-groups/:groupId" element={<InventoryAccessGuard title="Alternate groups access required"><AlternateGroupDetail /></InventoryAccessGuard>} />
     <Route path="/support" element={<DashboardSupport />} />
     <Route path="/audit-log" element={<AuditLog />} />
     <Route path="/dsr" element={<DSRCockpitPage />} />
