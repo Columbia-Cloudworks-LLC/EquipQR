@@ -405,9 +405,12 @@ export async function pickHistoricalStartDate(
   const trigger = dialog.getByRole('button', { name: /pick start date and time/i });
   await clickWithDemoCue(trigger, 'Open historical start date picker');
 
+  const calendarNav = page.getByRole('navigation', { name: /Navigation bar/i }).last();
+  await expect(calendarNav).toBeVisible({ timeout: 15_000 });
+
   for (let index = 0; index < monthsBack; index += 1) {
     await clickWithDemoCue(
-      page.getByRole('button', { name: /Go to the Previous Month/i }),
+      calendarNav.getByRole('button', { name: /Go to the Previous Month/i }),
       'Go to previous month',
     );
   }
