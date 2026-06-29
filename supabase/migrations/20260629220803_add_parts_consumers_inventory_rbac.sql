@@ -423,16 +423,16 @@ DECLARE
 BEGIN
   v_user_id := auth.uid();
 
-  IF v_user_id IS NULL THEN
-    RAISE EXCEPTION 'User must be authenticated';
-  END IF;
-
   IF p_delta IS NULL THEN
     RAISE EXCEPTION 'Inventory adjustment delta cannot be null';
   END IF;
 
   IF p_delta = 0 THEN
     RAISE EXCEPTION 'Inventory adjustment delta cannot be zero';
+  END IF;
+
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'User must be authenticated';
   END IF;
 
   SELECT quantity_on_hand, organization_id

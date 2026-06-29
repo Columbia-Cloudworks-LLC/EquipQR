@@ -145,6 +145,9 @@ SELECT lives_ok(
 
 RESET role;
 
+SET LOCAL role = 'authenticated';
+SET LOCAL request.jwt.claims = '{"sub":"22000000-0000-0000-0000-000000000004","role":"authenticated"}';
+
 SELECT throws_like(
   $$ SELECT public.adjust_inventory_quantity(
     '22000000-bbbb-0000-0000-000000000001'::uuid,
