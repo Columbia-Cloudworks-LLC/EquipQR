@@ -30,7 +30,7 @@ test.describe('PR evidence: work order equipment picker @pr-evidence', () => {
     await expect(equipmentTrigger).toBeVisible({ timeout: 15_000 });
     await equipmentTrigger.click();
 
-    await expect(page.getByRole('option', { name: new RegExp(seedEquipment.cat320.name, 'i') }).first()).toBeVisible({
+    await expect(page.getByRole('option', { name: seedEquipment.cat320.name }).first()).toBeVisible({
       timeout: 15_000,
     });
     await evidencePause(page, 600);
@@ -43,16 +43,15 @@ test.describe('PR evidence: work order equipment picker @pr-evidence', () => {
       timeout: 15_000,
     });
     await page.getByPlaceholder(/search equipment\.\.\./i).fill(seedEquipment.cat320.name);
-    await expect(
-      page.getByRole('button', { name: new RegExp(`select ${seedEquipment.cat320.name}`, 'i') }).first(),
-    ).toBeVisible({ timeout: 15_000 });
+    const searchResultRow = page
+      .getByRole('button', { name: /^select /i })
+      .filter({ hasText: seedEquipment.cat320.name })
+      .first();
+    await expect(searchResultRow).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '03-equipment-search-dialog-filtered');
 
-    await page
-      .getByRole('button', { name: new RegExp(`select ${seedEquipment.cat320.name}`, 'i') })
-      .first()
-      .click();
+    await searchResultRow.click();
     await expect(equipmentTrigger).toContainText(seedEquipment.cat320.name, { timeout: 15_000 });
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '04-equipment-selected');

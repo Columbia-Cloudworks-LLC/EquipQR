@@ -11,6 +11,10 @@ function labelText(name: string | RegExp): string {
   return patternToSearchText(name) || String(name);
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export async function selectRadixOption(
   page: Page,
   trigger: Locator,
@@ -37,7 +41,7 @@ async function pickWorkOrderEquipmentFromSearchDialog(
   await fillWithDemoCue(dialogSearch, `Search for ${searchText}`, searchText);
 
   const row = page
-    .getByRole('button', { name: new RegExp(`select.*${searchText}`, 'i') })
+    .getByRole('button', { name: new RegExp(`select.*${escapeRegExp(searchText)}`, 'i') })
     .filter({ hasText: optionName })
     .first();
   if (await row.isVisible({ timeout: 10_000 }).catch(() => false)) {
