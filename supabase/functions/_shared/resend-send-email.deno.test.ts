@@ -1,6 +1,7 @@
 import { assertEquals } from "jsr:@std/assert@1";
 import {
   RESEND_EMAILS_API_URL,
+  RESEND_FETCH_TIMEOUT_MS,
   sendResendEmail,
 } from "./resend-send-email.ts";
 
@@ -93,4 +94,27 @@ Deno.test("sendResendEmail returns network_error when fetch throws", async () =>
       assertEquals(result.error?.message, "connection reset");
     },
   );
+});
+
+Deno.test("sendResendEmail passes AbortSignal timeout to fetch", async () => {
+  await withFetchStub(
+    async (_input, init) => {
+      const signal = (init as RequestInit | undefined)?.signal;
+      assertEquals(signal instanceof AbortSignal, true);
+      assertEquals((signal as AbortSignal).reason, undefined);
+      return new Response(JSON.stringify({ id: "email-timeout" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+    async () => {
+      const result = await sendResendEmail(SAMPLE_INPUT);
+      assertEquals(result.data?.id, "email-timeout");
+    },
+  );
+});
+
+Deno.test("RESEND_FETCH_TIMEOUT_MS is a positive bounded value", () => {
+  assertEquals(RESEND_FETCH_TIMEOUT_MS > 0, true);
+  assertEquals(RESEND_FETCH_TIMEOUT_MS <= 60_000, true);
 });

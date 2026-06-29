@@ -19,6 +19,7 @@ export type ResendSendEmailResult = {
 };
 
 export const RESEND_EMAILS_API_URL = "https://api.resend.com/emails";
+export const RESEND_FETCH_TIMEOUT_MS = 15_000;
 
 function parseResendError(body: unknown): { name: string; message: string } {
   if (body && typeof body === "object") {
@@ -48,6 +49,7 @@ export async function sendResendEmail(
         subject: input.subject,
         html: input.html,
       }),
+      signal: AbortSignal.timeout(RESEND_FETCH_TIMEOUT_MS),
     });
 
     const body: unknown = await response.json().catch(() => null);

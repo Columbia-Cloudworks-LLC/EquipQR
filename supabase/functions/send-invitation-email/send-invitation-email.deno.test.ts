@@ -3,10 +3,24 @@ import { __testables } from "./index.ts";
 
 const FAKE_CORRELATION_ID = "00000000-0000-4000-8000-000000000002";
 
+function buildTestRequest(): Request {
+  return new Request("https://example.test/functions/v1/send-invitation-email", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Origin: "https://equipqr.app",
+    },
+    body: JSON.stringify({}),
+  });
+}
+
 function buildAnonPostRequest(): Request {
   return new Request("https://example.test/functions/v1/send-invitation-email", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Origin: "https://equipqr.app",
+    },
     body: JSON.stringify({
       invitationId: "inv-1",
       email: "invitee@example.com",
@@ -68,7 +82,7 @@ async function withEnv(
 Deno.test({
   name:
     "ordering: missing RESEND_API_KEY returns 500 even with no auth header (secret loads BEFORE requireAuthenticatedPost)",
-  permissions: { env: ["RESEND_API_KEY"] },
+  permissions: { env: true },
   fn: async () => {
     await withEnv(
       {
@@ -105,7 +119,7 @@ const PLATFORM_FAKES = {
 Deno.test({
   name:
     "ordering: with RESEND_API_KEY present, no auth header returns 401 (auth runs AFTER the secret check)",
-  permissions: { env: ["RESEND_API_KEY", "SUPABASE_URL", "SUPABASE_ANON_KEY"] },
+  permissions: { env: true },
   fn: async () => {
     await withEnv(
       {
@@ -135,12 +149,18 @@ Deno.test("buildInvitationEmailSubject uses raw organization name (not HTML-esca
   assertEquals(subject.includes("&amp;"), false);
 });
 
+Deno.test("buildInvitationEmailSubject strips control characters from organization name", () => {
+  const subject = __testables.buildInvitationEmailSubject("Line1\nLine2\tTab");
+  assertEquals(subject, "You're invited to join Line1 Line2 Tab on EquipQR™");
+});
+
 Deno.test({
   name: "deliverInvitationEmail returns 200 with emailId on successful Resend send",
   fn: async () => {
     const lines = await captureConsole(async () => {
       const res = await __testables.deliverInvitationEmail(
         {
+          req: buildTestRequest(),
           resendApiKey: "re_test",
           email: "invitee@example.com",
           organizationName: "Test Org",
@@ -168,6 +188,7 @@ Deno.test({
     const lines = await captureConsole(async () => {
       const res = await __testables.deliverInvitationEmail(
         {
+          req: buildTestRequest(),
           resendApiKey: "re_test",
           email: "invitee@example.com",
           organizationName: "Test Org",

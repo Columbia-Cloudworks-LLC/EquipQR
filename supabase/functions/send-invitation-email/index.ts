@@ -51,14 +51,24 @@ const escapeHtml = (unsafe: string): string => {
     .replace(/'/g, "&#039;");
 };
 
+export function sanitizeSubjectOrganizationName(organizationName: string): string {
+  const sanitized = organizationName
+    .replace(/[\r\n\t\v\f\x00-\x1F\x7F]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
+  return sanitized.length > 0 ? sanitized : "your organization";
+}
+
 export function buildInvitationEmailSubject(organizationName: string): string {
-  return `You're invited to join ${organizationName} on EquipQR™`;
+  return `You're invited to join ${sanitizeSubjectOrganizationName(organizationName)} on EquipQR™`;
 }
 
 type SendInvitationEmailFn = typeof sendResendEmail;
 
 export async function deliverInvitationEmail(
   params: {
+    req: Request;
     resendApiKey: string;
     email: string;
     organizationName: string;
@@ -67,6 +77,8 @@ export async function deliverInvitationEmail(
   },
   sendEmail: SendInvitationEmailFn = sendResendEmail,
 ): Promise<Response> {
+  const responseOpts = { req: params.req };
+
   logStep("Sending email", { invitationId: params.invitationId });
 
   const emailResponse = await sendEmail({
@@ -83,7 +95,7 @@ export async function deliverInvitationEmail(
       errorName: emailResponse.error.name,
       errorMessage: emailResponse.error.message,
     });
-    return createErrorResponse("Failed to send invitation email", 500);
+    return createErrorResponse("Failed to send invitation email", 500, responseOpts);
   }
 
   logStep("Email sent successfully", { emailId: emailResponse.data?.id });
@@ -91,7 +103,7 @@ export async function deliverInvitationEmail(
   return createJsonResponse({
     success: true,
     emailId: emailResponse.data?.id,
-  });
+  }, 200, responseOpts);
 }
 
 async function handle(req: Request, _ctx: RequestContext): Promise<Response> {
@@ -142,7 +154,7 @@ async function handle(req: Request, _ctx: RequestContext): Promise<Response> {
       logStep("Invitation not found or access denied", {
         error: invitationError?.message,
       });
-      return createErrorResponse("Invitation not found", 404);
+      return createErrorResponse("Invitation not found", 404, { req });
     }
 
     // Defense-in-depth: Verify user has admin/owner role, not just read access.
@@ -166,7 +178,8 @@ async function handle(req: Request, _ctx: RequestContext): Promise<Response> {
       });
       return createErrorResponse(
         "Only organization admins can send invitation emails",
-        403
+        403,
+        { req },
       );
     }
 
@@ -291,6 +304,7 @@ async function handle(req: Request, _ctx: RequestContext): Promise<Response> {
 
     // Send the email
     return await deliverInvitationEmail({
+      req,
       resendApiKey,
       email,
       organizationName,
@@ -299,7 +313,7 @@ async function handle(req: Request, _ctx: RequestContext): Promise<Response> {
     });
   } catch (error: unknown) {
     if (error instanceof MissingSecretError) {
-      return createErrorResponse(error, 500);
+      return createErrorResponse(error, 500, { req });
     }
     // Log the full error server-side for debugging
     logStep("ERROR", {
@@ -307,10 +321,15 @@ async function handle(req: Request, _ctx: RequestContext): Promise<Response> {
       stack: error instanceof Error ? error.stack : undefined,
     });
     // Return generic message to client - never expose error.message directly
-    return createErrorResponse("Failed to send invitation email", 500);
+    return createErrorResponse("Failed to send invitation email", 500, { req });
   }
 }
 
-export const __testables = { handle, deliverInvitationEmail, buildInvitationEmailSubject };
+export const __testables = {
+  handle,
+  deliverInvitationEmail,
+  buildInvitationEmailSubject,
+  sanitizeSubjectOrganizationName,
+};
 
 Deno.serve(withCorrelationId(handle));
