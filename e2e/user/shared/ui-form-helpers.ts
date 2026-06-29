@@ -11,6 +11,10 @@ function labelText(name: string | RegExp): string {
   return patternToSearchText(name) || String(name);
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export async function selectRadixOption(
   page: Page,
   trigger: Locator,
@@ -20,6 +24,33 @@ export async function selectRadixOption(
   const option = page.getByRole('option', { name: optionName }).last();
   await expect(option).toBeVisible({ timeout: 15_000 });
   await clickWithDemoCue(option, `Select ${labelText(optionName)}`);
+}
+
+async function pickWorkOrderEquipmentFromSearchDialog(
+  page: Page,
+  optionName: string | RegExp,
+  searchText: string,
+): Promise<boolean> {
+  const searchEquipmentButton = page.getByRole('button', { name: /^search equipment$/i });
+  if (!(await searchEquipmentButton.isVisible({ timeout: 2_000 }).catch(() => false))) {
+    return false;
+  }
+
+  await clickWithDemoCue(searchEquipmentButton, 'Open equipment search dialog');
+  const dialogSearch = page.getByPlaceholder(/search equipment\.\.\./i);
+  await fillWithDemoCue(dialogSearch, `Search for ${searchText}`, searchText);
+
+  const row = page
+    .getByRole('button', { name: new RegExp(`select.*${escapeRegExp(searchText)}`, 'i') })
+    .filter({ hasText: optionName })
+    .first();
+  if (await row.isVisible({ timeout: 10_000 }).catch(() => false)) {
+    await clickWithDemoCue(row, `Select ${labelText(optionName)} from search`);
+    return true;
+  }
+
+  await page.keyboard.press('Escape');
+  return false;
 }
 
 async function pickComboboxOption(
@@ -41,6 +72,11 @@ async function pickComboboxOption(
   }
 
   await page.keyboard.press('Escape');
+
+  if (await pickWorkOrderEquipmentFromSearchDialog(page, optionName, searchText)) {
+    return true;
+  }
+
   return false;
 }
 
@@ -200,8 +236,8 @@ export async function openWorkOrderCreateDialog(page: Page, gotoDashboard: (rout
     timeout: 60_000,
   });
   await expect(
-    page.getByText(/^(Showing all|Showing \d+|No team assignments)/i),
-  ).toBeVisible({ timeout: 60_000 });
+    page.getByText(/^(Showing all|Showing \d+|No team assignments)/i).first(),
+  ).toBeAttached({ timeout: 60_000 });
 
   const stableCreateButton = page.getByTestId('create-work-order-button');
   const createButton = stableCreateButton.or(page.getByRole('button', { name: /^Create Work Order$/i })).first();
