@@ -35,6 +35,10 @@ vi.mock('@/features/inventory/hooks/useAlternateGroups', () => ({
   useDeleteAlternateGroup: vi.fn(),
 }));
 
+vi.mock('@/features/inventory/hooks/useInventoryPartsManagerAccess', () => ({
+  useInventoryPartsManagerAccess: vi.fn(),
+}));
+
 vi.mock('@/features/inventory/components/AlternateGroupForm', () => ({
   AlternateGroupForm: ({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) => (
     <div data-testid="alternate-group-form">
@@ -59,6 +63,7 @@ import {
   useAlternateGroups,
   useDeleteAlternateGroup,
 } from '@/features/inventory/hooks/useAlternateGroups';
+import { useInventoryPartsManagerAccess } from '@/features/inventory/hooks/useInventoryPartsManagerAccess';
 
 // Mock data
 const mockGroups = Object.values(partAlternateGroups);
@@ -81,6 +86,13 @@ const setupMocks = (options: {
       ? { id: organizations.acme.id, name: organizations.acme.name }
       : null,
   } as ReturnType<typeof useOrganization>);
+
+  vi.mocked(useInventoryPartsManagerAccess).mockReturnValue({
+    currentOrganization: hasOrganization
+      ? { id: organizations.acme.id, name: organizations.acme.name }
+      : undefined,
+    canEdit,
+  });
 
   vi.mocked(usePermissions).mockReturnValue({
     canCreateEquipment: () => canEdit,

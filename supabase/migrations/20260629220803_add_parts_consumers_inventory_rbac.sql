@@ -68,6 +68,9 @@ CREATE POLICY parts_consumers_delete_policy ON public.parts_consumers
 
 -- ============================================================================
 -- PART 2: Helper functions
+-- rpc-authenticated-grant-allowed: is_parts_consumer
+-- rpc-authenticated-grant-allowed: can_access_inventory
+-- rpc-authenticated-grant-allowed: assert_inventory_read_access
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION public.is_parts_consumer(
