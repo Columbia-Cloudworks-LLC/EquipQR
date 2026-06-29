@@ -12,8 +12,8 @@
  *   4. Validate invitation access and send email
  */
 
-import { Resend } from "npm:resend@2.0.0";
 import { resolvePublicSiteUrl } from "../_shared/public-site-url.ts";
+import { sendResendEmail } from "../_shared/resend-send-email.ts";
 import {
   requireAuthenticatedPost,
   verifyOrgAdmin,
@@ -50,6 +50,49 @@ const escapeHtml = (unsafe: string): string => {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 };
+
+export function buildInvitationEmailSubject(organizationName: string): string {
+  return `You're invited to join ${organizationName} on EquipQR™`;
+}
+
+type SendInvitationEmailFn = typeof sendResendEmail;
+
+export async function deliverInvitationEmail(
+  params: {
+    resendApiKey: string;
+    email: string;
+    organizationName: string;
+    emailHtml: string;
+    invitationId: string;
+  },
+  sendEmail: SendInvitationEmailFn = sendResendEmail,
+): Promise<Response> {
+  logStep("Sending email", { invitationId: params.invitationId });
+
+  const emailResponse = await sendEmail({
+    apiKey: params.resendApiKey,
+    from: "EquipQR™ <invite@equipqr.app>",
+    to: [params.email],
+    subject: buildInvitationEmailSubject(params.organizationName),
+    html: params.emailHtml,
+  });
+
+  if (emailResponse.error) {
+    logStep("Resend API rejected send", {
+      invitationId: params.invitationId,
+      errorName: emailResponse.error.name,
+      errorMessage: emailResponse.error.message,
+    });
+    return createErrorResponse("Failed to send invitation email", 500);
+  }
+
+  logStep("Email sent successfully", { emailId: emailResponse.data?.id });
+
+  return createJsonResponse({
+    success: true,
+    emailId: emailResponse.data?.id,
+  });
+}
 
 async function handle(req: Request, _ctx: RequestContext): Promise<Response> {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -247,30 +290,12 @@ async function handle(req: Request, _ctx: RequestContext): Promise<Response> {
     `;
 
     // Send the email
-    logStep("Sending email", { invitationId });
-
-    const resend = new Resend(resendApiKey);
-    const emailResponse = await resend.emails.send({
-      from: "EquipQR™ <invite@equipqr.app>",
-      to: [email],
-      subject: `You're invited to join ${safeOrganizationName} on EquipQR™`,
-      html: emailHtml,
-    });
-
-    if (emailResponse.error) {
-      logStep("Resend API rejected send", {
-        invitationId,
-        errorName: emailResponse.error.name,
-        errorMessage: emailResponse.error.message,
-      });
-      return createErrorResponse("Failed to send invitation email", 500);
-    }
-
-    logStep("Email sent successfully", { emailId: emailResponse.data?.id });
-
-    return createJsonResponse({
-      success: true,
-      emailId: emailResponse.data?.id,
+    return await deliverInvitationEmail({
+      resendApiKey,
+      email,
+      organizationName,
+      emailHtml,
+      invitationId,
     });
   } catch (error: unknown) {
     if (error instanceof MissingSecretError) {
@@ -286,6 +311,6 @@ async function handle(req: Request, _ctx: RequestContext): Promise<Response> {
   }
 }
 
-export const __testables = { handle };
+export const __testables = { handle, deliverInvitationEmail, buildInvitationEmailSubject };
 
 Deno.serve(withCorrelationId(handle));
