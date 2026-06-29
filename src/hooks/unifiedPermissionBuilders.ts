@@ -140,16 +140,23 @@ export function buildTeamPermissions(hasPermission: HasPermission, hasRole: HasR
 
 export function buildInventoryPermissions(hasRole: HasRole) {
   return {
-    getPermissions: (isPartsManager: boolean = false): EntityPermissions => ({
-      canView: hasRole(['owner', 'admin', 'member']) || isPartsManager,
+    getPermissions: (
+      isPartsManager: boolean = false,
+      isPartsConsumer: boolean = false,
+    ): EntityPermissions => ({
+      canView: hasRole(['owner', 'admin']) || isPartsManager || isPartsConsumer,
       canCreate: hasRole(['owner', 'admin']) || isPartsManager,
       canEdit: hasRole(['owner', 'admin']) || isPartsManager,
       canDelete: hasRole(['owner', 'admin']),
-      canAddNotes: hasRole(['owner', 'admin', 'member']) || isPartsManager,
-      canAddImages: hasRole(['owner', 'admin', 'member']) || isPartsManager,
+      canAddNotes: hasRole(['owner', 'admin']) || isPartsManager,
+      canAddImages: hasRole(['owner', 'admin']) || isPartsManager,
     }),
-    canManageAny: (isPartsManager: boolean = false) => hasRole(['owner', 'admin']) || isPartsManager,
+    canManageAny: (isPartsManager: boolean = false) =>
+      hasRole(['owner', 'admin']) || isPartsManager,
+    canViewAny: (isPartsManager: boolean = false, isPartsConsumer: boolean = false) =>
+      hasRole(['owner', 'admin']) || isPartsManager || isPartsConsumer,
     canManagePartsManagers: hasRole(['owner', 'admin']),
+    canManagePartsConsumers: hasRole(['owner', 'admin']),
   };
 }
 

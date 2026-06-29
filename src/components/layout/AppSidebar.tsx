@@ -37,12 +37,14 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "@/components/ui/sidebar-context";
 import Logo from "@/components/ui/Logo";
 import { ORGANIZATION_INTEGRATIONS_PATH, ORGANIZATION_MEMBERS_PATH } from "@/features/organization/constants/routes";
+import { useInventoryAccess } from "@/features/inventory/hooks/useInventoryAccess";
 
 interface NavigationItem {
   title: string;
   url: string;
   icon: LucideIcon;
   adminOnly?: boolean;
+  inventoryAccessRequired?: boolean;
 }
 
 interface NavigationGroup {
@@ -56,9 +58,9 @@ const navigationGroups: NavigationGroup[] = [
     items: [
       { title: "Equipment", url: "/dashboard/equipment", icon: Forklift },
       { title: "Fleet Map", url: "/dashboard/fleet-map", icon: Map },
-      { title: "Inventory", url: "/dashboard/inventory", icon: Warehouse },
-      { title: "Part Lookup", url: "/dashboard/part-lookup", icon: Search },
-      { title: "Part Alternates", url: "/dashboard/alternate-groups", icon: Layers },
+      { title: "Inventory", url: "/dashboard/inventory", icon: Warehouse, inventoryAccessRequired: true },
+      { title: "Part Lookup", url: "/dashboard/part-lookup", icon: Search, inventoryAccessRequired: true },
+      { title: "Part Alternates", url: "/dashboard/alternate-groups", icon: Layers, inventoryAccessRequired: true },
     ],
   },
   {
@@ -130,6 +132,7 @@ const AppSidebar = () => {
   const isAdmin =
     currentOrganization?.userRole === 'owner' ||
     currentOrganization?.userRole === 'admin';
+  const { canView: canViewInventory } = useInventoryAccess();
 
   const renderNavItem = (item: NavigationItem) => {
     const isActive =
@@ -165,6 +168,7 @@ const AppSidebar = () => {
       label: group.label,
       items: group.items.filter((item) => {
         if (item.adminOnly && !isAdmin) return false;
+        if (item.inventoryAccessRequired && !canViewInventory) return false;
         return true;
       }),
     }))

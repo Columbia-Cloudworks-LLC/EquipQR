@@ -48,7 +48,10 @@ export function createLegacyPermissions(permissions: UnifiedPermissions) {
     isOrganizationAdmin: () => permissions.organization.canManage,
     canManageInventory: (isPartsManager: boolean = false) =>
       permissions.inventory.canManageAny(isPartsManager),
+    canViewInventory: (isPartsManager: boolean = false, isPartsConsumer: boolean = false) =>
+      permissions.inventory.canViewAny(isPartsManager, isPartsConsumer),
     canManagePartsManagers: () => permissions.inventory.canManagePartsManagers,
+    canManagePartsConsumers: () => permissions.inventory.canManagePartsConsumers,
     hasRole: permissions.hasRole,
     isTeamMember: permissions.isTeamMember,
     isTeamManager: permissions.isTeamManager,

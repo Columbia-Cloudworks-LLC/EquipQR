@@ -13,6 +13,15 @@ export const inventory = {
     ['inventory-item-alternates', orgId, itemId] as const,
 };
 
+export const partsRoles = {
+  managers: (orgId: string) => ['parts-managers', orgId] as const,
+  isManager: (orgId: string, userId: string) =>
+    ['is-parts-manager', orgId, userId] as const,
+  consumers: (orgId: string) => ['parts-consumers', orgId] as const,
+  isConsumer: (orgId: string, userId: string) =>
+    ['is-parts-consumer', orgId, userId] as const,
+};
+
 // Ticket keys
 export const tickets = {
   root: ['tickets'] as const,

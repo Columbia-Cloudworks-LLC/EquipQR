@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { UnifiedMember } from '@/features/organization/utils/buildUnifiedMembers';
 import {
+  getPartsConsumerPermissionDisplay,
   getPartsManagerPermissionDisplay,
   getQuickBooksPermissionDisplay,
   shouldShowMobilePermissionSection,
@@ -28,12 +29,14 @@ const ownerContext = {
   isOwner: true,
   quickBooksEnabled: true,
   canManagePartsManagers: true,
+  canManagePartsConsumers: true,
 };
 
 const adminContext = {
   isOwner: false,
   quickBooksEnabled: true,
   canManagePartsManagers: true,
+  canManagePartsConsumers: true,
 };
 
 describe('unifiedMemberPermissionRules', () => {
@@ -47,6 +50,10 @@ describe('unifiedMemberPermissionRules', () => {
 
   it('allows parts manager toggle for active member-role users', () => {
     expect(getPartsManagerPermissionDisplay(activeMember, adminContext)).toBe('toggle');
+  });
+
+  it('allows parts consumer toggle for active member-role users', () => {
+    expect(getPartsConsumerPermissionDisplay(activeMember, adminContext)).toBe('toggle');
   });
 
   it('does not allow parts manager toggle for admins', () => {

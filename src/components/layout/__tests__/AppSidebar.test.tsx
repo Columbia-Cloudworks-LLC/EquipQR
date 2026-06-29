@@ -2,9 +2,14 @@ import React from 'react';
 import { renderAsPersona, screen } from '@/test/utils/test-utils';
 import { describe, it, expect, vi } from 'vitest';
 import AppSidebar from '../AppSidebar';
+import { useInventoryAccess } from '@/features/inventory/hooks/useInventoryAccess';
 
 vi.mock('@/hooks/use-mobile', () => ({
   useIsMobile: () => false,
+}));
+
+vi.mock('@/features/inventory/hooks/useInventoryAccess', () => ({
+  useInventoryAccess: vi.fn(),
 }));
 
 vi.mock('@/components/ui/sidebar-context', async () => {
@@ -26,6 +31,17 @@ vi.mock('@/components/ui/sidebar-context', async () => {
 });
 
 describe('AppSidebar', () => {
+  beforeEach(() => {
+    vi.mocked(useInventoryAccess).mockReturnValue({
+      canView: true,
+      canEdit: true,
+      isPartsManager: false,
+      isPartsConsumer: false,
+      isLoading: false,
+      currentOrganization: undefined,
+    });
+  });
+
   it('renders the four operational group labels for an admin', () => {
     renderAsPersona(<AppSidebar />, 'admin');
 
@@ -54,6 +70,24 @@ describe('AppSidebar', () => {
     renderAsPersona(<AppSidebar />, 'technician');
 
     expect(screen.queryByText('Audit')).not.toBeInTheDocument();
+  });
+
+  it('hides inventory navigation for users without inventory access', () => {
+    vi.mocked(useInventoryAccess).mockReturnValue({
+      canView: false,
+      canEdit: false,
+      isPartsManager: false,
+      isPartsConsumer: false,
+      isLoading: false,
+      currentOrganization: undefined,
+    });
+
+    renderAsPersona(<AppSidebar />, 'technician');
+
+    expect(screen.queryByRole('link', { name: /^inventory$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /part lookup/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /part alternates/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^equipment$/i })).toBeInTheDocument();
   });
 
   it('does not mount OrganizationSwitcher inside the sidebar', () => {

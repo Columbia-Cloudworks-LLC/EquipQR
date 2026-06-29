@@ -4,7 +4,7 @@
  * React Query hooks for managing organization-level parts managers.
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import {
   getPartsManagers,
@@ -12,7 +12,11 @@ import {
   addPartsManager,
   removePartsManager,
 } from '@/features/inventory/services/partsManagersService';
-import { useAppToast } from '@/hooks/useAppToast';
+import { partsRoles } from '@/lib/queryKeys/misc';
+import {
+  createAddPartsRoleMutation,
+  createRemovePartsRoleMutation,
+} from '@/features/inventory/hooks/partsRoleMutationHooks';
 
 const DEFAULT_STALE_TIME = 5 * 60 * 1000; // 5 minutes
 
@@ -30,7 +34,7 @@ export const usePartsManagers = (
   const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
 
   return useQuery({
-    queryKey: ['parts-managers', organizationId],
+    queryKey: partsRoles.managers(organizationId ?? ''),
     queryFn: async () => {
       if (!organizationId) return [];
       return await getPartsManagers(organizationId);
@@ -51,7 +55,7 @@ export const useIsPartsManager = (
   const effectiveUserId = userId || user?.id;
 
   return useQuery({
-    queryKey: ['is-parts-manager', organizationId, effectiveUserId],
+    queryKey: partsRoles.isManager(organizationId ?? '', effectiveUserId ?? ''),
     queryFn: async () => {
       if (!organizationId || !effectiveUserId) return false;
       return await isUserPartsManager(organizationId, effectiveUserId);
@@ -68,79 +72,22 @@ export const useIsPartsManager = (
 /**
  * Add a user as a parts manager.
  */
-export const useAddPartsManager = () => {
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const { toast } = useAppToast();
+export const useAddPartsManager = createAddPartsRoleMutation({
+  addAssignee: addPartsManager,
+  listQueryKey: partsRoles.managers,
+  statusQueryKey: partsRoles.isManager,
+  successTitle: 'Parts manager added',
+  successDescription: 'The user can now manage all inventory items.',
+  errorTitle: 'Error adding parts manager',
+  errorFallback: 'Failed to add parts manager',
+});
 
-  return useMutation({
-    mutationFn: async ({
-      organizationId,
-      userId,
-    }: {
-      organizationId: string;
-      userId: string;
-    }) => {
-      if (!user) throw new Error('User not authenticated');
-      return await addPartsManager(organizationId, userId, user.id);
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ['parts-managers', variables.organizationId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['is-parts-manager', variables.organizationId, variables.userId],
-      });
-      toast({
-        title: 'Parts manager added',
-        description: 'The user can now manage all inventory items.',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error adding parts manager',
-        description: error instanceof Error ? error.message : 'Failed to add parts manager',
-        variant: 'error',
-      });
-    },
-  });
-};
-
-/**
- * Remove a user as a parts manager.
- */
-export const useRemovePartsManager = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useAppToast();
-
-  return useMutation({
-    mutationFn: async ({
-      organizationId,
-      userId,
-    }: {
-      organizationId: string;
-      userId: string;
-    }) => {
-      return await removePartsManager(organizationId, userId);
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ['parts-managers', variables.organizationId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['is-parts-manager', variables.organizationId, variables.userId],
-      });
-      toast({
-        title: 'Parts manager removed',
-        description: 'The user can no longer manage inventory items.',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error removing parts manager',
-        description: error instanceof Error ? error.message : 'Failed to remove parts manager',
-        variant: 'error',
-      });
-    },
-  });
-};
+export const useRemovePartsManager = createRemovePartsRoleMutation({
+  removeAssignee: removePartsManager,
+  listQueryKey: partsRoles.managers,
+  statusQueryKey: partsRoles.isManager,
+  successTitle: 'Parts manager removed',
+  successDescription: 'The user can no longer manage inventory items.',
+  errorTitle: 'Error removing parts manager',
+  errorFallback: 'Failed to remove parts manager',
+});

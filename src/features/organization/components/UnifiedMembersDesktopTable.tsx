@@ -3,9 +3,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
+  UnifiedMemberPartsConsumerControl,
   UnifiedMemberPartsManagerControl,
   UnifiedMemberQuickBooksControl,
 } from '@/features/organization/components/UnifiedMemberPermissionRows';
+import { PartsConsumerMarkIcon } from '@/components/icons/PartsConsumerMarkIcon';
 import { PartsManagerMarkIcon } from '@/components/icons/PartsManagerMarkIcon';
 import { QuickBooksMarkIcon } from '@/components/icons/QuickBooksMarkIcon';
 import { UnifiedMemberAvatar } from '@/features/organization/components/UnifiedMemberAvatar';
@@ -32,11 +34,14 @@ export function UnifiedMembersDesktopTable({
   mergePending,
   permissionContext,
   partsManagerUserIds,
+  partsConsumerUserIds,
   quickBooksPending,
   partsManagerPending,
+  partsConsumerPending,
   onRoleChange,
   onQuickBooksToggle,
   onPartsManagerToggle,
+  onPartsConsumerToggle,
   onResendInvitation,
   onCancelInvitation,
   onRevokeGwsClaim,
@@ -44,9 +49,11 @@ export function UnifiedMembersDesktopTable({
   onRemoveMember,
 }: UnifiedMembersListViewProps) {
   const { formatDate } = useFormatTimestamp();
-  const { isOwner, quickBooksEnabled, canManagePartsManagers } = permissionContext;
+  const { isOwner, quickBooksEnabled, canManagePartsManagers, canManagePartsConsumers } =
+    permissionContext;
   const showQuickBooksColumn = isOwner && quickBooksEnabled;
   const showPartsManagerColumn = canManagePartsManagers;
+  const showPartsConsumerColumn = canManagePartsConsumers;
 
   return (
     <div className="hidden sm:block">
@@ -79,6 +86,19 @@ export function UnifiedMembersDesktopTable({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="max-w-xs">Allow member to create, edit, and manage inventory items</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TableHead>
+            )}
+            {showPartsConsumerColumn && (
+              <TableHead className={thClass}>
+                <Tooltip>
+                  <TooltipTrigger className="cursor-help inline-flex items-center gap-1.5 uppercase">
+                    <PartsConsumerMarkIcon />
+                    Parts Consumer
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">Allow member to view inventory, part lookup, and alternate groups</p>
                   </TooltipContent>
                 </Tooltip>
               </TableHead>
@@ -171,6 +191,18 @@ export function UnifiedMembersDesktopTable({
                     isPartsManager={member.userId ? partsManagerUserIds.has(member.userId) : false}
                     partsManagerPending={partsManagerPending}
                     onPartsManagerToggle={onPartsManagerToggle}
+                    layout="desktop"
+                  />
+                </TableCell>
+              )}
+              {showPartsConsumerColumn && (
+                <TableCell className="py-3">
+                  <UnifiedMemberPartsConsumerControl
+                    member={member}
+                    context={permissionContext}
+                    isPartsConsumer={member.userId ? partsConsumerUserIds.has(member.userId) : false}
+                    partsConsumerPending={partsConsumerPending}
+                    onPartsConsumerToggle={onPartsConsumerToggle}
                     layout="desktop"
                   />
                 </TableCell>

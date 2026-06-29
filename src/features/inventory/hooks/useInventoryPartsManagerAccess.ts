@@ -1,12 +1,10 @@
-import { useOrganization } from '@/contexts/OrganizationContext';
-import { usePermissions } from '@/hooks/usePermissions';
-import { useIsPartsManager } from '@/features/inventory/hooks/usePartsManagers';
+import { useInventoryAccess } from './useInventoryAccess';
 
+/** @deprecated Use useInventoryAccess instead */
 export function useInventoryPartsManagerAccess() {
-  const { currentOrganization } = useOrganization();
-  const { canManageInventory } = usePermissions();
-  const { data: isPartsManager = false } = useIsPartsManager(currentOrganization?.id);
-  const canEdit = canManageInventory(isPartsManager);
-
-  return { currentOrganization, canEdit };
+  const access = useInventoryAccess();
+  return {
+    currentOrganization: access.currentOrganization,
+    canEdit: access.canEdit,
+  };
 }
