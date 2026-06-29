@@ -130,6 +130,12 @@ describe('historicalTimeline helpers', () => {
       { id: 'row-3', newStatus: '', changedAt: undefined, reason: '', assigneeId: null },
     ];
     expect(hasIncompleteTimelineRows(emptyAddedRow)).toBe(true);
+
+    const invalidDateRow: HistoricalTimelineEditorRow[] = [
+      ...completeRows,
+      { id: 'row-3', newStatus: 'assigned', changedAt: new Date('invalid'), reason: '', assigneeId: null },
+    ];
+    expect(hasIncompleteTimelineRows(invalidDateRow)).toBe(true);
   });
 
   it('synthesizes a valid completed chain with chronological dates', () => {

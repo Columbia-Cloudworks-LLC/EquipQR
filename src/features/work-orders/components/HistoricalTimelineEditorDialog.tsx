@@ -29,6 +29,7 @@ type HistoricalTimelineEditorDialogProps = {
   initialEvents?: HistoricalTimelineEvent[];
   mode?: 'edit' | 'create';
   onCreateSave?: (events: HistoricalTimelineEvent[]) => void;
+  historyReady?: boolean;
 };
 
 export function HistoricalTimelineEditorDialog({
@@ -42,13 +43,14 @@ export function HistoricalTimelineEditorDialog({
   initialEvents,
   mode = 'edit',
   onCreateSave,
+  historyReady = true,
 }: HistoricalTimelineEditorDialogProps) {
   const replaceTimelineMutation = useReplaceHistoricalWorkOrderTimeline();
   const { isManager } = useWorkOrderPermissionLevels();
   const [draftEvents, setDraftEvents] = useState<HistoricalTimelineEvent[]>([]);
   const [editorSeedEvents, setEditorSeedEvents] = useState<HistoricalTimelineEvent[]>([]);
   const [hasIncompleteRows, setHasIncompleteRows] = useState(false);
-  const wasOpenRef = useRef(false);
+  const hasInitializedRef = useRef(false);
 
   const seedEvents = useMemo(() => {
     if (initialEvents && initialEvents.length > 0) {
@@ -61,13 +63,22 @@ export function HistoricalTimelineEditorDialog({
   }, [historyRows, initialEvents]);
 
   useEffect(() => {
-    if (open && !wasOpenRef.current) {
+    if (!open) {
+      hasInitializedRef.current = false;
+      return;
+    }
+
+    if (mode === 'edit' && !historyReady) {
+      return;
+    }
+
+    if (!hasInitializedRef.current) {
       setEditorSeedEvents(seedEvents);
       setDraftEvents(seedEvents);
       setHasIncompleteRows(false);
+      hasInitializedRef.current = true;
     }
-    wasOpenRef.current = open;
-  }, [open, seedEvents]);
+  }, [open, seedEvents, mode, historyReady]);
 
   const validationErrors = validateTimelineEvents(draftEvents);
   const canSave = validationErrors.length === 0 && draftEvents.length > 0 && !hasIncompleteRows;

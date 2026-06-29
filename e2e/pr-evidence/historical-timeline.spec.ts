@@ -42,7 +42,8 @@ test.describe('PR evidence: historical work order timeline @pr-evidence', () => 
     await page.getByRole('button', { name: /Go to the Previous Month/i }).click();
     const monthLabel = await page.getByRole('status').last().textContent();
     const monthName = monthLabel?.trim().split(/\s+/)[0] ?? 'January';
-    await page.getByRole('button', { name: new RegExp(`${monthName} 10th`, 'i') }).click();
+    const monthGrid = page.getByRole('grid', { name: new RegExp(monthLabel?.trim() ?? monthName, 'i') });
+    await monthGrid.getByRole('button', { name: new RegExp(`${monthName} 10th`, 'i') }).click();
 
     await expect(dialog.getByRole('button', { name: /build timeline/i })).toBeEnabled({
       timeout: 15_000,

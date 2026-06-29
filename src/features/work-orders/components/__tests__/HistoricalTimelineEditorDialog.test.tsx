@@ -166,4 +166,47 @@ describe('HistoricalTimelineEditorDialog', () => {
     expect(screen.getByLabelText('Event 3')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save timeline/i })).toBeDisabled();
   });
+
+  it('seeds editor state when history rows arrive after the dialog opens', async () => {
+    const historyRows = [
+      {
+        new_status: 'submitted',
+        changed_at: '2024-01-01T08:00:00.000Z',
+        reason: 'Created',
+        metadata: null,
+      },
+      {
+        new_status: 'accepted',
+        changed_at: '2024-01-02T08:00:00.000Z',
+        reason: 'Accepted',
+        metadata: null,
+      },
+    ];
+
+    const { rerender } = render(
+      <HistoricalTimelineEditorDialog
+        open
+        onOpenChange={vi.fn()}
+        workOrderId="wo-1"
+        organizationId="org-1"
+        equipmentId="equipment-1"
+        historyRows={[]}
+        historyReady={false}
+      />,
+    );
+
+    rerender(
+      <HistoricalTimelineEditorDialog
+        open
+        onOpenChange={vi.fn()}
+        workOrderId="wo-1"
+        organizationId="org-1"
+        equipmentId="equipment-1"
+        historyRows={historyRows}
+        historyReady
+      />,
+    );
+
+    expect(screen.getByLabelText('Event 2')).toBeInTheDocument();
+  });
 });

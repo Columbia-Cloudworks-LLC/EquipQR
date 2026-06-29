@@ -158,7 +158,7 @@ export function rowsToTimelineEvents(rows: HistoricalTimelineEditorRow[]): Histo
 export function hasIncompleteTimelineRows(rows: HistoricalTimelineEditorRow[]): boolean {
   return rows.some((row) => {
     const hasStatus = row.newStatus !== '';
-    const hasDate = row.changedAt instanceof Date;
+    const hasDate = row.changedAt instanceof Date && !Number.isNaN(row.changedAt.getTime());
     return !hasStatus || !hasDate;
   });
 }
