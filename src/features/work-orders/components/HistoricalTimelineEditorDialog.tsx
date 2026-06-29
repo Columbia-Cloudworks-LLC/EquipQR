@@ -99,7 +99,7 @@ export function HistoricalTimelineEditorDialog({
         </DialogHeader>
 
         <HistoricalTimelineEditor
-          initialEvents={draftEvents}
+          initialEvents={seedEvents}
           organizationId={organizationId}
           equipmentId={equipmentId}
           onChange={setDraftEvents}

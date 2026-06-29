@@ -40,12 +40,7 @@ test.describe('PR evidence: historical work order timeline @pr-evidence', () => 
     const startDateTrigger = dialog.getByRole('button', { name: /pick start date and time/i });
     await startDateTrigger.click();
     await page.getByRole('button', { name: /Go to the Previous Month/i }).click();
-    await page
-      .locator('[data-radix-popper-content-wrapper]')
-      .last()
-      .getByRole('button', { name: /^10$/ })
-      .first()
-      .click();
+    await page.getByRole('button', { name: /May 10th, 2026/i }).click();
 
     await expect(dialog.getByRole('button', { name: /build timeline/i })).toBeEnabled({
       timeout: 15_000,
@@ -53,8 +48,10 @@ test.describe('PR evidence: historical work order timeline @pr-evidence', () => 
     await dialog.getByRole('button', { name: /build timeline/i }).click();
     const timelineDialog = page.getByRole('dialog').filter({ hasText: /build historical timeline/i });
     await expect(timelineDialog).toBeVisible({ timeout: 15_000 });
+    await timelineDialog.getByRole('button', { name: /add next status event/i }).click();
+    await expect(timelineDialog.getByText('Event 3')).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '02-timeline-builder');
+    await evidenceScreenshot(page, '02-timeline-builder-add-event');
 
     await timelineDialog.getByRole('button', { name: /save timeline/i }).click();
     await expect(timelineDialog).toBeHidden({ timeout: 15_000 });
@@ -74,8 +71,10 @@ test.describe('PR evidence: historical work order timeline @pr-evidence', () => 
     await page.getByRole('button', { name: /edit historical timeline/i }).click();
     const editDialog = page.getByRole('dialog').filter({ hasText: /edit historical timeline/i });
     await expect(editDialog).toBeVisible({ timeout: 15_000 });
+    await editDialog.getByRole('button', { name: /add next status event/i }).click();
+    await expect(editDialog.getByText('Event 3')).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '04-edit-timeline-dialog');
+    await evidenceScreenshot(page, '04-edit-timeline-add-event');
 
     await editDialog.getByRole('button', { name: /save timeline/i }).click();
     await expect(editDialog).toBeHidden({ timeout: 15_000 });
