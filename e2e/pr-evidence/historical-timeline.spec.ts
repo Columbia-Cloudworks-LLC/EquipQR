@@ -1,7 +1,7 @@
 import { test, expect } from '../user/fixtures/equipqr-test';
 import { pinContextToOrg } from '../user/shared/auth-helpers';
 import { apexOrgId, seedEquipment } from '../user/shared/seed-data';
-import { fillWorkOrderBasics } from '../user/shared/ui-form-helpers';
+import { fillWorkOrderBasics, pickHistoricalStartDate } from '../user/shared/ui-form-helpers';
 import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
 
 test.describe('PR evidence: historical work order timeline @pr-evidence', () => {
@@ -37,13 +37,7 @@ test.describe('PR evidence: historical work order timeline @pr-evidence', () => 
       description: 'Backdated paper record digitization flow',
     });
 
-    const startDateTrigger = dialog.getByRole('button', { name: /pick start date and time/i });
-    await startDateTrigger.click();
-    await page.getByRole('button', { name: /Go to the Previous Month/i }).click();
-    const monthLabel = await page.getByRole('status').last().textContent();
-    const monthName = monthLabel?.trim().split(/\s+/)[0] ?? 'January';
-    const monthGrid = page.getByRole('grid', { name: new RegExp(monthLabel?.trim() ?? monthName, 'i') });
-    await monthGrid.getByRole('button', { name: new RegExp(`${monthName} 10th`, 'i') }).click();
+    await pickHistoricalStartDate(page, dialog);
 
     await expect(dialog.getByRole('button', { name: /build timeline/i })).toBeEnabled({
       timeout: 15_000,
