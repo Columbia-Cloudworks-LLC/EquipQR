@@ -22,6 +22,33 @@ export async function selectRadixOption(
   await clickWithDemoCue(option, `Select ${labelText(optionName)}`);
 }
 
+async function pickWorkOrderEquipmentFromSearchDialog(
+  page: Page,
+  optionName: string | RegExp,
+  searchText: string,
+): Promise<boolean> {
+  const searchEquipmentButton = page.getByRole('button', { name: /^search equipment$/i });
+  if (!(await searchEquipmentButton.isVisible({ timeout: 2_000 }).catch(() => false))) {
+    return false;
+  }
+
+  await clickWithDemoCue(searchEquipmentButton, 'Open equipment search dialog');
+  const dialogSearch = page.getByPlaceholder(/search equipment\.\.\./i);
+  await fillWithDemoCue(dialogSearch, `Search for ${searchText}`, searchText);
+
+  const row = page
+    .getByRole('button', { name: new RegExp(`select.*${searchText}`, 'i') })
+    .filter({ hasText: optionName })
+    .first();
+  if (await row.isVisible({ timeout: 10_000 }).catch(() => false)) {
+    await clickWithDemoCue(row, `Select ${labelText(optionName)} from search`);
+    return true;
+  }
+
+  await page.keyboard.press('Escape');
+  return false;
+}
+
 async function pickComboboxOption(
   page: Page,
   trigger: Locator,
@@ -41,6 +68,11 @@ async function pickComboboxOption(
   }
 
   await page.keyboard.press('Escape');
+
+  if (await pickWorkOrderEquipmentFromSearchDialog(page, optionName, searchText)) {
+    return true;
+  }
+
   return false;
 }
 

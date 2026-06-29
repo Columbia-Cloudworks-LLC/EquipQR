@@ -1,16 +1,30 @@
-import React, { useState } from 'react';
-import { Forklift, Clock, Edit, Plus, List, Check, ChevronsUpDown } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import React, { useMemo, useState } from 'react';
+import { Forklift, Clock, Edit, Plus, List, Search } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
 import { useEquipmentCurrentWorkingHours, useUpdateEquipmentWorkingHours } from '@/features/equipment/hooks/useEquipmentWorkingHours';
 import { QuickEquipmentForm } from '@/features/equipment/components/QuickEquipmentForm';
 import type { EquipmentSelectorItem } from '@/features/work-orders/types/workOrderEquipment';
+import { filterEquipmentSelectorItems } from '@/features/work-orders/utils/filterEquipmentSelectorItems';
 import { cn } from '@/lib/utils';
 
 type EquipmentMode = 'select' | 'create';
@@ -47,10 +61,32 @@ const getEquipmentLocationDisplay = (equipment: EquipmentSelectorItem): string =
   return equipment.last_known_location?.name || equipment.location || 'Unknown location';
 };
 
+const formatEquipmentTriggerLabel = (equipment: EquipmentSelectorItem): string => {
+  return `${equipment.name}${equipment.serial_number ? ` • ${equipment.serial_number}` : ''}`;
+};
+
+const EquipmentOptionDetails: React.FC<{ equipment: EquipmentSelectorItem }> = ({ equipment }) => {
+  const locationDisplay = getEquipmentLocationDisplay(equipment);
+
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5 py-1 text-left">
+      <span className="font-medium">{equipment.name}</span>
+      <span className="text-xs text-muted-foreground">
+        {[equipment.manufacturer, equipment.model].filter(Boolean).join(' ')}
+        {equipment.serial_number ? ` • S/N: ${equipment.serial_number}` : ''}
+        {equipment.working_hours != null ? ` • ${equipment.working_hours.toLocaleString()} hrs` : ''}
+      </span>
+      <span className="text-xs text-muted-foreground">
+        {equipment.team?.name || 'No team'} • {locationDisplay}
+      </span>
+    </div>
+  );
+};
+
 const WorkingHoursSection: React.FC<{ equipmentId: string; setValue: (field: string, value: unknown) => void; }> = ({ equipmentId, setValue }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [newHours, setNewHours] = useState('');
-  
+
   const { data: currentHours } = useEquipmentCurrentWorkingHours(equipmentId);
   const updateWorkingHours = useUpdateEquipmentWorkingHours();
 
@@ -66,7 +102,7 @@ const WorkingHoursSection: React.FC<{ equipmentId: string; setValue: (field: str
       updateWorkingHours.mutate({
         equipmentId,
         newHours: hoursValue,
-        updateSource: 'work_order'
+        updateSource: 'work_order',
       });
       setIsUpdating(false);
     }
@@ -78,7 +114,7 @@ const WorkingHoursSection: React.FC<{ equipmentId: string; setValue: (field: str
   };
 
   return (
-    <div className="mt-3 p-3 bg-muted/30 rounded-md border">
+    <div className="mt-3 rounded-md border bg-muted/30 p-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-muted-foreground" />
@@ -91,12 +127,12 @@ const WorkingHoursSection: React.FC<{ equipmentId: string; setValue: (field: str
             onClick={handleUpdateClick}
             className="h-7 px-2"
           >
-            <Edit className="h-3 w-3 mr-1" />
+            <Edit className="mr-1 h-3 w-3" />
             Update
           </Button>
         )}
       </div>
-      
+
       {isUpdating ? (
         <div className="mt-2 space-y-2">
           <Input
@@ -139,29 +175,45 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
   canCreateEquipment = false,
 }) => {
   const [mode, setMode] = useState<EquipmentMode>('select');
-  const [equipmentComboboxOpen, setEquipmentComboboxOpen] = useState(false);
+  const [equipmentSearchOpen, setEquipmentSearchOpen] = useState(false);
+  const [equipmentSearchQuery, setEquipmentSearchQuery] = useState('');
   const selectedEquipment = allEquipment.find((equipment) => equipment.id === values.equipmentId);
 
-  // Handler for when equipment is created via quick entry
+  const filteredSearchEquipment = useMemo(
+    () => filterEquipmentSelectorItems(allEquipment, equipmentSearchQuery),
+    [allEquipment, equipmentSearchQuery],
+  );
+
   const handleEquipmentCreated = (equipmentId: string) => {
     setValue('equipmentId', equipmentId);
-    setMode('select'); // Switch back to select mode to show the new equipment
+    setMode('select');
     onEquipmentCreated?.(equipmentId);
   };
 
-  // If equipment is pre-selected (e.g., creating WO from equipment detail page), show read-only view
+  const handleSearchDialogOpenChange = (open: boolean) => {
+    setEquipmentSearchOpen(open);
+    if (!open) {
+      setEquipmentSearchQuery('');
+    }
+  };
+
+  const handleSearchSelect = (equipmentId: string) => {
+    setValue('equipmentId', equipmentId);
+    handleSearchDialogOpenChange(false);
+  };
+
   if (isEquipmentPreSelected) {
     const equipment = preSelectedEquipment;
     if (!equipment) return null;
 
     const locationDisplay = getEquipmentLocationDisplay(equipment);
-    
+
     return (
       <div className="space-y-2">
         <Label>Equipment</Label>
-        <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md border">
-          <Forklift className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 rounded-md border bg-muted/50 p-3">
+          <Forklift className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+          <div className="min-w-0 flex-1">
             <div className="font-medium">{equipment.name}</div>
             <div className="text-sm text-muted-foreground">
               {[equipment.manufacturer, equipment.model].filter(Boolean).join(' ')}
@@ -172,7 +224,7 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
               {equipment.team?.name || 'No team'} • {locationDisplay}
             </div>
           </div>
-          <Badge variant="secondary" className="text-xs flex-shrink-0">
+          <Badge variant="secondary" className="flex-shrink-0 text-xs">
             {isEditMode ? 'Current' : 'Selected'}
           </Badge>
         </div>
@@ -181,14 +233,12 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
     );
   }
 
-  // Show tabs only if user can create equipment
   const showCreateOption = canCreateEquipment && canCreateEquipmentForTeam && !isEditMode;
 
   return (
     <div className="space-y-3">
-      <Label>Equipment *</Label>
-      
-      {/* Mode Toggle - only show if user can create equipment */}
+      <Label htmlFor="work-order-equipment-select">Equipment *</Label>
+
       {showCreateOption && (
         <Tabs value={mode} onValueChange={(v) => setMode(v as EquipmentMode)} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
@@ -204,84 +254,105 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
         </Tabs>
       )}
 
-      {/* Select Existing Mode */}
       {mode === 'select' && (
         <div className="space-y-2">
-          <Popover open={equipmentComboboxOpen} onOpenChange={setEquipmentComboboxOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                role="combobox"
-                aria-expanded={equipmentComboboxOpen}
-                className={cn(
-                  'h-auto min-h-11 w-full justify-between px-3 py-2 text-left font-normal',
-                  !selectedEquipment && 'text-muted-foreground'
-                )}
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Select
+              value={values.equipmentId || undefined}
+              onValueChange={(equipmentId) => setValue('equipmentId', equipmentId)}
+            >
+              <SelectTrigger
+                id="work-order-equipment-select"
+                aria-label="Select equipment"
+                className={cn('h-auto min-h-11 w-full sm:flex-1', !selectedEquipment && 'text-muted-foreground')}
               >
-                <span className="truncate">
-                  {selectedEquipment
-                    ? `${selectedEquipment.name}${selectedEquipment.serial_number ? ` • ${selectedEquipment.serial_number}` : ''}`
-                    : 'Select equipment'}
-                </span>
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-              <Command>
-                <CommandInput placeholder="Search equipment..." />
-                <CommandList>
-                  <CommandEmpty>
-                    {allEquipment.length === 0 ? 'No equipment available' : 'No equipment found.'}
-                  </CommandEmpty>
-                  <CommandGroup>
-                    {allEquipment.map((equipment) => {
-                      const locationDisplay = getEquipmentLocationDisplay(equipment);
-                      return (
-                        <CommandItem
-                          key={equipment.id}
-                          value={[
-                            equipment.name,
-                            equipment.manufacturer,
-                            equipment.model,
-                            equipment.serial_number,
-                            equipment.team?.name,
-                            locationDisplay
-                          ]
-                            .filter(Boolean)
-                            .join(' ')
-                          }
-                          onSelect={() => {
-                            setValue('equipmentId', equipment.id);
-                            setEquipmentComboboxOpen(false);
-                          }}
-                          className="items-start"
-                        >
-                          <Check
-                            className={cn(
-                              'mr-2 mt-0.5 h-4 w-4',
-                              values.equipmentId === equipment.id ? 'opacity-100' : 'opacity-0'
-                            )}
-                          />
-                          <div className="flex min-w-0 flex-col gap-0.5 py-1">
-                            <span className="font-medium">{equipment.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {[equipment.manufacturer, equipment.model].filter(Boolean).join(' ')}
-                              {equipment.serial_number ? ` • S/N: ${equipment.serial_number}` : ''}
-                              {equipment.working_hours != null ? ` • ${equipment.working_hours.toLocaleString()} hrs` : ''}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {equipment.team?.name || 'No team'} • {locationDisplay}
-                            </span>
-                          </div>
-                        </CommandItem>
-                      );
-                    })}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
+                <SelectValue placeholder="Select equipment">
+                  {selectedEquipment ? formatEquipmentTriggerLabel(selectedEquipment) : 'Select equipment'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent position="popper" className="max-h-60">
+                {allEquipment.length === 0 ? (
+                  <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                    No equipment available
+                  </div>
+                ) : (
+                  allEquipment.map((equipment) => (
+                    <SelectItem
+                      key={equipment.id}
+                      value={equipment.id}
+                      className="items-start py-2"
+                    >
+                      <EquipmentOptionDetails equipment={equipment} />
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 shrink-0"
+              onClick={() => setEquipmentSearchOpen(true)}
+            >
+              <Search className="mr-2 h-4 w-4" aria-hidden />
+              Search equipment
+            </Button>
+          </div>
+
+          <Dialog open={equipmentSearchOpen} onOpenChange={handleSearchDialogOpenChange} modal>
+            <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Search equipment</DialogTitle>
+                <DialogDescription>
+                  Filter and select equipment for this work order.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                <Input
+                  placeholder="Search equipment..."
+                  value={equipmentSearchQuery}
+                  onChange={(event) => setEquipmentSearchQuery(event.target.value)}
+                  className="pl-9"
+                  aria-label="Search equipment"
+                />
+              </div>
+
+              <div className="max-h-96 space-y-1 overflow-y-auto overscroll-contain rounded-md border p-2">
+                {filteredSearchEquipment.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">
+                    {allEquipment.length === 0
+                      ? 'No equipment available'
+                      : 'No equipment found matching your search'}
+                  </p>
+                ) : (
+                  filteredSearchEquipment.map((equipment) => (
+                    <button
+                      key={equipment.id}
+                      type="button"
+                      aria-label={`Select ${equipment.name}`}
+                      onClick={() => handleSearchSelect(equipment.id)}
+                      className={cn(
+                        'w-full rounded-md px-2 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                        values.equipmentId === equipment.id && 'bg-muted/50',
+                      )}
+                    >
+                      <EquipmentOptionDetails equipment={equipment} />
+                    </button>
+                  ))
+                )}
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => handleSearchDialogOpenChange(false)}>
+                  Cancel
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           {errors.equipmentId && (
             <p className="text-sm text-destructive">{errors.equipmentId}</p>
           )}
@@ -291,7 +362,6 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
         </div>
       )}
 
-      {/* Create New Mode */}
       {mode === 'create' && canCreateEquipmentForTeam && (
         <QuickEquipmentForm
           onEquipmentCreated={handleEquipmentCreated}
