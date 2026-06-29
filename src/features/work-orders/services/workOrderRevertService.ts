@@ -1,5 +1,6 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchWorkOrderStatusHistory } from '@/features/work-orders/services/workOrderStatusHistoryQuery';
 
 export interface RevertResult {
   success: boolean;
@@ -45,26 +46,8 @@ export const workOrderRevertService = {
     }
   },
 
-  async getWorkOrderHistory(workOrderId: string) {
-    try {
-      const { data, error } = await supabase
-        .from('work_order_status_history')
-        .select(`
-          *,
-          profiles!changed_by (
-            name,
-            email
-          )
-        `)
-        .eq('work_order_id', workOrderId)
-        .order('changed_at', { ascending: false });
-
-      if (error) throw error;
-      return { data, error: null };
-    } catch (error) {
-      logger.error('Error fetching work order history:', error);
-      return { data: null, error };
-    }
+  async getWorkOrderHistory(workOrderId: string, organizationId: string) {
+    return fetchWorkOrderStatusHistory(workOrderId, organizationId);
   },
 
   async getPMHistory(pmId: string) {

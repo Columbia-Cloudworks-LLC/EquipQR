@@ -540,7 +540,7 @@ function Publish-PrEvidenceSupabaseVideo {
     $storagePath = ('pr-evidence/{0}/{1}-demo.mp4' -f $BranchSlug, $Flow)
     $env:OUTPUT_JSON = 'true'
     $upload = Invoke-PrEvidenceNative -FilePath 'npx' -Arguments @(
-        'tsx', 'scripts/upload-screenshot.ts', $mp4Full, $storagePath, 'landing-page-images'
+        'tsx', 'scripts/upload-screenshot.ts', $mp4Full, $storagePath, 'landing-page-videos'
     )
     Remove-Item Env:OUTPUT_JSON -ErrorAction SilentlyContinue
 

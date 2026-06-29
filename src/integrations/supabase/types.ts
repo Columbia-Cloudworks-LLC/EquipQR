@@ -4467,6 +4467,7 @@ export type Database = {
           p_priority: Database["public"]["Enums"]["work_order_priority"]
           p_status: Database["public"]["Enums"]["work_order_status"]
           p_team_id?: string
+          p_timeline_events?: Json
           p_title: string
         }
         Returns: Json
@@ -5078,6 +5079,12 @@ export type Database = {
         Args: { org_id: string; user_uuid: string }
         Returns: Json
       }
+      historical_timeline_allowed_next_statuses: {
+        Args: {
+          p_current_status: Database["public"]["Enums"]["work_order_status"]
+        }
+        Returns: Database["public"]["Enums"]["work_order_status"][]
+      }
       initiate_ownership_transfer: {
         Args: {
           p_organization_id: string
@@ -5307,6 +5314,14 @@ export type Database = {
         Args: { org_id: string; removed_by: string; user_uuid: string }
         Returns: Json
       }
+      replace_historical_work_order_timeline: {
+        Args: {
+          p_events: Json
+          p_skip_audit?: boolean
+          p_work_order_id: string
+        }
+        Returns: Json
+      }
       request_workspace_personal_org_merge: {
         Args: {
           p_reason?: string
@@ -5375,6 +5390,15 @@ export type Database = {
       snapshot_account_deletion_attribution: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      synthesize_historical_timeline_events: {
+        Args: {
+          p_assignee_id?: string
+          p_completed_date: string | null
+          p_historical_start_date: string
+          p_status: Database["public"]["Enums"]["work_order_status"]
+        }
+        Returns: Json
       }
       trigger_departure_processing: { Args: never; Returns: Json }
       update_equipment_working_hours: {

@@ -24,6 +24,13 @@ export const workOrderStatusSchema = z.enum([
   'cancelled'
 ]);
 
+export const historicalTimelineEventSchema = z.object({
+  newStatus: workOrderStatusSchema,
+  changedAt: z.string().min(1),
+  reason: z.string().optional(),
+  assigneeId: z.string().nullable().optional(),
+});
+
 /**
  * Priority enum schema
  */
@@ -65,6 +72,7 @@ export const workOrderFormSchema = z.object({
   historicalStartDate: z.date().optional(),
   historicalNotes: z.string().optional(),
   completedDate: z.date().optional().nullable(),
+  historicalTimelineEvents: z.array(historicalTimelineEventSchema).optional(),
 }).refine(
   (data) => {
     // If it's historical, require status field
@@ -110,5 +118,6 @@ export const getDefaultWorkOrderFormValues = (
   historicalStartDate: undefined,
   historicalNotes: '',
   completedDate: undefined,
+  historicalTimelineEvents: undefined,
 });
 

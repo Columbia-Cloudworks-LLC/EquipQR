@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import WorkOrderTimeline from '@/features/work-orders/components/WorkOrderTimeline';
+import { WorkOrderHistoricalTimelineSection } from '@/features/work-orders/components/WorkOrderHistoricalTimelineSection';
 import WorkOrderNotesSection from '@/features/work-orders/components/WorkOrderNotesSection';
 import WorkOrderImagesSection from '@/features/work-orders/components/WorkOrderImagesSection';
 import PMChecklistComponent from '@/features/work-orders/components/PMChecklistComponent';
@@ -459,9 +459,10 @@ export function WorkOrderDetailsMobileContent({
                   permissionLevels={permissionLevels}
                 />
 
-                <WorkOrderTimeline
+                <WorkOrderHistoricalTimelineSection
                   workOrder={workOrder}
                   showDetailedHistory={permissionLevels.isManager}
+                  canEditTimeline={permissionLevels.isManager}
                 />
 
                 {permissionLevels.isManager && currentOrganization && (

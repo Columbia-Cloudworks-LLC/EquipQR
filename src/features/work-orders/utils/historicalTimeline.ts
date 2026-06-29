@@ -1,0 +1,324 @@
+import type { z } from 'zod';
+import { workOrderStatusSchema } from '@/features/work-orders/schemas/workOrderSchema';
+
+export type WorkOrderStatus = z.infer<typeof workOrderStatusSchema>;
+
+export type HistoricalTimelineEvent = {
+  newStatus: WorkOrderStatus;
+  changedAt: string;
+  reason?: string;
+  assigneeId?: string | null;
+};
+
+export type HistoricalTimelineEditorRow = {
+  id: string;
+  newStatus: WorkOrderStatus | '';
+  changedAt: Date | undefined;
+  reason: string;
+  assigneeId: string | null;
+};
+
+export type HistoricalTimelineValidationError = {
+  field: 'chain' | 'dates' | 'assignee';
+  message: string;
+};
+
+const TERMINAL_STATUSES: WorkOrderStatus[] = ['completed', 'cancelled'];
+
+export function isTerminalStatus(status: WorkOrderStatus): boolean {
+  return TERMINAL_STATUSES.includes(status);
+}
+
+export function getAllowedNextStatuses(currentStatus: WorkOrderStatus): WorkOrderStatus[] {
+  switch (currentStatus) {
+    case 'submitted':
+      return ['accepted', 'cancelled'];
+    case 'accepted':
+      return ['assigned', 'cancelled'];
+    case 'assigned':
+      return ['in_progress', 'on_hold'];
+    case 'in_progress':
+      return ['on_hold', 'completed'];
+    case 'on_hold':
+      return ['in_progress', 'cancelled'];
+    default:
+      return [];
+  }
+}
+
+export function createInitialTimelineRow(startDate?: Date): HistoricalTimelineEditorRow {
+  return {
+    id: crypto.randomUUID(),
+    newStatus: 'submitted',
+    changedAt: startDate,
+    reason: 'Historical work order created',
+    assigneeId: null,
+  };
+}
+
+export function createEmptyTimelineRow(): HistoricalTimelineEditorRow {
+  return {
+    id: crypto.randomUUID(),
+    newStatus: '',
+    changedAt: undefined,
+    reason: '',
+    assigneeId: null,
+  };
+}
+
+export function getSelectableStatusesForRow(
+  rows: HistoricalTimelineEditorRow[],
+  rowIndex: number,
+): WorkOrderStatus[] {
+  if (rowIndex === 0) {
+    return ['submitted'];
+  }
+
+  const previousStatus = rows[rowIndex - 1]?.newStatus;
+  if (!previousStatus || previousStatus === '') {
+    return [];
+  }
+
+  return getAllowedNextStatuses(previousStatus);
+}
+
+export function clearDownstreamRows(
+  rows: HistoricalTimelineEditorRow[],
+  fromIndex: number,
+): HistoricalTimelineEditorRow[] {
+  return rows.map((row, index) => {
+    if (index <= fromIndex) {
+      return row;
+    }
+
+    return {
+      ...row,
+      newStatus: '',
+      changedAt: undefined,
+      reason: '',
+      assigneeId: null,
+    };
+  });
+}
+
+export function updateTimelineRowStatus(
+  rows: HistoricalTimelineEditorRow[],
+  rowIndex: number,
+  newStatus: WorkOrderStatus,
+): HistoricalTimelineEditorRow[] {
+  const updated = rows.map((row, index) => {
+    if (index !== rowIndex) {
+      return row;
+    }
+
+    return {
+      ...row,
+      newStatus,
+      assigneeId: newStatus === 'assigned' ? row.assigneeId : null,
+    };
+  });
+
+  return clearDownstreamRows(updated, rowIndex);
+}
+
+export function canAddTimelineRow(rows: HistoricalTimelineEditorRow[]): boolean {
+  let lastFilledIndex = -1;
+  for (let index = rows.length - 1; index >= 0; index -= 1) {
+    if (rows[index]?.newStatus !== '') {
+      lastFilledIndex = index;
+      break;
+    }
+  }
+
+  if (lastFilledIndex === -1) {
+    return false;
+  }
+
+  const lastStatus = rows[lastFilledIndex]?.newStatus;
+  if (!lastStatus || lastStatus === '') {
+    return false;
+  }
+
+  return !isTerminalStatus(lastStatus) && getAllowedNextStatuses(lastStatus).length > 0;
+}
+
+export function rowsToTimelineEvents(rows: HistoricalTimelineEditorRow[]): HistoricalTimelineEvent[] {
+  return rows
+    .filter((row): row is HistoricalTimelineEditorRow & { newStatus: WorkOrderStatus; changedAt: Date } =>
+      row.newStatus !== '' && row.changedAt instanceof Date,
+    )
+    .map((row) => ({
+      newStatus: row.newStatus,
+      changedAt: row.changedAt.toISOString(),
+      reason: row.reason.trim() || undefined,
+      assigneeId: row.newStatus === 'assigned' ? row.assigneeId : null,
+    }));
+}
+
+export function timelineEventsToRows(events: HistoricalTimelineEvent[]): HistoricalTimelineEditorRow[] {
+  if (events.length === 0) {
+    return [createInitialTimelineRow()];
+  }
+
+  return events.map((event) => ({
+    id: crypto.randomUUID(),
+    newStatus: event.newStatus,
+    changedAt: new Date(event.changedAt),
+    reason: event.reason ?? '',
+    assigneeId: event.assigneeId ?? null,
+  }));
+}
+
+export function validateTimelineEvents(
+  events: HistoricalTimelineEvent[],
+): HistoricalTimelineValidationError[] {
+  const errors: HistoricalTimelineValidationError[] = [];
+
+  if (events.length === 0) {
+    errors.push({ field: 'chain', message: 'Timeline must include at least one event.' });
+    return errors;
+  }
+
+  if (events[0]?.newStatus !== 'submitted') {
+    errors.push({ field: 'chain', message: 'Timeline must begin with submitted.' });
+  }
+
+  let previousStatus: WorkOrderStatus | null = null;
+  for (let index = 0; index < events.length; index += 1) {
+    const event = events[index];
+    const allowed = previousStatus === null
+      ? (['submitted'] as WorkOrderStatus[])
+      : getAllowedNextStatuses(previousStatus);
+
+    if (!allowed.includes(event.newStatus)) {
+      errors.push({
+        field: 'chain',
+        message: `Invalid transition from ${previousStatus ?? 'created'} to ${event.newStatus}.`,
+      });
+    }
+
+    if (event.newStatus === 'assigned' && !event.assigneeId) {
+      errors.push({
+        field: 'assignee',
+        message: 'Assigned events require an assignee.',
+      });
+    }
+
+    previousStatus = event.newStatus;
+  }
+
+  for (let index = 1; index < events.length; index += 1) {
+    const previous = new Date(events[index - 1].changedAt).getTime();
+    const current = new Date(events[index].changedAt).getTime();
+    if (current < previous) {
+      errors.push({
+        field: 'dates',
+        message: 'Timeline events must be in chronological order.',
+      });
+      break;
+    }
+  }
+
+  return errors;
+}
+
+function distributeDates(
+  startMs: number,
+  endMs: number,
+  count: number,
+): number[] {
+  if (count <= 1) {
+    return [startMs];
+  }
+
+  const step = (endMs - startMs) / (count - 1);
+  return Array.from({ length: count }, (_, index) => Math.round(startMs + step * index));
+}
+
+export function synthesizeDefaultTimeline(params: {
+  startDate: Date;
+  finalStatus: WorkOrderStatus;
+  completedDate?: Date | null;
+  assigneeId?: string | null;
+}): HistoricalTimelineEvent[] {
+  const { startDate, finalStatus, completedDate, assigneeId } = params;
+  const endDate =
+    completedDate && completedDate.getTime() >= startDate.getTime()
+      ? completedDate
+      : startDate;
+
+  const statusPath: WorkOrderStatus[] = (() => {
+    switch (finalStatus) {
+      case 'submitted':
+        return ['submitted'];
+      case 'accepted':
+        return ['submitted', 'accepted'];
+      case 'assigned':
+        return ['submitted', 'accepted', 'assigned'];
+      case 'in_progress':
+        return ['submitted', 'accepted', 'assigned', 'in_progress'];
+      case 'on_hold':
+        return ['submitted', 'accepted', 'assigned', 'on_hold'];
+      case 'completed':
+        return ['submitted', 'accepted', 'assigned', 'in_progress', 'completed'];
+      case 'cancelled':
+        return ['submitted', 'cancelled'];
+      default:
+        return ['submitted'];
+    }
+  })();
+
+  const timestamps = distributeDates(startDate.getTime(), endDate.getTime(), statusPath.length);
+
+  return statusPath.map((newStatus, index) => ({
+    newStatus,
+    changedAt: new Date(timestamps[index]).toISOString(),
+    reason: index === 0 ? 'Historical work order created' : 'Historical status recorded',
+    assigneeId: newStatus === 'assigned' ? assigneeId ?? null : null,
+  }));
+}
+
+export function historyRowsToEvents(
+  historyRows: Array<{
+    new_status: string;
+    changed_at: string;
+    reason: string | null;
+    metadata: Record<string, unknown> | null;
+  }>,
+): HistoricalTimelineEvent[] {
+  return [...historyRows]
+    .sort(
+      (left, right) => new Date(left.changed_at).getTime() - new Date(right.changed_at).getTime(),
+    )
+    .map((row) => ({
+      newStatus: row.new_status as HistoricalTimelineEvent['newStatus'],
+      changedAt: row.changed_at,
+      reason: row.reason ?? undefined,
+      assigneeId:
+        row.new_status === 'assigned'
+          ? ((row.metadata?.assignee_id as string | undefined) ?? null)
+          : null,
+    }));
+}
+
+export function eventsToRpcPayload(events: HistoricalTimelineEvent[]): Array<{
+  old_status: WorkOrderStatus | null;
+  new_status: WorkOrderStatus;
+  changed_at: string;
+  reason: string | null;
+  assignee_id: string | null;
+}> {
+  let previousStatus: WorkOrderStatus | null = null;
+
+  return events.map((event) => {
+    const payload = {
+      old_status: previousStatus,
+      new_status: event.newStatus,
+      changed_at: event.changedAt,
+      reason: event.reason ?? null,
+      assignee_id: event.newStatus === 'assigned' ? event.assigneeId ?? null : null,
+    };
+    previousStatus = event.newStatus;
+    return payload;
+  });
+}

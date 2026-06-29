@@ -1,6 +1,6 @@
 import React from 'react';
 import WorkOrderDetailsInfo from '@/features/work-orders/components/WorkOrderDetailsInfo';
-import WorkOrderTimeline from '@/features/work-orders/components/WorkOrderTimeline';
+import { WorkOrderHistoricalTimelineSection } from '@/features/work-orders/components/WorkOrderHistoricalTimelineSection';
 import WorkOrderNotesSection from '@/features/work-orders/components/WorkOrderNotesSection';
 import WorkOrderImagesSection from '@/features/work-orders/components/WorkOrderImagesSection';
 import PMChecklistComponent from '@/features/work-orders/components/PMChecklistComponent';
@@ -157,7 +157,11 @@ export function WorkOrderDetailsDesktopContent({
       </div>
 
       <div {...stagger(6)}>
-        <WorkOrderTimeline workOrder={workOrder} showDetailedHistory={permissionLevels.isManager} />
+        <WorkOrderHistoricalTimelineSection
+          workOrder={workOrder}
+          showDetailedHistory={permissionLevels.isManager}
+          canEditTimeline={permissionLevels.isManager}
+        />
       </div>
 
       {permissionLevels.isManager && currentOrganization && (
