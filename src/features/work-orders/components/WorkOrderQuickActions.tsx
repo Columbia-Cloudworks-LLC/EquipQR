@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Plus, Download, ClipboardList } from 'lucide-react';
+import { MoreHorizontal, Plus, Download, ClipboardList, Trash2 } from 'lucide-react';
 import { QuickBooksExportButton } from './QuickBooksExportButton';
 import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
 import { isQuickBooksEnabled } from '@/lib/flags';
@@ -21,6 +21,8 @@ interface WorkOrderQuickActionsProps {
   workOrderStatus: WorkOrderStatus;
   /** Team ID derived from the equipment assigned to this work order */
   equipmentTeamId?: string | null;
+  canDelete?: boolean;
+  onDeleteClick?: () => void;
 }
 
 /**
@@ -31,6 +33,8 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
   workOrderId,
   workOrderStatus,
   equipmentTeamId,
+  canDelete = false,
+  onDeleteClick,
 }) => {
   const navigate = useNavigate();
   
@@ -51,6 +55,10 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
     navigate(`/dashboard/work-orders/${workOrderId}?action=download-worksheet`);
   };
 
+  const stopCardNavigation = (event: React.SyntheticEvent) => {
+    event.stopPropagation();
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -59,8 +67,8 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
           size="icon"
           className="h-8 w-8"
           aria-label="Quick actions"
-          onClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
+          onClick={stopCardNavigation}
+          onPointerDown={stopCardNavigation}
         >
           <MoreHorizontal className="h-4 w-4" />
         </Button>
@@ -89,8 +97,22 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
             />
           </>
         )}
+        {canDelete && onDeleteClick ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={(event) => {
+                stopCardNavigation(event);
+                onDeleteClick();
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete work order
+            </DropdownMenuItem>
+          </>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 };
-

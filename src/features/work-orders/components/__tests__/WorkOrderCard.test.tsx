@@ -107,7 +107,23 @@ describe('WorkOrderCard', () => {
       expect(screen.getByText('Alex Tech')).toBeInTheDocument();
       expect(screen.getByText('Field Crew')).toBeInTheDocument();
       expect(screen.getByText(/Due 2026-12-10/)).toBeInTheDocument();
-      expect(screen.getByTestId('quick-actions')).toBeInTheDocument();
+    });
+
+    it('calls onDeleteClick without navigating when delete is clicked', async () => {
+      const onDeleteClick = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <WorkOrderCard
+          workOrder={baseWorkOrder}
+          onNavigate={mockOnNavigate}
+          canDelete
+          onDeleteClick={onDeleteClick}
+        />,
+      );
+
+      await user.click(screen.getByRole('button', { name: 'Delete work order' }));
+      expect(onDeleteClick).toHaveBeenCalledWith(baseWorkOrder);
+      expect(mockOnNavigate).not.toHaveBeenCalled();
     });
 
     it('navigates on click and keyboard activation', async () => {

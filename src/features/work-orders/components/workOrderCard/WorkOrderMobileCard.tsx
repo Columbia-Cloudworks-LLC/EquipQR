@@ -30,7 +30,7 @@ import { toast } from 'sonner';
 
 type WorkOrderMobileCardProps = Pick<
   WorkOrderCardProps,
-  'workOrder' | 'onNavigate' | 'isAboveTheFold' | 'onShowQR'
+  'workOrder' | 'onNavigate' | 'isAboveTheFold' | 'onShowQR' | 'canDelete' | 'onDeleteClick'
 >;
 
 export const WorkOrderMobileCard: React.FC<WorkOrderMobileCardProps> = memo(({
@@ -38,6 +38,8 @@ export const WorkOrderMobileCard: React.FC<WorkOrderMobileCardProps> = memo(({
   onNavigate,
   isAboveTheFold,
   onShowQR,
+  canDelete = false,
+  onDeleteClick,
 }) => {
   const { formatRelative } = useFormatTimestamp();
   const dueDateValue = workOrder.dueDate ?? workOrder.due_date;
@@ -221,6 +223,8 @@ export const WorkOrderMobileCard: React.FC<WorkOrderMobileCardProps> = memo(({
                 workOrderId={workOrder.id}
                 workOrderStatus={workOrder.status}
                 equipmentTeamId={workOrder.equipmentTeamId ?? workOrder.team_id}
+                canDelete={canDelete}
+                onDeleteClick={onDeleteClick ? () => onDeleteClick(workOrder) : undefined}
               />
             </div>
           </div>

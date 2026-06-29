@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(45);
+SELECT plan(47);
 
 -- Tables
 SELECT has_table('public', 'work_orders', 'work_orders table exists');
@@ -54,6 +54,13 @@ SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND
 SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND tablename = 'work_order_equipment' AND policyname = 'work_order_equipment_insert_policy'), 1, 'work_order_equipment_insert_policy exists');
 SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND tablename = 'work_order_equipment' AND policyname = 'work_order_equipment_update_policy'), 1, 'work_order_equipment_update_policy exists');
 SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND tablename = 'work_order_equipment' AND policyname = 'work_order_equipment_delete_policy'), 1, 'work_order_equipment_delete_policy exists');
+
+-- Admin cascade delete RPC (#1079)
+SELECT has_function('public', 'delete_work_order_cascade', ARRAY['uuid'], 'delete_work_order_cascade function exists');
+SELECT ok(
+  (SELECT prosecdef FROM pg_proc WHERE proname = 'delete_work_order_cascade' AND pronamespace = 'public'::regnamespace),
+  'delete_work_order_cascade is SECURITY DEFINER'
+);
 
 -- Triggers
 SELECT has_trigger('public', 'work_orders', 'audit_work_order_trigger', 'audit_work_order_trigger exists');
