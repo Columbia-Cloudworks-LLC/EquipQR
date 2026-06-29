@@ -1,6 +1,6 @@
 import { test, expect } from '../user/fixtures/equipqr-test';
 import { seedEquipment } from '../user/shared/seed-data';
-import { openWorkOrderCreateDialog, selectWorkOrderEquipment } from '../user/shared/ui-form-helpers';
+import { openWorkOrderCreateDialog } from '../user/shared/ui-form-helpers';
 import { evidencePause, evidenceScreenshot } from './shared/evidence-helpers';
 
 const MOBILE_USER_AGENT =
@@ -30,7 +30,7 @@ test.describe('PR evidence: work order equipment picker @pr-evidence', () => {
     await expect(equipmentTrigger).toBeVisible({ timeout: 15_000 });
     await equipmentTrigger.click();
 
-    await expect(dialog.getByRole('option', { name: new RegExp(seedEquipment.cat320.name, 'i') }).first()).toBeVisible({
+    await expect(page.getByRole('option', { name: new RegExp(seedEquipment.cat320.name, 'i') }).first()).toBeVisible({
       timeout: 15_000,
     });
     await evidencePause(page, 600);
@@ -44,12 +44,15 @@ test.describe('PR evidence: work order equipment picker @pr-evidence', () => {
     });
     await page.getByPlaceholder(/search equipment\.\.\./i).fill(seedEquipment.cat320.name);
     await expect(
-      page.getByRole('button', { name: new RegExp(`select ${seedEquipment.cat320.name}`, 'i') }),
+      page.getByRole('button', { name: new RegExp(`select ${seedEquipment.cat320.name}`, 'i') }).first(),
     ).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '03-equipment-search-dialog-filtered');
 
-    await selectWorkOrderEquipment(page, dialog, seedEquipment.cat320.name);
+    await page
+      .getByRole('button', { name: new RegExp(`select ${seedEquipment.cat320.name}`, 'i') })
+      .first()
+      .click();
     await expect(equipmentTrigger).toContainText(seedEquipment.cat320.name, { timeout: 15_000 });
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '04-equipment-selected');
