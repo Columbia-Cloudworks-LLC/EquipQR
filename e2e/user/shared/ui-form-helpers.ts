@@ -394,3 +394,36 @@ export async function submitInventoryItemDialog(page: Page, dialog: Locator): Pr
   await clickWithDemoCue(dialog.getByRole('button', { name: /create item/i }), 'Create inventory item');
   await expect(dialog).toBeHidden({ timeout: 60_000 });
 }
+
+export async function pickHistoricalStartDate(
+  page: Page,
+  dialog: Locator,
+  options?: { monthsBack?: number; day?: number },
+): Promise<void> {
+  const monthsBack = options?.monthsBack ?? 1;
+  const day = options?.day ?? 10;
+  const trigger = dialog.getByRole('button', { name: /pick start date and time/i });
+  await clickWithDemoCue(trigger, 'Open historical start date picker');
+
+  const calendarNav = page.getByRole('navigation', { name: /Navigation bar/i }).last();
+  await expect(calendarNav).toBeVisible({ timeout: 15_000 });
+
+  for (let index = 0; index < monthsBack; index += 1) {
+    await clickWithDemoCue(
+      calendarNav.getByRole('button', { name: /Go to the Previous Month/i }),
+      'Go to previous month',
+    );
+  }
+
+  const monthStatus = page.getByRole('status').last();
+  await expect(monthStatus).toBeVisible({ timeout: 15_000 });
+  const monthLabel = (await monthStatus.textContent())?.trim() ?? '';
+  const monthName = monthLabel.split(/\s+/)[0] ?? '';
+  const monthGrid = page.getByRole('grid', { name: monthLabel });
+  await expect(monthGrid).toBeVisible({ timeout: 15_000 });
+
+  const dayPattern = new RegExp(`${escapeRegExp(monthName)} ${day}(?:st|nd|rd|th)?`, 'i');
+  const dayButton = monthGrid.getByRole('button', { name: dayPattern }).first();
+  await expect(dayButton).toBeVisible({ timeout: 15_000 });
+  await clickWithDemoCue(dayButton, `Select ${monthName} ${day}`);
+}

@@ -6,6 +6,7 @@ import {
   eventsToRpcPayload,
   getAllowedNextStatuses,
   getSelectableStatusesForRow,
+  hasIncompleteTimelineRows,
   isTerminalStatus,
   rowsToTimelineEvents,
   synthesizeDefaultTimeline,
@@ -115,6 +116,26 @@ describe('historicalTimeline helpers', () => {
       new Date(events[1].changedAt).getTime(),
     );
     expect(validateTimelineEvents(events)).toEqual([]);
+  });
+
+  it('detects incomplete timeline rows missing status or date', () => {
+    const completeRows: HistoricalTimelineEditorRow[] = [
+      { ...createInitialTimelineRow(new Date('2024-01-01')), newStatus: 'submitted' },
+      { id: 'row-2', newStatus: 'accepted', changedAt: new Date('2024-01-02'), reason: '', assigneeId: null },
+    ];
+    expect(hasIncompleteTimelineRows(completeRows)).toBe(false);
+
+    const emptyAddedRow: HistoricalTimelineEditorRow[] = [
+      ...completeRows,
+      { id: 'row-3', newStatus: '', changedAt: undefined, reason: '', assigneeId: null },
+    ];
+    expect(hasIncompleteTimelineRows(emptyAddedRow)).toBe(true);
+
+    const invalidDateRow: HistoricalTimelineEditorRow[] = [
+      ...completeRows,
+      { id: 'row-3', newStatus: 'assigned', changedAt: new Date('invalid'), reason: '', assigneeId: null },
+    ];
+    expect(hasIncompleteTimelineRows(invalidDateRow)).toBe(true);
   });
 
   it('synthesizes a valid completed chain with chronological dates', () => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +29,7 @@ type HistoricalTimelineEditorDialogProps = {
   initialEvents?: HistoricalTimelineEvent[];
   mode?: 'edit' | 'create';
   onCreateSave?: (events: HistoricalTimelineEvent[]) => void;
+  historyReady?: boolean;
 };
 
 export function HistoricalTimelineEditorDialog({
@@ -42,10 +43,14 @@ export function HistoricalTimelineEditorDialog({
   initialEvents,
   mode = 'edit',
   onCreateSave,
+  historyReady = true,
 }: HistoricalTimelineEditorDialogProps) {
   const replaceTimelineMutation = useReplaceHistoricalWorkOrderTimeline();
   const { isManager } = useWorkOrderPermissionLevels();
   const [draftEvents, setDraftEvents] = useState<HistoricalTimelineEvent[]>([]);
+  const [editorSeedEvents, setEditorSeedEvents] = useState<HistoricalTimelineEvent[]>([]);
+  const [hasIncompleteRows, setHasIncompleteRows] = useState(false);
+  const hasInitializedRef = useRef(false);
 
   const seedEvents = useMemo(() => {
     if (initialEvents && initialEvents.length > 0) {
@@ -58,13 +63,25 @@ export function HistoricalTimelineEditorDialog({
   }, [historyRows, initialEvents]);
 
   useEffect(() => {
-    if (open) {
-      setDraftEvents(seedEvents);
+    if (!open) {
+      hasInitializedRef.current = false;
+      return;
     }
-  }, [open, seedEvents]);
+
+    if (mode === 'edit' && !historyReady) {
+      return;
+    }
+
+    if (!hasInitializedRef.current) {
+      setEditorSeedEvents(seedEvents);
+      setDraftEvents(seedEvents);
+      setHasIncompleteRows(false);
+      hasInitializedRef.current = true;
+    }
+  }, [open, seedEvents, mode, historyReady]);
 
   const validationErrors = validateTimelineEvents(draftEvents);
-  const canSave = validationErrors.length === 0 && draftEvents.length > 0;
+  const canSave = validationErrors.length === 0 && draftEvents.length > 0 && !hasIncompleteRows;
 
   const handleSave = async () => {
     if (!canSave) {
@@ -99,10 +116,11 @@ export function HistoricalTimelineEditorDialog({
         </DialogHeader>
 
         <HistoricalTimelineEditor
-          initialEvents={draftEvents}
+          initialEvents={editorSeedEvents}
           organizationId={organizationId}
           equipmentId={equipmentId}
           onChange={setDraftEvents}
+          onIncompleteRowsChange={setHasIncompleteRows}
         />
 
         <DialogFooter>

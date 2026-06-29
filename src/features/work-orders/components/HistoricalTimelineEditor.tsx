@@ -12,6 +12,7 @@ import {
   createEmptyTimelineRow,
   createInitialTimelineRow,
   getSelectableStatusesForRow,
+  hasIncompleteTimelineRows,
   isTerminalStatus,
   rowsToTimelineEvents,
   timelineEventsToRows,
@@ -29,6 +30,7 @@ type HistoricalTimelineEditorProps = {
   organizationId: string;
   equipmentId?: string;
   onChange?: (events: HistoricalTimelineEvent[]) => void;
+  onIncompleteRowsChange?: (hasIncompleteRows: boolean) => void;
 };
 
 export function HistoricalTimelineEditor({
@@ -37,6 +39,7 @@ export function HistoricalTimelineEditor({
   organizationId,
   equipmentId,
   onChange,
+  onIncompleteRowsChange,
 }: HistoricalTimelineEditorProps) {
   const [rows, setRows] = useState<HistoricalTimelineEditorRow[]>(() => {
     if (initialEvents && initialEvents.length > 0) {
@@ -55,6 +58,10 @@ export function HistoricalTimelineEditor({
       setRows([createInitialTimelineRow(startDate)]);
     }
   }, [initialEvents, startDate]);
+
+  useEffect(() => {
+    onIncompleteRowsChange?.(hasIncompleteTimelineRows(rows));
+  }, [rows, onIncompleteRowsChange]);
 
   const assignmentContext: AssignmentWorkOrderContext = useMemo(
     () => ({
@@ -77,6 +84,7 @@ export function HistoricalTimelineEditor({
   const updateRows = (nextRows: HistoricalTimelineEditorRow[]) => {
     setRows(nextRows);
     onChange?.(rowsToTimelineEvents(nextRows));
+    onIncompleteRowsChange?.(hasIncompleteTimelineRows(nextRows));
   };
 
   const handleStatusChange = (rowIndex: number, status: WorkOrderStatus) => {

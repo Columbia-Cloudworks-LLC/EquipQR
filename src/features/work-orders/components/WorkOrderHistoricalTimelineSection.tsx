@@ -19,7 +19,7 @@ export function WorkOrderHistoricalTimelineSection({
 }: WorkOrderHistoricalTimelineSectionProps) {
   const [editorOpen, setEditorOpen] = useState(false);
   const isHistorical = Boolean(workOrder.isHistorical ?? workOrder.is_historical);
-  const { data: historyRows = [] } = useWorkOrderTimeline(workOrder.id);
+  const { data: historyRows = [], isSuccess: historyReady } = useWorkOrderTimeline(workOrder.id);
 
   return (
     <>
@@ -44,6 +44,7 @@ export function WorkOrderHistoricalTimelineSection({
           organizationId={workOrder.organization_id}
           equipmentId={workOrder.equipment_id}
           historyRows={historyRows}
+          historyReady={historyReady}
         />
       ) : null}
     </>
