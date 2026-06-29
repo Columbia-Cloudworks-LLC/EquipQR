@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(11);
+SELECT plan(16);
 
 -- ============================================
 -- Inventory RBAC — Parts Consumer (issue #1095)
@@ -53,6 +53,18 @@ VALUES (
   5,
   1,
   '22000000-0000-0000-0000-000000000001'::uuid
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO inventory_item_images (id, inventory_item_id, organization_id, file_url, file_name, file_size, uploaded_by)
+VALUES (
+  '22000000-cccc-0000-0000-000000000001'::uuid,
+  '22000000-bbbb-0000-0000-000000000001'::uuid,
+  '22000000-aaaa-0000-0000-000000000001'::uuid,
+  'https://example.com/rbac-consumer.jpg',
+  'rbac-consumer.jpg',
+  1024,
+  '22000000-0000-0000-0000-000000000003'::uuid
 )
 ON CONFLICT (id) DO NOTHING;
 
@@ -129,6 +141,53 @@ SELECT lives_ok(
     'manager adjustment'::text
   ) $$,
   'parts manager can adjust inventory quantity'
+);
+
+RESET role;
+
+SELECT throws_like(
+  $$ SELECT public.adjust_inventory_quantity(
+    '22000000-bbbb-0000-0000-000000000001'::uuid,
+    NULL::integer,
+    'null delta'::text
+  ) $$,
+  '%delta cannot be null%',
+  'adjust_inventory_quantity rejects null delta'
+);
+
+SELECT is(
+  (SELECT has_function_privilege(
+            'anon',
+            'public.is_parts_consumer(uuid, uuid)',
+            'EXECUTE')),
+  false,
+  'anon cannot execute is_parts_consumer'
+);
+
+SELECT is(
+  (SELECT has_function_privilege(
+            'anon',
+            'public.can_access_inventory(uuid, uuid)',
+            'EXECUTE')),
+  false,
+  'anon cannot execute can_access_inventory'
+);
+
+SET LOCAL role = 'authenticated';
+SET LOCAL request.jwt.claims = '{"sub":"22000000-0000-0000-0000-000000000003","role":"authenticated"}';
+
+SELECT is(
+  (SELECT count(*) FROM inventory_item_images WHERE id = '22000000-cccc-0000-0000-000000000001'::uuid)::int,
+  1,
+  'parts consumer can read inventory item images'
+);
+
+DELETE FROM inventory_item_images WHERE id = '22000000-cccc-0000-0000-000000000001'::uuid;
+
+SELECT is(
+  (SELECT count(*) FROM inventory_item_images WHERE id = '22000000-cccc-0000-0000-000000000001'::uuid)::int,
+  1,
+  'parts consumer cannot delete inventory item images even when uploader'
 );
 
 SELECT * FROM finish();

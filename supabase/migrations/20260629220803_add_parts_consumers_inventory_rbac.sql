@@ -91,6 +91,8 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.is_parts_consumer(UUID, UUID) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.is_parts_consumer(UUID, UUID) FROM anon;
 GRANT EXECUTE ON FUNCTION public.is_parts_consumer(UUID, UUID) TO authenticated;
 
 COMMENT ON FUNCTION public.is_parts_consumer IS
@@ -126,6 +128,8 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.can_access_inventory(UUID, UUID) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.can_access_inventory(UUID, UUID) FROM anon;
 GRANT EXECUTE ON FUNCTION public.can_access_inventory(UUID, UUID) TO authenticated;
 
 COMMENT ON FUNCTION public.can_access_inventory IS
@@ -198,7 +202,7 @@ CREATE POLICY inventory_item_images_delete ON public.inventory_item_images
   USING (
     (
       uploaded_by = (SELECT auth.uid())
-      AND public.can_access_inventory(organization_id)
+      AND public.can_manage_inventory(organization_id)
     )
     OR public.is_org_admin((SELECT auth.uid()), organization_id)
   );
@@ -423,6 +427,10 @@ BEGIN
     RAISE EXCEPTION 'User must be authenticated';
   END IF;
 
+  IF p_delta IS NULL THEN
+    RAISE EXCEPTION 'Inventory adjustment delta cannot be null';
+  END IF;
+
   IF p_delta = 0 THEN
     RAISE EXCEPTION 'Inventory adjustment delta cannot be zero';
   END IF;
@@ -516,6 +524,8 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.assert_inventory_read_access(UUID) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.assert_inventory_read_access(UUID) FROM anon;
 GRANT EXECUTE ON FUNCTION public.assert_inventory_read_access(UUID) TO authenticated;
 
 -- get_alternates_for_inventory_item
