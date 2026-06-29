@@ -164,5 +164,6 @@ describe('HistoricalTimelineEditorDialog', () => {
     await user.click(screen.getByText('Add next status event'));
 
     expect(screen.getByLabelText('Event 3')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /save timeline/i })).toBeDisabled();
   });
 });

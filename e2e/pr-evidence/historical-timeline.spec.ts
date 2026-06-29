@@ -40,7 +40,9 @@ test.describe('PR evidence: historical work order timeline @pr-evidence', () => 
     const startDateTrigger = dialog.getByRole('button', { name: /pick start date and time/i });
     await startDateTrigger.click();
     await page.getByRole('button', { name: /Go to the Previous Month/i }).click();
-    await page.getByRole('button', { name: /May 10th, 2026/i }).click();
+    const monthLabel = await page.getByRole('status').last().textContent();
+    const monthName = monthLabel?.trim().split(/\s+/)[0] ?? 'January';
+    await page.getByRole('button', { name: new RegExp(`${monthName} 10th`, 'i') }).click();
 
     await expect(dialog.getByRole('button', { name: /build timeline/i })).toBeEnabled({
       timeout: 15_000,
@@ -53,6 +55,7 @@ test.describe('PR evidence: historical work order timeline @pr-evidence', () => 
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '02-timeline-builder-add-event');
 
+    await timelineDialog.getByRole('button', { name: /remove timeline event 3/i }).click();
     await timelineDialog.getByRole('button', { name: /save timeline/i }).click();
     await expect(timelineDialog).toBeHidden({ timeout: 15_000 });
 
@@ -76,6 +79,7 @@ test.describe('PR evidence: historical work order timeline @pr-evidence', () => 
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '04-edit-timeline-add-event');
 
+    await editDialog.getByRole('button', { name: /remove timeline event 3/i }).click();
     await editDialog.getByRole('button', { name: /save timeline/i }).click();
     await expect(editDialog).toBeHidden({ timeout: 15_000 });
     await expect(page.getByText(/historical record/i)).toBeVisible({ timeout: 15_000 });
