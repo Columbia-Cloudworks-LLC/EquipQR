@@ -188,6 +188,7 @@ SELECT is(
           'log_invitation_performance',
           'refresh_quickbooks_tokens_manual',
           'request_workspace_personal_org_merge',
+          'replace_historical_work_order_timeline',
           'reserve_slot_for_invitation',
           'respond_to_ownership_transfer',
           'respond_to_workspace_personal_org_merge',
@@ -214,8 +215,8 @@ SELECT is(
       AND p.prokind = 'f'
       AND p.prosecdef
       AND has_function_privilege('authenticated', p.oid, 'EXECUTE')),
-  57,
-  'authenticated may execute exactly 57 public SECURITY DEFINER functions after lockdown'
+  58,
+  'authenticated may execute exactly 58 public SECURITY DEFINER functions after lockdown'
 );
 
 SELECT * FROM finish();

@@ -4467,6 +4467,7 @@ export type Database = {
           p_priority: Database["public"]["Enums"]["work_order_priority"]
           p_status: Database["public"]["Enums"]["work_order_status"]
           p_team_id?: string
+          p_timeline_events?: Json
           p_title: string
         }
         Returns: Json
@@ -5342,6 +5343,14 @@ export type Database = {
           p_accept: boolean
           p_request_id: string
           p_response_reason?: string
+        }
+        Returns: Json
+      }
+      replace_historical_work_order_timeline: {
+        Args: {
+          p_events: Json
+          p_skip_audit?: boolean
+          p_work_order_id: string
         }
         Returns: Json
       }

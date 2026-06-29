@@ -21,6 +21,7 @@ export const workOrders = {
   equipmentWorkOrders: (orgId: string, equipmentId: string, status?: string) =>
     status ? ['work-orders', orgId, 'equipment', equipmentId, status] as const
            : ['work-orders', orgId, 'equipment', equipmentId] as const,
+  timeline: (workOrderId: string) => ['work-order-timeline', workOrderId] as const,
 };
 
 // Work-order equipment keys

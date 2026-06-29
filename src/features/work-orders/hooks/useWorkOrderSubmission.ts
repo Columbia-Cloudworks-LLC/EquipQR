@@ -8,6 +8,9 @@ import type { WorkOrder as EnhancedWorkOrder } from '@/features/work-orders/type
 import { WorkOrderFormData } from './useWorkOrderForm';
 import { dateToISOString } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import {
+  synthesizeDefaultTimeline,
+} from '@/features/work-orders/utils/historicalTimeline';
 
 interface UseWorkOrderSubmissionProps {
   workOrder?: EnhancedWorkOrder;
@@ -60,12 +63,23 @@ export const useWorkOrderSubmission = ({
         onSuccess();
       } else if (data.isHistorical) {
         // Create historical work order - handle UUID fields properly
+        const timelineEvents = data.historicalTimelineEvents && data.historicalTimelineEvents.length > 0
+          ? data.historicalTimelineEvents
+          : (data.historicalStartDate && data.status
+            ? synthesizeDefaultTimeline({
+                startDate: data.historicalStartDate,
+                finalStatus: data.status,
+                completedDate: data.completedDate ?? null,
+                assigneeId: data.assigneeId ?? null,
+              })
+            : undefined);
+
         const historicalData: HistoricalWorkOrderData = {
           equipmentId: data.equipmentId,
           title: data.title,
           description: data.description,
           priority: data.priority,
-          status: data.status || 'accepted',
+          status: timelineEvents?.[timelineEvents.length - 1]?.newStatus ?? data.status ?? 'accepted',
           historicalStartDate: dateToISOString(data.historicalStartDate) || '',
           historicalNotes: data.historicalNotes || '',
           // Simplified assignment: just pass the assigneeId (null = unassigned)
@@ -77,7 +91,8 @@ export const useWorkOrderSubmission = ({
           pmStatus: 'pending',
           pmCompletionDate: undefined,
           pmNotes: '',
-          pmChecklistData: []
+          pmChecklistData: [],
+          timelineEvents,
         };
         
         await createHistoricalWorkOrderMutation.mutateAsync(historicalData);

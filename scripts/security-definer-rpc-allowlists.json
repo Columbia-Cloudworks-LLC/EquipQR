@@ -65,6 +65,7 @@
     "log_invitation_performance",
     "refresh_quickbooks_tokens_manual",
     "request_workspace_personal_org_merge",
+    "replace_historical_work_order_timeline",
     "reserve_slot_for_invitation",
     "respond_to_ownership_transfer",
     "respond_to_workspace_personal_org_merge",

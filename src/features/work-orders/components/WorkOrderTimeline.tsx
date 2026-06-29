@@ -1,15 +1,16 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, CheckCircle, Play, Pause, XCircle, FileText, User } from 'lucide-react';
 import type { WorkOrder as EnhancedWorkOrder } from '@/features/work-orders/types/workOrder';
-import { workOrderRevertService } from '@/features/work-orders/services/workOrderRevertService';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
+import { useWorkOrderTimeline } from '@/features/work-orders/hooks/useHistoricalWorkOrders';
 
 interface WorkOrderTimelineProps {
   workOrder: EnhancedWorkOrder;
   showDetailedHistory?: boolean;
+  headerAction?: React.ReactNode;
 }
 
 interface TimelineEvent {
@@ -22,8 +23,6 @@ interface TimelineEvent {
   user: string;
   isPublic: boolean;
 }
-
-// ─── Pure helpers (no component state) ───────────────────────────────────────
 
 const formatStatusLabel = (status: string) =>
   status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -54,71 +53,56 @@ const getStatusChangeDescription = (oldStatus: string | null, newStatus: string,
   return baseDescription;
 };
 
-// ─── Component ────────────────────────────────────────────────────────────────
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case 'submitted': return FileText;
+    case 'accepted': return CheckCircle;
+    case 'assigned': return User;
+    case 'in_progress': return Play;
+    case 'completed': return CheckCircle;
+    case 'on_hold': return Pause;
+    case 'cancelled': return XCircle;
+    default: return Clock;
+  }
+};
 
-const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({ 
-  workOrder, 
-  showDetailedHistory = true 
+const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
+  workOrder,
+  showDetailedHistory = true,
+  headerAction,
 }) => {
   const { formatDateTime } = useFormatTimestamp();
-  const [historyEvents, setHistoryEvents] = useState<TimelineEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: historyRows = [], isLoading } = useWorkOrderTimeline(workOrder.id);
+  const isHistorical = Boolean(workOrder.isHistorical ?? workOrder.is_historical);
 
-  useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        setIsLoading(true);
-        const { data } = await workOrderRevertService.getWorkOrderHistory(workOrder.id);
-        
-        if (data) {
-          const events: TimelineEvent[] = data.map((history: {
-            id: string | number;
-            old_status: string | null;
-            new_status: string;
-            changed_at: string;
-            reason?: string;
-            profiles?: { name?: string };
-          }) => ({
-            id: history.id,
-            title: getStatusChangeTitle(history.old_status, history.new_status),
-            description: getStatusChangeDescription(history.old_status, history.new_status, history.reason),
-            timestamp: history.changed_at,
-            type: history.new_status,
-            icon: getStatusIcon(history.new_status),
-            user: history.profiles?.name || 'System',
-            isPublic: true
-          }));
-          
-          setHistoryEvents(events);
-        }
-      } catch (error) {
-        console.error('Error fetching work order history:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const timelineEvents = useMemo(() => {
+    const historyEvents: TimelineEvent[] = historyRows.map((history) => {
+      const metadata = history.metadata as { assignee_id?: string } | null;
+      const assigneeSuffix =
+        history.new_status === 'assigned' && metadata?.assignee_id
+          ? ' (assignee recorded)'
+          : '';
 
-    fetchHistory();
-  }, [workOrder.id]);
+      return {
+        id: history.id,
+        title: getStatusChangeTitle(history.old_status, history.new_status),
+        description: `${getStatusChangeDescription(history.old_status, history.new_status, history.reason ?? undefined)}${assigneeSuffix}`,
+        timestamp: history.changed_at,
+        type: history.new_status,
+        icon: getStatusIcon(history.new_status),
+        user: history.profiles?.name || 'System',
+        isPublic: true,
+      };
+    });
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'submitted': return FileText;
-      case 'accepted': return CheckCircle;
-      case 'assigned': return User;
-      case 'in_progress': return Play;
-      case 'completed': return CheckCircle;
-      case 'on_hold': return Pause;
-      case 'cancelled': return XCircle;
-      default: return Clock;
+    if (isHistorical) {
+      return [...historyEvents].sort(
+        (left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime(),
+      );
     }
-  };
 
-  const getTimelineEvents = () => {
     const events: TimelineEvent[] = [];
-
-    // Only add the hardcoded creation event if history doesn't already include one
-    const historyHasCreation = historyEvents.some(e => e.title === 'Work Order Created');
+    const historyHasCreation = historyEvents.some((event) => event.title === 'Work Order Created');
     if (!historyHasCreation) {
       events.push({
         id: 'created',
@@ -128,16 +112,15 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
         type: 'created',
         icon: FileText,
         user: 'System',
-        isPublic: true
+        isPublic: true,
       });
     }
 
     events.push(...historyEvents);
 
-    // Add the current status if different from last history event
-    const lastHistoryEvent = historyEvents[0]; // Most recent first
+    const lastHistoryEvent = historyEvents[0];
     if (!lastHistoryEvent || lastHistoryEvent.type !== workOrder.status) {
-      const currentEvent: TimelineEvent = {
+      events.push({
         id: 'current',
         title: getStatusChangeTitle(lastHistoryEvent?.type || null, workOrder.status),
         description: getStatusChangeDescription(lastHistoryEvent?.type || null, workOrder.status),
@@ -145,19 +128,26 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
         type: workOrder.status,
         icon: getStatusIcon(workOrder.status),
         user: workOrder.assigneeName || 'System',
-        isPublic: true
-      };
-      events.push(currentEvent);
+        isPublic: true,
+      });
     }
 
-    // Filter events based on permission level
-    const filteredEvents = showDetailedHistory 
-      ? events 
-      : events.filter(event => event.isPublic);
+    const filteredEvents = showDetailedHistory
+      ? events
+      : events.filter((event) => event.isPublic);
 
-    // Sort by timestamp descending (most recent first)
-    return filteredEvents.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  };
+    return filteredEvents.sort(
+      (left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime(),
+    );
+  }, [
+    historyRows,
+    isHistorical,
+    showDetailedHistory,
+    workOrder.assigneeName,
+    workOrder.created_date,
+    workOrder.status,
+    workOrder.updated_at,
+  ]);
 
   const getEventColor = (type: string) => {
     switch (type) {
@@ -181,20 +171,31 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
     }
   };
 
-  const timelineEvents = getTimelineEvents();
-
   return (
     <Card className="shadow-elevation-2">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          Timeline (Status Events)
-          {!showDetailedHistory && (
-            <Badge variant="outline" className="text-xs">
-              Limited View
-            </Badge>
-          )}
-        </CardTitle>
+        <div className="flex items-start justify-between gap-3">
+          <CardTitle className="flex flex-wrap items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Timeline (Status Events)
+            {isHistorical ? (
+              <Badge variant="outline" className="text-xs">
+                Historical record
+              </Badge>
+            ) : null}
+            {!showDetailedHistory && (
+              <Badge variant="outline" className="text-xs">
+                Limited View
+              </Badge>
+            )}
+          </CardTitle>
+          {headerAction}
+        </div>
+        {isHistorical ? (
+          <p className="text-sm text-muted-foreground">
+            Operational dates may reflect when work happened in the field. Edit history remains in Change History.
+          </p>
+        ) : null}
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -214,7 +215,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
             {timelineEvents.map((event, index) => {
               const Icon = event.icon;
               const isLast = index === timelineEvents.length - 1;
-            
+
               return (
                 <div key={event.id} className="flex gap-4">
                   <div className="flex flex-col items-center">
@@ -223,11 +224,11 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
                     </div>
                     {!isLast && <div className="w-px h-8 bg-border mt-2" />}
                   </div>
-                  
+
                   <div className="min-w-0 flex-1 space-y-1 pb-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-3">
                       <h4 className="font-medium">{event.title}</h4>
-                      <time className="text-sm text-muted-foreground">
+                      <time className="text-sm text-muted-foreground whitespace-nowrap">
                         {formatDateTime(event.timestamp)}
                       </time>
                     </div>
@@ -247,4 +248,3 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
 };
 
 export default WorkOrderTimeline;
-
