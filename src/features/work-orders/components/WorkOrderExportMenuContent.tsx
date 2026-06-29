@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -11,7 +10,6 @@ import {
   FileSpreadsheet,
   FileText,
   Loader2,
-  Trash2,
 } from 'lucide-react';
 import { WorkOrderQuickBooksExportSubmenu } from './WorkOrderQuickBooksExportSubmenu';
 import { WorkOrderGoogleDriveExportSubmenu } from './WorkOrderGoogleDriveExportSubmenu';
@@ -25,14 +23,11 @@ export interface WorkOrderExportMenuContentProps extends WorkOrderFileExportHand
   showExports: boolean;
   showQuickBooks: boolean;
   showGoogleDrive: boolean;
-  canDelete: boolean;
   organizationId?: string;
   isManager: boolean;
   onOpenPdfDialog: () => void;
   onOpenDrivePdfDialog: () => void;
   isGeneratingPdf: boolean;
-  onDelete: () => void;
-  isDeleting: boolean;
 }
 
 export const WorkOrderExportMenuContent: React.FC<WorkOrderExportMenuContentProps> = ({
@@ -42,7 +37,6 @@ export const WorkOrderExportMenuContent: React.FC<WorkOrderExportMenuContentProp
   showExports,
   showQuickBooks,
   showGoogleDrive,
-  canDelete,
   organizationId,
   isManager,
   onOpenPdfDialog,
@@ -59,8 +53,6 @@ export const WorkOrderExportMenuContent: React.FC<WorkOrderExportMenuContentProp
   isExportingToDocs,
   onDriveSheets,
   isExportingToSheets,
-  onDelete,
-  isDeleting,
   isExportBusy,
 }) => {
   return (
@@ -139,20 +131,6 @@ export const WorkOrderExportMenuContent: React.FC<WorkOrderExportMenuContentProp
           teamId={equipmentTeamId ?? null}
           workOrderStatus={workOrderStatus}
         />
-      )}
-
-      {canDelete && (
-        <>
-          {(showExports || showQuickBooks) && <DropdownMenuSeparator />}
-          <DropdownMenuItem
-            onClick={onDelete}
-            disabled={isDeleting}
-            className="text-destructive focus:text-destructive"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete Work Order
-          </DropdownMenuItem>
-        </>
       )}
     </>
   );

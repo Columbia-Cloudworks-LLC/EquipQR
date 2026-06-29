@@ -19,6 +19,8 @@ interface WorkOrdersListProps {
   onAssignClick?: () => void;
   onReopenClick?: () => void;
   onShowQR?: (workOrder: WorkOrder) => void;
+  canDelete?: boolean;
+  onDeleteClick?: (workOrder: WorkOrder) => void;
 }
 
 export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
@@ -33,6 +35,8 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
   onAssignClick,
   onReopenClick,
   onShowQR,
+  canDelete = false,
+  onDeleteClick,
 }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -75,6 +79,8 @@ export const WorkOrdersList: React.FC<WorkOrdersListProps> = ({
             onAssignClick={onAssignClick}
             onReopenClick={onReopenClick}
             onShowQR={isMobile ? onShowQR : undefined}
+            canDelete={canDelete}
+            onDeleteClick={onDeleteClick}
             isAboveTheFold={index < ABOVE_FOLD_COUNT}
           />
         </div>

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { WorkOrderDeleteConfirmDialog } from '@/features/work-orders/components/WorkOrderDeleteConfirmDialog';
-import { Info, Download, MoreHorizontal } from 'lucide-react';
+import { Info, Download, MoreHorizontal, Trash2 } from 'lucide-react';
 import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
 import { WorkOrderData, PermissionLevels, EquipmentData, PMData } from '@/features/work-orders/types/workOrderDetails';
 import {
@@ -76,6 +76,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   const showQuickBooks = isQuickBooksEnabled() && canManageQuickBooks;
 
   const handleDeleteConfirm = async () => {
+    if (!canDelete) return;
     try {
       await deleteWorkOrderMutation.mutateAsync(workOrder.id);
       setShowDeleteDialog(false);
@@ -197,6 +198,18 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           }
           actions={
             <>
+              {canDelete && (
+                <Button
+                  variant="outline"
+                  className="text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+                  aria-label="Delete work order"
+                  disabled={deleteWorkOrderMutation.isPending}
+                  onClick={() => setShowDeleteDialog(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              )}
               {showActionsMenu && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -222,7 +235,6 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                       showExports={showExports}
                       showQuickBooks={showQuickBooks}
                       showGoogleDrive={showGoogleDrive}
-                      canDelete={canDelete}
                       organizationId={organizationId}
                       isManager={permissionLevels.isManager}
                       onOpenPdfDialog={() => openPdfDialog(false)}
@@ -239,8 +251,6 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                       isExportingToDocs={isExportingSingleToDocs}
                       onDriveSheets={() => exportSingleToSheets(workOrder.id)}
                       isExportingToSheets={isExportingSingleToSheets}
-                      onDelete={() => setShowDeleteDialog(true)}
-                      isDeleting={deleteWorkOrderMutation.isPending}
                       isExportBusy={isExportBusy}
                     />
                   </DropdownMenuContent>

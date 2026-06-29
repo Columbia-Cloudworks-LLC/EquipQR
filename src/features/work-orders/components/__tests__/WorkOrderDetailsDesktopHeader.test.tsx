@@ -168,7 +168,7 @@ describe('WorkOrderDetailsDesktopHeader', () => {
     expect(screen.getByText('WO-WO-1')).toBeInTheDocument();
   });
 
-  it('shows grouped export submenus for managers', async () => {
+  it('shows grouped export submenus for managers without delete in export menu', async () => {
     const user = userEvent.setup();
     render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
 
@@ -176,7 +176,8 @@ describe('WorkOrderDetailsDesktopHeader', () => {
 
     expect(screen.getByText('Download')).toBeInTheDocument();
     expect(screen.getByText('Google Drive')).toBeInTheDocument();
-    expect(screen.getByText('Delete Work Order')).toBeInTheDocument();
+    expect(screen.queryByText('Delete Work Order')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete work order', hidden: true })).toBeInTheDocument();
   });
 
   it('hides exports when user is not a manager', async () => {
@@ -235,17 +236,14 @@ describe('WorkOrderDetailsDesktopHeader', () => {
     expect(screen.queryByText('QuickBooks')).not.toBeInTheDocument();
   });
 
-  it('hides Delete when user is not owner or admin', async () => {
-    const user = userEvent.setup();
+  it('hides Delete when user is not owner or admin', () => {
     mockUseUnifiedPermissions.mockReturnValue({
       hasRole: vi.fn(() => false),
     });
 
     render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
 
-    await user.click(screen.getByRole('button', { name: 'Export' }));
-
-    expect(screen.queryByText('Delete Work Order')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete work order' })).not.toBeInTheDocument();
   });
 
   it('hides the entire actions menu when no sections are visible', () => {

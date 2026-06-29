@@ -1,6 +1,5 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
-import { normalizeStoredObjectPath } from '@/services/imageUploadService';
 
 export interface WorkOrderImageCount {
   count: number;
@@ -32,88 +31,25 @@ export const getWorkOrderImageCount = async (workOrderId: string): Promise<WorkO
 
 export const deleteWorkOrderCascade = async (workOrderId: string): Promise<void> => {
   try {
-    // Get all work order images before deletion
-    const { images } = await getWorkOrderImageCount(workOrderId);
+    // Storage + row deletes run atomically in delete_work_order_cascade (SECURITY DEFINER RPC).
+    const { data, error } = await supabase.rpc('delete_work_order_cascade', {
+      p_work_order_id: workOrderId,
+    });
 
-    // Delete storage files first
-    if (images.length > 0) {
-      const filePaths = images
-        .map(img => normalizeStoredObjectPath(img.file_url, 'work-order-images'))
-        .filter((p): p is string => !!p);
-
-      if (filePaths.length > 0) {
-        const { error: storageError } = await supabase.storage
-          .from('work-order-images')
-          .remove(filePaths);
-
-        if (storageError) {
-          logger.error('Some storage files could not be deleted:', storageError);
-          // Continue with database deletion even if storage cleanup fails
-        }
-      } else {
-        logger.error('Skipping work-order image storage cleanup because no valid object paths were found', {
-          workOrderId,
-          imageCount: images.length,
-        });
-      }
+    if (error) {
+      throw new Error(error.message);
     }
 
-    // Delete work order images from database
-    const { error: imagesError } = await supabase
-      .from('work_order_images')
-      .delete()
-      .eq('work_order_id', workOrderId);
-
-    if (imagesError) throw imagesError;
-
-    // Delete work order notes
-    const { error: notesError } = await supabase
-      .from('work_order_notes')
-      .delete()
-      .eq('work_order_id', workOrderId);
-
-    if (notesError) throw notesError;
-
-    // Delete work order costs
-    const { error: costsError } = await supabase
-      .from('work_order_costs')
-      .delete()
-      .eq('work_order_id', workOrderId);
-
-    if (costsError) throw costsError;
-
-    // Delete preventative maintenance records
-    const { error: pmError } = await supabase
-      .from('preventative_maintenance')
-      .delete()
-      .eq('work_order_id', workOrderId);
-
-    if (pmError) throw pmError;
-
-    // Delete work order status history
-    const { error: historyError } = await supabase
-      .from('work_order_status_history')
-      .delete()
-      .eq('work_order_id', workOrderId);
-
-    if (historyError) throw historyError;
-
-    // Finally, delete the work order itself
-    const { error: workOrderError } = await supabase
-      .from('work_orders')
-      .delete()
-      .eq('id', workOrderId);
-
-    if (workOrderError) throw workOrderError;
-
+    const result = data as { success?: boolean; error?: string } | null;
+    if (!result?.success) {
+      throw new Error(result?.error ?? 'Failed to delete work order');
+    }
   } catch (error) {
     logger.error('Error deleting work order:', error);
     throw error;
   }
 };
 
-// Wrapper function for external use
 export const deleteWorkOrder = async (workOrderId: string): Promise<void> => {
   return deleteWorkOrderCascade(workOrderId);
 };
-

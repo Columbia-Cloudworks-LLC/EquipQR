@@ -1,4 +1,6 @@
 import React, { memo } from 'react';
+import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
@@ -23,6 +25,8 @@ export const WorkOrderDesktopCard: React.FC<WorkOrderCardProps> = memo(({
   workOrder,
   onNavigate,
   isAboveTheFold,
+  canDelete = false,
+  onDeleteClick,
 }) => {
   const { formatDate } = useFormatTimestamp();
   const fmtDate = (v?: string | null) => (v ? formatDate(v) : '—');
@@ -71,24 +75,42 @@ export const WorkOrderDesktopCard: React.FC<WorkOrderCardProps> = memo(({
           </div>
         )}
 
-        {!isTerminal && (
+        {(canDelete && onDeleteClick) || !isTerminal ? (
           <div
-            className="flex items-center justify-end mt-3 pt-3 border-t"
+            className="flex items-center justify-end gap-2 mt-3 pt-3 border-t"
             role="group"
             aria-label="Work order actions"
           >
-            <WorkOrderPrimaryActionButton
-              workOrder={{
-                id: workOrder.id,
-                status: workOrder.status,
-                has_pm: workOrder.has_pm,
-                assignee_id: workOrder.assignee_id ?? workOrder.assigneeId,
-                created_by: workOrder.created_by,
-              }}
-              organizationId={workOrder.organization_id ?? workOrder.organizationId}
-            />
+            {canDelete && onDeleteClick ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                aria-label="Delete work order"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDeleteClick(workOrder);
+                }}
+                onPointerDown={(event) => event.stopPropagation()}
+              >
+                <Trash2 className="h-4 w-4" aria-hidden />
+              </Button>
+            ) : null}
+            {!isTerminal ? (
+              <WorkOrderPrimaryActionButton
+                workOrder={{
+                  id: workOrder.id,
+                  status: workOrder.status,
+                  has_pm: workOrder.has_pm,
+                  assignee_id: workOrder.assignee_id ?? workOrder.assigneeId,
+                  created_by: workOrder.created_by,
+                }}
+                organizationId={workOrder.organization_id ?? workOrder.organizationId}
+              />
+            ) : null}
           </div>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );

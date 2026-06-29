@@ -88,6 +88,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
   };
 
   const handleDeleteConfirm = async () => {
+    if (!canDelete) return;
     try {
       await deleteWorkOrderMutation.mutateAsync(workOrderId);
       setDeleteConfirmText('');

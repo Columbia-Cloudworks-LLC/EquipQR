@@ -150,6 +150,7 @@ SELECT is(
           'create_quickbooks_oauth_session',
           'create_workspace_organization_for_domain',
           'delete_organization',
+          'delete_work_order_cascade',
           'disconnect_google_workspace',
           'disconnect_quickbooks',
           'get_alternates_for_inventory_item',
@@ -215,8 +216,8 @@ SELECT is(
       AND p.prokind = 'f'
       AND p.prosecdef
       AND has_function_privilege('authenticated', p.oid, 'EXECUTE')),
-  58,
-  'authenticated may execute exactly 58 public SECURITY DEFINER functions after lockdown'
+  59,
+  'authenticated may execute exactly 59 public SECURITY DEFINER functions after lockdown'
 );
 
 SELECT * FROM finish();

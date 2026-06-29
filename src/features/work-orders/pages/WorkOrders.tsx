@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Plus, ShieldCheck, Users } from 'lucide-react';
+import { toast } from 'sonner';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamBasedWorkOrders, useTeamBasedAccess } from '@/features/teams/hooks/useTeamBasedWorkOrders';
 import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOrderData';
@@ -23,6 +24,11 @@ import { AutoAssignmentBanner } from '@/features/work-orders/components/AutoAssi
 import { WorkOrderFilters } from '@/features/work-orders/components/WorkOrderFilters';
 import { WorkOrdersList } from '@/features/work-orders/components/WorkOrdersList';
 import WorkOrderQRCodeDisplay from '@/features/work-orders/components/WorkOrderQRCodeDisplay';
+import { WorkOrderDeleteConfirmDialog } from '@/features/work-orders/components/WorkOrderDeleteConfirmDialog';
+import { useDeleteWorkOrder } from '@/features/work-orders/hooks/useDeleteWorkOrder';
+import { useWorkOrderImageCount } from '@/features/work-orders/hooks/useWorkOrderImageCount';
+import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
+import type { MergedWorkOrder } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
 import { useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
 import { useOfflineMergedWorkOrders } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
@@ -37,6 +43,7 @@ const WorkOrders = () => {
   const [showForm, setShowForm] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [qrWorkOrder, setQrWorkOrder] = useState<WorkOrder | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<WorkOrder | null>(null);
   const [acceptanceModal, setAcceptanceModal] = useState<WorkOrderAcceptanceModalState>({
     open: false,
     workOrder: null
@@ -44,6 +51,10 @@ const WorkOrders = () => {
 
   const { currentOrganization } = useOrganization();
   const { currentUser } = useUser();
+  const permissions = useUnifiedPermissions();
+  const canDeleteWorkOrders = permissions.hasRole(['owner', 'admin']);
+  const deleteWorkOrderMutation = useDeleteWorkOrder();
+  const { data: deleteTargetImageData } = useWorkOrderImageCount(deleteTarget?.id);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -224,6 +235,30 @@ const WorkOrders = () => {
     navigate(`/dashboard/work-orders/${qrWorkOrder.id}?action=download-worksheet`);
   }, [navigate, qrWorkOrder]);
 
+  const handleDeleteClick = useCallback((workOrder: WorkOrder) => {
+    if ((workOrder as MergedWorkOrder)._isPendingSync) {
+      toast.info('Pending sync', {
+        description: 'Delete is available after the work order syncs.',
+      });
+      return;
+    }
+    setDeleteTarget(workOrder);
+  }, []);
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    if (!canDeleteWorkOrders) {
+      setDeleteTarget(null);
+      return;
+    }
+    try {
+      await deleteWorkOrderMutation.mutateAsync(deleteTarget.id);
+      setDeleteTarget(null);
+    } catch {
+      // Error is handled in the mutation
+    }
+  };
+
   const isLoading = teamAccessLoading || workOrdersLoading;
 
   if (isLoading) {
@@ -352,6 +387,8 @@ const WorkOrders = () => {
             onAssignClick={handleAssignClick}
             onReopenClick={() => undefined}
             onShowQR={handleShowQR}
+            canDelete={canDeleteWorkOrders}
+            onDeleteClick={handleDeleteClick}
           />
 
           {isMobile && totalCount > 0 && (
@@ -402,6 +439,16 @@ const WorkOrders = () => {
         workOrderId={qrWorkOrder?.id ?? ''}
         workOrderTitle={qrWorkOrder?.title}
         onPrintFieldWorksheet={handlePrintFieldWorksheet}
+      />
+
+      <WorkOrderDeleteConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        imageData={deleteTargetImageData}
+        isDeleting={deleteWorkOrderMutation.isPending}
+        onConfirm={handleDeleteConfirm}
       />
       </div>
     </Page>
