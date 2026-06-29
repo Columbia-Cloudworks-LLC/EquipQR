@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { HistoricalTimelineEditor } from '@/features/work-orders/components/HistoricalTimelineEditor';
 import { useReplaceHistoricalWorkOrderTimeline } from '@/features/work-orders/hooks/useHistoricalWorkOrders';
+import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
 import {
   historyRowsToEvents,
   validateTimelineEvents,
@@ -43,6 +44,7 @@ export function HistoricalTimelineEditorDialog({
   onCreateSave,
 }: HistoricalTimelineEditorDialogProps) {
   const replaceTimelineMutation = useReplaceHistoricalWorkOrderTimeline();
+  const { isManager } = useWorkOrderPermissionLevels();
   const [draftEvents, setDraftEvents] = useState<HistoricalTimelineEvent[]>([]);
 
   const seedEvents = useMemo(() => {
@@ -72,6 +74,10 @@ export function HistoricalTimelineEditorDialog({
     if (mode === 'create') {
       onCreateSave?.(draftEvents);
       onOpenChange(false);
+      return;
+    }
+
+    if (!isManager) {
       return;
     }
 

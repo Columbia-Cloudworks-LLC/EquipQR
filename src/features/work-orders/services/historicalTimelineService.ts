@@ -20,7 +20,9 @@ export type ReplaceHistoricalTimelineResult = {
 };
 
 export const historicalTimelineService = {
-  getWorkOrderTimeline: fetchWorkOrderStatusHistory,
+  getWorkOrderTimeline(workOrderId: string, organizationId: string) {
+    return fetchWorkOrderStatusHistory(workOrderId, organizationId);
+  },
 
   async replaceHistoricalTimeline(
     workOrderId: string,

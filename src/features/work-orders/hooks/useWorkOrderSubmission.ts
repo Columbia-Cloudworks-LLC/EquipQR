@@ -69,7 +69,10 @@ export const useWorkOrderSubmission = ({
             ? synthesizeDefaultTimeline({
                 startDate: data.historicalStartDate,
                 finalStatus: data.status,
-                completedDate: data.completedDate ?? null,
+                completedDate:
+                  data.status === 'completed' || data.status === 'cancelled'
+                    ? data.completedDate ?? null
+                    : null,
                 assigneeId: data.assigneeId ?? null,
               })
             : undefined);

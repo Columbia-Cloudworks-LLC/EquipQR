@@ -4,6 +4,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
 import { defaultForkliftChecklist } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { workOrders } from '@/lib/queryKeys/workOrders';
+import { invalidateWorkOrderCaches } from '@/features/work-orders/utils/invalidateWorkOrderQueries';
 import { historicalTimelineService } from '@/features/work-orders/services/historicalTimelineService';
 import {
   eventsToRpcPayload,
@@ -39,42 +40,35 @@ interface HistoricalWorkOrderMutationResult {
   [key: string]: unknown;
 }
 
-function invalidateWorkOrderTimelineQueries(
-  queryClient: ReturnType<typeof useQueryClient>,
-  workOrderId: string,
-  organizationId?: string,
-) {
-  queryClient.invalidateQueries({ queryKey: workOrders.timeline(workOrderId) });
-  queryClient.invalidateQueries({ queryKey: ['workOrders'] });
-  queryClient.invalidateQueries({ queryKey: ['teamBasedWorkOrders'] });
-  queryClient.invalidateQueries({ queryKey: ['workOrder'] });
-  queryClient.invalidateQueries({ queryKey: ['preventativeMaintenance'] });
-
-  if (organizationId) {
-    queryClient.invalidateQueries({ queryKey: workOrders.byId(organizationId, workOrderId) });
-    queryClient.invalidateQueries({ queryKey: workOrders.enhancedById(organizationId, workOrderId) });
-    queryClient.invalidateQueries({ queryKey: workOrders.legacyById(organizationId, workOrderId) });
-    queryClient.invalidateQueries({ queryKey: workOrders.list(organizationId) });
-    queryClient.invalidateQueries({ queryKey: workOrders.teamBasedList(organizationId) });
+function assertHistoricalTimelineAdminRole(
+  role: string | undefined,
+): asserts role is 'owner' | 'admin' {
+  if (role !== 'owner' && role !== 'admin') {
+    throw new Error('Permission denied');
   }
 }
 
 export const useWorkOrderTimeline = (workOrderId: string | undefined) => {
+  const { currentOrganization } = useOrganization();
+
   return useQuery({
     queryKey: workOrders.timeline(workOrderId ?? 'unknown'),
     queryFn: async () => {
-      if (!workOrderId) {
+      if (!workOrderId || !currentOrganization?.id) {
         return [];
       }
 
-      const { data, error } = await historicalTimelineService.getWorkOrderTimeline(workOrderId);
+      const { data, error } = await historicalTimelineService.getWorkOrderTimeline(
+        workOrderId,
+        currentOrganization.id,
+      );
       if (error) {
         throw error;
       }
 
       return data ?? [];
     },
-    enabled: Boolean(workOrderId),
+    enabled: Boolean(workOrderId && currentOrganization?.id),
   });
 };
 
@@ -114,7 +108,7 @@ export const useCreateHistoricalWorkOrder = (options?: {
             : data.pmChecklistData || [],
           p_timeline_events: data.timelineEvents
             ? eventsToRpcPayload(data.timelineEvents)
-            : null,
+            : undefined,
         },
       );
 
@@ -165,6 +159,12 @@ export const useReplaceHistoricalWorkOrderTimeline = () => {
       workOrderId: string;
       events: HistoricalTimelineEvent[];
     }) => {
+      if (!currentOrganization?.id) {
+        throw new Error('No organization selected');
+      }
+
+      assertHistoricalTimelineAdminRole(currentOrganization.userRole);
+
       const result = await historicalTimelineService.replaceHistoricalTimeline(workOrderId, events);
       if (!result.success) {
         throw new Error(result.error || 'Failed to replace historical timeline');
@@ -172,11 +172,12 @@ export const useReplaceHistoricalWorkOrderTimeline = () => {
       return result;
     },
     onSuccess: (_result, variables) => {
-      invalidateWorkOrderTimelineQueries(
-        queryClient,
-        variables.workOrderId,
-        currentOrganization?.id,
-      );
+      if (currentOrganization?.id) {
+        invalidateWorkOrderCaches(queryClient, currentOrganization.id, variables.workOrderId);
+        void queryClient.invalidateQueries({
+          queryKey: workOrders.timeline(variables.workOrderId),
+        });
+      }
       toast.success('Historical timeline updated successfully');
     },
     onError: (error: unknown) => {

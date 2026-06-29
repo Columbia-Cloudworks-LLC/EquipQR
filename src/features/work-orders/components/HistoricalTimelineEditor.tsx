@@ -46,10 +46,15 @@ export function HistoricalTimelineEditor({
   });
 
   useEffect(() => {
-    onChange?.(rowsToTimelineEvents(rows));
-    // Seed parent state once on mount; subsequent updates flow through updateRows.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (initialEvents && initialEvents.length > 0) {
+      setRows(timelineEventsToRows(initialEvents));
+      return;
+    }
+
+    if (startDate) {
+      setRows([createInitialTimelineRow(startDate)]);
+    }
+  }, [initialEvents, startDate]);
 
   const assignmentContext: AssignmentWorkOrderContext = useMemo(
     () => ({

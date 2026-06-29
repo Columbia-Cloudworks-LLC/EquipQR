@@ -16,7 +16,10 @@ export type WorkOrderStatusHistoryRow = {
   } | null;
 };
 
-export async function fetchWorkOrderStatusHistory(workOrderId: string) {
+export async function fetchWorkOrderStatusHistory(
+  workOrderId: string,
+  organizationId: string,
+) {
   try {
     const { data, error } = await supabase
       .from('work_order_status_history')
@@ -32,9 +35,13 @@ export async function fetchWorkOrderStatusHistory(workOrderId: string) {
         profiles!changed_by (
           name,
           email
+        ),
+        work_orders!inner (
+          organization_id
         )
       `)
       .eq('work_order_id', workOrderId)
+      .eq('work_orders.organization_id', organizationId)
       .order('changed_at', { ascending: false });
 
     if (error) throw error;

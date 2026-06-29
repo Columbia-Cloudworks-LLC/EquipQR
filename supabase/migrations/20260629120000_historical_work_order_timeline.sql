@@ -271,6 +271,7 @@ BEGIN
     status = v_previous_status,
     assignee_id = v_assignee,
     created_date = (p_events -> 0 ->> 'changed_at')::timestamptz,
+    historical_start_date = (p_events -> 0 ->> 'changed_at')::timestamptz,
     acceptance_date = v_acceptance_date,
     completed_date = v_completed_date,
     updated_at = NOW()

@@ -103,6 +103,20 @@ describe('historicalTimeline helpers', () => {
     expect(errors.some((error) => error.field === 'dates')).toBe(true);
   });
 
+  it('clamps stale completion dates before the start date', () => {
+    const events = synthesizeDefaultTimeline({
+      startDate: new Date('2024-06-01T08:00:00.000Z'),
+      finalStatus: 'accepted',
+      completedDate: new Date('2024-01-01T08:00:00.000Z'),
+    });
+
+    expect(events).toHaveLength(2);
+    expect(new Date(events[0].changedAt).getTime()).toBeLessThanOrEqual(
+      new Date(events[1].changedAt).getTime(),
+    );
+    expect(validateTimelineEvents(events)).toEqual([]);
+  });
+
   it('synthesizes a valid completed chain with chronological dates', () => {
     const events = synthesizeDefaultTimeline({
       startDate: new Date('2024-01-01T08:00:00.000Z'),

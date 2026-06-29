@@ -88,6 +88,9 @@ export const WorkOrderHistoricalFields: React.FC<WorkOrderHistoricalFieldsProps>
             onValueChange={(value) => {
               setValue('status', value as WorkOrderFormData['status']);
               setValue('historicalTimelineEvents', undefined);
+              if (value !== 'completed' && value !== 'cancelled') {
+                setValue('completedDate', undefined);
+              }
             }}
           >
             <SelectTrigger>

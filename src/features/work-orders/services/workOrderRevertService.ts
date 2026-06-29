@@ -46,8 +46,8 @@ export const workOrderRevertService = {
     }
   },
 
-  async getWorkOrderHistory(workOrderId: string) {
-    return fetchWorkOrderStatusHistory(workOrderId);
+  async getWorkOrderHistory(workOrderId: string, organizationId: string) {
+    return fetchWorkOrderStatusHistory(workOrderId, organizationId);
   },
 
   async getPMHistory(pmId: string) {

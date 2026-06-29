@@ -20,6 +20,43 @@ describe('HistoricalTimelineEditor', () => {
     vi.clearAllMocks();
   });
 
+  it('syncs rows when initialEvents change after mount', () => {
+    const { rerender } = render(
+      <HistoricalTimelineEditor
+        organizationId="org-1"
+        equipmentId="equipment-1"
+        initialEvents={[
+          {
+            newStatus: 'submitted',
+            changedAt: new Date('2024-01-01T08:00:00Z').toISOString(),
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByLabelText('Event 1')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Event 2')).not.toBeInTheDocument();
+
+    rerender(
+      <HistoricalTimelineEditor
+        organizationId="org-1"
+        equipmentId="equipment-1"
+        initialEvents={[
+          {
+            newStatus: 'submitted',
+            changedAt: new Date('2024-01-01T08:00:00Z').toISOString(),
+          },
+          {
+            newStatus: 'accepted',
+            changedAt: new Date('2024-01-02T08:00:00Z').toISOString(),
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByLabelText('Event 2')).toBeInTheDocument();
+  });
+
   it('limits selectable statuses to the previous row in the chain', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

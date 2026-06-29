@@ -40,7 +40,12 @@ test.describe('PR evidence: historical work order timeline @pr-evidence', () => 
     const startDateTrigger = dialog.getByRole('button', { name: /pick start date and time/i });
     await startDateTrigger.click();
     await page.getByRole('button', { name: /Go to the Previous Month/i }).click();
-    await page.getByRole('button', { name: /May 15th, 2026/i }).click();
+    await page
+      .locator('[data-radix-popper-content-wrapper]')
+      .last()
+      .getByRole('button', { name: /^10$/ })
+      .first()
+      .click();
 
     await expect(dialog.getByRole('button', { name: /build timeline/i })).toBeEnabled({
       timeout: 15_000,

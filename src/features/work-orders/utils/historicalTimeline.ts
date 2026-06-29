@@ -242,7 +242,10 @@ export function synthesizeDefaultTimeline(params: {
   assigneeId?: string | null;
 }): HistoricalTimelineEvent[] {
   const { startDate, finalStatus, completedDate, assigneeId } = params;
-  const endDate = completedDate ?? startDate;
+  const endDate =
+    completedDate && completedDate.getTime() >= startDate.getTime()
+      ? completedDate
+      : startDate;
 
   const statusPath: WorkOrderStatus[] = (() => {
     switch (finalStatus) {
