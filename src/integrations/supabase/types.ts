@@ -4449,52 +4449,29 @@ export type Database = {
           session_token: string
         }[]
       }
-      create_historical_work_order_with_pm:
-        | {
-            Args: {
-              p_assignee_id?: string
-              p_completed_date?: string
-              p_description: string
-              p_due_date?: string
-              p_equipment_id: string
-              p_has_pm?: boolean
-              p_historical_notes?: string
-              p_historical_start_date: string
-              p_organization_id: string
-              p_pm_checklist_data?: Json
-              p_pm_completion_date?: string
-              p_pm_notes?: string
-              p_pm_status?: string
-              p_priority: Database["public"]["Enums"]["work_order_priority"]
-              p_status: Database["public"]["Enums"]["work_order_status"]
-              p_team_id?: string
-              p_title: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_assignee_id?: string
-              p_completed_date?: string
-              p_description: string
-              p_due_date?: string
-              p_equipment_id: string
-              p_has_pm?: boolean
-              p_historical_notes?: string
-              p_historical_start_date: string
-              p_organization_id: string
-              p_pm_checklist_data?: Json
-              p_pm_completion_date?: string
-              p_pm_notes?: string
-              p_pm_status?: string
-              p_priority: Database["public"]["Enums"]["work_order_priority"]
-              p_status: Database["public"]["Enums"]["work_order_status"]
-              p_team_id?: string
-              p_timeline_events?: Json
-              p_title: string
-            }
-            Returns: Json
-          }
+      create_historical_work_order_with_pm: {
+        Args: {
+          p_assignee_id?: string
+          p_completed_date?: string
+          p_description: string
+          p_due_date?: string
+          p_equipment_id: string
+          p_has_pm?: boolean
+          p_historical_notes?: string
+          p_historical_start_date: string
+          p_organization_id: string
+          p_pm_checklist_data?: Json
+          p_pm_completion_date?: string
+          p_pm_notes?: string
+          p_pm_status?: string
+          p_priority: Database["public"]["Enums"]["work_order_priority"]
+          p_status: Database["public"]["Enums"]["work_order_status"]
+          p_team_id?: string
+          p_timeline_events?: Json
+          p_title: string
+        }
+        Returns: Json
+      }
       create_invitation_atomic: {
         Args: {
           p_email: string
