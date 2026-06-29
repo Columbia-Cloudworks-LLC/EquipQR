@@ -5394,7 +5394,7 @@ export type Database = {
       synthesize_historical_timeline_events: {
         Args: {
           p_assignee_id?: string
-          p_completed_date: string
+          p_completed_date: string | null
           p_historical_start_date: string
           p_status: Database["public"]["Enums"]["work_order_status"]
         }
