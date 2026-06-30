@@ -21,6 +21,10 @@ vi.mock('@/features/work-orders/hooks/useHistoricalWorkOrders', () => ({
     mutateAsync: vi.fn(),
     isPending: false,
   }),
+  useConvertWorkOrderToHistorical: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
 }));
 
 vi.mock('@/features/work-orders/hooks/useWorkOrderPermissionLevels', () => ({

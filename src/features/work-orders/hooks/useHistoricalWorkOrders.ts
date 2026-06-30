@@ -48,6 +48,57 @@ function assertHistoricalTimelineAdminRole(
   }
 }
 
+type HistoricalTimelineMutationVariables = {
+  workOrderId: string;
+  events: HistoricalTimelineEvent[];
+};
+
+type HistoricalTimelineMutationExecutor = (
+  organizationId: string,
+  workOrderId: string,
+  events: HistoricalTimelineEvent[],
+) => ReturnType<typeof historicalTimelineService.replaceHistoricalTimeline>;
+
+function useHistoricalTimelineMutation(options: {
+  execute: HistoricalTimelineMutationExecutor;
+  failureMessage: string;
+  successMessage: string;
+  logLabel: string;
+}) {
+  const { currentOrganization } = useOrganization();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ workOrderId, events }: HistoricalTimelineMutationVariables) => {
+      if (!currentOrganization?.id) {
+        throw new Error('No organization selected');
+      }
+
+      assertHistoricalTimelineAdminRole(currentOrganization.userRole);
+
+      const result = await options.execute(currentOrganization.id, workOrderId, events);
+      if (!result.success) {
+        throw new Error(result.error || options.failureMessage);
+      }
+      return result;
+    },
+    onSuccess: (_result, variables) => {
+      if (currentOrganization?.id) {
+        invalidateWorkOrderCaches(queryClient, currentOrganization.id, variables.workOrderId);
+        void queryClient.invalidateQueries({
+          queryKey: workOrders.timeline(variables.workOrderId),
+        });
+      }
+      toast.success(options.successMessage);
+    },
+    onError: (error: unknown) => {
+      console.error(`Error ${options.logLabel}:`, error);
+      const message = error instanceof Error ? error.message : options.failureMessage;
+      toast.error(message);
+    },
+  });
+}
+
 export const useWorkOrderTimeline = (workOrderId: string | undefined) => {
   const { currentOrganization } = useOrganization();
 
@@ -147,43 +198,20 @@ export const useCreateHistoricalWorkOrder = (options?: {
   });
 };
 
-export const useReplaceHistoricalWorkOrderTimeline = () => {
-  const { currentOrganization } = useOrganization();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      workOrderId,
-      events,
-    }: {
-      workOrderId: string;
-      events: HistoricalTimelineEvent[];
-    }) => {
-      if (!currentOrganization?.id) {
-        throw new Error('No organization selected');
-      }
-
-      assertHistoricalTimelineAdminRole(currentOrganization.userRole);
-
-      const result = await historicalTimelineService.replaceHistoricalTimeline(workOrderId, events);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to replace historical timeline');
-      }
-      return result;
-    },
-    onSuccess: (_result, variables) => {
-      if (currentOrganization?.id) {
-        invalidateWorkOrderCaches(queryClient, currentOrganization.id, variables.workOrderId);
-        void queryClient.invalidateQueries({
-          queryKey: workOrders.timeline(variables.workOrderId),
-        });
-      }
-      toast.success('Historical timeline updated successfully');
-    },
-    onError: (error: unknown) => {
-      console.error('Error replacing historical timeline:', error);
-      const message = error instanceof Error ? error.message : 'Failed to update historical timeline';
-      toast.error(message);
-    },
+export const useReplaceHistoricalWorkOrderTimeline = () =>
+  useHistoricalTimelineMutation({
+    execute: (_organizationId, workOrderId, events) =>
+      historicalTimelineService.replaceHistoricalTimeline(workOrderId, events),
+    failureMessage: 'Failed to replace historical timeline',
+    successMessage: 'Historical timeline updated successfully',
+    logLabel: 'replacing historical timeline',
   });
-};
+
+export const useConvertWorkOrderToHistorical = () =>
+  useHistoricalTimelineMutation({
+    execute: (organizationId, workOrderId, events) =>
+      historicalTimelineService.convertWorkOrderToHistorical(organizationId, workOrderId, events),
+    failureMessage: 'Failed to convert work order to historical',
+    successMessage: 'Work order converted to historical record',
+    logLabel: 'converting work order to historical',
+  });

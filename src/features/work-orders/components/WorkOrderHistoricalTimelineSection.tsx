@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CalendarClock } from 'lucide-react';
 import WorkOrderTimeline from '@/features/work-orders/components/WorkOrderTimeline';
 import { HistoricalTimelineEditorDialog } from '@/features/work-orders/components/HistoricalTimelineEditorDialog';
 import { useWorkOrderTimeline } from '@/features/work-orders/hooks/useHistoricalWorkOrders';
+import {
+  historyRowsToEvents,
+  synthesizeDefaultTimeline,
+  validateTimelineEvents,
+  type HistoricalTimelineEvent,
+} from '@/features/work-orders/utils/historicalTimeline';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 
 type WorkOrderHistoricalTimelineSectionProps = {
@@ -12,14 +18,54 @@ type WorkOrderHistoricalTimelineSectionProps = {
   canEditTimeline: boolean;
 };
 
+function buildConversionSeedEvents(
+  workOrder: WorkOrder,
+  historyRows: Array<{
+    new_status: string;
+    changed_at: string;
+    reason: string | null;
+    metadata: Record<string, unknown> | null;
+  }>,
+): HistoricalTimelineEvent[] {
+  if (historyRows.length > 0) {
+    const historyEvents = historyRowsToEvents(historyRows);
+    if (validateTimelineEvents(historyEvents).length === 0) {
+      return historyEvents;
+    }
+  }
+
+  const startDate = workOrder.historical_start_date ?? workOrder.created_date;
+  if (!startDate) {
+    return [];
+  }
+
+  return synthesizeDefaultTimeline({
+    startDate: new Date(startDate),
+    finalStatus: workOrder.status,
+    completedDate: workOrder.completed_date ? new Date(workOrder.completed_date) : null,
+    assigneeId: workOrder.assignee_id,
+  });
+}
+
 export function WorkOrderHistoricalTimelineSection({
   workOrder,
   showDetailedHistory = true,
   canEditTimeline,
 }: WorkOrderHistoricalTimelineSectionProps) {
   const [editorOpen, setEditorOpen] = useState(false);
+  const [editorMode, setEditorMode] = useState<'edit' | 'convert'>('edit');
   const isHistorical = Boolean(workOrder.isHistorical ?? workOrder.is_historical);
   const { data: historyRows = [], isSuccess: historyReady } = useWorkOrderTimeline(workOrder.id);
+
+  const conversionSeedEvents = useMemo(
+    () => buildConversionSeedEvents(workOrder, historyRows),
+    [historyRows, workOrder],
+  );
+
+  const openEditor = (mode: 'edit' | 'convert') => {
+    setEditorMode(mode);
+    setEditorOpen(true);
+  };
 
   return (
     <>
@@ -27,16 +73,23 @@ export function WorkOrderHistoricalTimelineSection({
         workOrder={workOrder}
         showDetailedHistory={showDetailedHistory}
         headerAction={
-          isHistorical && canEditTimeline ? (
-            <Button type="button" variant="outline" size="sm" onClick={() => setEditorOpen(true)}>
-              <CalendarClock className="mr-2 h-4 w-4" />
-              Edit historical timeline
-            </Button>
+          canEditTimeline ? (
+            isHistorical ? (
+              <Button type="button" variant="outline" size="sm" onClick={() => openEditor('edit')}>
+                <CalendarClock className="mr-2 h-4 w-4" />
+                Edit historical timeline
+              </Button>
+            ) : (
+              <Button type="button" variant="outline" size="sm" onClick={() => openEditor('convert')}>
+                <CalendarClock className="mr-2 h-4 w-4" />
+                Convert to historical timeline
+              </Button>
+            )
           ) : null
         }
       />
 
-      {isHistorical && canEditTimeline ? (
+      {canEditTimeline ? (
         <HistoricalTimelineEditorDialog
           open={editorOpen}
           onOpenChange={setEditorOpen}
@@ -45,6 +98,13 @@ export function WorkOrderHistoricalTimelineSection({
           equipmentId={workOrder.equipment_id}
           historyRows={historyRows}
           historyReady={historyReady}
+          mode={editorMode}
+          title={
+            editorMode === 'convert'
+              ? 'Convert to historical timeline'
+              : 'Edit historical timeline'
+          }
+          initialEvents={editorMode === 'convert' ? conversionSeedEvents : undefined}
         />
       ) : null}
     </>

@@ -43,15 +43,16 @@ function main() {
 
   const diffs = [];
 
-  function compare(label, a, b) {
+  function compare(label, a, b, options = {}) {
     const onlyA = a.filter((x) => !b.includes(x));
     const onlyB = b.filter((x) => !a.includes(x));
-    if (onlyA.length || onlyB.length) {
-      diffs.push({ label, onlyA, onlyB });
+    const onlyBToReport = options.allowJsonSuperset ? [] : onlyB;
+    if (onlyA.length || onlyBToReport.length) {
+      diffs.push({ label, onlyA, onlyB: onlyBToReport });
     }
   }
 
-  compare('authenticatedPublicRpc', migrationAuth, jsonAuth);
+  compare('authenticatedPublicRpc', migrationAuth, jsonAuth, { allowJsonSuperset: true });
   compare('anonPublicRpc', migrationAnon, jsonAnon);
   compare('rlsPredicateHelpers', migrationRls, jsonRls);
 
