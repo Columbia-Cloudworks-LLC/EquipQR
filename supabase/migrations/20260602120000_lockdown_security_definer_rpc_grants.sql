@@ -42,7 +42,6 @@ DECLARE
     'create_invitation_atomic',
     'create_quickbooks_oauth_session',
     'create_workspace_organization_for_domain',
-    'convert_work_order_to_historical',
     'delete_organization',
     'delete_work_order_cascade',
     'disconnect_google_workspace',
