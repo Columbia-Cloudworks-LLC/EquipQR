@@ -9,7 +9,10 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { HistoricalTimelineEditor } from '@/features/work-orders/components/HistoricalTimelineEditor';
-import { useReplaceHistoricalWorkOrderTimeline } from '@/features/work-orders/hooks/useHistoricalWorkOrders';
+import {
+  useConvertWorkOrderToHistorical,
+  useReplaceHistoricalWorkOrderTimeline,
+} from '@/features/work-orders/hooks/useHistoricalWorkOrders';
 import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
 import {
   historyRowsToEvents,
@@ -27,7 +30,7 @@ type HistoricalTimelineEditorDialogProps = {
   title?: string;
   historyRows?: WorkOrderTimelineHistoryRow[];
   initialEvents?: HistoricalTimelineEvent[];
-  mode?: 'edit' | 'create';
+  mode?: 'edit' | 'create' | 'convert';
   onCreateSave?: (events: HistoricalTimelineEvent[]) => void;
   historyReady?: boolean;
 };
@@ -46,6 +49,7 @@ export function HistoricalTimelineEditorDialog({
   historyReady = true,
 }: HistoricalTimelineEditorDialogProps) {
   const replaceTimelineMutation = useReplaceHistoricalWorkOrderTimeline();
+  const convertTimelineMutation = useConvertWorkOrderToHistorical();
   const { isManager } = useWorkOrderPermissionLevels();
   const [draftEvents, setDraftEvents] = useState<HistoricalTimelineEvent[]>([]);
   const [editorSeedEvents, setEditorSeedEvents] = useState<HistoricalTimelineEvent[]>([]);
@@ -68,7 +72,7 @@ export function HistoricalTimelineEditorDialog({
       return;
     }
 
-    if (mode === 'edit' && !historyReady) {
+    if ((mode === 'edit' || mode === 'convert') && !historyReady) {
       return;
     }
 
@@ -82,6 +86,8 @@ export function HistoricalTimelineEditorDialog({
 
   const validationErrors = validateTimelineEvents(draftEvents);
   const canSave = validationErrors.length === 0 && draftEvents.length > 0 && !hasIncompleteRows;
+  const isSaving = replaceTimelineMutation.isPending || convertTimelineMutation.isPending;
+  const saveLabel = mode === 'convert' ? 'Convert to historical' : 'Save timeline';
 
   const handleSave = async () => {
     if (!canSave) {
@@ -98,10 +104,18 @@ export function HistoricalTimelineEditorDialog({
       return;
     }
 
-    await replaceTimelineMutation.mutateAsync({
-      workOrderId,
-      events: draftEvents,
-    });
+    if (mode === 'convert') {
+      await convertTimelineMutation.mutateAsync({
+        workOrderId,
+        events: draftEvents,
+      });
+    } else {
+      await replaceTimelineMutation.mutateAsync({
+        workOrderId,
+        events: draftEvents,
+      });
+    }
+
     onOpenChange(false);
   };
 
@@ -130,9 +144,9 @@ export function HistoricalTimelineEditorDialog({
           <Button
             type="button"
             onClick={handleSave}
-            disabled={!canSave || replaceTimelineMutation.isPending}
+            disabled={!canSave || isSaving}
           >
-            {replaceTimelineMutation.isPending ? 'Saving...' : 'Save timeline'}
+            {isSaving ? 'Saving...' : saveLabel}
           </Button>
         </DialogFooter>
       </DialogContent>
