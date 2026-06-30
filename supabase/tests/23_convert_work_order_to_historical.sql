@@ -1,3 +1,4 @@
+-- pgTAP: convert_work_order_to_historical (issue #1093)
 BEGIN;
 SELECT plan(10);
 
