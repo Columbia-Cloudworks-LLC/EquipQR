@@ -5,6 +5,7 @@
 
 CREATE OR REPLACE FUNCTION public.convert_work_order_to_historical(
   p_work_order_id uuid,
+  p_organization_id uuid,
   p_events jsonb,
   p_skip_audit boolean DEFAULT false
 )
@@ -17,10 +18,16 @@ DECLARE
   v_work_order public.work_orders%ROWTYPE;
   v_replace_result jsonb;
 BEGIN
+  IF p_organization_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Organization is required');
+  END IF;
+
   SELECT *
   INTO v_work_order
   FROM public.work_orders
-  WHERE id = p_work_order_id;
+  WHERE id = p_work_order_id
+    AND organization_id = p_organization_id
+  FOR UPDATE;
 
   IF NOT FOUND THEN
     RETURN jsonb_build_object('success', false, 'error', 'Work order not found');
@@ -78,7 +85,7 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.convert_work_order_to_historical(uuid, jsonb, boolean) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.convert_work_order_to_historical(uuid, uuid, jsonb, boolean) TO authenticated;
 
-COMMENT ON FUNCTION public.convert_work_order_to_historical(uuid, jsonb, boolean)
+COMMENT ON FUNCTION public.convert_work_order_to_historical(uuid, uuid, jsonb, boolean)
 IS 'Admin-only conversion of an existing operational work order to a historical record with backdated timeline. Issue #1093.';

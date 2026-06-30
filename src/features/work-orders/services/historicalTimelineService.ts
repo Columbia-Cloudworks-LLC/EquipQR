@@ -58,12 +58,14 @@ export const historicalTimelineService = {
   },
 
   async convertWorkOrderToHistorical(
+    organizationId: string,
     workOrderId: string,
     events: HistoricalTimelineEvent[],
   ): Promise<ConvertWorkOrderToHistoricalResult> {
     try {
       const { data, error } = await supabase.rpc('convert_work_order_to_historical', {
         p_work_order_id: workOrderId,
+        p_organization_id: organizationId,
         p_events: eventsToRpcPayload(events),
         p_skip_audit: false,
       });

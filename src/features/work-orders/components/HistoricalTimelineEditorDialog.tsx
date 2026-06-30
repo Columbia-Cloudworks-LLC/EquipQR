@@ -72,7 +72,7 @@ export function HistoricalTimelineEditorDialog({
       return;
     }
 
-    if ((mode === 'edit' || mode === 'convert') && !historyReady) {
+    if (mode === 'edit' && !historyReady) {
       return;
     }
 

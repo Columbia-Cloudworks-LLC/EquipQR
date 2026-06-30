@@ -4,7 +4,7 @@ SELECT plan(6);
 SELECT has_function(
   'public',
   'convert_work_order_to_historical',
-  ARRAY['uuid', 'jsonb', 'boolean'],
+  ARRAY['uuid', 'uuid', 'jsonb', 'boolean'],
   'convert_work_order_to_historical exists'
 );
 
@@ -134,6 +134,7 @@ SELECT set_config(
 SELECT is(
   (public.convert_work_order_to_historical(
     '31000000-0000-0000-0000-000000000001'::uuid,
+    (SELECT id FROM convert_test_context WHERE label = 'org'),
     public.synthesize_historical_timeline_events(
       TIMESTAMPTZ '2024-01-01T08:00:00Z',
       TIMESTAMPTZ '2024-01-05T16:00:00Z',
@@ -157,6 +158,7 @@ SELECT set_config(
 SELECT is(
   (public.convert_work_order_to_historical(
     '31000000-0000-0000-0000-000000000001'::uuid,
+    (SELECT id FROM convert_test_context WHERE label = 'org'),
     public.synthesize_historical_timeline_events(
       TIMESTAMPTZ '2024-01-01T08:00:00Z',
       TIMESTAMPTZ '2024-01-05T16:00:00Z',

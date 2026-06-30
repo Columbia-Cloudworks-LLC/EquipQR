@@ -32,10 +32,11 @@ describe('historicalTimelineService', () => {
       error: null,
     });
 
-    const result = await historicalTimelineService.convertWorkOrderToHistorical('wo-1', events);
+    const result = await historicalTimelineService.convertWorkOrderToHistorical('org-1', 'wo-1', events);
 
     expect(rpcMock).toHaveBeenCalledWith('convert_work_order_to_historical', {
       p_work_order_id: 'wo-1',
+      p_organization_id: 'org-1',
       p_events: expect.arrayContaining([
         expect.objectContaining({ new_status: 'submitted', old_status: null }),
       ]),
@@ -51,7 +52,7 @@ describe('historicalTimelineService', () => {
       error: null,
     });
 
-    const result = await historicalTimelineService.convertWorkOrderToHistorical('wo-1', []);
+    const result = await historicalTimelineService.convertWorkOrderToHistorical('org-1', 'wo-1', []);
 
     expect(result.success).toBe(false);
     expect(result.error).toBe('Permission denied');

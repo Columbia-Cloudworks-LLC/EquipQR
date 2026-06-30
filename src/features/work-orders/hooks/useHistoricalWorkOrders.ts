@@ -53,11 +53,14 @@ type HistoricalTimelineMutationVariables = {
   events: HistoricalTimelineEvent[];
 };
 
+type HistoricalTimelineMutationExecutor = (
+  organizationId: string,
+  workOrderId: string,
+  events: HistoricalTimelineEvent[],
+) => ReturnType<typeof historicalTimelineService.replaceHistoricalTimeline>;
+
 function useHistoricalTimelineMutation(options: {
-  execute: (
-    workOrderId: string,
-    events: HistoricalTimelineEvent[],
-  ) => ReturnType<typeof historicalTimelineService.replaceHistoricalTimeline>;
+  execute: HistoricalTimelineMutationExecutor;
   failureMessage: string;
   successMessage: string;
   logLabel: string;
@@ -73,7 +76,7 @@ function useHistoricalTimelineMutation(options: {
 
       assertHistoricalTimelineAdminRole(currentOrganization.userRole);
 
-      const result = await options.execute(workOrderId, events);
+      const result = await options.execute(currentOrganization.id, workOrderId, events);
       if (!result.success) {
         throw new Error(result.error || options.failureMessage);
       }
@@ -197,7 +200,8 @@ export const useCreateHistoricalWorkOrder = (options?: {
 
 export const useReplaceHistoricalWorkOrderTimeline = () =>
   useHistoricalTimelineMutation({
-    execute: historicalTimelineService.replaceHistoricalTimeline.bind(historicalTimelineService),
+    execute: (_organizationId, workOrderId, events) =>
+      historicalTimelineService.replaceHistoricalTimeline(workOrderId, events),
     failureMessage: 'Failed to replace historical timeline',
     successMessage: 'Historical timeline updated successfully',
     logLabel: 'replacing historical timeline',
@@ -205,7 +209,8 @@ export const useReplaceHistoricalWorkOrderTimeline = () =>
 
 export const useConvertWorkOrderToHistorical = () =>
   useHistoricalTimelineMutation({
-    execute: historicalTimelineService.convertWorkOrderToHistorical.bind(historicalTimelineService),
+    execute: (organizationId, workOrderId, events) =>
+      historicalTimelineService.convertWorkOrderToHistorical(organizationId, workOrderId, events),
     failureMessage: 'Failed to convert work order to historical',
     successMessage: 'Work order converted to historical record',
     logLabel: 'converting work order to historical',

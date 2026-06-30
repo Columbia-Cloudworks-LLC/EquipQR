@@ -4469,6 +4469,7 @@ export type Database = {
       convert_work_order_to_historical: {
         Args: {
           p_events: Json
+          p_organization_id: string
           p_skip_audit?: boolean
           p_work_order_id: string
         }
