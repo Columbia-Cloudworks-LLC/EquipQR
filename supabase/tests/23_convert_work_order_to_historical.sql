@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(6);
+SELECT plan(8);
 
 SELECT has_function(
   'public',
@@ -123,6 +123,34 @@ INSERT INTO public.work_orders (
   '13000000-0000-0000-0000-000000000001'::uuid
 );
 
+INSERT INTO public.work_orders (
+  id,
+  organization_id,
+  equipment_id,
+  title,
+  description,
+  created_by,
+  status,
+  priority,
+  is_historical,
+  created_date,
+  completed_date,
+  assignee_id
+) VALUES (
+  '31000000-0000-0000-0000-000000000002'::uuid,
+  (SELECT id FROM convert_test_context WHERE label = 'org'),
+  '21000000-0000-0000-0000-000000000001'::uuid,
+  'Second Operational WO',
+  'Invalid conversion should not mutate row',
+  '13000000-0000-0000-0000-000000000001'::uuid,
+  'completed',
+  'medium',
+  false,
+  TIMESTAMPTZ '2026-06-22T12:00:00Z',
+  TIMESTAMPTZ '2026-06-23T16:00:00Z',
+  '13000000-0000-0000-0000-000000000001'::uuid
+);
+
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub', '13000000-0000-0000-0000-000000000002', true);
 SELECT set_config(
@@ -153,6 +181,23 @@ SELECT set_config(
   'request.jwt.claims',
   json_build_object('sub', '13000000-0000-0000-0000-000000000001')::text,
   true
+);
+
+SELECT is(
+  (public.convert_work_order_to_historical(
+    '31000000-0000-0000-0000-000000000002'::uuid,
+    (SELECT id FROM convert_test_context WHERE label = 'org'),
+    '[]'::jsonb,
+    false
+  ) ->> 'success'),
+  'false',
+  'Invalid empty timeline does not convert work order'
+);
+
+SELECT is(
+  (SELECT is_historical FROM public.work_orders WHERE id = '31000000-0000-0000-0000-000000000002'::uuid),
+  false,
+  'Failed conversion leaves work order non-historical'
 );
 
 SELECT is(

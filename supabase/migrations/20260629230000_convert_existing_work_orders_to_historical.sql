@@ -22,6 +22,10 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Organization is required');
   END IF;
 
+  IF p_events IS NULL OR jsonb_typeof(p_events) <> 'array' OR jsonb_array_length(p_events) = 0 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Timeline events are required');
+  END IF;
+
   SELECT *
   INTO v_work_order
   FROM public.work_orders
@@ -62,7 +66,7 @@ BEGIN
     SET
       is_historical = v_work_order.is_historical,
       historical_start_date = v_work_order.historical_start_date,
-      updated_at = NOW()
+      updated_at = v_work_order.updated_at
     WHERE id = p_work_order_id;
 
     RETURN v_replace_result;
@@ -71,12 +75,14 @@ BEGIN
   RETURN v_replace_result;
 
 EXCEPTION WHEN OTHERS THEN
-  UPDATE public.work_orders
-  SET
-    is_historical = v_work_order.is_historical,
-    historical_start_date = v_work_order.historical_start_date,
-    updated_at = NOW()
-  WHERE id = p_work_order_id;
+  IF v_work_order.id IS NOT NULL THEN
+    UPDATE public.work_orders
+    SET
+      is_historical = v_work_order.is_historical,
+      historical_start_date = v_work_order.historical_start_date,
+      updated_at = v_work_order.updated_at
+    WHERE id = p_work_order_id;
+  END IF;
 
   RETURN jsonb_build_object(
     'success', false,
