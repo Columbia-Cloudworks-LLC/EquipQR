@@ -70,12 +70,12 @@ BEGIN
     WHEN SQLSTATE 'P0001' THEN
       RETURN COALESCE(
         v_replace_result,
-        jsonb_build_object('success', false, 'error', SQLERRM)
+        jsonb_build_object('success', false, 'error', 'Failed to replace historical timeline')
       );
     WHEN OTHERS THEN
       RETURN jsonb_build_object(
         'success', false,
-        'error', 'Failed to convert work order to historical: ' || SQLERRM
+        'error', 'Failed to convert work order to historical'
       );
   END;
 
