@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(8);
+SELECT plan(10);
 
 SELECT has_function(
   'public',
@@ -198,6 +198,38 @@ SELECT is(
   (SELECT is_historical FROM public.work_orders WHERE id = '31000000-0000-0000-0000-000000000002'::uuid),
   false,
   'Failed conversion leaves work order non-historical'
+);
+
+CREATE TEMP TABLE convert_baseline_updated_at (
+  work_order_id uuid PRIMARY KEY,
+  updated_at timestamptz NOT NULL
+);
+
+INSERT INTO convert_baseline_updated_at (work_order_id, updated_at)
+SELECT id, updated_at
+FROM public.work_orders
+WHERE id = '31000000-0000-0000-0000-000000000002'::uuid;
+
+SELECT is(
+  (public.convert_work_order_to_historical(
+    '31000000-0000-0000-0000-000000000002'::uuid,
+    (SELECT id FROM convert_test_context WHERE label = 'org'),
+    jsonb_build_array(
+      jsonb_build_object(
+        'new_status', 'in_progress',
+        'changed_at', '2024-02-01T08:00:00Z'
+      )
+    ),
+    false
+  ) ->> 'success'),
+  'false',
+  'Invalid timeline chain does not convert work order'
+);
+
+SELECT is(
+  (SELECT updated_at FROM public.work_orders WHERE id = '31000000-0000-0000-0000-000000000002'::uuid),
+  (SELECT updated_at FROM convert_baseline_updated_at WHERE work_order_id = '31000000-0000-0000-0000-000000000002'::uuid),
+  'Failed conversion does not bump updated_at'
 );
 
 SELECT is(

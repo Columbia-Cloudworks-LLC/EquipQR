@@ -45,49 +45,41 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Work order is already historical');
   END IF;
 
-  UPDATE public.work_orders
-  SET
-    is_historical = true,
-    historical_start_date = COALESCE(
-      historical_start_date,
-      (p_events -> 0 ->> 'changed_at')::timestamptz
-    ),
-    updated_at = NOW()
-  WHERE id = p_work_order_id;
-
-  v_replace_result := public.replace_historical_work_order_timeline(
-    p_work_order_id,
-    p_events,
-    p_skip_audit
-  );
-
-  IF COALESCE((v_replace_result ->> 'success')::boolean, false) IS NOT TRUE THEN
+  BEGIN
     UPDATE public.work_orders
     SET
-      is_historical = v_work_order.is_historical,
-      historical_start_date = v_work_order.historical_start_date,
-      updated_at = v_work_order.updated_at
+      is_historical = true,
+      historical_start_date = COALESCE(
+        historical_start_date,
+        (p_events -> 0 ->> 'changed_at')::timestamptz
+      )
     WHERE id = p_work_order_id;
 
-    RETURN v_replace_result;
-  END IF;
+    v_replace_result := public.replace_historical_work_order_timeline(
+      p_work_order_id,
+      p_events,
+      p_skip_audit
+    );
+
+    IF COALESCE((v_replace_result ->> 'success')::boolean, false) IS NOT TRUE THEN
+      RAISE EXCEPTION USING
+        ERRCODE = 'P0001',
+        MESSAGE = COALESCE(v_replace_result ->> 'error', 'Failed to replace historical timeline');
+    END IF;
+  EXCEPTION
+    WHEN SQLSTATE 'P0001' THEN
+      RETURN COALESCE(
+        v_replace_result,
+        jsonb_build_object('success', false, 'error', SQLERRM)
+      );
+    WHEN OTHERS THEN
+      RETURN jsonb_build_object(
+        'success', false,
+        'error', 'Failed to convert work order to historical: ' || SQLERRM
+      );
+  END;
 
   RETURN v_replace_result;
-
-EXCEPTION WHEN OTHERS THEN
-  IF v_work_order.id IS NOT NULL THEN
-    UPDATE public.work_orders
-    SET
-      is_historical = v_work_order.is_historical,
-      historical_start_date = v_work_order.historical_start_date,
-      updated_at = v_work_order.updated_at
-    WHERE id = p_work_order_id;
-  END IF;
-
-  RETURN jsonb_build_object(
-    'success', false,
-    'error', 'Failed to convert work order to historical: ' || SQLERRM
-  );
 END;
 $$;
 
