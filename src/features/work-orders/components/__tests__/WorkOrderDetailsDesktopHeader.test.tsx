@@ -85,6 +85,7 @@ describe('WorkOrderDetailsDesktopHeader', () => {
       canChangeStatus: true,
       canAddNotes: true,
       canAddImages: true,
+      exportAudience: 'admin' as const,
     },
     equipmentTeamId: 'team-1',
     equipment: {
@@ -180,11 +181,11 @@ describe('WorkOrderDetailsDesktopHeader', () => {
     expect(screen.getByRole('button', { name: 'Delete work order', hidden: true })).toBeInTheDocument();
   });
 
-  it('hides exports when user is not a manager', async () => {
+  it('hides admin exports when exportAudience is none', async () => {
     render(
       <WorkOrderDetailsDesktopHeader
         {...baseProps}
-        permissionLevels={{ ...baseProps.permissionLevels, isManager: false }}
+        permissionLevels={{ ...baseProps.permissionLevels, isManager: false, exportAudience: 'none' }}
       />,
     );
 
@@ -194,7 +195,28 @@ describe('WorkOrderDetailsDesktopHeader', () => {
       await user.click(actionsBtn);
       expect(screen.queryByText('Download')).not.toBeInTheDocument();
       expect(screen.queryByText('Google Drive')).not.toBeInTheDocument();
+      expect(screen.queryByText('Service Report PDF')).not.toBeInTheDocument();
     }
+  });
+
+  it('shows customer-safe Service Report PDF export for scoped viewers', async () => {
+    const user = userEvent.setup();
+    render(
+      <WorkOrderDetailsDesktopHeader
+        {...baseProps}
+        permissionLevels={{
+          ...baseProps.permissionLevels,
+          isManager: false,
+          exportAudience: 'customer-safe',
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+
+    expect(screen.getByText('Service Report PDF')).toBeInTheDocument();
+    expect(screen.queryByText('Download')).not.toBeInTheDocument();
+    expect(screen.queryByText('Google Drive')).not.toBeInTheDocument();
   });
 
   it('hides Google Drive submenu when Workspace is not connected', async () => {
@@ -254,7 +276,11 @@ describe('WorkOrderDetailsDesktopHeader', () => {
     render(
       <WorkOrderDetailsDesktopHeader
         {...baseProps}
-        permissionLevels={{ ...baseProps.permissionLevels, isManager: false }}
+        permissionLevels={{
+          ...baseProps.permissionLevels,
+          isManager: false,
+          exportAudience: 'none',
+        }}
       />,
     );
 
