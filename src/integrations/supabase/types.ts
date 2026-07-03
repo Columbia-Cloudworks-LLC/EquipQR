@@ -5394,6 +5394,7 @@ export type Database = {
       replace_historical_work_order_timeline: {
         Args: {
           p_events: Json
+          p_organization_id: string
           p_skip_audit?: boolean
           p_work_order_id: string
         }

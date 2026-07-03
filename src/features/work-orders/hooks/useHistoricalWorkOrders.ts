@@ -200,8 +200,8 @@ export const useCreateHistoricalWorkOrder = (options?: {
 
 export const useReplaceHistoricalWorkOrderTimeline = () =>
   useHistoricalTimelineMutation({
-    execute: (_organizationId, workOrderId, events) =>
-      historicalTimelineService.replaceHistoricalTimeline(workOrderId, events),
+    execute: (organizationId, workOrderId, events) =>
+      historicalTimelineService.replaceHistoricalTimeline(organizationId, workOrderId, events),
     failureMessage: 'Failed to replace historical timeline',
     successMessage: 'Historical timeline updated successfully',
     logLabel: 'replacing historical timeline',

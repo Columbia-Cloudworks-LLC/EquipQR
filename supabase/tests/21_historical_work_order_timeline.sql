@@ -4,7 +4,7 @@ SELECT plan(6);
 SELECT has_function(
   'public',
   'replace_historical_work_order_timeline',
-  ARRAY['uuid', 'jsonb', 'boolean'],
+  ARRAY['uuid', 'uuid', 'jsonb', 'boolean'],
   'replace_historical_work_order_timeline exists'
 );
 

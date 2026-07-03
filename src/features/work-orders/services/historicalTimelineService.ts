@@ -27,12 +27,14 @@ export const historicalTimelineService = {
   },
 
   async replaceHistoricalTimeline(
+    organizationId: string,
     workOrderId: string,
     events: HistoricalTimelineEvent[],
   ): Promise<ReplaceHistoricalTimelineResult> {
     try {
       const { data, error } = await supabase.rpc('replace_historical_work_order_timeline', {
         p_work_order_id: workOrderId,
+        p_organization_id: organizationId,
         p_events: eventsToRpcPayload(events),
         p_skip_audit: false,
       });

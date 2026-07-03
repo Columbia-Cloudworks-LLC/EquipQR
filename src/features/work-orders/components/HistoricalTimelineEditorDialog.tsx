@@ -105,18 +105,27 @@ export function HistoricalTimelineEditorDialog({
     }
 
     if (mode === 'convert') {
-      await convertTimelineMutation.mutateAsync({
-        workOrderId,
-        events: draftEvents,
-      });
-    } else {
+      try {
+        await convertTimelineMutation.mutateAsync({
+          workOrderId,
+          events: draftEvents,
+        });
+        onOpenChange(false);
+      } catch {
+        // onError toast handled by mutation hook
+      }
+      return;
+    }
+
+    try {
       await replaceTimelineMutation.mutateAsync({
         workOrderId,
         events: draftEvents,
       });
+      onOpenChange(false);
+    } catch {
+      // onError toast handled by mutation hook
     }
-
-    onOpenChange(false);
   };
 
   return (

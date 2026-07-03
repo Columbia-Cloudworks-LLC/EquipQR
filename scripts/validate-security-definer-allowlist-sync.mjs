@@ -42,19 +42,30 @@ function main() {
   const jsonRls = [...allowlists.rlsPredicateHelpers].sort();
 
   const diffs = [];
+  const warnings = [];
 
   function compare(label, a, b, options = {}) {
     const onlyA = a.filter((x) => !b.includes(x));
     const onlyB = b.filter((x) => !a.includes(x));
-    const onlyBToReport = options.allowJsonSuperset ? [] : onlyB;
-    if (onlyA.length || onlyBToReport.length) {
-      diffs.push({ label, onlyA, onlyB: onlyBToReport });
+    const shouldFail = onlyA.length > 0 || (!options.allowJsonSuperset && onlyB.length > 0);
+
+    if (shouldFail) {
+      diffs.push({ label, onlyA, onlyB });
+    } else if (options.allowJsonSuperset && onlyB.length > 0) {
+      warnings.push({ label, onlyB });
     }
   }
 
   compare('authenticatedPublicRpc', migrationAuth, jsonAuth, { allowJsonSuperset: true });
   compare('anonPublicRpc', migrationAnon, jsonAnon);
   compare('rlsPredicateHelpers', migrationRls, jsonRls);
+
+  if (warnings.length) {
+    console.warn('Allowlist JSON superset (informational):\n');
+    for (const w of warnings) {
+      console.warn(`[${w.label}] only in JSON: ${w.onlyB.join(', ')}`);
+    }
+  }
 
   if (diffs.length) {
     console.error('Allowlist drift detected:\n');
