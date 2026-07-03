@@ -16,8 +16,8 @@ vi.mock('@/features/teams/hooks/useTeamMembership', () => ({
   useTeamMembership: vi.fn(),
 }));
 
-vi.mock('@/features/reports/hooks/useAccessibleEquipmentIds', () => ({
-  useAccessibleEquipmentIds: vi.fn(),
+vi.mock('@/features/reports/hooks/useScopedExportTeamIds', () => ({
+  useScopedExportTeamIds: vi.fn(),
 }));
 
 vi.mock('@/features/reports/hooks/useReportExport', () => ({
@@ -45,7 +45,7 @@ vi.mock('@/features/work-orders/components/WorkOrderExcelExportDialog', () => ({
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
-import { useAccessibleEquipmentIds } from '@/features/reports/hooks/useAccessibleEquipmentIds';
+import { useScopedExportTeamIds } from '@/features/reports/hooks/useScopedExportTeamIds';
 import { useReportRecordCount, useReportExportDialog } from '@/features/reports/hooks/useReportExport';
 import {
   useWorkOrderExcelExport,
@@ -100,10 +100,10 @@ const setupMocks = (options: {
     getUserTeamIds: vi.fn(() => (isScopedViewer ? ['team-1'] : [])),
   } as unknown as ReturnType<typeof useTeamMembership>);
 
-  vi.mocked(useAccessibleEquipmentIds).mockReturnValue({
-    data: isScopedViewer ? ['eq-1'] : [],
+  vi.mocked(useScopedExportTeamIds).mockReturnValue({
+    teamIds: isScopedViewer ? ['team-1'] : [],
     isLoading: false,
-  } as ReturnType<typeof useAccessibleEquipmentIds>);
+  });
 
   vi.mocked(useReportRecordCount).mockReturnValue({
     ...defaultCountQuery,

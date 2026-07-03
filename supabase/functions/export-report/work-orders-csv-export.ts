@@ -16,9 +16,9 @@ export async function exportWorkOrders(
   organizationId: string,
   filters: ExportFilters,
   columns: string[],
-  accessibleEquipmentIds?: string[],
+  accessibleTeamIds?: string[],
 ): Promise<ExportResult> {
-  if (accessibleEquipmentIds !== undefined && accessibleEquipmentIds.length === 0) {
+  if (accessibleTeamIds !== undefined && accessibleTeamIds.length === 0) {
     return { csvContent: "No data found", rowCount: 0 };
   }
 
@@ -46,8 +46,8 @@ export async function exportWorkOrders(
     .order("created_date", { ascending: false })
     .limit(MAX_ROWS);
 
-  if (accessibleEquipmentIds !== undefined) {
-    query = query.in("equipment_id", accessibleEquipmentIds);
+  if (accessibleTeamIds !== undefined) {
+    query = query.in("team_id", accessibleTeamIds);
   }
 
   if (filters.status) {

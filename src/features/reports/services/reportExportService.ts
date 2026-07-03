@@ -102,7 +102,7 @@ export async function getReportRecordCount(
   reportType: ReportType,
   organizationId: string,
   filters: ExportFilters,
-  accessibleEquipmentIds?: string[],
+  accessibleTeamIds?: string[],
 ): Promise<number> {
   try {
     switch (reportType) {
@@ -112,7 +112,7 @@ export async function getReportRecordCount(
       }
 
       case 'work-orders': {
-        if (accessibleEquipmentIds !== undefined && accessibleEquipmentIds.length === 0) {
+        if (accessibleTeamIds !== undefined && accessibleTeamIds.length === 0) {
           return 0;
         }
         const { count } = await buildWorkOrderExportCountQuery(organizationId, {
@@ -120,7 +120,7 @@ export async function getReportRecordCount(
           teamId: filters.teamId,
           priority: filters.priority,
           dateRange: filters.dateRange,
-        }, accessibleEquipmentIds);
+        }, accessibleTeamIds);
         return count ?? 0;
       }
 

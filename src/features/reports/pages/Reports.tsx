@@ -12,7 +12,7 @@ import { ReportsStatusStrip } from '@/features/reports/components/ReportsStatusS
 import { ExportProtocolPanel } from '@/features/reports/components/ExportProtocolPanel';
 import { ReportsConsoleState } from '@/features/reports/components/ReportsConsoleState';
 import { useReportRecordCount, useReportExportDialog } from '@/features/reports/hooks/useReportExport';
-import { useAccessibleEquipmentIds } from '@/features/reports/hooks/useAccessibleEquipmentIds';
+import { useScopedExportTeamIds } from '@/features/reports/hooks/useScopedExportTeamIds';
 import { useWorkOrderExcelExport, useWorkOrderExcelCount } from '@/features/work-orders/hooks/useWorkOrderExcelExport';
 import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
 import { canAccessScopedReportsExport } from '@/features/work-orders/utils/workOrderExportAccess';
@@ -32,7 +32,7 @@ import type { WorkOrderExcelFilters } from '@/features/work-orders/types/workOrd
 const Reports: React.FC = () => {
   const { currentOrganization } = useOrganization();
   const { hasRole } = usePermissions();
-  const { teamMemberships } = useTeamMembership();
+  const { teamMemberships, isLoading: teamsLoading } = useTeamMembership();
 
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [excelExportDialogOpen, setExcelExportDialogOpen] = useState(false);
@@ -44,14 +44,12 @@ const Reports: React.FC = () => {
   const [isProtocolOpen, setIsProtocolOpen] = useState(false);
 
   const isOrgAdmin = hasRole(['owner', 'admin']);
-  const canAccessReports = canAccessScopedReportsExport(isOrgAdmin, teamMemberships);
+  const { teamIds: scopedTeamIds, isLoading: scopedTeamsLoading } = useScopedExportTeamIds(isOrgAdmin);
+  const scopeReady = isOrgAdmin || !scopedTeamsLoading;
+  const canAccessReports = !teamsLoading && canAccessScopedReportsExport(isOrgAdmin, teamMemberships);
   const reportAudience = isOrgAdmin ? 'admin' : 'scoped';
 
-  const { data: accessibleEquipmentIds = [] } = useAccessibleEquipmentIds(
-    currentOrganization?.id,
-    isOrgAdmin,
-  );
-  const scopedEquipmentFilter = isOrgAdmin ? undefined : accessibleEquipmentIds;
+  const scopedTeamFilter = isOrgAdmin ? undefined : scopedTeamIds;
 
   const equipmentCount = useReportRecordCount('equipment', currentOrganization?.id, filters);
   const inventoryCount = useReportRecordCount('inventory', currentOrganization?.id, filters);
@@ -61,7 +59,8 @@ const Reports: React.FC = () => {
     'work-orders',
     currentOrganization?.id,
     filters,
-    scopedEquipmentFilter,
+    scopedTeamFilter,
+    { scopeReady },
   );
   const workOrdersDetailedCount = useWorkOrderExcelCount(currentOrganization?.id, excelFilters);
 
@@ -202,6 +201,14 @@ const Reports: React.FC = () => {
 
   if (!currentOrganization) {
     return <ReportsConsoleState variant="no-organization" />;
+  }
+
+  if (teamsLoading || scopedTeamsLoading) {
+    return (
+      <Page maxWidth="7xl" padding="responsive">
+        <div className="py-12 text-center text-sm text-muted-foreground">Loading export console…</div>
+      </Page>
+    );
   }
 
   if (!canAccessReports) {

@@ -7,7 +7,7 @@ import { verifyOrgAdmin } from "./supabase-clients.ts";
 
 export type WorkOrderExportAccess =
   | { mode: "admin" }
-  | { mode: "scoped"; equipmentIds: string[] };
+  | { mode: "scoped"; teamIds: string[] };
 
 const SCOPED_TEAM_ROLES = ["requestor", "viewer"] as const;
 
@@ -32,26 +32,12 @@ export async function resolveWorkOrderExportAccess(
   }
 
   const teamIds = [...new Set(memberships.map((row) => row.team_id as string))];
-  if (teamIds.length === 0) {
-    return { mode: "scoped", equipmentIds: [] };
-  }
-
-  const { data: equipment, error: equipmentError } = await supabase
-    .from("equipment")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .in("team_id", teamIds);
-
-  if (equipmentError) {
-    return null;
-  }
-
-  const equipmentIds = (equipment ?? []).map((row) => row.id as string);
-  return { mode: "scoped", equipmentIds };
+  return { mode: "scoped", teamIds };
 }
 
-export function isWorkOrderEquipmentAccessible(
+export function isWorkOrderExportAccessible(
   access: WorkOrderExportAccess,
+  teamId: string | null | undefined,
   equipmentId: string | null | undefined,
 ): boolean {
   if (!equipmentId) {
@@ -60,7 +46,10 @@ export function isWorkOrderEquipmentAccessible(
   if (access.mode === "admin") {
     return true;
   }
-  return access.equipmentIds.includes(equipmentId);
+  if (!teamId) {
+    return false;
+  }
+  return access.teamIds.includes(teamId);
 }
 
 export const __workOrderExportAuthTestables = {

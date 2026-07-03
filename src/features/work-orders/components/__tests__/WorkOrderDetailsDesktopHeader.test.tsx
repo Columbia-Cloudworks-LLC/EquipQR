@@ -181,22 +181,25 @@ describe('WorkOrderDetailsDesktopHeader', () => {
     expect(screen.getByRole('button', { name: 'Delete work order', hidden: true })).toBeInTheDocument();
   });
 
-  it('hides admin exports when exportAudience is none', async () => {
+  it('hides admin exports when exportAudience is none', () => {
+    mockUseUnifiedPermissions.mockReturnValue({
+      hasRole: vi.fn(() => false),
+    });
+
     render(
       <WorkOrderDetailsDesktopHeader
         {...baseProps}
-        permissionLevels={{ ...baseProps.permissionLevels, isManager: false, exportAudience: 'none' }}
+        permissionLevels={{
+          ...baseProps.permissionLevels,
+          isManager: false,
+          canDelete: false,
+          exportAudience: 'none',
+        }}
       />,
     );
 
-    const actionsBtn = screen.queryByRole('button', { name: 'Actions' });
-    if (actionsBtn) {
-      const user = userEvent.setup();
-      await user.click(actionsBtn);
-      expect(screen.queryByText('Download')).not.toBeInTheDocument();
-      expect(screen.queryByText('Google Drive')).not.toBeInTheDocument();
-      expect(screen.queryByText('Service Report PDF')).not.toBeInTheDocument();
-    }
+    expect(screen.queryByRole('button', { name: 'Export' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Actions' })).not.toBeInTheDocument();
   });
 
   it('shows customer-safe Service Report PDF export for scoped viewers', async () => {

@@ -86,15 +86,18 @@ export function useReportRecordCount(
   reportType: ReportType,
   organizationId: string | undefined,
   filters: ExportFilters,
-  accessibleEquipmentIds?: string[],
+  accessibleTeamIds?: string[],
+  options?: { scopeReady?: boolean },
 ) {
+  const scopeReady = options?.scopeReady ?? true;
+
   return useQuery({
-    queryKey: ['report-count', reportType, organizationId, filters, accessibleEquipmentIds],
+    queryKey: ['report-count', reportType, organizationId, filters, accessibleTeamIds],
     queryFn: () => {
       if (!organizationId) return 0;
-      return getReportRecordCount(reportType, organizationId, filters, accessibleEquipmentIds);
+      return getReportRecordCount(reportType, organizationId, filters, accessibleTeamIds);
     },
-    enabled: !!organizationId,
+    enabled: !!organizationId && scopeReady,
     staleTime: 30 * 1000, // 30 seconds - counts can change
     gcTime: 60 * 1000, // 1 minute
   });
