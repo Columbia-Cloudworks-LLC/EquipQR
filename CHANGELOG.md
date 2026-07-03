@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.11.0] - 2026-06-29
+
+### Added
+
+- **Historical work order conversion (#1093)** — Organization owners and administrators can convert an existing operational work order to a historical record, backdate its operational timeline, and re-export customer documentation with corrected created and completed dates.
+
 ## [3.10.0] - 2026-06-24
 
 ### Fixed
@@ -2106,7 +2112,9 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.9.3...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.11.0...HEAD
+[3.11.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.10.0...v3.11.0
+[3.10.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.9.3...v3.10.0
 [3.9.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.9.2...v3.9.3
 [3.9.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.9.1...v3.9.2
 [3.9.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.9.0...v3.9.1
