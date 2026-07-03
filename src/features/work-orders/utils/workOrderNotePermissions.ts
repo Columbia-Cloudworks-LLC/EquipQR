@@ -1,9 +1,10 @@
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
+import type { TeamRole } from '@/types/permissions';
 
 export type TeamMembershipRole = {
   teamId?: string;
   team_id?: string;
-  role: string;
+  role: TeamRole | string;
 };
 
 export type WorkOrderNotePermissionInput = {

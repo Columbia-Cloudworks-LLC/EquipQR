@@ -11,7 +11,8 @@ SECURITY DEFINER
 SET search_path TO public
 AS $$
   SELECT
-    public.is_org_member(p_user_id, wo.organization_id)
+    p_user_id = auth.uid()
+    AND public.is_org_member(p_user_id, wo.organization_id)
     AND wo.status <> 'cancelled'::public.work_order_status
     AND (
       public.is_org_admin(p_user_id, wo.organization_id)
@@ -48,7 +49,10 @@ SECURITY DEFINER
 SET search_path TO public
 AS $$
   SELECT
-    public.is_org_admin(p_user_id, wo.organization_id)
+    p_user_id = auth.uid()
+    AND public.is_org_member(p_user_id, wo.organization_id)
+    AND (
+      public.is_org_admin(p_user_id, wo.organization_id)
     OR (
       wo.team_id IS NOT NULL
       AND EXISTS (
@@ -84,3 +88,11 @@ CREATE POLICY "work_order_notes_insert_organization_members" ON public.work_orde
 
 COMMENT ON POLICY "work_order_notes_insert_organization_members" ON public.work_order_notes IS
   'Org-scoped note inserts require note-author eligibility, exclude cancelled work orders, and restrict private notes to field roles.';
+
+REVOKE ALL ON FUNCTION public.can_add_work_order_note(uuid, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.can_add_work_order_note(uuid, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.can_add_work_order_note(uuid, uuid) TO authenticated;
+
+REVOKE ALL ON FUNCTION public.can_write_private_work_order_note(uuid, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.can_write_private_work_order_note(uuid, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.can_write_private_work_order_note(uuid, uuid) TO authenticated;
