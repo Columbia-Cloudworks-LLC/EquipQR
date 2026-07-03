@@ -61,7 +61,7 @@ export const useUnifiedPermissions = () => {
     [hasPermission, hasRole],
   );
   const equipment = buildEquipmentPermissions(hasPermission, hasRole, userContext);
-  const workOrders = buildWorkOrderPermissions(hasPermission, hasRole, isTeamMember, isTeamManager);
+  const workOrders = buildWorkOrderPermissions(hasPermission, hasRole, isTeamMember, isTeamManager, userContext);
   const teams = buildTeamPermissions(hasPermission, hasRole);
   const inventory = buildInventoryPermissions(hasRole);
   const getEquipmentNotesPermissions = buildEquipmentNotesPermissions(

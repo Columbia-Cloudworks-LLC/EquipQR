@@ -7,6 +7,12 @@ import { isOfflineId } from '@/features/work-orders/hooks/useOfflineMergedWorkOr
 import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
 import { usePMByWorkOrderAndEquipment } from '@/features/pm-templates/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
+import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
+import {
+  canAddWorkOrderNotes,
+  canUsePrivateWorkOrderNotes,
+  isWorkOrderEditLocked,
+} from '@/features/work-orders/utils/workOrderNotePermissions';
 import type { Tables } from '@/integrations/supabase/types';
 
 /**
@@ -21,6 +27,7 @@ import type { Tables } from '@/integrations/supabase/types';
 export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId?: string) => {
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
+  const { teamMemberships } = useTeamMembership();
   const viewingOfflinePlaceholder = isOfflineId(workOrderId || '');
 
   const { data: serverWorkOrder, isLoading: workOrderLoading } = useWorkOrderById(
@@ -52,14 +59,25 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
   // Calculate derived state
   const createdByCurrentUser = workOrder?.created_by === user?.id;
   const formMode = workOrder ? permissionLevels.getFormMode(workOrder as Tables<'work_orders'>, createdByCurrentUser) : 'viewer';
-  const isWorkOrderLocked = workOrder?.status === 'completed' || workOrder?.status === 'cancelled';
+  const isWorkOrderLocked = workOrder ? isWorkOrderEditLocked(workOrder.status) : false;
+
+  const notePermissionInput = {
+    status: workOrder?.status ?? 'submitted',
+    teamId: workOrder?.team_id,
+    createdBy: workOrder?.created_by,
+    userId: user?.id,
+    isOrgAdmin: permissionLevels.isManager,
+    teamMemberships,
+  };
+
+  const canAddNotes = canAddWorkOrderNotes(notePermissionInput);
+  const canUsePrivateNotes = canUsePrivateWorkOrderNotes(notePermissionInput);
 
   // Calculate permissions
   const canAddCosts = permissionLevels.isManager || permissionLevels.isTechnician;
   const canEditCosts = permissionLevels.isManager;
-  const baseCanAddNotes = permissionLevels.isManager || createdByCurrentUser;
+  const baseCanAddNotes = canAddNotes;
   const baseCanUpload = permissionLevels.isManager || createdByCurrentUser;
-  const canAddNotes = baseCanAddNotes && !isWorkOrderLocked;
   const canUpload = baseCanUpload && !isWorkOrderLocked;
   const canEdit = formMode === 'manager' || (formMode === 'requestor' && createdByCurrentUser);
 
@@ -76,6 +94,7 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
     canAddCosts: canAddCosts && !isWorkOrderLocked,
     canEditCosts: canEditCosts && !isWorkOrderLocked,
     canAddNotes,
+    canUsePrivateNotes,
     canUpload,
     canEdit,
     baseCanAddNotes,
