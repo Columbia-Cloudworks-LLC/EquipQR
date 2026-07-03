@@ -41,7 +41,8 @@ BEGIN
   INTO v_work_order
   FROM public.work_orders
   WHERE id = p_work_order_id
-    AND organization_id = p_organization_id;
+    AND organization_id = p_organization_id
+  FOR UPDATE;
 
   IF NOT FOUND THEN
     RETURN jsonb_build_object('success', false, 'error', 'Work order not found');
