@@ -11,7 +11,8 @@ SECURITY DEFINER
 SET search_path TO public
 AS $$
   SELECT
-    wo.status <> 'cancelled'::public.work_order_status
+    public.is_org_member(p_user_id, wo.organization_id)
+    AND wo.status <> 'cancelled'::public.work_order_status
     AND (
       public.is_org_admin(p_user_id, wo.organization_id)
       OR wo.created_by = p_user_id

@@ -1,10 +1,13 @@
+import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
+
 export type TeamMembershipRole = {
-  teamId: string;
+  teamId?: string;
+  team_id?: string;
   role: string;
 };
 
 export type WorkOrderNotePermissionInput = {
-  status: string;
+  status: WorkOrderStatus | string;
   teamId?: string | null;
   createdBy?: string | null;
   userId?: string | null;
@@ -23,12 +26,16 @@ export function isWorkOrderEditLocked(status: string): boolean {
   return status === 'completed' || status === 'cancelled';
 }
 
+function membershipTeamId(membership: TeamMembershipRole): string | undefined {
+  return membership.teamId ?? membership.team_id;
+}
+
 function teamRoleOnWorkOrder(
   teamMemberships: readonly TeamMembershipRole[],
   teamId?: string | null,
 ): string | undefined {
   if (!teamId) return undefined;
-  return teamMemberships.find((membership) => membership.teamId === teamId)?.role;
+  return teamMemberships.find((membership) => membershipTeamId(membership) === teamId)?.role;
 }
 
 export function canUsePrivateWorkOrderNotes(input: WorkOrderNotePermissionInput): boolean {

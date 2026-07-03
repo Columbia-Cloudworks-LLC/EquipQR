@@ -38,6 +38,15 @@ describe('workOrderNotePermissions', () => {
     ).toBe(true);
   });
 
+  it('allows team requestors when memberships use team_id', () => {
+    expect(
+      canAddWorkOrderNotes({
+        ...baseInput,
+        teamMemberships: [{ team_id: 'team-1', role: 'requestor' }],
+      }),
+    ).toBe(true);
+  });
+
   it('allows team requestors on the work order team', () => {
     expect(canAddWorkOrderNotes(baseInput)).toBe(true);
   });
