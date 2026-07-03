@@ -16,14 +16,14 @@ export type WorkOrderNotePermissionInput = {
   teamMemberships: readonly TeamMembershipRole[];
 };
 
-const FIELD_TEAM_ROLES = new Set(['manager', 'technician']);
-const NOTE_AUTHOR_TEAM_ROLES = new Set(['manager', 'technician', 'requestor']);
+const FIELD_TEAM_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician']);
+const NOTE_AUTHOR_TEAM_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician', 'requestor']);
 
-export function isWorkOrderCancelled(status: string): boolean {
+export function isWorkOrderCancelled(status: WorkOrderStatus | string): boolean {
   return status === 'cancelled';
 }
 
-export function isWorkOrderEditLocked(status: string): boolean {
+export function isWorkOrderEditLocked(status: WorkOrderStatus | string): boolean {
   return status === 'completed' || status === 'cancelled';
 }
 
@@ -45,7 +45,7 @@ export function canUsePrivateWorkOrderNotes(input: WorkOrderNotePermissionInput)
   }
 
   const teamRole = teamRoleOnWorkOrder(input.teamMemberships, input.teamId);
-  return teamRole !== undefined && FIELD_TEAM_ROLES.has(teamRole);
+  return teamRole !== undefined && FIELD_TEAM_ROLES.has(teamRole as TeamRole);
 }
 
 export function canAddWorkOrderNotes(input: WorkOrderNotePermissionInput): boolean {
@@ -62,5 +62,5 @@ export function canAddWorkOrderNotes(input: WorkOrderNotePermissionInput): boole
   }
 
   const teamRole = teamRoleOnWorkOrder(input.teamMemberships, input.teamId);
-  return teamRole !== undefined && NOTE_AUTHOR_TEAM_ROLES.has(teamRole);
+  return teamRole !== undefined && NOTE_AUTHOR_TEAM_ROLES.has(teamRole as TeamRole);
 }

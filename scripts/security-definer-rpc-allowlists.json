@@ -1,9 +1,7 @@
 {
   "anonPublicRpc": ["get_invitation_by_token_secure"],
   "rlsPredicateHelpers": [
-    "can_add_work_order_note",
     "can_user_manage_quickbooks",
-    "can_write_private_work_order_note",
     "check_org_access_secure",
     "is_org_admin",
     "is_org_member",
@@ -19,9 +17,7 @@
     "bulk_set_pm_template_rules",
     "cancel_ownership_transfer",
     "can_access_inventory",
-    "can_add_work_order_note",
     "can_manage_invitation_atomic",
-    "can_write_private_work_order_note",
     "check_admin_permission_safe",
     "check_storage_limit",
     "complete_product_onboarding",
