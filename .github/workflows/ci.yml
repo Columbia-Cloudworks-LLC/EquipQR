@@ -30,6 +30,22 @@ env:
   CACHE_VERSION: v3
 
 jobs:
+  release-metadata:
+    name: Release Metadata
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      with:
+        fetch-depth: 0
+
+    - name: Verify release metadata against PR base
+      run: node scripts/verify-release-metadata.mjs
+      env:
+        RELEASE_METADATA_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+
   lint-and-typecheck:
     name: Lint & Type Check
     runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
