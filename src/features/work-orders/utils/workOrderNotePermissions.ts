@@ -4,11 +4,11 @@ import type { TeamRole } from '@/types/permissions';
 export type TeamMembershipRole = {
   teamId?: string;
   team_id?: string;
-  role: TeamRole | string;
+  role: TeamRole;
 };
 
 export type WorkOrderNotePermissionInput = {
-  status: WorkOrderStatus | string;
+  status: WorkOrderStatus;
   teamId?: string | null;
   createdBy?: string | null;
   userId?: string | null;
@@ -24,11 +24,11 @@ const NOTE_AUTHOR_TEAM_ROLES: ReadonlySet<TeamRole> = new Set([
   'requestor',
 ]);
 
-export function isWorkOrderCancelled(status: WorkOrderStatus | string): boolean {
+export function isWorkOrderCancelled(status: WorkOrderStatus): boolean {
   return status === 'cancelled';
 }
 
-export function isWorkOrderEditLocked(status: WorkOrderStatus | string): boolean {
+export function isWorkOrderEditLocked(status: WorkOrderStatus): boolean {
   return status === 'completed' || status === 'cancelled';
 }
 
@@ -39,8 +39,11 @@ function membershipTeamId(membership: TeamMembershipRole): string | undefined {
 function teamRoleOnWorkOrder(
   teamMemberships: readonly TeamMembershipRole[],
   teamId?: string | null,
-): string | undefined {
-  if (!teamId) return undefined;
+): TeamRole | undefined {
+  if (!teamId) {
+    return undefined;
+  }
+
   return teamMemberships.find((membership) => membershipTeamId(membership) === teamId)?.role;
 }
 
@@ -50,7 +53,7 @@ export function canUsePrivateWorkOrderNotes(input: WorkOrderNotePermissionInput)
   }
 
   const teamRole = teamRoleOnWorkOrder(input.teamMemberships, input.teamId);
-  return teamRole !== undefined && FIELD_TEAM_ROLES.has(teamRole as TeamRole);
+  return teamRole !== undefined && FIELD_TEAM_ROLES.has(teamRole);
 }
 
 export function canAddWorkOrderNotes(input: WorkOrderNotePermissionInput): boolean {
@@ -67,5 +70,5 @@ export function canAddWorkOrderNotes(input: WorkOrderNotePermissionInput): boole
   }
 
   const teamRole = teamRoleOnWorkOrder(input.teamMemberships, input.teamId);
-  return teamRole !== undefined && NOTE_AUTHOR_TEAM_ROLES.has(teamRole as TeamRole);
+  return teamRole !== undefined && NOTE_AUTHOR_TEAM_ROLES.has(teamRole);
 }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import {
   canAddWorkOrderNotes,
   canUsePrivateWorkOrderNotes,
@@ -7,7 +8,7 @@ import {
 } from '../workOrderNotePermissions';
 
 const baseInput = {
-  status: 'in_progress',
+  status: 'in_progress' as WorkOrderStatus,
   teamId: 'team-1',
   createdBy: 'creator-1',
   userId: 'user-1',
