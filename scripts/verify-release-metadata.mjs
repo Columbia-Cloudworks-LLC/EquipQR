@@ -161,6 +161,30 @@ export function getReleasedSectionBody(changelog, version) {
   return bodyLines.join('\n');
 }
 
+/** @param {string} changelog */
+export function getTopReleasedVersion(changelog) {
+  const lines = changelog.split(/\r?\n/);
+  let pastUnreleased = false;
+
+  for (const line of lines) {
+    if (line.startsWith('## [Unreleased]')) {
+      pastUnreleased = true;
+      continue;
+    }
+
+    if (!pastUnreleased) {
+      continue;
+    }
+
+    const match = /^## \[(\d+\.\d+\.\d+)\]/.exec(line);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  return null;
+}
+
 /** @param {string} changelog @param {string} version */
 export function hasNonEmptyReleaseSection(changelog, version) {
   const body = getReleasedSectionBody(changelog, version);
@@ -174,6 +198,12 @@ export function hasNonEmptyReleaseSection(changelog, version) {
     .filter((line) => line.length > 0 && !line.startsWith('<!--'));
 
   return meaningfulLines.length > 0;
+}
+
+/** @param {string} changelog @param {string} version */
+export function topReleasedSectionMatches(changelog, version) {
+  return getTopReleasedVersion(changelog) === version
+    && hasNonEmptyReleaseSection(changelog, version);
 }
 
 /** @param {string} baseSha */
@@ -231,6 +261,21 @@ export function collectReleaseMetadataErrors(input) {
     errors.push('CHANGELOG.md [Unreleased] must be empty; move entries into a version section');
   }
 
+  if (!topReleasedSectionMatches(input.changelog, input.packageVersion)) {
+    const topVersion = getTopReleasedVersion(input.changelog);
+    if (topVersion !== input.packageVersion) {
+      errors.push(
+        `CHANGELOG.md top release must be [${input.packageVersion}] `
+          + `(found [${topVersion ?? 'none'}])`,
+      );
+    } else {
+      errors.push(
+        `CHANGELOG.md must include a non-empty "## [${input.packageVersion}]" section `
+          + 'matching package.json',
+      );
+    }
+  }
+
   const requiresBump = (input.changedFiles ?? []).some(isReleaseRelevantPath);
 
   if (input.baseVersion != null) {
@@ -261,11 +306,6 @@ export function collectReleaseMetadataErrors(input) {
         );
       }
     }
-  } else if (!hasNonEmptyReleaseSection(input.changelog, input.packageVersion)) {
-    errors.push(
-      `CHANGELOG.md must include a non-empty "## [${input.packageVersion}]" section `
-        + 'matching package.json',
-    );
   }
 
   return errors;

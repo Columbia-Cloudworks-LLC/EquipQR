@@ -3,10 +3,12 @@ import {
   collectReleaseMetadataErrors,
   compareSemver,
   getReleasedSectionBody,
+  getTopReleasedVersion,
   hasNonEmptyReleaseSection,
   isReleaseRelevantPath,
   isUnreleasedSectionEmpty,
   parseSemver,
+  topReleasedSectionMatches,
 } from '../../../scripts/verify-release-metadata.mjs';
 
 const sampleChangelog = `# Changelog
@@ -77,6 +79,17 @@ describe('changelog parsing', () => {
     expect(getReleasedSectionBody(sampleChangelog, '3.11.0')).toContain('Historical work orders');
     expect(hasNonEmptyReleaseSection(sampleChangelog, '3.11.0')).toBe(true);
     expect(hasNonEmptyReleaseSection(sampleChangelog, '9.9.9')).toBe(false);
+    expect(getTopReleasedVersion(sampleChangelog)).toBe('3.11.0');
+    expect(topReleasedSectionMatches(sampleChangelog, '3.11.0')).toBe(true);
+  });
+
+  it('rejects out-of-order top release sections', () => {
+    const changelog = sampleChangelog.replace(
+      '## [Unreleased]\n\n## [3.11.0]',
+      '## [Unreleased]\n\n## [9.9.9] - 2099-01-01\n\n### Added\n\n- Future\n\n## [3.11.0]',
+    );
+
+    expect(topReleasedSectionMatches(changelog, '3.11.0')).toBe(false);
   });
 });
 
