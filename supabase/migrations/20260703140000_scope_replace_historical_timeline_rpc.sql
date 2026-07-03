@@ -37,6 +37,10 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Organization is required');
   END IF;
 
+  IF NOT public.is_org_admin(auth.uid(), p_organization_id) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
   SELECT *
   INTO v_work_order
   FROM public.work_orders
@@ -46,10 +50,6 @@ BEGIN
 
   IF NOT FOUND THEN
     RETURN jsonb_build_object('success', false, 'error', 'Work order not found');
-  END IF;
-
-  IF NOT public.is_org_admin(auth.uid(), v_work_order.organization_id) THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
 
   IF NOT v_work_order.is_historical THEN
