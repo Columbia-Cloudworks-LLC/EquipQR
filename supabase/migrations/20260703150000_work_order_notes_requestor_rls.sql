@@ -1,5 +1,7 @@
 -- Issue #1118: requestor/creator public notes; block cancelled inserts;
 -- enforce private-note writes for field roles only.
+-- rpc-authenticated-grant-allowed: can_add_work_order_note
+-- rpc-authenticated-grant-allowed: can_write_private_work_order_note
 
 CREATE OR REPLACE FUNCTION public.can_add_work_order_note(
   p_user_id uuid,
