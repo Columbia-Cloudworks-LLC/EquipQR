@@ -83,6 +83,15 @@ describe('changelog parsing', () => {
     expect(topReleasedSectionMatches(sampleChangelog, '3.11.0')).toBe(true);
   });
 
+  it('rejects heading-only release sections', () => {
+    const changelog = sampleChangelog.replace(
+      '### Added\n\n- Historical work orders',
+      '### Added\n',
+    );
+
+    expect(hasNonEmptyReleaseSection(changelog, '3.11.0')).toBe(false);
+  });
+
   it('rejects out-of-order top release sections', () => {
     const changelog = sampleChangelog.replace(
       '## [Unreleased]\n\n## [3.11.0]',

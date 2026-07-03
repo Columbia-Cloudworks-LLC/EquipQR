@@ -195,7 +195,15 @@ export function hasNonEmptyReleaseSection(changelog, version) {
   const meaningfulLines = body
     .split(/\r?\n/)
     .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !line.startsWith('<!--'));
+    .filter((line) => {
+      if (line.length === 0 || line.startsWith('<!--')) {
+        return false;
+      }
+      if (/^###\s/.test(line)) {
+        return false;
+      }
+      return /^[-*]\s/.test(line);
+    });
 
   return meaningfulLines.length > 0;
 }
