@@ -90,7 +90,14 @@ const setupMocks = (options: {
   } as unknown as ReturnType<typeof usePermissions>);
 
   vi.mocked(useTeamMembership).mockReturnValue({
-    teamMemberships: isScopedViewer ? [{ teamId: 'team-1', role: 'viewer' as const }] : [],
+    teamMemberships: isScopedViewer
+      ? [{
+          team_id: 'team-1',
+          team_name: 'Customer Service',
+          role: 'viewer' as const,
+          joined_date: '2024-01-01',
+        }]
+      : [],
     isLoading: false,
     error: null,
     refetch: vi.fn(),

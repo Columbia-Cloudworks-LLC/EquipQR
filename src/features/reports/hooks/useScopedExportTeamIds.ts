@@ -15,7 +15,7 @@ export function useScopedExportTeamIds(isOrgAdmin: boolean) {
     }
     return teamMemberships
       .filter((membership) => membership.role === 'requestor' || membership.role === 'viewer')
-      .map((membership) => membership.teamId);
+      .map((membership) => membership.team_id);
   }, [isOrgAdmin, teamMemberships]);
 
   return {
