@@ -263,7 +263,7 @@ const WorkOrderDetails = () => {
     <div className="min-h-screen bg-background texture-grain">
       <WorkOrderDetailsMobileHeader
         workOrder={{ title: workOrder.title }}
-        showExports={permissionLevels.isManager}
+        showExports={permissionLevels.exportAudience !== 'none'}
         onOpenActionSheet={() => setShowMobileActionSheet(true)}
       />
 

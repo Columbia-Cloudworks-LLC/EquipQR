@@ -7,12 +7,12 @@
  */
 
 import {
-  verifyOrgAdmin,
   createErrorResponse,
   handleCorsPreflightIfNeeded,
   withCorrelationId,
   requireAuthenticatedPost,
 } from "../_shared/supabase-clients.ts";
+import { resolveWorkOrderExportAccess } from "../_shared/work-order-export-auth.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import {
   checkRateLimit,
@@ -59,9 +59,16 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       return createErrorResponse("Unsupported format. Only CSV is currently supported.", 400);
     }
 
-    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
-    if (!isAdmin) {
-      return createErrorResponse("Forbidden: Only owners and admins can export reports", 403);
+    const exportAccess = await resolveWorkOrderExportAccess(supabase, user.id, organizationId);
+    if (!exportAccess) {
+      return createErrorResponse("Forbidden: You do not have permission to export reports", 403);
+    }
+
+    if (exportAccess.mode === "scoped" && reportType !== "work-orders") {
+      return createErrorResponse(
+        "Forbidden: Only work order summary exports are available for your role",
+        403,
+      );
     }
 
     const rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
@@ -95,7 +102,13 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
           ({ csvContent, rowCount } = await exportEquipment(supabase, organizationId, filters, columns));
           break;
         case "work-orders":
-          ({ csvContent, rowCount } = await exportWorkOrders(supabase, organizationId, filters, columns));
+          ({ csvContent, rowCount } = await exportWorkOrders(
+            supabase,
+            organizationId,
+            filters,
+            columns,
+            exportAccess.mode === "scoped" ? exportAccess.equipmentIds : undefined,
+          ));
           break;
         case "inventory":
           ({ csvContent, rowCount } = await exportInventory(supabase, organizationId, filters, columns));

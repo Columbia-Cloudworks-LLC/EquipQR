@@ -153,6 +153,20 @@ export const REPORT_CARDS: ReportCardConfig[] = [
     featured: true,
   },
   {
+    type: 'work-orders',
+    title: 'Work Order Summary',
+    description: 'Download CSV summaries for work orders on equipment you can view',
+    icon: 'ClipboardList',
+    format: 'csv',
+    formatLabel: 'CSV',
+    columnCount: WORK_ORDER_COLUMNS.length,
+    category: 'maintenance-operations',
+    operationCode: 'EXP-06',
+    audiences: ['Requestor', 'Viewer'],
+    previewFields: ['Status', 'Priority', 'Equipment', 'Completed Date'],
+    scopedAudienceOnly: true,
+  },
+  {
     type: 'inventory',
     title: 'Parts Inventory Snapshot',
     description: 'Export parts inventory with stock levels, locations, and low-stock indicators',
@@ -196,9 +210,17 @@ export const REPORT_CARDS: ReportCardConfig[] = [
 /** Featured report card (hero module) */
 export const FEATURED_REPORT_CARD = REPORT_CARDS.find((c) => c.featured);
 
+export function getReportCardsForAudience(audience: 'admin' | 'scoped'): ReportCardConfig[] {
+  if (audience === 'scoped') {
+    return REPORT_CARDS.filter((card) => card.scopedAudienceOnly);
+  }
+  return REPORT_CARDS.filter((card) => !card.scopedAudienceOnly);
+}
+
 /** Secondary report cards grouped by mission area */
-export function getReportsByCategory(): { category: ReportCategory; label: string; cards: ReportCardConfig[] }[] {
-  const secondary = REPORT_CARDS.filter((c) => !c.featured);
+export function getReportsByCategory(audience: 'admin' | 'scoped' = 'admin'): { category: ReportCategory; label: string; cards: ReportCardConfig[] }[] {
+  const cards = getReportCardsForAudience(audience);
+  const secondary = cards.filter((c) => !c.featured);
   const order: ReportCategory[] = [
     'fleet-assets',
     'maintenance-operations',

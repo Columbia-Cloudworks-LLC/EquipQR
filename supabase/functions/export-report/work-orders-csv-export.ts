@@ -16,7 +16,12 @@ export async function exportWorkOrders(
   organizationId: string,
   filters: ExportFilters,
   columns: string[],
+  accessibleEquipmentIds?: string[],
 ): Promise<ExportResult> {
+  if (accessibleEquipmentIds !== undefined && accessibleEquipmentIds.length === 0) {
+    return { csvContent: "No data found", rowCount: 0 };
+  }
+
   let query = supabase
     .from("work_orders")
     .select(`
@@ -37,8 +42,13 @@ export async function exportWorkOrders(
       equipment:equipment_id (name)
     `)
     .eq("organization_id", organizationId)
+    .not("equipment_id", "is", null)
     .order("created_date", { ascending: false })
     .limit(MAX_ROWS);
+
+  if (accessibleEquipmentIds !== undefined) {
+    query = query.in("equipment_id", accessibleEquipmentIds);
+  }
 
   if (filters.status) {
     query = query.eq("status", filters.status);

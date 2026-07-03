@@ -85,13 +85,14 @@ function useReportExport({
 export function useReportRecordCount(
   reportType: ReportType,
   organizationId: string | undefined,
-  filters: ExportFilters
+  filters: ExportFilters,
+  accessibleEquipmentIds?: string[],
 ) {
   return useQuery({
-    queryKey: ['report-count', reportType, organizationId, filters],
+    queryKey: ['report-count', reportType, organizationId, filters, accessibleEquipmentIds],
     queryFn: () => {
       if (!organizationId) return 0;
-      return getReportRecordCount(reportType, organizationId, filters);
+      return getReportRecordCount(reportType, organizationId, filters, accessibleEquipmentIds);
     },
     enabled: !!organizationId,
     staleTime: 30 * 1000, // 30 seconds - counts can change

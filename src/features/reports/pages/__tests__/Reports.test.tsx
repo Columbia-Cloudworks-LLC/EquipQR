@@ -12,6 +12,14 @@ vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: vi.fn(),
 }));
 
+vi.mock('@/features/teams/hooks/useTeamMembership', () => ({
+  useTeamMembership: vi.fn(),
+}));
+
+vi.mock('@/features/reports/hooks/useAccessibleEquipmentIds', () => ({
+  useAccessibleEquipmentIds: vi.fn(),
+}));
+
 vi.mock('@/features/reports/hooks/useReportExport', () => ({
   useReportRecordCount: vi.fn(),
   useReportExportDialog: vi.fn(),
@@ -36,6 +44,8 @@ vi.mock('@/features/work-orders/components/WorkOrderExcelExportDialog', () => ({
 
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
+import { useAccessibleEquipmentIds } from '@/features/reports/hooks/useAccessibleEquipmentIds';
 import { useReportRecordCount, useReportExportDialog } from '@/features/reports/hooks/useReportExport';
 import {
   useWorkOrderExcelExport,
@@ -51,6 +61,7 @@ const defaultCountQuery = {
 const setupMocks = (options: {
   hasOrganization?: boolean;
   canExport?: boolean;
+  isScopedViewer?: boolean;
   recordCount?: number;
   isLoadingCount?: boolean;
   isGoogleConnected?: boolean;
@@ -58,6 +69,7 @@ const setupMocks = (options: {
   const {
     hasOrganization = true,
     canExport = true,
+    isScopedViewer = false,
     recordCount = 42,
     isLoadingCount = false,
     isGoogleConnected = false,
@@ -71,10 +83,27 @@ const setupMocks = (options: {
 
   vi.mocked(usePermissions).mockReturnValue({
     hasRole: vi.fn((roles: string[]) => {
+      if (isScopedViewer) return false;
       if (!canExport) return false;
       return roles.some((role) => role === 'owner' || role === 'admin');
     }),
   } as unknown as ReturnType<typeof usePermissions>);
+
+  vi.mocked(useTeamMembership).mockReturnValue({
+    teamMemberships: isScopedViewer ? [{ teamId: 'team-1', role: 'viewer' as const }] : [],
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+    hasTeamRole: vi.fn(),
+    hasTeamAccess: vi.fn(),
+    canManageTeam: vi.fn(),
+    getUserTeamIds: vi.fn(() => (isScopedViewer ? ['team-1'] : [])),
+  } as unknown as ReturnType<typeof useTeamMembership>);
+
+  vi.mocked(useAccessibleEquipmentIds).mockReturnValue({
+    data: isScopedViewer ? ['eq-1'] : [],
+    isLoading: false,
+  } as ReturnType<typeof useAccessibleEquipmentIds>);
 
   vi.mocked(useReportRecordCount).mockReturnValue({
     ...defaultCountQuery,
@@ -183,13 +212,23 @@ describe('Reports page (Fleet Export Console)', () => {
     expect(screen.queryByText('Fleet Asset Register')).not.toBeInTheDocument();
   });
 
-  it('shows access-restricted state for non-admin users', () => {
-    setupMocks({ canExport: false });
+  it('shows access-restricted state for users without export roles', () => {
+    setupMocks({ canExport: false, isScopedViewer: false });
     render(<Reports />);
 
     expect(screen.getByText('Access Restricted')).toBeInTheDocument();
     expect(screen.getByText('AUTH-01')).toBeInTheDocument();
     expect(screen.queryByText('Fleet Asset Register')).not.toBeInTheDocument();
+  });
+
+  it('renders scoped work order export console for team viewers', () => {
+    setupMocks({ isScopedViewer: true });
+    render(<Reports />);
+
+    expect(screen.getByRole('heading', { name: /work order exports/i })).toBeInTheDocument();
+    expect(screen.getAllByText('Work Order Summary').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Fleet Asset Register')).not.toBeInTheDocument();
+    expect(screen.queryByText(/primary export/i)).not.toBeInTheDocument();
   });
 
   it('shows Google Workspace connection status in the status strip', () => {
