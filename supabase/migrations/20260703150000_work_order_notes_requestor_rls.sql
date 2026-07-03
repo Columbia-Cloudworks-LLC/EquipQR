@@ -24,6 +24,7 @@ CREATE POLICY "work_order_notes_insert_organization_members" ON public.work_orde
               WHERE tm.user_id = (SELECT auth.uid())
                 AND tm.team_id = wo.team_id
                 AND tm.role IN (
+                  'owner'::public.team_member_role,
                   'manager'::public.team_member_role,
                   'technician'::public.team_member_role,
                   'requestor'::public.team_member_role
@@ -49,6 +50,7 @@ CREATE POLICY "work_order_notes_insert_organization_members" ON public.work_orde
                 WHERE tm.user_id = (SELECT auth.uid())
                   AND tm.team_id = wo.team_id
                   AND tm.role IN (
+                    'owner'::public.team_member_role,
                     'manager'::public.team_member_role,
                     'technician'::public.team_member_role
                   )

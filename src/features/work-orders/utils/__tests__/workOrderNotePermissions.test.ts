@@ -80,6 +80,21 @@ describe('workOrderNotePermissions', () => {
     ).toBe(false);
   });
 
+  it('allows team owners to add and use private notes', () => {
+    expect(
+      canAddWorkOrderNotes({
+        ...baseInput,
+        teamMemberships: [{ teamId: 'team-1', role: 'owner' }],
+      }),
+    ).toBe(true);
+    expect(
+      canUsePrivateWorkOrderNotes({
+        ...baseInput,
+        teamMemberships: [{ teamId: 'team-1', role: 'owner' }],
+      }),
+    ).toBe(true);
+  });
+
   it('allows org admins and field roles to use private notes', () => {
     expect(canUsePrivateWorkOrderNotes({ ...baseInput, isOrgAdmin: true })).toBe(true);
     expect(

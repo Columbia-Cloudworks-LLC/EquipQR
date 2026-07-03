@@ -16,8 +16,13 @@ export type WorkOrderNotePermissionInput = {
   teamMemberships: readonly TeamMembershipRole[];
 };
 
-const FIELD_TEAM_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician']);
-const NOTE_AUTHOR_TEAM_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician', 'requestor']);
+const FIELD_TEAM_ROLES: ReadonlySet<TeamRole> = new Set(['owner', 'manager', 'technician']);
+const NOTE_AUTHOR_TEAM_ROLES: ReadonlySet<TeamRole> = new Set([
+  'owner',
+  'manager',
+  'technician',
+  'requestor',
+]);
 
 export function isWorkOrderCancelled(status: WorkOrderStatus | string): boolean {
   return status === 'cancelled';
