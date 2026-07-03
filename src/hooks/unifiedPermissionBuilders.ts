@@ -1,4 +1,8 @@
 import type { WorkOrderData } from '@/features/work-orders/types/workOrder';
+import {
+  canAddWorkOrderNotes,
+  isWorkOrderEditLocked,
+} from '@/features/work-orders/utils/workOrderNotePermissions';
 import type {
   EntityPermissions,
   EquipmentNotesPermissions,
@@ -65,9 +69,23 @@ function getWorkOrderEntityContext(workOrder?: WorkOrderData) {
         teamId: workOrder.teamId,
         assigneeId: workOrder.assigneeId,
         status: workOrder.status,
-        createdBy: workOrder.createdByName,
+        createdBy: workOrder.createdBy,
       }
     : undefined;
+}
+
+function buildWorkOrderNotePermissionInput(
+  workOrder: WorkOrderData | undefined,
+  userContext: UserContext | null,
+) {
+  return {
+    status: workOrder?.status ?? 'submitted',
+    teamId: workOrder?.teamId,
+    createdBy: workOrder?.createdBy,
+    userId: userContext?.userId,
+    isOrgAdmin: userContext ? ['owner', 'admin'].includes(userContext.userRole) : false,
+    teamMemberships: userContext?.teamMemberships ?? [],
+  };
 }
 
 export function buildWorkOrderPermissions(
@@ -75,10 +93,12 @@ export function buildWorkOrderPermissions(
   hasRole: HasRole,
   isTeamMember: TeamCheck,
   isTeamManager: TeamCheck,
+  userContext: UserContext | null,
 ) {
   return {
     getPermissions: (workOrder?: WorkOrderData): EntityPermissions => {
       const entityContext = getWorkOrderEntityContext(workOrder);
+      const notePermissionInput = buildWorkOrderNotePermissionInput(workOrder, userContext);
 
       return {
         canView: hasPermission('workorder.view', entityContext),
@@ -87,15 +107,17 @@ export function buildWorkOrderPermissions(
         canDelete: hasRole(['owner', 'admin']),
         canAssign: hasPermission('workorder.assign', entityContext),
         canChangeStatus: hasPermission('workorder.changestatus', entityContext),
-        canAddNotes: hasPermission('workorder.view', entityContext),
-        canAddImages: hasPermission('workorder.view', entityContext),
+        canAddNotes: canAddWorkOrderNotes(notePermissionInput),
+        canAddImages: canAddWorkOrderNotes(notePermissionInput),
       };
     },
     getDetailedPermissions: (workOrder?: WorkOrderData): WorkOrderDetailedPermissions => {
       const entityContext = getWorkOrderEntityContext(workOrder);
       const canEdit = hasPermission('workorder.edit', entityContext);
       const canView = hasPermission('workorder.view', entityContext);
-      const isLocked = workOrder?.status === 'completed' || workOrder?.status === 'cancelled';
+      const isLocked = workOrder ? isWorkOrderEditLocked(workOrder.status) : false;
+      const notePermissionInput = buildWorkOrderNotePermissionInput(workOrder, userContext);
+      const canAddNotes = canAddWorkOrderNotes(notePermissionInput);
 
       return {
         canEdit: canEdit && !isLocked,
@@ -104,8 +126,8 @@ export function buildWorkOrderPermissions(
         canEditDueDate: canView && !isLocked,
         canEditDescription: canView && !isLocked,
         canChangeStatus: hasPermission('workorder.changestatus', entityContext),
-        canAddNotes: canView && !isLocked,
-        canAddImages: canView && !isLocked,
+        canAddNotes,
+        canAddImages: canAddNotes,
         canAddCosts: (hasRole(['owner', 'admin']) || isTeamManager(workOrder?.teamId)) && !isLocked,
         canEditCosts: (hasRole(['owner', 'admin']) || isTeamManager(workOrder?.teamId)) && !isLocked,
         canViewPM: hasRole(['owner', 'admin']) || isTeamMember(workOrder?.teamId),

@@ -69,6 +69,7 @@ const WorkOrderDetails = () => {
     canAddCosts,
     canEditCosts,
     canAddNotes,
+    canUsePrivateNotes,
     canUpload,
     canEdit,
     baseCanAddNotes,
@@ -312,6 +313,7 @@ const WorkOrderDetails = () => {
               pmLoading={pmLoading}
               isWorkOrderLocked={isWorkOrderLocked}
               canAddNotes={canAddNotes}
+              canUsePrivateNotes={canUsePrivateNotes}
               canUpload={canUpload}
               canAddCosts={canAddCosts}
               canEditCosts={canEditCosts}
@@ -354,6 +356,7 @@ const WorkOrderDetails = () => {
               pmLoading={pmLoading}
               isWorkOrderLocked={isWorkOrderLocked}
               canAddNotes={canAddNotes}
+              canUsePrivateNotes={canUsePrivateNotes}
               canUpload={canUpload}
               canAddCosts={canAddCosts}
               canEditCosts={canEditCosts}

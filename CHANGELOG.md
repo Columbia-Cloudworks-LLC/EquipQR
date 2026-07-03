@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.11.2] - 2026-07-03
+
+### Added
+
+- **Work order follow-up notes (#1118)** — Team requestors and work-order creators can add public notes (including after completion) for evidence such as purchase order numbers; managers and technicians retain full note functionality on completed work orders; cancelled work orders stay note-locked.
+
 ## [3.11.1] - 2026-07-03
 
 ### Added
@@ -2118,7 +2124,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.11.1...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.11.2...HEAD
+[3.11.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.11.1...v3.11.2
 [3.11.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.11.0...v3.11.1
 [3.11.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.10.0...v3.11.0
 [3.10.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.9.3...v3.10.0

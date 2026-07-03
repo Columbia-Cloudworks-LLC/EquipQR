@@ -453,7 +453,8 @@ describe('useUnifiedPermissions', () => {
         const permissions = result.current.workOrders.getDetailedPermissions(completedWorkOrder as never);
         expect(permissions.canEdit).toBe(false);
         expect(permissions.canEditPriority).toBe(false);
-        expect(permissions.canAddNotes).toBe(false);
+        expect(permissions.canAddNotes).toBe(true);
+        expect(permissions.canAddImages).toBe(true);
       });
 
       it('cannot edit cancelled work orders', () => {
@@ -469,6 +470,8 @@ describe('useUnifiedPermissions', () => {
 
         const permissions = result.current.workOrders.getDetailedPermissions(cancelledWorkOrder as never);
         expect(permissions.canEdit).toBe(false);
+        expect(permissions.canAddNotes).toBe(false);
+        expect(permissions.canAddImages).toBe(false);
       });
 
       it('can still change status on completed work orders (for reopening)', () => {

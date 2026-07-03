@@ -219,6 +219,7 @@ export interface WorkOrderData {
   equipmentWorkingHours?: number | null;
   equipmentImageUrl?: string | null;
   createdByName?: string;
+  createdBy?: string;
   equipmentTeamId?: string;
   equipmentTeamName?: string;
   hasPM?: boolean;

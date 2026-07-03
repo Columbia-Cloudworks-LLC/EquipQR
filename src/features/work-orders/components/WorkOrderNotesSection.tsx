@@ -179,7 +179,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
       await createNoteMutation.mutateAsync({
         content: finalContent,
         hoursWorked: 0,
-        isPrivate: submitData.isPrivate || false,
+        isPrivate: showPrivateNotes ? (submitData.isPrivate || false) : false,
         images: submitData.images,
         machineHours: submitData.machineHours
       });

@@ -25,6 +25,7 @@ export const mapToWorkOrderData = (workOrder: WorkOrder): WorkOrderData => ({
   equipmentWorkingHours: workOrder.equipmentWorkingHours,
   equipmentImageUrl: workOrder.equipmentImageUrl,
   createdByName: workOrder.createdByName,
+  createdBy: workOrder.created_by,
 });
 
 export const getAssignmentContext = (workOrder: WorkOrder): AssignmentWorkOrderContext => ({

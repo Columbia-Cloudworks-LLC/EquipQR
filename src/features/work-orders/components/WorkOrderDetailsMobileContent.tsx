@@ -59,6 +59,7 @@ export interface WorkOrderDetailsMobileContentProps {
   pmLoading: boolean;
   isWorkOrderLocked: boolean;
   canAddNotes: boolean;
+  canUsePrivateNotes: boolean;
   canUpload: boolean;
   canAddCosts: boolean;
   canEditCosts: boolean;
@@ -105,6 +106,7 @@ export function WorkOrderDetailsMobileContent({
   pmLoading,
   isWorkOrderLocked,
   canAddNotes,
+  canUsePrivateNotes,
   canUpload,
   canAddCosts,
   canEditCosts,
@@ -400,7 +402,7 @@ export function WorkOrderDetailsMobileContent({
           workOrderId={workOrder.id}
           organizationId={workOrder.organization_id}
           canUpload={canUpload}
-          showPrivateNotes={permissionLevels.isManager}
+          showPrivateNotes={canUsePrivateNotes}
           primaryImageId={workOrder.primary_image_id}
         />
       </div>
@@ -410,7 +412,7 @@ export function WorkOrderDetailsMobileContent({
           <WorkOrderNotesSection
             workOrderId={workOrder.id}
             canAddNotes={canAddNotes}
-            showPrivateNotes={permissionLevels.isManager}
+            showPrivateNotes={canUsePrivateNotes}
             hideInlineAddButton={hideInlineNoteAddButton}
             autoOpenForm={shouldAutoOpenNoteForm}
             openFormTrigger={openNoteFormTrigger}
