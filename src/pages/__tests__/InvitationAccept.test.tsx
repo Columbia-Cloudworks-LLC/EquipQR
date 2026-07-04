@@ -49,9 +49,11 @@ vi.mock('sonner', () => ({
 // Mock logger
 vi.mock('@/utils/logger', () => ({
   logger: {
-    error: vi.fn(),
+    debug: vi.fn(),
     warn: vi.fn(),
-  }
+    info: vi.fn(),
+    error: vi.fn(),
+  },
 }));
 
 const mockInvitation = {
