@@ -78,18 +78,30 @@ export async function probeHttpListening(url, timeoutMs = 5000) {
 }
 
 /**
- * @param {{ appUrl?: string, supabaseUrl?: string }} [options]
- * @returns {Promise<{ appReady: boolean, supabaseReady: boolean }>}
+ * @param {{ appUrl?: string, supabaseUrl?: string, docsUrl?: string, checkDocs?: boolean }} [options]
+ * @returns {Promise<{ appReady: boolean, supabaseReady: boolean, docsReady?: boolean }>}
  */
 export async function evaluateLocalStack(options = {}) {
   const appUrl = options.appUrl ?? 'http://localhost:8080';
   const supabaseUrl =
     options.supabaseUrl ?? 'http://127.0.0.1:54321/rest/v1/';
+  const docsUrl = options.docsUrl ?? 'http://127.0.0.1:5174';
+  const checkDocs = options.checkDocs === true;
 
-  const [appReady, supabaseReady] = await Promise.all([
-    probeHttpOk(appUrl),
-    probeHttpListening(supabaseUrl),
-  ]);
+  const probes = [probeHttpOk(appUrl), probeHttpListening(supabaseUrl)];
+  if (checkDocs) {
+    probes.push(probeHttpOk(docsUrl));
+  }
 
-  return { appReady, supabaseReady };
+  const results = await Promise.all(probes);
+  const response = {
+    appReady: results[0],
+    supabaseReady: results[1],
+  };
+
+  if (checkDocs) {
+    response.docsReady = results[2];
+  }
+
+  return response;
 }
