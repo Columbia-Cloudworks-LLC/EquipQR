@@ -135,6 +135,7 @@ BEGIN
   )
   ON CONFLICT (id) DO UPDATE
     SET email = EXCLUDED.email,
+        encrypted_password = EXCLUDED.encrypted_password,
         raw_user_meta_data = EXCLUDED.raw_user_meta_data,
         updated_at = NOW();
 EXCEPTION

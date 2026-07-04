@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import {
   apexOrgId,
@@ -9,23 +10,43 @@ import {
 const LOCAL_SUPABASE_URL =
   process.env.PR_EVIDENCE_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? 'http://127.0.0.1:54321';
 
-/** Standard Supabase CLI local service role JWT (demo secret). */
-const LOCAL_SUPABASE_SERVICE_ROLE_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
-
 let cachedLocalServiceRoleKey: string | null = null;
 
 const PARTIAL_SETUP_TEAM_ID = '880e8400-e29b-41d4-a716-446655440099';
+
+function isLocalSupabaseUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url.includes('://') ? url : `http://${url}`);
+    return parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost';
+  } catch {
+    return false;
+  }
+}
 
 function resolveLocalServiceRoleKey(): string {
   if (cachedLocalServiceRoleKey) {
     return cachedLocalServiceRoleKey;
   }
 
-  const isLocalStack = /^(https?:\/\/)?(127\.0\.0\.1|localhost):54321\/?$/i.test(LOCAL_SUPABASE_URL);
-  if (isLocalStack) {
-    cachedLocalServiceRoleKey = LOCAL_SUPABASE_SERVICE_ROLE_KEY;
-    return cachedLocalServiceRoleKey;
+  if (isLocalSupabaseUrl(LOCAL_SUPABASE_URL)) {
+    try {
+      const statusJson = execSync('npx supabase status -o json', {
+        cwd: process.cwd(),
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      const status = JSON.parse(statusJson) as {
+        SERVICE_ROLE_KEY?: string;
+        service_role_key?: string;
+      };
+      const key = status.SERVICE_ROLE_KEY ?? status.service_role_key;
+      if (key) {
+        cachedLocalServiceRoleKey = key;
+        return key;
+      }
+    } catch {
+      // Fall through to explicit env when local stack status is unavailable.
+    }
   }
 
   const fromEnv = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
@@ -35,7 +56,7 @@ function resolveLocalServiceRoleKey(): string {
   }
 
   throw new Error(
-    'E2E fixture reset requires SUPABASE_SERVICE_ROLE_KEY when not targeting the local Supabase stack.',
+    'E2E fixture reset requires a running local Supabase stack (`npx supabase status -o json`) or SUPABASE_SERVICE_ROLE_KEY.',
   );
 }
 
