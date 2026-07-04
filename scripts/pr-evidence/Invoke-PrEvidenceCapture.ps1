@@ -76,6 +76,22 @@ if (-not $stack.AppReady) {
     }
 }
 
+if ($Spec -match 'daily-operator-check-in-docs-discovery') {
+    $docsUrl = 'http://127.0.0.1:5174'
+    $docsReady = $false
+    try {
+        $docsResponse = Invoke-WebRequest -Uri $docsUrl -UseBasicParsing -TimeoutSec 5
+        $docsReady = ($docsResponse.StatusCode -eq 200)
+    }
+    catch {
+        $docsReady = $false
+    }
+
+    if (-not $docsReady) {
+        throw "Docs dev server required at $docsUrl for discovery evidence. Run .\dev-start.bat (starts equipqr.info docs on port 5174)."
+    }
+}
+
 $specFull = Join-Path $repoRoot ($Spec -replace '/', '\')
 if (-not (Test-Path -LiteralPath $specFull)) {
     throw "PR evidence spec not found: $Spec"
@@ -83,6 +99,7 @@ if (-not (Test-Path -LiteralPath $specFull)) {
 
 $recordingViewport = Get-PrEvidenceRecordingViewport -MobileViewport:$MobileViewport
 $env:PR_EVIDENCE_FLOW = $flowSlug
+$env:PR_EVIDENCE_SPEC = $Spec
 $env:PR_EVIDENCE_BASE_URL = $BaseUrl
 $env:PR_EVIDENCE_VIEWPORT_WIDTH = [string]$recordingViewport.width
 $env:PR_EVIDENCE_VIEWPORT_HEIGHT = [string]$recordingViewport.height
