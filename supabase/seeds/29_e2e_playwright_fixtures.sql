@@ -114,7 +114,7 @@ BEGIN
     'bb0e8400-e29b-41d4-a716-446655440010'::uuid,
     '00000000-0000-0000-0000-000000000000'::uuid,
     'e2e.invitee.pending@apex.test',
-    public.seed_e2e_encrypted_password(),
+    (SELECT encrypted_password FROM auth.users WHERE email = 'owner@apex.test' LIMIT 1),
     NOW(),
     NOW(),
     NOW(),
