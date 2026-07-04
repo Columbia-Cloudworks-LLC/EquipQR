@@ -2,7 +2,7 @@
 
 BEGIN;
 
--- rpc-authenticated-grant-allowed: resolve_operator_checkin_by_token
+-- rpc-anon-grant-allowed: resolve_operator_checkin_by_token
 CREATE OR REPLACE FUNCTION public.resolve_operator_checkin_by_token(p_token_hash text)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -73,9 +73,9 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION public.resolve_operator_checkin_by_token(text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.resolve_operator_checkin_by_token(text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.resolve_operator_checkin_by_token(text) TO anon;
 
--- rpc-authenticated-grant-allowed: submit_operator_checkin_public
+-- rpc-anon-grant-allowed: submit_operator_checkin_public
 CREATE OR REPLACE FUNCTION public.submit_operator_checkin_public(
   p_token_hash text,
   p_operator_field_values jsonb,
@@ -164,6 +164,6 @@ REVOKE ALL ON FUNCTION public.submit_operator_checkin_public(
 ) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.submit_operator_checkin_public(
   text, jsonb, jsonb, jsonb, jsonb, jsonb, boolean, integer, integer, text
-) TO anon, authenticated;
+) TO anon;
 
 COMMIT;
