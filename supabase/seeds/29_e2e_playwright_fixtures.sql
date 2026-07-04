@@ -133,7 +133,10 @@ BEGIN
     '',
     ''
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE
+    SET email = EXCLUDED.email,
+        raw_user_meta_data = EXCLUDED.raw_user_meta_data,
+        updated_at = NOW();
 EXCEPTION
   WHEN OTHERS THEN
     IF EXISTS (

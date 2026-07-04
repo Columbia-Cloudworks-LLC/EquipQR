@@ -55,6 +55,7 @@ $$;
 CREATE OR REPLACE FUNCTION public.seed_e2e_encrypted_password()
 RETURNS text
 LANGUAGE sql
+IMMUTABLE
 AS $$
-  SELECT extensions.crypt('password123', extensions.gen_salt('bf'));
+  SELECT extensions.crypt('password123', '$2a$10$equipqrseed1equipqrseed1eq');
 $$;
