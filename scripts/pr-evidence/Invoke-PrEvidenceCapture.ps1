@@ -54,7 +54,12 @@ New-Item -ItemType Directory -Path $screenshotsDir -Force | Out-Null
 New-Item -ItemType Directory -Path $playwrightOutput -Force | Out-Null
 
 $requiresDocs = $Spec -match 'daily-operator-check-in-docs-discovery'
-$docsUrl = if ($env:PR_EVIDENCE_DOCS_URL) { $env:PR_EVIDENCE_DOCS_URL.Trim() } else { 'http://127.0.0.1:5174' }
+$configuredDocsUrl = $env:PR_EVIDENCE_DOCS_URL
+$docsUrl = if ($configuredDocsUrl -and $configuredDocsUrl.Trim()) {
+    $configuredDocsUrl.Trim()
+} else {
+    'http://127.0.0.1:5174'
+}
 if ($requiresDocs) {
     $env:PR_EVIDENCE_DOCS_URL = $docsUrl
 }
