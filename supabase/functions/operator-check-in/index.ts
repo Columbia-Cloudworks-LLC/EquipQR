@@ -295,7 +295,10 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     p_is_complete: true,
     p_required_item_count: checklistValidation.requiredItemCount,
     p_answered_required_count: checklistValidation.answeredRequiredCount,
-      p_request_fingerprint: body.requestFingerprint?.slice(0, 128) ?? null,
+      p_request_fingerprint:
+        typeof body.requestFingerprint === "string"
+          ? body.requestFingerprint.slice(0, 128)
+          : null,
     },
   );
 

@@ -6,7 +6,7 @@
  * for session-backed functions and submit-privacy-request for anonymous DSR intake.
  */
 
-import type { createUserSupabaseClient } from "./supabase-clients.ts";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import { hashToken } from "./operator-checklist-validation.ts";
 
 export const MIN_PUBLIC_OPERATOR_CHECKIN_TOKEN_LENGTH = 32;
@@ -23,15 +23,13 @@ export function isValidPublicOperatorCheckinToken(token: string): boolean {
   );
 }
 
-type UserSupabaseClient = ReturnType<typeof createUserSupabaseClient>;
-
 export type OperatorCheckinTokenAuthResult =
   | { ok: true; settings: ResolvedOperatorCheckinSettings; tokenHash: string }
   | { ok: false; error: string; status: number };
 
 /** Validates the assignment token and resolves template/equipment context via anon RPC. */
 export async function requireOperatorCheckinAssignmentToken(
-  supabase: UserSupabaseClient,
+  supabase: SupabaseClient,
   token: string,
 ): Promise<OperatorCheckinTokenAuthResult> {
   if (!isValidPublicOperatorCheckinToken(token)) {
