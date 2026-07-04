@@ -57,5 +57,5 @@ RETURNS text
 LANGUAGE sql
 IMMUTABLE
 AS $$
-  SELECT extensions.crypt('password123', '$2a$10$equipqrseed1equipqr');
+  SELECT '$2a$06$fOjmXgdo6/BFcXi9ZPRP2eazsUQug4KOmPYNYnTzLMzGQbYSgfoCa'::text;
 $$;
