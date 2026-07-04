@@ -1,6 +1,6 @@
 import { test, expect } from '../user/fixtures/equipqr-test';
 import { pinContextToApex, newPersonaPage, gotoDashboardRoute } from '../user/shared/auth-helpers';
-import { apexOrgId, seedEquipment } from '../user/shared/seed-data';
+import { seedEquipment } from '../user/shared/seed-data';
 import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
 import { resetApexOperatorCheckinEvidence, assertEvidenceOperatorCheckinTokenRegistered } from './shared/operator-checkin-evidence-reset';
 import {
@@ -27,7 +27,7 @@ test.describe.serial('Daily operator check-ins end-to-end @pr-evidence', () => {
   });
 
   test.beforeEach(async ({ context }) => {
-    await pinContextToApex(context, apexOrgId);
+    await pinContextToApex(context);
   });
 
   test('admin configures template, public operator submits, ledger retains history', async ({
@@ -155,7 +155,7 @@ test.describe.serial('Daily operator check-ins end-to-end @pr-evidence', () => {
 test.describe('Daily operator check-ins access @pr-evidence', () => {
   test('technician cannot manage daily check-ins console', async ({ browser }) => {
     const { context, page } = await newPersonaPage(browser, 'technician');
-    await pinContextToApex(context, apexOrgId);
+    await pinContextToApex(context);
     await gotoDashboardRoute(page, '/operator-check-ins');
 
     await expect(

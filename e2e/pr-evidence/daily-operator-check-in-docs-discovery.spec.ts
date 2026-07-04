@@ -1,6 +1,6 @@
 import { test, expect } from '../user/fixtures/equipqr-test';
 import { pinContextToApex } from '../user/shared/auth-helpers';
-import { apexOrgId, seedEquipment } from '../user/shared/seed-data';
+import { seedEquipment } from '../user/shared/seed-data';
 import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
 import { resetApexOperatorCheckinEvidence } from './shared/operator-checkin-evidence-reset';
 import {
@@ -26,7 +26,7 @@ test.describe.serial('Daily operator check-in docs discovery @pr-evidence', () =
   });
 
   test.beforeEach(async ({ context }) => {
-    await pinContextToApex(context, apexOrgId);
+    await pinContextToApex(context);
   });
 
   test('users can discover the operator guide from app surfaces and Help Center', async ({
@@ -48,7 +48,7 @@ test.describe.serial('Daily operator check-in docs discovery @pr-evidence', () =
     await adminHelpLink.click();
     const docsFromAdmin = await docsPopupPromise;
     await docsFromAdmin.waitForLoadState('domcontentloaded');
-    await expect(docsFromAdmin).toHaveURL(new RegExp(`${OPERATOR_GUIDE_PATH.replace(/\//g, '\\/')}$`));
+    await expect(docsFromAdmin).toHaveURL(/\/support\/administration\/operator-daily-check-ins$/);
     await expect(
       docsFromAdmin.getByRole('heading', { name: /daily operator check-ins/i }).first(),
     ).toBeVisible({ timeout: 30_000 });
