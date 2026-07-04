@@ -42,6 +42,13 @@ const DEV_USERS = [
   { email: 'owner@freshstart.test', name: 'Fresh Start Owner', role: 'Owner', org: 'Fresh Start Equipment' },
   // Multi-org user
   { email: 'multi@equipqr.test', name: 'Multi Org User', role: 'Member', org: 'ALL Organizations' },
+  // Pending invitation signup (personal org only until accept)
+  {
+    email: 'e2e.invitee.pending@apex.test',
+    name: 'E2E Pending Invitee',
+    role: 'Owner',
+    org: 'Invitee Personal Workspace',
+  },
 ] as const;
 
 // Use env var if available, fallback to default for convenience
@@ -73,6 +80,10 @@ const USER_GROUPS = [
   {
     label: 'Multi-Org Testing',
     users: DEV_USERS.filter((u) => u.org === 'ALL Organizations'),
+  },
+  {
+    label: 'Invitation Signup (E2E)',
+    users: DEV_USERS.filter((u) => u.org === 'Invitee Personal Workspace'),
   },
 ];
 

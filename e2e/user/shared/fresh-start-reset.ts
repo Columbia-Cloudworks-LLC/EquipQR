@@ -13,11 +13,6 @@ const LOCAL_SUPABASE_URL =
 const PARTIAL_SETUP_TEAM_ID = '880e8400-e29b-41d4-a716-446655440099';
 
 function resolveLocalServiceRoleKey(): string {
-  const fromEnv = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (fromEnv) {
-    return fromEnv;
-  }
-
   try {
     const statusJson = execSync('npx supabase status -o json', {
       cwd: process.cwd(),
@@ -33,11 +28,16 @@ function resolveLocalServiceRoleKey(): string {
       return key;
     }
   } catch {
-    // Fall through to explicit error below.
+    // Fall through to explicit env when local stack status is unavailable.
+  }
+
+  const fromEnv = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (fromEnv) {
+    return fromEnv;
   }
 
   throw new Error(
-    'Fresh Start reset requires SUPABASE_SERVICE_ROLE_KEY or a running local Supabase stack (`npx supabase status -o json`).',
+    'Fresh Start reset requires a running local Supabase stack (`npx supabase status -o json`) or SUPABASE_SERVICE_ROLE_KEY.',
   );
 }
 

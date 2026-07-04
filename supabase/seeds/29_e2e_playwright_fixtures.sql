@@ -83,6 +83,17 @@ INSERT INTO public.work_orders (
 ON CONFLICT (id) DO NOTHING;
 
 -- Invited-signup E2E user (personal org + pending Apex invitation; onboarding skipped on personal org)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'on_auth_user_created'
+      AND tgrelid = 'auth.users'::regclass
+  ) THEN
+    ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created;
+  END IF;
+END $$;
+
 INSERT INTO auth.users (
   id,
   instance_id,
@@ -104,7 +115,7 @@ INSERT INTO auth.users (
   'bb0e8400-e29b-41d4-a716-446655440010'::uuid,
   '00000000-0000-0000-0000-000000000000'::uuid,
   'e2e.invitee.pending@apex.test',
-  extensions.crypt('password123', extensions.gen_salt('bf')),
+  public.seed_e2e_encrypted_password(),
   NOW(),
   NOW(),
   NOW(),
@@ -124,6 +135,17 @@ INSERT INTO auth.users (
   ''
 )
 ON CONFLICT (id) DO NOTHING;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'on_auth_user_created'
+      AND tgrelid = 'auth.users'::regclass
+  ) THEN
+    ALTER TABLE auth.users ENABLE TRIGGER on_auth_user_created;
+  END IF;
+END $$;
 
 INSERT INTO public.profiles (id, email, name, created_at, updated_at)
 VALUES (
@@ -163,7 +185,8 @@ VALUES (
   'bb0e8400-e29b-41d4-a716-446655440010'::uuid,
   '660e8400-e29b-41d4-a716-446655440010'::uuid
 )
-ON CONFLICT DO NOTHING;
+ON CONFLICT (user_id) DO UPDATE
+  SET organization_id = EXCLUDED.organization_id;
 
 INSERT INTO public.organization_members (
   id,

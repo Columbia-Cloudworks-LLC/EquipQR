@@ -104,12 +104,11 @@ export class SessionDataService {
 
     if (preferredOrgId && organizations.find(org => org.id === preferredOrgId)) {
       currentOrganizationId = preferredOrgId;
-    } else if (
-      storedOrgId &&
-      organizations.find(org => org.id === storedOrgId) &&
-      storedOrgId === currentOrganizationId
-    ) {
-      currentOrganizationId = storedOrgId;
+    } else if (storedOrgId && organizations.find(org => org.id === storedOrgId)) {
+      const storedOrgMeta = prioritizedOrgs.find(org => org.id === storedOrgId);
+      if (storedOrgMeta && !storedOrgMeta.isPersonal) {
+        currentOrganizationId = storedOrgId;
+      }
     }
 
     // Fetch team memberships for the current organization

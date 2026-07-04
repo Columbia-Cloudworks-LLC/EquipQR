@@ -1,21 +1,31 @@
 import { test, expect } from '../user/fixtures/equipqr-test';
-import { signInWithEmailPassword } from '../user/shared/auth-helpers';
+import { pinContextToOrg } from '../user/shared/auth-helpers';
 import { resetPendingApexInviteFixture } from '../user/shared/fresh-start-reset';
-import { apexOrgId, seedInvitations } from '../user/shared/seed-data';
+import {
+  apexOrgId,
+  authStatePath,
+  pendingInviteePersonalOrgId,
+  seedInvitations,
+} from '../user/shared/seed-data';
 import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
 
-test.use({ storageState: { cookies: [], origins: [] } });
+test.use({ storageState: authStatePath('pendingInvitee') });
 
 test.describe('PR evidence: invite onboarding skip @pr-evidence', () => {
   test.beforeAll(async () => {
     await resetPendingApexInviteFixture();
   });
 
+  test.beforeEach(async ({ context }) => {
+    await pinContextToOrg(context, pendingInviteePersonalOrgId);
+  });
+
   test('invited user accepts invitation and lands on apex dashboard without wizard', async ({
-    page,
+    gotoDashboard,
     assertHealthyShell,
+    page,
   }) => {
-    await signInWithEmailPassword(page, seedInvitations.pendingApex.email);
+    await gotoDashboard('/');
     await expect(page).toHaveURL(/\/dashboard/i, { timeout: 60_000 });
     await assertHealthyShell();
     await expect(page.getByTestId('getting-started-onboarding')).toHaveCount(0);

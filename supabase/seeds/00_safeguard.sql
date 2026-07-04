@@ -50,3 +50,12 @@ BEGIN
   RAISE NOTICE '🛡️  Production safeguard: auth.users INSERT will fail in hosted Supabase.';
 END
 $$;
+
+-- Shared bcrypt helper for local E2E auth.users seeds (password documented above).
+CREATE OR REPLACE FUNCTION public.seed_e2e_encrypted_password()
+RETURNS text
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT extensions.crypt('password123', extensions.gen_salt('bf'));
+$$;
