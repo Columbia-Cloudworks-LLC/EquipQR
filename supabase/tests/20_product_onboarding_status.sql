@@ -1,7 +1,7 @@
 -- pgTAP coverage for public.get_product_onboarding_status eligibility logic.
 
 BEGIN;
-SELECT plan(4);
+SELECT plan(5);
 
 CREATE TEMP TABLE onboarding_test_context (
   label text PRIMARY KEY,
@@ -179,6 +179,34 @@ SELECT results_eq(
       FROM public.get_product_onboarding_status('91000000-0000-0000-0000-000000000001'::uuid)$$,
   $$VALUES (false, false)$$,
   'Member never needs onboarding'
+);
+
+-- Personal org owner who signed up via invitation skips onboarding checklist
+INSERT INTO public.personal_organizations (user_id, organization_id)
+VALUES (
+  '12000000-0000-0000-0000-000000000001'::uuid,
+  '91000000-0000-0000-0000-000000000001'::uuid
+)
+ON CONFLICT (user_id) DO UPDATE
+  SET organization_id = EXCLUDED.organization_id;
+
+UPDATE auth.users
+SET raw_user_meta_data = raw_user_meta_data || '{"signup_source":"invite"}'::jsonb
+WHERE id = '12000000-0000-0000-0000-000000000001'::uuid;
+
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', '12000000-0000-0000-0000-000000000001', true);
+SELECT set_config(
+  'request.jwt.claims',
+  json_build_object('sub', '12000000-0000-0000-0000-000000000001')::text,
+  true
+);
+
+SELECT is(
+  (SELECT needs_onboarding
+     FROM public.get_product_onboarding_status('91000000-0000-0000-0000-000000000001'::uuid)),
+  false,
+  'Invited signup owner skips onboarding on personal org'
 );
 
 SELECT * FROM finish();
