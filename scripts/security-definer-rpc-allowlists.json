@@ -1,8 +1,7 @@
 {
   "anonPublicRpc": [
     "get_invitation_by_token_secure",
-    "resolve_operator_checkin_by_token",
-    "submit_operator_checkin_public"
+    "resolve_operator_checkin_by_token"
   ],
   "rlsPredicateHelpers": [
     "can_user_manage_quickbooks",

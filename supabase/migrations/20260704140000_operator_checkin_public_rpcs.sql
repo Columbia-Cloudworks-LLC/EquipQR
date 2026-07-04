@@ -54,6 +54,8 @@ BEGIN
   LEFT JOIN public.teams t ON t.id = e.team_id
   JOIN public.operator_checklist_templates tpl ON tpl.id = s.template_id
   WHERE s.public_token_hash = p_token_hash
+    AND s.enabled = true
+    AND tpl.is_active = true
   LIMIT 1;
 
   IF v_row IS NULL THEN
@@ -75,7 +77,6 @@ $$;
 REVOKE ALL ON FUNCTION public.resolve_operator_checkin_by_token(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.resolve_operator_checkin_by_token(text) TO anon;
 
--- rpc-anon-grant-allowed: submit_operator_checkin_public
 CREATE OR REPLACE FUNCTION public.submit_operator_checkin_public(
   p_token_hash text,
   p_operator_field_values jsonb,
@@ -164,6 +165,6 @@ REVOKE ALL ON FUNCTION public.submit_operator_checkin_public(
 ) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.submit_operator_checkin_public(
   text, jsonb, jsonb, jsonb, jsonb, jsonb, boolean, integer, integer, text
-) TO anon;
+) TO service_role;
 
 COMMIT;

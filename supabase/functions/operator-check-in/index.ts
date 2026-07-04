@@ -8,6 +8,7 @@
  */
 
 import {
+  createAdminSupabaseClient,
   createErrorResponse,
   createJsonResponse,
   createUserSupabaseClient,
@@ -317,7 +318,9 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     dataFields: templateData.dataFields,
   };
 
-  const { data: inserted, error: insertError } = await supabase.rpc("submit_operator_checkin_public", {
+  const { data: inserted, error: insertError } = await createAdminSupabaseClient().rpc(
+    "submit_operator_checkin_public",
+    {
     p_token_hash: tokenHash,
     p_operator_field_values: operatorFieldValues,
     p_client_field_values: clientFieldValues,
@@ -328,7 +331,8 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     p_required_item_count: checklistValidation.requiredItemCount,
     p_answered_required_count: checklistValidation.answeredRequiredCount,
     p_request_fingerprint: body.requestFingerprint?.slice(0, 128) ?? null,
-  });
+    },
+  );
 
   if (insertError) {
     console.error("[OPERATOR-CHECKIN] insert failed:", insertError.message);
