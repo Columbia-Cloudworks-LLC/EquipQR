@@ -12,7 +12,9 @@ import { prEvidenceRequiresDocsServer } from './e2e/pr-evidence/shared/pr-eviden
 const repoRoot = process.cwd();
 const flowSlug = (process.env.PR_EVIDENCE_FLOW || 'change').replace(/[^a-z0-9-]/gi, '-');
 const outputDir = path.join(repoRoot, 'tmp', 'pr-evidence', flowSlug, 'playwright-output');
-const requiresDocsServer = prEvidenceRequiresDocsServer();
+const requiresDocsServer =
+  prEvidenceRequiresDocsServer() ||
+  process.argv.some((arg) => arg.includes('daily-operator-check-in-docs-discovery'));
 const ownerStorage = path.join(repoRoot, 'tmp', 'playwright', 'auth', 'owner.json');
 const quickLoginBaseUrl = process.env.PR_EVIDENCE_BASE_URL || 'http://localhost:8080';
 const realAuthStorage = resolveRealAuthStorageState();
