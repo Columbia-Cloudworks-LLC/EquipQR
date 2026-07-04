@@ -31,13 +31,11 @@ import { buildWorkOrderStatusActions } from '@/features/work-orders/utils/buildW
 import { useWorkOrderStatusChangeHandlers } from '@/features/work-orders/hooks/useWorkOrderStatusChangeHandlers';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import type { EquipmentWithTeam } from '@/features/equipment/services/EquipmentService';
+import type { EquipmentLocationEditProps } from '@/components/location/equipmentLocationEditProps';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import type { PMChecklistStats } from '@/features/work-orders/utils/pmChecklistStats';
 import type { WorkOrder, WorkOrderEmbeddedEquipment } from '@/features/work-orders/types/workOrder';
-import type {
-  AssigneeNameSummary,
-  TeamSummary,
-} from '@/features/work-orders/utils/workOrderDetailsViewModel';
+import type { AssigneeNameSummary } from '@/features/work-orders/utils/workOrderDetailsViewModel';
 
 type StaggerProps = (index: number) => {
   className?: string;
@@ -50,7 +48,7 @@ export interface WorkOrderDetailsMobileContentProps {
   workOrder: WorkOrder;
   equipment?: WorkOrderDetailsEquipment;
   pmData?: PreventativeMaintenance | null;
-  currentOrganization: { id: string; name: string };
+  currentOrganization: { id: string; name: string; scanLocationCollectionEnabled?: boolean };
   permissionLevels: {
     isManager: boolean;
     isTechnician: boolean;
@@ -94,6 +92,7 @@ export interface WorkOrderDetailsMobileContentProps {
   canEditInlineFields?: boolean;
   canEditAssignment?: boolean;
   onSaveDescription?: (description: string) => Promise<void>;
+  equipmentLocationEdit?: EquipmentLocationEditProps;
 }
 
 export function WorkOrderDetailsMobileContent({
@@ -137,6 +136,7 @@ export function WorkOrderDetailsMobileContent({
   canEditInlineFields = false,
   canEditAssignment = false,
   onSaveDescription,
+  equipmentLocationEdit,
 }: WorkOrderDetailsMobileContentProps) {
   const [showStatusSheet, setShowStatusSheet] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -318,27 +318,15 @@ export function WorkOrderDetailsMobileContent({
             pm_progress: pmChecklist.progress,
             pm_total: pmChecklist.total,
           }}
-          equipment={
-            equipment
-              ? {
-                  id: equipment.id,
-                  name: equipment.name,
-                  manufacturer: equipment.manufacturer ?? undefined,
-                  model: equipment.model ?? undefined,
-                  serial_number: equipment.serial_number ?? undefined,
-                  status: equipment.status,
-                  location: equipment.location ?? undefined,
-                  team_id: equipment.team_id,
-                  custom_attributes: equipment.custom_attributes as Record<string, unknown> | null,
-                  image_url: equipment.image_url,
-                }
-              : undefined
-          }
+          equipment={equipment}
           team={teamSummary}
           assignee={mobileAssigneeSummary}
+          organizationId={currentOrganization.id}
+          scanLocationCollectionEnabled={currentOrganization.scanLocationCollectionEnabled}
           effectiveLocation={workOrder.effectiveLocation}
           canEditDescription={canEditInlineFields}
           onSaveDescription={onSaveDescription}
+          equipmentLocationEdit={equipmentLocationEdit}
         />
       </div>
 

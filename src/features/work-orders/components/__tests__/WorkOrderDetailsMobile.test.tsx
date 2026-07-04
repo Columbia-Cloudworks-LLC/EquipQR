@@ -3,14 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { WorkOrderDetailsMobile } from '../WorkOrderDetailsMobile';
+import type { WorkOrderEmbeddedEquipment } from '@/features/work-orders/types/workOrder';
 
-vi.mock('@react-google-maps/api', () => ({
-  GoogleMap: ({ children }: { children?: React.ReactNode }) => <div data-testid="mock-google-map">{children}</div>,
-  MarkerF: () => null,
-}));
-
-vi.mock('@/hooks/useGoogleMapsLoader', () => ({
-  useGoogleMapsLoader: () => ({ isLoaded: true }),
+vi.mock('@/components/location/EquipmentLocationMapPanel', () => ({
+  EquipmentLocationMapPanel: () => <div data-testid="mock-equipment-location-map-panel" />,
 }));
 
 vi.mock('@/features/equipment/hooks/useEquipmentWorkingHours', () => ({
@@ -31,17 +27,30 @@ describe('WorkOrderDetailsMobile', () => {
     estimated_hours: 2,
   };
 
-  const equipment = {
+  const equipment: WorkOrderEmbeddedEquipment = {
     id: 'eq-1',
+    organization_id: 'org-1',
     name: 'Excavator 1',
     status: 'active',
     location: 'Field site A',
     manufacturer: 'Cat',
     model: '320',
     serial_number: 'SN-1',
-    team_id: 'team-1' as string | null,
-    custom_attributes: null as Record<string, unknown> | null,
-    image_url: null as string | null,
+    team_id: 'team-1',
+    custom_attributes: null,
+    image_url: null,
+    working_hours: null,
+    customer_id: null,
+    default_pm_template_id: null,
+    use_team_location: false,
+    last_known_location: null,
+    assigned_location_lat: null,
+    assigned_location_lng: null,
+    assigned_location_street: null,
+    assigned_location_city: null,
+    assigned_location_state: null,
+    assigned_location_country: null,
+    team: { id: 'team-1', name: 'Field Crew' },
   };
 
   const renderMobile = (ui: React.ReactElement) =>
@@ -53,6 +62,14 @@ describe('WorkOrderDetailsMobile', () => {
         workOrder={baseWorkOrder}
         equipment={equipment}
         team={{ id: 'team-1', name: 'Field Crew' }}
+        organizationId="org-1"
+        effectiveLocation={{
+          lat: 29.76,
+          lng: -95.36,
+          formattedAddress: 'Houston, TX',
+          source: 'manual',
+          sourceLabel: 'Equipment location',
+        }}
       />,
     );
 
@@ -67,7 +84,20 @@ describe('WorkOrderDetailsMobile', () => {
   });
 
   it('does not duplicate compact-summary metadata on the summary card', () => {
-    renderMobile(<WorkOrderDetailsMobile workOrder={baseWorkOrder} equipment={equipment} />);
+    renderMobile(
+      <WorkOrderDetailsMobile
+        workOrder={baseWorkOrder}
+        equipment={equipment}
+        organizationId="org-1"
+        effectiveLocation={{
+          lat: 29.76,
+          lng: -95.36,
+          formattedAddress: 'Houston, TX',
+          source: 'manual',
+          sourceLabel: 'Equipment location',
+        }}
+      />,
+    );
 
     expect(screen.queryByText(/\b1\s*\/\s*3\b/)).not.toBeInTheDocument();
     expect(screen.queryByText(/high priority/i)).not.toBeInTheDocument();
@@ -78,7 +108,11 @@ describe('WorkOrderDetailsMobile', () => {
 
   it('still renders description when present', () => {
     renderMobile(
-      <WorkOrderDetailsMobile workOrder={{ ...baseWorkOrder, description: 'Oil leak at fitting.' }} equipment={equipment} />,
+      <WorkOrderDetailsMobile
+        workOrder={{ ...baseWorkOrder, description: 'Oil leak at fitting.' }}
+        equipment={equipment}
+        organizationId="org-1"
+      />,
     );
 
     expect(screen.getByRole('button', { name: /description/i })).toBeInTheDocument();

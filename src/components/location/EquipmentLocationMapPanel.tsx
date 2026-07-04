@@ -1,12 +1,13 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
-import { Check, Edit2, MapPin, RefreshCw, X } from 'lucide-react';
+import { Check, Edit2, MapPin, Navigation, RefreshCw, X } from 'lucide-react';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import GooglePlacesAutocomplete, { type PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import { Button } from '@/components/ui/button';
 import { LocationSourceBadge } from '@/components/location/LocationSourceBadge';
 import { LocationSourceSelector } from '@/components/location/LocationSourceSelector';
+import { LiveLocationCaptureDialog } from '@/components/location/LiveLocationCaptureDialog';
 import { useLatestScanCoordinateFromHistory } from '@/features/equipment/hooks/useEquipmentLocationHistory';
 import type { EquipmentTeamSummary } from '@/features/equipment/services/EquipmentService';
 import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
@@ -107,6 +108,7 @@ export function EquipmentLocationMapPanel({
   const [selectedMode, setSelectedMode] = useState<LocationDisplayMode>('effective');
   const [pendingPlace, setPendingPlace] = useState<PlaceLocationData | null>(null);
   const [isCleared, setIsCleared] = useState(false);
+  const [isLiveCaptureOpen, setIsLiveCaptureOpen] = useState(false);
   const isDark = useIsDarkTheme();
 
   const {
@@ -185,6 +187,15 @@ export function EquipmentLocationMapPanel({
   const hasCoords = resolved?.lat != null && resolved?.lng != null;
   const center = hasCoords && resolved ? { lat: resolved.lat, lng: resolved.lng } : null;
 
+  const handleSaveLiveLocation = useCallback(
+    async (data: PlaceLocationData) => {
+      if (!onSaveAddress) return;
+      await onSaveAddress(data);
+      setSelectedMode('manual');
+    },
+    [onSaveAddress],
+  );
+
   const handleSaveAddress = useCallback(async () => {
     if (!onSaveAddress) return;
 
@@ -244,10 +255,13 @@ export function EquipmentLocationMapPanel({
           className="rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/25 flex items-center justify-center"
           style={{ height: mapHeight }}
         >
-          <div className="text-center px-4">
+          <div className="text-center px-4 space-y-1">
             <MapPin className="h-6 w-6 text-muted-foreground/50 mx-auto" />
-            <p className="text-xs text-muted-foreground mt-1">
-              {equipment.location || 'No coordinates for the selected source'}
+            <p className="text-xs font-medium text-muted-foreground">No map coordinates yet</p>
+            <p className="text-[11px] text-muted-foreground">
+              {canEditLocation
+                ? 'Set an equipment address or use this device\u2019s location.'
+                : 'Set an equipment address or current device location on the equipment page.'}
             </p>
           </div>
         </div>
@@ -344,17 +358,50 @@ export function EquipmentLocationMapPanel({
       )}
 
       {canEditLocation && !isEditingAddress && onStartAddressEdit && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onStartAddressEdit}
-          className="h-7 px-2 text-xs text-primary hover:text-primary/80"
-        >
-          <Edit2 className="mr-1 h-3 w-3" />
-          {equipmentAddress ? 'Edit equipment address' : 'Set equipment address'}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onStartAddressEdit}
+            className="h-7 px-2 text-xs text-primary hover:text-primary/80"
+          >
+            <Edit2 className="mr-1 h-3 w-3" />
+            {equipmentAddress ? 'Edit equipment address' : 'Set equipment address'}
+          </Button>
+          {!center && onSaveAddress ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsLiveCaptureOpen(true)}
+              disabled={isSavingAddress}
+              className="h-7 px-2 text-xs text-primary hover:text-primary/80"
+            >
+              <Navigation className="mr-1 h-3 w-3" />
+              Use my current location
+            </Button>
+          ) : null}
+        </div>
       )}
+
+      {!canEditLocation && !center && equipment.id ? (
+        <Link
+          to={`/dashboard/equipment/${equipment.id}`}
+          className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80"
+        >
+          Set location on equipment page
+        </Link>
+      ) : null}
+
+      {canEditLocation && onSaveAddress ? (
+        <LiveLocationCaptureDialog
+          open={isLiveCaptureOpen}
+          onOpenChange={setIsLiveCaptureOpen}
+          onConfirm={handleSaveLiveLocation}
+          isSaving={isSavingAddress}
+        />
+      ) : null}
     </div>
   );
 }

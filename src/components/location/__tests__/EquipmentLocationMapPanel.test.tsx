@@ -4,17 +4,12 @@ import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { EquipmentLocationMapPanel } from '@/components/location/EquipmentLocationMapPanel';
 
 vi.mock('@/features/equipment/hooks/useEquipmentLocationHistory', () => ({
-  useLatestScanCoordinateFromHistory: () => ({
+  useLatestScanCoordinateFromHistory: vi.fn(() => ({
     data: [],
     isLoading: false,
     error: null,
-    latestScan: {
-      lat: 40.919345,
-      lng: -90.659318,
-      updatedAt: '2026-04-15T08:30:00Z',
-      formattedAddress: 'Scan point',
-    },
-  }),
+    latestScan: undefined,
+  })),
 }));
 
 vi.mock('@/hooks/useGoogleMapsKey', () => ({
@@ -102,6 +97,15 @@ describe('EquipmentLocationMapPanel', () => {
       error: null,
       retry: vi.fn(),
     });
+    const { useLatestScanCoordinateFromHistory } = await import(
+      '@/features/equipment/hooks/useEquipmentLocationHistory'
+    );
+    vi.mocked(useLatestScanCoordinateFromHistory).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      latestScan: undefined,
+    });
   });
 
   it('renders a visible map, source selector, and team location badge by default', () => {
@@ -155,6 +159,21 @@ describe('EquipmentLocationMapPanel', () => {
   });
 
   it('lists equipment location as a selectable source option', async () => {
+    const { useLatestScanCoordinateFromHistory } = await import(
+      '@/features/equipment/hooks/useEquipmentLocationHistory'
+    );
+    vi.mocked(useLatestScanCoordinateFromHistory).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      latestScan: {
+        lat: 40.919345,
+        lng: -90.659318,
+        updatedAt: '2026-04-15T08:30:00Z',
+        formattedAddress: 'Scan point',
+      },
+    });
+
     render(
       <EquipmentLocationMapPanel
         equipment={{
@@ -180,6 +199,53 @@ describe('EquipmentLocationMapPanel', () => {
       expect(screen.getAllByText('Team location').length).toBeGreaterThan(0);
       expect(screen.getAllByText('Last known scan location').length).toBeGreaterThan(0);
     });
+  });
+
+  it('does not show legacy equipment.location text in the no-coordinate placeholder', () => {
+    render(
+      <EquipmentLocationMapPanel
+        equipment={{
+          id: 'eq-1',
+          use_team_location: false,
+          assigned_location_lat: null,
+          assigned_location_lng: null,
+          location: 'Houston, TX',
+          last_known_location: null,
+        }}
+        assignedTeam={null}
+        organizationId="org-1"
+      />,
+    );
+
+    expect(screen.getByText('No map coordinates yet')).toBeInTheDocument();
+    expect(screen.queryByText('Houston, TX')).not.toBeInTheDocument();
+  });
+
+  it('shows use my current location action for editable users without coordinates', () => {
+    const onSaveAddress = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <EquipmentLocationMapPanel
+        equipment={{
+          id: 'eq-1',
+          use_team_location: false,
+          assigned_location_lat: null,
+          assigned_location_lng: null,
+          location: 'Houston, TX',
+          last_known_location: null,
+        }}
+        assignedTeam={null}
+        organizationId="org-1"
+        canEditLocation
+        isEditingAddress={false}
+        isPlacesLoaded
+        onStartAddressEdit={vi.fn()}
+        onCancelAddressEdit={vi.fn()}
+        onSaveAddress={onSaveAddress}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /use my current location/i })).toBeInTheDocument();
   });
 
   it('shows set equipment address action for editable users', () => {
