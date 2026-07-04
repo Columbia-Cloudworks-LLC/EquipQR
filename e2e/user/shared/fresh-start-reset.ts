@@ -1,6 +1,11 @@
 import { execSync } from 'node:child_process';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { freshStartOrgId } from './seed-data';
+import {
+  apexOrgId,
+  freshStartOrgId,
+  pendingApexInvitationId,
+  pendingInviteeUserId,
+} from './seed-data';
 
 const LOCAL_SUPABASE_URL =
   process.env.PR_EVIDENCE_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? 'http://127.0.0.1:54321';
@@ -37,7 +42,7 @@ function resolveLocalServiceRoleKey(): string {
 }
 
 /** Local E2E fixture helper — service role is required to reset seeded org state outside RLS. */
-function createFreshStartAdminClient(): SupabaseClient {
+function createE2EAdminClient(): SupabaseClient {
   return createClient(LOCAL_SUPABASE_URL, resolveLocalServiceRoleKey(), {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -104,10 +109,42 @@ async function insertFreshStartPartialTeam(admin: SupabaseClient): Promise<void>
 export async function resetFreshStartOnboardingFixture(
   options?: { seedOneTeam?: boolean },
 ): Promise<void> {
-  const admin = createFreshStartAdminClient();
+  const admin = createE2EAdminClient();
   await resetFreshStartOnboardingFixtureWithAdmin(admin);
   if (options?.seedOneTeam) {
     await insertFreshStartPartialTeam(admin);
+  }
+}
+
+/**
+ * Resets the pending Apex invitation E2E fixture so accept flows are repeatable.
+ * Removes invitation-derived Apex membership and restores invitation status to pending.
+ */
+export async function resetPendingApexInviteFixture(): Promise<void> {
+  const admin = createE2EAdminClient();
+
+  const { error: membershipError } = await admin
+    .from('organization_members')
+    .delete()
+    .eq('user_id', pendingInviteeUserId)
+    .eq('organization_id', apexOrgId);
+  if (membershipError) {
+    throw new Error(`Pending invite reset: apex membership delete failed — ${membershipError.message}`);
+  }
+
+  const { error: invitationError } = await admin
+    .from('organization_invitations')
+    .update({
+      status: 'pending',
+      accepted_at: null,
+      accepted_by: null,
+      declined_at: null,
+      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', pendingApexInvitationId);
+  if (invitationError) {
+    throw new Error(`Pending invite reset: invitation restore failed — ${invitationError.message}`);
   }
 }
 

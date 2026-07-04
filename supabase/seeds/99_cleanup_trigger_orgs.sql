@@ -34,7 +34,9 @@ DECLARE
     '660e8400-e29b-41d4-a716-446655440006'::uuid,  -- Mike's Repair Shop
     '660e8400-e29b-41d4-a716-446655440007'::uuid,  -- Multi Org Consulting
     -- E2E onboarding fixture (Fresh Start Equipment Co)
-    '660e8400-e29b-41d4-a716-446655440009'::uuid   -- Fresh Start Equipment Co
+    '660e8400-e29b-41d4-a716-446655440009'::uuid,   -- Fresh Start Equipment Co
+    -- E2E invited-signup fixture (personal workspace for pending invitee)
+    '660e8400-e29b-41d4-a716-446655440010'::uuid   -- Invitee Personal Workspace
   ];
   deleted_org_count int;
   deleted_member_count int;

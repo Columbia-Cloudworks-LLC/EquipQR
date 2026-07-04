@@ -100,12 +100,15 @@ export class SessionDataService {
     const personalOrgId = personalOrgData?.organization_id ?? null;
     const prioritizedOrgs = withPersonalOrgFlag(organizations, personalOrgId);
 
-    // Determine current organization: explicit preference, then non-personal org priority.
     let currentOrganizationId = getPrioritizedOrganizationId(prioritizedOrgs);
 
     if (preferredOrgId && organizations.find(org => org.id === preferredOrgId)) {
       currentOrganizationId = preferredOrgId;
-    } else if (storedOrgId && organizations.find(org => org.id === storedOrgId)) {
+    } else if (
+      storedOrgId &&
+      organizations.find(org => org.id === storedOrgId) &&
+      storedOrgId === currentOrganizationId
+    ) {
       currentOrganizationId = storedOrgId;
     }
 

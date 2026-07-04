@@ -112,10 +112,14 @@ const InvitationAccept = () => {
       toast.success(`Welcome to ${result.organization_name}!`);
 
       const invitedOrganizationId = result.organization_id ?? invitation.organization_id;
-      await refreshSession(true);
 
       if (invitedOrganizationId) {
         persistDashboardOrganizationSelection(invitedOrganizationId);
+      }
+
+      await refreshSession(true);
+
+      if (invitedOrganizationId) {
         try {
           await switchOrganization(invitedOrganizationId);
         } catch (switchError) {

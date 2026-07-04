@@ -102,10 +102,15 @@ export const seedPmTemplates = {
   },
 } as const;
 
+export const pendingInviteeUserId = 'bb0e8400-e29b-41d4-a716-446655440010';
+export const pendingApexInvitationId = 'b00e8400-e29b-41d4-a716-446655440001';
+
 export const seedInvitations = {
   pendingApex: {
+    id: pendingApexInvitationId,
     token: 'e2e00000-e29b-41d4-a716-446655440001',
     email: 'e2e.invitee.pending@apex.test',
+    userId: pendingInviteeUserId,
   },
 } as const;
 
