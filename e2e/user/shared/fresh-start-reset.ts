@@ -10,9 +10,15 @@ import {
 const LOCAL_SUPABASE_URL =
   process.env.PR_EVIDENCE_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? 'http://127.0.0.1:54321';
 
+let cachedLocalServiceRoleKey: string | null = null;
+
 const PARTIAL_SETUP_TEAM_ID = '880e8400-e29b-41d4-a716-446655440099';
 
 function resolveLocalServiceRoleKey(): string {
+  if (cachedLocalServiceRoleKey) {
+    return cachedLocalServiceRoleKey;
+  }
+
   try {
     const statusJson = execSync('npx supabase status -o json', {
       cwd: process.cwd(),
@@ -25,6 +31,7 @@ function resolveLocalServiceRoleKey(): string {
     };
     const key = status.SERVICE_ROLE_KEY ?? status.service_role_key;
     if (key) {
+      cachedLocalServiceRoleKey = key;
       return key;
     }
   } catch {
@@ -33,6 +40,7 @@ function resolveLocalServiceRoleKey(): string {
 
   const fromEnv = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (fromEnv) {
+    cachedLocalServiceRoleKey = fromEnv;
     return fromEnv;
   }
 

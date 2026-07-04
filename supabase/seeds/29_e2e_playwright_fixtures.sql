@@ -92,49 +92,59 @@ BEGIN
   ) THEN
     ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created;
   END IF;
-END $$;
 
-INSERT INTO auth.users (
-  id,
-  instance_id,
-  email,
-  encrypted_password,
-  email_confirmed_at,
-  created_at,
-  updated_at,
-  raw_app_meta_data,
-  raw_user_meta_data,
-  is_super_admin,
-  role,
-  aud,
-  confirmation_token,
-  recovery_token,
-  email_change_token_new,
-  email_change
-) VALUES (
-  'bb0e8400-e29b-41d4-a716-446655440010'::uuid,
-  '00000000-0000-0000-0000-000000000000'::uuid,
-  'e2e.invitee.pending@apex.test',
-  public.seed_e2e_encrypted_password(),
-  NOW(),
-  NOW(),
-  NOW(),
-  '{"provider":"email","providers":["email"]}'::jsonb,
-  jsonb_build_object(
-    'name', 'E2E Pending Invitee',
-    'organization_name', 'Invitee Personal Workspace',
-    'signup_source', 'invite',
-    'invited_organization_id', '660e8400-e29b-41d4-a716-446655440000'
-  ),
-  false,
-  'authenticated',
-  'authenticated',
-  '',
-  '',
-  '',
-  ''
-)
-ON CONFLICT (id) DO NOTHING;
+  INSERT INTO auth.users (
+    id,
+    instance_id,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    created_at,
+    updated_at,
+    raw_app_meta_data,
+    raw_user_meta_data,
+    is_super_admin,
+    role,
+    aud,
+    confirmation_token,
+    recovery_token,
+    email_change_token_new,
+    email_change
+  ) VALUES (
+    'bb0e8400-e29b-41d4-a716-446655440010'::uuid,
+    '00000000-0000-0000-0000-000000000000'::uuid,
+    'e2e.invitee.pending@apex.test',
+    public.seed_e2e_encrypted_password(),
+    NOW(),
+    NOW(),
+    NOW(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    jsonb_build_object(
+      'name', 'E2E Pending Invitee',
+      'organization_name', 'Invitee Personal Workspace',
+      'signup_source', 'invite',
+      'invited_organization_id', '660e8400-e29b-41d4-a716-446655440000'
+    ),
+    false,
+    'authenticated',
+    'authenticated',
+    '',
+    '',
+    '',
+    ''
+  )
+  ON CONFLICT (id) DO NOTHING;
+EXCEPTION
+  WHEN OTHERS THEN
+    IF EXISTS (
+      SELECT 1 FROM pg_trigger
+      WHERE tgname = 'on_auth_user_created'
+        AND tgrelid = 'auth.users'::regclass
+    ) THEN
+      ALTER TABLE auth.users ENABLE TRIGGER on_auth_user_created;
+    END IF;
+    RAISE;
+END $$;
 
 DO $$
 BEGIN
