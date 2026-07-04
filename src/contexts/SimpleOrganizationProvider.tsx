@@ -10,19 +10,19 @@ import {
   mergeAllowedOrganizationIds,
   resolveValidatedOrganizationId,
 } from '@/utils/trustedOrganizationScope';
+import { getPrioritizedOrganizationId } from '@/utils/prioritizeOrganizations';
+import { DASHBOARD_CURRENT_ORG_STORAGE_KEY } from '@/utils/organizationSelection';
 import {
   SimpleOrganizationContext,
   SimpleOrganization,
   SimpleOrganizationContextType,
 } from './SimpleOrganizationContext';
 
-const CURRENT_ORG_STORAGE_KEY = 'equipqr_current_organization';
-
 export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [currentOrganizationId, setCurrentOrganizationId] = useState<string | null>(() => {
     try {
-      return localStorage.getItem(CURRENT_ORG_STORAGE_KEY);
+      return localStorage.getItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY);
     } catch {
       return null;
     }
@@ -35,7 +35,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
   // Initialize from localStorage
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(CURRENT_ORG_STORAGE_KEY);
+      const stored = localStorage.getItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY);
       if (stored) {
         setCurrentOrganizationId(stored);
       }
@@ -124,28 +124,10 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     retry: 3,
   });
 
-  // Helper function to prioritize organizations
-  // Prioritizes non-personal (workspace) orgs first, then by role (owner > admin > member)
-  const getPrioritizedOrganization = useCallback((orgs: SimpleOrganization[]): string => {
-    if (orgs.length === 0) return '';
-    
-    // Sort: non-personal orgs first, then by role priority
-    const prioritized = [...orgs].sort((a, b) => {
-      // Normalize isPersonal: treat only explicit true as personal, everything else as non-personal
-      const aIsPersonal = a.isPersonal === true;
-      const bIsPersonal = b.isPersonal === true;
-
-      // Non-personal orgs first (workspace orgs)
-      if (aIsPersonal !== bIsPersonal) {
-        return aIsPersonal ? 1 : -1;
-      }
-      // Then by role: owner > admin > member
-      const roleWeight = { owner: 3, admin: 2, member: 1 };
-      return (roleWeight[b.userRole] || 0) - (roleWeight[a.userRole] || 0);
-    });
-    
-    return prioritized[0].id;
-  }, []);
+  const getPrioritizedOrganization = useCallback(
+    (orgs: SimpleOrganization[]): string => getPrioritizedOrganizationId(orgs),
+    [],
+  );
 
   // Synchronization monitoring and recovery — session org is authoritative when it diverges
   // from equipqr_current_organization (e.g. QR redirect switched session without updating this key).
@@ -178,7 +160,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     lastMismatchSyncAttemptRef.current = syncAttemptKey;
     setCurrentOrganizationId(sessionOrgId);
     try {
-      localStorage.setItem(CURRENT_ORG_STORAGE_KEY, sessionOrgId);
+      localStorage.setItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY, sessionOrgId);
     } catch (error) {
       logger.warn('Failed to save current organization to storage', error);
       lastMismatchSyncAttemptRef.current = null;
@@ -201,7 +183,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
         // Syncing with session organization
         setCurrentOrganizationId(sessionOrgId);
         try {
-          localStorage.setItem(CURRENT_ORG_STORAGE_KEY, sessionOrgId);
+          localStorage.setItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY, sessionOrgId);
         } catch (error) {
           logger.warn('Failed to save current organization to storage', error);
         }
@@ -213,7 +195,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
       // Auto-selecting prioritized organization
       setCurrentOrganizationId(prioritizedOrgId);
       try {
-        localStorage.setItem(CURRENT_ORG_STORAGE_KEY, prioritizedOrgId);
+        localStorage.setItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY, prioritizedOrgId);
       } catch (error) {
         logger.warn('Failed to save current organization to storage', error);
       }
@@ -234,7 +216,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
         const prioritizedOrgId = getPrioritizedOrganization(organizations);
         setCurrentOrganizationId(prioritizedOrgId);
         try {
-          localStorage.setItem(CURRENT_ORG_STORAGE_KEY, prioritizedOrgId);
+          localStorage.setItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY, prioritizedOrgId);
         } catch (error) {
           logger.warn('Failed to save current organization to storage', error);
         }
@@ -245,7 +227,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
   const setCurrentOrganization = useCallback((organizationId: string) => {
     setCurrentOrganizationId(organizationId);
     try {
-      localStorage.setItem(CURRENT_ORG_STORAGE_KEY, organizationId);
+      localStorage.setItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY, organizationId);
     } catch (error) {
       logger.warn('Failed to save current organization to storage', error);
     }

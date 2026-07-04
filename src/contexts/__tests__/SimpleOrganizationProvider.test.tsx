@@ -5,8 +5,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SimpleOrganizationProvider } from '@/contexts/SimpleOrganizationProvider';
 import { useSimpleOrganization } from '@/hooks/useSimpleOrganization';
 import type { SessionOrganization } from '@/contexts/SessionContext';
+import { DASHBOARD_CURRENT_ORG_STORAGE_KEY } from '@/utils/organizationSelection';
 
-const CURRENT_ORG_STORAGE_KEY = 'equipqr_current_organization';
+const CURRENT_ORG_STORAGE_KEY = DASHBOARD_CURRENT_ORG_STORAGE_KEY;
 
 const sessionOrg: SessionOrganization = {
   id: 'session-org',

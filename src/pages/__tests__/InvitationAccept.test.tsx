@@ -6,6 +6,7 @@ import * as useAuthModule from '@/hooks/useAuth';
 
 // Mock router hooks
 const mockNavigate = vi.fn();
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
@@ -16,13 +17,6 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Mock hooks
-vi.mock('@/hooks/useSession', () => ({
-  useSession: vi.fn(() => ({
-    isLoading: false,
-    refreshSession: vi.fn()
-  }))
-}));
-
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({
     user: { id: 'user-1', email: 'test@test.com' }
@@ -55,8 +49,11 @@ vi.mock('sonner', () => ({
 // Mock logger
 vi.mock('@/utils/logger', () => ({
   logger: {
-    error: vi.fn()
-  }
+    debug: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+  },
 }));
 
 const mockInvitation = {
@@ -73,8 +70,14 @@ const mockInvitation = {
 
 describe('InvitationAccept Page', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockNavigate.mockClear();
+    mockRpc.mockClear();
+    mockUpdate.mockClear();
+    vi.mocked(useAuthModule.useAuth).mockReturnValue({
+      user: { id: 'user-1', email: 'test@test.com' },
+    } as ReturnType<typeof useAuthModule.useAuth>);
     sessionStorage.clear();
+    localStorage.clear();
   });
 
   describe('Loading State', () => {
@@ -213,8 +216,12 @@ describe('InvitationAccept Page', () => {
         }
         if (fnName === 'accept_invitation_atomic') {
           return Promise.resolve({
-            data: { success: true, organization_name: 'Test Organization' },
-            error: null
+            data: {
+              success: true,
+              organization_id: 'org-1',
+              organization_name: 'Test Organization',
+            },
+            error: null,
           });
         }
         return Promise.resolve({ data: null, error: null });
@@ -231,7 +238,7 @@ describe('InvitationAccept Page', () => {
 
       await waitFor(() => {
         expect(mockRpc).toHaveBeenCalledWith('accept_invitation_atomic', {
-          p_invitation_token: 'valid-token'
+          p_invitation_token: 'valid-token',
         });
       });
     });

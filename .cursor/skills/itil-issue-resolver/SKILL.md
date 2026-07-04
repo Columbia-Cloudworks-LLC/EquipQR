@@ -1,6 +1,6 @@
 ---
 name: itil-issue-resolver
-description: Primary EquipQR implementation workflow for one approved issue or small change. Use when the user asks to resolve, implement, execute, or fix a single issue after the scope is clear. Uses subagents for discovery when useful, implements focused changes, verifies them, and integrates via PR to main (or push on work branch before PR).
+description: Primary EquipQR implementation workflow for one approved issue or small change. Use when the user asks to resolve, implement, execute, or fix a single issue after the scope is clear. Always integrates via merge-ready PR to main per pr-merge-ready-workflow.mdc — never stop at commit-only or open-and-walk-away handoff.
 ---
 
 # ITIL Issue Resolver
@@ -115,23 +115,13 @@ Choose the smallest credible gate:
 
 If verification fails outside the change scope, report the blocker instead of broadening the work silently. If E2E cannot be automated locally, **stop before integrate** — do not push.
 
-### 6. Integrate
+### 6. Integrate (merge-ready PR — mandatory)
 
 **Prerequisite:** Section 5 completed; cite verification commands and outcomes in the handoff.
 
-Follow the current worktree policy:
+**Default exit:** Always follow **`.cursor/rules/pr-merge-ready-workflow.mdc`** end-to-end — branch, Fallow, `npm ci`, lint, `test:ci`, build, local E2E, PR visual evidence when UI changed, push, open PR, babysit CI + Qodo + threads until merge-ready. **Do not** hand off after commit-only, after push-only, or immediately after `gh pr create`.
 
-**Work branch (push before PR):**
-
-```powershell
-git add <specific-files>
-git commit -m "<conventional message>"
-git push -u origin HEAD
-```
-
-**Linked worktree or user-requested formal PR:**
-
-Follow **`.cursor/rules/pr-merge-ready-workflow.mdc`** in full — branch, verify, evidence, open PR, babysit CI + Qodo until merge-ready. Summary commands:
+Summary commands:
 
 ```powershell
 git fetch origin main

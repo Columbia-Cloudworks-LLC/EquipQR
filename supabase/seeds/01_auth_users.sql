@@ -317,3 +317,45 @@ INSERT INTO auth.users (
   '',
   ''
 ) ON CONFLICT (id) DO NOTHING;
+
+-- User 9: e2e.invitee.pending@apex.test - Pending invitation signup E2E persona
+INSERT INTO auth.users (
+  id,
+  instance_id,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  created_at,
+  updated_at,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  is_super_admin,
+  role,
+  aud,
+  confirmation_token,
+  recovery_token,
+  email_change_token_new,
+  email_change
+) VALUES (
+  'bb0e8400-e29b-41d4-a716-446655440010'::uuid,
+  '00000000-0000-0000-0000-000000000000'::uuid,
+  'e2e.invitee.pending@apex.test',
+  extensions.crypt('password123', extensions.gen_salt('bf')),
+  NOW(),
+  NOW(),
+  NOW(),
+  '{"provider": "email", "providers": ["email"]}'::jsonb,
+  jsonb_build_object(
+    'name', 'E2E Pending Invitee',
+    'organization_name', 'Invitee Personal Workspace',
+    'signup_source', 'invite',
+    'invited_organization_id', '660e8400-e29b-41d4-a716-446655440000'
+  ),
+  false,
+  'authenticated',
+  'authenticated',
+  '',
+  '',
+  '',
+  ''
+) ON CONFLICT (id) DO NOTHING;

@@ -82,6 +82,73 @@ INSERT INTO public.work_orders (
 )
 ON CONFLICT (id) DO NOTHING;
 
+-- Invited-signup E2E fixture (auth user in 01_auth_users.sql; org + invitation below)
+INSERT INTO public.profiles (id, email, name, created_at, updated_at)
+VALUES (
+  'bb0e8400-e29b-41d4-a716-446655440010'::uuid,
+  'e2e.invitee.pending@apex.test',
+  'E2E Pending Invitee',
+  NOW(),
+  NOW()
+)
+ON CONFLICT (id) DO UPDATE
+  SET email = EXCLUDED.email,
+      name = EXCLUDED.name;
+
+INSERT INTO public.organizations (
+  id,
+  name,
+  plan,
+  member_count,
+  max_members,
+  features,
+  created_at,
+  updated_at
+) VALUES (
+  '660e8400-e29b-41d4-a716-446655440010'::uuid,
+  'Invitee Personal Workspace',
+  'free'::public.organization_plan,
+  1,
+  5,
+  ARRAY['Equipment Management', 'Work Orders', 'Team Management'],
+  NOW(),
+  NOW()
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.personal_organizations (user_id, organization_id)
+VALUES (
+  'bb0e8400-e29b-41d4-a716-446655440010'::uuid,
+  '660e8400-e29b-41d4-a716-446655440010'::uuid
+)
+ON CONFLICT (user_id) DO UPDATE
+  SET organization_id = EXCLUDED.organization_id;
+
+INSERT INTO public.organization_members (
+  id,
+  organization_id,
+  user_id,
+  role,
+  status,
+  joined_date,
+  access_source,
+  product_onboarding_completed_at
+) VALUES (
+  'cc0e8400-e29b-41d4-a716-446655440110'::uuid,
+  '660e8400-e29b-41d4-a716-446655440010'::uuid,
+  'bb0e8400-e29b-41d4-a716-446655440010'::uuid,
+  'owner',
+  'active',
+  NOW(),
+  'owner',
+  NOW()
+)
+ON CONFLICT (id) DO UPDATE
+  SET product_onboarding_completed_at = COALESCE(
+    public.organization_members.product_onboarding_completed_at,
+    NOW()
+  );
+
 INSERT INTO public.organization_invitations (
   id,
   organization_id,
@@ -107,7 +174,13 @@ INSERT INTO public.organization_invitations (
   NOW(),
   NOW()
 )
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE
+  SET status = 'pending',
+      accepted_at = NULL,
+      accepted_by = NULL,
+      declined_at = NULL,
+      expires_at = NOW() + INTERVAL '30 days',
+      updated_at = NOW();
 
 INSERT INTO public.dsr_requests (
   id,

@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Building2, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { persistDashboardOrganizationSelection } from '@/utils/organizationSelection';
 
 interface InvitationData {
   id: string;
@@ -33,7 +34,7 @@ interface AcceptInvitationResponse {
 const InvitationAccept = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  const { isLoading: sessionLoading, refreshSession } = useSession();
+  const { isLoading: sessionLoading, refreshSession, switchOrganization } = useSession();
   const { user } = useAuth();
   const [invitation, setInvitation] = useState<InvitationData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -109,12 +110,24 @@ const InvitationAccept = () => {
       }
 
       toast.success(`Welcome to ${result.organization_name}!`);
-      
-      // Refresh session to update organization data
-      await refreshSession();
-      
-      // Navigate to the organization page
-      navigate('/dashboard/organization');
+
+      const invitedOrganizationId = result.organization_id ?? invitation.organization_id;
+
+      if (invitedOrganizationId) {
+        persistDashboardOrganizationSelection(invitedOrganizationId);
+      }
+
+      await refreshSession(true);
+
+      if (invitedOrganizationId) {
+        try {
+          await switchOrganization(invitedOrganizationId);
+        } catch (switchError) {
+          logger.warn('Could not switch session to invited organization after accept', switchError);
+        }
+      }
+
+      navigate('/dashboard', { replace: true });
 
     } catch (err: unknown) {
       logger.error('Error accepting invitation', err);

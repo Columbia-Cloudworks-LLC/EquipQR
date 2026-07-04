@@ -102,10 +102,16 @@ export const seedPmTemplates = {
   },
 } as const;
 
+export const pendingInviteeUserId = 'bb0e8400-e29b-41d4-a716-446655440010';
+export const pendingInviteePersonalOrgId = '660e8400-e29b-41d4-a716-446655440010';
+export const pendingApexInvitationId = 'b00e8400-e29b-41d4-a716-446655440001';
+
 export const seedInvitations = {
   pendingApex: {
+    id: pendingApexInvitationId,
     token: 'e2e00000-e29b-41d4-a716-446655440001',
     email: 'e2e.invitee.pending@apex.test',
+    userId: pendingInviteeUserId,
   },
 } as const;
 
@@ -126,7 +132,8 @@ export type PersonaKey =
   | 'valleyOwner'
   | 'industrialOwner'
   | 'onboardingOwner'
-  | 'multiOrg';
+  | 'multiOrg'
+  | 'pendingInvitee';
 
 export const personas: Record<
   PersonaKey,
@@ -186,6 +193,12 @@ export const personas: Record<
     orgLabel: 'ALL Organizations',
     defaultOrgId: apexOrgId,
   },
+  pendingInvitee: {
+    displayName: 'E2E Pending Invitee',
+    email: 'e2e.invitee.pending@apex.test',
+    orgLabel: 'Invitee Personal Workspace',
+    defaultOrgId: pendingInviteePersonalOrgId,
+  },
 };
 
 export const setupPersonas: PersonaKey[] = [
@@ -198,6 +211,7 @@ export const setupPersonas: PersonaKey[] = [
   'industrialOwner',
   'onboardingOwner',
   'multiOrg',
+  'pendingInvitee',
 ];
 
 export function authStatePath(persona: PersonaKey): string {

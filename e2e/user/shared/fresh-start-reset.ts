@@ -1,43 +1,61 @@
 import { execSync } from 'node:child_process';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { freshStartOrgId } from './seed-data';
+import {
+  apexOrgId,
+  freshStartOrgId,
+  pendingApexInvitationId,
+  pendingInviteeUserId,
+} from './seed-data';
 
 const LOCAL_SUPABASE_URL =
   process.env.PR_EVIDENCE_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? 'http://127.0.0.1:54321';
 
+let cachedLocalServiceRoleKey: string | null = null;
+
 const PARTIAL_SETUP_TEAM_ID = '880e8400-e29b-41d4-a716-446655440099';
 
+function isLocalSupabaseUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url.includes('://') ? url : `http://${url}`);
+    return parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost';
+  } catch {
+    return false;
+  }
+}
+
 function resolveLocalServiceRoleKey(): string {
-  const fromEnv = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (fromEnv) {
-    return fromEnv;
+  if (cachedLocalServiceRoleKey) {
+    return cachedLocalServiceRoleKey;
   }
 
-  try {
-    const statusJson = execSync('npx supabase status -o json', {
-      cwd: process.cwd(),
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    const status = JSON.parse(statusJson) as {
-      SERVICE_ROLE_KEY?: string;
-      service_role_key?: string;
-    };
-    const key = status.SERVICE_ROLE_KEY ?? status.service_role_key;
-    if (key) {
-      return key;
+  if (isLocalSupabaseUrl(LOCAL_SUPABASE_URL)) {
+    try {
+      const statusJson = execSync('npx supabase status -o json', {
+        cwd: process.cwd(),
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      const status = JSON.parse(statusJson) as {
+        SERVICE_ROLE_KEY?: string;
+        service_role_key?: string;
+      };
+      const key = status.SERVICE_ROLE_KEY ?? status.service_role_key;
+      if (key) {
+        cachedLocalServiceRoleKey = key;
+        return key;
+      }
+    } catch {
+      // Fall through to explicit env when local stack status is unavailable.
     }
-  } catch {
-    // Fall through to explicit error below.
   }
 
   throw new Error(
-    'Fresh Start reset requires SUPABASE_SERVICE_ROLE_KEY or a running local Supabase stack (`npx supabase status -o json`).',
+    'E2E fixture reset requires a running local Supabase stack (`npx supabase status -o json`).',
   );
 }
 
 /** Local E2E fixture helper — service role is required to reset seeded org state outside RLS. */
-function createFreshStartAdminClient(): SupabaseClient {
+function createE2EAdminClient(): SupabaseClient {
   return createClient(LOCAL_SUPABASE_URL, resolveLocalServiceRoleKey(), {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -104,10 +122,42 @@ async function insertFreshStartPartialTeam(admin: SupabaseClient): Promise<void>
 export async function resetFreshStartOnboardingFixture(
   options?: { seedOneTeam?: boolean },
 ): Promise<void> {
-  const admin = createFreshStartAdminClient();
+  const admin = createE2EAdminClient();
   await resetFreshStartOnboardingFixtureWithAdmin(admin);
   if (options?.seedOneTeam) {
     await insertFreshStartPartialTeam(admin);
+  }
+}
+
+/**
+ * Resets the pending Apex invitation E2E fixture so accept flows are repeatable.
+ * Removes invitation-derived Apex membership and restores invitation status to pending.
+ */
+export async function resetPendingApexInviteFixture(): Promise<void> {
+  const admin = createE2EAdminClient();
+
+  const { error: membershipError } = await admin
+    .from('organization_members')
+    .delete()
+    .eq('user_id', pendingInviteeUserId)
+    .eq('organization_id', apexOrgId);
+  if (membershipError) {
+    throw new Error(`Pending invite reset: apex membership delete failed — ${membershipError.message}`);
+  }
+
+  const { error: invitationError } = await admin
+    .from('organization_invitations')
+    .update({
+      status: 'pending',
+      accepted_at: null,
+      accepted_by: null,
+      declined_at: null,
+      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', pendingApexInvitationId);
+  if (invitationError) {
+    throw new Error(`Pending invite reset: invitation restore failed — ${invitationError.message}`);
   }
 }
 

@@ -1,6 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { SessionOrganization, SessionTeamMembership } from '@/types/session';
 import { mapOrganizationRowsToSessionOrganizations } from '@/utils/mapOrganizationToSession';
+import {
+  getPrioritizedOrganizationId,
+  withPersonalOrgFlag,
+} from '@/utils/prioritizeOrganizations';
 
 import { logger } from '@/utils/logger';
 
@@ -87,27 +91,28 @@ export class SessionDataService {
       };
     }
 
-    // Helper function to prioritize organizations by user role (same as SimpleOrganizationProvider)
-    const getPrioritizedOrganization = (orgs: SessionOrganization[]): string => {
-      if (orgs.length === 0) return '';
-      
-      // Sort by role priority: owner > admin > member
-      const prioritized = [...orgs].sort((a, b) => {
-        const roleWeight = { owner: 3, admin: 2, member: 1 };
-        return (roleWeight[b.userRole] || 0) - (roleWeight[a.userRole] || 0);
-      });
-      
-      return prioritized[0].id;
-    };
+    const { data: personalOrgData, error: personalOrgError } = await supabase
+      .from('personal_organizations')
+      .select('organization_id')
+      .eq('user_id', userId)
+      .maybeSingle();
 
-    // Determine current organization with role-based prioritization
-    let currentOrganizationId = getPrioritizedOrganization(organizations);
-    
-    // Check user preference first
+    if (personalOrgError) {
+      logger.warn('Failed to resolve personal organization for session prioritization:', personalOrgError);
+    }
+
+    const personalOrgId = personalOrgData?.organization_id ?? null;
+    const prioritizedOrgs = withPersonalOrgFlag(organizations, personalOrgId);
+
+    let currentOrganizationId = getPrioritizedOrganizationId(prioritizedOrgs);
+
     if (preferredOrgId && organizations.find(org => org.id === preferredOrgId)) {
       currentOrganizationId = preferredOrgId;
     } else if (storedOrgId && organizations.find(org => org.id === storedOrgId)) {
-      currentOrganizationId = storedOrgId;
+      const storedOrgMeta = prioritizedOrgs.find(org => org.id === storedOrgId);
+      if (storedOrgMeta && !storedOrgMeta.isPersonal) {
+        currentOrganizationId = storedOrgId;
+      }
     }
 
     // Fetch team memberships for the current organization
