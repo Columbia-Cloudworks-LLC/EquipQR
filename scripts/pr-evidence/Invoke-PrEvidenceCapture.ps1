@@ -54,9 +54,13 @@ New-Item -ItemType Directory -Path $screenshotsDir -Force | Out-Null
 New-Item -ItemType Directory -Path $playwrightOutput -Force | Out-Null
 
 $requiresDocs = $Spec -match 'daily-operator-check-in-docs-discovery'
+$docsUrl = if ($env:PR_EVIDENCE_DOCS_URL) { $env:PR_EVIDENCE_DOCS_URL.Trim() } else { 'http://127.0.0.1:5174' }
+if ($requiresDocs) {
+    $env:PR_EVIDENCE_DOCS_URL = $docsUrl
+}
 
 $stack = Test-PrEvidenceLocalStack -BaseUrl $BaseUrl -CheckDocs:$requiresDocs
-$stackReady = $stack.AppReady -and (-not $requiresDocs -or $stack.DocsReady)
+$stackReady = $stack.AppReady -and $stack.SupabaseReady -and (-not $requiresDocs -or $stack.DocsReady)
 if (-not $stackReady) {
     if ($SkipStackStart) {
         $docsDetail = if ($requiresDocs) { ", docsReady=$($stack.DocsReady)" } else { '' }
@@ -75,7 +79,7 @@ if (-not $stackReady) {
     }
 
     $stack = Test-PrEvidenceLocalStack -BaseUrl $BaseUrl -CheckDocs:$requiresDocs
-    $stackReady = $stack.AppReady -and (-not $requiresDocs -or $stack.DocsReady)
+    $stackReady = $stack.AppReady -and $stack.SupabaseReady -and (-not $requiresDocs -or $stack.DocsReady)
     if (-not $stackReady) {
         $docsDetail = if ($requiresDocs) { ", docsReady=$($stack.DocsReady)" } else { '' }
         throw "Local stack still not ready at $BaseUrl after dev-start.bat (appReady=$($stack.AppReady), supabaseReady=$($stack.SupabaseReady)$docsDetail)."
