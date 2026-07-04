@@ -10,6 +10,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ExternalLink } from '@/components/ui/external-link';
+import { OPERATOR_DAILY_CHECK_INS_DOCS_URL } from '@/lib/documentationUrl';
 import { useEquipmentOperatorCheckinAssignments } from '@/features/operator-check-ins/hooks/useOperatorCheckinSettings';
 import {
   getStoredOperatorCheckinToken,
@@ -145,6 +147,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
 
   const showMissingTokenNotice = Boolean(selectedAssignment && !storedToken);
   const hasAssignmentOptions = enabledAssignments.length > 0;
+  const isDailyCheckinVariant = isAssignmentVariant(variant);
 
   return (
     <AssetQRCodeDisplay
@@ -192,6 +195,13 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
                   </Button>
                 </AlertDescription>
               </Alert>
+            )}
+            {isDailyCheckinVariant && !showMissingTokenNotice && (
+              <p className="text-sm text-muted-foreground">
+                <ExternalLink href={OPERATOR_DAILY_CHECK_INS_DOCS_URL} className="text-sm">
+                  Daily check-in QR placement and printing guide
+                </ExternalLink>
+              </p>
             )}
           </div>
         ) : undefined

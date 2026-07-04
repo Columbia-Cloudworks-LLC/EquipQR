@@ -19,6 +19,7 @@ Browse guides by workflow and role. For bug reports and ticket tracking, use the
 - [Equipment & QR Codes](./equipment-qr/) — Add equipment, print QR codes, and keep records current so field scans always resolve.
 - [Inventory & Parts](./inventory-parts/) — Track parts, delegate inventory to parts managers, and organize interchangeable components.
 - [Teams & Roles](./teams-roles/) — Understand the Organization and Team role tiers and decide who should hold each role.
+- [Administration](./administration/) — Operational admin workflows such as Daily Operator Check-Ins.
 - [Admin & Integrations](./admin-integrations/) — Organization administration, QuickBooks, and Google Workspace workflows for admins and owners.
 - [Privacy & Support](./privacy-support/) — Report issues, track your tickets, submit a privacy request, and use the audit log.
 

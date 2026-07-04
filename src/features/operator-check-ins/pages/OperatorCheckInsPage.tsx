@@ -25,6 +25,8 @@ import { OperatorCheckinLedgerPanel } from '@/features/operator-check-ins/compon
 import { OperatorChecklistStarterCatalog } from '@/features/operator-check-ins/components/OperatorChecklistStarterCatalog';
 import { OperatorTemplateEquipmentAssignmentMenu } from '@/features/operator-check-ins/components/OperatorTemplateEquipmentAssignmentMenu';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ExternalLink } from '@/components/ui/external-link';
+import { OPERATOR_DAILY_CHECK_INS_DOCS_URL } from '@/lib/documentationUrl';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -191,6 +193,11 @@ export default function OperatorCheckInsPage() {
           <h1 className="text-3xl font-bold">Daily Check-Ins</h1>
           <p className="text-muted-foreground mt-1">
             Define operator safety checklists, assign them on each equipment record, and review daily audit ledgers.
+          </p>
+          <p className="mt-2 text-sm">
+            <ExternalLink href={OPERATOR_DAILY_CHECK_INS_DOCS_URL}>
+              Learn how Daily Operator Check-Ins work
+            </ExternalLink>
           </p>
         </div>
 

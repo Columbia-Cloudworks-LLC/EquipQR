@@ -37,6 +37,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ExternalLink } from '@/components/ui/external-link';
+import { OPERATOR_DAILY_CHECK_INS_DOCS_URL } from '@/lib/documentationUrl';
 import { useOperatorChecklistTemplates } from '@/features/operator-check-ins/hooks/useOperatorChecklistTemplates';
 import {
   useCreateEquipmentOperatorCheckinAssignment,
@@ -270,7 +272,10 @@ export function EquipmentOperatorCheckinConfig({
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
           Assign one or more checklists for unauthenticated operator daily check-ins on {equipmentName}.
-          Assigned checklists are public by default and can be removed when no longer needed. Each checklist gets its own QR link — use the <strong>QR Code</strong> action above to print.
+          Assigned checklists are public by default and can be removed when no longer needed. Each checklist gets its own QR link — use the <strong>QR Code</strong> action above to print.{' '}
+          <ExternalLink href={OPERATOR_DAILY_CHECK_INS_DOCS_URL} className="text-sm">
+            Setup, QR placement, and assignment guide
+          </ExternalLink>
         </p>
 
         {templates.length === 0 ? (

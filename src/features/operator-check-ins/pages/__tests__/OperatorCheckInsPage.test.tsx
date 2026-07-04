@@ -142,4 +142,12 @@ describe('OperatorCheckInsPage', () => {
     expect(screen.getByText('Active Checklist')).toBeInTheDocument();
     expect(screen.queryByText('Retired Checklist')).not.toBeInTheDocument();
   });
+
+  it('links to the Daily Operator Check-Ins help guide', () => {
+    render(<OperatorCheckInsPage />);
+
+    const helpLink = screen.getByRole('link', { name: /learn how daily operator check-ins work/i });
+    expect(helpLink).toHaveAttribute('href', expect.stringContaining('/support/administration/operator-daily-check-ins'));
+    expect(helpLink).toHaveAttribute('target', '_blank');
+  });
 });

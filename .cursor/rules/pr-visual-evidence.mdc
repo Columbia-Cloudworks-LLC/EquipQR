@@ -42,6 +42,18 @@ If capture fails, **stop before opening the PR** — fix the spec or stack; do n
 - Use `evidenceScreenshot()` from `e2e/pr-evidence/shared/evidence-helpers.ts` at each meaningful state.
 - Reuse `equipqr-test` fixtures (`gotoDashboard`, personas) for deterministic seeded data.
 
+## Touched user-visible behavior standard
+
+When a PR touches **any user-visible behavior** — including indirect changes to an existing feature, contextual help links, or equipqr.info documentation tied to app surfaces — evidence must prove the **real workflow still works end-to-end** from discovery through completion, not just that a page renders.
+
+Minimum bar for feature-adjacent changes:
+
+1. **Functional proof** — exercise the changed path on the local stack (`http://localhost:8080`) the way a user would (submit forms, navigate between surfaces, export when applicable).
+2. **Discovery proof** — when docs or in-app Help links change, capture evidence that a user can reach the relevant guide from each surfaced entry point (admin console, equipment details, QR dialog, public form, Help Center nav) and that the guide shows the expected scenario content.
+3. **Regression check** — rerun the existing feature evidence spec when the underlying feature already has one; do not replace deep functional proof with link-only screenshots.
+
+Shallow smoke (empty state only, invalid token only, or static page load without completing the workflow) is **not** sufficient when the PR changes how users discover or use that behavior.
+
 ## Storage and display
 
 - **Screenshots:** preview Supabase public bucket `landing-page-images` under `pr-evidence/{branch}/` via `scripts/upload-screenshot.ts` with `OP_SERVICE_ACCOUNT_TOKEN`.

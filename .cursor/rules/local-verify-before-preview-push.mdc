@@ -33,6 +33,8 @@ Pick the **smallest credible E2E proof** that covers the user-visible outcome. P
 | Change touches | Local E2E proof (agent-run) |
 |---|---|
 | UI route / form / dashboard flow | Browser MCP smoke on `http://localhost:8080` **or** `.\dev-test.bat` critical when a spec exists |
+| User-visible behavior touched indirectly (help links, copy, docs discovery) | Playwright PR evidence or browser MCP proving discovery **and** the underlying workflow still completes |
+| equipqr.info docs wired to app surfaces | `npm run docs:build` plus Playwright/browser proof from each contextual Help link and Help Center nav to the article |
 | Broad UX / release-sensitive | `.\dev-test.bat full` (headless) |
 | Edge Function / OAuth callback | `deno test` in function dir if present; then exercise callback path on local stack; confirm via edge logs + DB/RPC read |
 | Google sign-in (Supabase Auth) | Browser MCP: complete Google login locally; confirm session in app |

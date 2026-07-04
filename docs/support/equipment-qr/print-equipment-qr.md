@@ -15,6 +15,13 @@ Pick the machine from Equipment, or scan its existing QR code.
 
 Tap the QR icon in the equipment header. EquipQR renders the QR code full-size so you can print or download it.
 
+When the equipment has **Daily Operator Check-In** assignments, the QR dialog includes a **QR code type** dropdown:
+
+- **Equipment scan (authenticated)** — opens the signed-in equipment record when a technician scans the code.
+- **Daily check-in: {template name}** — opens the public operator form for that checklist assignment (no login).
+
+Generate the daily check-in link on the equipment record first if prompted, then return to print. See [Daily Operator Check-Ins](../administration/operator-daily-check-ins) for template setup, QR placement options (cab sticker, office copy, binder), and ledger exports.
+
 ## 3. Print or download
 
 Use Print for on-demand stickers from a workshop printer, or Download to generate sheets of labels in bulk.

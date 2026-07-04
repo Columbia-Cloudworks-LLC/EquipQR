@@ -95,6 +95,12 @@ const supportSidebarArticles: Record<string, { text: string; link: string }[]> =
         link: "/support/teams-roles/multi-team-questions",
       },
     ],
+    administration: [
+      {
+        text: "Daily Operator Check-Ins",
+        link: "/support/administration/operator-daily-check-ins",
+      },
+    ],
     "admin-integrations": [
       {
         text: "Organization settings",
@@ -141,6 +147,7 @@ function supportSidebar(): DefaultTheme.SidebarItem[] {
     { id: "equipment-qr", label: "Equipment & QR Codes" },
     { id: "inventory-parts", label: "Inventory & Parts" },
     { id: "teams-roles", label: "Teams & Roles" },
+    { id: "administration", label: "Administration" },
     { id: "admin-integrations", label: "Admin & Integrations" },
     { id: "privacy-support", label: "Privacy & Support" },
   ];

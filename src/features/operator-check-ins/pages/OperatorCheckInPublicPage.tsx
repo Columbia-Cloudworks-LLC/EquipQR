@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ExternalLink } from '@/components/ui/external-link';
+import { OPERATOR_DAILY_CHECK_INS_DOCS_URL } from '@/lib/documentationUrl';
 import { Checkbox } from '@/components/ui/checkbox';
 import HCaptchaComponent from '@/components/ui/HCaptcha';
 import { PageSEO } from '@/components/seo/PageSEO';
@@ -304,6 +306,11 @@ export default function OperatorCheckInPublicPage() {
         <div>
           <h1 className="text-2xl font-semibold">{templateName}</h1>
           <p className="text-sm text-muted-foreground mt-1">Daily operator check-in</p>
+          <p className="text-sm mt-2">
+            <ExternalLink href={OPERATOR_DAILY_CHECK_INS_DOCS_URL}>
+              What is a daily operator check-in?
+            </ExternalLink>
+          </p>
         </div>
 
         <Alert>
