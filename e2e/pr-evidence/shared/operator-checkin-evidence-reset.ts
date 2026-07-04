@@ -1,8 +1,5 @@
 import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
-import { unlinkSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import { apexOrgId } from '../../user/shared/seed-data';
 
@@ -30,11 +27,8 @@ function runLocalSql(statements: string[]): void {
   assertLocalEvidenceTarget();
 
   for (const statement of statements) {
-    const sqlFile = join(tmpdir(), `equipqr-operator-checkin-evidence-reset-${Date.now()}.sql`);
-    writeFileSync(sqlFile, statement, 'utf8');
-
     try {
-      execSync(`npx supabase db query --local -f "${sqlFile}"`, {
+      execSync(`npx supabase db query --local ${JSON.stringify(statement)}`, {
         cwd: process.cwd(),
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -44,8 +38,6 @@ function runLocalSql(statements: string[]): void {
       throw new Error(
         `Operator check-in evidence reset requires a running local Supabase stack (npx supabase db query --local). ${message}`,
       );
-    } finally {
-      unlinkSync(sqlFile);
     }
   }
 }
