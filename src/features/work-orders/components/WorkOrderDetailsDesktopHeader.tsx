@@ -147,9 +147,10 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   };
 
   const truncatedId = workOrder.id.substring(0, 8).toUpperCase();
-  const showExports = permissionLevels.isManager;
-  const showActionsMenu = showExports || showQuickBooks || canDelete;
-  const actionsMenuLabel = showExports ? 'Export' : 'Actions';
+  const { exportAudience } = permissionLevels;
+  const canExport = exportAudience !== 'none';
+  const showActionsMenu = canExport || showQuickBooks || canDelete;
+  const actionsMenuLabel = canExport ? 'Export' : 'Actions';
   const showGoogleDrive = isGoogleWorkspaceConnected && Boolean(googleDocsDestination);
   const isExportBusy =
     isExportingSingle
@@ -214,7 +215,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" aria-label={actionsMenuLabel}>
-                      {showExports ? (
+                      {canExport ? (
                         <>
                           <Download className="h-4 w-4 mr-2" />
                           Export
@@ -232,7 +233,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                       workOrderId={workOrder.id}
                       workOrderStatus={workOrder.status}
                       equipmentTeamId={equipmentTeamId}
-                      showExports={showExports}
+                      exportAudience={exportAudience}
                       showQuickBooks={showQuickBooks}
                       showGoogleDrive={showGoogleDrive}
                       organizationId={organizationId}
@@ -265,10 +266,10 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           onOpenChange={setShowPDFDialog}
           onExport={handlePDFExport}
           isExporting={isGenerating}
-          showCostsOption={permissionLevels.isManager}
-          isGoogleWorkspaceConnected={isGoogleWorkspaceConnected}
-          hasOrganizationDriveDestination={Boolean(googleDocsDestination)}
-          onSaveToDrive={handleSaveToDrive}
+          showCostsOption={exportAudience === 'admin'}
+          isGoogleWorkspaceConnected={exportAudience === 'admin' && isGoogleWorkspaceConnected}
+          hasOrganizationDriveDestination={exportAudience === 'admin' && Boolean(googleDocsDestination)}
+          onSaveToDrive={exportAudience === 'admin' ? handleSaveToDrive : undefined}
           isSavingToDrive={isSavingToDrive}
           focusDriveAction={pdfDialogFocusDrive}
         />

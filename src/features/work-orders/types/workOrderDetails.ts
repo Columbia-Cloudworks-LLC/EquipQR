@@ -73,6 +73,7 @@ export interface PermissionLevels {
   canEditCosts?: boolean;
   canViewPM?: boolean;
   canEditPM?: boolean;
+  exportAudience?: 'admin' | 'customer-safe' | 'none';
 }
 
 export interface TeamMemberData {

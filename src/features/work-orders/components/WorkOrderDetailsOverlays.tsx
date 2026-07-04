@@ -128,10 +128,10 @@ export function WorkOrderDetailsOverlays({
         onOpenChange={onMobilePDFDialogOpenChange}
         onExport={onMobilePDFExport}
         isExporting={isMobilePDFGenerating}
-        showCostsOption={permissionLevels.isManager}
-        isGoogleWorkspaceConnected={isGoogleWorkspaceConnected}
-        hasOrganizationDriveDestination={Boolean(googleDocsDestination)}
-        onSaveToDrive={onMobileSaveToDrive}
+        showCostsOption={permissionLevels.exportAudience === 'admin'}
+        isGoogleWorkspaceConnected={permissionLevels.exportAudience === 'admin' && isGoogleWorkspaceConnected}
+        hasOrganizationDriveDestination={permissionLevels.exportAudience === 'admin' && Boolean(googleDocsDestination)}
+        onSaveToDrive={permissionLevels.exportAudience === 'admin' ? onMobileSaveToDrive : undefined}
         isSavingToDrive={isMobileSavingToDrive}
         focusDriveAction={mobilePdfDialogFocusDrive}
       />
@@ -144,7 +144,7 @@ export function WorkOrderDetailsOverlays({
           workOrderStatus={workOrder.status}
           equipmentTeamId={equipmentTeamId}
           organizationId={organizationId}
-          isManager={permissionLevels.isManager}
+          exportAudience={permissionLevels.exportAudience ?? 'none'}
           onViewFullDetails={onViewFullDetails}
           onOpenPdfDialog={onOpenMobilePdfDialog}
           onOpenDrivePdfDialog={onOpenMobileDrivePdfDialog}
@@ -152,7 +152,7 @@ export function WorkOrderDetailsOverlays({
           onDownloadWorksheet={onDownloadWorksheet}
           isGeneratingWorksheet={isMobileWorksheetGenerating}
           fileExportHandlers={
-            permissionLevels.isManager
+            permissionLevels.exportAudience === 'admin'
               ? {
                   onDownloadXlsx,
                   isExportingXlsx,

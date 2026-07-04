@@ -42,6 +42,46 @@ INSERT INTO public.team_members (
   )
 ON CONFLICT (id) DO NOTHING;
 
+-- Metro Customer Service team: work order on viewer-scoped equipment (Alex Apex viewer E2E)
+INSERT INTO public.work_orders (
+  id,
+  organization_id,
+  equipment_id,
+  title,
+  description,
+  status,
+  priority,
+  assignee_id,
+  assignee_name,
+  team_id,
+  created_by,
+  created_by_name,
+  created_date,
+  due_date,
+  estimated_hours,
+  completed_date,
+  updated_at
+) VALUES (
+  'a00e8400-e29b-41d4-a716-446655440115'::uuid,
+  '660e8400-e29b-41d4-a716-446655440001'::uuid,
+  'aa0e8400-e29b-41d4-a716-44665544f109'::uuid,
+  'Customer Service PM - Bobcat S570',
+  'Playwright E2E work order for viewer export evidence on Customer Service team equipment.',
+  'completed',
+  'medium',
+  'bb0e8400-e29b-41d4-a716-446655440004'::uuid,
+  'Marcus Metro',
+  '880e8400-e29b-41d4-a716-446655440003'::uuid,
+  'bb0e8400-e29b-41d4-a716-446655440004'::uuid,
+  'Marcus Metro',
+  '2025-11-01',
+  '2025-11-05',
+  1.5,
+  '2025-11-04',
+  '2025-11-04 16:00:00+00'
+)
+ON CONFLICT (id) DO NOTHING;
+
 INSERT INTO public.organization_invitations (
   id,
   organization_id,

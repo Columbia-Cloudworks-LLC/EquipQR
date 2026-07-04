@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { ReportExportDialog } from '@/features/reports/components/ReportExportDialog';
@@ -11,8 +12,10 @@ import { ReportsStatusStrip } from '@/features/reports/components/ReportsStatusS
 import { ExportProtocolPanel } from '@/features/reports/components/ExportProtocolPanel';
 import { ReportsConsoleState } from '@/features/reports/components/ReportsConsoleState';
 import { useReportRecordCount, useReportExportDialog } from '@/features/reports/hooks/useReportExport';
+import { useScopedExportTeamIds } from '@/features/reports/hooks/useScopedExportTeamIds';
 import { useWorkOrderExcelExport, useWorkOrderExcelCount } from '@/features/work-orders/hooks/useWorkOrderExcelExport';
 import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
+import { canAccessScopedReportsExport } from '@/features/work-orders/utils/workOrderExportAccess';
 
 import {
   REPORT_CARDS,
@@ -24,11 +27,12 @@ import type { ReportType, ExportFilters } from '@/features/reports/types/reports
 import type { WorkOrderExcelFilters } from '@/features/work-orders/types/workOrderExcel';
 
 /**
- * Reports Page - Fleet Export Console for org owners and admins
+ * Reports Page - Fleet Export Console (admin) or scoped work-order export (requestor/viewer)
  */
 const Reports: React.FC = () => {
   const { currentOrganization } = useOrganization();
   const { hasRole } = usePermissions();
+  const { teamMemberships, isLoading: teamsLoading } = useTeamMembership();
 
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [excelExportDialogOpen, setExcelExportDialogOpen] = useState(false);
@@ -39,12 +43,25 @@ const Reports: React.FC = () => {
   const [excelFilters, setExcelFilters] = useState<WorkOrderExcelFilters>({ dateField: 'created_date' });
   const [isProtocolOpen, setIsProtocolOpen] = useState(false);
 
-  const canExport = hasRole(['owner', 'admin']);
+  const isOrgAdmin = hasRole(['owner', 'admin']);
+  const { teamIds: scopedTeamIds, isLoading: scopedTeamsLoading } = useScopedExportTeamIds(isOrgAdmin);
+  const scopeReady = isOrgAdmin || !scopedTeamsLoading;
+  const canAccessReports = !teamsLoading && canAccessScopedReportsExport(isOrgAdmin, teamMemberships);
+  const reportAudience = isOrgAdmin ? 'admin' : 'scoped';
+
+  const scopedTeamFilter = isOrgAdmin ? undefined : scopedTeamIds;
 
   const equipmentCount = useReportRecordCount('equipment', currentOrganization?.id, filters);
   const inventoryCount = useReportRecordCount('inventory', currentOrganization?.id, filters);
   const scansCount = useReportRecordCount('scans', currentOrganization?.id, filters);
   const alternateGroupsCount = useReportRecordCount('alternate-groups', currentOrganization?.id, filters);
+  const workOrdersCount = useReportRecordCount(
+    'work-orders',
+    currentOrganization?.id,
+    filters,
+    scopedTeamFilter,
+    { scopeReady },
+  );
   const workOrdersDetailedCount = useWorkOrderExcelCount(currentOrganization?.id, excelFilters);
 
   const {
@@ -64,11 +81,18 @@ const Reports: React.FC = () => {
     currentOrganization?.name ?? '',
   );
 
+  const categoryGroups = useMemo(
+    () => getReportsByCategory(reportAudience),
+    [reportAudience],
+  );
+
   const getCountForType = useCallback(
     (type: ReportType) => {
       switch (type) {
         case 'equipment':
           return { count: equipmentCount.data ?? 0, isLoading: equipmentCount.isLoading };
+        case 'work-orders':
+          return { count: workOrdersCount.data ?? 0, isLoading: workOrdersCount.isLoading };
         case 'work-orders-detailed':
           return { count: workOrdersDetailedCount.data ?? 0, isLoading: workOrdersDetailedCount.isLoading };
         case 'inventory':
@@ -84,6 +108,8 @@ const Reports: React.FC = () => {
     [
       equipmentCount.data,
       equipmentCount.isLoading,
+      workOrdersCount.data,
+      workOrdersCount.isLoading,
       workOrdersDetailedCount.data,
       workOrdersDetailedCount.isLoading,
       inventoryCount.data,
@@ -177,11 +203,19 @@ const Reports: React.FC = () => {
     return <ReportsConsoleState variant="no-organization" />;
   }
 
-  if (!canExport) {
+  if (teamsLoading || scopedTeamsLoading) {
+    return (
+      <Page maxWidth="7xl" padding="responsive">
+        <div className="py-12 text-center text-sm text-muted-foreground">Loading export console…</div>
+      </Page>
+    );
+  }
+
+  if (!canAccessReports) {
     return <ReportsConsoleState variant="access-restricted" />;
   }
 
-  const categoryGroups = getReportsByCategory();
+  const isScopedConsole = reportAudience === 'scoped';
 
   /** Responsive grid: single-card sections stay compact; pairs fill two columns. */
   const getSectionGridClass = (cardCount: number) => {
@@ -200,7 +234,7 @@ const Reports: React.FC = () => {
         isLoadingCount={isLoading}
         onExport={() => handleOpenExportDialog(card.type)}
         onQuickExport={() => handleQuickExport(card.type)}
-        canExport={canExport}
+        canExport={canAccessReports}
         featured={featured}
       />
     );
@@ -210,22 +244,26 @@ const Reports: React.FC = () => {
     <Page maxWidth="7xl" padding="responsive">
       <div className="space-y-6">
         <PageHeader
-          title="Fleet Export Console"
-          description="Export fleet, maintenance, inventory, and scan data. Select a module to configure columns and download."
+          title={isScopedConsole ? 'Work Order Exports' : 'Fleet Export Console'}
+          description={
+            isScopedConsole
+              ? 'Download CSV summaries for work orders on equipment you can view. Private notes and costs are never included.'
+              : 'Export fleet, maintenance, inventory, and scan data. Select a module to configure columns and download.'
+          }
           meta={
             <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wide">
-              Export Console
+              {isScopedConsole ? 'Scoped Export' : 'Export Console'}
             </Badge>
           }
         />
 
         <ReportsStatusStrip
           organizationName={currentOrganization.name}
-          canExport={canExport}
+          canExport={canAccessReports}
           isGoogleWorkspaceConnected={isGoogleWorkspaceConnected}
         />
 
-        {FEATURED_REPORT_CARD && (
+        {!isScopedConsole && FEATURED_REPORT_CARD && (
           <section aria-labelledby="featured-export-heading">
             <h2
               id="featured-export-heading"
@@ -257,11 +295,13 @@ const Reports: React.FC = () => {
           </section>
         ))}
 
-        <ExportProtocolPanel
-          isGoogleWorkspaceConnected={isGoogleWorkspaceConnected}
-          open={isProtocolOpen}
-          onOpenChange={setIsProtocolOpen}
-        />
+        {!isScopedConsole && (
+          <ExportProtocolPanel
+            isGoogleWorkspaceConnected={isGoogleWorkspaceConnected}
+            open={isProtocolOpen}
+            onOpenChange={setIsProtocolOpen}
+          />
+        )}
       </div>
 
       <ReportExportDialog
@@ -277,19 +317,21 @@ const Reports: React.FC = () => {
         exportError={exportError}
       />
 
-      <WorkOrderExcelExportDialog
-        open={excelExportDialogOpen}
-        onOpenChange={setExcelExportDialogOpen}
-        organizationId={currentOrganization.id}
-        recordCount={workOrdersDetailedCount.data ?? 0}
-        isLoadingCount={workOrdersDetailedCount.isLoading}
-        onExport={handleExcelExport}
-        isExporting={isBulkExporting}
-        exportError={bulkExportError}
-        isGoogleWorkspaceConnected={isGoogleWorkspaceConnected}
-        onExportToSheets={handleExportToSheets}
-        isExportingToSheets={isExportingToSheets}
-      />
+      {!isScopedConsole && (
+        <WorkOrderExcelExportDialog
+          open={excelExportDialogOpen}
+          onOpenChange={setExcelExportDialogOpen}
+          organizationId={currentOrganization.id}
+          recordCount={workOrdersDetailedCount.data ?? 0}
+          isLoadingCount={workOrdersDetailedCount.isLoading}
+          onExport={handleExcelExport}
+          isExporting={isBulkExporting}
+          exportError={bulkExportError}
+          isGoogleWorkspaceConnected={isGoogleWorkspaceConnected}
+          onExportToSheets={handleExportToSheets}
+          isExportingToSheets={isExportingToSheets}
+        />
+      )}
     </Page>
   );
 };

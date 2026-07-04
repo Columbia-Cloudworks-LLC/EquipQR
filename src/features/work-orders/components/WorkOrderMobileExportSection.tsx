@@ -16,12 +16,13 @@ import {
   getGoogleDriveOpenAvailability,
   getGoogleDriveUpdateAvailability,
 } from '@/features/work-orders/components/googleDriveExportPresentation';
+import type { WorkOrderExportAudience } from '@/features/work-orders/utils/workOrderExportAccess';
 import type { WorkOrderFileExportHandlers } from '@/features/work-orders/types/workOrderFileExportHandlers';
 
 export interface WorkOrderMobileExportSectionProps extends WorkOrderFileExportHandlers {
   workOrderId: string;
   organizationId?: string;
-  isManager: boolean;
+  exportAudience: WorkOrderExportAudience;
   onAction: (action: () => void) => void;
   onOpenPdfDialog: () => void;
   onOpenDrivePdfDialog: () => void;
@@ -118,7 +119,7 @@ function GoogleDriveMobileRow({
 export function WorkOrderMobileExportSection({
   workOrderId,
   organizationId,
-  isManager,
+  exportAudience,
   onAction,
   onOpenPdfDialog,
   onOpenDrivePdfDialog,
@@ -138,6 +139,7 @@ export function WorkOrderMobileExportSection({
   isExportingToSheets,
   isExportBusy,
 }: WorkOrderMobileExportSectionProps) {
+  const isAdminExport = exportAudience === 'admin';
   const {
     canExportDocs,
     canExportPdf,
@@ -146,10 +148,35 @@ export function WorkOrderMobileExportSection({
     docsDisplay,
     pdfDisplay,
     sheetsDisplay,
-  } = useWorkOrderGoogleDriveExportState({ workOrderId, organizationId, isManager });
+  } = useWorkOrderGoogleDriveExportState({
+    workOrderId,
+    organizationId,
+    isManager: isAdminExport,
+  });
 
-  if (!isManager) {
+  if (exportAudience === 'none') {
     return null;
+  }
+
+  if (exportAudience === 'customer-safe') {
+    return (
+      <div className="space-y-2">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Download</p>
+        <Button
+          variant="outline"
+          className="h-14 w-full flex-col gap-1"
+          disabled={isGeneratingPdf || isExportBusy}
+          onClick={() => onAction(onOpenPdfDialog)}
+        >
+          {isGeneratingPdf ? (
+            <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+          ) : (
+            <Download className="h-5 w-5" aria-hidden />
+          )}
+          <span className="text-xs">Service Report PDF</span>
+        </Button>
+      </div>
+    );
   }
 
   return (

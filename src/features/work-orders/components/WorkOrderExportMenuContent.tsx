@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { WorkOrderQuickBooksExportSubmenu } from './WorkOrderQuickBooksExportSubmenu';
 import { WorkOrderGoogleDriveExportSubmenu } from './WorkOrderGoogleDriveExportSubmenu';
+import type { WorkOrderExportAudience } from '@/features/work-orders/utils/workOrderExportAccess';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import type { WorkOrderFileExportHandlers } from '@/features/work-orders/types/workOrderFileExportHandlers';
 
@@ -20,7 +21,7 @@ export interface WorkOrderExportMenuContentProps extends WorkOrderFileExportHand
   workOrderId: string;
   workOrderStatus: WorkOrderStatus;
   equipmentTeamId?: string | null;
-  showExports: boolean;
+  exportAudience: WorkOrderExportAudience;
   showQuickBooks: boolean;
   showGoogleDrive: boolean;
   organizationId?: string;
@@ -34,7 +35,7 @@ export const WorkOrderExportMenuContent: React.FC<WorkOrderExportMenuContentProp
   workOrderId,
   workOrderStatus,
   equipmentTeamId,
-  showExports,
+  exportAudience,
   showQuickBooks,
   showGoogleDrive,
   organizationId,
@@ -55,9 +56,26 @@ export const WorkOrderExportMenuContent: React.FC<WorkOrderExportMenuContentProp
   isExportingToSheets,
   isExportBusy,
 }) => {
+  const showAdminExports = exportAudience === 'admin';
+  const showCustomerSafeExports = exportAudience === 'customer-safe';
+
   return (
     <>
-      {showExports && (
+      {showCustomerSafeExports && (
+        <DropdownMenuItem
+          onClick={onOpenPdfDialog}
+          disabled={isGeneratingPdf || isExportBusy}
+        >
+          {isGeneratingPdf ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4 mr-2" />
+          )}
+          Service Report PDF
+        </DropdownMenuItem>
+      )}
+
+      {showAdminExports && (
         <>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>Download</DropdownMenuSubTrigger>

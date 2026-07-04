@@ -29,16 +29,26 @@ vi.mock('../QuickBooksExportButton', () => ({
 }));
 
 vi.mock('../WorkOrderMobileExportSection', () => ({
-  WorkOrderMobileExportSection: () => (
-    <div>
-      <p>Download</p>
-      <button type="button">DOCX</button>
-      <button type="button">PDF</button>
-      <button type="button">XLSX</button>
-      <button type="button">CSV</button>
-      <button type="button">Field Worksheet</button>
-    </div>
-  ),
+  WorkOrderMobileExportSection: ({
+    exportAudience,
+  }: {
+    exportAudience?: 'admin' | 'customer-safe' | 'none';
+  }) =>
+    exportAudience === 'customer-safe' ? (
+      <div>
+        <p>Download</p>
+        <button type="button">PDF</button>
+      </div>
+    ) : (
+      <div>
+        <p>Download</p>
+        <button type="button">DOCX</button>
+        <button type="button">PDF</button>
+        <button type="button">XLSX</button>
+        <button type="button">CSV</button>
+        <button type="button">Field Worksheet</button>
+      </div>
+    ),
 }));
 
 describe('MobileWorkOrderActionSheet', () => {
@@ -49,7 +59,7 @@ describe('MobileWorkOrderActionSheet', () => {
     workOrderStatus: 'in_progress' as const,
     equipmentTeamId: 'team-1',
     organizationId: 'org-1',
-    isManager: true,
+    exportAudience: 'admin' as const,
     onViewFullDetails: vi.fn(),
     onOpenPdfDialog: vi.fn(),
     onOpenDrivePdfDialog: vi.fn(),
@@ -91,14 +101,26 @@ describe('MobileWorkOrderActionSheet', () => {
     expect(pdfIdx).toBeGreaterThan(viewIdx);
   });
 
-  it('omits download exports for non-managers', () => {
+  it('omits download exports when exportAudience is none', () => {
     render(
       <MemoryRouter>
-        <MobileWorkOrderActionSheet {...baseProps} isManager={false} fileExportHandlers={undefined} />
+        <MobileWorkOrderActionSheet {...baseProps} exportAudience="none" fileExportHandlers={undefined} />
       </MemoryRouter>,
     );
 
     expect(screen.queryByText('Download')).not.toBeInTheDocument();
+  });
+
+  it('shows customer-safe PDF export for scoped viewers', () => {
+    render(
+      <MemoryRouter>
+        <MobileWorkOrderActionSheet {...baseProps} exportAudience="customer-safe" fileExportHandlers={undefined} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Download')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'PDF' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'XLSX' })).not.toBeInTheDocument();
   });
 
   it('shows desktop-parity download formats for managers', () => {

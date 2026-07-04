@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useOrganizationMembers } from '@/features/organization/hooks/useOrganizationMembers';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
 import { Tables } from '@/integrations/supabase/types';
+import { resolveWorkOrderExportAudience } from '@/features/work-orders/utils/workOrderExportAccess';
 
 export interface WorkOrderPermissionLevels {
   isManager: boolean;
@@ -16,6 +17,7 @@ export interface WorkOrderPermissionLevels {
   canChangeStatus: boolean;
   canAddNotes: boolean;
   canAddImages: boolean;
+  exportAudience: 'admin' | 'customer-safe' | 'none';
   getFormMode: (workOrder: Tables<'work_orders'>, createdByCurrentUser: boolean) => 'manager' | 'requestor' | 'view_only';
 }
 
@@ -30,6 +32,7 @@ export const useWorkOrderPermissionLevels = (): WorkOrderPermissionLevels => {
     // Determine user role in organization
     const currentMember = members.find(m => m.id === user?.id);
     const isManager = currentMember?.role === 'owner' || currentMember?.role === 'admin';
+    const exportAudience = resolveWorkOrderExportAudience(isManager, teamMemberships);
     
     // Check if user is a technician in any team
     const isTechnician = teamMemberships.some(tm => tm.role === 'technician' || tm.role === 'manager');
@@ -66,6 +69,7 @@ export const useWorkOrderPermissionLevels = (): WorkOrderPermissionLevels => {
       canChangeStatus: isManager || isTechnician,
       canAddNotes: true,
       canAddImages: true,
+      exportAudience,
       getFormMode
     };
   }, [user?.id, members, teamMemberships]);

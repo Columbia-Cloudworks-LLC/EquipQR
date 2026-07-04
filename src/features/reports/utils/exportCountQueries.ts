@@ -42,8 +42,14 @@ export function buildEquipmentExportCountQuery(organizationId: string, filters: 
 export function buildWorkOrderExportCountQuery(
   organizationId: string,
   filters: WorkOrderCountFilterInput,
+  accessibleTeamIds?: string[],
 ) {
   let query = orgScopedExportCountQuery('work_orders', organizationId, filters.status);
+  query = query.not('equipment_id', 'is', null);
+
+  if (accessibleTeamIds !== undefined) {
+    query = query.in('team_id', accessibleTeamIds);
+  }
   if (filters.workOrderId) {
     query = query.eq('id', filters.workOrderId);
   }

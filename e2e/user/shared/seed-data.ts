@@ -65,6 +65,10 @@ export const seedWorkOrders = {
     id: 'a00e8400-e29b-41d4-a716-446655440010',
     title: 'Pre-Rental Inspection - Skid Steer',
   },
+  viewerBobcatPm: {
+    id: 'a00e8400-e29b-41d4-a716-446655440115',
+    title: 'Customer Service PM - Bobcat S570',
+  },
 } as const;
 
 export const seedInventory = {

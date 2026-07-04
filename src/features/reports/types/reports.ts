@@ -94,4 +94,6 @@ export interface ReportCardConfig {
   previewFields: string[];
   /** When true, render as the featured hero export module */
   featured?: boolean;
+  /** When true, only shown on the scoped (requestor/viewer) reports console */
+  scopedAudienceOnly?: boolean;
 }

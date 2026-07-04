@@ -85,15 +85,19 @@ function useReportExport({
 export function useReportRecordCount(
   reportType: ReportType,
   organizationId: string | undefined,
-  filters: ExportFilters
+  filters: ExportFilters,
+  accessibleTeamIds?: string[],
+  options?: { scopeReady?: boolean },
 ) {
+  const scopeReady = options?.scopeReady ?? true;
+
   return useQuery({
-    queryKey: ['report-count', reportType, organizationId, filters],
+    queryKey: ['report-count', reportType, organizationId, filters, accessibleTeamIds],
     queryFn: () => {
       if (!organizationId) return 0;
-      return getReportRecordCount(reportType, organizationId, filters);
+      return getReportRecordCount(reportType, organizationId, filters, accessibleTeamIds);
     },
-    enabled: !!organizationId,
+    enabled: !!organizationId && scopeReady,
     staleTime: 30 * 1000, // 30 seconds - counts can change
     gcTime: 60 * 1000, // 1 minute
   });

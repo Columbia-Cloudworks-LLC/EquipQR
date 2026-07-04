@@ -2,18 +2,18 @@
  * Export Report Edge Function
  *
  * Exports data (equipment, work orders, inventory, etc.) to CSV format.
- * Requires authenticated user with admin/owner role in the organization.
+ * Org admins get the full console; team requestors/viewers get scoped work-order CSV only.
  * Uses user-scoped client so RLS policies apply.
  */
 
 import {
-  verifyOrgAdmin,
   createErrorResponse,
   handleCorsPreflightIfNeeded,
   withCorrelationId,
   requireAuthenticatedPost,
 } from "../_shared/supabase-clients.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { resolveWorkOrderExportAccess } from "../_shared/work-order-export-auth.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   checkRateLimit,
   type ExportFilters,
@@ -52,16 +52,25 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       return createErrorResponse(
         "Missing required fields: reportType, organizationId, and columns are required",
         400,
+        { req },
       );
     }
 
     if (format !== "csv") {
-      return createErrorResponse("Unsupported format. Only CSV is currently supported.", 400);
+      return createErrorResponse("Unsupported format. Only CSV is currently supported.", 400, { req });
     }
 
-    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
-    if (!isAdmin) {
-      return createErrorResponse("Forbidden: Only owners and admins can export reports", 403);
+    const exportAccess = await resolveWorkOrderExportAccess(supabase, user.id, organizationId);
+    if (!exportAccess) {
+      return createErrorResponse("Forbidden: You do not have permission to export reports", 403, { req });
+    }
+
+    if (exportAccess.mode === "scoped" && reportType !== "work-orders") {
+      return createErrorResponse(
+        "Forbidden: Only work order summary exports are available for your role",
+        403,
+        { req },
+      );
     }
 
     const rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
@@ -69,6 +78,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       return createErrorResponse(
         "Rate limit exceeded. Please wait before requesting another export.",
         429,
+        { req },
       );
     }
 
@@ -95,7 +105,13 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
           ({ csvContent, rowCount } = await exportEquipment(supabase, organizationId, filters, columns));
           break;
         case "work-orders":
-          ({ csvContent, rowCount } = await exportWorkOrders(supabase, organizationId, filters, columns));
+          ({ csvContent, rowCount } = await exportWorkOrders(
+            supabase,
+            organizationId,
+            filters,
+            columns,
+            exportAccess.mode === "scoped" ? exportAccess.teamIds : undefined,
+          ));
           break;
         case "inventory":
           ({ csvContent, rowCount } = await exportInventory(supabase, organizationId, filters, columns));
@@ -123,7 +139,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
       return new Response(csvContent, {
         headers: {
-          ...corsHeaders,
+          ...getCorsHeaders(req),
           "Content-Type": "text/csv; charset=utf-8",
           "Content-Disposition": `attachment; filename="${reportType}_export_${new Date().toISOString().split("T")[0]}.csv"`,
         },
@@ -142,6 +158,6 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     }
   } catch (error) {
     console.error("[EXPORT-REPORT] Export error:", error);
-    return createErrorResponse("An unexpected error occurred", 500);
+    return createErrorResponse("An unexpected error occurred", 500, { req });
   }
 }));
