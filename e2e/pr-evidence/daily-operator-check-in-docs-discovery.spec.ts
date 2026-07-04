@@ -21,8 +21,9 @@ const OPERATOR_GUIDE_PATH = '/support/administration/operator-daily-check-ins';
 test.describe.serial('Daily operator check-in docs discovery @pr-evidence', () => {
   let publicToken = '';
 
-  test.beforeAll(async () => {
+  test.beforeAll(async ({ request }) => {
     await resetApexOperatorCheckinEvidence();
+    await assertDocsDevServerReady(request);
   });
 
   test.beforeEach(async ({ context }) => {
@@ -31,12 +32,9 @@ test.describe.serial('Daily operator check-in docs discovery @pr-evidence', () =
 
   test('users can discover the operator guide from app surfaces and Help Center', async ({
     page,
-    request,
     gotoDashboard,
     assertHealthyShell,
   }) => {
-    await assertDocsDevServerReady(request);
-
     await gotoDashboard('/operator-check-ins');
     await assertHealthyShell();
 

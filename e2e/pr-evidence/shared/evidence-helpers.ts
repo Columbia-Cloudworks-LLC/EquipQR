@@ -41,10 +41,27 @@ export async function assertDocsDevServerReady(
   baseUrl: string = DEFAULT_DOCS_BASE,
 ): Promise<void> {
   const guideUrl = `${baseUrl.replace(/\/$/, '')}${OPERATOR_GUIDE_PATH}`;
-  const response = await request.get(guideUrl);
+
+  let response;
+  try {
+    response = await request.get(guideUrl);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Docs dev server unreachable at ${guideUrl}: ${message}`);
+  }
+
+  const body = await response.text();
   if (!response.ok()) {
     throw new Error(
-      `Docs dev server required at ${baseUrl} (start via dev-start.bat). Guide probe returned ${response.status()}.`,
+      `Docs dev server required at ${baseUrl} (start via dev-start.bat). GET ${guideUrl} returned ${response.status()} ${response.statusText()}: ${body.slice(0, 200)}`,
+    );
+  }
+
+  const isVitePressDevShell =
+    body.includes('vitepress') || body.includes('/@vite/client') || body.includes('id="app"');
+  if (!isVitePressDevShell) {
+    throw new Error(
+      `Docs dev server probe at ${guideUrl} returned ${response.status()} but response did not look like VitePress: ${body.slice(0, 200)}`,
     );
   }
 }
