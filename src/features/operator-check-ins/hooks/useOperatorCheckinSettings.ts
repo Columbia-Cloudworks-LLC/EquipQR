@@ -24,11 +24,12 @@ function invalidateAssignmentQueries(
 export function useEquipmentOperatorCheckinAssignments(
   equipmentId: string | undefined,
   organizationId: string | undefined,
+  options?: { enabled?: boolean },
 ) {
   return useQuery({
     queryKey: operatorCheckinKeys.equipmentAssignments(equipmentId ?? '', organizationId ?? ''),
     queryFn: () => listEquipmentOperatorCheckinAssignments(equipmentId!, organizationId!),
-    enabled: Boolean(equipmentId && organizationId),
+    enabled: Boolean(equipmentId && organizationId && (options?.enabled ?? true)),
   });
 }
 

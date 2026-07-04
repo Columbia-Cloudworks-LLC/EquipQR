@@ -56,6 +56,15 @@ Deno.test("sanitizeOperatorChecklistAnswers drops unknown items and normalizes n
   assertEquals(sanitized, [{ item_id: "a", passed: true, notes: "ok" }]);
 });
 
+Deno.test("sanitizeOperatorChecklistAnswers deduplicates by item_id", () => {
+  const items = [{ id: "a", title: "Brakes", required: true, section: "Safety" }];
+  const sanitized = sanitizeOperatorChecklistAnswers(items, [
+    { item_id: "a", passed: false, notes: "first" },
+    { item_id: "a", passed: true, notes: "second" },
+  ]);
+  assertEquals(sanitized, [{ item_id: "a", passed: true, notes: "second" }]);
+});
+
 Deno.test("normalizeTextValue trims and caps length", () => {
   assertEquals(normalizeTextValue("  Jane  ", 200), "Jane");
   assertEquals(normalizeTextValue("x".repeat(300), 200)?.length, 200);

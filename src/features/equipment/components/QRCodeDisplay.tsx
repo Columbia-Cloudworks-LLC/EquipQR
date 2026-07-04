@@ -63,9 +63,10 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
   organizationId,
   initialVariant = EQUIPMENT_VARIANT,
 }) => {
-  const { data: assignments = [] } = useEquipmentOperatorCheckinAssignments(
-    open ? equipmentId : undefined,
-    open ? organizationId : undefined,
+  const { data: assignments = [], isLoading: assignmentsLoading } = useEquipmentOperatorCheckinAssignments(
+    equipmentId,
+    organizationId,
+    { enabled: open },
   );
   const [variant, setVariant] = useState<QRVariant>(initialVariant);
   const [tokenRevision, setTokenRevision] = useState(0);
@@ -92,7 +93,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
   }, [open, equipmentId, initialVariant, refreshTokens]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || assignmentsLoading) return;
     const selectedAssignmentId = assignmentIdFromVariant(variant);
     if (selectedAssignmentId) {
       const stillValid = enabledAssignments.some((assignment) => assignment.id === selectedAssignmentId);
@@ -100,7 +101,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
         setVariant(EQUIPMENT_VARIANT);
       }
     }
-  }, [open, variant, enabledAssignments]);
+  }, [open, variant, enabledAssignments, assignmentsLoading]);
 
   const selectedAssignmentId = assignmentIdFromVariant(variant);
   const selectedAssignment = enabledAssignments.find((assignment) => assignment.id === selectedAssignmentId);
@@ -108,7 +109,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
     ? getStoredOperatorCheckinToken(selectedAssignmentId)
     : null;
 
-  // tokenRevision ensures memo recalculates when localStorage tokens change
+  // tokenRevision ensures memo recalculates when in-memory tokens change
   const activeConfig = useMemo(() => {
     void tokenRevision;
 

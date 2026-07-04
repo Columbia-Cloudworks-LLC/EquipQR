@@ -136,25 +136,25 @@ export function validateOperatorChecklistAnswers(
   };
 }
 
-/** Persist only template-known answers with normalized notes. */
+/** Persist only template-known answers with normalized notes (last answer wins per item). */
 export function sanitizeOperatorChecklistAnswers(
   items: OperatorChecklistTemplateItem[],
   answers: OperatorChecklistAnswer[],
 ): OperatorChecklistAnswer[] {
   const allowedIds = new Set(items.map((item) => item.id));
-  const sanitized: OperatorChecklistAnswer[] = [];
+  const deduped = new Map<string, OperatorChecklistAnswer>();
 
   for (const answer of answers) {
     if (!allowedIds.has(answer.item_id)) continue;
     if (typeof answer.passed !== "boolean") continue;
-    sanitized.push({
+    deduped.set(answer.item_id, {
       item_id: answer.item_id,
       passed: answer.passed,
       notes: normalizeTextValue(answer.notes, 2000),
     });
   }
 
-  return sanitized;
+  return [...deduped.values()];
 }
 
 function isOperatorValuePresent(value: unknown, inputType: OperatorInputFieldType): boolean {

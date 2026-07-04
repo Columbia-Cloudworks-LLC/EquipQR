@@ -1,9 +1,15 @@
 /**
  * Public operator daily check-in edge function (#1091).
+ *
+ * Public endpoint (no Supabase session required): callers authenticate with the
+ * per-assignment QR token. CAPTCHA and rate limits apply on submit.
+ * Optional Bearer JWT is accepted for observability only and does not grant access
+ * without a valid assignment token (same contract as submit-privacy-request).
  */
 
 import {
   createAdminSupabaseClient,
+  createUserSupabaseClient,
   createErrorResponse,
   createJsonResponse,
   handleCorsPreflightIfNeeded,
@@ -270,6 +276,19 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
   if (!isValidPublicToken(body.token)) {
     return createErrorResponse("Check-in is not available", 404, { req });
+  }
+
+  try {
+    const userClient = createUserSupabaseClient(req);
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const parts = authHeader.trim().split(/\s+/);
+      if (parts.length === 2 && parts[0]?.toLowerCase() === "bearer" && parts[1]) {
+        await userClient.auth.getUser(parts[1]);
+      }
+    }
+  } catch {
+    // Public token auth is sufficient for this endpoint.
   }
 
   const admin = createAdminSupabaseClient();

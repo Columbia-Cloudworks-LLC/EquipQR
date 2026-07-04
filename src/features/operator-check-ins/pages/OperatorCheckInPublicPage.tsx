@@ -28,8 +28,6 @@ import {
 } from '@/features/operator-check-ins/types/operatorChecklist';
 import { groupChecklistItemsBySection } from '@/utils/pmChecklistHelpers';
 
-const DRAFT_PREFIX = 'equipqr-operator-checkin-draft:';
-
 function renderOperatorInput(
   field: OperatorChecklistDataField,
   value: unknown,
@@ -150,16 +148,6 @@ export default function OperatorCheckInPublicPage() {
         setLocationCollectionEnabled(data.locationCollectionEnabled);
         setCaptchaRequired(data.captchaRequired);
         setComplianceNotice(data.complianceNotice);
-
-        const draftRaw = localStorage.getItem(`${DRAFT_PREFIX}${token}`);
-        if (draftRaw) {
-          const draft = JSON.parse(draftRaw) as {
-            operatorValues?: Record<string, unknown>;
-            answers?: Record<string, OperatorChecklistAnswer>;
-          };
-          setOperatorValues(draft.operatorValues ?? {});
-          setAnswers(draft.answers ?? {});
-        }
       } catch {
         if (!cancelled) setLoadError('This check-in link is not available.');
       } finally {
@@ -191,14 +179,6 @@ export default function OperatorCheckInPublicPage() {
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 },
     );
   }, [locationCollectionEnabled, token]);
-
-  useEffect(() => {
-    if (!token || submitted) return;
-    localStorage.setItem(
-      `${DRAFT_PREFIX}${token}`,
-      JSON.stringify({ operatorValues, answers }),
-    );
-  }, [token, operatorValues, answers, submitted]);
 
   const answerList = useMemo(() => Object.values(answers), [answers]);
   const checklistValidation = useMemo(
@@ -255,7 +235,6 @@ export default function OperatorCheckInPublicPage() {
         location: coords ? `${coords.lat}, ${coords.lng}` : null,
         captchaToken: hcaptchaToken ?? undefined,
       });
-      localStorage.removeItem(`${DRAFT_PREFIX}${token}`);
       setSubmittedAt(result.submittedAt);
       setSubmitted(true);
     } catch (err) {

@@ -1,49 +1,24 @@
-const STORAGE_PREFIX = 'equipqr-operator-checkin-token:';
+const tokenCache = new Map<string, string>();
 export const OPERATOR_CHECKIN_TOKEN_CHANGED_EVENT = 'equipqr-operator-checkin-token-changed';
 
-function getTokenStorage(): Storage | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    return window.sessionStorage;
-  } catch {
-    return null;
-  }
-}
-
 export function getStoredOperatorCheckinToken(assignmentId: string): string | null {
-  const storage = getTokenStorage();
-  if (!storage) return null;
-  try {
-    return storage.getItem(`${STORAGE_PREFIX}${assignmentId}`);
-  } catch {
-    return null;
-  }
+  return tokenCache.get(assignmentId) ?? null;
 }
 
 export function storeOperatorCheckinToken(assignmentId: string, rawToken: string): void {
-  const storage = getTokenStorage();
-  if (!storage) return;
-  try {
-    storage.setItem(`${STORAGE_PREFIX}${assignmentId}`, rawToken);
-    window.dispatchEvent(
-      new CustomEvent(OPERATOR_CHECKIN_TOKEN_CHANGED_EVENT, { detail: { assignmentId } }),
-    );
-  } catch {
-    // Best-effort only — QR can still be regenerated via token rotation.
-  }
+  tokenCache.set(assignmentId, rawToken);
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent(OPERATOR_CHECKIN_TOKEN_CHANGED_EVENT, { detail: { assignmentId } }),
+  );
 }
 
 export function clearStoredOperatorCheckinToken(assignmentId: string): void {
-  const storage = getTokenStorage();
-  if (!storage) return;
-  try {
-    storage.removeItem(`${STORAGE_PREFIX}${assignmentId}`);
-    window.dispatchEvent(
-      new CustomEvent(OPERATOR_CHECKIN_TOKEN_CHANGED_EVENT, { detail: { assignmentId } }),
-    );
-  } catch {
-    // ignore
-  }
+  tokenCache.delete(assignmentId);
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent(OPERATOR_CHECKIN_TOKEN_CHANGED_EVENT, { detail: { assignmentId } }),
+  );
 }
 
 export function subscribeOperatorCheckinTokenChanges(onChange: () => void): () => void {
