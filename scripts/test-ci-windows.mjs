@@ -12,7 +12,6 @@
 
 import { spawnSync } from 'child_process';
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -61,8 +60,9 @@ export CI=true
 node scripts/test-ci-sharded.mjs --shards=4
 `.trim();
 
-const scriptPath = path.join(os.tmpdir(), `equipqr-test-ci-${process.pid}.sh`);
-fs.writeFileSync(scriptPath, `${bashScript}\n`, 'utf8');
+const scriptDir = fs.mkdtempSync(path.join(repoRoot, 'tmp', 'equipqr-test-ci-'));
+const scriptPath = path.join(scriptDir, 'run.sh');
+fs.writeFileSync(scriptPath, `${bashScript}\n`, { encoding: 'utf8', mode: 0o700, flag: 'wx' });
 const scriptWsl = toWslPath(scriptPath);
 
 const wslDistro = process.env.WSL_DISTRO?.trim();
@@ -87,7 +87,7 @@ const result = spawnSync('wsl', wslArgs, {
 });
 
 try {
-  fs.unlinkSync(scriptPath);
+  fs.rmSync(scriptDir, { recursive: true, force: true });
 } catch {
   // ignore cleanup errors
 }
