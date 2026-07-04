@@ -113,6 +113,7 @@ describe('workOrderRowMapper', () => {
     const location = resolveWorkOrderLocation(equipment);
 
     expect(location?.source).toBe('scan');
+    expect(location?.sourceLabel).toBe('Last known scan location');
     expect(location?.lat).toBe(29.5);
     expect(location?.lng).toBe(-98.5);
   });

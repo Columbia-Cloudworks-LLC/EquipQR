@@ -1,4 +1,4 @@
-import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
+import { parseLastKnownLocation, resolveEffectiveLocation } from '@/utils/effectiveLocation';
 import {
   WorkOrder,
   WorkOrderEmbeddedEquipment,
@@ -159,14 +159,10 @@ export function mapQuickBooksInvoiceFields(wo: Record<string, unknown>): Partial
   };
 }
 
-function mapLastScanLocation(equipment: WorkOrderJoinedEquipment): { lat: number; lng: number } | undefined {
-  const lastKnown = equipment?.last_known_location;
-
-  if (!lastKnown || lastKnown.latitude == null || lastKnown.longitude == null) {
-    return undefined;
-  }
-
-  return { lat: lastKnown.latitude, lng: lastKnown.longitude };
+function mapLastScanLocation(
+  equipment: WorkOrderJoinedEquipment,
+): { lat: number; lng: number; updatedAt?: string; formattedAddress?: string } | undefined {
+  return parseLastKnownLocation(equipment?.last_known_location ?? null);
 }
 
 function mapTeamLocationInput(team: WorkOrderJoinedTeam) {
@@ -194,6 +190,8 @@ function mapEquipmentLocationInput(equipment: WorkOrderJoinedEquipment) {
     assigned_location_city: equipment?.assigned_location_city,
     assigned_location_state: equipment?.assigned_location_state,
     assigned_location_country: equipment?.assigned_location_country,
+    locationText: equipment?.location,
+    updatedAt: equipment?.updated_at,
   };
 }
 

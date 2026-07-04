@@ -12,6 +12,8 @@ export const equipment = {
     ['equipment', orgId, equipmentId, 'scan-follow-ups'] as const,
   scanHistory: (orgId: string, equipmentId: string) =>
     ['equipment', orgId, equipmentId, 'scan-history'] as const,
+  locationHistory: (orgId: string, equipmentId: string, limit: number = 50) =>
+    ['equipment', orgId, equipmentId, 'location-history', limit] as const,
   notes: (equipmentId: string, orgId?: string) =>
     orgId ? ['equipment', equipmentId, 'notes', orgId] as const
           : ['equipment', equipmentId, 'notes'] as const,

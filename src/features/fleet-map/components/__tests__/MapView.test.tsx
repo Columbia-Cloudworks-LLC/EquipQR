@@ -73,7 +73,7 @@ describe('MapView', () => {
       serial_number: 'SN001',
       lat: 10,
       lng: 20,
-      source: 'equipment' as const,
+      source: 'manual' as const,
       formatted_address: undefined,
       working_hours: 100,
       last_maintenance: null,
@@ -107,9 +107,7 @@ describe('MapView', () => {
       serial_number: 'SN003',
       lat: 50,
       lng: 60,
-      source: 'equipment' as const,
-      formatted_address: undefined,
-      working_hours: 300,
+      source: 'legacy' as const,
       last_maintenance: null,
       image_url: null,
       location_updated_at: '2024-01-03T00:00:00Z',
@@ -213,6 +211,24 @@ describe('MapView', () => {
 
       const markers = screen.queryAllByTestId('marker');
       expect(markers).toHaveLength(0);
+    });
+  });
+
+  describe('Source controls', () => {
+    it('renders location source legend labels and filter control', () => {
+      render(
+        <MapView
+          googleMapsKey="test-api-key"
+          mapId="test-map-id"
+          equipmentLocations={mockEquipmentLocations}
+          filteredLocations={mockEquipmentLocations}
+          isMapsLoaded={true}
+        />
+      );
+
+      expect(screen.getByText('Assigned Address')).toBeInTheDocument();
+      expect(screen.getByText('QR Scan GPS')).toBeInTheDocument();
+      expect(screen.getByLabelText('Filter map markers by location source')).toBeInTheDocument();
     });
   });
 

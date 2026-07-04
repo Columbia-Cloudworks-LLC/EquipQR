@@ -105,6 +105,7 @@ describe('teamFleetService', () => {
       expect(result[0].equipment[0].id).toBe('eq-1');
       expect(result[0].equipment[0].lat).toBe(10);
       expect(result[0].equipment[0].lng).toBe(20);
+      expect(result[0].equipment[0].source).toBe('legacy');
       
       // Verify no equipment has (0, 0) coordinates
       result.forEach(teamData => {

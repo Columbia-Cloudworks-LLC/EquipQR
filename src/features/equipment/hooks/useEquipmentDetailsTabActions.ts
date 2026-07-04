@@ -7,6 +7,7 @@ import type { EquipmentTeamSummary } from '@/features/equipment/services/Equipme
 import { queryKeys } from '@/lib/queryKeys';
 import { applyEquipmentUpdateRules } from '@/utils/object-utils';
 import { logger } from '@/utils/logger';
+import { persistEquipmentAssignedLocation } from '@/features/equipment/hooks/persistEquipmentAssignedLocation';
 
 type Equipment = Tables<'equipment'>;
 
@@ -131,20 +132,9 @@ export function useEquipmentDetailsTabActions({
 
   const saveAssignedLocation = useCallback(
     async (data: PlaceLocationData) => {
-      await updateEquipmentMutation.mutateAsync({
-        id: equipment.id,
-        data: {
-          assigned_location_street: data.street || null,
-          assigned_location_city: data.city || null,
-          assigned_location_state: data.state || null,
-          assigned_location_country: data.country || null,
-          assigned_location_lat: data.lat,
-          assigned_location_lng: data.lng,
-        },
-      });
-      toast.success('Location updated successfully');
+      await persistEquipmentAssignedLocation(equipment.id, data, updateEquipmentMutation.mutateAsync);
     },
-    [equipment.id, updateEquipmentMutation]
+    [equipment.id, updateEquipmentMutation.mutateAsync],
   );
 
   const teamOptions = useMemo(

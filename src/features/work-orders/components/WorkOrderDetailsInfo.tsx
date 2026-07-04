@@ -17,6 +17,7 @@ import { humanizeAttributeKey, humanizeAttributeValue } from '@/features/work-or
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import type { EffectiveLocation } from '@/utils/effectiveLocation';
 import InlineEditField from '@/features/equipment/components/InlineEditField';
+import { LocationSourceBadge } from '@/components/location/LocationSourceBadge';
 
 interface WorkOrderDetailsInfoProps {
   workOrder: EnhancedWorkOrder;
@@ -147,13 +148,18 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
                               </div>
                               {effectiveLocation!.formattedAddress && (
                                 <div className="flex items-start gap-1.5 px-2 py-1.5 bg-background">
-                                  <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
-                                  <ClickableAddress
-                                    address={effectiveLocation!.formattedAddress}
-                                    lat={effectiveLocation!.lat!}
-                                    lng={effectiveLocation!.lng!}
-                                    className="text-xs"
-                                  />
+                                  <div className="flex flex-col gap-1 min-w-0 flex-1">
+                                    <LocationSourceBadge source={effectiveLocation!.source} />
+                                    <div className="flex items-start gap-1.5">
+                                      <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                      <ClickableAddress
+                                        address={effectiveLocation!.formattedAddress}
+                                        lat={effectiveLocation!.lat!}
+                                        lng={effectiveLocation!.lng!}
+                                        className="text-xs"
+                                      />
+                                    </div>
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -230,12 +236,15 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
                       <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                       <span className="font-medium mr-1">Location:</span>
                       {effectiveLocation ? (
-                        <ClickableAddress
-                          address={effectiveLocation.formattedAddress}
-                          lat={effectiveLocation.lat}
-                          lng={effectiveLocation.lng}
-                          className="text-sm break-words"
-                        />
+                        <div className="flex flex-col gap-1 min-w-0">
+                          <LocationSourceBadge source={effectiveLocation.source} className="w-fit" />
+                          <ClickableAddress
+                            address={effectiveLocation.formattedAddress}
+                            lat={effectiveLocation.lat}
+                            lng={effectiveLocation.lng}
+                            className="text-sm break-words"
+                          />
+                        </div>
                       ) : equipment.location ? (
                         <ClickableAddress
                           address={equipment.location}

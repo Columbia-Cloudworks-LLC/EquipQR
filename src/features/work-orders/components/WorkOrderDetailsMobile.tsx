@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { GoogleMap, MarkerF } from '@react-google-maps/api';
 import { useEquipmentCurrentWorkingHours } from '@/features/equipment/hooks/useEquipmentWorkingHours';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
+import { LocationSourceBadge } from '@/components/location/LocationSourceBadge';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import { humanizeAttributeKey, humanizeAttributeValue } from '@/features/work-orders/utils/workOrderHelpers';
 import type { EffectiveLocation } from '@/utils/effectiveLocation';
@@ -133,14 +134,23 @@ const LocationMap: React.FC<LocationMapProps> = ({ effectiveLocation, equipmentL
                 </GoogleMap>
               </div>
               {effectiveLocation.formattedAddress ? (
-                <div className="flex min-h-[44px] touch-manipulation items-center gap-1.5 bg-background px-2 py-1.5">
-                  <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <ClickableAddress
-                    address={effectiveLocation.formattedAddress}
-                    lat={effectiveLocation.lat!}
-                    lng={effectiveLocation.lng!}
-                    className="text-xs"
-                  />
+                <div className="flex min-h-[44px] touch-manipulation items-start gap-1.5 bg-background px-2 py-1.5">
+                  <div className="flex flex-col gap-1 min-w-0 flex-1">
+                    <LocationSourceBadge source={effectiveLocation.source} className="w-fit" />
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <ClickableAddress
+                        address={effectiveLocation.formattedAddress}
+                        lat={effectiveLocation.lat!}
+                        lng={effectiveLocation.lng!}
+                        className="text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : effectiveLocation ? (
+                <div className="px-2 py-1.5 bg-background">
+                  <LocationSourceBadge source={effectiveLocation.source} className="w-fit" />
                 </div>
               ) : null}
             </div>

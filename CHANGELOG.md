@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.12.1] - 2026-07-04
+
+### Fixed
+
+- **Map location consistency (#1123)** — Equipment maps and location readouts now use a shared source model (team location, equipment location, last known scan location, legacy coordinates) with explicit labels and selectors across Fleet Map, equipment details, work orders, and scan/location history. Equipment detail maps render via the vis.gl loader, expose a source dropdown on the location card, and let editors set an equipment address directly from the map card (which switches the asset off team inheritance). Scan GPS inserts now sync `last_known_location` so mini maps stay aligned with fleet scan fallback.
+
 ## [3.12.0] - 2026-07-03
 
 ### Added

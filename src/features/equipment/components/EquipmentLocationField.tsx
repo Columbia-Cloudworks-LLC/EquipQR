@@ -11,6 +11,7 @@ import { MapPin, Edit2, Info, Navigation, X, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Tables } from '@/integrations/supabase/types';
+import { LocationSourceBadge } from '@/components/location/LocationSourceBadge';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import GooglePlacesAutocomplete, { type PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import type { EquipmentTeamSummary } from '@/features/equipment/services/EquipmentService';
@@ -122,12 +123,15 @@ export const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
         <span className="text-sm font-medium text-muted-foreground">Location</span>
         <div className="mt-1 flex items-center gap-2">
           <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-          <ClickableAddress
-            address={teamAddress || undefined}
-            lat={team!.location_lat}
-            lng={team!.location_lng}
-            className="text-base"
-          />
+          <div className="flex flex-col gap-1 min-w-0">
+            <LocationSourceBadge source="team" className="w-fit" />
+            <ClickableAddress
+              address={teamAddress || undefined}
+              lat={team!.location_lat}
+              lng={team!.location_lng}
+              className="text-base"
+            />
+          </div>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -212,12 +216,15 @@ export const EquipmentLocationField: React.FC<EquipmentLocationFieldProps> = ({
         >
           <div className={cn('flex min-w-0 items-center gap-2', isMobile && mobileInlineEditValueClassName)}>
             <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-            <ClickableAddress
-              address={equipmentAddress}
-              lat={equipment.assigned_location_lat ?? undefined}
-              lng={equipment.assigned_location_lng ?? undefined}
-              className="min-w-0 text-base"
-            />
+            <div className="flex flex-col gap-1 min-w-0">
+              <LocationSourceBadge source="manual" className="w-fit" />
+              <ClickableAddress
+                address={equipmentAddress}
+                lat={equipment.assigned_location_lat ?? undefined}
+                lng={equipment.assigned_location_lng ?? undefined}
+                className="min-w-0 text-base"
+              />
+            </div>
           </div>
           {canEdit && (
             <Button

@@ -5661,6 +5661,10 @@ export type Database = {
           template_name: string
         }[]
       }
+      resolve_operator_checkin_by_token: {
+        Args: { p_token_hash: string }
+        Returns: Json
+      }
       respond_to_ownership_transfer: {
         Args: {
           p_accept: boolean
@@ -5715,6 +5719,21 @@ export type Database = {
       snapshot_account_deletion_attribution: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      submit_operator_checkin_public: {
+        Args: {
+          p_answered_required_count: number
+          p_checklist_answers: Json
+          p_client_field_values: Json
+          p_equipment_field_values: Json
+          p_is_complete: boolean
+          p_operator_field_values: Json
+          p_request_fingerprint?: string
+          p_required_item_count: number
+          p_template_snapshot: Json
+          p_token_hash: string
+        }
+        Returns: Json
       }
       synthesize_historical_timeline_events: {
         Args: {

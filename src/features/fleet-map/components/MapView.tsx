@@ -8,11 +8,18 @@ import {
 } from '@vis.gl/react-google-maps';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { AlertTriangle, ExternalLink, Clock, Wrench, Users, Navigation, Star, Maximize2, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { DATE_DISPLAY_FORMAT } from '@/config/date-formats';
-import { buildGoogleMapsUrlFromCoords } from '@/utils/effectiveLocation';
+import { buildGoogleMapsUrlFromCoords, FLEET_MAP_SOURCE_LABELS, type FleetMapSource } from '@/utils/effectiveLocation';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import { cn } from '@/lib/utils';
 import { logger } from '@/utils/logger';
@@ -43,7 +50,7 @@ function getRelativeTime(dateString: string): string {
   }
 }
 
-type SourceType = 'team' | 'equipment' | 'scan' | 'geocoded';
+type SourceType = FleetMapSource;
 
 type MarkerColor = {
   fill: string;
@@ -52,10 +59,11 @@ type MarkerColor = {
 };
 
 const SOURCE_TOKEN_CONFIG: Record<SourceType, { token: 'info' | 'primary' | 'success' | 'warning'; label: string }> = {
-  team: { token: 'info', label: 'Team Override' },
-  equipment: { token: 'primary', label: 'Manual Address' },
-  scan: { token: 'success', label: 'QR Scan GPS' },
-  geocoded: { token: 'warning', label: 'Geocoded' },
+  team: { token: 'info', label: FLEET_MAP_SOURCE_LABELS.team },
+  manual: { token: 'primary', label: FLEET_MAP_SOURCE_LABELS.manual },
+  scan: { token: 'success', label: FLEET_MAP_SOURCE_LABELS.scan },
+  legacy: { token: 'warning', label: FLEET_MAP_SOURCE_LABELS.legacy },
+  geocoded: { token: 'warning', label: FLEET_MAP_SOURCE_LABELS.geocoded },
 };
 
 const SOURCE_TOKEN_CLASSES: Record<
@@ -66,13 +74,17 @@ const SOURCE_TOKEN_CLASSES: Record<
     badge: 'bg-info text-info-foreground',
     dot: 'bg-info',
   },
-  equipment: {
+  manual: {
     badge: 'bg-primary text-primary-foreground',
     dot: 'bg-primary',
   },
   scan: {
     badge: 'bg-success text-success-foreground',
     dot: 'bg-success',
+  },
+  legacy: {
+    badge: 'bg-warning text-warning-foreground',
+    dot: 'bg-warning',
   },
   geocoded: {
     badge: 'bg-warning text-warning-foreground',
@@ -89,8 +101,9 @@ const TEAM_HQ_CLASSES = {
 
 const SOURCE_TOKEN_FALLBACKS: Record<SourceType, string> = {
   team: '#3B82F6',
-  equipment: '#7C3AED',
+  manual: '#7C3AED',
   scan: '#16A34A',
+  legacy: '#F59E0B',
   geocoded: '#F59E0B',
 };
 
@@ -211,8 +224,16 @@ const MapContent: React.FC<{
   const navigate = useNavigate();
   const [selectedMarker, setSelectedMarker] = useState<EquipmentLocation | null>(null);
   const [selectedHQ, setSelectedHQ] = useState<TeamHQLocation | null>(null);
+  const [sourceFilter, setSourceFilter] = useState<SourceType | 'all'>('all');
   const themeVersion = useThemeVersion();
   const hasAutoFitted = useRef(false);
+
+  const visibleLocations = useMemo(() => {
+    if (sourceFilter === 'all') {
+      return filteredLocations;
+    }
+    return filteredLocations.filter((location) => location.source === sourceFilter);
+  }, [filteredLocations, sourceFilter]);
 
   const sourceColors = useMemo<Record<SourceType, MarkerColor>>(() => {
     return (Object.keys(SOURCE_TOKEN_CONFIG) as SourceType[]).reduce((accumulator, sourceType) => {
@@ -244,7 +265,7 @@ const MapContent: React.FC<{
     if (!map || typeof window === 'undefined' || !window.google?.maps) return;
 
     const allPoints: { lat: number; lng: number }[] = [
-      ...filteredLocations.map((l) => ({ lat: l.lat, lng: l.lng })),
+      ...visibleLocations.map((l) => ({ lat: l.lat, lng: l.lng })),
       ...teamHQLocations.map((h) => ({ lat: h.lat, lng: h.lng })),
     ];
 
@@ -265,7 +286,7 @@ const MapContent: React.FC<{
       const z = map.getZoom();
       if (z !== undefined && z > 15) map.setZoom(15);
     });
-  }, [map, filteredLocations, teamHQLocations]);
+  }, [map, visibleLocations, teamHQLocations]);
 
   // Build a stable signature of the visible marker identities so we can
   // detect a meaningful dataset change (e.g. user switched the team filter)
@@ -274,12 +295,13 @@ const MapContent: React.FC<{
   const markerSignature = useMemo(
     () =>
       [
-        ...filteredLocations.map((l) => `e:${l.id}`),
+        ...visibleLocations.map((l) => `e:${l.id}`),
         ...teamHQLocations.map((h) => `t:${h.teamId}`),
+        sourceFilter,
       ]
         .sort()
         .join('|'),
-    [filteredLocations, teamHQLocations],
+    [visibleLocations, teamHQLocations, sourceFilter],
   );
   const lastFitSignature = useRef<string | null>(null);
 
@@ -289,12 +311,12 @@ const MapContent: React.FC<{
   // manually pans away.
   useEffect(() => {
     if (!map) return;
-    if (filteredLocations.length === 0 && teamHQLocations.length === 0) return;
+    if (visibleLocations.length === 0 && teamHQLocations.length === 0) return;
     if (lastFitSignature.current === markerSignature) return;
     fitAllMarkers();
     hasAutoFitted.current = true;
     lastFitSignature.current = markerSignature;
-  }, [map, markerSignature, filteredLocations, teamHQLocations, fitAllMarkers]);
+  }, [map, markerSignature, visibleLocations, teamHQLocations, fitAllMarkers]);
 
   // Auto-focus on a specific equipment when focusEquipmentId changes
   useEffect(() => {
@@ -307,13 +329,13 @@ const MapContent: React.FC<{
     }
   }, [focusEquipmentId, filteredLocations, map]);
 
-  const sourceConfig = selectedMarker ? sourceColors[selectedMarker.source] || sourceColors.equipment : null;
-  const selectedSourceType: SourceType = selectedMarker?.source ?? 'equipment';
+  const sourceConfig = selectedMarker ? sourceColors[selectedMarker.source] || sourceColors.manual : null;
+  const selectedSourceType: SourceType = selectedMarker?.source ?? 'manual';
   const selectedSourceClasses = SOURCE_TOKEN_CLASSES[selectedSourceType];
 
   return (
     <>
-      {filteredLocations.map((location) => {
+      {visibleLocations.map((location) => {
         const colors = sourceColors[location.source];
         return (
           <AdvancedMarker
@@ -537,8 +559,24 @@ const MapContent: React.FC<{
       </Button>
 
       {/* Map Legend — bottom-right to avoid conflict with Google's top-right controls */}
-      <div className="absolute bottom-6 right-4 bg-background/95 backdrop-blur-sm border border-border/80 rounded-xl px-3.5 py-3 shadow-xl z-10">
+      <div className="absolute bottom-6 right-4 bg-background/95 backdrop-blur-sm border border-border/80 rounded-xl px-3.5 py-3 shadow-xl z-10 max-w-[220px]">
         <p className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider mb-2">Location Source</p>
+        <Select
+          value={sourceFilter}
+          onValueChange={(value) => setSourceFilter(value as SourceType | 'all')}
+        >
+          <SelectTrigger aria-label="Filter map markers by location source" className="h-8 mb-2 text-xs">
+            <SelectValue placeholder="All sources" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All sources</SelectItem>
+            {(Object.keys(SOURCE_TOKEN_CONFIG) as SourceType[]).map((sourceType) => (
+              <SelectItem key={sourceType} value={sourceType}>
+                {SOURCE_TOKEN_CONFIG[sourceType].label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="space-y-1.5">
           {(Object.entries(sourceColors) as [SourceType, MarkerColor][]).map(([key, { label }]) => (
             <div key={key} className="flex items-center gap-2.5">

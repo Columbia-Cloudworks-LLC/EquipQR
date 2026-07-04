@@ -73,6 +73,18 @@ describe('EquipmentLocationField', () => {
       expect(editButton.className).not.toContain('opacity-0');
     });
 
+    it('shows the assigned address source badge for structured addresses', () => {
+      render(
+        <EquipmentLocationField
+          {...baseProps}
+          equipment={structuredAddressEquipment}
+        />,
+      );
+
+      expect(screen.getByText('Equipment location')).toBeInTheDocument();
+      expect(screen.getByTestId('clickable-address')).toHaveTextContent('123 Main St, Austin, TX, USA');
+    });
+
     it('keeps desktop hover-reveal on the edit icon', () => {
       mockUseIsMobile.mockReturnValue(false);
       render(
