@@ -16,8 +16,8 @@ import {
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
 import { optionalSecret } from "../_shared/require-secret.ts";
+import { requireOperatorCheckinAssignmentToken } from "../_shared/operator-checkin-public-auth.ts";
 import {
-  hashToken,
   normalizeTextValue,
   parseTemplateData,
   resolveEquipmentSnapshotValue,
@@ -30,18 +30,7 @@ import {
   type OperatorChecklistDataField,
 } from "../_shared/operator-checklist-validation.ts";
 
-const MIN_PUBLIC_TOKEN_LENGTH = 32;
-const MAX_PUBLIC_TOKEN_LENGTH = 128;
-
 /** Public endpoint: Supabase session auth is intentionally omitted; access is gated by the assignment token hash. */
-function isValidPublicToken(token: string): boolean {
-  const trimmed = token.trim();
-  return (
-    trimmed.length >= MIN_PUBLIC_TOKEN_LENGTH &&
-    trimmed.length <= MAX_PUBLIC_TOKEN_LENGTH &&
-    /^[a-zA-Z0-9_-]+$/.test(trimmed)
-  );
-}
 
 interface LoadRequest {
   action: "load";
@@ -89,23 +78,6 @@ async function verifyCaptcha(token: string | undefined): Promise<boolean> {
     console.error("[OPERATOR-CHECKIN] hCaptcha verification failed");
     return false;
   }
-}
-
-async function resolveSettingsByToken(
-  supabase: ReturnType<typeof createUserSupabaseClient>,
-  token: string,
-) {
-  const tokenHash = await hashToken(token.trim());
-  const { data, error } = await supabase.rpc("resolve_operator_checkin_by_token", {
-    p_token_hash: tokenHash,
-  });
-
-  if (error) {
-    console.error("[OPERATOR-CHECKIN] settings lookup failed:", error.message);
-    return null;
-  }
-
-  return data as Record<string, unknown> | null;
 }
 
 function buildEquipmentPreviewFields(
@@ -223,22 +195,15 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     return createErrorResponse("Missing action or token", 400, { req });
   }
 
-  if (!isValidPublicToken(body.token)) {
-    return createErrorResponse("Check-in is not available", 404, { req });
-  }
-
   const supabase = createUserSupabaseClient(req);
-  const settings = await resolveSettingsByToken(supabase, body.token);
-
-  if (!settings || !settings.enabled || !settings.template) {
-    return createErrorResponse("Check-in is not available", 404, { req });
+  const tokenAuth = await requireOperatorCheckinAssignmentToken(supabase, body.token);
+  if (!tokenAuth.ok) {
+    return createErrorResponse(tokenAuth.error, tokenAuth.status, { req });
   }
 
+  const settings = tokenAuth.settings;
   const equipment = settings.equipment as Record<string, unknown> | null;
   const template = settings.template as Record<string, unknown>;
-  if (template.is_active === false) {
-    return createErrorResponse("Check-in is not available", 404, { req });
-  }
   const org = equipment?.organizations as Record<string, unknown> | null;
   const templateData = parseTemplateData(template.template_data);
   const locationEnabled = org?.scan_location_collection_enabled === true;
@@ -273,7 +238,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     return createErrorResponse("CAPTCHA verification failed", 403, { req });
   }
 
-  const tokenHash = await hashToken(body.token.trim());
+  const tokenHash = tokenAuth.tokenHash;
 
   const operatorValidation = validateOperatorInputFields(
     templateData.dataFields,
@@ -321,7 +286,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
   const { data: inserted, error: insertError } = await createAdminSupabaseClient().rpc(
     "submit_operator_checkin_public",
     {
-    p_token_hash: tokenHash,
+      p_token_hash: tokenHash,
     p_operator_field_values: operatorFieldValues,
     p_client_field_values: clientFieldValues,
     p_equipment_field_values: equipmentFieldValues,
@@ -330,7 +295,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     p_is_complete: true,
     p_required_item_count: checklistValidation.requiredItemCount,
     p_answered_required_count: checklistValidation.answeredRequiredCount,
-    p_request_fingerprint: body.requestFingerprint?.slice(0, 128) ?? null,
+      p_request_fingerprint: body.requestFingerprint?.slice(0, 128) ?? null,
     },
   );
 

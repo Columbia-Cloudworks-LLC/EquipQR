@@ -92,6 +92,8 @@ These endpoints have `verify_jwt = false` and do NOT require authentication:
 
 | Function | Reason | Security Notes |
 |----------|--------|----------------|
+| `submit-privacy-request` | CCPA/CPRA DSR intake for anonymous submitters | `verify_jwt = false`. hCaptcha + per-email rate limits. Optional Bearer JWT links request to account. Admin client used only after input validation. |
+| `operator-check-in` | QR token-scoped daily operator check-in load/submit (#1091) | `verify_jwt = false`. `requireOperatorCheckinAssignmentToken()` validates the assignment token via anon RPC before any business logic; service-role RPC used only on submit after CAPTCHA. |
 | `verify-hcaptcha` | Validates captcha tokens during signup | Only calls hCaptcha API; secret loaded via `requireSecret("HCAPTCHA_SECRET_KEY")` |
 | `parts-search` | Deprecated; returns 410 Gone | No DB access |
 
