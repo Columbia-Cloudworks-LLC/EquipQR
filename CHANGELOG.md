@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.11.4] - 2026-07-04
+
+### Fixed
+
+- **Invitation signup onboarding (#1092)** — Users who sign up via organization invitation skip the getting-started wizard on their personal workspace and land on the invited organization dashboard after accepting the invitation.
+
 ## [3.11.3] - 2026-07-03
 
 ### Added
