@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Settings } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
-import QRCodeDisplay from "./QRCodeDisplay";
 import InlineEditCustomAttributes from "./InlineEditCustomAttributes";
 import { useGoogleMapsLoader } from "@/hooks/useGoogleMapsLoader";
 import { useUpdateEquipment } from "@/features/equipment/hooks/useEquipment";
@@ -22,6 +21,7 @@ import { EquipmentBasicInfoCard } from "./EquipmentBasicInfoCard";
 import { EquipmentLifecycleCard } from "./EquipmentLifecycleCard";
 import { EquipmentMaintenanceNotesCard } from "./EquipmentMaintenanceNotesCard";
 import { useEquipmentDetailsTabActions } from "@/features/equipment/hooks/useEquipmentDetailsTabActions";
+import { EquipmentOperatorCheckinConfig } from "@/features/operator-check-ins/components/EquipmentOperatorCheckinConfig";
 
 type Equipment = Tables<'equipment'>;
 
@@ -33,14 +33,19 @@ interface EquipmentDetailsTabProps {
   equipment: Equipment;
   assignedTeam?: EquipmentTeamSummary | null;
   onCreatePMWorkOrder?: () => void;
+  isAdmin?: boolean;
+  organizationId?: string;
+  onOpenQrCodeForAssignment?: (assignmentId: string) => void;
 }
 
 const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
   equipment,
   assignedTeam,
   onCreatePMWorkOrder,
+  isAdmin = false,
+  organizationId,
+  onOpenQrCodeForAssignment,
 }) => {
-  const [showQRCode, setShowQRCode] = useState(false);
   const [showWorkingHoursModal, setShowWorkingHoursModal] = useState(false);
   const [isEditingLocation, setIsEditingLocation] = useState(false);
   const [isSavingLocation, setIsSavingLocation] = useState(false);
@@ -200,6 +205,15 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
         />
       )}
 
+      {isAdmin && organizationId && onOpenQrCodeForAssignment && (
+        <EquipmentOperatorCheckinConfig
+          organizationId={organizationId}
+          equipmentId={equipment.id}
+          equipmentName={equipment.name}
+          onOpenQrCodeForAssignment={onOpenQrCodeForAssignment}
+        />
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -221,13 +235,6 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
         canEdit={canEdit}
         notesFieldId={notesFieldId}
         onFieldUpdate={handleFieldUpdate}
-      />
-
-      <QRCodeDisplay
-        open={showQRCode}
-        onClose={() => setShowQRCode(false)}
-        equipmentId={equipment.id}
-        equipmentName={equipment.name}
       />
 
       {showWorkingHoursModal && (

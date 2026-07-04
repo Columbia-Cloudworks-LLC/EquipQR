@@ -95,10 +95,6 @@ const AssetQRCodePanel: React.FC<AssetQRCodePanelProps> = ({
     }
   };
 
-  const testQRCodeUrl = () => {
-    window.open(qrCodeUrl, '_blank', 'noopener,noreferrer');
-  };
-
   return (
     <div className={`${isMobile ? 'space-y-4' : 'space-y-6'}`}>
       <div className="flex justify-center">
@@ -143,15 +139,11 @@ const AssetQRCodePanel: React.FC<AssetQRCodePanelProps> = ({
               {copied ? 'Copied' : 'Copy'}
             </Button>
             {copied && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={testQRCodeUrl}
-                className="flex items-center gap-1"
-                aria-label="Open URL in new tab"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Test
+              <Button variant="outline" size="sm" asChild className="flex items-center gap-1">
+                <a href={qrCodeUrl} target="_blank" rel="noopener noreferrer" aria-label="Open URL in new tab">
+                  <ExternalLink className="h-4 w-4" />
+                  Test
+                </a>
               </Button>
             )}
           </div>

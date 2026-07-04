@@ -75,6 +75,8 @@
     "respond_to_ownership_transfer",
     "respond_to_workspace_personal_org_merge",
     "revert_pm_completion",
+    "delete_operator_checklist_template",
+    "rotate_operator_checkin_token",
     "revert_work_order_status",
     "select_google_workspace_members",
     "update_equipment_working_hours",

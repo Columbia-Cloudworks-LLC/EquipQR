@@ -30,6 +30,7 @@ describe('ResponsiveEquipmentTabs', () => {
       expect(screen.getByText('Notes')).toBeInTheDocument();
       expect(screen.getByText('Parts')).toBeInTheDocument();
       expect(screen.getByText('Images')).toBeInTheDocument();
+      expect(screen.getByText('Check-Ins')).toBeInTheDocument();
       expect(screen.getByText('Scan History')).toBeInTheDocument();
     });
 
@@ -51,8 +52,8 @@ describe('ResponsiveEquipmentTabs', () => {
         </ResponsiveEquipmentTabs>
       );
       
-      // Desktop uses grid-cols-6 (Details, Work Orders, Notes, Parts, Images, Scan History)
-      const tabsList = container.querySelector('[class*="grid-cols-6"]');
+      // Desktop uses grid-cols-7 (Details, Work Orders, Notes, Parts, Images, Check-Ins, Scan History)
+      const tabsList = container.querySelector('[class*="grid-cols-7"]');
       expect(tabsList).toBeInTheDocument();
     });
   });
@@ -72,6 +73,7 @@ describe('ResponsiveEquipmentTabs', () => {
       expect(screen.getByText('Orders')).toBeInTheDocument(); // Shortened on mobile
       expect(screen.getByText('Notes')).toBeInTheDocument();
       expect(screen.getByText('Images')).toBeInTheDocument();
+      expect(screen.getByText('Check-Ins')).toBeInTheDocument();
       expect(screen.getByText('Scan History')).toBeInTheDocument();
     });
 
@@ -85,9 +87,8 @@ describe('ResponsiveEquipmentTabs', () => {
         </ResponsiveEquipmentTabs>
       );
       
-      // Mobile rows both use grid-cols-3 (row 1: Details, Orders, Notes;
-      // row 2: Parts, Images, Scan History)
-      const rows = container.querySelectorAll('[class*="grid-cols-3"]');
+      // Mobile row 1 uses grid-cols-3; row 2 uses grid-cols-4 (Parts, Images, Check-Ins, Scan History)
+      const rows = container.querySelectorAll('[class*="grid-cols-3"], [class*="grid-cols-4"]');
       expect(rows.length).toBeGreaterThanOrEqual(2);
     });
 

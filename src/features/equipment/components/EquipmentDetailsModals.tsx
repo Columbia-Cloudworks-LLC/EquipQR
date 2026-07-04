@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import type { EquipmentQRVariant } from '@/features/equipment/components/QRCodeDisplay';
 
 const WorkOrderForm = lazy(() => import('@/features/work-orders/components/WorkOrderForm'));
 const QRCodeDisplay = lazy(() => import('@/features/equipment/components/QRCodeDisplay'));
@@ -22,6 +23,7 @@ type EquipmentDetailsModalsProps = {
   workOrderCreateMode?: 'pm' | 'generic' | null;
   defaultPmTemplateId?: string | null;
   isQRCodeOpen: boolean;
+  qrInitialVariant?: EquipmentQRVariant;
   isDeleteDialogOpen: boolean;
   isWorkingHoursModalOpen: boolean;
   onCloseWorkOrderForm: () => void;
@@ -40,6 +42,7 @@ export function EquipmentDetailsModals({
   workOrderCreateMode = null,
   defaultPmTemplateId = null,
   isQRCodeOpen,
+  qrInitialVariant = 'equipment',
   isDeleteDialogOpen,
   isWorkingHoursModalOpen,
   onCloseWorkOrderForm,
@@ -74,6 +77,7 @@ export function EquipmentDetailsModals({
             equipmentId={equipmentId}
             equipmentName={equipmentName}
             organizationId={organizationId}
+            initialVariant={qrInitialVariant}
           />
         </Suspense>
       )}

@@ -11,6 +11,8 @@
  */
 
 import { spawnSync } from 'child_process';
+import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -35,7 +37,7 @@ const repoWsl = toWslPath(repoRoot);
 
 const bashScript = `
 set -euo pipefail
-WSL_HOME="$(printf '%s' ~)"
+WSL_HOME="/home/$(whoami)"
 SANDBOX="$WSL_HOME/.cache/equipqr/test-ci"
 EXPECTED_SANDBOX="$WSL_HOME/.cache/equipqr/test-ci"
 if [ "$SANDBOX" != "$EXPECTED_SANDBOX" ]; then
@@ -59,8 +61,14 @@ export CI=true
 node scripts/test-ci-sharded.mjs --shards=4
 `.trim();
 
+const scriptPath = path.join(os.tmpdir(), `equipqr-test-ci-${process.pid}.sh`);
+fs.writeFileSync(scriptPath, `${bashScript}\n`, 'utf8');
+const scriptWsl = toWslPath(scriptPath);
+
 const wslDistro = process.env.WSL_DISTRO?.trim();
-const wslArgs = wslDistro ? ['-d', wslDistro, '--', 'bash', '-lc', bashScript] : ['--', 'bash', '-lc', bashScript];
+const wslArgs = wslDistro
+  ? ['-d', wslDistro, '--', 'bash', scriptWsl]
+  : ['--', 'bash', scriptWsl];
 
 console.log('🪟 Windows detected — running sharded test:ci inside WSL (Linux CI parity)...');
 console.log(`   Source: ${repoWsl}`);
@@ -77,5 +85,11 @@ const result = spawnSync('wsl', wslArgs, {
   stdio: 'inherit',
   env: process.env,
 });
+
+try {
+  fs.unlinkSync(scriptPath);
+} catch {
+  // ignore cleanup errors
+}
 
 process.exit(result.status ?? 1);

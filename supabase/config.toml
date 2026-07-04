@@ -212,6 +212,10 @@ verify_jwt = false
 # Authenticated users may include a Bearer token to link the request to their account.
 # Abuse controls: hCaptcha verification + per-email rate limiting within the function.
 
+[functions.operator-check-in]
+verify_jwt = false
+# Public operator daily check-in load/submit (#1091). Token-scoped; hCaptcha + rate limits.
+
 [functions.manage-dsr-request]
 verify_jwt = false
 # Internal admin endpoint for DSR lifecycle management. Requires authenticated admin/owner.

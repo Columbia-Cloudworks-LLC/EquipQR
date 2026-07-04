@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.12.0] - 2026-07-03
+
+### Added
+
+- **Daily operator check-ins (#1091)** — Organization owners and administrators can define custom operator safety checklists, assign a separate public QR code per machine, and collect append-only unauthenticated operator submissions with optional GPS and required mileage when configured. Admins can review the daily ledger, export CSV evidence, and download a print/PDF-friendly daily report.
+
 ## [3.11.4] - 2026-07-04
 
 ### Fixed

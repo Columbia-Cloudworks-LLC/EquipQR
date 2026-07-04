@@ -6,7 +6,7 @@
 // Report Type Definitions
 // ============================================
 
-export type ReportType = 'equipment' | 'work-orders' | 'work-orders-detailed' | 'inventory' | 'scans' | 'kpis' | 'alternate-groups';
+export type ReportType = 'equipment' | 'work-orders' | 'work-orders-detailed' | 'inventory' | 'scans' | 'operator-check-ins' | 'kpis' | 'alternate-groups';
 
 // ============================================
 // Export Configuration Types

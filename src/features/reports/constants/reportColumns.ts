@@ -72,6 +72,18 @@ export const SCAN_COLUMNS: ExportColumn[] = [
   { key: 'notes', label: 'Notes', default: false },
 ];
 
+export const OPERATOR_CHECKIN_COLUMNS: ExportColumn[] = [
+  { key: 'equipment_name', label: 'Equipment', default: true },
+  { key: 'template_name', label: 'Checklist', default: true },
+  { key: 'serial_number', label: 'Unit #', default: false },
+  { key: 'submitted_at', label: 'Submitted At', default: true },
+  { key: 'captured_fields_summary', label: 'Captured Fields', default: true },
+  { key: 'is_complete', label: 'Complete', default: true },
+  { key: 'checklist_summary', label: 'Required Items Answered', default: true },
+  { key: 'captured_fields_json', label: 'Captured Fields (JSON)', default: false },
+  { key: 'checklist_answers_json', label: 'Checklist Answers (JSON)', default: false },
+];
+
 /**
  * Column definitions for Alternate Part Groups reports
  */
@@ -106,6 +118,8 @@ export function getColumnsForReportType(reportType: ReportType): ExportColumn[] 
       return INVENTORY_COLUMNS;
     case 'scans':
       return SCAN_COLUMNS;
+    case 'operator-check-ins':
+      return OPERATOR_CHECKIN_COLUMNS;
     case 'alternate-groups':
       return ALTERNATE_GROUPS_COLUMNS;
     default:
@@ -191,6 +205,19 @@ export const REPORT_CARDS: ReportCardConfig[] = [
     operationCode: 'EXP-05',
     audiences: ['Compliance', 'Fleet Manager'],
     previewFields: ['Equipment', 'Scanned By', 'Timestamp', 'Location'],
+  },
+  {
+    type: 'operator-check-ins',
+    title: 'Operator Daily Check-In Ledger',
+    description: 'Export unauthenticated operator safety check-ins with configured captured fields and checklist answers',
+    icon: 'ClipboardSignature',
+    format: 'csv',
+    formatLabel: 'CSV',
+    columnCount: OPERATOR_CHECKIN_COLUMNS.length,
+    category: 'scan-evidence',
+    operationCode: 'EXP-07',
+    audiences: ['Compliance', 'Fleet Manager', 'Office Admin'],
+    previewFields: ['Captured Fields', 'Unit #', 'Submitted At', 'Complete'],
   },
   {
     type: 'alternate-groups',

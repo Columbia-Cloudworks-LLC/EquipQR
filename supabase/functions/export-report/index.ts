@@ -23,6 +23,7 @@ import { exportEquipment } from "./equipment-csv-export.ts";
 import { exportWorkOrders } from "./work-orders-csv-export.ts";
 import { exportInventory } from "./inventory-csv-export.ts";
 import { exportScans } from "./scans-csv-export.ts";
+import { exportOperatorCheckins } from "./operator-checkins-csv-export.ts";
 import { exportAlternateGroups } from "./alternate-groups-csv-export.ts";
 
 interface ExportRequest {
@@ -118,6 +119,9 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
           break;
         case "scans":
           ({ csvContent, rowCount } = await exportScans(supabase, organizationId, filters, columns));
+          break;
+        case "operator-check-ins":
+          ({ csvContent, rowCount } = await exportOperatorCheckins(supabase, organizationId, filters, columns));
           break;
         case "alternate-groups":
           ({ csvContent, rowCount } = await exportAlternateGroups(supabase, organizationId, filters, columns));
