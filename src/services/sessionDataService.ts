@@ -91,11 +91,15 @@ export class SessionDataService {
       };
     }
 
-    const { data: personalOrgData } = await supabase
+    const { data: personalOrgData, error: personalOrgError } = await supabase
       .from('personal_organizations')
       .select('organization_id')
       .eq('user_id', userId)
       .maybeSingle();
+
+    if (personalOrgError) {
+      logger.warn('Failed to resolve personal organization for session prioritization:', personalOrgError);
+    }
 
     const personalOrgId = personalOrgData?.organization_id ?? null;
     const prioritizedOrgs = withPersonalOrgFlag(organizations, personalOrgId);

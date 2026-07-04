@@ -49,14 +49,8 @@ function resolveLocalServiceRoleKey(): string {
     }
   }
 
-  const fromEnv = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (fromEnv) {
-    cachedLocalServiceRoleKey = fromEnv;
-    return fromEnv;
-  }
-
   throw new Error(
-    'E2E fixture reset requires a running local Supabase stack (`npx supabase status -o json`) or SUPABASE_SERVICE_ROLE_KEY.',
+    'E2E fixture reset requires a running local Supabase stack (`npx supabase status -o json`).',
   );
 }
 

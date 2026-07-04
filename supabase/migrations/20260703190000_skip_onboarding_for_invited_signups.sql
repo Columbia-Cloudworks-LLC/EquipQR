@@ -68,11 +68,11 @@ BEGIN
       EXISTS (
         SELECT 1
         FROM auth.users u
+        JOIN public.organization_invitations oi
+          ON public.normalize_email(oi.email) = public.normalize_email(u.email)
         WHERE u.id = v_user_id
-          AND (
-            u.raw_user_meta_data ? 'invited_organization_id'
-            OR u.raw_user_meta_data->>'signup_source' = 'invite'
-          )
+          AND oi.status = 'pending'
+          AND oi.expires_at > now()
       )
       OR EXISTS (
         SELECT 1
@@ -163,8 +163,13 @@ BEGIN
     END IF;
   END IF;
 
-  skip_personal_onboarding := NEW.raw_user_meta_data ? 'invited_organization_id'
-    OR NEW.raw_user_meta_data->>'signup_source' = 'invite';
+  skip_personal_onboarding := EXISTS (
+    SELECT 1
+    FROM public.organization_invitations oi
+    WHERE public.normalize_email(oi.email) = public.normalize_email(NEW.email)
+      AND oi.status = 'pending'
+      AND oi.expires_at > now()
+  );
 
   SELECT organization_id INTO personal_org_id
   FROM public.personal_organizations
