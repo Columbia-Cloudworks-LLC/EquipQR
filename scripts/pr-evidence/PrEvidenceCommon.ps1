@@ -121,7 +121,10 @@ function Set-PrEvidenceUploadEnvironment {
 }
 
 function Test-PrEvidenceLocalStack {
-    param([string]$BaseUrl = 'http://localhost:8080')
+    param(
+        [string]$BaseUrl = 'http://localhost:8080',
+        [switch]$CheckDocs
+    )
 
     $repoRoot = Get-PrEvidenceRepoRoot
     $preflightModule = Join-Path $repoRoot 'scripts\lib\e2e-stack-preflight.mjs'
@@ -129,10 +132,11 @@ function Test-PrEvidenceLocalStack {
         throw "Stack preflight module not found: $preflightModule"
     }
     $preflightUrl = ([System.Uri]::new((Resolve-Path -LiteralPath $preflightModule).Path)).AbsoluteUri
+    $checkDocsLiteral = if ($CheckDocs) { 'true' } else { 'false' }
 
     $probeScript = @"
 import { evaluateLocalStack } from '$preflightUrl';
-const result = await evaluateLocalStack({ appUrl: '$BaseUrl' });
+const result = await evaluateLocalStack({ appUrl: '$BaseUrl', checkDocs: $checkDocsLiteral });
 console.log(JSON.stringify(result));
 "@
 
@@ -146,10 +150,14 @@ console.log(JSON.stringify(result));
             throw "Stack probe failed: $($result.Text)"
         }
         $parsed = $result.Text | ConvertFrom-Json
-        return [pscustomobject]@{
+        $stack = [pscustomobject]@{
             AppReady = [bool]$parsed.appReady
             SupabaseReady = [bool]$parsed.supabaseReady
         }
+        if ($null -ne $parsed.PSObject.Properties['docsReady']) {
+            $stack | Add-Member -NotePropertyName DocsReady -NotePropertyValue ([bool]$parsed.docsReady)
+        }
+        return $stack
     }
     finally {
         Pop-Location

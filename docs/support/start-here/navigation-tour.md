@@ -10,7 +10,7 @@ personas: ["all"]
 ## 1. Sidebar groups (desktop and tablet)
 
 - **Fleet** — Equipment, Fleet Map, Inventory, Part Lookup, Part Alternates.
-- **Operations** — Dashboard, Work Orders, PM Templates (admin-only), Reports.
+- **Operations** — Dashboard, Work Orders, Daily Check-Ins (admin-only), PM Templates (admin-only), Reports.
 - **Infrastructure** — Teams, Organization, Integrations.
 - **Audit** — Audit Log and DSR Cockpit (admin-only).
 

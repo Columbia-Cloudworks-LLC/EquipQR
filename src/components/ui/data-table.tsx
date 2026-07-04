@@ -127,11 +127,6 @@ export function DataTable<T extends Record<string, unknown>>({
     sorting.onSortChange(columnKey, newSortOrder);
   };
 
-  const getSortIcon = (columnKey: string) => {
-    if (sorting?.sortBy !== columnKey) return null;
-    return sorting.sortOrder === 'asc' ? '↑' : '↓';
-  };
-
   const renderCell = (column: Column<T>, item: T, index: number) => {
     const value = typeof column.key === 'string' && column.key.includes('.')
       ? resolveNestedValue(item, column.key)
@@ -226,17 +221,21 @@ export function DataTable<T extends Record<string, unknown>>({
                       <button
                         type="button"
                         className={cn(
-                          'flex w-full items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2',
+                          'flex w-full items-center gap-1.5 rounded-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2',
                           alignClass === 'text-right' && 'justify-end',
                           alignClass === 'text-center' && 'justify-center',
                           !alignClass && 'text-left',
+                          sorting?.sortBy === column.key &&
+                            'font-medium underline decoration-2 underline-offset-4',
                         )}
                         onClick={() => handleSort(column.key as string)}
                       >
                         {column.title}
-                        <span className="text-xs opacity-50">
-                          {getSortIcon(column.key as string) || '↕'}
-                        </span>
+                        {sorting?.sortBy === column.key ? (
+                          <span className="text-xs" aria-hidden>
+                            {sorting.sortOrder === 'asc' ? '↑' : '↓'}
+                          </span>
+                        ) : null}
                       </button>
                     ) : (
                       <div

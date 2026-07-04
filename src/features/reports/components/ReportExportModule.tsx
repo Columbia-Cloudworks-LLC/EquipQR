@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Package,
   ScanLine,
+  ClipboardSignature,
   Download,
   FileSpreadsheet,
   Layers,
@@ -28,6 +29,7 @@ const REPORT_ICONS: Record<string, React.ReactNode> = {
   ClipboardList: <ClipboardList className="h-8 w-8" />,
   Package: <Package className="h-8 w-8" />,
   ScanLine: <ScanLine className="h-8 w-8" />,
+  ClipboardSignature: <ClipboardSignature className="h-8 w-8" />,
   FileSpreadsheet: <FileSpreadsheet className="h-8 w-8" />,
   Layers: <Layers className="h-8 w-8" />,
 };

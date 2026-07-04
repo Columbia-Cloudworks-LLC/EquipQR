@@ -4,6 +4,7 @@ import { __alternateGroupsCsvTestables } from "./alternate-groups-csv-export.ts"
 import { __equipmentCsvTestables } from "./equipment-csv-export.ts";
 import { __inventoryCsvTestables } from "./inventory-csv-export.ts";
 import { __rateLimitTestables, checkRateLimit } from "./rate-limit.ts";
+import { __operatorCheckinsCsvTestables } from "./operator-checkins-csv-export.ts";
 import { __scansCsvTestables } from "./scans-csv-export.ts";
 import { __workOrdersCsvTestables } from "./work-orders-csv-export.ts";
 
@@ -94,6 +95,14 @@ Deno.test("formatHasPm renders Yes/No", () => {
 Deno.test("formatScannedAt returns space-separated timestamp", () => {
   assertEquals(__scansCsvTestables.formatScannedAt("2026-03-15T14:30:00Z"), "2026-03-15 14:30:00");
   assertEquals(__scansCsvTestables.formatScannedAt(null), "");
+});
+
+Deno.test("formatOperatorCheckinSubmittedAt returns space-separated timestamp", () => {
+  assertEquals(
+    __operatorCheckinsCsvTestables.formatSubmittedAt("2026-03-15T14:30:00Z"),
+    "2026-03-15 14:30:00",
+  );
+  assertEquals(__operatorCheckinsCsvTestables.formatSubmittedAt(null), "");
 });
 
 Deno.test("buildEquipmentUrl uses provided site base", () => {

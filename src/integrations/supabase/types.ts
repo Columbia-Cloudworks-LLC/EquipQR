@@ -767,6 +767,81 @@ export type Database = {
           },
         ]
       }
+      equipment_operator_checkin_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          equipment_id: string
+          id: string
+          organization_id: string
+          public_token_hash: string
+          template_id: string
+          token_rotated_at: string
+          token_rotated_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          equipment_id: string
+          id?: string
+          organization_id: string
+          public_token_hash: string
+          template_id: string
+          token_rotated_at?: string
+          token_rotated_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          equipment_id?: string
+          id?: string
+          organization_id?: string
+          public_token_hash?: string
+          template_id?: string
+          token_rotated_at?: string
+          token_rotated_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_operator_checkin_settings_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_operator_checkin_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_operator_checkin_settings_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "operator_checklist_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_operator_checkin_settings_token_rotated_by_fkey"
+            columns: ["token_rotated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_operator_checkin_settings_token_rotated_by_fkey"
+            columns: ["token_rotated_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       equipment_part_compatibility: {
         Row: {
           equipment_id: string
@@ -1628,6 +1703,167 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      operator_checkin_submissions: {
+        Row: {
+          answered_required_count: number
+          checklist_answers: Json
+          client_field_values: Json
+          created_at: string
+          equipment_field_values: Json
+          equipment_id: string
+          id: string
+          is_complete: boolean
+          operator_field_values: Json
+          organization_id: string
+          request_fingerprint: string | null
+          required_item_count: number
+          settings_id: string | null
+          submitted_at: string
+          template_id: string | null
+          template_snapshot: Json
+        }
+        Insert: {
+          answered_required_count?: number
+          checklist_answers?: Json
+          client_field_values?: Json
+          created_at?: string
+          equipment_field_values?: Json
+          equipment_id: string
+          id?: string
+          is_complete?: boolean
+          operator_field_values?: Json
+          organization_id: string
+          request_fingerprint?: string | null
+          required_item_count?: number
+          settings_id?: string | null
+          submitted_at?: string
+          template_id?: string | null
+          template_snapshot?: Json
+        }
+        Update: {
+          answered_required_count?: number
+          checklist_answers?: Json
+          client_field_values?: Json
+          created_at?: string
+          equipment_field_values?: Json
+          equipment_id?: string
+          id?: string
+          is_complete?: boolean
+          operator_field_values?: Json
+          organization_id?: string
+          request_fingerprint?: string | null
+          required_item_count?: number
+          settings_id?: string | null
+          submitted_at?: string
+          template_id?: string | null
+          template_snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operator_checkin_submissions_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operator_checkin_submissions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operator_checkin_submissions_settings_id_fkey"
+            columns: ["settings_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_operator_checkin_settings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operator_checkin_submissions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "operator_checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operator_checklist_templates: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          template_data: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          template_data?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          template_data?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operator_checklist_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operator_checklist_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "operator_checklist_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operator_checklist_templates_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operator_checklist_templates_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       organization_google_export_destinations: {
         Row: {
@@ -4608,6 +4844,10 @@ export type Database = {
           organization_id: string
         }[]
       }
+      delete_operator_checklist_template: {
+        Args: { p_template_id: string }
+        Returns: number
+      }
       delete_organization: {
         Args: {
           p_confirmation_name: string
@@ -5445,6 +5685,13 @@ export type Database = {
       revert_work_order_status: {
         Args: { p_reason?: string; p_work_order_id: string }
         Returns: Json
+      }
+      rotate_operator_checkin_token: {
+        Args: { p_settings_id: string }
+        Returns: {
+          raw_token: string
+          token_hash: string
+        }[]
       }
       select_google_workspace_members: {
         Args: {

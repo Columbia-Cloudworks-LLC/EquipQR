@@ -31,6 +31,7 @@ import {
   AuditLog,
   DSRCockpitPage,
   DSRCasePage,
+  OperatorCheckInsPage,
 } from '@/routes/lazyDashboardPages';
 import { InventoryAccessGuard } from '@/features/inventory/components/InventoryAccessGuard';
 
@@ -59,6 +60,7 @@ export const dashboardRouteElements = (
     <Route path="/onboarding/workspace" element={<WorkspaceOnboarding />} />
     <Route path="/onboarding/getting-started" element={<GettingStartedOnboarding />} />
     <Route path="/reports" element={<Reports />} />
+    <Route path="/operator-check-ins" element={<OperatorCheckInsPage />} />
     <Route path="/inventory" element={<InventoryAccessGuard><InventoryList /></InventoryAccessGuard>} />
     <Route path="/inventory/bulk" element={<InventoryAccessGuard><BulkInventory /></InventoryAccessGuard>} />
     <Route path="/inventory/:itemId" element={<InventoryAccessGuard><InventoryItemDetail /></InventoryAccessGuard>} />

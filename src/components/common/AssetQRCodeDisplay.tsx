@@ -18,6 +18,8 @@ export interface AssetQRCodeDisplayProps {
   instructionBullets: string[];
   formatSelectId?: string;
   imageLoading?: 'lazy';
+  headerExtra?: React.ReactNode;
+  suppressQrPanel?: boolean;
 }
 
 const AssetQRCodeDisplay: React.FC<AssetQRCodeDisplayProps> = ({
@@ -33,6 +35,8 @@ const AssetQRCodeDisplay: React.FC<AssetQRCodeDisplayProps> = ({
   instructionBullets,
   formatSelectId = 'qr-code-download-format',
   imageLoading,
+  headerExtra,
+  suppressQrPanel = false,
 }) => {
   const isMobile = useIsMobile();
 
@@ -46,18 +50,22 @@ const AssetQRCodeDisplay: React.FC<AssetQRCodeDisplayProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <AssetQRCodePanel
-          entityId={entityId}
-          entityName={entityName}
-          qrCodeUrl={qrCodeUrl}
-          qrImageAlt={qrImageAlt}
-          defaultFilenameStem={defaultFilenameStem}
-          instructionBullets={instructionBullets}
-          formatSelectId={formatSelectId}
-          imageLoading={imageLoading}
-          showCloseButton
-          onClose={onClose}
-        />
+        {headerExtra}
+
+        {!suppressQrPanel && (
+          <AssetQRCodePanel
+            entityId={entityId}
+            entityName={entityName}
+            qrCodeUrl={qrCodeUrl}
+            qrImageAlt={qrImageAlt}
+            defaultFilenameStem={defaultFilenameStem}
+            instructionBullets={instructionBullets}
+            formatSelectId={formatSelectId}
+            imageLoading={imageLoading}
+            showCloseButton
+            onClose={onClose}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

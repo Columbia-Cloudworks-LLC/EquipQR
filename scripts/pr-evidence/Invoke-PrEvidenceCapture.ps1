@@ -53,10 +53,23 @@ $playwrightOutput = Join-Path $artifactDir 'playwright-output'
 New-Item -ItemType Directory -Path $screenshotsDir -Force | Out-Null
 New-Item -ItemType Directory -Path $playwrightOutput -Force | Out-Null
 
-$stack = Test-PrEvidenceLocalStack -BaseUrl $BaseUrl
-if (-not $stack.AppReady) {
+$requiresDocs = $Spec -match 'daily-operator-check-in-docs-discovery'
+$configuredDocsUrl = $env:PR_EVIDENCE_DOCS_URL
+$docsUrl = if ($configuredDocsUrl -and $configuredDocsUrl.Trim()) {
+    $configuredDocsUrl.Trim()
+} else {
+    'http://127.0.0.1:5174'
+}
+if ($requiresDocs) {
+    $env:PR_EVIDENCE_DOCS_URL = $docsUrl
+}
+
+$stack = Test-PrEvidenceLocalStack -BaseUrl $BaseUrl -CheckDocs:$requiresDocs
+$stackReady = $stack.AppReady -and $stack.SupabaseReady -and (-not $requiresDocs -or $stack.DocsReady)
+if (-not $stackReady) {
     if ($SkipStackStart) {
-        throw "Local stack probe failed for $BaseUrl (appReady=$($stack.AppReady), supabaseReady=$($stack.SupabaseReady)). Start the stack with .\dev-start.bat or omit -SkipStackStart."
+        $docsDetail = if ($requiresDocs) { ", docsReady=$($stack.DocsReady)" } else { '' }
+        throw "Local stack probe failed for $BaseUrl (appReady=$($stack.AppReady), supabaseReady=$($stack.SupabaseReady)$docsDetail). Start the stack with .\dev-start.bat or omit -SkipStackStart."
     }
 
     Write-Host "[PR evidence] Local stack not ready; starting dev-start.bat ..."
@@ -70,9 +83,11 @@ if (-not $stack.AppReady) {
         throw "dev-start.bat failed: $($startResult.Text)"
     }
 
-    $stack = Test-PrEvidenceLocalStack -BaseUrl $BaseUrl
-    if (-not $stack.AppReady) {
-        throw "Local app still not reachable at $BaseUrl after dev-start.bat."
+    $stack = Test-PrEvidenceLocalStack -BaseUrl $BaseUrl -CheckDocs:$requiresDocs
+    $stackReady = $stack.AppReady -and $stack.SupabaseReady -and (-not $requiresDocs -or $stack.DocsReady)
+    if (-not $stackReady) {
+        $docsDetail = if ($requiresDocs) { ", docsReady=$($stack.DocsReady)" } else { '' }
+        throw "Local stack still not ready at $BaseUrl after dev-start.bat (appReady=$($stack.AppReady), supabaseReady=$($stack.SupabaseReady)$docsDetail)."
     }
 }
 
@@ -83,6 +98,7 @@ if (-not (Test-Path -LiteralPath $specFull)) {
 
 $recordingViewport = Get-PrEvidenceRecordingViewport -MobileViewport:$MobileViewport
 $env:PR_EVIDENCE_FLOW = $flowSlug
+$env:PR_EVIDENCE_SPEC = $Spec
 $env:PR_EVIDENCE_BASE_URL = $BaseUrl
 $env:PR_EVIDENCE_VIEWPORT_WIDTH = [string]$recordingViewport.width
 $env:PR_EVIDENCE_VIEWPORT_HEIGHT = [string]$recordingViewport.height

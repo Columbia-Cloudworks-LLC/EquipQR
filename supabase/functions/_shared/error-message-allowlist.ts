@@ -189,6 +189,18 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   /^Failed to execute deletion fulfillment$/,
   /^Fulfillment engine only handles deletion requests$/,
   /^Fulfillment succeeded but completion update failed$/,
+
+  // Operator daily check-in (public form)
+  /^Check-in is not available$/,
+  /^Missing action or token$/,
+  /^Unsupported action$/,
+  /^Too many check-ins\. Please try again later\.$/,
+  /^Unable to save check-in$/,
+  /^Checklist incomplete$/,
+  /^Required fields missing$/,
+  /^Required item ".+" must be answered\.$/,
+  /^".+" is required\.$/,
+  /^Unknown checklist item: .+$/,
 ];
 
 /**

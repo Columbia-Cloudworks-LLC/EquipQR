@@ -15,7 +15,7 @@ Direct push to `main` is blocked by branch protection; merge via PR after `local
 | Gate | Verify |
 |------|--------|
 | Local verify | Fallow clean, lint, type-check, targeted/`test:ci`, build when relevant, local E2E per change type |
-| PR visual evidence | Screenshots + MP4 demo in PR body; `-Publish` comment when product UI changed |
+| PR visual evidence | Screenshots + MP4 demo in PR body; `-Publish` comment when product UI changed; when help/docs discovery changed, include proof from each surfaced entry point to the guide |
 | CI green | `gh pr checks <num> --watch` — all required jobs pass |
 | Qodo complete | `Get-PrQodoFindings.ps1 -Json` → `reviewInProgress: false` |
 | Qodo resolved | Same JSON → `openCount: 0` (action required, review recommended, **and** optional — all buckets) |

@@ -29,6 +29,11 @@ export function workOrderQRPath(workOrderId: string): string {
   return `/qr/work-order/${workOrderId}`;
 }
 
+/** Public operator daily check-in QR (token-based, non-enumerable). */
+export function operatorCheckInQRPath(token: string): string {
+  return `/qr/operator-check-in/${encodeURIComponent(token)}`;
+}
+
 /** Origins accepted when decoding printed stickers against a different dev host. */
 const EQUIPQR_QR_ORIGINS = new Set([
   'https://equipqr.app',
@@ -36,12 +41,13 @@ const EQUIPQR_QR_ORIGINS = new Set([
   'https://preview.equipqr.app',
 ]);
 
-const RESERVED_QR_FIRST_SEGMENTS = new Set(['equipment', 'inventory', 'work-order']);
+const RESERVED_QR_FIRST_SEGMENTS = new Set(['equipment', 'inventory', 'work-order', 'operator-check-in']);
 
 export type ParseEquipQRTargetResult =
   | { ok: true; kind: 'equipment'; equipmentId: string; path: string; orgId?: string }
   | { ok: true; kind: 'inventory'; itemId: string; path: string }
   | { ok: true; kind: 'workOrder'; workOrderId: string; path: string }
+  | { ok: true; kind: 'operatorCheckIn'; token: string; path: string }
   | {
       ok: false;
       reason: 'empty' | 'malformed' | 'external' | 'unsupported';
@@ -106,6 +112,15 @@ export function parseEquipQRTarget(
 
   if (second === 'work-order' && third) {
     return { ok: true, kind: 'workOrder', workOrderId: third, path: `/qr/work-order/${encodeURIComponent(third)}` };
+  }
+
+  if (second === 'operator-check-in' && third) {
+    return {
+      ok: true,
+      kind: 'operatorCheckIn',
+      token: decodeURIComponent(third),
+      path: `/qr/operator-check-in/${encodeURIComponent(third)}`,
+    };
   }
 
   // Legacy `/qr/:equipmentId` (must not shadow reserved multi-segment routes)

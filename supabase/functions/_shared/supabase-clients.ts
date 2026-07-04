@@ -510,6 +510,13 @@ const EXACT_SAFE_ERROR_MESSAGE_BY_INPUT = new Map<string, string>([
     "Legal policy version mismatch; refresh the app and accept the current Terms and Privacy Policy.",
     "Legal policy version mismatch; refresh the app and accept the current Terms and Privacy Policy.",
   ],
+  ["Check-in is not available", "Check-in is not available"],
+  ["Missing action or token", "Missing action or token"],
+  ["Unsupported action", "Unsupported action"],
+  ["Too many check-ins. Please try again later.", "Too many check-ins. Please try again later."],
+  ["Unable to save check-in", "Unable to save check-in"],
+  ["Checklist incomplete", "Checklist incomplete"],
+  ["Required fields missing", "Required fields missing"],
   [
     "A similar request was already submitted recently. Please wait before submitting again",
     "A similar request was already submitted recently. Please wait before submitting again",

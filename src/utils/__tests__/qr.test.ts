@@ -3,6 +3,7 @@ import {
   equipmentQRPath,
   inventoryQRPath,
   workOrderQRPath,
+  operatorCheckInQRPath,
   qrFullUrl,
   parseEquipQRTarget,
 } from '../qr';
@@ -35,6 +36,10 @@ describe('QR path builders', () => {
   it('builds work-order QR path', () => {
     expect(workOrderQRPath('wo-789')).toBe('/qr/work-order/wo-789');
   });
+
+  it('builds operator check-in QR path', () => {
+    expect(operatorCheckInQRPath('abc123')).toBe('/qr/operator-check-in/abc123');
+  });
 });
 
 describe('parseEquipQRTarget', () => {
@@ -60,6 +65,16 @@ describe('parseEquipQRTarget', () => {
     const r = parseEquipQRTarget('/qr/legacy-id', LOCAL_ORIGIN);
     expect(r.ok && r.kind === 'equipment' && r.equipmentId === 'legacy-id').toBe(true);
     if (r.ok && r.kind === 'equipment') expect(r.path).toBe('/qr/equipment/legacy-id');
+  });
+
+  it('parses operator check-in token path', () => {
+    const r = parseEquipQRTarget('/qr/operator-check-in/token-abc', LOCAL_ORIGIN);
+    expect(r.ok && r.kind === 'operatorCheckIn' && r.token === 'token-abc').toBe(true);
+  });
+
+  it('does not treat operator-check-in as legacy equipment id', () => {
+    const r = parseEquipQRTarget('/qr/operator-check-in/token-abc', LOCAL_ORIGIN);
+    expect(r.ok && r.kind === 'operatorCheckIn').toBe(true);
   });
 
   it('encodes dynamic QR route segments before building redirect paths', () => {

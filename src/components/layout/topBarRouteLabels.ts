@@ -21,6 +21,7 @@ export const ROUTE_LABELS: Record<string, string> = {
   '/dashboard/organization/integrations': 'Integrations',
   '/dashboard/pm-templates': 'PM Templates',
   '/dashboard/pm-templates/new': 'New PM Template',
+  '/dashboard/operator-check-ins': 'Daily Check-Ins',
   '/dashboard/reports': 'Reports',
   '/dashboard/audit-log': 'Audit Log',
   '/dashboard/settings': 'Settings',

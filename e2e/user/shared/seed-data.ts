@@ -21,6 +21,7 @@ export const seedEquipment = {
   cat320: {
     id: 'aa0e8400-e29b-41d4-a716-446655440000',
     name: 'CAT 320 Excavator',
+    serialNumber: 'CAT320GC2023001',
   },
   johnDeereDozer: {
     id: 'aa0e8400-e29b-41d4-a716-446655440001',

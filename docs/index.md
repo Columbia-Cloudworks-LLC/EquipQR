@@ -38,6 +38,10 @@ features:
     details: Organization and team roles — Manager, Technician, Requestor, Viewer.
     link: /support/teams-roles/
     linkText: Roles & teams
+  - title: Administration
+    details: Daily Operator Check-Ins, templates, public QR links, and audit ledgers.
+    link: /support/administration/
+    linkText: Admin workflows
   - title: Admin & Integrations
     details: Organization settings, QuickBooks, and Google Workspace.
     link: /support/admin-integrations/

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, ArrowLeft, Forklift, QrCode, Trash2 } from 'lucide-react';
+import type { EquipmentQRVariant } from '@/features/equipment/components/QRCodeDisplay';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
@@ -25,6 +26,9 @@ const EquipmentWorkOrdersTab = lazy(() => import('@/features/equipment/component
 const EquipmentPartsTab = lazy(() => import('@/features/equipment/components/EquipmentPartsTab'));
 const EquipmentImagesTab = lazy(() => import('@/features/equipment/components/EquipmentImagesTab'));
 const EquipmentScanHistoryTab = lazy(() => import('@/features/equipment/components/EquipmentScanHistoryTab'));
+const EquipmentOperatorCheckinLedgerTab = lazy(
+  () => import('@/features/equipment/components/EquipmentOperatorCheckinLedgerTab'),
+);
 
 const TabContentSkeleton = () => (
   <div className="space-y-4 mt-2" role="status" aria-label="Loading tab content">
@@ -34,7 +38,15 @@ const TabContentSkeleton = () => (
   </div>
 );
 
-const EQUIPMENT_TAB_VALUES = ['details', 'work-orders', 'notes', 'parts', 'images', 'scan-history'] as const;
+const EQUIPMENT_TAB_VALUES = [
+  'details',
+  'work-orders',
+  'notes',
+  'parts',
+  'images',
+  'check-ins',
+  'scan-history',
+] as const;
 
 function normalizeTabParam(tab: string | null): string {
   if (!tab) return 'details';
@@ -58,6 +70,7 @@ const EquipmentDetails = () => {
   const [isWorkOrderFormOpen, setIsWorkOrderFormOpen] = useState(false);
   const [workOrderCreateMode, setWorkOrderCreateMode] = useState<'pm' | 'generic' | null>(null);
   const [isQRCodeOpen, setIsQRCodeOpen] = useState(false);
+  const [qrInitialVariant, setQrInitialVariant] = useState<EquipmentQRVariant>('equipment');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isWorkingHoursModalOpen, setIsWorkingHoursModalOpen] = useState(false);
 
@@ -97,6 +110,16 @@ const EquipmentDetails = () => {
   const isLoading = orgLoading || equipmentLoading;
   const isAdmin =
     currentOrganization?.userRole === 'owner' || currentOrganization?.userRole === 'admin';
+
+  const handleOpenQrCode = (initialVariant: EquipmentQRVariant = 'equipment') => {
+    setQrInitialVariant(initialVariant);
+    setIsQRCodeOpen(true);
+  };
+
+  const handleCloseQrCode = () => {
+    setIsQRCodeOpen(false);
+    setQrInitialVariant('equipment');
+  };
 
   if (!currentOrganization) {
     return (
@@ -166,7 +189,7 @@ const EquipmentDetails = () => {
         {isMobile ? (
           <MobileEquipmentHeader
             equipment={equipment}
-            onShowQRCode={() => setIsQRCodeOpen(true)}
+            onShowQRCode={() => handleOpenQrCode()}
             onShowWorkingHours={() => setIsWorkingHoursModalOpen(true)}
           />
         ) : (
@@ -181,7 +204,7 @@ const EquipmentDetails = () => {
               ]}
               actions={
                 <div className="flex items-center gap-2">
-                  <Button size="sm" onClick={() => setIsQRCodeOpen(true)}>
+                  <Button size="sm" onClick={() => handleOpenQrCode()}>
                     <QrCode className="h-4 w-4 mr-2" />
                     QR Code
                   </Button>
@@ -216,6 +239,11 @@ const EquipmentDetails = () => {
             <EquipmentDetailsTab
               equipment={equipment}
               assignedTeam={assignedTeam}
+              isAdmin={isAdmin}
+              organizationId={currentOrganization.id}
+              onOpenQrCodeForAssignment={(assignmentId) =>
+                handleOpenQrCode(`assignment:${assignmentId}`)
+              }
               onCreatePMWorkOrder={() => {
                 setWorkOrderCreateMode('pm');
                 setIsWorkOrderFormOpen(true);
@@ -275,6 +303,18 @@ const EquipmentDetails = () => {
             )}
           </TabsContent>
 
+          <TabsContent value="check-ins">
+            {activeTab === 'check-ins' && (
+              <Suspense fallback={<TabContentSkeleton />}>
+                <EquipmentOperatorCheckinLedgerTab
+                  organizationId={currentOrganization.id}
+                  equipmentId={equipment.id}
+                  equipmentName={equipment.name}
+                />
+              </Suspense>
+            )}
+          </TabsContent>
+
           <TabsContent value="scan-history">
             {activeTab === 'scan-history' && (
               <Suspense fallback={<TabContentSkeleton />}>
@@ -322,13 +362,14 @@ const EquipmentDetails = () => {
           workOrderCreateMode={workOrderCreateMode}
           defaultPmTemplateId={equipment.default_pm_template_id}
           isQRCodeOpen={isQRCodeOpen}
+          qrInitialVariant={qrInitialVariant}
           isDeleteDialogOpen={isDeleteDialogOpen}
           isWorkingHoursModalOpen={isWorkingHoursModalOpen}
           onCloseWorkOrderForm={() => {
             setIsWorkOrderFormOpen(false);
             setWorkOrderCreateMode(null);
           }}
-          onCloseQRCode={() => setIsQRCodeOpen(false)}
+          onCloseQRCode={handleCloseQrCode}
           onDeleteDialogOpenChange={setIsDeleteDialogOpen}
           onDeleteSuccess={() => navigate('/dashboard/equipment')}
           onCloseWorkingHours={() => setIsWorkingHoursModalOpen(false)}

@@ -40,3 +40,7 @@ export const AlternateGroupDetail = lazyWithRetry(() => import('@/features/inven
 export const AuditLog = lazyWithRetry(() => import('@/pages/AuditLog'), 'AuditLog');
 export const DSRCockpitPage = lazyWithRetry(() => import('@/pages/dsr/CockpitPage'), 'DSRCockpitPage');
 export const DSRCasePage = lazyWithRetry(() => import('@/pages/dsr/CasePage'), 'DSRCasePage');
+export const OperatorCheckInsPage = lazyWithRetry(
+  () => import('@/features/operator-check-ins/pages/OperatorCheckInsPage'),
+  'OperatorCheckInsPage',
+);

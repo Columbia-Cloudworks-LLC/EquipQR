@@ -6,7 +6,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 
 export const MAX_ROWS = 50000;
 
-export type ReportType = "equipment" | "work-orders" | "inventory" | "scans" | "alternate-groups";
+export type ReportType = "equipment" | "work-orders" | "inventory" | "scans" | "operator-check-ins" | "alternate-groups";
 
 export interface ExportFilters {
   status?: string;

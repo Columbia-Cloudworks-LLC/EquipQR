@@ -16,6 +16,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AuditLogTimePreset } from '@/types/audit';
+import {
+  dateInputToExclusiveEndIso,
+  dateInputToLocalStartIso,
+} from '@/utils/localDateInputIso';
 
 const PRESET_BUTTONS: Array<{
   value: Exclude<AuditLogTimePreset, 'custom'>;
@@ -55,23 +59,6 @@ function exclusiveUpperIsoToDateInput(iso: string | undefined): string {
     return formatDate(new Date(d.getTime() - 1), 'yyyy-MM-dd');
   }
   return formatDate(d, 'yyyy-MM-dd');
-}
-
-/** Inclusive start of the selected calendar day in local time, as ISO. */
-function dateInputToStartOfDayIso(value: string): string {
-  const [yyyy, mm, dd] = value.split('-').map(Number);
-  if (!yyyy || !mm || !dd) return '';
-  return new Date(yyyy, mm - 1, dd, 0, 0, 0, 0).toISOString();
-}
-
-/**
- * Exclusive upper bound for `created_at < dateTo` (matches auditService):
- * midnight at the start of the day *after* the selected "To" date in local time.
- */
-function dateInputToExclusiveEndIso(value: string): string {
-  const [yyyy, mm, dd] = value.split('-').map(Number);
-  if (!yyyy || !mm || !dd) return '';
-  return new Date(yyyy, mm - 1, dd + 1, 0, 0, 0, 0).toISOString();
 }
 
 export function AuditLogTimeRangePicker({
@@ -174,7 +161,7 @@ export function AuditLogTimeRangePicker({
                 className="h-7 text-xs"
                 disabled={!draftFrom || !draftTo}
                 onClick={() => {
-                  const fromIso = dateInputToStartOfDayIso(draftFrom);
+                  const fromIso = dateInputToLocalStartIso(draftFrom);
                   const toIso = dateInputToExclusiveEndIso(draftTo);
                   if (!fromIso || !toIso) return;
                   onChange('custom', fromIso, toIso);
