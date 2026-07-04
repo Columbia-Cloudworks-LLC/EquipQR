@@ -37,11 +37,13 @@ const assignmentSelect = `
 
 export async function listEquipmentOperatorCheckinAssignments(
   equipmentId: string,
+  organizationId: string,
 ): Promise<EquipmentOperatorCheckinAssignment[]> {
   const { data, error } = await supabase
     .from('equipment_operator_checkin_settings')
     .select(assignmentSelect)
     .eq('equipment_id', equipmentId)
+    .eq('organization_id', organizationId)
     .order('created_at', { ascending: true });
 
   if (error) throw error;

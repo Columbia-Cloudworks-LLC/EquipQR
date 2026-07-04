@@ -136,6 +136,27 @@ export function validateOperatorChecklistAnswers(
   };
 }
 
+/** Persist only template-known answers with normalized notes. */
+export function sanitizeOperatorChecklistAnswers(
+  items: OperatorChecklistTemplateItem[],
+  answers: OperatorChecklistAnswer[],
+): OperatorChecklistAnswer[] {
+  const allowedIds = new Set(items.map((item) => item.id));
+  const sanitized: OperatorChecklistAnswer[] = [];
+
+  for (const answer of answers) {
+    if (!allowedIds.has(answer.item_id)) continue;
+    if (typeof answer.passed !== "boolean") continue;
+    sanitized.push({
+      item_id: answer.item_id,
+      passed: answer.passed,
+      notes: normalizeTextValue(answer.notes, 2000),
+    });
+  }
+
+  return sanitized;
+}
+
 function isOperatorValuePresent(value: unknown, inputType: OperatorInputFieldType): boolean {
   if (inputType === "checkbox") return typeof value === "boolean";
   if (inputType === "number") return typeof value === "number" && Number.isFinite(value);

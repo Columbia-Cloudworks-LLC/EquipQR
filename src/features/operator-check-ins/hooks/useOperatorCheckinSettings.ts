@@ -14,18 +14,21 @@ function invalidateAssignmentQueries(
   equipmentId: string,
 ) {
   void queryClient.invalidateQueries({
-    queryKey: operatorCheckinKeys.equipmentAssignments(equipmentId),
+    queryKey: operatorCheckinKeys.equipmentAssignments(equipmentId, organizationId),
   });
   void queryClient.invalidateQueries({
     queryKey: operatorCheckinKeys.organizationAssignments(organizationId),
   });
 }
 
-export function useEquipmentOperatorCheckinAssignments(equipmentId: string | undefined) {
+export function useEquipmentOperatorCheckinAssignments(
+  equipmentId: string | undefined,
+  organizationId: string | undefined,
+) {
   return useQuery({
-    queryKey: operatorCheckinKeys.equipmentAssignments(equipmentId ?? ''),
-    queryFn: () => listEquipmentOperatorCheckinAssignments(equipmentId!),
-    enabled: Boolean(equipmentId),
+    queryKey: operatorCheckinKeys.equipmentAssignments(equipmentId ?? '', organizationId ?? ''),
+    queryFn: () => listEquipmentOperatorCheckinAssignments(equipmentId!, organizationId!),
+    enabled: Boolean(equipmentId && organizationId),
   });
 }
 
@@ -56,7 +59,7 @@ export function useDeleteEquipmentOperatorCheckinAssignment(
     mutationFn: deleteEquipmentOperatorCheckinAssignment,
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: operatorCheckinKeys.equipmentAssignments(equipmentId),
+        queryKey: operatorCheckinKeys.equipmentAssignments(equipmentId, organizationId ?? ''),
       });
       if (organizationId) {
         void queryClient.invalidateQueries({
@@ -67,13 +70,13 @@ export function useDeleteEquipmentOperatorCheckinAssignment(
   });
 }
 
-export function useRotateOperatorCheckinToken(equipmentId: string) {
+export function useRotateOperatorCheckinToken(equipmentId: string, organizationId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: rotateOperatorCheckinToken,
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: operatorCheckinKeys.equipmentAssignments(equipmentId),
+        queryKey: operatorCheckinKeys.equipmentAssignments(equipmentId, organizationId),
       });
     },
   });

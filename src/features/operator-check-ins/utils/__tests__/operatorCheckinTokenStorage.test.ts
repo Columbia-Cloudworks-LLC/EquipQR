@@ -8,7 +8,7 @@ import {
 
 describe('operatorCheckinTokenStorage', () => {
   beforeEach(() => {
-    localStorage.clear();
+    sessionStorage.clear();
   });
 
   it('stores and retrieves tokens by assignment id', () => {

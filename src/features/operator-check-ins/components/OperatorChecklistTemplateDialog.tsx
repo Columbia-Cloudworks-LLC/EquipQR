@@ -39,7 +39,7 @@ export function OperatorChecklistTemplateDialog({
   templateId,
 }: OperatorChecklistTemplateDialogProps) {
   const isEdit = Boolean(templateId);
-  const { data: existing } = useOperatorChecklistTemplate(templateId ?? undefined);
+  const { data: existing } = useOperatorChecklistTemplate(templateId ?? undefined, organizationId);
   const createMutation = useCreateOperatorChecklistTemplate(organizationId);
   const updateMutation = useUpdateOperatorChecklistTemplate(organizationId);
 

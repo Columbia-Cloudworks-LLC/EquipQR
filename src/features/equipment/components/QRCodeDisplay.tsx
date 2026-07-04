@@ -63,7 +63,10 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
   organizationId,
   initialVariant = EQUIPMENT_VARIANT,
 }) => {
-  const { data: assignments = [] } = useEquipmentOperatorCheckinAssignments(open ? equipmentId : undefined);
+  const { data: assignments = [] } = useEquipmentOperatorCheckinAssignments(
+    open ? equipmentId : undefined,
+    open ? organizationId : undefined,
+  );
   const [variant, setVariant] = useState<QRVariant>(initialVariant);
   const [tokenRevision, setTokenRevision] = useState(0);
 

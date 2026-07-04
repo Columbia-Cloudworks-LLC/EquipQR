@@ -60,7 +60,9 @@ export CI=true
 node scripts/test-ci-sharded.mjs --shards=4
 `.trim();
 
-const scriptDir = fs.mkdtempSync(path.join(repoRoot, 'tmp', 'equipqr-test-ci-'));
+const tmpRoot = path.join(repoRoot, 'tmp');
+fs.mkdirSync(tmpRoot, { recursive: true });
+const scriptDir = fs.mkdtempSync(path.join(tmpRoot, 'equipqr-test-ci-'));
 const scriptPath = path.join(scriptDir, 'run.sh');
 fs.writeFileSync(scriptPath, `${bashScript}\n`, { encoding: 'utf8', mode: 0o700, flag: 'wx' });
 const scriptWsl = toWslPath(scriptPath);

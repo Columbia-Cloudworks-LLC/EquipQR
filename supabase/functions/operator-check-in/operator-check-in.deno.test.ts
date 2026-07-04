@@ -5,6 +5,7 @@ import {
   parseTemplateData,
   validateOperatorChecklistAnswers,
   validateOperatorInputFields,
+  sanitizeOperatorChecklistAnswers,
 } from "../_shared/operator-checklist-validation.ts";
 
 Deno.test("parseTemplateData supports checklist items and data fields", () => {
@@ -43,6 +44,16 @@ Deno.test("validateOperatorInputFields requires configured operator fields", () 
 
   const complete = validateOperatorInputFields(fields, { name: "Jane" });
   assertEquals(complete.isComplete, true);
+});
+
+Deno.test("sanitizeOperatorChecklistAnswers drops unknown items and normalizes notes", () => {
+  const items = [{ id: "a", title: "Brakes", required: true, section: "Safety" }];
+  const sanitized = sanitizeOperatorChecklistAnswers(items, [
+    { item_id: "a", passed: true, notes: "  ok  " },
+    { item_id: "unknown", passed: true },
+    { item_id: "a", passed: "yes" as unknown as boolean },
+  ]);
+  assertEquals(sanitized, [{ item_id: "a", passed: true, notes: "ok" }]);
 });
 
 Deno.test("normalizeTextValue trims and caps length", () => {

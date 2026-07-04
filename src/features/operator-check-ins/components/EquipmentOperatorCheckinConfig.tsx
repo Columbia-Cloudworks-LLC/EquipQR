@@ -185,10 +185,10 @@ export function EquipmentOperatorCheckinConfig({
   const { data: templates = [], isLoading: templatesLoading } =
     useOperatorChecklistTemplates(organizationId);
   const { data: assignments = [], isLoading: assignmentsLoading } =
-    useEquipmentOperatorCheckinAssignments(equipmentId);
+    useEquipmentOperatorCheckinAssignments(equipmentId, organizationId);
   const createMutation = useCreateEquipmentOperatorCheckinAssignment();
   const deleteMutation = useDeleteEquipmentOperatorCheckinAssignment(equipmentId, organizationId);
-  const rotateMutation = useRotateOperatorCheckinToken(equipmentId);
+  const rotateMutation = useRotateOperatorCheckinToken(equipmentId, organizationId);
 
   const [adding, setAdding] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');

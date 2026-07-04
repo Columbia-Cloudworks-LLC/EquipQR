@@ -17,11 +17,14 @@ export function useOperatorChecklistTemplates(organizationId: string | undefined
   });
 }
 
-export function useOperatorChecklistTemplate(templateId: string | undefined) {
+export function useOperatorChecklistTemplate(
+  templateId: string | undefined,
+  organizationId: string | undefined,
+) {
   return useQuery({
     queryKey: operatorCheckinKeys.template(templateId ?? ''),
-    queryFn: () => getOperatorChecklistTemplate(templateId!),
-    enabled: Boolean(templateId),
+    queryFn: () => getOperatorChecklistTemplate(templateId!, organizationId!),
+    enabled: Boolean(templateId && organizationId),
   });
 }
 
@@ -50,7 +53,7 @@ export function useUpdateOperatorChecklistTemplate(organizationId: string | unde
         description?: string | null;
         templateData?: OperatorChecklistTemplateData;
       };
-    }) => updateOperatorChecklistTemplate(templateId, updates),
+    }) => updateOperatorChecklistTemplate(templateId, organizationId!, updates),
     onSuccess: (_data, variables) => {
       if (organizationId) {
         void queryClient.invalidateQueries({ queryKey: operatorCheckinKeys.templates(organizationId) });

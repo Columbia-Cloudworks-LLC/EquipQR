@@ -17,6 +17,7 @@ import {
   resolveEquipmentSnapshotValue,
   validateOperatorChecklistAnswers,
   validateOperatorInputFields,
+  sanitizeOperatorChecklistAnswers,
   type CapturedFieldValue,
   type ClientContextKey,
   type OperatorChecklistAnswer,
@@ -25,6 +26,18 @@ import {
 
 const RATE_LIMIT_MAX_SUBMISSIONS = 20;
 const RATE_LIMIT_WINDOW_HOURS = 1;
+const MIN_PUBLIC_TOKEN_LENGTH = 32;
+const MAX_PUBLIC_TOKEN_LENGTH = 128;
+
+/** Public endpoint: Supabase session auth is intentionally omitted; access is gated by the assignment token hash. */
+function isValidPublicToken(token: string): boolean {
+  const trimmed = token.trim();
+  return (
+    trimmed.length >= MIN_PUBLIC_TOKEN_LENGTH &&
+    trimmed.length <= MAX_PUBLIC_TOKEN_LENGTH &&
+    /^[a-zA-Z0-9_-]+$/.test(trimmed)
+  );
+}
 
 interface LoadRequest {
   action: "load";
@@ -255,6 +268,10 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     return createErrorResponse("Missing action or token", 400, { req });
   }
 
+  if (!isValidPublicToken(body.token)) {
+    return createErrorResponse("Check-in is not available", 404, { req });
+  }
+
   const admin = createAdminSupabaseClient();
   const settings = await resolveSettingsByToken(admin, body.token);
 
@@ -322,6 +339,11 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     return createErrorResponse(checklistValidation.errors[0] ?? "Checklist incomplete", 400, { req });
   }
 
+  const sanitizedChecklistAnswers = sanitizeOperatorChecklistAnswers(
+    templateData.checklistItems,
+    body.checklistAnswers ?? [],
+  );
+
   const submittedAt = new Date().toISOString();
   const operatorFieldValues = buildOperatorFieldValues(templateData.dataFields, body.operatorFieldValues ?? {});
   const clientFieldValues = buildClientFieldValues(templateData.dataFields, {
@@ -356,7 +378,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       operator_field_values: operatorFieldValues,
       client_field_values: clientFieldValues,
       equipment_field_values: equipmentFieldValues,
-      checklist_answers: body.checklistAnswers,
+      checklist_answers: sanitizedChecklistAnswers,
       is_complete: true,
       required_item_count: checklistValidation.requiredItemCount,
       answered_required_count: checklistValidation.answeredRequiredCount,

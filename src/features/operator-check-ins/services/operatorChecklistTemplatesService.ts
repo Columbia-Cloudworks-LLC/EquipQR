@@ -40,11 +40,15 @@ export async function listOperatorChecklistTemplates(organizationId: string): Pr
   return (data ?? []).map((row) => mapTemplateRow(row as Record<string, unknown>));
 }
 
-export async function getOperatorChecklistTemplate(templateId: string): Promise<OperatorChecklistTemplate | null> {
+export async function getOperatorChecklistTemplate(
+  templateId: string,
+  organizationId: string,
+): Promise<OperatorChecklistTemplate | null> {
   const { data, error } = await supabase
     .from('operator_checklist_templates')
     .select('*')
     .eq('id', templateId)
+    .eq('organization_id', organizationId)
     .maybeSingle();
 
   if (error) throw error;
@@ -78,6 +82,7 @@ export async function createOperatorChecklistTemplate(input: {
 
 export async function updateOperatorChecklistTemplate(
   templateId: string,
+  organizationId: string,
   updates: {
     name?: string;
     description?: string | null;
@@ -96,6 +101,7 @@ export async function updateOperatorChecklistTemplate(
     .from('operator_checklist_templates')
     .update(payload)
     .eq('id', templateId)
+    .eq('organization_id', organizationId)
     .select('*')
     .single();
 
