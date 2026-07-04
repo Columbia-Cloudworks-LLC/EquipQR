@@ -69,7 +69,9 @@ INSERT INTO auth.users (
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.organizations (id, name)
-VALUES ('91000000-0000-0000-0000-000000000001'::uuid, 'pgTAP Onboarding Org')
+VALUES
+  ('91000000-0000-0000-0000-000000000001'::uuid, 'pgTAP Onboarding Org'),
+  ('91000000-0000-0000-0000-000000000002'::uuid, 'pgTAP Inviting Org')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.profiles (id, email, name)

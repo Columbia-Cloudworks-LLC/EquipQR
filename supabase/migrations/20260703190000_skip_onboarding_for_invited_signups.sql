@@ -73,6 +73,8 @@ BEGIN
         WHERE u.id = v_user_id
           AND oi.status = 'pending'
           AND oi.expires_at > now()
+          AND oi.invited_by IS DISTINCT FROM v_user_id
+          AND oi.organization_id <> p_organization_id
       )
       OR EXISTS (
         SELECT 1
@@ -169,6 +171,7 @@ BEGIN
     WHERE public.normalize_email(oi.email) = public.normalize_email(NEW.email)
       AND oi.status = 'pending'
       AND oi.expires_at > now()
+      AND oi.invited_by IS DISTINCT FROM NEW.id
   );
 
   SELECT organization_id INTO personal_org_id
