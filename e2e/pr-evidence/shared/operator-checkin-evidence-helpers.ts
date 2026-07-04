@@ -169,7 +169,8 @@ export async function openDailyLedgerTab(page: Page): Promise<void> {
 
 export async function selectLedgerReportTemplate(page: Page, templateName: string): Promise<void> {
   await page.locator('#report-template-select').click();
-  await page.getByRole('option').filter({ hasText: templateName }).click();
+  const listbox = page.getByRole('listbox');
+  await listbox.getByRole('option', { name: templateName, exact: true }).click();
 }
 
 export async function deleteTemplateFromConsole(page: Page, templateName: string): Promise<void> {

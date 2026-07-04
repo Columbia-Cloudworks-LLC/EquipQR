@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import type { Page } from '@playwright/test';
+import type { APIRequestContext, Page } from '@playwright/test';
 
 export function prEvidenceFlowSlug(): string {
   return (process.env.PR_EVIDENCE_FLOW || 'change').replace(/[^a-z0-9-]/gi, '-');
@@ -30,4 +30,21 @@ export async function evidenceScreenshot(page: Page, label: string): Promise<str
 
 export async function evidencePause(page: Page, ms: number): Promise<void> {
   await page.waitForTimeout(ms);
+}
+
+const DEFAULT_DOCS_BASE = process.env.PR_EVIDENCE_DOCS_URL ?? 'http://localhost:5174';
+const OPERATOR_GUIDE_PATH = '/support/administration/operator-daily-check-ins';
+
+/** Fails fast when equipqr.info local docs are not running for discovery evidence. */
+export async function assertDocsDevServerReady(
+  request: APIRequestContext,
+  baseUrl: string = DEFAULT_DOCS_BASE,
+): Promise<void> {
+  const guideUrl = `${baseUrl.replace(/\/$/, '')}${OPERATOR_GUIDE_PATH}`;
+  const response = await request.get(guideUrl);
+  if (!response.ok()) {
+    throw new Error(
+      `Docs dev server required at ${baseUrl} (start via dev-start.bat). Guide probe returned ${response.status()}.`,
+    );
+  }
 }

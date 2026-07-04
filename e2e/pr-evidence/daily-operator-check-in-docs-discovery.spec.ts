@@ -1,7 +1,7 @@
 import { test, expect } from '../user/fixtures/equipqr-test';
 import { pinContextToApex } from '../user/shared/auth-helpers';
 import { seedEquipment } from '../user/shared/seed-data';
-import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
+import { evidenceScreenshot, evidencePause, assertDocsDevServerReady } from './shared/evidence-helpers';
 import { resetApexOperatorCheckinEvidence } from './shared/operator-checkin-evidence-reset';
 import {
   assignTemplateToEquipment,
@@ -31,9 +31,12 @@ test.describe.serial('Daily operator check-in docs discovery @pr-evidence', () =
 
   test('users can discover the operator guide from app surfaces and Help Center', async ({
     page,
+    request,
     gotoDashboard,
     assertHealthyShell,
   }) => {
+    await assertDocsDevServerReady(request);
+
     await gotoDashboard('/operator-check-ins');
     await assertHealthyShell();
 
