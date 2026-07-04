@@ -8,10 +8,9 @@
  */
 
 import {
-  createAdminSupabaseClient,
-  createUserSupabaseClient,
   createErrorResponse,
   createJsonResponse,
+  createUserSupabaseClient,
   handleCorsPreflightIfNeeded,
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
@@ -30,8 +29,6 @@ import {
   type OperatorChecklistDataField,
 } from "../_shared/operator-checklist-validation.ts";
 
-const RATE_LIMIT_MAX_SUBMISSIONS = 20;
-const RATE_LIMIT_WINDOW_HOURS = 1;
 const MIN_PUBLIC_TOKEN_LENGTH = 32;
 const MAX_PUBLIC_TOKEN_LENGTH = 128;
 
@@ -93,70 +90,21 @@ async function verifyCaptcha(token: string | undefined): Promise<boolean> {
   }
 }
 
-async function resolveSettingsByToken(admin: ReturnType<typeof createAdminSupabaseClient>, token: string) {
+async function resolveSettingsByToken(
+  supabase: ReturnType<typeof createUserSupabaseClient>,
+  token: string,
+) {
   const tokenHash = await hashToken(token.trim());
-  const { data, error } = await admin
-    .from("equipment_operator_checkin_settings")
-    .select(`
-      id,
-      organization_id,
-      equipment_id,
-      template_id,
-      enabled,
-      equipment:equipment_id (
-        id,
-        name,
-        serial_number,
-        manufacturer,
-        model,
-        status,
-        location,
-        working_hours,
-        custom_attributes,
-        organization_id,
-        team:team_id ( id, name ),
-        organizations:organization_id (
-          id,
-          name,
-          scan_location_collection_enabled
-        )
-      ),
-      template:template_id (
-        id,
-        name,
-        description,
-        template_data,
-        is_active
-      )
-    `)
-    .eq("public_token_hash", tokenHash)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("resolve_operator_checkin_by_token", {
+    p_token_hash: tokenHash,
+  });
 
   if (error) {
     console.error("[OPERATOR-CHECKIN] settings lookup failed:", error.message);
     return null;
   }
 
-  return data;
-}
-
-async function checkSubmissionRateLimit(
-  admin: ReturnType<typeof createAdminSupabaseClient>,
-  settingsId: string,
-): Promise<boolean> {
-  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
-  const { count, error } = await admin
-    .from("operator_checkin_submissions")
-    .select("id", { count: "exact", head: true })
-    .eq("settings_id", settingsId)
-    .gte("submitted_at", windowStart);
-
-  if (error) {
-    console.error("[OPERATOR-CHECKIN] rate limit check failed:", error.message);
-    return false;
-  }
-
-  return (count ?? 0) < RATE_LIMIT_MAX_SUBMISSIONS;
+  return data as Record<string, unknown> | null;
 }
 
 function buildEquipmentPreviewFields(
@@ -278,21 +226,8 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     return createErrorResponse("Check-in is not available", 404, { req });
   }
 
-  try {
-    const userClient = createUserSupabaseClient(req);
-    const authHeader = req.headers.get("Authorization");
-    if (authHeader) {
-      const parts = authHeader.trim().split(/\s+/);
-      if (parts.length === 2 && parts[0]?.toLowerCase() === "bearer" && parts[1]) {
-        await userClient.auth.getUser(parts[1]);
-      }
-    }
-  } catch {
-    // Public token auth is sufficient for this endpoint.
-  }
-
-  const admin = createAdminSupabaseClient();
-  const settings = await resolveSettingsByToken(admin, body.token);
+  const supabase = createUserSupabaseClient(req);
+  const settings = await resolveSettingsByToken(supabase, body.token);
 
   if (!settings || !settings.enabled || !settings.template) {
     return createErrorResponse("Check-in is not available", 404, { req });
@@ -337,10 +272,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     return createErrorResponse("CAPTCHA verification failed", 403, { req });
   }
 
-  const rateOk = await checkSubmissionRateLimit(admin, settings.id as string);
-  if (!rateOk) {
-    return createErrorResponse("Too many check-ins. Please try again later.", 429, { req });
-  }
+  const tokenHash = await hashToken(body.token.trim());
 
   const operatorValidation = validateOperatorInputFields(
     templateData.dataFields,
@@ -385,35 +317,38 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     dataFields: templateData.dataFields,
   };
 
-  const { data: inserted, error: insertError } = await admin
-    .from("operator_checkin_submissions")
-    .insert({
-      organization_id: settings.organization_id,
-      equipment_id: settings.equipment_id,
-      template_id: settings.template_id,
-      settings_id: settings.id,
-      submitted_at: submittedAt,
-      template_snapshot: templateSnapshot,
-      operator_field_values: operatorFieldValues,
-      client_field_values: clientFieldValues,
-      equipment_field_values: equipmentFieldValues,
-      checklist_answers: sanitizedChecklistAnswers,
-      is_complete: true,
-      required_item_count: checklistValidation.requiredItemCount,
-      answered_required_count: checklistValidation.answeredRequiredCount,
-      request_fingerprint: body.requestFingerprint?.slice(0, 128) ?? null,
-    })
-    .select("id, submitted_at")
-    .single();
+  const { data: inserted, error: insertError } = await supabase.rpc("submit_operator_checkin_public", {
+    p_token_hash: tokenHash,
+    p_operator_field_values: operatorFieldValues,
+    p_client_field_values: clientFieldValues,
+    p_equipment_field_values: equipmentFieldValues,
+    p_checklist_answers: sanitizedChecklistAnswers,
+    p_template_snapshot: templateSnapshot,
+    p_is_complete: true,
+    p_required_item_count: checklistValidation.requiredItemCount,
+    p_answered_required_count: checklistValidation.answeredRequiredCount,
+    p_request_fingerprint: body.requestFingerprint?.slice(0, 128) ?? null,
+  });
 
-  if (insertError || !inserted) {
-    console.error("[OPERATOR-CHECKIN] insert failed:", insertError?.message);
+  if (insertError) {
+    console.error("[OPERATOR-CHECKIN] insert failed:", insertError.message);
+    if (insertError.message.includes("Too many check-ins")) {
+      return createErrorResponse("Too many check-ins. Please try again later.", 429, { req });
+    }
+    if (insertError.message.includes("not available")) {
+      return createErrorResponse("Check-in is not available", 404, { req });
+    }
+    return createErrorResponse("Unable to save check-in", 500, { req });
+  }
+
+  const insertedRow = inserted as { id?: string; submitted_at?: string } | null;
+  if (!insertedRow?.id) {
     return createErrorResponse("Unable to save check-in", 500, { req });
   }
 
   return createJsonResponse({
     success: true,
-    submissionId: inserted.id,
-    submittedAt: inserted.submitted_at,
+    submissionId: insertedRow.id,
+    submittedAt: insertedRow.submitted_at,
   }, 200, { req });
 }));

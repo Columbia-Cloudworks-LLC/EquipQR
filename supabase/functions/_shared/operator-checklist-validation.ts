@@ -147,10 +147,11 @@ export function sanitizeOperatorChecklistAnswers(
   for (const answer of answers) {
     if (!allowedIds.has(answer.item_id)) continue;
     if (typeof answer.passed !== "boolean") continue;
+    const notes = normalizeTextValue(answer.notes, 2000);
     deduped.set(answer.item_id, {
       item_id: answer.item_id,
       passed: answer.passed,
-      notes: normalizeTextValue(answer.notes, 2000),
+      ...(notes ? { notes } : {}),
     });
   }
 
