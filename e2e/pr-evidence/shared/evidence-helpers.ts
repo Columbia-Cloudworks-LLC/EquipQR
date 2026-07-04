@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import type { APIRequestContext, Page } from '@playwright/test';
+import type { APIRequestContext, APIResponse, Page } from '@playwright/test';
 
 export function prEvidenceFlowSlug(): string {
   return (process.env.PR_EVIDENCE_FLOW || 'change').replace(/[^a-z0-9-]/gi, '-');
@@ -42,7 +42,7 @@ export async function assertDocsDevServerReady(
 ): Promise<void> {
   const guideUrl = `${baseUrl.replace(/\/$/, '')}${OPERATOR_GUIDE_PATH}`;
 
-  let response;
+  let response: APIResponse;
   try {
     response = await request.get(guideUrl);
   } catch (error) {

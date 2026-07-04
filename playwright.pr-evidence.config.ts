@@ -11,6 +11,7 @@ import { PR_EVIDENCE_VIEWPORT, resolvePrEvidenceViewport } from './scripts/lib/p
 const repoRoot = process.cwd();
 const flowSlug = (process.env.PR_EVIDENCE_FLOW || 'change').replace(/[^a-z0-9-]/gi, '-');
 const outputDir = path.join(repoRoot, 'tmp', 'pr-evidence', flowSlug, 'playwright-output');
+const docsDiscoveryFlow = flowSlug === 'daily-operator-check-in-docs';
 const ownerStorage = path.join(repoRoot, 'tmp', 'playwright', 'auth', 'owner.json');
 const quickLoginBaseUrl = process.env.PR_EVIDENCE_BASE_URL || 'http://localhost:8080';
 const realAuthStorage = resolveRealAuthStorageState();
@@ -40,6 +41,16 @@ export default defineConfig({
   preserveOutput: 'always',
   reporter: [['list']],
   outputDir,
+  ...(docsDiscoveryFlow
+    ? {
+        webServer: {
+          command: 'npm run docs:dev',
+          url: 'http://127.0.0.1:5174',
+          reuseExistingServer: true,
+          timeout: 120_000,
+        },
+      }
+    : {}),
   projects: [
     {
       name: 'setup',
