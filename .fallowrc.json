@@ -41,7 +41,6 @@
     "scripts/test-ci-sharded.mjs",
     "scripts/test-ci-windows.mjs",
     "scripts/upload-screenshot.ts",
-    "scripts/docs-media/bootstrap-docs-media-bucket.ts",
     "scripts/docs-media/print-storage-path.ts"
   ],
   "ignoreExports": [

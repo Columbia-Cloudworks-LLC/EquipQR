@@ -141,10 +141,21 @@ export function parseLastKnownLocation(
   }
 
   const record = lastKnown as Record<string, unknown>;
-  const lat = Number(record.latitude ?? record.lat);
-  const lng = Number(record.longitude ?? record.lng);
+  const latRaw = record.latitude ?? record.lat;
+  const lngRaw = record.longitude ?? record.lng;
 
-  if (Number.isNaN(lat) || Number.isNaN(lng)) {
+  if (latRaw == null || lngRaw === '' || lngRaw == null || latRaw === '') {
+    return undefined;
+  }
+
+  const lat = Number(latRaw);
+  const lng = Number(lngRaw);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return undefined;
+  }
+
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
     return undefined;
   }
 

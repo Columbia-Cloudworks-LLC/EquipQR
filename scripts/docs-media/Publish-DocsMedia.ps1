@@ -57,16 +57,7 @@ $manifest = Get-Content -LiteralPath $manifestFull -Raw -Encoding utf8 | Convert
 
 Set-PrEvidenceUploadEnvironment
 
-$bootstrap = Invoke-PrEvidenceNative -FilePath 'npx' -Arguments @(
-    'tsx', 'scripts/docs-media/bootstrap-docs-media-bucket.ts'
-)
-if ($bootstrap.ExitCode -ne 0) {
-    throw "docs-media bootstrap failed before upload:`n$($bootstrap.Text)"
-}
-$bootstrapParsed = $bootstrap.Text | ConvertFrom-Json
-if (-not $bootstrapParsed.success) {
-    throw "docs-media bootstrap failed before upload: $($bootstrapParsed.error)"
-}
+& (Join-Path $here 'Bootstrap-DocsMediaBucket.ps1') | Out-Null
 
 $uploads = @()
 

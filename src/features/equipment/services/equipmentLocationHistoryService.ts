@@ -90,10 +90,27 @@ export async function logEquipmentLocationChange(params: LocationChangeParams): 
 const DEFAULT_LIMIT = 50;
 
 export async function getEquipmentLocationHistory(
+  organizationId: string,
   equipmentId: string,
   limit: number = DEFAULT_LIMIT,
 ): Promise<EquipmentLocationHistoryRow[]> {
   try {
+    const { data: equipment, error: equipmentError } = await supabase
+      .from('equipment')
+      .select('id')
+      .eq('id', equipmentId)
+      .eq('organization_id', organizationId)
+      .maybeSingle();
+
+    if (equipmentError) {
+      logger.error('Failed to verify equipment organization scope for location history', equipmentError);
+      return [];
+    }
+
+    if (!equipment) {
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('equipment_location_history')
       .select(

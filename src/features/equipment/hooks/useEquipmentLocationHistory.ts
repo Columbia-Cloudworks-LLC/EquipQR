@@ -22,10 +22,10 @@ export function useEquipmentLocationHistory(
         ? equipmentKeys.locationHistory(organizationId, equipmentId, limit)
         : ['equipment', organizationId, equipmentId, 'location-history', limit],
     queryFn: async () => {
-      if (!equipmentId) {
+      if (!organizationId || !equipmentId) {
         return [];
       }
-      return getEquipmentLocationHistory(equipmentId, limit);
+      return getEquipmentLocationHistory(organizationId, equipmentId, limit);
     },
     enabled,
     staleTime,

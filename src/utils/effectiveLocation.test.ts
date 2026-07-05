@@ -135,6 +135,11 @@ describe('effectiveLocation', () => {
     expect(scan?.updatedAt).toBe('2026-04-15T08:30:00Z');
   });
 
+  it('returns undefined when last_known_location coordinates are null', () => {
+    expect(parseLastKnownLocation({ latitude: null, longitude: null })).toBeUndefined();
+    expect(parseLastKnownLocation({ lat: null, lng: -90.659318 })).toBeUndefined();
+  });
+
   it('builds selectable options for each available source', () => {
     const options = buildEquipmentLocationOptions({
       team,

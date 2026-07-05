@@ -1,13 +1,20 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Idempotently bootstrap the production docs-media Supabase Storage bucket.
+  Verify the production docs-media bucket (created by migration, not service role).
+
+.DESCRIPTION
+  Bucket creation is defined in supabase/migrations/20260704180000_create_docs_media_bucket.sql
+  and applied through normal Supabase deploy/migration promotion. This script only verifies
+  anonymous public read access is available — it does not use SUPABASE_SERVICE_ROLE_KEY.
 
 .EXAMPLE
   .\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1
 #>
 [CmdletBinding()]
-param()
+param(
+  [string]$PublicProbeUrl = 'https://supabase.equipqr.app/storage/v1/object/public/docs-media/'
+)
 
 $ErrorActionPreference = 'Stop'
 
@@ -15,24 +22,21 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent (Split-Path -Parent $here)
 Set-Location -LiteralPath $repoRoot
 
-. (Join-Path $repoRoot 'scripts\pr-evidence\PrEvidenceCommon.ps1')
+Write-Host '[docs-media] Bucket provisioning is handled by migration 20260704180000_create_docs_media_bucket.sql.'
+Write-Host '[docs-media] Verifying anonymous public bucket access ...'
 
-Assert-PrEvidenceCommandExists 'npx'
-Set-PrEvidenceUploadEnvironment
+try {
+  $response = Invoke-WebRequest -Uri $PublicProbeUrl -Method Head -UseBasicParsing -TimeoutSec 20
+  Write-Host ("[docs-media] Public bucket probe status={0}." -f $response.StatusCode)
+}
+catch {
+  if ($_.Exception.Response -and $_.Exception.Response.StatusCode.value__ -eq 404) {
+    Write-Host '[docs-media] Bucket path reachable (404 without object key is expected before first upload).'
+    Write-Host '{"success":true,"created":false,"bucket":"docs-media","verified":"public-endpoint"}'
+    exit 0
+  }
 
-Write-Host '[docs-media] Bootstrapping docs-media bucket on production Supabase ...'
-
-$result = Invoke-PrEvidenceNative -FilePath 'npx' -Arguments @(
-  'tsx', 'scripts/docs-media/bootstrap-docs-media-bucket.ts'
-)
-
-if ($result.ExitCode -ne 0) {
-  throw "docs-media bootstrap failed:`n$($result.Text)"
+  throw "docs-media public probe failed: $($_.Exception.Message)"
 }
 
-$parsed = $result.Text | ConvertFrom-Json
-if (-not $parsed.success) {
-  throw "docs-media bootstrap failed: $($parsed.error)"
-}
-
-Write-Host ("[docs-media] Bucket ready (created={0})." -f $parsed.created)
+Write-Host '{"success":true,"created":false,"bucket":"docs-media","verified":"public-endpoint"}'

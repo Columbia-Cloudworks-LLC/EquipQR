@@ -58,13 +58,23 @@ FROM (
   SELECT DISTINCT ON (s.equipment_id)
     s.equipment_id,
     jsonb_build_object(
-      'latitude', NULLIF(trim(split_part(s.location, ',', 1)), '')::double precision,
-      'longitude', NULLIF(trim(split_part(s.location, ',', 2)), '')::double precision,
+      'latitude', coords.v_lat,
+      'longitude', coords.v_lng,
       'updated_at', s.scanned_at
     ) AS lkl
   FROM public.scans s
+  CROSS JOIN LATERAL (
+    SELECT
+      NULLIF(trim(split_part(s.location, ',', 1)), '')::double precision AS v_lat,
+      NULLIF(trim(split_part(s.location, ',', 2)), '')::double precision AS v_lng
+  ) coords
   WHERE s.location IS NOT NULL
-    AND s.location ~ '^\s*-?[0-9]+(\.[0-9]+)?\s*,\s*-?[0-9]+(\.[0-9]+)?\s*$'
+    AND coords.v_lat IS NOT NULL
+    AND coords.v_lng IS NOT NULL
+    AND coords.v_lat >= -90
+    AND coords.v_lat <= 90
+    AND coords.v_lng >= -180
+    AND coords.v_lng <= 180
   ORDER BY s.equipment_id, s.scanned_at DESC
 ) sub
 WHERE e.id = sub.equipment_id
@@ -72,4 +82,5 @@ WHERE e.id = sub.equipment_id
     e.last_known_location IS NULL
     OR e.last_known_location = 'null'::jsonb
     OR NOT (e.last_known_location ? 'latitude')
+    OR NOT (e.last_known_location ? 'longitude')
   );
