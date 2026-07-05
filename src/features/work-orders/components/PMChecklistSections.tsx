@@ -4,7 +4,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { SegmentedProgress } from '@/components/ui/segmented-progress';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { createSegmentsForSection } from '@/utils/pmChecklistHelpers';
-import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { PMChecklistItem, type PMChecklistCondition } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import PMChecklistItemRow from '@/features/work-orders/components/PMChecklistItemRow';
 
 interface PMChecklistSectionsProps {
@@ -15,7 +15,7 @@ interface PMChecklistSectionsProps {
   pmStatus: string;
   toggleSection: (section: string) => void;
   getSectionProgress: (section: string) => { completed: number; total: number; percentage: number };
-  handleChecklistItemChange: (itemId: string, condition: 1 | 2 | 3 | 4 | 5) => void;
+  handleChecklistItemChange: (itemId: string, condition: PMChecklistCondition) => void;
   toggleNotesVisibility: (itemId: string) => void;
   shouldShowNotes: (item: PMChecklistItem) => boolean;
   getItemBorderClass: (item: PMChecklistItem) => string;

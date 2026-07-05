@@ -24,6 +24,7 @@ Deno.test("getConditionText maps PM condition codes", () => {
   assertEquals(getConditionText(null), "Not Rated");
   assertEquals(getConditionText(1), "OK");
   assertEquals(getConditionText(5), "Unsafe Condition Present");
+  assertEquals(getConditionText(6), "Not Applicable");
   assertEquals(getConditionText(99), "Unknown");
 });
 

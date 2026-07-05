@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Clock, AlertTriangle, RefreshCw } from 'lucide-react';
-import { PMChecklistItem, PreventativeMaintenance, defaultForkliftChecklist } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { PMChecklistItem, PreventativeMaintenance, defaultForkliftChecklist, type PMChecklistCondition } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useBrowserStorage } from '@/hooks/useBrowserStorage';
@@ -27,6 +27,7 @@ import {
   isPMChecklistItemComplete,
   parsePMChecklistData,
 } from '@/features/work-orders/utils/pmChecklistInit';
+import { isNegativePMCondition, PM_CONDITION_NOT_APPLICABLE } from '@/utils/pmChecklistHelpers';
 import { preventiveMaintenance } from '@/lib/queryKeys';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -284,7 +285,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }
   }, [pm.id, notes, pm.status, pm.updated_at, clearStorage, updatePMMutation]);
 
-  const handleChecklistItemChange = useCallback((itemId: string, condition: 1 | 2 | 3 | 4 | 5) => {
+  const handleChecklistItemChange = useCallback((itemId: string, condition: PMChecklistCondition) => {
     setChecklist(prev => prev.map(item => 
       item.id === itemId 
         ? { ...item, condition } 
@@ -295,7 +296,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     
     // Auto-expand notes for negative conditions (2-5)
     // Clear manual collapse state to re-enable auto-expand on condition change
-    if (condition >= 2) {
+    if (isNegativePMCondition(condition)) {
       setManuallyCollapsed(prev => {
         const updated = { ...prev };
         delete updated[itemId];
@@ -634,7 +635,10 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     const hasExistingNotes = item.notes && item.notes.trim() !== '';
     const isManuallyCollapsedNow = manuallyCollapsed[itemId];
     const isExplicitlyExpanded = expandedNotes[itemId];
-    const hasNegativeCondition = item.condition !== null && item.condition >= 2;
+    const hasNegativeCondition =
+      item.condition !== null &&
+      item.condition !== undefined &&
+      isNegativePMCondition(item.condition);
     
     const isCurrentlyVisible = 
       hasExistingNotes || 
@@ -667,7 +671,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     if (expandedNotes[item.id]) return true;
     
     // Auto-expand for negative statuses (2-5) - only if not manually collapsed
-    if (item.condition !== null && item.condition >= 2) return true;
+    if (item.condition !== null && item.condition !== undefined && isNegativePMCondition(item.condition)) return true;
     
     return false;
   }, [expandedNotes, manuallyCollapsed]);
@@ -676,6 +680,9 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   const getItemBorderClass = useCallback((item: PMChecklistItem) => {
     const isComplete = isPMChecklistItemComplete(item);
     if (isComplete) {
+      if (item.condition === PM_CONDITION_NOT_APPLICABLE) {
+        return 'border-l-4 border-l-muted-foreground';
+      }
       return 'border-l-4 border-l-success'; // Green border for completed items
     } else if (item.required) {
       return 'border-l-4 border-l-destructive'; // Red border for required unrated items

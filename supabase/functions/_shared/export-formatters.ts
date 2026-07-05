@@ -37,6 +37,7 @@ export function getConditionText(condition: number | null): string {
     case 3: return 'Recommend Repairs';
     case 4: return 'Requires Immediate Repairs';
     case 5: return 'Unsafe Condition Present';
+    case 6: return 'Not Applicable';
     default: return 'Unknown';
   }
 }

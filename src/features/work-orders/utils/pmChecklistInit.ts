@@ -1,4 +1,5 @@
-import { defaultForkliftChecklist, type PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { defaultForkliftChecklist, type PMChecklistCondition, type PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { PM_CONDITION_NOT_APPLICABLE } from '@/utils/pmChecklistHelpers';
 import { buildCollapsedPmChecklistSections } from '@/features/work-orders/utils/pmChecklistSectionState';
 import { logger } from '@/utils/logger';
 
@@ -23,7 +24,7 @@ export function parsePMChecklistData(
           checklistItem.condition === undefined ||
           (typeof checklistItem.condition === 'number' &&
             Number(checklistItem.condition) >= 1 &&
-            Number(checklistItem.condition) <= 5))
+            Number(checklistItem.condition) <= PM_CONDITION_NOT_APPLICABLE))
       );
     });
 
@@ -38,7 +39,7 @@ export function parsePMChecklistData(
           required: Boolean(checklistItem.required),
           condition:
             checklistItem.condition !== null && checklistItem.condition !== undefined
-              ? (Number(checklistItem.condition) as 1 | 2 | 3 | 4 | 5)
+              ? (Number(checklistItem.condition) as PMChecklistCondition)
               : null,
           notes: checklistItem.notes ? String(checklistItem.notes) : undefined,
         };

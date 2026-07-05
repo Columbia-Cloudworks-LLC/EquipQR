@@ -7,11 +7,13 @@ import { getAuthClaims } from '@/lib/authClaims';
 
 export type PreventativeMaintenance = Tables<'preventative_maintenance'>;
 
+export type PMChecklistCondition = 1 | 2 | 3 | 4 | 5 | 6;
+
 export interface PMChecklistItem {
   id: string;
   title: string;
   description?: string;
-  condition: 1 | 2 | 3 | 4 | 5 | null | undefined;
+  condition: PMChecklistCondition | null | undefined;
   required: boolean;
   notes?: string;
   section: string;

@@ -6,7 +6,7 @@ import { getStatusText } from "@/utils/pmChecklistHelpers"
 interface SegmentedProgressProps {
   segments: Array<{
     id: string
-    status: 'not_rated' | 'ok' | 'adjusted' | 'recommend_repairs' | 'requires_immediate_repairs' | 'unsafe_condition'
+    status: 'not_rated' | 'ok' | 'not_applicable' | 'adjusted' | 'recommend_repairs' | 'requires_immediate_repairs' | 'unsafe_condition'
     section?: string
     title?: string
     notes?: string
@@ -18,6 +18,8 @@ const getSegmentColor = (status: SegmentedProgressProps['segments'][0]['status']
   switch (status) {
     case 'ok':
       return 'bg-success'
+    case 'not_applicable':
+      return 'bg-muted-foreground/60'
     case 'adjusted':
       return 'bg-warning'
     case 'recommend_repairs':
