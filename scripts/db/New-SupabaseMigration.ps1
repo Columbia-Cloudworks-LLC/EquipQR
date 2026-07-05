@@ -43,6 +43,12 @@ if (-not (Test-Path -LiteralPath $supabaseExe)) {
 
 $pidFile = Join-Path $env:TEMP ("equipqr-supabase-migration-{0}.pid" -f [guid]::NewGuid().ToString('N'))
 
+$migrationsDir = Join-Path $repoRoot 'supabase\migrations'
+$existingMigrationNames = @(
+  Get-ChildItem -LiteralPath $migrationsDir -Filter '*.sql' -File -ErrorAction SilentlyContinue |
+    Select-Object -ExpandProperty Name
+)
+
 Push-Location -LiteralPath $repoRoot
 try {
   $job = Start-Job -ScriptBlock {
@@ -103,18 +109,23 @@ try {
     throw "supabase migration new failed with exit code $($result.ExitCode)."
   }
 
-  $outputLines = @()
-  if ($result.Stdout) { $outputLines += $result.Stdout -split "`r?`n" }
-  if ($result.Stderr) { $outputLines += $result.Stderr -split "`r?`n" }
+  $newMigrations = @(
+    Get-ChildItem -LiteralPath $migrationsDir -Filter '*.sql' -File |
+      Where-Object { $existingMigrationNames -notcontains $_.Name } |
+      Sort-Object LastWriteTime -Descending
+  )
 
-  $createdLine = $outputLines | Where-Object { $_ -match 'Created new migration at ' } | Select-Object -Last 1
-  if (-not $createdLine) {
-    throw "supabase migration new did not report a created file."
+  if ($newMigrations.Count -eq 0) {
+    throw "supabase migration new exited 0 but no new file appeared in supabase/migrations."
   }
 
-  if ($createdLine -match 'Created new migration at (.+\.sql)') {
-    Write-Output $Matches[1].Trim()
+  $createdFile = $newMigrations | Where-Object { $_.Name -like "*_$Name.sql" } | Select-Object -First 1
+  if (-not $createdFile) {
+    $createdFile = $newMigrations[0]
   }
+
+  $relativePath = Join-Path 'supabase\migrations' $createdFile.Name
+  Write-Output $relativePath
 }
 finally {
   Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue
