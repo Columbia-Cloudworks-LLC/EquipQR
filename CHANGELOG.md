@@ -1,6 +1,6 @@
 # Changelog
 
-<!-- markdownlint-disable MD012 MD022 MD024 MD034 MD049 -->
+<!-- markdownlint-disable MD024 -->
 
 All notable changes to EquipQR will be documented in this file.
 
