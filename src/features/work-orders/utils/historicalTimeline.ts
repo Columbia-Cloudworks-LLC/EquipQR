@@ -63,6 +63,11 @@ export function createEmptyTimelineRow(seedDate?: Date): HistoricalTimelineEdito
 }
 
 export function getTimelineRowSeedDate(rows: HistoricalTimelineEditorRow[]): Date | undefined {
+  const previousRow = rows[rows.length - 1];
+  if (previousRow?.changedAt instanceof Date && !Number.isNaN(previousRow.changedAt.getTime())) {
+    return new Date(previousRow.changedAt.getTime());
+  }
+
   const lastFilledIndex = getLastFilledRowIndex(rows);
   if (lastFilledIndex < 0) {
     return undefined;

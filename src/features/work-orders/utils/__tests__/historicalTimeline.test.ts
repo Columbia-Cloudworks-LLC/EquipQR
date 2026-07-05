@@ -50,6 +50,27 @@ describe('historicalTimeline helpers', () => {
     expect(seeded.changedAt?.toISOString()).toBe('2024-01-02T10:30:00.000Z');
   });
 
+  it('seeds empty rows from a draft row timestamp before status is selected', () => {
+    const rows: HistoricalTimelineEditorRow[] = [
+      { ...createInitialTimelineRow(new Date('2024-01-01T08:00:00Z')), newStatus: 'submitted' },
+      {
+        id: 'row-2',
+        newStatus: 'accepted',
+        changedAt: new Date('2024-01-02T10:30:00Z'),
+        assigneeId: null,
+      },
+      {
+        id: 'row-3',
+        newStatus: '',
+        changedAt: new Date('2024-01-02T14:00:00Z'),
+        assigneeId: null,
+      },
+    ];
+
+    const seeded = createEmptyTimelineRow(getTimelineRowSeedDate(rows));
+    expect(seeded.changedAt?.toISOString()).toBe('2024-01-02T14:00:00.000Z');
+  });
+
   it('clears downstream row values when an upstream status changes', () => {
     const rows: HistoricalTimelineEditorRow[] = [
       { ...createInitialTimelineRow(new Date('2024-01-01')), newStatus: 'submitted' },
