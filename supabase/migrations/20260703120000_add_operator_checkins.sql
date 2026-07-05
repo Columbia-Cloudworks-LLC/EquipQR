@@ -157,13 +157,32 @@ CREATE POLICY equipment_operator_checkin_settings_insert_admin
       WHERE e.id = equipment_operator_checkin_settings.equipment_id
         AND e.organization_id = equipment_operator_checkin_settings.organization_id
     )
+    AND EXISTS (
+      SELECT 1 FROM public.operator_checklist_templates tpl
+      WHERE tpl.id = equipment_operator_checkin_settings.template_id
+        AND tpl.organization_id = equipment_operator_checkin_settings.organization_id
+    )
   );
 
 DROP POLICY IF EXISTS equipment_operator_checkin_settings_update_admin ON public.equipment_operator_checkin_settings;
 CREATE POLICY equipment_operator_checkin_settings_update_admin
   ON public.equipment_operator_checkin_settings
-  FOR UPDATE USING (
+  FOR UPDATE
+  USING (
     public.is_org_admin((SELECT auth.uid()), organization_id)
+  )
+  WITH CHECK (
+    public.is_org_admin((SELECT auth.uid()), organization_id)
+    AND EXISTS (
+      SELECT 1 FROM public.equipment e
+      WHERE e.id = equipment_operator_checkin_settings.equipment_id
+        AND e.organization_id = equipment_operator_checkin_settings.organization_id
+    )
+    AND EXISTS (
+      SELECT 1 FROM public.operator_checklist_templates tpl
+      WHERE tpl.id = equipment_operator_checkin_settings.template_id
+        AND tpl.organization_id = equipment_operator_checkin_settings.organization_id
+    )
   );
 
 DROP POLICY IF EXISTS equipment_operator_checkin_settings_delete_admin ON public.equipment_operator_checkin_settings;

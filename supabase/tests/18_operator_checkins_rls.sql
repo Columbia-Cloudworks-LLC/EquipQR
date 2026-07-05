@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(21);
+SELECT plan(23);
 
 -- ============================================
 -- Test: operator check-in domain RLS (#1091)
@@ -251,6 +251,34 @@ SELECT throws_ok(
   $$ SELECT public.delete_operator_checklist_template('31000000-cccc-0000-0000-000000000001'::uuid) $$,
   'Forbidden',
   'cross-org template archive is rejected'
+);
+
+RESET role;
+
+SELECT ok(
+  EXISTS (
+    SELECT 1
+    FROM pg_constraint AS c
+    INNER JOIN pg_class AS t ON t.oid = c.conrelid
+    INNER JOIN pg_namespace AS n ON n.oid = t.relnamespace
+    WHERE n.nspname = 'public'
+      AND t.relname = 'equipment_operator_checkin_settings'
+      AND c.conname = 'equipment_operator_checkin_settings_equipment_org_fkey'
+  ),
+  'equipment_operator_checkin_settings has composite equipment/org foreign key'
+);
+
+SELECT ok(
+  EXISTS (
+    SELECT 1
+    FROM pg_constraint AS c
+    INNER JOIN pg_class AS t ON t.oid = c.conrelid
+    INNER JOIN pg_namespace AS n ON n.oid = t.relnamespace
+    WHERE n.nspname = 'public'
+      AND t.relname = 'equipment_operator_checkin_settings'
+      AND c.conname = 'equipment_operator_checkin_settings_template_org_fkey'
+  ),
+  'equipment_operator_checkin_settings has composite template/org foreign key'
 );
 
 SELECT * FROM finish();
