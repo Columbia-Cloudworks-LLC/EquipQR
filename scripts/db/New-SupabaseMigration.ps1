@@ -7,8 +7,8 @@
   `supabase migration new` reads optional SQL from stdin. Cursor agent terminals
   (and some CI wrappers) keep stdin open, so a bare `npx supabase migration new`
   can block indefinitely waiting for EOF. This wrapper sends an immediate EOF via
-  an empty pipeline, uses node_modules\.bin\supabase.cmd (not npx), and fails
-  fast on timeout.
+  an empty pipeline, runs from the repo root, uses node_modules\.bin\supabase.cmd
+  (not npx), and fails fast on timeout without killing unrelated stack processes.
 
 .PARAMETER Name
   Migration slug (snake_case recommended).
@@ -34,27 +34,27 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $supabaseCmd = Join-Path $repoRoot 'node_modules\.bin\supabase.cmd'
 
 if (-not (Test-Path -LiteralPath $supabaseCmd)) {
   throw "Supabase CLI not found at $supabaseCmd. Run npm ci first."
 }
 
-Push-Location $repoRoot
+Push-Location -LiteralPath $repoRoot
 try {
   $job = Start-Job -ScriptBlock {
-    param($Cmd, $MigrationName)
+    param($Cmd, $MigrationName, $RepoRoot)
+    Set-Location -LiteralPath $RepoRoot
     # Empty pipeline closes stdin immediately; avoids hangs when parent stdin stays open.
     '' | & $Cmd migration new $MigrationName 2>&1
-  } -ArgumentList $supabaseCmd, $Name
+  } -ArgumentList $supabaseCmd, $Name, $repoRoot
 
   $completed = Wait-Job -Job $job -Timeout $TimeoutSeconds
   if (-not $completed) {
     Stop-Job -Job $job -Force -ErrorAction SilentlyContinue
     Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
-    Get-Process -Name supabase -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-    throw "supabase migration new timed out after ${TimeoutSeconds}s. If this recurs, check for a stuck supabase.exe process."
+    throw "supabase migration new timed out after ${TimeoutSeconds}s."
   }
 
   $output = @(Receive-Job -Job $job)
