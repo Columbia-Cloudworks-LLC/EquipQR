@@ -1,8 +1,19 @@
 import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService'
 
-export const getItemStatus = (item: PMChecklistItem): 'not_rated' | 'ok' | 'adjusted' | 'recommend_repairs' | 'requires_immediate_repairs' | 'unsafe_condition' => {
-  if (!item.condition) return 'not_rated'
-  
+export const PM_CONDITION_NOT_APPLICABLE = 6 as const;
+
+export type PMChecklistItemStatus =
+  | 'not_rated'
+  | 'ok'
+  | 'not_applicable'
+  | 'adjusted'
+  | 'recommend_repairs'
+  | 'requires_immediate_repairs'
+  | 'unsafe_condition';
+
+export const getItemStatus = (item: PMChecklistItem): PMChecklistItemStatus => {
+  if (item.condition === null || item.condition === undefined) return 'not_rated'
+
   switch (item.condition) {
     case 1:
       return 'ok'
@@ -14,18 +25,26 @@ export const getItemStatus = (item: PMChecklistItem): 'not_rated' | 'ok' | 'adju
       return 'requires_immediate_repairs'
     case 5:
       return 'unsafe_condition'
+    case PM_CONDITION_NOT_APPLICABLE:
+      return 'not_applicable'
     default:
       return 'not_rated'
   }
 }
 
+export function isNegativePMCondition(condition: number): boolean {
+  return condition >= 2 && condition <= 5;
+}
+
 /**
  * Converts a status enum to human-readable text
  */
-export const getStatusText = (status: 'not_rated' | 'ok' | 'adjusted' | 'recommend_repairs' | 'requires_immediate_repairs' | 'unsafe_condition'): string => {
+export const getStatusText = (status: PMChecklistItemStatus): string => {
   switch (status) {
     case 'ok':
       return 'OK'
+    case 'not_applicable':
+      return 'Not Applicable'
     case 'adjusted':
       return 'Adjusted'
     case 'recommend_repairs':

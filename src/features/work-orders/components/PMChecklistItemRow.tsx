@@ -7,10 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { CheckCircle, Circle, MessageSquare, MessageSquareText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { PMChecklistItem, type PMChecklistCondition } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { PM_CONDITION_NOT_APPLICABLE } from '@/utils/pmChecklistHelpers';
 
 const CONDITION_RATINGS = [
   { value: 1, label: 'OK', color: 'text-success' },
+  { value: PM_CONDITION_NOT_APPLICABLE, label: 'Not Applicable', color: 'text-muted-foreground' },
   { value: 2, label: 'Adjusted', color: 'text-warning' },
   { value: 3, label: 'Recommend Repairs', color: 'text-warning' },
   { value: 4, label: 'Requires Immediate Repairs', color: 'text-destructive' },
@@ -21,6 +23,7 @@ function getConditionColor(condition: number | null | undefined): string {
   if (condition === null || condition === undefined) return 'text-destructive';
   switch (condition) {
     case 1: return 'text-success';
+    case PM_CONDITION_NOT_APPLICABLE: return 'text-muted-foreground';
     case 2: return 'text-warning';
     case 3: return 'text-warning';
     case 4: return 'text-destructive';
@@ -33,6 +36,7 @@ function getConditionText(condition: number | null | undefined): string {
   if (condition === null || condition === undefined) return 'Not Rated';
   switch (condition) {
     case 1: return 'OK';
+    case PM_CONDITION_NOT_APPLICABLE: return 'Not Applicable';
     case 2: return 'Adjusted';
     case 3: return 'Recommend Repairs';
     case 4: return 'Requires Immediate Repairs';
@@ -49,7 +53,7 @@ interface PMChecklistItemRowProps {
   item: PMChecklistItem;
   readOnly: boolean;
   pmStatus: string;
-  onConditionChange: (itemId: string, condition: 1 | 2 | 3 | 4 | 5) => void;
+  onConditionChange: (itemId: string, condition: PMChecklistCondition) => void;
   onToggleNotes: (itemId: string) => void;
   showNotes: boolean;
   borderClass: string;
@@ -74,7 +78,11 @@ const PMChecklistItemRow = React.memo<PMChecklistItemRowProps>(function PMCheckl
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             {isItemComplete(item) ? (
-              <CheckCircle className="h-4 w-4 text-success shrink-0" />
+              item.condition === PM_CONDITION_NOT_APPLICABLE ? (
+                <CheckCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+              ) : (
+                <CheckCircle className="h-4 w-4 text-success shrink-0" />
+              )
             ) : (
               <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
             )}
@@ -95,7 +103,7 @@ const PMChecklistItemRow = React.memo<PMChecklistItemRowProps>(function PMCheckl
               <Select
                 value={item.condition?.toString() || ''}
                 onValueChange={(value) => {
-                  onConditionChange(item.id, parseInt(value, 10) as 1 | 2 | 3 | 4 | 5);
+                  onConditionChange(item.id, parseInt(value, 10) as PMChecklistCondition);
                   if ('vibrate' in navigator) navigator.vibrate(30);
                 }}
               >

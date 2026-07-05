@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { getItemStatus, getStatusText, createSegmentsForSection } from '../pmChecklistHelpers';
+import {
+  getItemStatus,
+  getStatusText,
+  createSegmentsForSection,
+  PM_CONDITION_NOT_APPLICABLE,
+} from '../pmChecklistHelpers';
 import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 
 describe('pmChecklistHelpers', () => {
@@ -39,6 +44,11 @@ describe('pmChecklistHelpers', () => {
       expect(getItemStatus(item)).toBe('unsafe_condition');
     });
 
+    it('returns not_applicable for condition 6', () => {
+      const item = { id: '1', condition: PM_CONDITION_NOT_APPLICABLE } as PMChecklistItem;
+      expect(getItemStatus(item)).toBe('not_applicable');
+    });
+
     it('returns not_rated for unknown condition values', () => {
       const item = { id: '1', condition: 99 } as PMChecklistItem;
       expect(getItemStatus(item)).toBe('not_rated');
@@ -64,6 +74,10 @@ describe('pmChecklistHelpers', () => {
 
     it('returns Unsafe Condition for unsafe_condition status', () => {
       expect(getStatusText('unsafe_condition')).toBe('Unsafe Condition');
+    });
+
+    it('returns Not Applicable for not_applicable status', () => {
+      expect(getStatusText('not_applicable')).toBe('Not Applicable');
     });
 
     it('returns Not Rated for not_rated status', () => {

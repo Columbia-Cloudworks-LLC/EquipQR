@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.12.9] - 2026-07-05
+
+### Added
+
+- **PM checklist Not Applicable (#1094)** — Technicians can mark PM checklist items as Not Applicable instead of forcing OK plus notes. N/A counts toward checklist completion and renders with distinct grey styling in item rows and progress segments.
+
 ## [3.12.8] - 2026-07-05
 
 ### Fixed
