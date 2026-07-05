@@ -20,10 +20,15 @@ support/{collection}/{desktop|mobile}/demo.mp4
 Example:
 
 ```
-https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/location-maps/desktop/01-equipment-location-source.png
+https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/location-maps/desktop/01-fleet-map-source-filter.png
 ```
 
-Bootstrap the bucket once per environment with `.\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1` (uses 1Password-backed service role; idempotent).
+The **`docs-media`** bucket is created by Supabase migration (`supabase/migrations/20260704180000_create_docs_media_bucket.sql`) during normal deploy. Optionally verify public access after deploy:
+
+```powershell
+$env:SUPABASE_URL = (op read "op://EquipQR Agents/app-env-preview-public/SUPABASE_URL").Trim()
+.\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1 -SupabaseUrl $env:SUPABASE_URL
+```
 
 ## Legacy committed assets
 
