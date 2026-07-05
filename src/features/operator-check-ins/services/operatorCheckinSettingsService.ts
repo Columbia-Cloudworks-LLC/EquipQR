@@ -31,8 +31,8 @@ function generateRawToken(): string {
 
 const assignmentSelect = `
   *,
-  equipment:equipment_id (id, name, serial_number),
-  template:template_id (id, name, description)
+  equipment!equipment_operator_checkin_settings_equipment_org_fkey (id, name, serial_number),
+  template:operator_checklist_templates!equipment_operator_checkin_settings_template_org_fkey (id, name, description)
 `;
 
 export async function listEquipmentOperatorCheckinAssignments(
