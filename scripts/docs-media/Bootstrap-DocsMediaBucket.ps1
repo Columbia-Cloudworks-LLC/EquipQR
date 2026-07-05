@@ -10,11 +10,15 @@
   SUPABASE_SERVICE_ROLE_KEY.
 
 .EXAMPLE
+  # After Publish-DocsMedia.ps1 loads upload env, or when SUPABASE_URL is already set:
+  .\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1
+
+.EXAMPLE
   .\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1 -SupabaseUrl $env:SUPABASE_URL
 #>
 [CmdletBinding()]
 param(
-  [Parameter(Mandatory)][string]$SupabaseUrl
+  [string]$SupabaseUrl = $(if ($env:SUPABASE_URL) { $env:SUPABASE_URL } elseif ($env:VITE_SUPABASE_URL) { $env:VITE_SUPABASE_URL } else { '' })
 )
 
 $ErrorActionPreference = 'Stop'
@@ -24,7 +28,7 @@ $repoRoot = Split-Path -Parent (Split-Path -Parent $here)
 Set-Location -LiteralPath $repoRoot
 
 if ([string]::IsNullOrWhiteSpace($SupabaseUrl)) {
-  throw 'SupabaseUrl is required to verify docs-media public access.'
+  throw 'SupabaseUrl is required. Pass -SupabaseUrl or set SUPABASE_URL / VITE_SUPABASE_URL (see scripts/README-upload-screenshot.md).'
 }
 
 $supabaseUrl = $SupabaseUrl.Trim()

@@ -25,10 +25,10 @@ https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/locatio
 
 The **`docs-media`** bucket is created by Supabase migration (`supabase/migrations/20260704180000_create_docs_media_bucket.sql`) during normal deploy.
 
-Optionally verify public access after deploy (requires `SUPABASE_URL` in the shell — see `AGENTS.md`):
+Optionally verify public access after deploy. `Publish-DocsMedia.ps1` loads `SUPABASE_URL` automatically via `Set-PrEvidenceUploadEnvironment`; for a manual probe, set `SUPABASE_URL` per `scripts/README-upload-screenshot.md` and run:
 
 ```powershell
-.\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1 -SupabaseUrl $env:SUPABASE_URL
+.\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1
 ```
 
 ## Legacy committed assets
