@@ -7,6 +7,9 @@ BEGIN;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_operator_checklist_templates_id_org
   ON public.operator_checklist_templates (id, organization_id);
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_equipment_id_org
+  ON public.equipment (id, organization_id);
+
 ALTER TABLE public.equipment_operator_checkin_settings
   DROP CONSTRAINT IF EXISTS equipment_operator_checkin_settings_template_id_fkey;
 
@@ -23,9 +26,9 @@ ALTER TABLE public.equipment_operator_checkin_settings
   ON DELETE RESTRICT;
 
 ALTER TABLE public.equipment_operator_checkin_settings
-  ADD CONSTRAINT equipment_operator_checkin_settings_equipment_id_fkey
-  FOREIGN KEY (equipment_id)
-  REFERENCES public.equipment (id)
+  ADD CONSTRAINT equipment_operator_checkin_settings_equipment_org_fkey
+  FOREIGN KEY (equipment_id, organization_id)
+  REFERENCES public.equipment (id, organization_id)
   ON DELETE CASCADE;
 
 DROP POLICY IF EXISTS equipment_operator_checkin_settings_insert_admin
