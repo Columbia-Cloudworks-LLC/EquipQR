@@ -8,7 +8,6 @@ SET search_path = ''
 AS $$
 DECLARE
   v_org_id uuid;
-  v_image record;
 BEGIN
   IF auth.uid() IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
@@ -30,20 +29,17 @@ BEGIN
   SET primary_image_id = NULL
   WHERE id = p_work_order_id;
 
-  FOR v_image IN
-    SELECT file_url
-    FROM public.work_order_images
-    WHERE work_order_id = p_work_order_id
-  LOOP
-    BEGIN
-      DELETE FROM storage.objects
-      WHERE bucket_id = 'work-order-images'
-        AND name = v_image.file_url;
-    EXCEPTION WHEN OTHERS THEN
-      RAISE LOG 'delete_work_order_cascade storage cleanup failed for % path %: %',
-        p_work_order_id, v_image.file_url, SQLERRM;
-    END;
-  END LOOP;
+  BEGIN
+    DELETE FROM storage.objects o
+    USING public.work_order_images wi
+    WHERE wi.work_order_id = p_work_order_id
+      AND o.bucket_id = 'work-order-images'
+      AND o.name = wi.file_url
+      AND (storage.foldername(o.name))[2] = p_work_order_id::text;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE LOG 'delete_work_order_cascade storage cleanup failed for %: %',
+      p_work_order_id, SQLERRM;
+  END;
 
   DELETE FROM public.work_order_images WHERE work_order_id = p_work_order_id;
   DELETE FROM public.preventative_maintenance WHERE work_order_id = p_work_order_id;
@@ -66,4 +62,4 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.delete_work_order_cascade(uuid) IS
-  'Permanently deletes a work order, related rows, and storage objects. Org owners/admins only. Storage cleanup is best-effort per image path.';
+  'Permanently deletes a work order, related rows, and storage objects. Org owners/admins only. Storage cleanup is best-effort and scoped to objects under the work order folder.';
