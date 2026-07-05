@@ -1,6 +1,6 @@
 # Upload Screenshot Script
 
-Uploads screenshots to Supabase Storage for use in documentation.
+Uploads images and short videos to Supabase Storage for use in documentation and PR evidence.
 
 ## Prerequisites
 
@@ -23,10 +23,11 @@ Uploads screenshots to Supabase Storage for use in documentation.
    
    For local development, use a dedicated environment file (e.g., `.env.local`) that is excluded from git, or use a secret manager. This key should only be used in server-side scripts or secure backend environments.
 
-2. **Supabase Storage Bucket**:
-   - Ensure the `landing-page-images` bucket exists
-   - Create it via: Supabase Dashboard → Storage → New bucket
-   - Set it to **public**
+2. **Supabase Storage Buckets**:
+   - **`landing-page-images`** — PR evidence screenshots (`pr-evidence/{branch}/...`)
+   - **`docs-media`** — equipqr.info documentation screenshots and MP4/WebM demos (`support/{collection}/{variant}/...`)
+   - Create missing buckets via migration (`supabase/migrations/*_create_docs_media_bucket.sql`) or `.\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1`
+   - Buckets must be **public** with anonymous SELECT policies (service role uploads only)
 
 ## Usage
 
@@ -37,13 +38,14 @@ npx tsx scripts/upload-screenshot.ts <file-path> <storage-path> [bucket-name]
 # Examples
 npx tsx scripts/upload-screenshot.ts tmp/screenshot.png features/qr-code-integration/hero.png
 npx tsx scripts/upload-screenshot.ts tmp/step-1.png tutorials/image-upload/step-1.png landing-page-images
+npx tsx scripts/upload-screenshot.ts tmp/demo.mp4 support/location-maps/desktop/demo.mp4 docs-media
 ```
 
 ## Arguments
 
-- **file-path**: Local file path to the screenshot (PNG, JPG, WEBP, etc.)
-- **storage-path**: Path in Supabase Storage (e.g., `features/qr-code/hero.png`)
-- **bucket-name**: Storage bucket name (default: `landing-page-images`)
+- **file-path**: Local file path to upload (PNG, JPG, WEBP, GIF, AVIF, MP4, WebM)
+- **storage-path**: Path in Supabase Storage (e.g., `features/qr-code/hero.png` or `support/location-maps/desktop/01-equipment-location-source.png`)
+- **bucket-name**: Storage bucket name (default: `landing-page-images`; use `docs-media` for equipqr.info assets)
 
 ## Output
 

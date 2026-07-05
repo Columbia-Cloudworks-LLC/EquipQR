@@ -5,14 +5,15 @@ import { Check, Edit2, MapPin, Navigation, RefreshCw, X } from 'lucide-react';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import GooglePlacesAutocomplete, { type PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import { Button } from '@/components/ui/button';
-import { LocationSourceBadge } from '@/components/location/LocationSourceBadge';
+import { CardContent, CardHeader } from '@/components/ui/card';
 import { LocationSourceSelector } from '@/components/location/LocationSourceSelector';
 import { LiveLocationCaptureDialog } from '@/components/location/LiveLocationCaptureDialog';
 import { useLatestScanCoordinateFromHistory } from '@/features/equipment/hooks/useEquipmentLocationHistory';
 import type { EquipmentTeamSummary } from '@/features/equipment/services/EquipmentService';
 import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useIsDarkTheme } from '@/hooks/useThemeVersion';
-import { buildAddressString } from '@/features/equipment/components/EquipmentLocationField';
+import { cn } from '@/lib/utils';
 import {
   buildEquipmentLocationOptions,
   parseLastKnownLocation,
@@ -49,7 +50,20 @@ type EquipmentLocationMapPanelProps = {
   onStartAddressEdit?: () => void;
   onCancelAddressEdit?: () => void;
   onSaveAddress?: (data: PlaceLocationData) => Promise<void>;
+  /** When `card`, renders the location source selector as the card header. */
+  layout?: 'embedded' | 'card';
 };
+
+function buildAddressString(parts: {
+  street?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+}): string {
+  return [parts.street, parts.city, parts.state, parts.country]
+    .filter(Boolean)
+    .join(', ');
+}
 
 function MiniMapMarker({ position }: { position: { lat: number; lng: number } }) {
   return (
@@ -104,11 +118,13 @@ export function EquipmentLocationMapPanel({
   onStartAddressEdit,
   onCancelAddressEdit,
   onSaveAddress,
+  layout = 'embedded',
 }: EquipmentLocationMapPanelProps) {
   const [selectedMode, setSelectedMode] = useState<LocationDisplayMode>('effective');
   const [pendingPlace, setPendingPlace] = useState<PlaceLocationData | null>(null);
   const [isCleared, setIsCleared] = useState(false);
   const [isLiveCaptureOpen, setIsLiveCaptureOpen] = useState(false);
+  const isMobile = useIsMobile();
   const isDark = useIsDarkTheme();
 
   const {
@@ -152,7 +168,6 @@ export function EquipmentLocationMapPanel({
           }
         : undefined,
       equipment: {
-        use_team_location: equipment.use_team_location ?? undefined,
         assigned_location_lat: equipment.assigned_location_lat,
         assigned_location_lng: equipment.assigned_location_lng,
         assigned_location_street: equipment.assigned_location_street,
@@ -187,13 +202,19 @@ export function EquipmentLocationMapPanel({
   const hasCoords = resolved?.lat != null && resolved?.lng != null;
   const center = hasCoords && resolved ? { lat: resolved.lat, lng: resolved.lng } : null;
 
-  const handleSaveLiveLocation = useCallback(
+  const handleLiveLocationConfirm = useCallback(
     async (data: PlaceLocationData) => {
+      if (isEditingAddress) {
+        setPendingPlace(data);
+        setIsCleared(false);
+        return;
+      }
+
       if (!onSaveAddress) return;
       await onSaveAddress(data);
       setSelectedMode('manual');
     },
-    [onSaveAddress],
+    [isEditingAddress, onSaveAddress],
   );
 
   const handleSaveAddress = useCallback(async () => {
@@ -220,6 +241,60 @@ export function EquipmentLocationMapPanel({
       setSelectedMode('manual');
     }
   }, [isCleared, onSaveAddress, pendingPlace]);
+
+  const showInlineLocationActions =
+    canEditLocation && !isEditingAddress && onStartAddressEdit && onSaveAddress;
+
+  const inlineLocationActionClassName = cn(
+    'h-7 w-7 shrink-0 p-0 text-muted-foreground hover:text-foreground',
+    !isMobile &&
+      'opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100',
+  );
+
+  const renderInlineLocationActions = () => {
+    if (!showInlineLocationActions) return null;
+
+    const addressActionLabel = equipmentAddress
+      ? 'Edit equipment address'
+      : 'Set equipment address';
+
+    return (
+      <div className="flex shrink-0 items-center gap-0.5">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onStartAddressEdit}
+          disabled={isSavingAddress}
+          className={inlineLocationActionClassName}
+          aria-label={addressActionLabel}
+        >
+          <Edit2 className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsLiveCaptureOpen(true)}
+          disabled={isSavingAddress}
+          className={inlineLocationActionClassName}
+          aria-label="Use my current location"
+        >
+          <Navigation className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    );
+  };
+
+  const renderAddressRow = (content: React.ReactNode) => (
+    <div className={cn('flex items-start gap-1.5', showInlineLocationActions && 'group')}>
+      <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      <div className="flex min-w-0 flex-1 items-center gap-1">
+        <div className="min-w-0 flex-1">{content}</div>
+        {renderInlineLocationActions()}
+      </div>
+    </div>
+  );
 
   const renderMapArea = () => {
     if (isKeyLoading) {
@@ -275,35 +350,26 @@ export function EquipmentLocationMapPanel({
     );
   };
 
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        {resolved ? (
-          <LocationSourceBadge source={resolved.source} />
-        ) : (
-          <span className="text-xs text-muted-foreground">No location</span>
-        )}
-        <LocationSourceSelector
-          value={selectedMode}
-          onChange={setSelectedMode}
-          options={options}
-          className="min-w-[180px]"
-        />
-      </div>
-
+  const panelBody = (
+    <>
       {renderMapArea()}
 
-      {resolved?.formattedAddress && center && (
-        <div className="flex items-start gap-1.5">
-          <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
-          <ClickableAddress
-            address={resolved.formattedAddress}
-            lat={center.lat}
-            lng={center.lng}
-            className="text-xs"
-          />
-        </div>
-      )}
+      {resolved && center
+        ? renderAddressRow(
+            <ClickableAddress
+              address={resolved.formattedAddress || undefined}
+              lat={center.lat}
+              lng={center.lng}
+              className="text-xs"
+            />,
+          )
+        : null}
+
+      {!center && showInlineLocationActions
+        ? renderAddressRow(
+            <span className="text-xs text-muted-foreground">No location set</span>,
+          )
+        : null}
 
       {selectedMode === 'team' && assignedTeam && (
         <Link
@@ -329,6 +395,17 @@ export function EquipmentLocationMapPanel({
             placeholder="Search for an equipment address..."
             isLoaded={isPlacesLoaded}
           />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsLiveCaptureOpen(true)}
+            disabled={isSavingAddress}
+            className="gap-1.5 h-7 text-xs"
+          >
+            <Navigation className="h-3 w-3" />
+            Use my current location
+          </Button>
           <div className="flex items-center gap-2">
             <Button
               size="sm"
@@ -352,36 +429,8 @@ export function EquipmentLocationMapPanel({
             </Button>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Saving sets this equipment address as the active location and stops inheriting the team location.
+            Saving sets a dedicated equipment address, which takes priority over the team default location.
           </p>
-        </div>
-      )}
-
-      {canEditLocation && !isEditingAddress && onStartAddressEdit && (
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onStartAddressEdit}
-            className="h-7 px-2 text-xs text-primary hover:text-primary/80"
-          >
-            <Edit2 className="mr-1 h-3 w-3" />
-            {equipmentAddress ? 'Edit equipment address' : 'Set equipment address'}
-          </Button>
-          {!center && onSaveAddress ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsLiveCaptureOpen(true)}
-              disabled={isSavingAddress}
-              className="h-7 px-2 text-xs text-primary hover:text-primary/80"
-            >
-              <Navigation className="mr-1 h-3 w-3" />
-              Use my current location
-            </Button>
-          ) : null}
         </div>
       )}
 
@@ -398,10 +447,37 @@ export function EquipmentLocationMapPanel({
         <LiveLocationCaptureDialog
           open={isLiveCaptureOpen}
           onOpenChange={setIsLiveCaptureOpen}
-          onConfirm={handleSaveLiveLocation}
+          onConfirm={handleLiveLocationConfirm}
           isSaving={isSavingAddress}
+          title="Set equipment location from this device"
+          confirmLabel="Use this location"
         />
       ) : null}
+    </>
+  );
+
+  const sourceSelector = (
+    <LocationSourceSelector
+      value={selectedMode}
+      onChange={setSelectedMode}
+      options={options}
+      variant="header"
+    />
+  );
+
+  if (layout === 'card') {
+    return (
+      <>
+        <CardHeader className="pb-2 pt-4 sm:pt-5">{sourceSelector}</CardHeader>
+        <CardContent className="space-y-2 p-0 px-6 pb-4">{panelBody}</CardContent>
+      </>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {sourceSelector}
+      {panelBody}
     </div>
   );
 }

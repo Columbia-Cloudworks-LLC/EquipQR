@@ -3,13 +3,6 @@ import { AlertTriangle, X } from 'lucide-react';
 import { InventoryLocationFilterSelect } from '@/features/inventory/components/InventoryLocationFilterSelect';
 import { Button } from '@/components/ui/button';
 import { FilterPopoverShell } from '@/components/filters/FilterPopoverShell';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import type { InventoryFilters } from '@/features/inventory/types/inventory';
@@ -40,7 +33,7 @@ const InventoryFilterPopover: React.FC<InventoryFilterPopoverProps> = ({
           {/* Location */}
           {uniqueLocations.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-muted-foreground">Location</span>
+              <span className="text-xs text-muted-foreground">Location Name</span>
               <InventoryLocationFilterSelect
                 value={filters.location ?? '__all__'}
                 onValueChange={(v) =>

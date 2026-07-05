@@ -73,6 +73,34 @@ vi.mock('@/components/ui/GooglePlacesAutocomplete', () => ({
   ),
 }));
 
+const mockLiveLocation = {
+  formatted_address: '600 Live Capture Rd, Dallas, TX, USA',
+  street: '600 Live Capture Rd',
+  city: 'Dallas',
+  state: 'TX',
+  country: 'USA',
+  lat: 32.77,
+  lng: -96.79,
+};
+
+vi.mock('@/components/location/LiveLocationCaptureDialog', () => ({
+  LiveLocationCaptureDialog: ({
+    open,
+    onConfirm,
+  }: {
+    open: boolean;
+    onConfirm: (data: typeof mockLiveLocation) => Promise<void>;
+  }) =>
+    open ? (
+      <button
+        type="button"
+        onClick={() => void onConfirm(mockLiveLocation)}
+      >
+        Confirm live location
+      </button>
+    ) : null,
+}));
+
 const team = {
   id: 'team-1',
   name: 'Heavy Equipment Team',
@@ -108,12 +136,11 @@ describe('EquipmentLocationMapPanel', () => {
     });
   });
 
-  it('renders a visible map, source selector, and team location badge by default', () => {
+  it('renders a visible map and location source header selector when assigned coords exist', () => {
     render(
       <EquipmentLocationMapPanel
         equipment={{
           id: 'eq-1',
-          use_team_location: true,
           assigned_location_lat: 30,
           assigned_location_lng: -97,
           assigned_location_city: 'Austin',
@@ -127,8 +154,30 @@ describe('EquipmentLocationMapPanel', () => {
     );
 
     expect(screen.getByTestId('google-map')).toBeInTheDocument();
-    expect(screen.getByText('Team location')).toBeInTheDocument();
-    expect(screen.getByLabelText('Location source')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Location source' })).toHaveTextContent(
+      'Effective location',
+    );
+  });
+
+  it('uses team fallback on the map when equipment has no assigned address', () => {
+    render(
+      <EquipmentLocationMapPanel
+        equipment={{
+          id: 'eq-1',
+          assigned_location_lat: null,
+          assigned_location_lng: null,
+          location: null,
+          last_known_location: null,
+        }}
+        assignedTeam={team}
+        organizationId="org-1"
+      />,
+    );
+
+    expect(screen.getByTestId('google-map')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Location source' })).toHaveTextContent(
+      'Effective location',
+    );
   });
 
   it('shows map unavailable state when the maps key fails to load', async () => {
@@ -192,7 +241,7 @@ describe('EquipmentLocationMapPanel', () => {
       />,
     );
 
-    fireEvent.click(screen.getByLabelText('Location source'));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Location source' }));
 
     await waitFor(() => {
       expect(screen.getAllByText('Equipment location').length).toBeGreaterThan(0);
@@ -272,7 +321,41 @@ describe('EquipmentLocationMapPanel', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: /set equipment address/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Set equipment address' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Use my current location' })).toBeInTheDocument();
+  });
+
+  it('keeps coordinate-only equipment locations visible and editable', () => {
+    const onSaveAddress = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <EquipmentLocationMapPanel
+        equipment={{
+          id: 'eq-1',
+          use_team_location: false,
+          assigned_location_lat: 32.77,
+          assigned_location_lng: -96.79,
+          assigned_location_street: null,
+          assigned_location_city: null,
+          assigned_location_state: null,
+          assigned_location_country: null,
+          location: null,
+          last_known_location: null,
+        }}
+        assignedTeam={team}
+        organizationId="org-1"
+        canEditLocation
+        isEditingAddress={false}
+        isPlacesLoaded
+        onStartAddressEdit={vi.fn()}
+        onCancelAddressEdit={vi.fn()}
+        onSaveAddress={onSaveAddress}
+      />,
+    );
+
+    expect(screen.getByText('32.770000, -96.790000')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Set equipment address' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Use my current location' })).toBeInTheDocument();
   });
 
   it('calls onSaveAddress when saving from the inline editor', async () => {
@@ -308,6 +391,47 @@ describe('EquipmentLocationMapPanel', () => {
           city: 'Austin',
           lat: 30.27,
           lng: -97.74,
+        }),
+      );
+    });
+  });
+
+  it('offers use my current location in the inline editor and saves captured coordinates', async () => {
+    const onSaveAddress = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <EquipmentLocationMapPanel
+        equipment={{
+          id: 'eq-1',
+          use_team_location: true,
+          assigned_location_lat: 30.2672,
+          assigned_location_lng: -97.7431,
+          assigned_location_city: 'Austin',
+          assigned_location_state: 'TX',
+          location: null,
+          last_known_location: null,
+        }}
+        assignedTeam={team}
+        organizationId="org-1"
+        canEditLocation
+        isEditingAddress
+        isPlacesLoaded
+        onStartAddressEdit={vi.fn()}
+        onCancelAddressEdit={vi.fn()}
+        onSaveAddress={onSaveAddress}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /use my current location/i }));
+    fireEvent.click(screen.getByRole('button', { name: /confirm live location/i }));
+    fireEvent.click(screen.getByRole('button', { name: /save equipment location/i }));
+
+    await waitFor(() => {
+      expect(onSaveAddress).toHaveBeenCalledWith(
+        expect.objectContaining({
+          city: 'Dallas',
+          lat: 32.77,
+          lng: -96.79,
         }),
       );
     });

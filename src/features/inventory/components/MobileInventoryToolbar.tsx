@@ -28,7 +28,7 @@ const SORT_OPTIONS: {
   { value: 'sku', label: 'SKU', kind: 'text' },
   { value: 'external_id', label: 'External ID', kind: 'text' },
   { value: 'quantity_on_hand', label: 'Quantity', kind: 'numeric' },
-  { value: 'location', label: 'Location', kind: 'text' },
+  { value: 'location', label: 'Location Name', kind: 'text' },
   { value: 'status', label: 'Status', kind: 'default' },
 ];
 
@@ -134,14 +134,14 @@ const MobileInventoryToolbar: React.FC<MobileInventoryToolbarProps> = ({
             <SheetHeader className="pb-2 text-left">
               <SheetTitle>Filter inventory</SheetTitle>
               <SheetDescription>
-                Narrow the list by location or stock level.
+                Narrow the list by location name or stock level.
               </SheetDescription>
             </SheetHeader>
             <div className="space-y-6 pb-8 pt-2">
               {uniqueLocations.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Location
+                    Location Name
                   </p>
                   <InventoryLocationFilterSelect
                     value={filters.location ?? '__all__'}
@@ -151,7 +151,7 @@ const MobileInventoryToolbar: React.FC<MobileInventoryToolbarProps> = ({
                     uniqueLocations={uniqueLocations}
                     triggerClassName="h-11"
                     iconClassName="mr-2 h-4 w-4 shrink-0 text-muted-foreground"
-                    allLocationsLabel="All locations"
+                    allLocationsLabel="All location names"
                   />
                 </div>
               )}

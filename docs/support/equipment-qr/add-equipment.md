@@ -1,13 +1,13 @@
 ---
 title: "Add a piece of equipment"
 description: "Create an equipment record, assign it to a team, and set its initial status and location."
-lastReviewed: 2026-05-01
+lastReviewed: 2026-07-04
 personas: ["admin","owner","manager","technician"]
 requirement: "Owners and Admins can add any equipment. Managers and Technicians can add equipment to teams they belong to."
 ---
 
 **For:** Admin, Owner, Manager, Technician  
-**Last reviewed:** 2026-05-01
+**Last reviewed:** 2026-07-04
 
 ::: info Requires
 Owners and Admins can add any equipment. Managers and Technicians can add equipment to teams they belong to.
@@ -34,7 +34,9 @@ Pick the team that services this machine. Team assignment decides who can see, e
 
 ## 5. Set status and location
 
-Choose an initial status (Available, Offline, etc.) and a physical location. Location can be an address, lat/long, or a stored shop location.
+Choose an initial status (Available, Offline, etc.). After the record is created, use the **Location** map card on the equipment detail page to set an assigned address, capture live GPS, or preview team and scan sources. See [Equipment location sources and maps](./location-sources-and-maps) for the full workflow.
+
+![Equipment location source dropdown](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/location-maps/desktop/02-equipment-detail-location-source.png)
 
 ## 6. Save
 
@@ -44,3 +46,4 @@ Click Create Equipment. You land on the new equipment's detail page, ready to ge
 
 - [Generate and print an equipment QR code](./print-equipment-qr)
 - [Set the equipment display image](./set-equipment-display-image)
+- [Equipment location sources and maps](./location-sources-and-maps)

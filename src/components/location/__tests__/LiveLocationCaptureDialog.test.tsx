@@ -18,44 +18,27 @@ vi.mock('@/hooks/useThemeVersion', () => ({
   useThemeVersion: vi.fn(() => 0),
 }));
 
-const mockOnDragEnd = vi.fn();
-
-vi.mock('@vis.gl/react-google-maps', () => ({
-  APIProvider: ({ children }: { children?: React.ReactNode }) => (
-    <div data-testid="api-provider">{children}</div>
-  ),
-  Map: ({ children }: { children?: React.ReactNode }) => (
-    <div data-testid="google-map">{children}</div>
-  ),
-  AdvancedMarker: ({
-    onDragEnd,
+vi.mock('@/components/location/CenterPinMapPicker', () => ({
+  CenterPinMapPicker: ({
+    onCenterChange,
   }: {
-    onDragEnd?: (event: { latLng?: { lat: () => number; lng: () => number } }) => void;
-  }) => {
-    mockOnDragEnd.mockImplementation(onDragEnd);
-    return (
+    onCenterChange: (center: { lat: number; lng: number }) => void;
+  }) => (
+    <div data-testid="center-pin-map-picker">
       <button
         type="button"
-        data-testid="draggable-marker"
-        onClick={() =>
-          onDragEnd?.({
-            latLng: {
-              lat: () => 29.77,
-              lng: () => -95.37,
-            },
-          })
-        }
+        data-testid="simulate-map-pan"
+        onClick={() => onCenterChange({ lat: 29.77, lng: -95.37 })}
       >
-        marker
+        pan map
       </button>
-    );
-  },
+    </div>
+  ),
 }));
 
 describe('LiveLocationCaptureDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockOnDragEnd.mockReset();
   });
 
   it('requests geolocation only after the user clicks Use my current location', async () => {
@@ -113,7 +96,7 @@ describe('LiveLocationCaptureDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: /use my current location/i }));
 
     await waitFor(() => {
-      expect(screen.getByTestId('google-map')).toBeInTheDocument();
+      expect(screen.getByTestId('center-pin-map-picker')).toBeInTheDocument();
     });
 
     expect(onConfirm).not.toHaveBeenCalled();
@@ -131,7 +114,7 @@ describe('LiveLocationCaptureDialog', () => {
     });
   });
 
-  it('updates pending coordinates when the marker is dragged', async () => {
+  it('updates pending coordinates when the user pans the map', async () => {
     const onConfirm = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(global.navigator, 'geolocation', {
       configurable: true,
@@ -160,10 +143,10 @@ describe('LiveLocationCaptureDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: /use my current location/i }));
 
     await waitFor(() => {
-      expect(screen.getByTestId('draggable-marker')).toBeInTheDocument();
+      expect(screen.getByTestId('simulate-map-pan')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByTestId('draggable-marker'));
+    fireEvent.click(screen.getByTestId('simulate-map-pan'));
     fireEvent.click(screen.getByRole('button', { name: /set equipment location/i }));
 
     await waitFor(() => {

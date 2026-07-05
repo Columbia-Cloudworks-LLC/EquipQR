@@ -25,6 +25,13 @@ function mapOrganizationRowToSessionOrganization(
     logo: org.logo || undefined,
     backgroundColor: org.background_color || undefined,
     scanLocationCollectionEnabled: org.scan_location_collection_enabled ?? true,
+    inventoryDefaultLocationName: org.inventory_default_location_name ?? undefined,
+    inventoryDefaultLocationAddress: org.inventory_default_location_address ?? undefined,
+    inventoryDefaultLocationCity: org.inventory_default_location_city ?? undefined,
+    inventoryDefaultLocationState: org.inventory_default_location_state ?? undefined,
+    inventoryDefaultLocationCountry: org.inventory_default_location_country ?? undefined,
+    inventoryDefaultLocationLat: org.inventory_default_location_lat ?? undefined,
+    inventoryDefaultLocationLng: org.inventory_default_location_lng ?? undefined,
     userRole: (membership?.role as SessionOrganization['userRole']) || 'member',
     userStatus: (membership?.status as SessionOrganization['userStatus']) || 'active',
   };

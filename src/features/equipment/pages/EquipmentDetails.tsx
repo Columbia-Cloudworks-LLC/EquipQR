@@ -22,6 +22,7 @@ import MobileEquipmentHeader from '@/features/equipment/components/MobileEquipme
 import MobileEquipmentActionBar from '@/features/equipment/components/MobileEquipmentActionBar';
 import ResponsiveEquipmentTabs from '@/features/equipment/components/ResponsiveEquipmentTabs';
 import { EquipmentDetailsDesktopSummary } from '@/features/equipment/components/EquipmentDetailsDesktopSummary';
+import { EquipmentLocationMapPanel } from '@/components/location/EquipmentLocationMapPanel';
 import { EquipmentDetailsModals } from '@/features/equipment/components/EquipmentDetailsModals';
 import { useEquipmentScanLogger } from '@/features/equipment/hooks/useEquipmentScanLogger';
 
@@ -200,11 +201,38 @@ const EquipmentDetails = () => {
     <Page maxWidth="7xl" padding="responsive">
       <div className="space-y-6">
         {isMobile ? (
-          <MobileEquipmentHeader
-            equipment={equipment}
-            onShowQRCode={() => handleOpenQrCode()}
-            onShowWorkingHours={() => setIsWorkingHoursModalOpen(true)}
-          />
+          <>
+            <MobileEquipmentHeader
+              equipment={equipment}
+              onShowQRCode={() => handleOpenQrCode()}
+              onShowWorkingHours={() => setIsWorkingHoursModalOpen(true)}
+            />
+            <Card className="shadow-elevation-2">
+              <EquipmentLocationMapPanel
+                layout="card"
+                equipment={equipment}
+                assignedTeam={assignedTeam}
+                organizationId={currentOrganization.id}
+                scanLocationCollectionEnabled={currentOrganization.scanLocationCollectionEnabled}
+                canEditLocation={canEditLocation}
+                isEditingAddress={isEditingSummaryLocation}
+                isSavingAddress={isSavingSummaryLocation}
+                isPlacesLoaded={isPlacesLoadedForSummary}
+                onStartAddressEdit={() => setIsEditingSummaryLocation(true)}
+                onCancelAddressEdit={() => setIsEditingSummaryLocation(false)}
+                onSaveAddress={async (data) => {
+                  try {
+                    await saveAssignedLocation(data);
+                    setIsEditingSummaryLocation(false);
+                  } catch (error) {
+                    logger.error('Error updating equipment location from map card', error);
+                    toast.error('Failed to update equipment location');
+                  }
+                }}
+                mapHeight="180px"
+              />
+            </Card>
+          </>
         ) : (
           <>
             <PageHeader

@@ -4,10 +4,10 @@
  * Effective Location Resolution
  *
  * Canonical hierarchy for equipment map display:
- * 1. Team override — equipment.use_team_location AND team.override_equipment_location
+ * 1. Last known scan GPS (last_known_location or explicit scan input)
  * 2. Assigned equipment address coordinates
- * 3. Latest scan GPS (last_known_location or explicit scan input)
- * 4. Legacy equipment.location text parsed as lat,lng
+ * 3. Legacy equipment.location text parsed as lat,lng
+ * 4. Team location — when the assigned team has coordinates (dynamic fallback)
  */
 
 import { parseLatLng } from '@/utils/geoUtils';
@@ -27,7 +27,7 @@ export const LOCATION_SOURCE_LABELS: Record<LocationSource, string> = {
 };
 
 export const FLEET_MAP_SOURCE_LABELS: Record<FleetMapSource, string> = {
-  team: 'Team Override',
+  team: 'Team location',
   manual: 'Assigned Address',
   scan: 'QR Scan GPS',
   legacy: 'Legacy Coordinates',
@@ -44,6 +44,7 @@ export interface EffectiveLocation {
 }
 
 export interface TeamLocationInput {
+  /** @deprecated Ignored; team coordinates always participate in hierarchy when present. */
   override_equipment_location?: boolean;
   location_lat?: number | null;
   location_lng?: number | null;
@@ -54,6 +55,7 @@ export interface TeamLocationInput {
 }
 
 export interface EquipmentLocationInput {
+  /** @deprecated Per-equipment opt-in is no longer used; team fallback is automatic. */
   use_team_location?: boolean;
   assigned_location_lat?: number | null;
   assigned_location_lng?: number | null;
@@ -100,12 +102,34 @@ function formatAddress(parts: {
   return components.length > 0 ? components.join(', ') : undefined;
 }
 
-export function getLocationSourceLabel(source: LocationSource): string {
-  return LOCATION_SOURCE_LABELS[source];
+export function isTeamLocationFallbackAvailable(team?: TeamLocationInput): boolean {
+  return team?.location_lat != null && team.location_lng != null;
 }
 
-export function getFleetMapSourceLabel(source: FleetMapSource): string {
-  return FLEET_MAP_SOURCE_LABELS[source];
+function buildTeamLocationResult(
+  team: TeamLocationInput,
+  updatedAt?: string,
+): {
+  coords: { lat: number; lng: number };
+  source: 'team';
+  formattedAddress?: string;
+  updatedAt?: string;
+} {
+  return {
+    coords: { lat: team.location_lat!, lng: team.location_lng! },
+    source: 'team',
+    formattedAddress: formatAddress({
+      street: team.location_address,
+      city: team.location_city,
+      state: team.location_state,
+      country: team.location_country,
+    }),
+    updatedAt,
+  };
+}
+
+export function getLocationSourceLabel(source: LocationSource): string {
+  return LOCATION_SOURCE_LABELS[source];
 }
 
 /** Parse equipment.last_known_location JSON into scan coordinates. */
@@ -151,6 +175,7 @@ function withSourceMetadata(
 
 /**
  * Resolve coordinates for one equipment row before optional scan fallback.
+ * Scan is handled separately by fleet batching; order here is equipment, legacy, then team.
  */
 export function resolveEquipmentCoordinates(params: {
   team?: TeamLocationInput;
@@ -166,22 +191,12 @@ export function resolveEquipmentCoordinates(params: {
   const { team, equipment, lastScan } = params;
   const parseLegacy = params.parseLegacy ?? parseLatLng;
 
-  if (
-    equipment.use_team_location &&
-    team?.override_equipment_location &&
-    team.location_lat != null &&
-    team.location_lng != null
-  ) {
+  if (lastScan) {
     return {
-      coords: { lat: team.location_lat, lng: team.location_lng },
-      source: 'team',
-      formattedAddress: formatAddress({
-        street: team.location_address,
-        city: team.location_city,
-        state: team.location_state,
-        country: team.location_country,
-      }),
-      updatedAt: equipment.updatedAt,
+      coords: { lat: lastScan.lat, lng: lastScan.lng },
+      source: 'scan',
+      formattedAddress: lastScan.formattedAddress,
+      updatedAt: lastScan.updatedAt,
     };
   }
 
@@ -214,13 +229,8 @@ export function resolveEquipmentCoordinates(params: {
     }
   }
 
-  if (lastScan) {
-    return {
-      coords: { lat: lastScan.lat, lng: lastScan.lng },
-      source: 'scan',
-      formattedAddress: lastScan.formattedAddress,
-      updatedAt: lastScan.updatedAt,
-    };
+  if (team && isTeamLocationFallbackAvailable(team)) {
+    return buildTeamLocationResult(team, equipment.updatedAt);
   }
 
   return null;
@@ -260,25 +270,15 @@ export function buildEquipmentLocationOptions(params: {
   const { team, equipment, lastScan } = params;
   const parseLegacy = params.parseLegacy ?? parseLatLng;
 
-  if (
-    equipment.use_team_location &&
-    team?.override_equipment_location &&
-    team.location_lat != null &&
-    team.location_lng != null
-  ) {
+  if (lastScan) {
     options.push({
-      mode: 'team',
-      source: 'team',
-      sourceLabel: getLocationSourceLabel('team'),
-      lat: team.location_lat,
-      lng: team.location_lng,
-      formattedAddress: formatAddress({
-        street: team.location_address,
-        city: team.location_city,
-        state: team.location_state,
-        country: team.location_country,
-      }),
-      updatedAt: equipment.updatedAt,
+      mode: 'scan',
+      source: 'scan',
+      sourceLabel: getLocationSourceLabel('scan'),
+      lat: lastScan.lat,
+      lng: lastScan.lng,
+      formattedAddress: lastScan.formattedAddress,
+      updatedAt: lastScan.updatedAt,
       available: true,
     });
   }
@@ -301,19 +301,6 @@ export function buildEquipmentLocationOptions(params: {
     });
   }
 
-  if (lastScan) {
-    options.push({
-      mode: 'scan',
-      source: 'scan',
-      sourceLabel: getLocationSourceLabel('scan'),
-      lat: lastScan.lat,
-      lng: lastScan.lng,
-      formattedAddress: lastScan.formattedAddress,
-      updatedAt: lastScan.updatedAt,
-      available: true,
-    });
-  }
-
   if (equipment.locationText) {
     const legacyCoords = parseLegacy(equipment.locationText);
     if (legacyCoords) {
@@ -328,6 +315,24 @@ export function buildEquipmentLocationOptions(params: {
         available: true,
       });
     }
+  }
+
+  if (team && isTeamLocationFallbackAvailable(team)) {
+    options.push({
+      mode: 'team',
+      source: 'team',
+      sourceLabel: getLocationSourceLabel('team'),
+      lat: team.location_lat!,
+      lng: team.location_lng!,
+      formattedAddress: formatAddress({
+        street: team.location_address,
+        city: team.location_city,
+        state: team.location_state,
+        country: team.location_country,
+      }),
+      updatedAt: equipment.updatedAt,
+      available: true,
+    });
   }
 
   return options;

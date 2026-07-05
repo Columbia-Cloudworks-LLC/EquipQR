@@ -19,7 +19,6 @@ export interface TeamCreateFieldsValue {
   showNewAccount: boolean;
   newAccountName: string;
   locationData: PlaceLocationData | null;
-  overrideEquipmentLocation: boolean;
 }
 
 export const emptyTeamCreateFieldsValue = (): TeamCreateFieldsValue => ({
@@ -29,7 +28,6 @@ export const emptyTeamCreateFieldsValue = (): TeamCreateFieldsValue => ({
   showNewAccount: false,
   newAccountName: '',
   locationData: null,
-  overrideEquipmentLocation: false,
 });
 
 interface TeamCreateFieldsProps {
@@ -163,10 +161,6 @@ export const TeamCreateFields: React.FC<TeamCreateFieldsProps> = ({
           onPlaceSelect={handlePlaceSelect}
           onClear={() => patch({ locationData: null })}
           isLoaded={isLoaded}
-          overrideEquipmentLocation={value.overrideEquipmentLocation}
-          onOverrideEquipmentLocationChange={(checked) =>
-            patch({ overrideEquipmentLocation: checked })
-          }
         />
       )}
     </div>
@@ -211,6 +205,5 @@ export function buildTeamCreatePayload(
       location_lat: value.locationData.lat,
       location_lng: value.locationData.lng,
     }),
-    override_equipment_location: value.overrideEquipmentLocation,
   };
 }

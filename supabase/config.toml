@@ -73,6 +73,12 @@ public = true
 file_size_limit = "5MB"
 allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 
+# Public documentation screenshots and videos (service-role uploads only).
+[storage.buckets.docs-media]
+public = true
+file_size_limit = "50MB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/avif", "video/mp4", "video/webm"]
+
 [api]
 enabled = true
 port = 54321

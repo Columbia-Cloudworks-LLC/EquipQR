@@ -1,13 +1,13 @@
 ---
 title: "Add an inventory item"
 description: "Create a new part with stock levels, compatibility rules, and a QR code so technicians can scan it from a bin."
-lastReviewed: 2026-05-01
+lastReviewed: 2026-07-04
 personas: ["admin","owner","manager"]
 requirement: "Must be Owner, Admin, or an assigned Parts Manager."
 ---
 
 **For:** Admin, Owner, Manager  
-**Last reviewed:** 2026-05-01
+**Last reviewed:** 2026-07-04
 
 ::: info Requires
 Must be Owner, Admin, or an assigned Parts Manager.
@@ -34,7 +34,7 @@ The form opens with required and optional fields. For importing dozens or hundre
 - **Quantity on Hand** — current stock count.
 - **Low Stock Threshold** — EquipQR alerts Parts Managers when stock drops to or below this number.
 - **Default Unit Cost** — used to populate work order costs.
-- **Location** — where the part lives (e.g. "Shelf A-3").
+- **Location** — optional **Location Name** nickname (for example "Shelf A-3"). This label does not place a map pin. Set the structured **storage address** on the item detail page or inherit the [organization inventory default](../admin-integrations/organization-settings).
 
 ## 5. Save and print the QR code
 
@@ -43,4 +43,5 @@ Save the item. From its detail page, tap the QR icon to print a label for the bi
 ## Related articles
 
 - [Adjust inventory quantity](./adjust-inventory-quantity)
+- [Inventory storage locations](./inventory-storage-locations)
 - [Delegate inventory to Parts Managers](./parts-managers-setup)

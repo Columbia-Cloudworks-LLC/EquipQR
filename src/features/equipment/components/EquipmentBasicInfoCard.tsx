@@ -8,10 +8,7 @@ import { Calendar, Clock, ChevronDown, FileText, Users } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import InlineEditField from './InlineEditField';
 import { EquipmentIdentityFields } from './EquipmentIdentityFields';
-import { EquipmentLocationField } from './EquipmentLocationField';
-import type { EquipmentTeamSummary } from '@/features/equipment/services/EquipmentService';
 import { EQUIPMENT_STATUS_OPTIONS, getStatusColor } from '@/features/equipment/utils/equipmentHelpers';
-import type { PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import { mobileInlineEditIconRowClassName } from './inlineEditStyles';
 
 type Equipment = Tables<'equipment'>;
@@ -50,19 +47,12 @@ function EquipmentDescriptionField({
 
 export type EquipmentBasicInfoCardProps = {
   equipment: Equipment;
-  teams: EquipmentTeamSummary[];
   canEdit: boolean;
   canAssignTeams: boolean;
   isMobile: boolean;
   showAllBasicInfo: boolean;
   onShowAllBasicInfoChange: (open: boolean) => void;
   onShowWorkingHoursModal: () => void;
-  isEditingLocation: boolean;
-  isSavingLocation: boolean;
-  isMapsLoaded: boolean;
-  onStartLocationEdit: () => void;
-  onCancelLocationEdit: () => void;
-  onSaveLocation: (data: PlaceLocationData) => Promise<void>;
   nameFieldId: string;
   statusFieldId: string;
   manufacturerFieldId: string;
@@ -80,19 +70,12 @@ export type EquipmentBasicInfoCardProps = {
 
 export function EquipmentBasicInfoCard({
   equipment,
-  teams,
   canEdit,
   canAssignTeams,
   isMobile,
   showAllBasicInfo,
   onShowAllBasicInfoChange,
   onShowWorkingHoursModal,
-  isEditingLocation,
-  isSavingLocation,
-  isMapsLoaded,
-  onStartLocationEdit,
-  onCancelLocationEdit,
-  onSaveLocation,
   nameFieldId,
   statusFieldId,
   manufacturerFieldId,
@@ -168,18 +151,6 @@ export function EquipmentBasicInfoCard({
               </Button>
             </div>
           </div>
-
-          <EquipmentLocationField
-            equipment={equipment}
-            teams={teams}
-            canEdit={canEdit}
-            isEditing={isEditingLocation}
-            isSaving={isSavingLocation}
-            isMapsLoaded={isMapsLoaded}
-            onStartEdit={onStartLocationEdit}
-            onCancelEdit={onCancelLocationEdit}
-            onSave={onSaveLocation}
-          />
 
           <div>
             <label htmlFor={assignedTeamFieldId} className="text-sm font-medium text-muted-foreground">Assigned Team</label>

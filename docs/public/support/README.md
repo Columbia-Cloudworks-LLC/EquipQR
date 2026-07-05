@@ -1,30 +1,46 @@
 # Support library screenshot assets
 
 This directory is served under `/support/*` on the EquipQR Help Center (`equipqr.info`).
-Step-by-step screenshots use paths like:
+
+## Preferred workflow (2026+)
+
+Documentation screenshots and demo videos are **not committed as PNGs/MP4s** in this repo. Instead:
+
+1. Capture deterministic states from the local dev stack with Playwright PR evidence specs under `e2e/pr-evidence/`.
+2. Upload artifacts to the public Supabase **`docs-media`** bucket via `.\scripts\docs-media\Publish-DocsMedia.ps1`.
+3. Reference the returned public URLs in equipqr.info markdown articles.
+
+Stable storage paths follow:
 
 ```
-/support/<category>/<article-id>/step-01-<shortslug>.png
+support/{collection}/{desktop|mobile}/{label}.png
+support/{collection}/{desktop|mobile}/demo.mp4
 ```
 
-If an image is missing, the article still reads correctly without the screenshot.
+Example:
+
+```
+https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/location-maps/desktop/01-equipment-location-source.png
+```
+
+Bootstrap the bucket once per environment with `.\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1` (uses 1Password-backed service role; idempotent).
+
+## Legacy committed assets
+
+Older articles may still reference committed PNGs under `docs/public/support/` or co-located `screenshots/` folders. Migrate them to `docs-media` when updating those articles.
 
 ## Capture conventions
 
-- **Source:** the running local dev app at `http://localhost:8080` with seeded
-  demo data, or the preview environment at `https://preview.equipqr.app`.
-- **Output:** save committed screenshots here under the matching
-  `<category>/<article-id>/step-XX-*.png` path.
-- **Mobile captures:** use a 390×844 viewport (iPhone 14 Pro) for field workflows.
-- **Desktop captures:** use a 1280×960 viewport for admin and organization flows.
-- **Filename pattern:** `step-<NN>-<short-slug>.png` — zero-padded step number,
-  kebab-case slug describing the step.
-- **Privacy:** scrub any real customer data before committing. Prefer seeded
-  fixtures or obvious placeholder names.
+- **Source:** local dev app at `http://localhost:8080` with seeded demo data.
+- **Desktop captures:** PR evidence default viewport (1920×1080) via `location-maps-desktop.spec.ts`.
+- **Mobile captures:** `-MobileViewport` (390×844) via `location-maps-mobile.spec.ts`.
+- **Filename pattern in storage:** `{NN}-{short-slug}.png` — zero-padded step number, kebab-case slug.
+- **Privacy:** use seeded fixtures only; scrub real customer data before upload.
 
-## Adding a new screenshot
+## Adding documentation media
 
-1. Capture from a healthy local stack (`dev-start.bat`).
-2. Save the PNG under the path referenced in the article markdown.
-3. Verify on `npm run docs:dev` at `http://localhost:5174`.
-4. Commit the PNG with the article change.
+1. Add or extend `e2e/pr-evidence/location-maps-*.spec.ts` (or a feature-specific spec).
+2. Capture: `.\scripts\pr-evidence\Invoke-PrEvidenceCapture.ps1 -Flow location-maps-desktop -Spec e2e/pr-evidence/location-maps-desktop.spec.ts`
+3. Publish to docs-media: `.\scripts\docs-media\Publish-DocsMedia.ps1 -ManifestPath tmp\pr-evidence\location-maps-desktop\manifest.json -Collection location-maps -Variant desktop -MarkdownOut tmp\docs-media\location-maps\desktop.md`
+4. Paste URLs from `tmp/docs-media/location-maps/desktop.md` into the target article.
+5. Verify on `npm run docs:dev` at `http://localhost:5174`.

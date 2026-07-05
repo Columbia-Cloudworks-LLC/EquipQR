@@ -14,6 +14,27 @@ import type {
   PartialInventoryItem
 } from '@/features/inventory/types/inventory';
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
+
+function structuredLocationFromFormData(
+  formData: Pick<
+    InventoryItemFormData,
+    | 'location_address'
+    | 'location_city'
+    | 'location_state'
+    | 'location_country'
+    | 'location_lat'
+    | 'location_lng'
+  >,
+) {
+  return {
+    location_address: formData.location_address || null,
+    location_city: formData.location_city || null,
+    location_state: formData.location_state || null,
+    location_country: formData.location_country || null,
+    location_lat: formData.location_lat ?? null,
+    location_lng: formData.location_lng ?? null,
+  };
+}
 import { bulkSetCompatibilityRules } from '@/features/inventory/services/inventoryCompatibilityRulesService';
 import {
   uploadImageToStorage,
@@ -254,6 +275,7 @@ export const createInventoryItem = async (
         quantity_on_hand: formData.quantity_on_hand,
         low_stock_threshold: formData.low_stock_threshold,
         location: formData.location || null,
+        ...structuredLocationFromFormData(formData),
         default_unit_cost: formData.default_unit_cost || null,
         created_by: userId
       })
@@ -319,6 +341,18 @@ export const updateInventoryItem = async (
     if (formData.external_id !== undefined) updateData.external_id = formData.external_id || null;
     if (formData.low_stock_threshold !== undefined) updateData.low_stock_threshold = formData.low_stock_threshold;
     if (formData.location !== undefined) updateData.location = formData.location || null;
+    if (formData.location_address !== undefined) {
+      updateData.location_address = formData.location_address || null;
+    }
+    if (formData.location_city !== undefined) updateData.location_city = formData.location_city || null;
+    if (formData.location_state !== undefined) {
+      updateData.location_state = formData.location_state || null;
+    }
+    if (formData.location_country !== undefined) {
+      updateData.location_country = formData.location_country || null;
+    }
+    if (formData.location_lat !== undefined) updateData.location_lat = formData.location_lat ?? null;
+    if (formData.location_lng !== undefined) updateData.location_lng = formData.location_lng ?? null;
     if (formData.default_unit_cost !== undefined) updateData.default_unit_cost = formData.default_unit_cost || null;
 
     const { data, error } = await supabase

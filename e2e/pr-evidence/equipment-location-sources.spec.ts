@@ -21,9 +21,10 @@ test.describe('Equipment location sources @pr-evidence', () => {
     await expect(page.getByRole('heading', { name: /CAT 320 Excavator/i }).first()).toBeVisible({
       timeout: 60_000,
     });
-    await expect(page.getByRole('heading', { name: 'Location' })).toBeVisible();
-    await expect(page.getByText('Team location').first()).toBeVisible();
-    await expect(page.getByLabel('Location source')).toBeVisible();
+    const locationSource = page.getByRole('combobox', { name: 'Location source' });
+    await expect(locationSource).toBeVisible();
+    await locationSource.click();
+    await expect(page.getByRole('option', { name: 'Team location' })).toBeVisible();
     await evidencePause(page, 800);
     await evidenceScreenshot(page, '02-equipment-detail-location');
 
@@ -39,7 +40,10 @@ test.describe('Equipment location sources @pr-evidence', () => {
     await expect(
       page.getByRole('heading', { name: new RegExp(seedWorkOrders.oilChange.title, 'i') }).first(),
     ).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByText('Team location').or(page.getByText('Equipment location'))).toBeVisible();
+    const workOrderLocationSource = page.getByRole('combobox', { name: 'Location source' });
+    await expect(workOrderLocationSource).toBeVisible();
+    await workOrderLocationSource.click();
+    await expect(page.getByRole('option', { name: 'Team location' })).toBeVisible();
     await evidencePause(page, 800);
     await evidenceScreenshot(page, '04-work-order-location-source');
   });

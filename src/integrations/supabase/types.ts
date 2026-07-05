@@ -1336,6 +1336,12 @@ export type Database = {
           id: string
           image_url: string | null
           location: string | null
+          location_address: string | null
+          location_city: string | null
+          location_country: string | null
+          location_lat: number | null
+          location_lng: number | null
+          location_state: string | null
           low_stock_threshold: number
           name: string
           organization_id: string
@@ -1353,6 +1359,12 @@ export type Database = {
           id?: string
           image_url?: string | null
           location?: string | null
+          location_address?: string | null
+          location_city?: string | null
+          location_country?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_state?: string | null
           low_stock_threshold?: number
           name: string
           organization_id: string
@@ -1370,6 +1382,12 @@ export type Database = {
           id?: string
           image_url?: string | null
           location?: string | null
+          location_address?: string | null
+          location_city?: string | null
+          location_country?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_state?: string | null
           low_stock_threshold?: number
           name?: string
           organization_id?: string
@@ -2185,6 +2203,13 @@ export type Database = {
           features: string[]
           fleet_map_enabled: boolean | null
           id: string
+          inventory_default_location_address: string | null
+          inventory_default_location_city: string | null
+          inventory_default_location_country: string | null
+          inventory_default_location_lat: number | null
+          inventory_default_location_lng: number | null
+          inventory_default_location_name: string | null
+          inventory_default_location_state: string | null
           last_billing_calculation: string | null
           logo: string | null
           max_members: number
@@ -2205,6 +2230,13 @@ export type Database = {
           features?: string[]
           fleet_map_enabled?: boolean | null
           id?: string
+          inventory_default_location_address?: string | null
+          inventory_default_location_city?: string | null
+          inventory_default_location_country?: string | null
+          inventory_default_location_lat?: number | null
+          inventory_default_location_lng?: number | null
+          inventory_default_location_name?: string | null
+          inventory_default_location_state?: string | null
           last_billing_calculation?: string | null
           logo?: string | null
           max_members?: number
@@ -2225,6 +2257,13 @@ export type Database = {
           features?: string[]
           fleet_map_enabled?: boolean | null
           id?: string
+          inventory_default_location_address?: string | null
+          inventory_default_location_city?: string | null
+          inventory_default_location_country?: string | null
+          inventory_default_location_lat?: number | null
+          inventory_default_location_lng?: number | null
+          inventory_default_location_name?: string | null
+          inventory_default_location_state?: string | null
           last_billing_calculation?: string | null
           logo?: string | null
           max_members?: number

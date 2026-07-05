@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { APIProvider, AdvancedMarker, Map } from '@vis.gl/react-google-maps';
 import { Loader2, MapPin, Navigation } from 'lucide-react';
 import type { PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
+import { CenterPinMapPicker } from '@/components/location/CenterPinMapPicker';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -48,6 +48,8 @@ export function LiveLocationCaptureDialog({
   } = useGoogleMapsKey();
 
   const [pendingPosition, setPendingPosition] = useState<LatLng | null>(initialPosition);
+  const [recenterTarget, setRecenterTarget] = useState<LatLng | null>(initialPosition);
+  const [recenterKey, setRecenterKey] = useState(initialPosition ? 1 : 0);
   const [wasAdjusted, setWasAdjusted] = useState(false);
   const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'detected' | 'error'>(
     initialPosition ? 'detected' : 'idle',
@@ -56,6 +58,8 @@ export function LiveLocationCaptureDialog({
 
   const resetState = useCallback(() => {
     setPendingPosition(initialPosition);
+    setRecenterTarget(initialPosition);
+    setRecenterKey(initialPosition ? 1 : 0);
     setWasAdjusted(false);
     setGeoStatus(initialPosition ? 'detected' : 'idle');
     setErrorMessage(null);
@@ -74,6 +78,8 @@ export function LiveLocationCaptureDialog({
     try {
       const position = await requestCurrentDevicePosition();
       setPendingPosition(position);
+      setRecenterTarget(position);
+      setRecenterKey((current) => current + 1);
       setWasAdjusted(false);
       setGeoStatus('detected');
     } catch (error) {
@@ -86,13 +92,8 @@ export function LiveLocationCaptureDialog({
     }
   }, []);
 
-  const handleDragEnd = useCallback((event: google.maps.MapMouseEvent) => {
-    const lat = event.latLng?.lat();
-    const lng = event.latLng?.lng();
-    if (lat == null || lng == null) {
-      return;
-    }
-    setPendingPosition({ lat, lng });
+  const handleMapCenterChange = useCallback((center: LatLng) => {
+    setPendingPosition(center);
     setWasAdjusted(true);
     setGeoStatus('detected');
   }, []);
@@ -114,8 +115,9 @@ export function LiveLocationCaptureDialog({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            Stand next to the equipment, use your device location once, then confirm the pin on the
-            map. Drag the marker if you need to fine-tune the spot before saving.
+            Stand next to the equipment, use your device location once, then pan the map so the
+            centered pin sits on the equipment. The pin lifts while you move the map; the shadow
+            shows where it will land.
           </DialogDescription>
         </DialogHeader>
 
@@ -156,39 +158,23 @@ export function LiveLocationCaptureDialog({
                   <p className="text-sm text-muted-foreground">Map preview unavailable.</p>
                 </div>
               ) : (
-                <div className="overflow-hidden rounded-lg border" style={{ height: '16rem' }}>
-                  <APIProvider apiKey={googleMapsKey} libraries={['marker']}>
-                    <Map
-                      mapId={mapId ?? undefined}
-                      defaultCenter={pendingPosition}
-                      center={pendingPosition}
-                      defaultZoom={17}
-                      gestureHandling="greedy"
-                      disableDefaultUI
-                      zoomControl
-                      streetViewControl={false}
-                      mapTypeControl={false}
-                      fullscreenControl={false}
-                      colorScheme={isDark ? 'DARK' : 'LIGHT'}
-                      style={{ width: '100%', height: '100%' }}
-                    >
-                      <AdvancedMarker
-                        position={pendingPosition}
-                        draggable
-                        onDragEnd={handleDragEnd}
-                      >
-                        <div className="flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-primary shadow-md" />
-                      </AdvancedMarker>
-                    </Map>
-                  </APIProvider>
-                </div>
+                <CenterPinMapPicker
+                  center={pendingPosition}
+                  recenterTarget={recenterTarget}
+                  recenterKey={recenterKey}
+                  onCenterChange={handleMapCenterChange}
+                  googleMapsKey={googleMapsKey}
+                  mapId={mapId}
+                  isDark={isDark}
+                  className="rounded-lg border"
+                />
               )}
               <p className="text-xs text-muted-foreground">
-                Detected location: {pendingPosition.lat.toFixed(5)}, {pendingPosition.lng.toFixed(5)}
+                Selected location: {pendingPosition.lat.toFixed(5)}, {pendingPosition.lng.toFixed(5)}
                 {wasAdjusted ? ' (adjusted on map)' : ''}
               </p>
               <p className="text-xs text-muted-foreground">
-                Confirm only if this pin is where the equipment is right now.
+                Confirm only if the shadow is where the equipment is right now.
               </p>
             </div>
           ) : null}

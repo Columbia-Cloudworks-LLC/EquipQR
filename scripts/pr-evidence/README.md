@@ -30,6 +30,21 @@ Agents **must** capture screenshots and an MP4 demo video from the local dev sta
 | `Invoke-PrEvidenceCapture.ps1` | Stack probe/start, Playwright run, PNG + H.264 MP4 generation |
 | `Publish-PrEvidence.ps1` | Upload screenshots to Supabase + demo MP4 to GitHub, emit markdown |
 | `Invoke-PrEvidence.ps1` | End-to-end orchestrator (+ optional `gh pr comment`) |
+| `Publish-DocsMedia.ps1` | Upload capture artifacts to public `docs-media` for equipqr.info articles |
+
+## Documentation media bucket
+
+For equipqr.info (not PR comments), publish capture manifests to **`docs-media`**:
+
+```powershell
+.\scripts\docs-media\Publish-DocsMedia.ps1 `
+  -ManifestPath tmp\pr-evidence\location-maps-desktop\manifest.json `
+  -Collection location-maps `
+  -Variant desktop `
+  -MarkdownOut tmp\docs-media\location-maps\desktop.md
+```
+
+Bootstrap once with `.\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1` if the bucket is missing in production.
 
 ## Prerequisites
 

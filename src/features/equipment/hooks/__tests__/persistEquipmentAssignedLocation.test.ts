@@ -13,7 +13,7 @@ vi.mock('sonner', () => ({
 }));
 
 describe('persistEquipmentAssignedLocation', () => {
-  it('persists assigned address fields and disables team inheritance', async () => {
+  it('persists assigned address fields for equipment location saves', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({});
     const { logEquipmentLocationChange } = await import(
       '@/features/equipment/services/equipmentLocationHistoryService'
@@ -53,5 +53,36 @@ describe('persistEquipmentAssignedLocation', () => {
         longitude: -97.74,
       }),
     );
+  });
+
+  it('persists coordinate-only live captures as assigned equipment locations', async () => {
+    const mutateAsync = vi.fn().mockResolvedValue({});
+
+    await persistEquipmentAssignedLocation(
+      'eq-1',
+      {
+        formatted_address: 'Current device location',
+        street: '',
+        city: '',
+        state: '',
+        country: '',
+        lat: 32.77,
+        lng: -96.79,
+      },
+      mutateAsync,
+    );
+
+    expect(mutateAsync).toHaveBeenCalledWith({
+      id: 'eq-1',
+      data: {
+        assigned_location_street: null,
+        assigned_location_city: null,
+        assigned_location_state: null,
+        assigned_location_country: null,
+        assigned_location_lat: 32.77,
+        assigned_location_lng: -96.79,
+        use_team_location: false,
+      },
+    });
   });
 });

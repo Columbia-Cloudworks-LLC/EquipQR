@@ -32,8 +32,18 @@ vi.mock('react-router-dom', async () => {
 // Mock contexts
 vi.mock('@/contexts/OrganizationContext', () => ({
   useOrganization: vi.fn(() => ({
-    currentOrganization: { id: 'org-1', name: 'Test Org' }
-  }))
+    currentOrganization: {
+      id: 'org-1',
+      name: 'Test Org',
+      inventoryDefaultLocationName: 'Main Shop',
+      inventoryDefaultLocationAddress: '500 Org Default St',
+      inventoryDefaultLocationCity: 'Austin',
+      inventoryDefaultLocationState: 'TX',
+      inventoryDefaultLocationCountry: 'USA',
+      inventoryDefaultLocationLat: 30.27,
+      inventoryDefaultLocationLng: -97.74,
+    },
+  })),
 }));
 
 vi.mock('@/hooks/useAuth', () => ({
@@ -97,6 +107,49 @@ vi.mock('@/features/equipment/components/InlineEditField', () => ({
   default: ({ value }: { value: string }) => <span>{value || 'N/A'}</span>
 }));
 
+vi.mock('@/hooks/useGoogleMapsLoader', () => ({
+  useGoogleMapsLoader: vi.fn(() => ({ isLoaded: true })),
+}));
+
+vi.mock('@/hooks/useGoogleMapsKey', () => ({
+  useGoogleMapsKey: vi.fn(() => ({
+    googleMapsKey: 'test-key',
+    mapId: 'test-map-id',
+    isLoading: false,
+    error: null,
+    retry: vi.fn(),
+  })),
+}));
+
+vi.mock('@/hooks/useThemeVersion', () => ({
+  useIsDarkTheme: vi.fn(() => false),
+  useThemeVersion: vi.fn(() => 0),
+}));
+
+vi.mock('@/components/ui/GooglePlacesAutocomplete', () => ({
+  default: () => null,
+}));
+
+vi.mock('@/components/location/CenterPinMapPicker', () => ({
+  CenterPinMapPicker: () => null,
+}));
+
+vi.mock('@/components/location/LiveLocationCaptureDialog', () => ({
+  LiveLocationCaptureDialog: () => null,
+}));
+
+vi.mock('@/components/location/LocationDirectionsMiniMap', () => ({
+  LocationDirectionsMiniMap: ({
+    address,
+  }: {
+    address?: string;
+  }) => (
+    <button type="button" data-testid="inventory-directions-map">
+      Tap for directions{address ? `: ${address}` : ''}
+    </button>
+  ),
+}));
+
 vi.mock('@/features/inventory/components/CompatibilityRulesEditor', () => ({
   CompatibilityRulesEditor: ({ rules }: { rules: Array<{ manufacturer: string; model: string | null }> }) => (
     <div data-testid="compatibility-rules-editor">
@@ -116,6 +169,12 @@ const mockItem: InventoryItem = {
   quantity_on_hand: 100,
   low_stock_threshold: 10,
   location: 'Warehouse A',
+  location_address: null,
+  location_city: null,
+  location_state: null,
+  location_country: null,
+  location_lat: null,
+  location_lng: null,
   default_unit_cost: '25.00',
   image_url: null,
   isLowStock: false,
@@ -332,11 +391,51 @@ describe('InventoryItemDetail - Item Information', () => {
       });
     });
 
-    it('displays location', async () => {
+    it('displays location name label and value without map capture', async () => {
       render(<InventoryItemDetail />);
-      
+
       await waitFor(() => {
+        expect(screen.getByText('Location Name')).toBeInTheDocument();
         expect(screen.getByText('Warehouse A')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByRole('button', { name: /use my current location/i })).not.toBeInTheDocument();
+    });
+
+    it('shows organization default storage address when item has no part-specific address', async () => {
+      render(<InventoryItemDetail />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Organization default')).toBeInTheDocument();
+        expect(screen.getByText('Storage address')).toBeInTheDocument();
+        expect(screen.getByText('500 Org Default St, Austin, TX, USA')).toBeInTheDocument();
+        expect(screen.getByText(/address inherited from organization/i)).toBeInTheDocument();
+        expect(screen.getByTestId('inventory-directions-map')).toBeInTheDocument();
+      });
+    });
+
+    it('shows part location source when item has structured storage coordinates', async () => {
+      vi.mocked(useInventoryModule.useInventoryItem).mockReturnValue({
+        data: {
+          ...mockItem,
+          location_address: '200 Part Bin Ln',
+          location_city: 'Dallas',
+          location_state: 'TX',
+          location_country: 'USA',
+          location_lat: 32.77,
+          location_lng: -96.79,
+        },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      } as unknown as ReturnType<typeof useInventoryModule.useInventoryItem>);
+
+      render(<InventoryItemDetail />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Part location')).toBeInTheDocument();
+        expect(screen.getByText('200 Part Bin Ln, Dallas, TX, USA')).toBeInTheDocument();
       });
     });
 

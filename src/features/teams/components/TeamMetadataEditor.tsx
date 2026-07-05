@@ -63,9 +63,6 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
   const [descriptionLength, setDescriptionLength] = useState(team.description?.length ?? 0);
   const [locationData, setLocationData] = useState<PlaceLocationData | null>(null);
   const [locationCleared, setLocationCleared] = useState(false);
-  const [overrideEquipmentLocation, setOverrideEquipmentLocation] = useState(
-    team.override_equipment_location ?? false
-  );
   const [currentTeamImage, setCurrentTeamImage] = useState<string | null>(
     (team as { image_url?: string | null }).image_url ?? null
   );
@@ -136,7 +133,6 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
     const updates: Record<string, unknown> = {
       name: formData.get('name') as string,
       description: formData.get('description') as string,
-      override_equipment_location: overrideEquipmentLocation,
       customer_id: selectedCustomerId,
     };
 
@@ -292,8 +288,6 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
                 onPlaceSelect={handlePlaceSelect}
                 onClear={handleLocationClear}
                 isLoaded={isLoaded}
-                overrideEquipmentLocation={overrideEquipmentLocation}
-                onOverrideEquipmentLocationChange={setOverrideEquipmentLocation}
               />
 
               <PMSchedulePolicyFields

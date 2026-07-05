@@ -4,6 +4,7 @@ import {
   buildGoogleMapsUrl,
   buildGoogleMapsUrlFromCoords,
   getLocationSourceLabel,
+  isTeamLocationFallbackAvailable,
   parseLastKnownLocation,
   resolveEffectiveLocation,
   resolveEquipmentCoordinates,
@@ -30,27 +31,24 @@ describe('effectiveLocation', () => {
     expect(Object.keys(LOCATION_SOURCE_LABELS)).toHaveLength(4);
   });
 
-  it('prefers team override over assigned and scan inputs', () => {
+  it('prefers last scan over assigned equipment and team fallback', () => {
     const result = resolveEffectiveLocation({
       team,
       equipment: {
-        use_team_location: true,
         assigned_location_lat: 30,
         assigned_location_lng: -97,
       },
       lastScan: { lat: 40.919345, lng: -90.659318 },
     });
 
-    expect(result?.source).toBe('team');
-    expect(result?.sourceLabel).toBe('Team location');
-    expect(result?.lat).toBe(32.7767);
-    expect(result?.formattedAddress).toContain('Dallas');
+    expect(result?.source).toBe('scan');
+    expect(result?.lat).toBe(40.919345);
   });
 
-  it('prefers assigned address over scan and legacy text', () => {
+  it('prefers assigned address over team fallback and legacy text', () => {
     const result = resolveEffectiveLocation({
+      team,
       equipment: {
-        use_team_location: false,
         assigned_location_lat: 30.2672,
         assigned_location_lng: -97.7431,
         assigned_location_city: 'Austin',
@@ -59,14 +57,60 @@ describe('effectiveLocation', () => {
       lastScan: { lat: 40.919433, lng: -90.659299 },
     });
 
+    expect(result?.source).toBe('scan');
+  });
+
+  it('prefers assigned address over team when no scan exists', () => {
+    const result = resolveEffectiveLocation({
+      team,
+      equipment: {
+        assigned_location_lat: 30.2672,
+        assigned_location_lng: -97.7431,
+        assigned_location_city: 'Austin',
+        locationText: '40.919345, -90.659318',
+      },
+    });
+
     expect(result?.source).toBe('manual');
     expect(result?.sourceLabel).toBe('Equipment location');
     expect(result?.lat).toBe(30.2672);
   });
 
-  it('uses scan GPS when no team override or assigned address exists', () => {
+  it('uses team fallback when equipment has no assigned address or scan', () => {
     const result = resolveEffectiveLocation({
+      team,
+      equipment: {},
+    });
+
+    expect(result?.source).toBe('team');
+    expect(result?.lat).toBe(32.7767);
+    expect(result?.formattedAddress).toContain('Dallas');
+  });
+
+  it('uses team fallback when team has coordinates regardless of override flag', () => {
+    expect(
+      isTeamLocationFallbackAvailable({
+        location_lat: 32.7767,
+        location_lng: -96.797,
+      }),
+    ).toBe(true);
+
+    const result = resolveEffectiveLocation({
+      team: {
+        override_equipment_location: false,
+        location_lat: 32.7767,
+        location_lng: -96.797,
+        location_city: 'Dallas',
+      },
       equipment: { use_team_location: false },
+    });
+
+    expect(result?.source).toBe('team');
+  });
+
+  it('uses scan GPS when no assigned address exists', () => {
+    const result = resolveEffectiveLocation({
+      equipment: {},
       lastScan: {
         lat: 40.919345,
         lng: -90.659318,
@@ -95,7 +139,6 @@ describe('effectiveLocation', () => {
     const options = buildEquipmentLocationOptions({
       team,
       equipment: {
-        use_team_location: true,
         assigned_location_lat: 30,
         assigned_location_lng: -97,
         locationText: '40.919345, -90.659318',
@@ -103,14 +146,13 @@ describe('effectiveLocation', () => {
       lastScan: { lat: 40.919433, lng: -90.659299 },
     });
 
-    expect(options.map((option) => option.mode)).toEqual(['team', 'manual', 'scan', 'legacy']);
+    expect(options.map((option) => option.mode)).toEqual(['scan', 'manual', 'legacy', 'team']);
   });
 
   it('resolves explicit display modes independently of effective hierarchy', () => {
     const params = {
       team,
       equipment: {
-        use_team_location: true,
         assigned_location_lat: 30,
         assigned_location_lng: -97,
       },
@@ -123,16 +165,15 @@ describe('effectiveLocation', () => {
     expect(scanView?.lat).toBe(40.919345);
 
     const effectiveView = resolveLocationByMode('effective', options, params);
-    expect(effectiveView?.source).toBe('team');
+    expect(effectiveView?.source).toBe('scan');
   });
 
-  it('defers scan fallback until after legacy parse in coordinate resolution', () => {
+  it('defers scan fallback until after legacy parse in coordinate resolution when scan omitted', () => {
     const withoutScan = resolveEquipmentCoordinates({
       equipment: {
         locationText: '10, 20',
         updatedAt: '2026-01-01T00:00:00Z',
       },
-      lastScan: { lat: 40, lng: -90 },
       parseLegacy: (text) => (text === '10, 20' ? { lat: 10, lng: 20 } : null),
     });
 

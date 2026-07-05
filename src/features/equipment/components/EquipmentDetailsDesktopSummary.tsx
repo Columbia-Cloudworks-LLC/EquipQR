@@ -3,9 +3,8 @@ import { EquipmentLocationMapPanel } from '@/components/location/EquipmentLocati
 import type { PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import type { EquipmentTeamSummary } from '@/features/equipment/services/EquipmentService';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
-import { Forklift, MapPin, Users } from 'lucide-react';
+import { Forklift, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import ClickableAddress from '@/components/ui/ClickableAddress';
 
 type EquipmentDetailsDesktopSummaryProps = {
   equipment: EquipmentRecord;
@@ -67,27 +66,20 @@ export function EquipmentDetailsDesktopSummary({
       </Card>
 
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            Location
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0 px-6 pb-4">
-          <EquipmentLocationMapPanel
-            equipment={equipment}
-            assignedTeam={assignedTeam}
-            organizationId={organizationId}
-            scanLocationCollectionEnabled={scanLocationCollectionEnabled}
-            canEditLocation={canEditLocation}
-            isEditingAddress={isEditingLocation}
-            isSavingAddress={isSavingLocation}
-            isPlacesLoaded={isPlacesLoaded}
-            onStartAddressEdit={onStartLocationEdit}
-            onCancelAddressEdit={onCancelLocationEdit}
-            onSaveAddress={onSaveLocation}
-          />
-        </CardContent>
+        <EquipmentLocationMapPanel
+          layout="card"
+          equipment={equipment}
+          assignedTeam={assignedTeam}
+          organizationId={organizationId}
+          scanLocationCollectionEnabled={scanLocationCollectionEnabled}
+          canEditLocation={canEditLocation}
+          isEditingAddress={isEditingLocation}
+          isSavingAddress={isSavingLocation}
+          isPlacesLoaded={isPlacesLoaded}
+          onStartAddressEdit={onStartLocationEdit}
+          onCancelAddressEdit={onCancelLocationEdit}
+          onSaveAddress={onSaveLocation}
+        />
       </Card>
     </div>
   );
@@ -104,15 +96,6 @@ function EquipmentTeamSummaryCard({ team }: { team: EquipmentTeamSummary | null 
     );
   }
 
-  const teamAddr = [
-    team.location_address,
-    team.location_city,
-    team.location_state,
-    team.location_country,
-  ]
-    .filter(Boolean)
-    .join(', ');
-
   return (
     <>
       <Link
@@ -124,17 +107,6 @@ function EquipmentTeamSummaryCard({ team }: { team: EquipmentTeamSummary | null 
       <p className="text-sm text-muted-foreground line-clamp-3">
         {team.description || 'No description'}
       </p>
-      {teamAddr && (
-        <div className="flex items-start gap-1.5 pt-1">
-          <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
-          <ClickableAddress
-            address={teamAddr}
-            lat={team.location_lat}
-            lng={team.location_lng}
-            className="text-xs"
-          />
-        </div>
-      )}
     </>
   );
 }

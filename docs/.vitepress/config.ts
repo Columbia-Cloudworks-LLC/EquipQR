@@ -58,9 +58,17 @@ const supportSidebarArticles: Record<string, { text: string; link: string }[]> =
       },
       { text: "Bulk edit equipment", link: "/support/equipment-qr/bulk-import-equipment" },
       { text: "Fleet map", link: "/support/equipment-qr/fleet-map-basics" },
+      {
+        text: "Location sources and maps",
+        link: "/support/equipment-qr/location-sources-and-maps",
+      },
     ],
     "inventory-parts": [
       { text: "Add inventory item", link: "/support/inventory-parts/add-inventory-item" },
+      {
+        text: "Storage locations",
+        link: "/support/inventory-parts/inventory-storage-locations",
+      },
       {
         text: "Adjust quantity",
         link: "/support/inventory-parts/adjust-inventory-quantity",

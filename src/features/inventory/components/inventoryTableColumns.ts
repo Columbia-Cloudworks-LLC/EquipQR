@@ -86,7 +86,7 @@ export const INVENTORY_TABLE_COLUMN_META: readonly InventoryTableColumnMeta[] = 
   },
   {
     key: 'location',
-    title: 'Location',
+    title: 'Location Name',
     canHide: true,
     defaultVisible: true,
     defaultWidth: 160,

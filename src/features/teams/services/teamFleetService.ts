@@ -2,7 +2,7 @@
 // Duplication rationale: Fleet location resolution parallels generic effectiveLocation with team context
 import { supabase } from '@/integrations/supabase/client';
 import { parseLatLng } from '@/utils/geoUtils';
-import { resolveEquipmentCoordinates, type FleetMapSource } from '@/utils/effectiveLocation';
+import { parseLastKnownLocation, resolveEquipmentCoordinates, type FleetMapSource } from '@/utils/effectiveLocation';
 import { logger } from '@/utils/logger';
 import type { EquipmentLocation } from '@/features/fleet-map/types/locations';
 
@@ -98,7 +98,7 @@ export const getTeamEquipmentWithLocations = async (
         image_url,
         updated_at,
         team_id,
-        use_team_location,
+        last_known_location,
         assigned_location_lat,
         assigned_location_lng,
         assigned_location_street,
@@ -145,10 +145,8 @@ export const getTeamEquipmentWithLocations = async (
     // that returns at most one latest scan row per candidate equipment id.
     const teamEquipmentMap = new Map<string, TeamEquipmentData>();
 
-    // First pass: resolve coords from team override / manual assignment /
-    // legacy text-location for every row, and collect ids that still need a
-    // scan lookup. Defer all rendering to the second pass so we can attach
-    // scan-source coords once the batched query returns.
+    // First pass: resolve coords from scan / assigned address / legacy text /
+    // team fallback for every row, and collect ids that still need a scan lookup.
     type ResolvedRow = {
       item: (typeof equipment)[number];
       teamId: string;
@@ -178,6 +176,7 @@ export const getTeamEquipmentWithLocations = async (
       teamEquipmentMap.get(teamId)!.equipmentCount++;
 
       const team = item.teams;
+      const lastScan = parseLastKnownLocation(item.last_known_location);
       const resolvedCoords = resolveEquipmentCoordinates({
         team: team
           ? {
@@ -191,7 +190,6 @@ export const getTeamEquipmentWithLocations = async (
             }
           : undefined,
         equipment: {
-          use_team_location: item.use_team_location ?? undefined,
           assigned_location_lat: item.assigned_location_lat,
           assigned_location_lng: item.assigned_location_lng,
           assigned_location_street: item.assigned_location_street,
@@ -201,6 +199,7 @@ export const getTeamEquipmentWithLocations = async (
           locationText: item.location,
           updatedAt: item.updated_at,
         },
+        lastScan,
         parseLegacy: parseLatLng,
       });
 

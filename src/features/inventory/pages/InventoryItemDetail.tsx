@@ -36,6 +36,7 @@ import InventoryItemCompatibilityTab from '@/features/inventory/pages/components
 import { HorizontalChipRow } from '@/components/layout/HorizontalChipRow';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getStockHealthPresentation } from '@/features/inventory/utils/stockHealth';
+import type { InventoryStructuredLocationFields } from '@/features/inventory/utils/inventoryLocationUtils';
 import { useInventoryItemAdjustQuantity } from '@/features/inventory/hooks/useInventoryItemAdjustQuantity';
 import { useInventoryItemEquipmentDialog } from '@/features/inventory/hooks/useInventoryItemEquipmentDialog';
 import { useInventoryItemAlternateGroupDialogs } from '@/features/inventory/hooks/useInventoryItemAlternateGroupDialogs';
@@ -214,6 +215,17 @@ const InventoryItemDetail = () => {
     });
   };
 
+  const handleStructuredLocationUpdate = async (
+    location: InventoryStructuredLocationFields,
+  ) => {
+    if (!currentOrganization || !itemId) return;
+    await updateMutation.mutateAsync({
+      organizationId: currentOrganization.id,
+      itemId,
+      formData: location,
+    });
+  };
+
   if (!currentOrganization) {
     return (
       <Page maxWidth="7xl" padding="responsive">
@@ -366,9 +378,11 @@ const InventoryItemDetail = () => {
           >
             <InventoryItemOverviewTab
               item={item}
+              organization={currentOrganization}
               canEdit={canEdit}
               itemImages={itemImages}
               onFieldUpdate={handleFieldUpdate}
+              onSaveStructuredLocation={handleStructuredLocationUpdate}
               onDeleteImage={async (img) => {
                 try {
                   await deleteInventoryItemImage(img.id, img.file_url, currentOrganization.id);

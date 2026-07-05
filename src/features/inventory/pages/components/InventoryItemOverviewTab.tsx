@@ -8,17 +8,22 @@ import { Separator } from '@/components/ui/separator';
 import InlineEditField from '@/features/equipment/components/InlineEditField';
 import ImageUploadWithNote from '@/components/common/ImageUploadWithNote';
 import { getStockHealthPresentation } from '@/features/inventory/utils/stockHealth';
+import { InventoryItemEffectiveLocationBlock } from '@/features/inventory/pages/components/InventoryItemEffectiveLocationBlock';
+import type { InventoryStructuredLocationFields } from '@/features/inventory/utils/inventoryLocationUtils';
+import type { SessionOrganization } from '@/types/session';
 import { cn } from '@/lib/utils';
 import type { InventoryItem, InventoryItemImage } from '@/features/inventory/types/inventory';
 
 interface InventoryItemOverviewTabProps {
   item: InventoryItem;
+  organization: SessionOrganization | null;
   canEdit: boolean;
   itemImages: InventoryItemImage[];
   onFieldUpdate: (
     field: 'name' | 'description' | 'sku' | 'external_id' | 'location',
     value: string
   ) => Promise<void>;
+  onSaveStructuredLocation: (location: InventoryStructuredLocationFields) => Promise<void>;
   onDeleteImage: (image: InventoryItemImage) => Promise<void>;
   onUploadImages: (files: File[]) => Promise<void>;
   onDeleteItemRequest: () => void;
@@ -26,9 +31,11 @@ interface InventoryItemOverviewTabProps {
 
 const InventoryItemOverviewTab: React.FC<InventoryItemOverviewTabProps> = ({
   item,
+  organization,
   canEdit,
   itemImages,
   onFieldUpdate,
+  onSaveStructuredLocation,
   onDeleteImage,
   onUploadImages,
   onDeleteItemRequest,
@@ -96,17 +103,28 @@ const InventoryItemOverviewTab: React.FC<InventoryItemOverviewTabProps> = ({
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-muted-foreground">Location</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Location Name</Label>
               <div className="mt-0.5">
                 <InlineEditField
                   value={item.location || ''}
                   onSave={(value) => onFieldUpdate('location', value)}
                   canEdit={canEdit}
-                  placeholder="Enter location"
+                  placeholder="Enter location name"
                   className="text-base"
                 />
               </div>
+              <p className="text-xs text-muted-foreground">
+                Storage nickname for this part (for example Shelf A or Warehouse B - Ground Level).
+                The physical address inherits from your organization unless you override it below.
+              </p>
             </div>
+
+            <InventoryItemEffectiveLocationBlock
+              item={item}
+              organization={organization}
+              canEdit={canEdit}
+              onSaveStructuredLocation={onSaveStructuredLocation}
+            />
           </CardContent>
         </Card>
 
