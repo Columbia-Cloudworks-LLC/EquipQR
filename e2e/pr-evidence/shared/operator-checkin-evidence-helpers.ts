@@ -1,7 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 
 export const EVIDENCE_TEMPLATE_NAME = 'Evidence Daily Safety Walkaround';
-export const STARTER_TEMPLATE_NAME = 'Odometer Log';
+export const STARTER_TEMPLATE_NAME = 'FMCSA-style DVIR starter';
 
 function yourTemplatesGrid(page: Page) {
   return page
@@ -59,45 +59,70 @@ export async function assignTemplateToEquipment(
   page: Page,
   templateName: string,
   equipmentName: string,
+  equipmentSerialNumber?: string,
 ): Promise<void> {
   const templateCard = getYourTemplateCard(page, templateName);
   await templateCard.getByRole('button', { name: /assign to equipment/i }).click();
 
-  const assignPanel = page.getByRole('dialog').filter({ hasText: new RegExp(`Assign ${templateName}`, 'i') });
+  const assignPanel = page
+    .locator('[data-radix-popper-content-wrapper]')
+    .filter({ hasText: new RegExp(`Assign ${templateName}`, 'i') });
   await expect(assignPanel).toBeVisible({ timeout: 15_000 });
   await assignPanel.getByRole('textbox', { name: /search equipment/i }).fill(equipmentName);
 
+  const checkboxPattern = equipmentSerialNumber
+    ? new RegExp(`^${equipmentName} Unit ${equipmentSerialNumber}`, 'i')
+    : new RegExp(`^${equipmentName} Unit`, 'i');
   const equipmentCheckbox = assignPanel.getByRole('checkbox', {
-    name: new RegExp(`^${equipmentName} Unit`, 'i'),
+    name: checkboxPattern,
   });
   await expect(equipmentCheckbox).toBeVisible({ timeout: 15_000 });
-  await assignPanel.getByText(equipmentName, { exact: true }).click();
+  await equipmentCheckbox.check();
+  await expect(equipmentCheckbox).toBeChecked({ timeout: 15_000 });
   await expect(assignPanel.getByText(/1 selected/i)).toBeVisible({ timeout: 15_000 });
+  await assignPanel.getByRole('button', { name: /assign checklist/i }).scrollIntoViewIfNeeded();
   await assignPanel.getByRole('button', { name: /assign checklist/i }).click();
   await expect(assignPanel).toBeHidden({ timeout: 30_000 });
+}
 
-  await templateCard.getByRole('button', { name: /assign to equipment/i }).click();
-  const verifyPanel = page.getByRole('dialog').filter({ hasText: new RegExp(`Assign ${templateName}`, 'i') });
-  await expect(verifyPanel).toBeVisible({ timeout: 15_000 });
-  await expect(verifyPanel.getByText(/^assigned$/i)).toBeVisible({ timeout: 30_000 });
-  await page.keyboard.press('Escape');
+function getOperatorCheckinAssignmentRow(page: Page, templateName: string) {
+  return page
+    .locator('.rounded-lg.border.p-4')
+    .filter({ hasText: templateName })
+    .filter({ has: page.getByRole('button', { name: /view qr code/i }) })
+    .first();
+}
+
+/** Assigns a template from the equipment details Daily Operator Check-In card (mobile-friendly). */
+export async function assignTemplateOnEquipmentDetails(
+  page: Page,
+  templateName: string,
+): Promise<void> {
+  await page.getByRole('button', { name: /add check-in checklist/i }).click();
+  const templateSelect = page.locator('[id^="add-checkin-template-"]');
+  await templateSelect.click();
+  await page.getByRole('option', { name: templateName, exact: true }).click();
+  await expect(templateSelect).toContainText(templateName, { timeout: 15_000 });
+
+  await page.getByRole('button', { name: /save assignment/i }).scrollIntoViewIfNeeded();
+  await expect(page.getByRole('button', { name: /save assignment/i })).toBeEnabled({ timeout: 15_000 });
+  await page.getByRole('button', { name: /save assignment/i }).click();
+  await expect(getOperatorCheckinAssignmentRow(page, templateName)).toBeVisible({
+    timeout: 30_000,
+  });
 }
 
 export async function navigateToEquipmentDetails(
   page: Page,
   equipmentId: string,
   equipmentName: string,
-  equipmentSerialNumber?: string,
+  _equipmentSerialNumber?: string,
 ): Promise<void> {
-  await page.getByRole('link', { name: /^equipment$/i }).click();
-  await expect(page).toHaveURL(/\/dashboard\/equipment\/?$/, { timeout: 30_000 });
-  await page.getByRole('textbox', { name: /search equipment/i }).fill(equipmentName);
-
-  const cardPattern = equipmentSerialNumber
-    ? new RegExp(`${equipmentName}.*${equipmentSerialNumber}`, 'i')
-    : new RegExp(`${equipmentName}`, 'i');
-  await page.getByRole('button', { name: cardPattern }).first().click();
+  await page.goto(`/dashboard/equipment/${equipmentId}`);
   await expect(page).toHaveURL(new RegExp(`/dashboard/equipment/${equipmentId}`), { timeout: 30_000 });
+  await expect(page.getByRole('heading', { name: new RegExp(equipmentName, 'i') }).first()).toBeVisible({
+    timeout: 30_000,
+  });
 }
 
 async function ensureOperatorCheckinQrLinkReady(page: Page, templateName: string): Promise<void> {
@@ -106,10 +131,7 @@ async function ensureOperatorCheckinQrLinkReady(page: Page, templateName: string
     return;
   }
 
-  const assignmentRow = page
-    .locator('.rounded-lg.border.p-4')
-    .filter({ hasText: templateName })
-    .first();
+  const assignmentRow = getOperatorCheckinAssignmentRow(page, templateName);
   await assignmentRow.getByRole('button', { name: /checklist actions/i }).click();
   await page.getByRole('menuitem', { name: /generate qr link|rotate qr link/i }).click();
   await expect(generateHint).toHaveCount(0, { timeout: 30_000 });
@@ -120,10 +142,7 @@ export async function openEquipmentCheckinQrDialog(page: Page, templateName: str
   await expect(page.getByText(templateName).first()).toBeVisible({ timeout: 30_000 });
   await ensureOperatorCheckinQrLinkReady(page, templateName);
 
-  const assignmentRow = page
-    .locator('.rounded-lg.border.p-4')
-    .filter({ hasText: templateName })
-    .first();
+  const assignmentRow = getOperatorCheckinAssignmentRow(page, templateName);
   await assignmentRow.getByRole('button', { name: /view qr code/i }).click();
 
   const dialog = page.getByRole('dialog');
@@ -147,10 +166,139 @@ export async function extractOperatorCheckinTokenFromQrDialog(page: Page): Promi
   return token;
 }
 
+function getPublicCheckinChecklistRow(page: Page, itemTitle?: string) {
+  const rows = page.locator('[data-testid^="checklist-item-row-"]');
+  return itemTitle ? rows.filter({ hasText: itemTitle }).first() : rows.first();
+}
+
+/** Scrolls the mobile public checklist UI into the viewport for PR evidence screenshots. */
+export async function framePublicCheckinChecklistIntro(page: Page): Promise<void> {
+  const swipeHint = page.getByText(/swipe right for pass, left for fail/i);
+  const firstRow = getPublicCheckinChecklistRow(page);
+  await firstRow.scrollIntoViewIfNeeded();
+  await expect(firstRow.getByRole('button', { name: /^pass:/i })).toBeVisible({ timeout: 15_000 });
+  await swipeHint.evaluate((element) => element.scrollIntoView({ block: 'start', inline: 'nearest' }));
+  await page.waitForTimeout(400);
+}
+
+/** Centers a checklist row that shows Pass/Fail state after swiping. */
+export async function framePublicCheckinAnsweredRow(
+  page: Page,
+  itemTitle: string,
+  expectedStatus: 'pass' | 'fail',
+): Promise<void> {
+  const row = getPublicCheckinChecklistRow(page, itemTitle);
+  await row.scrollIntoViewIfNeeded();
+  await expect(row.locator('[data-testid^="checklist-item-status-"]')).toHaveText(
+    new RegExp(`^${expectedStatus}$`, 'i'),
+    { timeout: 15_000 },
+  );
+  await row.evaluate((element) => element.scrollIntoView({ block: 'center', inline: 'nearest' }));
+  await page.waitForTimeout(400);
+}
+
+/** Centers a cleared checklist row and the reset affordance after reset. */
+export async function framePublicCheckinResetState(page: Page): Promise<void> {
+  const firstRow = getPublicCheckinChecklistRow(page);
+  await firstRow.scrollIntoViewIfNeeded();
+  await expect(firstRow.locator('[data-testid^="checklist-item-status-"]')).toHaveText(/^not checked$/i, {
+    timeout: 15_000,
+  });
+  await expect(firstRow.getByRole('button', { name: /^pass:/i })).toBeVisible();
+  await firstRow.evaluate((element) => element.scrollIntoView({ block: 'center', inline: 'nearest' }));
+  await page.waitForTimeout(400);
+}
+
+/** Scrolls the equipment assignment card into view for admin evidence. */
+export async function frameEquipmentCheckinAssignment(page: Page, templateName: string): Promise<void> {
+  const assignmentRow = getOperatorCheckinAssignmentRow(page, templateName);
+  await assignmentRow.scrollIntoViewIfNeeded();
+  await expect(assignmentRow.getByRole('button', { name: /view qr code/i })).toBeVisible({
+    timeout: 15_000,
+  });
+  await assignmentRow.evaluate((element) => element.scrollIntoView({ block: 'center', inline: 'nearest' }));
+  await page.waitForTimeout(400);
+}
+
 export async function fillOdometerLogPublicForm(page: Page): Promise<void> {
-  await page.getByLabel(/your name/i).fill('Evidence Operator');
-  await page.getByLabel(/odometer reading/i).fill('128450');
-  await page.getByLabel(/^notes$/i).fill('PR evidence submission — daily safety walkaround complete.');
+  await page.getByLabel(/driver \/ operator name/i).fill('Evidence Operator');
+  const odometerField = page.getByLabel(/odometer reading/i);
+  if (await odometerField.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    await odometerField.fill('128450');
+  }
+}
+
+async function dispatchChecklistRowSwipe(
+  row: ReturnType<Page['locator']>,
+  direction: 'pass' | 'fail',
+): Promise<void> {
+  const startRatio = direction === 'pass' ? 0.15 : 0.85;
+  const endRatio = direction === 'pass' ? 0.85 : 0.15;
+  await row.evaluate(
+    (element, ratios) => {
+      const rect = element.getBoundingClientRect();
+      const y = rect.top + rect.height / 2;
+      const startX = rect.left + rect.width * ratios.startRatio;
+      const endX = rect.left + rect.width * ratios.endRatio;
+      const pointerId = 1;
+      const pointerInit = {
+        clientX: startX,
+        clientY: y,
+        pointerId,
+        button: 0,
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+        pointerType: 'touch',
+        isPrimary: true,
+      } as PointerEventInit;
+
+      element.dispatchEvent(new PointerEvent('pointerdown', { ...pointerInit, buttons: 1 }));
+      element.dispatchEvent(
+        new PointerEvent('pointermove', { ...pointerInit, clientX: endX, buttons: 1 }),
+      );
+      element.dispatchEvent(
+        new PointerEvent('pointerup', { ...pointerInit, clientX: endX, buttons: 0 }),
+      );
+    },
+    { startRatio, endRatio },
+  );
+}
+
+export async function swipePublicChecklistItem(
+  page: Page,
+  itemTitle: string,
+  direction: 'pass' | 'fail',
+): Promise<void> {
+  const row = getPublicCheckinChecklistRow(page, itemTitle);
+  await row.scrollIntoViewIfNeeded();
+  await expect(row).toBeVisible({ timeout: 15_000 });
+  await dispatchChecklistRowSwipe(row, direction);
+
+  const expectedStatus = direction === 'pass' ? /^pass$/i : /^fail$/i;
+  await expect(row.locator('[data-testid^="checklist-item-status-"]')).toHaveText(expectedStatus, {
+    timeout: 10_000,
+  });
+}
+
+export async function passRemainingPublicChecklistItems(page: Page): Promise<void> {
+  const rows = page.locator('[data-testid^="checklist-item-row-"]');
+  const rowCount = await rows.count();
+  for (let index = 0; index < rowCount; index += 1) {
+    const row = rows.nth(index);
+    const status = row.locator('[data-testid^="checklist-item-status-"]');
+    if (await status.filter({ hasText: /^not checked$/i }).count()) {
+      await row.scrollIntoViewIfNeeded();
+      await dispatchChecklistRowSwipe(row, 'pass');
+      await expect(status).toHaveText(/^pass$/i, { timeout: 10_000 });
+    }
+  }
+  await expect(page.getByText(/^not checked$/i)).toHaveCount(0, { timeout: 15_000 });
+}
+
+export async function resetPublicCheckinForm(page: Page): Promise<void> {
+  await page.getByRole('button', { name: /reset form/i }).click();
+  await expect(page.getByLabel(/driver \/ operator name/i)).toHaveValue('');
 }
 
 export async function submitPublicCheckin(page: Page): Promise<void> {
@@ -171,6 +319,16 @@ export async function selectLedgerReportTemplate(page: Page, templateName: strin
   await page.locator('#report-template-select').click();
   const listbox = page.getByRole('listbox');
   await listbox.getByRole('option', { name: templateName, exact: true }).click();
+  await expect(page.getByText(/loading ledger/i)).toHaveCount(0, { timeout: 30_000 });
+}
+
+export async function expectLedgerSubmissionVisible(
+  page: Page,
+  operatorName: string,
+  equipmentName: string,
+): Promise<void> {
+  await expect(page.getByText(operatorName).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(equipmentName).first()).toBeVisible({ timeout: 30_000 });
 }
 
 export async function deleteTemplateFromConsole(page: Page, templateName: string): Promise<void> {

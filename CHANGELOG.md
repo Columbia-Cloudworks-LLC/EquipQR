@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.12.10] - 2026-07-05
+
+### Changed
+
+- **Daily Check-In mobile UX (#1128)** — Public operator check-in checklist rows support swipe right for Pass and swipe left for Fail, show answered Pass/Fail color states, keep accessible Pass/Fail buttons, and add a Reset form shortcut without re-scanning the QR code.
+
 ## [3.12.9] - 2026-07-05
 
 ### Added

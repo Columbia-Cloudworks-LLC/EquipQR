@@ -4,7 +4,7 @@ import { seedEquipment } from '../user/shared/seed-data';
 import { evidenceScreenshot, evidencePause, assertDocsDevServerReady } from './shared/evidence-helpers';
 import { resetApexOperatorCheckinEvidence } from './shared/operator-checkin-evidence-reset';
 import {
-  assignTemplateToEquipment,
+  assignTemplateOnEquipmentDetails,
   cloneStarterTemplate,
   EVIDENCE_TEMPLATE_NAME,
   expandStarterCatalogIfNeeded,
@@ -60,7 +60,6 @@ test.describe.serial('Daily operator check-in docs discovery @pr-evidence', () =
     await expandStarterCatalogIfNeeded(page);
     await cloneStarterTemplate(page, STARTER_TEMPLATE_NAME);
     await renameTemplate(page, STARTER_TEMPLATE_NAME, EVIDENCE_TEMPLATE_NAME);
-    await assignTemplateToEquipment(page, EVIDENCE_TEMPLATE_NAME, seedEquipment.cat320.name);
 
     await navigateToEquipmentDetails(
       page,
@@ -69,6 +68,7 @@ test.describe.serial('Daily operator check-in docs discovery @pr-evidence', () =
       seedEquipment.cat320.serialNumber,
     );
     await assertHealthyShell();
+    await assignTemplateOnEquipmentDetails(page, EVIDENCE_TEMPLATE_NAME);
 
     const equipmentHelpLink = page.getByRole('link', {
       name: /setup, qr placement, and assignment guide/i,

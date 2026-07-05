@@ -4,21 +4,29 @@ import { seedEquipment } from '../user/shared/seed-data';
 import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
 import { resetApexOperatorCheckinEvidence, assertEvidenceOperatorCheckinTokenRegistered } from './shared/operator-checkin-evidence-reset';
 import {
-  assignTemplateToEquipment,
+  assignTemplateOnEquipmentDetails,
   cloneStarterTemplate,
   deleteTemplateFromConsole,
   EVIDENCE_TEMPLATE_NAME,
   expandStarterCatalogIfNeeded,
+  expectLedgerSubmissionVisible,
   extractOperatorCheckinTokenFromQrDialog,
   fillOdometerLogPublicForm,
+  frameEquipmentCheckinAssignment,
+  framePublicCheckinAnsweredRow,
+  framePublicCheckinChecklistIntro,
+  framePublicCheckinResetState,
   getYourTemplateCard,
   navigateToEquipmentDetails,
   openDailyLedgerTab,
   openEquipmentCheckinQrDialog,
+  passRemainingPublicChecklistItems,
   renameTemplate,
+  resetPublicCheckinForm,
   selectLedgerReportTemplate,
   STARTER_TEMPLATE_NAME,
   submitPublicCheckin,
+  swipePublicChecklistItem,
 } from './shared/operator-checkin-evidence-helpers';
 
 test.describe.serial('Daily operator check-ins end-to-end @pr-evidence', () => {
@@ -56,17 +64,6 @@ test.describe.serial('Daily operator check-ins end-to-end @pr-evidence', () => {
     await evidencePause(page, 800);
     await evidenceScreenshot(page, '01-admin-templates-real-template');
 
-    await assignTemplateToEquipment(page, EVIDENCE_TEMPLATE_NAME, seedEquipment.cat320.name);
-
-    await templateCard.getByRole('button', { name: /assign to equipment/i }).click();
-    const assignmentPanel = page.getByRole('dialog').filter({
-      hasText: new RegExp(`Assign ${EVIDENCE_TEMPLATE_NAME}`, 'i'),
-    });
-    await expect(assignmentPanel.getByText(/^assigned$/i)).toBeVisible({ timeout: 15_000 });
-    await evidencePause(page, 800);
-    await evidenceScreenshot(page, '02-admin-template-assigned-equipment');
-    await page.keyboard.press('Escape');
-
     await navigateToEquipmentDetails(
       page,
       seedEquipment.cat320.id,
@@ -74,6 +71,10 @@ test.describe.serial('Daily operator check-ins end-to-end @pr-evidence', () => {
       seedEquipment.cat320.serialNumber,
     );
     await assertHealthyShell();
+    await assignTemplateOnEquipmentDetails(page, EVIDENCE_TEMPLATE_NAME);
+    await frameEquipmentCheckinAssignment(page, EVIDENCE_TEMPLATE_NAME);
+    await evidencePause(page, 800);
+    await evidenceScreenshot(page, '02-admin-template-assigned-equipment');
     await openEquipmentCheckinQrDialog(page, EVIDENCE_TEMPLATE_NAME);
 
     publicToken = await extractOperatorCheckinTokenFromQrDialog(page);
@@ -91,32 +92,43 @@ test.describe.serial('Daily operator check-ins end-to-end @pr-evidence', () => {
       timeout: 30_000,
     });
     await expect(publicPage.getByText(/does not certify legal or regulatory compliance/i)).toBeVisible();
-    await expect(publicPage.getByLabel(/your name/i)).toBeVisible();
-    await expect(publicPage.getByLabel(/odometer reading/i)).toBeVisible();
+    await expect(publicPage.getByLabel(/driver \/ operator name/i)).toBeVisible();
+    await expect(publicPage.getByText(/swipe right for pass, left for fail/i)).toBeVisible();
 
+    await framePublicCheckinChecklistIntro(publicPage);
     await evidencePause(publicPage, 800);
     await evidenceScreenshot(publicPage, '04-public-operator-form-loaded');
 
     await fillOdometerLogPublicForm(publicPage);
+    await swipePublicChecklistItem(publicPage, 'Service brakes operate correctly', 'pass');
+    await swipePublicChecklistItem(publicPage, 'Headlights and tail lights working', 'fail');
+
+    await framePublicCheckinAnsweredRow(publicPage, 'Headlights and tail lights working', 'fail');
+    await evidencePause(publicPage, 800);
+    await evidenceScreenshot(publicPage, '05-public-operator-swipe-answers');
+
+    await resetPublicCheckinForm(publicPage);
+    await expect(publicPage.getByText(/not checked/i).first()).toBeVisible({ timeout: 15_000 });
+
+    await framePublicCheckinResetState(publicPage);
+    await evidencePause(publicPage, 800);
+    await evidenceScreenshot(publicPage, '06-public-operator-form-reset');
+
+    await fillOdometerLogPublicForm(publicPage);
+    await passRemainingPublicChecklistItems(publicPage);
     await submitPublicCheckin(publicPage);
 
     await evidencePause(publicPage, 800);
-    await evidenceScreenshot(publicPage, '05-public-operator-submission-success');
+    await evidenceScreenshot(publicPage, '07-public-operator-submission-success');
     await publicContext.close();
 
     await gotoDashboard('/operator-check-ins');
     await openDailyLedgerTab(page);
     await selectLedgerReportTemplate(page, EVIDENCE_TEMPLATE_NAME);
-
-    await expect(page.getByRole('cell', { name: 'Evidence Operator' }).first()).toBeVisible({
-      timeout: 30_000,
-    });
-    await expect(page.getByRole('cell', { name: seedEquipment.cat320.name }).first()).toBeVisible({
-      timeout: 30_000,
-    });
+    await expectLedgerSubmissionVisible(page, 'Evidence Operator', seedEquipment.cat320.name);
 
     await evidencePause(page, 800);
-    await evidenceScreenshot(page, '06-admin-ledger-submission-visible');
+    await evidenceScreenshot(page, '08-admin-ledger-submission-visible');
 
     await page.getByRole('button', { name: /^export$/i }).click();
     const exportDialog = page.getByRole('dialog');
@@ -126,20 +138,17 @@ test.describe.serial('Daily operator check-ins end-to-end @pr-evidence', () => {
     await expect(exportDialog.getByText(/pdf|excel|xlsx/i).first()).toBeVisible();
 
     await evidencePause(page, 800);
-    await evidenceScreenshot(page, '07-admin-export-dialog');
+    await evidenceScreenshot(page, '09-admin-export-dialog');
     await page.keyboard.press('Escape');
 
     await deleteTemplateFromConsole(page, EVIDENCE_TEMPLATE_NAME);
 
     await openDailyLedgerTab(page);
     await selectLedgerReportTemplate(page, `${EVIDENCE_TEMPLATE_NAME} (deleted)`);
-
-    await expect(page.getByRole('cell', { name: 'Evidence Operator' }).first()).toBeVisible({
-      timeout: 30_000,
-    });
+    await expectLedgerSubmissionVisible(page, 'Evidence Operator', seedEquipment.cat320.name);
 
     await evidencePause(page, 800);
-    await evidenceScreenshot(page, '08-deleted-template-retained-in-ledger');
+    await evidenceScreenshot(page, '10-deleted-template-retained-in-ledger');
 
     const disabledContext = await browser.newContext({ baseURL: publicBaseUrl });
     const disabledPage = await disabledContext.newPage();
@@ -147,7 +156,7 @@ test.describe.serial('Daily operator check-ins end-to-end @pr-evidence', () => {
     await expect(disabledPage.getByText(/not available/i)).toBeVisible({ timeout: 30_000 });
 
     await evidencePause(disabledPage, 800);
-    await evidenceScreenshot(disabledPage, '10-invalid-or-disabled-public-token-unavailable');
+    await evidenceScreenshot(disabledPage, '11-invalid-or-disabled-public-token-unavailable');
     await disabledContext.close();
   });
 });
@@ -163,7 +172,7 @@ test.describe('Daily operator check-ins access @pr-evidence', () => {
     ).toBeVisible({ timeout: 30_000 });
 
     await evidencePause(page, 800);
-    await evidenceScreenshot(page, '09-non-admin-management-denied');
+    await evidenceScreenshot(page, '12-non-admin-management-denied');
     await context.close();
   });
 });

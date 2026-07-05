@@ -29,6 +29,7 @@ import {
   validateOperatorInputFields,
 } from '@/features/operator-check-ins/types/operatorChecklist';
 import { groupChecklistItemsBySection } from '@/utils/pmChecklistHelpers';
+import { OperatorCheckinChecklistItemRow } from '@/features/operator-check-ins/components/OperatorCheckinChecklistItemRow';
 
 function renderOperatorInput(
   field: OperatorChecklistDataField,
@@ -203,6 +204,15 @@ export default function OperatorCheckInPublicPage() {
     [fieldValidation.errors, checklistValidation.errors],
   );
 
+  const hasFormProgress = useMemo(() => {
+    const hasOperatorInput = Object.values(operatorValues).some((value) => {
+      if (value === undefined || value === null || value === '') return false;
+      if (value === false) return false;
+      return true;
+    });
+    return Object.keys(answers).length > 0 || hasOperatorInput || hcaptchaToken !== null;
+  }, [answers, operatorValues, hcaptchaToken]);
+
   function getReadOnlyValue(field: OperatorChecklistDataField): string {
     if (field.source === 'equipment_snapshot') {
       const preview = equipmentPreviewFields.find((item) => item.field_id === field.id);
@@ -256,6 +266,12 @@ export default function OperatorCheckInPublicPage() {
 
   function updateOperatorValue(fieldId: string, value: unknown) {
     setOperatorValues((prev) => ({ ...prev, [fieldId]: value }));
+  }
+
+  function handleResetForm() {
+    setOperatorValues({});
+    setAnswers({});
+    setHcaptchaToken(null);
   }
 
   if (loading) {
@@ -347,48 +363,26 @@ export default function OperatorCheckInPublicPage() {
           </Card>
         )}
 
+        {items.length > 0 && (
+          <p className="text-sm text-muted-foreground">
+            Swipe right for Pass, left for Fail. You can also tap Pass or Fail.
+          </p>
+        )}
+
         {Object.entries(grouped).map(([section, sectionItems]) => (
           <Card key={section}>
             <CardHeader>
               <CardTitle className="text-base">{section}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {sectionItems.map((item) => {
-                const answer = answers[item.id];
-                return (
-                  <div key={item.id} className="space-y-2 border-b pb-4 last:border-0 last:pb-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-medium">{item.title}</p>
-                        {item.description && (
-                          <p className="text-sm text-muted-foreground">{item.description}</p>
-                        )}
-                        {item.required && (
-                          <p className="text-xs text-muted-foreground">Required</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-4">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Checkbox
-                          id={`pass-${item.id}`}
-                          checked={answer?.passed === true}
-                          onCheckedChange={() => toggleAnswer(item.id, true)}
-                        />
-                        <Label htmlFor={`pass-${item.id}`}>Pass</Label>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Checkbox
-                          id={`fail-${item.id}`}
-                          checked={answer?.passed === false}
-                          onCheckedChange={() => toggleAnswer(item.id, false)}
-                        />
-                        <Label htmlFor={`fail-${item.id}`}>Fail</Label>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {sectionItems.map((item) => (
+                <OperatorCheckinChecklistItemRow
+                  key={item.id}
+                  item={item}
+                  answer={answers[item.id]}
+                  onAnswer={(passed) => toggleAnswer(item.id, passed)}
+                />
+              ))}
             </CardContent>
           </Card>
         ))}
@@ -411,6 +405,17 @@ export default function OperatorCheckInPublicPage() {
 
         {captchaRequired && !hcaptchaToken && !captchaMisconfigured && (
           <p className="text-xs text-muted-foreground text-center">Complete the CAPTCHA below to submit.</p>
+        )}
+
+        {hasFormProgress && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full min-h-[44px] touch-manipulation"
+            onClick={handleResetForm}
+          >
+            Reset form
+          </Button>
         )}
 
         <Button className="w-full" size="lg" disabled={!canSubmit || submitting} onClick={() => void handleSubmit()}>
