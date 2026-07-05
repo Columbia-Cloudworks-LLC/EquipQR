@@ -10,6 +10,21 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_operator_checklist_templates_id_org
 CREATE UNIQUE INDEX IF NOT EXISTS idx_equipment_id_org
   ON public.equipment (id, organization_id);
 
+-- Remove legacy rows that cannot satisfy org-scoped composite foreign keys.
+DELETE FROM public.equipment_operator_checkin_settings AS s
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM public.equipment AS e
+    WHERE e.id = s.equipment_id
+      AND e.organization_id = s.organization_id
+  )
+   OR NOT EXISTS (
+    SELECT 1
+    FROM public.operator_checklist_templates AS tpl
+    WHERE tpl.id = s.template_id
+      AND tpl.organization_id = s.organization_id
+  );
+
 ALTER TABLE public.equipment_operator_checkin_settings
   DROP CONSTRAINT IF EXISTS equipment_operator_checkin_settings_template_id_fkey;
 
