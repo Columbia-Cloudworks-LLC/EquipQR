@@ -635,7 +635,10 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     const hasExistingNotes = item.notes && item.notes.trim() !== '';
     const isManuallyCollapsedNow = manuallyCollapsed[itemId];
     const isExplicitlyExpanded = expandedNotes[itemId];
-    const hasNegativeCondition = item.condition !== null && item.condition >= 2;
+    const hasNegativeCondition =
+      item.condition !== null &&
+      item.condition !== undefined &&
+      isNegativePMCondition(item.condition);
     
     const isCurrentlyVisible = 
       hasExistingNotes || 

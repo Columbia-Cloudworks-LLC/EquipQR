@@ -198,7 +198,8 @@ describe('PMChecklistComponent', () => {
           { id: 'item-3', title: 'Immediate Repairs item', section: 'Engine', required: true, condition: 4, notes: undefined },
           { id: 'item-4', title: 'Unsafe item', section: 'Engine', required: true, condition: 5, notes: undefined },
           { id: 'item-5', title: 'OK item', section: 'Safety', required: true, condition: 1, notes: undefined },
-          { id: 'item-6', title: 'Unrated item', section: 'Safety', required: true, condition: null, notes: undefined }
+          { id: 'item-6', title: 'N/A item', section: 'Safety', required: true, condition: 6, notes: undefined },
+          { id: 'item-7', title: 'Unrated item', section: 'Safety', required: true, condition: null, notes: undefined }
         ] as unknown as PreventativeMaintenance['checklist_data']
       });
 
@@ -218,7 +219,7 @@ describe('PMChecklistComponent', () => {
       const hiddenNotes = allNotes.filter(textarea =>
         textarea.closest('.grid')?.classList.contains('opacity-0')
       );
-      expect(hiddenNotes.length).toBeGreaterThanOrEqual(2);
+      expect(hiddenNotes.length).toBeGreaterThanOrEqual(3);
     });
   });
 

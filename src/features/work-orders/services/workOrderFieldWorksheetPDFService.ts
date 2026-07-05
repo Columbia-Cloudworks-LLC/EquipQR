@@ -21,6 +21,7 @@ import { WorkOrderPdfTextLayout } from './workOrderPdfTextLayout';
 
 const CONDITION_LEGEND = [
   { value: 1, label: 'OK' },
+  { value: 6, label: 'N/A' },
   { value: 2, label: 'Adjusted' },
   { value: 3, label: 'Recommend Repairs' },
   { value: 4, label: 'Immediate Repairs' },
@@ -380,10 +381,11 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(80, 80, 80);
 
-    for (let i = 1; i <= 5; i++) {
-      const bx = x + (i - 1) * (boxSize + gap);
+    for (let i = 0; i < CONDITION_LEGEND.length; i++) {
+      const condition = CONDITION_LEGEND[i];
+      const bx = x + i * (boxSize + gap);
       this.doc.rect(bx, y - boxSize + 1, boxSize, boxSize);
-      const numStr = String(i);
+      const numStr = String(condition.value);
       const numWidth = this.doc.getTextWidth(numStr);
       this.doc.text(numStr, bx + (boxSize - numWidth) / 2, y - 0.5);
     }
@@ -435,7 +437,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
         const truncatedTitle = this.doc.splitTextToSize(item.title, maxTitleWidth)[0] ?? item.title;
         this.doc.text(truncatedTitle, this.margin + 8, this.textLayout.yPosition);
 
-        this.drawConditionBoxes(this.pageWidth - this.margin - 42, this.textLayout.yPosition);
+        this.drawConditionBoxes(this.pageWidth - this.margin - 50, this.textLayout.yPosition);
 
         this.textLayout.yPosition += 6;
       }
