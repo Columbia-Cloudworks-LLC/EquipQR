@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Database cron helper errors (#1141)** — SECURITY DEFINER pg_cron helpers no longer cast `current_user` to `oid`, eliminating recurring `invalid input syntax for type oid: "postgres"` errors during queue-worker, Stripe MV refresh, and QuickBooks token refresh jobs. Added operator runbook for Supabase Postgres collation version mismatch maintenance.
+- **Database cron helper errors (#1141)** — SECURITY DEFINER pg_cron helpers no longer cast `current_user` to `oid`, eliminating recurring `invalid input syntax for type oid: "postgres"` errors during queue-worker, Stripe MV refresh, and QuickBooks token refresh jobs. QuickBooks manual refresh calls a dedicated internal helper so pg_cron-only guards do not block authenticated operators. Added operator runbook for Supabase Postgres collation version mismatch maintenance.
 
 ## [3.12.6] - 2026-07-05
 

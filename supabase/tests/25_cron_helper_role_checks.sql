@@ -3,7 +3,7 @@
 -- matching public.invoke_quickbooks_invoice_status_sync().
 
 BEGIN;
-SELECT plan(6);
+SELECT plan(8);
 
 SELECT is(
   position('current_user::oid' IN pg_get_functiondef(p.oid)),
@@ -66,6 +66,26 @@ FROM pg_proc p
 JOIN pg_namespace n ON n.oid = p.pronamespace
 WHERE n.nspname = 'public'
   AND p.proname = 'invoke_quickbooks_token_refresh'
+  AND pg_get_function_identity_arguments(p.oid) = '';
+
+SELECT ok(
+  position('_invoke_quickbooks_token_refresh_internal' IN pg_get_functiondef(p.oid)) > 0,
+  'invoke_quickbooks_token_refresh must delegate to internal helper'
+)
+FROM pg_proc p
+JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.proname = 'invoke_quickbooks_token_refresh'
+  AND pg_get_function_identity_arguments(p.oid) = '';
+
+SELECT ok(
+  position('_invoke_quickbooks_token_refresh_internal' IN pg_get_functiondef(p.oid)) > 0,
+  'refresh_quickbooks_tokens_manual must call internal helper, not cron wrapper'
+)
+FROM pg_proc p
+JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.proname = 'refresh_quickbooks_tokens_manual'
   AND pg_get_function_identity_arguments(p.oid) = '';
 
 SELECT finish();
