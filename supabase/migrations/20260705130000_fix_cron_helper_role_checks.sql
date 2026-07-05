@@ -239,7 +239,11 @@ BEGIN
   RETURN QUERY
   SELECT
     cred_count,
-    ('Token refresh triggered for ' || cred_count || ' credentials. Check edge function logs for results.')::TEXT;
+    (
+      'QuickBooks token refresh job triggered (processes all organizations). '
+      || cred_count
+      || ' credential(s) expiring soon in your organization(s). Check edge function logs for results.'
+    )::TEXT;
 END;
 $$;
 
