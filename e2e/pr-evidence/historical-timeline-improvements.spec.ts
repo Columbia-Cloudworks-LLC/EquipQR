@@ -46,8 +46,11 @@ test.describe('PR evidence: historical timeline improvements @pr-evidence', () =
 
     const firstDatePicker = timelineDialog.getByRole('button', { name: /January|February|March|April|May|June|July|August|September|October|November|December/i }).first();
     await firstDatePicker.click();
-    await expect(timelineDialog.getByRole('button', { name: 'Today' })).toBeVisible();
-    await expect(timelineDialog.getByRole('button', { name: 'Now' })).toBeVisible();
+    const shortcutPopover = page
+      .locator('[data-state="open"]')
+      .filter({ has: page.getByRole('button', { name: 'Today' }) });
+    await expect(shortcutPopover.getByRole('button', { name: 'Today' })).toBeVisible();
+    await expect(shortcutPopover.getByRole('button', { name: 'Now' })).toBeVisible();
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '02-timeline-shortcuts-and-seeded-event');
 
@@ -66,10 +69,10 @@ test.describe('PR evidence: historical timeline improvements @pr-evidence', () =
       timeout: 30_000,
     });
 
-    await page.getByRole('button', { name: /add note/i }).first().click();
-    const noteField = page.getByPlaceholder(/enter your note/i);
+    const noteField = page.getByPlaceholder(/enter your note/i).first();
+    await expect(noteField).toBeVisible({ timeout: 30_000 });
     await noteField.fill('Historical paperwork note for timestamp editing');
-    await page.getByRole('button', { name: /^save note$/i }).click();
+    await page.getByRole('button', { name: /^add note$/i }).click();
     await expect(page.getByText('Historical paperwork note for timestamp editing')).toBeVisible({
       timeout: 30_000,
     });
@@ -79,9 +82,13 @@ test.describe('PR evidence: historical timeline improvements @pr-evidence', () =
     await page.getByRole('button', { name: /edit time/i }).first().click();
     const noteTimestampDialog = page.getByRole('dialog', { name: /edit note timestamp/i });
     await expect(noteTimestampDialog).toBeVisible({ timeout: 15_000 });
-    await noteTimestampDialog.getByRole('button', { name: 'Now' }).click();
+    await noteTimestampDialog.getByRole('button', { name: /at \d/i }).click();
+    const noteTimeInput = page.locator('[data-state="open"] input[type="time"]');
+    await expect(noteTimeInput).toBeVisible({ timeout: 15_000 });
+    await noteTimeInput.fill('09:30');
+    await noteTimestampDialog.getByRole('heading', { name: /edit note timestamp/i }).click();
     await noteTimestampDialog.getByRole('button', { name: /save timestamp/i }).click();
-    await expect(noteTimestampDialog).toBeHidden({ timeout: 15_000 });
+    await expect(noteTimestampDialog).toBeHidden({ timeout: 30_000 });
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '04-note-timestamp-updated');
 
