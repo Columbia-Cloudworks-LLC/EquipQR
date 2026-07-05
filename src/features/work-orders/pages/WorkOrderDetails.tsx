@@ -541,26 +541,24 @@ const WorkOrderDetails = () => {
         hasCompletedItems={pmWarningDetails.hasCompletedItems}
       />
 
-      {workOrder && (
-        <WorkOrderPMManagementDialog
-          open={showPMManagementDialog}
-          onClose={() => setShowPMManagementDialog(false)}
-          workOrder={workOrder}
-          pmData={pmData}
-          equipment={
-            equipment
-              ? {
-                  id: equipment.id,
-                  name: equipment.name,
-                  default_pm_template_id: equipment.default_pm_template_id ?? null,
-                }
-              : null
-          }
-          equipmentId={selectedEquipmentId || workOrder.equipment_id}
-          isUpdating={isUpdatingWorkOrder}
-          onSave={handleSavePMManagement}
-        />
-      )}
+      <WorkOrderPMManagementDialog
+        open={showPMManagementDialog}
+        onClose={() => setShowPMManagementDialog(false)}
+        workOrder={workOrder}
+        pmData={pmData}
+        equipment={
+          equipment
+            ? {
+                id: equipment.id,
+                name: equipment.name,
+                default_pm_template_id: equipment.default_pm_template_id ?? null,
+              }
+            : null
+        }
+        equipmentId={selectedEquipmentId || workOrder.equipment_id}
+        isUpdating={isUpdatingWorkOrder}
+        onSave={handleSavePMManagement}
+      />
     </div>
   );
 };
