@@ -10,7 +10,8 @@
   SUPABASE_SERVICE_ROLE_KEY.
 
 .EXAMPLE
-  .\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1
+  $env:SUPABASE_URL = (op read "op://EquipQR Agents/app-env-preview-public/SUPABASE_URL").Trim()
+  .\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1 -SupabaseUrl $env:SUPABASE_URL
 #>
 [CmdletBinding()]
 param(
@@ -23,11 +24,11 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent (Split-Path -Parent $here)
 Set-Location -LiteralPath $repoRoot
 
-$supabaseUrl = $SupabaseUrl.Trim()
-if ([string]::IsNullOrWhiteSpace($supabaseUrl)) {
+if ([string]::IsNullOrWhiteSpace($SupabaseUrl)) {
   throw 'SupabaseUrl is required to verify docs-media public access.'
 }
 
+$supabaseUrl = $SupabaseUrl.Trim()
 $publicProbeUrl = '{0}/storage/v1/object/public/docs-media/' -f $supabaseUrl.TrimEnd('/')
 
 Write-Host '[docs-media] Bucket provisioning is handled by migration 20260704180000_create_docs_media_bucket.sql.'

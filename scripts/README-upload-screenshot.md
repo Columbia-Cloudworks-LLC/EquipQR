@@ -26,7 +26,7 @@ Uploads images and short videos to Supabase Storage for use in documentation and
 2. **Supabase Storage Buckets**:
    - **`landing-page-images`** — PR evidence screenshots (`pr-evidence/{branch}/...`)
    - **`docs-media`** — equipqr.info documentation screenshots and MP4/WebM demos (`support/{collection}/{variant}/...`)
-   - Create missing buckets via migration (`supabase/migrations/*_create_docs_media_bucket.sql`) or `.\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1`
+   - Create missing buckets via migration (`supabase/migrations/*_create_docs_media_bucket.sql`); optionally verify with `.\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1 -SupabaseUrl $env:SUPABASE_URL`
    - Buckets must be **public** with anonymous SELECT policies (service role uploads only)
 
 ## Usage

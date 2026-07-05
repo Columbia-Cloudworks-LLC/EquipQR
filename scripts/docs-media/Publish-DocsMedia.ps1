@@ -57,12 +57,6 @@ $manifest = Get-Content -LiteralPath $manifestFull -Raw -Encoding utf8 | Convert
 
 Set-PrEvidenceUploadEnvironment
 
-if ([string]::IsNullOrWhiteSpace($env:SUPABASE_URL)) {
-    throw 'SUPABASE_URL is required before publishing docs-media artifacts.'
-}
-
-& (Join-Path $here 'Bootstrap-DocsMediaBucket.ps1') -SupabaseUrl $env:SUPABASE_URL
-
 $uploads = @()
 
 foreach ($shot in @($manifest.screenshots)) {
