@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.12.4] - 2026-07-05
+
+### Changed
+
+- **Historical timeline conversion density (#1099)** — Compact modal with numbered timeline steps, clearer add-event affordance, terminal-status guidance, and desktop two-column layout for notes alongside timeline and change history.
+
 ## [3.12.3] - 2026-07-04
 
 ### Added
