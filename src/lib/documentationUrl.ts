@@ -32,6 +32,18 @@ export function resolveOperatorDailyCheckInsDocsUrl(
   return `${base}${OPERATOR_DAILY_CHECK_INS_DOCS_PATH}`;
 }
 
+/** VitePress path for managing PM templates on active work orders. */
+export const WORK_ORDER_PM_MANAGEMENT_DOCS_PATH =
+  '/support/work-orders/manage-pm-template-on-work-order';
+
+export function resolveWorkOrderPmManagementDocsUrl(
+  env: DocumentationUrlEnv = import.meta.env,
+): string {
+  const base = resolveDocumentationUrl(env).replace(/\/$/, '');
+  return `${base}${WORK_ORDER_PM_MANAGEMENT_DOCS_PATH}`;
+}
+
 const DOCUMENTATION_URL = resolveDocumentationUrl();
 export const SUPPORT_DOCS_URL = resolveSupportDocsUrl();
 export const OPERATOR_DAILY_CHECK_INS_DOCS_URL = resolveOperatorDailyCheckInsDocsUrl();
+export const WORK_ORDER_PM_MANAGEMENT_DOCS_URL = resolveWorkOrderPmManagementDocsUrl();

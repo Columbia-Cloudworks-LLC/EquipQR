@@ -39,6 +39,10 @@ const supportSidebarArticles: Record<string, { text: string; link: string }[]> =
         link: "/support/work-orders/work-order-lifecycle",
       },
       {
+        text: "Manage PM template on work order",
+        link: "/support/work-orders/manage-pm-template-on-work-order",
+      },
+      {
         text: "Triage submitted requests",
         link: "/support/work-orders/triage-submitted-requests",
       },

@@ -36,7 +36,11 @@ If no work orders exist yet, the button reads "Create First Work Order". Either 
 
 Click Create Work Order. The new record appears in the team queue with Submitted status.
 
+If you forgot to attach a PM checklist during creation, you can add one later on any active work order — see [Manage a PM template on an active work order](../work-orders/manage-pm-template-on-work-order).
+
 ## Related articles
+
+- [Manage a PM template on an active work order](../work-orders/manage-pm-template-on-work-order)
 
 - [Update work order status](./update-work-order-status)
 - [Add notes and photos to a work order](./add-notes-and-photos)

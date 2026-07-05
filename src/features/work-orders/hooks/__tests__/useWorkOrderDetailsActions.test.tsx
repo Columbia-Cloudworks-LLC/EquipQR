@@ -29,7 +29,7 @@ vi.mock('@/features/work-orders/hooks/useWorkOrderUpdate', () => ({
 }));
 
 // Import mocked modules for assertions
-import { createPM } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { createPM, updatePM, deletePM } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { pmChecklistTemplatesService } from '@/features/pm-templates/services/pmChecklistTemplatesService';
 import { useUpdateWorkOrder } from '@/features/work-orders/hooks/useWorkOrderUpdate';
 
@@ -317,6 +317,141 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
       // Should not create PM because pmTemplateId is null
       // The condition is: pmBeingEnabled && data.pmTemplateId
       expect(createPM).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe('useWorkOrderDetailsActions - PM template management', () => {
+  let mockMutateAsync: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockMutateAsync = vi.fn().mockResolvedValue({ id: 'wo-1', title: 'Updated Work Order' });
+    vi.mocked(useUpdateWorkOrder).mockReturnValue({
+      mutateAsync: mockMutateAsync,
+      isPending: false,
+    } as unknown as ReturnType<typeof useUpdateWorkOrder>);
+    vi.mocked(pmChecklistTemplatesService.getTemplate).mockResolvedValue(mockPMTemplate);
+    vi.mocked(createPM).mockResolvedValue({ id: 'pm-new' } as Awaited<ReturnType<typeof createPM>>);
+    vi.mocked(updatePM).mockResolvedValue({ id: 'pm-1' } as Awaited<ReturnType<typeof updatePM>>);
+    vi.mocked(deletePM).mockResolvedValue(true);
+  });
+
+  type PmFormDataOverrides = Partial<
+    Omit<WorkOrderFormData, 'equipmentId'> & { equipmentId?: string | null }
+  >;
+
+  const buildPmFormData = (
+    overrides: PmFormDataOverrides = {},
+  ): Omit<WorkOrderFormData, 'equipmentId'> & { equipmentId?: string | null } => ({
+    title: 'Test Work Order',
+    description: 'Test Description',
+    priority: 'medium',
+    hasPM: true,
+    pmTemplateId: 'template-2',
+    ...overrides,
+  });
+
+  async function renderActionsHarness(
+    pmData: TestComponentProps['pmData'] = null,
+  ) {
+    let capturedActions: ReturnType<typeof useWorkOrderDetailsActions> | undefined;
+
+    render(
+      <TestComponent
+        workOrderId="wo-1"
+        organizationId="org-1"
+        pmData={pmData}
+        onReady={(actions) => {
+          capturedActions = actions;
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(capturedActions).toBeDefined();
+    });
+
+    return capturedActions!;
+  }
+
+  it('adds PM to an active work order without an existing PM row', async () => {
+    const capturedActions = await renderActionsHarness(null);
+    const formData = buildPmFormData({ equipmentId: 'eq-1' }) as WorkOrderFormData;
+
+    await capturedActions.handleUpdateWorkOrder(formData, false, 'eq-1');
+
+    await waitFor(() => {
+      expect(createPM).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workOrderId: 'wo-1',
+          equipmentId: 'eq-1',
+          templateId: 'template-2',
+        }),
+      );
+      expect(mockMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ hasPM: true }),
+        }),
+      );
+    });
+  });
+
+  it('changes PM template and resets PM checklist data only', async () => {
+    const capturedActions = await renderActionsHarness({
+      id: 'pm-1',
+      equipment_id: 'eq-1',
+      template_id: 'template-1',
+    });
+
+    const formData = buildPmFormData({
+      equipmentId: 'eq-1',
+      pmTemplateId: 'template-2',
+    }) as WorkOrderFormData;
+
+    await capturedActions.handleUpdateWorkOrder(formData, true, 'eq-1');
+
+    await waitFor(() => {
+      expect(updatePM).toHaveBeenCalledWith(
+        'pm-1',
+        expect.objectContaining({
+          templateId: 'template-2',
+          status: 'pending',
+          completedAt: null,
+          completedBy: null,
+        }),
+        'org-1',
+      );
+      expect(deletePM).not.toHaveBeenCalled();
+    });
+  });
+
+  it('removes PM from an active work order while preserving work-order fields', async () => {
+    const capturedActions = await renderActionsHarness({
+      id: 'pm-1',
+      equipment_id: 'eq-1',
+      template_id: 'template-1',
+    });
+
+    const formData = buildPmFormData({
+      hasPM: false,
+      pmTemplateId: null,
+      equipmentId: 'eq-1',
+    }) as WorkOrderFormData;
+
+    await capturedActions.handleUpdateWorkOrder(formData, true, 'eq-1');
+
+    await waitFor(() => {
+      expect(deletePM).toHaveBeenCalledWith('pm-1', 'org-1');
+      expect(mockMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            title: 'Test Work Order',
+            description: 'Test Description',
+            hasPM: false,
+          }),
+        }),
+      );
     });
   });
 });

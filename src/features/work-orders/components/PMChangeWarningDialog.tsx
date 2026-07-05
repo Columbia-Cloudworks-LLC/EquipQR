@@ -38,8 +38,8 @@ export const PMChangeWarningDialog: React.FC<PMChangeWarningDialogProps> = ({
     : "Change PM Checklist Template?";
   
   const description = isDisabling
-    ? "This work order has an existing PM checklist with data that will become inaccessible."
-    : "Changing the PM template will replace the existing checklist. All current PM data will be lost.";
+    ? "This work order has an existing PM checklist with data that will be removed. Work order photos, notes, and costs will stay attached."
+    : "Changing the PM template will replace the existing checklist. PM inspection data will be reset, but work order photos, notes, and costs will stay attached.";
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>

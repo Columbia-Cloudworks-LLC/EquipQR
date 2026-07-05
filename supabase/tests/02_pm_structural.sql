@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(66);
+SELECT plan(67);
 
 -- Tables
 SELECT has_table('public', 'pm_checklist_templates', 'pm_checklist_templates table exists');
@@ -74,6 +74,7 @@ SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND
 SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND tablename = 'preventative_maintenance' AND policyname = 'preventative_maintenance_insert_consolidated'), 1, 'preventative_maintenance_insert_consolidated policy exists');
 SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND tablename = 'preventative_maintenance' AND policyname = 'preventative_maintenance_select_consolidated'), 1, 'preventative_maintenance_select_consolidated policy exists');
 SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND tablename = 'preventative_maintenance' AND policyname = 'preventative_maintenance_update_consolidated'), 1, 'preventative_maintenance_update_consolidated policy exists');
+SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND tablename = 'preventative_maintenance' AND policyname = 'preventative_maintenance_delete_consolidated'), 1, 'preventative_maintenance_delete_consolidated policy exists');
 
 SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND tablename = 'pm_template_compatibility_rules' AND policyname = 'pm_template_compat_rules_insert'), 1, 'pm_template_compat_rules_insert policy exists');
 SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND tablename = 'pm_template_compatibility_rules' AND policyname = 'pm_template_compat_rules_select'), 1, 'pm_template_compat_rules_select policy exists');

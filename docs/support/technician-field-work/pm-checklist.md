@@ -1,16 +1,16 @@
 ---
 title: "Complete a PM checklist"
 description: "Tick off preventative maintenance items, mark exceptions, and attach evidence photos to the ones that need follow-up."
-lastReviewed: 2026-05-01
+lastReviewed: 2026-07-04
 personas: ["technician","manager"]
-requirement: "The work order must have been created with a PM template attached."
+requirement: "The work order must have a PM checklist attached (at creation or added later on an active work order)."
 ---
 
 **For:** Technician, Manager  
-**Last reviewed:** 2026-05-01
+**Last reviewed:** 2026-07-04
 
 ::: info Requires
-The work order must have been created with a PM template attached.
+The work order must have a PM checklist attached. You can attach one when creating the work order or later on an active job — see [Manage a PM template on an active work order](../work-orders/manage-pm-template-on-work-order).
 :::
 
 ## 1. Open the work order with the PM checklist

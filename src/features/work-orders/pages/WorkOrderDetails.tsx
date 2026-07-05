@@ -44,6 +44,7 @@ import { WorkOrderDetailsMobileContent } from '@/features/work-orders/components
 import { WorkOrderDetailsDesktopContent } from '@/features/work-orders/components/WorkOrderDetailsDesktopContent';
 import { WorkOrderDetailsOverlays } from '@/features/work-orders/components/WorkOrderDetailsOverlays';
 import { PMChangeWarningDialog } from '@/features/work-orders/components/PMChangeWarningDialog';
+import { WorkOrderPMManagementDialog } from '@/features/work-orders/components/WorkOrderPMManagementDialog';
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
@@ -60,6 +61,7 @@ const WorkOrderDetails = () => {
 
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>('');
   const [isEditingWorkOrderEquipmentLocation, setIsEditingWorkOrderEquipmentLocation] = useState(false);
+  const [showPMManagementDialog, setShowPMManagementDialog] = useState(false);
 
   const { user } = useAuth();
   const permissions = useUnifiedPermissions();
@@ -176,15 +178,35 @@ const WorkOrderDetails = () => {
     setShowMobileSidebar,
     handleStatusUpdate,
     handlePMUpdate,
+    handleUpdateWorkOrder,
     showPMWarning,
     setShowPMWarning,
     pmChangeType,
     handleConfirmPMChange,
     handleCancelPMChange,
     getPMDataDetails,
+    isUpdating: isUpdatingWorkOrder,
   } = useWorkOrderDetailsActions(workOrderId || '', currentOrganization?.id || '', pmData);
 
   const pmWarningDetails = useMemo(() => getPMDataDetails(), [getPMDataDetails]);
+
+  const workOrderDetailedPermissions = workOrder
+    ? permissions.workOrders.getDetailedPermissions({
+        ...workOrder,
+        organizationId: currentOrganization?.id ?? '',
+        teamId: workOrder.team_id ?? equipment?.team_id ?? undefined,
+      })
+    : null;
+  const canManagePM = Boolean(workOrderDetailedPermissions?.canEditPM && !isWorkOrderLocked);
+
+  const handleSavePMManagement = React.useCallback(
+    async (data: Parameters<typeof handleUpdateWorkOrder>[0]) => {
+      const equipmentIdForPm = selectedEquipmentId || workOrder?.equipment_id || '';
+      await handleUpdateWorkOrder(data, workOrder?.has_pm, equipmentIdForPm);
+      setShowPMManagementDialog(false);
+    },
+    [handleUpdateWorkOrder, selectedEquipmentId, workOrder?.equipment_id, workOrder?.has_pm],
+  );
 
   const workTimer = useWorkTimer(workOrderId);
   const offlineQueue = useOfflineQueue();
@@ -394,6 +416,8 @@ const WorkOrderDetails = () => {
               canEditAssignment={canEditAssignment}
               onSaveDescription={handleSaveDescription}
               equipmentLocationEdit={equipmentLocationEdit}
+              canManagePM={canManagePM}
+              onManagePM={() => setShowPMManagementDialog(true)}
             />
           ) : (
             <WorkOrderDetailsDesktopContent
@@ -422,6 +446,8 @@ const WorkOrderDetails = () => {
               canEditInlineFields={canEditInlineFields}
               onSaveDescription={handleSaveDescription}
               equipmentLocationEdit={equipmentLocationEdit}
+              canManagePM={canManagePM}
+              onManagePM={() => setShowPMManagementDialog(true)}
             />
           )}
         </div>
@@ -514,6 +540,27 @@ const WorkOrderDetails = () => {
         hasExistingNotes={pmWarningDetails.hasNotes}
         hasCompletedItems={pmWarningDetails.hasCompletedItems}
       />
+
+      {workOrder && (
+        <WorkOrderPMManagementDialog
+          open={showPMManagementDialog}
+          onClose={() => setShowPMManagementDialog(false)}
+          workOrder={workOrder}
+          pmData={pmData}
+          equipment={
+            equipment
+              ? {
+                  id: equipment.id,
+                  name: equipment.name,
+                  default_pm_template_id: equipment.default_pm_template_id ?? null,
+                }
+              : null
+          }
+          equipmentId={selectedEquipmentId || workOrder.equipment_id}
+          isUpdating={isUpdatingWorkOrder}
+          onSave={handleSavePMManagement}
+        />
+      )}
     </div>
   );
 };

@@ -15,6 +15,8 @@ import { pmChecklistTemplatesService } from '@/features/pm-templates/services/pm
 import { useAuth } from '@/hooks/useAuth';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import { invalidateWorkOrderCaches } from '@/features/work-orders/utils/invalidateWorkOrderQueries';
+import { preventiveMaintenance } from '@/lib/queryKeys';
 
 interface PMData {
   id: string;
@@ -222,26 +224,17 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
       throw pmError;
     }
     
-    // Refresh the work order data after update - invalidate all relevant query keys
-    queryClient.invalidateQueries({ 
-      queryKey: ['workOrder', 'enhanced', organizationId, workOrderId] 
-    });
-    queryClient.invalidateQueries({ 
-      queryKey: ['workOrder', organizationId, workOrderId] 
-    });
-    queryClient.invalidateQueries({ 
-      queryKey: ['workOrders', organizationId] 
-    });
-    // Also invalidate PM queries to refresh PM data
-    queryClient.invalidateQueries({ 
-      queryKey: ['preventativeMaintenance', workOrderId] 
-    });
-    // Invalidate equipment-specific PM queries if we have equipment info
-    if (pmData?.equipment_id || equipmentId) {
-      queryClient.invalidateQueries({ 
-        queryKey: ['preventativeMaintenance', workOrderId, pmData?.equipment_id || equipmentId, organizationId] 
+    // Refresh the work order and PM caches after update
+    invalidateWorkOrderCaches(queryClient, organizationId, workOrderId);
+    const effectiveEquipmentId = pmData?.equipment_id || equipmentId || data.equipmentId;
+    if (effectiveEquipmentId) {
+      queryClient.invalidateQueries({
+        queryKey: preventiveMaintenance.byWorkOrderAndEquipment(workOrderId, effectiveEquipmentId, organizationId),
       });
     }
+    queryClient.invalidateQueries({
+      queryKey: preventiveMaintenance.byWorkOrder(workOrderId),
+    });
     
     setIsEditFormOpen(false);
   }, [

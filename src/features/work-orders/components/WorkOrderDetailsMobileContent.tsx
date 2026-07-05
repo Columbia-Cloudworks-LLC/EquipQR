@@ -35,7 +35,7 @@ import type { EquipmentLocationEditProps } from '@/components/location/equipment
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import type { PMChecklistStats } from '@/features/work-orders/utils/pmChecklistStats';
 import type { WorkOrder, WorkOrderEmbeddedEquipment } from '@/features/work-orders/types/workOrder';
-import type { AssigneeNameSummary } from '@/features/work-orders/utils/workOrderDetailsViewModel';
+import { WorkOrderPMManagementActions } from '@/features/work-orders/components/WorkOrderPMManagementActions';
 
 type StaggerProps = (index: number) => {
   className?: string;
@@ -93,6 +93,8 @@ export interface WorkOrderDetailsMobileContentProps {
   canEditAssignment?: boolean;
   onSaveDescription?: (description: string) => Promise<void>;
   equipmentLocationEdit?: EquipmentLocationEditProps;
+  canManagePM?: boolean;
+  onManagePM?: () => void;
 }
 
 export function WorkOrderDetailsMobileContent({
@@ -137,6 +139,8 @@ export function WorkOrderDetailsMobileContent({
   canEditAssignment = false,
   onSaveDescription,
   equipmentLocationEdit,
+  canManagePM = false,
+  onManagePM,
 }: WorkOrderDetailsMobileContentProps) {
   const [showStatusSheet, setShowStatusSheet] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -361,6 +365,13 @@ export function WorkOrderDetailsMobileContent({
           />
         </div>
       ) : null}
+
+      <WorkOrderPMManagementActions
+        canManage={canManagePM}
+        hasPm={workOrder.has_pm}
+        onManage={() => onManagePM?.()}
+        className="mb-2"
+      />
 
       {workOrder.has_pm && (permissionLevels.isManager || permissionLevels.isTechnician) && (
         <div {...stagger(2)}>

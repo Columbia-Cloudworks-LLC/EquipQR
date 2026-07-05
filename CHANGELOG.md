@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.12.3] - 2026-07-04
+
+### Added
+
+- **PM template management on active work orders (#1130)** — Technicians and managers can add, change, or remove a PM checklist on an open work order before completion or cancellation. PM checklist data resets on template change; work order photos, notes, and costs are preserved. Help Center guide and PR evidence cover the full workflow.
+
+### Fixed
+
+- **Work order delete resilience (#1130)** — Owner/admin cascade delete no longer fails when storage object cleanup hits path mismatches; PM row deletion is allowed via scoped RLS for active work orders.
+
 ## [3.12.2] - 2026-07-04
 
 ### Added
