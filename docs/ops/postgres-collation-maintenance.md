@@ -8,7 +8,8 @@ Related issue: [#1141](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues
 
 - `postgres`: remediated on 2026-07-05 via `ALTER DATABASE postgres REFRESH COLLATION VERSION`.
   Evidence: `datcollversion=153.121`, `actual_version=153.121`; no new `database "postgres" has a collation version mismatch` warning after the refresh.
-- `template1`: vendor-owned follow-up. Evidence: `datcollversion=153.120`, `actual_version=153.121`; `ALTER DATABASE template1 REFRESH COLLATION VERSION` failed with `must be owner of database template1`.
+- `template1`: vendor-owned follow-up tracked in [#1143](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/1143). Evidence: owner `supabase_admin`, `datcollversion=153.120`, `actual_version=153.121`; both `ALTER DATABASE template1 REFRESH COLLATION VERSION` and `ALTER DATABASE template1 IS_TEMPLATE false` failed with `must be owner of database template1`.
+- Post-remediation log check (2026-07-05): recent Postgres logs no longer emit `database "postgres" has a collation version mismatch`; only intermittent `database "template1" has a collation version mismatch` remains on platform maintenance connections.
 
 ## Symptom
 
@@ -96,7 +97,7 @@ After that migration deploys, verify queue-worker cron intervals no longer emit 
 - Collation version mismatch warning: production `postgres` refreshed on 2026-07-05 after the dependent-object query returned no rows.
   Verification: `datcollversion` equals `actual_version`, and `postgres` connection warnings stop.
 
-Track the vendor-owned `template1` residual in [#1143](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/1143). Do not encode collation DDL in repo migrations.
+Track the vendor-owned `template1` residual in [#1143](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/1143). Issue #1141 application-database remediation is complete once `postgres` validates and cron helper migration deploys; `template1` is a separate Supabase platform action. Do not encode collation DDL in repo migrations.
 
 ## References
 
