@@ -26,17 +26,15 @@ import {
 import { formatDistanceToNow, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { filterFleetEquipmentBySearch } from '@/features/fleet-map/utils/filterFleetEquipmentBySearch';
+import { FLEET_MAP_SOURCE_LABELS, type FleetMapSource } from '@/utils/effectiveLocation';
 import type { EquipmentLocation } from './MapView';
 
-// ── Source badge classes (aligned with MapView SOURCE_TOKEN_CLASSES) ──────────
-// Using Tailwind semantic token classes instead of hardcoded hex so badges
-// adapt to both light and dark mode and stay in sync with map marker colors.
-
-const SOURCE_BADGE: Record<string, { badge: string; label: string }> = {
-  team:      { badge: 'bg-info text-info-foreground',     label: 'Team' },
-  equipment: { badge: 'bg-primary text-primary-foreground', label: 'Manual' },
-  scan:      { badge: 'bg-success text-success-foreground', label: 'Scan' },
-  geocoded:  { badge: 'bg-warning text-warning-foreground', label: 'Geocoded' },
+const SOURCE_BADGE: Record<FleetMapSource, { badge: string; label: string }> = {
+  team: { badge: 'bg-info text-info-foreground', label: FLEET_MAP_SOURCE_LABELS.team },
+  manual: { badge: 'bg-primary text-primary-foreground', label: FLEET_MAP_SOURCE_LABELS.manual },
+  scan: { badge: 'bg-success text-success-foreground', label: FLEET_MAP_SOURCE_LABELS.scan },
+  legacy: { badge: 'bg-warning text-warning-foreground', label: FLEET_MAP_SOURCE_LABELS.legacy },
+  geocoded: { badge: 'bg-warning text-warning-foreground', label: FLEET_MAP_SOURCE_LABELS.geocoded },
 };
 
 // ── Types ─────────────────────────────────────────────────────
@@ -198,7 +196,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               <>
                 {/* Located Equipment */}
                 {filteredLocated.map((equip) => {
-                  const badge = SOURCE_BADGE[equip.source] || SOURCE_BADGE.equipment;
+                  const badge = SOURCE_BADGE[equip.source] || SOURCE_BADGE.manual;
                   const isSelected = equip.id === selectedEquipmentId;
 
                   return (

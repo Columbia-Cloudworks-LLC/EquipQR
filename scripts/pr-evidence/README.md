@@ -30,13 +30,32 @@ Agents **must** capture screenshots and an MP4 demo video from the local dev sta
 | `Invoke-PrEvidenceCapture.ps1` | Stack probe/start, Playwright run, PNG + H.264 MP4 generation |
 | `Publish-PrEvidence.ps1` | Upload screenshots to Supabase + demo MP4 to GitHub, emit markdown |
 | `Invoke-PrEvidence.ps1` | End-to-end orchestrator (+ optional `gh pr comment`) |
+| `Publish-DocsMedia.ps1` | Upload capture artifacts to public `docs-media` for equipqr.info articles |
+
+## Documentation media bucket
+
+For equipqr.info (not PR comments), publish capture manifests to **`docs-media`**:
+
+```powershell
+.\scripts\docs-media\Publish-DocsMedia.ps1 `
+  -ManifestPath tmp\pr-evidence\location-maps-desktop\manifest.json `
+  -Collection location-maps `
+  -Variant desktop `
+  -MarkdownOut tmp\docs-media\location-maps\desktop.md
+```
+
+Bootstrap optional verification after migration (uses `SUPABASE_URL` / `VITE_SUPABASE_URL` from the shell, or pass `-SupabaseUrl`; `Publish-DocsMedia.ps1` loads upload env automatically):
+
+```powershell
+.\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1
+```
 
 ## Prerequisites
 
 - Local stack at `http://localhost:8080` (or pass `-BaseUrl`)
 - Playwright Chromium: `npx playwright install chromium`
 - `ffmpeg` and `ffprobe` on PATH (WebM → H.264 MP4 uses shared recording profile from `scripts/lib/recording-quality.mjs`)
-- `OP_SERVICE_ACCOUNT_TOKEN` (User scope) for preview Supabase screenshot uploads
+- `OP_SERVICE_ACCOUNT_TOKEN` (User scope) for preview Supabase screenshot uploads — `Invoke-PrEvidence.ps1` and `Publish-DocsMedia.ps1` call `Set-PrEvidenceUploadEnvironment`, which materializes `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from 1Password for the session (see `scripts/README-upload-screenshot.md` for manual setup)
 - **`GH_SESSION_TOKEN` (User scope)** for GitHub inline video upload — a GitHub `user_session` cookie, **not** a PAT. One-time setup:
   ```powershell
   gh extension install drogers0/gh-image

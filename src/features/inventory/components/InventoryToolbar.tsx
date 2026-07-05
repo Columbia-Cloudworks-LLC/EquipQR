@@ -118,7 +118,7 @@ const InventoryToolbar: React.FC<InventoryToolbarProps> = ({
               <button
                 onClick={() => onFilterChange({ location: undefined })}
                 className="ml-0.5 hover:text-foreground"
-                aria-label="Clear location filter"
+                aria-label="Clear location name filter"
               >
                 <X className="h-3 w-3" />
               </button>

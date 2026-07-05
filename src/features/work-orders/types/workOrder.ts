@@ -115,7 +115,7 @@ export interface WorkOrder extends WorkOrderRow {
   createdByName?: string;
   // Assignment object for component compatibility
   assignedTo?: { id: string; name: string } | null;
-  // Resolved location from hierarchy (team override > manual assignment > last scan)
+  // Resolved location from hierarchy (scan > manual assignment > legacy > team fallback)
   effectiveLocation?: EffectiveLocation | null;
   // Team details from equipment join
   team?: {

@@ -1,6 +1,6 @@
 // fallow-ignore-file code-duplication
 // Duplication rationale: Large details page with repeated section chrome
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useWorkOrderDetailsData } from '@/features/work-orders/components/hooks/useWorkOrderDetailsData';
@@ -22,6 +22,12 @@ import { useWorkOrderDetailsPMInitialization } from '@/features/work-orders/hook
 import { useWorkOrderDetailsMobileWorkflow } from '@/features/work-orders/hooks/useWorkOrderDetailsMobileWorkflow';
 import { useWorkOrderDetailsNotesComposer } from '@/features/work-orders/hooks/useWorkOrderDetailsNotesComposer';
 import { useWorkOrderInlineFieldSave } from '@/features/work-orders/hooks/useWorkOrderInlineFieldSave';
+import { useSaveEquipmentAssignedLocation } from '@/features/equipment/hooks/useSaveEquipmentAssignedLocation';
+import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
+import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
+import type { EquipmentLocationEditProps } from '@/components/location/equipmentLocationEditProps';
+import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useOfflineQueue } from '@/contexts/OfflineQueueContext';
@@ -53,8 +59,10 @@ const WorkOrderDetails = () => {
   const pmSectionRef = useRef<HTMLDivElement>(null);
 
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>('');
+  const [isEditingWorkOrderEquipmentLocation, setIsEditingWorkOrderEquipmentLocation] = useState(false);
 
   const { user } = useAuth();
+  const permissions = useUnifiedPermissions();
 
   const {
     workOrder,
@@ -102,7 +110,7 @@ const WorkOrderDetails = () => {
     [hasWorkOrder, assigneeName]
   );
 
-  const { pmInitializing } = useWorkOrderDetailsPMInitialization({
+  useWorkOrderDetailsPMInitialization({
     workOrderId: workOrder?.id,
     workOrderEquipmentId: workOrder?.equipment_id,
     hasPm: workOrder?.has_pm,
@@ -119,6 +127,49 @@ const WorkOrderDetails = () => {
   });
 
   const { data: linkedEquipment = [] } = useWorkOrderEquipment(workOrderId || '');
+
+  const canEditInlineFields = canEdit && !isWorkOrderLocked;
+  const canEditAssignment = permissionLevels.canAssign && !isWorkOrderLocked;
+  const canEditEquipmentLocation =
+    canEditInlineFields &&
+    equipment != null &&
+    permissions.equipment.getPermissions(equipment.team_id || undefined).canEdit;
+
+  const { saveAssignedLocation, isSavingLocation: isSavingWorkOrderEquipmentLocation } =
+    useSaveEquipmentAssignedLocation(currentOrganization?.id, equipment?.id);
+  const { isLoaded: isPlacesLoadedForWorkOrderLocation } = useGoogleMapsLoader({
+    enabled: isEditingWorkOrderEquipmentLocation,
+  });
+
+  const equipmentLocationEdit = useMemo((): EquipmentLocationEditProps | undefined => {
+    if (!canEditEquipmentLocation) {
+      return undefined;
+    }
+
+    return {
+      canEditLocation: true,
+      isEditingAddress: isEditingWorkOrderEquipmentLocation,
+      isSavingAddress: isSavingWorkOrderEquipmentLocation,
+      isPlacesLoaded: isPlacesLoadedForWorkOrderLocation,
+      onStartAddressEdit: () => setIsEditingWorkOrderEquipmentLocation(true),
+      onCancelAddressEdit: () => setIsEditingWorkOrderEquipmentLocation(false),
+      onSaveAddress: async (data) => {
+        try {
+          await saveAssignedLocation(data);
+          setIsEditingWorkOrderEquipmentLocation(false);
+        } catch (error) {
+          logger.error('Error updating equipment location from work order', error);
+          toast.error('Failed to update equipment location');
+        }
+      },
+    };
+  }, [
+    canEditEquipmentLocation,
+    isEditingWorkOrderEquipmentLocation,
+    isPlacesLoadedForWorkOrderLocation,
+    isSavingWorkOrderEquipmentLocation,
+    saveAssignedLocation,
+  ]);
 
   const {
     showMobileSidebar,
@@ -245,8 +296,6 @@ const WorkOrderDetails = () => {
     footerRoleEligible,
   });
   const hideInlineNoteAddButton = shouldHideInlineNoteAddButton(showMobileActionFooter, workOrder.status);
-  const canEditInlineFields = canEdit && !isWorkOrderLocked;
-  const canEditAssignment = permissionLevels.canAssign && !isWorkOrderLocked;
 
   const canCompletePmGate = !workOrder.has_pm || pmData?.status === 'completed';
   const pmChecklist = getPMChecklistStats(pmData?.checklist_data);
@@ -344,6 +393,7 @@ const WorkOrderDetails = () => {
               canEditInlineFields={canEditInlineFields}
               canEditAssignment={canEditAssignment}
               onSaveDescription={handleSaveDescription}
+              equipmentLocationEdit={equipmentLocationEdit}
             />
           ) : (
             <WorkOrderDetailsDesktopContent
@@ -371,6 +421,7 @@ const WorkOrderDetails = () => {
               onPMUpdate={handlePMUpdate}
               canEditInlineFields={canEditInlineFields}
               onSaveDescription={handleSaveDescription}
+              equipmentLocationEdit={equipmentLocationEdit}
             />
           )}
         </div>

@@ -1,3 +1,5 @@
+import type { FleetMapSource } from '@/utils/effectiveLocation';
+
 export interface EquipmentLocation {
   id: string;
   name: string;
@@ -6,7 +8,7 @@ export interface EquipmentLocation {
   serial_number: string;
   lat: number;
   lng: number;
-  source: 'equipment' | 'geocoded' | 'scan' | 'team';
+  source: FleetMapSource;
   formatted_address?: string;
   working_hours?: number;
   last_maintenance?: string;

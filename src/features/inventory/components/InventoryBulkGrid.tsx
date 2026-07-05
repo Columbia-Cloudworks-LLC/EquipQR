@@ -54,7 +54,7 @@ const FIELD_LABELS: Partial<Record<BulkEditableField, string>> = {
   name: 'Name',
   sku: 'SKU',
   external_id: 'External ID',
-  location: 'Location',
+  location: 'Location Name',
   quantity_on_hand: 'Qty on Hand',
   low_stock_threshold: 'Low Stock',
   default_unit_cost: 'Unit Cost',
@@ -270,7 +270,7 @@ export const InventoryBulkGrid: React.FC<InventoryBulkGridProps> = ({
       {
         id: 'location',
         accessorKey: 'location',
-        header: ({ column }) => <BulkGridSortableHeader column={column} title="Location" fullWidth />,
+        header: ({ column }) => <BulkGridSortableHeader column={column} title="Location Name" fullWidth />,
         enableSorting: true,
       },
       {

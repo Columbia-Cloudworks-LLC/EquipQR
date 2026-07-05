@@ -30,6 +30,8 @@ describe('inventoryExportUtils — all-fields export', () => {
     const headers = getAllExportHeaders();
 
     expect(headers).toContain('ID');
+    expect(headers).toContain('Location Name');
+    expect(headers).not.toContain('Location');
     expect(headers).toContain('Created At');
     expect(headers).toContain('Updated At');
     expect(headers.indexOf('ID')).toBeLessThan(headers.indexOf('Name'));

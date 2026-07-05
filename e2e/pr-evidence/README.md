@@ -57,4 +57,18 @@ test.describe('my feature @pr-evidence', () => {
 
 Artifacts land under `tmp/pr-evidence/{flow}/` (gitignored). Screenshot URLs use the preview Supabase `landing-page-images` bucket under `pr-evidence/{branch}/`. Demo video URLs are GitHub `user-attachments` links for inline playback.
 
+## Documentation media (`docs-media`)
+
+When updating equipqr.info articles, also publish capture artifacts to the public **`docs-media`** bucket (stable paths for docs, not branch-scoped PR paths):
+
+```powershell
+.\scripts\docs-media\Publish-DocsMedia.ps1 `
+  -ManifestPath tmp\pr-evidence\location-maps-desktop\manifest.json `
+  -Collection location-maps `
+  -Variant desktop `
+  -MarkdownOut tmp\docs-media\location-maps\desktop.md
+```
+
+See `docs/public/support/README.md` and `scripts/docs-media/Publish-DocsMedia.ps1`.
+
 See `scripts/pr-evidence/README.md` for full operator docs.

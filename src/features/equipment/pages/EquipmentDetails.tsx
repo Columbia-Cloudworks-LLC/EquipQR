@@ -9,8 +9,12 @@ import type { EquipmentQRVariant } from '@/features/equipment/components/QRCodeD
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
+import { useSaveEquipmentAssignedLocation } from '@/features/equipment/hooks/useSaveEquipmentAssignedLocation';
 import type { EquipmentTeamSummary } from '@/features/equipment/services/EquipmentService';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
+import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import EquipmentDetailsTab from '@/features/equipment/components/EquipmentDetailsTab';
@@ -18,6 +22,7 @@ import MobileEquipmentHeader from '@/features/equipment/components/MobileEquipme
 import MobileEquipmentActionBar from '@/features/equipment/components/MobileEquipmentActionBar';
 import ResponsiveEquipmentTabs from '@/features/equipment/components/ResponsiveEquipmentTabs';
 import { EquipmentDetailsDesktopSummary } from '@/features/equipment/components/EquipmentDetailsDesktopSummary';
+import { EquipmentLocationMapPanel } from '@/components/location/EquipmentLocationMapPanel';
 import { EquipmentDetailsModals } from '@/features/equipment/components/EquipmentDetailsModals';
 import { useEquipmentScanLogger } from '@/features/equipment/hooks/useEquipmentScanLogger';
 
@@ -73,6 +78,7 @@ const EquipmentDetails = () => {
   const [qrInitialVariant, setQrInitialVariant] = useState<EquipmentQRVariant>('equipment');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isWorkingHoursModalOpen, setIsWorkingHoursModalOpen] = useState(false);
+  const [isEditingSummaryLocation, setIsEditingSummaryLocation] = useState(false);
 
   const tabParam = searchParams.get('tab');
   useEffect(() => {
@@ -106,7 +112,15 @@ const EquipmentDetails = () => {
   });
 
   const assignedTeam = (equipment?.team ?? null) as EquipmentTeamSummary | null;
-  const { isLoaded: isMapsLoaded } = useGoogleMapsLoader({ enabled: true });
+  const permissions = useUnifiedPermissions();
+  const canEditLocation = equipment
+    ? permissions.equipment.getPermissions(equipment.team_id || undefined).canEdit
+    : false;
+  const { saveAssignedLocation, isSavingLocation: isSavingSummaryLocation } =
+    useSaveEquipmentAssignedLocation(currentOrganization?.id, equipmentId);
+  const { isLoaded: isPlacesLoadedForSummary } = useGoogleMapsLoader({
+    enabled: isEditingSummaryLocation,
+  });
   const isLoading = orgLoading || equipmentLoading;
   const isAdmin =
     currentOrganization?.userRole === 'owner' || currentOrganization?.userRole === 'admin';
@@ -187,11 +201,38 @@ const EquipmentDetails = () => {
     <Page maxWidth="7xl" padding="responsive">
       <div className="space-y-6">
         {isMobile ? (
-          <MobileEquipmentHeader
-            equipment={equipment}
-            onShowQRCode={() => handleOpenQrCode()}
-            onShowWorkingHours={() => setIsWorkingHoursModalOpen(true)}
-          />
+          <>
+            <MobileEquipmentHeader
+              equipment={equipment}
+              onShowQRCode={() => handleOpenQrCode()}
+              onShowWorkingHours={() => setIsWorkingHoursModalOpen(true)}
+            />
+            <Card className="shadow-elevation-2">
+              <EquipmentLocationMapPanel
+                layout="card"
+                equipment={equipment}
+                assignedTeam={assignedTeam}
+                organizationId={currentOrganization.id}
+                scanLocationCollectionEnabled={currentOrganization.scanLocationCollectionEnabled}
+                canEditLocation={canEditLocation}
+                isEditingAddress={isEditingSummaryLocation}
+                isSavingAddress={isSavingSummaryLocation}
+                isPlacesLoaded={isPlacesLoadedForSummary}
+                onStartAddressEdit={() => setIsEditingSummaryLocation(true)}
+                onCancelAddressEdit={() => setIsEditingSummaryLocation(false)}
+                onSaveAddress={async (data) => {
+                  try {
+                    await saveAssignedLocation(data);
+                    setIsEditingSummaryLocation(false);
+                  } catch (error) {
+                    logger.error('Error updating equipment location from map card', error);
+                    toast.error('Failed to update equipment location');
+                  }
+                }}
+                mapHeight="180px"
+              />
+            </Card>
+          </>
         ) : (
           <>
             <PageHeader
@@ -214,7 +255,23 @@ const EquipmentDetails = () => {
             <EquipmentDetailsDesktopSummary
               equipment={equipment}
               assignedTeam={assignedTeam}
-              isMapsLoaded={isMapsLoaded}
+              organizationId={currentOrganization.id}
+              scanLocationCollectionEnabled={currentOrganization.scanLocationCollectionEnabled}
+              canEditLocation={canEditLocation}
+              isEditingLocation={isEditingSummaryLocation}
+              isSavingLocation={isSavingSummaryLocation}
+              isPlacesLoaded={isPlacesLoadedForSummary}
+              onStartLocationEdit={() => setIsEditingSummaryLocation(true)}
+              onCancelLocationEdit={() => setIsEditingSummaryLocation(false)}
+              onSaveLocation={async (data) => {
+                try {
+                  await saveAssignedLocation(data);
+                  setIsEditingSummaryLocation(false);
+                } catch (error) {
+                  logger.error('Error updating equipment location from map card', error);
+                  toast.error('Failed to update equipment location');
+                }
+              }}
             />
           </>
         )}
@@ -321,6 +378,7 @@ const EquipmentDetails = () => {
                 <EquipmentScanHistoryTab
                   equipmentId={equipment.id}
                   organizationId={currentOrganization.id}
+                  scanLocationCollectionEnabled={currentOrganization.scanLocationCollectionEnabled}
                 />
               </Suspense>
             )}

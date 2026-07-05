@@ -13,7 +13,7 @@ const ALL_EXPORT_COLUMNS: { key: InventoryTableColumnKey | 'id'; title: string }
   { key: 'external_id', title: 'External ID' },
   { key: 'quantity_on_hand', title: 'Quantity' },
   { key: 'low_stock_threshold', title: 'Low Stock Threshold' },
-  { key: 'location', title: 'Location' },
+  { key: 'location', title: 'Location Name' },
   { key: 'default_unit_cost', title: 'Unit Cost' },
   { key: 'status', title: 'Status' },
   { key: 'description', title: 'Description' },

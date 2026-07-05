@@ -4,7 +4,6 @@ import { Settings } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 import InlineEditCustomAttributes from "./InlineEditCustomAttributes";
-import { useGoogleMapsLoader } from "@/hooks/useGoogleMapsLoader";
 import { useUpdateEquipment } from "@/features/equipment/hooks/useEquipment";
 import { useUnifiedPermissions } from "@/hooks/useUnifiedPermissions";
 import type { EquipmentTeamSummary } from "@/features/equipment/services/EquipmentService";
@@ -13,7 +12,6 @@ import { useTeams } from "@/features/teams/hooks/useTeamManagement";
 import { usePMTemplates } from "@/features/pm-templates/hooks/usePMTemplates";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEquipmentPMStatus, getPMComplianceLevel } from "@/features/equipment/hooks/useEquipmentPMStatus";
-import { toast } from "sonner";
 import { logger } from '@/utils/logger';
 import EquipmentPMInfo from "./EquipmentPMInfo";
 import { EquipmentMobilePMStatusBanner } from "./EquipmentMobilePMStatusBanner";
@@ -47,10 +45,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
   onOpenQrCodeForAssignment,
 }) => {
   const [showWorkingHoursModal, setShowWorkingHoursModal] = useState(false);
-  const [isEditingLocation, setIsEditingLocation] = useState(false);
-  const [isSavingLocation, setIsSavingLocation] = useState(false);
   const [showAllBasicInfo, setShowAllBasicInfo] = useState(false);
-  const { isLoaded: isMapsLoaded } = useGoogleMapsLoader({ enabled: isEditingLocation });
   const permissions = useUnifiedPermissions();
   const { currentOrganization } = useOrganization();
   const canAssignTeams = permissions.organization?.canManageMembers ?? false;
@@ -87,7 +82,6 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
     handleCustomAttributesUpdate,
     handleTeamAssignment,
     handlePMTemplateAssignment,
-    saveAssignedLocation,
     teamOptions,
     pmTemplateOptions,
     getCurrentPMTemplateDisplay,
@@ -129,30 +123,12 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
 
       <EquipmentBasicInfoCard
         equipment={equipment}
-        teams={teams}
         canEdit={canEdit}
         canAssignTeams={canAssignTeams}
         isMobile={isMobile}
         showAllBasicInfo={showAllBasicInfo}
         onShowAllBasicInfoChange={setShowAllBasicInfo}
         onShowWorkingHoursModal={() => setShowWorkingHoursModal(true)}
-        isEditingLocation={isEditingLocation}
-        isSavingLocation={isSavingLocation}
-        isMapsLoaded={isMapsLoaded}
-        onStartLocationEdit={() => setIsEditingLocation(true)}
-        onCancelLocationEdit={() => setIsEditingLocation(false)}
-        onSaveLocation={async (data) => {
-          setIsSavingLocation(true);
-          try {
-            await saveAssignedLocation(data);
-            setIsEditingLocation(false);
-          } catch (error) {
-            logger.error('Error updating location', error);
-            toast.error('Failed to update location');
-          } finally {
-            setIsSavingLocation(false);
-          }
-        }}
         nameFieldId={nameFieldId}
         statusFieldId={statusFieldId}
         manufacturerFieldId={manufacturerFieldId}

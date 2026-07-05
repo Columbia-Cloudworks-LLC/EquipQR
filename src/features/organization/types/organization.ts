@@ -103,6 +103,13 @@ export interface OrganizationUpdatePayload {
   logo?: string | null;
   background_color?: string | null;
   scan_location_collection_enabled?: boolean;
+  inventory_default_location_name?: string | null;
+  inventory_default_location_address?: string | null;
+  inventory_default_location_city?: string | null;
+  inventory_default_location_state?: string | null;
+  inventory_default_location_country?: string | null;
+  inventory_default_location_lat?: number | null;
+  inventory_default_location_lng?: number | null;
 }
 
 // ============================================

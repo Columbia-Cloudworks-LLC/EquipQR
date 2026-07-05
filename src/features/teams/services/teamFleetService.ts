@@ -2,6 +2,7 @@
 // Duplication rationale: Fleet location resolution parallels generic effectiveLocation with team context
 import { supabase } from '@/integrations/supabase/client';
 import { parseLatLng } from '@/utils/geoUtils';
+import { parseLastKnownLocation, resolveEquipmentCoordinates, type FleetMapSource } from '@/utils/effectiveLocation';
 import { logger } from '@/utils/logger';
 import type { EquipmentLocation } from '@/features/fleet-map/types/locations';
 
@@ -97,7 +98,7 @@ export const getTeamEquipmentWithLocations = async (
         image_url,
         updated_at,
         team_id,
-        use_team_location,
+        last_known_location,
         assigned_location_lat,
         assigned_location_lng,
         assigned_location_street,
@@ -144,27 +145,14 @@ export const getTeamEquipmentWithLocations = async (
     // that returns at most one latest scan row per candidate equipment id.
     const teamEquipmentMap = new Map<string, TeamEquipmentData>();
 
-    // Helper to format address components.
-    const formatAddress = (parts: {
-      street?: string | null;
-      city?: string | null;
-      state?: string | null;
-      country?: string | null;
-    }): string | undefined => {
-      const components = [parts.street, parts.city, parts.state, parts.country].filter(Boolean);
-      return components.length > 0 ? components.join(', ') : undefined;
-    };
-
-    // First pass: resolve coords from team override / manual assignment /
-    // legacy text-location for every row, and collect ids that still need a
-    // scan lookup. Defer all rendering to the second pass so we can attach
-    // scan-source coords once the batched query returns.
+    // First pass: resolve coords from scan / assigned address / legacy text /
+    // team fallback for every row, and collect ids that still need a scan lookup.
     type ResolvedRow = {
       item: (typeof equipment)[number];
       teamId: string;
       teamName: string;
       coords: { lat: number; lng: number } | null;
-      source: 'equipment' | 'geocoded' | 'scan' | 'team';
+      source: FleetMapSource;
       formatted_address?: string;
       location_updated_at?: string;
     };
@@ -187,54 +175,40 @@ export const getTeamEquipmentWithLocations = async (
       }
       teamEquipmentMap.get(teamId)!.equipmentCount++;
 
-      let coords: { lat: number; lng: number } | null = null;
-      let source: 'equipment' | 'geocoded' | 'scan' | 'team' = 'equipment';
-      let formatted_address: string | undefined;
-      let location_updated_at: string | undefined;
-
       const team = item.teams;
+      const lastScan = parseLastKnownLocation(item.last_known_location);
+      const resolvedCoords = resolveEquipmentCoordinates({
+        team: team
+          ? {
+              override_equipment_location: team.override_equipment_location,
+              location_lat: team.location_lat,
+              location_lng: team.location_lng,
+              location_address: team.location_address,
+              location_city: team.location_city,
+              location_state: team.location_state,
+              location_country: team.location_country,
+            }
+          : undefined,
+        equipment: {
+          assigned_location_lat: item.assigned_location_lat,
+          assigned_location_lng: item.assigned_location_lng,
+          assigned_location_street: item.assigned_location_street,
+          assigned_location_city: item.assigned_location_city,
+          assigned_location_state: item.assigned_location_state,
+          assigned_location_country: item.assigned_location_country,
+          locationText: item.location,
+          updatedAt: item.updated_at,
+        },
+        lastScan,
+        parseLegacy: parseLatLng,
+      });
 
-      // 1. Team Override: If both equipment opt-in AND team override are enabled, and team has coordinates
-      if (
-        item.use_team_location &&
-        team?.override_equipment_location &&
-        team.location_lat != null &&
-        team.location_lng != null
-      ) {
-        coords = { lat: team.location_lat, lng: team.location_lng };
-        source = 'team';
-        formatted_address = formatAddress({
-          street: team.location_address,
-          city: team.location_city,
-          state: team.location_state,
-          country: team.location_country,
-        });
-        location_updated_at = item.updated_at;
-      }
+      const coords = resolvedCoords?.coords ?? null;
+      const source: FleetMapSource = resolvedCoords?.source ?? 'manual';
+      const formatted_address = resolvedCoords?.formattedAddress;
+      const location_updated_at = resolvedCoords?.updatedAt;
 
-      // 2. Manual Assignment: If equipment has assigned location coordinates
-      if (!coords && item.assigned_location_lat != null && item.assigned_location_lng != null) {
-        coords = { lat: item.assigned_location_lat, lng: item.assigned_location_lng };
-        source = 'equipment';
-        formatted_address = formatAddress({
-          street: item.assigned_location_street,
-          city: item.assigned_location_city,
-          state: item.assigned_location_state,
-          country: item.assigned_location_country,
-        });
-        location_updated_at = item.updated_at;
-      }
-
-      // 3. Legacy location field: Try to parse equipment.location as "lat, lng"
-      if (!coords && item.location) {
-        coords = parseLatLng(item.location);
-        if (coords) {
-          source = 'equipment';
-          location_updated_at = item.updated_at;
-        }
-      }
-
-      // 4. Last Scan fallback — defer to batched query below.
+      // Last Scan fallback — defer to batched query below.
       if (!coords) {
         scanCandidates.push(item.id);
       }

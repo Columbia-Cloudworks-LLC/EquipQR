@@ -257,11 +257,7 @@ const TeamDetails = () => {
       </Card>
 
       {/* Team Location */}
-      <TeamLocationCard
-        team={team}
-        canEdit={canEdit}
-        onEditClick={() => setShowMetadataEditor(true)}
-      />
+      <TeamLocationCard team={team} canEdit={canEdit} />
 
       <TeamPMScheduleCard organizationId={currentOrganization.id} teamId={team.id} />
 

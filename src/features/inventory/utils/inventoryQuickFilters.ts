@@ -9,7 +9,7 @@ export const QUICK_FILTER_LABELS: Record<InventoryQuickFilterKey, string> = {
   'out-of-stock': 'Out of stock',
   'negative-stock': 'Negative stock',
   'has-alternates': 'Has alternates',
-  'missing-location': 'Missing location',
+  'missing-location': 'Missing location name',
   'missing-unit-cost': 'Missing unit cost',
   'missing-sku': 'Missing SKU',
   'missing-data': 'Missing data',

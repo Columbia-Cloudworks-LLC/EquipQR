@@ -11,6 +11,7 @@ import {
   WorkOrderPMChecklistLoadingCard,
 } from '@/features/work-orders/components/WorkOrderDetailsSharedCards';
 import type { EquipmentWithTeam } from '@/features/equipment/services/EquipmentService';
+import type { EquipmentLocationEditProps } from '@/components/location/equipmentLocationEditProps';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import type { WorkOrder, WorkOrderEmbeddedEquipment } from '@/features/work-orders/types/workOrder';
 
@@ -25,7 +26,7 @@ export interface WorkOrderDetailsDesktopContentProps {
   workOrder: WorkOrder;
   equipment?: WorkOrderDetailsEquipment;
   pmData?: PreventativeMaintenance | null;
-  currentOrganization: { id: string; name: string };
+  currentOrganization: { id: string; name: string; scanLocationCollectionEnabled?: boolean };
   permissionLevels: {
     isManager: boolean;
     isTechnician: boolean;
@@ -49,6 +50,7 @@ export interface WorkOrderDetailsDesktopContentProps {
   onPMUpdate: () => void;
   canEditInlineFields?: boolean;
   onSaveDescription?: (description: string) => Promise<void>;
+  equipmentLocationEdit?: EquipmentLocationEditProps;
 }
 
 export function WorkOrderDetailsDesktopContent({
@@ -76,16 +78,19 @@ export function WorkOrderDetailsDesktopContent({
   onPMUpdate,
   canEditInlineFields = false,
   onSaveDescription,
+  equipmentLocationEdit,
 }: WorkOrderDetailsDesktopContentProps) {
   return (
     <>
       <div {...stagger(0)}>
         <WorkOrderDetailsInfo
           workOrder={workOrder}
-          equipment={equipment}
-          effectiveLocation={workOrder.effectiveLocation}
+          equipment={equipment ?? null}
+          organizationId={currentOrganization.id}
+          scanLocationCollectionEnabled={currentOrganization.scanLocationCollectionEnabled}
           canEditDescription={canEditInlineFields}
           onSaveDescription={onSaveDescription}
+          equipmentLocationEdit={equipmentLocationEdit}
         />
       </div>
 

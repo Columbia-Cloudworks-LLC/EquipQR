@@ -1,45 +1,22 @@
 /**
  * TeamLocationCard -- displays the team's location on a mini Google Map
- * with a clickable address and edit controls.
- *
- * Three visual states:
- *  1. Has lat/lng  → map + address + optional override badge
- *  2. Has address text but no coords → address link + placeholder
- *  3. No location  → compact empty state with "Set Location" CTA
+ * with a clickable address and focused location editor.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { GoogleMap, MarkerF } from '@react-google-maps/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { MapPin, Edit, Navigation } from 'lucide-react';
 import ClickableAddress from '@/components/ui/ClickableAddress';
+import { TeamLocationEditorDialog } from '@/features/teams/components/TeamLocationEditorDialog';
+import { buildTeamAddress } from '@/features/teams/utils/teamLocationUtils';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import type { TeamWithMembers } from '@/features/teams/services/teamService';
 
 interface TeamLocationCardProps {
   team: TeamWithMembers;
   canEdit: boolean;
-  onEditClick: () => void;
-}
-
-/** Build a formatted address from team location components. */
-function buildAddress(team: TeamWithMembers): string {
-  return [
-    team.location_address,
-    team.location_city,
-    team.location_state,
-    team.location_country,
-  ]
-    .filter(Boolean)
-    .join(', ');
 }
 
 const MAP_CONTAINER_STYLE = {
@@ -56,16 +33,12 @@ const MAP_OPTIONS: google.maps.MapOptions = {
   fullscreenControl: false,
 };
 
-const TeamLocationCard: React.FC<TeamLocationCardProps> = ({
-  team,
-  canEdit,
-  onEditClick,
-}) => {
+const TeamLocationCard: React.FC<TeamLocationCardProps> = ({ team, canEdit }) => {
   const { isLoaded } = useGoogleMapsLoader();
+  const [editorOpen, setEditorOpen] = useState(false);
 
-  const hasCoords =
-    team.location_lat != null && team.location_lng != null;
-  const addressText = buildAddress(team);
+  const hasCoords = team.location_lat != null && team.location_lng != null;
+  const addressText = buildTeamAddress(team);
   const hasAddress = addressText.length > 0;
 
   const center = useMemo(
@@ -76,125 +49,110 @@ const TeamLocationCard: React.FC<TeamLocationCardProps> = ({
     [hasCoords, team.location_lat, team.location_lng],
   );
 
-  // ── State 3: No location at all ──────────────────────────────
+  const openEditor = () => setEditorOpen(true);
+
   if (!hasCoords && !hasAddress) {
     return (
-      <Card className="shadow-elevation-2">
-        <CardContent className="py-8 flex flex-col items-center gap-3 text-center">
-          <div className="p-3 rounded-full bg-muted">
-            <MapPin className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <div>
-            <p className="text-sm font-medium">No location set</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Add a location to see this team on the Fleet Map.
-            </p>
-          </div>
-          {canEdit && (
-            <Button variant="outline" size="sm" onClick={onEditClick} className="mt-1 gap-1.5">
-              <Navigation className="h-3.5 w-3.5" />
-              Set Location
-            </Button>
-          )}
-        </CardContent>
-      </Card>
+      <>
+        <Card className="shadow-elevation-2">
+          <CardContent className="py-8 flex flex-col items-center gap-3 text-center">
+            <div className="p-3 rounded-full bg-muted">
+              <MapPin className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">No location set</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Add a location to see this team on the Fleet Map.
+              </p>
+            </div>
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={openEditor} className="mt-1 gap-1.5">
+                <Navigation className="h-3.5 w-3.5" />
+                Set Location
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        {canEdit ? (
+          <TeamLocationEditorDialog open={editorOpen} onOpenChange={setEditorOpen} team={team} />
+        ) : null}
+      </>
     );
   }
 
-  // ── States 1 & 2: has some location data ─────────────────────
   return (
-    <Card className="shadow-elevation-2">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <MapPin className="h-5 w-5" />
-            Team Location
-          </CardTitle>
-          {canEdit && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onEditClick}
-              className="gap-1.5 h-8 text-muted-foreground hover:text-foreground"
-              aria-label="Edit team location"
-            >
-              <Edit className="h-3.5 w-3.5" />
-              Edit
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-3 pt-0">
-        {/* Map or placeholder */}
-        {hasCoords && isLoaded && center ? (
-          <div className="rounded-lg overflow-hidden border">
-            <GoogleMap
-              mapContainerStyle={MAP_CONTAINER_STYLE}
-              center={center}
-              zoom={15}
-              options={MAP_OPTIONS}
-            >
-              <MarkerF position={center} />
-            </GoogleMap>
+    <>
+      <Card className="shadow-elevation-2">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <MapPin className="h-5 w-5" />
+              Team Location
+            </CardTitle>
+            {canEdit && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={openEditor}
+                className="gap-1.5 h-8 text-muted-foreground hover:text-foreground"
+                aria-label="Edit team location"
+              >
+                <Edit className="h-3.5 w-3.5" />
+                Edit
+              </Button>
+            )}
           </div>
-        ) : hasCoords && !isLoaded ? (
-          /* Map is loading */
-          <div className="h-[180px] rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
-            <div className="text-center space-y-2">
-              <MapPin className="h-8 w-8 text-muted-foreground/50 mx-auto animate-pulse" />
-              <p className="text-xs text-muted-foreground">Loading map...</p>
+        </CardHeader>
+
+        <CardContent className="space-y-3 pt-0">
+          {hasCoords && isLoaded && center ? (
+            <div className="rounded-lg overflow-hidden border">
+              <GoogleMap
+                mapContainerStyle={MAP_CONTAINER_STYLE}
+                center={center}
+                zoom={15}
+                options={MAP_OPTIONS}
+              >
+                <MarkerF position={center} />
+              </GoogleMap>
             </div>
-          </div>
-        ) : (
-          /* Has address but no coords */
-          <div className="h-[120px] rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
-            <div className="text-center space-y-2 px-4">
-              <MapPin className="h-8 w-8 text-muted-foreground/50 mx-auto" />
-              <p className="text-xs text-muted-foreground">
-                Coordinates unavailable. Select a new address to enable the map.
-              </p>
+          ) : hasCoords && !isLoaded ? (
+            <div className="h-[180px] rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
+              <div className="text-center space-y-2">
+                <MapPin className="h-8 w-8 text-muted-foreground/50 mx-auto animate-pulse" />
+                <p className="text-xs text-muted-foreground">Loading map...</p>
+              </div>
             </div>
-          </div>
-        )}
-
-        {/* Address link */}
-        {hasAddress && (
-          <div className="flex items-start gap-2">
-            <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <ClickableAddress
-              address={addressText}
-              lat={hasCoords ? (team.location_lat as number) : undefined}
-              lng={hasCoords ? (team.location_lng as number) : undefined}
-              className="text-sm"
-            />
-          </div>
-        )}
-
-        {/* Override badge */}
-        {team.override_equipment_location && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge
-                  variant="outline"
-                  className="bg-info/10 text-info border-info/30 text-xs font-normal cursor-help"
-                >
-                  <Navigation className="h-3 w-3 mr-1" />
-                  Team location overrides equipment
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-[260px]">
-                <p>
-                  All equipment assigned to this team uses this address as
-                  their effective location on the Fleet Map.
+          ) : (
+            <div className="h-[120px] rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
+              <div className="text-center space-y-2 px-4">
+                <MapPin className="h-8 w-8 text-muted-foreground/50 mx-auto" />
+                <p className="text-xs text-muted-foreground">
+                  Coordinates unavailable. Set a new address or use your current location.
                 </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-      </CardContent>
-    </Card>
+              </div>
+            </div>
+          )}
+
+          {hasAddress && (
+            <div className="flex items-start gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+              <ClickableAddress
+                address={addressText}
+                lat={hasCoords ? (team.location_lat as number) : undefined}
+                lng={hasCoords ? (team.location_lng as number) : undefined}
+                className="text-sm"
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {canEdit ? (
+        <TeamLocationEditorDialog open={editorOpen} onOpenChange={setEditorOpen} team={team} />
+      ) : null}
+    </>
   );
 };
 

@@ -96,7 +96,7 @@ const MobileInventoryCard: React.FC<MobileInventoryCardProps> = ({
                 <span className="text-muted-foreground/40" aria-hidden>
                   ·
                 </span>
-                <span className="inline-flex min-w-0 items-center gap-1">
+                <span className="inline-flex min-w-0 items-center gap-1" title={`Location name: ${item.location}`}>
                   <MapPin className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
                   <span className="truncate">{item.location}</span>
                 </span>

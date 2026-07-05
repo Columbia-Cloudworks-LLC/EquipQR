@@ -194,11 +194,6 @@ describe('EquipmentDetailsTab', () => {
       expect(screen.getByText('active')).toBeInTheDocument();
     });
 
-    it('shows equipment location', () => {
-      render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
-      expect(screen.getByText('Warehouse A')).toBeInTheDocument();
-    });
-
     it('renders inline edit fields with save buttons', () => {
       render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
 

@@ -12,10 +12,12 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { SessionOrganization } from '@/contexts/SessionContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSession } from '@/hooks/useSession';
 import { updateOrganization, uploadOrganizationLogo, deleteOrganizationLogo } from '@/features/organization/services/organizationService';
 import type { OrganizationUpdatePayload } from '@/features/organization/types/organization';
 import { organizationFormSchema, OrganizationFormData } from './organizationSettingsSchema';
 import { DangerZoneSection } from './DangerZoneSection';
+import { OrganizationInventoryDefaultLocationSection } from './OrganizationInventoryDefaultLocationSection';
 import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
 import SingleImageUpload from '@/components/common/SingleImageUpload';
 
@@ -36,6 +38,7 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
   const [isTogglingPrivacy, setIsTogglingPrivacy] = useState(false);
   const queryClient = useQueryClient();
   const { refetch } = useOrganization();
+  const { refreshSession } = useSession();
 
   const { data: members = [] } = useOrganizationMembersQuery(organization?.id || '');
 
@@ -96,8 +99,10 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
   const invalidateOrgCache = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['organizations'] });
     await queryClient.invalidateQueries({ queryKey: ['organization', organization.id] });
+    await queryClient.invalidateQueries({ queryKey: ['simple-organizations'] });
+    await refreshSession(true);
     await refetch();
-  }, [queryClient, organization.id, refetch]);
+  }, [queryClient, organization.id, refetch, refreshSession]);
 
   const handlePrivacyToggle = useCallback(async (checked: boolean) => {
     const previous = privacyEnabled;
@@ -289,6 +294,11 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
           </div>
         </div>
       </div>
+
+      <OrganizationInventoryDefaultLocationSection
+        organization={organization}
+        onSaved={invalidateOrgCache}
+      />
 
       {/* Danger Zone */}
       <div className="pt-8">

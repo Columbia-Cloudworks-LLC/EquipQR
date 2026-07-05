@@ -10,6 +10,13 @@ export interface SessionOrganization {
   logo?: string;
   backgroundColor?: string;
   scanLocationCollectionEnabled: boolean;
+  inventoryDefaultLocationName?: string;
+  inventoryDefaultLocationAddress?: string;
+  inventoryDefaultLocationCity?: string;
+  inventoryDefaultLocationState?: string;
+  inventoryDefaultLocationCountry?: string;
+  inventoryDefaultLocationLat?: number;
+  inventoryDefaultLocationLng?: number;
   userRole: 'owner' | 'admin' | 'member';
   userStatus: 'active' | 'pending' | 'inactive';
 }

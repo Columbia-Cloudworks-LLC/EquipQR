@@ -23,13 +23,13 @@ export function InventoryLocationFilterSelect({
   uniqueLocations,
   triggerClassName,
   iconClassName = 'h-3.5 w-3.5 mr-1.5 text-muted-foreground shrink-0',
-  allLocationsLabel = 'All Locations',
+  allLocationsLabel = 'All location names',
 }: InventoryLocationFilterSelectProps) {
   return (
     <Select value={value} onValueChange={onValueChange}>
       <SelectTrigger className={triggerClassName}>
         <MapPin className={iconClassName} aria-hidden />
-        <SelectValue placeholder="All locations" />
+        <SelectValue placeholder="All location names" />
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="__all__">{allLocationsLabel}</SelectItem>

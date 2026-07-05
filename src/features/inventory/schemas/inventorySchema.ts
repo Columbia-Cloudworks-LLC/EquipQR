@@ -59,9 +59,27 @@ export const inventoryItemFormSchema = z.object({
     .min(1, 'Low stock threshold must be at least 1')
     .default(5),
   location: z.string()
-    .max(255, 'Location must be less than 255 characters')
+    .max(255, 'Location name must be less than 255 characters')
     .optional()
     .nullable(),
+  location_address: z.string()
+    .max(500, 'Storage address must be less than 500 characters')
+    .optional()
+    .nullable(),
+  location_city: z.string()
+    .max(255, 'City must be less than 255 characters')
+    .optional()
+    .nullable(),
+  location_state: z.string()
+    .max(255, 'State must be less than 255 characters')
+    .optional()
+    .nullable(),
+  location_country: z.string()
+    .max(255, 'Country must be less than 255 characters')
+    .optional()
+    .nullable(),
+  location_lat: z.number().optional().nullable(),
+  location_lng: z.number().optional().nullable(),
   default_unit_cost: z.number()
     .min(0, 'Unit cost cannot be negative')
     .max(999999.99, 'Unit cost seems too high')

@@ -398,6 +398,20 @@ describe('InventoryList — desktop table', () => {
     expect(screen.queryByRole('button', { name: /open filters/i })).not.toBeInTheDocument();
   });
 
+  it('shows Location Name column header and filter label on desktop', async () => {
+    const user = userEvent.setup();
+    render(<InventoryList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: /^location name/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /filter inventory/i }));
+    expect(screen.getAllByText('Location Name').length).toBeGreaterThanOrEqual(1);
+  });
+
   it('shows inventory health summary on desktop', async () => {
     render(<InventoryList />);
 

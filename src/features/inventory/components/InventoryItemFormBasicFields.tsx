@@ -9,8 +9,10 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { InventoryStorageLocationFields } from '@/features/inventory/components/InventoryStorageLocationFields';
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
+import type { InventoryStructuredLocationFields } from '@/features/inventory/utils/inventoryLocationUtils';
 
 type InventoryItemFormBasicFieldsProps = {
   form: UseFormReturn<InventoryItemFormData>;
@@ -21,6 +23,24 @@ export function InventoryItemFormBasicFields({
   form,
   editingItem,
 }: InventoryItemFormBasicFieldsProps) {
+  const structuredLocation = form.watch([
+    'location_address',
+    'location_city',
+    'location_state',
+    'location_country',
+    'location_lat',
+    'location_lng',
+  ]);
+
+  const structuredLocationValue: InventoryStructuredLocationFields = {
+    location_address: structuredLocation[0] ?? null,
+    location_city: structuredLocation[1] ?? null,
+    location_state: structuredLocation[2] ?? null,
+    location_country: structuredLocation[3] ?? null,
+    location_lat: structuredLocation[4] ?? null,
+    location_lng: structuredLocation[5] ?? null,
+  };
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -94,15 +114,34 @@ export function InventoryItemFormBasicFields({
           name="location"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Location</FormLabel>
+              <FormLabel>Location Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Shelf A, Bin 5" {...field} value={field.value || ''} />
+                <Input
+                  placeholder="e.g., Yard Cage, Truck 3, Shelf A"
+                  {...field}
+                  value={field.value || ''}
+                />
               </FormControl>
+              <FormDescription>
+                Use a storage nickname like Yard Cage, Truck 3, Shelf A, or Main Shop Bin 5.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
       </div>
+
+      <InventoryStorageLocationFields
+        structuredLocation={structuredLocationValue}
+        onStructuredLocationChange={(location) => {
+          form.setValue('location_address', location.location_address, { shouldDirty: true });
+          form.setValue('location_city', location.location_city, { shouldDirty: true });
+          form.setValue('location_state', location.location_state, { shouldDirty: true });
+          form.setValue('location_country', location.location_country, { shouldDirty: true });
+          form.setValue('location_lat', location.location_lat, { shouldDirty: true });
+          form.setValue('location_lng', location.location_lng, { shouldDirty: true });
+        }}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <FormField

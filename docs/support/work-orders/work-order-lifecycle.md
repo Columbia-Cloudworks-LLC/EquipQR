@@ -1,12 +1,12 @@
 ---
 title: "Work order lifecycle reference"
 description: "The complete status flow and who is allowed to move a work order between each state."
-lastReviewed: 2026-05-01
+lastReviewed: 2026-07-04
 personas: ["manager","admin","owner","technician"]
 ---
 
 **For:** Manager, Admin, Owner, Technician  
-**Last reviewed:** 2026-05-01
+**Last reviewed:** 2026-07-04
 Every work order moves through the same lifecycle. The detail page only shows valid next-status buttons, so the permission rules below are enforced in both the UI and the database.
 
 ## 1. Status flow
@@ -34,7 +34,16 @@ Every work order moves through the same lifecycle. The detail page only shows va
 
 Completed captures a close-out date automatically, which powers reporting and overdue calculations. Cancelled is a terminal state that leaves the work order in history without counting as finished work.
 
+## 4. Equipment location on work order detail
+
+When a work order links to equipment, the detail page embeds the same location source dropdown and mini map used on equipment records. Dispatchers can preview effective, team, equipment, and scan sources before sending a technician.
+
+![Work order location map](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/location-maps/desktop/09-work-order-location-map.png)
+
+On mobile, expand **Equipment Details** to reveal the map. See [Equipment location sources and maps](../equipment-qr/location-sources-and-maps).
+
 ## Related articles
 
 - [Assign a work order](./assign-work-order)
 - [Triage submitted work requests](./triage-submitted-requests)
+- [Equipment location sources and maps](../equipment-qr/location-sources-and-maps)

@@ -5,13 +5,17 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ChevronDown, ChevronUp, Clipboard, Clock, Wrench, Forklift, MapPin, Users } from 'lucide-react';
 import { getStatusDisplayInfo as getEquipmentStatusDisplayInfo } from '@/features/equipment/utils/equipmentHelpers';
 import { cn } from '@/lib/utils';
-import { GoogleMap, MarkerF } from '@react-google-maps/api';
 import { useEquipmentCurrentWorkingHours } from '@/features/equipment/hooks/useEquipmentWorkingHours';
-import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
-import ClickableAddress from '@/components/ui/ClickableAddress';
 import { humanizeAttributeKey, humanizeAttributeValue } from '@/features/work-orders/utils/workOrderHelpers';
 import type { EffectiveLocation } from '@/utils/effectiveLocation';
 import InlineEditField from '@/features/equipment/components/InlineEditField';
+import { EquipmentLocationMapPanel } from '@/components/location/EquipmentLocationMapPanel';
+import type { EquipmentLocationEditProps } from '@/components/location/equipmentLocationEditProps';
+import {
+  toWorkOrderEquipmentMapInput,
+  toWorkOrderEquipmentTeamSummary,
+  type WorkOrderLocationEquipment,
+} from '@/components/location/workOrderEquipmentLocationContext';
 
 type FieldContextItemProps = {
   icon: React.ReactNode;
@@ -66,18 +70,7 @@ interface WorkOrderDetailsMobileProps {
     pm_total?: number;
     equipment_working_hours_at_creation?: number;
   };
-  equipment?: {
-    id: string;
-    name: string;
-    manufacturer?: string;
-    model?: string;
-    serial_number?: string;
-    status: string;
-    location?: string;
-    team_id?: string | null;
-    custom_attributes?: Record<string, unknown> | null;
-    image_url?: string | null;
-  };
+  equipment?: WorkOrderLocationEquipment;
   team?: {
     id: string;
     name: string;
@@ -94,91 +87,44 @@ interface WorkOrderDetailsMobileProps {
       amount: number;
     }>;
   };
-  /** Resolved effective location for the equipment */
+  organizationId: string;
+  scanLocationCollectionEnabled?: boolean;
+  /** Resolved effective location for compact summary text */
   effectiveLocation?: EffectiveLocation | null;
   canEditDescription?: boolean;
   onSaveDescription?: (description: string) => Promise<void>;
+  equipmentLocationEdit?: EquipmentLocationEditProps;
 }
 
 interface LocationMapProps {
-  effectiveLocation?: EffectiveLocation | null;
-  equipmentLocation?: string | null;
+  equipment: WorkOrderLocationEquipment;
+  organizationId: string;
+  scanLocationCollectionEnabled?: boolean;
+  equipmentLocationEdit?: EquipmentLocationEditProps;
 }
 
-const LocationMap: React.FC<LocationMapProps> = ({ effectiveLocation, equipmentLocation }) => {
-  const { isLoaded: isMapsLoaded } = useGoogleMapsLoader();
-  const hasCoords = effectiveLocation?.lat != null && effectiveLocation?.lng != null;
+const LocationMap: React.FC<LocationMapProps> = ({
+  equipment,
+  organizationId,
+  scanLocationCollectionEnabled,
+  equipmentLocationEdit,
+}) => {
+  const equipmentMapInput = toWorkOrderEquipmentMapInput(equipment);
+  const assignedTeam = toWorkOrderEquipmentTeamSummary(equipment);
+
+  if (!equipmentMapInput) {
+    return null;
+  }
 
   return (
-    <div className="overflow-hidden rounded-lg border">
-      {(() => {
-        if (hasCoords && isMapsLoaded && effectiveLocation) {
-          const center = { lat: effectiveLocation.lat!, lng: effectiveLocation.lng! };
-          return (
-            <div className="flex h-40 flex-col">
-              <div className="min-h-0 flex-1">
-                <GoogleMap
-                  mapContainerStyle={{ width: '100%', height: '100%' }}
-                  center={center}
-                  zoom={14}
-                  options={{
-                    disableDefaultUI: true,
-                    zoomControl: false,
-                    mapTypeControl: false,
-                    streetViewControl: false,
-                    fullscreenControl: false,
-                  }}
-                >
-                  <MarkerF position={center} />
-                </GoogleMap>
-              </div>
-              {effectiveLocation.formattedAddress ? (
-                <div className="flex min-h-[44px] touch-manipulation items-center gap-1.5 bg-background px-2 py-1.5">
-                  <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <ClickableAddress
-                    address={effectiveLocation.formattedAddress}
-                    lat={effectiveLocation.lat!}
-                    lng={effectiveLocation.lng!}
-                    className="text-xs"
-                  />
-                </div>
-              ) : null}
-            </div>
-          );
-        }
-
-        if (hasCoords && !isMapsLoaded) {
-          return (
-            <div className="flex h-40 w-full items-center justify-center bg-muted/50">
-              <div className="text-center">
-                <MapPin className="mx-auto h-6 w-6 animate-pulse text-muted-foreground/50" />
-                <p className="mt-1 text-xs text-muted-foreground">Loading map...</p>
-              </div>
-            </div>
-          );
-        }
-
-        if (equipmentLocation) {
-          return (
-            <div className="flex h-40 w-full items-center justify-center bg-muted/50">
-              <div className="px-4 text-center">
-                <MapPin className="mx-auto h-6 w-6 text-muted-foreground/50" />
-                <p className="mt-1 text-xs text-muted-foreground">{equipmentLocation}</p>
-              </div>
-            </div>
-          );
-        }
-
-        return (
-          <div className="flex h-40 w-full items-center justify-center bg-muted/50">
-            <div className="text-center">
-              <MapPin className="mx-auto h-6 w-6 text-muted-foreground/50" />
-              <p className="mt-1 text-xs text-muted-foreground">No location set</p>
-            </div>
-          </div>
-        );
-      })()}
-    </div>
+    <EquipmentLocationMapPanel
+      equipment={equipmentMapInput}
+      assignedTeam={assignedTeam}
+      organizationId={organizationId}
+      scanLocationCollectionEnabled={scanLocationCollectionEnabled}
+      mapHeight="160px"
+      {...equipmentLocationEdit}
+    />
   );
 };
 
@@ -187,8 +133,11 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
   equipment,
   team,
   effectiveLocation,
+  organizationId,
+  scanLocationCollectionEnabled,
   canEditDescription = false,
   onSaveDescription,
+  equipmentLocationEdit,
 }) => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isEquipmentDetailsExpanded, setIsEquipmentDetailsExpanded] = useState(false);
@@ -199,10 +148,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
 
   const workingHours = workOrder.equipment_working_hours_at_creation ?? currentWorkingHours;
 
-  const locationSummary =
-    effectiveLocation?.formattedAddress?.trim() ||
-    equipment?.location?.trim() ||
-    '';
+  const locationSummary = effectiveLocation?.formattedAddress?.trim() || '';
 
   const equipStatus =
     equipment != null ? getEquipmentStatusDisplayInfo(equipment.status || 'active') : null;
@@ -355,7 +301,12 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
                 </div>
 
                 {isEquipmentDetailsExpanded ? (
-                  <LocationMap effectiveLocation={effectiveLocation} equipmentLocation={equipment.location} />
+                  <LocationMap
+                    equipment={equipment}
+                    organizationId={organizationId}
+                    scanLocationCollectionEnabled={scanLocationCollectionEnabled}
+                    equipmentLocationEdit={equipmentLocationEdit}
+                  />
                 ) : null}
 
                 {equipment.manufacturer && equipment.model ? (
