@@ -239,9 +239,11 @@ git checkout -b feature/quickbooks-edge-function-update
 **Standard workflow for creating new migrations:**
 
 1. **Create the migration file**:
-   ```bash
-   npx supabase migration new your_migration_name
+   ```powershell
+   npm run db:migration:new -- your_migration_name
    ```
+
+   **Do not use bare `npx supabase migration new` in Cursor agent terminals.** The CLI reads SQL from stdin; agent shells keep stdin open, which can hang indefinitely. `db:migration:new` wraps the pinned local CLI with an immediate EOF and a 30s timeout.
 
 2. **Write your migration SQL** in the generated file in `supabase/migrations/`
 
@@ -395,7 +397,7 @@ node scripts/supabase-fix-migrations.mjs
 npx supabase start
 
 # Create and test migrations locally
-npx supabase migration new your_migration_name
+npm run db:migration:new -- your_migration_name
 npx supabase db reset  # Test the migration
 
 # Test edge functions locally
@@ -524,7 +526,7 @@ npx supabase db pull                 # Pull migrations
 npx supabase db push                 # Push migrations
 npx supabase db reset                # Reset local database
 npx supabase migration list          # List migrations
-npx supabase migration new <name>    # Create new migration
+npm run db:migration:new -- <name>   # Create new migration (agent-safe wrapper)
 npx supabase functions serve         # Serve functions locally
 npx supabase functions deploy <name> # Deploy function
 npx supabase functions pull          # Pull functions from remote

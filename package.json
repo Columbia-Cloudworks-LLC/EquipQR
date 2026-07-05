@@ -45,6 +45,7 @@
     "test:e2e:record": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-user-regression.ps1 -Suite critical -RecordVideo",
     "test:e2e:demo": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-user-regression.ps1 -Suite critical -RunProfile demo",
     "test:db": "supabase test db",
+    "db:migration:new": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/db/New-SupabaseMigration.ps1",
     "db:rpc-inventory": "node scripts/generate-security-definer-rpc-inventory.mjs",
     "verify:rpc-allowlists": "node scripts/validate-security-definer-allowlist-sync.mjs",
     "fallow:scan": "npx --yes fallow@2.88.0 dead-code --format json --quiet",
