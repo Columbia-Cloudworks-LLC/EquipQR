@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(15);
+SELECT plan(19);
 
 -- ============================================
 -- Test: operator check-in domain RLS (#1091)
@@ -138,6 +138,49 @@ SELECT ok(
 SET LOCAL role TO authenticated;
 SET LOCAL request.jwt.claim.sub TO '31000000-0000-0000-0000-000000000001';
 
+SELECT throws_ok(
+  $$ UPDATE public.operator_checklist_templates
+     SET is_active = false
+     WHERE id = '31000000-cccc-0000-0000-000000000003'::uuid $$,
+  'Cannot deactivate operator checklist template while enabled equipment assignments exist',
+  'direct template deactivation blocked while enabled assignments exist'
+);
+
+INSERT INTO public.operator_checklist_templates (
+  id, organization_id, name, template_data, is_active, created_by
+) VALUES (
+  '31000000-cccc-0000-0000-000000000004'::uuid,
+  '31000000-aaaa-0000-0000-000000000001'::uuid,
+  'Persistence Check',
+  '{"checklistItems":[],"dataFields":[]}'::jsonb,
+  false,
+  '31000000-0000-0000-0000-000000000001'::uuid
+) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.equipment_operator_checkin_settings (
+  id, organization_id, equipment_id, template_id, enabled, public_token_hash
+) VALUES (
+  '31000000-dddd-0000-0000-000000000004'::uuid,
+  '31000000-aaaa-0000-0000-000000000001'::uuid,
+  '31000000-bbbb-0000-0000-000000000001'::uuid,
+  '31000000-cccc-0000-0000-000000000004'::uuid,
+  true,
+  encode(digest('test-token-d', 'sha256'), 'hex')
+) ON CONFLICT (id) DO NOTHING;
+
+SELECT ok(
+  (SELECT is_active FROM public.operator_checklist_templates
+    WHERE id = '31000000-cccc-0000-0000-000000000004'::uuid) = true,
+  'enabled assignment reactivates inactive template'
+);
+
+SELECT ok(
+  public.resolve_operator_checkin_by_token(
+    encode(digest('test-token-d', 'sha256'), 'hex')
+  ) IS NOT NULL,
+  'public token resolves for reactivated assigned template'
+);
+
 SELECT ok(
   public.delete_operator_checklist_template('31000000-cccc-0000-0000-000000000001'::uuid) = 1,
   'org owner can archive template and disable related assignments'
@@ -158,6 +201,13 @@ SELECT ok(
   (SELECT count(*)::int FROM public.operator_checkin_submissions
     WHERE id = '31000000-eeee-0000-0000-000000000001'::uuid) = 1,
   'archived template preserves existing submissions'
+);
+
+SELECT ok(
+  public.resolve_operator_checkin_by_token(
+    encode(digest('test-token-a', 'sha256'), 'hex')
+  ) IS NULL,
+  'archived template public token is unavailable'
 );
 
 SET LOCAL request.jwt.claim.sub TO '31000000-0000-0000-0000-000000000002';

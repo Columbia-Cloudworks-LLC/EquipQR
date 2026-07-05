@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.12.6] - 2026-07-05
+
+### Fixed
+
+- **Daily Check-In template persistence (#1137)** — Assigned operator checklist templates no longer appear deleted after app updates when equipment assignments remain enabled; inconsistent inactive-template states are repaired and blocked at the database layer while explicit admin delete still archives templates and disables QR links.
+
 ## [3.12.5] - 2026-07-05
 
 ### Changed
