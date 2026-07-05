@@ -1,6 +1,6 @@
 # Changelog
 
-<!-- markdownlint-disable MD024 -->
+<!-- markdownlint-disable MD012 MD022 MD024 MD034 MD049 -->
 
 All notable changes to EquipQR will be documented in this file.
 
@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Database cron helper errors (#1141)** — SECURITY DEFINER pg_cron helpers no longer cast `current_user` to `oid`, eliminating recurring `invalid input syntax for type oid: "postgres"` errors during queue-worker, Stripe MV refresh, and QuickBooks token refresh jobs. QuickBooks manual refresh calls a dedicated internal helper so pg_cron-only guards do not block authenticated operators; RPC messaging clarifies org-scoped expiring counts vs global refresh job. Collation version mismatch maintenance is documented in `docs/ops/postgres-collation-maintenance.md` and tracked in #1143 (approval-gated production REINDEX + `REFRESH COLLATION VERSION`, not a repo migration).
+- **Database cron helper errors (#1141)** — SECURITY DEFINER pg_cron helpers no longer cast `current_user` to `oid`, eliminating recurring `invalid input syntax for type oid: "postgres"` errors during queue-worker, Stripe MV refresh, and QuickBooks token refresh jobs. QuickBooks manual refresh calls a dedicated internal helper so pg_cron-only guards do not block authenticated operators; RPC messaging clarifies org-scoped expiring counts vs global refresh job. Production `postgres` collation was refreshed after the dependent-object query returned no rows; the remaining `template1` collation warning is vendor-owned and tracked in #1143 after Supabase rejected agent-side refresh with `must be owner of database template1`.
 
 ## [3.12.6] - 2026-07-05
 
