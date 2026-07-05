@@ -1,5 +1,5 @@
 import * as React from "react"
-import { format } from "date-fns"
+import { format, startOfDay, endOfDay } from "date-fns"
 import { CalendarIcon, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,14 @@ interface DateTimePickerProps {
   placeholder?: string
   disabled?: boolean
   className?: string
+  showShortcuts?: boolean
+}
+
+function combineDateAndTime(baseDate: Date, timeValue: string): Date {
+  const [hours, minutes] = timeValue.split(':').map(Number)
+  const combinedDateTime = new Date(baseDate)
+  combinedDateTime.setHours(hours, minutes, 0, 0)
+  return combinedDateTime
 }
 
 export function DateTimePicker({
@@ -25,10 +33,12 @@ export function DateTimePicker({
   onDateChange,
   placeholder = "Pick a date and time",
   disabled,
-  className
+  className,
+  showShortcuts = false,
 }: DateTimePickerProps) {
   const [isOpen, setIsOpen] = React.useState(false)
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(date)
+  const [visibleMonth, setVisibleMonth] = React.useState<Date | undefined>(date ?? new Date())
   const [timeValue, setTimeValue] = React.useState(
     date ? format(date, "HH:mm") : "08:00"
   )
@@ -37,8 +47,16 @@ export function DateTimePicker({
     setSelectedDate(date)
     if (date) {
       setTimeValue(format(date, "HH:mm"))
+      setVisibleMonth(date)
     }
   }, [date])
+
+  const applyDateTime = React.useCallback((nextDate: Date) => {
+    setSelectedDate(nextDate)
+    setTimeValue(format(nextDate, "HH:mm"))
+    setVisibleMonth(nextDate)
+    onDateChange?.(nextDate)
+  }, [onDateChange])
 
   const handleDateSelect = (newDate: Date | undefined) => {
     if (!newDate) {
@@ -47,31 +65,47 @@ export function DateTimePicker({
       return
     }
 
-    // Combine the selected date with the current time
-    const [hours, minutes] = timeValue.split(':').map(Number)
-    const combinedDateTime = new Date(newDate)
-    combinedDateTime.setHours(hours, minutes, 0, 0)
-    
-    setSelectedDate(combinedDateTime)
-    onDateChange?.(combinedDateTime)
+    applyDateTime(combineDateAndTime(newDate, timeValue))
   }
 
   const handleTimeChange = (newTime: string) => {
     setTimeValue(newTime)
-    
+
     if (!selectedDate) return
 
-    // Update the existing date with the new time
-    const [hours, minutes] = newTime.split(':').map(Number)
-    const updatedDateTime = new Date(selectedDate)
-    updatedDateTime.setHours(hours, minutes, 0, 0)
-    
-    setSelectedDate(updatedDateTime)
-    onDateChange?.(updatedDateTime)
+    applyDateTime(combineDateAndTime(selectedDate, newTime))
   }
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open)
+    if (open) {
+      const anchor = selectedDate ?? date ?? new Date()
+      setVisibleMonth(anchor)
+    }
+  }
+
+  const handleShortcut = (shortcut: 'today' | 'now' | 'startOfDay' | 'endOfDay') => {
+    const anchor = selectedDate ?? date ?? new Date()
+    let nextDate: Date
+
+    switch (shortcut) {
+      case 'today':
+        nextDate = combineDateAndTime(new Date(), timeValue)
+        break
+      case 'now':
+        nextDate = new Date()
+        break
+      case 'startOfDay':
+        nextDate = startOfDay(anchor)
+        break
+      case 'endOfDay':
+        nextDate = endOfDay(anchor)
+        break
+      default:
+        return
+    }
+
+    applyDateTime(nextDate)
   }
 
   return (
@@ -95,10 +129,28 @@ export function DateTimePicker({
           <Calendar
             mode="single"
             selected={selectedDate}
+            month={visibleMonth}
+            onMonthChange={setVisibleMonth}
             onSelect={handleDateSelect}
             initialFocus
             className={cn("pointer-events-auto")}
           />
+          {showShortcuts ? (
+            <div className="mt-3 flex flex-wrap gap-2 border-t pt-3">
+              <Button type="button" variant="outline" size="sm" onClick={() => handleShortcut('today')}>
+                Today
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => handleShortcut('now')}>
+                Now
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => handleShortcut('startOfDay')}>
+                Start of day
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => handleShortcut('endOfDay')}>
+                End of day
+              </Button>
+            </div>
+          ) : null}
           <div className="mt-3 flex items-center gap-2 pt-3 border-t">
             <Clock className="h-4 w-4 text-muted-foreground" />
             <Label htmlFor="time-input" className="text-sm font-medium">

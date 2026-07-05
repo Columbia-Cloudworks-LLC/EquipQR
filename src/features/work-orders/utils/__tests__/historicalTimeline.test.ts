@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   canAddTimelineRow,
   clearDownstreamRows,
+  createEmptyTimelineRow,
   createInitialTimelineRow,
   eventsToRpcPayload,
   getAllowedNextStatuses,
   getLastFilledRowIndex,
   getSelectableStatusesForRow,
+  getTimelineRowSeedDate,
   hasIncompleteTimelineRows,
   isTerminalStatus,
   rowsToTimelineEvents,
@@ -33,6 +35,21 @@ describe('historicalTimeline helpers', () => {
     expect(isTerminalStatus('in_progress')).toBe(false);
   });
 
+  it('seeds empty rows from the previous filled event timestamp', () => {
+    const rows: HistoricalTimelineEditorRow[] = [
+      { ...createInitialTimelineRow(new Date('2024-01-01T08:00:00Z')), newStatus: 'submitted' },
+      {
+        id: 'row-2',
+        newStatus: 'accepted',
+        changedAt: new Date('2024-01-02T10:30:00Z'),
+        assigneeId: null,
+      },
+    ];
+
+    const seeded = createEmptyTimelineRow(getTimelineRowSeedDate(rows));
+    expect(seeded.changedAt?.toISOString()).toBe('2024-01-02T10:30:00.000Z');
+  });
+
   it('clears downstream row values when an upstream status changes', () => {
     const rows: HistoricalTimelineEditorRow[] = [
       { ...createInitialTimelineRow(new Date('2024-01-01')), newStatus: 'submitted' },
@@ -40,14 +57,12 @@ describe('historicalTimeline helpers', () => {
         id: 'row-2',
         newStatus: 'accepted',
         changedAt: new Date('2024-01-02'),
-        reason: 'Accepted',
         assigneeId: null,
       },
       {
         id: 'row-3',
         newStatus: 'assigned',
         changedAt: new Date('2024-01-03'),
-        reason: 'Assigned',
         assigneeId: 'user-1',
       },
     ];
@@ -60,7 +75,7 @@ describe('historicalTimeline helpers', () => {
   it('finds the last filled timeline row index', () => {
     const rows: HistoricalTimelineEditorRow[] = [
       { ...createInitialTimelineRow(), newStatus: 'submitted' },
-      { id: 'row-2', newStatus: '', changedAt: undefined, reason: '', assigneeId: null },
+      { id: 'row-2', newStatus: '', changedAt: undefined, assigneeId: null },
     ];
 
     expect(getLastFilledRowIndex(rows)).toBe(0);
@@ -71,7 +86,7 @@ describe('historicalTimeline helpers', () => {
   it('derives selectable statuses from the previous row only', () => {
     const rows: HistoricalTimelineEditorRow[] = [
       { ...createInitialTimelineRow(), newStatus: 'submitted' },
-      { id: 'row-2', newStatus: 'accepted', changedAt: new Date(), reason: '', assigneeId: null },
+      { id: 'row-2', newStatus: 'accepted', changedAt: new Date(), assigneeId: null },
     ];
 
     expect(getSelectableStatusesForRow(rows, 0)).toEqual(['submitted']);
@@ -81,7 +96,6 @@ describe('historicalTimeline helpers', () => {
       id: 'row-3',
       newStatus: 'assigned',
       changedAt: new Date(),
-      reason: '',
       assigneeId: null,
     });
     expect(getSelectableStatusesForRow(rows, 2)).toEqual(['assigned', 'cancelled']);
@@ -103,12 +117,10 @@ describe('historicalTimeline helpers', () => {
       {
         newStatus: 'submitted' as const,
         changedAt: new Date('2024-01-05').toISOString(),
-        reason: 'Created',
       },
       {
         newStatus: 'accepted' as const,
         changedAt: new Date('2024-01-01').toISOString(),
-        reason: 'Accepted',
       },
     ];
 
@@ -133,19 +145,19 @@ describe('historicalTimeline helpers', () => {
   it('detects incomplete timeline rows missing status or date', () => {
     const completeRows: HistoricalTimelineEditorRow[] = [
       { ...createInitialTimelineRow(new Date('2024-01-01')), newStatus: 'submitted' },
-      { id: 'row-2', newStatus: 'accepted', changedAt: new Date('2024-01-02'), reason: '', assigneeId: null },
+      { id: 'row-2', newStatus: 'accepted', changedAt: new Date('2024-01-02'), assigneeId: null },
     ];
     expect(hasIncompleteTimelineRows(completeRows)).toBe(false);
 
     const emptyAddedRow: HistoricalTimelineEditorRow[] = [
       ...completeRows,
-      { id: 'row-3', newStatus: '', changedAt: undefined, reason: '', assigneeId: null },
+      { id: 'row-3', newStatus: '', changedAt: undefined, assigneeId: null },
     ];
     expect(hasIncompleteTimelineRows(emptyAddedRow)).toBe(true);
 
     const invalidDateRow: HistoricalTimelineEditorRow[] = [
       ...completeRows,
-      { id: 'row-3', newStatus: 'assigned', changedAt: new Date('invalid'), reason: '', assigneeId: null },
+      { id: 'row-3', newStatus: 'assigned', changedAt: new Date('invalid'), assigneeId: null },
     ];
     expect(hasIncompleteTimelineRows(invalidDateRow)).toBe(true);
   });
@@ -168,7 +180,7 @@ describe('historicalTimeline helpers', () => {
     expect(validateTimelineEvents(events)).toEqual([]);
   });
 
-  it('converts rows to RPC payload transitions', () => {
+  it('converts rows to RPC payload transitions without reason text', () => {
     const rows = timelineEventsToRows(
       synthesizeDefaultTimeline({
         startDate: new Date('2024-01-01'),
@@ -178,14 +190,14 @@ describe('historicalTimeline helpers', () => {
     );
 
     const payload = eventsToRpcPayload(rowsToTimelineEvents(rows));
-    expect(payload[0]).toMatchObject({ old_status: null, new_status: 'submitted' });
-    expect(payload[1]).toMatchObject({ old_status: 'submitted', new_status: 'cancelled' });
+    expect(payload[0]).toMatchObject({ old_status: null, new_status: 'submitted', reason: null });
+    expect(payload[1]).toMatchObject({ old_status: 'submitted', new_status: 'cancelled', reason: null });
   });
 
   it('allows adding another row until terminal status is reached', () => {
     const rows: HistoricalTimelineEditorRow[] = [
       { ...createInitialTimelineRow(), newStatus: 'submitted' },
-      { id: 'row-2', newStatus: 'accepted', changedAt: new Date(), reason: '', assigneeId: null },
+      { id: 'row-2', newStatus: 'accepted', changedAt: new Date(), assigneeId: null },
     ];
 
     expect(canAddTimelineRow(rows)).toBe(true);

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.12.5] - 2026-07-05
+
+### Changed
+
+- **Historical timeline editing (#1121)** — New timeline events copy the previous event timestamp, date/time pickers open on the selected month with shortcuts, and per-event reason fields are removed in favor of work order notes.
+- **Historical note timestamps (#1121)** — Owner/admins can adjust note timestamps on historical work orders only; edits are audit-logged without mutating prior audit entries.
+
 ## [3.12.4] - 2026-07-05
 
 ### Changed

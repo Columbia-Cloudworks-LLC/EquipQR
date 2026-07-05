@@ -83,6 +83,7 @@
     "revert_work_order_status",
     "select_google_workspace_members",
     "update_equipment_working_hours",
+    "update_historical_work_order_note_timestamp",
     "update_member_quickbooks_permission",
     "validate_quickbooks_oauth_session"
   ]

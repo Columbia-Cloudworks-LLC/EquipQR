@@ -1,8 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { DateTimePicker } from '@/components/ui/datetime-picker';
 import { Plus, Trash2 } from 'lucide-react';
 import { WorkOrderAssigneeSelectItems } from '@/features/work-orders/components/WorkOrderAssigneeSelectItems';
@@ -13,6 +12,7 @@ import {
   createInitialTimelineRow,
   getLastFilledRowIndex,
   getSelectableStatusesForRow,
+  getTimelineRowSeedDate,
   hasIncompleteTimelineRows,
   isTerminalStatus,
   rowsToTimelineEvents,
@@ -33,58 +33,6 @@ type HistoricalTimelineEditorProps = {
   onChange?: (events: HistoricalTimelineEvent[]) => void;
   onIncompleteRowsChange?: (hasIncompleteRows: boolean) => void;
 };
-
-const REASON_TEXTAREA_MAX_HEIGHT_PX = 192;
-
-function resizeTextarea(element: HTMLTextAreaElement) {
-  element.style.height = '0px';
-  const measuredHeight = element.scrollHeight;
-  if (measuredHeight > REASON_TEXTAREA_MAX_HEIGHT_PX) {
-    element.style.height = `${REASON_TEXTAREA_MAX_HEIGHT_PX}px`;
-    element.style.overflowY = 'auto';
-    return;
-  }
-
-  element.style.height = `${measuredHeight}px`;
-  element.style.overflowY = 'hidden';
-}
-
-type AutoGrowReasonTextareaProps = {
-  id: string;
-  value: string;
-  onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  placeholder?: string;
-};
-
-function AutoGrowReasonTextarea({ id, value, onChange, placeholder }: AutoGrowReasonTextareaProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (textareaRef.current) {
-      resizeTextarea(textareaRef.current);
-    }
-  }, [value]);
-
-  const handleChange = useCallback(
-    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-      resizeTextarea(event.target);
-      onChange(event);
-    },
-    [onChange],
-  );
-
-  return (
-    <Textarea
-      ref={textareaRef}
-      id={id}
-      value={value}
-      onChange={handleChange}
-      rows={2}
-      className="max-h-48 min-h-[calc(2*1.25rem+1rem)] resize-none [field-sizing:content]"
-      placeholder={placeholder}
-    />
-  );
-}
 
 export function HistoricalTimelineEditor({
   initialEvents,
@@ -155,7 +103,7 @@ export function HistoricalTimelineEditor({
     if (!canAddRow) {
       return;
     }
-    updateRows([...rows, createEmptyTimelineRow()]);
+    updateRows([...rows, createEmptyTimelineRow(getTimelineRowSeedDate(rows))]);
   };
 
   const handleRemoveRow = (rowIndex: number) => {
@@ -168,7 +116,7 @@ export function HistoricalTimelineEditor({
   return (
     <div className="space-y-3">
       <p className="text-xs leading-snug text-muted-foreground">
-        Build the operational timeline with backdated status events. Changing an earlier status clears later events so the chain stays valid.
+        Build the operational timeline with backdated status events. Changing an earlier status clears later events so the chain stays valid. Use work order notes for additional context.
       </p>
 
       <ol
@@ -253,6 +201,7 @@ export function HistoricalTimelineEditor({
                         updateRows(nextRows);
                       }}
                       placeholder="Pick event date and time"
+                      showShortcuts
                     />
                   </div>
                 </div>
@@ -286,23 +235,6 @@ export function HistoricalTimelineEditor({
                     </Select>
                   </div>
                 ) : null}
-
-                <div className="space-y-1.5">
-                  <Label htmlFor={`historical-timeline-reason-${row.id}`} className="text-xs">
-                    Reason
-                  </Label>
-                  <AutoGrowReasonTextarea
-                    id={`historical-timeline-reason-${row.id}`}
-                    value={row.reason}
-                    onChange={(event) => {
-                      const nextRows = rows.map((currentRow, index) =>
-                        index === rowIndex ? { ...currentRow, reason: event.target.value } : currentRow,
-                      );
-                      updateRows(nextRows);
-                    }}
-                    placeholder="Optional note about this status change"
-                  />
-                </div>
               </div>
             </li>
           );

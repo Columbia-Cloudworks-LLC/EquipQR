@@ -171,6 +171,8 @@ export function WorkOrderDetailsDesktopContent({
             workOrderId={workOrder.id}
             canAddNotes={canAddNotes}
             showPrivateNotes={canUsePrivateNotes}
+            isHistorical={Boolean(workOrder.is_historical)}
+            canEditNoteTimestamps={permissionLevels.isManager}
             hideInlineAddButton={hideInlineNoteAddButton}
             autoOpenForm={shouldAutoOpenNoteForm}
             openFormTrigger={openNoteFormTrigger}
