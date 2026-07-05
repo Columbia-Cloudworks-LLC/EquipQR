@@ -33,6 +33,15 @@ type HistoricalTimelineEditorProps = {
   onIncompleteRowsChange?: (hasIncompleteRows: boolean) => void;
 };
 
+function getLastFilledRowIndex(rows: HistoricalTimelineEditorRow[]): number {
+  for (let index = rows.length - 1; index >= 0; index -= 1) {
+    if (rows[index]?.newStatus !== '') {
+      return index;
+    }
+  }
+  return -1;
+}
+
 export function HistoricalTimelineEditor({
   initialEvents,
   startDate,
@@ -81,6 +90,13 @@ export function HistoricalTimelineEditor({
     [rows],
   );
 
+  const canAddRow = canAddTimelineRow(rows);
+  const lastFilledIndex = getLastFilledRowIndex(rows);
+  const lastFilledStatus =
+    lastFilledIndex >= 0 ? (rows[lastFilledIndex]?.newStatus as WorkOrderStatus | '') : '';
+  const endsAtTerminalStatus =
+    lastFilledStatus !== '' && isTerminalStatus(lastFilledStatus as WorkOrderStatus);
+
   const updateRows = (nextRows: HistoricalTimelineEditorRow[]) => {
     setRows(nextRows);
     onChange?.(rowsToTimelineEvents(nextRows));
@@ -92,7 +108,7 @@ export function HistoricalTimelineEditor({
   };
 
   const handleAddRow = () => {
-    if (!canAddTimelineRow(rows)) {
+    if (!canAddRow) {
       return;
     }
     updateRows([...rows, createEmptyTimelineRow()]);
@@ -106,122 +122,167 @@ export function HistoricalTimelineEditor({
   };
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+    <div className="space-y-3">
+      <p className="text-xs leading-snug text-muted-foreground">
         Build the operational timeline with backdated status events. Changing an earlier status clears later events so the chain stays valid.
       </p>
 
-      {rows.map((row, rowIndex) => {
-        const selectableStatuses = getSelectableStatusesForRow(rows, rowIndex);
-        const statusFieldId = `historical-timeline-status-${row.id}`;
-        const assigneeFieldId = `historical-timeline-assignee-${row.id}`;
-        const isFirstRow = rowIndex === 0;
+      <ol
+        aria-label="Operational timeline events"
+        className="relative m-0 list-none space-y-2 p-0"
+      >
+        {rows.map((row, rowIndex) => {
+          const selectableStatuses = getSelectableStatusesForRow(rows, rowIndex);
+          const statusFieldId = `historical-timeline-status-${row.id}`;
+          const assigneeFieldId = `historical-timeline-assignee-${row.id}`;
+          const isFirstRow = rowIndex === 0;
+          const isLastRow = rowIndex === rows.length - 1;
 
-        return (
-          <div key={row.id} className="space-y-3 rounded-lg border p-4">
-            <div className="flex items-center justify-between gap-2">
-              <Label htmlFor={statusFieldId}>Event {rowIndex + 1}</Label>
-              {!isFirstRow ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleRemoveRow(rowIndex)}
-                  aria-label={`Remove timeline event ${rowIndex + 1}`}
+          return (
+            <li key={row.id} className="relative flex gap-3">
+              <div className="flex w-7 shrink-0 flex-col items-center pt-1">
+                <span
+                  aria-label={`Timeline step ${rowIndex + 1}`}
+                  className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-muted text-xs font-semibold text-foreground"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              ) : null}
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor={statusFieldId}>Status</Label>
-                <Select
-                  value={row.newStatus || undefined}
-                  onValueChange={(value) => handleStatusChange(rowIndex, value as WorkOrderStatus)}
-                  disabled={isFirstRow}
-                >
-                  <SelectTrigger id={statusFieldId}>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectableStatuses.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {formatStatus(status)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Event date and time</Label>
-                <DateTimePicker
-                  date={row.changedAt}
-                  onDateChange={(date) => {
-                    const nextRows = rows.map((currentRow, index) =>
-                      index === rowIndex ? { ...currentRow, changedAt: date } : currentRow,
-                    );
-                    updateRows(nextRows);
-                  }}
-                  placeholder="Pick event date and time"
-                />
-              </div>
-            </div>
-
-            {row.newStatus === 'assigned' ? (
-              <div className="space-y-2">
-                <Label htmlFor={assigneeFieldId}>Assignee</Label>
-                {equipmentHasNoTeam ? (
-                  <p className="text-xs text-muted-foreground">
-                    Equipment has no team. Showing organization admins.
-                  </p>
+                  {rowIndex + 1}
+                </span>
+                {!isLastRow ? (
+                  <span
+                    aria-hidden="true"
+                    className="mt-1 w-px flex-1 min-h-4 bg-border"
+                  />
                 ) : null}
-                <Select
-                  value={row.assigneeId ?? undefined}
-                  onValueChange={(value) => {
-                    const nextRows = rows.map((currentRow, index) =>
-                      index === rowIndex ? { ...currentRow, assigneeId: value } : currentRow,
-                    );
-                    updateRows(nextRows);
-                  }}
-                  disabled={assignmentLoading}
-                >
-                  <SelectTrigger id={assigneeFieldId} aria-label="Select assignee for assigned event">
-                    <SelectValue placeholder={assignmentLoading ? 'Loading assignees...' : 'Select assignee'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <WorkOrderAssigneeSelectItems options={assignmentOptions} />
-                  </SelectContent>
-                </Select>
               </div>
-            ) : null}
 
-            <div className="space-y-2">
-              <Label htmlFor={`historical-timeline-reason-${row.id}`}>Reason</Label>
-              <Textarea
-                id={`historical-timeline-reason-${row.id}`}
-                value={row.reason}
-                onChange={(event) => {
-                  const nextRows = rows.map((currentRow, index) =>
-                    index === rowIndex ? { ...currentRow, reason: event.target.value } : currentRow,
-                  );
-                  updateRows(nextRows);
-                }}
-                rows={2}
-                placeholder="Optional note about this status change"
-              />
-            </div>
-          </div>
-        );
-      })}
+              <div className="min-w-0 flex-1 space-y-2 rounded-md border border-border/80 bg-card/40 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor={statusFieldId} className="text-sm font-medium">
+                    Event {rowIndex + 1}
+                  </Label>
+                  {!isFirstRow ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => handleRemoveRow(rowIndex)}
+                      aria-label={`Remove timeline event ${rowIndex + 1}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  ) : null}
+                </div>
 
-      {canAddTimelineRow(rows) ? (
-        <Button type="button" variant="outline" onClick={handleAddRow}>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor={statusFieldId} className="text-xs">
+                      Status
+                    </Label>
+                    <Select
+                      value={row.newStatus || undefined}
+                      onValueChange={(value) => handleStatusChange(rowIndex, value as WorkOrderStatus)}
+                      disabled={isFirstRow}
+                    >
+                      <SelectTrigger id={statusFieldId} className="h-9">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectableStatuses.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {formatStatus(status)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Event date and time</Label>
+                    <DateTimePicker
+                      date={row.changedAt}
+                      onDateChange={(date) => {
+                        const nextRows = rows.map((currentRow, index) =>
+                          index === rowIndex ? { ...currentRow, changedAt: date } : currentRow,
+                        );
+                        updateRows(nextRows);
+                      }}
+                      placeholder="Pick event date and time"
+                    />
+                  </div>
+                </div>
+
+                {row.newStatus === 'assigned' ? (
+                  <div className="space-y-1.5">
+                    <Label htmlFor={assigneeFieldId} className="text-xs">
+                      Assignee
+                    </Label>
+                    {equipmentHasNoTeam ? (
+                      <p className="text-xs text-muted-foreground">
+                        Equipment has no team. Showing organization admins.
+                      </p>
+                    ) : null}
+                    <Select
+                      value={row.assigneeId ?? undefined}
+                      onValueChange={(value) => {
+                        const nextRows = rows.map((currentRow, index) =>
+                          index === rowIndex ? { ...currentRow, assigneeId: value } : currentRow,
+                        );
+                        updateRows(nextRows);
+                      }}
+                      disabled={assignmentLoading}
+                    >
+                      <SelectTrigger id={assigneeFieldId} aria-label="Select assignee for assigned event" className="h-9">
+                        <SelectValue placeholder={assignmentLoading ? 'Loading assignees...' : 'Select assignee'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <WorkOrderAssigneeSelectItems options={assignmentOptions} />
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+
+                <div className="space-y-1.5">
+                  <Label htmlFor={`historical-timeline-reason-${row.id}`} className="text-xs">
+                    Reason
+                  </Label>
+                  <Textarea
+                    id={`historical-timeline-reason-${row.id}`}
+                    value={row.reason}
+                    onChange={(event) => {
+                      const nextRows = rows.map((currentRow, index) =>
+                        index === rowIndex ? { ...currentRow, reason: event.target.value } : currentRow,
+                      );
+                      updateRows(nextRows);
+                    }}
+                    rows={2}
+                    className="min-h-[4.5rem] resize-y"
+                    placeholder="Optional note about this status change"
+                  />
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+
+      {canAddRow ? (
+        <Button type="button" variant="outline" size="sm" onClick={handleAddRow}>
           <Plus className="mr-2 h-4 w-4" />
-          Add next status event
+          Add historical event
         </Button>
+      ) : endsAtTerminalStatus ? (
+        <div
+          role="status"
+          aria-label="Timeline ended at terminal status"
+          className="rounded-md border border-dashed border-border/80 bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
+        >
+          Timeline ends at{' '}
+          <span className="font-medium text-foreground">
+            {formatStatus(lastFilledStatus as WorkOrderStatus)}
+          </span>
+          . Remove or change the final event to add another historical status.
+        </div>
       ) : null}
 
       {validationErrors.length > 0 ? (

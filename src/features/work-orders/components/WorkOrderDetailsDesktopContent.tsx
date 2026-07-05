@@ -163,7 +163,10 @@ export function WorkOrderDetailsDesktopContent({
       </div>
 
       <div {...stagger(5)}>
-        <div ref={notesSectionRef}>
+        <div
+          ref={notesSectionRef}
+          className="space-y-4 xl:grid xl:grid-cols-2 xl:items-start xl:gap-4 xl:space-y-0"
+        >
           <WorkOrderNotesSection
             workOrderId={workOrder.id}
             canAddNotes={canAddNotes}
@@ -172,25 +175,23 @@ export function WorkOrderDetailsDesktopContent({
             autoOpenForm={shouldAutoOpenNoteForm}
             openFormTrigger={openNoteFormTrigger}
           />
+
+          <div className="space-y-4">
+            <WorkOrderHistoricalTimelineSection
+              workOrder={workOrder}
+              showDetailedHistory={permissionLevels.isManager}
+              canEditTimeline={permissionLevels.isManager}
+            />
+
+            {permissionLevels.isManager && currentOrganization ? (
+              <WorkOrderFieldChangeHistoryCard
+                workOrderId={workOrder.id}
+                organizationId={currentOrganization.id}
+              />
+            ) : null}
+          </div>
         </div>
       </div>
-
-      <div {...stagger(6)}>
-        <WorkOrderHistoricalTimelineSection
-          workOrder={workOrder}
-          showDetailedHistory={permissionLevels.isManager}
-          canEditTimeline={permissionLevels.isManager}
-        />
-      </div>
-
-      {permissionLevels.isManager && currentOrganization && (
-        <div {...stagger(7)}>
-          <WorkOrderFieldChangeHistoryCard
-            workOrderId={workOrder.id}
-            organizationId={currentOrganization.id}
-          />
-        </div>
-      )}
     </>
   );
 }

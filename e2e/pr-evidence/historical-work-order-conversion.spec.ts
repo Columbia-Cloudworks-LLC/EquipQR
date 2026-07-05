@@ -27,6 +27,12 @@ test.describe('PR evidence: convert existing work order to historical @pr-eviden
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '02-convert-dialog-open');
 
+    await expect(convertDialog.getByRole('list', { name: /operational timeline events/i })).toBeVisible();
+    await expect(convertDialog.getByLabel('Timeline step 1')).toBeVisible();
+    await expect(
+      convertDialog.getByRole('status', { name: /timeline ended at terminal status/i }),
+    ).toBeVisible();
+
     await convertDialog.getByRole('button', { name: /convert to historical/i }).click();
     await expect(convertDialog).toBeHidden({ timeout: 60_000 });
     await expect(page.getByText(/historical record/i)).toBeVisible({ timeout: 30_000 });
