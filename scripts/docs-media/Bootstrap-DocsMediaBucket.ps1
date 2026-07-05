@@ -10,7 +10,6 @@
   SUPABASE_SERVICE_ROLE_KEY.
 
 .EXAMPLE
-  $env:SUPABASE_URL = (op read "op://EquipQR Agents/app-env-preview-public/SUPABASE_URL").Trim()
   .\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1 -SupabaseUrl $env:SUPABASE_URL
 #>
 [CmdletBinding()]

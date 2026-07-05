@@ -23,10 +23,11 @@ Example:
 https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/location-maps/desktop/01-fleet-map-source-filter.png
 ```
 
-The **`docs-media`** bucket is created by Supabase migration (`supabase/migrations/20260704180000_create_docs_media_bucket.sql`) during normal deploy. Optionally verify public access after deploy:
+The **`docs-media`** bucket is created by Supabase migration (`supabase/migrations/20260704180000_create_docs_media_bucket.sql`) during normal deploy.
+
+Optionally verify public access after deploy (requires `SUPABASE_URL` in the shell — see `AGENTS.md`):
 
 ```powershell
-$env:SUPABASE_URL = (op read "op://EquipQR Agents/app-env-preview-public/SUPABASE_URL").Trim()
 .\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1 -SupabaseUrl $env:SUPABASE_URL
 ```
 

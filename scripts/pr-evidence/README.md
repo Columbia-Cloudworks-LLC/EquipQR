@@ -44,10 +44,9 @@ For equipqr.info (not PR comments), publish capture manifests to **`docs-media`*
   -MarkdownOut tmp\docs-media\location-maps\desktop.md
 ```
 
-Bootstrap optional verification with migration-applied bucket:
+Bootstrap optional verification with migration-applied bucket (requires `SUPABASE_URL` in the shell — see `AGENTS.md`):
 
 ```powershell
-$env:SUPABASE_URL = (op read "op://EquipQR Agents/app-env-preview-public/SUPABASE_URL").Trim()
 .\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1 -SupabaseUrl $env:SUPABASE_URL
 ```
 
