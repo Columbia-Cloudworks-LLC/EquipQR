@@ -372,6 +372,16 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     this.textLayout.yPosition += options.yAdvance;
   }
 
+  private getConditionBoxesWidth(): number {
+    const boxSize = 5;
+    const gap = 3;
+    return CONDITION_LEGEND.length * boxSize + (CONDITION_LEGEND.length - 1) * gap;
+  }
+
+  private getConditionBoxesX(): number {
+    return this.pageWidth - this.margin - this.getConditionBoxesWidth() - 4;
+  }
+
   private drawConditionBoxes(x: number, y: number): void {
     const boxSize = 5;
     const gap = 3;
@@ -433,11 +443,11 @@ export class WorkOrderFieldWorksheetPDFGenerator {
         this.doc.setFont('helvetica', 'normal');
         this.doc.setTextColor(0, 0, 0);
 
-        const maxTitleWidth = this.contentWidth - 55;
+        const maxTitleWidth = this.contentWidth - this.getConditionBoxesWidth() - 14;
         const truncatedTitle = this.doc.splitTextToSize(item.title, maxTitleWidth)[0] ?? item.title;
         this.doc.text(truncatedTitle, this.margin + 8, this.textLayout.yPosition);
 
-        this.drawConditionBoxes(this.pageWidth - this.margin - 50, this.textLayout.yPosition);
+        this.drawConditionBoxes(this.getConditionBoxesX(), this.textLayout.yPosition);
 
         this.textLayout.yPosition += 6;
       }
