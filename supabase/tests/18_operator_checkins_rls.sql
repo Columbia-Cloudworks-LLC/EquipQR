@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(20);
+SELECT plan(21);
 
 -- ============================================
 -- Test: operator check-in domain RLS (#1091)
@@ -197,6 +197,22 @@ SELECT throws_ok(
   '23503',
   'insert or update on table "equipment_operator_checkin_settings" violates foreign key constraint "equipment_operator_checkin_settings_template_org_fkey"',
   'cross-org template assignment is rejected by composite foreign key'
+);
+
+SELECT throws_ok(
+  $$ INSERT INTO public.equipment_operator_checkin_settings (
+       id, organization_id, equipment_id, template_id, enabled, public_token_hash
+     ) VALUES (
+       '31000000-dddd-0000-0000-000000000098'::uuid,
+       '31000000-aaaa-0000-0000-000000000001'::uuid,
+       '31000000-bbbb-0000-0000-000000000002'::uuid,
+       '31000000-cccc-0000-0000-000000000001'::uuid,
+       true,
+       encode(digest('test-token-cross-org-equipment', 'sha256'), 'hex')
+     ) $$,
+  '23503',
+  'insert or update on table "equipment_operator_checkin_settings" violates foreign key constraint "equipment_operator_checkin_settings_equipment_org_fkey"',
+  'cross-org equipment assignment is rejected by composite foreign key'
 );
 
 SET LOCAL role TO authenticated;
