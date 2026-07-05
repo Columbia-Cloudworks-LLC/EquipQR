@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(15);
+SELECT plan(23);
 
 -- ============================================
 -- Test: operator check-in domain RLS (#1091)
@@ -138,6 +138,84 @@ SELECT ok(
 SET LOCAL role TO authenticated;
 SET LOCAL request.jwt.claim.sub TO '31000000-0000-0000-0000-000000000001';
 
+SELECT throws_ok(
+  $$ UPDATE public.operator_checklist_templates
+     SET is_active = false
+     WHERE id = '31000000-cccc-0000-0000-000000000003'::uuid $$,
+  'Cannot deactivate operator checklist template while enabled equipment assignments exist',
+  'direct template deactivation blocked while enabled assignments exist'
+);
+
+INSERT INTO public.operator_checklist_templates (
+  id, organization_id, name, template_data, is_active, created_by
+) VALUES (
+  '31000000-cccc-0000-0000-000000000004'::uuid,
+  '31000000-aaaa-0000-0000-000000000001'::uuid,
+  'Persistence Check',
+  '{"checklistItems":[],"dataFields":[]}'::jsonb,
+  false,
+  '31000000-0000-0000-0000-000000000001'::uuid
+) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.equipment_operator_checkin_settings (
+  id, organization_id, equipment_id, template_id, enabled, public_token_hash
+) VALUES (
+  '31000000-dddd-0000-0000-000000000004'::uuid,
+  '31000000-aaaa-0000-0000-000000000001'::uuid,
+  '31000000-bbbb-0000-0000-000000000001'::uuid,
+  '31000000-cccc-0000-0000-000000000004'::uuid,
+  true,
+  encode(digest('test-token-d', 'sha256'), 'hex')
+) ON CONFLICT (id) DO NOTHING;
+
+SELECT ok(
+  (SELECT is_active FROM public.operator_checklist_templates
+    WHERE id = '31000000-cccc-0000-0000-000000000004'::uuid) = true,
+  'enabled assignment reactivates inactive template'
+);
+
+SELECT ok(
+  public.resolve_operator_checkin_by_token(
+    encode(digest('test-token-d', 'sha256'), 'hex')
+  ) IS NOT NULL,
+  'public token resolves for reactivated assigned template'
+);
+
+RESET role;
+
+SELECT throws_ok(
+  $$ INSERT INTO public.equipment_operator_checkin_settings (
+       id, organization_id, equipment_id, template_id, enabled, public_token_hash
+     ) VALUES (
+       '31000000-dddd-0000-0000-000000000099'::uuid,
+       '31000000-aaaa-0000-0000-000000000001'::uuid,
+       '31000000-bbbb-0000-0000-000000000001'::uuid,
+       '31000000-cccc-0000-0000-000000000002'::uuid,
+       true,
+       encode(digest('test-token-cross-org', 'sha256'), 'hex')
+     ) $$,
+  'template assignment organization mismatch',
+  'cross-org template assignment is rejected by org validation trigger'
+);
+
+SELECT throws_ok(
+  $$ INSERT INTO public.equipment_operator_checkin_settings (
+       id, organization_id, equipment_id, template_id, enabled, public_token_hash
+     ) VALUES (
+       '31000000-dddd-0000-0000-000000000098'::uuid,
+       '31000000-aaaa-0000-0000-000000000001'::uuid,
+       '31000000-bbbb-0000-0000-000000000002'::uuid,
+       '31000000-cccc-0000-0000-000000000001'::uuid,
+       true,
+       encode(digest('test-token-cross-org-equipment', 'sha256'), 'hex')
+     ) $$,
+  'equipment assignment organization mismatch',
+  'cross-org equipment assignment is rejected by org validation trigger'
+);
+
+SET LOCAL role TO authenticated;
+SET LOCAL request.jwt.claim.sub TO '31000000-0000-0000-0000-000000000001';
+
 SELECT ok(
   public.delete_operator_checklist_template('31000000-cccc-0000-0000-000000000001'::uuid) = 1,
   'org owner can archive template and disable related assignments'
@@ -160,12 +238,47 @@ SELECT ok(
   'archived template preserves existing submissions'
 );
 
+SELECT ok(
+  public.resolve_operator_checkin_by_token(
+    encode(digest('test-token-a', 'sha256'), 'hex')
+  ) IS NULL,
+  'archived template public token is unavailable'
+);
+
 SET LOCAL request.jwt.claim.sub TO '31000000-0000-0000-0000-000000000002';
 
 SELECT throws_ok(
   $$ SELECT public.delete_operator_checklist_template('31000000-cccc-0000-0000-000000000001'::uuid) $$,
   'Forbidden',
   'cross-org template archive is rejected'
+);
+
+RESET role;
+
+SELECT ok(
+  EXISTS (
+    SELECT 1
+    FROM pg_constraint AS c
+    INNER JOIN pg_class AS t ON t.oid = c.conrelid
+    INNER JOIN pg_namespace AS n ON n.oid = t.relnamespace
+    WHERE n.nspname = 'public'
+      AND t.relname = 'equipment_operator_checkin_settings'
+      AND c.conname = 'equipment_operator_checkin_settings_equipment_org_fkey'
+  ),
+  'equipment_operator_checkin_settings has composite equipment/org foreign key'
+);
+
+SELECT ok(
+  EXISTS (
+    SELECT 1
+    FROM pg_constraint AS c
+    INNER JOIN pg_class AS t ON t.oid = c.conrelid
+    INNER JOIN pg_namespace AS n ON n.oid = t.relnamespace
+    WHERE n.nspname = 'public'
+      AND t.relname = 'equipment_operator_checkin_settings'
+      AND c.conname = 'equipment_operator_checkin_settings_template_org_fkey'
+  ),
+  'equipment_operator_checkin_settings has composite template/org foreign key'
 );
 
 SELECT * FROM finish();

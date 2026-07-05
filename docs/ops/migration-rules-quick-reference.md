@@ -63,7 +63,7 @@ my_migration.sql  # No timestamp
 ```bash
 # 1. Create migration with current timestamp
 # Format: YYYYMMDDHHMMSS (year, month, day, hour, minute, second)
-npx supabase migration new add_new_feature
+npm run db:migration:new -- add_new_feature
 # OR manually create:
 # touch supabase/migrations/20251028143022_add_new_feature.sql
 
