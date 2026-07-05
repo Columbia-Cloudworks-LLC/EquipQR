@@ -13,6 +13,75 @@ import { cn } from '@/lib/utils';
 import { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
 import { useWorkOrderPMChecklist } from '@/features/work-orders/hooks/useWorkOrderPMChecklist';
 import { logger } from '@/utils/logger';
+import type { PMTemplate } from '@/features/pm-templates/services/pmChecklistTemplatesService';
+
+interface PMTemplateSelectorProps {
+  isLoading: boolean;
+  templates: PMTemplate[];
+  selectedTemplateId: string;
+  onTemplateChange: (templateId: string) => void;
+  showLicenseFooter?: boolean;
+  canCreateCustomPMTemplates?: boolean;
+}
+
+const PMTemplateSelector: React.FC<PMTemplateSelectorProps> = ({
+  isLoading,
+  templates,
+  selectedTemplateId,
+  onTemplateChange,
+  showLicenseFooter = false,
+  canCreateCustomPMTemplates = true,
+}) => {
+  if (isLoading) {
+    return (
+      <div className="p-3 border rounded-lg bg-muted/30">
+        <p className="text-sm text-muted-foreground">Loading templates...</p>
+      </div>
+    );
+  }
+
+  if (templates.length === 0) {
+    return (
+      <div className="p-3 border rounded-lg bg-muted/30">
+        <p className="text-sm text-muted-foreground">
+          No PM templates available. Please create a template first.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <Select
+      value={selectedTemplateId || ''}
+      onValueChange={onTemplateChange}
+      disabled={isLoading}
+    >
+      <SelectTrigger>
+        <SelectValue placeholder="Select a checklist template..." />
+      </SelectTrigger>
+      <SelectContent>
+        {templates.map((template) => (
+          <SelectItem key={template.id} value={template.id}>
+            <div className="flex items-center gap-2">
+              <span>{template.name}</span>
+              {template.organization_id === null && (
+                <div className="flex items-center gap-1">
+                  <Globe className="w-3 h-3" />
+                  <span className="text-xs text-muted-foreground">(Global)</span>
+                </div>
+              )}
+            </div>
+          </SelectItem>
+        ))}
+        {showLicenseFooter && !canCreateCustomPMTemplates && templates.some(t => t.organization_id) && (
+          <div className="px-2 py-1 text-xs text-muted-foreground border-t">
+            Custom templates require user licenses
+          </div>
+        )}
+      </SelectContent>
+    </Select>
+  );
+};
 
 interface WorkOrderPMChecklistProps {
   values: Pick<WorkOrderFormData, 'hasPM' | 'pmTemplateId'>;
@@ -22,12 +91,14 @@ interface WorkOrderPMChecklistProps {
     name: string; 
     default_pm_template_id?: string | null;
   } | null;
+  allowTemplateOverride?: boolean;
 }
 
 export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
   values,
   setValue,
-  selectedEquipment
+  selectedEquipment,
+  allowTemplateOverride = false,
 }) => {
   const {
     templates,
@@ -40,7 +111,8 @@ export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
   } = useWorkOrderPMChecklist({
     values,
     setValue,
-    selectedEquipment
+    selectedEquipment,
+    allowTemplateOverride,
   });
 
   // Debug logging to identify the issue
@@ -147,50 +219,27 @@ export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
                   This equipment uses the assigned PM template. To change it, edit the equipment record.
                 </p>
               </div>
-            ) : (
+            ) : allowTemplateOverride && selectedEquipment?.default_pm_template_id && assignedTemplate ? (
               <>
-                {isLoading ? (
-                  <div className="p-3 border rounded-lg bg-muted/30">
-                    <p className="text-sm text-muted-foreground">Loading templates...</p>
-                  </div>
-                ) : templates.length === 0 ? (
-                  <div className="p-3 border rounded-lg bg-muted/30">
-                    <p className="text-sm text-muted-foreground">
-                      No PM templates available. Please create a template first.
-                    </p>
-                  </div>
-                ) : (
-                  <Select
-                    value={values.pmTemplateId || ''}
-                    onValueChange={handleTemplateChange}
-                    disabled={isLoading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a checklist template..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {templates.map((template) => (
-                        <SelectItem key={template.id} value={template.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{template.name}</span>
-                            {template.organization_id === null && (
-                              <div className="flex items-center gap-1">
-                                <Globe className="w-3 h-3" />
-                                <span className="text-xs text-muted-foreground">(Global)</span>
-                              </div>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                      {!restrictions.canCreateCustomPMTemplates && templates.some(t => t.organization_id) && (
-                        <div className="px-2 py-1 text-xs text-muted-foreground border-t">
-                          Custom templates require user licenses
-                        </div>
-                      )}
-                    </SelectContent>
-                  </Select>
-                )}
+                <p className="text-xs text-muted-foreground">
+                  Equipment default: {assignedTemplate.name}. Pick a different template below if this work order needs a correction.
+                </p>
+                <PMTemplateSelector
+                  isLoading={isLoading}
+                  templates={templates}
+                  selectedTemplateId={values.pmTemplateId || ''}
+                  onTemplateChange={handleTemplateChange}
+                />
               </>
+            ) : (
+              <PMTemplateSelector
+                isLoading={isLoading}
+                templates={templates}
+                selectedTemplateId={values.pmTemplateId || ''}
+                onTemplateChange={handleTemplateChange}
+                showLicenseFooter
+                canCreateCustomPMTemplates={restrictions.canCreateCustomPMTemplates}
+              />
             )}
           </div>
           

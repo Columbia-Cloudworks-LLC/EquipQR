@@ -13,12 +13,15 @@ interface UseWorkOrderPMChecklistProps {
     name: string; 
     default_pm_template_id?: string | null;
   } | null;
+  /** When true (edit/swap on active WO), allow picking a different template even if equipment has a default. */
+  allowTemplateOverride?: boolean;
 }
 
 export const useWorkOrderPMChecklist = ({
   values,
   setValue,
-  selectedEquipment
+  selectedEquipment,
+  allowTemplateOverride = false,
 }: UseWorkOrderPMChecklistProps) => {
   const { data: allTemplates = [], isLoading: isLoadingTemplates, error: templatesError } = usePMTemplates();
   const { restrictions } = useSimplifiedOrganizationRestrictions();
@@ -26,7 +29,7 @@ export const useWorkOrderPMChecklist = ({
   // Fetch matching templates based on equipment manufacturer/model compatibility rules
   const { data: matchingTemplates = [], isLoading: isLoadingMatching } = useMatchingPMTemplates(
     selectedEquipment?.id,
-    { enabled: !!selectedEquipment?.id && !selectedEquipment?.default_pm_template_id }
+    { enabled: !!selectedEquipment?.id && (!selectedEquipment?.default_pm_template_id || allowTemplateOverride) }
   );
   
   const isLoading = isLoadingTemplates || isLoadingMatching;
@@ -45,15 +48,16 @@ export const useWorkOrderPMChecklist = ({
   }, [values.hasPM, isLoading, allTemplates.length, matchingTemplates.length, templatesError, selectedEquipment]);
   
   // Check if equipment has an assigned template
-  const hasAssignedTemplate = selectedEquipment?.default_pm_template_id;
+  const hasAssignedTemplate = Boolean(selectedEquipment?.default_pm_template_id);
   const assignedTemplate = hasAssignedTemplate 
-    ? allTemplates.find(t => t.id === selectedEquipment.default_pm_template_id)
+    ? allTemplates.find(t => t.id === selectedEquipment!.default_pm_template_id)
     : null;
+  const lockToAssignedTemplate = hasAssignedTemplate && !allowTemplateOverride;
   
   // Filter templates based on compatibility rules, with fallback to all templates
   // when no rules are configured for the equipment (e.g., newly created equipment)
   const templates = useMemo(() => {
-    if (hasAssignedTemplate) {
+    if (lockToAssignedTemplate) {
       return [];
     }
     
@@ -81,24 +85,25 @@ export const useWorkOrderPMChecklist = ({
     }
 
     return filtered;
-  }, [hasAssignedTemplate, allTemplates, matchingTemplates, restrictions.canCreateCustomPMTemplates, values.pmTemplateId]);
+  }, [lockToAssignedTemplate, allTemplates, matchingTemplates, restrictions.canCreateCustomPMTemplates, values.pmTemplateId]);
   
-  // Find the selected template - prioritize assigned, then form value, then first matched
+  // Find the selected template - prioritize form value, then assigned (when locked), then first matched
   const selectedTemplate = useMemo(() => {
-    if (assignedTemplate) return assignedTemplate;
     if (values.pmTemplateId) {
-      const found = templates.find(t => t.id === values.pmTemplateId);
-      if (found) return found;
+      const fromFiltered = templates.find(t => t.id === values.pmTemplateId);
+      if (fromFiltered) return fromFiltered;
+      const fromAll = allTemplates.find(t => t.id === values.pmTemplateId);
+      if (fromAll) return fromAll;
     }
-    // Auto-select first matching template if available
+    if (lockToAssignedTemplate && assignedTemplate) return assignedTemplate;
     return templates[0] || null;
-  }, [assignedTemplate, values.pmTemplateId, templates]);
+  }, [values.pmTemplateId, templates, allTemplates, lockToAssignedTemplate, assignedTemplate]);
   
   // Auto-set template when equipment is selected or PM is enabled
   useEffect(() => {
     if (!values.hasPM) return;
     
-    if (hasAssignedTemplate && assignedTemplate) {
+    if (lockToAssignedTemplate && assignedTemplate) {
       if (values.pmTemplateId !== assignedTemplate.id) {
         setValue('pmTemplateId', assignedTemplate.id);
       }
@@ -109,13 +114,13 @@ export const useWorkOrderPMChecklist = ({
       if (!isValid) {
         setValue('pmTemplateId', templates[0].id);
       }
-    } else if (templates.length === 0 && values.pmTemplateId && !hasAssignedTemplate) {
+    } else if (templates.length === 0 && values.pmTemplateId && !lockToAssignedTemplate) {
       const isEditMode = allTemplates.some(t => t.id === values.pmTemplateId);
       if (!isEditMode) {
         setValue('pmTemplateId', undefined as unknown as string);
       }
     }
-  }, [hasAssignedTemplate, assignedTemplate, values.hasPM, values.pmTemplateId, templates, allTemplates, setValue]);
+  }, [lockToAssignedTemplate, assignedTemplate, values.hasPM, values.pmTemplateId, templates, allTemplates, setValue]);
 
   const handleTemplateChange = (templateId: string) => {
     setValue('pmTemplateId', templateId);
@@ -125,10 +130,11 @@ export const useWorkOrderPMChecklist = ({
     templates,
     selectedTemplate,
     assignedTemplate,
-    hasAssignedTemplate,
+    hasAssignedTemplate: lockToAssignedTemplate,
     isLoading,
     restrictions,
-    handleTemplateChange
+    handleTemplateChange,
+    allowTemplateOverride,
   };
 };
 

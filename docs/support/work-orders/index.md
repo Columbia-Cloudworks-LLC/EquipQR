@@ -10,6 +10,7 @@ Create, assign, schedule, and close work orders across your teams.
 ## Articles
 
 - [Work order lifecycle reference](./work-order-lifecycle) — The complete status flow and who is allowed to move a work order between each state.
+- [Manage a PM template on an active work order](./manage-pm-template-on-work-order) — Add, change, or remove a PM checklist before the work order is completed or cancelled.
 - [Triage submitted work requests](./triage-submitted-requests) — How Managers handle incoming Requestor submissions: review, accept or reject, schedule, and assign.
 - [Assign a work order](./assign-work-order) — Assign a work order to an individual, a team, or both, and understand how assignment drives notifications and dashboards.
 - [Read the Reports page](./reports-overview) — Open the Reports page to see throughput, backlog, and overdue work across your teams.

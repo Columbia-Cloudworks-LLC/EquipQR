@@ -15,6 +15,8 @@ import { pmChecklistTemplatesService } from '@/features/pm-templates/services/pm
 import { useAuth } from '@/hooks/useAuth';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import { invalidateWorkOrderCaches } from '@/features/work-orders/utils/invalidateWorkOrderQueries';
+import { preventiveMaintenance } from '@/lib/queryKeys';
 
 interface PMData {
   id: string;
@@ -26,6 +28,8 @@ interface PMData {
   /** Server `updated_at` — used for offline PM conflict detection when swapping templates. */
   updated_at?: string | null;
 }
+
+export type WorkOrderUpdateOutcome = 'completed' | 'confirmation_required';
 
 export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: string, pmData?: PMData | null) => {
   const { user } = useAuth();
@@ -222,26 +226,17 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
       throw pmError;
     }
     
-    // Refresh the work order data after update - invalidate all relevant query keys
-    queryClient.invalidateQueries({ 
-      queryKey: ['workOrder', 'enhanced', organizationId, workOrderId] 
-    });
-    queryClient.invalidateQueries({ 
-      queryKey: ['workOrder', organizationId, workOrderId] 
-    });
-    queryClient.invalidateQueries({ 
-      queryKey: ['workOrders', organizationId] 
-    });
-    // Also invalidate PM queries to refresh PM data
-    queryClient.invalidateQueries({ 
-      queryKey: ['preventativeMaintenance', workOrderId] 
-    });
-    // Invalidate equipment-specific PM queries if we have equipment info
-    if (pmData?.equipment_id || equipmentId) {
-      queryClient.invalidateQueries({ 
-        queryKey: ['preventativeMaintenance', workOrderId, pmData?.equipment_id || equipmentId, organizationId] 
+    // Refresh the work order and PM caches after update
+    invalidateWorkOrderCaches(queryClient, organizationId, workOrderId);
+    const effectiveEquipmentId = pmData?.equipment_id || equipmentId || data.equipmentId;
+    if (effectiveEquipmentId) {
+      queryClient.invalidateQueries({
+        queryKey: preventiveMaintenance.byWorkOrderAndEquipment(workOrderId, effectiveEquipmentId, organizationId),
       });
     }
+    queryClient.invalidateQueries({
+      queryKey: preventiveMaintenance.byWorkOrder(workOrderId),
+    });
     
     setIsEditFormOpen(false);
   }, [
@@ -256,7 +251,11 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
   ]);
 
   // Handle form submission with PM change detection
-  const handleUpdateWorkOrder = useCallback(async (data: WorkOrderFormData, originalHasPM?: boolean, equipmentId?: string) => {
+  const handleUpdateWorkOrder = useCallback(async (
+    data: WorkOrderFormData,
+    originalHasPM?: boolean,
+    equipmentId?: string,
+  ): Promise<WorkOrderUpdateOutcome> => {
     // Check if PM is being disabled when PM data exists
     const pmBeingDisabled = originalHasPM === true && data.hasPM === false;
     
@@ -269,7 +268,7 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
       pendingFormDataRef.current = { data, equipmentId };
       setPmChangeType('disable');
       setShowPMWarning(true);
-      return;
+      return 'confirmation_required';
     }
     
     if (pmTemplateChanged && hasMeaningfulPMData()) {
@@ -277,11 +276,12 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
       pendingFormDataRef.current = { data, equipmentId };
       setPmChangeType('change_template');
       setShowPMWarning(true);
-      return;
+      return 'confirmation_required';
     }
     
     // No warning needed, perform update directly
     await performUpdate(data, equipmentId || pmData?.equipment_id);
+    return 'completed';
   }, [pmData, hasMeaningfulPMData, performUpdate]);
 
   // Confirm PM change and proceed with update

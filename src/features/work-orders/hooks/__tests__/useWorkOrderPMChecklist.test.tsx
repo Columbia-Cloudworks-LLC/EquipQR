@@ -238,7 +238,7 @@ describe('useWorkOrderPMChecklist', () => {
       );
 
       expect(result.current.templates).toHaveLength(0);
-      expect(result.current.hasAssignedTemplate).toBe('template-1');
+      expect(result.current.hasAssignedTemplate).toBe(true);
     });
   });
 
@@ -258,7 +258,7 @@ describe('useWorkOrderPMChecklist', () => {
         { wrapper }
       );
 
-      expect(result.current.hasAssignedTemplate).toBe('template-1');
+      expect(result.current.hasAssignedTemplate).toBe(true);
       expect(result.current.assignedTemplate?.id).toBe('template-1');
       expect(result.current.selectedTemplate?.id).toBe('template-1');
     });
@@ -299,6 +299,28 @@ describe('useWorkOrderPMChecklist', () => {
 
       // Should not auto-set when hasPM is false
       expect(setValue).not.toHaveBeenCalled();
+    });
+
+    it('allows template override on active work orders even when equipment has a default template', () => {
+      const setValue = vi.fn();
+      const { result } = renderHook(
+        () => useWorkOrderPMChecklist({
+          values: { hasPM: true, pmTemplateId: 'template-2' },
+          setValue,
+          selectedEquipment: {
+            id: 'equipment-1',
+            name: 'Test Equipment',
+            default_pm_template_id: 'template-1',
+          },
+          allowTemplateOverride: true,
+        }),
+        { wrapper },
+      );
+
+      expect(result.current.hasAssignedTemplate).toBe(false);
+      expect(result.current.templates.length).toBeGreaterThan(0);
+      expect(result.current.templates.map((t) => t.id)).toContain('template-2');
+      expect(result.current.selectedTemplate?.id).toBe('template-2');
     });
   });
 
@@ -398,7 +420,7 @@ describe('useWorkOrderPMChecklist', () => {
     it('handles null selectedEquipment', () => {
       const { result } = renderPMChecklistHook({ selectedEquipment: null });
 
-      expect(result.current.hasAssignedTemplate).toBeUndefined();
+      expect(result.current.hasAssignedTemplate).toBe(false);
       expect(result.current.assignedTemplate).toBeNull();
     });
 
@@ -411,7 +433,7 @@ describe('useWorkOrderPMChecklist', () => {
         },
       });
 
-      expect(result.current.hasAssignedTemplate).toBeNull();
+      expect(result.current.hasAssignedTemplate).toBe(false);
       expect(result.current.assignedTemplate).toBeNull();
       expect(result.current.templates.length).toBeGreaterThan(0);
     });
