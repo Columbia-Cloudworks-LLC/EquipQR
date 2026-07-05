@@ -102,9 +102,14 @@ export const useDeleteWorkOrderCostWithInventoryRestore = () => {
 
       return { inventoryRestored: !!inventoryInfo, quantity: inventoryInfo?.quantity ?? 0 };
     },
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['work-order-costs'] });
-      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.root });
+      queryClient.invalidateQueries({
+        queryKey: inventoryQueryKeys.listPrefix(variables.organizationId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: inventoryQueryKeys.metadata(variables.organizationId),
+      });
       
       if (result.inventoryRestored) {
         toast.success(`Cost deleted. ${result.quantity} unit(s) restored to inventory.`);
@@ -160,9 +165,14 @@ export const useUpdateWorkOrderCostWithInventory = () => {
         delta: result.inventoryAdjustment?.delta ?? 0
       };
     },
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['work-order-costs', result.cost.work_order_id] });
-      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.root });
+      queryClient.invalidateQueries({
+        queryKey: inventoryQueryKeys.listPrefix(variables.organizationId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: inventoryQueryKeys.metadata(variables.organizationId),
+      });
       
       if (result.inventoryAdjusted) {
         const action = result.delta > 0 ? 'restored to' : 'taken from';

@@ -71,6 +71,10 @@ const INVENTORY_DB_SORT_FIELDS = [
 
 type InventoryListQuery = ReturnType<typeof supabase.from<'inventory_items'>>;
 
+function sanitizeInventorySearchTerm(search: string): string {
+  return search.trim().replace(/[,()]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 function applyInventoryListFilters(
   query: InventoryListQuery,
   organizationId: string,
@@ -79,9 +83,12 @@ function applyInventoryListFilters(
   let nextQuery = query.select('*').eq('organization_id', organizationId);
 
   if (filters.search) {
-    nextQuery = nextQuery.or(
-      `name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%,external_id.ilike.%${filters.search}%`,
-    );
+    const searchTerm = sanitizeInventorySearchTerm(filters.search);
+    if (searchTerm) {
+      nextQuery = nextQuery.or(
+        `name.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%,external_id.ilike.%${searchTerm}%`,
+      );
+    }
   }
 
   if (filters.location) {
@@ -99,10 +106,10 @@ function applyInventoryListSort(
   const ascending = (filters.sortOrder ?? 'asc') === 'asc';
 
   if (INVENTORY_DB_SORT_FIELDS.includes(sortBy as (typeof INVENTORY_DB_SORT_FIELDS)[number])) {
-    return query.order(sortBy, { ascending });
+    return query.order(sortBy, { ascending }).order('id', { ascending });
   }
 
-  return query.order('name', { ascending: true });
+  return query.order('name', { ascending: true }).order('id', { ascending: true });
 }
 
 function createInventoryListQuery(

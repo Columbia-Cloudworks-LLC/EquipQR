@@ -131,6 +131,31 @@ describe('getInventoryItems list pagination', () => {
     expect(mockQuery.ilike).toHaveBeenCalledWith('location', '%Warehouse A%');
   });
 
+  it('sanitizes search terms before building the PostgREST filter', async () => {
+    const rows = [makeInventoryRow(0, { name: 'Bracket (Heavy)' })];
+    const { mockQuery } = createRangeMock(rows);
+
+    await getInventoryItems(organizationId, {
+      search: 'bracket,(heavy)',
+    });
+
+    expect(mockQuery.or).toHaveBeenCalledWith(
+      'name.ilike.%bracket heavy%,sku.ilike.%bracket heavy%,external_id.ilike.%bracket heavy%',
+    );
+  });
+
+  it('uses a stable id tiebreaker when sorting batched pages', async () => {
+    const { mockQuery } = createRangeMock([makeInventoryRow(0)]);
+
+    await getInventoryItems(organizationId, {
+      sortBy: 'name',
+      sortOrder: 'asc',
+    });
+
+    expect(mockQuery.order).toHaveBeenCalledWith('name', { ascending: true });
+    expect(mockQuery.order).toHaveBeenCalledWith('id', { ascending: true });
+  });
+
   it('applies lowStockOnly after all batches are combined', async () => {
     const rows = [
       makeInventoryRow(0, { quantity_on_hand: 50, low_stock_threshold: 10 }),
