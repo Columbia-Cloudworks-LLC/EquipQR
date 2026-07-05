@@ -13,6 +13,7 @@ import {
   type UpdateWorkOrderCostData
 } from '@/features/work-orders/services/workOrderCostsService';
 import { adjustInventoryQuantity } from '@/features/inventory/services/inventoryService';
+import { inventory as inventoryQueryKeys } from '@/lib/queryKeys';
 
 export const useWorkOrderCosts = (workOrderId: string) => {
   return useQuery({
@@ -103,7 +104,7 @@ export const useDeleteWorkOrderCostWithInventoryRestore = () => {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['work-order-costs'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
+      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.root });
       
       if (result.inventoryRestored) {
         toast.success(`Cost deleted. ${result.quantity} unit(s) restored to inventory.`);
@@ -161,7 +162,7 @@ export const useUpdateWorkOrderCostWithInventory = () => {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['work-order-costs', result.cost.work_order_id] });
-      queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
+      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.root });
       
       if (result.inventoryAdjusted) {
         const action = result.delta > 0 ? 'restored to' : 'taken from';

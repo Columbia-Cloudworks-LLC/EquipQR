@@ -258,8 +258,8 @@ export const useBulkEditInventory = (
 
         const orgId = currentOrganization?.id;
         if (orgId) {
-          queryClient.invalidateQueries({ queryKey: ['inventory-items', orgId] });
-          queryClient.invalidateQueries({ queryKey: ['inventory-list-metadata', orgId] });
+          queryClient.invalidateQueries({ queryKey: inventoryKeys.listPrefix(orgId) });
+          queryClient.invalidateQueries({ queryKey: inventoryKeys.metadata(orgId) });
           for (const id of succeeded) {
             queryClient.invalidateQueries({ queryKey: ['inventory-item', orgId, id] });
             queryClient.invalidateQueries({ queryKey: ['inventory-transactions', orgId, id] });

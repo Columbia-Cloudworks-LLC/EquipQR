@@ -2,6 +2,7 @@ import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Query } from '@tanstack/react-query';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
+import { inventory } from '@/lib/queryKeys';
 import { useInventoryItems } from '../useInventory';
 
 const useQueryMock = vi.fn();
@@ -35,7 +36,7 @@ function getPlaceholderDataFromLastCall(): PlaceholderDataFn {
 
 function makePreviousQuery(orgId: string): Query {
   return {
-    queryKey: ['inventory-items', orgId, {}],
+    queryKey: inventory.list(orgId, {}),
   } as Query;
 }
 
