@@ -72,6 +72,7 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.invoke_queue_worker() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.invoke_queue_worker() FROM anon;
 REVOKE EXECUTE ON FUNCTION public.invoke_queue_worker() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.invoke_queue_worker() FROM service_role;
 
 CREATE OR REPLACE FUNCTION public.refresh_stripe_materialized_views()
 RETURNS void
@@ -106,6 +107,7 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.refresh_stripe_materialized_views() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.refresh_stripe_materialized_views() FROM anon;
 REVOKE EXECUTE ON FUNCTION public.refresh_stripe_materialized_views() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.refresh_stripe_materialized_views() FROM service_role;
 
 CREATE OR REPLACE FUNCTION public._invoke_quickbooks_token_refresh_internal()
 RETURNS void
@@ -156,6 +158,7 @@ $$;
 REVOKE EXECUTE ON FUNCTION public._invoke_quickbooks_token_refresh_internal() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public._invoke_quickbooks_token_refresh_internal() FROM anon;
 REVOKE EXECUTE ON FUNCTION public._invoke_quickbooks_token_refresh_internal() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public._invoke_quickbooks_token_refresh_internal() FROM service_role;
 
 COMMENT ON FUNCTION public._invoke_quickbooks_token_refresh_internal() IS
   'Internal vault-backed QuickBooks token refresh HTTP call. Not callable via PostgREST; '
@@ -183,6 +186,7 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.invoke_quickbooks_token_refresh() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.invoke_quickbooks_token_refresh() FROM anon;
 REVOKE EXECUTE ON FUNCTION public.invoke_quickbooks_token_refresh() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.invoke_quickbooks_token_refresh() FROM service_role;
 
 CREATE OR REPLACE FUNCTION public.refresh_quickbooks_tokens_manual()
 RETURNS TABLE(
@@ -218,9 +222,17 @@ BEGIN
   END IF;
 
   SELECT COUNT(*) INTO cred_count
-  FROM public.quickbooks_credentials
-  WHERE access_token_expires_at < (NOW() + INTERVAL '15 minutes')
-    AND refresh_token_expires_at > NOW();
+  FROM public.quickbooks_credentials qc
+  WHERE qc.access_token_expires_at < (NOW() + INTERVAL '15 minutes')
+    AND qc.refresh_token_expires_at > NOW()
+    AND EXISTS (
+      SELECT 1
+      FROM public.organization_members om
+      WHERE om.organization_id = qc.organization_id
+        AND om.user_id = v_user_id
+        AND om.status = 'active'
+        AND public.can_user_manage_quickbooks(v_user_id, om.organization_id)
+    );
 
   PERFORM public._invoke_quickbooks_token_refresh_internal();
 

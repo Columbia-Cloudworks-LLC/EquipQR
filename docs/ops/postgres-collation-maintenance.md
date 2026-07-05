@@ -77,6 +77,15 @@ The recurring Postgres **ERROR** `invalid input syntax for type oid: "postgres"`
 
 After that migration deploys, verify queue-worker cron intervals no longer emit the invalid OID error in Supabase Postgres logs.
 
+## Issue closure scope (#1141)
+
+| Root cause | Remediation in repo | Post-merge verification |
+|------------|---------------------|-------------------------|
+| Cron helper `current_user::oid` cast | Migration `20260705130000_fix_cron_helper_role_checks.sql` | Postgres logs: no `invalid input syntax for type oid: "postgres"` after two cron intervals |
+| Collation version mismatch (WARNING) | This runbook only — requires approved production REINDEX + `ALTER DATABASE postgres REFRESH COLLATION VERSION` | Validation query: `datcollversion` equals `actual_version`; connection warnings stop |
+
+Track collation execution in [#1143](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/1143). Do not encode collation DDL in repo migrations.
+
 ## References
 
 - [PostgreSQL ALTER DATABASE … REFRESH COLLATION VERSION](https://www.postgresql.org/docs/current/sql-alterdatabase.html)
