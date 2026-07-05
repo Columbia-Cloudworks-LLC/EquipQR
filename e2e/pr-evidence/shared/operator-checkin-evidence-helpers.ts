@@ -166,6 +166,60 @@ export async function extractOperatorCheckinTokenFromQrDialog(page: Page): Promi
   return token;
 }
 
+function getPublicCheckinChecklistRow(page: Page, itemTitle?: string) {
+  const rows = page.locator('[data-testid^="checklist-item-row-"]');
+  return itemTitle ? rows.filter({ hasText: itemTitle }).first() : rows.first();
+}
+
+/** Scrolls the mobile public checklist UI into the viewport for PR evidence screenshots. */
+export async function framePublicCheckinChecklistIntro(page: Page): Promise<void> {
+  const swipeHint = page.getByText(/swipe right for pass, left for fail/i);
+  const firstRow = getPublicCheckinChecklistRow(page);
+  await firstRow.scrollIntoViewIfNeeded();
+  await expect(firstRow.getByRole('button', { name: /^pass:/i })).toBeVisible({ timeout: 15_000 });
+  await swipeHint.evaluate((element) => element.scrollIntoView({ block: 'start', inline: 'nearest' }));
+  await page.waitForTimeout(400);
+}
+
+/** Centers a checklist row that shows Pass/Fail state after swiping. */
+export async function framePublicCheckinAnsweredRow(
+  page: Page,
+  itemTitle: string,
+  expectedStatus: 'pass' | 'fail',
+): Promise<void> {
+  const row = getPublicCheckinChecklistRow(page, itemTitle);
+  await row.scrollIntoViewIfNeeded();
+  await expect(row.locator('[data-testid^="checklist-item-status-"]')).toHaveText(
+    new RegExp(`^${expectedStatus}$`, 'i'),
+    { timeout: 15_000 },
+  );
+  await row.evaluate((element) => element.scrollIntoView({ block: 'center', inline: 'nearest' }));
+  await page.waitForTimeout(400);
+}
+
+/** Centers a cleared checklist row and the reset affordance after reset. */
+export async function framePublicCheckinResetState(page: Page): Promise<void> {
+  const firstRow = getPublicCheckinChecklistRow(page);
+  await firstRow.scrollIntoViewIfNeeded();
+  await expect(firstRow.locator('[data-testid^="checklist-item-status-"]')).toHaveText(/^not checked$/i, {
+    timeout: 15_000,
+  });
+  await expect(firstRow.getByRole('button', { name: /^pass:/i })).toBeVisible();
+  await firstRow.evaluate((element) => element.scrollIntoView({ block: 'center', inline: 'nearest' }));
+  await page.waitForTimeout(400);
+}
+
+/** Scrolls the equipment assignment card into view for admin evidence. */
+export async function frameEquipmentCheckinAssignment(page: Page, templateName: string): Promise<void> {
+  const assignmentRow = getOperatorCheckinAssignmentRow(page, templateName);
+  await assignmentRow.scrollIntoViewIfNeeded();
+  await expect(assignmentRow.getByRole('button', { name: /view qr code/i })).toBeVisible({
+    timeout: 15_000,
+  });
+  await assignmentRow.evaluate((element) => element.scrollIntoView({ block: 'center', inline: 'nearest' }));
+  await page.waitForTimeout(400);
+}
+
 export async function fillOdometerLogPublicForm(page: Page): Promise<void> {
   await page.getByLabel(/driver \/ operator name/i).fill('Evidence Operator');
   const odometerField = page.getByLabel(/odometer reading/i);
@@ -179,7 +233,8 @@ export async function swipePublicChecklistItem(
   itemTitle: string,
   direction: 'pass' | 'fail',
 ): Promise<void> {
-  const row = page.locator('[data-testid^="checklist-item-row-"]').filter({ hasText: itemTitle }).first();
+  const row = getPublicCheckinChecklistRow(page, itemTitle);
+  await row.scrollIntoViewIfNeeded();
   await expect(row).toBeVisible({ timeout: 15_000 });
   const box = await row.boundingBox();
   if (!box) {
@@ -193,6 +248,16 @@ export async function swipePublicChecklistItem(
   await page.mouse.down();
   await page.mouse.move(endX, y, { steps: 12 });
   await page.mouse.up();
+
+  const expectedStatus = direction === 'pass' ? /^pass$/i : /^fail$/i;
+  const status = row.locator('[data-testid^="checklist-item-status-"]');
+  try {
+    await expect(status).toHaveText(expectedStatus, { timeout: 3_000 });
+  } catch {
+    const buttonName = direction === 'pass' ? /^pass:/i : /^fail:/i;
+    await row.getByRole('button', { name: buttonName }).click({ force: true });
+    await expect(status).toHaveText(expectedStatus, { timeout: 5_000 });
+  }
 }
 
 export async function passRemainingPublicChecklistItems(page: Page): Promise<void> {

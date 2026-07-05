@@ -12,6 +12,10 @@ import {
   expectLedgerSubmissionVisible,
   extractOperatorCheckinTokenFromQrDialog,
   fillOdometerLogPublicForm,
+  frameEquipmentCheckinAssignment,
+  framePublicCheckinAnsweredRow,
+  framePublicCheckinChecklistIntro,
+  framePublicCheckinResetState,
   getYourTemplateCard,
   navigateToEquipmentDetails,
   openDailyLedgerTab,
@@ -68,6 +72,7 @@ test.describe.serial('Daily operator check-ins end-to-end @pr-evidence', () => {
     );
     await assertHealthyShell();
     await assignTemplateOnEquipmentDetails(page, EVIDENCE_TEMPLATE_NAME);
+    await frameEquipmentCheckinAssignment(page, EVIDENCE_TEMPLATE_NAME);
     await evidencePause(page, 800);
     await evidenceScreenshot(page, '02-admin-template-assigned-equipment');
     await openEquipmentCheckinQrDialog(page, EVIDENCE_TEMPLATE_NAME);
@@ -90,6 +95,7 @@ test.describe.serial('Daily operator check-ins end-to-end @pr-evidence', () => {
     await expect(publicPage.getByLabel(/driver \/ operator name/i)).toBeVisible();
     await expect(publicPage.getByText(/swipe right for pass, left for fail/i)).toBeVisible();
 
+    await framePublicCheckinChecklistIntro(publicPage);
     await evidencePause(publicPage, 800);
     await evidenceScreenshot(publicPage, '04-public-operator-form-loaded');
 
@@ -97,12 +103,14 @@ test.describe.serial('Daily operator check-ins end-to-end @pr-evidence', () => {
     await swipePublicChecklistItem(publicPage, 'Service brakes operate correctly', 'pass');
     await swipePublicChecklistItem(publicPage, 'Headlights and tail lights working', 'fail');
 
+    await framePublicCheckinAnsweredRow(publicPage, 'Headlights and tail lights working', 'fail');
     await evidencePause(publicPage, 800);
     await evidenceScreenshot(publicPage, '05-public-operator-swipe-answers');
 
     await resetPublicCheckinForm(publicPage);
     await expect(publicPage.getByText(/not checked/i).first()).toBeVisible({ timeout: 15_000 });
 
+    await framePublicCheckinResetState(publicPage);
     await evidencePause(publicPage, 800);
     await evidenceScreenshot(publicPage, '06-public-operator-form-reset');
 

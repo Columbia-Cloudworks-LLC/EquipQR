@@ -122,6 +122,7 @@ export function OperatorCheckinChecklistItemRow({
           className="min-h-[44px] flex-1 touch-manipulation"
           aria-pressed={status === 'pass'}
           aria-label={`Pass: ${item.title}`}
+          onPointerDown={(event) => event.stopPropagation()}
           onClick={() => onAnswer(true)}
         >
           Pass
@@ -133,6 +134,7 @@ export function OperatorCheckinChecklistItemRow({
           className="min-h-[44px] flex-1 touch-manipulation"
           aria-pressed={status === 'fail'}
           aria-label={`Fail: ${item.title}`}
+          onPointerDown={(event) => event.stopPropagation()}
           onClick={() => onAnswer(false)}
         >
           Fail
