@@ -35,7 +35,7 @@ type HistoricalTimelineEditorProps = {
 };
 
 function resizeTextarea(element: HTMLTextAreaElement) {
-  element.style.height = 'auto';
+  element.style.height = '0px';
   element.style.height = `${element.scrollHeight}px`;
 }
 
@@ -70,7 +70,7 @@ function AutoGrowReasonTextarea({ id, value, onChange, placeholder }: AutoGrowRe
       value={value}
       onChange={handleChange}
       rows={2}
-      className="min-h-0 resize-none overflow-hidden"
+      className="min-h-[calc(2*1.25rem+1rem)] resize-none overflow-y-hidden"
       placeholder={placeholder}
     />
   );
