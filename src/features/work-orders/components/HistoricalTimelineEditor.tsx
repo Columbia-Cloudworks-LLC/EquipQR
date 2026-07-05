@@ -34,9 +34,19 @@ type HistoricalTimelineEditorProps = {
   onIncompleteRowsChange?: (hasIncompleteRows: boolean) => void;
 };
 
+const REASON_TEXTAREA_MAX_HEIGHT_PX = 192;
+
 function resizeTextarea(element: HTMLTextAreaElement) {
   element.style.height = '0px';
-  element.style.height = `${element.scrollHeight}px`;
+  const measuredHeight = element.scrollHeight;
+  if (measuredHeight > REASON_TEXTAREA_MAX_HEIGHT_PX) {
+    element.style.height = `${REASON_TEXTAREA_MAX_HEIGHT_PX}px`;
+    element.style.overflowY = 'auto';
+    return;
+  }
+
+  element.style.height = `${measuredHeight}px`;
+  element.style.overflowY = 'hidden';
 }
 
 type AutoGrowReasonTextareaProps = {
@@ -70,7 +80,7 @@ function AutoGrowReasonTextarea({ id, value, onChange, placeholder }: AutoGrowRe
       value={value}
       onChange={handleChange}
       rows={2}
-      className="min-h-[calc(2*1.25rem+1rem)] resize-none overflow-y-hidden"
+      className="max-h-48 min-h-[calc(2*1.25rem+1rem)] resize-none [field-sizing:content]"
       placeholder={placeholder}
     />
   );
