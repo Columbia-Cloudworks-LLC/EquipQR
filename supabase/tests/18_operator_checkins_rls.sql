@@ -194,9 +194,8 @@ SELECT throws_ok(
        true,
        encode(digest('test-token-cross-org', 'sha256'), 'hex')
      ) $$,
-  '23503',
-  'insert or update on table "equipment_operator_checkin_settings" violates foreign key constraint "equipment_operator_checkin_settings_template_org_fkey"',
-  'cross-org template assignment is rejected by composite foreign key'
+  'template assignment organization mismatch',
+  'cross-org template assignment is rejected by org validation trigger'
 );
 
 SELECT throws_ok(
@@ -210,9 +209,8 @@ SELECT throws_ok(
        true,
        encode(digest('test-token-cross-org-equipment', 'sha256'), 'hex')
      ) $$,
-  '23503',
-  'insert or update on table "equipment_operator_checkin_settings" violates foreign key constraint "equipment_operator_checkin_settings_equipment_org_fkey"',
-  'cross-org equipment assignment is rejected by composite foreign key'
+  'equipment assignment organization mismatch',
+  'cross-org equipment assignment is rejected by org validation trigger'
 );
 
 SET LOCAL role TO authenticated;

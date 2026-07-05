@@ -7,14 +7,14 @@ BEGIN;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_operator_checklist_templates_id_org
   ON public.operator_checklist_templates (id, organization_id);
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_equipment_id_org
-  ON public.equipment (id, organization_id);
-
 ALTER TABLE public.equipment_operator_checkin_settings
   DROP CONSTRAINT IF EXISTS equipment_operator_checkin_settings_template_id_fkey;
 
 ALTER TABLE public.equipment_operator_checkin_settings
   DROP CONSTRAINT IF EXISTS equipment_operator_checkin_settings_equipment_id_fkey;
+
+ALTER TABLE public.equipment_operator_checkin_settings
+  DROP CONSTRAINT IF EXISTS equipment_operator_checkin_settings_equipment_org_fkey;
 
 ALTER TABLE public.equipment_operator_checkin_settings
   ADD CONSTRAINT equipment_operator_checkin_settings_template_org_fkey
@@ -23,9 +23,9 @@ ALTER TABLE public.equipment_operator_checkin_settings
   ON DELETE RESTRICT;
 
 ALTER TABLE public.equipment_operator_checkin_settings
-  ADD CONSTRAINT equipment_operator_checkin_settings_equipment_org_fkey
-  FOREIGN KEY (equipment_id, organization_id)
-  REFERENCES public.equipment (id, organization_id)
+  ADD CONSTRAINT equipment_operator_checkin_settings_equipment_id_fkey
+  FOREIGN KEY (equipment_id)
+  REFERENCES public.equipment (id)
   ON DELETE CASCADE;
 
 DROP POLICY IF EXISTS equipment_operator_checkin_settings_insert_admin
@@ -46,6 +46,66 @@ CREATE POLICY equipment_operator_checkin_settings_insert_admin
         AND tpl.organization_id = equipment_operator_checkin_settings.organization_id
     )
   );
+
+DROP POLICY IF EXISTS equipment_operator_checkin_settings_update_admin
+  ON public.equipment_operator_checkin_settings;
+
+CREATE POLICY equipment_operator_checkin_settings_update_admin
+  ON public.equipment_operator_checkin_settings
+  FOR UPDATE
+  USING (
+    public.is_org_admin((SELECT auth.uid()), organization_id)
+  )
+  WITH CHECK (
+    public.is_org_admin((SELECT auth.uid()), organization_id)
+    AND EXISTS (
+      SELECT 1 FROM public.equipment e
+      WHERE e.id = equipment_operator_checkin_settings.equipment_id
+        AND e.organization_id = equipment_operator_checkin_settings.organization_id
+    )
+    AND EXISTS (
+      SELECT 1 FROM public.operator_checklist_templates tpl
+      WHERE tpl.id = equipment_operator_checkin_settings.template_id
+        AND tpl.organization_id = equipment_operator_checkin_settings.organization_id
+    )
+  );
+
+CREATE OR REPLACE FUNCTION public.validate_operator_checkin_settings_org_refs()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.equipment e
+    WHERE e.id = NEW.equipment_id
+      AND e.organization_id = NEW.organization_id
+  ) THEN
+    RAISE EXCEPTION 'equipment assignment organization mismatch';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.operator_checklist_templates tpl
+    WHERE tpl.id = NEW.template_id
+      AND tpl.organization_id = NEW.organization_id
+  ) THEN
+    RAISE EXCEPTION 'template assignment organization mismatch';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_validate_operator_checkin_settings_org_refs
+  ON public.equipment_operator_checkin_settings;
+
+CREATE TRIGGER trg_validate_operator_checkin_settings_org_refs
+  BEFORE INSERT OR UPDATE OF equipment_id, template_id, organization_id
+  ON public.equipment_operator_checkin_settings
+  FOR EACH ROW
+  EXECUTE FUNCTION public.validate_operator_checkin_settings_org_refs();
 
 -- One-time repair for existing inconsistent rows (org-scoped).
 UPDATE public.operator_checklist_templates AS t
