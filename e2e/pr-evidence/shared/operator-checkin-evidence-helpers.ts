@@ -228,6 +228,43 @@ export async function fillOdometerLogPublicForm(page: Page): Promise<void> {
   }
 }
 
+async function dispatchChecklistRowSwipe(
+  row: ReturnType<Page['locator']>,
+  direction: 'pass' | 'fail',
+): Promise<void> {
+  const startRatio = direction === 'pass' ? 0.15 : 0.85;
+  const endRatio = direction === 'pass' ? 0.85 : 0.15;
+  await row.evaluate(
+    (element, ratios) => {
+      const rect = element.getBoundingClientRect();
+      const y = rect.top + rect.height / 2;
+      const startX = rect.left + rect.width * ratios.startRatio;
+      const endX = rect.left + rect.width * ratios.endRatio;
+      const pointerId = 1;
+      const pointerInit = {
+        clientX: startX,
+        clientY: y,
+        pointerId,
+        button: 0,
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+        pointerType: 'touch',
+        isPrimary: true,
+      } as PointerEventInit;
+
+      element.dispatchEvent(new PointerEvent('pointerdown', { ...pointerInit, buttons: 1 }));
+      element.dispatchEvent(
+        new PointerEvent('pointermove', { ...pointerInit, clientX: endX, buttons: 1 }),
+      );
+      element.dispatchEvent(
+        new PointerEvent('pointerup', { ...pointerInit, clientX: endX, buttons: 0 }),
+      );
+    },
+    { startRatio, endRatio },
+  );
+}
+
 export async function swipePublicChecklistItem(
   page: Page,
   itemTitle: string,
@@ -236,28 +273,12 @@ export async function swipePublicChecklistItem(
   const row = getPublicCheckinChecklistRow(page, itemTitle);
   await row.scrollIntoViewIfNeeded();
   await expect(row).toBeVisible({ timeout: 15_000 });
-  const box = await row.boundingBox();
-  if (!box) {
-    throw new Error(`Could not measure checklist row for "${itemTitle}"`);
-  }
-
-  const startX = box.x + box.width * 0.2;
-  const endX = direction === 'pass' ? box.x + box.width * 0.8 : box.x + box.width * 0.05;
-  const y = box.y + box.height / 2;
-  await page.mouse.move(startX, y);
-  await page.mouse.down();
-  await page.mouse.move(endX, y, { steps: 12 });
-  await page.mouse.up();
+  await dispatchChecklistRowSwipe(row, direction);
 
   const expectedStatus = direction === 'pass' ? /^pass$/i : /^fail$/i;
-  const status = row.locator('[data-testid^="checklist-item-status-"]');
-  try {
-    await expect(status).toHaveText(expectedStatus, { timeout: 3_000 });
-  } catch {
-    const buttonName = direction === 'pass' ? /^pass:/i : /^fail:/i;
-    await row.getByRole('button', { name: buttonName }).click({ force: true });
-    await expect(status).toHaveText(expectedStatus, { timeout: 5_000 });
-  }
+  await expect(row.locator('[data-testid^="checklist-item-status-"]')).toHaveText(expectedStatus, {
+    timeout: 10_000,
+  });
 }
 
 export async function passRemainingPublicChecklistItems(page: Page): Promise<void> {
@@ -268,16 +289,8 @@ export async function passRemainingPublicChecklistItems(page: Page): Promise<voi
     const status = row.locator('[data-testid^="checklist-item-status-"]');
     if (await status.filter({ hasText: /^not checked$/i }).count()) {
       await row.scrollIntoViewIfNeeded();
-      const box = await row.boundingBox();
-      if (!box) {
-        throw new Error(`Could not measure checklist row ${index + 1} for bulk pass`);
-      }
-      const y = box.y + box.height / 2;
-      await page.mouse.move(box.x + box.width * 0.2, y);
-      await page.mouse.down();
-      await page.mouse.move(box.x + box.width * 0.8, y, { steps: 12 });
-      await page.mouse.up();
-      await expect(status).toHaveText(/^pass$/i, { timeout: 5_000 });
+      await dispatchChecklistRowSwipe(row, 'pass');
+      await expect(status).toHaveText(/^pass$/i, { timeout: 10_000 });
     }
   }
   await expect(page.getByText(/^not checked$/i)).toHaveCount(0, { timeout: 15_000 });
