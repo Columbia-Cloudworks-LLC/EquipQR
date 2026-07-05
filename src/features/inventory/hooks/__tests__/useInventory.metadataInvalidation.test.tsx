@@ -1,5 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { inventory } from '@/lib/queryKeys';
 import {
   useAdjustInventoryQuantity,
   useCreateInventoryItem,
@@ -48,7 +49,10 @@ describe('inventory metadata invalidation', () => {
     );
 
     expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ['inventory-list-metadata', 'org-1'],
+      queryKey: inventory.metadata('org-1'),
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: inventory.listPrefix('org-1'),
     });
   });
 
@@ -61,7 +65,10 @@ describe('inventory metadata invalidation', () => {
     );
 
     expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ['inventory-list-metadata', 'org-1'],
+      queryKey: inventory.metadata('org-1'),
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: inventory.listPrefix('org-1'),
     });
   });
 
@@ -74,7 +81,10 @@ describe('inventory metadata invalidation', () => {
     });
 
     expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ['inventory-list-metadata', 'org-1'],
+      queryKey: inventory.metadata('org-1'),
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: inventory.listPrefix('org-1'),
     });
   });
 
@@ -91,7 +101,10 @@ describe('inventory metadata invalidation', () => {
     });
 
     expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ['inventory-list-metadata', 'org-1'],
+      queryKey: inventory.metadata('org-1'),
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: inventory.listPrefix('org-1'),
     });
   });
 });

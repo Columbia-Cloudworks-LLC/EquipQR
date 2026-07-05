@@ -7,6 +7,12 @@ export const notifications = {
 // Inventory keys
 export const inventory = {
   root: ['inventory'] as const,
+  list: (orgId: string, filters?: Record<string, unknown>) =>
+    filters
+      ? (['inventory', orgId, 'list', filters] as const)
+      : (['inventory', orgId, 'list'] as const),
+  listPrefix: (orgId: string) => ['inventory', orgId, 'list'] as const,
+  metadata: (orgId: string) => ['inventory', orgId, 'metadata'] as const,
   itemImages: (orgId: string, itemId: string) =>
     ['inventory-item-images', orgId, itemId] as const,
   itemAlternates: (orgId: string, itemId: string) =>

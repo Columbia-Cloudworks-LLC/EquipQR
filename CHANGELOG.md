@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.12.8] - 2026-07-05
+
+### Fixed
+
+- **Inventory list pagination (#1133)** — Inventory list fetches now use bounded Supabase range batches (500 rows per request) instead of loading all organization parts in one query, preserving existing list filters, sorting, exports, and quick filters.
+
 ## [3.12.7] - 2026-07-05
 
 ### Fixed

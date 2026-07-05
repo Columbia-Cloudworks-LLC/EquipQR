@@ -6,6 +6,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import type {
   InventoryItem,
+  InventoryItemRow,
   InventoryItemImage,
   InventoryTransaction,
   InventoryQuantityAdjustment,
@@ -54,61 +55,109 @@ import { validateStorageQuota } from '@/utils/storageQuota';
 // Get Inventory Items
 // ============================================
 
+export const INVENTORY_LIST_BATCH_SIZE = 500;
+
+const INVENTORY_DB_SORT_FIELDS = [
+  'name',
+  'sku',
+  'external_id',
+  'quantity_on_hand',
+  'low_stock_threshold',
+  'location',
+  'default_unit_cost',
+  'created_at',
+  'updated_at',
+] as const;
+
+type InventoryListQuery = ReturnType<typeof supabase.from<'inventory_items'>>;
+
+function sanitizeInventorySearchTerm(search: string): string {
+  return search.trim().replace(/[,()]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function applyInventoryListFilters(
+  query: InventoryListQuery,
+  organizationId: string,
+  filters: InventoryFilters,
+): InventoryListQuery {
+  let nextQuery = query.select('*').eq('organization_id', organizationId);
+
+  if (filters.search) {
+    const searchTerm = sanitizeInventorySearchTerm(filters.search);
+    if (searchTerm) {
+      nextQuery = nextQuery.or(
+        `name.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%,external_id.ilike.%${searchTerm}%`,
+      );
+    }
+  }
+
+  if (filters.location) {
+    nextQuery = nextQuery.ilike('location', `%${filters.location}%`);
+  }
+
+  return nextQuery;
+}
+
+function applyInventoryListSort(
+  query: InventoryListQuery,
+  filters: InventoryFilters,
+): InventoryListQuery {
+  const sortBy = filters.sortBy ?? 'name';
+  const ascending = (filters.sortOrder ?? 'asc') === 'asc';
+
+  if (INVENTORY_DB_SORT_FIELDS.includes(sortBy as (typeof INVENTORY_DB_SORT_FIELDS)[number])) {
+    return query.order(sortBy, { ascending }).order('id', { ascending });
+  }
+
+  return query.order('name', { ascending: true }).order('id', { ascending: true });
+}
+
+function createInventoryListQuery(
+  organizationId: string,
+  filters: InventoryFilters,
+): InventoryListQuery {
+  const baseQuery = supabase.from('inventory_items');
+  const filteredQuery = applyInventoryListFilters(baseQuery, organizationId, filters);
+  return applyInventoryListSort(filteredQuery, filters);
+}
+
+async function fetchInventoryItemRowsInBatches(
+  organizationId: string,
+  filters: InventoryFilters,
+): Promise<InventoryItemRow[]> {
+  const rows: InventoryItemRow[] = [];
+  let offset = 0;
+
+  while (true) {
+    const query = createInventoryListQuery(organizationId, filters);
+    const from = offset;
+    const to = offset + INVENTORY_LIST_BATCH_SIZE - 1;
+    const { data, error } = await query.range(from, to);
+
+    if (error) throw error;
+
+    const batch = data ?? [];
+    rows.push(...batch);
+
+    if (batch.length < INVENTORY_LIST_BATCH_SIZE) {
+      break;
+    }
+
+    offset += INVENTORY_LIST_BATCH_SIZE;
+  }
+
+  return rows;
+}
+
 export const getInventoryItems = async (
   organizationId: string,
   filters: InventoryFilters = {}
 ): Promise<InventoryItem[]> => {
   try {
-    const sortBy = filters.sortBy ?? 'name';
-    const ascending = (filters.sortOrder ?? 'asc') === 'asc';
-
-    let query = supabase
-      .from('inventory_items')
-      .select('*')
-      .eq('organization_id', organizationId);
-
-    // Apply search filter
-    if (filters.search) {
-      query = query.or(
-        `name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%,external_id.ilike.%${filters.search}%`
-      );
-    }
-
-    // Apply low stock filter - this is handled client-side after fetch
-    // (PostgreSQL doesn't support comparing two columns directly in WHERE clause easily)
-
-    // Apply location filter
-    if (filters.location) {
-      query = query.ilike('location', `%${filters.location}%`);
-    }
-
-    // Note: Equipment compatibility filter is not applied in this function.
-    // Use getCompatibleInventoryItems for equipment-based filtering.
-
-    const dbSortFields = [
-      'name',
-      'sku',
-      'external_id',
-      'quantity_on_hand',
-      'low_stock_threshold',
-      'location',
-      'default_unit_cost',
-      'created_at',
-      'updated_at',
-    ] as const;
-
-    if (dbSortFields.includes(sortBy as (typeof dbSortFields)[number])) {
-      query = query.order(sortBy, { ascending });
-    } else {
-      query = query.order('name', { ascending: true });
-    }
-
-    const { data, error } = await query;
-
-    if (error) throw error;
+    const data = await fetchInventoryItemRowsInBatches(organizationId, filters);
 
     // Calculate low stock status and apply low stock filter if needed
-    let items = (data || []).map(item => ({
+    let items = data.map(item => ({
       ...item,
       isLowStock: item.quantity_on_hand <= item.low_stock_threshold
     }));

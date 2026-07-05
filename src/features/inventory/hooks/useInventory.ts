@@ -35,6 +35,7 @@ import type {
 } from '@/features/inventory/types/inventory';
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
 import { useAppToast } from '@/hooks/useAppToast';
+import { inventory as inventoryKeys } from '@/lib/queryKeys';
 import { invalidateEquipmentLinkQueries } from '@/features/inventory/hooks/inventoryEquipmentLinkMutations';
 
 const DEFAULT_STALE_TIME = 5 * 60 * 1000; // 5 minutes
@@ -80,7 +81,7 @@ export const useInventoryItems = (
   const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
 
   return useQuery({
-    queryKey: ['inventory-items', organizationId, filters],
+    queryKey: inventoryKeys.list(organizationId ?? '', filters),
     queryFn: async () => {
       if (!organizationId) return [];
       return await getInventoryItems(organizationId, filters);
@@ -109,7 +110,7 @@ export const useInventoryListMetadata = (
   const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
 
   return useQuery({
-    queryKey: ['inventory-list-metadata', organizationId],
+    queryKey: inventoryKeys.metadata(organizationId ?? ''),
     queryFn: async () => {
       if (!organizationId) {
         return {
@@ -269,10 +270,10 @@ export const useCreateInventoryItem = () => {
     onSuccess: (data, variables) => {
       // Invalidate inventory items list
       queryClient.invalidateQueries({
-        queryKey: ['inventory-items', variables.organizationId]
+        queryKey: inventoryKeys.listPrefix(variables.organizationId),
       });
       queryClient.invalidateQueries({
-        queryKey: ['inventory-list-metadata', variables.organizationId]
+        queryKey: inventoryKeys.metadata(variables.organizationId),
       });
       toast({
         title: 'Inventory item created',
@@ -308,10 +309,10 @@ export const useUpdateInventoryItem = () => {
     onSuccess: (data, variables) => {
       // Invalidate related queries
       queryClient.invalidateQueries({
-        queryKey: ['inventory-items', variables.organizationId]
+        queryKey: inventoryKeys.listPrefix(variables.organizationId),
       });
       queryClient.invalidateQueries({
-        queryKey: ['inventory-list-metadata', variables.organizationId]
+        queryKey: inventoryKeys.metadata(variables.organizationId),
       });
       queryClient.invalidateQueries({
         queryKey: ['inventory-item', variables.organizationId, variables.itemId]
@@ -348,10 +349,10 @@ export const useDeleteInventoryItem = () => {
     onSuccess: (_, variables) => {
       // Invalidate inventory items list
       queryClient.invalidateQueries({
-        queryKey: ['inventory-items', variables.organizationId]
+        queryKey: inventoryKeys.listPrefix(variables.organizationId),
       });
       queryClient.invalidateQueries({
-        queryKey: ['inventory-list-metadata', variables.organizationId]
+        queryKey: inventoryKeys.metadata(variables.organizationId),
       });
       toast({
         title: 'Inventory item deleted',
@@ -387,10 +388,10 @@ export const useAdjustInventoryQuantity = () => {
     onSuccess: (newQuantity, variables) => {
       // Invalidate related queries
       queryClient.invalidateQueries({
-        queryKey: ['inventory-items', variables.organizationId]
+        queryKey: inventoryKeys.listPrefix(variables.organizationId),
       });
       queryClient.invalidateQueries({
-        queryKey: ['inventory-list-metadata', variables.organizationId]
+        queryKey: inventoryKeys.metadata(variables.organizationId),
       });
       queryClient.invalidateQueries({
         queryKey: ['inventory-item', variables.organizationId, variables.adjustment.itemId]
