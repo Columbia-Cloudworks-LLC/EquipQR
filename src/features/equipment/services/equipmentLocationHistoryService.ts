@@ -94,42 +94,37 @@ export async function getEquipmentLocationHistory(
   equipmentId: string,
   limit: number = DEFAULT_LIMIT,
 ): Promise<EquipmentLocationHistoryRow[]> {
-  try {
-    const { data: equipment, error: equipmentError } = await supabase
-      .from('equipment')
-      .select('id')
-      .eq('id', equipmentId)
-      .eq('organization_id', organizationId)
-      .maybeSingle();
+  const { data: equipment, error: equipmentError } = await supabase
+    .from('equipment')
+    .select('id')
+    .eq('id', equipmentId)
+    .eq('organization_id', organizationId)
+    .maybeSingle();
 
-    if (equipmentError) {
-      logger.error('Failed to verify equipment organization scope for location history', equipmentError);
-      return [];
-    }
+  if (equipmentError) {
+    logger.error('Failed to verify equipment organization scope for location history', equipmentError);
+    throw equipmentError;
+  }
 
-    if (!equipment) {
-      return [];
-    }
-
-    const { data, error } = await supabase
-      .from('equipment_location_history')
-      .select(
-        'id, equipment_id, source, latitude, longitude, address_street, address_city, address_state, address_country, formatted_address, created_at',
-      )
-      .eq('equipment_id', equipmentId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      logger.error('Failed to fetch equipment location history', error);
-      return [];
-    }
-
-    return (data ?? []) as EquipmentLocationHistoryRow[];
-  } catch (error) {
-    logger.error('Unexpected error fetching equipment location history', error);
+  if (!equipment) {
     return [];
   }
+
+  const { data, error } = await supabase
+    .from('equipment_location_history')
+    .select(
+      'id, equipment_id, source, latitude, longitude, address_street, address_city, address_state, address_country, formatted_address, created_at',
+    )
+    .eq('equipment_id', equipmentId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    logger.error('Failed to fetch equipment location history', error);
+    throw error;
+  }
+
+  return (data ?? []) as EquipmentLocationHistoryRow[];
 }
 
 export function getLatestScanCoordinateFromHistory(

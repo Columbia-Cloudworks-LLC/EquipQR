@@ -33,7 +33,7 @@ catch {
   if ($_.Exception.Response -and $_.Exception.Response.StatusCode.value__ -eq 404) {
     Write-Host '[docs-media] Bucket path reachable (404 without object key is expected before first upload).'
     Write-Host '{"success":true,"created":false,"bucket":"docs-media","verified":"public-endpoint"}'
-    exit 0
+    return
   }
 
   throw "docs-media public probe failed: $($_.Exception.Message)"

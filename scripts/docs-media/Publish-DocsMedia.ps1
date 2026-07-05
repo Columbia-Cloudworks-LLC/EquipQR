@@ -57,7 +57,7 @@ $manifest = Get-Content -LiteralPath $manifestFull -Raw -Encoding utf8 | Convert
 
 Set-PrEvidenceUploadEnvironment
 
-& (Join-Path $here 'Bootstrap-DocsMediaBucket.ps1') | Out-Null
+& (Join-Path $here 'Bootstrap-DocsMediaBucket.ps1')
 
 $uploads = @()
 
