@@ -10,7 +10,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_operator_checklist_templates_id_org
 CREATE UNIQUE INDEX IF NOT EXISTS idx_equipment_id_org
   ON public.equipment (id, organization_id);
 
--- Remove legacy rows that cannot satisfy org-scoped composite foreign keys.
+-- Backfill organization_id when equipment and template agree on the same org.
+UPDATE public.equipment_operator_checkin_settings AS s
+SET organization_id = e.organization_id,
+    updated_at = now()
+FROM public.equipment AS e,
+     public.operator_checklist_templates AS tpl
+WHERE e.id = s.equipment_id
+  AND tpl.id = s.template_id
+  AND tpl.organization_id = e.organization_id
+  AND s.organization_id IS DISTINCT FROM e.organization_id;
+
+-- Drop only unreconcilable legacy rows before composite FK validation.
 DELETE FROM public.equipment_operator_checkin_settings AS s
 WHERE NOT EXISTS (
     SELECT 1
@@ -38,13 +49,21 @@ ALTER TABLE public.equipment_operator_checkin_settings
   ADD CONSTRAINT equipment_operator_checkin_settings_template_org_fkey
   FOREIGN KEY (template_id, organization_id)
   REFERENCES public.operator_checklist_templates (id, organization_id)
-  ON DELETE RESTRICT;
+  ON DELETE RESTRICT
+  NOT VALID;
 
 ALTER TABLE public.equipment_operator_checkin_settings
   ADD CONSTRAINT equipment_operator_checkin_settings_equipment_org_fkey
   FOREIGN KEY (equipment_id, organization_id)
   REFERENCES public.equipment (id, organization_id)
-  ON DELETE CASCADE;
+  ON DELETE CASCADE
+  NOT VALID;
+
+ALTER TABLE public.equipment_operator_checkin_settings
+  VALIDATE CONSTRAINT equipment_operator_checkin_settings_template_org_fkey;
+
+ALTER TABLE public.equipment_operator_checkin_settings
+  VALIDATE CONSTRAINT equipment_operator_checkin_settings_equipment_org_fkey;
 
 DROP POLICY IF EXISTS equipment_operator_checkin_settings_insert_admin
   ON public.equipment_operator_checkin_settings;
