@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,6 +11,7 @@ import {
   canAddTimelineRow,
   createEmptyTimelineRow,
   createInitialTimelineRow,
+  getLastFilledRowIndex,
   getSelectableStatusesForRow,
   hasIncompleteTimelineRows,
   isTerminalStatus,
@@ -33,13 +34,46 @@ type HistoricalTimelineEditorProps = {
   onIncompleteRowsChange?: (hasIncompleteRows: boolean) => void;
 };
 
-function getLastFilledRowIndex(rows: HistoricalTimelineEditorRow[]): number {
-  for (let index = rows.length - 1; index >= 0; index -= 1) {
-    if (rows[index]?.newStatus !== '') {
-      return index;
+function resizeTextarea(element: HTMLTextAreaElement) {
+  element.style.height = 'auto';
+  element.style.height = `${element.scrollHeight}px`;
+}
+
+type AutoGrowReasonTextareaProps = {
+  id: string;
+  value: string;
+  onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  placeholder?: string;
+};
+
+function AutoGrowReasonTextarea({ id, value, onChange, placeholder }: AutoGrowReasonTextareaProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      resizeTextarea(textareaRef.current);
     }
-  }
-  return -1;
+  }, [value]);
+
+  const handleChange = useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      resizeTextarea(event.target);
+      onChange(event);
+    },
+    [onChange],
+  );
+
+  return (
+    <Textarea
+      ref={textareaRef}
+      id={id}
+      value={value}
+      onChange={handleChange}
+      rows={2}
+      className="min-h-0 resize-none overflow-hidden"
+      placeholder={placeholder}
+    />
+  );
 }
 
 export function HistoricalTimelineEditor({
@@ -135,11 +169,12 @@ export function HistoricalTimelineEditor({
           const selectableStatuses = getSelectableStatusesForRow(rows, rowIndex);
           const statusFieldId = `historical-timeline-status-${row.id}`;
           const assigneeFieldId = `historical-timeline-assignee-${row.id}`;
+          const eventHeadingId = `historical-timeline-event-${row.id}`;
           const isFirstRow = rowIndex === 0;
           const isLastRow = rowIndex === rows.length - 1;
 
           return (
-            <li key={row.id} className="relative flex gap-3">
+            <li key={row.id} className="relative flex gap-3" aria-labelledby={eventHeadingId}>
               <div className="flex w-7 shrink-0 flex-col items-center pt-1">
                 <span
                   aria-label={`Timeline step ${rowIndex + 1}`}
@@ -157,9 +192,9 @@ export function HistoricalTimelineEditor({
 
               <div className="min-w-0 flex-1 space-y-2 rounded-md border border-border/80 bg-card/40 p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <Label htmlFor={statusFieldId} className="text-sm font-medium">
+                  <p id={eventHeadingId} className="text-sm font-medium">
                     Event {rowIndex + 1}
-                  </Label>
+                  </p>
                   {!isFirstRow ? (
                     <Button
                       type="button"
@@ -246,7 +281,7 @@ export function HistoricalTimelineEditor({
                   <Label htmlFor={`historical-timeline-reason-${row.id}`} className="text-xs">
                     Reason
                   </Label>
-                  <Textarea
+                  <AutoGrowReasonTextarea
                     id={`historical-timeline-reason-${row.id}`}
                     value={row.reason}
                     onChange={(event) => {
@@ -255,8 +290,6 @@ export function HistoricalTimelineEditor({
                       );
                       updateRows(nextRows);
                     }}
-                    rows={2}
-                    className="min-h-[4.5rem] resize-y"
                     placeholder="Optional note about this status change"
                   />
                 </div>

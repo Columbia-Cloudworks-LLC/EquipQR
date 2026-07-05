@@ -121,14 +121,17 @@ export function updateTimelineRowStatus(
   return clearDownstreamRows(updated, rowIndex);
 }
 
-export function canAddTimelineRow(rows: HistoricalTimelineEditorRow[]): boolean {
-  let lastFilledIndex = -1;
+export function getLastFilledRowIndex(rows: HistoricalTimelineEditorRow[]): number {
   for (let index = rows.length - 1; index >= 0; index -= 1) {
     if (rows[index]?.newStatus !== '') {
-      lastFilledIndex = index;
-      break;
+      return index;
     }
   }
+  return -1;
+}
+
+export function canAddTimelineRow(rows: HistoricalTimelineEditorRow[]): boolean {
+  const lastFilledIndex = getLastFilledRowIndex(rows);
 
   if (lastFilledIndex === -1) {
     return false;

@@ -87,8 +87,8 @@ describe('HistoricalTimelineEditor', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Event 1')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Event 2')).not.toBeInTheDocument();
+    expect(screen.getByText('Event 1')).toBeInTheDocument();
+    expect(screen.queryByText('Event 2')).not.toBeInTheDocument();
 
     rerender(
       <HistoricalTimelineEditor
@@ -107,7 +107,7 @@ describe('HistoricalTimelineEditor', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Event 2')).toBeInTheDocument();
+    expect(screen.getByText('Event 2')).toBeInTheDocument();
   });
 
   it('limits selectable statuses to the previous row in the chain', async () => {
@@ -123,7 +123,7 @@ describe('HistoricalTimelineEditor', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Event 1')).toBeInTheDocument();
+    expect(screen.getByText('Event 1')).toBeInTheDocument();
     expect(screen.getByRole('list', { name: /operational timeline events/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /add historical event/i })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /add historical event/i }));
@@ -214,13 +214,13 @@ describe('HistoricalTimelineEditorDialog', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Event 1')).toBeInTheDocument();
-    expect(screen.getByLabelText('Event 2')).toBeInTheDocument();
+    expect(screen.getByText('Event 1')).toBeInTheDocument();
+    expect(screen.getByText('Event 2')).toBeInTheDocument();
     expect(screen.queryByLabelText('Event 3')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /add historical event/i }));
 
-    expect(screen.getByLabelText('Event 3')).toBeInTheDocument();
+    expect(screen.getByText('Event 3')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save timeline/i })).toBeDisabled();
   });
 
@@ -264,6 +264,6 @@ describe('HistoricalTimelineEditorDialog', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Event 2')).toBeInTheDocument();
+    expect(screen.getByText('Event 2')).toBeInTheDocument();
   });
 });
