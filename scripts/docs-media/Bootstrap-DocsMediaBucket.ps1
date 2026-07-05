@@ -13,7 +13,9 @@
   .\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1
 #>
 [CmdletBinding()]
-param()
+param(
+  [Parameter(Mandatory)][string]$SupabaseUrl
+)
 
 $ErrorActionPreference = 'Stop'
 
@@ -21,12 +23,9 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent (Split-Path -Parent $here)
 Set-Location -LiteralPath $repoRoot
 
-$supabaseUrl = $env:SUPABASE_URL
+$supabaseUrl = $SupabaseUrl.Trim()
 if ([string]::IsNullOrWhiteSpace($supabaseUrl)) {
-  $supabaseUrl = $env:VITE_SUPABASE_URL
-}
-if ([string]::IsNullOrWhiteSpace($supabaseUrl)) {
-  throw 'SUPABASE_URL or VITE_SUPABASE_URL is required to verify docs-media public access.'
+  throw 'SupabaseUrl is required to verify docs-media public access.'
 }
 
 $publicProbeUrl = '{0}/storage/v1/object/public/docs-media/' -f $supabaseUrl.TrimEnd('/')
