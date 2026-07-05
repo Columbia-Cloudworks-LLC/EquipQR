@@ -29,6 +29,8 @@ interface PMData {
   updated_at?: string | null;
 }
 
+export type WorkOrderUpdateOutcome = 'completed' | 'confirmation_required';
+
 export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: string, pmData?: PMData | null) => {
   const { user } = useAuth();
   const refreshOfflineQueue = useOfflineQueueOptional()?.refresh;
@@ -249,7 +251,11 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
   ]);
 
   // Handle form submission with PM change detection
-  const handleUpdateWorkOrder = useCallback(async (data: WorkOrderFormData, originalHasPM?: boolean, equipmentId?: string) => {
+  const handleUpdateWorkOrder = useCallback(async (
+    data: WorkOrderFormData,
+    originalHasPM?: boolean,
+    equipmentId?: string,
+  ): Promise<WorkOrderUpdateOutcome> => {
     // Check if PM is being disabled when PM data exists
     const pmBeingDisabled = originalHasPM === true && data.hasPM === false;
     
@@ -262,7 +268,7 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
       pendingFormDataRef.current = { data, equipmentId };
       setPmChangeType('disable');
       setShowPMWarning(true);
-      return;
+      return 'confirmation_required';
     }
     
     if (pmTemplateChanged && hasMeaningfulPMData()) {
@@ -270,11 +276,12 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
       pendingFormDataRef.current = { data, equipmentId };
       setPmChangeType('change_template');
       setShowPMWarning(true);
-      return;
+      return 'confirmation_required';
     }
     
     // No warning needed, perform update directly
     await performUpdate(data, equipmentId || pmData?.equipment_id);
+    return 'completed';
   }, [pmData, hasMeaningfulPMData, performUpdate]);
 
   // Confirm PM change and proceed with update

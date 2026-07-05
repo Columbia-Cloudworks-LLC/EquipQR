@@ -198,15 +198,37 @@ const WorkOrderDetails = () => {
       })
     : null;
   const canManagePM = Boolean(workOrderDetailedPermissions?.canEditPM && !isWorkOrderLocked);
+  const pmManagementPendingConfirmRef = React.useRef(false);
 
   const handleSavePMManagement = React.useCallback(
     async (data: Parameters<typeof handleUpdateWorkOrder>[0]) => {
+      if (!canManagePM) {
+        toast.error('You do not have permission to manage PM checklists on this work order.');
+        return;
+      }
       const equipmentIdForPm = selectedEquipmentId || workOrder?.equipment_id || '';
-      await handleUpdateWorkOrder(data, workOrder?.has_pm, equipmentIdForPm);
-      setShowPMManagementDialog(false);
+      const outcome = await handleUpdateWorkOrder(data, workOrder?.has_pm, equipmentIdForPm);
+      if (outcome === 'completed') {
+        setShowPMManagementDialog(false);
+      } else {
+        pmManagementPendingConfirmRef.current = true;
+      }
     },
-    [handleUpdateWorkOrder, selectedEquipmentId, workOrder?.equipment_id, workOrder?.has_pm],
+    [canManagePM, handleUpdateWorkOrder, selectedEquipmentId, workOrder?.equipment_id, workOrder?.has_pm],
   );
+
+  const handleConfirmPMChangeFromDetails = React.useCallback(async () => {
+    await handleConfirmPMChange();
+    if (pmManagementPendingConfirmRef.current) {
+      pmManagementPendingConfirmRef.current = false;
+      setShowPMManagementDialog(false);
+    }
+  }, [handleConfirmPMChange]);
+
+  const handleCancelPMChangeFromDetails = React.useCallback(() => {
+    pmManagementPendingConfirmRef.current = false;
+    handleCancelPMChange();
+  }, [handleCancelPMChange]);
 
   const workTimer = useWorkTimer(workOrderId);
   const offlineQueue = useOfflineQueue();
@@ -533,9 +555,9 @@ const WorkOrderDetails = () => {
         open={showPMWarning}
         onOpenChange={setShowPMWarning}
         onConfirm={() => {
-          void handleConfirmPMChange();
+          void handleConfirmPMChangeFromDetails();
         }}
-        onCancel={handleCancelPMChange}
+        onCancel={handleCancelPMChangeFromDetails}
         changeType={pmChangeType}
         hasExistingNotes={pmWarningDetails.hasNotes}
         hasCompletedItems={pmWarningDetails.hasCompletedItems}

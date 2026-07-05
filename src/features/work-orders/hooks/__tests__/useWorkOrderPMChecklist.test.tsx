@@ -320,6 +320,7 @@ describe('useWorkOrderPMChecklist', () => {
       expect(result.current.hasAssignedTemplate).toBe(false);
       expect(result.current.templates.length).toBeGreaterThan(0);
       expect(result.current.templates.map((t) => t.id)).toContain('template-2');
+      expect(result.current.selectedTemplate?.id).toBe('template-2');
     });
   });
 

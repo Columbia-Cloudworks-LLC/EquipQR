@@ -87,16 +87,17 @@ export const useWorkOrderPMChecklist = ({
     return filtered;
   }, [lockToAssignedTemplate, allTemplates, matchingTemplates, restrictions.canCreateCustomPMTemplates, values.pmTemplateId]);
   
-  // Find the selected template - prioritize assigned, then form value, then first matched
+  // Find the selected template - prioritize form value, then assigned (when locked), then first matched
   const selectedTemplate = useMemo(() => {
-    if (assignedTemplate) return assignedTemplate;
     if (values.pmTemplateId) {
-      const found = templates.find(t => t.id === values.pmTemplateId);
-      if (found) return found;
+      const fromFiltered = templates.find(t => t.id === values.pmTemplateId);
+      if (fromFiltered) return fromFiltered;
+      const fromAll = allTemplates.find(t => t.id === values.pmTemplateId);
+      if (fromAll) return fromAll;
     }
-    // Auto-select first matching template if available
+    if (lockToAssignedTemplate && assignedTemplate) return assignedTemplate;
     return templates[0] || null;
-  }, [assignedTemplate, values.pmTemplateId, templates]);
+  }, [values.pmTemplateId, templates, allTemplates, lockToAssignedTemplate, assignedTemplate]);
   
   // Auto-set template when equipment is selected or PM is enabled
   useEffect(() => {

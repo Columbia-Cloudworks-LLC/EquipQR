@@ -55,7 +55,13 @@ const mockPMTemplate = {
 interface TestComponentProps {
   workOrderId: string;
   organizationId: string;
-  pmData?: { id?: string; equipment_id?: string; template_id?: string | null } | null;
+  pmData?: {
+    id?: string;
+    equipment_id?: string;
+    template_id?: string | null;
+    checklist_data?: unknown[];
+    notes?: string;
+  } | null;
   onReady?: (actions: ReturnType<typeof useWorkOrderDetailsActions>) => void;
 }
 
@@ -452,6 +458,48 @@ describe('useWorkOrderDetailsActions - PM template management', () => {
           }),
         }),
       );
+    });
+  });
+
+  it('returns confirmation_required when changing template on PM with meaningful data', async () => {
+    const capturedActions = await renderActionsHarness({
+      id: 'pm-1',
+      equipment_id: 'eq-1',
+      template_id: 'template-1',
+      checklist_data: [{ id: 'item-1', condition: 'good' }],
+    });
+
+    const formData = buildPmFormData({
+      equipmentId: 'eq-1',
+      pmTemplateId: 'template-2',
+    }) as WorkOrderFormData;
+
+    const outcome = await capturedActions.handleUpdateWorkOrder(formData, true, 'eq-1');
+
+    expect(outcome).toBe('confirmation_required');
+    expect(updatePM).not.toHaveBeenCalled();
+    expect(mockMutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('returns completed after confirming a deferred PM template change', async () => {
+    const capturedActions = await renderActionsHarness({
+      id: 'pm-1',
+      equipment_id: 'eq-1',
+      template_id: 'template-1',
+      checklist_data: [{ id: 'item-1', condition: 'good' }],
+    });
+
+    const formData = buildPmFormData({
+      equipmentId: 'eq-1',
+      pmTemplateId: 'template-2',
+    }) as WorkOrderFormData;
+
+    await capturedActions.handleUpdateWorkOrder(formData, true, 'eq-1');
+    await capturedActions.handleConfirmPMChange();
+
+    await waitFor(() => {
+      expect(updatePM).toHaveBeenCalled();
+      expect(mockMutateAsync).toHaveBeenCalled();
     });
   });
 });
