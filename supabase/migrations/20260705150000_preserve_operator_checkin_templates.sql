@@ -205,7 +205,9 @@ BEGIN
     ) AS template
   INTO v_row
   FROM public.equipment_operator_checkin_settings s
-  JOIN public.equipment e ON e.id = s.equipment_id
+  JOIN public.equipment e
+    ON e.id = s.equipment_id
+   AND e.organization_id = s.organization_id
   JOIN public.organizations o ON o.id = s.organization_id
   LEFT JOIN public.teams t ON t.id = e.team_id
   JOIN public.operator_checklist_templates tpl
@@ -274,6 +276,7 @@ BEGIN
   SELECT count(*)::integer INTO v_recent_count
   FROM public.operator_checkin_submissions sub
   WHERE sub.settings_id = v_settings.id
+    AND sub.organization_id = v_settings.organization_id
     AND sub.submitted_at >= (now() - interval '1 hour');
 
   IF v_recent_count >= 20 THEN
@@ -301,7 +304,7 @@ BEGIN
     v_settings.template_id,
     v_settings.id,
     v_submitted_at,
-    p_template_snapshot,
+    COALESCE(p_template_snapshot, '{}'::jsonb),
     COALESCE(p_operator_field_values, '[]'::jsonb),
     COALESCE(p_client_field_values, '[]'::jsonb),
     COALESCE(p_equipment_field_values, '[]'::jsonb),
