@@ -198,6 +198,7 @@ SELECT is(
           'revert_work_order_status',
           'select_google_workspace_members',
           'update_equipment_working_hours',
+          'update_historical_work_order_note_timestamp',
           'update_member_quickbooks_permission',
           'user_is_org_admin',
           'user_is_org_member',
@@ -217,8 +218,8 @@ SELECT is(
       AND p.prokind = 'f'
       AND p.prosecdef
       AND has_function_privilege('authenticated', p.oid, 'EXECUTE')),
-  60,
-  'authenticated may execute exactly 60 public SECURITY DEFINER functions after lockdown'
+  61,
+  'authenticated may execute exactly 61 public SECURITY DEFINER functions after lockdown'
 );
 
 SELECT * FROM finish();

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MessageSquare } from 'lucide-react';
 import NoteTimelineEntry from '@/components/common/NoteTimelineEntry';
+import { WorkOrderNoteTimelineEntry } from '@/features/work-orders/components/WorkOrderNoteTimelineEntry';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -33,6 +34,8 @@ interface WorkOrderNotesSectionProps {
   workOrderId: string;
   canAddNotes: boolean;
   showPrivateNotes: boolean;
+  isHistorical?: boolean;
+  canEditNoteTimestamps?: boolean;
   /** Hide inline add-note button when global sticky actions are present */
   hideInlineAddButton?: boolean;
   /** If true, auto-open the note form on mount (used for quick action navigation) */
@@ -47,6 +50,8 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   workOrderId,
   canAddNotes,
   showPrivateNotes,
+  isHistorical = false,
+  canEditNoteTimestamps = false,
   hideInlineAddButton = false,
   autoOpenForm = false,
   openFormTrigger,
@@ -202,6 +207,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
 
   // Derive user display name for clipboard paste fallback
   const userDisplayName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
+  const showTimestampEditor = isHistorical && canEditNoteTimestamps;
 
   if (isLoading) {
     return <NotesLoadingSkeleton cardClassName="shadow-elevation-2" />;
@@ -260,6 +266,21 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
             <div className="space-y-4">
               {visibleNotes.map((note) => {
                 const typedNote = note as WorkOrderNote & { _isPendingSync?: boolean };
+                if (showTimestampEditor) {
+                  return (
+                    <WorkOrderNoteTimelineEntry
+                      key={note.id}
+                      note={typedNote}
+                      workOrderId={workOrderId}
+                      formatDate={formatDate}
+                      canEditTimestamp
+                      metaClassName="text-[13px] text-muted-foreground"
+                      contentClassName="prose prose-sm max-w-none dark:prose-invert"
+                      contentTextClassName="whitespace-pre-wrap text-[15px] text-foreground/90 leading-relaxed"
+                    />
+                  );
+                }
+
                 return (
                   <NoteTimelineEntry
                     key={note.id}

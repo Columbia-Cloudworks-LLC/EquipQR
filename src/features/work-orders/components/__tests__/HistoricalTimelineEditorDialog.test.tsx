@@ -165,14 +165,12 @@ describe('HistoricalTimelineEditor', () => {
         id: 'row-2',
         newStatus: 'accepted',
         changedAt: new Date('2024-01-02'),
-        reason: '',
         assigneeId: null,
       },
       {
         id: 'row-3',
         newStatus: 'assigned',
         changedAt: new Date('2024-01-03'),
-        reason: '',
         assigneeId: 'user-1',
       },
     ];
@@ -190,6 +188,56 @@ describe('HistoricalTimelineEditor', () => {
     );
 
     expect(screen.getByText('Assignee')).toBeInTheDocument();
+  });
+
+  it('does not render reason fields for timeline events', () => {
+    render(
+      <HistoricalTimelineEditor
+        organizationId="org-1"
+        equipmentId="equipment-1"
+        initialEvents={submittedAcceptedEvents}
+      />,
+    );
+
+    expect(screen.queryByLabelText(/^Reason$/i)).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/optional note about this status change/i)).not.toBeInTheDocument();
+  });
+
+  it('copies the previous event timestamp when adding a new row', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      <HistoricalTimelineEditor
+        organizationId="org-1"
+        equipmentId="equipment-1"
+        initialEvents={submittedAcceptedEvents}
+        onChange={onChange}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /add historical event/i }));
+
+    const latestEvents = onChange.mock.calls.at(-1)?.[0];
+    expect(latestEvents).toHaveLength(2);
+    expect(latestEvents?.[1]?.changedAt).toBe(submittedAcceptedEvents[1].changedAt);
+  });
+
+  it('renders date/time shortcuts in the timeline editor', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <HistoricalTimelineEditor
+        organizationId="org-1"
+        equipmentId="equipment-1"
+        initialEvents={submittedAcceptedEvents}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /January 1st, 2024/i }));
+
+    expect(screen.getByRole('button', { name: 'Today' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Now' })).toBeInTheDocument();
   });
 });
 

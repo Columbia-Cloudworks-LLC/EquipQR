@@ -6,7 +6,6 @@ export type WorkOrderStatus = z.infer<typeof workOrderStatusSchema>;
 export type HistoricalTimelineEvent = {
   newStatus: WorkOrderStatus;
   changedAt: string;
-  reason?: string;
   assigneeId?: string | null;
 };
 
@@ -14,7 +13,6 @@ export type HistoricalTimelineEditorRow = {
   id: string;
   newStatus: WorkOrderStatus | '';
   changedAt: Date | undefined;
-  reason: string;
   assigneeId: string | null;
 };
 
@@ -51,19 +49,34 @@ export function createInitialTimelineRow(startDate?: Date): HistoricalTimelineEd
     id: crypto.randomUUID(),
     newStatus: 'submitted',
     changedAt: startDate,
-    reason: 'Historical work order created',
     assigneeId: null,
   };
 }
 
-export function createEmptyTimelineRow(): HistoricalTimelineEditorRow {
+export function createEmptyTimelineRow(seedDate?: Date): HistoricalTimelineEditorRow {
   return {
     id: crypto.randomUUID(),
     newStatus: '',
-    changedAt: undefined,
-    reason: '',
+    changedAt: seedDate ? new Date(seedDate.getTime()) : undefined,
     assigneeId: null,
   };
+}
+
+export function getTimelineRowSeedDate(rows: HistoricalTimelineEditorRow[]): Date | undefined {
+  const previousRow = rows[rows.length - 1];
+  if (previousRow?.changedAt instanceof Date && !Number.isNaN(previousRow.changedAt.getTime())) {
+    return new Date(previousRow.changedAt.getTime());
+  }
+
+  const lastFilledIndex = getLastFilledRowIndex(rows);
+  if (lastFilledIndex < 0) {
+    return undefined;
+  }
+
+  const changedAt = rows[lastFilledIndex]?.changedAt;
+  return changedAt instanceof Date && !Number.isNaN(changedAt.getTime())
+    ? new Date(changedAt.getTime())
+    : undefined;
 }
 
 export function getSelectableStatusesForRow(
@@ -95,7 +108,6 @@ export function clearDownstreamRows(
       ...row,
       newStatus: '',
       changedAt: undefined,
-      reason: '',
       assigneeId: null,
     };
   });
@@ -153,7 +165,6 @@ export function rowsToTimelineEvents(rows: HistoricalTimelineEditorRow[]): Histo
     .map((row) => ({
       newStatus: row.newStatus,
       changedAt: row.changedAt.toISOString(),
-      reason: row.reason.trim() || undefined,
       assigneeId: row.newStatus === 'assigned' ? row.assigneeId : null,
     }));
 }
@@ -175,7 +186,6 @@ export function timelineEventsToRows(events: HistoricalTimelineEvent[]): Histori
     id: crypto.randomUUID(),
     newStatus: event.newStatus,
     changedAt: new Date(event.changedAt),
-    reason: event.reason ?? '',
     assigneeId: event.assigneeId ?? null,
   }));
 }
@@ -284,7 +294,6 @@ export function synthesizeDefaultTimeline(params: {
   return statusPath.map((newStatus, index) => ({
     newStatus,
     changedAt: new Date(timestamps[index]).toISOString(),
-    reason: index === 0 ? 'Historical work order created' : 'Historical status recorded',
     assigneeId: newStatus === 'assigned' ? assigneeId ?? null : null,
   }));
 }
@@ -304,7 +313,6 @@ export function historyRowsToEvents(
     .map((row) => ({
       newStatus: row.new_status as HistoricalTimelineEvent['newStatus'],
       changedAt: row.changed_at,
-      reason: row.reason ?? undefined,
       assigneeId:
         row.new_status === 'assigned'
           ? ((row.metadata?.assignee_id as string | undefined) ?? null)
@@ -326,7 +334,7 @@ export function eventsToRpcPayload(events: HistoricalTimelineEvent[]): Array<{
       old_status: previousStatus,
       new_status: event.newStatus,
       changed_at: event.changedAt,
-      reason: event.reason ?? null,
+      reason: null,
       assignee_id: event.newStatus === 'assigned' ? event.assigneeId ?? null : null,
     };
     previousStatus = event.newStatus;

@@ -405,21 +405,24 @@ export async function pickHistoricalStartDate(
   const trigger = dialog.getByRole('button', { name: /pick start date and time/i });
   await clickWithDemoCue(trigger, 'Open historical start date picker');
 
-  const calendarNav = page.getByRole('navigation', { name: /Navigation bar/i }).last();
-  await expect(calendarNav).toBeVisible({ timeout: 15_000 });
+  const calendarPopover = page
+    .locator('[data-state="open"]')
+    .filter({ has: page.getByLabel(/^Time:$/i) });
+  await expect(calendarPopover).toBeVisible({ timeout: 15_000 });
+
+  const previousMonthButton = calendarPopover.getByRole('button', {
+    name: /Go to the Previous Month/i,
+  });
 
   for (let index = 0; index < monthsBack; index += 1) {
-    await clickWithDemoCue(
-      calendarNav.getByRole('button', { name: /Go to the Previous Month/i }),
-      'Go to previous month',
-    );
+    await clickWithDemoCue(previousMonthButton, 'Go to previous month');
   }
 
-  const monthStatus = page.getByRole('status').last();
+  const monthStatus = calendarPopover.getByRole('status');
   await expect(monthStatus).toBeVisible({ timeout: 15_000 });
   const monthLabel = (await monthStatus.textContent())?.trim() ?? '';
   const monthName = monthLabel.split(/\s+/)[0] ?? '';
-  const monthGrid = page.getByRole('grid', { name: monthLabel });
+  const monthGrid = calendarPopover.getByRole('grid', { name: monthLabel });
   await expect(monthGrid).toBeVisible({ timeout: 15_000 });
 
   const dayPattern = new RegExp(`${escapeRegExp(monthName)} ${day}(?:st|nd|rd|th)?`, 'i');

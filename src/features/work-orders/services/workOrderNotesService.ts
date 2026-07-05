@@ -451,4 +451,45 @@ export const deleteWorkOrderImage = async (imageId: string): Promise<void> => {
   }
 };
 
+export type UpdateHistoricalWorkOrderNoteTimestampResult = {
+  success: boolean;
+  error?: string;
+  work_order_id?: string;
+  note_id?: string;
+  created_at?: string;
+};
+
+export async function updateHistoricalWorkOrderNoteTimestamp(
+  organizationId: string,
+  workOrderId: string,
+  noteId: string,
+  createdAt: string,
+): Promise<UpdateHistoricalWorkOrderNoteTimestampResult> {
+  try {
+    const { data, error } = await supabase.rpc('update_historical_work_order_note_timestamp', {
+      p_organization_id: organizationId,
+      p_work_order_id: workOrderId,
+      p_note_id: noteId,
+      p_created_at: createdAt,
+    });
+
+    if (error) throw error;
+
+    const result = data as UpdateHistoricalWorkOrderNoteTimestampResult | null;
+    if (!result?.success) {
+      return {
+        success: false,
+        error: result?.error ?? 'Failed to update note timestamp',
+      };
+    }
+
+    return result;
+  } catch (error) {
+    logger.error('Error updating historical work order note timestamp:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update note timestamp',
+    };
+  }
+}
 
