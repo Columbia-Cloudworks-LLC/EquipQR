@@ -5,6 +5,7 @@ import {
   createInitialTimelineRow,
   eventsToRpcPayload,
   getAllowedNextStatuses,
+  getLastFilledRowIndex,
   getSelectableStatusesForRow,
   hasIncompleteTimelineRows,
   isTerminalStatus,
@@ -54,6 +55,17 @@ describe('historicalTimeline helpers', () => {
     const updated = updateTimelineRowStatus(rows, 1, 'cancelled');
     expect(updated[2]?.newStatus).toBe('');
     expect(updated[2]?.assigneeId).toBeNull();
+  });
+
+  it('finds the last filled timeline row index', () => {
+    const rows: HistoricalTimelineEditorRow[] = [
+      { ...createInitialTimelineRow(), newStatus: 'submitted' },
+      { id: 'row-2', newStatus: '', changedAt: undefined, reason: '', assigneeId: null },
+    ];
+
+    expect(getLastFilledRowIndex(rows)).toBe(0);
+    rows[1] = { ...rows[1], newStatus: 'accepted', changedAt: new Date() };
+    expect(getLastFilledRowIndex(rows)).toBe(1);
   });
 
   it('derives selectable statuses from the previous row only', () => {

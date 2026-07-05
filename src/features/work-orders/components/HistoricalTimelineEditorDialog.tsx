@@ -130,23 +130,25 @@ export function HistoricalTimelineEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl">
+        <DialogHeader className="space-y-1 border-b px-6 py-4">
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs leading-snug">
             Operational timeline dates reflect when work happened. Change History continues to record when edits were made in EquipQR.
           </DialogDescription>
         </DialogHeader>
 
-        <HistoricalTimelineEditor
-          initialEvents={editorSeedEvents}
-          organizationId={organizationId}
-          equipmentId={equipmentId}
-          onChange={setDraftEvents}
-          onIncompleteRowsChange={setHasIncompleteRows}
-        />
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <HistoricalTimelineEditor
+            initialEvents={editorSeedEvents}
+            organizationId={organizationId}
+            equipmentId={equipmentId}
+            onChange={setDraftEvents}
+            onIncompleteRowsChange={setHasIncompleteRows}
+          />
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="border-t px-6 py-4">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>

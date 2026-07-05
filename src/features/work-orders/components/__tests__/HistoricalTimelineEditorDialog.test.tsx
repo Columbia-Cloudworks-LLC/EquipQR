@@ -44,6 +44,30 @@ const submittedAcceptedEvents = [
   },
 ];
 
+const completedTimelineEvents = [
+  {
+    newStatus: 'submitted' as const,
+    changedAt: new Date('2024-01-01T08:00:00Z').toISOString(),
+  },
+  {
+    newStatus: 'accepted' as const,
+    changedAt: new Date('2024-01-02T08:00:00Z').toISOString(),
+  },
+  {
+    newStatus: 'assigned' as const,
+    changedAt: new Date('2024-01-03T08:00:00Z').toISOString(),
+    assigneeId: 'user-1',
+  },
+  {
+    newStatus: 'in_progress' as const,
+    changedAt: new Date('2024-01-04T08:00:00Z').toISOString(),
+  },
+  {
+    newStatus: 'completed' as const,
+    changedAt: new Date('2024-01-05T08:00:00Z').toISOString(),
+  },
+];
+
 describe('HistoricalTimelineEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -63,8 +87,8 @@ describe('HistoricalTimelineEditor', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Event 1')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Event 2')).not.toBeInTheDocument();
+    expect(screen.getByText('Event 1')).toBeInTheDocument();
+    expect(screen.queryByText('Event 2')).not.toBeInTheDocument();
 
     rerender(
       <HistoricalTimelineEditor
@@ -83,7 +107,7 @@ describe('HistoricalTimelineEditor', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Event 2')).toBeInTheDocument();
+    expect(screen.getByText('Event 2')).toBeInTheDocument();
   });
 
   it('limits selectable statuses to the previous row in the chain', async () => {
@@ -99,10 +123,39 @@ describe('HistoricalTimelineEditor', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Event 1')).toBeInTheDocument();
-    expect(screen.getByText('Add next status event')).toBeInTheDocument();
-    await user.click(screen.getByText('Add next status event'));
+    expect(screen.getByText('Event 1')).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: /operational timeline events/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add historical event/i })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /add historical event/i }));
     expect(onChange).toHaveBeenCalled();
+  });
+
+  it('shows numbered step indicators for each timeline event', () => {
+    render(
+      <HistoricalTimelineEditor
+        organizationId="org-1"
+        equipmentId="equipment-1"
+        initialEvents={submittedAcceptedEvents}
+      />,
+    );
+
+    expect(screen.getByLabelText('Timeline step 1')).toBeInTheDocument();
+    expect(screen.getByLabelText('Timeline step 2')).toBeInTheDocument();
+  });
+
+  it('shows contextual terminal-status guidance instead of an add control when the chain ends', () => {
+    render(
+      <HistoricalTimelineEditor
+        organizationId="org-1"
+        equipmentId="equipment-1"
+        initialEvents={completedTimelineEvents}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: /add historical event/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: /timeline ended at terminal status/i }),
+    ).toBeInTheDocument();
   });
 
   it('clears downstream rows when an upstream status changes', () => {
@@ -161,13 +214,13 @@ describe('HistoricalTimelineEditorDialog', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Event 1')).toBeInTheDocument();
-    expect(screen.getByLabelText('Event 2')).toBeInTheDocument();
+    expect(screen.getByText('Event 1')).toBeInTheDocument();
+    expect(screen.getByText('Event 2')).toBeInTheDocument();
     expect(screen.queryByLabelText('Event 3')).not.toBeInTheDocument();
 
-    await user.click(screen.getByText('Add next status event'));
+    await user.click(screen.getByRole('button', { name: /add historical event/i }));
 
-    expect(screen.getByLabelText('Event 3')).toBeInTheDocument();
+    expect(screen.getByText('Event 3')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save timeline/i })).toBeDisabled();
   });
 
@@ -211,6 +264,6 @@ describe('HistoricalTimelineEditorDialog', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Event 2')).toBeInTheDocument();
+    expect(screen.getByText('Event 2')).toBeInTheDocument();
   });
 });
