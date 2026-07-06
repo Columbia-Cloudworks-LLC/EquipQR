@@ -56,9 +56,11 @@ export const SimplifiedInvitationDialog: React.FC<SimplifiedInvitationDialogProp
 
       setEmail('');
       setRole('member');
+    } finally {
+      // Close on every terminal outcome (#1081): the mutation hook already
+      // surfaces success/error toasts, so keeping the modal open on failure
+      // only hides that feedback behind the dialog overlay.
       onOpenChange(false);
-    } catch (error) {
-      console.error('Failed to send invitation:', error);
     }
   };
 

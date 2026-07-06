@@ -1,12 +1,12 @@
 ---
 title: "Daily Operator Check-Ins"
 description: "Configure operator safety checklists, assign them to equipment, print QR links, and review daily audit ledgers."
-lastReviewed: 2026-07-04
+lastReviewed: 2026-07-06
 personas: ["owner", "admin"]
 ---
 
 **For:** Organization Owner, Admin  
-**Last reviewed:** 2026-07-04
+**Last reviewed:** 2026-07-06
 
 Organization owners and administrators configure **Daily Operator Check-Ins** under **Operations → Daily Check-Ins** in the EquipQR dashboard. Operators complete assigned checklists through a **separate public QR link** — no EquipQR login required.
 
@@ -55,7 +55,12 @@ Each assignment gets its own QR link. Assigning the same template to ten trucks 
    - **Equipment scan (authenticated)** — opens the signed-in equipment record (technician workflow).
    - **Daily check-in: {template name}** — opens the public operator form at `/qr/operator-check-in/{token}`.
 
-Generate the daily check-in link on the equipment record first if the dialog shows a missing-token notice, then return to print.
+QR links are generated automatically when a checklist is assigned and stay available to organization
+owners and admins **from any device** — you can assign on one computer and print from another.
+
+If the dialog shows a missing-link notice (for example, an assignment created before cross-device
+QR links shipped), an owner or admin can use **Rotate QR link** in the Daily Operator Check-In
+actions menu to generate a fresh link. Rotation replaces any previously printed QR codes.
 
 ### Where to place daily check-in QR codes
 

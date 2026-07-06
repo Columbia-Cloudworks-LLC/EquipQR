@@ -1808,6 +1808,45 @@ export type Database = {
           },
         ]
       }
+      operator_checkin_token_secrets: {
+        Row: {
+          created_at: string
+          organization_id: string
+          raw_token: string
+          settings_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          organization_id: string
+          raw_token: string
+          settings_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          organization_id?: string
+          raw_token?: string
+          settings_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operator_checkin_token_secrets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operator_checkin_token_secrets_settings_id_fkey"
+            columns: ["settings_id"]
+            isOneToOne: true
+            referencedRelation: "equipment_operator_checkin_settings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operator_checklist_templates: {
         Row: {
           created_at: string
@@ -4863,6 +4902,18 @@ export type Database = {
           p_role: string
         }
         Returns: string
+      }
+      create_operator_checkin_assignment: {
+        Args: {
+          p_enabled?: boolean
+          p_equipment_id: string
+          p_organization_id: string
+          p_template_id: string
+        }
+        Returns: {
+          raw_token: string
+          settings_id: string
+        }[]
       }
       create_quickbooks_oauth_session: {
         Args: {

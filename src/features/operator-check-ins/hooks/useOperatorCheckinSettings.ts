@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createEquipmentOperatorCheckinAssignment,
   deleteEquipmentOperatorCheckinAssignment,
+  getOperatorCheckinToken,
   listEquipmentOperatorCheckinAssignments,
   listOrganizationOperatorCheckinAssignments,
   rotateOperatorCheckinToken,
@@ -41,11 +42,29 @@ export function useOrganizationOperatorCheckinAssignments(organizationId: string
   });
 }
 
+/**
+ * Server-persisted raw QR token for one assignment (#1154). Admin-only via
+ * RLS; members and legacy pre-persistence assignments resolve to null.
+ * Create/rotate mutations seed this cache so the QR dialog updates instantly.
+ */
+export function useOperatorCheckinToken(
+  assignmentId: string | undefined,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: operatorCheckinKeys.token(assignmentId ?? ''),
+    queryFn: () => getOperatorCheckinToken(assignmentId!),
+    enabled: Boolean(assignmentId && (options?.enabled ?? true)),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useCreateEquipmentOperatorCheckinAssignment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createEquipmentOperatorCheckinAssignment,
-    onSuccess: (_data, variables) => {
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(operatorCheckinKeys.token(data.assignment.id), data.rawToken);
       invalidateAssignmentQueries(queryClient, variables.organizationId, variables.equipmentId);
     },
   });
@@ -58,7 +77,8 @@ export function useDeleteEquipmentOperatorCheckinAssignment(
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteEquipmentOperatorCheckinAssignment,
-    onSuccess: () => {
+    onSuccess: (_data, assignmentId) => {
+      queryClient.removeQueries({ queryKey: operatorCheckinKeys.token(assignmentId) });
       void queryClient.invalidateQueries({
         queryKey: operatorCheckinKeys.equipmentAssignments(equipmentId, organizationId ?? ''),
       });
@@ -75,7 +95,8 @@ export function useRotateOperatorCheckinToken(equipmentId: string, organizationI
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: rotateOperatorCheckinToken,
-    onSuccess: () => {
+    onSuccess: (rawToken, assignmentId) => {
+      queryClient.setQueryData(operatorCheckinKeys.token(assignmentId), rawToken);
       void queryClient.invalidateQueries({
         queryKey: operatorCheckinKeys.equipmentAssignments(equipmentId, organizationId),
       });

@@ -7,6 +7,7 @@ export const operatorCheckinKeys = {
     [...operatorCheckinKeys.all, 'equipment-assignments', orgId, equipmentId] as const,
   organizationAssignments: (orgId: string) =>
     [...operatorCheckinKeys.all, 'organization-assignments', orgId] as const,
+  token: (assignmentId: string) => [...operatorCheckinKeys.all, 'token', assignmentId] as const,
   submissions: (orgId: string, filtersKey: string) =>
     [...operatorCheckinKeys.all, 'submissions', orgId, filtersKey] as const,
 };

@@ -15,20 +15,6 @@ export interface EquipmentOperatorCheckinAssignment {
   template?: { id: string; name: string; description: string | null } | null;
 }
 
-async function hashToken(rawToken: string): Promise<string> {
-  const data = new TextEncoder().encode(rawToken);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-function generateRawToken(): string {
-  const partA = crypto.randomUUID().replace(/-/g, '');
-  const partB = crypto.randomUUID().replace(/-/g, '');
-  return `${partA}${partB}`;
-}
-
 const assignmentSelect = `
   *,
   equipment!equipment_operator_checkin_settings_equipment_org_fkey (id, name, serial_number),
@@ -63,28 +49,41 @@ export async function listOrganizationOperatorCheckinAssignments(
   return (data ?? []) as EquipmentOperatorCheckinAssignment[];
 }
 
+/**
+ * Create an assignment via SECURITY DEFINER RPC. The raw QR token is generated
+ * and persisted server-side (admin-readable secrets table) so the printable QR
+ * link stays available from any device (#1154).
+ */
 export async function createEquipmentOperatorCheckinAssignment(input: {
   organizationId: string;
   equipmentId: string;
   templateId: string;
   enabled?: boolean;
 }): Promise<{ assignment: EquipmentOperatorCheckinAssignment; rawToken: string }> {
-  const rawToken = generateRawToken();
-  const tokenHash = await hashToken(rawToken);
-  const { data, error } = await supabase
-    .from('equipment_operator_checkin_settings')
-    .insert({
-      organization_id: input.organizationId,
-      equipment_id: input.equipmentId,
-      template_id: input.templateId,
-      enabled: input.enabled ?? true,
-      public_token_hash: tokenHash,
-    })
-    .select(assignmentSelect)
-    .single();
+  const { data, error } = await supabase.rpc('create_operator_checkin_assignment', {
+    p_organization_id: input.organizationId,
+    p_equipment_id: input.equipmentId,
+    p_template_id: input.templateId,
+    p_enabled: input.enabled ?? true,
+  });
 
   if (error) throw error;
-  return { assignment: data as EquipmentOperatorCheckinAssignment, rawToken };
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row?.settings_id || !row?.raw_token) {
+    throw new Error('Assignment creation failed');
+  }
+
+  const { data: assignment, error: fetchError } = await supabase
+    .from('equipment_operator_checkin_settings')
+    .select(assignmentSelect)
+    .eq('id', row.settings_id)
+    .single();
+
+  if (fetchError) throw fetchError;
+  return {
+    assignment: assignment as EquipmentOperatorCheckinAssignment,
+    rawToken: row.raw_token as string,
+  };
 }
 
 export async function deleteEquipmentOperatorCheckinAssignment(assignmentId: string): Promise<void> {
@@ -107,4 +106,21 @@ export async function rotateOperatorCheckinToken(assignmentId: string): Promise<
     throw new Error('Token rotation failed');
   }
   return row.raw_token as string;
+}
+
+/**
+ * Fetch the persisted raw QR token for an assignment. RLS restricts reads to
+ * organization owners/admins; other members resolve to null (same UX as the
+ * legacy in-memory cache miss). Legacy assignments minted before persistence
+ * also resolve to null until their token is rotated.
+ */
+export async function getOperatorCheckinToken(assignmentId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('operator_checkin_token_secrets')
+    .select('raw_token')
+    .eq('settings_id', assignmentId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.raw_token ?? null;
 }

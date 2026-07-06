@@ -11,7 +11,11 @@
 /** Production CSP directives — canonical list for vercel.json. */
 export const CSP_DIRECTIVES: readonly string[] = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com https://js.sentry-cdn.com https://maps.googleapis.com https://apis.google.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com",
+  // `'wasm-unsafe-eval'` permits WebAssembly compilation only (not JS eval).
+  // Google Maps' WebGL vector basemap compiles WASM in its shared label
+  // worker (shared-label-worker.js); without this the Fleet Map floods the
+  // console with CompileError CSP violations and label rendering degrades.
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://hcaptcha.com https://*.hcaptcha.com https://js.sentry-cdn.com https://maps.googleapis.com https://apis.google.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com",
   "style-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com https://*.googleapis.com https://*.gstatic.com",
   "frame-src 'self' https://hcaptcha.com https://*.hcaptcha.com https://accounts.google.com https://docs.google.com https://drive.google.com",
   // `data:` is required because Google Maps' vector basemap worker

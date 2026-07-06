@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ClipboardSignature,
@@ -44,15 +44,10 @@ import {
   useCreateEquipmentOperatorCheckinAssignment,
   useDeleteEquipmentOperatorCheckinAssignment,
   useEquipmentOperatorCheckinAssignments,
+  useOperatorCheckinToken,
   useRotateOperatorCheckinToken,
 } from '@/features/operator-check-ins/hooks/useOperatorCheckinSettings';
 import type { EquipmentOperatorCheckinAssignment } from '@/features/operator-check-ins/services/operatorCheckinSettingsService';
-import {
-  clearStoredOperatorCheckinToken,
-  getStoredOperatorCheckinToken,
-  storeOperatorCheckinToken,
-  subscribeOperatorCheckinTokenChanges,
-} from '@/features/operator-check-ins/utils/operatorCheckinTokenStorage';
 
 interface EquipmentOperatorCheckinConfigProps {
   organizationId: string;
@@ -74,17 +69,9 @@ function AssignmentRow({
   onRemove: () => void;
   onViewQrCode: () => void;
 }) {
-  const [hasStoredToken, setHasStoredToken] = useState(() =>
-    Boolean(getStoredOperatorCheckinToken(assignment.id)),
-  );
+  const { data: storedToken = null } = useOperatorCheckinToken(assignment.id);
+  const hasStoredToken = Boolean(storedToken);
   const [rotateDialogOpen, setRotateDialogOpen] = useState(false);
-
-  useEffect(() => {
-    setHasStoredToken(Boolean(getStoredOperatorCheckinToken(assignment.id)));
-    return subscribeOperatorCheckinTokenChanges(() => {
-      setHasStoredToken(Boolean(getStoredOperatorCheckinToken(assignment.id)));
-    });
-  }, [assignment.id]);
 
   const templateName = assignment.template?.name ?? 'Checklist';
 
@@ -113,7 +100,8 @@ function AssignmentRow({
           </Button>
           {assignment.enabled && !hasStoredToken && (
             <p className="text-xs text-muted-foreground">
-              Open the actions menu to generate a QR link for this checklist. The link is stored in this browser after generation.
+              Open the actions menu to generate a QR link for this checklist. Generated links stay
+              available to owners and admins on any device.
             </p>
           )}
         </div>
@@ -213,13 +201,12 @@ export function EquipmentOperatorCheckinConfig({
   async function handleAddAssignment() {
     if (!selectedTemplateId) return;
     try {
-      const result = await createMutation.mutateAsync({
+      await createMutation.mutateAsync({
         organizationId,
         equipmentId,
         templateId: selectedTemplateId,
         enabled: true,
       });
-      storeOperatorCheckinToken(result.assignment.id, result.rawToken);
       setSelectedTemplateId('');
       setAdding(false);
       toast.success('Checklist assigned. QR link is ready — open View QR code to print or share.');
@@ -230,8 +217,7 @@ export function EquipmentOperatorCheckinConfig({
 
   async function handleRotateToken(assignmentId: string) {
     try {
-      const rawToken = await rotateMutation.mutateAsync(assignmentId);
-      storeOperatorCheckinToken(assignmentId, rawToken);
+      await rotateMutation.mutateAsync(assignmentId);
       toast.success('QR link updated. Open View QR code to print or share it.');
     } catch {
       toast.error('Unable to rotate QR link.');
@@ -241,7 +227,6 @@ export function EquipmentOperatorCheckinConfig({
   async function handleRemove(assignmentId: string) {
     try {
       await deleteMutation.mutateAsync(assignmentId);
-      clearStoredOperatorCheckinToken(assignmentId);
       toast.success('Checklist removed from this equipment.');
     } catch {
       toast.error('Unable to remove checklist.');

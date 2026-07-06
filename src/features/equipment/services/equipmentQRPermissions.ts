@@ -119,7 +119,9 @@ export async function resolveEquipmentQRDisplayImageUrl(
   if (!stored?.trim()) return null;
 
   try {
-    const [resolved] = await batchResolveEquipmentDisplayImageUrls([stored]);
+    const [resolved] = await batchResolveEquipmentDisplayImageUrls([stored], {
+      equipmentIds: [equipmentId],
+    });
 
     if (resolved == null) {
       const imagePath = extractEquipmentDisplayImagePath(stored);

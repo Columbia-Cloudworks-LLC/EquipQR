@@ -28,6 +28,7 @@
     "count_equipment_matching_rules",
     "count_equipment_matching_pm_rules",
     "create_google_workspace_oauth_session",
+    "create_operator_checkin_assignment",
     "create_historical_work_order_with_pm",
     "create_invitation_atomic",
     "create_quickbooks_oauth_session",

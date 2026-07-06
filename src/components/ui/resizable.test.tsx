@@ -22,10 +22,23 @@ vi.mock('react-resizable-panels', async () => {
     );
   });
 
-  const Panel = React.forwardRef<
-    HTMLDivElement,
-    React.ComponentPropsWithoutRef<'div'>
-  >(function MockPanel({ children, ...rest }, ref) {
+  // Strip react-resizable-panels API props so they are not spread onto the
+  // DOM node (React warns about unknown `defaultSize`/`minSize` attributes).
+  type MockPanelProps = React.ComponentPropsWithoutRef<'div'> & {
+    defaultSize?: number;
+    minSize?: number;
+    maxSize?: number;
+    collapsible?: boolean;
+    collapsedSize?: number;
+  };
+
+  const Panel = React.forwardRef<HTMLDivElement, MockPanelProps>(function MockPanel(props, ref) {
+    const { children, defaultSize, minSize, maxSize, collapsible, collapsedSize, ...rest } = props;
+    void defaultSize;
+    void minSize;
+    void maxSize;
+    void collapsible;
+    void collapsedSize;
     return (
       <div ref={ref} data-testid="mock-resizable-panel" {...rest}>
         {children}

@@ -391,6 +391,64 @@ describe('imageUploadService', () => {
       const out = await batchResolveEquipmentDisplayImageUrls(['only/in/eq.jpg']);
       expect(out[0]).toContain('sign/eq-note/only/in/eq.jpg');
     });
+
+    it('derives the owning bucket from equipment ids and batch-signs without probing (#1156)', async () => {
+      const bucketCalls: Array<{ bucket: string; paths: string[] }> = [];
+      mockFrom.mockImplementation((bucket: string) => ({
+        upload: mockUpload,
+        getPublicUrl: mockGetPublicUrl,
+        createSignedUrl: mockCreateSignedUrl,
+        createSignedUrls: vi.fn((paths: string[], expiresIn: number) => {
+          bucketCalls.push({ bucket, paths });
+          return Promise.resolve({
+            data: paths.map((path: string) => ({
+              path,
+              signedUrl: `https://example.supabase.co/storage/v1/object/sign/${bucket}/${path}?e=${expiresIn}`,
+              error: null,
+            })),
+            error: null,
+          });
+        }),
+      }));
+
+      const out = await batchResolveEquipmentDisplayImageUrls(
+        ['user1/eq-1/note-1/a.jpg', 'user1/wo-9/b.jpg'],
+        { equipmentIds: ['eq-1', 'eq-2'] },
+      );
+
+      expect(out[0]).toContain('sign/equipment-note-images/user1/eq-1/note-1/a.jpg');
+      expect(out[1]).toContain('sign/work-order-images/user1/wo-9/b.jpg');
+      expect(mockCreateSignedUrl).not.toHaveBeenCalled();
+      expect(bucketCalls.map((call) => call.bucket).sort()).toEqual([
+        'equipment-note-images',
+        'work-order-images',
+      ]);
+    });
+
+    it('nulls refs whose batch row reports an error instead of probing per path (#1156)', async () => {
+      mockFrom.mockImplementation(() => ({
+        upload: mockUpload,
+        getPublicUrl: mockGetPublicUrl,
+        createSignedUrl: mockCreateSignedUrl,
+        createSignedUrls: vi.fn((paths: string[]) =>
+          Promise.resolve({
+            data: paths.map((path: string) => ({
+              path,
+              signedUrl: null,
+              error: 'Object not found',
+            })),
+            error: null,
+          }),
+        ),
+      }));
+
+      const out = await batchResolveEquipmentDisplayImageUrls(['user1/wo-9/gone.jpg'], {
+        equipmentIds: ['eq-1'],
+      });
+
+      expect(out[0]).toBeNull();
+      expect(mockCreateSignedUrl).not.toHaveBeenCalled();
+    });
   });
 
   describe('resolveImageDisplayUrl', () => {

@@ -60,6 +60,10 @@ vi.mock('@/components/ui/toaster', () => ({
   Toaster: () => <div data-testid="toaster" />,
 }));
 
+vi.mock('sonner', () => ({
+  Toaster: () => <div data-testid="sonner-toaster" />,
+}));
+
 describe('AppProviders', () => {
   let AppProviders: typeof AppProvidersComponent;
 
@@ -187,6 +191,27 @@ describe('AppProviders', () => {
       );
 
       expect(screen.getByTestId('toaster')).toBeInTheDocument();
+    });
+
+    it('mounts the Sonner toaster so sonner toast() calls render (#1081)', () => {
+      renderWithRouter(
+        <AppProviders>
+          <div>Test</div>
+        </AppProviders>,
+      );
+
+      expect(screen.getByTestId('sonner-toaster')).toBeInTheDocument();
+    });
+
+    it('mounts the Sonner toaster on QR entry routes too', () => {
+      renderWithRouter(
+        <AppProviders>
+          <div>Test</div>
+        </AppProviders>,
+        '/qr/equipment/test-equipment',
+      );
+
+      expect(screen.getByTestId('sonner-toaster')).toBeInTheDocument();
     });
   });
 
