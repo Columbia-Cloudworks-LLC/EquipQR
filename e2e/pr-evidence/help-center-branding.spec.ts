@@ -8,9 +8,12 @@ import { startDocsDistCspServer, type DocsCspServer } from './shared/docs-csp-se
  * blocked the inline scripts VitePress needs to hydrate. The site also had no
  * EquipQR branding (no nav logo, no hero logo, favicon 404).
  *
- * Production CSP uses sha256 hashes for the three VitePress inline bootstraps
- * (generated post-build by scripts/docs/generate-docs-csp.mjs) instead of
- * script-src 'unsafe-inline'.
+ * Issue #1158 — the sha256-hash CSP from #1147 drifted as soon as any doc page
+ * changed (VitePress regenerates its inline __VP_HASH_MAP__ bootstrap), because
+ * Vercel serves headers from the committed vercel.json, not the build output.
+ * The build now externalizes all inline scripts to /assets/inline.*.js
+ * (scripts/docs/externalize-docs-inline-scripts.mjs) so the CSP stays a static
+ * script-src 'self' that can never drift.
  *
  * This spec serves the built docs through the exact CSP shipped in
  * docs/vercel.json and proves hydration, navigation, theme toggling, and
