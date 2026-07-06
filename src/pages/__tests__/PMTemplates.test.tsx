@@ -49,15 +49,12 @@ vi.mock('@/features/organization/hooks/useSimplifiedOrganizationRestrictions', (
   useSimplifiedOrganizationRestrictions: vi.fn(),
 }));
 
-vi.mock('@/features/pm-templates/components/TemplateAssignmentDialog', () => ({
-  TemplateAssignmentDialog: vi.fn(({ templateId, open, onClose }) =>
-    open ? (
-      <div data-testid="assignment-dialog">
-        <div>Assignment Dialog for {templateId}</div>
-        <button onClick={onClose}>Close</button>
-      </div>
-    ) : null
-  ),
+vi.mock('@/features/pm-templates/components/PMTemplateEquipmentAssignmentMenu', () => ({
+  PMTemplateEquipmentAssignmentMenu: vi.fn(({ templateId }: { templateId: string }) => (
+    <button type="button" data-testid={`assignment-menu-${templateId}`}>
+      Apply to Equipment
+    </button>
+  )),
 }));
 
 const mockTemplates = [
@@ -361,7 +358,7 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
-      expect(screen.getByText('Global Templates')).toBeInTheDocument();
+      expect(screen.getByText('EquipQR Templates')).toBeInTheDocument();
       expect(screen.getByText(pmFixtures.forklift.name)).toBeInTheDocument();
       expect(screen.getByText(pmFixtures.forklift.description)).toBeInTheDocument();
     });
@@ -419,25 +416,24 @@ describe('PMTemplates Page', () => {
           `${pmFixtures.forklift.sections.length} sections · ${pmFixtures.forklift.itemCount} items`,
         ),
       ).toBeInTheDocument();
-      expect(screen.getByText('Global')).toBeInTheDocument();
+      expect(screen.getByText('EquipQR')).toBeInTheDocument();
       expect(screen.getByText('Protected')).toBeInTheDocument();
     });
   });
 
   describe('Template Actions', () => {
-    it('handles Apply template button click', async () => {
+    it('renders the equipment assignment menu on every template card', () => {
       render(
         <TestProviders>
           <PMTemplates />
         </TestProviders>
       );
 
-      const assignButton = screen.getAllByRole('button', { name: 'Apply to Equipment' })[0];
-      fireEvent.click(assignButton);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('assignment-dialog')).toBeInTheDocument();
-      });
+      expect(screen.getByTestId(`assignment-menu-${pmFixtures.forklift.id}`)).toBeInTheDocument();
+      expect(
+        screen.getByTestId(`assignment-menu-${pmFixtures.customOrgTemplate.id}`),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Ready to use — assign directly, no clone needed')).toBeInTheDocument();
     });
 
     it('handles Clone template button click', async () => {

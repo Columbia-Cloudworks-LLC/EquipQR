@@ -77,6 +77,8 @@ export interface EquipmentSummary {
   last_known_location: { name?: string } | null;
   team?: { id: string; name: string } | null;
   team_name?: string;
+  /** Current default PM template so bulk-assign pickers can mark records already covered. */
+  default_pm_template_id: string | null;
 }
 
 export interface EquipmentFilters extends FilterParams {
@@ -394,7 +396,7 @@ export class EquipmentService {
       let query = supabase
         .from('equipment')
         .select(
-          'id, organization_id, name, manufacturer, model, serial_number, status, team_id, location, image_url, working_hours, last_maintenance, last_known_location, team:team_id(id, name)'
+          'id, organization_id, name, manufacturer, model, serial_number, status, team_id, location, image_url, working_hours, last_maintenance, last_known_location, default_pm_template_id, team:team_id(id, name)'
         )
         .eq('organization_id', organizationId)
         .order('name', { ascending: true });
@@ -432,6 +434,7 @@ export class EquipmentService {
             : null,
         team: row.team as { id: string; name: string } | null,
         team_name: (row.team as { name?: string } | null | undefined)?.name ?? undefined,
+        default_pm_template_id: row.default_pm_template_id ?? null,
       }));
 
       return createServiceSuccessResponse(flattened);

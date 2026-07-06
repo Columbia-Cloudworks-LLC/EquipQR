@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 import type { EquipmentSummary } from '@/features/equipment/services/EquipmentService';
-import { filterEquipmentSummariesBySelectedTeam } from '@/features/operator-check-ins/utils/filterEquipmentSummariesBySelectedTeam';
+import { filterEquipmentSummariesBySelectedTeam } from '@/features/equipment/utils/filterEquipmentSummariesBySelectedTeam';
 
 function makeEquipment(overrides: Partial<EquipmentSummary>): EquipmentSummary {
   return {
