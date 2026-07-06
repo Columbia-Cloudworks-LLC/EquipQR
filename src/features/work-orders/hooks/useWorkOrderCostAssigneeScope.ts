@@ -36,20 +36,21 @@ export function useWorkOrderCostAssigneeScope(
 
       let query = supabase
         .from('work_orders')
-        .select('id', { count: 'exact', head: true })
+        .select('id')
         .eq('organization_id', orgId)
-        .eq('assignee_id', assigneeId);
+        .eq('assignee_id', assigneeId)
+        .limit(1);
 
       if (selectedTeamId) {
         query = query.eq('team_id', selectedTeamId);
       }
 
-      const { count, error } = await query;
+      const { data, error } = await query;
       if (error) {
         throw error;
       }
 
-      const hasAssignedWorkOrders = (count ?? 0) > 0;
+      const hasAssignedWorkOrders = (data?.length ?? 0) > 0;
       if (!hasAssignedWorkOrders) {
         return EMPTY_ASSIGNEE_SCOPE;
       }
