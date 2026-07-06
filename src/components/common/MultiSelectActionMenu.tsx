@@ -116,7 +116,13 @@ export function MultiSelectActionMenu({
 
   async function handleAction() {
     if (selectedIds.length === 0) return;
-    await onAction(selectedIds);
+    try {
+      await onAction(selectedIds);
+    } catch {
+      // Callers surface failures (mutation hooks toast). Keep the popover
+      // open with the selection intact so the user can retry.
+      return;
+    }
     setSelectedIds([]);
     setSearch('');
     setOpen(false);
