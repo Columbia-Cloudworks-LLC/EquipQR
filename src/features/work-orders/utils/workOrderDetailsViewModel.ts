@@ -247,8 +247,8 @@ export function shouldShowMobileSyncBanner(syncState: MobileFooterSyncState): bo
 }
 
 export const MOBILE_WO_FAB_BOTTOM_CLASS = {
-  default: 'bottom-[78px]',
-  withSyncBanner: 'bottom-[120px]',
+  default: 'bottom-[calc(78px+env(safe-area-inset-bottom,0px))]',
+  withSyncBanner: 'bottom-[calc(120px+env(safe-area-inset-bottom,0px))]',
 } as const;
 
 export function shouldHideInlineNoteAddButton(showMobileActionFooter: boolean): boolean {
