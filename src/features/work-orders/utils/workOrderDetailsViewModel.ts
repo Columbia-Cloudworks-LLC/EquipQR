@@ -127,6 +127,13 @@ export function shouldShowMobileActionFooter({
   );
 }
 
+/** Scroll clearance for mobile work-order details fixed chrome (QAB FAB; optional sync banner). */
+export function getMobileWorkOrderDetailsBottomPaddingClass(isMobile: boolean): string | undefined {
+  if (!isMobile) return undefined;
+  // FAB uses bottom-[78px] + h-14; --mobile-bottom-nav-height matches that offset (+ safe area).
+  return 'pb-[calc(var(--mobile-bottom-nav-height)+3.5rem+1rem)]';
+}
+
 export function buildWorkOrderPdfInput(workOrder: WorkOrderPdfSource | null | undefined): WorkOrderForPDF {
   if (!workOrder) {
     return EMPTY_WORK_ORDER_PDF;
@@ -228,9 +235,6 @@ export function buildOfflineSyncState(offlineQueue: OfflineQueueSnapshot) {
   };
 }
 
-export function shouldHideInlineNoteAddButton(
-  showMobileActionFooter: boolean,
-  workOrderStatus: WorkOrderStatus | string,
-): boolean {
-  return showMobileActionFooter && workOrderStatus !== 'submitted';
+export function shouldHideInlineNoteAddButton(showMobileActionFooter: boolean): boolean {
+  return showMobileActionFooter;
 }

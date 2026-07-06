@@ -17,10 +17,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import {
-  PanelRight,
-  Trash2,
-} from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { WorkOrderMobileExportSection } from '@/features/work-orders/components/WorkOrderMobileExportSection';
 import { QuickBooksExportButton } from './QuickBooksExportButton';
@@ -29,14 +26,21 @@ import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { useDeleteWorkOrder } from '@/features/work-orders/hooks/useDeleteWorkOrder';
 import { useWorkOrderImageCount } from '@/features/work-orders/hooks/useWorkOrderImageCount';
 import { isQuickBooksEnabled } from '@/lib/flags';
+import {
+  getWorkOrderSheetQuickActionButtonProps,
+  groupWorkOrderSheetQuickActions,
+} from '@/features/work-orders/utils/workOrderSheetQuickActionStyles';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import type { WorkOrderExportAudience } from '@/features/work-orders/utils/workOrderExportAccess';
 import type { WorkOrderFileExportHandlers } from '@/features/work-orders/types/workOrderFileExportHandlers';
+
+import type { WorkOrderSheetQuickActionTone } from '@/features/work-orders/utils/workOrderSheetQuickActionStyles';
 
 export interface WorkOrderSheetQuickAction {
   id: string;
   label: string;
   icon: LucideIcon;
+  tone: WorkOrderSheetQuickActionTone;
   onSelect: () => void;
   disabled?: boolean;
 }
@@ -51,8 +55,6 @@ interface MobileWorkOrderActionSheetProps {
   exportAudience: WorkOrderExportAudience;
   /** Contextual shortcuts (next status action, note/photo, WO QR) — issue #1151. */
   quickActions?: WorkOrderSheetQuickAction[];
-  /** Opens sidebar / overlay with metadata (mobile) */
-  onViewFullDetails: () => void;
   onOpenPdfDialog: () => void;
   onOpenDrivePdfDialog: () => void;
   isGeneratingPdf: boolean;
@@ -70,7 +72,6 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
   organizationId,
   exportAudience,
   quickActions,
-  onViewFullDetails,
   onOpenPdfDialog,
   onOpenDrivePdfDialog,
   isGeneratingPdf,
@@ -112,6 +113,27 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
     }
   };
 
+  const quickActionGroups =
+    quickActions && quickActions.length > 0
+      ? groupWorkOrderSheetQuickActions(quickActions)
+      : null;
+
+  const renderQuickActionButton = (action: WorkOrderSheetQuickAction) => {
+    const { variant, className } = getWorkOrderSheetQuickActionButtonProps(action.tone);
+    return (
+      <Button
+        key={action.id}
+        variant={variant}
+        className={className}
+        disabled={action.disabled}
+        onClick={() => handleAction(action.onSelect)}
+      >
+        <action.icon className="h-5 w-5 shrink-0" aria-hidden />
+        <span className="text-sm font-medium">{action.label}</span>
+      </Button>
+    );
+  };
+
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
@@ -120,55 +142,55 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
           className="flex max-h-[85dvh] flex-col gap-0 rounded-t-xl p-0 pb-safe-bottom"
         >
           <SheetHeader className="shrink-0 space-y-1 border-b px-6 pb-4 pt-6 text-left">
-            <SheetTitle>More work order options</SheetTitle>
+            <SheetTitle>Work order actions</SheetTitle>
             <SheetDescription>
-              Field tools stay in the footer. Office and admin options are here.
+              Manage this work order, export records, and run admin actions without leaving the page.
             </SheetDescription>
           </SheetHeader>
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
             <div className="space-y-4 pb-2">
-            {quickActions && quickActions.length > 0 && (
+            {quickActionGroups ? (
               <>
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <div className="space-y-3">
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     Quick actions
                   </p>
-                  {quickActions.map((action) => (
-                    <Button
-                      key={action.id}
-                      variant="outline"
-                      className="h-12 w-full justify-start gap-2"
-                      disabled={action.disabled}
-                      onClick={() => handleAction(action.onSelect)}
-                    >
-                      <action.icon className="h-5 w-5" aria-hidden />
-                      <span className="text-sm font-medium">{action.label}</span>
-                    </Button>
-                  ))}
+
+                  {quickActionGroups.workflow.length > 0 ? (
+                    <div className="space-y-2">
+                      {quickActionGroups.workflow.map(renderQuickActionButton)}
+                    </div>
+                  ) : null}
+
+                  {quickActionGroups.capture.length > 0 ? (
+                    <div className="space-y-2">
+                      {quickActionGroups.workflow.length > 0 ? (
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                          Capture
+                        </p>
+                      ) : null}
+                      {quickActionGroups.capture.map(renderQuickActionButton)}
+                    </div>
+                  ) : null}
+
+                  {quickActionGroups.utility.length > 0 ? (
+                    <div className="space-y-2">
+                      {(quickActionGroups.workflow.length > 0 || quickActionGroups.capture.length > 0) ? (
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                          Share
+                        </p>
+                      ) : null}
+                      {quickActionGroups.utility.map(renderQuickActionButton)}
+                    </div>
+                  ) : null}
                 </div>
                 <Separator />
               </>
-            )}
-
-            {/* Details */}
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Details
-              </p>
-              <Button
-                variant="outline"
-                className="h-12 w-full justify-start gap-2"
-                onClick={() => handleAction(onViewFullDetails)}
-              >
-                <PanelRight className="h-5 w-5" aria-hidden />
-                <span className="text-sm font-medium">View full details</span>
-              </Button>
-            </div>
+            ) : null}
 
             {exportAudience !== 'none' && (
               <>
-                <Separator />
                 <WorkOrderMobileExportSection
                   workOrderId={workOrderId}
                   organizationId={organizationId}
@@ -198,15 +220,17 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
             {showQuickBooks && (
               <>
                 <Separator />
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <div className="space-y-2 rounded-xl border border-border/60 bg-muted/15 p-3">
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     QuickBooks
                   </p>
-                  <QuickBooksExportButton
-                    workOrderId={workOrderId}
-                    teamId={equipmentTeamId ?? null}
-                    workOrderStatus={workOrderStatus}
-                  />
+                  <div className="[&_button]:h-12 [&_button]:w-full [&_button]:justify-start [&_button]:gap-2 [&_button]:border-border/60 [&_button]:bg-background/80">
+                    <QuickBooksExportButton
+                      workOrderId={workOrderId}
+                      teamId={equipmentTeamId ?? null}
+                      workOrderStatus={workOrderStatus}
+                    />
+                  </div>
                 </div>
               </>
             )}
@@ -214,14 +238,14 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
             {showAdminSection && (
               <>
                 <Separator />
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <div className="space-y-2 rounded-xl border border-destructive/25 bg-destructive/5 p-3">
+                  <p className="text-xs font-medium uppercase tracking-wider text-destructive/80">
                     Admin
                   </p>
                   {canDelete ? (
                     <Button
-                      variant="outline"
-                      className="h-12 w-full border-destructive/50 justify-start gap-2 text-destructive hover:bg-destructive/10"
+                      variant="destructive"
+                      className="h-12 w-full justify-start gap-2"
                       onClick={() => {
                         setDeleteConfirmText('');
                         setShowDeleteDialog(true);

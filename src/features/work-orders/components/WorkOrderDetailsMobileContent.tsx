@@ -80,6 +80,7 @@ export interface WorkOrderDetailsMobileContentProps {
   onMobileReviewOpenChange: (open: boolean) => void;
   pmSectionRef: React.RefObject<HTMLDivElement | null>;
   notesSectionRef: React.RefObject<HTMLDivElement | null>;
+  costsSectionRef: React.RefObject<HTMLDivElement | null>;
   stagger: StaggerProps;
   onAcceptWorkOrder: () => void;
   onStartWork: () => void;
@@ -127,6 +128,7 @@ export function WorkOrderDetailsMobileContent({
   onMobileReviewOpenChange,
   pmSectionRef,
   notesSectionRef,
+  costsSectionRef,
   stagger,
   onAcceptWorkOrder,
   onStartWork,
@@ -426,7 +428,7 @@ export function WorkOrderDetailsMobileContent({
       </div>
 
       {canViewWorkOrderCosts && (
-        <div {...stagger(5)}>
+        <div {...stagger(5)} ref={costsSectionRef}>
           <WorkOrderCostsSection
             workOrderId={workOrder.id}
             canAddCosts={canAddCosts && !isWorkOrderLocked}

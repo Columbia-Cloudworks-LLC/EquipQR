@@ -21,7 +21,29 @@ describe('MobileWorkOrderActionFooter', () => {
     } as never);
   });
 
-  it('shows Saved when online and queue is empty', () => {
+  it('renders nothing when online and queue is empty', () => {
+    const { container } = render(
+      <MobileWorkOrderActionFooter
+        workOrder={{
+          id: 'wo',
+          status: 'in_progress',
+          assignee_id: 'u1',
+        }}
+        organizationId="org"
+        syncState={{
+          isOnline: true,
+          isSyncing: false,
+          pendingCount: 0,
+          failedCount: 0,
+        }}
+      />,
+    );
+    expect(container.firstChild).toBeNull();
+    expect(screen.queryByText('Submitted')).not.toBeInTheDocument();
+    expect(screen.queryByText('In Progress')).not.toBeInTheDocument();
+  });
+
+  it('shows Syncing banner while queue is processing', () => {
     render(
       <MobileWorkOrderActionFooter
         workOrder={{
@@ -30,25 +52,16 @@ describe('MobileWorkOrderActionFooter', () => {
           assignee_id: 'u1',
         }}
         organizationId="org"
-        canCompletePm
-        canAddNotes
         syncState={{
           isOnline: true,
-          isSyncing: false,
+          isSyncing: true,
           pendingCount: 0,
           failedCount: 0,
         }}
-        onAddNote={vi.fn()}
-        onAddPhoto={vi.fn()}
-        onStartWork={vi.fn()}
-        onAssignedPutOnHold={vi.fn()}
-        onPauseResume={vi.fn()}
-        onOpenCompleteDialog={vi.fn()}
-        onScrollToChecklist={vi.fn()}
-        onRequestAccept={vi.fn()}
       />,
     );
-    expect(screen.getByText('Saved')).toBeInTheDocument();
+    expect(screen.getByText('Syncing...')).toBeInTheDocument();
+    expect(screen.queryByText('In Progress')).not.toBeInTheDocument();
   });
 
   it('shows Sync failed when failedCount > 0', () => {
@@ -60,8 +73,6 @@ describe('MobileWorkOrderActionFooter', () => {
           assignee_id: 'u1',
         }}
         organizationId="org"
-        canCompletePm
-        canAddNotes
         syncState={{
           isOnline: true,
           isSyncing: false,
@@ -69,126 +80,12 @@ describe('MobileWorkOrderActionFooter', () => {
           failedCount: 2,
         }}
         onRetrySync={vi.fn()}
-        onAddNote={vi.fn()}
-        onAddPhoto={vi.fn()}
-        onStartWork={vi.fn()}
-        onAssignedPutOnHold={vi.fn()}
-        onPauseResume={vi.fn()}
-        onOpenCompleteDialog={vi.fn()}
-        onScrollToChecklist={vi.fn()}
-        onRequestAccept={vi.fn()}
       />,
     );
     expect(screen.getByText('Sync failed')).toBeInTheDocument();
   });
 
-  it('calls onStartWork instead of internal status hook', async () => {
-    const onStartWork = vi.fn();
-    const user = (await import('@testing-library/user-event')).default;
-    render(
-      <MobileWorkOrderActionFooter
-        workOrder={{
-          id: 'wo',
-          status: 'assigned',
-          assignee_id: 'u1',
-        }}
-        organizationId="org"
-        canCompletePm
-        canAddNotes
-        syncState={{
-          isOnline: true,
-          isSyncing: false,
-          pendingCount: 0,
-          failedCount: 0,
-        }}
-        onAddNote={vi.fn()}
-        onAddPhoto={vi.fn()}
-        onStartWork={onStartWork}
-        onAssignedPutOnHold={vi.fn()}
-        onPauseResume={vi.fn()}
-        onOpenCompleteDialog={vi.fn()}
-        onScrollToChecklist={vi.fn()}
-        onRequestAccept={vi.fn()}
-      />,
-    );
-    await user.click(screen.getByRole('button', { name: /start work/i }));
-    expect(onStartWork).toHaveBeenCalled();
-  });
-
-  it('PM incomplete hides Complete and Continue Checklist scrolls to checklist section', async () => {
-    const onScrollToChecklist = vi.fn();
-    const user = (await import('@testing-library/user-event')).default;
-    render(
-      <MobileWorkOrderActionFooter
-        workOrder={{
-          id: 'wo',
-          status: 'in_progress',
-          assignee_id: 'u1',
-          has_pm: true,
-        }}
-        organizationId="org"
-        canCompletePm={false}
-        canAddNotes
-        syncState={{
-          isOnline: true,
-          isSyncing: false,
-          pendingCount: 0,
-          failedCount: 0,
-        }}
-        onAddNote={vi.fn()}
-        onAddPhoto={vi.fn()}
-        onStartWork={vi.fn()}
-        onAssignedPutOnHold={vi.fn()}
-        onPauseResume={vi.fn()}
-        onOpenCompleteDialog={vi.fn()}
-        onScrollToChecklist={onScrollToChecklist}
-        onRequestAccept={vi.fn()}
-      />,
-    );
-    expect(screen.getByText(/Finish the checklist before completing/i)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^complete$/i })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /continue checklist/i }));
-    expect(onScrollToChecklist).toHaveBeenCalledTimes(1);
-  });
-
-  it('PM complete shows Complete which opens confirmation dialog handler', async () => {
-    const onOpenCompleteDialog = vi.fn();
-    const user = (await import('@testing-library/user-event')).default;
-    render(
-      <MobileWorkOrderActionFooter
-        workOrder={{
-          id: 'wo',
-          status: 'in_progress',
-          assignee_id: 'u1',
-          has_pm: true,
-        }}
-        organizationId="org"
-        canCompletePm
-        canAddNotes
-        syncState={{
-          isOnline: true,
-          isSyncing: false,
-          pendingCount: 0,
-          failedCount: 0,
-        }}
-        onAddNote={vi.fn()}
-        onAddPhoto={vi.fn()}
-        onStartWork={vi.fn()}
-        onAssignedPutOnHold={vi.fn()}
-        onPauseResume={vi.fn()}
-        onOpenCompleteDialog={onOpenCompleteDialog}
-        onScrollToChecklist={vi.fn()}
-        onRequestAccept={vi.fn()}
-      />,
-    );
-    expect(screen.queryByText(/Finish the checklist before completing/i)).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /^complete$/i }));
-    expect(onOpenCompleteDialog).toHaveBeenCalledTimes(1);
-  });
-
-  it('shows Note (not Photo) quick capture for submitted work orders when canAddNotes', async () => {
-    const onAddNote = vi.fn();
-    const user = (await import('@testing-library/user-event')).default;
+  it('does not render workflow action buttons', () => {
     render(
       <MobileWorkOrderActionFooter
         workOrder={{
@@ -198,29 +95,17 @@ describe('MobileWorkOrderActionFooter', () => {
           created_by: 'u1',
         }}
         organizationId="org"
-        canCompletePm
-        canAddNotes
         syncState={{
-          isOnline: true,
+          isOnline: false,
           isSyncing: false,
           pendingCount: 0,
           failedCount: 0,
         }}
-        onAddNote={onAddNote}
-        onAddPhoto={vi.fn()}
-        onStartWork={vi.fn()}
-        onAssignedPutOnHold={vi.fn()}
-        onPauseResume={vi.fn()}
-        onOpenCompleteDialog={vi.fn()}
-        onScrollToChecklist={vi.fn()}
-        onRequestAccept={vi.fn()}
       />,
     );
-    expect(screen.getByRole('button', { name: /^note$/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /add photo/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /accept/i })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /^note$/i }));
-    expect(onAddNote).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: /^note$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /accept/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /quick actions/i })).not.toBeInTheDocument();
   });
 
   it('renders null when user cannot perform workflow', () => {
@@ -237,22 +122,12 @@ describe('MobileWorkOrderActionFooter', () => {
           assignee_id: 'u1',
         }}
         organizationId="org"
-        canCompletePm
-        canAddNotes
         syncState={{
           isOnline: true,
           isSyncing: false,
           pendingCount: 0,
           failedCount: 0,
         }}
-        onAddNote={vi.fn()}
-        onAddPhoto={vi.fn()}
-        onStartWork={vi.fn()}
-        onAssignedPutOnHold={vi.fn()}
-        onPauseResume={vi.fn()}
-        onOpenCompleteDialog={vi.fn()}
-        onScrollToChecklist={vi.fn()}
-        onRequestAccept={vi.fn()}
       />,
     );
     expect(container.firstChild).toBeNull();

@@ -160,10 +160,10 @@ export function WorkOrderMobileExportSection({
 
   if (exportAudience === 'customer-safe') {
     return (
-      <div className="space-y-2">
+      <div className="space-y-2 rounded-xl border border-border/60 bg-muted/15 p-3">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Download</p>
         <Button
-          variant="outline"
+          variant="secondary"
           className="h-14 w-full flex-col gap-1"
           disabled={isGeneratingPdf || isExportBusy}
           onClick={() => onAction(onOpenPdfDialog)}
@@ -181,11 +181,11 @@ export function WorkOrderMobileExportSection({
 
   return (
     <>
-      <div className="space-y-2">
+      <div className="space-y-3 rounded-xl border border-border/60 bg-muted/15 p-3">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Download</p>
         <div className="grid grid-cols-2 gap-2">
           <Button
-            variant="outline"
+            variant="secondary"
             className="h-14 flex-col gap-1"
             disabled={docxDisabled || isExportingDocx || isExportBusy || !organizationId}
             onClick={() => onAction(onDownloadDocx)}
@@ -198,7 +198,7 @@ export function WorkOrderMobileExportSection({
             <span className="text-xs">DOCX</span>
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             className="h-14 flex-col gap-1"
             disabled={isGeneratingPdf || isExportBusy}
             onClick={() => onAction(onOpenPdfDialog)}
@@ -211,7 +211,7 @@ export function WorkOrderMobileExportSection({
             <span className="text-xs">PDF</span>
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             className="h-14 flex-col gap-1"
             disabled={isExportingXlsx || isExportBusy || !organizationId}
             onClick={() => onAction(onDownloadXlsx)}
@@ -224,7 +224,7 @@ export function WorkOrderMobileExportSection({
             <span className="text-xs">XLSX</span>
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             className="h-14 flex-col gap-1"
             disabled={isExportingCsv || isExportBusy || !organizationId}
             onClick={() => onAction(onDownloadCsv)}
@@ -238,7 +238,7 @@ export function WorkOrderMobileExportSection({
           </Button>
           <Button
             variant="outline"
-            className="col-span-2 h-12 justify-start gap-2"
+            className="col-span-2 h-12 justify-start gap-2 border-border/60 bg-background/80"
             disabled={isGeneratingWorksheet}
             onClick={() => onAction(onDownloadWorksheet)}
           >
@@ -253,7 +253,7 @@ export function WorkOrderMobileExportSection({
       </div>
 
       {showGoogleDrive ? (
-        <div className="space-y-2">
+        <div className="space-y-2 rounded-xl border border-border/60 bg-muted/15 p-3">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Google Drive</p>
           <div className="space-y-2">
             <GoogleDriveMobileRow

@@ -259,22 +259,29 @@ test.describe('Six-issue UX pass — mobile quick access (#1151) @pr-evidence', 
     await gotoDashboard(`/work-orders/${seedWorkOrders.oilChange.id}`);
     await assertHealthyShell();
 
-    const quickActions = page.getByRole('button', { name: /open quick actions/i });
-    await expect(quickActions).toBeVisible({ timeout: 60_000 });
+    const fab = page.getByRole('button', { name: /open work order quick actions/i });
+    await expect(fab).toBeVisible({ timeout: 60_000 });
 
-    // The field footer must be viewport-pinned (fixed), not scrolled with
+    // Footer shows sync/status only — workflow buttons live in the drawer.
+    await expect(page.getByRole('button', { name: /^note$/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^accept$/i })).toHaveCount(0);
+
+    // The floating QAB must be viewport-pinned (fixed), not scrolled with
     // content — regression guard for the texture-grain position override.
-    const footerBox = await quickActions.boundingBox();
-    expect(footerBox).not.toBeNull();
-    expect(footerBox!.y).toBeGreaterThan(400);
-    expect(footerBox!.y + footerBox!.height).toBeLessThanOrEqual(845);
+    const fabBox = await fab.boundingBox();
+    expect(fabBox).not.toBeNull();
+    expect(fabBox!.x).toBeGreaterThan(300);
+    expect(fabBox!.y).toBeGreaterThan(650);
+    expect(fabBox!.y + fabBox!.height).toBeLessThanOrEqual(845);
 
     await evidencePause(page, 800);
     await evidenceScreenshot(page, '16-work-order-footer-quick-actions');
 
-    await quickActions.click();
-    const actionSheet = page.getByLabel('More work order options');
+    await fab.click();
+    const actionSheet = page.getByLabel('Work order actions');
     await expect(actionSheet.getByText(/^Quick actions$/)).toBeVisible({ timeout: 15_000 });
+    await expect(actionSheet.getByRole('button', { name: /add note or photo/i })).toBeVisible();
+    await expect(actionSheet.getByRole('button', { name: /complete work order/i })).toBeVisible();
     await expect(
       actionSheet.getByRole('button', { name: /show work order qr code/i }),
     ).toBeVisible();
@@ -318,7 +325,7 @@ test.describe('Six-issue UX pass — mobile quick access (#1151) @pr-evidence', 
     await evidenceScreenshot(page, '19-completed-wo-floating-qab');
 
     await fab.click();
-    const completedSheet = page.getByLabel('More work order options');
+    const completedSheet = page.getByLabel('Work order actions');
     await expect(completedSheet).toBeVisible({ timeout: 15_000 });
     await expect(
       completedSheet.getByRole('button', { name: /show work order qr code/i }),

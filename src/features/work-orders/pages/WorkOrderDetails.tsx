@@ -36,6 +36,7 @@ import {
   buildOfflineSyncState,
   buildWorkOrderAssigneeSummary,
   buildWorkOrderTeamSummary,
+  getMobileWorkOrderDetailsBottomPaddingClass,
   isFooterRoleEligible,
   shouldHideInlineNoteAddButton,
   shouldShowMobileActionFooter,
@@ -59,6 +60,7 @@ const WorkOrderDetails = () => {
   const shouldAutoFocusPM = actionParam === 'pm';
   const notesSectionRef = useRef<HTMLDivElement>(null);
   const pmSectionRef = useRef<HTMLDivElement>(null);
+  const costsSectionRef = useRef<HTMLDivElement>(null);
 
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>('');
   const [isEditingWorkOrderEquipmentLocation, setIsEditingWorkOrderEquipmentLocation] = useState(false);
@@ -355,6 +357,13 @@ const WorkOrderDetails = () => {
     pmSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const scrollToCostsSection = () => {
+    costsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const canCaptureCosts =
+    canViewWorkOrderCosts && (canAddCosts || canEditCosts) && !isWorkOrderLocked;
+
   return (
     <div className="min-h-screen bg-background texture-grain">
       <WorkOrderDetailsMobileHeader
@@ -387,7 +396,7 @@ const WorkOrderDetails = () => {
         <div
           className={cn(
             isMobile ? 'space-y-4' : 'lg:col-span-2 space-y-6',
-            showMobileActionFooter && 'pb-32'
+            getMobileWorkOrderDetailsBottomPaddingClass(isMobile),
           )}
         >
           {linkedEquipment.length > 1 && (
@@ -428,6 +437,7 @@ const WorkOrderDetails = () => {
               onMobileReviewOpenChange={setMobileReviewOpen}
               pmSectionRef={pmSectionRef}
               notesSectionRef={notesSectionRef}
+              costsSectionRef={costsSectionRef}
               stagger={stagger}
               onAcceptWorkOrder={() => setShowFieldAcceptDialog(true)}
               onStartWork={startMobileWorkOrder}
@@ -503,6 +513,7 @@ const WorkOrderDetails = () => {
         equipmentTeamId={equipment?.team_id}
         permissionLevels={permissionLevels}
         canAddNotes={canAddNotes}
+        canCaptureCosts={canCaptureCosts}
         canCompletePmGate={canCompletePmGate}
         showMobileActionFooter={showMobileActionFooter}
         syncState={syncState}
@@ -520,10 +531,6 @@ const WorkOrderDetails = () => {
         isMobileSavingToDrive={exports.isMobileSavingToDrive}
         showMobileActionSheet={showMobileActionSheet}
         onMobileActionSheetOpenChange={setShowMobileActionSheet}
-        onViewFullDetails={() => {
-          setShowMobileActionSheet(false);
-          setShowMobileSidebar(true);
-        }}
         onDownloadWorksheet={exports.handleMobileDownloadWorksheet}
         isMobileWorksheetGenerating={exports.isMobileWorksheetGenerating}
         onDownloadXlsx={() => exports.exportSingle(workOrder.id)}
@@ -547,7 +554,7 @@ const WorkOrderDetails = () => {
         onFieldAcceptComplete={handleFieldAcceptComplete}
         fieldAcceptanceMutation={fieldAcceptanceMutation}
         onOpenNotesComposer={openNotesComposer}
-        onOpenPhotoCapture={openPhotoCapture}
+        onScrollToCosts={scrollToCostsSection}
         onStartMobileWorkOrder={startMobileWorkOrder}
         onPutAssignedMobileWorkOrderOnHold={putAssignedMobileWorkOrderOnHold}
         onPauseResumeMobileWorkOrder={pauseResumeMobileWorkOrder}

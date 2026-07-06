@@ -352,12 +352,10 @@ describe('WorkOrderDetails', () => {
 
     const footerProps = mockMobileWorkOrderActionFooterProps.mock.calls.at(-1)?.[0] as {
       workOrder: { status: string };
-      canAddNotes: boolean;
-      onAddNote?: () => void;
+      syncState: { isOnline: boolean };
     };
     expect(footerProps.workOrder.status).toBe('submitted');
-    expect(footerProps.canAddNotes).toBe(true);
-    expect(typeof footerProps.onAddNote).toBe('function');
+    expect(footerProps.syncState.isOnline).toBe(true);
 
     await waitFor(() => {
       expect(mockWorkOrderNotesSectionProps).toHaveBeenCalled();
@@ -367,7 +365,7 @@ describe('WorkOrderDetails', () => {
       hideInlineAddButton?: boolean;
     };
     expect(notesProps.canAddNotes).toBe(true);
-    expect(notesProps.hideInlineAddButton).toBe(false);
+    expect(notesProps.hideInlineAddButton).toBe(true);
   });
 
   it('renders the mobile field-first order with office details collapsed by default', async () => {
