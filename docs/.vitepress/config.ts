@@ -208,6 +208,9 @@ export default defineConfig({
     },
   },
   head: [
+    ["link", { rel: "icon", href: "/favicon.ico", sizes: "32x32" }],
+    ["link", { rel: "icon", href: "/eqr-logo/icon.svg", type: "image/svg+xml" }],
+    ["link", { rel: "apple-touch-icon", href: "/eqr-logo/icon.svg" }],
     ["meta", { name: "theme-color", content: "#5f67ee" }],
     [
       "meta",
@@ -219,6 +222,7 @@ export default defineConfig({
     ],
   ],
   themeConfig: {
+    logo: { src: "/eqr-logo/icon.svg", alt: "EquipQR" },
     siteTitle: "EquipQR Help",
 
     search: {

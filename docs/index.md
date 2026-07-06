@@ -5,6 +5,9 @@ hero:
   name: EquipQR Help Center
   text: Guides for your fleet, work orders, and field teams
   tagline: Step-by-step help for technicians, managers, admins, and equipment owners — hosted at equipqr.info.
+  image:
+    src: /eqr-logo/icon.svg
+    alt: EquipQR logo
   actions:
     - theme: brand
       text: Browse Help Center
