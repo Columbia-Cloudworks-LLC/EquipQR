@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Package, History, Link2, Plus, QrCode } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -17,13 +17,13 @@ import { getAlternatesForInventoryItem } from '@/features/inventory/services/par
 import { groupAlternatePartsByGroupId } from '@/features/inventory/utils/groupAlternateParts';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
-import { HistoryTab } from '@/components/audit';
+import { ORGANIZATION_AUDIT_LOG_PATH } from '@/features/organization/constants/routes';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { logger } from '@/utils/logger';
@@ -54,6 +54,8 @@ const InventoryItemDetail = () => {
   // Check if user is a parts manager for permission calculation
   const { data: isPartsManager = false } = useIsPartsManager(currentOrganization?.id);
   const canEdit = canManageInventory(isPartsManager);
+  const isOrgAdmin =
+    currentOrganization?.userRole === 'owner' || currentOrganization?.userRole === 'admin';
 
   const [activeTab, setActiveTab] = useState('overview');
   const [showEditForm, setShowEditForm] = useState(false);
@@ -345,10 +347,6 @@ const InventoryItemDetail = () => {
                   <Link2 className="h-4 w-4 mr-2" />
                   Compatibility
                 </TabsTrigger>
-                <TabsTrigger value="history" className="shrink-0">
-                  <History className="h-4 w-4 mr-2" />
-                  Change History
-                </TabsTrigger>
               </TabsList>
             </HorizontalChipRow>
           ) : (
@@ -364,10 +362,6 @@ const InventoryItemDetail = () => {
               <TabsTrigger value="compatibility">
                 <Link2 className="h-4 w-4 mr-2" />
                 Compatibility
-              </TabsTrigger>
-              <TabsTrigger value="history">
-                <History className="h-4 w-4 mr-2" />
-                Change History
               </TabsTrigger>
             </TabsList>
           )}
@@ -456,27 +450,24 @@ const InventoryItemDetail = () => {
             />
           </TabsContent>
 
-          <TabsContent
-            value="history"
-            className="space-y-4 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:duration-150 motion-reduce:data-[state=active]:animate-none"
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle>Change History</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {itemId && (
-                  <HistoryTab
-                    entityType="inventory_item"
-                    entityId={itemId}
-                    organizationId={currentOrganization.id}
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
         </Tabs>
+
+        {/* Audit data lives on the dedicated org-scoped audit log page (#1122). */}
+        {itemId && isOrgAdmin && (
+          <Button
+            variant="link"
+            size="sm"
+            asChild
+            className="h-auto px-0 text-xs text-muted-foreground"
+          >
+            <Link
+              to={`${ORGANIZATION_AUDIT_LOG_PATH}?entityType=inventory_item&entityId=${itemId}`}
+            >
+              <History className="mr-1 h-3.5 w-3.5" />
+              View change history in the Audit Log
+            </Link>
+          </Button>
+        )}
 
         {itemId && (
           <InventoryItemDetailDialogs

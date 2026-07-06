@@ -5,7 +5,7 @@
  * Used for entity history, organization-wide audit logs, and user activity.
  */
 
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { auditService } from '@/services/auditService';
@@ -14,7 +14,6 @@ import {
   AuditLogFilters,
   AuditLogPagination,
   AuditLogTimelineBucket,
-  AuditEntityType,
   FormattedAuditEntry,
   ENTITY_TYPE_LABELS,
   ACTION_LABELS,
@@ -23,8 +22,6 @@ import { useAppToast } from '@/hooks/useAppToast';
 import { runAuditExportDownload } from '@/hooks/auditExportDownload';
 import {
   AUDIT_QUERY_STALE_MS,
-  auditInfiniteNextPage,
-  mapAuditPage,
   unwrapAuditResult,
 } from '@/hooks/auditLogQueryHelpers';
 
@@ -55,18 +52,12 @@ function formatAuditEntry(entry: AuditLogEntry): FormattedAuditEntry {
 
 export const auditQueryKeys = {
   all: ['audit-log'] as const,
-  entityHistory: (entityType: AuditEntityType, entityId: string) =>
-    [...auditQueryKeys.all, 'entity', entityType, entityId] as const,
   organizationLog: (
     orgId: string,
     filters?: AuditLogFilters,
     page?: number,
     pageSize?: number
   ) => [...auditQueryKeys.all, 'organization', orgId, filters, page, pageSize] as const,
-  userActivity: (orgId: string, userId: string) =>
-    [...auditQueryKeys.all, 'user', orgId, userId] as const,
-  recentActivity: (orgId: string) =>
-    [...auditQueryKeys.all, 'recent', orgId] as const,
   stats: (orgId: string, dateFrom?: string, dateTo?: string) =>
     [...auditQueryKeys.all, 'stats', orgId, dateFrom, dateTo] as const,
   timeline: (
@@ -108,46 +99,6 @@ export function deriveTimelineBucket(
   if (span <= ONE_HOUR_MS) return 'minute';
   if (span <= ONE_DAY_MS) return 'hour';
   return 'day';
-}
-
-// ============================================
-// Entity History Hook
-// ============================================
-
-/**
- * Hook to fetch audit history for a specific entity
- * Used in History tabs on detail pages
- */
-export function useEntityHistory(
-  organizationId: string | undefined,
-  entityType: AuditEntityType | undefined,
-  entityId: string | undefined,
-  options?: {
-    pageSize?: number;
-    enabled?: boolean;
-  }
-) {
-  const pageSize = options?.pageSize ?? 20;
-  const enabled = options?.enabled !== false && !!organizationId && !!entityType && !!entityId;
-
-  return useInfiniteQuery({
-    queryKey: auditQueryKeys.entityHistory(entityType!, entityId!),
-    queryFn: async ({ pageParam = 1 }) => {
-      const result = await auditService.getEntityHistory(
-        organizationId!,
-        entityType!,
-        entityId!,
-        { page: pageParam, pageSize }
-      );
-      
-      const data = unwrapAuditResult(result, 'Failed to fetch entity history');
-      return mapAuditPage(data, pageParam, formatAuditEntry);
-    },
-    initialPageParam: 1,
-    getNextPageParam: auditInfiniteNextPage,
-    enabled,
-    staleTime: AUDIT_QUERY_STALE_MS,
-  });
 }
 
 // ============================================
@@ -195,39 +146,6 @@ export function useOrganizationAuditLog(
   return query;
 }
 
-/**
- * Hook for paginated organization audit log with infinite scroll
- */
-function useOrganizationAuditLogInfinite(
-  organizationId: string | undefined,
-  filters?: AuditLogFilters,
-  options?: {
-    pageSize?: number;
-    enabled?: boolean;
-  }
-) {
-  const pageSize = options?.pageSize ?? 50;
-  const enabled = options?.enabled !== false && !!organizationId;
-
-  return useInfiniteQuery({
-    queryKey: auditQueryKeys.organizationLog(organizationId!, filters),
-    queryFn: async ({ pageParam = 1 }) => {
-      const result = await auditService.getOrganizationAuditLog(
-        organizationId!,
-        filters,
-        { page: pageParam, pageSize }
-      );
-      
-      const data = unwrapAuditResult(result, 'Failed to fetch audit log');
-      return mapAuditPage(data, pageParam, formatAuditEntry);
-    },
-    initialPageParam: 1,
-    getNextPageParam: auditInfiniteNextPage,
-    enabled,
-    staleTime: AUDIT_QUERY_STALE_MS,
-  });
-}
-
 // ============================================
 // Timeline Aggregation Hook (issue #641)
 // ============================================
@@ -261,78 +179,6 @@ export function useAuditTimeline(
     },
     enabled,
     staleTime: AUDIT_QUERY_STALE_MS,
-  });
-}
-
-// ============================================
-// User Activity Hook
-// ============================================
-
-/**
- * Hook to fetch activity for a specific user
- */
-function useUserActivity(
-  organizationId: string | undefined,
-  userId: string | undefined,
-  pagination?: AuditLogPagination,
-  options?: {
-    enabled?: boolean;
-  }
-) {
-  const enabled = options?.enabled !== false && !!organizationId && !!userId;
-
-  return useQuery({
-    queryKey: auditQueryKeys.userActivity(organizationId!, userId!),
-    queryFn: async () => {
-      const result = await auditService.getUserActivity(
-        organizationId!,
-        userId!,
-        pagination
-      );
-      
-      if (!result.success || !result.data) {
-        throw new Error(result.error || 'Failed to fetch user activity');
-      }
-      
-      return {
-        ...result.data,
-        data: result.data.data.map(formatAuditEntry),
-      };
-    },
-    enabled,
-    staleTime: 30 * 1000,
-  });
-}
-
-// ============================================
-// Recent Activity Hook
-// ============================================
-
-/**
- * Hook to fetch recent activity for dashboard widgets
- */
-function useRecentActivity(
-  organizationId: string | undefined,
-  limit: number = 10,
-  options?: {
-    enabled?: boolean;
-  }
-) {
-  const enabled = options?.enabled !== false && !!organizationId;
-
-  return useQuery({
-    queryKey: auditQueryKeys.recentActivity(organizationId!),
-    queryFn: async () => {
-      const result = await auditService.getRecentActivity(organizationId!, limit);
-      
-      if (!result.success || !result.data) {
-        throw new Error(result.error || 'Failed to fetch recent activity');
-      }
-      
-      return result.data.map(formatAuditEntry);
-    },
-    enabled,
-    staleTime: 60 * 1000, // 1 minute for dashboard widget
   });
 }
 
@@ -392,37 +238,4 @@ export function useAuditExport(organizationId: string | undefined) {
   );
 
   return { exportToCsv, exportToJson };
-}
-
-// ============================================
-// Combined Hook for Audit Log Page
-// ============================================
-
-/**
- * Combined hook for the Audit Log page with filtering and pagination
- */
-function useAuditLogPage(organizationId: string | undefined) {
-  const { exportToCsv } = useAuditExport(organizationId);
-
-  // Memoized filter state helpers
-  const createFilters = useCallback((
-    entityType?: AuditEntityType | 'all',
-    action?: string,
-    actorId?: string,
-    dateFrom?: string,
-    dateTo?: string,
-    search?: string
-  ): AuditLogFilters => ({
-    entityType: entityType === 'all' ? undefined : entityType,
-    action: action === 'all' ? undefined : action as AuditLogFilters['action'],
-    actorId,
-    dateFrom,
-    dateTo,
-    search,
-  }), []);
-
-  return {
-    createFilters,
-    exportToCsv,
-  };
 }

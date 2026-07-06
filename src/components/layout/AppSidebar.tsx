@@ -25,7 +25,6 @@ import {
   Warehouse,
   Search,
   Layers,
-  History,
   ShieldCheck,
   Plug,
 } from "lucide-react";
@@ -85,7 +84,7 @@ const navigationGroups: NavigationGroup[] = [
   {
     label: "Audit",
     items: [
-      { title: "Audit Log", url: "/dashboard/audit-log", icon: History, adminOnly: true },
+      // Audit Log intentionally lives under Organization settings (#1122), not main nav.
       { title: "DSR Cockpit", url: "/dashboard/dsr", icon: ShieldCheck, adminOnly: true },
     ],
   },

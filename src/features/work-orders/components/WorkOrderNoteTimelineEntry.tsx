@@ -90,7 +90,7 @@ export function WorkOrderNoteTimelineEntry({
           <DialogHeader>
             <DialogTitle>Edit note timestamp</DialogTitle>
             <DialogDescription>
-              Adjust when this note appears on the historical work order. Change History keeps a record of this edit.
+              Adjust when this note appears on the historical work order. The organization Audit Log keeps a record of this edit.
             </DialogDescription>
           </DialogHeader>
           <DateTimePicker

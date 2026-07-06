@@ -193,7 +193,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
         </div>
         {isHistorical ? (
           <p className="text-sm text-muted-foreground">
-            Operational dates may reflect when work happened in the field. Edit history remains in Change History.
+            Operational dates may reflect when work happened in the field. Edit history remains in the organization Audit Log.
           </p>
         ) : null}
       </CardHeader>

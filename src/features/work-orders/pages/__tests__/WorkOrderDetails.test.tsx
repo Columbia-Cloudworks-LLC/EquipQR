@@ -158,10 +158,6 @@ vi.mock('@/utils/navigationDebug', () => ({
   logNavigationEvent: vi.fn(),
 }));
 
-vi.mock('@/components/audit', () => ({
-  HistoryTab: () => <div>Audit history</div>,
-}));
-
 vi.mock('@/features/work-orders/components/WorkOrderDetailsInfo', () => ({
   default: () => null,
 }));
@@ -418,7 +414,9 @@ describe('WorkOrderDetails', () => {
     // Itemized costs stay outside Review/office so techs can reach them without expanding.
     expect(screen.getByText('Costs section')).toBeInTheDocument();
     expect(screen.queryByText('Timeline section')).not.toBeInTheDocument();
-    expect(screen.queryByText('Audit history')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /view field change history in the audit log/i }),
+    ).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(mockWorkOrderNotesSectionProps).toHaveBeenCalled();
@@ -445,7 +443,10 @@ describe('WorkOrderDetails', () => {
     expect(screen.getByText('Costs section')).toBeInTheDocument();
     expect(screen.getByText('PM info')).toBeInTheDocument();
     expect(screen.getByText('Timeline section')).toBeInTheDocument();
-    expect(screen.getByText('Audit history')).toBeInTheDocument();
+    // Embedded audit history was removed (#1122); managers get a deep link instead.
+    expect(
+      screen.getByRole('link', { name: /view field change history in the audit log/i }),
+    ).toBeInTheDocument();
   });
 
   it('renders desktop layout with images before notes and passes showPrivateNotes to WorkOrderImagesSection', async () => {

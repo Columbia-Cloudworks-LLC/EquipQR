@@ -51,12 +51,17 @@ describe('AppSidebar', () => {
     expect(screen.getByText('Audit')).toBeInTheDocument();
   });
 
-  it('exposes admin-only items (PM Templates, Audit Log) for an admin', () => {
+  it('exposes admin-only items (PM Templates, DSR Cockpit) for an admin', () => {
     renderAsPersona(<AppSidebar />, 'admin');
 
     expect(screen.getByRole('link', { name: /pm templates/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /audit log/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /dsr cockpit/i })).toBeInTheDocument();
+  });
+
+  it('does not expose the audit log in main navigation (lives under org settings, #1122)', () => {
+    renderAsPersona(<AppSidebar />, 'admin');
+
+    expect(screen.queryByRole('link', { name: /audit log/i })).not.toBeInTheDocument();
   });
 
   it('hides admin-only items for a non-admin (technician)', () => {

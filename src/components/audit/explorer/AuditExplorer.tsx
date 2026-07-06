@@ -92,9 +92,11 @@ function presetToRange(preset: Exclude<AuditLogTimePreset, 'custom'>): {
 
 export interface AuditExplorerProps {
   organizationId: string;
+  /** Seed for the non-time filters, used by ?entityType/?entityId deep links. */
+  initialFilters?: Omit<AuditLogFilters, 'dateFrom' | 'dateTo'>;
 }
 
-export function AuditExplorer({ organizationId }: AuditExplorerProps) {
+export function AuditExplorer({ organizationId, initialFilters }: AuditExplorerProps) {
   const { canManageOrganization } = usePermissions();
   const canExport = canManageOrganization();
 
@@ -114,7 +116,7 @@ export function AuditExplorer({ organizationId }: AuditExplorerProps) {
   // whenever any filter or the time range changes.
   const [otherFilters, setOtherFilters] = useState<
     Omit<AuditLogFilters, 'dateFrom' | 'dateTo'>
-  >({});
+  >(() => initialFilters ?? {});
   const [page, setPage] = useState(1);
   const [selectedEntry, setSelectedEntry] = useState<FormattedAuditEntry | null>(
     null
