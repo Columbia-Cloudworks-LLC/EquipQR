@@ -3,7 +3,7 @@ import { createContext } from 'react';
 export interface TeamMembership {
   team_id: string;
   team_name: string;
-  role: 'manager' | 'technician' | 'requestor' | 'viewer';
+  role: 'owner' | 'manager' | 'technician' | 'requestor' | 'viewer';
   joined_date: string;
 }
 

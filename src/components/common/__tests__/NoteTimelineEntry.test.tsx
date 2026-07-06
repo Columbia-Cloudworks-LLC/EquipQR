@@ -14,8 +14,16 @@ const baseNote: NoteTimelineEntryData = {
 const formatDate = (iso: string) => iso.slice(0, 10);
 
 describe('NoteTimelineEntry labor hours visibility', () => {
-  it('shows labor hours by default', () => {
+  it('hides labor hours by default (secure default)', () => {
     render(<NoteTimelineEntry note={baseNote} formatDate={formatDate} />);
+
+    expect(screen.queryByTitle('Hours worked')).not.toBeInTheDocument();
+  });
+
+  it('shows labor hours when explicitly enabled for operational roles', () => {
+    render(
+      <NoteTimelineEntry note={baseNote} formatDate={formatDate} showLaborHours={true} />,
+    );
 
     expect(screen.getByTitle('Hours worked')).toBeInTheDocument();
   });

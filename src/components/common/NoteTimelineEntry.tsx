@@ -32,8 +32,8 @@ interface NoteTimelineEntryProps {
   contentTextClassName?: string;
   /**
    * Hide labor hours from customer-facing roles (requestor/viewer) that must
-   * stay oblivious to internal labor data. Defaults to visible for
-   * non-work-order surfaces.
+   * stay oblivious to internal labor data. Secure default: hidden until a
+   * caller explicitly grants operational visibility.
    */
   showLaborHours?: boolean;
 }
@@ -44,7 +44,7 @@ const NoteTimelineEntry: React.FC<NoteTimelineEntryProps> = ({
   metaClassName = 'text-sm text-muted-foreground',
   contentClassName = 'prose prose-sm max-w-none',
   contentTextClassName = 'whitespace-pre-wrap',
-  showLaborHours = true,
+  showLaborHours = false,
 }) => {
   const machineLabel = formatNoteMachineHours(note.machine_hours);
 

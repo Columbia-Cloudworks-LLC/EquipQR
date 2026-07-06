@@ -61,6 +61,7 @@ export interface WorkOrderDetailsMobileContentProps {
   canUpload: boolean;
   canAddCosts: boolean;
   canEditCosts: boolean;
+  canViewWorkOrderCosts: boolean;
   hideInlineNoteAddButton: boolean;
   shouldAutoOpenNoteForm: boolean;
   openNoteFormTrigger: number;
@@ -111,6 +112,7 @@ export function WorkOrderDetailsMobileContent({
   canUpload,
   canAddCosts,
   canEditCosts,
+  canViewWorkOrderCosts,
   hideInlineNoteAddButton,
   shouldAutoOpenNoteForm,
   openNoteFormTrigger,
@@ -412,7 +414,7 @@ export function WorkOrderDetailsMobileContent({
             workOrderId={workOrder.id}
             canAddNotes={canAddNotes}
             showPrivateNotes={canUsePrivateNotes}
-            showLaborHours={permissionLevels.isManager || permissionLevels.isTechnician}
+            showLaborHours={canViewWorkOrderCosts}
             isHistorical={Boolean(workOrder.is_historical)}
             canEditNoteTimestamps={permissionLevels.isManager}
             hideInlineAddButton={hideInlineNoteAddButton}
@@ -423,7 +425,7 @@ export function WorkOrderDetailsMobileContent({
         </div>
       </div>
 
-      {(permissionLevels.isManager || permissionLevels.isTechnician) && (
+      {canViewWorkOrderCosts && (
         <div {...stagger(5)}>
           <WorkOrderCostsSection
             workOrderId={workOrder.id}

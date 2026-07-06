@@ -71,7 +71,7 @@ const EquipmentDetails = () => {
   );
   const isMobile = useIsMobile();
   const isQRScan = searchParams.get('qr') === 'true';
-  const { canView: canViewInventory } = useInventoryAccess();
+  const { canView: canViewInventory, isLoading: inventoryAccessLoading } = useInventoryAccess();
 
   const [activeTab, setActiveTab] = useState(() => normalizeTabParam(searchParams.get('tab')));
   const [isWorkOrderFormOpen, setIsWorkOrderFormOpen] = useState(false);
@@ -90,12 +90,28 @@ const EquipmentDetails = () => {
   }, [tabParam]);
 
   // Users without inventory access must see no evidence of parts — bounce
-  // direct ?tab=parts navigation back to the details tab.
+  // direct ?tab=parts navigation back to the details tab once access resolves.
   useEffect(() => {
-    if (!canViewInventory && activeTab === 'parts') {
-      setActiveTab('details');
+    if (inventoryAccessLoading) {
+      return;
     }
-  }, [canViewInventory, activeTab]);
+
+    if (!canViewInventory && (activeTab === 'parts' || tabParam === 'parts')) {
+      setActiveTab('details');
+      if (tabParam === 'parts') {
+        const nextSearchParams = new URLSearchParams(searchParams);
+        nextSearchParams.delete('tab');
+        setSearchParams(nextSearchParams, { replace: true });
+      }
+    }
+  }, [
+    inventoryAccessLoading,
+    canViewInventory,
+    activeTab,
+    tabParam,
+    searchParams,
+    setSearchParams,
+  ]);
 
   useEffect(() => {
     if (!equipment) return;

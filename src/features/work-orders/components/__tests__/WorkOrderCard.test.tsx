@@ -19,6 +19,7 @@ vi.mock('@/hooks/useUnifiedPermissions', () => ({
 
 vi.mock('@/features/work-orders/hooks/useCanViewWorkOrderCosts', () => ({
   useCanViewWorkOrderCosts: () => mockUseCanViewWorkOrderCosts(),
+  useCanViewWorkOrderCostsForWorkOrder: () => mockUseCanViewWorkOrderCosts(),
 }));
 
 vi.mock('@/hooks/useFormatTimestamp', () => ({

@@ -21,7 +21,7 @@ import PMProgressIndicator from '../PMProgressIndicator';
 import QuickBooksInvoiceStatusBadge from '../QuickBooksInvoiceStatusBadge';
 import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyncBadge';
 import type { MergedWorkOrder } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
-import { useCanViewWorkOrderCosts } from '@/features/work-orders/hooks/useCanViewWorkOrderCosts';
+import { useCanViewWorkOrderCostsForWorkOrder } from '@/features/work-orders/hooks/useCanViewWorkOrderCosts';
 import { getAssigneeInitials } from '@/features/work-orders/utils/workOrderCardMappers';
 import { WorkOrderEquipmentThumbnail } from './WorkOrderEquipmentThumbnail';
 import { WorkOrderQuickActions } from '../WorkOrderQuickActions';
@@ -43,7 +43,7 @@ export const WorkOrderMobileCard: React.FC<WorkOrderMobileCardProps> = memo(({
   onDeleteClick,
 }) => {
   const { formatRelative } = useFormatTimestamp();
-  const canViewCosts = useCanViewWorkOrderCosts();
+  const canViewCosts = useCanViewWorkOrderCostsForWorkOrder(workOrder);
   const dueDateValue = workOrder.dueDate ?? workOrder.due_date;
   const createdDateValue = workOrder.createdDate ?? workOrder.created_date;
   const machineHours = formatWorkOrderMachineHours(workOrder.equipmentWorkingHours);
