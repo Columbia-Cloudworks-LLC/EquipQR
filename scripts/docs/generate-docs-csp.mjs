@@ -41,6 +41,7 @@ function collectInlineScripts(dir) {
       }
 
       const html = fs.readFileSync(filePath, 'utf8');
+      INLINE_SCRIPT_RE.lastIndex = 0;
       let match;
       while ((match = INLINE_SCRIPT_RE.exec(html)) !== null) {
         const body = match[2];
