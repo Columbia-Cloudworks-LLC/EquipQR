@@ -11,7 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { getAllWidgets } from '@/features/dashboard/registry/widgetRegistry';
+import {
+  COST_RESTRICTED_WIDGET_IDS,
+  getAllWidgets,
+} from '@/features/dashboard/registry/widgetRegistry';
+import { useCanViewWorkOrderCosts } from '@/features/work-orders/hooks/useCanViewWorkOrderCosts';
 import type { WidgetCategory, WidgetDefinition } from '@/features/dashboard/types/dashboard';
 
 interface WidgetCatalogProps {
@@ -44,7 +48,14 @@ export const WidgetCatalog: React.FC<WidgetCatalogProps> = ({
   onRemoveWidget,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const allWidgets = useMemo(() => getAllWidgets(), []);
+  const canViewWorkOrderCosts = useCanViewWorkOrderCosts();
+  const allWidgets = useMemo(
+    () =>
+      getAllWidgets().filter(
+        (w) => canViewWorkOrderCosts || !COST_RESTRICTED_WIDGET_IDS.includes(w.id)
+      ),
+    [canViewWorkOrderCosts]
+  );
 
   const filteredWidgets = useMemo(() => {
     if (!searchQuery.trim()) return allWidgets;

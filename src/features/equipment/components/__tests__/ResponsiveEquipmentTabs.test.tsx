@@ -145,4 +145,42 @@ describe('ResponsiveEquipmentTabs', () => {
       expect(screen.getByTestId('tab-content')).toBeInTheDocument();
     });
   });
+
+  describe('Inventory RBAC (showPartsTab)', () => {
+    it('hides the Parts tab on desktop when the user lacks inventory access', () => {
+      const { container } = render(
+        <ResponsiveEquipmentTabs activeTab="details" onTabChange={mockOnTabChange} showPartsTab={false}>
+          <div>Tab Content</div>
+        </ResponsiveEquipmentTabs>
+      );
+
+      expect(screen.queryByText('Parts')).not.toBeInTheDocument();
+      // Grid collapses to 6 columns without the Parts trigger
+      expect(container.querySelector('[class*="grid-cols-6"]')).toBeInTheDocument();
+      expect(container.querySelector('[class*="grid-cols-7"]')).not.toBeInTheDocument();
+    });
+
+    it('hides the Parts tab on mobile when the user lacks inventory access', async () => {
+      const { useIsMobile } = await import('@/hooks/use-mobile');
+      vi.mocked(useIsMobile).mockReturnValue(true);
+
+      render(
+        <ResponsiveEquipmentTabs activeTab="details" onTabChange={mockOnTabChange} showPartsTab={false}>
+          <div>Tab Content</div>
+        </ResponsiveEquipmentTabs>
+      );
+
+      expect(screen.queryByText('Parts')).not.toBeInTheDocument();
+    });
+
+    it('shows the Parts tab by default', () => {
+      render(
+        <ResponsiveEquipmentTabs activeTab="details" onTabChange={mockOnTabChange}>
+          <div>Tab Content</div>
+        </ResponsiveEquipmentTabs>
+      );
+
+      expect(screen.getByText('Parts')).toBeInTheDocument();
+    });
+  });
 });

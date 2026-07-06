@@ -153,6 +153,33 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 }));
 ```
 
+## Cost, parts, and labor data is hidden from customer-facing roles
+
+Team Requestor and Viewer roles (and plain org members) are commonly
+assigned to customers. They must see **zero evidence** of inventory,
+parts, stock levels, internal pricing, or labor hours anywhere. Any
+component that renders `work_order_costs` data (line items, subtotals,
+cost widgets, labor hours on notes) must be gated by
+`useCanViewWorkOrderCosts()`; any component that renders inventory
+data (parts tabs, part pickers, inventory shortcuts) must be gated by
+`useInventoryAccess()`. RLS (`can_access_work_order_costs`,
+`can_access_inventory`) is the backstop, not the only gate — new UI
+that fetches these tables without the client gate is a violation even
+when RLS would return empty results.
+
+Example code before:
+
+```tsx
+<WorkOrderCostSubtotal workOrderId={workOrder.id} />
+```
+
+Example code after:
+
+```tsx
+const canViewCosts = useCanViewWorkOrderCosts();
+{canViewCosts && <WorkOrderCostSubtotal workOrderId={workOrder.id} />}
+```
+
 ## No `service_role` key outside approved Edge Functions
 
 The Supabase service-role key bypasses RLS and is a tenant-isolation

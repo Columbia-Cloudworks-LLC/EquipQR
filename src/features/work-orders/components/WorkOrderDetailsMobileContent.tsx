@@ -412,6 +412,7 @@ export function WorkOrderDetailsMobileContent({
             workOrderId={workOrder.id}
             canAddNotes={canAddNotes}
             showPrivateNotes={canUsePrivateNotes}
+            showLaborHours={permissionLevels.isManager || permissionLevels.isTechnician}
             isHistorical={Boolean(workOrder.is_historical)}
             canEditNoteTimestamps={permissionLevels.isManager}
             hideInlineAddButton={hideInlineNoteAddButton}

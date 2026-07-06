@@ -38,6 +38,20 @@ vi.mock('@/features/inventory/hooks/useInventory', () => ({
   }),
 }));
 
+const { mockUseInventoryAccess } = vi.hoisted(() => ({
+  mockUseInventoryAccess: vi.fn(() => ({
+    canView: true,
+    canEdit: false,
+    isPartsManager: false,
+    isPartsConsumer: true,
+    isLoading: false,
+  })),
+}));
+
+vi.mock('@/features/inventory/hooks/useInventoryAccess', () => ({
+  useInventoryAccess: () => mockUseInventoryAccess(),
+}));
+
 vi.mock('@/hooks/useAppToast', () => ({
   useAppToast: () => ({ toast: vi.fn() }),
 }));
@@ -79,10 +93,68 @@ describe('isLaborCostRow', () => {
   });
 });
 
+describe('InlineEditWorkOrderCosts inventory RBAC gating', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUseIsMobile.mockReturnValue(false);
+  });
+
+  it('shows Add from Inventory when the user has inventory view access', async () => {
+    mockUseInventoryAccess.mockReturnValue({
+      canView: true,
+      canEdit: false,
+      isPartsManager: false,
+      isPartsConsumer: true,
+      isLoading: false,
+    });
+    const user = userEvent.setup();
+    render(
+      <InlineEditWorkOrderCosts
+        costs={[]}
+        workOrderId="wo-1"
+        equipmentIds={['eq-1']}
+        canEdit
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /add cost item/i }));
+    expect(screen.getByRole('button', { name: /add from inventory/i })).toBeInTheDocument();
+  });
+
+  it('hides Add from Inventory when the user lacks inventory access', async () => {
+    mockUseInventoryAccess.mockReturnValue({
+      canView: false,
+      canEdit: false,
+      isPartsManager: false,
+      isPartsConsumer: false,
+      isLoading: false,
+    });
+    const user = userEvent.setup();
+    render(
+      <InlineEditWorkOrderCosts
+        costs={[]}
+        workOrderId="wo-1"
+        equipmentIds={['eq-1']}
+        canEdit
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /add cost item/i }));
+    expect(screen.queryByRole('button', { name: /add from inventory/i })).not.toBeInTheDocument();
+  });
+});
+
 describe('InlineEditWorkOrderCosts labor preset', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseIsMobile.mockReturnValue(false);
+    mockUseInventoryAccess.mockReturnValue({
+      canView: true,
+      canEdit: false,
+      isPartsManager: false,
+      isPartsConsumer: true,
+      isLoading: false,
+    });
     mutateAsyncCreate.mockResolvedValue({
       id: 'cost-new',
       work_order_id: 'wo-1',
@@ -180,6 +252,13 @@ describe('InlineEditWorkOrderCosts mobile edit UX', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseIsMobile.mockReturnValue(true);
+    mockUseInventoryAccess.mockReturnValue({
+      canView: true,
+      canEdit: false,
+      isPartsManager: false,
+      isPartsConsumer: true,
+      isLoading: false,
+    });
     mutateAsyncCreate.mockResolvedValue({
       id: 'cost-new',
       work_order_id: 'wo-1',

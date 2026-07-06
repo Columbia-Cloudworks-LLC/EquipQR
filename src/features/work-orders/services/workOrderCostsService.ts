@@ -159,18 +159,24 @@ export const getWorkOrderCostById = async (costId: string): Promise<WorkOrderCos
  */
 export const deleteWorkOrderCostWithInventoryInfo = async (
   costId: string
-): Promise<{ inventory_item_id: string; quantity: number } | null> => {
+): Promise<{ inventory_item_id: string; quantity: number; work_order_id: string } | null> => {
   try {
     // First, fetch the cost to check for inventory link
     const cost = await getWorkOrderCostById(costId);
-    
+
     if (!cost) {
       throw new Error('Cost item not found');
     }
 
-    // Store inventory info before deletion
-    const inventoryInfo = cost.inventory_item_id 
-      ? { inventory_item_id: cost.inventory_item_id, quantity: cost.quantity }
+    // Store inventory info before deletion. work_order_id is forwarded so the
+    // restore adjustment stays work-order-scoped (required for Parts
+    // Consumers, who may only adjust inventory through work orders).
+    const inventoryInfo = cost.inventory_item_id
+      ? {
+          inventory_item_id: cost.inventory_item_id,
+          quantity: cost.quantity,
+          work_order_id: cost.work_order_id,
+        }
       : null;
 
     // Delete the cost

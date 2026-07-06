@@ -5,11 +5,8 @@ import { logger } from '@/utils/logger';
 import {
   getWorkOrderCosts,
   createWorkOrderCost,
-  updateWorkOrderCost,
-  deleteWorkOrderCost,
   deleteWorkOrderCostWithInventoryInfo,
   updateWorkOrderCostWithQuantityTracking,
-  getWorkOrderCostById,
   type UpdateWorkOrderCostData
 } from '@/features/work-orders/services/workOrderCostsService';
 import { adjustInventoryQuantity } from '@/features/inventory/services/inventoryService';
@@ -39,40 +36,6 @@ export const useCreateWorkOrderCost = () => {
   });
 };
 
-const useUpdateWorkOrderCost = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ costId, updateData }: { costId: string; updateData: UpdateWorkOrderCostData }) =>
-      updateWorkOrderCost(costId, updateData),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['work-order-costs', data.work_order_id] });
-      toast.success('Cost item updated successfully');
-    },
-    onError: (error) => {
-      logger.error('Error updating cost item', error);
-      toast.error('Failed to update cost item');
-    }
-  });
-};
-
-const useDeleteWorkOrderCost = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: deleteWorkOrderCost,
-    onSuccess: () => {
-      // We need to invalidate all cost queries since we don't have the work order ID in the response
-      queryClient.invalidateQueries({ queryKey: ['work-order-costs'] });
-      toast.success('Cost item deleted successfully');
-    },
-    onError: (error) => {
-      logger.error('Error deleting cost item', error);
-      toast.error('Failed to delete cost item');
-    }
-  });
-};
-
 /**
  * Delete a cost item with inventory restoration.
  * If the cost was created from inventory, restores the quantity back to the source inventory item.
@@ -96,7 +59,8 @@ export const useDeleteWorkOrderCostWithInventoryRestore = () => {
         await adjustInventoryQuantity(organizationId, {
           itemId: inventoryInfo.inventory_item_id,
           delta: inventoryInfo.quantity, // Positive to add back to inventory
-          reason: 'Restored from deleted work order cost'
+          reason: 'Restored from deleted work order cost',
+          workOrderId: inventoryInfo.work_order_id
         });
       }
 
@@ -155,7 +119,8 @@ export const useUpdateWorkOrderCostWithInventory = () => {
           delta,
           reason: delta > 0 
             ? 'Returned from work order cost quantity reduction'
-            : 'Used in work order cost quantity increase'
+            : 'Used in work order cost quantity increase',
+          workOrderId: result.cost.work_order_id
         });
       }
 
@@ -185,17 +150,6 @@ export const useUpdateWorkOrderCostWithInventory = () => {
       logger.error('Error updating cost item with inventory', error);
       toast.error('Failed to update cost item');
     }
-  });
-};
-
-/**
- * Get a single cost by ID (for checking inventory_item_id before deletion)
- */
-const useWorkOrderCostById = (costId: string | undefined) => {
-  return useQuery({
-    queryKey: ['work-order-cost', costId],
-    queryFn: () => costId ? getWorkOrderCostById(costId) : null,
-    enabled: !!costId
   });
 };
 

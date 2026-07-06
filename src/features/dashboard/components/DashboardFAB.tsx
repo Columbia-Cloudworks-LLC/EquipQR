@@ -3,6 +3,7 @@ import { Plus, ClipboardList, Cog, Package, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useInventoryAccess } from '@/features/inventory/hooks/useInventoryAccess';
 import { cn } from '@/lib/utils';
 
 interface SpeedDialAction {
@@ -21,6 +22,9 @@ const DashboardFAB: React.FC = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  // Inventory RBAC: only users who can manage inventory (owner/admin or Parts
+  // Manager) get a create-inventory shortcut; everyone else stays oblivious.
+  const { canEdit: canManageInventoryItems } = useInventoryAccess();
 
   /** Bottom nav + Scan hero cover primary actions on the dashboard home. */
   if (!isMobile || pathname === '/dashboard' || pathname === '/dashboard/') return null;
@@ -42,14 +46,18 @@ const DashboardFAB: React.FC = () => {
         navigate('/dashboard/equipment?create=true');
       },
     },
-    {
-      icon: <Package className="h-5 w-5" />,
-      label: 'New Inventory Item',
-      onClick: () => {
-        setOpen(false);
-        navigate('/dashboard/inventory?create=true');
-      },
-    },
+    ...(canManageInventoryItems
+      ? [
+          {
+            icon: <Package className="h-5 w-5" />,
+            label: 'New Inventory Item',
+            onClick: () => {
+              setOpen(false);
+              navigate('/dashboard/inventory?create=true');
+            },
+          },
+        ]
+      : []),
   ];
 
   return (

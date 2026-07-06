@@ -13,6 +13,7 @@ import { useSaveEquipmentAssignedLocation } from '@/features/equipment/hooks/use
 import type { EquipmentTeamSummary } from '@/features/equipment/services/EquipmentService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
+import { useInventoryAccess } from '@/features/inventory/hooks/useInventoryAccess';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import Page from '@/components/layout/Page';
@@ -70,6 +71,7 @@ const EquipmentDetails = () => {
   );
   const isMobile = useIsMobile();
   const isQRScan = searchParams.get('qr') === 'true';
+  const { canView: canViewInventory } = useInventoryAccess();
 
   const [activeTab, setActiveTab] = useState(() => normalizeTabParam(searchParams.get('tab')));
   const [isWorkOrderFormOpen, setIsWorkOrderFormOpen] = useState(false);
@@ -86,6 +88,14 @@ const EquipmentDetails = () => {
       setActiveTab(normalizeTabParam(tabParam));
     }
   }, [tabParam]);
+
+  // Users without inventory access must see no evidence of parts — bounce
+  // direct ?tab=parts navigation back to the details tab.
+  useEffect(() => {
+    if (!canViewInventory && activeTab === 'parts') {
+      setActiveTab('details');
+    }
+  }, [canViewInventory, activeTab]);
 
   useEffect(() => {
     if (!equipment) return;
@@ -291,7 +301,11 @@ const EquipmentDetails = () => {
           />
         )}
 
-        <ResponsiveEquipmentTabs activeTab={activeTab} onTabChange={setActiveTab}>
+        <ResponsiveEquipmentTabs
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          showPartsTab={canViewInventory}
+        >
           <TabsContent value="details">
             <EquipmentDetailsTab
               equipment={equipment}
@@ -336,16 +350,18 @@ const EquipmentDetails = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="parts">
-            {activeTab === 'parts' && (
-              <Suspense fallback={<TabContentSkeleton />}>
-                <EquipmentPartsTab
-                  equipmentId={equipment.id}
-                  organizationId={currentOrganization.id}
-                />
-              </Suspense>
-            )}
-          </TabsContent>
+          {canViewInventory && (
+            <TabsContent value="parts">
+              {activeTab === 'parts' && (
+                <Suspense fallback={<TabContentSkeleton />}>
+                  <EquipmentPartsTab
+                    equipmentId={equipment.id}
+                    organizationId={currentOrganization.id}
+                  />
+                </Suspense>
+              )}
+            </TabsContent>
+          )}
 
           <TabsContent value="images">
             {activeTab === 'images' && (

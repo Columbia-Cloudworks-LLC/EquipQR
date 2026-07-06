@@ -125,6 +125,17 @@ vi.mock('@/hooks/usePermissions', () => ({
   }))
 }));
 
+vi.mock('@/features/inventory/hooks/useInventoryAccess', () => ({
+  useInventoryAccess: vi.fn(() => ({
+    currentOrganization: { id: 'org-acme' },
+    canView: true,
+    canEdit: true,
+    isPartsManager: false,
+    isPartsConsumer: false,
+    isLoading: false,
+  })),
+}));
+
 vi.mock('@/features/teams/hooks/useTeams', () => ({
   useTeams: vi.fn(() => ({
     teams: [],

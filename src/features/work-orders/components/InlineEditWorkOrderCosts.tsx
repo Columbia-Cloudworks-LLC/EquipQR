@@ -9,6 +9,7 @@ import {
 } from '@/features/work-orders/utils/workOrderCostFormatters';
 import { useWorkOrderCostsState, type WorkOrderCostItem } from '@/features/work-orders/hooks/useWorkOrderCostsState';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useInventoryAccess } from '@/features/inventory/hooks/useInventoryAccess';
 import { InventoryPartSelector } from './InventoryPartSelector';
 import WorkOrderCostsEditor from './WorkOrderCostsEditor';
 import { WorkOrderCostReadOnlyList } from './WorkOrderCostReadOnlyList';
@@ -48,6 +49,10 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
 }) => {
   const { formatDate } = useFormatTimestamp();
   const isMobile = useIsMobile();
+  // Consuming parts requires inventory view access (owner/admin, Parts
+  // Manager, or Parts Consumer). Users without a grant never see the
+  // inventory picker.
+  const { canView: canUseInventoryParts } = useInventoryAccess();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showInventorySelector, setShowInventorySelector] = useState(false);
@@ -255,7 +260,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
           <div
             className={cn(
               'grid gap-2',
-              equipmentIds.length > 0 ? 'grid-cols-2' : 'grid-cols-1',
+              equipmentIds.length > 0 && canUseInventoryParts ? 'grid-cols-2' : 'grid-cols-1',
             )}
           >
             <Button
@@ -269,7 +274,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
               <Clock className="mr-1 inline h-4 w-4 shrink-0 align-text-bottom" aria-hidden />
               Add labor
             </Button>
-            {equipmentIds.length > 0 ? (
+            {equipmentIds.length > 0 && canUseInventoryParts ? (
               <Button
                 type="button"
                 variant="outline"
@@ -345,7 +350,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
                 <Clock className="h-4 w-4 mr-1" aria-hidden />
                 Add labor
               </Button>
-              {equipmentIds.length > 0 && (
+              {equipmentIds.length > 0 && canUseInventoryParts && (
                 <Button
                   type="button"
                   variant="outline"
@@ -378,7 +383,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
         </>
       )}
 
-      {showInventorySelector && equipmentIds.length > 0 && (
+      {showInventorySelector && equipmentIds.length > 0 && canUseInventoryParts && (
         <InventoryPartSelector
           open={showInventorySelector}
           onClose={() => setShowInventorySelector(false)}

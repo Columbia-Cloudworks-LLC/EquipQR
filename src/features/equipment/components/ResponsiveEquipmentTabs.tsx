@@ -17,6 +17,12 @@ interface ResponsiveEquipmentTabsProps {
   onTabChange: (value: string) => void;
   children: React.ReactNode;
   counts?: TabCount;
+  /**
+   * Inventory RBAC gate: the Parts tab is only rendered for users with
+   * inventory view access (owner/admin, Parts Manager, or Parts Consumer).
+   * Users without a grant must see no evidence of parts/inventory.
+   */
+  showPartsTab?: boolean;
 }
 
 function TabLabel({ label, count }: { label: string; count?: number }) {
@@ -36,6 +42,7 @@ const ResponsiveEquipmentTabs: React.FC<ResponsiveEquipmentTabsProps> = ({
   onTabChange,
   children,
   counts,
+  showPartsTab = true,
 }) => {
   const isMobile = useIsMobile();
 
@@ -45,7 +52,7 @@ const ResponsiveEquipmentTabs: React.FC<ResponsiveEquipmentTabsProps> = ({
         isMobile ? 'top-[60px] -mx-3 px-3 border-b' : 'top-0'
       }`}>
         <ScrollArea className="w-full">
-          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-7'} ${isMobile ? 'h-auto' : ''}`}>
+          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : showPartsTab ? 'grid-cols-7' : 'grid-cols-6'} ${isMobile ? 'h-auto' : ''}`}>
             <TabsTrigger value="details" className={isMobile ? 'text-xs py-2' : ''}>
               Details
             </TabsTrigger>
@@ -61,9 +68,11 @@ const ResponsiveEquipmentTabs: React.FC<ResponsiveEquipmentTabsProps> = ({
             </TabsTrigger>
             {!isMobile && (
               <>
-                <TabsTrigger value="parts">
-                  <TabLabel label="Parts" count={counts?.parts} />
-                </TabsTrigger>
+                {showPartsTab && (
+                  <TabsTrigger value="parts">
+                    <TabLabel label="Parts" count={counts?.parts} />
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="images">
                   <TabLabel label="Images" count={counts?.images} />
                 </TabsTrigger>
@@ -76,10 +85,12 @@ const ResponsiveEquipmentTabs: React.FC<ResponsiveEquipmentTabsProps> = ({
 
         {isMobile && (
           <div className="mt-2">
-            <TabsList className="grid w-full grid-cols-4 h-auto">
-              <TabsTrigger value="parts" className="text-xs py-2">
-                <TabLabel label="Parts" count={counts?.parts} />
-              </TabsTrigger>
+            <TabsList className={`grid w-full ${showPartsTab ? 'grid-cols-4' : 'grid-cols-3'} h-auto`}>
+              {showPartsTab && (
+                <TabsTrigger value="parts" className="text-xs py-2">
+                  <TabLabel label="Parts" count={counts?.parts} />
+                </TabsTrigger>
+              )}
               <TabsTrigger value="images" className="text-xs py-2">
                 <TabLabel label="Images" count={counts?.images} />
               </TabsTrigger>

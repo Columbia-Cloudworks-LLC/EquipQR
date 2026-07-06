@@ -33,7 +33,11 @@ import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
 import MobileDashboardHero from '@/features/dashboard/components/MobileDashboardHero';
-import { orderWidgetsForMobile } from '@/features/dashboard/registry/widgetRegistry';
+import { useCanViewWorkOrderCosts } from '@/features/work-orders/hooks/useCanViewWorkOrderCosts';
+import {
+  filterWidgetsForCostVisibility,
+  orderWidgetsForMobile,
+} from '@/features/dashboard/registry/widgetRegistry';
 import { prioritizeWorkOrdersForDashboard } from '@/features/dashboard/utils/prioritizeWorkOrdersForDashboard';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import { cn } from '@/lib/utils';
@@ -50,6 +54,7 @@ const Dashboard = () => {
   const { selectedTeamId, selectedTeam } = useSelectedTeam();
   const { isManager, isTechnician } = useWorkOrderPermissionLevels();
   const { teamMemberships } = useTeamMembership();
+  const canViewWorkOrderCosts = useCanViewWorkOrderCosts();
 
   const {
     activeWidgets,
@@ -96,9 +101,16 @@ const Dashboard = () => {
     [prioritizedOpenWorkOrders]
   );
 
+  // Requestors/viewers must stay oblivious to cost data — strip cost widgets
+  // from the grid, the reorder manager, and the catalog for those roles.
+  const costSafeWidgets = useMemo(
+    () => filterWidgetsForCostVisibility(activeWidgets, canViewWorkOrderCosts),
+    [activeWidgets, canViewWorkOrderCosts]
+  );
+
   const displayWidgets = useMemo(
-    () => (isMobile ? orderWidgetsForMobile(activeWidgets) : activeWidgets),
-    [activeWidgets, isMobile]
+    () => (isMobile ? orderWidgetsForMobile(costSafeWidgets) : costSafeWidgets),
+    [costSafeWidgets, isMobile]
   );
 
   const lastUpdatedText = useMemo(() => {
@@ -343,7 +355,7 @@ const Dashboard = () => {
       <WidgetManager
         open={managerOpen}
         onOpenChange={setManagerOpen}
-        activeWidgetIds={activeWidgets}
+        activeWidgetIds={costSafeWidgets}
         onSave={handleReorderSave}
         onOpenCatalog={() => setCatalogOpen(true)}
       />
@@ -351,7 +363,7 @@ const Dashboard = () => {
       <WidgetCatalog
         open={catalogOpen}
         onOpenChange={setCatalogOpen}
-        activeWidgetIds={activeWidgets}
+        activeWidgetIds={costSafeWidgets}
         onAddWidget={addWidget}
         onRemoveWidget={removeWidget}
       />

@@ -7,6 +7,7 @@ import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 
 const mockOnNavigate = vi.fn();
 const mockGetDetailedPermissions = vi.fn();
+const mockUseCanViewWorkOrderCosts = vi.fn(() => true);
 
 vi.mock('@/hooks/useUnifiedPermissions', () => ({
   useUnifiedPermissions: () => ({
@@ -14,6 +15,10 @@ vi.mock('@/hooks/useUnifiedPermissions', () => ({
       getDetailedPermissions: (...args: unknown[]) => mockGetDetailedPermissions(...args),
     },
   }),
+}));
+
+vi.mock('@/features/work-orders/hooks/useCanViewWorkOrderCosts', () => ({
+  useCanViewWorkOrderCosts: () => mockUseCanViewWorkOrderCosts(),
 }));
 
 vi.mock('@/hooks/useFormatTimestamp', () => ({
@@ -94,6 +99,7 @@ describe('WorkOrderCard', () => {
       canEdit: true,
       canEditAssignment: true,
     });
+    mockUseCanViewWorkOrderCosts.mockReturnValue(true);
   });
 
   describe('desktop variant', () => {
@@ -249,6 +255,24 @@ describe('WorkOrderCard', () => {
       );
 
       expect(screen.getByText(/Overdue relative:2020-01-01/)).toBeInTheDocument();
+    });
+
+    it('shows the cost subtotal for users with cost visibility', () => {
+      render(
+        <WorkOrderCard workOrder={baseWorkOrder} variant="mobile" onNavigate={mockOnNavigate} />,
+      );
+
+      expect(screen.getByTestId('cost-subtotal')).toBeInTheDocument();
+    });
+
+    it('hides the cost subtotal from requestor/viewer roles', () => {
+      mockUseCanViewWorkOrderCosts.mockReturnValue(false);
+
+      render(
+        <WorkOrderCard workOrder={baseWorkOrder} variant="mobile" onNavigate={mockOnNavigate} />,
+      );
+
+      expect(screen.queryByTestId('cost-subtotal')).not.toBeInTheDocument();
     });
   });
 
