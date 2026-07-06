@@ -69,7 +69,7 @@ function AssignmentRow({
   onRemove: () => void;
   onViewQrCode: () => void;
 }) {
-  const { data: storedToken = null } = useOperatorCheckinToken(
+  const { data: storedToken = null, isPending: isTokenPending } = useOperatorCheckinToken(
     assignment.id,
     assignment.organization_id,
   );
@@ -79,7 +79,10 @@ function AssignmentRow({
   const templateName = assignment.template?.name ?? 'Checklist';
 
   const handleRotateRequest = () => {
-    if (hasStoredToken) {
+    // While the token query is still resolving we cannot prove the assignment
+    // has no live QR link, so always route through the rotate confirmation —
+    // rotating silently would invalidate any already-printed codes.
+    if (hasStoredToken || isTokenPending) {
       setRotateDialogOpen(true);
       return;
     }
@@ -101,7 +104,7 @@ function AssignmentRow({
             <QrCode className="mr-2 h-4 w-4" />
             View QR code
           </Button>
-          {assignment.enabled && !hasStoredToken && (
+          {assignment.enabled && !hasStoredToken && !isTokenPending && (
             <p className="text-xs text-muted-foreground">
               Open the actions menu to generate a QR link for this checklist. Generated links stay
               available to owners and admins on any device.
@@ -125,7 +128,7 @@ function AssignmentRow({
           <DropdownMenuContent align="end" side="top" className="w-52">
             <DropdownMenuItem onSelect={handleRotateRequest}>
               <RefreshCw className="mr-2 h-4 w-4" />
-              {hasStoredToken ? 'Rotate QR link' : 'Generate QR link'}
+              {hasStoredToken || isTokenPending ? 'Rotate QR link' : 'Generate QR link'}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

@@ -56,7 +56,12 @@ export function useOperatorCheckinToken(
 ) {
   return useQuery({
     queryKey: operatorCheckinKeys.token(assignmentId ?? ''),
-    queryFn: () => getOperatorCheckinToken(assignmentId!, organizationId!),
+    queryFn: () => {
+      if (!assignmentId || !organizationId) {
+        return Promise.resolve(null);
+      }
+      return getOperatorCheckinToken(assignmentId, organizationId);
+    },
     enabled: Boolean(assignmentId && organizationId && (options?.enabled ?? true)),
     staleTime: 0,
     refetchOnMount: 'always',
