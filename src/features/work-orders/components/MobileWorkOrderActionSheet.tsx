@@ -19,9 +19,9 @@ import {
 } from '@/components/ui/sheet';
 import {
   PanelRight,
-  MoreHorizontal,
   Trash2,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { WorkOrderMobileExportSection } from '@/features/work-orders/components/WorkOrderMobileExportSection';
 import { QuickBooksExportButton } from './QuickBooksExportButton';
 import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
@@ -33,6 +33,14 @@ import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import type { WorkOrderExportAudience } from '@/features/work-orders/utils/workOrderExportAccess';
 import type { WorkOrderFileExportHandlers } from '@/features/work-orders/types/workOrderFileExportHandlers';
 
+export interface WorkOrderSheetQuickAction {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  onSelect: () => void;
+  disabled?: boolean;
+}
+
 interface MobileWorkOrderActionSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -41,6 +49,8 @@ interface MobileWorkOrderActionSheetProps {
   equipmentTeamId?: string | null;
   organizationId?: string;
   exportAudience: WorkOrderExportAudience;
+  /** Contextual shortcuts (next status action, note/photo, WO QR) — issue #1151. */
+  quickActions?: WorkOrderSheetQuickAction[];
   /** Opens sidebar / overlay with metadata (mobile) */
   onViewFullDetails: () => void;
   onOpenPdfDialog: () => void;
@@ -59,6 +69,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
   equipmentTeamId,
   organizationId,
   exportAudience,
+  quickActions,
   onViewFullDetails,
   onOpenPdfDialog,
   onOpenDrivePdfDialog,
@@ -117,7 +128,30 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
             <div className="space-y-4 pb-2">
-            {/* Details — always first */}
+            {quickActions && quickActions.length > 0 && (
+              <>
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Quick actions
+                  </p>
+                  {quickActions.map((action) => (
+                    <Button
+                      key={action.id}
+                      variant="outline"
+                      className="h-12 w-full justify-start gap-2"
+                      disabled={action.disabled}
+                      onClick={() => handleAction(action.onSelect)}
+                    >
+                      <action.icon className="h-5 w-5" aria-hidden />
+                      <span className="text-sm font-medium">{action.label}</span>
+                    </Button>
+                  ))}
+                </div>
+                <Separator />
+              </>
+            )}
+
+            {/* Details */}
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Details
@@ -220,24 +254,3 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
     </>
   );
 };
-
-interface MobileActionSheetTriggerProps {
-  onClick: () => void;
-}
-
-const MobileActionSheetTrigger: React.FC<MobileActionSheetTriggerProps> = ({
-  onClick,
-}) => {
-  return (
-    <Button 
-      variant="ghost" 
-      size="sm"
-      onClick={onClick}
-      className="p-2"
-      aria-label="More actions"
-    >
-      <MoreHorizontal className="h-4 w-4" />
-    </Button>
-  );
-};
-

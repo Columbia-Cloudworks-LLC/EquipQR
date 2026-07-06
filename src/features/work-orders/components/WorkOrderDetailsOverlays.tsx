@@ -1,8 +1,13 @@
 import React from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { CheckCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Camera, CheckCircle, ClipboardCheck, Play, Plus, QrCode, Zap } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { WorkOrderPDFExportDialog } from '@/features/work-orders/components/WorkOrderPDFExportDialog';
-import { MobileWorkOrderActionSheet } from '@/features/work-orders/components/MobileWorkOrderActionSheet';
+import {
+  MobileWorkOrderActionSheet,
+  type WorkOrderSheetQuickAction,
+} from '@/features/work-orders/components/MobileWorkOrderActionSheet';
 import { MobileWorkOrderActionFooter } from '@/features/work-orders/components/MobileWorkOrderActionFooter';
 import WorkOrderAcceptanceModal from '@/features/work-orders/components/WorkOrderAcceptanceModal';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
@@ -62,6 +67,8 @@ type WorkOrderDetailsOverlaysProps = {
   onScrollToChecklist: () => void;
   onRequestAccept: () => void;
   onRetrySync: () => void;
+  /** Opens the work order QR / print dialog (issue #1151). */
+  onShowWorkOrderQr: () => void;
 } & WorkOrderFileExportHandlers;
 
 export function WorkOrderDetailsOverlays({
@@ -120,7 +127,42 @@ export function WorkOrderDetailsOverlays({
   onScrollToChecklist,
   onRequestAccept,
   onRetrySync,
+  onShowWorkOrderQr,
 }: WorkOrderDetailsOverlaysProps) {
+  // Contextual quick actions for the mobile sheet (issue #1151): the next
+  // relevant status transition, note/photo capture, and the WO QR code.
+  const nextStatusQuickAction = ((): WorkOrderSheetQuickAction | null => {
+    if (!showMobileActionFooter) return null;
+    switch (workOrder.status) {
+      case 'submitted':
+        return { id: 'accept', label: 'Accept work order', icon: CheckCircle, onSelect: onRequestAccept };
+      case 'assigned':
+      case 'accepted':
+        return { id: 'start', label: 'Start work', icon: Play, onSelect: onStartMobileWorkOrder };
+      case 'in_progress':
+        return canCompletePmGate
+          ? { id: 'complete', label: 'Complete work order', icon: CheckCircle, onSelect: onOpenCompleteDialog }
+          : { id: 'checklist', label: 'Continue checklist', icon: ClipboardCheck, onSelect: onScrollToChecklist };
+      case 'on_hold':
+        return { id: 'resume', label: 'Resume work', icon: Play, onSelect: onPauseResumeMobileWorkOrder };
+      default:
+        return null;
+    }
+  })();
+
+  const quickActions: WorkOrderSheetQuickAction[] = [
+    ...(nextStatusQuickAction ? [nextStatusQuickAction] : []),
+    ...(canAddNotes
+      ? [
+          { id: 'add-note', label: 'Add note', icon: Plus, onSelect: onOpenNotesComposer },
+          ...(workOrder.status !== 'submitted'
+            ? [{ id: 'add-photo', label: 'Add photo', icon: Camera, onSelect: onOpenPhotoCapture }]
+            : []),
+        ]
+      : []),
+    { id: 'wo-qr', label: 'Show work order QR code', icon: QrCode, onSelect: onShowWorkOrderQr },
+  ];
+
   return (
     <>
       <WorkOrderPDFExportDialog
@@ -145,6 +187,7 @@ export function WorkOrderDetailsOverlays({
           equipmentTeamId={equipmentTeamId}
           organizationId={organizationId}
           exportAudience={permissionLevels.exportAudience ?? 'none'}
+          quickActions={quickActions}
           onViewFullDetails={onViewFullDetails}
           onOpenPdfDialog={onOpenMobilePdfDialog}
           onOpenDrivePdfDialog={onOpenMobileDrivePdfDialog}
@@ -250,7 +293,26 @@ export function WorkOrderDetailsOverlays({
           onScrollToChecklist={onScrollToChecklist}
           onRequestAccept={onRequestAccept}
           onRetrySync={onRetrySync}
+          onOpenQuickActions={() => onMobileActionSheetOpenChange(true)}
         />
+      )}
+
+      {/* Quick access button when the field footer is hidden (issue #1151). */}
+      {isMobile && !showMobileActionFooter && (
+        <Button
+          type="button"
+          size="icon"
+          onClick={() => onMobileActionSheetOpenChange(true)}
+          aria-label="Open work order quick actions"
+          className={cn(
+            'fixed bottom-[78px] right-4 z-fixed h-14 w-14 rounded-full shadow-elevation-3',
+            'touch-manipulation transition-transform duration-100 active:scale-[0.97]',
+            'motion-reduce:active:scale-100',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          )}
+        >
+          <Zap className="h-6 w-6" aria-hidden />
+        </Button>
       )}
     </>
   );

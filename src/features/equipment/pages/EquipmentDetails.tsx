@@ -25,6 +25,7 @@ import ResponsiveEquipmentTabs from '@/features/equipment/components/ResponsiveE
 import { EquipmentDetailsDesktopSummary } from '@/features/equipment/components/EquipmentDetailsDesktopSummary';
 import { EquipmentLocationMapPanel } from '@/components/location/EquipmentLocationMapPanel';
 import { EquipmentDetailsModals } from '@/features/equipment/components/EquipmentDetailsModals';
+import { EquipmentQuickAccessDrawer } from '@/features/equipment/components/EquipmentQuickAccessDrawer';
 import { useEquipmentScanLogger } from '@/features/equipment/hooks/useEquipmentScanLogger';
 
 const EquipmentNotesTab = lazy(() => import('@/features/equipment/components/EquipmentNotesTab'));
@@ -303,18 +304,35 @@ const EquipmentDetails = () => {
         )}
 
         {isMobile && (
-          <MobileEquipmentActionBar
-            equipmentId={equipment.id}
-            onCreatePMWorkOrder={() => {
-              setWorkOrderCreateMode('pm');
-              setIsWorkOrderFormOpen(true);
-            }}
-            onCreateGenericWorkOrder={() => {
-              setWorkOrderCreateMode('generic');
-              setIsWorkOrderFormOpen(true);
-            }}
-            onAddNote={() => setActiveTab('notes')}
-          />
+          <>
+            <MobileEquipmentActionBar
+              equipmentId={equipment.id}
+              onCreatePMWorkOrder={() => {
+                setWorkOrderCreateMode('pm');
+                setIsWorkOrderFormOpen(true);
+              }}
+              onCreateGenericWorkOrder={() => {
+                setWorkOrderCreateMode('generic');
+                setIsWorkOrderFormOpen(true);
+              }}
+              onAddNote={() => setActiveTab('notes')}
+            />
+            <EquipmentQuickAccessDrawer
+              equipmentId={equipment.id}
+              equipmentName={equipment.name}
+              organizationId={currentOrganization.id}
+              onShowQrCode={(variant) => handleOpenQrCode(variant)}
+              onCreatePMWorkOrder={() => {
+                setWorkOrderCreateMode('pm');
+                setIsWorkOrderFormOpen(true);
+              }}
+              onCreateGenericWorkOrder={() => {
+                setWorkOrderCreateMode('generic');
+                setIsWorkOrderFormOpen(true);
+              }}
+              onAddNote={() => setActiveTab('notes')}
+            />
+          </>
         )}
 
         <ResponsiveEquipmentTabs

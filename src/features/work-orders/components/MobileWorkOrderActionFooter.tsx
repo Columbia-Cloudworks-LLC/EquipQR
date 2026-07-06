@@ -17,6 +17,7 @@ import {
   Timer,
   ClipboardCheck,
   ChevronDown,
+  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -72,6 +73,8 @@ export interface MobileWorkOrderActionFooterProps {
   onScrollToChecklist: () => void;
   /** Opens accept-work-order modal (submitted) */
   onRequestAccept: () => void;
+  /** Opens the consolidated quick-actions sheet (QR, exports, admin) — issue #1151 */
+  onOpenQuickActions?: () => void;
 }
 
 function footerQueueMessage(sync: MobileFooterSyncState): { className: string; content: React.ReactNode } | null {
@@ -144,6 +147,7 @@ export const MobileWorkOrderActionFooter: React.FC<MobileWorkOrderActionFooterPr
   onOpenCompleteDialog,
   onScrollToChecklist,
   onRequestAccept,
+  onOpenQuickActions,
 }) => {
   const { user } = useAuth();
   const { isManager, isTechnician } = useWorkOrderPermissionLevels();
@@ -205,23 +209,39 @@ export const MobileWorkOrderActionFooter: React.FC<MobileWorkOrderActionFooterPr
             {formatFooterStatusBadge(workOrder.status)}
           </span>
 
-          {showTimerRow && timerDisplay ? (
-            <button
-              type="button"
-              onClick={() => {
-                if (onToggleTimer) onToggleTimer();
-              }}
-              disabled={!onToggleTimer}
-              className={cn(
-                'flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-sm transition-colors',
-                isTimerRunning ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
-                !onToggleTimer && 'cursor-not-allowed opacity-50',
-              )}
-            >
-              <Timer className={cn('h-3.5 w-3.5', isTimerRunning && 'animate-pulse')} aria-hidden />
-              <span aria-label="Work timer">{timerDisplay}</span>
-            </button>
-          ) : null}
+          <div className="flex items-center gap-1.5">
+            {showTimerRow && timerDisplay ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (onToggleTimer) onToggleTimer();
+                }}
+                disabled={!onToggleTimer}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-sm transition-colors',
+                  isTimerRunning ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+                  !onToggleTimer && 'cursor-not-allowed opacity-50',
+                )}
+              >
+                <Timer className={cn('h-3.5 w-3.5', isTimerRunning && 'animate-pulse')} aria-hidden />
+                <span aria-label="Work timer">{timerDisplay}</span>
+              </button>
+            ) : null}
+
+            {onOpenQuickActions ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="min-h-[36px] gap-1 px-2"
+                onClick={onOpenQuickActions}
+                aria-label="Open quick actions"
+              >
+                <Zap className="h-3.5 w-3.5" aria-hidden />
+                <span className="text-xs">Quick actions</span>
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         {showNoteQuickCapture ? (

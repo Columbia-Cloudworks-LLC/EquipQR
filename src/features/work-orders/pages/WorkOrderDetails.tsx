@@ -43,6 +43,7 @@ import {
 import { WorkOrderDetailsMobileContent } from '@/features/work-orders/components/WorkOrderDetailsMobileContent';
 import { WorkOrderDetailsDesktopContent } from '@/features/work-orders/components/WorkOrderDetailsDesktopContent';
 import { WorkOrderDetailsOverlays } from '@/features/work-orders/components/WorkOrderDetailsOverlays';
+import WorkOrderQRCodeDisplay from '@/features/work-orders/components/WorkOrderQRCodeDisplay';
 import { PMChangeWarningDialog } from '@/features/work-orders/components/PMChangeWarningDialog';
 import { WorkOrderPMManagementDialog } from '@/features/work-orders/components/WorkOrderPMManagementDialog';
 
@@ -62,6 +63,7 @@ const WorkOrderDetails = () => {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>('');
   const [isEditingWorkOrderEquipmentLocation, setIsEditingWorkOrderEquipmentLocation] = useState(false);
   const [showPMManagementDialog, setShowPMManagementDialog] = useState(false);
+  const [showWorkOrderQr, setShowWorkOrderQr] = useState(false);
 
   const { user } = useAuth();
   const permissions = useUnifiedPermissions();
@@ -553,6 +555,16 @@ const WorkOrderDetails = () => {
         onScrollToChecklist={scrollToPMSection}
         onRequestAccept={() => setShowFieldAcceptDialog(true)}
         onRetrySync={offlineQueue.retryFailed}
+        onShowWorkOrderQr={() => setShowWorkOrderQr(true)}
+      />
+
+      <WorkOrderQRCodeDisplay
+        open={showWorkOrderQr}
+        onClose={() => setShowWorkOrderQr(false)}
+        workOrderId={workOrder.id}
+        workOrderTitle={workOrder.title}
+        onPrintFieldWorksheet={() => void exports.handleMobileDownloadWorksheet()}
+        isPrintingWorksheet={exports.isMobileWorksheetGenerating}
       />
 
       <PMChangeWarningDialog
