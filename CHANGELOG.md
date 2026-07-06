@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.12.12] - 2026-07-05
+
+### Fixed
+
+- **equipqr.info Help Center interactivity and branding (#1147)** — The docs site CSP (`script-src 'self'`) blocked the inline scripts VitePress needs to hydrate, leaving the front page with dead feature cards, a dead hero button, and a non-functional theme toggle. Post-build CSP hash generation (`scripts/docs/generate-docs-csp.mjs`) now allowlists the three VitePress inline bootstraps without `script-src 'unsafe-inline'`. The Help Center also gains EquipQR branding: navbar logo, homepage hero logo, and favicon (previously 404). Playwright evidence serves the built docs through the exact production CSP to guard hydration, navigation, and theming.
+
 ## [3.12.11] - 2026-07-05
 
 ### Security
