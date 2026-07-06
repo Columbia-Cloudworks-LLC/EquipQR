@@ -9,6 +9,7 @@ import type {
   TeamMember,
   TeamWithMembers
 } from '@/features/teams/types/team';
+import { isTeamView } from '@/features/teams/types/team';
 import {
   uploadImageToStorage,
   resolveImageDisplayUrl,
@@ -382,7 +383,7 @@ export const getTeamByIdOptimized = async (teamId: string): Promise<Team | null>
       location_lat: data.location_lat,
       location_lng: data.location_lng,
       override_equipment_location: data.override_equipment_location,
-      preferred_view: data.preferred_view,
+      preferred_view: isTeamView(data.preferred_view) ? data.preferred_view : 'internal',
       customer_id: data.customer_id,
       customer_name: customer?.name ?? null,
       customer_status: customer?.status ?? null,

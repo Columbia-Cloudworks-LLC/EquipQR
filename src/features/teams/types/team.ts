@@ -56,7 +56,7 @@ export interface Team {
   location_lat?: number;
   location_lng?: number;
   override_equipment_location?: boolean;
-  preferred_view?: string;
+  preferred_view?: TeamView;
   customer_id?: string | null;
   customer_name?: string | null;
   customer_status?: string | null;
