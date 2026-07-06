@@ -61,8 +61,9 @@ vi.mock('@/features/inventory/components/InventoryQRCodeDisplay', () => ({
     open ? <div data-testid="qr-code-display">QR Code</div> : null,
 }));
 
-vi.mock('@/features/inventory/components/PartsManagersSheet', () => ({
-  PartsManagersSheet: () => null,
+vi.mock('@/features/inventory/components/PartsAccessSheet', () => ({
+  PartsAccessSheet: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="parts-access-sheet">Parts Access</div> : null,
 }));
 
 const baseItem = (overrides: Partial<InventoryItem>): InventoryItem => ({
@@ -254,25 +255,26 @@ describe('InventoryList — mobile', () => {
     });
   });
 
-  it('shows parts managers footer link on mobile when user can manage parts managers', async () => {
+  it('opens the parts access sheet from the mobile footer when user can manage parts access', async () => {
     vi.mocked(usePermissionsModule.usePermissions).mockImplementation(() => ({
       canManageInventory: () => true,
       canManagePartsManagers: () => true,
     } as unknown as ReturnType<typeof usePermissionsModule.usePermissions>));
 
+    const user = userEvent.setup();
     render(<InventoryList />);
 
     await waitFor(() => {
       expect(screen.getByText('Healthy Part')).toBeInTheDocument();
     });
 
-    const footer = screen.getByTestId('inventory-parts-managers-footer');
+    const footer = screen.getByTestId('inventory-parts-access-footer');
     expect(footer).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Update parts managers' })).toHaveAttribute(
-      'href',
-      '/dashboard/organization/members',
-    );
-    expect(screen.queryByTestId('inventory-mobile-parts-managers')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('parts-access-sheet')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Update parts access' }));
+
+    expect(screen.getByTestId('parts-access-sheet')).toBeInTheDocument();
   });
 
   it('shows stock meter on mobile cards instead of a low stock badge', async () => {
