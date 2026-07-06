@@ -89,4 +89,24 @@ describe('canViewWorkOrderCostsForSelectedTeam', () => {
       }),
     ).toBe(false);
   });
+
+  it('allows assignee-only users on all-teams scope when they have assigned work orders', () => {
+    expect(
+      canViewWorkOrderCostsForSelectedTeam(
+        null,
+        { userId, isOrgAdmin: false, teamMemberships: [] },
+        { hasAssignedWorkOrders: true, assignedTeamIds: new Set([teamId]) },
+      ),
+    ).toBe(true);
+  });
+
+  it('allows assignee-only users on a selected team when assigned to that team', () => {
+    expect(
+      canViewWorkOrderCostsForSelectedTeam(
+        teamId,
+        { userId, isOrgAdmin: false, teamMemberships: [] },
+        { hasAssignedWorkOrders: true, assignedTeamIds: new Set([teamId]) },
+      ),
+    ).toBe(true);
+  });
 });

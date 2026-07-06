@@ -13,6 +13,12 @@ export interface WorkOrderCostAccessContext {
   teamMemberships: TeamMembership[];
 }
 
+/** Assignee scope for dashboard/widget gating (mirrors assignee branch of RLS). */
+export interface WorkOrderCostAssigneeScope {
+  hasAssignedWorkOrders: boolean;
+  assignedTeamIds: ReadonlySet<string>;
+}
+
 export interface WorkOrderCostAccessWorkOrder {
   team_id?: string | null;
   assignee_id?: string | null;
@@ -58,6 +64,10 @@ export function canViewWorkOrderCostsForWorkOrder(
 export function canViewWorkOrderCostsForSelectedTeam(
   selectedTeamId: SelectedTeamId,
   ctx: WorkOrderCostAccessContext,
+  assigneeScope: WorkOrderCostAssigneeScope = {
+    hasAssignedWorkOrders: false,
+    assignedTeamIds: new Set<string>(),
+  },
 ): boolean {
   if (!ctx.userId) {
     return false;
@@ -68,11 +78,18 @@ export function canViewWorkOrderCostsForSelectedTeam(
   }
 
   if (selectedTeamId === null) {
-    return ctx.teamMemberships.some((membership) => isOperationalTeamRole(membership.role));
+    return (
+      assigneeScope.hasAssignedWorkOrders ||
+      ctx.teamMemberships.some((membership) => isOperationalTeamRole(membership.role))
+    );
   }
 
   if (selectedTeamId === UNASSIGNED_TEAM_ID) {
     return false;
+  }
+
+  if (assigneeScope.assignedTeamIds.has(selectedTeamId)) {
+    return true;
   }
 
   return ctx.teamMemberships.some(

@@ -3,6 +3,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
 import { useSelectedTeam } from '@/hooks/useSelectedTeam';
+import { useWorkOrderCostAssigneeScope } from '@/features/work-orders/hooks/useWorkOrderCostAssigneeScope';
 import {
   canViewWorkOrderCostsForSelectedTeam,
   canViewWorkOrderCostsForWorkOrder,
@@ -35,7 +36,9 @@ function useWorkOrderCostAccessContext() {
 export function useCanViewWorkOrderCosts(): boolean {
   const ctx = useWorkOrderCostAccessContext();
   const { selectedTeamId } = useSelectedTeam();
-  return canViewWorkOrderCostsForSelectedTeam(selectedTeamId, ctx);
+  const { currentOrganization } = useOrganization();
+  const assigneeScope = useWorkOrderCostAssigneeScope(currentOrganization?.id);
+  return canViewWorkOrderCostsForSelectedTeam(selectedTeamId, ctx, assigneeScope);
 }
 
 /**
