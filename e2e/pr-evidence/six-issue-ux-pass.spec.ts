@@ -262,6 +262,13 @@ test.describe('Six-issue UX pass — mobile quick access (#1151) @pr-evidence', 
     const quickActions = page.getByRole('button', { name: /open quick actions/i });
     await expect(quickActions).toBeVisible({ timeout: 60_000 });
 
+    // The field footer must be viewport-pinned (fixed), not scrolled with
+    // content — regression guard for the texture-grain position override.
+    const footerBox = await quickActions.boundingBox();
+    expect(footerBox).not.toBeNull();
+    expect(footerBox!.y).toBeGreaterThan(400);
+    expect(footerBox!.y + footerBox!.height).toBeLessThanOrEqual(845);
+
     await evidencePause(page, 800);
     await evidenceScreenshot(page, '16-work-order-footer-quick-actions');
 
@@ -282,5 +289,42 @@ test.describe('Six-issue UX pass — mobile quick access (#1151) @pr-evidence', 
 
     await evidencePause(page, 1000);
     await evidenceScreenshot(page, '18-work-order-qr-dialog');
+  });
+
+  test('floating QAB anchors bottom-right when the field footer is hidden', async ({
+    gotoDashboard,
+    assertHealthyShell,
+    page,
+  }) => {
+    // Completed work orders are locked, so the field footer is hidden and
+    // the floating quick access button takes over.
+    await gotoDashboard(`/work-orders/${seedWorkOrders.completed.id}`);
+    await assertHealthyShell();
+
+    const fab = page.getByRole('button', { name: /open work order quick actions/i });
+    await expect(fab).toBeVisible({ timeout: 60_000 });
+
+    // Regression guard (#1151 follow-up): .texture-grain > * forced
+    // position:relative onto direct children after the Tailwind v4
+    // migration, pulling this fixed FAB into the page flow at the left
+    // edge. It must sit in the bottom-right corner of the 390x844 viewport.
+    const fabBox = await fab.boundingBox();
+    expect(fabBox).not.toBeNull();
+    expect(fabBox!.x).toBeGreaterThan(300);
+    expect(fabBox!.y).toBeGreaterThan(650);
+    expect(fabBox!.y + fabBox!.height).toBeLessThanOrEqual(845);
+
+    await evidencePause(page, 800);
+    await evidenceScreenshot(page, '19-completed-wo-floating-qab');
+
+    await fab.click();
+    const completedSheet = page.getByLabel('More work order options');
+    await expect(completedSheet).toBeVisible({ timeout: 15_000 });
+    await expect(
+      completedSheet.getByRole('button', { name: /show work order qr code/i }),
+    ).toBeVisible();
+
+    await evidencePause(page, 600);
+    await evidenceScreenshot(page, '20-completed-wo-quick-actions-sheet');
   });
 });
