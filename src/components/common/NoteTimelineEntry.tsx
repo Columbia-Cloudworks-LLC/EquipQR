@@ -30,6 +30,12 @@ interface NoteTimelineEntryProps {
   metaClassName?: string;
   contentClassName?: string;
   contentTextClassName?: string;
+  /**
+   * Hide labor hours from customer-facing roles (requestor/viewer) that must
+   * stay oblivious to internal labor data. Secure default: hidden until a
+   * caller explicitly grants operational visibility.
+   */
+  showLaborHours?: boolean;
 }
 
 const NoteTimelineEntry: React.FC<NoteTimelineEntryProps> = ({
@@ -38,6 +44,7 @@ const NoteTimelineEntry: React.FC<NoteTimelineEntryProps> = ({
   metaClassName = 'text-sm text-muted-foreground',
   contentClassName = 'prose prose-sm max-w-none',
   contentTextClassName = 'whitespace-pre-wrap',
+  showLaborHours = false,
 }) => {
   const machineLabel = formatNoteMachineHours(note.machine_hours);
 
@@ -52,7 +59,7 @@ const NoteTimelineEntry: React.FC<NoteTimelineEntryProps> = ({
               {note._isPendingSync && <PendingSyncBadge />}
               <span>•</span>
               <span>{formatDate(note.created_at)}</span>
-              {formatNoteHoursWorked(note.hours_worked) && (
+              {showLaborHours && formatNoteHoursWorked(note.hours_worked) && (
                 <>
                   <span>•</span>
                   <Clock className="h-4 w-4" />

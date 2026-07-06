@@ -32,6 +32,7 @@ interface WorkOrderDetailsSidebarProps {
   isWorkOrderLocked?: boolean;
   baseCanAddNotes?: boolean;
   onStatusUpdate?: (newStatus: WorkOrderLike['status']) => void;
+  canViewWorkOrderCosts?: boolean;
 }
 
 export const WorkOrderDetailsSidebar: React.FC<WorkOrderDetailsSidebarProps> = ({
@@ -47,6 +48,7 @@ export const WorkOrderDetailsSidebar: React.FC<WorkOrderDetailsSidebarProps> = (
   isWorkOrderLocked = false,
   baseCanAddNotes = false,
   onStatusUpdate,
+  canViewWorkOrderCosts = false,
 }) => {
   const isMobile = useIsMobile();
 
@@ -107,6 +109,7 @@ export const WorkOrderDetailsSidebar: React.FC<WorkOrderDetailsSidebarProps> = (
           permissionLevels={permissionLevels}
           equipment={equipment}
           pmData={pmData}
+          canViewInternalLabor={canViewWorkOrderCosts}
         />
 
         {/* Customer Contacts — managers + field technicians; requestors/viewers excluded */}

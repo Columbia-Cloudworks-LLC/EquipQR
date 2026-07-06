@@ -127,6 +127,39 @@ This document defines the comprehensive role-based access control (RBAC) system 
 ****Only assigned work orders
 *****Limited to relevant work orders (assigned, created by user, or team-related)
 
+### Inventory & Internal Costing Visibility
+
+Inventory/parts access is granted through two explicit grants (not
+`organization_members.role` values): **Parts Manager** and **Parts
+Consumer**. Owners and admins get access by default. Work order **cost
+line items** (parts, unit pricing, labor hours/rates) are internal data:
+customer-facing roles (team Requestor and Viewer) and plain members must
+see **zero evidence** of parts, stock levels, pricing, or labor anywhere
+in the application. Internal costing and final pricing are handled later
+in the QuickBooks invoicing phase.
+
+| Data / Action | Owner | Admin | Parts Manager | Parts Consumer | Manager* | Technician* | Requestor | Viewer | Plain Member |
+| ------------- | ----- | ----- | ------------- | -------------- | -------- | ----------- | --------- | ------ | ------------ |
+| View inventory, part lookup, alternates | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Manage inventory (create/edit/adjust) | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Equipment "Parts" tab | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Consume parts on work orders ("Add from Inventory") | ✅ | ✅ | ✅ | ✅† | ❌ | ❌ | ❌ | ❌ | ❌ |
+| View work order cost line items (parts, pricing, labor) | ✅ | ✅ | ❌‡ | ❌‡ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Cost subtotals on work order cards / dashboard cost widgets | ✅ | ✅ | ❌‡ | ❌‡ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Labor hours on work order notes / estimated hours | ✅ | ✅ | ❌‡ | ❌‡ | ✅ | ✅ | ❌ | ❌ | ❌ |
+
+\* Team-level roles on the work order's team. `Manager`/`Technician` here refer to team roles, not inventory grants.
+
+† Parts Consumers can consume/restore inventory only through work orders they hold operational cost access to (team owner/manager/technician on the work order's team, or work order assignee). The `adjust_inventory_quantity` RPC enforces this server-side.
+
+‡ Unless the same user also holds an operational team role (or org owner/admin). Inventory grants never expand work order cost visibility on their own.
+
+**Enforcement layers:**
+
+- **RLS:** `work_order_costs` policies use `can_access_work_order_costs(work_order_id, user_id)` — org owner/admin, work order assignee, or team owner/manager/technician on the work order's team. Inventory tables use `can_access_inventory` / `can_manage_inventory`.
+- **Application:** `useCanViewWorkOrderCosts()` gates every cost-surfacing UI (costs section, card subtotals, cost dashboard widgets, labor hours on notes); `useInventoryAccess()` gates every inventory surface (routes, sidebar, equipment Parts tab, work order part picker, dashboard FAB).
+- **Exports:** customer-safe Service Report PDF never includes costs/labor for non-admin audiences; bulk exports are org-admin only (edge `verifyOrgAdmin`).
+
 ## Permission Validation
 
 ### Application Level

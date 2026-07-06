@@ -4,6 +4,8 @@ import {
   getAllWidgets,
   getWidgetsByCategory,
   generateDefaultLayout,
+  filterWidgetsForCostVisibility,
+  COST_RESTRICTED_WIDGET_IDS,
   WIDGET_REGISTRY,
   DEFAULT_WIDGET_IDS,
 } from '../widgetRegistry';
@@ -117,6 +119,34 @@ describe('widgetRegistry', () => {
       const { activeWidgets } = generateDefaultLayout(['fake-1', 'fake-2']);
 
       expect(activeWidgets).toEqual([]);
+    });
+  });
+
+  describe('filterWidgetsForCostVisibility', () => {
+    it('strips cost widgets for users without cost visibility', () => {
+      const filtered = filterWidgetsForCostVisibility(
+        ['stats-grid', 'cost-trend', 'recent-work-orders'],
+        false
+      );
+
+      expect(filtered).toEqual(['stats-grid', 'recent-work-orders']);
+    });
+
+    it('keeps cost widgets for users with cost visibility', () => {
+      const ids = ['stats-grid', 'cost-trend'];
+      expect(filterWidgetsForCostVisibility(ids, true)).toEqual(ids);
+    });
+
+    it('every cost-restricted id is a registered widget', () => {
+      for (const id of COST_RESTRICTED_WIDGET_IDS) {
+        expect(WIDGET_REGISTRY.has(id)).toBe(true);
+      }
+    });
+
+    it('cost widgets are excluded from the default layout', () => {
+      for (const id of COST_RESTRICTED_WIDGET_IDS) {
+        expect(DEFAULT_WIDGET_IDS).not.toContain(id);
+      }
     });
   });
 });

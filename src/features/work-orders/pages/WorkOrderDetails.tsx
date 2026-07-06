@@ -78,6 +78,7 @@ const WorkOrderDetails = () => {
     isWorkOrderLocked,
     canAddCosts,
     canEditCosts,
+    canViewWorkOrderCosts,
     canAddNotes,
     canUsePrivateNotes,
     canUpload,
@@ -410,6 +411,7 @@ const WorkOrderDetails = () => {
               canUpload={canUpload}
               canAddCosts={canAddCosts}
               canEditCosts={canEditCosts}
+              canViewWorkOrderCosts={canViewWorkOrderCosts}
               hideInlineNoteAddButton={hideInlineNoteAddButton}
               shouldAutoOpenNoteForm={shouldAutoOpenNoteForm}
               openNoteFormTrigger={openNoteFormTrigger}
@@ -456,6 +458,7 @@ const WorkOrderDetails = () => {
               canUpload={canUpload}
               canAddCosts={canAddCosts}
               canEditCosts={canEditCosts}
+              canViewWorkOrderCosts={canViewWorkOrderCosts}
               hideInlineNoteAddButton={hideInlineNoteAddButton}
               shouldAutoOpenNoteForm={shouldAutoOpenNoteForm}
               openNoteFormTrigger={openNoteFormTrigger}
@@ -487,6 +490,7 @@ const WorkOrderDetails = () => {
           isWorkOrderLocked={isWorkOrderLocked}
           baseCanAddNotes={baseCanAddNotes}
           onStatusUpdate={handleStatusUpdate}
+          canViewWorkOrderCosts={canViewWorkOrderCosts}
         />
       </div>
 

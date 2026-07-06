@@ -129,6 +129,22 @@ export const WIDGET_REGISTRY: Map<string, WidgetDefinition> = new Map([
   }],
 ]);
 
+/**
+ * Widgets that surface work order cost data. Hidden from users without cost
+ * visibility (team requestors/viewers and plain members are customer-facing
+ * roles that must stay oblivious to internal costing).
+ */
+export const COST_RESTRICTED_WIDGET_IDS: readonly string[] = ['cost-trend'];
+
+/** Removes cost-surfacing widgets for users without work order cost visibility */
+export function filterWidgetsForCostVisibility(
+  widgetIds: string[],
+  canViewWorkOrderCosts: boolean
+): string[] {
+  if (canViewWorkOrderCosts) return widgetIds;
+  return widgetIds.filter((id) => !COST_RESTRICTED_WIDGET_IDS.includes(id));
+}
+
 /** Get a single widget definition by ID */
 export function getWidget(id: string): WidgetDefinition | undefined {
   return WIDGET_REGISTRY.get(id);

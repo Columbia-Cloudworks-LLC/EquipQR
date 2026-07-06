@@ -40,6 +40,7 @@ export interface WorkOrderDetailsDesktopContentProps {
   canUpload: boolean;
   canAddCosts: boolean;
   canEditCosts: boolean;
+  canViewWorkOrderCosts: boolean;
   hideInlineNoteAddButton: boolean;
   shouldAutoOpenNoteForm: boolean;
   openNoteFormTrigger: number;
@@ -70,6 +71,7 @@ export function WorkOrderDetailsDesktopContent({
   canUpload,
   canAddCosts,
   canEditCosts,
+  canViewWorkOrderCosts,
   hideInlineNoteAddButton,
   shouldAutoOpenNoteForm,
   openNoteFormTrigger,
@@ -99,7 +101,7 @@ export function WorkOrderDetailsDesktopContent({
         />
       </div>
 
-      {(permissionLevels.isManager || permissionLevels.isTechnician) && (
+      {canViewWorkOrderCosts && (
         <div {...stagger(1)}>
           <WorkOrderCostsSection
             workOrderId={workOrder.id}
@@ -171,6 +173,7 @@ export function WorkOrderDetailsDesktopContent({
             workOrderId={workOrder.id}
             canAddNotes={canAddNotes}
             showPrivateNotes={canUsePrivateNotes}
+            showLaborHours={canViewWorkOrderCosts}
             isHistorical={Boolean(workOrder.is_historical)}
             canEditNoteTimestamps={permissionLevels.isManager}
             hideInlineAddButton={hideInlineNoteAddButton}

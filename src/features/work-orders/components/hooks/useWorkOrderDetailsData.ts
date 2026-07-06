@@ -13,6 +13,7 @@ import {
   canUsePrivateWorkOrderNotes,
   isWorkOrderEditLocked,
 } from '@/features/work-orders/utils/workOrderNotePermissions';
+import { canViewWorkOrderCostsForWorkOrder } from '@/features/work-orders/utils/canViewWorkOrderCostsAccess';
 import type { Tables } from '@/integrations/supabase/types';
 
 /**
@@ -73,8 +74,14 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
   const canAddNotes = canAddWorkOrderNotes(notePermissionInput);
   const canUsePrivateNotes = canUsePrivateWorkOrderNotes(notePermissionInput);
 
-  // Calculate permissions
-  const canAddCosts = permissionLevels.isManager || permissionLevels.isTechnician;
+  const canViewWorkOrderCosts = canViewWorkOrderCostsForWorkOrder(workOrder, {
+    userId: user?.id,
+    isOrgAdmin: permissionLevels.isManager,
+    teamMemberships,
+  });
+
+  // Calculate permissions — cost visibility mirrors RLS (`can_access_work_order_costs`)
+  const canAddCosts = canViewWorkOrderCosts;
   const canEditCosts = permissionLevels.isManager;
   const baseCanAddNotes = canAddNotes;
   const baseCanUpload = permissionLevels.isManager || createdByCurrentUser;
@@ -93,6 +100,7 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
     isWorkOrderLocked,
     canAddCosts: canAddCosts && !isWorkOrderLocked,
     canEditCosts: canEditCosts && !isWorkOrderLocked,
+    canViewWorkOrderCosts,
     canAddNotes,
     canUsePrivateNotes,
     canUpload,

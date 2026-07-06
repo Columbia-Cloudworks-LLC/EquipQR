@@ -20,6 +20,7 @@
     "bulk_set_pm_template_rules",
     "cancel_ownership_transfer",
     "can_access_inventory",
+    "can_access_work_order_costs",
     "can_manage_invitation_atomic",
     "check_admin_permission_safe",
     "check_storage_limit",

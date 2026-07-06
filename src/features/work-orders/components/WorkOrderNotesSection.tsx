@@ -34,6 +34,8 @@ interface WorkOrderNotesSectionProps {
   workOrderId: string;
   canAddNotes: boolean;
   showPrivateNotes: boolean;
+  /** Hide labor hours on notes from customer-facing roles (requestor/viewer) */
+  showLaborHours?: boolean;
   isHistorical?: boolean;
   canEditNoteTimestamps?: boolean;
   /** Hide inline add-note button when global sticky actions are present */
@@ -50,6 +52,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   workOrderId,
   canAddNotes,
   showPrivateNotes,
+  showLaborHours = false,
   isHistorical = false,
   canEditNoteTimestamps = false,
   hideInlineAddButton = false,
@@ -286,6 +289,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
                     key={note.id}
                     note={typedNote}
                     formatDate={formatDate}
+                    showLaborHours={showLaborHours}
                     metaClassName="text-[13px] text-muted-foreground"
                     contentClassName="prose prose-sm max-w-none dark:prose-invert"
                     contentTextClassName="whitespace-pre-wrap text-[15px] text-foreground/90 leading-relaxed"

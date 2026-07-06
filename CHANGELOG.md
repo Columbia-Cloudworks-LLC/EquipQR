@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.12.11] - 2026-07-05
+
+### Security
+
+- **Customer roles oblivious to parts & internal costing** — Team Requestor/Viewer roles and plain members can no longer read work order cost line items (parts, unit pricing, labor) at the database layer: `work_order_costs` RLS now requires org owner/admin, the work order assignee, or an operational team role (owner/manager/technician) on the work order's team, and the previous cross-tenant `created_by`-only INSERT/UPDATE/DELETE surface is closed. UI leaks fixed: cost subtotals on mobile work order cards, labor hours on public work order notes, estimated hours in the requestor status card, the Cost Trend dashboard widget/catalog entry, the equipment Parts tab, the dashboard "New Inventory Item" shortcut, and the work order "Add from Inventory" picker are all hidden from users without cost or inventory access.
+
+### Fixed
+
+- **Parts Consumer work order consumption** — Parts Consumers can now consume and restore parts through work orders they hold operational access to: `adjust_inventory_quantity` accepts work-order-scoped adjustments for consumers (validating the work order belongs to the item's organization) instead of requiring the Parts Manager grant, and cost delete/update inventory restore flows pass the work order id.
+
 ## [3.12.10] - 2026-07-05
 
 ### Changed

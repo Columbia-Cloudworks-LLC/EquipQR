@@ -806,11 +806,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "equipment_operator_checkin_settings_equipment_id_fkey"
-            columns: ["equipment_id"]
+            foreignKeyName: "equipment_operator_checkin_settings_equipment_org_fkey"
+            columns: ["equipment_id", "organization_id"]
             isOneToOne: false
             referencedRelation: "equipment"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "organization_id"]
           },
           {
             foreignKeyName: "equipment_operator_checkin_settings_organization_id_fkey"
@@ -820,11 +820,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "equipment_operator_checkin_settings_template_id_fkey"
-            columns: ["template_id"]
+            foreignKeyName: "equipment_operator_checkin_settings_template_org_fkey"
+            columns: ["template_id", "organization_id"]
             isOneToOne: false
             referencedRelation: "operator_checklist_templates"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "organization_id"]
           },
           {
             foreignKeyName: "equipment_operator_checkin_settings_token_rotated_by_fkey"
@@ -4568,6 +4568,10 @@ export type Database = {
       }
     }
     Functions: {
+      _invoke_quickbooks_token_refresh_internal: {
+        Args: never
+        Returns: undefined
+      }
       accept_invitation_atomic: {
         Args: { p_invitation_token: string; p_user_id?: string }
         Returns: Json
@@ -4636,6 +4640,10 @@ export type Database = {
       }
       can_access_inventory: {
         Args: { p_organization_id: string; p_user_id?: string }
+        Returns: boolean
+      }
+      can_access_work_order_costs: {
+        Args: { p_user_id?: string; p_work_order_id: string }
         Returns: boolean
       }
       can_manage_inventory: {
@@ -5791,6 +5799,15 @@ export type Database = {
           p_notes?: string
           p_update_source?: string
           p_work_order_id?: string
+        }
+        Returns: Json
+      }
+      update_historical_work_order_note_timestamp: {
+        Args: {
+          p_created_at: string
+          p_note_id: string
+          p_organization_id: string
+          p_work_order_id: string
         }
         Returns: Json
       }

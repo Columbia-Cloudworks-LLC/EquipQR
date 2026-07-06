@@ -17,13 +17,15 @@ interface WorkOrderDetailsRequestorStatusProps {
   permissionLevels: PermissionLevels;
   equipment?: EquipmentData | null;
   pmData?: PMData | null;
+  canViewInternalLabor?: boolean;
 }
 
 export const WorkOrderDetailsRequestorStatus: React.FC<WorkOrderDetailsRequestorStatusProps> = ({
   workOrder,
   permissionLevels,
   equipment,
-  pmData
+  pmData,
+  canViewInternalLabor = false,
 }) => {
   const { formatDate } = useFormatTimestamp();
 
@@ -88,12 +90,16 @@ export const WorkOrderDetailsRequestorStatus: React.FC<WorkOrderDetailsRequestor
           </div>
         )}
 
-        {/* Context Details (merged from QuickInfo) */}
-        {(workOrder.estimated_hours != null || (workOrder.has_pm && pmData) || equipment) && (
+        {/* Context Details (merged from QuickInfo). Estimated labor hours are
+            internal data — only field roles (technician/manager) may see them;
+            requestors/viewers only get status and equipment context. */}
+        {((workOrder.estimated_hours != null && canViewInternalLabor) ||
+          (workOrder.has_pm && pmData) ||
+          equipment) && (
           <>
             <Separator />
             <div className="space-y-2">
-              {workOrder.estimated_hours != null && (
+              {workOrder.estimated_hours != null && canViewInternalLabor && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Clock className="h-4 w-4" />
                   <span>Estimated: {workOrder.estimated_hours}h</span>
