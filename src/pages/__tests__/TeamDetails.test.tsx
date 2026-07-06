@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { render } from '@/test/utils/test-utils';
 import TeamDetails from '@/features/teams/pages/TeamDetails';
 
@@ -89,5 +90,50 @@ describe('TeamDetails permissions gating', () => {
     expect(screen.getByText('Team not found')).toBeInTheDocument();
     expect(screen.getByText('Back to Teams')).toBeInTheDocument();
     expect(screen.getByText('Return to Teams')).toBeInTheDocument();
+  });
+});
+
+describe('TeamDetails dedicated views (#1132)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    perms.canManageTeam = () => false;
+  });
+
+  it('renders the view switcher with all three views', () => {
+    render(<TeamDetails />);
+
+    expect(screen.getByRole('radio', { name: /internal team view/i })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /department view/i })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /customer view/i })).toBeInTheDocument();
+  });
+
+  it('shows the link-a-customer hint on the customer view when no customer is linked', async () => {
+    const user = userEvent.setup();
+    render(<TeamDetails />);
+
+    await user.click(screen.getByRole('radio', { name: /customer view/i }));
+
+    expect(screen.getByText('No customer account linked')).toBeInTheDocument();
+  });
+
+  it('offers "Set as team default" to team managers after switching views', async () => {
+    perms.canManageTeam = () => true;
+    const user = userEvent.setup();
+    render(<TeamDetails />);
+
+    expect(screen.queryByRole('button', { name: /set as team default/i })).toBeNull();
+
+    await user.click(screen.getByRole('radio', { name: /department view/i }));
+
+    expect(screen.getByRole('button', { name: /set as team default/i })).toBeInTheDocument();
+  });
+
+  it('never offers "Set as team default" to non-managers', async () => {
+    const user = userEvent.setup();
+    render(<TeamDetails />);
+
+    await user.click(screen.getByRole('radio', { name: /department view/i }));
+
+    expect(screen.queryByRole('button', { name: /set as team default/i })).toBeNull();
   });
 });

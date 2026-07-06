@@ -3701,6 +3701,7 @@ export type Database = {
           name: string
           organization_id: string
           override_equipment_location: boolean
+          preferred_view: string
           team_lead_id: string | null
           updated_at: string
         }
@@ -3719,6 +3720,7 @@ export type Database = {
           name: string
           organization_id: string
           override_equipment_location?: boolean
+          preferred_view?: string
           team_lead_id?: string | null
           updated_at?: string
         }
@@ -3737,6 +3739,7 @@ export type Database = {
           name?: string
           organization_id?: string
           override_equipment_location?: boolean
+          preferred_view?: string
           team_lead_id?: string | null
           updated_at?: string
         }
