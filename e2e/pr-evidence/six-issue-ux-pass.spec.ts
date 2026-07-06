@@ -4,6 +4,14 @@ import { expectNavigationLinkHidden } from '../user/shared/page-helpers';
 import { seedEquipment, seedTeams, seedWorkOrders } from '../user/shared/seed-data';
 import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
 
+function requireBoundingBox(
+  box: { x: number; y: number; width: number; height: number } | null,
+  label: string,
+): { x: number; y: number; width: number; height: number } {
+  expect(box, `${label} bounding box`).not.toBeNull();
+  return box as { x: number; y: number; width: number; height: number };
+}
+
 /**
  * Evidence for the six-issue UX pass:
  *   #1152 Parts Access sheet (managers + consumers from Inventory)
@@ -268,11 +276,15 @@ test.describe('Six-issue UX pass — mobile quick access (#1151) @pr-evidence', 
 
     // The floating QAB must be viewport-pinned (fixed), not scrolled with
     // content — regression guard for the texture-grain position override.
-    const fabBox = await fab.boundingBox();
-    expect(fabBox).not.toBeNull();
-    expect(fabBox!.x).toBeGreaterThan(300);
-    expect(fabBox!.y).toBeGreaterThan(650);
-    expect(fabBox!.y + fabBox!.height).toBeLessThanOrEqual(845);
+    const fabBox = requireBoundingBox(await fab.boundingBox(), 'FAB');
+    expect(fabBox.x).toBeGreaterThan(300);
+    expect(fabBox.y).toBeGreaterThan(650);
+    expect(fabBox.y + fabBox.height).toBeLessThanOrEqual(845);
+
+    await page.evaluate(() => window.scrollBy(0, 400));
+    const fabBoxAfterScroll = requireBoundingBox(await fab.boundingBox(), 'FAB after scroll');
+    expect(fabBoxAfterScroll.x).toBeCloseTo(fabBox.x, 0);
+    expect(fabBoxAfterScroll.y).toBeCloseTo(fabBox.y, 0);
 
     await evidencePause(page, 800);
     await evidenceScreenshot(page, '16-work-order-footer-quick-actions');
@@ -315,11 +327,15 @@ test.describe('Six-issue UX pass — mobile quick access (#1151) @pr-evidence', 
     // position:relative onto direct children after the Tailwind v4
     // migration, pulling this fixed FAB into the page flow at the left
     // edge. It must sit in the bottom-right corner of the 390x844 viewport.
-    const fabBox = await fab.boundingBox();
-    expect(fabBox).not.toBeNull();
-    expect(fabBox!.x).toBeGreaterThan(300);
-    expect(fabBox!.y).toBeGreaterThan(650);
-    expect(fabBox!.y + fabBox!.height).toBeLessThanOrEqual(845);
+    const fabBox = requireBoundingBox(await fab.boundingBox(), 'FAB');
+    expect(fabBox.x).toBeGreaterThan(300);
+    expect(fabBox.y).toBeGreaterThan(650);
+    expect(fabBox.y + fabBox.height).toBeLessThanOrEqual(845);
+
+    await page.evaluate(() => window.scrollBy(0, 400));
+    const fabBoxAfterScroll = requireBoundingBox(await fab.boundingBox(), 'FAB after scroll');
+    expect(fabBoxAfterScroll.x).toBeCloseTo(fabBox.x, 0);
+    expect(fabBoxAfterScroll.y).toBeCloseTo(fabBox.y, 0);
 
     await evidencePause(page, 800);
     await evidenceScreenshot(page, '19-completed-wo-floating-qab');

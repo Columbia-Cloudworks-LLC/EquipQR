@@ -344,7 +344,7 @@ const WorkOrderDetails = () => {
     workOrderStatus: workOrder.status,
     footerRoleEligible,
   });
-  const hideInlineNoteAddButton = shouldHideInlineNoteAddButton(showMobileActionFooter, workOrder.status);
+  const hideInlineNoteAddButton = shouldHideInlineNoteAddButton(showMobileActionFooter);
 
   const canCompletePmGate = !workOrder.has_pm || pmData?.status === 'completed';
   const pmChecklist = getPMChecklistStats(pmData?.checklist_data);
@@ -572,6 +572,7 @@ const WorkOrderDetails = () => {
         workOrderTitle={workOrder.title}
         onPrintFieldWorksheet={() => void exports.handleMobileDownloadWorksheet()}
         isPrintingWorksheet={exports.isMobileWorksheetGenerating}
+        showFieldWorksheet={permissionLevels.exportAudience === 'admin'}
       />
 
       <PMChangeWarningDialog

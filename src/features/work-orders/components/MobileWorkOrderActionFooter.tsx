@@ -9,13 +9,7 @@ import { Loader2, WifiOff, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
-
-export type MobileFooterSyncState = {
-  isOnline: boolean;
-  isSyncing: boolean;
-  pendingCount: number;
-  failedCount: number;
-};
+import type { MobileFooterSyncState } from '@/features/work-orders/utils/workOrderDetailsViewModel';
 
 export type FooterWorkOrder = {
   id: string;

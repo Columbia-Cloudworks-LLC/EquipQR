@@ -7,6 +7,11 @@ import { WorkOrderPDFExportDialog } from '@/features/work-orders/components/Work
 import { MobileWorkOrderActionSheet } from '@/features/work-orders/components/MobileWorkOrderActionSheet';
 import { MobileWorkOrderActionFooter } from '@/features/work-orders/components/MobileWorkOrderActionFooter';
 import { buildWorkOrderSheetQuickActions } from '@/features/work-orders/utils/buildWorkOrderSheetQuickActions';
+import {
+  MOBILE_WO_FAB_BOTTOM_CLASS,
+  shouldShowMobileSyncBanner,
+} from '@/features/work-orders/utils/workOrderDetailsViewModel';
+import type { WorkOrderExportAudience } from '@/features/work-orders/utils/workOrderExportAccess';
 import WorkOrderAcceptanceModal from '@/features/work-orders/components/WorkOrderAcceptanceModal';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import type { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
@@ -20,6 +25,7 @@ type WorkOrderDetailsOverlaysProps = {
   equipmentTeamId?: string | null;
   permissionLevels: {
     isManager: boolean;
+    exportAudience?: WorkOrderExportAudience;
   };
   canAddNotes: boolean;
   canCaptureCosts: boolean;
@@ -127,6 +133,8 @@ export function WorkOrderDetailsOverlays({
   onRetrySync,
   onShowWorkOrderQr,
 }: WorkOrderDetailsOverlaysProps) {
+  const showSyncBanner = showMobileActionFooter && shouldShowMobileSyncBanner(syncState);
+
   const quickActions = buildWorkOrderSheetQuickActions({
     workOrderStatus: workOrder.status,
     showMobileActionFooter,
@@ -263,7 +271,10 @@ export function WorkOrderDetailsOverlays({
           onClick={() => onMobileActionSheetOpenChange(true)}
           aria-label="Open work order quick actions"
           className={cn(
-            'fixed bottom-[78px] right-4 z-fixed h-14 w-14 rounded-full shadow-elevation-3',
+            'fixed right-4 z-fixed h-14 w-14 rounded-full shadow-elevation-3',
+            showSyncBanner
+              ? MOBILE_WO_FAB_BOTTOM_CLASS.withSyncBanner
+              : MOBILE_WO_FAB_BOTTOM_CLASS.default,
             'touch-manipulation transition-transform duration-100 active:scale-[0.97]',
             'motion-reduce:active:scale-100',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',

@@ -11,6 +11,8 @@ import {
   getMobileWorkOrderDetailsBottomPaddingClass,
   isFooterRoleEligible,
   shouldHideInlineNoteAddButton,
+  shouldShowMobileSyncBanner,
+  MOBILE_WO_FAB_BOTTOM_CLASS,
   shouldShowMobileActionFooter,
 } from '../workOrderDetailsViewModel';
 
@@ -241,6 +243,29 @@ describe('workOrderDetailsViewModel', () => {
     it('hides inline note add button when the mobile field footer is shown', () => {
       expect(shouldHideInlineNoteAddButton(true)).toBe(true);
       expect(shouldHideInlineNoteAddButton(false)).toBe(false);
+    });
+
+    it('detects when the mobile sync banner should render', () => {
+      expect(
+        shouldShowMobileSyncBanner({
+          isOnline: true,
+          isSyncing: false,
+          pendingCount: 0,
+          failedCount: 0,
+        }),
+      ).toBe(false);
+      expect(
+        shouldShowMobileSyncBanner({
+          isOnline: false,
+          isSyncing: false,
+          pendingCount: 0,
+          failedCount: 0,
+        }),
+      ).toBe(true);
+    });
+
+    it('raises FAB clearance when sync banner is visible', () => {
+      expect(MOBILE_WO_FAB_BOTTOM_CLASS.withSyncBanner).not.toBe(MOBILE_WO_FAB_BOTTOM_CLASS.default);
     });
   });
 });
