@@ -8,6 +8,17 @@ vi.mock('@/integrations/supabase/client', () => ({
   }
 }));
 
+// Silence expected error-path logging (#1148) — these tests intentionally
+// exercise failure branches that call logger.error.
+vi.mock('@/utils/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
 const { supabase } = await import('@/integrations/supabase/client');
 
 describe('WorkOrderService', () => {

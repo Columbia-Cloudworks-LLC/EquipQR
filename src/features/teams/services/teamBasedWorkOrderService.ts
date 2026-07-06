@@ -3,6 +3,7 @@ import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
+import { batchResolveEquipmentDisplayImageUrls } from '@/services/imageUploadService';
 import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
 import { applyWorkOrderSupabaseFilters } from '@/features/work-orders/utils/workOrderSupabaseFilters';
 import type { SelectedTeamId } from '@/contexts/selected-team-context';
@@ -153,7 +154,17 @@ export const getTeamBasedWorkOrders = async (
       throw error;
     }
 
-    return (data || []).map(wo => {
+    const rows = data || [];
+
+    // equipment.image_url stores a canonical private-bucket path; sign it here
+    // so list cards never emit a relative path into <img src> (#1086 — the
+    // browser would resolve it against /dashboard/... and 404).
+    const equipmentImageUrls = await batchResolveEquipmentDisplayImageUrls(
+      rows.map(wo => wo.equipment?.image_url ?? null),
+      { equipmentIds: rows.map(wo => wo.equipment_id) },
+    );
+
+    return rows.map((wo, index) => {
       const lastKnown = wo.equipment?.last_known_location;
       let lastScan: { lat: number; lng: number } | undefined;
       if (lastKnown && typeof lastKnown === 'object') {
@@ -213,7 +224,7 @@ export const getTeamBasedWorkOrders = async (
         equipmentModel: wo.equipment?.model,
         equipmentSerialNumber: wo.equipment?.serial_number,
         equipmentWorkingHours: wo.equipment?.working_hours,
-        equipmentImageUrl: wo.equipment?.image_url,
+        equipmentImageUrl: equipmentImageUrls[index],
         createdByName: wo.creator?.name,
         has_pm: wo.has_pm,
         effectiveLocation,

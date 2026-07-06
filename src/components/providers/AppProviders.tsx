@@ -7,7 +7,23 @@ import { MFAProvider } from '@/contexts/MFAContext';
 import { UserProvider } from '@/contexts/UserContext';
 import { SessionProvider } from '@/contexts/SessionContext';
 import { Toaster } from '@/components/ui/toaster';
+import { Toaster as SonnerToaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+
+/**
+ * Sonner toasts are used across the app (`import { toast } from 'sonner'`),
+ * but no Sonner <Toaster /> was mounted, so those toasts never rendered
+ * (#1081). Mounted above modals via the shared z-toast token so feedback
+ * stays visible while dialogs are open.
+ */
+const AppSonnerToaster: React.FC = () => (
+  <SonnerToaster
+    theme="dark"
+    position="bottom-right"
+    closeButton
+    style={{ zIndex: 'var(--z-toast)' } as React.CSSProperties}
+  />
+);
 
 /** TanStack Query retries should stop on hard auth/RBAC failures (not only numeric 401/403 strings). */
 function isNonRetryableQueryError(error: unknown): boolean {
@@ -68,6 +84,7 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
             </AuthProvider>
           </TooltipProvider>
           <Toaster />
+          <AppSonnerToaster />
         </ThemeProvider>
       </QueryClientProvider>
     );
@@ -86,6 +103,7 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
           </AuthProvider>
         </TooltipProvider>
         <Toaster />
+        <AppSonnerToaster />
       </ThemeProvider>
     </QueryClientProvider>
   );

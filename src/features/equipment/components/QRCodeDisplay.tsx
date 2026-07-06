@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import AssetQRCodeDisplay from '@/components/common/AssetQRCodeDisplay';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -12,11 +12,10 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ExternalLink } from '@/components/ui/external-link';
 import { OPERATOR_DAILY_CHECK_INS_DOCS_URL } from '@/lib/documentationUrl';
-import { useEquipmentOperatorCheckinAssignments } from '@/features/operator-check-ins/hooks/useOperatorCheckinSettings';
 import {
-  getStoredOperatorCheckinToken,
-  subscribeOperatorCheckinTokenChanges,
-} from '@/features/operator-check-ins/utils/operatorCheckinTokenStorage';
+  useEquipmentOperatorCheckinAssignments,
+  useOperatorCheckinToken,
+} from '@/features/operator-check-ins/hooks/useOperatorCheckinSettings';
 import { equipmentQRPath, operatorCheckInQRPath, qrFullUrl } from '@/utils/qr';
 
 const EQUIPMENT_VARIANT = 'equipment';
@@ -71,28 +70,17 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
     { enabled: open },
   );
   const [variant, setVariant] = useState<QRVariant>(initialVariant);
-  const [tokenRevision, setTokenRevision] = useState(0);
 
   const enabledAssignments = useMemo(
     () => assignments.filter((assignment) => assignment.enabled),
     [assignments],
   );
 
-  const refreshTokens = useCallback(() => {
-    setTokenRevision((value) => value + 1);
-  }, []);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    return subscribeOperatorCheckinTokenChanges(refreshTokens);
-  }, [open, refreshTokens]);
-
   useEffect(() => {
     if (open) {
       setVariant(initialVariant);
-      refreshTokens();
     }
-  }, [open, equipmentId, initialVariant, refreshTokens]);
+  }, [open, equipmentId, initialVariant]);
 
   useEffect(() => {
     if (!open || assignmentsLoading) return;
@@ -107,20 +95,20 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
 
   const selectedAssignmentId = assignmentIdFromVariant(variant);
   const selectedAssignment = enabledAssignments.find((assignment) => assignment.id === selectedAssignmentId);
-  const storedToken = selectedAssignmentId
-    ? getStoredOperatorCheckinToken(selectedAssignmentId)
-    : null;
+  const { data: storedToken = null, isLoading: isTokenLoading } = useOperatorCheckinToken(
+    selectedAssignment?.id,
+    selectedAssignment?.organization_id,
+    { enabled: open },
+  );
 
-  // tokenRevision ensures memo recalculates when in-memory tokens change
   const activeConfig = useMemo(() => {
-    void tokenRevision;
-
-    if (selectedAssignment && storedToken) {
-      const path = operatorCheckInQRPath(storedToken);
+    if (selectedAssignment) {
       const checklistName = selectedAssignment.template?.name ?? 'Daily check-in';
       return {
         title: `${checklistName} QR Code`,
-        qrCodeUrl: qrFullUrl(path),
+        // Panel is suppressed until the persisted token resolves, so the
+        // equipment path is never rendered for an assignment variant.
+        qrCodeUrl: storedToken ? qrFullUrl(operatorCheckInQRPath(storedToken)) : '',
         qrImageAlt: `${checklistName} QR for ${equipmentName ?? equipmentId}`,
         defaultFilenameStem: `${equipmentName ?? equipmentId}-${checklistName}`.replace(/\s+/g, '-'),
         instructionBullets: OPERATOR_CHECKIN_QR_INSTRUCTIONS,
@@ -137,7 +125,6 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
       formatSelectId: 'qr-code-download-format',
     };
   }, [
-    tokenRevision,
     selectedAssignment,
     storedToken,
     equipmentId,
@@ -145,7 +132,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
     organizationId,
   ]);
 
-  const showMissingTokenNotice = Boolean(selectedAssignment && !storedToken);
+  const showMissingTokenNotice = Boolean(selectedAssignment && !storedToken && !isTokenLoading);
   const hasAssignmentOptions = enabledAssignments.length > 0;
   const isDailyCheckinVariant = isAssignmentVariant(variant);
 
@@ -186,9 +173,11 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
               <Alert>
                 <AlertDescription className="space-y-2">
                   <p>
-                    Generate a QR link for{' '}
-                    <strong>{selectedAssignment?.template?.name ?? 'this checklist'}</strong> on the equipment
-                    details page first, then return here to print it.
+                    The QR link for{' '}
+                    <strong>{selectedAssignment?.template?.name ?? 'this checklist'}</strong> is not
+                    available here. An organization owner or admin can generate a new link from the
+                    Daily Operator Check-In section on the equipment details page (this replaces any
+                    previously printed QR codes for this checklist).
                   </p>
                   <Button type="button" variant="outline" size="sm" onClick={onClose}>
                     Close and generate link
@@ -206,7 +195,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
           </div>
         ) : undefined
       }
-      suppressQrPanel={showMissingTokenNotice}
+      suppressQrPanel={Boolean(selectedAssignment && (isTokenLoading || !storedToken))}
     />
   );
 };

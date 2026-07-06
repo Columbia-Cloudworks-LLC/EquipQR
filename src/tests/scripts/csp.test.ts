@@ -29,8 +29,16 @@ describe('csp', () => {
     const productionCsp = buildCsp();
     const devCsp = buildCsp({ dev: true });
 
-    expect(productionCsp).not.toContain("'unsafe-eval'");
-    expect(devCsp).toContain("'unsafe-eval'");
+    expect(productionCsp).not.toContain(" 'unsafe-eval'");
+    expect(devCsp).toContain(" 'unsafe-eval'");
+  });
+
+  it('production and dev CSP allow WASM compilation for Google Maps vector basemap', () => {
+    const productionCsp = buildCsp();
+    const devCsp = buildCsp({ dev: true });
+
+    expect(productionCsp).toContain("'wasm-unsafe-eval'");
+    expect(devCsp).toContain("'wasm-unsafe-eval'");
   });
 
   it('production and dev CSP allow HIBP password range checks', () => {

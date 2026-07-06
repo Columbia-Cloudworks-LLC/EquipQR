@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.13.0] - 2026-07-06
+
+### Added
+
+- **Cross-device daily check-in QR links (#1154)** — Raw operator check-in QR tokens are now generated server-side and persisted in an admin-only `operator_checkin_token_secrets` table (RLS: organization owners/admins), so a QR link created on one device can be viewed and printed from any other device or browser. The previous in-memory browser cache is removed; assignments created before this release show a notice directing admins to rotate the QR link once.
+
+### Fixed
+
+- **Equipment Check-Ins tab crash (#1155)** — Opening the Check-Ins tab (and other Radix-composed surfaces) could crash with "Maximum update depth exceeded" under React 19 due to unstable composed-ref identities in Radix primitives. Upgraded `@radix-ui/react-select`, `react-popover`, `react-scroll-area`, `react-dropdown-menu`, `react-toast`, `react-tooltip`, `react-slot`, `react-tabs`, `react-dialog`, and `react-alert-dialog` to the patched releases; the dialog 1.1.15 pin (jsdom focus recursion workaround) is removed because the upstream fix landed in the same patch line.
+- **Fleet Map console CSP errors (#1088)** — Production CSP now includes `'wasm-unsafe-eval'` (WASM-only compilation, not JS eval) in `script-src`, letting Google Maps' WebGL vector basemap compile its label worker without flooding the console with CompileError violations.
+- **Work order list image 404s (#1086)** — Equipment thumbnails on work order cards now resolve signed URLs instead of emitting canonical storage paths into `<img src>` (which the browser resolved against `/dashboard/...` and 404'd). The thumbnail component also refuses to render non-URL paths as a guard.
+- **Equipment list image 400s (#1156)** — Equipment display image signing derives the owning bucket from the known equipment id instead of probing the work-order bucket with individual sign calls, eliminating guaranteed 400 responses in the console; remaining lookups batch through `createSignedUrls`.
+- **Invite Member modal and silent toasts (#1081)** — The app never mounted a Sonner `<Toaster />`, so every `sonner` toast (including "Invitation sent successfully") was invisible; one is now mounted above modal overlays. The Invite Member dialog also closes on failed sends so the outcome toast is visible instead of hidden behind the modal.
+- **CI test stderr noise (#1148)** — Work order service and organization provider tests mock the app logger for expected error paths, the equipment form test uses a constructable service mock (Vitest 3 `new` support), and the resizable panel test mock no longer spreads library-only props onto DOM nodes.
+
 ## [3.12.12] - 2026-07-05
 
 ### Fixed

@@ -43,11 +43,16 @@ import {
 } from '@/features/operator-check-ins/data/operatorChecklistStarterTemplates';
 import { filterEquipmentSummariesBySelectedTeam } from '@/features/operator-check-ins/utils/filterEquipmentSummariesBySelectedTeam';
 import { isDuplicateOperatorCheckinAssignmentError } from '@/features/operator-check-ins/utils/operatorCheckinAssignmentErrors';
-import { storeOperatorCheckinToken, getStoredOperatorCheckinToken } from '@/features/operator-check-ins/utils/operatorCheckinTokenStorage';
-import { rotateOperatorCheckinToken } from '@/features/operator-check-ins/services/operatorCheckinSettingsService';
+import {
+  getOperatorCheckinToken,
+  rotateOperatorCheckinToken,
+} from '@/features/operator-check-ins/services/operatorCheckinSettingsService';
+import { operatorCheckinKeys } from '@/features/operator-check-ins/hooks/operatorCheckinKeys';
 import type { OperatorChecklistTemplate } from '@/features/operator-check-ins/services/operatorChecklistTemplatesService';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function OperatorCheckInsPage() {
+  const queryClient = useQueryClient();
   const { currentOrganization } = useOrganization();
   const { hasRole } = usePermissions();
   const { selectedTeamId } = useSelectedTeam();
@@ -115,13 +120,12 @@ export default function OperatorCheckInsPage() {
     try {
       for (const equipmentId of equipmentIds) {
         try {
-          const result = await createAssignmentMutation.mutateAsync({
+          await createAssignmentMutation.mutateAsync({
             organizationId: orgId,
             equipmentId,
             templateId: template.id,
             enabled: true,
           });
-          storeOperatorCheckinToken(result.assignment.id, result.rawToken);
           assignedCount += 1;
           qrLinksReady += 1;
         } catch (error) {
@@ -132,12 +136,17 @@ export default function OperatorCheckInsPage() {
             (assignment) =>
               assignment.equipment_id === equipmentId && assignment.template_id === template.id,
           );
-          const needsQrRecovery = Boolean(existing && !getStoredOperatorCheckinToken(existing.id));
-          if (existing && needsQrRecovery) {
-            const rawToken = await rotateOperatorCheckinToken(existing.id);
-            storeOperatorCheckinToken(existing.id, rawToken);
-            qrLinksReady += 1;
+          if (!existing) continue;
+          // Tokens persist server-side (#1154); only legacy assignments minted
+          // before persistence need a rotate to become printable again.
+          const existingToken = await getOperatorCheckinToken(existing.id, orgId);
+          if (existingToken) {
+            queryClient.setQueryData(operatorCheckinKeys.token(existing.id), existingToken);
+            continue;
           }
+          const rawToken = await rotateOperatorCheckinToken(existing.id);
+          queryClient.setQueryData(operatorCheckinKeys.token(existing.id), rawToken);
+          qrLinksReady += 1;
         }
       }
 

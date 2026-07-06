@@ -407,21 +407,61 @@ export function extractEquipmentDisplayImagePath(stored: string | null | undefin
 }
 
 /**
- * Resolve many equipment display image references with parallel per-path signing on the
- * work-order bucket, then parallel signing on equipment-note for paths missing from WO.
+ * Batch-sign known-bucket paths with a single `createSignedUrls` POST.
+ * Missing objects resolve to per-item errors inside a 200 response, so the
+ * browser console is not flooded with individual 400s (#1156).
+ */
+async function batchSignPathsForBucket(
+  bucket: StorageBucket,
+  paths: string[],
+  expiresIn: number,
+): Promise<Map<string, string>> {
+  const signed = new Map<string, string>();
+  if (paths.length === 0) return signed;
+
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrls(paths, expiresIn);
+  if (error || !data) {
+    if (error) {
+      logger.error('createSignedUrls failed for equipment display batch', { bucket, error });
+    }
+    return signed;
+  }
+
+  for (const row of data) {
+    if (row.path && row.signedUrl && !row.error) {
+      signed.set(row.path, row.signedUrl);
+    }
+  }
+  return signed;
+}
+
+/**
+ * Resolve many equipment display image references.
  *
- * Uses individual `createSignedUrl` calls (not batch `createSignedUrls`) because the batch
- * API returns a signed URL for every path regardless of object existence, which breaks
- * fallback to the equipment-note bucket.
+ * When the caller supplies `equipmentIds` (aligned with `storedRefs`), the
+ * owning bucket is derived from the path layout — equipment-note uploads are
+ * `{userId}/{equipmentId}/{noteId}/{file}` while work-order uploads embed the
+ * work order id in the second segment — so each path is signed against a
+ * single bucket via one batch call per bucket (no wrong-bucket 400 probes).
+ *
+ * Ambiguous refs (no equipment id supplied) fall back to individual
+ * `createSignedUrl` probes on the work-order bucket, then equipment-note.
+ * The batch API cannot be used for probing because it returns per-item rows
+ * for every path regardless of which bucket actually owns the object.
  */
 export async function batchResolveEquipmentDisplayImageUrls(
   storedRefs: (string | null | undefined)[],
-  options?: { expiresInSeconds?: number }
+  options?: {
+    expiresInSeconds?: number;
+    /** Equipment ids aligned with `storedRefs`; enables single-bucket signing. */
+    equipmentIds?: (string | null | undefined)[];
+  }
 ): Promise<(string | null)[]> {
   const expiresIn = options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_TTL_SECONDS;
+  const equipmentIds = options?.equipmentIds;
   const results: (string | null)[] = storedRefs.map(() => null);
 
-  type Pending = { idx: number; path: string; stored: string };
+  type Pending = { idx: number; path: string; stored: string; bucket: StorageBucket | null };
   const pending: Pending[] = [];
 
   storedRefs.forEach((stored, idx) => {
@@ -444,62 +484,91 @@ export async function batchResolveEquipmentDisplayImageUrls(
       return;
     }
 
-    pending.push({ idx, path, stored: trimmed });
+    // Bucket resolution order: a stored public/signed URL that names its
+    // bucket is authoritative; bare canonical paths use the known equipment
+    // id (note-image uploads embed it as the second segment); otherwise the
+    // ref stays ambiguous and falls back to per-bucket probing.
+    let bucket: StorageBucket | null = null;
+    if (woNorm && !eqNorm) {
+      bucket = 'work-order-images';
+    } else if (eqNorm && !woNorm) {
+      bucket = 'equipment-note-images';
+    } else {
+      const equipmentId = equipmentIds?.[idx]?.trim();
+      if (equipmentId) {
+        bucket = path.split('/')[1] === equipmentId ? 'equipment-note-images' : 'work-order-images';
+      }
+    }
+
+    pending.push({ idx, path, stored: trimmed, bucket });
   });
 
   if (pending.length === 0) {
     return results;
   }
 
-  const uniquePaths = [...new Set(pending.map(p => p.path))];
+  const notePaths = [...new Set(pending.filter(p => p.bucket === 'equipment-note-images').map(p => p.path))];
+  const woPaths = [...new Set(pending.filter(p => p.bucket === 'work-order-images').map(p => p.path))];
 
-  const woResults = await Promise.all(
-    uniquePaths.map(p =>
-      createSignedUrlForPath('work-order-images', p, {
-        expiresInSeconds: expiresIn,
-        logFailures: false,
-      }),
-    ),
-  );
-  const woSigned = new Map<string, string>();
-  uniquePaths.forEach((p, i) => {
-    const url = woResults[i];
-    if (url) woSigned.set(p, url);
-  });
+  const [noteSigned, woSigned] = await Promise.all([
+    batchSignPathsForBucket('equipment-note-images', notePaths, expiresIn),
+    batchSignPathsForBucket('work-order-images', woPaths, expiresIn),
+  ]);
 
-  const needEq = uniquePaths.filter(p => !woSigned.has(p));
-  const eqSigned = new Map<string, string>();
-  if (needEq.length > 0) {
-    const eqResults = await Promise.all(
-      needEq.map(p =>
-        createSignedUrlForPath('equipment-note-images', p, {
+  const ambiguousPaths = [...new Set(pending.filter(p => p.bucket === null).map(p => p.path))];
+  const probed = new Map<string, string>();
+  if (ambiguousPaths.length > 0) {
+    const woProbe = await Promise.all(
+      ambiguousPaths.map(p =>
+        createSignedUrlForPath('work-order-images', p, {
           expiresInSeconds: expiresIn,
           logFailures: false,
         }),
       ),
     );
-    needEq.forEach((p, i) => {
-      const url = eqResults[i];
-      if (url) eqSigned.set(p, url);
+    ambiguousPaths.forEach((p, i) => {
+      const url = woProbe[i];
+      if (url) probed.set(p, url);
     });
+
+    const needEq = ambiguousPaths.filter(p => !probed.has(p));
+    if (needEq.length > 0) {
+      const eqProbe = await Promise.all(
+        needEq.map(p =>
+          createSignedUrlForPath('equipment-note-images', p, {
+            expiresInSeconds: expiresIn,
+            logFailures: false,
+          }),
+        ),
+      );
+      needEq.forEach((p, i) => {
+        const url = eqProbe[i];
+        if (url) probed.set(p, url);
+      });
+    }
   }
 
-  for (const { idx, path, stored } of pending) {
-    const url = woSigned.get(path) ?? eqSigned.get(path) ?? null;
-    if (url) {
-      results[idx] = url;
-    } else {
-      results[idx] = stored.startsWith('http') ? stored : null;
-    }
+  for (const { idx, path, bucket } of pending) {
+    // Refs that reach this loop always target our private buckets, so a raw
+    // http fallback (legacy public/expired signed URL) can never load — null
+    // keeps the UI on its icon fallback instead of emitting 400s (#1156).
+    results[idx] =
+      (bucket === 'equipment-note-images' ? noteSigned.get(path) : undefined) ??
+      (bucket === 'work-order-images' ? woSigned.get(path) : undefined) ??
+      (bucket === null ? probed.get(path) : undefined) ??
+      null;
   }
 
   return results;
 }
 
-export async function withResolvedEquipmentImages<T extends { image_url?: string | null }>(
-  rows: T[],
-): Promise<T[]> {
-  const urls = await batchResolveEquipmentDisplayImageUrls(rows.map(row => row.image_url ?? null));
+export async function withResolvedEquipmentImages<
+  T extends { id?: string; image_url?: string | null },
+>(rows: T[]): Promise<T[]> {
+  const urls = await batchResolveEquipmentDisplayImageUrls(
+    rows.map(row => row.image_url ?? null),
+    { equipmentIds: rows.map(row => row.id ?? null) },
+  );
   return rows.map((row, index) => ({
     ...row,
     image_url: urls[index] ?? null,

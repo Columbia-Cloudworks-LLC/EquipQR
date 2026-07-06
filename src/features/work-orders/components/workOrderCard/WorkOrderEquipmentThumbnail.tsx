@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  formatWorkOrderMachineHours,
   getWorkOrderEquipmentFallbackIcon,
   getWorkOrderEquipmentFallbackTint,
 } from '@/features/work-orders/utils/workOrderEquipmentVisuals';
@@ -15,6 +14,15 @@ export interface EquipmentThumbnailProps {
   isAboveTheFold?: boolean;
 }
 
+/**
+ * Canonical private-bucket paths (e.g. `{userId}/{workOrderId}/{file}.jpg`)
+ * must never reach `<img src>` — the browser resolves them relative to the
+ * current SPA route and requests a nonexistent /dashboard/... URL (#1086).
+ */
+function isRenderableImageUrl(imageUrl: string | null | undefined): imageUrl is string {
+  return Boolean(imageUrl && /^(https?:|blob:|data:|\/)/i.test(imageUrl));
+}
+
 export const WorkOrderEquipmentThumbnail: React.FC<EquipmentThumbnailProps> = ({
   imageUrl,
   equipmentName,
@@ -25,7 +33,7 @@ export const WorkOrderEquipmentThumbnail: React.FC<EquipmentThumbnailProps> = ({
 }) => {
   const [hasImageError, setHasImageError] = useState(false);
 
-  if (!imageUrl || hasImageError) {
+  if (!isRenderableImageUrl(imageUrl) || hasImageError) {
     const FallbackIcon = getWorkOrderEquipmentFallbackIcon(equipmentName ?? equipmentAltContext);
     const tintClass = getWorkOrderEquipmentFallbackTint(equipmentName ?? equipmentAltContext);
     return (

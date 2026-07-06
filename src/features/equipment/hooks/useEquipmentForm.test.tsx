@@ -4,11 +4,15 @@ import { renderHook, act } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+// Vitest 3 requires a real `function` (constructable) mock implementation for
+// classes instantiated with `new` (#1148).
 vi.mock('@/services/offlineAwareService', () => ({
-  OfflineAwareWorkOrderService: vi.fn().mockImplementation(() => ({
-    createEquipmentFull: vi.fn().mockResolvedValue({ data: { id: 'eq-new' }, queuedOffline: false }),
-    updateEquipment: vi.fn().mockResolvedValue({ data: { id: 'eq-1' }, queuedOffline: false }),
-  })),
+  OfflineAwareWorkOrderService: vi.fn(function OfflineAwareWorkOrderServiceMock() {
+    return {
+      createEquipmentFull: vi.fn().mockResolvedValue({ data: { id: 'eq-new' }, queuedOffline: false }),
+      updateEquipment: vi.fn().mockResolvedValue({ data: { id: 'eq-1' }, queuedOffline: false }),
+    };
+  }),
 }));
 
 vi.mock('@/features/equipment/services/equipmentLocationHistoryService', () => ({

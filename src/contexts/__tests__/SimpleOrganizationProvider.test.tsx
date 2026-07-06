@@ -48,6 +48,17 @@ vi.mock('@/lib/queryPersistence', () => ({
   setActivePersistenceScope: vi.fn(),
 }));
 
+// Silence the expected stale-org reset warning (#1148) — the stale-org
+// transition under test intentionally triggers logger.warn in the provider.
+vi.mock('@/utils/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: vi.fn((table: string) => {
