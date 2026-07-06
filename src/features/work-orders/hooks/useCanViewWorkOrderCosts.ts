@@ -37,7 +37,7 @@ export function useCanViewWorkOrderCosts(): boolean {
   const ctx = useWorkOrderCostAccessContext();
   const { selectedTeamId } = useSelectedTeam();
   const { currentOrganization } = useOrganization();
-  const assigneeScope = useWorkOrderCostAssigneeScope(currentOrganization?.id);
+  const assigneeScope = useWorkOrderCostAssigneeScope(currentOrganization?.id, selectedTeamId);
   return canViewWorkOrderCostsForSelectedTeam(selectedTeamId, ctx, assigneeScope);
 }
 
