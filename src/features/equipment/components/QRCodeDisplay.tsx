@@ -97,6 +97,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
   const selectedAssignment = enabledAssignments.find((assignment) => assignment.id === selectedAssignmentId);
   const { data: storedToken = null, isLoading: isTokenLoading } = useOperatorCheckinToken(
     selectedAssignment?.id,
+    selectedAssignment?.organization_id,
     { enabled: open },
   );
 

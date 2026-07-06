@@ -69,7 +69,10 @@ function AssignmentRow({
   onRemove: () => void;
   onViewQrCode: () => void;
 }) {
-  const { data: storedToken = null } = useOperatorCheckinToken(assignment.id);
+  const { data: storedToken = null } = useOperatorCheckinToken(
+    assignment.id,
+    assignment.organization_id,
+  );
   const hasStoredToken = Boolean(storedToken);
   const [rotateDialogOpen, setRotateDialogOpen] = useState(false);
 

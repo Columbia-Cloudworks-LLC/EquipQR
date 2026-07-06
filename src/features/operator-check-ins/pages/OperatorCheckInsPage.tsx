@@ -139,7 +139,7 @@ export default function OperatorCheckInsPage() {
           if (!existing) continue;
           // Tokens persist server-side (#1154); only legacy assignments minted
           // before persistence need a rotate to become printable again.
-          const existingToken = await getOperatorCheckinToken(existing.id);
+          const existingToken = await getOperatorCheckinToken(existing.id, orgId);
           if (existingToken) {
             queryClient.setQueryData(operatorCheckinKeys.token(existing.id), existingToken);
             continue;

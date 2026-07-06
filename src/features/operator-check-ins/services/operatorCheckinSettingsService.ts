@@ -77,6 +77,7 @@ export async function createEquipmentOperatorCheckinAssignment(input: {
     .from('equipment_operator_checkin_settings')
     .select(assignmentSelect)
     .eq('id', row.settings_id)
+    .eq('organization_id', input.organizationId)
     .single();
 
   if (fetchError) throw fetchError;
@@ -114,11 +115,15 @@ export async function rotateOperatorCheckinToken(assignmentId: string): Promise<
  * legacy in-memory cache miss). Legacy assignments minted before persistence
  * also resolve to null until their token is rotated.
  */
-export async function getOperatorCheckinToken(assignmentId: string): Promise<string | null> {
+export async function getOperatorCheckinToken(
+  assignmentId: string,
+  organizationId: string,
+): Promise<string | null> {
   const { data, error } = await supabase
     .from('operator_checkin_token_secrets')
     .select('raw_token')
     .eq('settings_id', assignmentId)
+    .eq('organization_id', organizationId)
     .maybeSingle();
 
   if (error) throw error;

@@ -46,16 +46,20 @@ export function useOrganizationOperatorCheckinAssignments(organizationId: string
  * Server-persisted raw QR token for one assignment (#1154). Admin-only via
  * RLS; members and legacy pre-persistence assignments resolve to null.
  * Create/rotate mutations seed this cache so the QR dialog updates instantly.
+ * Always refetches on mount so a rotation performed on another device cannot
+ * serve a stale (already-invalidated) token from the cache.
  */
 export function useOperatorCheckinToken(
   assignmentId: string | undefined,
+  organizationId: string | undefined,
   options?: { enabled?: boolean },
 ) {
   return useQuery({
     queryKey: operatorCheckinKeys.token(assignmentId ?? ''),
-    queryFn: () => getOperatorCheckinToken(assignmentId!),
-    enabled: Boolean(assignmentId && (options?.enabled ?? true)),
-    staleTime: 5 * 60 * 1000,
+    queryFn: () => getOperatorCheckinToken(assignmentId!, organizationId!),
+    enabled: Boolean(assignmentId && organizationId && (options?.enabled ?? true)),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 }
 
