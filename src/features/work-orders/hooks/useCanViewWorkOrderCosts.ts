@@ -37,7 +37,23 @@ export function useCanViewWorkOrderCosts(): boolean {
   const ctx = useWorkOrderCostAccessContext();
   const { selectedTeamId } = useSelectedTeam();
   const { currentOrganization } = useOrganization();
-  const assigneeScope = useWorkOrderCostAssigneeScope(currentOrganization?.id, selectedTeamId);
+
+  const baseAccess = useMemo(
+    () => canViewWorkOrderCostsForSelectedTeam(selectedTeamId, ctx),
+    [selectedTeamId, ctx],
+  );
+
+  const needsAssigneeScope = Boolean(ctx.userId && !ctx.isOrgAdmin && !baseAccess);
+  const assigneeScope = useWorkOrderCostAssigneeScope(
+    currentOrganization?.id,
+    selectedTeamId,
+    needsAssigneeScope,
+  );
+
+  if (baseAccess) {
+    return true;
+  }
+
   return canViewWorkOrderCostsForSelectedTeam(selectedTeamId, ctx, assigneeScope);
 }
 
