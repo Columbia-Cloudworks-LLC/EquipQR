@@ -44,4 +44,4 @@ Save the item. From its detail page, tap the QR icon to print a label for the bi
 
 - [Adjust inventory quantity](./adjust-inventory-quantity)
 - [Inventory storage locations](./inventory-storage-locations)
-- [Delegate inventory to Parts Managers](./parts-managers-setup)
+- [Delegate inventory with Parts Access](./parts-managers-setup)

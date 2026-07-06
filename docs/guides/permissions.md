@@ -160,6 +160,12 @@ in the QuickBooks invoicing phase.
 - **Application:** `useCanViewWorkOrderCosts()` gates every cost-surfacing UI (costs section, card subtotals, cost dashboard widgets, labor hours on notes); `useInventoryAccess()` gates every inventory surface (routes, sidebar, equipment Parts tab, work order part picker, dashboard FAB).
 - **Exports:** customer-safe Service Report PDF never includes costs/labor for non-admin audiences; bulk exports are org-admin only (edge `verifyOrgAdmin`).
 
+Both grants are managed from the **Parts Access** panel on the Inventory page (or per member on Organization → Members). Only owners/admins can grant or revoke either role.
+
+### Audit Log Visibility (#1122)
+
+The organization audit log is restricted to **owners and admins** at every layer: the page lives under **Organization → Audit Log** with an in-page role guard, `audit_log` SELECT RLS requires an active owner/admin membership, and the `get_audit_log_timeline` RPC re-checks `is_org_admin`. Audit entries never appear on operational pages (work order or inventory detail) and are never included in data exports outside the dedicated audit CSV/JSON export path, which notifies admins on every export.
+
 ## Permission Validation
 
 ### Application Level

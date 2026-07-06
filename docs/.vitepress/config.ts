@@ -32,6 +32,10 @@ const supportSidebarArticles: Record<string, { text: string; link: string }[]> =
         text: "Consume inventory on work order",
         link: "/support/technician-field-work/consume-inventory-on-wo",
       },
+      {
+        text: "Mobile quick actions",
+        link: "/support/technician-field-work/mobile-quick-actions",
+      },
     ],
     "work-orders": [
       {
@@ -78,7 +82,7 @@ const supportSidebarArticles: Record<string, { text: string; link: string }[]> =
         link: "/support/inventory-parts/adjust-inventory-quantity",
       },
       {
-        text: "Parts Managers",
+        text: "Parts Access",
         link: "/support/inventory-parts/parts-managers-setup",
       },
       {
@@ -102,6 +106,7 @@ const supportSidebarArticles: Record<string, { text: string; link: string }[]> =
         link: "/support/teams-roles/apex-example-hierarchy",
       },
       { text: "Add team members", link: "/support/teams-roles/add-team-member" },
+      { text: "Dedicated team views", link: "/support/teams-roles/team-views" },
       {
         text: "Teams & roles FAQ",
         link: "/support/teams-roles/multi-team-questions",
