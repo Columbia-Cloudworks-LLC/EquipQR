@@ -315,43 +315,40 @@ export async function getExternalContacts(customerId: string): Promise<ExternalC
 }
 
 export async function createExternalContact(contact: ExternalContactInsert): Promise<ExternalContactRow> {
-  const { data, error } = await supabase
-    .from('external_customer_contacts')
-    .insert({
-      ...contact,
-      source: 'manual',
-      source_external_id: null,
-      source_field: null,
-      last_synced_at: null,
-      source_payload: null,
-    })
-    .select()
-    .single();
+  const { data, error } = await supabase.rpc('create_manual_external_customer_contact', {
+    p_customer_id: contact.customer_id,
+    p_name: contact.name,
+    p_email: contact.email ?? null,
+    p_phone: contact.phone ?? null,
+    p_role: contact.role ?? null,
+    p_notes: contact.notes ?? null,
+  });
 
   if (error) throw error;
-  return data;
+  return data as ExternalContactRow;
 }
 
 export async function updateExternalContact(
   contactId: string,
   updates: ExternalContactUpdate
 ): Promise<ExternalContactRow> {
-  const { data, error } = await supabase
-    .from('external_customer_contacts')
-    .update(updates)
-    .eq('id', contactId)
-    .select()
-    .single();
+  const { data, error } = await supabase.rpc('update_manual_external_customer_contact', {
+    p_contact_id: contactId,
+    p_name: updates.name ?? '',
+    p_email: updates.email ?? null,
+    p_phone: updates.phone ?? null,
+    p_role: updates.role ?? null,
+    p_notes: updates.notes ?? null,
+  });
 
   if (error) throw error;
-  return data;
+  return data as ExternalContactRow;
 }
 
 export async function deleteExternalContact(contactId: string): Promise<void> {
-  const { error } = await supabase
-    .from('external_customer_contacts')
-    .delete()
-    .eq('id', contactId);
+  const { error } = await supabase.rpc('delete_manual_external_customer_contact', {
+    p_contact_id: contactId,
+  });
 
   if (error) throw error;
 }

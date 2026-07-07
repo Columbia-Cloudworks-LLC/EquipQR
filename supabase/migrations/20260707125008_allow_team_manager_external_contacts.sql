@@ -118,7 +118,21 @@ CREATE POLICY "external_customer_contacts_delete"
     )
   );
 
--- Manual rows must not carry QBO provenance metadata (prevents misclassified legacy rows).
+-- Normalize legacy manual rows before enforcing provenance invariant.
+UPDATE public.external_customer_contacts
+SET
+  source_external_id = NULL,
+  source_field = NULL,
+  last_synced_at = NULL,
+  source_payload = NULL
+WHERE source = 'manual'
+  AND (
+    source_external_id IS NOT NULL
+    OR source_field IS NOT NULL
+    OR last_synced_at IS NOT NULL
+    OR source_payload IS NOT NULL
+  );
+
 DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
@@ -133,5 +147,221 @@ DO $$ BEGIN
       );
   END IF;
 END $$;
+
+-- rpc-authenticated-grant-allowed: can_manage_manual_external_customer_contact
+CREATE OR REPLACE FUNCTION public.can_manage_manual_external_customer_contact(p_customer_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.customers c
+    WHERE c.id = p_customer_id
+      AND (
+        public.is_org_admin((SELECT auth.uid()), c.organization_id)
+        OR EXISTS (
+          SELECT 1
+          FROM public.teams t
+          JOIN public.team_members tm ON tm.team_id = t.id
+          WHERE t.customer_id = c.id
+            AND t.organization_id = c.organization_id
+            AND tm.user_id = (SELECT auth.uid())
+            AND tm.role = 'manager'::public.team_member_role
+        )
+      )
+  );
+$$;
+
+GRANT EXECUTE ON FUNCTION public.can_manage_manual_external_customer_contact(uuid) TO authenticated;
+
+-- rpc-authenticated-grant-allowed: create_manual_external_customer_contact
+CREATE OR REPLACE FUNCTION public.create_manual_external_customer_contact(
+  p_customer_id uuid,
+  p_name text,
+  p_email text DEFAULT NULL,
+  p_phone text DEFAULT NULL,
+  p_role text DEFAULT NULL,
+  p_notes text DEFAULT NULL
+)
+RETURNS public.external_customer_contacts
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_row public.external_customer_contacts;
+BEGIN
+  IF (SELECT auth.uid()) IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  IF NOT public.can_manage_manual_external_customer_contact(p_customer_id) THEN
+    RAISE EXCEPTION 'Permission denied';
+  END IF;
+
+  INSERT INTO public.external_customer_contacts (
+    customer_id,
+    name,
+    email,
+    phone,
+    role,
+    notes,
+    source,
+    source_external_id,
+    source_field,
+    last_synced_at,
+    source_payload
+  )
+  VALUES (
+    p_customer_id,
+    p_name,
+    p_email,
+    p_phone,
+    p_role,
+    p_notes,
+    'manual',
+    NULL,
+    NULL,
+    NULL,
+    NULL
+  )
+  RETURNING * INTO v_row;
+
+  RETURN v_row;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.create_manual_external_customer_contact(uuid, text, text, text, text, text) TO authenticated;
+
+-- rpc-authenticated-grant-allowed: update_manual_external_customer_contact
+CREATE OR REPLACE FUNCTION public.update_manual_external_customer_contact(
+  p_contact_id uuid,
+  p_name text,
+  p_email text DEFAULT NULL,
+  p_phone text DEFAULT NULL,
+  p_role text DEFAULT NULL,
+  p_notes text DEFAULT NULL
+)
+RETURNS public.external_customer_contacts
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_row public.external_customer_contacts;
+  v_org_id uuid;
+  v_source text;
+  v_source_external_id text;
+  v_source_field text;
+  v_customer_id uuid;
+BEGIN
+  IF (SELECT auth.uid()) IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  SELECT
+    ecc.customer_id,
+    ecc.source,
+    ecc.source_external_id,
+    ecc.source_field,
+    c.organization_id
+  INTO
+    v_customer_id,
+    v_source,
+    v_source_external_id,
+    v_source_field,
+    v_org_id
+  FROM public.external_customer_contacts ecc
+  JOIN public.customers c ON c.id = ecc.customer_id
+  WHERE ecc.id = p_contact_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Contact not found';
+  END IF;
+
+  IF public.is_org_admin((SELECT auth.uid()), v_org_id) THEN
+    NULL;
+  ELSIF v_source = 'manual'
+    AND v_source_external_id IS NULL
+    AND v_source_field IS NULL
+    AND public.can_manage_manual_external_customer_contact(v_customer_id) THEN
+    NULL;
+  ELSE
+    RAISE EXCEPTION 'Permission denied';
+  END IF;
+
+  UPDATE public.external_customer_contacts
+  SET
+    name = p_name,
+    email = p_email,
+    phone = p_phone,
+    role = p_role,
+    notes = p_notes
+  WHERE id = p_contact_id
+  RETURNING * INTO v_row;
+
+  RETURN v_row;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.update_manual_external_customer_contact(uuid, text, text, text, text, text) TO authenticated;
+
+-- rpc-authenticated-grant-allowed: delete_manual_external_customer_contact
+CREATE OR REPLACE FUNCTION public.delete_manual_external_customer_contact(p_contact_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_org_id uuid;
+  v_source text;
+  v_source_external_id text;
+  v_source_field text;
+  v_customer_id uuid;
+BEGIN
+  IF (SELECT auth.uid()) IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  SELECT
+    ecc.customer_id,
+    ecc.source,
+    ecc.source_external_id,
+    ecc.source_field,
+    c.organization_id
+  INTO
+    v_customer_id,
+    v_source,
+    v_source_external_id,
+    v_source_field,
+    v_org_id
+  FROM public.external_customer_contacts ecc
+  JOIN public.customers c ON c.id = ecc.customer_id
+  WHERE ecc.id = p_contact_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Contact not found';
+  END IF;
+
+  IF public.is_org_admin((SELECT auth.uid()), v_org_id) THEN
+    NULL;
+  ELSIF v_source = 'manual'
+    AND v_source_external_id IS NULL
+    AND v_source_field IS NULL
+    AND public.can_manage_manual_external_customer_contact(v_customer_id) THEN
+    NULL;
+  ELSE
+    RAISE EXCEPTION 'Permission denied';
+  END IF;
+
+  DELETE FROM public.external_customer_contacts WHERE id = p_contact_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.delete_manual_external_customer_contact(uuid) TO authenticated;
 
 COMMIT;
