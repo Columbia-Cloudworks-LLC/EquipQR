@@ -120,7 +120,7 @@ if ($Publish -and -not $Recapture -and (Test-PrEvidenceCapturedManifest -Path $m
     Write-Host ('[PR evidence] Reusing existing capture at {0}' -f $artifactDir)
 }
 
-if ($Publish -and $shouldCapture -and -not (Test-PrEvidenceCapturedManifest -Path $manifestPath)) {
+if ($Publish -and $shouldCapture -and -not $Recapture -and -not (Test-PrEvidenceCapturedManifest -Path $manifestPath)) {
     throw ('No captured evidence found at {0}. Run capture first: .\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow {1} -Spec {2} -CaptureOnly' -f $artifactDir, $Flow, $Spec)
 }
 

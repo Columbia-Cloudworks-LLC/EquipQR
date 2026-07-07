@@ -90,6 +90,17 @@ export async function resetApexOperatorCheckinEvidence(): Promise<void> {
   ]);
 }
 
+/**
+ * Deletes persisted raw-token secrets for the Apex org while keeping the
+ * assignments. Reproduces the pre-#1154 legacy state behind issue #1179:
+ * an enabled assignment whose printable QR link is unrecoverable.
+ */
+export async function clearApexOperatorCheckinTokenSecrets(): Promise<void> {
+  runLocalSql([
+    `DELETE FROM operator_checkin_token_secrets WHERE organization_id = '${apexOrgId}';`,
+  ]);
+}
+
 function hashOperatorCheckinToken(rawToken: string): string {
   return createHash('sha256').update(rawToken).digest('hex');
 }

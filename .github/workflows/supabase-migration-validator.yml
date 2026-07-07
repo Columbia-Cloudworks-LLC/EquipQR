@@ -6,6 +6,7 @@ on:
       - 'supabase/**'
       - '.github/scripts/validate-migrations.js'
       - '.github/workflows/supabase-migration-validator.yml'
+      - 'scripts/check-schema-reference.mjs'
 
 jobs:
   validate-migrations:
@@ -58,3 +59,13 @@ jobs:
         run: node .github/scripts/validate-migrations.js
         env:
           CHANGED_FILES: ${{ steps.changed-files.outputs.changed_files }}
+
+      # supabase/current_schema.sql is a derived dump of the migration chain
+      # (#1182). Schema-affecting migration changes must regenerate it in the
+      # same PR. Git-based, no DB spin-up; PRs without migration changes pass
+      # trivially.
+      - name: Check schema reference freshness
+        if: github.event_name == 'pull_request'
+        run: node scripts/check-schema-reference.mjs
+        env:
+          SCHEMA_REFERENCE_BASE_SHA: ${{ github.event.pull_request.base.sha }}

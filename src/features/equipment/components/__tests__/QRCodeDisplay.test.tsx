@@ -23,6 +23,29 @@ vi.mock('@/hooks/use-mobile', () => ({
   useIsMobile: () => false
 }));
 
+// Operator check-in hooks — defaults mirror "no assignments" so legacy tests
+// keep exercising the plain equipment QR path (#1179).
+const mockUseAssignments = vi.fn();
+const mockUseToken = vi.fn();
+const mockUseRotateToken = vi.fn();
+vi.mock('@/features/operator-check-ins/hooks/useOperatorCheckinSettings', () => ({
+  useEquipmentOperatorCheckinAssignments: (...args: unknown[]) => mockUseAssignments(...args),
+  useOperatorCheckinToken: (...args: unknown[]) => mockUseToken(...args),
+  useRotateOperatorCheckinToken: (...args: unknown[]) => mockUseRotateToken(...args),
+}));
+
+const mockHasRole = vi.fn();
+vi.mock('@/hooks/usePermissions', () => ({
+  usePermissions: () => ({ hasRole: mockHasRole }),
+}));
+
+beforeEach(() => {
+  mockUseAssignments.mockReturnValue({ data: [], isLoading: false });
+  mockUseToken.mockReturnValue({ data: null, isLoading: false });
+  mockUseRotateToken.mockReturnValue({ mutateAsync: vi.fn(), isPending: false });
+  mockHasRole.mockReturnValue(false);
+});
+
 const mockQRCode = await import('qrcode');
 const mockToast = await import('sonner');
 
@@ -300,6 +323,87 @@ describe('QRCodeDisplay', () => {
       expect(screen.getByText(/Or download the PNG\/JPG image and print it/)).toBeInTheDocument();
       expect(screen.getByText(/Print this QR code and attach it to the equipment/)).toBeInTheDocument();
       expect(screen.getByText(/Scans open this equipment's details and are logged automatically/)).toBeInTheDocument();
+    });
+  });
+
+  describe('Daily check-in QR generation (#1179)', () => {
+    const assignment = {
+      id: 'assign-1',
+      organization_id: 'org-1',
+      equipment_id: 'test-equipment-id',
+      template_id: 'tpl-1',
+      enabled: true,
+      public_token_hash: 'hash',
+      token_rotated_at: '2026-07-06T00:00:00Z',
+      token_rotated_by: null,
+      created_at: '2026-07-06T00:00:00Z',
+      updated_at: '2026-07-06T00:00:00Z',
+      template: { id: 'tpl-1', name: 'Odometer Log', description: null },
+    };
+
+    const checkinProps = {
+      ...defaultProps,
+      organizationId: 'org-1',
+      initialVariant: 'assignment:assign-1' as const,
+    };
+
+    beforeEach(() => {
+      mockUseAssignments.mockReturnValue({ data: [assignment], isLoading: false });
+      mockUseToken.mockReturnValue({ data: null, isLoading: false });
+    });
+
+    it('lets an owner/admin generate the QR link directly in the dialog', async () => {
+      mockHasRole.mockReturnValue(true);
+      const mutateAsync = vi.fn().mockResolvedValue('raw-token');
+      mockUseRotateToken.mockReturnValue({ mutateAsync, isPending: false });
+
+      render(<QRCodeDisplay {...checkinProps} />);
+
+      const generateButton = screen.getByRole('button', { name: 'Generate QR link' });
+      fireEvent.click(generateButton);
+
+      await waitFor(() => {
+        expect(mutateAsync).toHaveBeenCalledWith('assign-1');
+        expect(mockToast.toast.success).toHaveBeenCalledWith(
+          'QR link generated. Print or share the code below.',
+        );
+      });
+    });
+
+    it('surfaces an error toast when generation fails', async () => {
+      mockHasRole.mockReturnValue(true);
+      const mutateAsync = vi.fn().mockRejectedValue(new Error('Forbidden'));
+      mockUseRotateToken.mockReturnValue({ mutateAsync, isPending: false });
+
+      render(<QRCodeDisplay {...checkinProps} />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Generate QR link' }));
+
+      await waitFor(() => {
+        expect(mockToast.toast.error).toHaveBeenCalledWith('Unable to generate QR link.');
+      });
+    });
+
+    it('does not offer generation to members without the owner/admin role', () => {
+      mockHasRole.mockReturnValue(false);
+
+      render(<QRCodeDisplay {...checkinProps} />);
+
+      expect(screen.queryByRole('button', { name: 'Generate QR link' })).not.toBeInTheDocument();
+      expect(
+        screen.getByText(/ask an organization owner or admin to generate a new link/i),
+      ).toBeInTheDocument();
+    });
+
+    it('shows the operator check-in QR once a token is stored', () => {
+      mockUseToken.mockReturnValue({ data: 'stored-raw-token', isLoading: false });
+
+      render(<QRCodeDisplay {...checkinProps} />);
+
+      expect(screen.queryByRole('button', { name: 'Generate QR link' })).not.toBeInTheDocument();
+      expect(
+        screen.getByText('https://test.com/qr/operator-check-in/stored-raw-token'),
+      ).toBeInTheDocument();
     });
   });
 

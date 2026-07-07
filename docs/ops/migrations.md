@@ -1,15 +1,15 @@
 # Database Migrations Guide
 
 > **⚠️ CRITICAL: Never Rename Migrations**
-> 
+>
 > **Once a migration has been applied to production, NEVER rename or change its timestamp.**
-> 
+>
 > - Production migration timestamps are permanent and immutable
 > - Renaming creates a mismatch between local and remote databases
 > - Supabase will report "Remote migration versions not found in local migrations directory"
 > - **Always check production migrations before renaming** using Supabase MCP tools (`mcp_supabase_list_migrations`)
 > - Production is the source of truth - local files must match production timestamps exactly
-> 
+>
 > This is now formalized in EquipQR™ Constitution v1.2.0 under "Database Migration Integrity" section.
 
 ## Overview
@@ -19,19 +19,23 @@ EquipQR™ uses Supabase for database management with a structured migration sys
 ## Migration File Structure
 
 ### Naming Convention
+
 Migration files must follow this exact pattern:
-```
+
+```text
 YYYYMMDDHHMMSS_descriptive_name.sql
 ```
 
 **Examples:**
+
 - ✅ `20250822120000_add_team_id_to_work_orders.sql`
 - ✅ `20250822120100_create_equipment_notes_table.sql`
 - ❌ `20250822120000-.sql` (invalid: missing name)
 - ❌ `20250822-120000-add-feature.sql` (invalid: uses dashes)
 
 ### File Organization
-```
+
+```text
 supabase/migrations/
 ├── 20250730000100_work_orders_baseline.sql    # Early baseline tables
 ├── 20250730000200_equipment_baseline.sql      # Core table definitions
@@ -43,26 +47,32 @@ supabase/migrations/
 ## Migration Best Practices
 
 ### 1. Never Rename Applied Migrations ⚠️
+
 **CRITICAL RULE**: Once a migration has been applied to production, NEVER rename or change its timestamp.
 
 - Production migration timestamps are permanent and immutable
 - Renaming creates a mismatch between local and remote databases
 - Supabase will report "Remote migration versions not found in local migrations directory"
 - **Always check production migrations before renaming** using Supabase MCP tools:
+
   ```bash
   # Use mcp_supabase_list_migrations to see production state
   ```
 
 **If you need to fix migration order:**
+
 - ✅ For NEW migrations: Set correct timestamp before first deployment
 - ✅ For historical issues: Create placeholder files matching production timestamps
 - ❌ Never rename migrations already applied to production
 
 ### 2. Baseline-First Rule
+
 Critical tables like `work_orders`, `equipment`, and `organizations` must have baseline `CREATE TABLE` migrations that run early in the sequence. This ensures `supabase db reset` works correctly.
 
 ### 3. Idempotent Operations
+
 Always use safe operations that won't fail if run multiple times:
+
 ```sql
 -- ✅ Safe operations
 CREATE TABLE IF NOT EXISTS public.example_table (...);
@@ -75,6 +85,7 @@ ALTER TABLE public.example_table ADD COLUMN new_column text;  -- Fails if column
 ```
 
 ### 4. Production is Source of Truth
+
 **Always verify production state before making migration changes:**
 
 ```bash
@@ -89,13 +100,16 @@ ls supabase/migrations/*.sql
 ```
 
 **If local and remote are out of sync:**
+
 1. Use MCP tools to list production migrations
 2. Create placeholder files for any missing locally
 3. Revert any incorrectly renamed migrations to match production
 4. Never assume local is correct - production is the source of truth
 
 ### 5. Row Level Security (RLS)
+
 Always enable RLS on new tables and create appropriate policies:
+
 ```sql
 -- Enable RLS
 ALTER TABLE public.new_table ENABLE ROW LEVEL SECURITY;
@@ -108,7 +122,9 @@ USING (user_id = auth.uid());
 ```
 
 ### 6. Constraints and Validation
+
 Use validation triggers instead of CHECK constraints for time-based validations:
+
 ```sql
 -- ❌ Avoid CHECK constraints with time functions
 ALTER TABLE public.invitations 
@@ -133,21 +149,23 @@ CREATE TRIGGER validate_invitation_expiration
 ## Local Development
 
 > **⚠️ IMPORTANT: Local-First Development Workflow**
-> 
+>
 > **All database development should be done locally first, then deployed to production.**
-> 
+>
 > This is the standard workflow:
+>
 > 1. **Develop locally** - Create and test migrations on your local Supabase instance
 > 2. **Test locally** - Verify migrations work with `npx supabase db reset`
 > 3. **Deploy to production** - Only after local testing is successful
 
-> **Note**: Supabase CLI is included as a dev dependency in this project. Always use `npx supabase` commands. Do NOT install globally with `npm install -g supabase` as global installation is not supported.
+**Note**: Supabase CLI is included as a dev dependency in this project. Always use `npx supabase` commands. Do NOT install globally with `npm install -g supabase` as global installation is not supported.
 
 ### Local Development Workflow
 
 **Standard workflow for creating new migrations:**
 
 1. **Create the migration file**:
+
    ```bash
    npx supabase migration new your_migration_name
    ```
@@ -155,6 +173,7 @@ CREATE TRIGGER validate_invitation_expiration
 2. **Write your migration SQL** in the generated file
 
 3. **Test locally** (REQUIRED before production deployment):
+
    ```bash
    # Reset local database and apply all migrations (including your new one)
    npx supabase db reset
@@ -164,16 +183,33 @@ CREATE TRIGGER validate_invitation_expiration
    ```
 
 4. **Generate types** after successful local testing:
+
    ```bash
    npx supabase gen types typescript --local > src/integrations/supabase/types.ts
    ```
 
-5. **Deploy to production** only after local testing succeeds:
+5. **Regenerate the schema reference dump** (REQUIRED for any DDL/schema-changing migration — see [Schema Reference File](#schema-reference-file-current_schemasql)):
+
+   ```bash
+   npx supabase db dump --local -f supabase/current_schema.sql
+   ```
+
+6. **Verify the reference dump is fresh** (same check CI runs):
+
+   ```bash
+   npm run verify:schema-reference
+   ```
+
+7. **Commit the migration together with** `supabase/current_schema.sql` (and regenerated types).
+
+8. **Deploy to production** only after local testing succeeds:
+
    ```bash
    npx supabase db push --linked
    ```
 
 ### Running Migrations Locally
+
 ```bash
 # Apply all pending migrations to local database
 npx supabase db push
@@ -203,21 +239,87 @@ node scripts/supabase-fix-migrations.mjs
 ```
 
 **Why local testing is required:**
+
 - Catches errors before they reach production
 - Verifies migration order and dependencies
 - Ensures idempotent operations work correctly
 - Tests RLS policies and constraints
 
 ### Migration Validation Script
+
 Use the project's migration fix script to validate filenames:
+
 ```bash
 # Check and fix migration filenames
 node scripts/supabase-fix-migrations.mjs
 ```
 
+## Schema Reference File (`current_schema.sql`)
+
+### Purpose
+
+`supabase/current_schema.sql` is a **derived reference dump**: one readable file containing the full schema produced by applying every migration in `supabase/migrations/`. It exists for:
+
+- Quick schema comprehension without replaying dozens of incremental migration files
+- AI-assisted development (Cursor prompts, spec-driven work) — agents read one file instead of the whole migration chain
+- Architecture reviews and onboarding
+
+It is **not** applied to any database and is **not** a migration. It complements `supabase/schema.sql` (auto-exported from production by `export-schema.yml`); `current_schema.sql` is the *developer-maintained* dump of what the local migration chain produces.
+
+### The rule
+
+> **Regenerate `supabase/current_schema.sql` after any DDL/schema-changing migration, and commit it in the same change as the migration.**
+
+DDL/schema-changing means anything that alters structure: `CREATE`/`ALTER`/`DROP` on tables, columns, indexes, functions, triggers, policies, grants, views, or extensions.
+
+### Regeneration commands
+
+With the local stack running and all migrations applied (`.\dev-start.bat -Force` or `npx supabase db reset`):
+
+```bash
+# Regenerate the reference dump from the local database
+npx supabase db dump --local -f supabase/current_schema.sql
+
+# Verify freshness (same check CI runs)
+npm run verify:schema-reference
+```
+
+### When regeneration can be skipped
+
+Pure **data migrations** (INSERT/UPDATE/DELETE backfills, seed corrections, queue maintenance) do not change the schema and do not require a regenerated dump. Opt out explicitly by adding this marker as its own comment line anywhere in the migration file:
+
+```sql
+-- schema-reference: skip
+```
+
+The CI guardrail treats migrations carrying that marker as data-only. If a migration mixes data and DDL, do **not** use the marker — regenerate the dump.
+
+### AI-generated migrations
+
+AI tools (Cursor agents, Copilot, spec-driven workflows) may draft migrations, but a **human remains responsible** for:
+
+1. Reviewing the generated SQL (naming, idempotency, RLS, grants)
+2. Testing locally with `npx supabase db reset`
+3. Regenerating `supabase/current_schema.sql`
+4. Committing the migration and the regenerated dump together
+
+Agents working in this repo must treat dump regeneration as part of the migration task itself — never leave it for a follow-up commit.
+
+### CI guardrail
+
+`scripts/check-schema-reference.mjs` runs in the **Supabase Migration Validator** workflow on every PR that touches `supabase/**`:
+
+- PRs with **no** migration changes pass trivially (no false positives)
+- PRs that change schema-affecting migrations **must** also change `supabase/current_schema.sql`, otherwise the check fails with the regeneration commands
+- Migrations marked `-- schema-reference: skip` are exempt
+- The check is git-based (diff + commit history) and requires **no database** in CI
+
+Run it locally at any time with `npm run verify:schema-reference` (uses git history when no PR base is set; set `SCHEMA_REFERENCE_BASE_SHA=<base-sha>` to simulate the PR gate).
+
 ## Common Migration Patterns
 
 ### Adding New Table
+
 ```sql
 -- Create table with proper defaults
 CREATE TABLE IF NOT EXISTS public.new_feature (
@@ -251,6 +353,7 @@ CREATE TRIGGER update_new_feature_updated_at
 ```
 
 ### Adding Column to Existing Table
+
 ```sql
 -- Add column safely
 ALTER TABLE public.existing_table 
@@ -272,6 +375,7 @@ USING (organization_id IN (
 ```
 
 ### Creating Database Functions
+
 ```sql
 CREATE OR REPLACE FUNCTION public.calculate_something(param_id uuid)
 RETURNS jsonb
@@ -296,31 +400,38 @@ $$;
 ### Common Issues
 
 #### 1. Remote Migration Versions Not Found
+
 **Problem:** "Remote migration versions not found in local migrations directory"
 **Cause:** Local migration files renamed/missing while production has different versions.
-**Solution:** 
+**Solution:**
+
 - Use Supabase MCP tools to list production migrations
 - Create placeholder files matching production timestamps exactly
 - Revert any renamed migrations to match production
 - Never rename migrations after they've been applied to production
 
 #### 2. Migration Fails on `db reset`
+
 **Problem:** `ALTER TABLE` statements fail because base table doesn't exist.
 **Solution:** Ensure baseline `CREATE TABLE` migrations exist early in the sequence.
 
 #### 3. Invalid Migration Filenames
+
 **Problem:** Files named `-.sql` or with dashes get skipped.
 **Solution:** Run `node scripts/supabase-fix-migrations.mjs` to normalize names.
 
 #### 4. Constraint Violations
+
 **Problem:** CHECK constraints with `now()` cause restoration failures.
 **Solution:** Replace with validation triggers.
 
 #### 5. RLS Policy Conflicts
+
 **Problem:** Duplicate or conflicting policies prevent table access.
 **Solution:** Use `DROP POLICY IF EXISTS` before creating new policies.
 
 ### Debugging Commands
+
 ```bash
 # Check local migration status
 npx supabase migration list
@@ -346,7 +457,9 @@ node scripts/supabase-fix-migrations.mjs
 ```
 
 ### Emergency Recovery
+
 If migrations are severely broken:
+
 1. Backup any important data
 2. Run `npx supabase db reset` to start fresh
 3. Fix migration files using the naming conventions
@@ -356,6 +469,7 @@ If migrations are severely broken:
 ## CI/CD Integration
 
 ### GitHub Actions
+
 The project includes automated migration validation in CI. Migrations are tested in the `test` job but not automatically applied to production.
 
 ### Production Deployment
@@ -365,6 +479,7 @@ The project includes automated migration validation in CI. Migrations are tested
 The standard deployment workflow is:
 
 1. **Develop and test locally** (REQUIRED):
+
    ```bash
    # Create migration
    npx supabase migration new your_migration_name
@@ -375,6 +490,7 @@ The standard deployment workflow is:
    ```
 
 2. **Deploy to production** (only after local testing succeeds):
+
    ```bash
    # Deploy to production
    npx supabase db push --linked
@@ -390,11 +506,13 @@ The standard deployment workflow is:
 ## Security Considerations
 
 ### RLS Policies
+
 - Always enable RLS on tables containing user data
 - Test policies thoroughly with different user scenarios
 - Use security definer functions for complex access patterns
 
 ### Data Migration
+
 - Never include sensitive data in migration files
 - Use environment variables for configuration values
 - Audit all migration files before deployment

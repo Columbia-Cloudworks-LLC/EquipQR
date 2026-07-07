@@ -4704,6 +4704,10 @@ export type Database = {
         Args: { invitation_id: string; user_uuid: string }
         Returns: boolean
       }
+      can_manage_manual_external_customer_contact: {
+        Args: { p_customer_id: string; p_organization_id: string }
+        Returns: boolean
+      }
       can_user_manage_quickbooks: {
         Args: { p_organization_id: string; p_user_id: string }
         Returns: boolean
@@ -4906,6 +4910,39 @@ export type Database = {
         }
         Returns: string
       }
+      create_manual_external_customer_contact: {
+        Args: {
+          p_customer_id: string
+          p_email?: string
+          p_name: string
+          p_notes?: string
+          p_organization_id: string
+          p_phone?: string
+          p_role?: string
+        }
+        Returns: {
+          created_at: string | null
+          customer_id: string
+          email: string | null
+          id: string
+          last_synced_at: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          role: string | null
+          source: string
+          source_external_id: string | null
+          source_field: string | null
+          source_payload: Json | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "external_customer_contacts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_operator_checkin_assignment: {
         Args: {
           p_enabled?: boolean
@@ -4944,6 +4981,10 @@ export type Database = {
           domain: string
           organization_id: string
         }[]
+      }
+      delete_manual_external_customer_contact: {
+        Args: { p_contact_id: string; p_organization_id: string }
+        Returns: undefined
       }
       delete_operator_checklist_template: {
         Args: { p_template_id: string }
@@ -5864,6 +5905,39 @@ export type Database = {
           p_work_order_id: string
         }
         Returns: Json
+      }
+      update_manual_external_customer_contact: {
+        Args: {
+          p_contact_id: string
+          p_email: string
+          p_name: string
+          p_notes: string
+          p_organization_id: string
+          p_phone: string
+          p_role: string
+        }
+        Returns: {
+          created_at: string | null
+          customer_id: string
+          email: string | null
+          id: string
+          last_synced_at: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          role: string | null
+          source: string
+          source_external_id: string | null
+          source_field: string | null
+          source_payload: Json | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "external_customer_contacts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       update_member_quickbooks_permission: {
         Args: {
