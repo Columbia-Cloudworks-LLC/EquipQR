@@ -131,7 +131,7 @@ test.describe.serial('creation flows: inventory and alternate groups @full', () 
     await expect(search).toBeVisible({ timeout: 30_000 });
     await search.fill('Toyota');
     const toyotaButton = page
-      .getByRole('button', { name: /^Playwright Toyota Forklift|Open details for .*Toyota/i })
+      .getByRole('button', { name: /^(?:Playwright Toyota Forklift|Open details for .*Toyota)/i })
       .or(page.getByRole('button', { name: /^Toyota/i }))
       .first();
     await expect(toyotaButton).toBeVisible({ timeout: 30_000 });
