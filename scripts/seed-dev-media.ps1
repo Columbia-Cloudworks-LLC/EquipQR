@@ -116,20 +116,27 @@ if (-not (Test-Path $seedRoot)) {
     exit 0
 }
 
-$equipmentImages = Get-ImageFiles $equipmentDir
+$allEquipmentImages = Get-ImageFiles $equipmentDir
 $dropImages = Get-ImageFiles $dropDir
 $workOrderImages = Get-ImageFiles $workOrdersDir
 
-$equipmentCount = @($equipmentImages).Count
-$dropCount = @($dropImages).Count
+$uuidPattern = '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+$uuidEquipmentImages = @($allEquipmentImages | Where-Object { $_.BaseName -match $uuidPattern })
+$genericEquipmentImages = @($allEquipmentImages | Where-Object { $_.BaseName -notmatch $uuidPattern })
+# Human-readable filenames in equipment/ are display backfill photos.
+$displayBackfillPool = @($genericEquipmentImages + $dropImages)
+
+$uuidCount = $uuidEquipmentImages.Count
+$backfillCount = $displayBackfillPool.Count
+$dropOnlyCount = @($dropImages).Count
 $workOrderCount = @($workOrderImages).Count
 
-if ($equipmentCount -eq 0 -and $dropCount -eq 0 -and $workOrderCount -eq 0) {
+if ($uuidCount -eq 0 -and $backfillCount -eq 0 -and $workOrderCount -eq 0) {
     Write-Host "       No seed images found - skipping dev media seed."
     exit 0
 }
 
-Write-Host "       Seeding dev media ($equipmentCount equipment, $dropCount drop, $workOrderCount work-order files) from $equipmentDir..."
+Write-Host "       Seeding dev media ($uuidCount uuid-mapped, $backfillCount display backfill, $dropOnlyCount drop-only, $workOrderCount work-order)..."
 
 $keys = Get-SupabaseKeys
 if (-not $keys.Anon -or -not $keys.Service) {
@@ -153,6 +160,16 @@ $stats = @{
     NoteImages     = 0
     WorkOrderImages = 0
     Failed         = 0
+    SkippedMissingEquipment = 0
+}
+
+function Test-EquipmentExists {
+    param(
+        [string]$EquipmentId,
+        [hashtable]$Headers
+    )
+    $rows = @(Invoke-RestSelect -Table 'equipment' -Query "?select=id&id=eq.$EquipmentId&limit=1" -Headers $Headers)
+    return $rows.Count -gt 0
 }
 
 function Get-OrCreateEquipmentSeedNote {
@@ -201,12 +218,13 @@ function Set-EquipmentDisplayImage {
     Invoke-RestInsert -Table 'equipment_note_images' -Body $imageRow -Headers $RestHeaders | Out-Null
 }
 
-# ── Phase 1: explicit equipment display images ─────────────────────────────
-foreach ($img in $equipmentImages) {
+# ── Phase 1: explicit equipment display images (UUID filenames) ────────────
+foreach ($img in $uuidEquipmentImages) {
     $equipmentId = $img.BaseName
-    if ($equipmentId -notmatch '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') {
-        Write-Host "       WARN: Skipping equipment file with non-UUID name: $($img.Name)"
-        $stats.Failed++
+
+    if (-not (Test-EquipmentExists -EquipmentId $equipmentId -Headers $restHeaders)) {
+        Write-Host "       WARN: No equipment row for $($img.Name) - skipped."
+        $stats.SkippedMissingEquipment++
         continue
     }
 
@@ -263,23 +281,25 @@ foreach ($img in $workOrderImages) {
     }
 }
 
-# ── Phase 3: distribute drop/ images ───────────────────────────────────────
-if ($dropImages.Count -gt 0) {
-    $patchMinimal = $restHeaders.Clone()
-    $patchMinimal['Prefer'] = 'return=minimal'
+function Get-EquipmentIdsMissingDisplay {
+    param([hashtable]$Headers)
+    $rows = Invoke-RestSelect -Table 'equipment' -Query '?select=id&image_url=is.null&order=id.asc&limit=1000' -Headers $Headers
+    if ($null -eq $rows) { return @() }
+    return @($rows | ForEach-Object { $_.id })
+}
 
-    $equipmentNeedingDisplay = @(
-        Invoke-RestSelect -Table 'equipment' -Query '?select=id&image_url=is.null&order=id.asc&limit=50' -Headers $restHeaders
-    )
+# ── Phase 3: drop/ folder only — round-robin display, notes, and work orders ─
+if ($dropImages.Count -gt 0) {
+    $equipmentNeedingDisplay = @(Get-EquipmentIdsMissingDisplay -Headers $restHeaders)
     $equipmentNotes = @(
-        Invoke-RestSelect -Table 'equipment_notes' -Query '?select=id,equipment_id&order=created_at.asc&limit=40' -Headers $restHeaders
+        Invoke-RestSelect -Table 'equipment_notes' -Query '?select=id,equipment_id&order=created_at.asc&limit=100' -Headers $restHeaders
     )
     $workOrders = @(
-        Invoke-RestSelect -Table 'work_orders' -Query '?select=id&status=in.(in_progress,assigned,accepted)&order=created_at.asc&limit=20' -Headers $restHeaders
+        Invoke-RestSelect -Table 'work_orders' -Query '?select=id&status=in.(in_progress,assigned,accepted)&order=created_date.asc&limit=40' -Headers $restHeaders
     )
 
     $displayQueue = [System.Collections.Generic.Queue[string]]::new()
-    foreach ($row in $equipmentNeedingDisplay) { $displayQueue.Enqueue($row.id) }
+    foreach ($equipmentId in $equipmentNeedingDisplay) { $displayQueue.Enqueue($equipmentId) }
 
     $noteQueue = [System.Collections.Generic.Queue[object]]::new()
     foreach ($row in $equipmentNotes) { $noteQueue.Enqueue($row) }
@@ -347,13 +367,46 @@ if ($dropImages.Count -gt 0) {
             }
         }
         catch {
-            Write-Host "       WARN: Drop image seed failed for $($img.Name)"
+            $err = $_.Exception.Message
+            Write-Host "       WARN: Backfill/drop image seed failed for $($img.Name) ($err)"
             $stats.Failed++
         }
     }
 }
 
-Write-Host "       Dev media seed: $($stats.DisplayUpdated) display, $($stats.NoteImages) equipment-note, $($stats.WorkOrderImages) work-order images, $($stats.Failed) failed."
+# ── Phase 4: cyclic display backfill for remaining equipment ───────────────
+if ($displayBackfillPool.Count -gt 0) {
+    $remainingIds = @(Get-EquipmentIdsMissingDisplay -Headers $restHeaders)
+    if ($remainingIds.Count -gt 0) {
+        Write-Host "       Backfilling $($remainingIds.Count) equipment without display images (cycling $($displayBackfillPool.Count) photos)..."
+        $poolIndex = 0
+        foreach ($equipmentId in $remainingIds) {
+            $img = $displayBackfillPool[$poolIndex % $displayBackfillPool.Count]
+            $poolIndex++
+            try {
+                $backfillName = "backfill-$poolIndex-$($img.Name)"
+                Set-EquipmentDisplayImage -EquipmentId $equipmentId -FilePath $img.FullName -FileName $backfillName -RestHeaders $restHeaders -StorageHeaders $storageHeaders
+                $stats.DisplayUpdated++
+            }
+            catch {
+                $err = $_.Exception.Message
+                Write-Host "       WARN: Display backfill failed for equipment $equipmentId ($err)"
+                $stats.Failed++
+            }
+        }
+    }
+}
+
+$verifyHeaders = $restHeaders.Clone()
+$verifyHeaders['Prefer'] = 'count=exact'
+$verifyResponse = Invoke-WebRequest -Uri "$baseUrl/rest/v1/equipment?select=id&image_url=not.is.null" -Headers $verifyHeaders -Method Get
+$withDisplay = 0
+if ($verifyResponse.Headers['Content-Range'] -match '/(\d+)$') {
+    $withDisplay = [int]$Matches[1]
+}
+
+Write-Host "       Dev media seed: $($stats.DisplayUpdated) display, $($stats.NoteImages) equipment-note, $($stats.WorkOrderImages) work-order images, $($stats.Failed) failed, $($stats.SkippedMissingEquipment) uuid files without matching equipment."
+Write-Host "       Verified: $withDisplay equipment row(s) now have image_url set."
 
 if ($stats.Failed -gt 0) { exit 1 }
 exit 0

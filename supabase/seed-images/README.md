@@ -13,11 +13,12 @@ Step **5b** runs `scripts/seed-dev-media.ps1` after `supabase db reset`.
 
 | Folder | Naming | Effect |
 | ------ | ------ | ------ |
-| `equipment/` | `{equipment-uuid}.jpg` (or `.png`, `.webp`, `.gif`) | Sets `equipment.image_url` to a canonical `equipment-note-images` path |
-| `drop/` | Any filename | Round-robin: display photos for equipment missing images, then `equipment_note_images`, then `work_order_images` on active work orders |
+| `equipment/` | `{equipment-uuid}.jpg` (or `.png`, `.webp`, `.gif`) | Sets `equipment.image_url` on that exact equipment row |
+| `equipment/` | Any other filename (e.g. `CAT-320.jpg`) | Treated as **backfill** photos — assigned to equipment missing display images, then cycled across the rest |
+| `drop/` | Any filename | Same backfill behavior; also round-robins into equipment note images and work order images |
 | `work-orders/` | `{work-order-uuid}.jpg` | Creates a seed note + `work_order_images` row on that work order |
 
-The committed `equipment/` JPEGs map to durable-core equipment UUIDs (`aa0e8400-…`). You can add more files or drop arbitrary photos into `drop/` without editing SQL.
+The committed UUID JPEGs map to durable-core equipment (`aa0e8400-…`). Add human-readable filenames directly in `equipment/` or `drop/` — no SQL edits required.
 
 ## Storage contract
 
