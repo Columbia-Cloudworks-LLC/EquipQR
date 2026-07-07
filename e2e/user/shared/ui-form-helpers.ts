@@ -210,7 +210,7 @@ export async function openEquipmentDetailByName(page: Page, equipmentName: strin
   await fillWithDemoCue(search, `Search for ${equipmentName}`, equipmentName);
   await expect(search).toHaveValue(equipmentName, { timeout: 5_000 });
 
-  const openButton = equipmentOpenButtonForName(page, escaped);
+  const openButton = equipmentOpenButtonForName(page, escaped, { anchored: true });
   await expect(openButton).toBeVisible({ timeout: 60_000 });
   await clickWithDemoCue(openButton, `Open ${equipmentName}`);
   await expect(page).toHaveURL(/\/dashboard\/equipment\//, { timeout: 60_000 });
@@ -223,16 +223,23 @@ export async function openFirstEquipmentDetailBySearch(page: Page, searchTerm: s
   await expect(search).toBeVisible({ timeout: 30_000 });
   await fillWithDemoCue(search, `Search for ${searchTerm}`, searchTerm);
 
-  const openButton = equipmentOpenButtonForName(page, escaped);
+  const openButton = equipmentOpenButtonForName(page, escaped, { anchored: false });
   await expect(openButton).toBeVisible({ timeout: 60_000 });
   await clickWithDemoCue(openButton, `Open equipment matching ${searchTerm}`);
   await expect(page).toHaveURL(/\/dashboard\/equipment\//, { timeout: 60_000 });
 }
 
-function equipmentOpenButtonForName(page: Page, escapedName: string) {
+function equipmentOpenButtonForName(
+  page: Page,
+  escapedName: string,
+  options: { anchored: boolean },
+) {
   // Dense list rows render the whole card as a button whose accessible name
   // starts with the equipment name; legacy layouts used "Open details for X".
-  const cardButton = page.getByRole('button', { name: new RegExp(`^${escapedName}`, 'i') }).first();
+  const densePattern = options.anchored
+    ? new RegExp(`^${escapedName}`, 'i')
+    : new RegExp(escapedName, 'i');
+  const cardButton = page.getByRole('button', { name: densePattern }).first();
   const legacyOpenButton = page
     .getByRole('button', { name: new RegExp(`Open details for .*${escapedName}`, 'i') })
     .first();

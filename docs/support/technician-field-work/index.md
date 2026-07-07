@@ -7,6 +7,10 @@ description: "Fast mobile-first workflows for technicians scanning equipment, ru
 
 Fast mobile-first workflows for technicians scanning equipment, running work orders, and documenting what they did.
 
+![Scan QR landing on desktop](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/desktop/01-scan-qr-landing.png)
+
+![Mobile scan QR landing](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/mobile/01-mobile-scan-qr-landing.png)
+
 ## Desktop walkthrough video
 
 <https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/desktop/demo.mp4>

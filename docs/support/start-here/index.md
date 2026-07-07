@@ -7,6 +7,10 @@ description: "New to EquipQR? Get oriented and set up your organization."
 
 New to EquipQR? Get oriented and set up your organization.
 
+![Signed-in dashboard home](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/desktop/01-dashboard-welcome.png)
+
+![Mobile dashboard home](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/mobile/01-mobile-dashboard-welcome.png)
+
 ## Desktop walkthrough video
 
 <https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/desktop/demo.mp4>

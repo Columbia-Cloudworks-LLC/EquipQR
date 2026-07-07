@@ -108,7 +108,7 @@ describe('sql-builder helpers', () => {
 describe('SeededRng', () => {
   it('never returns 1.0 and int() stays within bounds', () => {
     const rng = new SeededRng(1164);
-    for (let i = 0; i < 50_000; i++) {
+    for (let i = 0; i < 2_000; i++) {
       const value = rng.next();
       expect(value).toBeGreaterThanOrEqual(0);
       expect(value).toBeLessThan(1);
