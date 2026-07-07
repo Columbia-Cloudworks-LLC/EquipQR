@@ -21,6 +21,10 @@ New to EquipQR? Get oriented and set up your organization.
 
 ## Articles
 
+![Navigation tour — Equipment list](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/desktop/02-navigation-equipment.png)
+
+![Invite member dialog](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/desktop/05-invite-member-dialog.png)
+
 - [Welcome to EquipQR](./welcome-to-equipqr) — A 60-second overview of what EquipQR does and where each team role spends their time.
 - [Find your way around the app](./navigation-tour) — A fast tour of the sidebar, top bar, mobile bottom nav, and where admin-only surfaces live.
 - [Invite your team](./invite-team-members) — Send organization invitations so new users can log in, then add them to the teams whose equipment they service.

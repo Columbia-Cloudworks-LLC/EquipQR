@@ -233,7 +233,7 @@ function equipmentOpenButtonForName(
   page: Page,
   escapedName: string,
   options: { anchored: boolean },
-) {
+): Locator {
   // Dense list rows render the whole card as a button whose accessible name
   // starts with the equipment name; legacy layouts used "Open details for X".
   const densePattern = options.anchored
