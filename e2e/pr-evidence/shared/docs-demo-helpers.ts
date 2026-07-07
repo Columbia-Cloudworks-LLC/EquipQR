@@ -53,9 +53,11 @@ async function scrollControlIntoView(locator: Locator): Promise<void> {
     element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
     await new Promise<void>((resolve) => {
       let lastY = Number.NaN;
+      const startedAt = performance.now();
+      const maxWaitMs = 10_000;
       const check = () => {
         const { top } = element.getBoundingClientRect();
-        if (top === lastY) {
+        if (top === lastY || performance.now() - startedAt >= maxWaitMs) {
           resolve();
           return;
         }

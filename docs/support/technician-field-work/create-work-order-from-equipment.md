@@ -40,6 +40,8 @@ Click Create Work Order. The new record appears in the team queue with Submitted
 
 ![New work order detail page in Submitted status](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/desktop/03-work-order-created-submitted.png)
 
+![Mobile work order summary after creating from equipment](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/mobile/02-mobile-work-order-summary.png)
+
 If you forgot to attach a PM checklist during creation, you can add one later on any active work order — see [Manage a PM template on an active work order](../work-orders/manage-pm-template-on-work-order).
 
 ## Related articles

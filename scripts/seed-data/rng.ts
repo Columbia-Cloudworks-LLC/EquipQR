@@ -14,7 +14,7 @@ export class SeededRng {
   /** Uniform float in [0, 1). */
   next(): number {
     this.state = (this.state * 1103515245 + 12345) & 0x7fffffff;
-    return this.state / 0x7fffffff;
+    return this.state / 0x80000000;
   }
 
   /** Uniform integer in [min, max] inclusive. */

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { generateSeedFiles } from '../../../scripts/seed-data/generate-seeds';
+import { SeededRng } from '../../../scripts/seed-data/rng';
 import { deterministicUuid, escapeSql } from '../../../scripts/seed-data/sql-builder';
 import { ORGS, UUID_PREFIXES } from '../../../scripts/seed-data/reference-data';
 
@@ -100,6 +101,20 @@ describe('sql-builder helpers', () => {
     const reserved = ['aa0e8400', 'a00e8400', 'a10e8400', 'a20e8400', 'a30e8400', 'bb0e8400', '660e8400', '880e8400', 'cc0e8400', 'b00e8400', 'f00e8400'];
     for (const prefix of Object.values(UUID_PREFIXES)) {
       expect(reserved).not.toContain(prefix);
+    }
+  });
+});
+
+describe('SeededRng', () => {
+  it('never returns 1.0 and int() stays within bounds', () => {
+    const rng = new SeededRng(1164);
+    for (let i = 0; i < 50_000; i++) {
+      const value = rng.next();
+      expect(value).toBeGreaterThanOrEqual(0);
+      expect(value).toBeLessThan(1);
+      const picked = rng.int(3, 9);
+      expect(picked).toBeGreaterThanOrEqual(3);
+      expect(picked).toBeLessThanOrEqual(9);
     }
   });
 });

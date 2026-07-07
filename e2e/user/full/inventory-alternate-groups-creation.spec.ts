@@ -3,6 +3,7 @@ import { buildCreationRunData } from '../shared/create-flow-data';
 import {
   addInventoryCompatibilityRule,
   fillInputByLabel,
+  openFirstEquipmentDetailBySearch,
   openInventoryCreateDialog,
   selectRadixOption,
   submitInventoryItemDialog,
@@ -124,19 +125,7 @@ test.describe.serial('creation flows: inventory and alternate groups @full', () 
   }) => {
     await gotoDashboard('/equipment');
     await assertHealthyShell();
-
-    // Reuse the shared card/legacy-aware opener; the dense list renders the
-    // whole equipment card as the clickable button (no "Open details for" name).
-    const search = page.getByPlaceholder(/search equipment/i).first();
-    await expect(search).toBeVisible({ timeout: 30_000 });
-    await search.fill('Toyota');
-    const toyotaButton = page
-      .getByRole('button', { name: /^(?:Playwright Toyota Forklift|Open details for .*Toyota)/i })
-      .or(page.getByRole('button', { name: /^Toyota/i }))
-      .first();
-    await expect(toyotaButton).toBeVisible({ timeout: 30_000 });
-    await toyotaButton.click();
-    await expect(page).toHaveURL(/\/dashboard\/equipment\//, { timeout: 60_000 });
+    await openFirstEquipmentDetailBySearch(page, 'Toyota');
 
     await test.step('Open compatible parts tab and verify created inventory item', async () => {
       await page.getByRole('tab', { name: /parts/i }).click();

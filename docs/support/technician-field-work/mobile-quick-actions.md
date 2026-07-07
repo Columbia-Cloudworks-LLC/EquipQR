@@ -29,6 +29,8 @@ Work orders keep field tools (status moves, note, photo, timer) in the bottom ac
 
 ![Mobile quick actions sheet on a work order](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/mobile/03b-mobile-quick-actions-sheet.png)
 
+![Desktop work order detail with status actions](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/desktop/05-status-in-progress.png)
+
 - The **next relevant status action** for this work order (accept, start work, complete, resume, or continue checklist).
 - **Add note / add photo** shortcuts.
 - **Show work order QR code** — display the QR so another device can open this work order instantly, or print the field worksheet.

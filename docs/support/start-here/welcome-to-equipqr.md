@@ -31,11 +31,11 @@ The rest of the support library walks through each of those pieces in detail. If
 
 ## Desktop walkthrough video
 
-https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/desktop/demo.mp4
+<https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/desktop/demo.mp4>
 
 ## Mobile walkthrough video
 
-https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/mobile/demo.mp4
+<https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/mobile/demo.mp4>
 
 ## Related articles
 

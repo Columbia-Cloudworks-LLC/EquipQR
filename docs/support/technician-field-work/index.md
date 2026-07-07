@@ -9,11 +9,11 @@ Fast mobile-first workflows for technicians scanning equipment, running work ord
 
 ## Desktop walkthrough video
 
-https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/desktop/demo.mp4
+<https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/desktop/demo.mp4>
 
 ## Mobile walkthrough video
 
-https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/mobile/demo.mp4
+<https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/mobile/demo.mp4>
 
 ## Articles
 
