@@ -140,6 +140,9 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
       queryClient.invalidateQueries({ queryKey: ['quickbooks', 'team-mapping'] });
       queryClient.invalidateQueries({ queryKey: ['quickbooks', 'resolved-mapping'] });
     },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Could not update QuickBooks customer mapping.');
+    },
   });
 
   const clearLegacyMapping = useMutation({
@@ -148,6 +151,9 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
       queryClient.invalidateQueries({ queryKey: ['quickbooks', 'team-mapping'] });
       queryClient.invalidateQueries({ queryKey: ['quickbooks', 'resolved-mapping'] });
     },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Could not clear QuickBooks customer mapping.');
+    },
   });
 
   const invalidateTeamQueries = () => {
@@ -155,8 +161,36 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
     queryClient.invalidateQueries({ queryKey: ['teams'] });
   };
 
+  const syncLegacyQuickBooksMapping = async (
+    account: { quickbooks_customer_id?: string | null; quickbooks_display_name?: string | null; name: string } | undefined,
+    qbOverride?: { id: string; displayName: string },
+  ) => {
+    if (!showQuickBooksControls || !currentOrganization) return;
+
+    if (qbOverride) {
+      await updateLegacyMapping.mutateAsync({
+        custId: qbOverride.id,
+        displayName: qbOverride.displayName,
+      });
+      return;
+    }
+
+    if (account?.quickbooks_customer_id) {
+      await updateLegacyMapping.mutateAsync({
+        custId: account.quickbooks_customer_id,
+        displayName: account.quickbooks_display_name ?? account.name,
+      });
+    } else {
+      await clearLegacyMapping.mutateAsync();
+    }
+  };
+
   const handleImportAndLink = async () => {
     if (!selectedCustomer || !currentOrganization) return;
+    if (!showQuickBooksControls) {
+      toast.error('You do not have permission to manage QuickBooks customers.');
+      return;
+    }
     try {
       const payload = qbCustomerToPayload(selectedCustomer);
 
@@ -170,8 +204,8 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
         await customerMutations.link.mutateAsync({ teamId, customerId: created.id });
       }
 
-      await updateLegacyMapping.mutateAsync({
-        custId: selectedCustomer.Id,
+      await syncLegacyQuickBooksMapping(undefined, {
+        id: selectedCustomer.Id,
         displayName: selectedCustomer.DisplayName,
       });
       invalidateTeamQueries();
@@ -204,17 +238,14 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
   };
 
   const handleLinkExisting = async (accountId: string) => {
+    if (!canManageAccount) {
+      toast.error('You do not have permission to link customer accounts for this team.');
+      return;
+    }
     try {
       await customerMutations.link.mutateAsync({ teamId, customerId: accountId });
       const account = orgCustomers?.find((c) => c.id === accountId);
-      if (account?.quickbooks_customer_id) {
-        await updateLegacyMapping.mutateAsync({
-          custId: account.quickbooks_customer_id,
-          displayName: account.quickbooks_display_name ?? account.name,
-        });
-      } else {
-        await clearLegacyMapping.mutateAsync();
-      }
+      await syncLegacyQuickBooksMapping(account);
       invalidateTeamQueries();
       closeDialog();
       toast.success(`Team "${teamName}" linked to account`);
@@ -224,10 +255,16 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
   };
 
   const handleUnlink = async () => {
+    if (!canManageAccount) {
+      toast.error('You do not have permission to unlink customer accounts for this team.');
+      return;
+    }
     if (!window.confirm('Remove the customer account link from this team?')) return;
     try {
       await customerMutations.link.mutateAsync({ teamId, customerId: null });
-      await clearLegacyMapping.mutateAsync();
+      if (showQuickBooksControls) {
+        await clearLegacyMapping.mutateAsync();
+      }
       invalidateTeamQueries();
       toast.success('Customer account unlinked');
     } catch {
