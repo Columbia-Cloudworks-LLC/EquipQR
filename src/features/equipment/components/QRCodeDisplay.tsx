@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import AssetQRCodeDisplay from '@/components/common/AssetQRCodeDisplay';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -12,9 +13,11 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ExternalLink } from '@/components/ui/external-link';
 import { OPERATOR_DAILY_CHECK_INS_DOCS_URL } from '@/lib/documentationUrl';
+import { usePermissions } from '@/hooks/usePermissions';
 import {
   useEquipmentOperatorCheckinAssignments,
   useOperatorCheckinToken,
+  useRotateOperatorCheckinToken,
 } from '@/features/operator-check-ins/hooks/useOperatorCheckinSettings';
 import { equipmentQRPath, operatorCheckInQRPath, qrFullUrl } from '@/utils/qr';
 
@@ -101,6 +104,23 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
     { enabled: open },
   );
 
+  const { hasRole } = usePermissions();
+  // Owners/admins mint the replacement link right here instead of being sent
+  // hunting for the equipment-details actions menu (#1179). The rotate RPC
+  // enforces the same role server-side.
+  const canGenerateCheckinLink = hasRole(['owner', 'admin']);
+  const rotateTokenMutation = useRotateOperatorCheckinToken(equipmentId, organizationId ?? '');
+
+  const handleGenerateCheckinLink = async () => {
+    if (!selectedAssignment) return;
+    try {
+      await rotateTokenMutation.mutateAsync(selectedAssignment.id);
+      toast.success('QR link generated. Print or share the code below.');
+    } catch {
+      toast.error('Unable to generate QR link.');
+    }
+  };
+
   const activeConfig = useMemo(() => {
     if (selectedAssignment) {
       const checklistName = selectedAssignment.template?.name ?? 'Daily check-in';
@@ -172,16 +192,32 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
             {showMissingTokenNotice && (
               <Alert>
                 <AlertDescription className="space-y-2">
-                  <p>
-                    The QR link for{' '}
-                    <strong>{selectedAssignment?.template?.name ?? 'this checklist'}</strong> is not
-                    available here. An organization owner or admin can generate a new link from the
-                    Daily Operator Check-In section on the equipment details page (this replaces any
-                    previously printed QR codes for this checklist).
-                  </p>
-                  <Button type="button" variant="outline" size="sm" onClick={onClose}>
-                    Close and generate link
-                  </Button>
+                  {canGenerateCheckinLink ? (
+                    <>
+                      <p>
+                        No stored QR link for{' '}
+                        <strong>{selectedAssignment?.template?.name ?? 'this checklist'}</strong>.
+                        Generate one now — this replaces any previously printed QR codes for this
+                        checklist.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={rotateTokenMutation.isPending}
+                        onClick={() => void handleGenerateCheckinLink()}
+                      >
+                        {rotateTokenMutation.isPending ? 'Generating…' : 'Generate QR link'}
+                      </Button>
+                    </>
+                  ) : (
+                    <p>
+                      The QR link for{' '}
+                      <strong>{selectedAssignment?.template?.name ?? 'this checklist'}</strong> is not
+                      available here. Ask an organization owner or admin to generate a new link (this
+                      replaces any previously printed QR codes for this checklist).
+                    </p>
+                  )}
                 </AlertDescription>
               </Alert>
             )}
