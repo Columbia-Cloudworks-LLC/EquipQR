@@ -52,7 +52,8 @@ export function isFetchableSignedStorageUrl(url: string): boolean {
   if (!/^https?:\/\//i.test(trimmed)) return false;
   if (!isEquipQrPrivateStorageUrl(trimmed)) return true;
   try {
-    return new URL(trimmed).search.length > 1;
+    const token = new URL(trimmed).searchParams.get('token');
+    return typeof token === 'string' && token.length > 0;
   } catch {
     return false;
   }
@@ -622,7 +623,10 @@ export async function batchResolveEquipmentDisplayImageUrls(
         null;
 
       if (!url && bucket && !batchErroredPaths.has(path)) {
-        url = await createSignedUrlForPath(bucket, path, { logFailures: false });
+        url = await createSignedUrlForPath(bucket, path, {
+          expiresInSeconds: expiresIn,
+          logFailures: false,
+        });
       }
 
       results[idx] = url;

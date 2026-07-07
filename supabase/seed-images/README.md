@@ -27,6 +27,6 @@ The committed `equipment/` JPEGs map to durable-core equipment UUIDs (`aa0e8400-
 
 ## Tips
 
-- Use seed user `owner@apex.test` / `password123` to view Apex equipment with photos.
+- Sign in as seed user `owner@apex.test` to view Apex equipment with photos (local dev credentials are documented in [`supabase/seeds/README.md`](../seeds/README.md)).
 - After adding images, run `-Force` so storage and DB stay in sync.
 - Orphaned or expired signed URLs in production are ignored client-side (#1171); local seeds avoid that by storing paths only.

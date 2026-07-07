@@ -6,7 +6,7 @@ const { mockUpload, mockFrom, mockCreateSignedUrl, mockCreateSignedUrls, mockGet
   const mockCreateSignedUrls = vi.fn((paths: string[], expiresIn: number) => ({
     data: paths.map((path: string) => ({
       path,
-      signedUrl: `https://example.supabase.co/storage/v1/object/sign/mock/${path}?e=${expiresIn}`,
+      signedUrl: `https://example.supabase.co/storage/v1/object/sign/mock/${path}?token=test-${expiresIn}`,
     })),
     error: null,
   }));
@@ -64,7 +64,7 @@ describe('imageUploadService', () => {
     mockUpload.mockResolvedValue({ data: { path: 'prefix/1.jpg' }, error: null });
     mockCreateSignedUrl.mockImplementation((path: string, expiresIn: number) => ({
       data: {
-        signedUrl: `https://example.supabase.co/storage/v1/object/sign/mock/${path}?e=${expiresIn}`,
+        signedUrl: `https://example.supabase.co/storage/v1/object/sign/mock/${path}?token=test-${expiresIn}`,
       },
       error: null,
     }));
@@ -316,6 +316,15 @@ describe('imageUploadService', () => {
       expect(isFetchableSignedStorageUrl(unsigned)).toBe(false);
     });
 
+    it('rejects private sign URLs with empty or missing token query param', () => {
+      const emptyToken =
+        'https://supabase.equipqr.app/storage/v1/object/sign/work-order-images/u/wo/n.jpg?token=';
+      const wrongParam =
+        'https://supabase.equipqr.app/storage/v1/object/sign/work-order-images/u/wo/n.jpg?e=900';
+      expect(isFetchableSignedStorageUrl(emptyToken)).toBe(false);
+      expect(isFetchableSignedStorageUrl(wrongParam)).toBe(false);
+    });
+
     it('returns null for canonical path without a signed URL', () => {
       expect(displayUrlForStoredPrivateImage(null, 'uid/work/img.jpg')).toBeNull();
       expect(displayUrlForStoredPrivateImage(undefined, 'path-only')).toBeNull();
@@ -395,7 +404,7 @@ describe('imageUploadService', () => {
           if (bucket === 'equipment-note-images') {
             return Promise.resolve({
               data: {
-                signedUrl: `https://example.supabase.co/storage/v1/object/sign/eq-note/${path}?e=${expiresIn}`,
+                signedUrl: `https://example.supabase.co/storage/v1/object/sign/eq-note/${path}?token=test-${expiresIn}`,
               },
               error: null,
             });
@@ -420,7 +429,7 @@ describe('imageUploadService', () => {
           return Promise.resolve({
             data: paths.map((path: string) => ({
               path,
-              signedUrl: `https://example.supabase.co/storage/v1/object/sign/${bucket}/${path}?e=${expiresIn}`,
+              signedUrl: `https://example.supabase.co/storage/v1/object/sign/${bucket}/${path}?token=test-${expiresIn}`,
               error: null,
             })),
             error: null,
@@ -465,6 +474,31 @@ describe('imageUploadService', () => {
 
       expect(out[0]).toBeNull();
       expect(mockCreateSignedUrl).not.toHaveBeenCalled();
+    });
+
+    it('passes batch TTL to per-path fallback when batch omits a usable URL', async () => {
+      mockFrom.mockImplementation((bucket: string) => ({
+        upload: mockUpload,
+        getPublicUrl: mockGetPublicUrl,
+        createSignedUrl: mockCreateSignedUrl,
+        createSignedUrls: vi.fn((paths: string[]) =>
+          Promise.resolve({
+            data: paths.map((path: string) => ({
+              path,
+              signedUrl: null,
+              error: null,
+            })),
+            error: null,
+          }),
+        ),
+      }));
+
+      await batchResolveEquipmentDisplayImageUrls(['user1/eq-1/note-1/a.jpg'], {
+        equipmentIds: ['eq-1'],
+        expiresInSeconds: 600,
+      });
+
+      expect(mockCreateSignedUrl).toHaveBeenCalledWith('user1/eq-1/note-1/a.jpg', 600);
     });
   });
 

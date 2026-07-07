@@ -7,7 +7,7 @@ import React, { useMemo, useState } from 'react';
 import { APIProvider, AdvancedMarker, Map } from '@vis.gl/react-google-maps';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MapPin, Edit, Navigation, RefreshCw } from 'lucide-react';
+import { MapPin, Edit, Navigation } from 'lucide-react';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import { MapsUnavailableRetryPanel } from '@/components/location/MapsUnavailableRetryPanel';
 import { TeamLocationEditorDialog } from '@/features/teams/components/TeamLocationEditorDialog';
