@@ -37,10 +37,15 @@ vi.mock('@/hooks/useQuickBooksAccess', () => ({
 // Mock the QuickBooks service
 const mockGetConnectionStatus = vi.fn();
 const mockGetTeamCustomerMapping = vi.fn();
+const mockResolveQuickBooksCustomerId = vi.fn();
 
 vi.mock('@/services/quickbooks', () => ({
   getConnectionStatus: (...args: unknown[]) => mockGetConnectionStatus(...args),
   getTeamCustomerMapping: (...args: unknown[]) => mockGetTeamCustomerMapping(...args),
+}));
+
+vi.mock('@/features/teams/services/customerAccountService', () => ({
+  resolveQuickBooksCustomerId: (...args: unknown[]) => mockResolveQuickBooksCustomerId(...args),
 }));
 
 // Mock the export hook
@@ -103,6 +108,7 @@ describe('QuickBooksExportButton Component', () => {
       quickbooks_customer_id: 'qb-cust-123',
       display_name: 'Test Customer',
     });
+    mockResolveQuickBooksCustomerId.mockResolvedValue('qb-cust-123');
     mockUseQuickBooksLastExport.mockReturnValue({
       data: null,
     });
@@ -198,6 +204,7 @@ describe('QuickBooksExportButton Component', () => {
   describe('No Customer Mapping', () => {
     it('should be disabled when team has no customer mapping', async () => {
       mockGetTeamCustomerMapping.mockResolvedValue(null);
+      mockResolveQuickBooksCustomerId.mockResolvedValue(null);
       
       renderComponent();
       
