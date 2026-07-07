@@ -26,7 +26,7 @@ test.describe('Team customer, QuickBooks, and integrations UX (#1173, #1177, #11
     await expect(page.getByRole('dialog', { name: /link existing account/i })).toBeVisible({
       timeout: 15_000,
     });
-    await page.getByRole('button', { name: /ABC Construction Co/i }).click();
+    await page.getByRole('button', { name: /Summit Site Services/i }).click();
 
     await expect(page.getByRole('heading', { name: /customer account/i })).toBeVisible({
       timeout: 30_000,
