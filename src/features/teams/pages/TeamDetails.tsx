@@ -164,6 +164,8 @@ const TeamDetails = () => {
   const canEdit = permissions.canManageTeam(team.id);
   const canDelete = permissions.canManageTeam(team.id);
   const canManageMembers = permissions.canManageTeam(team.id);
+  const canManageExternalContacts =
+    canEdit && team.organization_id === currentOrganization.id;
 
   const preferredView: TeamView = isTeamView(team.preferred_view) ? team.preferred_view : 'internal';
   const activeView = viewOverride ?? preferredView;
@@ -456,9 +458,9 @@ const TeamDetails = () => {
             return (
               <ExternalContactsList
                 key={sectionKey}
-                organizationId={currentOrganization.id}
+                organizationId={team.organization_id}
                 customerId={team.customer_id}
-                canManage={canEdit}
+                canManage={canManageExternalContacts}
                 teamMembers={team.members}
               />
             );

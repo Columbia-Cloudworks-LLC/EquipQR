@@ -135,7 +135,7 @@ const ExternalContactsList: React.FC<ExternalContactsListProps> = ({
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) return;
+    if (!canManage || !form.name.trim()) return;
     try {
       if (editingId) {
         await mutations.update.mutateAsync({
@@ -165,6 +165,7 @@ const ExternalContactsList: React.FC<ExternalContactsListProps> = ({
   };
 
   const handleDelete = async (contactId: string) => {
+    if (!canManage) return;
     if (!window.confirm('Remove this contact?')) return;
     try {
       await mutations.remove.mutateAsync(contactId);
