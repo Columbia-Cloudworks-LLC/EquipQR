@@ -24,6 +24,12 @@ on:
   push:
     branches: [main]
 
+# Rapid successive pushes to main must not race each other while moving the
+# preview ref and firing deploy hooks; the newest push supersedes older runs.
+concurrency:
+  group: preview-domain-alias
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -74,7 +80,8 @@ jobs:
 
           HOOK_URL="$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" \
             "https://api.vercel.com/v9/projects/$VERCEL_PROJECT?teamId=$VERCEL_TEAM_ID" \
-            | jq -r '.link.deployHooks[] | select(.ref == "preview") | .url')"
+            | jq -r '(.link.deployHooks // [])[] | select(.ref == "preview") | .url' \
+            | head -n 1)"
           if [ -z "$HOOK_URL" ] || [ "$HOOK_URL" = "null" ]; then
             echo "::error::No Vercel deploy hook found for ref 'preview' on project $VERCEL_PROJECT. Create one in Vercel → Settings → Git → Deploy Hooks (name: preview, branch: preview)."
             exit 1
