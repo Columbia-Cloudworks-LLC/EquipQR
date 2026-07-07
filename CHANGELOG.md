@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.17.0] - 2026-07-07
+
+### Fixed
+
+- **Daily check-in QR link generation (#1179)** — Organization owners/admins can now generate a missing daily check-in QR link directly inside the QR code dialog (equipment list and equipment details, desktop and mobile). Previously the dialog only pointed at the equipment-details actions menu, leaving assignments minted before server-side token persistence (#1154) with no reachable "generate" action — the "QR link is not available" notice persisted no matter what the user tried.
+- **preview.equipqr.app never updated (#1180)** — `preview-domain-alias.yml` now fast-forwards the `preview` domain-anchor branch to `main` on every push to `main`, so Vercel deploys the anchor branch and the existing alias job points `preview.equipqr.app` at that deployment. The alias job previously waited for deployments of a branch that nothing ever pushed (stale since v3.9.2).
+
+### Added
+
+- **Schema reference dump guardrail (#1182)** — New `supabase/current_schema.sql` reference dump derived from the migration chain, documented in `docs/ops/migrations.md` (regeneration rule, commands, AI-generated migration guidance, data-only skip marker). A git-based CI check (`scripts/check-schema-reference.mjs`, wired into the Supabase Migration Validator workflow and `npm run verify:schema-reference`) fails PRs that change schema-affecting migrations without regenerating the dump; PRs without migration changes pass trivially and no database is required in CI.
+
 ## [3.16.1] - 2026-07-07
 
 ### Fixed

@@ -1,7 +1,7 @@
 {
   "name": "equipqr",
   "private": true,
-  "version": "3.16.1",
+  "version": "3.17.0",
   "type": "module",
   "engines": {
     "node": "24.x"
@@ -24,6 +24,7 @@
     "verify:spa-routing": "node scripts/verify-spa-shell.mjs",
     "verify:node-policy": "node scripts/verify-node-policy.mjs",
     "verify:release-metadata": "node scripts/verify-release-metadata.mjs",
+    "verify:schema-reference": "node scripts/check-schema-reference.mjs",
     "test": "node scripts/test-runner.mjs",
     "test:itil-scripts": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/itil/tests/Run-ItilWorkflowTests.ps1",
     "test:coverage": "node scripts/test-runner.mjs --coverage",
