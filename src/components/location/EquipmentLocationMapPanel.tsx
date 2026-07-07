@@ -6,6 +6,7 @@ import ClickableAddress from '@/components/ui/ClickableAddress';
 import GooglePlacesAutocomplete, { type PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import { Button } from '@/components/ui/button';
 import { CardContent, CardHeader } from '@/components/ui/card';
+import { MapsUnavailableRetryPanel } from '@/components/location/MapsUnavailableRetryPanel';
 import { LocationSourceSelector } from '@/components/location/LocationSourceSelector';
 import { LiveLocationCaptureDialog } from '@/components/location/LiveLocationCaptureDialog';
 import { useLatestScanCoordinateFromHistory } from '@/features/equipment/hooks/useEquipmentLocationHistory';
@@ -99,7 +100,7 @@ function MiniMapCanvas({
         colorScheme={isDark ? 'DARK' : 'LIGHT'}
         style={{ width: '100%', height: '100%' }}
       >
-        <MiniMapMarker position={center} />
+        {mapId ? <MiniMapMarker position={center} /> : null}
       </Map>
     </div>
   );
@@ -309,19 +310,7 @@ export function EquipmentLocationMapPanel({
     }
 
     if (keyError || !googleMapsKey) {
-      return (
-        <div
-          className="rounded-lg border border-dashed border-destructive/40 bg-destructive/5 flex flex-col items-center justify-center gap-2 px-4 text-center"
-          style={{ height: mapHeight }}
-        >
-          <MapPin className="h-6 w-6 text-destructive/70" />
-          <p className="text-xs text-muted-foreground">Map unavailable</p>
-          <Button type="button" size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={retryMapsKey}>
-            <RefreshCw className="h-3 w-3" />
-            Retry
-          </Button>
-        </div>
-      );
+      return <MapsUnavailableRetryPanel mapHeight={mapHeight} onRetry={retryMapsKey} />;
     }
 
     if (!center) {

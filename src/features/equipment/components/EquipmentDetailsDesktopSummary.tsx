@@ -3,6 +3,7 @@ import { EquipmentLocationMapPanel } from '@/components/location/EquipmentLocati
 import type { PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import type { EquipmentTeamSummary } from '@/features/equipment/services/EquipmentService';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
+import { displayableImageSrc } from '@/services/imageUploadService';
 import { Forklift, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -33,13 +34,15 @@ export function EquipmentDetailsDesktopSummary({
   onCancelLocationEdit,
   onSaveLocation,
 }: EquipmentDetailsDesktopSummaryProps) {
+  const equipmentImageSrc = displayableImageSrc(equipment.image_url);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <Card>
         <CardContent className="p-0">
-          {equipment.image_url ? (
+          {equipmentImageSrc ? (
             <img
-              src={equipment.image_url}
+              src={equipmentImageSrc}
               alt={equipment.name}
               className="w-full h-64 object-cover rounded-lg"
               loading="lazy"

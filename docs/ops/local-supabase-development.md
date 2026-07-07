@@ -100,7 +100,7 @@ npx supabase functions pull quickbooks-oauth-callback
 
 ### Step 5: Start Local Supabase Instance
 
-> **Preferred workflow**: Run `.\dev-start.bat` from the project root. It launches **`dev-start.ps1`**, front-loads 1Password sync when `op` is available, then starts Docker, Supabase, Edge Functions serve, the docs site, and Vite. Exit code **`0`** means all four passed health checks. **`-Force`** resets the local DB, regenerates TypeScript types, and re-seeds equipment images after Supabase is up — run **`.\dev-stop.bat`** first if the dev stack is already running. **`.\dev-stop.bat`** launches **`dev-stop.ps1`** for teardown; **`-Force`** there also quits Docker Desktop.
+> **Preferred workflow**: Run `.\dev-start.bat` from the project root. It launches **`dev-start.ps1`**, front-loads 1Password sync when `op` is available, then starts Docker, Supabase, Edge Functions serve, the docs site, and Vite. Exit code **`0`** means all four passed health checks. **`-Force`** resets the local DB, regenerates TypeScript types, and re-seeds dev media (equipment/note/work-order images) after Supabase is up — run **`.\dev-stop.bat`** first if the dev stack is already running. **`.\dev-stop.bat`** launches **`dev-stop.ps1`** for teardown; **`-Force`** there also quits Docker Desktop.
 
 Start a local Supabase instance (PostgreSQL, PostgREST, Auth, Storage, Edge Functions):
 
@@ -523,7 +523,7 @@ Generation is deterministic (seeded RNG + counter UUIDs). Guardrail tests live i
 ```bash
 # ---- One-click dev environment (Windows) ----
 .\dev-start.bat                      # Supabase + Edge Functions + docs + Vite (strict health)
-.\dev-start.bat -Force               # Regenerate volume seeds, DB reset, types, seed images, then full stack (stop first if running)
+.\dev-start.bat -Force               # Regenerate volume seeds, DB reset, types, seed dev media, then full stack (stop first if running)
 .\dev-start.bat -Force -SeedScale 5  # Same with 5x generated inventory/equipment/work-order volume (#1164)
 .\dev-stop.bat                       # Stop Vite, docs, Edge serve, Supabase Docker; sweep ports
 .\dev-stop.bat -Force                # Same + quit Docker Desktop

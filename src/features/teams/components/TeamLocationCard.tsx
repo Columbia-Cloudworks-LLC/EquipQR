@@ -4,14 +4,16 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import { GoogleMap, MarkerF } from '@react-google-maps/api';
+import { APIProvider, AdvancedMarker, Map } from '@vis.gl/react-google-maps';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MapPin, Edit, Navigation } from 'lucide-react';
 import ClickableAddress from '@/components/ui/ClickableAddress';
+import { MapsUnavailableRetryPanel } from '@/components/location/MapsUnavailableRetryPanel';
 import { TeamLocationEditorDialog } from '@/features/teams/components/TeamLocationEditorDialog';
 import { buildTeamAddress } from '@/features/teams/utils/teamLocationUtils';
-import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
+import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
+import { useIsDarkTheme } from '@/hooks/useThemeVersion';
 import type { TeamWithMembers } from '@/features/teams/services/teamService';
 
 interface TeamLocationCardProps {
@@ -19,23 +21,26 @@ interface TeamLocationCardProps {
   canEdit: boolean;
 }
 
-const MAP_CONTAINER_STYLE = {
-  width: '100%',
-  height: '180px',
-  borderRadius: '0.5rem',
-};
+const MAP_HEIGHT = '180px';
 
-const MAP_OPTIONS: google.maps.MapOptions = {
-  disableDefaultUI: true,
-  zoomControl: true,
-  mapTypeControl: false,
-  streetViewControl: false,
-  fullscreenControl: false,
-};
+function TeamMapMarker({ position }: { position: { lat: number; lng: number } }) {
+  return (
+    <AdvancedMarker position={position}>
+      <div className="flex h-3 w-3 items-center justify-center rounded-full border-2 border-white bg-primary shadow-md" />
+    </AdvancedMarker>
+  );
+}
 
 const TeamLocationCard: React.FC<TeamLocationCardProps> = ({ team, canEdit }) => {
-  const { isLoaded } = useGoogleMapsLoader();
   const [editorOpen, setEditorOpen] = useState(false);
+  const isDark = useIsDarkTheme();
+  const {
+    googleMapsKey,
+    mapId,
+    isLoading: isKeyLoading,
+    error: keyError,
+    retry: retryMapsKey,
+  } = useGoogleMapsKey();
 
   const hasCoords = team.location_lat != null && team.location_lng != null;
   const addressText = buildTeamAddress(team);
@@ -45,11 +50,69 @@ const TeamLocationCard: React.FC<TeamLocationCardProps> = ({ team, canEdit }) =>
     () =>
       hasCoords
         ? { lat: team.location_lat as number, lng: team.location_lng as number }
-        : undefined,
+        : null,
     [hasCoords, team.location_lat, team.location_lng],
   );
 
   const openEditor = () => setEditorOpen(true);
+
+  const renderMap = () => {
+    if (isKeyLoading) {
+      return (
+        <div
+          className="rounded-lg bg-muted/50 border flex items-center justify-center"
+          style={{ height: MAP_HEIGHT }}
+        >
+          <p className="text-xs text-muted-foreground">Loading map...</p>
+        </div>
+      );
+    }
+
+    if (keyError || !googleMapsKey) {
+      return <MapsUnavailableRetryPanel mapHeight={MAP_HEIGHT} onRetry={retryMapsKey} />;
+    }
+
+    if (!center) {
+      return (
+        <div
+          className="h-[120px] rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/25 flex items-center justify-center"
+        >
+          <div className="text-center space-y-2 px-4">
+            <MapPin className="h-8 w-8 text-muted-foreground/50 mx-auto" />
+            <p className="text-xs text-muted-foreground">
+              Coordinates unavailable. Set a new address or use your current location.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="rounded-lg overflow-hidden border" style={{ height: MAP_HEIGHT }}>
+        <APIProvider
+          apiKey={googleMapsKey}
+          libraries={['places', 'marker']}
+          solutionChannel="GMP_visgl_rgmlibrary_v1_default"
+        >
+          <Map
+            mapId={mapId ?? undefined}
+            defaultCenter={center}
+            defaultZoom={15}
+            gestureHandling="cooperative"
+            disableDefaultUI
+            zoomControl
+            streetViewControl={false}
+            mapTypeControl={false}
+            fullscreenControl={false}
+            colorScheme={isDark ? 'DARK' : 'LIGHT'}
+            style={{ width: '100%', height: '100%' }}
+          >
+            {mapId ? <TeamMapMarker position={center} /> : null}
+          </Map>
+        </APIProvider>
+      </div>
+    );
+  };
 
   if (!hasCoords && !hasAddress) {
     return (
@@ -106,34 +169,7 @@ const TeamLocationCard: React.FC<TeamLocationCardProps> = ({ team, canEdit }) =>
         </CardHeader>
 
         <CardContent className="space-y-3 pt-0">
-          {hasCoords && isLoaded && center ? (
-            <div className="rounded-lg overflow-hidden border">
-              <GoogleMap
-                mapContainerStyle={MAP_CONTAINER_STYLE}
-                center={center}
-                zoom={15}
-                options={MAP_OPTIONS}
-              >
-                <MarkerF position={center} />
-              </GoogleMap>
-            </div>
-          ) : hasCoords && !isLoaded ? (
-            <div className="h-[180px] rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
-              <div className="text-center space-y-2">
-                <MapPin className="h-8 w-8 text-muted-foreground/50 mx-auto animate-pulse" />
-                <p className="text-xs text-muted-foreground">Loading map...</p>
-              </div>
-            </div>
-          ) : (
-            <div className="h-[120px] rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
-              <div className="text-center space-y-2 px-4">
-                <MapPin className="h-8 w-8 text-muted-foreground/50 mx-auto" />
-                <p className="text-xs text-muted-foreground">
-                  Coordinates unavailable. Set a new address or use your current location.
-                </p>
-              </div>
-            </div>
-          )}
+          {renderMap()}
 
           {hasAddress && (
             <div className="flex items-start gap-2">

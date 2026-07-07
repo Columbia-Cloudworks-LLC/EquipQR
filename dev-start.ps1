@@ -729,10 +729,10 @@ if (-not $Force) {
     Write-Host "        Database reset complete."
 
     Write-Host ""
-    Write-Host " [5b] Seeding equipment images into local storage..."
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\seed-equipment-images.ps1') -ApiPort $SUPABASE_API_PORT
+    Write-Host " [5b] Seeding dev media into local storage..."
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\seed-dev-media.ps1') -ApiPort $SUPABASE_API_PORT
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "        WARNING: Seed image upload had errors. Equipment images may be missing."
+        Write-Host "        WARNING: Dev media seed had errors. Equipment/note/WO images may be missing."
     }
 }
 

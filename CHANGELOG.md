@@ -9,7 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.15.0] - 2026-07-06
+## [3.16.0] - 2026-07-07
+
+### Fixed
+
+- **Stale private image URLs (#1171)** — Expired Supabase signed URLs and orphaned storage references no longer pass through as `<img src>` fallbacks; missing objects resolve to null so the UI shows icon placeholders instead of flooding the console with 400s.
+- **Equipment list lazy-load intervention (#1175)** — Above-the-fold equipment cards use `loading="eager"` (same pattern as work orders) to silence Edge/Chrome lazy-load intervention warnings on `/dashboard/equipment`.
+- **Team details map deprecation (#1174)** — `TeamLocationCard` migrates from deprecated `google.maps.Marker` to `@vis.gl/react-google-maps` `AdvancedMarker` with vector map support.
+
+### Changed
+
+- **Local dev media seed (#1176)** — Replaced `scripts/seed-equipment-images.ps1` with `scripts/seed-dev-media.ps1`: uploads canonical paths to private buckets, supports `equipment/`, `drop/`, and `work-orders/` folders (JPEG/PNG/WebP/GIF), and wires equipment display images plus equipment-note and work-order note images after `dev-start.bat -Force`.
+- **Dependency cleanup (#1174)** — Removed unused `@react-google-maps/api` after team and fleet maps fully migrated to `@vis.gl/react-google-maps`.
 
 ### Added
 
