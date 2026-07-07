@@ -329,14 +329,17 @@ describe('imageUploadService', () => {
 
     it('normalizes local relative signed URLs for img src', () => {
       vi.stubEnv('VITE_SUPABASE_URL', 'http://127.0.0.1:54321');
-      const relative =
-        '/object/sign/equipment-note-images/u/eq/n.jpg?token=abc123';
-      const absolute = toAbsoluteSignedStorageUrl(relative);
-      expect(absolute).toBe(
-        'http://127.0.0.1:54321/storage/v1/object/sign/equipment-note-images/u/eq/n.jpg?token=abc123',
-      );
-      expect(displayableImageSrc(relative)).toBe(absolute);
-      vi.unstubAllEnvs();
+      try {
+        const relative =
+          '/object/sign/equipment-note-images/u/eq/n.jpg?token=abc123';
+        const absolute = toAbsoluteSignedStorageUrl(relative);
+        expect(absolute).toBe(
+          'http://127.0.0.1:54321/storage/v1/object/sign/equipment-note-images/u/eq/n.jpg?token=abc123',
+        );
+        expect(displayableImageSrc(relative)).toBe(absolute);
+      } finally {
+        vi.unstubAllEnvs();
+      }
     });
 
     it('returns null for canonical path without a signed URL', () => {

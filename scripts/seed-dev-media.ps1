@@ -31,6 +31,14 @@ $workOrdersDir = Join-Path $seedRoot "work-orders"
 
 # owner@apex.test — stable uploader for local seed media
 $SeedUploaderId = 'bb0e8400-e29b-41d4-a716-446655440001'
+# Fixture orgs from supabase/seeds/99_cleanup_trigger_orgs.sql (service-role queries must scope tenants)
+$SeedOrganizationIds = @(
+    '660e8400-e29b-41d4-a716-446655440000',
+    '660e8400-e29b-41d4-a716-446655440001',
+    '660e8400-e29b-41d4-a716-446655440002',
+    '660e8400-e29b-41d4-a716-446655440003'
+)
+$SeedOrganizationFilter = 'organization_id=in.(' + ($SeedOrganizationIds -join ',') + ')'
 $ImageExtensions = @('.jpg', '.jpeg', '.png', '.webp', '.gif')
 
 function Get-ImageFiles([string]$Directory) {
@@ -65,6 +73,44 @@ function Get-SupabaseKeys() {
     return @{ Anon = $anonKey; Service = $serviceKey }
 }
 
+function Get-EncodedStorageObjectPath([string]$ObjectPath) {
+    return (($ObjectPath -split '/') | ForEach-Object { [uri]::EscapeDataString($_) }) -join '/'
+}
+
+function Get-StorageObjectUrl {
+    param(
+        [string]$Bucket,
+        [string]$ObjectPath,
+        [ValidateSet('object', 'object/sign')]
+        [string]$Verb = 'object'
+    )
+    $encoded = Get-EncodedStorageObjectPath $ObjectPath
+    return "$baseUrl/storage/v1/$Verb/$Bucket/$encoded"
+}
+
+function Invoke-RestSelectAll {
+    param(
+        [string]$Table,
+        [string]$BaseQuery,
+        [hashtable]$Headers,
+        [int]$PageSize = 1000
+    )
+    $all = [System.Collections.Generic.List[object]]::new()
+    $offset = 0
+    while ($true) {
+        $sep = if ($BaseQuery -match '\?') { '&' } else { '?' }
+        $pageQuery = "$BaseQuery${sep}limit=$PageSize&offset=$offset"
+        $raw = Invoke-RestSelect -Table $Table -Query $pageQuery -Headers $Headers
+        if ($null -eq $raw) { break }
+        $batch = @($raw)
+        if ($batch.Count -eq 0) { break }
+        $all.AddRange($batch)
+        if ($batch.Count -lt $PageSize) { break }
+        $offset += $PageSize
+    }
+    return @($all)
+}
+
 function Invoke-StorageUpload {
     param(
         [string]$Bucket,
@@ -73,7 +119,7 @@ function Invoke-StorageUpload {
         [hashtable]$Headers
     )
     $bytes = [System.IO.File]::ReadAllBytes($FilePath)
-    $uploadUrl = "$baseUrl/storage/v1/object/$Bucket/$ObjectPath"
+    $uploadUrl = Get-StorageObjectUrl -Bucket $Bucket -ObjectPath $ObjectPath
     $uploadHeaders = $Headers.Clone()
     $uploadHeaders['Content-Type'] = Get-ImageContentType $FilePath
     $uploadHeaders['x-upsert'] = 'true'
@@ -168,7 +214,7 @@ function Test-EquipmentExists {
         [string]$EquipmentId,
         [hashtable]$Headers
     )
-    $rows = @(Invoke-RestSelect -Table 'equipment' -Query "?select=id&id=eq.$EquipmentId&limit=1" -Headers $Headers)
+    $rows = @(Invoke-RestSelect -Table 'equipment' -Query "?select=id&id=eq.$EquipmentId&$SeedOrganizationFilter&limit=1" -Headers $Headers)
     return $rows.Count -gt 0
 }
 
@@ -283,9 +329,13 @@ foreach ($img in $workOrderImages) {
 
 function Get-EquipmentIdsMissingDisplay {
     param([hashtable]$Headers)
-    $rows = Invoke-RestSelect -Table 'equipment' -Query '?select=id&image_url=is.null&order=id.asc&limit=1000' -Headers $Headers
-    if ($null -eq $rows) { return @() }
+    $rows = Invoke-RestSelectAll -Table 'equipment' -BaseQuery "?select=id&image_url=is.null&$SeedOrganizationFilter&order=id.asc" -Headers $Headers
     return @($rows | ForEach-Object { $_.id })
+}
+
+function Get-EquipmentRowsWithDisplayImage {
+    param([hashtable]$Headers)
+    return Invoke-RestSelectAll -Table 'equipment' -BaseQuery "?select=id,image_url&image_url=not.is.null&$SeedOrganizationFilter&order=id.asc" -Headers $Headers
 }
 
 function Test-StorageObjectExists {
@@ -295,7 +345,7 @@ function Test-StorageObjectExists {
         [hashtable]$Headers
     )
     if (-not $ObjectPath -or -not $ObjectPath.Trim()) { return $false }
-    $checkUrl = "$baseUrl/storage/v1/object/$Bucket/$ObjectPath"
+    $checkUrl = Get-StorageObjectUrl -Bucket $Bucket -ObjectPath $ObjectPath
     try {
         Invoke-WebRequest -Method Head -Uri $checkUrl -Headers $Headers | Out-Null
         return $true
@@ -309,10 +359,10 @@ function Test-StorageObjectExists {
 if ($dropImages.Count -gt 0) {
     $equipmentNeedingDisplay = @(Get-EquipmentIdsMissingDisplay -Headers $restHeaders)
     $equipmentNotes = @(
-        Invoke-RestSelect -Table 'equipment_notes' -Query '?select=id,equipment_id&order=created_at.asc&limit=100' -Headers $restHeaders
+        Invoke-RestSelect -Table 'equipment_notes' -Query "?select=id,equipment_id,equipment!inner(organization_id)&equipment.organization_id=in.($($SeedOrganizationIds -join ','))&order=created_at.asc&limit=100" -Headers $restHeaders
     )
     $workOrders = @(
-        Invoke-RestSelect -Table 'work_orders' -Query '?select=id&status=in.(in_progress,assigned,accepted)&order=created_date.asc&limit=40' -Headers $restHeaders
+        Invoke-RestSelect -Table 'work_orders' -Query "?select=id&$SeedOrganizationFilter&status=in.(in_progress,assigned,accepted)&order=created_date.asc&limit=40" -Headers $restHeaders
     )
 
     $displayQueue = [System.Collections.Generic.Queue[string]]::new()
@@ -416,8 +466,7 @@ if ($displayBackfillPool.Count -gt 0) {
 
 # ── Phase 5: repair display paths whose storage object is missing ───────────
 if ($displayBackfillPool.Count -gt 0) {
-    $rowsWithDisplayRaw = Invoke-RestSelect -Table 'equipment' -Query '?select=id,image_url&image_url=not.is.null&order=id.asc&limit=1000' -Headers $restHeaders
-    $rowsWithDisplay = if ($null -eq $rowsWithDisplayRaw) { @() } else { @($rowsWithDisplayRaw) }
+    $rowsWithDisplay = @(Get-EquipmentRowsWithDisplayImage -Headers $restHeaders)
     $broken = @(
         $rowsWithDisplay | Where-Object {
             $path = $_.image_url
@@ -447,9 +496,11 @@ if ($displayBackfillPool.Count -gt 0) {
 
 $verifyHeaders = $restHeaders.Clone()
 $verifyHeaders['Prefer'] = 'count=exact'
-$verifyResponse = Invoke-WebRequest -Uri "$baseUrl/rest/v1/equipment?select=id&image_url=not.is.null" -Headers $verifyHeaders -Method Get
+$verifyResponse = Invoke-WebRequest -Uri "$baseUrl/rest/v1/equipment?select=id&image_url=not.is.null&$SeedOrganizationFilter&limit=1" -Headers $verifyHeaders -Method Get
 $withDisplay = 0
-if ($verifyResponse.Headers['Content-Range'] -match '/(\d+)$') {
+$contentRange = $verifyResponse.Headers['Content-Range']
+if (-not $contentRange) { $contentRange = $verifyResponse.Headers['content-range'] }
+if ($contentRange -match '/(\d+)$') {
     $withDisplay = [int]$Matches[1]
 }
 
