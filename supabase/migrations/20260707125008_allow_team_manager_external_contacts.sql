@@ -143,13 +143,23 @@ DO $$ BEGIN
       ADD CONSTRAINT external_customer_contacts_manual_provenance_null_check
       CHECK (
         source = 'quickbooks'
-        OR (source_external_id IS NULL AND source_field IS NULL)
+        OR (
+          source_external_id IS NULL
+          AND source_field IS NULL
+          AND last_synced_at IS NULL
+          AND source_payload IS NULL
+        )
       );
   END IF;
 END $$;
 
 -- rpc-authenticated-grant-allowed: can_manage_manual_external_customer_contact
-CREATE OR REPLACE FUNCTION public.can_manage_manual_external_customer_contact(p_customer_id uuid)
+DROP FUNCTION IF EXISTS public.can_manage_manual_external_customer_contact(uuid);
+
+CREATE OR REPLACE FUNCTION public.can_manage_manual_external_customer_contact(
+  p_organization_id uuid,
+  p_customer_id uuid
+)
 RETURNS boolean
 LANGUAGE sql
 STABLE
@@ -160,6 +170,7 @@ AS $$
     SELECT 1
     FROM public.customers c
     WHERE c.id = p_customer_id
+      AND c.organization_id = p_organization_id
       AND (
         public.is_org_admin((SELECT auth.uid()), c.organization_id)
         OR EXISTS (
@@ -175,10 +186,13 @@ AS $$
   );
 $$;
 
-GRANT EXECUTE ON FUNCTION public.can_manage_manual_external_customer_contact(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.can_manage_manual_external_customer_contact(uuid, uuid) TO authenticated;
+
+DROP FUNCTION IF EXISTS public.create_manual_external_customer_contact(uuid, text, text, text, text, text);
 
 -- rpc-authenticated-grant-allowed: create_manual_external_customer_contact
 CREATE OR REPLACE FUNCTION public.create_manual_external_customer_contact(
+  p_organization_id uuid,
   p_customer_id uuid,
   p_name text,
   p_email text DEFAULT NULL,
@@ -198,7 +212,7 @@ BEGIN
     RAISE EXCEPTION 'Not authenticated';
   END IF;
 
-  IF NOT public.can_manage_manual_external_customer_contact(p_customer_id) THEN
+  IF NOT public.can_manage_manual_external_customer_contact(p_organization_id, p_customer_id) THEN
     RAISE EXCEPTION 'Permission denied';
   END IF;
 
@@ -234,16 +248,19 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.create_manual_external_customer_contact(uuid, text, text, text, text, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.create_manual_external_customer_contact(uuid, uuid, text, text, text, text, text) TO authenticated;
+
+DROP FUNCTION IF EXISTS public.update_manual_external_customer_contact(uuid, text, text, text, text, text);
 
 -- rpc-authenticated-grant-allowed: update_manual_external_customer_contact
 CREATE OR REPLACE FUNCTION public.update_manual_external_customer_contact(
+  p_organization_id uuid,
   p_contact_id uuid,
   p_name text,
-  p_email text DEFAULT NULL,
-  p_phone text DEFAULT NULL,
-  p_role text DEFAULT NULL,
-  p_notes text DEFAULT NULL
+  p_email text,
+  p_phone text,
+  p_role text,
+  p_notes text
 )
 RETURNS public.external_customer_contacts
 LANGUAGE plpgsql
@@ -282,12 +299,16 @@ BEGIN
     RAISE EXCEPTION 'Contact not found';
   END IF;
 
+  IF v_org_id IS DISTINCT FROM p_organization_id THEN
+    RAISE EXCEPTION 'Customer not found';
+  END IF;
+
   IF public.is_org_admin((SELECT auth.uid()), v_org_id) THEN
     NULL;
   ELSIF v_source = 'manual'
     AND v_source_external_id IS NULL
     AND v_source_field IS NULL
-    AND public.can_manage_manual_external_customer_contact(v_customer_id) THEN
+    AND public.can_manage_manual_external_customer_contact(p_organization_id, v_customer_id) THEN
     NULL;
   ELSE
     RAISE EXCEPTION 'Permission denied';
@@ -307,10 +328,15 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.update_manual_external_customer_contact(uuid, text, text, text, text, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.update_manual_external_customer_contact(uuid, uuid, text, text, text, text, text) TO authenticated;
+
+DROP FUNCTION IF EXISTS public.delete_manual_external_customer_contact(uuid);
 
 -- rpc-authenticated-grant-allowed: delete_manual_external_customer_contact
-CREATE OR REPLACE FUNCTION public.delete_manual_external_customer_contact(p_contact_id uuid)
+CREATE OR REPLACE FUNCTION public.delete_manual_external_customer_contact(
+  p_organization_id uuid,
+  p_contact_id uuid
+)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -347,12 +373,16 @@ BEGIN
     RAISE EXCEPTION 'Contact not found';
   END IF;
 
+  IF v_org_id IS DISTINCT FROM p_organization_id THEN
+    RAISE EXCEPTION 'Customer not found';
+  END IF;
+
   IF public.is_org_admin((SELECT auth.uid()), v_org_id) THEN
     NULL;
   ELSIF v_source = 'manual'
     AND v_source_external_id IS NULL
     AND v_source_field IS NULL
-    AND public.can_manage_manual_external_customer_contact(v_customer_id) THEN
+    AND public.can_manage_manual_external_customer_contact(p_organization_id, v_customer_id) THEN
     NULL;
   ELSE
     RAISE EXCEPTION 'Permission denied';
@@ -362,6 +392,6 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.delete_manual_external_customer_contact(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_manual_external_customer_contact(uuid, uuid) TO authenticated;
 
 COMMIT;

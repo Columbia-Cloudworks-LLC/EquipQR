@@ -15,12 +15,12 @@ import {
   createExternalContact,
   updateExternalContact,
   deleteExternalContact,
+  type ExternalContactFieldsInput,
 } from '@/features/teams/services/customerAccountService';
 import type {
   CustomerInsert,
   CustomerUpdate,
   ExternalContactInsert,
-  ExternalContactUpdate,
 } from '@/features/teams/types/team';
 import type { QBCustomerPayload } from '@/features/teams/services/customerAccountService';
 
@@ -152,7 +152,10 @@ export function useExternalContacts(customerId: string | undefined) {
   });
 }
 
-export function useExternalContactMutations(customerId: string | undefined) {
+export function useExternalContactMutations(
+  organizationId: string | undefined,
+  customerId: string | undefined
+) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -161,7 +164,8 @@ export function useExternalContactMutations(customerId: string | undefined) {
   };
 
   const create = useMutation({
-    mutationFn: (data: ExternalContactInsert) => createExternalContact(data),
+    mutationFn: (data: ExternalContactInsert) =>
+      createExternalContact(requireOrganizationId(organizationId), data),
     onSuccess: () => {
       toast({ title: 'Contact added' });
       invalidate();
@@ -172,8 +176,8 @@ export function useExternalContactMutations(customerId: string | undefined) {
   });
 
   const update = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: ExternalContactUpdate }) =>
-      updateExternalContact(id, updates),
+    mutationFn: ({ id, fields }: { id: string; fields: ExternalContactFieldsInput }) =>
+      updateExternalContact(requireOrganizationId(organizationId), id, fields),
     onSuccess: () => {
       toast({ title: 'Contact updated' });
       invalidate();
@@ -184,7 +188,8 @@ export function useExternalContactMutations(customerId: string | undefined) {
   });
 
   const remove = useMutation({
-    mutationFn: (contactId: string) => deleteExternalContact(contactId),
+    mutationFn: (contactId: string) =>
+      deleteExternalContact(requireOrganizationId(organizationId), contactId),
     onSuccess: () => {
       toast({ title: 'Contact removed' });
       invalidate();

@@ -21,6 +21,7 @@ import type { ExternalContactListRow } from '@/features/teams/types/team';
 import type { TeamWithMembers } from '@/features/teams/services/teamService';
 
 interface ExternalContactsListProps {
+  organizationId: string;
   customerId: string;
   canManage: boolean;
   teamMembers?: TeamWithMembers['members'];
@@ -104,12 +105,13 @@ function TeamRoleContacts({
 }
 
 const ExternalContactsList: React.FC<ExternalContactsListProps> = ({
+  organizationId,
   customerId,
   canManage,
   teamMembers = [],
 }) => {
   const { data: contacts = [], isLoading } = useExternalContacts(customerId);
-  const mutations = useExternalContactMutations(customerId);
+  const mutations = useExternalContactMutations(organizationId, customerId);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ContactFormData>(emptyForm);
@@ -138,7 +140,7 @@ const ExternalContactsList: React.FC<ExternalContactsListProps> = ({
       if (editingId) {
         await mutations.update.mutateAsync({
           id: editingId,
-          updates: {
+          fields: {
             name: form.name.trim(),
             email: form.email.trim() || null,
             phone: form.phone.trim() || null,

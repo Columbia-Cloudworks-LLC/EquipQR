@@ -6,7 +6,6 @@ import type {
   CustomerUpdate,
   ExternalContactRow,
   ExternalContactInsert,
-  ExternalContactUpdate,
   ExternalContactListRow,
 } from '@/features/teams/types/team';
 import type { QBODerivedContact, QuickBooksCustomerRecord } from '@/services/quickbooks/types';
@@ -314,8 +313,20 @@ export async function getExternalContacts(customerId: string): Promise<ExternalC
   return data ?? [];
 }
 
-export async function createExternalContact(contact: ExternalContactInsert): Promise<ExternalContactRow> {
+export type ExternalContactFieldsInput = {
+  name: string;
+  email: string | null;
+  phone: string | null;
+  role: string | null;
+  notes: string | null;
+};
+
+export async function createExternalContact(
+  organizationId: string,
+  contact: ExternalContactInsert
+): Promise<ExternalContactRow> {
   const { data, error } = await supabase.rpc('create_manual_external_customer_contact', {
+    p_organization_id: organizationId,
     p_customer_id: contact.customer_id,
     p_name: contact.name,
     p_email: contact.email ?? null,
@@ -329,24 +340,27 @@ export async function createExternalContact(contact: ExternalContactInsert): Pro
 }
 
 export async function updateExternalContact(
+  organizationId: string,
   contactId: string,
-  updates: ExternalContactUpdate
+  fields: ExternalContactFieldsInput
 ): Promise<ExternalContactRow> {
   const { data, error } = await supabase.rpc('update_manual_external_customer_contact', {
+    p_organization_id: organizationId,
     p_contact_id: contactId,
-    p_name: updates.name ?? '',
-    p_email: updates.email ?? null,
-    p_phone: updates.phone ?? null,
-    p_role: updates.role ?? null,
-    p_notes: updates.notes ?? null,
+    p_name: fields.name,
+    p_email: fields.email,
+    p_phone: fields.phone,
+    p_role: fields.role,
+    p_notes: fields.notes,
   });
 
   if (error) throw error;
   return data as ExternalContactRow;
 }
 
-export async function deleteExternalContact(contactId: string): Promise<void> {
+export async function deleteExternalContact(organizationId: string, contactId: string): Promise<void> {
   const { error } = await supabase.rpc('delete_manual_external_customer_contact', {
+    p_organization_id: organizationId,
     p_contact_id: contactId,
   });
 

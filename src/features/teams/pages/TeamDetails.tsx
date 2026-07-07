@@ -456,6 +456,7 @@ const TeamDetails = () => {
             return (
               <ExternalContactsList
                 key={sectionKey}
+                organizationId={currentOrganization.id}
                 customerId={team.customer_id}
                 canManage={canEdit}
                 teamMembers={team.members}

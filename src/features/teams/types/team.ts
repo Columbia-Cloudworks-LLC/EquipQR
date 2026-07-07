@@ -105,7 +105,6 @@ export type CustomerUpdate = Database['public']['Tables']['customers']['Update']
 
 export type ExternalContactRow = Database['public']['Tables']['external_customer_contacts']['Row'];
 export type ExternalContactInsert = Database['public']['Tables']['external_customer_contacts']['Insert'];
-export type ExternalContactUpdate = Database['public']['Tables']['external_customer_contacts']['Update'];
 
 /** Rows returned by list queries that omit debug-only `source_payload`. */
 export type ExternalContactListRow = Omit<ExternalContactRow, 'source_payload'>;

@@ -17,11 +17,21 @@ function createQC() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
 }
 
-function renderComponent(customerId = 'cust-1', canManage = true, teamMembers: Parameters<typeof ExternalContactsList>[0]['teamMembers'] = []) {
+function renderComponent(
+  organizationId = 'org-1',
+  customerId = 'cust-1',
+  canManage = true,
+  teamMembers: Parameters<typeof ExternalContactsList>[0]['teamMembers'] = []
+) {
   return render(
     <QueryClientProvider client={createQC()}>
       <MemoryRouter>
-        <ExternalContactsList customerId={customerId} canManage={canManage} teamMembers={teamMembers} />
+        <ExternalContactsList
+          organizationId={organizationId}
+          customerId={customerId}
+          canManage={canManage}
+          teamMembers={teamMembers}
+        />
       </MemoryRouter>
     </QueryClientProvider>
   );
@@ -90,7 +100,7 @@ describe('ExternalContactsList', () => {
       isLoading: false,
     });
 
-    renderComponent('cust-1', true);
+    renderComponent('org-1', 'cust-1', true);
 
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: /Edit Bill Lucchini/i })).toBeNull();
@@ -121,7 +131,7 @@ describe('ExternalContactsList', () => {
       isLoading: false,
     });
 
-    renderComponent('cust-1', true);
+    renderComponent('org-1', 'cust-1', true);
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Edit Jane Doe/i })).toBeInTheDocument();
@@ -152,7 +162,7 @@ describe('ExternalContactsList', () => {
       isLoading: false,
     });
 
-    renderComponent('cust-1', true);
+    renderComponent('org-1', 'cust-1', true);
 
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: /Edit Legacy Contact/i })).toBeNull();
@@ -163,7 +173,7 @@ describe('ExternalContactsList', () => {
   it('shows team manager and requestor as automatic contacts', async () => {
     mockUseExternalContacts.mockReturnValue({ data: [], isLoading: false });
 
-    renderComponent('cust-1', false, [
+    renderComponent('org-1', 'cust-1', false, [
       {
         id: 'tm-1',
         user_id: 'user-1',
