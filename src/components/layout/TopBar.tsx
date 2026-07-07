@@ -4,13 +4,10 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useSidebar } from '@/components/ui/sidebar-context';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { useOrganization } from '@/contexts/OrganizationContext';
 import ContextBreadcrumb from './ContextBreadcrumb';
-import QuickBooksStatusIndicator from './QuickBooksStatusIndicator';
 import UserProfileMenu from './UserProfileMenu';
 
 const TopBar: React.FC = () => {
-  const { organizationId } = useOrganization();
   const { toggleSidebar } = useSidebar();
 
   return (
@@ -41,7 +38,6 @@ const TopBar: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2">
-          {organizationId && <QuickBooksStatusIndicator organizationId={organizationId} />}
           <UserProfileMenu />
         </div>
       </div>

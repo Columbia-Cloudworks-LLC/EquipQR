@@ -9,7 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.16.0] - 2026-07-07
+## [3.16.1] - 2026-07-07
+
+### Fixed
+
+- **Team customer / QuickBooks linking (#1173)** — Customer account and QuickBooks invoice export now live on one card with explicit change, sync, and unlink controls; export gating resolves through the customer account chain (not legacy mapping only); changing a linked QuickBooks customer remaps in place instead of importing duplicates; refresh looks up customers by QuickBooks ID; team managers and requestors appear as automatic contacts; manual external contacts are manageable by team managers.
+- **QuickBooks token refresh UX (#1177)** — Removed the TopBar QuickBooks status badge and the misleading manual “Refresh Now” control on Integrations; reconnect is shown only when authorization truly expires.
+- **Team details map console hygiene (#1174)** — Team location preview skips the Google Map when no Map ID is configured, avoiding deprecated marker initialization paths.
+
 
 ### Fixed
 

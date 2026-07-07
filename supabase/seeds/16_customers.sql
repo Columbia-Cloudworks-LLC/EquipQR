@@ -37,5 +37,12 @@ INSERT INTO public.customers (
     'Inactive Customer Inc',
     'inactive',
     '2024-08-01 00:00:00+00'
+  ),
+  (
+    'c00e8400-e29b-41d4-a716-446655440011'::uuid,
+    '660e8400-e29b-41d4-a716-446655440000'::uuid,
+    'Summit Site Services',
+    'active',
+    '2025-01-10 00:00:00+00'
   )
 ON CONFLICT (id) DO NOTHING;

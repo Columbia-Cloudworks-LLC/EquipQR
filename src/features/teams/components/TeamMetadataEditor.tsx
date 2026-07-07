@@ -20,11 +20,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { type PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
-import { TEAM_NATIVE_SELECT_CLASS_NAME } from '@/features/teams/constants/teamNativeSelectClassName';
 import SingleImageUpload from '@/components/common/SingleImageUpload';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useCustomersByOrg } from '@/features/teams/hooks/useCustomerAccount';
 import { PMSchedulePolicyFields } from '@/features/pm-templates/components/PMSchedulePolicyFields';
 import {
   policyRowToFormState,
@@ -66,16 +64,12 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
   const [currentTeamImage, setCurrentTeamImage] = useState<string | null>(
     (team as { image_url?: string | null }).image_url ?? null
   );
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
-    team.customer_id ?? null
-  );
   const queryClient = useQueryClient();
   const { isLoaded } = useGoogleMapsLoader();
   const { currentOrganization } = useOrganization();
   const { canManageTeam, isOrganizationAdmin } = usePermissions();
   const canEditTeam = canManageTeam(team.id);
   const canEditPMSchedule = isOrganizationAdmin();
-  const { data: orgCustomers } = useCustomersByOrg(open ? currentOrganization?.id : undefined);
   const teamPolicyTarget = { scopeType: 'team' as const, teamId: team.id };
   const { data: teamPolicy } = usePMIntervalPolicy(currentOrganization?.id, teamPolicyTarget, { enabled: open });
   const [pmScheduleForm, setPmScheduleForm] = useState<PMSchedulePolicyFormState>(
@@ -133,7 +127,6 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
     const updates: Record<string, unknown> = {
       name: formData.get('name') as string,
       description: formData.get('description') as string,
-      customer_id: selectedCustomerId,
     };
 
     // If user selected a new place, use that data
@@ -265,23 +258,10 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
                 helpText="Upload a logo or photo to identify this team"
               />
 
-              {/* Customer Account */}
-              <div className="space-y-2">
-                <Label htmlFor="edit-customer-account-select">Customer Account</Label>
-                <select
-                  id="edit-customer-account-select"
-                  className={TEAM_NATIVE_SELECT_CLASS_NAME}
-                  value={selectedCustomerId ?? ''}
-                  onChange={(e) => setSelectedCustomerId(e.target.value || null)}
-                >
-                  <option value="">None (no account)</option>
-                  {(orgCustomers ?? []).map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Customer accounts and QuickBooks invoice linking are managed on the team page under
+                Customer account.
+              </p>
 
               <TeamLocationFormFields
                 locationAddress={locationData?.formatted_address ?? existingAddress}

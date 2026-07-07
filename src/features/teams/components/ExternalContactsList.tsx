@@ -12,16 +12,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Contact, Plus, Pencil, Trash2, Mail, Phone } from 'lucide-react';
+import { Contact, Plus, Pencil, Trash2, Mail, Phone, Users } from 'lucide-react';
 import {
   useExternalContacts,
   useExternalContactMutations,
 } from '@/features/teams/hooks/useCustomerAccount';
 import type { ExternalContactListRow } from '@/features/teams/types/team';
+import type { TeamWithMembers } from '@/features/teams/services/teamService';
 
 interface ExternalContactsListProps {
+  organizationId: string;
   customerId: string;
   canManage: boolean;
+  teamMembers?: TeamWithMembers['members'];
 }
 
 interface ContactFormData {
@@ -34,12 +37,81 @@ interface ContactFormData {
 
 const emptyForm: ContactFormData = { name: '', email: '', phone: '', role: '', notes: '' };
 
+function isEditableExternalContact(contact: ExternalContactListRow): boolean {
+  return (
+    contact.source === 'manual' &&
+    contact.source_external_id == null &&
+    contact.source_field == null
+  );
+}
+
+const TEAM_ROLE_CONTACT_LABELS: Record<string, string> = {
+  manager: 'Team Manager',
+  requestor: 'Requestor',
+};
+
+function TeamRoleContacts({
+  members,
+}: {
+  members: TeamWithMembers['members'];
+}) {
+  const roleContacts = members.filter((member) => member.role === 'manager' || member.role === 'requestor');
+
+  if (roleContacts.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+        <Users className="h-3.5 w-3.5" />
+        Team contacts
+      </p>
+      {roleContacts.map((member) => {
+        const name = member.profiles?.name ?? member.user_name ?? 'Team member';
+        const email = member.profiles?.email ?? member.user_email;
+        const roleLabel = TEAM_ROLE_CONTACT_LABELS[member.role] ?? member.role;
+
+        return (
+          <div
+            key={member.id}
+            className="flex items-start justify-between gap-2 rounded-lg border border-dashed p-3 bg-muted/20"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-medium">{name}</span>
+                <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                  {roleLabel}
+                </span>
+                <Badge variant="outline" className="text-xs px-1.5 py-0 h-5">
+                  EquipQR user
+                </Badge>
+              </div>
+              {email && (
+                <a
+                  href={`mailto:${email}`}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors mt-1"
+                >
+                  <Mail className="h-3 w-3" />
+                  {email}
+                </a>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 const ExternalContactsList: React.FC<ExternalContactsListProps> = ({
+  organizationId,
   customerId,
   canManage,
+  teamMembers = [],
 }) => {
   const { data: contacts = [], isLoading } = useExternalContacts(customerId);
-  const mutations = useExternalContactMutations(customerId);
+  const mutations = useExternalContactMutations(organizationId, customerId);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ContactFormData>(emptyForm);
@@ -63,12 +135,12 @@ const ExternalContactsList: React.FC<ExternalContactsListProps> = ({
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) return;
+    if (!canManage || !form.name.trim()) return;
     try {
       if (editingId) {
         await mutations.update.mutateAsync({
           id: editingId,
-          updates: {
+          fields: {
             name: form.name.trim(),
             email: form.email.trim() || null,
             phone: form.phone.trim() || null,
@@ -93,6 +165,7 @@ const ExternalContactsList: React.FC<ExternalContactsListProps> = ({
   };
 
   const handleDelete = async (contactId: string) => {
+    if (!canManage) return;
     if (!window.confirm('Remove this contact?')) return;
     try {
       await mutations.remove.mutateAsync(contactId);
@@ -111,29 +184,36 @@ const ExternalContactsList: React.FC<ExternalContactsListProps> = ({
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Contact className="h-5 w-5" />
-                Customer Contacts
+                Customer contacts
               </CardTitle>
               <CardDescription>
-                External contacts for this customer account
+                Team managers and requestors are listed automatically. Team managers can add and edit
+                manual external contacts; QuickBooks-synced contacts stay read-only.
               </CardDescription>
             </div>
             {canManage && (
               <Button size="sm" onClick={openCreate} className="gap-1.5">
                 <Plus className="h-4 w-4" />
-                Add Contact
+                Add contact
               </Button>
             )}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <TeamRoleContacts members={teamMembers} />
+
           {contacts.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
               No external contacts yet
             </p>
           ) : (
             <div className="space-y-3">
+              {contacts.length > 0 && teamMembers.some((m) => m.role === 'manager' || m.role === 'requestor') ? (
+                <p className="text-xs font-medium text-muted-foreground">External &amp; synced contacts</p>
+              ) : null}
               {contacts.map((c) => {
                 const isQBO = c.source === 'quickbooks';
+                const canEditContact = isEditableExternalContact(c);
                 return (
                   <div
                     key={c.id}
@@ -174,7 +254,7 @@ const ExternalContactsList: React.FC<ExternalContactsListProps> = ({
                         )}
                       </div>
                     </div>
-                    {canManage && !isQBO && (
+                    {canManage && canEditContact && (
                       <div className="flex gap-1 shrink-0">
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(c)}>
                           <Pencil className="h-3.5 w-3.5" />
@@ -202,11 +282,11 @@ const ExternalContactsList: React.FC<ExternalContactsListProps> = ({
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingId ? 'Edit Contact' : 'Add Contact'}</DialogTitle>
+            <DialogTitle>{editingId ? 'Edit contact' : 'Add contact'}</DialogTitle>
             <DialogDescription>
               {editingId
                 ? 'Update the contact details'
-                : 'Add an external contact for this customer'}
+                : 'Add an external contact for this customer account'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

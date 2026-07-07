@@ -29,7 +29,7 @@ import TeamRecentWorkOrders from '@/features/teams/components/TeamRecentWorkOrde
 import TeamLocationCard from '@/features/teams/components/TeamLocationCard';
 import { TeamPMScheduleCard } from '@/features/teams/components/TeamPMScheduleCard';
 import CustomerAccountCard from '@/features/teams/components/CustomerAccountCard';
-import ExternalContactsList from '@/features/teams/components/ExternalContactsList';
+import TeamExternalContactsSection from '@/features/teams/components/TeamExternalContactsSection';
 import { TeamViewSwitcher } from '@/features/teams/components/TeamViewSwitcher';
 import { updateTeam } from '@/features/teams/services/teamService';
 import { TEAM_VIEW_LABELS, isTeamView, type TeamView } from '@/features/teams/types/team';
@@ -46,7 +46,6 @@ const VIEW_SECTION_ORDER: Record<TeamView, string[]> = {
     'pm-schedule',
     'customer-account',
     'external-contacts',
-    'quickbooks',
   ],
   department: [
     'info',
@@ -58,12 +57,10 @@ const VIEW_SECTION_ORDER: Record<TeamView, string[]> = {
     'members',
     'customer-account',
     'external-contacts',
-    'quickbooks',
   ],
   customer: [
     'customer-account',
     'external-contacts',
-    'quickbooks',
     'activity',
     'recent-work-orders',
     'recent-equipment',
@@ -167,6 +164,10 @@ const TeamDetails = () => {
   const canEdit = permissions.canManageTeam(team.id);
   const canDelete = permissions.canManageTeam(team.id);
   const canManageMembers = permissions.canManageTeam(team.id);
+  // Team managers may CRUD manual external contacts via 20260707125008 RPCs + manager RLS
+  // (20260707160000 supersedes admin-only policies from 20260406000003).
+  const canManageExternalContacts =
+    canEdit && team.organization_id === currentOrganization.id;
 
   const preferredView: TeamView = isTeamView(team.preferred_view) ? team.preferred_view : 'internal';
   const activeView = viewOverride ?? preferredView;
@@ -415,40 +416,51 @@ const TeamDetails = () => {
             );
           case 'customer-account':
             if (team.customer_id) {
-              return <CustomerAccountCard key={sectionKey} customerId={team.customer_id} />;
+              return (
+                <CustomerAccountCard
+                  key={sectionKey}
+                  customerId={team.customer_id}
+                  teamId={team.id}
+                  teamName={team.name}
+                />
+              );
             }
             if (activeView === 'customer') {
               return (
                 <Card key={sectionKey} className="shadow-elevation-2">
-                  <CardContent className="py-8 text-center">
+                  <CardContent className="py-8 text-center space-y-4">
                     <Handshake className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
-                    <h3 className="mb-1 text-base font-semibold">No customer account linked</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Link a customer account to this team to track the external organization,
-                      contacts, and invoicing behind the equipment you service.
-                      {canEdit ? ' Use Edit Team to link one.' : ''}
-                    </p>
+                    <div>
+                      <h3 className="mb-1 text-base font-semibold">No customer account linked</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Link a customer account to track the external organization, contacts, and
+                        invoicing behind the equipment you service.
+                      </p>
+                    </div>
+                    <QuickBooksCustomerMapping
+                      embedded
+                      teamId={team.id}
+                      teamName={team.name}
+                      customerId={null}
+                    />
                   </CardContent>
                 </Card>
               );
             }
-            return null;
-          case 'external-contacts':
-            if (!team.customer_id) return null;
-            return (
-              <ExternalContactsList
-                key={sectionKey}
-                customerId={team.customer_id}
-                canManage={permissions.isOrganizationAdmin()}
-              />
-            );
-          case 'quickbooks':
             return (
               <QuickBooksCustomerMapping
                 key={sectionKey}
                 teamId={team.id}
                 teamName={team.name}
-                customerId={team.customer_id}
+                customerId={null}
+              />
+            );
+          case 'external-contacts':
+            return (
+              <TeamExternalContactsSection
+                key={sectionKey}
+                team={team}
+                canManage={canManageExternalContacts}
               />
             );
           case 'members':

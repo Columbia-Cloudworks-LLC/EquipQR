@@ -17,11 +17,21 @@ function createQC() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
 }
 
-function renderComponent(customerId = 'cust-1', canManage = true) {
+function renderComponent(
+  organizationId = 'org-1',
+  customerId = 'cust-1',
+  canManage = true,
+  teamMembers: Parameters<typeof ExternalContactsList>[0]['teamMembers'] = []
+) {
   return render(
     <QueryClientProvider client={createQC()}>
       <MemoryRouter>
-        <ExternalContactsList customerId={customerId} canManage={canManage} />
+        <ExternalContactsList
+          organizationId={organizationId}
+          customerId={customerId}
+          canManage={canManage}
+          teamMembers={teamMembers}
+        />
       </MemoryRouter>
     </QueryClientProvider>
   );
@@ -90,7 +100,7 @@ describe('ExternalContactsList', () => {
       isLoading: false,
     });
 
-    renderComponent('cust-1', true);
+    renderComponent('org-1', 'cust-1', true);
 
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: /Edit Bill Lucchini/i })).toBeNull();
@@ -121,11 +131,73 @@ describe('ExternalContactsList', () => {
       isLoading: false,
     });
 
-    renderComponent('cust-1', true);
+    renderComponent('org-1', 'cust-1', true);
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Edit Jane Doe/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Delete Jane Doe/i })).toBeInTheDocument();
+    });
+  });
+
+  it('hides edit and delete for manual rows that still carry QBO provenance metadata', async () => {
+    mockUseExternalContacts.mockReturnValue({
+      data: [
+        {
+          id: 'c-legacy',
+          customer_id: 'cust-1',
+          name: 'Legacy Contact',
+          email: 'legacy@example.com',
+          phone: null,
+          role: 'Billing',
+          notes: null,
+          created_at: null,
+          updated_at: null,
+          source: 'manual',
+          source_external_id: 'qb-stale',
+          source_field: 'primary_email',
+          last_synced_at: null,
+          source_payload: null,
+        },
+      ],
+      isLoading: false,
+    });
+
+    renderComponent('org-1', 'cust-1', true);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /Edit Legacy Contact/i })).toBeNull();
+      expect(screen.queryByRole('button', { name: /Delete Legacy Contact/i })).toBeNull();
+    });
+  });
+
+  it('shows team manager and requestor as automatic contacts', async () => {
+    mockUseExternalContacts.mockReturnValue({ data: [], isLoading: false });
+
+    renderComponent('org-1', 'cust-1', false, [
+      {
+        id: 'tm-1',
+        user_id: 'user-1',
+        team_id: 'team-1',
+        role: 'manager',
+        joined_date: '2024-01-01T00:00:00Z',
+        profiles: { name: 'Pat Manager', email: 'pat@example.com' },
+      },
+      {
+        id: 'tm-2',
+        user_id: 'user-2',
+        team_id: 'team-1',
+        role: 'requestor',
+        joined_date: '2024-01-02T00:00:00Z',
+        profiles: { name: 'Riley Requestor', email: 'riley@example.com' },
+      },
+    ]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Pat Manager')).toBeInTheDocument();
+      expect(screen.getByText('Riley Requestor')).toBeInTheDocument();
+      expect(screen.getByText('Team Manager')).toBeInTheDocument();
+      expect(screen.getByText('Requestor')).toBeInTheDocument();
+      expect(screen.getAllByText('EquipQR user')).toHaveLength(2);
     });
   });
 

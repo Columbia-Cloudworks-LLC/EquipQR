@@ -22,6 +22,7 @@
     "can_access_inventory",
     "can_access_work_order_costs",
     "can_manage_invitation_atomic",
+    "can_manage_manual_external_customer_contact",
     "check_admin_permission_safe",
     "check_storage_limit",
     "complete_product_onboarding",
@@ -31,10 +32,12 @@
     "create_operator_checkin_assignment",
     "create_historical_work_order_with_pm",
     "create_invitation_atomic",
+    "create_manual_external_customer_contact",
     "create_quickbooks_oauth_session",
     "create_workspace_organization_for_domain",
     "convert_work_order_to_historical",
     "delete_organization",
+    "delete_manual_external_customer_contact",
     "delete_work_order_cascade",
     "disconnect_google_workspace",
     "disconnect_quickbooks",
@@ -86,6 +89,7 @@
     "select_google_workspace_members",
     "update_equipment_working_hours",
     "update_historical_work_order_note_timestamp",
+    "update_manual_external_customer_contact",
     "update_member_quickbooks_permission",
     "validate_quickbooks_oauth_session"
   ]

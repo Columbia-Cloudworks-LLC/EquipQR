@@ -3,13 +3,8 @@
 /**
  * QuickBooks Customer Mapping Component
  *
- * Three flows:
- *  1. Import — search QB customers, create a local `customers` row and link to the team.
- *  2. Refresh — re-fetch QB data for the already-linked customer and merge QB-sourced fields.
- *  3. Link Existing — attach an existing local customer account to the team.
- *
- * Backward compat: still writes to `quickbooks_team_customers` for legacy invoice export
- * until the full resolution chain is adopted.
+ * Links a team's customer account to a QuickBooks customer for invoice export.
+ * Supports import, refresh, remap, link-existing, and unlink flows.
  */
 
 import React, { useState } from 'react';
@@ -47,6 +42,7 @@ import {
 } from '@/services/quickbooks';
 import { isQuickBooksEnabled } from '@/lib/flags';
 import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useCustomerMutations, useCustomersByOrg } from '@/features/teams/hooks/useCustomerAccount';
 import { useCustomer } from '@/features/teams/hooks/useCustomerAccount';
 import type { QBCustomerPayload } from '@/features/teams/services/customerAccountService';
@@ -56,6 +52,8 @@ interface QuickBooksCustomerMappingProps {
   teamId: string;
   teamName: string;
   customerId?: string | null;
+  /** When true, render inside CustomerAccountCard without an outer Card shell. */
+  embedded?: boolean;
 }
 
 function qbCustomerToPayload(c: QuickBooksCustomer): QBCustomerPayload {
@@ -81,6 +79,7 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
   teamId,
   teamName,
   customerId,
+  embedded = false,
 }) => {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
@@ -89,15 +88,21 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
   const [selectedCustomer, setSelectedCustomer] = useState<QuickBooksCustomer | null>(null);
   const [accountSearchQuery, setAccountSearchQuery] = useState('');
 
-  const { data: canManage = false, isLoading: permissionLoading } = useQuickBooksAccess();
+  const { data: canManageQuickBooks = false, isLoading: permissionLoading } = useQuickBooksAccess();
+  const { canManageTeam } = usePermissions();
+  const canManageAccount = canManageTeam(teamId);
   const featureEnabled = isQuickBooksEnabled();
 
   const { data: connectionStatus } = useQuery({
     queryKey: ['quickbooks', 'connection', currentOrganization?.id],
     queryFn: () => getConnectionStatus(currentOrganization!.id),
-    enabled: !!currentOrganization?.id && canManage && featureEnabled,
+    enabled: !!currentOrganization?.id && canManageQuickBooks && featureEnabled,
     staleTime: 60 * 1000,
   });
+
+  const isQuickBooksConnected = connectionStatus?.isConnected === true;
+  const showQuickBooksControls = canManageQuickBooks && isQuickBooksConnected;
+  const canWriteLegacyMapping = canManageQuickBooks;
 
   const { data: existingMapping, isLoading: mappingLoading } = useQuery({
     queryKey: ['quickbooks', 'team-mapping', currentOrganization?.id, teamId],
@@ -105,9 +110,9 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
     enabled:
       !!currentOrganization?.id &&
       !!teamId &&
-      canManage &&
+      canManageQuickBooks &&
       featureEnabled &&
-      connectionStatus?.isConnected,
+      isQuickBooksConnected,
   });
 
   const {
@@ -117,7 +122,7 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
   } = useQuery({
     queryKey: ['quickbooks', 'customers', currentOrganization?.id, searchQuery],
     queryFn: () => searchCustomers(currentOrganization!.id, searchQuery),
-    enabled: !!currentOrganization?.id && mode === 'import' && connectionStatus?.isConnected,
+    enabled: !!currentOrganization?.id && mode === 'import' && showQuickBooksControls,
     staleTime: 30 * 1000,
   });
 
@@ -129,12 +134,15 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
 
   const customerMutations = useCustomerMutations(currentOrganization?.id);
 
-  // Legacy mapping mutations (kept for backward compat with invoice export)
   const updateLegacyMapping = useMutation({
     mutationFn: ({ custId, displayName }: { custId: string; displayName: string }) =>
       updateTeamCustomerMapping(currentOrganization!.id, teamId, custId, displayName),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quickbooks', 'team-mapping'] });
+      queryClient.invalidateQueries({ queryKey: ['quickbooks', 'resolved-mapping'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Could not update QuickBooks customer mapping.');
     },
   });
 
@@ -142,40 +150,79 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
     mutationFn: () => clearTeamCustomerMapping(currentOrganization!.id, teamId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quickbooks', 'team-mapping'] });
+      queryClient.invalidateQueries({ queryKey: ['quickbooks', 'resolved-mapping'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Could not clear QuickBooks customer mapping.');
     },
   });
 
-  // ---- Import flow ----
+  const invalidateTeamQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['team', teamId] });
+    queryClient.invalidateQueries({ queryKey: ['teams'] });
+  };
+
+  const syncLegacyQuickBooksMapping = async (
+    account: { quickbooks_customer_id?: string | null; quickbooks_display_name?: string | null; name: string } | undefined,
+    qbOverride?: { id: string; displayName: string },
+  ) => {
+    if (!canWriteLegacyMapping || !currentOrganization) return;
+
+    if (qbOverride) {
+      await updateLegacyMapping.mutateAsync({
+        custId: qbOverride.id,
+        displayName: qbOverride.displayName,
+      });
+      return;
+    }
+
+    if (account?.quickbooks_customer_id) {
+      await updateLegacyMapping.mutateAsync({
+        custId: account.quickbooks_customer_id,
+        displayName: account.quickbooks_display_name ?? account.name,
+      });
+    } else {
+      await clearLegacyMapping.mutateAsync();
+    }
+  };
+
   const handleImportAndLink = async () => {
     if (!selectedCustomer || !currentOrganization) return;
+    if (!showQuickBooksControls) {
+      toast.error('You do not have permission to manage QuickBooks customers.');
+      return;
+    }
     try {
       const payload = qbCustomerToPayload(selectedCustomer);
-      const created = await customerMutations.importFromQB.mutateAsync({ qb: payload });
-      await customerMutations.link.mutateAsync({ teamId, customerId: created.id });
-      // Legacy compat
-      await updateLegacyMapping.mutateAsync({
-        custId: selectedCustomer.Id,
+
+      if (customerId && linkedCustomer) {
+        await customerMutations.remapFromQB.mutateAsync({
+          customerId: linkedCustomer.id,
+          qb: payload,
+        });
+      } else {
+        const created = await customerMutations.importFromQB.mutateAsync({ qb: payload });
+        await customerMutations.link.mutateAsync({ teamId, customerId: created.id });
+      }
+
+      await syncLegacyQuickBooksMapping(undefined, {
+        id: selectedCustomer.Id,
         displayName: selectedCustomer.DisplayName,
       });
-      queryClient.invalidateQueries({ queryKey: ['team', teamId] });
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      invalidateTeamQueries();
       closeDialog();
     } catch {
       // Errors handled by mutation hooks
     }
   };
 
-  // ---- Refresh flow ----
   const handleRefresh = async () => {
     if (!linkedCustomer?.quickbooks_customer_id || !currentOrganization) return;
     try {
-      const result = await searchCustomers(
-        currentOrganization.id,
-        linkedCustomer.quickbooks_display_name ?? linkedCustomer.name
-      );
-      const match = result.customers?.find(
-        (c: QuickBooksCustomer) => c.Id === linkedCustomer.quickbooks_customer_id
-      );
+      const result = await searchCustomers(currentOrganization.id, undefined, {
+        quickbooksCustomerId: linkedCustomer.quickbooks_customer_id,
+      });
+      const match = result.customers?.[0];
       if (!match) {
         toast.error('Could not find the linked QuickBooks customer. It may have been deleted.');
         return;
@@ -185,26 +232,22 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
         customerId: linkedCustomer.id,
         qb: payload,
       });
-      queryClient.invalidateQueries({ queryKey: ['team', teamId] });
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      invalidateTeamQueries();
     } catch {
       // Errors handled by mutation hooks
     }
   };
 
-  // ---- Link existing account flow ----
   const handleLinkExisting = async (accountId: string) => {
+    if (!canManageAccount) {
+      toast.error('You do not have permission to link customer accounts for this team.');
+      return;
+    }
     try {
       await customerMutations.link.mutateAsync({ teamId, customerId: accountId });
-      const account = orgCustomers?.find(c => c.id === accountId);
-      if (account?.quickbooks_customer_id) {
-        await updateLegacyMapping.mutateAsync({
-          custId: account.quickbooks_customer_id,
-          displayName: account.quickbooks_display_name ?? account.name,
-        });
-      }
-      queryClient.invalidateQueries({ queryKey: ['team', teamId] });
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      const account = orgCustomers?.find((c) => c.id === accountId);
+      await syncLegacyQuickBooksMapping(account);
+      invalidateTeamQueries();
       closeDialog();
       toast.success(`Team "${teamName}" linked to account`);
     } catch {
@@ -212,14 +255,18 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
     }
   };
 
-  // ---- Unlink ----
   const handleUnlink = async () => {
+    if (!canManageAccount) {
+      toast.error('You do not have permission to unlink customer accounts for this team.');
+      return;
+    }
     if (!window.confirm('Remove the customer account link from this team?')) return;
     try {
       await customerMutations.link.mutateAsync({ teamId, customerId: null });
-      await clearLegacyMapping.mutateAsync();
-      queryClient.invalidateQueries({ queryKey: ['team', teamId] });
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      if (canWriteLegacyMapping) {
+        await clearLegacyMapping.mutateAsync();
+      }
+      invalidateTeamQueries();
       toast.success('Customer account unlinked');
     } catch {
       // Errors handled by mutation hooks
@@ -234,7 +281,7 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
   };
 
   if (!featureEnabled || permissionLoading) return null;
-  if (!canManage || !connectionStatus?.isConnected) return null;
+  if (!canManageAccount && !canManageQuickBooks) return null;
 
   const customers = customerSearchResult?.customers || [];
   const filteredAccounts = (orgCustomers ?? []).filter((a) =>
@@ -242,116 +289,136 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
   );
   const isImportLinkPending =
     customerMutations.importFromQB.isPending ||
+    customerMutations.remapFromQB.isPending ||
     customerMutations.link.isPending ||
     updateLegacyMapping.isPending;
 
   const isLinked = !!customerId && !!linkedCustomer;
+  const isChangingExisting = isLinked && mode === 'import';
 
-  return (
+  const body = (
     <>
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Link2 className="h-4 w-4" />
-            QuickBooks Customer
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Link this team to a QuickBooks customer for invoice export
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {mappingLoading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              Loading...
-            </div>
-          ) : isLinked ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-success/10 text-success border-success/30">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Linked
-                </Badge>
-                {linkedCustomer.quickbooks_synced_at && (
-                  <span className="text-xs text-muted-foreground">
-                    Synced{' '}
-                    {new Date(linkedCustomer.quickbooks_synced_at).toLocaleDateString()}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">{linkedCustomer.name}</span>
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                {linkedCustomer.quickbooks_customer_id && (
-                  <Button variant="outline" size="sm" onClick={handleRefresh}>
-                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                    Refresh from QB
-                  </Button>
-                )}
-                <Button variant="outline" size="sm" onClick={() => setMode('import')}>
-                  Change
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleUnlink}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ) : existingMapping ? (
-            /* Legacy mapping exists but no customer account link yet */
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
-                  <AlertTriangle className="h-3 w-3 mr-1" />
-                  Legacy Mapping
-                </Badge>
-              </div>
-              <div className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">{existingMapping.display_name}</span>
-              </div>
+      {mappingLoading ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <RefreshCw className="h-4 w-4 animate-spin" />
+          Loading...
+        </div>
+      ) : isLinked ? (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="outline" className="bg-success/10 text-success border-success/30">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              {linkedCustomer.quickbooks_customer_id
+                ? 'Linked for invoice export'
+                : 'Customer account linked'}
+            </Badge>
+            {linkedCustomer.quickbooks_customer_id && (
+              <span className="text-xs text-muted-foreground">
+                QB ID {linkedCustomer.quickbooks_customer_id}
+              </span>
+            )}
+            {linkedCustomer.quickbooks_synced_at && (
+              <span className="text-xs text-muted-foreground">
+                Synced {new Date(linkedCustomer.quickbooks_synced_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+          {linkedCustomer.quickbooks_display_name &&
+            linkedCustomer.quickbooks_display_name !== linkedCustomer.name && (
               <p className="text-xs text-muted-foreground">
-                This team has a legacy QuickBooks mapping. Import the customer to create a full
-                account record.
+                QuickBooks name: {linkedCustomer.quickbooks_display_name}
               </p>
+            )}
+          <div className="flex gap-2 flex-wrap">
+            {showQuickBooksControls && linkedCustomer.quickbooks_customer_id && (
+              <Button variant="outline" size="sm" onClick={handleRefresh}>
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                Sync from QuickBooks
+              </Button>
+            )}
+            {showQuickBooksControls && (
+              <Button variant="outline" size="sm" onClick={() => setMode('import')}>
+                Change QB customer
+              </Button>
+            )}
+            {canManageAccount && (
+              <Button variant="outline" size="sm" onClick={() => setMode('link')}>
+                Link different account
+              </Button>
+            )}
+            {canManageAccount && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleUnlink}
+                className="text-destructive hover:text-destructive"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Unlink
+              </Button>
+            )}
+          </div>
+        </div>
+      ) : existingMapping ? (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              Legacy mapping only
+            </Badge>
+          </div>
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">{existingMapping.display_name}</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Import this QuickBooks customer to create a full customer account and enable contact
+            sync.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => setMode('import')}>
+            <Download className="h-3.5 w-3.5 mr-1.5" />
+            Import as account
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            {showQuickBooksControls
+              ? 'Link a QuickBooks customer to enable invoice export for this team\'s work orders.'
+              : 'Link a customer account to this team. Connect QuickBooks on Integrations to enable invoice export.'}
+          </p>
+          <div className="flex gap-2 flex-wrap">
+            {showQuickBooksControls && (
               <Button variant="outline" size="sm" onClick={() => setMode('import')}>
                 <Download className="h-3.5 w-3.5 mr-1.5" />
-                Import as Account
+                Import from QuickBooks
               </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                No customer account linked. Import from QuickBooks or link an existing account.
-              </p>
-              <div className="flex gap-2 flex-wrap">
-                <Button variant="outline" size="sm" onClick={() => setMode('import')}>
-                  <Download className="h-3.5 w-3.5 mr-1.5" />
-                  Import from QB
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setMode('link')}>
-                  <Link2 className="h-3.5 w-3.5 mr-1.5" />
-                  Link Existing
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+            {canManageAccount && (
+              <Button variant="outline" size="sm" onClick={() => setMode('link')}>
+                <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                Link existing account
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
-      {/* Import Dialog */}
-      <Dialog open={mode === 'import'} onOpenChange={() => closeDialog()}>
+      <Dialog
+        open={mode === 'import'}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Import from QuickBooks</DialogTitle>
+            <DialogTitle>
+              {isChangingExisting ? 'Change QuickBooks customer' : 'Import from QuickBooks'}
+            </DialogTitle>
             <DialogDescription>
-              Search QuickBooks customers to import and link to &ldquo;{teamName}&rdquo;
+              {isChangingExisting
+                ? `Choose a different QuickBooks customer for "${teamName}". The linked customer account will be updated in place.`
+                : `Search QuickBooks customers to import and link to "${teamName}"`}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -389,6 +456,7 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
                   {customers.map((c) => (
                     <button
                       key={c.Id}
+                      type="button"
                       onClick={() => setSelectedCustomer(c)}
                       className={`w-full p-3 rounded-lg border text-left transition-colors ${
                         selectedCustomer?.Id === c.Id
@@ -420,23 +488,25 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
                 onClick={handleImportAndLink}
                 disabled={!selectedCustomer || isImportLinkPending}
               >
-                {isImportLinkPending && (
-                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                )}
-                Import &amp; Link
+                {isImportLinkPending && <RefreshCw className="h-4 w-4 animate-spin mr-2" />}
+                {isChangingExisting ? 'Update link' : 'Import & link'}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Link Existing Account Dialog */}
-      <Dialog open={mode === 'link'} onOpenChange={() => closeDialog()}>
+      <Dialog
+        open={mode === 'link'}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Link Existing Account</DialogTitle>
+            <DialogTitle>Link existing account</DialogTitle>
             <DialogDescription>
-              Choose an existing customer account to link to &ldquo;{teamName}&rdquo;
+              Choose an existing EquipQR customer account to link to &ldquo;{teamName}&rdquo;
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -462,12 +532,18 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
                   {filteredAccounts.map((acct) => (
                     <button
                       key={acct.id}
+                      type="button"
                       onClick={() => handleLinkExisting(acct.id)}
                       className="w-full p-3 rounded-lg border text-left transition-colors border-border hover:border-primary/50 hover:bg-muted/50"
                     >
                       <div className="font-medium text-sm">{acct.name}</div>
                       {acct.email && (
                         <div className="text-xs text-muted-foreground">{acct.email}</div>
+                      )}
+                      {acct.quickbooks_customer_id && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          QuickBooks ID {acct.quickbooks_customer_id}
+                        </div>
                       )}
                     </button>
                   ))}
@@ -484,5 +560,28 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
       </Dialog>
     </>
   );
-};
 
+  if (embedded) {
+    return (
+      <div className="border-t pt-3 mt-1 space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">QuickBooks invoice export</p>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Link2 className="h-4 w-4" />
+          QuickBooks invoice export
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Connect this team&apos;s customer account to a QuickBooks customer for draft invoice export
+        </CardDescription>
+      </CardHeader>
+      <CardContent>{body}</CardContent>
+    </Card>
+  );
+};

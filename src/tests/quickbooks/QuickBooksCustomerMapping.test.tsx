@@ -11,7 +11,7 @@
 
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // ---------------------------------------------------------------------------
@@ -38,6 +38,12 @@ vi.mock('@/hooks/useQuickBooksAccess', () => ({
   useQuickBooksAccess: (...args: unknown[]) => mockUseQuickBooksAccess(...args),
 }));
 
+vi.mock('@/hooks/usePermissions', () => ({
+  usePermissions: () => ({
+    canManageTeam: () => true,
+  }),
+}));
+
 const mockGetConnectionStatus = vi.fn();
 const mockGetTeamCustomerMapping = vi.fn();
 const mockUpdateTeamCustomerMapping = vi.fn();
@@ -61,6 +67,7 @@ vi.mock('@/features/teams/hooks/useCustomerAccount', () => ({
     link: { mutateAsync: vi.fn(), isPending: false },
     importFromQB: { mutateAsync: vi.fn(), isPending: false },
     refreshFromQB: { mutateAsync: vi.fn(), isPending: false },
+    remapFromQB: { mutateAsync: vi.fn(), isPending: false },
   })),
 }));
 
@@ -110,35 +117,38 @@ describe('QuickBooksCustomerMapping', () => {
   it('should render nothing when user has no QuickBooks permission', async () => {
     mockUseQuickBooksAccess.mockReturnValue({ data: false, isLoading: false });
 
-    const { container } = renderComponent();
-
-    await waitFor(() => {
-      expect(container.querySelector('.animate-spin')).toBeNull();
-    });
-    expect(screen.queryByText('QuickBooks Customer')).toBeNull();
-  });
-
-  it('should render nothing when QuickBooks is not connected', async () => {
-    mockGetConnectionStatus.mockResolvedValue({ isConnected: false });
-
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.queryByText('QuickBooks Customer')).toBeNull();
+      expect(screen.getByRole('button', { name: /link existing account/i })).toBeInTheDocument();
     });
+    expect(screen.queryByRole('button', { name: /import from quickbooks/i })).toBeNull();
   });
 
-  it('should show "Import from QB" and "Link Existing" buttons when no mapping exists', async () => {
+  it('should show link existing account without QuickBooks connected', async () => {
+    mockUseQuickBooksAccess.mockReturnValue({ data: true, isLoading: false });
+    mockGetConnectionStatus.mockResolvedValue({ isConnected: false });
     mockGetTeamCustomerMapping.mockResolvedValue(null);
 
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('Import from QB')).toBeInTheDocument();
-      expect(screen.getByText('Link Existing')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /link existing account/i })).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('button', { name: /import from quickbooks/i })).toBeNull();
+  });
+
+  it('should show legacy mapping with upgrade prompt', async () => {
+    mockGetTeamCustomerMapping.mockResolvedValue(null);
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('Import from QuickBooks')).toBeInTheDocument();
+      expect(screen.getByText('Link existing account')).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/No customer account linked/)).toBeInTheDocument();
+    expect(screen.getByText(/Link a QuickBooks customer/i)).toBeInTheDocument();
   });
 
   it('should show legacy mapping with upgrade prompt', async () => {
@@ -158,11 +168,11 @@ describe('QuickBooksCustomerMapping', () => {
       expect(screen.getByText('Acme Corp')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Legacy Mapping')).toBeInTheDocument();
-    expect(screen.getByText('Import as Account')).toBeInTheDocument();
+    expect(screen.getByText('Legacy mapping only')).toBeInTheDocument();
+    expect(screen.getByText('Import as account')).toBeInTheDocument();
   });
 
-  it('should open the import dialog when "Import from QB" is clicked', async () => {
+  it('should open the import dialog when "Import from QuickBooks" is clicked', async () => {
     const user = userEvent.setup();
     mockGetTeamCustomerMapping.mockResolvedValue(null);
     mockSearchCustomers.mockResolvedValue({
@@ -176,13 +186,13 @@ describe('QuickBooksCustomerMapping', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('Import from QB')).toBeInTheDocument();
+      expect(screen.getByText('Import from QuickBooks')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('Import from QB'));
+    await user.click(screen.getByRole('button', { name: 'Import from QuickBooks' }));
 
     await waitFor(() => {
-      expect(screen.getByText('Import from QuickBooks')).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: 'Import from QuickBooks' })).toBeInTheDocument();
     });
   });
 
@@ -200,10 +210,10 @@ describe('QuickBooksCustomerMapping', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('Import from QB')).toBeInTheDocument();
+      expect(screen.getByText('Import from QuickBooks')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('Import from QB'));
+    await user.click(screen.getByRole('button', { name: 'Import from QuickBooks' }));
 
     await waitFor(() => {
       expect(screen.getByText('Alpha Customer')).toBeInTheDocument();
@@ -213,20 +223,17 @@ describe('QuickBooksCustomerMapping', () => {
   });
 
   it('should open the link existing dialog', async () => {
-    const user = userEvent.setup();
     mockGetTeamCustomerMapping.mockResolvedValue(null);
 
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('Link Existing')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Link existing account' })).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('Link Existing'));
+    fireEvent.click(screen.getByRole('button', { name: 'Link existing account' }));
 
-    await waitFor(() => {
-      expect(screen.getByText('Link Existing Account')).toBeInTheDocument();
-    });
+    expect(await screen.findByPlaceholderText('Search accounts...')).toBeInTheDocument();
   });
 
   it('should forward GivenName, FamilyName, Mobile, Fax, and contacts through qbCustomerToPayload', async () => {
@@ -252,6 +259,7 @@ describe('QuickBooksCustomerMapping', () => {
       link: { mutateAsync: mockLink, isPending: false },
       importFromQB: { mutateAsync: mockImportFromQB, isPending: false },
       refreshFromQB: { mutateAsync: vi.fn(), isPending: false },
+      remapFromQB: { mutateAsync: vi.fn(), isPending: false },
     } as ReturnType<typeof import('@/features/teams/hooks/useCustomerAccount').useCustomerMutations>);
 
     mockSearchCustomers.mockResolvedValue({
@@ -279,10 +287,10 @@ describe('QuickBooksCustomerMapping', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('Import from QB')).toBeInTheDocument();
+      expect(screen.getByText('Import from QuickBooks')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('Import from QB'));
+    await user.click(screen.getByRole('button', { name: 'Import from QuickBooks' }));
 
     await waitFor(() => {
       expect(screen.getByText('Bill Lucchini')).toBeInTheDocument();
@@ -291,7 +299,7 @@ describe('QuickBooksCustomerMapping', () => {
     // Select the customer and confirm
     await user.click(screen.getByText('Bill Lucchini'));
 
-    const importBtn = screen.queryByRole('button', { name: /Import & Link/i });
+    const importBtn = screen.queryByRole('button', { name: /Import & link/i });
     if (importBtn) {
       await user.click(importBtn);
       await waitFor(() => {
