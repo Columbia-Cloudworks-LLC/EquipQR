@@ -75,6 +75,27 @@ function Invoke-PrEvidenceNative {
     }
 }
 
+function Convert-PrEvidenceJsonOutput {
+    param([string]$Text)
+
+    if ([string]::IsNullOrWhiteSpace($Text)) {
+        throw 'Empty command output; expected JSON.'
+    }
+
+    $trimmed = $Text.Trim()
+    try {
+        return ($trimmed | ConvertFrom-Json)
+    }
+    catch {
+        $jsonLine = ($Text -split "`r?`n" | Where-Object { $_.TrimStart().StartsWith('{') } | Select-Object -Last 1)
+        if ($jsonLine) {
+            return ($jsonLine.Trim() | ConvertFrom-Json)
+        }
+
+        throw "Expected JSON output but got: $trimmed"
+    }
+}
+
 function Get-PrEvidenceBranchSlug {
     param([string]$Branch = '')
 
@@ -556,7 +577,7 @@ function Publish-PrEvidenceSupabaseVideo {
         throw "Supabase video upload failed: $($upload.Text)"
     }
 
-    $parsed = $upload.Text | ConvertFrom-Json
+    $parsed = Convert-PrEvidenceJsonOutput -Text $upload.Text
     if (-not $parsed.success) {
         throw "Supabase video upload failed: $($parsed.error)"
     }
@@ -596,7 +617,7 @@ function Publish-PrEvidenceGitHubVideo {
         throw "GitHub video upload failed: $($upload.Text)"
     }
 
-    $parsed = $upload.Text | ConvertFrom-Json
+    $parsed = Convert-PrEvidenceJsonOutput -Text $upload.Text
     if (-not $parsed.success) {
         throw "GitHub video upload failed: $($parsed.error)"
     }

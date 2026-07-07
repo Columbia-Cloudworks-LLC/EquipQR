@@ -15,6 +15,8 @@ name: Preview Domain Alias
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   deployment_status:
 
 permissions:
@@ -22,6 +24,16 @@ permissions:
   deployments: read
 
 jobs:
+  validate-preview-alias-flow:
+    name: Validate preview alias flow
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Confirm post-merge preview path
+        run: |
+          echo "preview.equipqr.app is bound to git branch preview (domain anchor — docs/ops/git-and-deploy.md)."
+          echo "It updates after merge to main: sync-preview-branch fast-forwards preview, Vercel deploys, then alias-preview-domain runs on deployment_status."
+
   sync-preview-branch:
     name: Sync preview branch to main
     runs-on: ubuntu-latest

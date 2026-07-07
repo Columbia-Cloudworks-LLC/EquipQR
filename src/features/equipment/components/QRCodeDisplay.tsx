@@ -113,6 +113,10 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
 
   const handleGenerateCheckinLink = async () => {
     if (!selectedAssignment) return;
+    if (!canGenerateCheckinLink) {
+      toast.error('Only organization owners and admins can generate QR links.');
+      return;
+    }
     try {
       await rotateTokenMutation.mutateAsync(selectedAssignment.id);
       toast.success('QR link generated. Print or share the code below.');
