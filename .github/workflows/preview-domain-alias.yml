@@ -1,9 +1,20 @@
 name: Preview Domain Alias
 
-# Keeps preview.equipqr.app on deployments from git branch `preview` only
-# (domain anchor — not every Vercel Preview build from feat/* branches).
+# Keeps preview.equipqr.app tracking the latest main.
+#
+# Vercel binds the preview.equipqr.app custom domain to git branch `preview`
+# (a domain anchor — not an integration branch, see docs/ops/git-and-deploy.md).
+# Nothing in the main-centric flow ever pushed that branch, so the alias job
+# below never fired and preview.equipqr.app went stale (#1180).
+#
+# Fix: on every push to main, fast-forward `preview` to the same commit. Vercel
+# then builds a Preview deployment for the anchor branch, emits a
+# deployment_status event with ref `preview`, and the alias job points
+# preview.equipqr.app at that deployment.
 
 on:
+  push:
+    branches: [main]
   deployment_status:
 
 permissions:
@@ -11,10 +22,41 @@ permissions:
   deployments: read
 
 jobs:
+  sync-preview-branch:
+    name: Sync preview branch to main
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          fetch-depth: 0
+
+      - name: Fast-forward preview branch to main
+        run: |
+          set -euo pipefail
+          # `preview` is a pure domain-anchor mirror of main (never receives
+          # direct commits), so a plain fast-forward push always succeeds and
+          # also creates the branch when it does not exist yet. Guard against
+          # accidental divergence with an explicit ancestry check instead of
+          # force-pushing over unknown commits.
+          if git ls-remote --exit-code --heads origin preview > /dev/null 2>&1; then
+            git fetch origin preview
+            if ! git merge-base --is-ancestor origin/preview HEAD; then
+              echo "::error::Branch 'preview' has diverged from main. It is a domain anchor and must only mirror main — reset it manually (git push origin main:preview --force-with-lease) after confirming no work lives there."
+              exit 1
+            fi
+          fi
+          git push origin HEAD:refs/heads/preview
+          echo "preview branch now points at $(git rev-parse HEAD)"
+
   alias-preview-domain:
     name: Alias preview.equipqr.app
     runs-on: ubuntu-latest
     if: >-
+      github.event_name == 'deployment_status' &&
       github.event.deployment_status.state == 'success' &&
       github.event.deployment.ref == 'preview' &&
       contains(github.event.deployment_status.environment, 'Preview') &&
