@@ -11,7 +11,7 @@
 
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // ---------------------------------------------------------------------------
@@ -36,6 +36,12 @@ const mockUseQuickBooksAccess = vi.fn(() => ({
 }));
 vi.mock('@/hooks/useQuickBooksAccess', () => ({
   useQuickBooksAccess: (...args: unknown[]) => mockUseQuickBooksAccess(...args),
+}));
+
+vi.mock('@/hooks/usePermissions', () => ({
+  usePermissions: () => ({
+    canManageTeam: () => true,
+  }),
 }));
 
 const mockGetConnectionStatus = vi.fn();
@@ -111,25 +117,28 @@ describe('QuickBooksCustomerMapping', () => {
   it('should render nothing when user has no QuickBooks permission', async () => {
     mockUseQuickBooksAccess.mockReturnValue({ data: false, isLoading: false });
 
-    const { container } = renderComponent();
+    renderComponent();
 
     await waitFor(() => {
-      expect(container.querySelector('.animate-spin')).toBeNull();
+      expect(screen.getByRole('button', { name: /link existing account/i })).toBeInTheDocument();
     });
-    expect(screen.queryByText(/QuickBooks invoice export/i)).toBeNull();
+    expect(screen.queryByRole('button', { name: /import from quickbooks/i })).toBeNull();
   });
 
-  it('should render nothing when QuickBooks is not connected', async () => {
+  it('should show link existing account without QuickBooks connected', async () => {
+    mockUseQuickBooksAccess.mockReturnValue({ data: true, isLoading: false });
     mockGetConnectionStatus.mockResolvedValue({ isConnected: false });
+    mockGetTeamCustomerMapping.mockResolvedValue(null);
 
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.queryByText(/QuickBooks invoice export/i)).toBeNull();
+      expect(screen.getByRole('button', { name: /link existing account/i })).toBeInTheDocument();
     });
+    expect(screen.queryByRole('button', { name: /import from quickbooks/i })).toBeNull();
   });
 
-  it('should show import and link buttons when no mapping exists', async () => {
+  it('should show legacy mapping with upgrade prompt', async () => {
     mockGetTeamCustomerMapping.mockResolvedValue(null);
 
     renderComponent();
@@ -214,20 +223,17 @@ describe('QuickBooksCustomerMapping', () => {
   });
 
   it('should open the link existing dialog', async () => {
-    const user = userEvent.setup();
     mockGetTeamCustomerMapping.mockResolvedValue(null);
 
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('Link existing account')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Link existing account' })).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: 'Link existing account' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Link existing account' }));
 
-    await waitFor(() => {
-      expect(screen.getByRole('dialog', { name: 'Link existing account' })).toBeInTheDocument();
-    });
+    expect(await screen.findByPlaceholderText('Search accounts...')).toBeInTheDocument();
   });
 
   it('should forward GivenName, FamilyName, Mobile, Fax, and contacts through qbCustomerToPayload', async () => {

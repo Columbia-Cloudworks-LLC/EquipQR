@@ -31,12 +31,11 @@ test.describe('Team customer, QuickBooks, and integrations UX (#1173, #1177, #11
     await expect(page.getByRole('heading', { name: /customer account/i })).toBeVisible({
       timeout: 30_000,
     });
-    await expect(page.getByText(/QuickBooks invoice export/i)).toBeVisible();
-    await expect(page.getByRole('button', { name: /change qb customer/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /unlink/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /link different account/i })).toBeVisible();
 
     await evidencePause(page, 800);
-    await evidenceScreenshot(page, '02-customer-account-with-qb-controls');
+    await evidenceScreenshot(page, '02-customer-account-linked');
 
     await expect(page.getByText(/team contacts/i)).toBeVisible();
     await expect(page.getByText(/Team Manager/i)).toBeVisible();

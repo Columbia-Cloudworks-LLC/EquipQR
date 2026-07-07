@@ -42,6 +42,7 @@ import {
 } from '@/services/quickbooks';
 import { isQuickBooksEnabled } from '@/lib/flags';
 import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useCustomerMutations, useCustomersByOrg } from '@/features/teams/hooks/useCustomerAccount';
 import { useCustomer } from '@/features/teams/hooks/useCustomerAccount';
 import type { QBCustomerPayload } from '@/features/teams/services/customerAccountService';
@@ -87,15 +88,20 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
   const [selectedCustomer, setSelectedCustomer] = useState<QuickBooksCustomer | null>(null);
   const [accountSearchQuery, setAccountSearchQuery] = useState('');
 
-  const { data: canManage = false, isLoading: permissionLoading } = useQuickBooksAccess();
+  const { data: canManageQuickBooks = false, isLoading: permissionLoading } = useQuickBooksAccess();
+  const { canManageTeam } = usePermissions();
+  const canManageAccount = canManageTeam(teamId);
   const featureEnabled = isQuickBooksEnabled();
 
   const { data: connectionStatus } = useQuery({
     queryKey: ['quickbooks', 'connection', currentOrganization?.id],
     queryFn: () => getConnectionStatus(currentOrganization!.id),
-    enabled: !!currentOrganization?.id && canManage && featureEnabled,
+    enabled: !!currentOrganization?.id && canManageQuickBooks && featureEnabled,
     staleTime: 60 * 1000,
   });
+
+  const isQuickBooksConnected = connectionStatus?.isConnected === true;
+  const showQuickBooksControls = canManageQuickBooks && isQuickBooksConnected;
 
   const { data: existingMapping, isLoading: mappingLoading } = useQuery({
     queryKey: ['quickbooks', 'team-mapping', currentOrganization?.id, teamId],
@@ -103,9 +109,9 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
     enabled:
       !!currentOrganization?.id &&
       !!teamId &&
-      canManage &&
+      canManageQuickBooks &&
       featureEnabled &&
-      connectionStatus?.isConnected,
+      isQuickBooksConnected,
   });
 
   const {
@@ -115,7 +121,7 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
   } = useQuery({
     queryKey: ['quickbooks', 'customers', currentOrganization?.id, searchQuery],
     queryFn: () => searchCustomers(currentOrganization!.id, searchQuery),
-    enabled: !!currentOrganization?.id && mode === 'import' && connectionStatus?.isConnected,
+    enabled: !!currentOrganization?.id && mode === 'import' && showQuickBooksControls,
     staleTime: 30 * 1000,
   });
 
@@ -237,7 +243,7 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
   };
 
   if (!featureEnabled || permissionLoading) return null;
-  if (!canManage || !connectionStatus?.isConnected) return null;
+  if (!canManageAccount && !canManageQuickBooks) return null;
 
   const customers = customerSearchResult?.customers || [];
   const filteredAccounts = (orgCustomers ?? []).filter((a) =>
@@ -264,7 +270,9 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="outline" className="bg-success/10 text-success border-success/30">
               <CheckCircle className="h-3 w-3 mr-1" />
-              Linked for invoice export
+              {linkedCustomer.quickbooks_customer_id
+                ? 'Linked for invoice export'
+                : 'Customer account linked'}
             </Badge>
             {linkedCustomer.quickbooks_customer_id && (
               <span className="text-xs text-muted-foreground">
@@ -284,27 +292,33 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
               </p>
             )}
           <div className="flex gap-2 flex-wrap">
-            {linkedCustomer.quickbooks_customer_id && (
+            {showQuickBooksControls && linkedCustomer.quickbooks_customer_id && (
               <Button variant="outline" size="sm" onClick={handleRefresh}>
                 <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
                 Sync from QuickBooks
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={() => setMode('import')}>
-              Change QB customer
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setMode('link')}>
-              Link different account
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleUnlink}
-              className="text-destructive hover:text-destructive"
-            >
-              <X className="h-4 w-4 mr-1" />
-              Unlink
-            </Button>
+            {showQuickBooksControls && (
+              <Button variant="outline" size="sm" onClick={() => setMode('import')}>
+                Change QB customer
+              </Button>
+            )}
+            {canManageAccount && (
+              <Button variant="outline" size="sm" onClick={() => setMode('link')}>
+                Link different account
+              </Button>
+            )}
+            {canManageAccount && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleUnlink}
+                className="text-destructive hover:text-destructive"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Unlink
+              </Button>
+            )}
           </div>
         </div>
       ) : existingMapping ? (
@@ -331,22 +345,33 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Link a QuickBooks customer to enable invoice export for this team&apos;s work orders.
+            {showQuickBooksControls
+              ? 'Link a QuickBooks customer to enable invoice export for this team\'s work orders.'
+              : 'Link a customer account to this team. Connect QuickBooks on Integrations to enable invoice export.'}
           </p>
           <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={() => setMode('import')}>
-              <Download className="h-3.5 w-3.5 mr-1.5" />
-              Import from QuickBooks
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setMode('link')}>
-              <Link2 className="h-3.5 w-3.5 mr-1.5" />
-              Link existing account
-            </Button>
+            {showQuickBooksControls && (
+              <Button variant="outline" size="sm" onClick={() => setMode('import')}>
+                <Download className="h-3.5 w-3.5 mr-1.5" />
+                Import from QuickBooks
+              </Button>
+            )}
+            {canManageAccount && (
+              <Button variant="outline" size="sm" onClick={() => setMode('link')}>
+                <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                Link existing account
+              </Button>
+            )}
           </div>
         </div>
       )}
 
-      <Dialog open={mode === 'import'} onOpenChange={() => closeDialog()}>
+      <Dialog
+        open={mode === 'import'}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
@@ -433,7 +458,12 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={mode === 'link'} onOpenChange={() => closeDialog()}>
+      <Dialog
+        open={mode === 'link'}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Link existing account</DialogTitle>
