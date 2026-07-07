@@ -124,4 +124,13 @@ CREATE POLICY "external_customer_contacts_delete"
     )
   );
 
+COMMENT ON POLICY "external_customer_contacts_insert" ON public.external_customer_contacts IS
+  'Org admins or team managers may insert pure manual contacts for linked customer teams. Supersedes admin-only policy from 20260406000003.';
+
+COMMENT ON POLICY "external_customer_contacts_update" ON public.external_customer_contacts IS
+  'Org admins or team managers may update pure manual contacts for linked customer teams. Supersedes admin-only policy from 20260406000003.';
+
+COMMENT ON POLICY "external_customer_contacts_delete" ON public.external_customer_contacts IS
+  'Org admins or team managers may delete pure manual contacts for linked customer teams. Supersedes admin-only policy from 20260406000003.';
+
 COMMIT;
