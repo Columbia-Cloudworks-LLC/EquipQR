@@ -53,8 +53,10 @@ import {
   batchResolveTeamImageDisplayUrls,
   batchResolveWorkOrderImageDisplayUrls,
   displayUrlForStoredPrivateImage,
+  displayableImageSrc,
   isEquipQrPrivateStorageUrl,
   isFetchableSignedStorageUrl,
+  toAbsoluteSignedStorageUrl,
   DEFAULT_SIGNED_URL_TTL_SECONDS,
 } from '@/services/imageUploadService';
 
@@ -323,6 +325,18 @@ describe('imageUploadService', () => {
         'https://supabase.equipqr.app/storage/v1/object/sign/work-order-images/u/wo/n.jpg?e=900';
       expect(isFetchableSignedStorageUrl(emptyToken)).toBe(false);
       expect(isFetchableSignedStorageUrl(wrongParam)).toBe(false);
+    });
+
+    it('normalizes local relative signed URLs for img src', () => {
+      vi.stubEnv('VITE_SUPABASE_URL', 'http://127.0.0.1:54321');
+      const relative =
+        '/object/sign/equipment-note-images/u/eq/n.jpg?token=abc123';
+      const absolute = toAbsoluteSignedStorageUrl(relative);
+      expect(absolute).toBe(
+        'http://127.0.0.1:54321/storage/v1/object/sign/equipment-note-images/u/eq/n.jpg?token=abc123',
+      );
+      expect(displayableImageSrc(relative)).toBe(absolute);
+      vi.unstubAllEnvs();
     });
 
     it('returns null for canonical path without a signed URL', () => {

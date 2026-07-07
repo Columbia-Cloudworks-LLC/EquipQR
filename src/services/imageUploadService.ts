@@ -33,14 +33,43 @@ const PRIVATE_STORAGE_SIGN_MARKERS = [
   '/storage/v1/object/sign/inventory-item-images/',
 ] as const;
 
+function getSupabaseProjectOrigin(): string | null {
+  const raw = import.meta.env.VITE_SUPABASE_URL?.trim();
+  return raw ? raw.replace(/\/$/, '') : null;
+}
+
+/**
+ * Local Supabase often returns signed URLs as `/object/sign/...` relatives.
+ * Browsers resolve those against the Vite origin (8080), not Storage (54321).
+ */
+export function toAbsoluteSignedStorageUrl(url: string): string | null {
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+
+  const origin = getSupabaseProjectOrigin();
+  if (!origin) return null;
+
+  if (trimmed.startsWith('/storage/v1/object/')) {
+    return `${origin}${trimmed}`;
+  }
+  if (trimmed.startsWith('/object/')) {
+    return `${origin}/storage/v1${trimmed}`;
+  }
+  return null;
+}
+
+function normalizeSignedStorageUrlForChecks(url: string): string {
+  return toAbsoluteSignedStorageUrl(url) ?? url.trim();
+}
+
 /**
  * True when `url` is (or was) a Supabase signed URL for an EquipQR private bucket.
  * Expired or orphaned signed URLs must not be used as `<img src>` fallbacks (#1171).
  */
 export function isEquipQrPrivateStorageUrl(url: string): boolean {
-  const trimmed = url.trim();
-  if (!/^https?:\/\//i.test(trimmed)) return false;
-  return PRIVATE_STORAGE_SIGN_MARKERS.some((marker) => trimmed.includes(marker));
+  const normalized = normalizeSignedStorageUrlForChecks(url);
+  return PRIVATE_STORAGE_SIGN_MARKERS.some((marker) => normalized.includes(marker));
 }
 
 /**
@@ -48,11 +77,11 @@ export function isEquipQrPrivateStorageUrl(url: string): boolean {
  * Supabase sign endpoints without a `?token=` query always 400 on GET (#1171).
  */
 export function isFetchableSignedStorageUrl(url: string): boolean {
-  const trimmed = url.trim();
-  if (!/^https?:\/\//i.test(trimmed)) return false;
-  if (!isEquipQrPrivateStorageUrl(trimmed)) return true;
+  const normalized = normalizeSignedStorageUrlForChecks(url);
+  if (!/^https?:\/\//i.test(normalized)) return false;
+  if (!isEquipQrPrivateStorageUrl(normalized)) return true;
   try {
-    const token = new URL(trimmed).searchParams.get('token');
+    const token = new URL(normalized).searchParams.get('token');
     return typeof token === 'string' && token.length > 0;
   } catch {
     return false;
@@ -62,9 +91,9 @@ export function isFetchableSignedStorageUrl(url: string): boolean {
 /** Safe `<img src>` for resolved equipment/team/private-bucket display URLs. */
 export function displayableImageSrc(url: string | null | undefined): string | null {
   if (!url?.trim()) return null;
-  const trimmed = url.trim();
-  if (!/^https?:\/\//i.test(trimmed)) return null;
-  return isFetchableSignedStorageUrl(trimmed) ? trimmed : null;
+  const absolute = toAbsoluteSignedStorageUrl(url.trim());
+  if (!absolute) return null;
+  return isFetchableSignedStorageUrl(absolute) ? absolute : null;
 }
 
 /** Default signed URL TTL — within the 5–15 minute compliance window. */
@@ -278,14 +307,22 @@ export async function createSignedUrlForPath(
     .from(bucket)
     .createSignedUrl(trimmed, expiresInSeconds);
 
-  if (error || !data?.signedUrl || !isFetchableSignedStorageUrl(data.signedUrl)) {
+  if (error || !data?.signedUrl) {
     if (logFailures) {
       logger.error('createSignedUrl failed', { bucket, error });
     }
     return null;
   }
 
-  return data.signedUrl;
+  const absolute = toAbsoluteSignedStorageUrl(data.signedUrl);
+  if (!absolute || !isFetchableSignedStorageUrl(absolute)) {
+    if (logFailures) {
+      logger.error('createSignedUrl failed', { bucket, error: 'unsigned or relative signed URL' });
+    }
+    return null;
+  }
+
+  return absolute;
 }
 
 /**
@@ -311,13 +348,11 @@ async function batchResolveStoredRefsForPrivateBucket(
     const path = normalizeStoredObjectPath(trimmed, bucket);
 
     if (!path) {
-      results[idx] =
-        /^https?:\/\//i.test(trimmed) && isFetchableSignedStorageUrl(trimmed) ? trimmed : null;
+      results[idx] = displayableImageSrc(trimmed);
       return;
     }
 
-    const httpFallback =
-      /^https?:\/\//i.test(trimmed) && isFetchableSignedStorageUrl(trimmed) ? trimmed : null;
+    const httpFallback = displayableImageSrc(trimmed);
     pending.push({ idx, path, httpFallback });
   });
 
@@ -332,7 +367,8 @@ async function batchResolveStoredRefsForPrivateBucket(
   if (!error && data) {
     for (const row of data) {
       if (row.path && row.signedUrl) {
-        const url = isFetchableSignedStorageUrl(row.signedUrl) ? row.signedUrl : null;
+        const absolute = toAbsoluteSignedStorageUrl(row.signedUrl);
+        const url = absolute && isFetchableSignedStorageUrl(absolute) ? absolute : null;
         if (url) {
           signedByPath.set(row.path, url);
         }
@@ -380,7 +416,8 @@ export function displayUrlForStoredPrivateImage(
   stored: string | null | undefined,
 ): string | null {
   if (signedOrResolved) {
-    return isFetchableSignedStorageUrl(signedOrResolved) ? signedOrResolved : null;
+    const absolute = toAbsoluteSignedStorageUrl(signedOrResolved) ?? signedOrResolved;
+    return isFetchableSignedStorageUrl(absolute) ? absolute : null;
   }
   const s = String(stored ?? '').trim();
   if (/^https?:\/\//i.test(s)) {
@@ -490,8 +527,11 @@ async function batchSignPathsForBucket(
       if (row.path) errored.add(row.path);
       continue;
     }
-    if (row.path && row.signedUrl && isFetchableSignedStorageUrl(row.signedUrl)) {
-      signed.set(row.path, row.signedUrl);
+    if (row.path && row.signedUrl) {
+      const absolute = toAbsoluteSignedStorageUrl(row.signedUrl);
+      if (absolute && isFetchableSignedStorageUrl(absolute)) {
+        signed.set(row.path, absolute);
+      }
     }
   }
   return { signed, errored };
@@ -536,14 +576,13 @@ export async function batchResolveEquipmentDisplayImageUrls(
     const woNorm = normalizeStoredObjectPath(trimmed, 'work-order-images');
     const eqNorm = normalizeStoredObjectPath(trimmed, 'equipment-note-images');
     if (/^https?:\/\//i.test(trimmed) && !woNorm && !eqNorm) {
-      results[idx] = isFetchableSignedStorageUrl(trimmed) ? trimmed : null;
+      results[idx] = displayableImageSrc(trimmed);
       return;
     }
 
     const path = extractEquipmentDisplayImagePath(trimmed);
     if (!path) {
-      results[idx] =
-        /^https?:\/\//i.test(trimmed) && isFetchableSignedStorageUrl(trimmed) ? trimmed : null;
+      results[idx] = displayableImageSrc(trimmed);
       return;
     }
 

@@ -288,6 +288,23 @@ function Get-EquipmentIdsMissingDisplay {
     return @($rows | ForEach-Object { $_.id })
 }
 
+function Test-StorageObjectExists {
+    param(
+        [string]$Bucket,
+        [string]$ObjectPath,
+        [hashtable]$Headers
+    )
+    if (-not $ObjectPath -or -not $ObjectPath.Trim()) { return $false }
+    $checkUrl = "$baseUrl/storage/v1/object/$Bucket/$ObjectPath"
+    try {
+        Invoke-WebRequest -Method Head -Uri $checkUrl -Headers $Headers | Out-Null
+        return $true
+    }
+    catch {
+        return $false
+    }
+}
+
 # ── Phase 3: drop/ folder only — round-robin display, notes, and work orders ─
 if ($dropImages.Count -gt 0) {
     $equipmentNeedingDisplay = @(Get-EquipmentIdsMissingDisplay -Headers $restHeaders)
@@ -391,6 +408,37 @@ if ($displayBackfillPool.Count -gt 0) {
             catch {
                 $err = $_.Exception.Message
                 Write-Host "       WARN: Display backfill failed for equipment $equipmentId ($err)"
+                $stats.Failed++
+            }
+        }
+    }
+}
+
+# ── Phase 5: repair display paths whose storage object is missing ───────────
+if ($displayBackfillPool.Count -gt 0) {
+    $rowsWithDisplayRaw = Invoke-RestSelect -Table 'equipment' -Query '?select=id,image_url&image_url=not.is.null&order=id.asc&limit=1000' -Headers $restHeaders
+    $rowsWithDisplay = if ($null -eq $rowsWithDisplayRaw) { @() } else { @($rowsWithDisplayRaw) }
+    $broken = @(
+        $rowsWithDisplay | Where-Object {
+            $path = $_.image_url
+            if (-not $path) { return $true }
+            -not (Test-StorageObjectExists -Bucket 'equipment-note-images' -ObjectPath $path -Headers $storageHeaders)
+        }
+    )
+    if ($broken.Count -gt 0) {
+        Write-Host "       Repairing $($broken.Count) equipment display image(s) with missing storage objects..."
+        $poolIndex = 0
+        foreach ($row in $broken) {
+            $img = $displayBackfillPool[$poolIndex % $displayBackfillPool.Count]
+            $poolIndex++
+            try {
+                $repairName = "repair-$poolIndex-$($img.Name)"
+                Set-EquipmentDisplayImage -EquipmentId $row.id -FilePath $img.FullName -FileName $repairName -RestHeaders $restHeaders -StorageHeaders $storageHeaders
+                $stats.DisplayUpdated++
+            }
+            catch {
+                $err = $_.Exception.Message
+                Write-Host "       WARN: Display repair failed for equipment $($row.id) ($err)"
                 $stats.Failed++
             }
         }
