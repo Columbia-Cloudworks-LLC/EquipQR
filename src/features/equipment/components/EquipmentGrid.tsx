@@ -85,13 +85,14 @@ const EquipmentGrid: React.FC<EquipmentGridProps> = ({
         ? 'flex flex-col gap-2 md:gap-0 md:divide-y md:rounded-lg md:border'
         : 'flex flex-col gap-2 md:grid md:gap-6 md:grid-cols-2 lg:grid-cols-3'
     )}>
-      {equipment.map((item) => (
+      {equipment.map((item, index) => (
         <div key={item.id} className={cn('min-w-0', viewMode === 'grid' && 'md:cv-auto-lg md:h-full')}>
           <EquipmentCard
             equipment={item}
             onShowQRCode={onShowQRCode}
             viewMode={viewMode}
             pmStatus={pmStatuses?.get(item.id)}
+            listIndex={index}
           />
         </div>
       ))}

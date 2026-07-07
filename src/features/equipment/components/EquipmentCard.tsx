@@ -17,7 +17,7 @@ import type { EquipmentPMStatus } from '@/features/equipment/hooks/useEquipmentP
 import type { MergedEquipment } from '@/features/equipment/hooks/useOfflineMergedEquipment';
 import { isOfflineEquipmentId } from '@/features/equipment/hooks/useOfflineMergedEquipment';
 import { toast } from 'sonner';
-import { handleKeyboardActivation } from '@/components/a11y/keyboard';
+import { displayableImageSrc } from '@/services/imageUploadService';
 
 interface Equipment {
   id: string;
@@ -37,11 +37,16 @@ interface Equipment {
 
 export type EquipmentViewMode = 'grid' | 'list' | 'table';
 
+/** Above-the-fold cutoff for eager image loading (matches WorkOrdersList). */
+export const EQUIPMENT_ABOVE_FOLD_IMAGE_COUNT = 6;
+
 interface EquipmentCardProps {
   equipment: Equipment;
   onShowQRCode: (id: string) => void;
   viewMode?: EquipmentViewMode;
   pmStatus?: EquipmentPMStatus;
+  /** List/grid index — first N cards load images eagerly to avoid lazy-load intervention warnings. */
+  listIndex?: number;
 }
 
 const EquipmentCard: React.FC<EquipmentCardProps> = ({
@@ -49,6 +54,7 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
   onShowQRCode,
   viewMode = 'grid',
   pmStatus,
+  listIndex = 0,
 }) => {
   const navigate = useNavigate();
   const { settings } = useUserSettings();
@@ -56,6 +62,9 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
   const pmReadout = getEquipmentCardPmReadout(pmStatus);
   const statusRailClass = getEquipmentStatusRailClass(equipment.status);
   const statusTintClass = viewMode === 'grid' ? getEquipmentStatusBackgroundTint(equipment.status) : '';
+  const imageLoading =
+    listIndex < EQUIPMENT_ABOVE_FOLD_IMAGE_COUNT ? ('eager' as const) : ('lazy' as const);
+  const resolvedImageSrc = displayableImageSrc(equipment.image_url);
 
   const handleCardClick = () => {
     if (isOfflineEquipmentId(equipment.id)) {
@@ -117,12 +126,12 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
         <div className="grid min-w-0 grid-cols-[4.5rem_1fr_auto] gap-x-2.5 gap-y-0.5 p-3">
           <div className="row-span-4 self-center">
             <div className="relative aspect-[4/5] w-full overflow-hidden rounded-md bg-muted">
-              {equipment.image_url ? (
+              {resolvedImageSrc ? (
                 <img
-                  src={equipment.image_url}
+                  src={resolvedImageSrc}
                   alt={display.imageAlt}
                   className="absolute inset-0 h-full w-full object-cover"
-                  loading="lazy"
+                  loading={imageLoading}
                   decoding="async"
                   onError={(e) => {
                     e.currentTarget.src = display.imageFallbackSrc;
@@ -189,12 +198,12 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
         <div className="hidden md:block">
           <div className="flex items-center gap-4 px-4 py-3">
             <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-muted">
-              {equipment.image_url ? (
+              {resolvedImageSrc ? (
                 <img
-                  src={equipment.image_url}
+                  src={resolvedImageSrc}
                   alt={display.imageAlt}
                   className="h-full w-full object-cover"
-                  loading="lazy"
+                  loading={imageLoading}
                   decoding="async"
                   onError={(e) => { e.currentTarget.src = display.imageFallbackSrc; }}
                 />
@@ -264,6 +273,7 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
           isPendingSync={(equipment as MergedEquipment)._isPendingSync}
           onQRClick={handleQRClick}
           onQuickAction={handleQuickAction}
+          imageLoading={imageLoading}
         />
       )}
     </Card>

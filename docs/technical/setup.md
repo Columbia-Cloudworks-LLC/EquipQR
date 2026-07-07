@@ -223,14 +223,14 @@ Two batch files in the project root let you bring the entire local stack up or t
 
 | Script | What it does |
 |--------|-------------|
-| **`dev-start.bat`** | Thin launcher for **`dev-start.ps1`**. Starts the **full** stack: Supabase + Edge Functions serve + docs + Vite. Exits **`0`** only when all four pass health checks. Optional **`-Force`**: after Supabase is up, runs **`supabase db reset`**, seeds equipment images, regenerates **`src/integrations/supabase/types.ts`**, then ensures Edge, docs, and Vite are running. **`-Force`** does **not** call **`dev-stop`**; if Vite, docs, or Edge Functions serve is already running, the script exits with an error and tells you to run **`dev-stop`** first. |
+| **`dev-start.bat`** | Thin launcher for **`dev-start.ps1`**. Starts the **full** stack: Supabase + Edge Functions serve + docs + Vite. Exits **`0`** only when all four pass health checks. Optional **`-Force`**: after Supabase is up, runs **`supabase db reset`**, seeds dev media (equipment/note/work-order images via `scripts/seed-dev-media.ps1`), regenerates **`src/integrations/supabase/types.ts`**, then ensures Edge, docs, and Vite are running. **`-Force`** does **not** call **`dev-stop`**; if Vite, docs, or Edge Functions serve is already running, the script exits with an error and tells you to run **`dev-stop`** first. |
 | **`dev-stop.bat`** | Thin launcher for **`dev-stop.ps1`**. Stops Vite (port 8080), docs (port 5174), Edge Functions serve, the Supabase Docker stack, and sweeps dev ports. Exits **`1`** if any attempted stop step fails. Optional **`-Force`** (or **`/Force`**) also quits Docker Desktop. |
 | **`dev-setup-cursor-mcp.bat`** | Thin launcher for **`dev-setup-cursor-mcp.ps1`**. Renders `~/.cursor/mcp.json` from 1Password references (via `scripts/render-mcp-config.ps1`) and optionally writes the local gcloud service-account JSON. Does not start or stop the dev stack. |
 
 ```powershell
 # From the project root — or double-click in Explorer
 .\dev-start.bat                              # full stack, strict health
-.\dev-start.bat -Force                       # DB reset + types + seed images, then full stack (stop stack first if already running)
+.\dev-start.bat -Force                       # DB reset + types + seed dev media, then full stack (stop stack first if already running)
 
 .\dev-stop.bat                               # Stop full dev stack (Docker Desktop keeps running)
 .\dev-stop.bat -Force                        # Same + quit Docker Desktop

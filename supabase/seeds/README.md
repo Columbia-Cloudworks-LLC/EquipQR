@@ -224,6 +224,10 @@ Generation is deterministic: the same scale always emits identical SQL (seeded R
 
 `--scale N` multiplies the volume rows linearly (durable RBAC grants and the operator template stay fixed).
 
+### Dev media (images)
+
+After `supabase db reset`, step **5b** runs `scripts/seed-dev-media.ps1` to upload photos from `supabase/seed-images/` into private Storage buckets and store **canonical paths** in Postgres (equipment display, equipment note images, work order images). See `supabase/seed-images/README.md` for the `equipment/`, `drop/`, and `work-orders/` folder conventions.
+
 ### E2E safety contract
 
 Generated data must never disturb the durable-core fixtures Playwright asserts against:

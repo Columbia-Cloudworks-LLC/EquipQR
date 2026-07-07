@@ -25,6 +25,47 @@ export const PUBLIC_STORAGE_BUCKETS: ReadonlySet<StorageBucket> = new Set([
   'organization-logos',
 ]);
 
+const PRIVATE_STORAGE_SIGN_MARKERS = [
+  '/storage/v1/object/sign/work-order-images/',
+  '/storage/v1/object/sign/equipment-note-images/',
+  '/storage/v1/object/sign/team-images/',
+  '/storage/v1/object/sign/user-avatars/',
+  '/storage/v1/object/sign/inventory-item-images/',
+] as const;
+
+/**
+ * True when `url` is (or was) a Supabase signed URL for an EquipQR private bucket.
+ * Expired or orphaned signed URLs must not be used as `<img src>` fallbacks (#1171).
+ */
+export function isEquipQrPrivateStorageUrl(url: string): boolean {
+  const trimmed = url.trim();
+  if (!/^https?:\/\//i.test(trimmed)) return false;
+  return PRIVATE_STORAGE_SIGN_MARKERS.some((marker) => trimmed.includes(marker));
+}
+
+/**
+ * True when an absolute URL is safe to use as `<img src>` for a private bucket.
+ * Supabase sign endpoints without a `?token=` query always 400 on GET (#1171).
+ */
+export function isFetchableSignedStorageUrl(url: string): boolean {
+  const trimmed = url.trim();
+  if (!/^https?:\/\//i.test(trimmed)) return false;
+  if (!isEquipQrPrivateStorageUrl(trimmed)) return true;
+  try {
+    return new URL(trimmed).search.length > 1;
+  } catch {
+    return false;
+  }
+}
+
+/** Safe `<img src>` for resolved equipment/team/private-bucket display URLs. */
+export function displayableImageSrc(url: string | null | undefined): string | null {
+  if (!url?.trim()) return null;
+  const trimmed = url.trim();
+  if (!/^https?:\/\//i.test(trimmed)) return null;
+  return isFetchableSignedStorageUrl(trimmed) ? trimmed : null;
+}
+
 /** Default signed URL TTL — within the 5–15 minute compliance window. */
 export const DEFAULT_SIGNED_URL_TTL_SECONDS = 900;
 
@@ -236,7 +277,7 @@ export async function createSignedUrlForPath(
     .from(bucket)
     .createSignedUrl(trimmed, expiresInSeconds);
 
-  if (error || !data?.signedUrl) {
+  if (error || !data?.signedUrl || !isFetchableSignedStorageUrl(data.signedUrl)) {
     if (logFailures) {
       logger.error('createSignedUrl failed', { bucket, error });
     }
@@ -269,11 +310,13 @@ async function batchResolveStoredRefsForPrivateBucket(
     const path = normalizeStoredObjectPath(trimmed, bucket);
 
     if (!path) {
-      results[idx] = /^https?:\/\//i.test(trimmed) ? trimmed : null;
+      results[idx] =
+        /^https?:\/\//i.test(trimmed) && isFetchableSignedStorageUrl(trimmed) ? trimmed : null;
       return;
     }
 
-    const httpFallback = /^https?:\/\//i.test(trimmed) ? trimmed : null;
+    const httpFallback =
+      /^https?:\/\//i.test(trimmed) && isFetchableSignedStorageUrl(trimmed) ? trimmed : null;
     pending.push({ idx, path, httpFallback });
   });
 
@@ -288,7 +331,10 @@ async function batchResolveStoredRefsForPrivateBucket(
   if (!error && data) {
     for (const row of data) {
       if (row.path && row.signedUrl) {
-        signedByPath.set(row.path, row.signedUrl);
+        const url = isFetchableSignedStorageUrl(row.signedUrl) ? row.signedUrl : null;
+        if (url) {
+          signedByPath.set(row.path, url);
+        }
       }
     }
   } else if (error) {
@@ -301,7 +347,7 @@ async function batchResolveStoredRefsForPrivateBucket(
       if (!url) {
         url = await createSignedUrlForPath(bucket, path, {
           expiresInSeconds: expiresIn,
-          logFailures: true,
+          logFailures: false,
         });
       }
       results[idx] = url ?? httpFallback;
@@ -332,9 +378,13 @@ export function displayUrlForStoredPrivateImage(
   signedOrResolved: string | null | undefined,
   stored: string | null | undefined,
 ): string | null {
-  if (signedOrResolved) return signedOrResolved;
+  if (signedOrResolved) {
+    return isFetchableSignedStorageUrl(signedOrResolved) ? signedOrResolved : null;
+  }
   const s = String(stored ?? '').trim();
-  if (/^https?:\/\//i.test(s)) return s;
+  if (/^https?:\/\//i.test(s)) {
+    return isEquipQrPrivateStorageUrl(s) ? null : s;
+  }
   return null;
 }
 
@@ -411,28 +461,39 @@ export function extractEquipmentDisplayImagePath(stored: string | null | undefin
  * Missing objects resolve to per-item errors inside a 200 response, so the
  * browser console is not flooded with individual 400s (#1156).
  */
+type BatchSignResult = {
+  signed: Map<string, string>;
+  /** Paths the batch API reported as missing/invalid — do not probe individually (#1156). */
+  errored: Set<string>;
+};
+
 async function batchSignPathsForBucket(
   bucket: StorageBucket,
   paths: string[],
   expiresIn: number,
-): Promise<Map<string, string>> {
+): Promise<BatchSignResult> {
   const signed = new Map<string, string>();
-  if (paths.length === 0) return signed;
+  const errored = new Set<string>();
+  if (paths.length === 0) return { signed, errored };
 
   const { data, error } = await supabase.storage.from(bucket).createSignedUrls(paths, expiresIn);
   if (error || !data) {
     if (error) {
       logger.error('createSignedUrls failed for equipment display batch', { bucket, error });
     }
-    return signed;
+    return { signed, errored };
   }
 
   for (const row of data) {
-    if (row.path && row.signedUrl && !row.error) {
+    if (row.error) {
+      if (row.path) errored.add(row.path);
+      continue;
+    }
+    if (row.path && row.signedUrl && isFetchableSignedStorageUrl(row.signedUrl)) {
       signed.set(row.path, row.signedUrl);
     }
   }
-  return signed;
+  return { signed, errored };
 }
 
 /**
@@ -474,13 +535,14 @@ export async function batchResolveEquipmentDisplayImageUrls(
     const woNorm = normalizeStoredObjectPath(trimmed, 'work-order-images');
     const eqNorm = normalizeStoredObjectPath(trimmed, 'equipment-note-images');
     if (/^https?:\/\//i.test(trimmed) && !woNorm && !eqNorm) {
-      results[idx] = trimmed;
+      results[idx] = isFetchableSignedStorageUrl(trimmed) ? trimmed : null;
       return;
     }
 
     const path = extractEquipmentDisplayImagePath(trimmed);
     if (!path) {
-      results[idx] = /^https?:\/\//i.test(trimmed) ? trimmed : null;
+      results[idx] =
+        /^https?:\/\//i.test(trimmed) && isFetchableSignedStorageUrl(trimmed) ? trimmed : null;
       return;
     }
 
@@ -510,10 +572,13 @@ export async function batchResolveEquipmentDisplayImageUrls(
   const notePaths = [...new Set(pending.filter(p => p.bucket === 'equipment-note-images').map(p => p.path))];
   const woPaths = [...new Set(pending.filter(p => p.bucket === 'work-order-images').map(p => p.path))];
 
-  const [noteSigned, woSigned] = await Promise.all([
+  const [noteBatch, woBatch] = await Promise.all([
     batchSignPathsForBucket('equipment-note-images', notePaths, expiresIn),
     batchSignPathsForBucket('work-order-images', woPaths, expiresIn),
   ]);
+  const noteSigned = noteBatch.signed;
+  const woSigned = woBatch.signed;
+  const batchErroredPaths = new Set([...noteBatch.errored, ...woBatch.errored]);
 
   const ambiguousPaths = [...new Set(pending.filter(p => p.bucket === null).map(p => p.path))];
   const probed = new Map<string, string>();
@@ -548,16 +613,21 @@ export async function batchResolveEquipmentDisplayImageUrls(
     }
   }
 
-  for (const { idx, path, bucket } of pending) {
-    // Refs that reach this loop always target our private buckets, so a raw
-    // http fallback (legacy public/expired signed URL) can never load — null
-    // keeps the UI on its icon fallback instead of emitting 400s (#1156).
-    results[idx] =
-      (bucket === 'equipment-note-images' ? noteSigned.get(path) : undefined) ??
-      (bucket === 'work-order-images' ? woSigned.get(path) : undefined) ??
-      (bucket === null ? probed.get(path) : undefined) ??
-      null;
-  }
+  await Promise.all(
+    pending.map(async ({ idx, path, bucket }) => {
+      let url =
+        (bucket === 'equipment-note-images' ? noteSigned.get(path) : undefined) ??
+        (bucket === 'work-order-images' ? woSigned.get(path) : undefined) ??
+        (bucket === null ? probed.get(path) : undefined) ??
+        null;
+
+      if (!url && bucket && !batchErroredPaths.has(path)) {
+        url = await createSignedUrlForPath(bucket, path, { logFailures: false });
+      }
+
+      results[idx] = url;
+    }),
+  );
 
   return results;
 }

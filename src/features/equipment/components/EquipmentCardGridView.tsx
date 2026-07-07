@@ -12,6 +12,7 @@ import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyn
 import { EquipmentCardWorkOrderMenu } from '@/features/equipment/components/EquipmentCardWorkOrderMenu';
 import type { EquipmentCardDisplayModel } from '@/features/equipment/utils/getEquipmentCardDisplayModel';
 import type { EquipmentCardPmReadout } from '@/features/equipment/utils/getEquipmentCardPmReadout';
+import { displayableImageSrc } from '@/services/imageUploadService';
 import { getPMComplianceLevel } from '@/features/equipment/hooks/useEquipmentPMStatus';
 import type { EquipmentPMStatus } from '@/features/equipment/hooks/useEquipmentPMStatus';
 
@@ -28,6 +29,7 @@ interface EquipmentCardGridViewProps {
   isPendingSync?: boolean;
   onQRClick: (e: React.MouseEvent) => void;
   onQuickAction: (e: React.MouseEvent, path: string) => void;
+  imageLoading?: 'eager' | 'lazy';
 }
 
 function getWorkingHoursMetricClass(display: string): string {
@@ -67,9 +69,11 @@ export function EquipmentCardGridView({
   isPendingSync,
   onQRClick,
   onQuickAction,
+  imageLoading = 'lazy',
 }: EquipmentCardGridViewProps) {
   const pmLevel = getPMComplianceLevel(pmStatus);
   const isPmOverdue = pmLevel === 'overdue';
+  const resolvedImageSrc = displayableImageSrc(equipment.image_url);
 
   return (
     <div className="hidden md:flex md:flex-col md:h-full">
@@ -107,12 +111,12 @@ export function EquipmentCardGridView({
 
       <CardContent className="flex flex-1 flex-col space-y-3 pt-0">
         <div className="relative aspect-[16/10] w-full overflow-hidden rounded-md border border-border/80 bg-muted">
-          {equipment.image_url ? (
+          {resolvedImageSrc ? (
             <img
-              src={equipment.image_url}
+              src={resolvedImageSrc}
               alt={display.imageAlt}
               className="h-full w-full object-cover"
-              loading="lazy"
+              loading={imageLoading}
               decoding="async"
               onError={(e) => {
                 e.currentTarget.src = display.imageFallbackSrc;
