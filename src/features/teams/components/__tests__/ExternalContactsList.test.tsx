@@ -129,6 +129,37 @@ describe('ExternalContactsList', () => {
     });
   });
 
+  it('hides edit and delete for manual rows that still carry QBO provenance metadata', async () => {
+    mockUseExternalContacts.mockReturnValue({
+      data: [
+        {
+          id: 'c-legacy',
+          customer_id: 'cust-1',
+          name: 'Legacy Contact',
+          email: 'legacy@example.com',
+          phone: null,
+          role: 'Billing',
+          notes: null,
+          created_at: null,
+          updated_at: null,
+          source: 'manual',
+          source_external_id: 'qb-stale',
+          source_field: 'primary_email',
+          last_synced_at: null,
+          source_payload: null,
+        },
+      ],
+      isLoading: false,
+    });
+
+    renderComponent('cust-1', true);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /Edit Legacy Contact/i })).toBeNull();
+      expect(screen.queryByRole('button', { name: /Delete Legacy Contact/i })).toBeNull();
+    });
+  });
+
   it('shows team manager and requestor as automatic contacts', async () => {
     mockUseExternalContacts.mockReturnValue({ data: [], isLoading: false });
 

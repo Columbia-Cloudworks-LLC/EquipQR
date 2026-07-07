@@ -1,4 +1,6 @@
 -- Migration: Allow team managers to manage external customer contacts (#1173)
+-- Replaces admin-only INSERT/UPDATE/DELETE policies from
+-- 20260406000003_create_external_customer_contacts.sql.
 -- Team managers who manage a team linked to a customer account may INSERT/UPDATE/DELETE
 -- manual external contacts for that customer. Org owners/admins retain full access.
 -- QuickBooks-synced rows (source = 'quickbooks') remain immutable for team managers at RLS.
@@ -47,6 +49,8 @@ CREATE POLICY "external_customer_contacts_update"
           public.is_org_admin((SELECT auth.uid()), c.organization_id)
           OR (
             external_customer_contacts.source = 'manual'
+            AND external_customer_contacts.source_external_id IS NULL
+            AND external_customer_contacts.source_field IS NULL
             AND EXISTS (
               SELECT 1
               FROM public.teams t
@@ -98,6 +102,8 @@ CREATE POLICY "external_customer_contacts_delete"
           public.is_org_admin((SELECT auth.uid()), c.organization_id)
           OR (
             external_customer_contacts.source = 'manual'
+            AND external_customer_contacts.source_external_id IS NULL
+            AND external_customer_contacts.source_field IS NULL
             AND EXISTS (
               SELECT 1
               FROM public.teams t
@@ -111,5 +117,21 @@ CREATE POLICY "external_customer_contacts_delete"
         )
     )
   );
+
+-- Manual rows must not carry QBO provenance metadata (prevents misclassified legacy rows).
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'external_customer_contacts_manual_provenance_null_check'
+      AND conrelid = 'public.external_customer_contacts'::regclass
+  ) THEN
+    ALTER TABLE public.external_customer_contacts
+      ADD CONSTRAINT external_customer_contacts_manual_provenance_null_check
+      CHECK (
+        source = 'quickbooks'
+        OR (source_external_id IS NULL AND source_field IS NULL)
+      );
+  END IF;
+END $$;
 
 COMMIT;

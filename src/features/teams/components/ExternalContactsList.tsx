@@ -36,6 +36,14 @@ interface ContactFormData {
 
 const emptyForm: ContactFormData = { name: '', email: '', phone: '', role: '', notes: '' };
 
+function isEditableExternalContact(contact: ExternalContactListRow): boolean {
+  return (
+    contact.source === 'manual' &&
+    contact.source_external_id == null &&
+    contact.source_field == null
+  );
+}
+
 const TEAM_ROLE_CONTACT_LABELS: Record<string, string> = {
   manager: 'Team Manager',
   requestor: 'Requestor',
@@ -202,6 +210,7 @@ const ExternalContactsList: React.FC<ExternalContactsListProps> = ({
               ) : null}
               {contacts.map((c) => {
                 const isQBO = c.source === 'quickbooks';
+                const canEditContact = isEditableExternalContact(c);
                 return (
                   <div
                     key={c.id}
@@ -242,7 +251,7 @@ const ExternalContactsList: React.FC<ExternalContactsListProps> = ({
                         )}
                       </div>
                     </div>
-                    {canManage && !isQBO && (
+                    {canManage && canEditContact && (
                       <div className="flex gap-1 shrink-0">
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(c)}>
                           <Pencil className="h-3.5 w-3.5" />

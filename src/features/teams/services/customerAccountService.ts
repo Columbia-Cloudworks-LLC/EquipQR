@@ -317,7 +317,14 @@ export async function getExternalContacts(customerId: string): Promise<ExternalC
 export async function createExternalContact(contact: ExternalContactInsert): Promise<ExternalContactRow> {
   const { data, error } = await supabase
     .from('external_customer_contacts')
-    .insert(contact)
+    .insert({
+      ...contact,
+      source: 'manual',
+      source_external_id: null,
+      source_field: null,
+      last_synced_at: null,
+      source_payload: null,
+    })
     .select()
     .single();
 
