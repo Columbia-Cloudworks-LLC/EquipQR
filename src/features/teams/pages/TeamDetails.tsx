@@ -29,7 +29,7 @@ import TeamRecentWorkOrders from '@/features/teams/components/TeamRecentWorkOrde
 import TeamLocationCard from '@/features/teams/components/TeamLocationCard';
 import { TeamPMScheduleCard } from '@/features/teams/components/TeamPMScheduleCard';
 import CustomerAccountCard from '@/features/teams/components/CustomerAccountCard';
-import ExternalContactsList from '@/features/teams/components/ExternalContactsList';
+import TeamExternalContactsSection from '@/features/teams/components/TeamExternalContactsSection';
 import { TeamViewSwitcher } from '@/features/teams/components/TeamViewSwitcher';
 import { updateTeam } from '@/features/teams/services/teamService';
 import { TEAM_VIEW_LABELS, isTeamView, type TeamView } from '@/features/teams/types/team';
@@ -454,14 +454,11 @@ const TeamDetails = () => {
               />
             );
           case 'external-contacts':
-            if (!team.customer_id) return null;
             return (
-              <ExternalContactsList
+              <TeamExternalContactsSection
                 key={sectionKey}
-                organizationId={team.organization_id}
-                customerId={team.customer_id}
+                team={team}
                 canManage={canManageExternalContacts}
-                teamMembers={team.members}
               />
             );
           case 'members':
