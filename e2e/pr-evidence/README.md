@@ -57,6 +57,22 @@ test.describe('my feature @pr-evidence', () => {
 
 Artifacts land under `tmp/pr-evidence/{flow}/` (gitignored). Screenshot URLs use the preview Supabase `landing-page-images` bucket under `pr-evidence/{branch}/`. Demo video URLs are GitHub `user-attachments` links for inline playback.
 
+## Help Center demo methodology (`docs-demo-helpers.ts`)
+
+Issue #1161 standardizes equipqr.info walkthrough videos on desktop **and** mobile:
+
+1. **`settleForDemo`** — after navigation or a major state change, wait for spinners to clear, then hold the fully loaded view ~1s before the next step.
+2. **`focusAndClick` / `focusAndFill` / `focusControl`** — scroll the target control fully into view (smooth scroll on long pages), play a dim/blur spotlight that converges on the control, hold ~0.5s, un-dim, then act.
+
+Specs under `e2e/pr-evidence/docs-*.spec.ts` import these helpers. Every control that is clicked must be **fully visible** before the focus animation starts — scroll first when the page is long.
+
+```typescript
+import { focusAndClick, settleForDemo } from './shared/docs-demo-helpers';
+
+await settleForDemo(page);
+await focusAndClick(page, page.getByRole('button', { name: /invite member/i }));
+```
+
 ## Documentation media (`docs-media`)
 
 When updating equipqr.info articles, also publish capture artifacts to the public **`docs-media`** bucket (stable paths for docs, not branch-scoped PR paths):

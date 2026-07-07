@@ -27,6 +27,8 @@ Tap the round **QR button** in the bottom-right corner of an equipment record to
 
 Work orders keep field tools (status moves, note, photo, timer) in the bottom action tray. The **Quick actions** button in that tray — or the round lightning button when the tray is hidden — opens a drawer with:
 
+![Mobile quick actions sheet on a work order](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/mobile/03b-mobile-quick-actions-sheet.png)
+
 - The **next relevant status action** for this work order (accept, start work, complete, resume, or continue checklist).
 - **Add note / add photo** shortcuts.
 - **Show work order QR code** — display the QR so another device can open this work order instantly, or print the field worksheet.

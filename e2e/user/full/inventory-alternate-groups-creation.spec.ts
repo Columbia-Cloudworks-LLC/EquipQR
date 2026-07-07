@@ -125,23 +125,17 @@ test.describe.serial('creation flows: inventory and alternate groups @full', () 
     await gotoDashboard('/equipment');
     await assertHealthyShell();
 
-    const toyotaEquipmentName = `Playwright Toyota Forklift ${data.token}`;
-    const createdToyotaButton = page
-      .getByRole('button', { name: new RegExp(`Open details for ${toyotaEquipmentName}`, 'i') })
+    // Reuse the shared card/legacy-aware opener; the dense list renders the
+    // whole equipment card as the clickable button (no "Open details for" name).
+    const search = page.getByPlaceholder(/search equipment/i).first();
+    await expect(search).toBeVisible({ timeout: 30_000 });
+    await search.fill('Toyota');
+    const toyotaButton = page
+      .getByRole('button', { name: /^Playwright Toyota Forklift|Open details for .*Toyota/i })
+      .or(page.getByRole('button', { name: /^Toyota/i }))
       .first();
-    const hasCreatedToyota = await createdToyotaButton
-      .isVisible({ timeout: 5_000 })
-      .catch(() => false);
-
-    if (hasCreatedToyota) {
-      await createdToyotaButton.click();
-    } else {
-      const search = page.getByPlaceholder(/search equipment/i).first();
-      await search.fill('Toyota');
-      const toyotaButton = page.getByRole('button', { name: /Open details for .*Toyota/i }).first();
-      await expect(toyotaButton).toBeVisible({ timeout: 30_000 });
-      await toyotaButton.click();
-    }
+    await expect(toyotaButton).toBeVisible({ timeout: 30_000 });
+    await toyotaButton.click();
     await expect(page).toHaveURL(/\/dashboard\/equipment\//, { timeout: 60_000 });
 
     await test.step('Open compatible parts tab and verify created inventory item', async () => {

@@ -7,6 +7,14 @@ description: "New to EquipQR? Get oriented and set up your organization."
 
 New to EquipQR? Get oriented and set up your organization.
 
+## Desktop walkthrough video
+
+https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/desktop/demo.mp4
+
+## Mobile walkthrough video
+
+https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/mobile/demo.mp4
+
 ## Articles
 
 - [Welcome to EquipQR](./welcome-to-equipqr) — A 60-second overview of what EquipQR does and where each team role spends their time.

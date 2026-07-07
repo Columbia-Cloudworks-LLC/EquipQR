@@ -245,7 +245,10 @@ verify_jwt = false
 
 [db.seed]
 enabled = true
-sql_paths = ['./seeds/*.sql']
+# Committed durable-core seeds first, then generated volume data (#1164).
+# ./seeds/generated/*.sql is gitignored output from scripts/seed-data/generate-seeds.ts
+# (run automatically by dev-start -Force and run-user-regression -ResetDb).
+sql_paths = ['./seeds/*.sql', './seeds/generated/*.sql']
 
 # =============================================================================
 # Database Branching (per-PR ephemeral branches) — Issue #722, Sub-change 3

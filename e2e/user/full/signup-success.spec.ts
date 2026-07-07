@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/equipqr-test';
+import { solveHcaptchaIfPresent } from '../shared/hcaptcha-helpers';
 
 test.describe('signup success UX @full', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
@@ -22,10 +23,8 @@ test.describe('signup success UX @full', () => {
       await terms.check();
     }
 
-    const hcaptchaFrame = page.frameLocator('iframe[src*="hcaptcha"]');
-    if (await hcaptchaFrame.locator('body').count().catch(() => 0)) {
-      test.skip(true, 'hCaptcha enabled locally; signup requires manual captcha.');
-    }
+    const captchaState = await solveHcaptchaIfPresent(page);
+    test.skip(captchaState === 'manual', 'Real hCaptcha sitekey configured; signup requires manual captcha.');
 
     await page
       .getByRole('button', { name: /^Create Account & Organization$/i })

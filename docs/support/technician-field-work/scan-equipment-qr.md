@@ -1,13 +1,17 @@
 ---
 title: "Scan an equipment QR code from your phone"
 description: "Use your phone's built-in camera app to open an equipment record in EquipQR with the correct organization already selected."
-lastReviewed: 2026-05-01
+lastReviewed: 2026-07-06
 personas: ["technician","requestor"]
 ---
 
 **For:** Technician, Requestor  
-**Last reviewed:** 2026-05-01
+**Last reviewed:** 2026-07-06
 EquipQR QR codes are plain URLs — no extra app required. Your phone's camera opens the record directly in the browser or the EquipQR app if it is installed.
+
+![Equipment record opened from a QR scan](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/desktop/01-scan-qr-landing.png)
+
+![Mobile equipment record after scanning a QR code](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/mobile/01-mobile-scan-qr-landing.png)
 
 ## 1. Open your camera app
 

@@ -7,6 +7,14 @@ description: "Fast mobile-first workflows for technicians scanning equipment, ru
 
 Fast mobile-first workflows for technicians scanning equipment, running work orders, and documenting what they did.
 
+## Desktop walkthrough video
+
+https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/desktop/demo.mp4
+
+## Mobile walkthrough video
+
+https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/mobile/demo.mp4
+
 ## Articles
 
 - [Scan an equipment QR code from your phone](./scan-equipment-qr) — Use your phone's built-in camera app to open an equipment record in EquipQR with the correct organization already selected.

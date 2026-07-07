@@ -122,6 +122,11 @@ function Sync-AppViteMirrors {
         "GOOGLE_PICKER_APP_ID"     = "VITE_GOOGLE_PICKER_APP_ID"
         "GOOGLE_PICKER_CLIENT_ID"  = "VITE_GOOGLE_PICKER_CLIENT_ID"
         "GOOGLE_WORKSPACE_CLIENT_ID" = "VITE_GOOGLE_WORKSPACE_CLIENT_ID"
+        # Without this mirror the local frontend never renders the hCaptcha
+        # widget while the local edge runtime enforces it (secret present in
+        # edge-env-local-dev), so public-form submits 400 with
+        # "CAPTCHA verification is required" (#1164 full-suite verification).
+        "HCAPTCHA_SITEKEY"         = "VITE_HCAPTCHA_SITEKEY"
     }
 
     $setCount = 0

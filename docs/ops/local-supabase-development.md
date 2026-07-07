@@ -506,12 +506,25 @@ npx supabase stop
 # to avoid Windows excluded ranges; rerun dev-start.bat first.
 ```
 
+## Generated volume seed data (#1164)
+
+Committed files under `supabase/seeds/` are the **durable core** — test users, Playwright fixture UUIDs, PM templates, and the small cross-org scenario matrix. Bulk inventory, alternate groups, extra equipment, work orders with consumed parts, parts RBAC grants, and operator check-ins are **generated on demand** into `supabase/seeds/generated/` (gitignored) by `scripts/seed-data/generate-seeds.ts`.
+
+| Entry point | Behavior |
+| ----------- | ---------- |
+| `.\dev-start.bat -Force` | Regenerates at `-SeedScale` (default 1), then `supabase db reset` |
+| `.\dev-test.bat reset-db` / `run-user-regression.ps1 -ResetDb` | Regenerates at scale 1, then resets |
+| `npm run seed:generate [-- --scale N]` | Manual regeneration only (no DB reset) |
+
+Generation is deterministic (seeded RNG + counter UUIDs). Guardrail tests live in `src/tests/scripts/generateSeeds.test.ts`. See `supabase/seeds/README.md` for domain breakdown and E2E safety contracts (generated UUID prefixes stay disjoint from durable-core fixtures; Apex stays empty for operator check-ins and inventory RBAC deny paths).
+
 ## Common Commands Reference
 
 ```bash
 # ---- One-click dev environment (Windows) ----
 .\dev-start.bat                      # Supabase + Edge Functions + docs + Vite (strict health)
-.\dev-start.bat -Force               # DB reset + types + seed images, then full stack (stop first if running)
+.\dev-start.bat -Force               # Regenerate volume seeds, DB reset, types, seed images, then full stack (stop first if running)
+.\dev-start.bat -Force -SeedScale 5  # Same with 5x generated inventory/equipment/work-order volume (#1164)
 .\dev-stop.bat                       # Stop Vite, docs, Edge serve, Supabase Docker; sweep ports
 .\dev-stop.bat -Force                # Same + quit Docker Desktop
 

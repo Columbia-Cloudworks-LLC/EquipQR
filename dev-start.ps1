@@ -4,8 +4,11 @@
   Start the full EquipQR local stack: Supabase, Edge Functions serve, Vite, and docs.
 
 .PARAMETER Force
-  After Supabase is up: reset local DB, regenerate TypeScript types, seed equipment images, then ensure Edge, docs, and Vite are running.
+  After Supabase is up: regenerate volume seed data, reset local DB, regenerate TypeScript types, seed equipment images, then ensure Edge, docs, and Vite are running.
   If Vite, docs, or Edge Functions serve is already running, stops the dev stack first, then continues startup.
+
+.PARAMETER SeedScale
+  Volume multiplier (1-100) for generated seed data (scripts/seed-data/generate-seeds.ts). Only used with -Force. Default 1.
 
 .PARAMETER PrepareOnly
   Run setup through env sync (steps 1-7) and exit before launching Edge Functions, docs, or Vite.
@@ -14,6 +17,7 @@
 .EXAMPLE
   .\dev-start.ps1
   .\dev-start.ps1 -Force
+  .\dev-start.ps1 -Force -SeedScale 5
   .\dev-start.ps1 -PrepareOnly
 #>
 [CmdletBinding()]
@@ -21,6 +25,8 @@ param(
     [switch]$Force,
     [switch]$ResetDocker,
     [switch]$PrepareOnly,
+    [ValidateRange(1, 100)]
+    [int]$SeedScale = 1,
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$Rest = @()
 )
@@ -45,7 +51,7 @@ $Rest = @($unknown)
 
 if ($Rest.Count -gt 0) {
     Write-Host "FAIL: Unknown argument(s): $($Rest -join ', ')"
-    Write-Host 'Usage: .\dev-start.ps1 [-Force] [-ResetDocker] [-PrepareOnly]'
+    Write-Host 'Usage: .\dev-start.ps1 [-Force] [-ResetDocker] [-PrepareOnly] [-SeedScale <1-100>]'
     exit 2
 }
 
@@ -703,7 +709,14 @@ Write-Host ""
 if (-not $Force) {
     Write-Host ' [5/11] DB Reset - skipped (use -Force to reset).'
 } else {
-    Write-Host ' [5/11] Resetting local database (-Force)...'
+    Write-Host " [5/11] Generating volume seed data (scale $SeedScale)..."
+    & npx tsx scripts/seed-data/generate-seeds.ts --scale $SeedScale
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "        FAIL: seed data generation failed (scripts/seed-data/generate-seeds.ts)."
+        exit 1
+    }
+
+    Write-Host '        Resetting local database (-Force)...'
     $oldResetEap = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     & npx supabase db reset

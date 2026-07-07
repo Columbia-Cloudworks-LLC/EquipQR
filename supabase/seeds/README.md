@@ -1,6 +1,8 @@
 # EquipQR Seed Data
 
-This folder contains modular seed data files for local development. The files are executed in lexicographic order by the Supabase CLI.
+This folder contains the **durable core** of local development seed data — the minimal committed SQL that E2E fixtures and Playwright constants depend on. The files are executed in lexicographic order by the Supabase CLI.
+
+**Volume data is generated, not committed** (#1164). `scripts/seed-data/generate-seeds.ts` writes deterministic bulk SQL (inventory, alternate groups, equipment fleet, work orders with consumed parts and costs, inventory RBAC grants, operator check-ins) into `supabase/seeds/generated/` (gitignored), which `supabase db reset` applies **after** the committed files here. See [Generated Volume Data](#generated-volume-data).
 
 ## Security Warning
 
@@ -16,7 +18,7 @@ This folder contains modular seed data files for local development. The files ar
 ## File Structure
 
 | File | Description |
-|------|-------------|
+| ------ | ------------- |
 | `00_safeguard.sql` | Environment check and security notice |
 | `01_auth_users.sql` | Test user accounts in `auth.users` |
 | `02_profiles.sql` | User profile records |
@@ -43,8 +45,8 @@ This folder contains modular seed data files for local development. The files ar
 | `23_pm_template_compatibility_rules.sql` | PM template equipment compatibility |
 | `24_part_compatibility_rules.sql` | Part-equipment compatibility rules (~40 rules) |
 | `25_part_alternate_groups.sql` | Part alternate/interchange groups (10 groups, 30+ identifiers) |
-| `26_large_inventory.sql` | **Large-scale load testing data** (900 items, 150 groups, 623 identifiers) |
 | `29_e2e_playwright_fixtures.sql` | Playwright fixtures: requestor team member, pending invitation token, DSR case |
+| `generated/*.sql` (gitignored) | **Generated volume data** — see [Generated Volume Data](#generated-volume-data) |
 
 ## Test Accounts
 
@@ -53,7 +55,7 @@ After running `npx supabase db reset`, you can login as any test user with passw
 ### User Matrix
 
 | Email | Password | Owns (Personal Org) | Also Member At |
-|-------|----------|---------------------|----------------|
+| ------- | ---------- | --------------------- | ---------------- |
 | `owner@apex.test` | password123 | Apex Construction | Metro (member) |
 | `admin@apex.test` | password123 | Amanda's Equipment | Apex (admin), Valley |
 | `tech@apex.test` | password123 | Tom's Field Services | Apex (member) |
@@ -66,12 +68,14 @@ After running `npx supabase db reset`, you can login as any test user with passw
 ## Organizations
 
 ### Business Organizations (4)
+
 - **Apex Construction Company** (premium) - Primary test org
 - **Metro Equipment Services** (premium) - Cross-membership testing
 - **Valley Landscaping** (free) - Free tier testing
 - **Industrial Rentals Corp** (premium) - Rental business scenario
 
 ### Personal Organizations (4)
+
 - **Amanda's Equipment Services** (free) - `admin@apex.test`'s org
 - **Tom's Field Services** (free) - `tech@apex.test`'s org
 - **Mike's Repair Shop** (free) - `tech@metro.test`'s org
@@ -80,7 +84,7 @@ After running `npx supabase db reset`, you can login as any test user with passw
 ## Test Scenarios
 
 | Scenario | Users/Orgs to Test |
-|----------|-------------------|
+| ---------- | ------------------- |
 | Ownership | Every user owns exactly one org (business rule compliance) |
 | Cross-org membership | `owner@apex.test` is also member at Metro |
 | Multi-org admin | `owner@metro.test` is admin at Industrial |
@@ -90,7 +94,7 @@ After running `npx supabase db reset`, you can login as any test user with passw
 ## Equipment Locations (Map Testing)
 
 | Organization | Region | Cities |
-|--------------|--------|--------|
+| -------------- | -------- | -------- |
 | Apex | Texas (clustered) | Dallas, Fort Worth, Houston |
 | Metro | California (spread out) | LA, SF, San Diego |
 | Valley | Colorado | Denver, Boulder, Colorado Springs |
@@ -98,13 +102,14 @@ After running `npx supabase db reset`, you can login as any test user with passw
 | Personal orgs | - | No equipment (minimal orgs) |
 
 ### Special Cases
+
 - One equipment (Light Tower) has `NULL` location for empty state testing
 - One equipment (Kubota Tractor) has stale 45-day-old location
 
 ## Work Order Status Coverage
 
 | Status | Count | Description |
-|--------|-------|-------------|
+| -------- | ------- | ------------- |
 | `submitted` | 2 | New requests awaiting review |
 | `accepted` | 1 | Approved, not yet started |
 | `assigned` | 1 | Assigned to technician |
@@ -116,7 +121,7 @@ After running `npx supabase db reset`, you can login as any test user with passw
 ## Inventory Edge Cases
 
 | Case | Item | Qty | Threshold |
-|------|------|-----|-----------|
+| ------ | ------ | ----- | ----------- |
 | Normal stock | Hydraulic Oil | 24 | 10 |
 | LOW STOCK | Air Filter | 3 | 5 |
 | LOW STOCK | LED Panel | 2 | 3 |
@@ -133,7 +138,7 @@ The PM template seed files (`17_*` through `22_*`) create global PM checklist te
 - Use UUID prefix `cc0e8400` for template IDs
 
 | Template | Items | Sections |
-|----------|-------|----------|
+| ---------- | ------- | ---------- |
 | Forklift PM | 103 | 12 |
 | Pull Trailer PM | 51 | 8 |
 | Compressor PM | 53 | 9 |
@@ -148,7 +153,7 @@ The `25_part_alternate_groups.sql` file creates test data for the Part Alternate
 ### Test Scenarios
 
 | Search This | Organization | Expected Result |
-|-------------|--------------|-----------------|
+| ------------- | -------------- | ----------------- |
 | `CAT-1R-0750` | Apex | Find WIX, Baldwin alternatives + in-stock Hydraulic Oil |
 | `JLG-7024359` | Metro | Find Hercules aftermarket + in-stock seal kit |
 | `TROJ-T-105` | Metro | Find Genie OEM and US Battery alternatives |
@@ -157,7 +162,7 @@ The `25_part_alternate_groups.sql` file creates test data for the Part Alternate
 ### Groups by Organization
 
 | Organization | Groups | Verified | Unverified |
-|--------------|--------|----------|------------|
+| -------------- | -------- | ---------- | ------------ |
 | Apex Construction | 3 | 2 | 1 |
 | Metro Equipment | 3 | 2 | 1 |
 | Valley Landscaping | 2 | 1 | 1 |
@@ -173,6 +178,7 @@ The `25_part_alternate_groups.sql` file creates test data for the Part Alternate
 ## Trigger Handling
 
 The `handle_new_user` trigger fires on `auth.users` INSERT and creates:
+
 1. A profile record (uses ON CONFLICT - safe for seeding)
 2. A new organization (with random UUID)
 3. An organization_member record
@@ -180,6 +186,7 @@ The `handle_new_user` trigger fires on `auth.users` INSERT and creates:
 **Problem:** During seeding, the trigger creates organizations with random UUIDs before our intended seed organizations are inserted.
 
 **Solution:** The `99_cleanup_trigger_orgs.sql` file runs LAST and:
+
 1. Identifies organizations NOT in our intended seed list
 2. Deletes those trigger-created organizations and their memberships
 3. Leaves only our seeded organizations with controlled UUIDs
@@ -187,57 +194,58 @@ The `handle_new_user` trigger fires on `auth.users` INSERT and creates:
 This ensures users get the specific organization UUIDs defined in our seed files.
 
 If you're seeing duplicate organizations or unexpected default org selection:
+
 1. Ensure `99_cleanup_trigger_orgs.sql` exists and lists all intended org IDs
 2. Run `npx supabase db reset` (not just `db seed`)
 
-## Large-Scale Load Testing Data
+## Generated Volume Data
 
-The `26_large_inventory.sql` file contains auto-generated test data for load testing scenarios where organizations have hundreds of parts.
+Bulk test data is produced by `scripts/seed-data/generate-seeds.ts` into `supabase/seeds/generated/` (gitignored) and applied by `supabase db reset` after the committed files (see `[db.seed].sql_paths` in `supabase/config.toml`).
 
-### Data Summary
+### How it runs
 
-| Type | Count | Description |
-|------|-------|-------------|
-| Inventory Items | 900 | Realistic parts across 18 categories |
-| Part Alternate Groups | 150 | Groups of interchangeable parts |
-| Part Identifiers | 623 | OEM and aftermarket part numbers |
-| Group Members | 623 | Links between identifiers and groups |
+| Entry point | Behavior |
+| ------------- | ---------- |
+| `dev-start.bat -Force` | Regenerates at `-SeedScale <1-100>` (default 1), then resets the DB |
+| `run-user-regression.ps1 -ResetDb` (`dev-test.bat reset-db` / `local-full`) | Regenerates at scale 1, then resets |
+| `npm run seed:generate [-- --scale N]` | Manual regeneration only (no reset) |
 
-### Distribution by Organization
+Generation is deterministic: the same scale always emits identical SQL (seeded RNG, counter-based UUIDs), so E2E behaves identically across machines and resets. Guardrail unit tests live in `src/tests/scripts/generateSeeds.test.ts`.
 
-| Organization | Inventory Items | Alternate Groups |
-|--------------|-----------------|------------------|
-| Apex Construction | 300 | 50 |
-| Metro Equipment | 250 | 40 |
-| Valley Landscaping | 150 | 25 |
-| Industrial Rentals | 200 | 35 |
+### Domains at scale 1
 
-### Categories (weighted by org type)
+| File | Contents |
+| ------ | ---------- |
+| `50_generated_equipment.sql` | 32 extra equipment rows (8/org, `GEN-` serials, active/maintenance mix, ~20% unassigned) |
+| `51_generated_inventory.sql` | 900 inventory items, 150 alternate groups, 623 identifiers + members |
+| `52_generated_work_orders.sql` | 48 work orders across all statuses (dated 2025), notes, itemized costs, and reconciled `inventory_transactions` for consumed parts |
+| `53_generated_parts_rbac.sql` | Parts Manager (Mike Mechanic @ Metro), Parts Consumer (Multi Org User @ Industrial) — **never Apex** (E2E deny-path guardrail) |
+| `54_generated_operator_checkins.sql` | 1 Metro checklist template, 2 QR assignments on generated equipment, 12 ledger submissions — **Apex stays empty** for the evidence spec |
 
-- **Apex Construction**: Undercarriage, Hydraulics, Engine, Ground Engaging, Filters
-- **Metro Equipment**: Lift Parts, Batteries, Hydraulics, Safety, Tires & Wheels
-- **Valley Landscaping**: Landscaping, Filters, Fluids, Engine
-- **Industrial Rentals**: Forklift, Batteries, Tires & Wheels, Safety
+`--scale N` multiplies the volume rows linearly (durable RBAC grants and the operator template stay fixed).
 
-### Regenerating the Data
+### E2E safety contract
 
-To regenerate with different configurations:
+Generated data must never disturb the durable-core fixtures Playwright asserts against:
 
-```bash
-# Edit CONFIG in scripts/generate-large-inventory-seed.ts, then run:
-npx tsx scripts/generate-large-inventory-seed.ts > supabase/seeds/26_large_inventory.sql
-```
-
-The script uses seeded random numbers for reproducibility - the same config produces identical output.
+- Generated UUIDs use dedicated prefixes (`c10e`/`c20e`/`c30e`/`c40e` inventory, `d1xe`-`d8xe` new domains) disjoint from committed seed ranges.
+- Generated work orders are dated in 2025 so the 2026-dated core fixtures stay newest in recency-sorted lists.
+- No inventory RBAC grants for Apex members; no Apex operator check-in rows.
 
 ### UUID Prefixes
 
 | Type | Prefix |
-|------|--------|
+| ------ | -------- |
 | Inventory Items | `c10e8400` |
 | Part Identifiers | `c20e8400` |
 | Alternate Groups | `c30e8400` |
 | Group Members | `c40e8400` |
+| Equipment | `d10e8400` |
+| Work Orders | `d20e8400` |
+| Work Order Notes | `d30e8400` |
+| Work Order Costs | `d40e8400` |
+| Inventory Transactions | `d50e8400` |
+| Operator Check-In Templates / Settings / Submissions | `d60e8400` / `d70e8400` / `d80e8400` |
 
 ## Adding New Seed Data
 

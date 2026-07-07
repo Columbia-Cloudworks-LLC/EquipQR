@@ -1,7 +1,7 @@
 {
   "name": "equipqr",
   "private": true,
-  "version": "3.14.0",
+  "version": "3.15.0",
   "type": "module",
   "engines": {
     "node": "24.x"
@@ -63,7 +63,7 @@
     "docs:preview": "npm --prefix docs run docs:preview",
     "deploy:netlify": "netlify deploy --prod",
     "generate:vapid-keys": "node scripts/generate-vapid-keys.mjs",
-    "generate:large-inventory": "npx tsx scripts/generate-large-inventory-seed.ts > supabase/seeds/26_large_inventory.sql",
+    "seed:generate": "tsx scripts/seed-data/generate-seeds.ts",
     "demo:gif": "node scripts/demo-gif.mjs",
     "demo:video-smoke": "node scripts/demo-gif.mjs --smoke",
     "demo:video-smoke:reliability": "node scripts/repeat-demo-smoke.mjs",

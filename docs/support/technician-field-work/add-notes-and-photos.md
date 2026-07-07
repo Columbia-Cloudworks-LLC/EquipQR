@@ -1,13 +1,19 @@
 ---
 title: "Add notes and photos to a work order"
 description: "Document what you found, what you did, and attach before/during/after photos — all visible in the equipment's image gallery."
-lastReviewed: 2026-05-01
+lastReviewed: 2026-07-06
 personas: ["technician","manager"]
 ---
 
 **For:** Technician, Manager  
-**Last reviewed:** 2026-05-01
+**Last reviewed:** 2026-07-06
 Notes and photos are the audit trail for every work order. Images you upload on a work order also appear in the equipment's Images tab, so the next technician can see the previous condition.
+
+![Note composer on a work order](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/desktop/06-add-note-composer.png)
+
+![Note saved in the Notes and Updates list](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/desktop/07-note-added.png)
+
+![Mobile note composer](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/mobile/04-mobile-note-composer.png)
 
 ## 1. Open the work order
 

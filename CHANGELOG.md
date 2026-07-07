@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.15.0] - 2026-07-06
+
+### Added
+
+- **Generated volume seed pipeline (#1164)** — Replaces the committed `26_large_inventory.sql` bulk file with `scripts/seed-data/generate-seeds.ts`, emitting deterministic inventory, equipment, work orders (with consumed parts and costs), parts RBAC grants, and operator check-ins into gitignored `supabase/seeds/generated/`. Wired into `dev-start.bat -Force` (`-SeedScale`) and `dev-test.bat reset-db`; guardrail tests in `src/tests/scripts/generateSeeds.test.ts`.
+- **Help Center docs media (#1161)** — Standardized Playwright demo choreography (`docs-demo-helpers.ts`: settle, scroll-into-view, dim/blur spotlight) for desktop and mobile. New PR evidence specs capture **Start Here** and **Technician Field Work** collections; screenshots and MP4 demos published to the public `docs-media` bucket and embedded in equipqr.info articles.
+
+### Changed
+
+- **Equipment critical E2E** — List assertions use search/detail routes instead of assuming seeded assets appear on page 1 after generated volume data.
+- **Privacy/signup full E2E** — Auto-solve hCaptcha when the local test sitekey is configured.
+
 ## [3.14.0] - 2026-07-06
 
 ### Added

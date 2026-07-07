@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/equipqr-test';
+import { solveHcaptchaIfPresent } from '../shared/hcaptcha-helpers';
 
 test.describe('privacy request intake @full', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
@@ -22,10 +23,8 @@ test.describe('privacy request intake @full', () => {
     await page.getByRole('option', { name: /access my data/i }).click();
     await page.getByLabel(/additional details/i).fill('Playwright automated privacy request');
 
-    const hcaptchaFrame = page.frameLocator('iframe[src*="hcaptcha"]');
-    if (await hcaptchaFrame.locator('body').count().catch(() => 0)) {
-      test.skip(true, 'hCaptcha enabled locally; privacy submit requires manual captcha.');
-    }
+    const captchaState = await solveHcaptchaIfPresent(page);
+    test.skip(captchaState === 'manual', 'Real hCaptcha sitekey configured; submit requires manual captcha.');
 
     await page.getByRole('button', { name: /submit request/i }).click();
 
