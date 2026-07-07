@@ -1,13 +1,13 @@
 ---
 title: "Invite your team"
 description: "Send organization invitations so new users can log in, then add them to the teams whose equipment they service."
-lastReviewed: 2026-05-01
+lastReviewed: 2026-07-06
 personas: ["admin","owner"]
 requirement: "Organization Owner or Admin."
 ---
 
 **For:** Admin, Owner  
-**Last reviewed:** 2026-05-01
+**Last reviewed:** 2026-07-06
 
 ::: info Requires
 Organization Owner or Admin.
@@ -23,6 +23,12 @@ From the sidebar go to **Organization**, then select the **Members** tab.
 ## 2. Click Invite Member
 
 Enter the person's work email address. Double-check the address — invitations are valid for 7 days and bounces are common on personal inboxes.
+
+![Invite Member dialog](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/desktop/05-invite-member-dialog.png)
+
+![Members list after sending an invitation](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/desktop/06-invite-sent-members-list.png)
+
+![Mobile Invite Member dialog](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/mobile/04-mobile-invite-member-dialog.png)
 
 ## 3. Pick the organization role
 

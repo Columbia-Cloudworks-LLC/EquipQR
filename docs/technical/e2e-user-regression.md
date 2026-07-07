@@ -59,6 +59,7 @@ npm run test:e2e:demo
 - Playwright Chromium: `npx playwright install chromium`
 - Local secrets via 1Password. `OP_SERVICE_ACCOUNT_TOKEN` is the only machine-level environment variable this test path should require; `dev-start.bat` uses it to render `.env` files.
 - Seeded users from `supabase/seeds/` (password `password123` unless `VITE_DEV_TEST_PASSWORD` overrides)
+- Volume data from `scripts/seed-data/generate-seeds.ts` into `supabase/seeds/generated/` (applied on `dev-start.bat -Force` or `dev-test.bat reset-db`; see `supabase/seeds/README.md`)
 
 ## Layout
 

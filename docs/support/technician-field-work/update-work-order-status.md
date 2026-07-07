@@ -1,13 +1,21 @@
 ---
 title: "Update work order status"
 description: "Move a work order through Submitted → Accepted → Assigned → In Progress → Completed with the right permission checks."
-lastReviewed: 2026-05-01
+lastReviewed: 2026-07-06
 personas: ["technician","manager"]
 ---
 
 **For:** Technician, Manager  
-**Last reviewed:** 2026-05-01
+**Last reviewed:** 2026-07-06
 Work orders follow a predictable lifecycle so everyone can see what is actually happening in the shop. Only valid next statuses are shown on the action buttons, so you cannot accidentally skip a state.
+
+![Work order accepted and assigned to a technician](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/desktop/04-status-accepted-assigned.png)
+
+![Work order in In Progress status](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/desktop/05-status-in-progress.png)
+
+![Mobile work order summary](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/mobile/02-mobile-work-order-summary.png)
+
+![Mobile Change Status sheet](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/mobile/03-mobile-status-sheet.png)
 
 ## 1. Open the work order details page
 

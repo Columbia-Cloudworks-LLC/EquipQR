@@ -3,6 +3,7 @@ import { buildCreationRunData } from '../shared/create-flow-data';
 import {
   addInventoryCompatibilityRule,
   fillInputByLabel,
+  openFirstEquipmentDetailBySearch,
   openInventoryCreateDialog,
   selectRadixOption,
   submitInventoryItemDialog,
@@ -124,25 +125,7 @@ test.describe.serial('creation flows: inventory and alternate groups @full', () 
   }) => {
     await gotoDashboard('/equipment');
     await assertHealthyShell();
-
-    const toyotaEquipmentName = `Playwright Toyota Forklift ${data.token}`;
-    const createdToyotaButton = page
-      .getByRole('button', { name: new RegExp(`Open details for ${toyotaEquipmentName}`, 'i') })
-      .first();
-    const hasCreatedToyota = await createdToyotaButton
-      .isVisible({ timeout: 5_000 })
-      .catch(() => false);
-
-    if (hasCreatedToyota) {
-      await createdToyotaButton.click();
-    } else {
-      const search = page.getByPlaceholder(/search equipment/i).first();
-      await search.fill('Toyota');
-      const toyotaButton = page.getByRole('button', { name: /Open details for .*Toyota/i }).first();
-      await expect(toyotaButton).toBeVisible({ timeout: 30_000 });
-      await toyotaButton.click();
-    }
-    await expect(page).toHaveURL(/\/dashboard\/equipment\//, { timeout: 60_000 });
+    await openFirstEquipmentDetailBySearch(page, 'Toyota');
 
     await test.step('Open compatible parts tab and verify created inventory item', async () => {
       await page.getByRole('tab', { name: /parts/i }).click();

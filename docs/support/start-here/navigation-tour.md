@@ -1,12 +1,12 @@
 ---
 title: "Find your way around the app"
 description: "A fast tour of the sidebar, top bar, mobile bottom nav, and where admin-only surfaces live."
-lastReviewed: 2026-05-01
+lastReviewed: 2026-07-06
 personas: ["all"]
 ---
 
 **For:** Everyone  
-**Last reviewed:** 2026-05-01
+**Last reviewed:** 2026-07-06
 ## 1. Sidebar groups (desktop and tablet)
 
 - **Fleet** — Equipment, Fleet Map, Inventory, Part Lookup, Part Alternates.
@@ -14,13 +14,21 @@ personas: ["all"]
 - **Infrastructure** — Teams, Organization, Integrations.
 - **Audit** — DSR Cockpit (admin-only). The Audit Log lives under **Organization → Audit Log** (admin-only).
 
+![Equipment list from the sidebar](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/desktop/02-navigation-equipment.png)
+
+![Work Orders list from the sidebar](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/desktop/03-navigation-work-orders.png)
+
+![Fleet Map from the sidebar](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/desktop/04-navigation-fleet-map.png)
 
 ## 2. Mobile bottom navigation
 
 On phones, the bottom nav shows the four most-used destinations for field technicians: Dashboard, Equipment, Inventory, and Work Orders. Tap the menu icon for everything else.
 
+![Mobile dashboard home](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/mobile/01-mobile-dashboard-welcome.png)
 
-## 3. Top bar and user menu
+![Mobile Equipment tab](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/mobile/02-mobile-nav-equipment.png)
+
+![Mobile Work Orders tab](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/mobile/03-mobile-nav-work-orders.png)
 
 The top bar shows your current organization, notifications, and your user menu. **Help Center** (guides on equipqr.info) and **Support & tickets** (report issues) live under the **user menu (avatar top-right)**.
 

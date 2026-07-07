@@ -61,9 +61,32 @@ test.describe('mobile work order details field QA @full', () => {
         timeout: 30_000,
       });
       await expect(page.getByRole('button', { name: /export|open actions and settings/i })).toBeVisible();
-      await expect(page.getByRole('button', { name: /^note$/i }).first()).toBeVisible();
-      await expect(page.getByRole('button', { name: /put work order on hold/i }).first()).toBeVisible();
-      await expect(page.getByRole('button', { name: /^complete$/i }).first()).toBeVisible();
+
+      // Field actions live in the quick-actions FAB sheet (#1151 follow-up).
+      const quickActionsFab = page.getByRole('button', { name: /open work order quick actions/i });
+      await expect(quickActionsFab).toBeVisible({ timeout: 30_000 });
+      await quickActionsFab.click();
+      await expect(page.getByRole('button', { name: /add note or photo/i }).first()).toBeVisible({
+        timeout: 30_000,
+      });
+      await expect(page.getByRole('button', { name: /put on hold/i }).first()).toBeVisible();
+      await expect(
+        page.getByRole('button', { name: /complete work order|continue checklist/i }).first(),
+      ).toBeVisible();
+
+      await expectTouchTarget(
+        page.getByRole('button', { name: /add note or photo/i }).first(),
+        'Add note quick action',
+      );
+      await expectTouchTarget(
+        page.getByRole('button', { name: /put on hold/i }).first(),
+        'Put on hold quick action',
+      );
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('button', { name: /add note or photo/i })).toBeHidden({
+        timeout: 15_000,
+      });
+
       await expect(page.getByText(/review & office details/i)).toBeVisible({ timeout: 30_000 });
 
       await expect(page.locator('body')).toHaveJSProperty('clientWidth', MOBILE_VIEWPORT.width);
@@ -74,12 +97,7 @@ test.describe('mobile work order details field QA @full', () => {
         page.getByRole('button', { name: /export|open actions and settings/i }).first(),
         'Header actions',
       );
-      await expectTouchTarget(page.getByRole('button', { name: /^note$/i }).first(), 'Note quick action');
-      await expectTouchTarget(
-        page.getByRole('button', { name: /put work order on hold/i }).first(),
-        'Put on hold quick action',
-      );
-      await expectTouchTarget(page.getByRole('button', { name: /^complete$/i }).first(), 'Complete quick action');
+      await expectTouchTarget(quickActionsFab, 'Quick actions FAB');
 
       await expectHeaderFocusOrder(page);
     } finally {
@@ -105,7 +123,15 @@ test.describe('mobile work order details field QA @full', () => {
         page.getByText(/offline - text and status changes save locally|you are currently offline/i).first(),
       ).toBeVisible({ timeout: 10_000 });
 
-      await clickWithDemoCue(page.getByRole('button', { name: /^note$/i }).first(), 'Add mobile note');
+      // Notes open from the quick-actions FAB sheet (#1151 follow-up).
+      await clickWithDemoCue(
+        page.getByRole('button', { name: /open work order quick actions/i }),
+        'Open quick actions',
+      );
+      await clickWithDemoCue(
+        page.getByRole('button', { name: /add note or photo/i }).first(),
+        'Add mobile note',
+      );
       await expect(
         page.getByText(/offline - text and status changes save locally|you are currently offline/i).first(),
       ).toBeVisible({ timeout: 10_000 });

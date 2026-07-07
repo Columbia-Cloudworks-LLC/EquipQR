@@ -45,7 +45,9 @@ test.describe.serial('creation flows: equipment and work orders @full', () => {
       await expect(page.getByText(data.equipmentWithDefaultPm.serialNumber).first()).toBeVisible({
         timeout: 30_000,
       });
-      await expect(page.getByText(data.equipmentWithDefaultPm.location).first()).toBeVisible({
+      // The details page now renders the effective-location module instead of
+      // the legacy free-text location description (#1123 location sources).
+      await expect(page.getByRole('combobox', { name: /location source/i })).toBeVisible({
         timeout: 30_000,
       });
     });

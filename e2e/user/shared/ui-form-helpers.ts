@@ -190,6 +190,14 @@ export async function createEquipmentFromEquipmentPage(
     timeout: 15_000,
   });
   await clickWithDemoCue(dialog.getByRole('button', { name: /create equipment/i }), 'Create equipment');
+
+  // Admin creates without a team trigger a confirmation gate (#1167 era UX);
+  // acknowledge it so UI-created fixtures stay team-less and deterministic.
+  const unassignedConfirm = page.getByRole('button', { name: /continue without a team/i });
+  if (await unassignedConfirm.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    await clickWithDemoCue(unassignedConfirm, 'Continue without a team');
+  }
+
   await expect(dialog).toBeHidden({ timeout: 60_000 });
   await expectToastOrRecordVisible(page, data.name);
   return data.name;
@@ -202,12 +210,40 @@ export async function openEquipmentDetailByName(page: Page, equipmentName: strin
   await fillWithDemoCue(search, `Search for ${equipmentName}`, equipmentName);
   await expect(search).toHaveValue(equipmentName, { timeout: 5_000 });
 
-  const openButton = page
-    .getByRole('button', { name: new RegExp(`Open details for ${escaped}`, 'i') })
-    .first();
+  const openButton = equipmentOpenButtonForName(page, escaped, { anchored: true });
   await expect(openButton).toBeVisible({ timeout: 60_000 });
   await clickWithDemoCue(openButton, `Open ${equipmentName}`);
   await expect(page).toHaveURL(/\/dashboard\/equipment\//, { timeout: 60_000 });
+}
+
+/** Open the first equipment row whose card name matches a partial search term. */
+export async function openFirstEquipmentDetailBySearch(page: Page, searchTerm: string): Promise<void> {
+  const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const search = page.getByPlaceholder(/search equipment/i).first();
+  await expect(search).toBeVisible({ timeout: 30_000 });
+  await fillWithDemoCue(search, `Search for ${searchTerm}`, searchTerm);
+
+  const openButton = equipmentOpenButtonForName(page, escaped, { anchored: false });
+  await expect(openButton).toBeVisible({ timeout: 60_000 });
+  await clickWithDemoCue(openButton, `Open equipment matching ${searchTerm}`);
+  await expect(page).toHaveURL(/\/dashboard\/equipment\//, { timeout: 60_000 });
+}
+
+function equipmentOpenButtonForName(
+  page: Page,
+  escapedName: string,
+  options: { anchored: boolean },
+): Locator {
+  // Dense list rows render the whole card as a button whose accessible name
+  // starts with the equipment name; legacy layouts used "Open details for X".
+  const densePattern = options.anchored
+    ? new RegExp(`^${escapedName}`, 'i')
+    : new RegExp(escapedName, 'i');
+  const cardButton = page.getByRole('button', { name: densePattern }).first();
+  const legacyOpenButton = page
+    .getByRole('button', { name: new RegExp(`Open details for .*${escapedName}`, 'i') })
+    .first();
+  return cardButton.or(legacyOpenButton).first();
 }
 
 export async function assignPmTemplateOnEquipmentDetail(

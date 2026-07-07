@@ -160,6 +160,9 @@ if (($Suite -eq 'full' -or $Suite -eq 'all') -and -not $ResetDb) {
 }
 
 if ($ResetDb) {
+    Write-Host '[EquipQR E2E] Generating volume seed data (scripts/seed-data/generate-seeds.ts)...'
+    npx tsx scripts/seed-data/generate-seeds.ts
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     Write-Host '[EquipQR E2E] Resetting local database (supabase db reset)...'
     npx supabase db reset
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

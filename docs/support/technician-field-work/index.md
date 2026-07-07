@@ -7,7 +7,23 @@ description: "Fast mobile-first workflows for technicians scanning equipment, ru
 
 Fast mobile-first workflows for technicians scanning equipment, running work orders, and documenting what they did.
 
+![Scan QR landing on desktop](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/desktop/01-scan-qr-landing.png)
+
+![Mobile scan QR landing](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/mobile/01-mobile-scan-qr-landing.png)
+
+## Desktop walkthrough video
+
+<https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/desktop/demo.mp4>
+
+## Mobile walkthrough video
+
+<https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/mobile/demo.mp4>
+
 ## Articles
+
+![Create work order from equipment](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/desktop/02-create-work-order-dialog.png)
+
+![Mobile quick actions sheet](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/technician-field-work/mobile/03b-mobile-quick-actions-sheet.png)
 
 - [Scan an equipment QR code from your phone](./scan-equipment-qr) — Use your phone's built-in camera app to open an equipment record in EquipQR with the correct organization already selected.
 - [Create a work order from equipment](./create-work-order-from-equipment) — Start a new work order directly from an equipment record so it is pre-linked to the correct machine and team.
