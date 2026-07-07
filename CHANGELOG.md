@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Daily check-in QR link generation (#1179)** — Organization owners/admins can now generate a missing daily check-in QR link directly inside the QR code dialog (equipment list and equipment details, desktop and mobile). Previously the dialog only pointed at the equipment-details actions menu, leaving assignments minted before server-side token persistence (#1154) with no reachable "generate" action — the "QR link is not available" notice persisted no matter what the user tried.
-- **preview.equipqr.app never updated (#1180)** — `preview-domain-alias.yml` now fast-forwards the `preview` domain-anchor branch to `main` on every push to `main`, so Vercel deploys the anchor branch and the existing alias job points `preview.equipqr.app` at that deployment. The alias job previously waited for deployments of a branch that nothing ever pushed (stale since v3.9.2).
+- **preview.equipqr.app never updated (#1180)** — `preview-domain-alias.yml` now runs on push to `main` only: it fast-forwards the `preview` domain-anchor branch and fires the Vercel deploy hook (plain git pushes of a commit already built for `main` are deduplicated by Vercel and produce no deployment). The branch-bound domain auto-aliases to the new deployment, so the old `deployment_status`-triggered alias job and `scripts/vercel/Set-PreviewDomainAlias.ps1` were removed — the workflow no longer attaches skipped checks to every PR. The branch previously did not exist on the remote (stale since v3.9.2).
 
 ### Added
 

@@ -75,17 +75,18 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 
 **Purpose:** Notification workflow for Vercel production deployments
 
-> **Note:** Actual deployment is handled by Vercel's GitHub integration, not this workflow. Preview deployments (PRs and non-`main` branches) are also automatic; `preview-domain-alias.yml` keeps `preview.equipqr.app` on the latest Preview build.
+> **Note:** Actual deployment is handled by Vercel's GitHub integration, not this workflow. Preview deployments (PRs and non-`main` branches) are also automatic; `preview-domain-alias.yml` keeps `preview.equipqr.app` on the latest `main`.
 
 ### 3. Preview Domain Alias (`preview-domain-alias.yml`)
 
-**Trigger:** Successful Vercel Preview `deployment_status` (excludes `equipqr-docs` and Production)
+**Trigger:** Push to `main` only (no `pull_request` / `deployment_status` triggers, so it never attaches skipped checks to PRs)
 
-**Purpose:** Point `preview.equipqr.app` at the deployment URL from the Preview environment
+**Purpose:** Keep `preview.equipqr.app` (bound in Vercel to git branch `preview`, the domain anchor) tracking the latest `main`
 
 **What it does:**
-- Runs `scripts/vercel/Set-PreviewDomainAlias.ps1` with `DEPLOYMENT_URL` from the GitHub deployment event
-- Replaces the retired custom Vercel **`staging`** environment (which was tied to git branch `preview`)
+- Fast-forwards git branch `preview` to `main` (with a divergence guard — the branch is a pure mirror)
+- POSTs the Vercel `preview` deploy hook (a plain git push of a commit Vercel already built for `main` is deduplicated and produces no deployment, so the hook is the reliable trigger), then polls until the deployment is READY
+- Vercel aliases `preview.equipqr.app` to the new deployment automatically because the domain is branch-bound — no `vercel alias set` step is needed
 
 ### 4. Auto Version Tag (`version-tag.yml`)
 
@@ -149,13 +150,14 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 | Git context | Vercel target | Stable alias |
 |-------------|---------------|--------------|
 | `main` | Production | `equipqr.app` (auto-promote after release readiness) |
-| PR / non-`main` push | Preview | Per-deployment URL; `preview.equipqr.app` aliased via `preview-domain-alias.yml` |
+| `preview` (anchor branch, synced to `main` by `preview-domain-alias.yml`) | Preview | `preview.equipqr.app` (auto-aliased — the domain is branch-bound in Vercel) |
+| PR / non-`main` push | Preview | Per-deployment URL only |
 
 **Key Settings (`vercel.json`):**
 - SPA routing (all routes → `/index.html`)
 - Security headers (HSTS, X-Frame-Options, etc.)
 - Asset caching (1 year for `/assets/*`)
-- Auto-deploy on git push: **`main`** (production build) and **`preview`** (Preview environment for release integration and `preview.equipqr.app` alias). Feature-branch PRs also receive per-PR Preview URLs via the GitHub integration.
+- Auto-deploy on git push: **`main`** (production build) and **`preview`** (domain-anchor branch for `preview.equipqr.app`; builds are triggered by the deploy hook in `preview-domain-alias.yml` since same-SHA branch pushes are deduplicated by Vercel). Feature-branch PRs also receive per-PR Preview URLs via the GitHub integration.
 
 **Preview hostname:** `preview.equipqr.app` is attached to the standard **Preview** environment (not the retired custom **`staging`** environment).
 
@@ -217,8 +219,7 @@ When you open or update a PR (Preview deployment):
 | 0:00 | Push to feature branch or PR synchronize |
 | 0:01 | GitHub Actions CI starts |
 | 0:01 | Vercel receives webhook, starts Preview build |
-| ~2:00 | Vercel Preview deployment ready |
-| ~2:01 | `preview-domain-alias.yml`: `preview.equipqr.app` → deployment URL |
+| ~2:00 | Vercel Preview deployment ready (commit-specific URL; `preview.equipqr.app` is **not** touched by PR builds) |
 | ~3:00 | CI complete |
 
 When you merge to `main`:
@@ -227,7 +228,9 @@ When you merge to `main`:
 |------|-------|
 | 0:00 | Push to `main` |
 | 0:01 | CI + Production Release Readiness workflows |
+| 0:01 | `preview-domain-alias.yml` fast-forwards `preview` and fires the deploy hook |
 | ~2:00 | Vercel Production build ready; Production Release Readiness promotes to `equipqr.app` |
+| ~2:30 | Preview-branch deployment READY; `preview.equipqr.app` auto-aliased |
 
 ---
 
@@ -293,7 +296,7 @@ See [Deployment Guide - Self-Hosted Runner Setup](./deployment.md#self-hosted-ru
 **Symptom:** Google OAuth redirects to a per-commit Vercel URL instead of `preview.equipqr.app`
 
 **Checks:**
-1. Confirm `preview-domain-alias.yml` ran after the latest Preview deployment (GitHub Deployments tab).
+1. Confirm `preview-domain-alias.yml` ran green on the latest push to `main` (Actions tab).
 2. Confirm Vercel Preview env has `VITE_SUPABASE_URL=https://supabase.equipqr.app` (`sync-vercel-from-1password.ps1 -Check -Environment preview`).
 3. Confirm Supabase Auth redirect URIs include `https://preview.equipqr.app/**` on the production project (`ymxkzronkhwxzcdcbnwq`).
 
@@ -336,13 +339,12 @@ See [Deployment Guide - Self-Hosted Runner Setup](./deployment.md#self-hosted-ru
 |------|---------|
 | `.github/workflows/ci.yml` | Continuous integration (lint, test, build, security) |
 | `.github/workflows/deploy.yml` | Deployment notifications |
-| `.github/workflows/preview-domain-alias.yml` | Alias `preview.equipqr.app` to latest Preview deployment |
+| `.github/workflows/preview-domain-alias.yml` | Sync `preview` anchor branch to `main` + deploy hook (keeps `preview.equipqr.app` current) |
 | `.github/workflows/version-tag.yml` | Auto-create git tags on version bump |
 | `.github/workflows/deployment-status.yml` | Log deployment status from Vercel |
 | `.github/workflows/export-schema.yml` | Export database schema from production to `supabase/schema.sql` |
 | `.github/runner-config.yml` | Runner type configuration |
 | `vercel.json` | Vercel deployment configuration |
 | `supabase/config.toml` | Supabase CLI configuration |
-| `scripts/vercel/Set-PreviewDomainAlias.ps1` | CLI helper for preview domain alias |
 | `scripts/switch-runner-type.ps1` | Toggle self-hosted/GitHub-hosted runners |
 | `scripts/test-ci.mjs` | CI test runner with coverage validation |

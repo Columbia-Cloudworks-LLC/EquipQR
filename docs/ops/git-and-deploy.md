@@ -23,7 +23,7 @@ Open PRs with `--base main` only.
 |-----|---------|
 | **https://equipqr.app** | Production (after Production Release Readiness + `vercel promote`) |
 | **`https://<project>-<hash>-columbia-cloudworks-llc.vercel.app`** | **Default for day-to-day QA** — every Preview deploy on a work branch or PR gets a commit-specific URL (also linked on the PR / Vercel deployment). |
-| **https://preview.equipqr.app** | **Optional** stable Preview hostname — Vercel binds this to git branch **`preview`** (dashboard setting). When that branch deploys, `preview-domain-alias.yml` points the custom domain at that deployment. Not updated by arbitrary `feat/*` Preview builds. |
+| **https://preview.equipqr.app** | Stable Preview hostname tracking latest `main` — Vercel binds this to git branch **`preview`** (dashboard setting). On every push to `main`, `preview-domain-alias.yml` fast-forwards that branch and fires the Vercel deploy hook; Vercel auto-aliases the domain to the new deployment. Not updated by arbitrary `feat/*` Preview builds. |
 
 Do **not** confuse git branch **`preview`** (domain anchor) with Vercel environment **Preview** (all non-production deploys).
 
@@ -36,14 +36,14 @@ Do **not** confuse git branch **`preview`** (domain anchor) with Vercel environm
 5. Open PR **`feat/*` → `main`**. CI + Supabase ephemeral branch (when `supabase/**` changes) must pass.
 6. Merge to `main` → **Production Release Readiness** → **`vercel promote`** → **equipqr.app**.
 
-Optional: fast-forward or merge `main` into git **`preview`** when you want **`preview.equipqr.app`** to reflect a known snapshot (not part of the default feature loop).
+**`preview.equipqr.app`** tracks `main` automatically: `preview-domain-alias.yml` fast-forwards git branch `preview` and triggers the Vercel deploy hook on every push to `main` (no manual branch sync needed).
 
 ## Vercel configuration
 
 | Setting | Value |
 |---------|--------|
 | **Production** env | Branch tracking: **`main`**. Auto-assign production domains. |
-| **Preview** env | Branch tracking: enabled for work branches (Preview deploys). Custom domain **`preview.equipqr.app`**: assign to git branch **`preview`** (Vercel UI requirement). |
+| **Preview** env | Branch tracking: enabled for work branches (Preview deploys). Custom domain **`preview.equipqr.app`**: assign to git branch **`preview`** (Vercel UI requirement — branch-bound domains auto-alias on each deployment of that branch). A **deploy hook** named `preview` on branch `preview` must exist (Settings → Git → Deploy Hooks); `preview-domain-alias.yml` fires it because same-SHA branch pushes do not trigger builds. |
 | **`vercel.json`** | `github.deploymentEnabled: true`; allow **`main`** and **`preview`** git deployments. Do not block other branches from Preview builds. |
 
 ## Supabase

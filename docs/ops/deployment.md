@@ -207,7 +207,7 @@ Configure these environment variables in your Vercel project dashboard:
 
 #### Branch Configuration
 - **Production**: merges to `main` trigger Vercel production-environment builds for **equipqr.app**. Traffic stays on the prior deployment until **Production Release Readiness** runs `vercel promote` after migrations and schema drift pass.
-- **Preview**: PRs and non-`main` pushes get Vercel **Preview** deployments. **`preview.equipqr.app`** is aliased to the latest Preview build by `.github/workflows/preview-domain-alias.yml` (not the retired custom **`staging`** environment or git branch `preview`).
+- **Preview**: PRs and non-`main` pushes get Vercel **Preview** deployments (commit-specific URLs). **`preview.equipqr.app`** tracks latest `main`: `.github/workflows/preview-domain-alias.yml` fast-forwards the `preview` domain-anchor branch and fires the Vercel deploy hook on every push to `main`; Vercel auto-aliases the branch-bound domain.
 
 See `docs/ops/preview-architecture-migration.md` (#1033) for the full cutover plan.
 
