@@ -61,6 +61,7 @@ vi.mock('@/features/teams/hooks/useCustomerAccount', () => ({
     link: { mutateAsync: vi.fn(), isPending: false },
     importFromQB: { mutateAsync: vi.fn(), isPending: false },
     refreshFromQB: { mutateAsync: vi.fn(), isPending: false },
+    remapFromQB: { mutateAsync: vi.fn(), isPending: false },
   })),
 }));
 
@@ -115,7 +116,7 @@ describe('QuickBooksCustomerMapping', () => {
     await waitFor(() => {
       expect(container.querySelector('.animate-spin')).toBeNull();
     });
-    expect(screen.queryByText('QuickBooks Customer')).toBeNull();
+    expect(screen.queryByText(/QuickBooks invoice export/i)).toBeNull();
   });
 
   it('should render nothing when QuickBooks is not connected', async () => {
@@ -124,21 +125,21 @@ describe('QuickBooksCustomerMapping', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.queryByText('QuickBooks Customer')).toBeNull();
+      expect(screen.queryByText(/QuickBooks invoice export/i)).toBeNull();
     });
   });
 
-  it('should show "Import from QB" and "Link Existing" buttons when no mapping exists', async () => {
+  it('should show import and link buttons when no mapping exists', async () => {
     mockGetTeamCustomerMapping.mockResolvedValue(null);
 
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('Import from QB')).toBeInTheDocument();
-      expect(screen.getByText('Link Existing')).toBeInTheDocument();
+      expect(screen.getByText('Import from QuickBooks')).toBeInTheDocument();
+      expect(screen.getByText('Link existing account')).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/No customer account linked/)).toBeInTheDocument();
+    expect(screen.getByText(/Link a QuickBooks customer/i)).toBeInTheDocument();
   });
 
   it('should show legacy mapping with upgrade prompt', async () => {
@@ -158,11 +159,11 @@ describe('QuickBooksCustomerMapping', () => {
       expect(screen.getByText('Acme Corp')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Legacy Mapping')).toBeInTheDocument();
-    expect(screen.getByText('Import as Account')).toBeInTheDocument();
+    expect(screen.getByText('Legacy mapping only')).toBeInTheDocument();
+    expect(screen.getByText('Import as account')).toBeInTheDocument();
   });
 
-  it('should open the import dialog when "Import from QB" is clicked', async () => {
+  it('should open the import dialog when "Import from QuickBooks" is clicked', async () => {
     const user = userEvent.setup();
     mockGetTeamCustomerMapping.mockResolvedValue(null);
     mockSearchCustomers.mockResolvedValue({
@@ -176,13 +177,13 @@ describe('QuickBooksCustomerMapping', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('Import from QB')).toBeInTheDocument();
+      expect(screen.getByText('Import from QuickBooks')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('Import from QB'));
+    await user.click(screen.getByRole('button', { name: 'Import from QuickBooks' }));
 
     await waitFor(() => {
-      expect(screen.getByText('Import from QuickBooks')).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: 'Import from QuickBooks' })).toBeInTheDocument();
     });
   });
 
@@ -200,10 +201,10 @@ describe('QuickBooksCustomerMapping', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('Import from QB')).toBeInTheDocument();
+      expect(screen.getByText('Import from QuickBooks')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('Import from QB'));
+    await user.click(screen.getByRole('button', { name: 'Import from QuickBooks' }));
 
     await waitFor(() => {
       expect(screen.getByText('Alpha Customer')).toBeInTheDocument();
@@ -219,13 +220,13 @@ describe('QuickBooksCustomerMapping', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('Link Existing')).toBeInTheDocument();
+      expect(screen.getByText('Link existing account')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('Link Existing'));
+    await user.click(screen.getByRole('button', { name: 'Link existing account' }));
 
     await waitFor(() => {
-      expect(screen.getByText('Link Existing Account')).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: 'Link existing account' })).toBeInTheDocument();
     });
   });
 
@@ -252,6 +253,7 @@ describe('QuickBooksCustomerMapping', () => {
       link: { mutateAsync: mockLink, isPending: false },
       importFromQB: { mutateAsync: mockImportFromQB, isPending: false },
       refreshFromQB: { mutateAsync: vi.fn(), isPending: false },
+      remapFromQB: { mutateAsync: vi.fn(), isPending: false },
     } as ReturnType<typeof import('@/features/teams/hooks/useCustomerAccount').useCustomerMutations>);
 
     mockSearchCustomers.mockResolvedValue({
@@ -279,10 +281,10 @@ describe('QuickBooksCustomerMapping', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('Import from QB')).toBeInTheDocument();
+      expect(screen.getByText('Import from QuickBooks')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('Import from QB'));
+    await user.click(screen.getByRole('button', { name: 'Import from QuickBooks' }));
 
     await waitFor(() => {
       expect(screen.getByText('Bill Lucchini')).toBeInTheDocument();
@@ -291,7 +293,7 @@ describe('QuickBooksCustomerMapping', () => {
     // Select the customer and confirm
     await user.click(screen.getByText('Bill Lucchini'));
 
-    const importBtn = screen.queryByRole('button', { name: /Import & Link/i });
+    const importBtn = screen.queryByRole('button', { name: /Import & link/i });
     if (importBtn) {
       await user.click(importBtn);
       await waitFor(() => {

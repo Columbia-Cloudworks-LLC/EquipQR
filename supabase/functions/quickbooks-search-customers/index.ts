@@ -50,6 +50,7 @@ interface QuickBooksCustomer {
 
 import { buildQBOContacts } from "./qbo-contacts.ts";
 import {
+  buildCustomerByIdQuery,
   buildCustomerQueries,
   sanitizeCustomerSearchQuery,
 } from "./qbo-customer-query.ts";
@@ -86,7 +87,7 @@ serveQuickBooksFunction(FUNCTION_NAME, logStep, async ({
 
     // Parse request body
     const body = await req.json();
-    const { organization_id, query } = body;
+    const { organization_id, query, quickbooks_customer_id: quickbooksCustomerId } = body;
 
     if (!organization_id) {
       return new Response(JSON.stringify({ 
@@ -156,7 +157,9 @@ serveQuickBooksFunction(FUNCTION_NAME, logStep, async ({
     );
 
     const sanitizedQuery = sanitizeCustomerSearchQuery(query);
-    if (sanitizedQuery.length > 100) {
+    const customerByIdQuery = buildCustomerByIdQuery(quickbooksCustomerId);
+
+    if (!customerByIdQuery && sanitizedQuery.length > 100) {
       return new Response(JSON.stringify({
         success: false,
         error: "Search query too long"
@@ -166,11 +169,18 @@ serveQuickBooksFunction(FUNCTION_NAME, logStep, async ({
       });
     }
 
-    logStep("Querying QuickBooks customers", { realmId: credentials.realm_id });
+    logStep("Querying QuickBooks customers", {
+      realmId: credentials.realm_id,
+      lookupById: !!customerByIdQuery,
+    });
 
     const customersById = new Map<string, QuickBooksCustomer>();
     let lastIntuitTid: string | undefined;
-    for (const customerQuery of buildCustomerQueries(sanitizedQuery)) {
+    const customerQueries = customerByIdQuery
+      ? [customerByIdQuery]
+      : buildCustomerQueries(sanitizedQuery);
+
+    for (const customerQuery of customerQueries) {
       // Call QuickBooks API (with minorversion for full field support)
       const qbResponse = await fetch(
         withMinorVersion(`${QBO_API_BASE}/v3/company/${credentials.realm_id}/query?query=${encodeURIComponent(customerQuery)}`),

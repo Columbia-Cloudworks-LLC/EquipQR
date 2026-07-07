@@ -46,7 +46,6 @@ const VIEW_SECTION_ORDER: Record<TeamView, string[]> = {
     'pm-schedule',
     'customer-account',
     'external-contacts',
-    'quickbooks',
   ],
   department: [
     'info',
@@ -58,12 +57,10 @@ const VIEW_SECTION_ORDER: Record<TeamView, string[]> = {
     'members',
     'customer-account',
     'external-contacts',
-    'quickbooks',
   ],
   customer: [
     'customer-account',
     'external-contacts',
-    'quickbooks',
     'activity',
     'recent-work-orders',
     'recent-equipment',
@@ -415,40 +412,53 @@ const TeamDetails = () => {
             );
           case 'customer-account':
             if (team.customer_id) {
-              return <CustomerAccountCard key={sectionKey} customerId={team.customer_id} />;
+              return (
+                <CustomerAccountCard
+                  key={sectionKey}
+                  customerId={team.customer_id}
+                  teamId={team.id}
+                  teamName={team.name}
+                />
+              );
             }
             if (activeView === 'customer') {
               return (
                 <Card key={sectionKey} className="shadow-elevation-2">
-                  <CardContent className="py-8 text-center">
+                  <CardContent className="py-8 text-center space-y-4">
                     <Handshake className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
-                    <h3 className="mb-1 text-base font-semibold">No customer account linked</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Link a customer account to this team to track the external organization,
-                      contacts, and invoicing behind the equipment you service.
-                      {canEdit ? ' Use Edit Team to link one.' : ''}
-                    </p>
+                    <div>
+                      <h3 className="mb-1 text-base font-semibold">No customer account linked</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Link a customer account to track the external organization, contacts, and
+                        invoicing behind the equipment you service.
+                      </p>
+                    </div>
+                    <QuickBooksCustomerMapping
+                      embedded
+                      teamId={team.id}
+                      teamName={team.name}
+                      customerId={null}
+                    />
                   </CardContent>
                 </Card>
               );
             }
-            return null;
+            return (
+              <QuickBooksCustomerMapping
+                key={sectionKey}
+                teamId={team.id}
+                teamName={team.name}
+                customerId={null}
+              />
+            );
           case 'external-contacts':
             if (!team.customer_id) return null;
             return (
               <ExternalContactsList
                 key={sectionKey}
                 customerId={team.customer_id}
-                canManage={permissions.isOrganizationAdmin()}
-              />
-            );
-          case 'quickbooks':
-            return (
-              <QuickBooksCustomerMapping
-                key={sectionKey}
-                teamId={team.id}
-                teamName={team.name}
-                customerId={team.customer_id}
+                canManage={canEdit}
+                teamMembers={team.members}
               />
             );
           case 'members':

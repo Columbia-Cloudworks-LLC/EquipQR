@@ -20,13 +20,14 @@ import { ExternalLink } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { useQuery } from '@tanstack/react-query';
-import { getConnectionStatus, getTeamCustomerMapping } from '@/services/quickbooks';
+import { getConnectionStatus } from '@/services/quickbooks';
 import { getQuickBooksInvoiceUrl } from '@/services/quickbooks/types';
 import { useExportToQuickBooks } from '@/hooks/useExportToQuickBooks';
 import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
 import { useQuickBooksExportLogs, useQuickBooksLastExport } from '@/hooks/useExportToQuickBooks';
 import { useAppToast } from '@/hooks/useAppToast';
 import { isQuickBooksEnabled } from '@/lib/flags';
+import { resolveQuickBooksCustomerId } from '@/features/teams/services/customerAccountService';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import type { QuickBooksExportLog } from '@/services/quickbooks/quickbooksService';
 import {
@@ -84,9 +85,9 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
     staleTime: 60 * 1000,
   });
 
-  const { data: teamMapping, isLoading: mappingLoading } = useQuery({
-    queryKey: ['quickbooks', 'team-mapping', currentOrganization?.id, teamId],
-    queryFn: () => getTeamCustomerMapping(currentOrganization!.id, teamId!),
+  const { data: resolvedQbCustomerId, isLoading: mappingLoading } = useQuery({
+    queryKey: ['quickbooks', 'resolved-mapping', currentOrganization?.id, teamId],
+    queryFn: () => resolveQuickBooksCustomerId(currentOrganization!.id, teamId!),
     enabled:
       !!currentOrganization?.id && !!teamId && canExport && featureEnabled && connectionStatus?.isConnected,
   });
@@ -111,7 +112,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   const isExporting = exportMutation.isPending;
   const isLoading = connectionLoading || mappingLoading || isExporting || permissionLoading;
   const isConnected = connectionStatus?.isConnected;
-  const hasMapping = !!teamMapping;
+  const hasMapping = !!resolvedQbCustomerId;
   const hasTeam = !!teamId;
   const isCompleted = workOrderStatus === 'completed';
 

@@ -17,11 +17,11 @@ function createQC() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
 }
 
-function renderComponent(customerId = 'cust-1', canManage = true) {
+function renderComponent(customerId = 'cust-1', canManage = true, teamMembers: Parameters<typeof ExternalContactsList>[0]['teamMembers'] = []) {
   return render(
     <QueryClientProvider client={createQC()}>
       <MemoryRouter>
-        <ExternalContactsList customerId={customerId} canManage={canManage} />
+        <ExternalContactsList customerId={customerId} canManage={canManage} teamMembers={teamMembers} />
       </MemoryRouter>
     </QueryClientProvider>
   );
@@ -126,6 +126,37 @@ describe('ExternalContactsList', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Edit Jane Doe/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Delete Jane Doe/i })).toBeInTheDocument();
+    });
+  });
+
+  it('shows team manager and requestor as automatic contacts', async () => {
+    mockUseExternalContacts.mockReturnValue({ data: [], isLoading: false });
+
+    renderComponent('cust-1', false, [
+      {
+        id: 'tm-1',
+        user_id: 'user-1',
+        team_id: 'team-1',
+        role: 'manager',
+        joined_date: '2024-01-01T00:00:00Z',
+        profiles: { name: 'Pat Manager', email: 'pat@example.com' },
+      },
+      {
+        id: 'tm-2',
+        user_id: 'user-2',
+        team_id: 'team-1',
+        role: 'requestor',
+        joined_date: '2024-01-02T00:00:00Z',
+        profiles: { name: 'Riley Requestor', email: 'riley@example.com' },
+      },
+    ]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Pat Manager')).toBeInTheDocument();
+      expect(screen.getByText('Riley Requestor')).toBeInTheDocument();
+      expect(screen.getByText('Team Manager')).toBeInTheDocument();
+      expect(screen.getByText('Requestor')).toBeInTheDocument();
+      expect(screen.getAllByText('EquipQR user')).toHaveLength(2);
     });
   });
 

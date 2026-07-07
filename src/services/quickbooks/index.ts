@@ -12,7 +12,6 @@ export {
 export {
   getConnectionStatus,
   disconnectQuickBooks,
-  manualTokenRefresh,
   getTeamCustomerMapping,
   updateTeamCustomerMapping,
   clearTeamCustomerMapping,

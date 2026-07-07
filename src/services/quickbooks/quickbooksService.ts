@@ -372,7 +372,8 @@ export async function clearTeamCustomerMapping(
  */
 export async function searchCustomers(
   organizationId: string,
-  query?: string
+  query?: string,
+  options?: { quickbooksCustomerId?: string }
 ): Promise<CustomerSearchResult> {
   const { data: { session } } = await supabase.auth.getSession();
   
@@ -393,6 +394,7 @@ export async function searchCustomers(
       body: JSON.stringify({
         organization_id: organizationId,
         query: query || '',
+        quickbooks_customer_id: options?.quickbooksCustomerId ?? undefined,
       }),
     }
   );

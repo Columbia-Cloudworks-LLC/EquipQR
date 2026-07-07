@@ -10,6 +10,7 @@ import {
   linkTeamToCustomer,
   importCustomerFromQB,
   refreshCustomerFromQB,
+  remapCustomerFromQB,
   getExternalContacts,
   createExternalContact,
   updateExternalContact,
@@ -121,7 +122,21 @@ export function useCustomerMutations(organizationId: string | undefined) {
     },
   });
 
-  return { create, update, link, importFromQB, refreshFromQB };
+  const remapFromQB = useMutation({
+    mutationFn: ({ customerId, qb }: { customerId: string; qb: QBCustomerPayload }) =>
+      remapCustomerFromQB(requireOrganizationId(organizationId), customerId, qb),
+    onSuccess: (_data, vars) => {
+      toast({ title: 'QuickBooks link updated', description: 'Customer account now points at the selected QuickBooks customer' });
+      queryClient.invalidateQueries({ queryKey: ['customer', vars.customerId] });
+      queryClient.invalidateQueries({ queryKey: ['external-contacts', vars.customerId] });
+      invalidate();
+    },
+    onError: (err: Error) => {
+      toast({ title: 'Update failed', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  return { create, update, link, importFromQB, refreshFromQB, remapFromQB };
 }
 
 // ============================================

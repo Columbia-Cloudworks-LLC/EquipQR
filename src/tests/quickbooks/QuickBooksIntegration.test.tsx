@@ -42,14 +42,12 @@ const mockGetConnectionStatus = vi.fn();
 const mockGenerateQuickBooksAuthUrl = vi.fn();
 const mockDisconnectQuickBooks = vi.fn();
 const mockIsQuickBooksConfigured = vi.fn();
-const mockManualTokenRefresh = vi.fn();
 
 vi.mock('@/services/quickbooks', () => ({
   getConnectionStatus: (...args: unknown[]) => mockGetConnectionStatus(...args),
   generateQuickBooksAuthUrl: (...args: unknown[]) => mockGenerateQuickBooksAuthUrl(...args),
   disconnectQuickBooks: (...args: unknown[]) => mockDisconnectQuickBooks(...args),
   isQuickBooksConfigured: () => mockIsQuickBooksConfigured(),
-  manualTokenRefresh: (...args: unknown[]) => mockManualTokenRefresh(...args),
 }));
 
 import { QuickBooksIntegration } from '@/features/organization/components/QuickBooksIntegration';

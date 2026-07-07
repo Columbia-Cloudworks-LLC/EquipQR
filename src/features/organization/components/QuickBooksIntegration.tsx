@@ -15,7 +15,6 @@ import {
   RefreshCw,
   CheckCircle,
   AlertTriangle,
-  Clock,
   Loader2,
 } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -25,7 +24,6 @@ import {
   isQuickBooksConfigured,
   getConnectionStatus,
   disconnectQuickBooks,
-  manualTokenRefresh,
 } from '@/services/quickbooks';
 import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
 import { toast } from 'sonner';
@@ -77,17 +75,6 @@ export const QuickBooksIntegration = ({
     },
     onError: (error: Error) => {
       toast.error(`Failed to disconnect: ${error.message}`);
-    },
-  });
-
-  const refreshMutation = useMutation({
-    mutationFn: manualTokenRefresh,
-    onSuccess: (result) => {
-      toast.success(result.message);
-      queryClient.invalidateQueries({ queryKey: ['quickbooks', 'connection'] });
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to refresh tokens: ${error.message}`);
     },
   });
 
@@ -149,7 +136,6 @@ export const QuickBooksIntegration = ({
   }
 
   const isConnected = connectionStatus?.isConnected;
-  const isTokenExpiring = connectionStatus?.isAccessTokenValid === false;
   const isRefreshTokenExpired = connectionStatus?.isRefreshTokenValid === false;
 
   return (
@@ -228,35 +214,14 @@ export const QuickBooksIntegration = ({
         }
       />
 
-      {/* Token status alerts — only shown when connected with issues */}
       {isConnected && isRefreshTokenExpired && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription className="text-sm">
-            Authorization expired. Reconnect to continue exporting invoices.
+            Authorization expired. Reconnect QuickBooks to continue exporting invoices.
           </AlertDescription>
         </Alert>
-      )}
-
-      {isConnected && !isRefreshTokenExpired && isTokenExpiring && (
-        <div className="flex flex-col gap-2 rounded-md border border-border/60 bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between sm:bg-transparent sm:p-0 sm:border-0">
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Clock className="h-3.5 w-3.5 shrink-0" />
-            Access token will refresh automatically
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            className={`h-9 text-xs ${integrationActionButtonClassName}`}
-            onClick={() => refreshMutation.mutate()}
-            disabled={refreshMutation.isPending}
-          >
-            {refreshMutation.isPending && <RefreshCw className="h-3 w-3 animate-spin mr-1" />}
-            Refresh Now
-          </Button>
-        </div>
       )}
     </IntegrationCardLayout>
   );
 };
-

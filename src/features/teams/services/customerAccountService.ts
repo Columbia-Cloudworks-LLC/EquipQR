@@ -247,6 +247,33 @@ export async function importCustomerFromQB(
  * Refresh QB-sourced fields on an existing customer without overwriting
  * EquipQR-only fields (name, notes, account_owner_id, status).
  */
+/**
+ * Point an existing customer account at a different QuickBooks customer and
+ * merge the latest QB-sourced fields and contacts.
+ */
+export async function remapCustomerFromQB(
+  organizationId: string,
+  customerId: string,
+  qb: QBCustomerPayload
+): Promise<CustomerRow> {
+  const syncedAt = new Date().toISOString();
+  const updates: CustomerUpdate = {
+    quickbooks_customer_id: qb.Id,
+    quickbooks_display_name: qb.DisplayName,
+    email: qb.Email ?? null,
+    phone: qb.Phone ?? null,
+    billing_address: qbAddrToJson(qb.BillAddr),
+    shipping_address: qbAddrToJson(qb.ShipAddr),
+    quickbooks_synced_at: syncedAt,
+    is_tax_exempt: qb.Taxable === undefined ? null : qb.Taxable === false,
+    quickbooks_tax_status_synced_at: qb.Taxable === undefined ? null : syncedAt,
+  };
+
+  const customer = await updateCustomer(customerId, updates, organizationId);
+  await replaceQuickBooksExternalContacts(organizationId, customerId, qb);
+  return customer;
+}
+
 export async function refreshCustomerFromQB(
   organizationId: string,
   customerId: string,

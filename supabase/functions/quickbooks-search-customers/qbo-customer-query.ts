@@ -11,6 +11,13 @@ function escapeQuickBooksQueryLiteral(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 
+export function buildCustomerByIdQuery(quickbooksCustomerId: unknown): string | null {
+  if (typeof quickbooksCustomerId !== 'string') return null;
+  const sanitizedId = quickbooksCustomerId.replace(/[^0-9]/g, '');
+  if (!sanitizedId) return null;
+  return `${CUSTOMER_SELECT} WHERE Id = '${sanitizedId}' MAXRESULTS 1`;
+}
+
 export function buildCustomerQueries(query: unknown): string[] {
   const sanitizedQuery = sanitizeCustomerSearchQuery(query);
 

@@ -87,6 +87,21 @@ const TeamLocationCard: React.FC<TeamLocationCardProps> = ({ team, canEdit }) =>
       );
     }
 
+    if (!mapId) {
+      return (
+        <div
+          className="rounded-lg bg-muted/30 border flex flex-col items-center justify-center gap-2 px-4 text-center"
+          style={{ height: MAP_HEIGHT }}
+        >
+          <MapPin className="h-6 w-6 text-muted-foreground" />
+          <p className="text-xs text-muted-foreground">
+            Map preview unavailable until the Google Maps Map ID is configured. The address below
+            still drives Fleet Map placement.
+          </p>
+        </div>
+      );
+    }
+
     return (
       <div className="rounded-lg overflow-hidden border" style={{ height: MAP_HEIGHT }}>
         <APIProvider
@@ -107,7 +122,7 @@ const TeamLocationCard: React.FC<TeamLocationCardProps> = ({ team, canEdit }) =>
             colorScheme={isDark ? 'DARK' : 'LIGHT'}
             style={{ width: '100%', height: '100%' }}
           >
-            {mapId ? <TeamMapMarker position={center} /> : null}
+            <TeamMapMarker position={center} />
           </Map>
         </APIProvider>
       </div>
