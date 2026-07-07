@@ -1,5 +1,6 @@
 -- Migration: Enforce manual external contact metadata invariants (#1173)
--- Complements 20260707125008_allow_team_manager_external_contacts.sql (RLS + RPCs).
+-- Complements 20260707125008 (RPCs) and 20260707160000 (manager RLS).
+-- CHECK + trigger prevent manual rows from carrying any QuickBooks sync metadata.
 
 BEGIN;
 

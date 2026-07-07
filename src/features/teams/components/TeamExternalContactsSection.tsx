@@ -9,7 +9,8 @@ interface TeamExternalContactsSectionProps {
 
 /**
  * Team-scoped wrapper for customer external contacts.
- * Manual contact CRUD is authorized by migration 20260707125008 (RLS + org-scoped RPCs).
+ * Manual contact CRUD is authorized by migrations 20260707125008 (RPCs) and
+ * 20260707160000 (team-manager RLS replacing 20260406000003 admin-only policies).
  */
 const TeamExternalContactsSection: React.FC<TeamExternalContactsSectionProps> = ({
   team,

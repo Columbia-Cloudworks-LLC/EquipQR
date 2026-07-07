@@ -164,6 +164,8 @@ const TeamDetails = () => {
   const canEdit = permissions.canManageTeam(team.id);
   const canDelete = permissions.canManageTeam(team.id);
   const canManageMembers = permissions.canManageTeam(team.id);
+  // Team managers may CRUD manual external contacts via 20260707125008 RPCs + manager RLS
+  // (20260707160000 supersedes admin-only policies from 20260406000003).
   const canManageExternalContacts =
     canEdit && team.organization_id === currentOrganization.id;
 

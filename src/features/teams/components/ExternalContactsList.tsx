@@ -187,8 +187,8 @@ const ExternalContactsList: React.FC<ExternalContactsListProps> = ({
                 Customer contacts
               </CardTitle>
               <CardDescription>
-                Team managers and requestors are listed automatically. Add external contacts for
-                billing, site, or QuickBooks-synced people.
+                Team managers and requestors are listed automatically. Team managers can add and edit
+                manual external contacts; QuickBooks-synced contacts stay read-only.
               </CardDescription>
             </div>
             {canManage && (
