@@ -1,12 +1,15 @@
--- Security regression tests for public.get_audit_log_timeline (issue #641).
+-- Security regression tests for public.get_audit_log_timeline (issue #641)
+-- and the owner/admin-only audit read contract (issue #1122).
 -- Covers:
---   (a) Active member of org A can read their own org's timeline buckets.
---   (b) Active member of org A is denied timeline access to org B.
+--   (a) Active admin of org A can read their own org's timeline buckets.
+--   (b) Active admin of org A is denied timeline access to org B.
 --   (c) p_bucket = 'second' raises a validation error (whitelist works).
 --   (d) p_action = 'UPDATE' returns only UPDATE rows (filter passthrough).
+--   (e) A plain (non-admin) active member is denied the timeline RPC and
+--       reads zero audit_log rows through RLS (#1122).
 
 BEGIN;
-SELECT plan(6);
+SELECT plan(9);
 
 -- ---------------------------------------------------------------------------
 -- Auth fixtures: two users, two orgs, one membership each.
@@ -84,10 +87,47 @@ INSERT INTO auth.users (
   ''
 ) ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO auth.users (
+  id,
+  instance_id,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  created_at,
+  updated_at,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  is_super_admin,
+  role,
+  aud,
+  confirmation_token,
+  recovery_token,
+  email_change_token_new,
+  email_change
+) VALUES (
+  '11000000-0000-0000-0000-000000000003'::uuid,
+  '00000000-0000-0000-0000-000000000000'::uuid,
+  'pgtap-audit-member@equipqr.test',
+  extensions.crypt('password123', extensions.gen_salt('bf')),
+  NOW(),
+  NOW(),
+  NOW(),
+  '{"provider": "email", "providers": ["email"]}'::jsonb,
+  '{"name": "pgTAP Audit Member"}'::jsonb,
+  false,
+  'authenticated',
+  'authenticated',
+  '',
+  '',
+  '',
+  ''
+) ON CONFLICT (id) DO NOTHING;
+
 INSERT INTO public.profiles (id, email, name)
 VALUES
   ('11000000-0000-0000-0000-000000000001'::uuid, 'pgtap-audit-admin@equipqr.test', 'pgTAP Audit Admin'),
-  ('11000000-0000-0000-0000-000000000002'::uuid, 'pgtap-audit-outsider@equipqr.test', 'pgTAP Audit Outsider')
+  ('11000000-0000-0000-0000-000000000002'::uuid, 'pgtap-audit-outsider@equipqr.test', 'pgTAP Audit Outsider'),
+  ('11000000-0000-0000-0000-000000000003'::uuid, 'pgtap-audit-member@equipqr.test', 'pgTAP Audit Member')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.organizations (id, name)
@@ -97,10 +137,12 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- Admin is an active member of Org A only. Outsider is a member of Org B only.
+-- The plain member is an active non-admin member of Org A (#1122 denial case).
 INSERT INTO public.organization_members (organization_id, user_id, role, status)
 VALUES
   ('91000000-0000-0000-0000-000000000001'::uuid, '11000000-0000-0000-0000-000000000001'::uuid, 'admin', 'active'),
-  ('91000000-0000-0000-0000-000000000002'::uuid, '11000000-0000-0000-0000-000000000002'::uuid, 'admin', 'active')
+  ('91000000-0000-0000-0000-000000000002'::uuid, '11000000-0000-0000-0000-000000000002'::uuid, 'admin', 'active'),
+  ('91000000-0000-0000-0000-000000000001'::uuid, '11000000-0000-0000-0000-000000000003'::uuid, 'member', 'active')
 ON CONFLICT (organization_id, user_id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
@@ -241,6 +283,46 @@ SELECT is(
   ),
   'UPDATE',
   'p_action=UPDATE returns only UPDATE rows'
+);
+
+-- ---------------------------------------------------------------------------
+-- (e) Switch to the plain (non-admin) Org A member: audit data must be
+-- fully inaccessible — timeline RPC raises 42501 and RLS hides all rows.
+-- ---------------------------------------------------------------------------
+
+SELECT set_config('request.jwt.claim.sub', '11000000-0000-0000-0000-000000000003', true);
+SELECT set_config(
+  'request.jwt.claims',
+  json_build_object('sub', '11000000-0000-0000-0000-000000000003')::text,
+  true
+);
+SELECT is(
+  auth.uid(),
+  '11000000-0000-0000-0000-000000000003'::uuid,
+  'auth.uid set for Org A plain member'
+);
+
+SELECT throws_ok(
+  $$
+    SELECT * FROM public.get_audit_log_timeline(
+      '91000000-0000-0000-0000-000000000001'::uuid,
+      'hour',
+      NOW() - INTERVAL '1 day',
+      NOW() + INTERVAL '1 minute'
+    )
+  $$,
+  '42501',
+  'access denied',
+  'Non-admin member timeline read raises 42501 access denied (#1122)'
+);
+
+SELECT is(
+  (
+    SELECT count(*)::int FROM public.audit_log
+    WHERE organization_id = '91000000-0000-0000-0000-000000000001'::uuid
+  ),
+  0,
+  'RLS hides all audit_log rows from non-admin members (#1122)'
 );
 
 SELECT * FROM finish();

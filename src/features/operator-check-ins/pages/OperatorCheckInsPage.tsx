@@ -41,7 +41,7 @@ import {
   materializeOperatorChecklistStarter,
   OPERATOR_CHECKLIST_STARTER_TEMPLATES,
 } from '@/features/operator-check-ins/data/operatorChecklistStarterTemplates';
-import { filterEquipmentSummariesBySelectedTeam } from '@/features/operator-check-ins/utils/filterEquipmentSummariesBySelectedTeam';
+import { filterEquipmentSummariesBySelectedTeam } from '@/features/equipment/utils/filterEquipmentSummariesBySelectedTeam';
 import { isDuplicateOperatorCheckinAssignmentError } from '@/features/operator-check-ins/utils/operatorCheckinAssignmentErrors';
 import {
   getOperatorCheckinToken,

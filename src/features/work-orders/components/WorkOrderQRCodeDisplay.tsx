@@ -15,13 +15,20 @@ interface WorkOrderQRCodeDisplayProps {
   workOrderTitle?: string;
   onPrintFieldWorksheet: () => void;
   isPrintingWorksheet?: boolean;
+  /** Internal-only printable worksheet; hidden for customer-safe export audience. */
+  showFieldWorksheet?: boolean;
 }
 
-const WORK_ORDER_QR_INSTRUCTIONS = [
+const WORK_ORDER_QR_INSTRUCTIONS_WITH_WORKSHEET = [
   'Print the field worksheet or download this QR code for paperwork you take into the field',
   'The worksheet footer includes a QR code that links directly back to this work order',
   'Office staff can scan completed paperwork to reopen the work order and enter results',
   'Technicians who cannot use the app in adverse conditions can complete the paper checklist instead',
+];
+
+const WORK_ORDER_QR_INSTRUCTIONS_QR_ONLY = [
+  'Download this QR code to link paperwork or signage back to this work order',
+  'Scanning the code opens the work order in EquipQR for status updates and notes',
 ];
 
 const WorkOrderQRCodeDisplay: React.FC<WorkOrderQRCodeDisplayProps> = ({
@@ -31,8 +38,12 @@ const WorkOrderQRCodeDisplay: React.FC<WorkOrderQRCodeDisplayProps> = ({
   workOrderTitle,
   onPrintFieldWorksheet,
   isPrintingWorksheet = false,
+  showFieldWorksheet = false,
 }) => {
   const isMobile = useIsMobile();
+  const instructionBullets = showFieldWorksheet
+    ? WORK_ORDER_QR_INSTRUCTIONS_WITH_WORKSHEET
+    : WORK_ORDER_QR_INSTRUCTIONS_QR_ONLY;
   const qrCodeUrl = qrFullUrl(workOrderQRPath(workOrderId));
   const filenameStem = workOrderTitle
     ? workOrderTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()
@@ -55,39 +66,43 @@ const WorkOrderQRCodeDisplay: React.FC<WorkOrderQRCodeDisplayProps> = ({
             qrCodeUrl={qrCodeUrl}
             qrImageAlt="Work order QR code"
             defaultFilenameStem={filenameStem}
-            instructionBullets={WORK_ORDER_QR_INSTRUCTIONS}
+            instructionBullets={instructionBullets}
             formatSelectId="work-order-qr-download-format"
             imageLoading="lazy"
           />
 
-          <Separator />
+          {showFieldWorksheet ? (
+            <>
+              <Separator />
 
-          <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
-            <div className="flex items-start gap-2">
-              <ClipboardList className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-foreground">
-                  {FIELD_WORKSHEET_EXPORT_POLICY.title}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {FIELD_WORKSHEET_EXPORT_POLICY.description}
-                </p>
+              <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+                <div className="flex items-start gap-2">
+                  <ClipboardList className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">
+                      {FIELD_WORKSHEET_EXPORT_POLICY.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {FIELD_WORKSHEET_EXPORT_POLICY.description}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  className="w-full min-h-11"
+                  onClick={onPrintFieldWorksheet}
+                  disabled={isPrintingWorksheet}
+                >
+                  {isPrintingWorksheet ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  ) : (
+                    <ClipboardList className="h-4 w-4" aria-hidden />
+                  )}
+                  Print field worksheet (PDF)
+                </Button>
               </div>
-            </div>
-            <Button
-              type="button"
-              className="w-full min-h-11"
-              onClick={onPrintFieldWorksheet}
-              disabled={isPrintingWorksheet}
-            >
-              {isPrintingWorksheet ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              ) : (
-                <ClipboardList className="h-4 w-4" aria-hidden />
-              )}
-              Print field worksheet (PDF)
-            </Button>
-          </div>
+            </>
+          ) : null}
 
           <Button type="button" variant="outline" className="w-full min-h-11" onClick={onClose}>
             Close

@@ -134,7 +134,7 @@ export function HistoricalTimelineEditorDialog({
         <DialogHeader className="space-y-1 border-b px-6 py-4">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="text-xs leading-snug">
-            Operational timeline dates reflect when work happened. Change History continues to record when edits were made in EquipQR.
+            Operational timeline dates reflect when work happened. The organization Audit Log continues to record when edits were made in EquipQR.
           </DialogDescription>
         </DialogHeader>
 

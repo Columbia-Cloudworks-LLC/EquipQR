@@ -56,12 +56,44 @@ export interface Team {
   location_lat?: number;
   location_lng?: number;
   override_equipment_location?: boolean;
+  preferred_view?: TeamView;
   customer_id?: string | null;
   customer_name?: string | null;
   customer_status?: string | null;
   customer_is_tax_exempt?: boolean | null;
   quickbooks_synced_at?: string | null;
 }
+
+// ============================================
+// Team Detail Views (issue #1132)
+// ============================================
+
+export const TEAM_VIEWS = ['internal', 'department', 'customer'] as const;
+
+/**
+ * Business framing for the team details page. The underlying team data is
+ * identical; each view surfaces different metrics and shortcuts.
+ */
+export type TeamView = (typeof TEAM_VIEWS)[number];
+
+export function isTeamView(value: unknown): value is TeamView {
+  return typeof value === 'string' && (TEAM_VIEWS as readonly string[]).includes(value);
+}
+
+export const TEAM_VIEW_LABELS: Record<TeamView, string> = {
+  internal: 'Internal Team',
+  department: 'Department',
+  customer: 'Customer',
+};
+
+export const TEAM_VIEW_DESCRIPTIONS: Record<TeamView, string> = {
+  internal:
+    'A group of subject matter experts inside your organization — members and collaboration first.',
+  department:
+    'An entire department — fleet metrics, maintenance posture, and workload at a glance.',
+  customer:
+    'An external customer whose equipment your organization services — account, contacts, and service history first.',
+};
 
 // ============================================
 // Customer Account Types

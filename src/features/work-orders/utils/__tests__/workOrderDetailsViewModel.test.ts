@@ -8,8 +8,11 @@ import {
   buildWorkOrderAssigneeSummary,
   buildWorkOrderPdfInput,
   buildWorkOrderTeamSummary,
+  getMobileWorkOrderDetailsBottomPaddingClass,
   isFooterRoleEligible,
   shouldHideInlineNoteAddButton,
+  shouldShowMobileSyncBanner,
+  MOBILE_WO_FAB_BOTTOM_CLASS,
   shouldShowMobileActionFooter,
 } from '../workOrderDetailsViewModel';
 
@@ -61,6 +64,18 @@ describe('workOrderDetailsViewModel', () => {
           userId: 'user-1',
         }),
       ).toBe(false);
+    });
+  });
+
+  describe('getMobileWorkOrderDetailsBottomPaddingClass', () => {
+    it('returns undefined on desktop', () => {
+      expect(getMobileWorkOrderDetailsBottomPaddingClass(false)).toBeUndefined();
+    });
+
+    it('uses nav-height + FAB clearance on mobile', () => {
+      expect(getMobileWorkOrderDetailsBottomPaddingClass(true)).toBe(
+        'pb-[calc(var(--mobile-bottom-nav-height)+3.5rem+1rem)]',
+      );
     });
   });
 
@@ -225,9 +240,32 @@ describe('workOrderDetailsViewModel', () => {
       });
     });
 
-    it('hides inline note add button for non-submitted mobile footer states', () => {
-      expect(shouldHideInlineNoteAddButton(true, 'in_progress')).toBe(true);
-      expect(shouldHideInlineNoteAddButton(true, 'submitted')).toBe(false);
+    it('hides inline note add button when the mobile field footer is shown', () => {
+      expect(shouldHideInlineNoteAddButton(true)).toBe(true);
+      expect(shouldHideInlineNoteAddButton(false)).toBe(false);
+    });
+
+    it('detects when the mobile sync banner should render', () => {
+      expect(
+        shouldShowMobileSyncBanner({
+          isOnline: true,
+          isSyncing: false,
+          pendingCount: 0,
+          failedCount: 0,
+        }),
+      ).toBe(false);
+      expect(
+        shouldShowMobileSyncBanner({
+          isOnline: false,
+          isSyncing: false,
+          pendingCount: 0,
+          failedCount: 0,
+        }),
+      ).toBe(true);
+    });
+
+    it('raises FAB clearance when sync banner is visible', () => {
+      expect(MOBILE_WO_FAB_BOTTOM_CLASS.withSyncBanner).not.toBe(MOBILE_WO_FAB_BOTTOM_CLASS.default);
     });
   });
 });

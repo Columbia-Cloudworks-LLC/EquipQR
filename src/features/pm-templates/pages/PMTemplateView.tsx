@@ -8,12 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import PageHeader from '@/components/layout/PageHeader';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { TemplateAssignmentDialog } from '@/features/pm-templates/components/TemplateAssignmentDialog';
+import { PMTemplateEquipmentAssignmentMenu } from '@/features/pm-templates/components/PMTemplateEquipmentAssignmentMenu';
 import { PMTemplateSectionToc } from '@/features/pm-templates/components/PMTemplateSectionToc';
 import { PMTemplateCompatibilityRulesEditor } from '@/features/pm-templates/components/PMTemplateCompatibilityRulesEditor';
 import { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { groupChecklistItemsBySection } from '@/utils/pmChecklistHelpers';
-import { Copy, Download, Edit, Globe, Lock, Loader2, Save, Shield, Wrench } from 'lucide-react';
+import { Copy, Download, Edit, Globe, Lock, Loader2, Save, Shield } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSimplifiedOrganizationRestrictions } from '@/features/organization/hooks/useSimplifiedOrganizationRestrictions';
@@ -46,7 +46,6 @@ const PMTemplateView: React.FC = () => {
   const { hasRole } = usePermissions();
   const { restrictions } = useSimplifiedOrganizationRestrictions();
 
-  const [applyOpen, setApplyOpen] = useState(false);
   const [expanded, setExpanded] = useState<string[]>([]);
   const [includeHandwriting, setIncludeHandwriting] = useState(false);
   const [linesPerItem, setLinesPerItem] = useState(5);
@@ -87,7 +86,6 @@ const PMTemplateView: React.FC = () => {
   const totalItems = useMemo(() => template?.template_data?.length || 0, [template]);
 
   const handleBack = () => navigate('/dashboard/pm-templates');
-  const handleApply = () => setApplyOpen(true);
   const handleClone = async () => {
     if (!template?.id) return;
     await cloneTemplate.mutateAsync({ sourceId: template.id, newName: `${template.name} (Copy)` });
@@ -210,7 +208,7 @@ const PMTemplateView: React.FC = () => {
           <div className="lg:col-span-9 space-y-4">
             <div className="flex flex-wrap gap-2">
               {!isOrgTemplate && (
-                <Badge variant="secondary"><Globe className="h-3 w-3 mr-1" />Global</Badge>
+                <Badge><Globe className="h-3 w-3 mr-1" />EquipQR</Badge>
               )}
               {isOrgTemplate && (
                 <Badge variant="secondary">Organization</Badge>
@@ -266,10 +264,10 @@ const PMTemplateView: React.FC = () => {
                   )}
 
                   <div className="flex gap-2 sm:ml-auto">
-                    <Button onClick={handleApply}>
-                      <Wrench className="mr-2 h-4 w-4" />
-                      Apply to Equipment
-                    </Button>
+                    <PMTemplateEquipmentAssignmentMenu
+                      templateId={template.id}
+                      templateName={template.name}
+                    />
                     <Button variant="outline" onClick={handleClone} disabled={!canCreateCustomTemplates} title={!canCreateCustomTemplates ? 'Custom PM templates require user licenses' : ''}>
                       <Copy className="mr-2 h-4 w-4" />
                       Clone Template
@@ -345,13 +343,6 @@ const PMTemplateView: React.FC = () => {
         </div>
       )}
 
-      {applyOpen && template && (
-        <TemplateAssignmentDialog
-          templateId={template.id}
-          open={applyOpen}
-          onClose={() => setApplyOpen(false)}
-        />
-      )}
     </div>
   );
 };

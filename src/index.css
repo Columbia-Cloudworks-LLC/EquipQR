@@ -271,9 +271,16 @@
      Subtle Textures
      ============================================ */
   
-  /* Grain texture overlay - very subtle (0.5-1% opacity) */
+  /* Grain texture overlay - very subtle (0.5-1% opacity).
+     The overlay sits under content via an isolated stacking context and a
+     negative z-index instead of forcing position:relative onto children —
+     the old `.texture-grain > *` rule overrode Tailwind's `fixed` utility
+     after the v4 migration (same cascade layer, later source order), which
+     pulled fixed children like the mobile work order footer and quick
+     access button into the page flow. */
   .texture-grain {
     position: relative;
+    isolation: isolate;
   }
   
   .texture-grain::before {
@@ -283,12 +290,7 @@
     pointer-events: none;
     opacity: 0.015;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-    z-index: 0;
-  }
-  
-  .texture-grain > * {
-    position: relative;
-    z-index: 1;
+    z-index: -1;
   }
   
   /* ============================================

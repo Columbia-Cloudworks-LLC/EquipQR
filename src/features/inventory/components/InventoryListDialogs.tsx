@@ -2,7 +2,7 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { InventoryItemForm } from '@/features/inventory/components/InventoryItemForm';
 import InventoryQRCodeDisplay from '@/features/inventory/components/InventoryQRCodeDisplay';
-import { PartsManagersSheet } from '@/features/inventory/components/PartsManagersSheet';
+import { PartsAccessSheet } from '@/features/inventory/components/PartsAccessSheet';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
 import { cn } from '@/lib/utils';
 
@@ -52,7 +52,7 @@ export function InventoryListDialogs({
         />
       )}
 
-      <PartsManagersSheet
+      <PartsAccessSheet
         open={showManagersSheet}
         onOpenChange={onManagersSheetOpenChange}
       />

@@ -53,15 +53,31 @@ describe('AuditLog page', () => {
     expect(screen.queryByTestId('audit-explorer')).not.toBeInTheDocument();
   });
 
-  it('renders the explorer (and stats cards) for an active org member', () => {
+  it('denies access for non-admin members (#1122)', () => {
     mockUseOrganization.mockReturnValue({
-      currentOrganization: { id: 'org-1', name: 'Acme Org' },
+      currentOrganization: { id: 'org-1', name: 'Acme Org', userRole: 'member' },
+    });
+
+    render(<AuditLog />);
+
+    expect(screen.getByText(/Access Denied/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/only available to organization owners and administrators/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('audit-explorer')).not.toBeInTheDocument();
+  });
+
+  it('renders the explorer (and stats cards) for an org admin', () => {
+    mockUseOrganization.mockReturnValue({
+      currentOrganization: { id: 'org-1', name: 'Acme Org', userRole: 'admin' },
     });
 
     render(<AuditLog />);
 
     // Page header is present.
     expect(screen.getByRole('heading', { name: /Audit Log/i })).toBeInTheDocument();
+    // Organization settings subnav is mounted (audit log lives under org settings, #1122).
+    expect(screen.getByRole('navigation', { name: /organization sections/i })).toBeInTheDocument();
     // Stats cards render with the mocked totals.
     expect(screen.getByText(/Total Entries/i)).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();

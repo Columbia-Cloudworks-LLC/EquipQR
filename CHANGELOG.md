@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.14.0] - 2026-07-06
+
+### Added
+
+- **Dedicated team views (#1132)** — Team details gains a view switcher framing the same team data as an **Internal Team** (members and collaboration first), a **Department** (fleet metrics and maintenance posture first), or a **Customer** (external account, contacts, and service history first). Team managers can persist the active view as the team-wide default (`teams.preferred_view`); the Customer view prompts to link a customer account when none is attached.
+- **Mobile quick access drawers (#1151)** — Equipment details gets a QR-first quick access button: the equipment scan QR, one shortcut per enabled daily check-in QR, PM/generic work order creation, and note capture in one bottom drawer. Work order details consolidates the next status transition, add note/photo, the work order QR code (previously list-only), and all exports (PDF, files, Google Drive, QuickBooks) behind a Quick actions entry in the field footer, with a floating button when the footer is hidden.
+- **Parts Access panel (#1152)** — The Inventory page button now manages both inventory grants in one sheet: Parts Managers (create/edit/delete) and Parts Consumers (view + part lookup), using a shared searchable multi-select with select all/none/inverse. The mobile footer opens the same sheet instead of deep-linking to Members.
+
+### Changed
+
+- **Audit log buried and hardened (#1122)** — The audit log moved from main navigation to **Organization → Audit Log** (old path redirects), is now owner/admin-only at every layer (page guard, `audit_log` SELECT RLS, `get_audit_log_timeline` RPC), and embedded audit history was removed from work order and inventory detail pages in favor of admin-only deep links into the pre-filtered explorer. Audit entries remain excluded from all non-audit export paths.
+- **PM template assignment (#1144)** — "Apply to Equipment" now uses the same team-scoped multi-select dropdown as daily check-ins (search, select all/none/inverse, TopBar team scoping, "Current default" markers) on both the template cards and template detail view, replacing the old full-screen assignment dialog. Built-in templates are explicitly branded **EquipQR Templates** with assign-directly-without-cloning messaging.
+
+### Fixed
+
+- **equipqr.info dead links (#1158)** — The sha256-hash CSP from #1147 drifted whenever any docs page changed (VitePress regenerates its inline hash-map bootstrap while Vercel serves headers from the committed `vercel.json`), silently re-breaking hydration so left-clicks did nothing. The docs build now externalizes all VitePress inline scripts to content-addressed `/assets/inline.*.js` files and ships a static `script-src 'self'` CSP that cannot drift; the build fails if any inline script or hash-based CSP reappears.
+
 ## [3.13.0] - 2026-07-06
 
 ### Added

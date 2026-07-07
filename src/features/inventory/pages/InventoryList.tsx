@@ -26,7 +26,7 @@ import type {
 } from '@/features/inventory/types/inventory';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { InventoryListPageActions } from '@/features/inventory/components/InventoryListPageActions';
-import { InventoryPartsManagersFooterLink } from '@/features/inventory/components/InventoryPartsManagersFooterLink';
+import { InventoryPartsAccessFooterButton } from '@/features/inventory/components/InventoryPartsAccessFooterButton';
 import { InventoryListFilterToolbar } from '@/features/inventory/components/InventoryListFilterToolbar';
 import { InventoryListDesktopTable } from '@/features/inventory/components/InventoryListDesktopTable';
 import { InventoryListMobileList } from '@/features/inventory/components/InventoryListMobileList';
@@ -454,7 +454,10 @@ const InventoryList = () => {
         )}
 
         {isMobile && canManage && (
-          <InventoryPartsManagersFooterLink className="sm:hidden" />
+          <InventoryPartsAccessFooterButton
+            className="sm:hidden"
+            onOpenPartsAccess={() => setShowManagersSheet(true)}
+          />
         )}
 
         <InventoryListDialogs

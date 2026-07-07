@@ -15,3 +15,4 @@ Fast mobile-first workflows for technicians scanning equipment, running work ord
 - [Add notes and photos to a work order](./add-notes-and-photos) — Document what you found, what you did, and attach before/during/after photos — all visible in the equipment's image gallery.
 - [Complete a PM checklist](./pm-checklist) — Tick off preventative maintenance items, mark exceptions, and attach evidence photos to the ones that need follow-up.
 - [Consume inventory parts on a work order](./consume-inventory-on-wo) — Record the parts you used on a repair so stock drops automatically and the cost flows into the invoice.
+- [Use mobile quick actions](./mobile-quick-actions) — One thumb-reachable button on equipment and work order pages opens a drawer of QR codes, status moves, notes, and exports.

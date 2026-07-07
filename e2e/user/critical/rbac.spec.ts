@@ -10,8 +10,9 @@ test.describe('RBAC @critical', () => {
   test('owner sees admin-only sidebar items', async ({ page, gotoDashboard }) => {
     await gotoDashboard('/');
     await expectNavigationLinkVisible(page, /pm templates/i);
-    await expectNavigationLinkVisible(page, /audit log/i);
     await expectNavigationLinkVisible(page, /dsr cockpit/i);
+    // Audit log moved out of main navigation into org settings (#1122).
+    await expectNavigationLinkHidden(page, /audit log/i);
   });
 
   test('admin sees admin-only sidebar items', async ({ browser }) => {
@@ -19,7 +20,7 @@ test.describe('RBAC @critical', () => {
     await pinContextToApex(context);
     await gotoDashboardRoute(page, '/');
     await expectNavigationLinkVisible(page, /pm templates/i);
-    await expectNavigationLinkVisible(page, /audit log/i);
+    await expectNavigationLinkHidden(page, /audit log/i);
     await pauseForWatchMode(page);
     await context.close();
   });

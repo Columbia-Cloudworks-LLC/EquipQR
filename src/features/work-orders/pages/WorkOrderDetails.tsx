@@ -36,6 +36,7 @@ import {
   buildOfflineSyncState,
   buildWorkOrderAssigneeSummary,
   buildWorkOrderTeamSummary,
+  getMobileWorkOrderDetailsBottomPaddingClass,
   isFooterRoleEligible,
   shouldHideInlineNoteAddButton,
   shouldShowMobileActionFooter,
@@ -43,6 +44,7 @@ import {
 import { WorkOrderDetailsMobileContent } from '@/features/work-orders/components/WorkOrderDetailsMobileContent';
 import { WorkOrderDetailsDesktopContent } from '@/features/work-orders/components/WorkOrderDetailsDesktopContent';
 import { WorkOrderDetailsOverlays } from '@/features/work-orders/components/WorkOrderDetailsOverlays';
+import WorkOrderQRCodeDisplay from '@/features/work-orders/components/WorkOrderQRCodeDisplay';
 import { PMChangeWarningDialog } from '@/features/work-orders/components/PMChangeWarningDialog';
 import { WorkOrderPMManagementDialog } from '@/features/work-orders/components/WorkOrderPMManagementDialog';
 
@@ -58,10 +60,12 @@ const WorkOrderDetails = () => {
   const shouldAutoFocusPM = actionParam === 'pm';
   const notesSectionRef = useRef<HTMLDivElement>(null);
   const pmSectionRef = useRef<HTMLDivElement>(null);
+  const costsSectionRef = useRef<HTMLDivElement>(null);
 
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>('');
   const [isEditingWorkOrderEquipmentLocation, setIsEditingWorkOrderEquipmentLocation] = useState(false);
   const [showPMManagementDialog, setShowPMManagementDialog] = useState(false);
+  const [showWorkOrderQr, setShowWorkOrderQr] = useState(false);
 
   const { user } = useAuth();
   const permissions = useUnifiedPermissions();
@@ -340,7 +344,7 @@ const WorkOrderDetails = () => {
     workOrderStatus: workOrder.status,
     footerRoleEligible,
   });
-  const hideInlineNoteAddButton = shouldHideInlineNoteAddButton(showMobileActionFooter, workOrder.status);
+  const hideInlineNoteAddButton = shouldHideInlineNoteAddButton(showMobileActionFooter);
 
   const canCompletePmGate = !workOrder.has_pm || pmData?.status === 'completed';
   const pmChecklist = getPMChecklistStats(pmData?.checklist_data);
@@ -352,6 +356,13 @@ const WorkOrderDetails = () => {
   const scrollToPMSection = () => {
     pmSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+
+  const scrollToCostsSection = () => {
+    costsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const canCaptureCosts =
+    canViewWorkOrderCosts && (canAddCosts || canEditCosts) && !isWorkOrderLocked;
 
   return (
     <div className="min-h-screen bg-background texture-grain">
@@ -385,7 +396,7 @@ const WorkOrderDetails = () => {
         <div
           className={cn(
             isMobile ? 'space-y-4' : 'lg:col-span-2 space-y-6',
-            showMobileActionFooter && 'pb-32'
+            getMobileWorkOrderDetailsBottomPaddingClass(isMobile),
           )}
         >
           {linkedEquipment.length > 1 && (
@@ -426,6 +437,7 @@ const WorkOrderDetails = () => {
               onMobileReviewOpenChange={setMobileReviewOpen}
               pmSectionRef={pmSectionRef}
               notesSectionRef={notesSectionRef}
+              costsSectionRef={costsSectionRef}
               stagger={stagger}
               onAcceptWorkOrder={() => setShowFieldAcceptDialog(true)}
               onStartWork={startMobileWorkOrder}
@@ -501,6 +513,7 @@ const WorkOrderDetails = () => {
         equipmentTeamId={equipment?.team_id}
         permissionLevels={permissionLevels}
         canAddNotes={canAddNotes}
+        canCaptureCosts={canCaptureCosts}
         canCompletePmGate={canCompletePmGate}
         showMobileActionFooter={showMobileActionFooter}
         syncState={syncState}
@@ -518,10 +531,6 @@ const WorkOrderDetails = () => {
         isMobileSavingToDrive={exports.isMobileSavingToDrive}
         showMobileActionSheet={showMobileActionSheet}
         onMobileActionSheetOpenChange={setShowMobileActionSheet}
-        onViewFullDetails={() => {
-          setShowMobileActionSheet(false);
-          setShowMobileSidebar(true);
-        }}
         onDownloadWorksheet={exports.handleMobileDownloadWorksheet}
         isMobileWorksheetGenerating={exports.isMobileWorksheetGenerating}
         onDownloadXlsx={() => exports.exportSingle(workOrder.id)}
@@ -545,7 +554,7 @@ const WorkOrderDetails = () => {
         onFieldAcceptComplete={handleFieldAcceptComplete}
         fieldAcceptanceMutation={fieldAcceptanceMutation}
         onOpenNotesComposer={openNotesComposer}
-        onOpenPhotoCapture={openPhotoCapture}
+        onScrollToCosts={scrollToCostsSection}
         onStartMobileWorkOrder={startMobileWorkOrder}
         onPutAssignedMobileWorkOrderOnHold={putAssignedMobileWorkOrderOnHold}
         onPauseResumeMobileWorkOrder={pauseResumeMobileWorkOrder}
@@ -553,6 +562,17 @@ const WorkOrderDetails = () => {
         onScrollToChecklist={scrollToPMSection}
         onRequestAccept={() => setShowFieldAcceptDialog(true)}
         onRetrySync={offlineQueue.retryFailed}
+        onShowWorkOrderQr={() => setShowWorkOrderQr(true)}
+      />
+
+      <WorkOrderQRCodeDisplay
+        open={showWorkOrderQr}
+        onClose={() => setShowWorkOrderQr(false)}
+        workOrderId={workOrder.id}
+        workOrderTitle={workOrder.title}
+        onPrintFieldWorksheet={() => void exports.handleMobileDownloadWorksheet()}
+        isPrintingWorksheet={exports.isMobileWorksheetGenerating}
+        showFieldWorksheet={permissionLevels.exportAudience === 'admin'}
       />
 
       <PMChangeWarningDialog

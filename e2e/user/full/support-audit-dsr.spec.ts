@@ -9,10 +9,24 @@ test.describe('support audit dsr @full', () => {
     });
   });
 
-  test('audit log loads for owner', async ({ gotoDashboard, page, assertHealthyShell }) => {
-    await gotoDashboard('/audit-log');
+  test('audit log loads for owner under organization settings', async ({
+    gotoDashboard,
+    page,
+    assertHealthyShell,
+  }) => {
+    await gotoDashboard('/organization/audit-log');
     await assertHealthyShell();
     await expect(page.getByText(/audit/i).first()).toBeVisible({ timeout: 60_000 });
+  });
+
+  test('legacy audit log path redirects to organization settings', async ({
+    gotoDashboard,
+    page,
+    assertHealthyShell,
+  }) => {
+    await gotoDashboard('/audit-log');
+    await assertHealthyShell();
+    await expect(page).toHaveURL(/\/dashboard\/organization\/audit-log/, { timeout: 60_000 });
   });
 
   test('DSR cockpit loads for owner', async ({ gotoDashboard, page, assertHealthyShell }) => {

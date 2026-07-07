@@ -23,7 +23,7 @@ export const ROUTE_LABELS: Record<string, string> = {
   '/dashboard/pm-templates/new': 'New PM Template',
   '/dashboard/operator-check-ins': 'Daily Check-Ins',
   '/dashboard/reports': 'Reports',
-  '/dashboard/audit-log': 'Audit Log',
+  '/dashboard/organization/audit-log': 'Audit Log',
   '/dashboard/settings': 'Settings',
   '/dashboard/support': 'Support & tickets',
 };
@@ -43,7 +43,7 @@ export const ROUTES_WITH_PAGE_H1 = new Set([
   '/dashboard/teams',
   '/dashboard/reports',
   '/dashboard/pm-templates',
-  '/dashboard/audit-log',
+  '/dashboard/organization/audit-log',
   '/dashboard/settings',
   '/dashboard/support',
   '/dashboard/organization',

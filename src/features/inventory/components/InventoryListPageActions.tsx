@@ -31,7 +31,7 @@ export function InventoryListPageActions({
           className="hidden sm:inline-flex"
         >
           <Users className="mr-2 h-4 w-4" />
-          Parts Managers
+          Parts Access
         </Button>
       )}
 

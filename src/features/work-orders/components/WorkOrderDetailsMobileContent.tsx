@@ -20,7 +20,7 @@ import PMChecklistComponent from '@/features/work-orders/components/PMChecklistC
 import WorkOrderCostsSection from '@/features/work-orders/components/WorkOrderCostsSection';
 import { WorkOrderDetailsPMInfo } from '@/features/work-orders/components/WorkOrderDetailsPMInfo';
 import {
-  WorkOrderFieldChangeHistoryCard,
+  WorkOrderAuditLogLink,
   WorkOrderPMChecklistLoadingCard,
 } from '@/features/work-orders/components/WorkOrderDetailsSharedCards';
 import { WorkOrderDetailsMobile } from '@/features/work-orders/components/WorkOrderDetailsMobile';
@@ -80,6 +80,7 @@ export interface WorkOrderDetailsMobileContentProps {
   onMobileReviewOpenChange: (open: boolean) => void;
   pmSectionRef: React.RefObject<HTMLDivElement | null>;
   notesSectionRef: React.RefObject<HTMLDivElement | null>;
+  costsSectionRef: React.RefObject<HTMLDivElement | null>;
   stagger: StaggerProps;
   onAcceptWorkOrder: () => void;
   onStartWork: () => void;
@@ -127,6 +128,7 @@ export function WorkOrderDetailsMobileContent({
   onMobileReviewOpenChange,
   pmSectionRef,
   notesSectionRef,
+  costsSectionRef,
   stagger,
   onAcceptWorkOrder,
   onStartWork,
@@ -426,7 +428,7 @@ export function WorkOrderDetailsMobileContent({
       </div>
 
       {canViewWorkOrderCosts && (
-        <div {...stagger(5)}>
+        <div {...stagger(5)} ref={costsSectionRef}>
           <WorkOrderCostsSection
             workOrderId={workOrder.id}
             canAddCosts={canAddCosts && !isWorkOrderLocked}
@@ -471,11 +473,8 @@ export function WorkOrderDetailsMobileContent({
                   canEditTimeline={permissionLevels.isManager}
                 />
 
-                {permissionLevels.isManager && currentOrganization && (
-                  <WorkOrderFieldChangeHistoryCard
-                    workOrderId={workOrder.id}
-                    organizationId={currentOrganization.id}
-                  />
+                {permissionLevels.isManager && (
+                  <WorkOrderAuditLogLink workOrderId={workOrder.id} />
                 )}
               </CardContent>
             </CollapsibleContent>

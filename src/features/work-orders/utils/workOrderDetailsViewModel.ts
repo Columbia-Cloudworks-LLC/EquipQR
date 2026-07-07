@@ -127,6 +127,13 @@ export function shouldShowMobileActionFooter({
   );
 }
 
+/** Scroll clearance for mobile work-order details fixed chrome (QAB FAB; optional sync banner). */
+export function getMobileWorkOrderDetailsBottomPaddingClass(isMobile: boolean): string | undefined {
+  if (!isMobile) return undefined;
+  // FAB uses bottom-[78px] + h-14; --mobile-bottom-nav-height matches that offset (+ safe area).
+  return 'pb-[calc(var(--mobile-bottom-nav-height)+3.5rem+1rem)]';
+}
+
 export function buildWorkOrderPdfInput(workOrder: WorkOrderPdfSource | null | undefined): WorkOrderForPDF {
   if (!workOrder) {
     return EMPTY_WORK_ORDER_PDF;
@@ -228,9 +235,22 @@ export function buildOfflineSyncState(offlineQueue: OfflineQueueSnapshot) {
   };
 }
 
-export function shouldHideInlineNoteAddButton(
-  showMobileActionFooter: boolean,
-  workOrderStatus: WorkOrderStatus | string,
-): boolean {
-  return showMobileActionFooter && workOrderStatus !== 'submitted';
+export type MobileFooterSyncState = ReturnType<typeof buildOfflineSyncState>;
+
+/** True when the mobile sync/offline banner should render (queue or connectivity needs attention). */
+export function shouldShowMobileSyncBanner(syncState: MobileFooterSyncState): boolean {
+  if (syncState.failedCount > 0) return true;
+  if (syncState.isSyncing) return true;
+  if (syncState.pendingCount > 0) return true;
+  if (!syncState.isOnline) return true;
+  return false;
+}
+
+export const MOBILE_WO_FAB_BOTTOM_CLASS = {
+  default: 'bottom-[calc(78px+env(safe-area-inset-bottom,0px))]',
+  withSyncBanner: 'bottom-[calc(120px+env(safe-area-inset-bottom,0px))]',
+} as const;
+
+export function shouldHideInlineNoteAddButton(showMobileActionFooter: boolean): boolean {
+  return showMobileActionFooter;
 }

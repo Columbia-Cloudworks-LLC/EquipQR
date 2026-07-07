@@ -12,7 +12,7 @@ personas: ["all"]
 - **Fleet** — Equipment, Fleet Map, Inventory, Part Lookup, Part Alternates.
 - **Operations** — Dashboard, Work Orders, Daily Check-Ins (admin-only), PM Templates (admin-only), Reports.
 - **Infrastructure** — Teams, Organization, Integrations.
-- **Audit** — Audit Log and DSR Cockpit (admin-only).
+- **Audit** — DSR Cockpit (admin-only). The Audit Log lives under **Organization → Audit Log** (admin-only).
 
 
 ## 2. Mobile bottom navigation
@@ -26,7 +26,7 @@ The top bar shows your current organization, notifications, and your user menu. 
 
 ## 4. Admin-only surfaces are hidden by default
 
-If you do not see PM Templates, Audit Log, or DSR Cockpit in the sidebar, your account is not an Organization Owner or Admin. Ask an admin to grant access if you need it.
+If you do not see PM Templates or DSR Cockpit in the sidebar, or the Audit Log tab under Organization, your account is not an Organization Owner or Admin. Ask an admin to grant access if you need it.
 
 ## Related articles
 

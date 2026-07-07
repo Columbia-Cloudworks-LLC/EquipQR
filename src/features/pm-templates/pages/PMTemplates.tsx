@@ -13,7 +13,7 @@ import { Plus, Copy, Edit, Trash2, Wrench, Users, Shield, Globe, Lock, Settings2
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { TemplateAssignmentDialog } from '@/features/pm-templates/components/TemplateAssignmentDialog';
+import { PMTemplateEquipmentAssignmentMenu } from '@/features/pm-templates/components/PMTemplateEquipmentAssignmentMenu';
 import { PMTemplateRulesDialog } from '@/features/pm-templates/components/PMTemplateRulesDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -36,7 +36,6 @@ interface TemplateCardProps {
   isAdmin: boolean;
   canCreateCustomTemplates: boolean;
   onEdit: (templateId: string) => void;
-  onApply: (templateId: string) => void;
   onClone: (templateId: string) => void;
   onDelete: (templateId: string) => void;
   onConfigureRules: (templateId: string) => void;
@@ -48,7 +47,6 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
   isAdmin,
   canCreateCustomTemplates,
   onEdit, 
-  onApply, 
   onClone, 
   onDelete,
   onConfigureRules
@@ -94,9 +92,9 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
           <CardTitle className="text-base line-clamp-1 min-w-0">{template.name}</CardTitle>
           <div className="flex shrink-0 flex-wrap justify-end gap-1">
             {!isOrgTemplate && (
-              <Badge variant="secondary" className="text-xs">
+              <Badge className="text-xs">
                 <Globe className="w-3 h-3 mr-1" />
-                Global
+                EquipQR
               </Badge>
             )}
             {template.is_protected && (
@@ -119,17 +117,15 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
 
       <CardContent className="pt-0">
         <div className="flex flex-col gap-2">
-          <Button 
-            onClick={() => onApply(template.id)} 
-            className="w-full"
-            size="sm"
-            title="Set this template as the default PM on one or more equipment records"
-          >
-            <Wrench className="mr-2 h-4 w-4" />
-            Apply to Equipment
-          </Button>
+          <PMTemplateEquipmentAssignmentMenu
+            templateId={template.id}
+            templateName={template.name}
+            fullWidthTrigger
+          />
           <p className="text-xs text-muted-foreground text-center px-1">
-            Bulk-set as the default PM template on selected equipment
+            {isOrgTemplate
+              ? 'Bulk-set as the default PM template on selected equipment'
+              : 'Ready to use — assign directly, no clone needed'}
           </p>
           
           <div className="flex gap-2">
@@ -220,7 +216,6 @@ const PMTemplates = () => {
   const { restrictions } = useSimplifiedOrganizationRestrictions();
   const { data: templates, isLoading } = usePMTemplates();
 
-  const [templateToApply, setTemplateToApply] = useState<string | null>(null);
   const [cloneDialogOpen, setCloneDialogOpen] = useState<string | null>(null);
   const [cloneName, setCloneName] = useState('');
   const [rulesDialogTemplate, setRulesDialogTemplate] = useState<{ id: string; name: string } | null>(null);
@@ -270,14 +265,6 @@ const PMTemplates = () => {
 
   const handleEditTemplate = (templateId: string) => {
     navigate(`/dashboard/pm-templates/${templateId}/edit`);
-  };
-
-  const handleApplyTemplate = (templateId: string) => {
-    setTemplateToApply(templateId);
-  };
-
-  const handleCloseApplication = () => {
-    setTemplateToApply(null);
   };
 
   const handleCloneTemplate = (templateId: string) => {
@@ -400,10 +387,15 @@ const PMTemplates = () => {
           {/* Global Templates */}
           {globalTemplates.length > 0 && (
             <div>
-              <h2 className="text-xl font-semibold mb-4 flex items-center">
+              <h2 className="text-xl font-semibold flex items-center">
                 <Globe className="mr-2 h-5 w-5" />
-                Global Templates
+                EquipQR Templates
               </h2>
+              <p className="text-sm text-muted-foreground mt-1 mb-4">
+                Best-in-class PM checklists included with EquipQR for heavy equipment, machinery,
+                and vehicles. Assign them to equipment directly — clone only when you want to
+                customize.
+              </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {globalTemplates.map((template) => (
                   <TemplateCard
@@ -413,7 +405,6 @@ const PMTemplates = () => {
                     isAdmin={isAdmin}
                     canCreateCustomTemplates={canCreateCustomTemplates}
                     onEdit={handleEditTemplate}
-                    onApply={handleApplyTemplate}
                     onClone={handleCloneTemplate}
                     onDelete={handleDeleteTemplate}
                     onConfigureRules={handleConfigureRules}
@@ -426,10 +417,13 @@ const PMTemplates = () => {
           {/* Organization Templates */}
           {orgTemplates.length > 0 && canCreateCustomTemplates && (
             <div>
-              <h2 className="text-xl font-semibold mb-4 flex items-center">
+              <h2 className="text-xl font-semibold flex items-center">
                 <Users className="mr-2 h-5 w-5" />
                 Organization Templates
               </h2>
+              <p className="text-sm text-muted-foreground mt-1 mb-4">
+                Custom templates created by your organization.
+              </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {orgTemplates.map((template) => (
                   <TemplateCard
@@ -439,7 +433,6 @@ const PMTemplates = () => {
                     isAdmin={isAdmin}
                     canCreateCustomTemplates={canCreateCustomTemplates}
                     onEdit={handleEditTemplate}
-                    onApply={handleApplyTemplate}
                     onClone={handleCloneTemplate}
                     onDelete={handleDeleteTemplate}
                     onConfigureRules={handleConfigureRules}
@@ -467,14 +460,6 @@ const PMTemplates = () => {
             )}
           </CardContent>
         </Card>
-      )}
-
-      {templateToApply && (
-        <TemplateAssignmentDialog
-          templateId={templateToApply}
-          open={!!templateToApply}
-          onClose={handleCloseApplication}
-        />
       )}
 
       {/* Clone Template Dialog */}

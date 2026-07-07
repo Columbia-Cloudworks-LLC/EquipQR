@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { CheckCircle, Plus } from 'lucide-react';
 import { MemoryRouter } from 'react-router-dom';
 import { MobileWorkOrderActionSheet } from '../MobileWorkOrderActionSheet';
 
@@ -60,7 +61,6 @@ describe('MobileWorkOrderActionSheet', () => {
     equipmentTeamId: 'team-1',
     organizationId: 'org-1',
     exportAudience: 'admin' as const,
-    onViewFullDetails: vi.fn(),
     onOpenPdfDialog: vi.fn(),
     onOpenDrivePdfDialog: vi.fn(),
     isGeneratingPdf: false,
@@ -86,19 +86,31 @@ describe('MobileWorkOrderActionSheet', () => {
     vi.clearAllMocks();
   });
 
-  it('lists View full details before Download exports', () => {
+  it('lists quick actions when provided', () => {
+    render(
+      <MemoryRouter>
+        <MobileWorkOrderActionSheet
+          {...baseProps}
+          quickActions={[
+            { id: 'complete', label: 'Complete work order', icon: CheckCircle, tone: 'success', onSelect: vi.fn() },
+            { id: 'add-note-or-photo', label: 'Add note or photo', icon: Plus, tone: 'capture', onSelect: vi.fn() },
+          ]}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('button', { name: /complete work order/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add note or photo/i })).toBeInTheDocument();
+  });
+
+  it('does not show a redundant View full details navigation action', () => {
     render(
       <MemoryRouter>
         <MobileWorkOrderActionSheet {...baseProps} />
       </MemoryRouter>,
     );
-    expect(screen.getByText('More work order options')).toBeInTheDocument();
+    expect(screen.getByText('Work order actions')).toBeInTheDocument();
     expect(screen.getByText('Download')).toBeInTheDocument();
-    const buttons = screen.getAllByRole('button');
-    const viewIdx = buttons.findIndex((b) => b.textContent?.includes('View full details'));
-    const pdfIdx = buttons.findIndex((b) => b.textContent?.includes('PDF'));
-    expect(viewIdx).toBeGreaterThanOrEqual(0);
-    expect(pdfIdx).toBeGreaterThan(viewIdx);
+    expect(screen.queryByRole('button', { name: /view full details/i })).not.toBeInTheDocument();
   });
 
   it('omits download exports when exportAudience is none', () => {

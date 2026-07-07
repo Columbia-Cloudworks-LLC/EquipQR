@@ -439,6 +439,7 @@ const WorkOrders = () => {
         workOrderId={qrWorkOrder?.id ?? ''}
         workOrderTitle={qrWorkOrder?.title}
         onPrintFieldWorksheet={handlePrintFieldWorksheet}
+        showFieldWorksheet={isManager}
       />
 
       <WorkOrderDeleteConfirmDialog

@@ -1,15 +1,17 @@
 /**
  * Audit Log Page
  *
- * Displays organization-wide audit trail for regulatory compliance and
- * accountability tracking via the Logflare-style explorer (issue #641):
+ * Dedicated, organization-scoped audit surface buried under Organization
+ * settings (issue #1122). Owner/admin only — audit data is sensitive
+ * high-privilege information and is never mixed with operational pages or
+ * general data exports. Uses the Logflare-style explorer (issue #641):
  * timeline histogram on top, dense severity-tagged list below, persistent
- * detail panel on the right. CSV / JSON export and the entity-history
- * timeline on detail pages are unchanged.
+ * detail panel on the right, with a dedicated CSV / JSON export path.
  */
 
-import React from 'react';
-import { History, Shield, AlertCircle } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { History, Shield, AlertCircle, ShieldAlert } from 'lucide-react';
 import Page from '@/components/layout/Page';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -18,6 +20,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuditStats } from '@/hooks/useAuditLog';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { AuditExplorer } from '@/components/audit/explorer';
+import { OrganizationSubnav } from '@/features/organization/components/OrganizationSubnav';
+import { AUDIT_ENTITY_TYPES, type AuditEntityType, type AuditLogFilters } from '@/types/audit';
 
 /**
  * Stats cards showing audit summary
@@ -103,6 +107,19 @@ function AuditStatsCards({ organizationId }: { organizationId: string }) {
  */
 function AuditLog() {
   const { currentOrganization } = useOrganization();
+  const [searchParams] = useSearchParams();
+
+  // Deep links from detail pages, e.g. ?entityType=work_order&entityId=<uuid>.
+  const initialFilters = useMemo<Omit<AuditLogFilters, 'dateFrom' | 'dateTo'>>(() => {
+    const entityTypeParam = searchParams.get('entityType');
+    const entityId = searchParams.get('entityId') ?? undefined;
+    const entityType = (Object.values(AUDIT_ENTITY_TYPES) as string[]).includes(
+      entityTypeParam ?? '',
+    )
+      ? (entityTypeParam as AuditEntityType)
+      : undefined;
+    return { entityType, entityId };
+  }, [searchParams]);
 
   if (!currentOrganization) {
     return (
@@ -118,8 +135,27 @@ function AuditLog() {
     );
   }
 
+  const isAdmin =
+    currentOrganization.userRole === 'owner' || currentOrganization.userRole === 'admin';
+
+  if (!isAdmin) {
+    return (
+      <Page maxWidth="7xl" padding="responsive">
+        <Alert variant="destructive">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>Access Denied</AlertTitle>
+          <AlertDescription>
+            The audit log contains sensitive, high-privilege information and is only available to
+            organization owners and administrators.
+          </AlertDescription>
+        </Alert>
+      </Page>
+    );
+  }
+
   return (
     <Page maxWidth="full" padding="responsive">
+      <OrganizationSubnav />
       <div className="space-y-5">
         {/* Header */}
         <div className="flex items-center gap-2">
@@ -149,7 +185,7 @@ function AuditLog() {
         <AuditStatsCards organizationId={currentOrganization.id} />
 
         {/* Logflare-style explorer */}
-        <AuditExplorer organizationId={currentOrganization.id} />
+        <AuditExplorer organizationId={currentOrganization.id} initialFilters={initialFilters} />
       </div>
     </Page>
   );

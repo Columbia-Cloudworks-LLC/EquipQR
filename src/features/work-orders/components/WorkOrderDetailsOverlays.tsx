@@ -1,9 +1,17 @@
 import React from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { CheckCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { CheckCircle, Zap } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { WorkOrderPDFExportDialog } from '@/features/work-orders/components/WorkOrderPDFExportDialog';
 import { MobileWorkOrderActionSheet } from '@/features/work-orders/components/MobileWorkOrderActionSheet';
 import { MobileWorkOrderActionFooter } from '@/features/work-orders/components/MobileWorkOrderActionFooter';
+import { buildWorkOrderSheetQuickActions } from '@/features/work-orders/utils/buildWorkOrderSheetQuickActions';
+import {
+  MOBILE_WO_FAB_BOTTOM_CLASS,
+  shouldShowMobileSyncBanner,
+} from '@/features/work-orders/utils/workOrderDetailsViewModel';
+import type { WorkOrderExportAudience } from '@/features/work-orders/utils/workOrderExportAccess';
 import WorkOrderAcceptanceModal from '@/features/work-orders/components/WorkOrderAcceptanceModal';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import type { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
@@ -17,8 +25,10 @@ type WorkOrderDetailsOverlaysProps = {
   equipmentTeamId?: string | null;
   permissionLevels: {
     isManager: boolean;
+    exportAudience?: WorkOrderExportAudience;
   };
   canAddNotes: boolean;
+  canCaptureCosts: boolean;
   canCompletePmGate: boolean;
   showMobileActionFooter: boolean;
   syncState: ReturnType<typeof import('@/features/work-orders/utils/workOrderDetailsViewModel').buildOfflineSyncState>;
@@ -42,7 +52,6 @@ type WorkOrderDetailsOverlaysProps = {
   isMobileSavingToDrive: boolean;
   showMobileActionSheet: boolean;
   onMobileActionSheetOpenChange: (open: boolean) => void;
-  onViewFullDetails: () => void;
   onDownloadWorksheet: () => Promise<void>;
   isMobileWorksheetGenerating: boolean;
   showMobileCompleteDialog: boolean;
@@ -54,7 +63,7 @@ type WorkOrderDetailsOverlaysProps = {
   onFieldAcceptComplete: () => void;
   fieldAcceptanceMutation: Pick<UseMutationResult<unknown, unknown, unknown, unknown>, 'isPending'>;
   onOpenNotesComposer: () => void;
-  onOpenPhotoCapture: () => void;
+  onScrollToCosts: () => void;
   onStartMobileWorkOrder: () => void;
   onPutAssignedMobileWorkOrderOnHold: () => void;
   onPauseResumeMobileWorkOrder: () => void;
@@ -62,6 +71,8 @@ type WorkOrderDetailsOverlaysProps = {
   onScrollToChecklist: () => void;
   onRequestAccept: () => void;
   onRetrySync: () => void;
+  /** Opens the work order QR / print dialog (issue #1151). */
+  onShowWorkOrderQr: () => void;
 } & WorkOrderFileExportHandlers;
 
 export function WorkOrderDetailsOverlays({
@@ -71,6 +82,7 @@ export function WorkOrderDetailsOverlays({
   equipmentTeamId,
   permissionLevels,
   canAddNotes,
+  canCaptureCosts,
   canCompletePmGate,
   showMobileActionFooter,
   syncState,
@@ -88,7 +100,6 @@ export function WorkOrderDetailsOverlays({
   isMobileSavingToDrive,
   showMobileActionSheet,
   onMobileActionSheetOpenChange,
-  onViewFullDetails,
   onDownloadWorksheet,
   isMobileWorksheetGenerating,
   onDownloadXlsx,
@@ -112,7 +123,7 @@ export function WorkOrderDetailsOverlays({
   onFieldAcceptComplete,
   fieldAcceptanceMutation,
   onOpenNotesComposer,
-  onOpenPhotoCapture,
+  onScrollToCosts,
   onStartMobileWorkOrder,
   onPutAssignedMobileWorkOrderOnHold,
   onPauseResumeMobileWorkOrder,
@@ -120,7 +131,28 @@ export function WorkOrderDetailsOverlays({
   onScrollToChecklist,
   onRequestAccept,
   onRetrySync,
+  onShowWorkOrderQr,
 }: WorkOrderDetailsOverlaysProps) {
+  const showSyncBanner = showMobileActionFooter && shouldShowMobileSyncBanner(syncState);
+
+  const quickActions = buildWorkOrderSheetQuickActions({
+    workOrderStatus: workOrder.status,
+    showMobileActionFooter,
+    canAddNotes,
+    canCaptureCosts,
+    canCompletePmGate,
+    isActionPending: mobileStatusMutation.isPending || fieldAcceptanceMutation.isPending,
+    onRequestAccept,
+    onStartMobileWorkOrder,
+    onPutAssignedMobileWorkOrderOnHold,
+    onPauseResumeMobileWorkOrder,
+    onOpenCompleteDialog,
+    onScrollToChecklist,
+    onOpenNotesComposer,
+    onScrollToCosts,
+    onShowWorkOrderQr,
+  });
+
   return (
     <>
       <WorkOrderPDFExportDialog
@@ -145,7 +177,7 @@ export function WorkOrderDetailsOverlays({
           equipmentTeamId={equipmentTeamId}
           organizationId={organizationId}
           exportAudience={permissionLevels.exportAudience ?? 'none'}
-          onViewFullDetails={onViewFullDetails}
+          quickActions={quickActions}
           onOpenPdfDialog={onOpenMobilePdfDialog}
           onOpenDrivePdfDialog={onOpenMobileDrivePdfDialog}
           isGeneratingPdf={isMobilePDFGenerating}
@@ -223,34 +255,33 @@ export function WorkOrderDetailsOverlays({
           workOrder={{
             id: workOrder.id,
             status: workOrder.status,
-            has_pm: workOrder.has_pm,
             assignee_id: workOrder.assignee_id,
             created_by: workOrder.created_by,
           }}
           organizationId={organizationId}
-          canCompletePm={canCompletePmGate}
-          canAddNotes={canAddNotes}
-          isUpdatingStatusExternal={mobileStatusMutation.isPending || fieldAcceptanceMutation.isPending}
           syncState={syncState}
-          timerDisplay={workTimer.displayTime}
-          isTimerRunning={workTimer.isRunning}
-          onToggleTimer={() => {
-            if (workTimer.isRunning) {
-              workTimer.pause();
-            } else {
-              workTimer.start();
-            }
-          }}
-          onAddNote={onOpenNotesComposer}
-          onAddPhoto={onOpenPhotoCapture}
-          onStartWork={onStartMobileWorkOrder}
-          onAssignedPutOnHold={onPutAssignedMobileWorkOrderOnHold}
-          onPauseResume={onPauseResumeMobileWorkOrder}
-          onOpenCompleteDialog={onOpenCompleteDialog}
-          onScrollToChecklist={onScrollToChecklist}
-          onRequestAccept={onRequestAccept}
           onRetrySync={onRetrySync}
         />
+      )}
+
+      {isMobile && (
+        <Button
+          type="button"
+          size="icon"
+          onClick={() => onMobileActionSheetOpenChange(true)}
+          aria-label="Open work order quick actions"
+          className={cn(
+            'fixed right-4 z-fixed h-14 w-14 rounded-full shadow-elevation-3',
+            showSyncBanner
+              ? MOBILE_WO_FAB_BOTTOM_CLASS.withSyncBanner
+              : MOBILE_WO_FAB_BOTTOM_CLASS.default,
+            'touch-manipulation transition-transform duration-100 active:scale-[0.97]',
+            'motion-reduce:active:scale-100',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          )}
+        >
+          <Zap className="h-6 w-6" aria-hidden />
+        </Button>
       )}
     </>
   );

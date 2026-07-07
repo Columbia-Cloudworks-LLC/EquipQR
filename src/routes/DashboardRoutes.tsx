@@ -1,4 +1,4 @@
-import { Route } from 'react-router-dom';
+import { Navigate, Route } from 'react-router-dom';
 import {
   Dashboard,
   Equipment,
@@ -50,6 +50,7 @@ export const dashboardRouteElements = (
     <Route path="/organization" element={<Organization />} />
     <Route path="/organization/members" element={<OrganizationMembers />} />
     <Route path="/organization/integrations" element={<OrganizationIntegrations />} />
+    <Route path="/organization/audit-log" element={<AuditLog />} />
     <Route path="/pm-templates" element={<PMTemplates />} />
     <Route path="/pm-templates/new" element={<PMTemplateEditor />} />
     <Route path="/pm-templates/:templateId/edit" element={<PMTemplateEditor />} />
@@ -68,7 +69,8 @@ export const dashboardRouteElements = (
     <Route path="/alternate-groups" element={<InventoryAccessGuard title="Alternate groups access required"><AlternateGroupsPage /></InventoryAccessGuard>} />
     <Route path="/alternate-groups/:groupId" element={<InventoryAccessGuard title="Alternate groups access required"><AlternateGroupDetail /></InventoryAccessGuard>} />
     <Route path="/support" element={<DashboardSupport />} />
-    <Route path="/audit-log" element={<AuditLog />} />
+    {/* Audit log moved under organization settings (#1122); keep old bookmarks working. */}
+    <Route path="/audit-log" element={<Navigate to="/dashboard/organization/audit-log" replace />} />
     <Route path="/dsr" element={<DSRCockpitPage />} />
     <Route path="/dsr/:requestId" element={<DSRCasePage />} />
   </>

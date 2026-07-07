@@ -9,6 +9,7 @@ import type {
   TeamMember,
   TeamWithMembers
 } from '@/features/teams/types/team';
+import { isTeamView } from '@/features/teams/types/team';
 import {
   uploadImageToStorage,
   resolveImageDisplayUrl,
@@ -21,18 +22,6 @@ import {
 
 // Re-export types for backward compatibility
 export type { Team, TeamMember, TeamWithMembers };
-
-// Create a new team
-const createTeam = async (teamData: TeamInsert): Promise<Team> => {
-  const { data, error } = await supabase
-    .from('teams')
-    .insert(teamData)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-};
 
 // Create a team and automatically add creator as manager
 export const createTeamWithCreator = async (
@@ -106,88 +95,6 @@ export const deleteTeam = async (id: string): Promise<void> => {
   if (count === 0) {
     throw new Error('Team could not be deleted. You may not have permission to delete this team.');
   }
-};
-
-// Get teams by organization with member details
-// @deprecated Use TeamRepository.getTeamsByOrg() for better performance with optimized queries
-const getTeamsByOrganization = async (organizationId: string): Promise<TeamWithMembers[]> => {
-  // First get all teams for the organization
-  const { data: teams, error: teamsError } = await supabase
-    .from('teams')
-    .select('*')
-    .eq('organization_id', organizationId)
-    .order('name');
-
-  if (teamsError) throw teamsError;
-  if (!teams || teams.length === 0) return [];
-
-  // Get all team IDs
-  const teamIds = teams.map(team => team.id);
-
-  // Get team members with profile data using a separate query
-  const { data: teamMembersData, error: membersError } = await supabase
-    .from('team_members')
-    .select(`
-      *,
-      profiles (
-        name,
-        email
-      )
-    `)
-    .in('team_id', teamIds);
-
-  if (membersError) throw membersError;
-
-  // Group members by team_id
-  const membersByTeam = (teamMembersData || []).reduce((acc, member) => {
-    if (!acc[member.team_id]) {
-      acc[member.team_id] = [];
-    }
-    acc[member.team_id].push(member);
-    return acc;
-  }, {} as Record<string, typeof teamMembersData>);
-
-  // Combine teams with their members
-  return teams.map(team => ({
-    ...team,
-    members: membersByTeam[team.id] || [],
-    member_count: (membersByTeam[team.id] || []).length
-  }));
-};
-
-// Get single team with members
-const getTeamById = async (id: string): Promise<TeamWithMembers | null> => {
-  // First get the team
-  const { data: team, error: teamError } = await supabase
-    .from('teams')
-    .select('*')
-    .eq('id', id)
-    .single();
-
-  if (teamError) {
-    if (teamError.code === 'PGRST116') return null;
-    throw teamError;
-  }
-
-  // Get team members with profile data using a separate query
-  const { data: teamMembersData, error: membersError } = await supabase
-    .from('team_members')
-    .select(`
-      *,
-      profiles (
-        name,
-        email
-      )
-    `)
-    .eq('team_id', id);
-
-  if (membersError) throw membersError;
-
-  return {
-    ...team,
-    members: teamMembersData || [],
-    member_count: (teamMembersData || []).length
-  };
 };
 
 // Add member to team
@@ -265,47 +172,6 @@ export const getAvailableUsersForTeam = async (organizationId: string, teamId: s
   }
 
   const { data, error } = await query;
-
-  if (error) throw error;
-  return data || [];
-};
-
-// Check if user is team manager
-// @deprecated Use TeamRepository.isTeamManager() for better performance with optimized queries
-const isTeamManager = async (userId: string, teamId: string): Promise<boolean> => {
-  const { data, error } = await supabase
-    .from('team_members')
-    .select('role')
-    .eq('user_id', userId)
-    .eq('team_id', teamId)
-    .eq('role', 'manager')
-    .maybeSingle();
-
-  if (error) throw error;
-  return !!data;
-};
-
-// Get teams user manages
-const getTeamsUserManages = async (userId: string): Promise<TeamRow[]> => {
-  // First get team IDs where user is manager
-  const { data: teamMemberships, error: memberError } = await supabase
-    .from('team_members')
-    .select('team_id')
-    .eq('user_id', userId)
-    .eq('role', 'manager');
-
-  if (memberError) throw memberError;
-  
-  if (!teamMemberships || teamMemberships.length === 0) {
-    return [];
-  }
-
-  const teamIds = teamMemberships.map(tm => tm.team_id);
-  
-  const { data, error } = await supabase
-    .from('teams')
-    .select('*')
-    .in('id', teamIds);
 
   if (error) throw error;
   return data || [];
@@ -517,6 +383,7 @@ export const getTeamByIdOptimized = async (teamId: string): Promise<Team | null>
       location_lat: data.location_lat,
       location_lng: data.location_lng,
       override_equipment_location: data.override_equipment_location,
+      preferred_view: isTeamView(data.preferred_view) ? data.preferred_view : 'internal',
       customer_id: data.customer_id,
       customer_name: customer?.name ?? null,
       customer_status: customer?.status ?? null,

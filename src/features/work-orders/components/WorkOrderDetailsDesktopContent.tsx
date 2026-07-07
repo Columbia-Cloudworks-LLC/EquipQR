@@ -7,7 +7,7 @@ import PMChecklistComponent from '@/features/work-orders/components/PMChecklistC
 import WorkOrderCostsSection from '@/features/work-orders/components/WorkOrderCostsSection';
 import { WorkOrderDetailsPMInfo } from '@/features/work-orders/components/WorkOrderDetailsPMInfo';
 import {
-  WorkOrderFieldChangeHistoryCard,
+  WorkOrderAuditLogLink,
   WorkOrderPMChecklistLoadingCard,
 } from '@/features/work-orders/components/WorkOrderDetailsSharedCards';
 import { WorkOrderPMManagementActions } from '@/features/work-orders/components/WorkOrderPMManagementActions';
@@ -188,11 +188,8 @@ export function WorkOrderDetailsDesktopContent({
               canEditTimeline={permissionLevels.isManager}
             />
 
-            {permissionLevels.isManager && currentOrganization ? (
-              <WorkOrderFieldChangeHistoryCard
-                workOrderId={workOrder.id}
-                organizationId={currentOrganization.id}
-              />
+            {permissionLevels.isManager ? (
+              <WorkOrderAuditLogLink workOrderId={workOrder.id} />
             ) : null}
           </div>
         </div>

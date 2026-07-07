@@ -7,9 +7,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { formatIsoZulu } from '@/utils/dateFormatter';
-import { logger } from '@/utils/logger';
 import { buildAuditLogQueryResult, resolveAuditPagination } from '@/services/auditPagination';
-import { fetchAuditLogPage } from '@/services/auditLogPageQuery';
 import { normalizeAuditDateTo } from '@/services/auditFilters';
 import type { ApiResponse } from '@/services/base/BaseService';
 import {
@@ -117,28 +115,6 @@ function generateCsvString(rows: AuditLogCsvRow[]): string {
 
 export const auditService = {
   /**
-   * Get audit history for a specific entity
-   */
-  async getEntityHistory(
-    organizationId: string,
-    entityType: AuditEntityType,
-    entityId: string,
-    pagination?: AuditLogPagination
-  ): Promise<ServiceResponse<AuditLogQueryResult>> {
-    try {
-      const page = await fetchAuditLogPage(
-        organizationId,
-        { entity_type: entityType, entity_id: entityId },
-        pagination,
-        20,
-      );
-      return createServiceSuccessResponse(page);
-    } catch (error) {
-      return createServiceErrorResponse(error, 'AuditService error');
-    }
-  },
-
-  /**
    * Get organization-wide audit log with filters
    */
   async getOrganizationAuditLog(
@@ -197,50 +173,6 @@ export const auditService = {
       return createServiceSuccessResponse(
         buildAuditLogQueryResult(data as AuditLogEntry[], count ?? 0, offset, pageSize),
       );
-    } catch (error) {
-      return createServiceErrorResponse(error, 'AuditService error');
-    }
-  },
-
-  /**
-   * Get activity for a specific user
-   */
-  async getUserActivity(
-    organizationId: string,
-    userId: string,
-    pagination?: AuditLogPagination
-  ): Promise<ServiceResponse<AuditLogQueryResult>> {
-    try {
-      const page = await fetchAuditLogPage(
-        organizationId,
-        { actor_id: userId },
-        pagination,
-        20,
-      );
-      return createServiceSuccessResponse(page);
-    } catch (error) {
-      return createServiceErrorResponse(error, 'AuditService error');
-    }
-  },
-
-  /**
-   * Get recent activity for the organization (for dashboard widgets)
-   */
-  async getRecentActivity(
-    organizationId: string,
-    limit: number = 10
-  ): Promise<ServiceResponse<AuditLogEntry[]>> {
-    try {
-      const { data, error } = await supabase
-        .from('audit_log')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false })
-        .limit(limit);
-      
-      if (error) throw error;
-      
-      return createServiceSuccessResponse(data as AuditLogEntry[]);
     } catch (error) {
       return createServiceErrorResponse(error, 'AuditService error');
     }
