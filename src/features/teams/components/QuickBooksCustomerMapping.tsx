@@ -102,6 +102,7 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
 
   const isQuickBooksConnected = connectionStatus?.isConnected === true;
   const showQuickBooksControls = canManageQuickBooks && isQuickBooksConnected;
+  const canWriteLegacyMapping = canManageQuickBooks;
 
   const { data: existingMapping, isLoading: mappingLoading } = useQuery({
     queryKey: ['quickbooks', 'team-mapping', currentOrganization?.id, teamId],
@@ -165,7 +166,7 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
     account: { quickbooks_customer_id?: string | null; quickbooks_display_name?: string | null; name: string } | undefined,
     qbOverride?: { id: string; displayName: string },
   ) => {
-    if (!showQuickBooksControls || !currentOrganization) return;
+    if (!canWriteLegacyMapping || !currentOrganization) return;
 
     if (qbOverride) {
       await updateLegacyMapping.mutateAsync({
@@ -262,7 +263,7 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
     if (!window.confirm('Remove the customer account link from this team?')) return;
     try {
       await customerMutations.link.mutateAsync({ teamId, customerId: null });
-      if (showQuickBooksControls) {
+      if (canWriteLegacyMapping) {
         await clearLegacyMapping.mutateAsync();
       }
       invalidateTeamQueries();
