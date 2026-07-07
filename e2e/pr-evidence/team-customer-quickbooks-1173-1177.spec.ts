@@ -2,8 +2,13 @@ import { test, expect } from '../user/fixtures/equipqr-test';
 import { seedTeams } from '../user/shared/seed-data';
 import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
 import { attachConsoleErrorCollector } from '../user/shared/page-helpers';
+import { resetApexHeavyEquipmentCustomerLink } from './shared/team-customer-evidence-reset';
 
 test.describe('Team customer, QuickBooks, and integrations UX (#1173, #1177, #1174) @pr-evidence', () => {
+  test.beforeAll(async () => {
+    await resetApexHeavyEquipmentCustomerLink();
+  });
+
   test('customer account, team contacts, integrations, and console hygiene', async ({
     gotoDashboard,
     assertHealthyShell,
@@ -38,8 +43,8 @@ test.describe('Team customer, QuickBooks, and integrations UX (#1173, #1177, #11
     await evidenceScreenshot(page, '02-customer-account-linked');
 
     await expect(page.getByText(/team contacts/i)).toBeVisible();
-    await expect(page.getByText(/Team Manager/i)).toBeVisible();
-    await expect(page.getByText(/Requestor/i)).toBeVisible();
+    await expect(page.getByText('Team Manager', { exact: true })).toBeVisible();
+    await expect(page.getByText('Requestor', { exact: true })).toBeVisible();
     await expect(page.getByText(/EquipQR user/i).first()).toBeVisible();
 
     await evidencePause(page, 800);
