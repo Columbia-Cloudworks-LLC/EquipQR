@@ -146,9 +146,11 @@ test.describe.serial('Quick Forms end-to-end @pr-evidence', () => {
     await expect(qrDialog.getByTestId('quick-form-qr-image')).toBeVisible({ timeout: 30_000 });
     await qrDialog.getByRole('button', { name: /rotate qr link/i }).click();
     await page.getByRole('button', { name: /rotate link/i }).click();
+    await expect(qrDialog).toBeVisible({ timeout: 30_000 });
     await expect(qrDialog.getByText(/rotating/i)).toBeHidden({ timeout: 30_000 });
-    const rotatedUrl =
-      (await qrDialog.getByTestId('quick-form-public-url').textContent())?.trim() ?? '';
+    const rotatedUrlLocator = qrDialog.getByTestId('quick-form-public-url');
+    await expect(rotatedUrlLocator).toBeVisible({ timeout: 30_000 });
+    const rotatedUrl = (await rotatedUrlLocator.textContent())?.trim() ?? '';
     expect(rotatedUrl).toMatch(/\/qr\/quick-form\/[a-f0-9]{64}$/);
     expect(rotatedUrl).not.toBe(publicUrl);
     await evidencePause(page, 600);

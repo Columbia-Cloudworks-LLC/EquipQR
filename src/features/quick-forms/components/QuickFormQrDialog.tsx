@@ -52,6 +52,7 @@ export function QuickFormQrDialog({
   const [loading, setLoading] = useState(false);
   const [publicUrl, setPublicUrl] = useState<string | null>(null);
   const [confirmRotate, setConfirmRotate] = useState(false);
+  const [rotateInFlight, setRotateInFlight] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,11 +81,16 @@ export function QuickFormQrDialog({
     };
   }, [open, form]);
 
-  const handleClose = () => onOpenChange(false);
+  const dismissGuardActive = confirmRotate || isRotating || rotateInFlight;
+
+  const handleClose = () => {
+    if (dismissGuardActive) return;
+    onOpenChange(false);
+  };
 
   const handleRotate = async () => {
     if (!form) return;
-    setConfirmRotate(false);
+    setRotateInFlight(true);
     try {
       const rawToken = await onRotateToken(form.id);
       setPublicUrl(qrFullUrl(quickFormQRPath(rawToken)));
@@ -92,12 +98,15 @@ export function QuickFormQrDialog({
     } catch (error) {
       logger.error('Failed to rotate quick form token', error);
       toast.error('Unable to rotate the QR link.');
+    } finally {
+      setConfirmRotate(false);
+      setRotateInFlight(false);
     }
   };
 
   if (loading) {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && handleClose()}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Quick form QR link</DialogTitle>
@@ -114,11 +123,11 @@ export function QuickFormQrDialog({
   if (!publicUrl) {
     return (
       <>
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && handleClose()}>
           <DialogContent
             className="max-w-md"
             onInteractOutside={(event) => {
-              if (confirmRotate) event.preventDefault();
+              if (dismissGuardActive) event.preventDefault();
             }}
           >
             <DialogHeader>
@@ -136,10 +145,10 @@ export function QuickFormQrDialog({
               size="sm"
               className="mx-auto"
               onClick={() => setConfirmRotate(true)}
-              disabled={isRotating || !form}
+              disabled={isRotating || rotateInFlight || !form}
             >
               <RefreshCw className="h-4 w-4 mr-2" />
-              {isRotating ? 'Generating…' : 'Generate QR link'}
+              {isRotating || rotateInFlight ? 'Rotating…' : 'Generate QR link'}
             </Button>
           </DialogContent>
         </Dialog>
@@ -182,8 +191,9 @@ export function QuickFormQrDialog({
         formatSelectId={`quick-form-qr-download-format-${form?.id ?? 'new'}`}
         qrImageTestId="quick-form-qr-image"
         urlTestId="quick-form-public-url"
+        preventClose={dismissGuardActive}
         onInteractOutside={(event) => {
-          if (confirmRotate) event.preventDefault();
+          if (dismissGuardActive) event.preventDefault();
         }}
         headerExtra={
           form?.description ? (
@@ -196,10 +206,10 @@ export function QuickFormQrDialog({
             size="sm"
             className="w-full"
             onClick={() => setConfirmRotate(true)}
-            disabled={isRotating || !form}
+            disabled={isRotating || rotateInFlight || !form}
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            {isRotating ? 'Rotating…' : 'Rotate QR link'}
+            {isRotating || rotateInFlight ? 'Rotating…' : 'Rotate QR link'}
           </Button>
         }
       />
