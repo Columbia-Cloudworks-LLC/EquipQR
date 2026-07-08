@@ -168,6 +168,21 @@ function moveWidgetInLayout(
   const current = sorted[index];
   const other = sorted[swapIndex];
 
+  if (current.y === other.y) {
+    if (current.x + other.w > GRID_COLS || other.x + current.w > GRID_COLS) {
+      return layout;
+    }
+    return layout.map((item) => {
+      if (item.i === current.i) {
+        return { ...item, x: other.x };
+      }
+      if (item.i === other.i) {
+        return { ...item, x: current.x };
+      }
+      return item;
+    });
+  }
+
   return layout.map((item) => {
     if (item.i === current.i) {
       return { ...item, y: other.y };
