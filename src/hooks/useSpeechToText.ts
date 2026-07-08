@@ -279,9 +279,17 @@ export function useSpeechToText(options: UseSpeechToTextOptions): UseSpeechToTex
     try {
       recognition.start();
     } catch {
-      // Handle case where recognition is already started
+      // Clear the ref so the re-entrancy guard does not block future
+      // start attempts after a synchronous start() failure.
+      recognitionRef.current = null;
+      try {
+        recognition.abort();
+      } catch {
+        // Defensive: abort on a never-started instance may throw in some engines.
+      }
       setError('Speech recognition is already running or failed to start. Please try again.');
       setIsListening(false);
+      setInterimTranscript('');
     }
   }, [isSupported, SpeechRecognitionConstructor, continuous, lang, onResult, onInterimResult]);
 

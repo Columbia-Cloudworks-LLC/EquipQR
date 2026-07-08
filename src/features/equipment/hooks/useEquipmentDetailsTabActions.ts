@@ -17,18 +17,21 @@ type UpdateEquipmentMutation = {
 
 export function useEquipmentDetailsTabActions({
   equipment,
+  organizationId,
   teams,
   updateEquipmentMutation,
 }: {
   equipment: Equipment;
+  /** Org id from the trusted organization context (not the record field). */
+  organizationId: string;
   teams: EquipmentTeamSummary[];
   updateEquipmentMutation: UpdateEquipmentMutation;
 }) {
   const queryClient = useQueryClient();
 
   const invalidateInheritedPMSchedule = useCallback(() => {
-    invalidatePMScheduleQueries(queryClient, equipment.id, equipment.organization_id);
-  }, [equipment.id, equipment.organization_id, queryClient]);
+    invalidatePMScheduleQueries(queryClient, equipment.id, organizationId);
+  }, [equipment.id, organizationId, queryClient]);
 
   const handleFieldUpdate = useCallback(
     async (field: keyof Equipment, value: string) => {

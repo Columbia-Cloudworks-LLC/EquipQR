@@ -80,6 +80,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
     getCurrentTeamDisplay,
   } = useEquipmentDetailsTabActions({
     equipment,
+    organizationId: currentOrganization?.id || '',
     teams,
     updateEquipmentMutation,
   });

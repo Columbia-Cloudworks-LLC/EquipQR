@@ -1,9 +1,9 @@
 import { useCallback, useMemo } from 'react';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { Tables } from '@/integrations/supabase/types';
 import { queryKeys } from '@/lib/queryKeys';
 import { logger } from '@/utils/logger';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
 import { useUpdateEquipment } from '@/features/equipment/hooks/useEquipment';
 
@@ -50,10 +50,14 @@ export function useEquipmentPMTemplateAssignment(
 ): UseEquipmentPMTemplateAssignmentReturn {
   const { canEdit } = options;
   const queryClient = useQueryClient();
+  // Multi-tenant scoping: org id must come from the trusted organization
+  // context, never from a record field.
+  const { currentOrganization } = useOrganization();
+  const organizationId = currentOrganization?.id ?? '';
   const { data: pmTemplates = [] } = usePMTemplates({
     enabled: canEdit || !!equipment.default_pm_template_id,
   });
-  const updateEquipmentMutation = useUpdateEquipment(equipment.organization_id);
+  const updateEquipmentMutation = useUpdateEquipment(organizationId);
 
   const pmTemplateOptions = useMemo(
     () => [
@@ -69,6 +73,7 @@ export function useEquipmentPMTemplateAssignment(
     return template?.name || 'Unknown Template';
   }, [equipment.default_pm_template_id, pmTemplates]);
 
+  // Success/error toasts are owned by useUpdateEquipment; no extra toasts here.
   const handlePMTemplateAssignment = useCallback(
     async (templateId: string) => {
       try {
@@ -80,15 +85,13 @@ export function useEquipmentPMTemplateAssignment(
           id: equipment.id,
           data: { default_pm_template_id: templateValue },
         });
-        invalidatePMScheduleQueries(queryClient, equipment.id, equipment.organization_id);
-        toast.success('PM template assignment updated successfully');
+        invalidatePMScheduleQueries(queryClient, equipment.id, organizationId);
       } catch (error) {
         logger.error('Error updating PM template assignment', error);
-        toast.error('Failed to update PM template assignment');
         throw error;
       }
     },
-    [equipment.id, equipment.organization_id, queryClient, updateEquipmentMutation]
+    [equipment.id, organizationId, queryClient, updateEquipmentMutation]
   );
 
   return {

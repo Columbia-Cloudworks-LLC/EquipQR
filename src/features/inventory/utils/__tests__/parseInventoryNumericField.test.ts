@@ -23,6 +23,16 @@ describe('parseInventoryNumericField', () => {
         }
       }
     });
+
+    it('rejects exponent, hex, and signed syntax that Number() would coerce', () => {
+      for (const input of ['1e3', '0x10', '+5', 'Infinity']) {
+        expect(parseInventoryNumericField('low_stock_threshold', input).ok).toBe(false);
+      }
+    });
+
+    it('rejects values beyond the safe cap', () => {
+      expect(parseInventoryNumericField('low_stock_threshold', '10000000000').ok).toBe(false);
+    });
   });
 
   describe('default_unit_cost', () => {
@@ -56,6 +66,13 @@ describe('parseInventoryNumericField', () => {
           expect(result.error).toMatch(/number of 0 or more/i);
         }
       }
+    });
+
+    it('rejects exponent/hex syntax and values beyond the safe cap', () => {
+      for (const input of ['1e3', '0x10', '+5', '.5', '5.']) {
+        expect(parseInventoryNumericField('default_unit_cost', input).ok).toBe(false);
+      }
+      expect(parseInventoryNumericField('default_unit_cost', '10000000000').ok).toBe(false);
     });
   });
 });

@@ -145,6 +145,38 @@ describe('useSpeechToText microphone consent flow', () => {
     expect(result.current.isListening).toBe(false);
   });
 
+  it('allows retry after recognition.start() throws synchronously', async () => {
+    grantMicPermission();
+    let shouldThrow = true;
+    class ThrowingOnceSpeechRecognition extends MockSpeechRecognition {
+      start = vi.fn(() => {
+        if (shouldThrow) {
+          shouldThrow = false;
+          throw new Error('already started');
+        }
+        this.onstart?.();
+      });
+    }
+    vi.stubGlobal('SpeechRecognition', ThrowingOnceSpeechRecognition);
+
+    const { result } = renderHook(() =>
+      useSpeechToText({ onResult: vi.fn() })
+    );
+
+    await act(async () => {
+      await result.current.startListening();
+    });
+    expect(result.current.error).toMatch(/failed to start/i);
+    expect(result.current.isListening).toBe(false);
+
+    // The failed instance must not block the next attempt.
+    await act(async () => {
+      await result.current.startListening();
+    });
+    expect(result.current.error).toBeNull();
+    expect(result.current.isListening).toBe(true);
+  });
+
   it('ignores re-entrant start clicks while the consent prompt is open', async () => {
     let resolveConsent: (value: { getTracks: () => { stop: () => void }[] }) => void;
     mockGetUserMedia.mockImplementation(
