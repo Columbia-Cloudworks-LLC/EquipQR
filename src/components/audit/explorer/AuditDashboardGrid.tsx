@@ -154,6 +154,22 @@ function widgetPixelHeight(item: LayoutItem | undefined): number {
 }
 
 /** Reorder widgets vertically for keyboard users (swap with adjacent row). */
+function findVerticalSwapTarget(
+  sorted: Layout,
+  index: number,
+  direction: 'up' | 'down',
+): number {
+  let swapIndex = direction === 'up' ? index - 1 : index + 1;
+  while (
+    swapIndex >= 0 &&
+    swapIndex < sorted.length &&
+    sorted[swapIndex].y === sorted[index].y
+  ) {
+    swapIndex = direction === 'up' ? swapIndex - 1 : swapIndex + 1;
+  }
+  return swapIndex;
+}
+
 function moveWidgetInLayout(
   layout: Layout,
   widgetId: string,
@@ -162,26 +178,11 @@ function moveWidgetInLayout(
   const sorted = [...layout].sort((a, b) => a.y - b.y || a.x - b.x);
   const index = sorted.findIndex((item) => item.i === widgetId);
   if (index < 0) return layout;
-  const swapIndex = direction === 'up' ? index - 1 : index + 1;
+  const swapIndex = findVerticalSwapTarget(sorted, index, direction);
   if (swapIndex < 0 || swapIndex >= sorted.length) return layout;
 
   const current = sorted[index];
   const other = sorted[swapIndex];
-
-  if (current.y === other.y) {
-    if (current.x + other.w > GRID_COLS || other.x + current.w > GRID_COLS) {
-      return layout;
-    }
-    return layout.map((item) => {
-      if (item.i === current.i) {
-        return { ...item, x: other.x };
-      }
-      if (item.i === other.i) {
-        return { ...item, x: current.x };
-      }
-      return item;
-    });
-  }
 
   return layout.map((item) => {
     if (item.i === current.i) {
@@ -268,11 +269,8 @@ export function AuditDashboardGrid({ widgets }: AuditDashboardGridProps) {
     return map;
   }, [state.layout]);
 
-  const widgetOrder = useMemo(
-    () =>
-      [...state.layout]
-        .sort((a, b) => a.y - b.y || a.x - b.x)
-        .map((item) => item.i),
+  const sortedLayout = useMemo(
+    () => [...state.layout].sort((a, b) => a.y - b.y || a.x - b.x),
     [state.layout]
   );
 
@@ -303,9 +301,13 @@ export function AuditDashboardGrid({ widgets }: AuditDashboardGridProps) {
             const item = layoutById.get(widget.id);
             const collapsed = !!state.collapsed[widget.id];
             const contentHeight = Math.max(0, widgetPixelHeight(item) - WIDGET_HEADER_PX);
-            const orderIndex = widgetOrder.indexOf(widget.id);
-            const canMoveUp = orderIndex > 0;
-            const canMoveDown = orderIndex >= 0 && orderIndex < widgetOrder.length - 1;
+            const orderIndex = sortedLayout.findIndex((item) => item.i === widget.id);
+            const canMoveUp =
+              orderIndex > 0 && findVerticalSwapTarget(sortedLayout, orderIndex, 'up') >= 0;
+            const canMoveDown =
+              orderIndex >= 0 &&
+              orderIndex < sortedLayout.length - 1 &&
+              findVerticalSwapTarget(sortedLayout, orderIndex, 'down') < sortedLayout.length;
             return (
               <div key={widget.id} data-testid={`audit-widget-${widget.id}`}>
                 <div className="h-full flex flex-col rounded-md border bg-card overflow-hidden">
