@@ -112,6 +112,11 @@ export async function confirmCustomerTaxStatus(
       throw new Error("QuickBooks Customer.Taxable was not present in the response");
     }
 
+    const customerPrimaryEmail: string | null =
+      typeof body.Customer?.PrimaryEmailAddr?.Address === "string"
+        ? body.Customer.PrimaryEmailAddr.Address
+        : null;
+
     const nextIsTaxExempt = taxable === false;
     const now = new Date().toISOString();
     if (params.customerMapping.customer_account_id) {
@@ -148,6 +153,7 @@ export async function confirmCustomerTaxStatus(
       isTaxExempt: nextIsTaxExempt,
       verified: true,
       source: "quickbooks",
+      customerPrimaryEmail,
     };
   } catch (error) {
     logStep("QuickBooks tax status confirmation failed", {

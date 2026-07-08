@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.18.0] - 2026-07-07
+
+### Added
+
+- **QuickBooks help-center guides** — Rewrote the Connect QuickBooks, Map Teams to QuickBooks Customers, and Export Work Orders to QuickBooks guides on equipqr.info around a complete PM-work-order-to-invoice walkthrough, with real screenshots and demo videos hosted in the public `docs-media` bucket.
+- **Unattended QuickBooks browser session tooling** — New agent scripts (`scripts/qbo/Connect-QboBrowserSession.ps1` + `scripts/qbo/qbo-browser-signin.mjs`) open a signed-in QuickBooks browser session for automation. Partial for now: Intuit's passkey chooser still blocks fully unattended sign-in.
+
+### Changed
+
+- **QuickBooks invoice Parts line** — Exported invoices now itemize the Parts line description from the work order's cost rows instead of a bare "Parts" label.
+- **QuickBooks invoice billing email** — Invoice export (create and update) now seeds the invoice `BillEmail` from the QuickBooks customer's primary email — never overwriting an email already on the invoice — so "Review and send" in QuickBooks no longer requires manual email entry.
+
+### Fixed
+
+- **Work order Export menu flicker** — The QuickBooks entry in the Export menu stays visible (disabled) while the permission check loads instead of being omitted on first open; the submenu also migrated to the shared QuickBooks query-key factories.
+- **Mobile QuickBooks invoice status** — Mobile work order details now shows the QuickBooks invoice status badge (draft/sent/paid with balance and invoice number) in the summary card, matching desktop.
+- **Fleet Map API-key diagnostics** — The Fleet Map error boundary now recognizes Google Maps API-key authorization crashes (opaque `marker.js`/`main.js` TypeErrors) and renders the actionable HTTP-referrer-allowlist diagnostic card instead of the generic error card.
+
 ## [3.17.0] - 2026-07-07
 
 ### Fixed
@@ -2300,7 +2318,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.11.3...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.18.0...HEAD
+[3.18.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.17.0...v3.18.0
 [3.11.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.11.2...v3.11.3
 [3.11.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.11.1...v3.11.2
 [3.11.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.11.0...v3.11.1

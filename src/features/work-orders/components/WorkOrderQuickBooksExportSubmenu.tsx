@@ -14,6 +14,7 @@ import {
 import { ExternalLink, FileSpreadsheet, Loader2, RefreshCw } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useQuery } from '@tanstack/react-query';
+import { quickBooks } from '@/lib/queryKeys/integrations';
 import { getConnectionStatus, getTeamCustomerMapping } from '@/services/quickbooks';
 import { getQuickBooksInvoiceUrl } from '@/services/quickbooks/types';
 import { useExportToQuickBooks, useQuickBooksLastExport } from '@/hooks/useExportToQuickBooks';
@@ -38,12 +39,12 @@ export const WorkOrderQuickBooksExportSubmenu: React.FC<WorkOrderQuickBooksExpor
 }) => {
   const { currentOrganization } = useOrganization();
   const featureEnabled = isQuickBooksEnabled();
-  const { data: canExport = false } = useQuickBooksAccess();
+  const { data: canExport = false, isLoading: accessLoading } = useQuickBooksAccess();
 
   const organizationId = currentOrganization?.id;
 
   const { data: connectionStatus, isLoading: connectionLoading } = useQuery({
-    queryKey: ['quickbooks', 'connection', organizationId],
+    queryKey: quickBooks.connection(organizationId ?? ''),
     queryFn: () => {
       if (!organizationId) {
         throw new Error('Organization is required for QuickBooks connection status');
@@ -55,7 +56,7 @@ export const WorkOrderQuickBooksExportSubmenu: React.FC<WorkOrderQuickBooksExpor
   });
 
   const { data: teamMapping, isLoading: mappingLoading } = useQuery({
-    queryKey: ['quickbooks', 'team-mapping', organizationId, teamId],
+    queryKey: quickBooks.teamMapping(organizationId ?? '', teamId ?? ''),
     queryFn: () => {
       if (!organizationId || !teamId) {
         throw new Error('Organization and team are required for QuickBooks team mapping');
@@ -73,7 +74,25 @@ export const WorkOrderQuickBooksExportSubmenu: React.FC<WorkOrderQuickBooksExpor
 
   const exportMutation = useExportToQuickBooks();
 
-  if (!featureEnabled || !canExport) {
+  if (!featureEnabled) {
+    return null;
+  }
+
+  // Keep the submenu mounted (disabled) while the permission check is in
+  // flight so QuickBooks does not vanish from the first Export-menu open
+  // after a page load and pop in on the second open.
+  if (accessLoading) {
+    return (
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger disabled>
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          QuickBooks
+        </DropdownMenuSubTrigger>
+      </DropdownMenuSub>
+    );
+  }
+
+  if (!canExport) {
     return null;
   }
 

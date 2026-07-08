@@ -3,6 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { logger } from '@/utils/logger';
+import { MapsAuthFailureCard } from '@/features/fleet-map/components/MapsAuthFailureCard';
+import {
+  buildMapsAuthFailureFromLocation,
+  isLikelyMapsAuthCrash,
+} from '@/features/fleet-map/utils/mapsAuthFailure';
 
 interface FleetMapErrorBoundaryPresentationalProps {
   /** Pre-known error message to render as a card. */
@@ -88,6 +93,13 @@ export class FleetMapErrorBoundary extends Component<FleetMapErrorBoundaryProps,
     }
 
     if (this.state.hasError) {
+      // Google Maps half-initializes before rejecting an unauthorized key and
+      // then crashes with an opaque TypeError from its own bundle. Render the
+      // actionable referrer-allowlist diagnostic instead of the generic card.
+      if (isLikelyMapsAuthCrash(this.state.caughtError)) {
+        return <MapsAuthFailureCard failure={buildMapsAuthFailureFromLocation()} />;
+      }
+
       const caughtMessage =
         this.state.caughtError?.message?.trim() ||
         'The Fleet Map crashed unexpectedly while rendering.';
