@@ -48,10 +48,16 @@ const shot = async (label) => {
   console.log(`[shot] ${file} url=${page.url().slice(0, 110)}`);
 };
 
+const SIGNED_IN_HOSTS = new Set(['qbo.intuit.com', 'app.qbo.intuit.com']);
+
 const isSignedIn = (url) => {
-  const origin = new URL(url).origin;
-  return (origin.endsWith('qbo.intuit.com') || origin.endsWith('app.qbo.intuit.com'))
-    && !url.includes('sign-in');
+  const parsed = new URL(url);
+  return SIGNED_IN_HOSTS.has(parsed.hostname) && !parsed.pathname.includes('sign-in');
+};
+
+const isIntuitHost = (url) => {
+  const { hostname } = new URL(url);
+  return hostname === 'intuit.com' || hostname.endsWith('.intuit.com');
 };
 
 await page.goto(TARGET_URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
@@ -60,7 +66,7 @@ await page.goto(TARGET_URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
 async function firstVisible(buildLocator) {
   for (const frame of page.frames()) {
     try {
-      const locator = buildLocator(frame).locator('visible=true').first();
+      const locator = buildLocator(frame).filter({ visible: true }).first();
       if (await locator.count()) return locator;
     } catch {
       // Frame may have detached mid-scan; ignore and continue.
@@ -89,7 +95,7 @@ for (let i = 0; i < 40; i++) {
     continue;
   }
 
-  if (!new URL(url).origin.includes('intuit.com')) {
+  if (!isIntuitHost(url)) {
     await shot('unexpected-origin');
     continue;
   }
