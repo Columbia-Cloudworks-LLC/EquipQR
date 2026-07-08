@@ -44,7 +44,6 @@ describe('VoiceInputButton', () => {
 
     const button = screen.getByRole('button', { name: 'Start voice input' });
     expect(button).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.getByText('Voice')).toBeInTheDocument();
   });
 
   it('renders stop voice input button with aria-pressed true', () => {
@@ -58,7 +57,6 @@ describe('VoiceInputButton', () => {
 
     const button = screen.getByRole('button', { name: 'Stop voice input' });
     expect(button).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByText('Stop')).toBeInTheDocument();
   });
 
   it('calls onToggle when clicked', () => {
@@ -75,17 +73,18 @@ describe('VoiceInputButton', () => {
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
-  it('renders icon-only variant for composer placement', () => {
+  it('applies positioning className for overlay placement', () => {
     render(
       <VoiceInputButton
         isListening={false}
         onToggle={vi.fn()}
         canUseVoice={true}
-        size="icon"
+        className="absolute bottom-2 left-2"
       />
     );
 
-    expect(screen.getByRole('button', { name: 'Start voice input' })).toBeInTheDocument();
-    expect(screen.queryByText('Voice')).not.toBeInTheDocument();
+    const button = screen.getByRole('button', { name: 'Start voice input' });
+    expect(button.className).toContain('bottom-2');
+    expect(button.className).toContain('left-2');
   });
 });

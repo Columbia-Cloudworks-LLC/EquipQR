@@ -9,11 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [Unreleased]
+
 ## [3.21.0] - 2026-07-08
 
 ### Added
 
 - **Quick Forms (#1184)** — Standalone public data-collection forms, deliberately not tied to equipment or teams: time sheets, secure-area checks, assembly-line checklists, and other job-site capture. Org owners/admins build forms (short/long text, number, date, checkbox fields, optional GPS request) on the new **Operations → Quick Forms** page, share them via rotating non-enumerable QR tokens (`/qr/quick-form/{token}`), and read an append-only submission ledger with CSV/Excel/PDF exports. Unauthenticated submitters go through a new `quick-form` edge function (token auth, hCaptcha when configured, per-form rate limiting). All form definitions, raw QR tokens, and submissions are owner/admin-only via RLS — plain members have no access because collected data may be sensitive.
+
+## [3.20.0] - 2026-07-07
+
+### Changed
+
+- **Audit Log page refactor (#1166)** — The audit log is now a customizable dashboard: the Key Metrics, Timeline, and Events sections are drag/drop widgets on a grid (drag by the header grip, resize from the edges, collapse sections you don't need), with the layout persisted per browser and a one-click "Reset layout" control. The events table shows in full width until entries are selected. Selecting a single entry opens the detail inspector with new "Copy Markdown" / "Copy JSON" clipboard actions; selecting multiple entries (row checkboxes, Ctrl/Cmd-click, or Shift-click ranges) swaps the detail pane for a bulk-actions pane that exports the selected entries as Markdown, Excel, or PDF. The list/detail resize handle got a clearer grab affordance with hover highlighting and a tighter hit area.
+
+## [3.19.0] - 2026-07-07
+
+### Fixed
+
+- **Microphone voice input (#1170)** — Voice dictation buttons no longer fail: the `Permissions-Policy` header now allows microphone use on EquipQR's own pages (`microphone=(self)` in Vite dev, Vercel, and Netlify configs), and clicking a mic button explicitly requests browser microphone consent before starting speech recognition. If the user denies access, clicking the button again restarts the consent process with an actionable error message. Privacy policy copy updated to describe the browser-only dictation flow (audio is never recorded or stored by EquipQR).
+- **Inventory item cost and threshold editing (#1165)** — Parts managers and org owners/admins can now change **Default Unit Cost** and **Low Stock Threshold** inline on the inventory item Overview tab using the same click-to-edit pattern as other fields (with numeric validation; clearing the cost removes it). Changes are recorded in the audit log by the existing inventory audit trigger.
+
+### Changed
+
+- **Voice input placement (#1170)** — All voice dictation buttons now use one consistent icon style anchored to the bottom-left corner of the text box they control (notes composers, equipment form description, work order description, PM general notes, working-hours notes, and QR quick-action dialogs).
+- **PM template selector moved to Work Orders tab (#1169)** — The equipment PM template control moved from the Details tab to a prominent dropdown at the top of the Work Orders tab. The dropdown stays locked until the inline edit control is clicked, preventing accidental template changes; picking an option saves immediately and re-locks the control.
 
 ## [3.18.0] - 2026-07-07
 

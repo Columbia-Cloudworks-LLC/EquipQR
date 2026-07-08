@@ -13,94 +13,12 @@ import React, { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { History, Shield, AlertCircle, ShieldAlert } from 'lucide-react';
 import Page from '@/components/layout/Page';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useAuditStats } from '@/hooks/useAuditLog';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { AuditExplorer } from '@/components/audit/explorer';
 import { OrganizationSubnav } from '@/features/organization/components/OrganizationSubnav';
 import { AUDIT_ENTITY_TYPES, type AuditEntityType, type AuditLogFilters } from '@/types/audit';
-
-/**
- * Stats cards showing audit summary
- */
-function AuditStatsCards({ organizationId }: { organizationId: string }) {
-  const { data: stats, isLoading } = useAuditStats(organizationId);
-
-  if (isLoading) {
-    return (
-      <div className="grid gap-4 md:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
-          <Card key={i}>
-            <CardHeader className="pb-2">
-              <Skeleton className="h-4 w-24" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-16" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
-  if (!stats) return null;
-
-  // Calculate totals for each action
-  const createdCount = stats.byAction?.INSERT || 0;
-  const updatedCount = stats.byAction?.UPDATE || 0;
-  const deletedCount = stats.byAction?.DELETE || 0;
-
-  return (
-    <div className="grid gap-4 md:grid-cols-4">
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Total Entries
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats.totalEntries.toLocaleString()}</div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Records Created
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-success">{createdCount.toLocaleString()}</div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Records Updated
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-info">{updatedCount.toLocaleString()}</div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Records Deleted
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-destructive">{deletedCount.toLocaleString()}</div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
 
 /**
  * Audit Log Page Component
@@ -181,10 +99,7 @@ function AuditLog() {
           </div>
         </div>
 
-        {/* Stats */}
-        <AuditStatsCards organizationId={currentOrganization.id} />
-
-        {/* Logflare-style explorer */}
+        {/* Customizable dashboard: key metrics, timeline, and events (#1166) */}
         <AuditExplorer organizationId={currentOrganization.id} initialFilters={initialFilters} />
       </div>
     </Page>

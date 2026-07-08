@@ -3,7 +3,7 @@
  * selected submissions. Heavy libraries (xlsx / jspdf) load on demand.
  */
 
-import { arrayToCsv, downloadBlob, downloadCsv, filenameWithDate, sanitizeSpreadsheetCell } from '@/utils/exportUtils';
+import { arrayToCsv, downloadBlob, downloadCsv, filenameWithDate, sanitizeSpreadsheetCell, createLetterPdfWriter } from '@/utils/exportUtils';
 import { formatQuickFormValue } from '@/features/quick-forms/types/quickForm';
 import type { QuickFormSubmission } from '@/features/quick-forms/services/quickFormSubmissionsService';
 
@@ -80,30 +80,12 @@ export async function downloadQuickFormSubmissionsExcel(
 export async function downloadQuickFormSubmissionsPdf(
   submissions: QuickFormSubmission[],
 ): Promise<void> {
-  const { jsPDF } = await import('jspdf');
-  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
-  const margin = 48;
-  const maxWidth = 520;
-  let y = margin;
-
-  const writeLine = (text: string, options?: { bold?: boolean; size?: number }) => {
-    doc.setFont('helvetica', options?.bold ? 'bold' : 'normal');
-    doc.setFontSize(options?.size ?? 10);
-    const wrapped = doc.splitTextToSize(text, maxWidth) as string[];
-    for (const line of wrapped) {
-      if (y > 720) {
-        doc.addPage();
-        y = margin;
-      }
-      doc.text(line, margin, y);
-      y += (options?.size ?? 10) + 4;
-    }
-  };
+  const { writeLine, addGap, doc } = await createLetterPdfWriter();
 
   writeLine('Quick Form Submissions', { bold: true, size: 16 });
-  y += 4;
+  addGap(4);
   writeLine(`${submissions.length} submission${submissions.length === 1 ? '' : 's'}`);
-  y += 10;
+  addGap(10);
 
   for (const submission of submissions) {
     writeLine(`${formName(submission)} — ${submission.submitted_at}`, { bold: true, size: 12 });
@@ -114,7 +96,7 @@ export async function downloadQuickFormSubmissionsPdf(
     for (const field of submission.field_values ?? []) {
       writeLine(`• ${field.label}: ${formatQuickFormValue(field.value)}`);
     }
-    y += 10;
+    addGap(10);
   }
 
   downloadBlob(doc.output('blob'), filenameWithDate('quick-form-submissions', 'pdf'));

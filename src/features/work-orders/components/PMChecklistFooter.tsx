@@ -93,14 +93,7 @@ export function PMChecklistFooter({
       )}
 
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <label htmlFor="pm-general-notes" className="text-base font-semibold">General Notes</label>
-          <VoiceInputButton
-            isListening={isListening}
-            onToggle={toggleListening}
-            canUseVoice={canUseVoice}
-          />
-        </div>
+        <label htmlFor="pm-general-notes" className="text-base font-semibold">General Notes</label>
         <div className="relative">
           <Textarea
             id="pm-general-notes"
@@ -109,11 +102,18 @@ export function PMChecklistFooter({
             onChange={(e) => onNotesChange(e.target.value)}
             disabled={notesDisabled}
             rows={3}
-            className="text-[15px] text-foreground placeholder:text-muted-foreground/70"
+            className="text-[15px] text-foreground placeholder:text-muted-foreground/70 pb-12"
           />
           <VoiceInterimTranscript
             isListening={isListening}
             interimTranscript={interimTranscript}
+            className="bottom-12 left-2 right-2"
+          />
+          <VoiceInputButton
+            isListening={isListening}
+            onToggle={toggleListening}
+            canUseVoice={canUseVoice}
+            className="absolute bottom-2 left-2"
           />
         </div>
         {speechError && (

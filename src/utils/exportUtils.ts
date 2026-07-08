@@ -66,3 +66,40 @@ export function downloadBlob(blob: Blob, filename: string): void {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+export interface LetterPdfWriter {
+  writeLine: (text: string, options?: { bold?: boolean; size?: number }) => void;
+  addGap: (points: number) => void;
+  doc: import('jspdf').jsPDF;
+}
+
+/** Letter-size jsPDF writer with wrapped lines and automatic page breaks. */
+export async function createLetterPdfWriter(): Promise<LetterPdfWriter> {
+  const { jsPDF } = await import('jspdf');
+  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+  const margin = 48;
+  const maxWidth = 520;
+  let y = margin;
+
+  const writeLine = (text: string, options?: { bold?: boolean; size?: number }) => {
+    doc.setFont('helvetica', options?.bold ? 'bold' : 'normal');
+    doc.setFontSize(options?.size ?? 10);
+    const wrapped = doc.splitTextToSize(text, maxWidth) as string[];
+    for (const line of wrapped) {
+      if (y > 720) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.text(line, margin, y);
+      y += (options?.size ?? 10) + 4;
+    }
+  };
+
+  return {
+    writeLine,
+    addGap: (points: number) => {
+      y += points;
+    },
+    doc,
+  };
+}

@@ -4,14 +4,12 @@ import { toast } from 'sonner';
 import { Tables } from '@/integrations/supabase/types';
 import type { PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import type { EquipmentTeamSummary } from '@/features/equipment/services/EquipmentService';
-import { queryKeys } from '@/lib/queryKeys';
 import { applyEquipmentUpdateRules } from '@/utils/object-utils';
 import { logger } from '@/utils/logger';
 import { persistEquipmentAssignedLocation } from '@/features/equipment/hooks/persistEquipmentAssignedLocation';
+import { invalidatePMScheduleQueries } from '@/features/equipment/hooks/useEquipmentPMTemplateAssignment';
 
 type Equipment = Tables<'equipment'>;
-
-type PMTemplateOption = { id: string; name: string };
 
 type UpdateEquipmentMutation = {
   mutateAsync: (args: { id: string; data: Partial<Equipment> }) => Promise<unknown>;
@@ -19,31 +17,21 @@ type UpdateEquipmentMutation = {
 
 export function useEquipmentDetailsTabActions({
   equipment,
+  organizationId,
   teams,
-  pmTemplates,
   updateEquipmentMutation,
 }: {
   equipment: Equipment;
+  /** Org id from the trusted organization context (not the record field). */
+  organizationId: string | undefined;
   teams: EquipmentTeamSummary[];
-  pmTemplates: PMTemplateOption[];
   updateEquipmentMutation: UpdateEquipmentMutation;
 }) {
   const queryClient = useQueryClient();
 
   const invalidateInheritedPMSchedule = useCallback(() => {
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.pmIntervalPolicies.effectiveByEquipment(equipment.id),
-    });
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.pmStatus.byEquipment(equipment.id),
-    });
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.pmStatus.byOrg(equipment.organization_id),
-    });
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.equipment.pmStatus(equipment.id),
-    });
-  }, [equipment.id, equipment.organization_id, queryClient]);
+    invalidatePMScheduleQueries(queryClient, equipment.id, organizationId);
+  }, [equipment.id, organizationId, queryClient]);
 
   const handleFieldUpdate = useCallback(
     async (field: keyof Equipment, value: string) => {
@@ -108,28 +96,6 @@ export function useEquipmentDetailsTabActions({
     [equipment.id, invalidateInheritedPMSchedule, updateEquipmentMutation]
   );
 
-  const handlePMTemplateAssignment = useCallback(
-    async (templateId: string) => {
-      try {
-        const templateValue = templateId === 'none' ? null : templateId;
-        if (import.meta.env.DEV) {
-          logger.debug('Updating PM template assignment', { templateValue });
-        }
-        await updateEquipmentMutation.mutateAsync({
-          id: equipment.id,
-          data: { default_pm_template_id: templateValue },
-        });
-        invalidateInheritedPMSchedule();
-        toast.success('PM template assignment updated successfully');
-      } catch (error) {
-        logger.error('Error updating PM template assignment', error);
-        toast.error('Failed to update PM template assignment');
-        throw error;
-      }
-    },
-    [equipment.id, invalidateInheritedPMSchedule, updateEquipmentMutation]
-  );
-
   const saveAssignedLocation = useCallback(
     async (data: PlaceLocationData) => {
       await persistEquipmentAssignedLocation(equipment.id, data, updateEquipmentMutation.mutateAsync);
@@ -145,20 +111,6 @@ export function useEquipmentDetailsTabActions({
     [teams]
   );
 
-  const pmTemplateOptions = useMemo(
-    () => [
-      { value: 'none', label: 'None' },
-      ...pmTemplates.map((template) => ({ value: template.id, label: template.name })),
-    ],
-    [pmTemplates]
-  );
-
-  const getCurrentPMTemplateDisplay = useCallback(() => {
-    if (!equipment.default_pm_template_id) return 'None';
-    const template = pmTemplates.find((t) => t.id === equipment.default_pm_template_id);
-    return template?.name || 'Unknown Template';
-  }, [equipment.default_pm_template_id, pmTemplates]);
-
   const getCurrentTeamDisplay = useCallback(() => {
     if (!equipment.team_id) return 'Unassigned';
     const team = teams.find((t) => t.id === equipment.team_id);
@@ -169,11 +121,8 @@ export function useEquipmentDetailsTabActions({
     handleFieldUpdate,
     handleCustomAttributesUpdate,
     handleTeamAssignment,
-    handlePMTemplateAssignment,
     saveAssignedLocation,
     teamOptions,
-    pmTemplateOptions,
-    getCurrentPMTemplateDisplay,
     getCurrentTeamDisplay,
   };
 }

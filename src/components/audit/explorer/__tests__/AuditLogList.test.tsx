@@ -116,6 +116,29 @@ function makeEntry(
   };
 }
 
+const noSelection = new Set<string>();
+
+function renderList(
+  props: Partial<React.ComponentProps<typeof AuditLogList>> & {
+    entries: FormattedAuditEntry[];
+  }
+) {
+  const onRowClick = vi.fn();
+  const onCheckboxToggle = vi.fn();
+  const onEscape = vi.fn();
+  const utils = render(
+    <AuditLogList
+      selectedIds={noSelection}
+      onRowClick={onRowClick}
+      onCheckboxToggle={onCheckboxToggle}
+      onEscape={onEscape}
+      height={400}
+      {...props}
+    />
+  );
+  return { ...utils, onRowClick, onCheckboxToggle, onEscape };
+}
+
 describe('AuditLogList', () => {
   beforeEach(() => {
     mockScrollToRow.mockClear();
@@ -123,7 +146,7 @@ describe('AuditLogList', () => {
 
   it('formats created_at in the user timezone (Australia/Sydney fixture)', () => {
     const entries = [makeEntry('a', { created_at: '2026-04-20T10:00:00.000Z' })];
-    render(<AuditLogList entries={entries} onSelect={() => {}} height={400} />);
+    renderList({ entries });
 
     const row = screen.getByTestId('audit-log-list-row');
     // 10:00 UTC → 20:00 on 04/20/2026 in Sydney (AEST, UTC+10).
@@ -131,21 +154,50 @@ describe('AuditLogList', () => {
     expect(row).toHaveTextContent(/8:00\s+PM/i);
   });
 
-  it('calls onSelect with the entry when a row is clicked', () => {
+  it('reports row clicks with modifier state', () => {
     const entries = [makeEntry('a'), makeEntry('b')];
-    const onSelect = vi.fn();
-    render(
-      <AuditLogList
-        entries={entries}
-        onSelect={onSelect}
-        height={400}
-      />
-    );
+    const { onRowClick } = renderList({ entries });
 
     const rows = screen.getAllByTestId('audit-log-list-row');
     expect(rows).toHaveLength(2);
     fireEvent.click(rows[1]);
-    expect(onSelect).toHaveBeenCalledWith(entries[1]);
+    expect(onRowClick).toHaveBeenLastCalledWith(entries[1], {
+      ctrlOrMeta: false,
+      shift: false,
+    });
+
+    fireEvent.click(rows[0], { ctrlKey: true });
+    expect(onRowClick).toHaveBeenLastCalledWith(entries[0], {
+      ctrlOrMeta: true,
+      shift: false,
+    });
+
+    fireEvent.click(rows[1], { shiftKey: true });
+    expect(onRowClick).toHaveBeenLastCalledWith(entries[1], {
+      ctrlOrMeta: false,
+      shift: true,
+    });
+  });
+
+  it('toggles membership via the row checkbox without triggering a row click', () => {
+    const entries = [makeEntry('a'), makeEntry('b')];
+    const { onRowClick, onCheckboxToggle } = renderList({ entries });
+
+    const checkboxes = screen.getAllByTestId('audit-log-row-checkbox');
+    fireEvent.click(checkboxes[1]);
+
+    expect(onCheckboxToggle).toHaveBeenCalledWith(entries[1]);
+    expect(onRowClick).not.toHaveBeenCalled();
+  });
+
+  it('marks the listbox as multiselectable and reflects selection state', () => {
+    const entries = [makeEntry('a'), makeEntry('b')];
+    renderList({ entries, selectedIds: new Set(['b']) });
+
+    expect(screen.getByRole('listbox')).toHaveAttribute('aria-multiselectable', 'true');
+    const options = screen.getAllByRole('option');
+    expect(options[0]).toHaveAttribute('aria-selected', 'false');
+    expect(options[1]).toHaveAttribute('aria-selected', 'true');
   });
 
   it('renders the severity stripe in the action color', () => {
@@ -153,7 +205,7 @@ describe('AuditLogList', () => {
       makeEntry('a', { action: 'DELETE' }),
       makeEntry('b', { action: 'INSERT' }),
     ];
-    render(<AuditLogList entries={entries} onSelect={() => {}} height={400} />);
+    renderList({ entries });
 
     const stripes = screen.getAllByTestId('audit-log-severity-stripe');
     expect(stripes[0]).toHaveStyle({ backgroundColor: ACTION_SEVERITY_COLOR.DELETE });
@@ -164,7 +216,7 @@ describe('AuditLogList', () => {
     const entries = Array.from({ length: VIRTUALIZATION_THRESHOLD - 1 }, (_, i) =>
       makeEntry(String(i))
     );
-    render(<AuditLogList entries={entries} onSelect={() => {}} height={400} />);
+    renderList({ entries });
 
     expect(screen.getByTestId('audit-log-list-static')).toBeInTheDocument();
     expect(screen.queryByTestId('audit-log-list-virtual')).not.toBeInTheDocument();
@@ -174,7 +226,7 @@ describe('AuditLogList', () => {
     const entries = Array.from({ length: VIRTUALIZATION_THRESHOLD }, (_, i) =>
       makeEntry(String(i))
     );
-    render(<AuditLogList entries={entries} onSelect={() => {}} height={400} />);
+    renderList({ entries });
 
     expect(screen.getByTestId('audit-log-list-virtual')).toBeInTheDocument();
     expect(screen.queryByTestId('audit-log-list-static')).not.toBeInTheDocument();
@@ -184,7 +236,7 @@ describe('AuditLogList', () => {
     const entries = Array.from({ length: VIRTUALIZATION_THRESHOLD }, (_, i) =>
       makeEntry(String(i))
     );
-    render(<AuditLogList entries={entries} onSelect={() => {}} height={400} />);
+    renderList({ entries });
 
     const listbox = screen.getByRole('listbox');
     const options = screen.getAllByRole('option');
@@ -194,43 +246,35 @@ describe('AuditLogList', () => {
 
   it('moves selection on ArrowDown / ArrowUp / Enter', () => {
     const entries = [makeEntry('a'), makeEntry('b'), makeEntry('c')];
-    const onSelect = vi.fn();
-    render(
-      <AuditLogList
-        entries={entries}
-        selectedId="a"
-        onSelect={onSelect}
-        height={400}
-      />
-    );
+    const { onRowClick } = renderList({ entries, selectedIds: new Set(['a']) });
 
     const listbox = screen.getByRole('listbox');
     fireEvent.keyDown(listbox, { key: 'ArrowDown' });
-    expect(onSelect).toHaveBeenLastCalledWith(entries[1]);
+    expect(onRowClick).toHaveBeenLastCalledWith(entries[1], expect.anything());
 
     fireEvent.keyDown(listbox, { key: 'ArrowDown' });
-    expect(onSelect).toHaveBeenLastCalledWith(entries[2]);
+    expect(onRowClick).toHaveBeenLastCalledWith(entries[2], expect.anything());
 
     fireEvent.keyDown(listbox, { key: 'ArrowUp' });
-    expect(onSelect).toHaveBeenLastCalledWith(entries[1]);
+    expect(onRowClick).toHaveBeenLastCalledWith(entries[1], expect.anything());
 
     fireEvent.keyDown(listbox, { key: 'Enter' });
-    expect(onSelect).toHaveBeenLastCalledWith(entries[1]);
+    expect(onRowClick).toHaveBeenLastCalledWith(entries[1], expect.anything());
+  });
+
+  it('invokes onEscape when Escape is pressed on the listbox', () => {
+    const entries = [makeEntry('a')];
+    const { onEscape } = renderList({ entries });
+
+    fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' });
+    expect(onEscape).toHaveBeenCalledTimes(1);
   });
 
   it('scrolls the virtual list on keyboard navigation when virtualized', () => {
     const entries = Array.from({ length: VIRTUALIZATION_THRESHOLD }, (_, i) =>
       makeEntry(String(i))
     );
-    const onSelect = vi.fn();
-    render(
-      <AuditLogList
-        entries={entries}
-        selectedId="0"
-        onSelect={onSelect}
-        height={400}
-      />
-    );
+    renderList({ entries, selectedIds: new Set(['0']) });
 
     const listbox = screen.getByRole('listbox');
     fireEvent.keyDown(listbox, { key: 'ArrowDown' });
@@ -238,14 +282,10 @@ describe('AuditLogList', () => {
   });
 
   it('renders the empty state when there are no entries', () => {
-    render(
-      <AuditLogList
-        entries={[]}
-        onSelect={() => {}}
-        height={400}
-        emptyState={<div data-testid="custom-empty">Nothing here</div>}
-      />
-    );
+    renderList({
+      entries: [],
+      emptyState: <div data-testid="custom-empty">Nothing here</div>,
+    });
 
     expect(screen.getByTestId('custom-empty')).toBeInTheDocument();
   });
