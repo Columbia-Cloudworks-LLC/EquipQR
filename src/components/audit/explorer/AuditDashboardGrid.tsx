@@ -159,24 +159,23 @@ function moveWidgetInLayout(
   widgetId: string,
   direction: 'up' | 'down',
 ): Layout {
-  const order = [...layout]
-    .sort((a, b) => a.y - b.y || a.x - b.x)
-    .map((item) => item.i);
-  const index = order.indexOf(widgetId);
+  const sorted = [...layout].sort((a, b) => a.y - b.y || a.x - b.x);
+  const index = sorted.findIndex((item) => item.i === widgetId);
   if (index < 0) return layout;
   const swapIndex = direction === 'up' ? index - 1 : index + 1;
-  if (swapIndex < 0 || swapIndex >= order.length) return layout;
+  if (swapIndex < 0 || swapIndex >= sorted.length) return layout;
 
-  [order[index], order[swapIndex]] = [order[swapIndex], order[index]];
+  const current = sorted[index];
+  const other = sorted[swapIndex];
 
-  const itemById = new Map(layout.map((item) => [item.i, item]));
-  let y = 0;
-  return order.map((id) => {
-    const item = itemById.get(id);
-    if (!item) return { i: id, x: 0, y, w: GRID_COLS, h: 3 };
-    const next = { ...item, y };
-    y += item.h;
-    return next;
+  return layout.map((item) => {
+    if (item.i === current.i) {
+      return { ...item, y: other.y, x: other.x };
+    }
+    if (item.i === other.i) {
+      return { ...item, y: current.y, x: current.x };
+    }
+    return item;
   });
 }
 
