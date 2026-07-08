@@ -45,7 +45,7 @@ function stackReferencesMapsBundle(stack: string): boolean {
     const idx = stack.indexOf(marker, searchFrom);
     if (idx === -1) return false;
     const prefix = idx === 0 ? '' : stack[idx - 1];
-    if (prefix === '' || /[\s('"(@]/.test(prefix)) {
+    if (prefix === '' || /[\s('"@]/.test(prefix)) {
       return true;
     }
     searchFrom = idx + 1;
