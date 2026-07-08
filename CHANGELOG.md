@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.20.0] - 2026-07-07
+
+### Changed
+
+- **Audit Log page refactor (#1166)** — The audit log is now a customizable dashboard: the Key Metrics, Timeline, and Events sections are drag/drop widgets on a grid (drag by the header grip, resize from the edges, collapse sections you don't need), with the layout persisted per browser and a one-click "Reset layout" control. The events table shows in full width until entries are selected. Selecting a single entry opens the detail inspector with new "Copy Markdown" / "Copy JSON" clipboard actions; selecting multiple entries (row checkboxes, Ctrl/Cmd-click, or Shift-click ranges) swaps the detail pane for a bulk-actions pane that exports the selected entries as Markdown, Excel, or PDF. The list/detail resize handle got a clearer grab affordance with hover highlighting and a tighter hit area.
+
 ## [3.19.0] - 2026-07-07
 
 ### Fixed

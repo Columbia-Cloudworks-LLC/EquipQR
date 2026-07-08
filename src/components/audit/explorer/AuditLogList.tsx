@@ -3,12 +3,16 @@
  * explorer (issue #641). Virtualizes via react-window above 100 entries
  * and falls back to a non-virtualized list for keyboard / screen-reader
  * friendliness on small datasets.
+ *
+ * Supports multi-select (#1166): row checkboxes, Ctrl/Cmd-click toggling,
+ * and Shift-click range selection. Selection semantics live in
+ * `auditSelection.ts`; this component only reports interactions upward.
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { List, useListRef, type RowComponentProps } from 'react-window';
 import { Badge } from '@/components/ui/badge';
-import { handleKeyboardActivation } from '@/components/a11y/keyboard';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { ChangesSummary } from '@/components/audit/ChangesDiff';
@@ -17,6 +21,7 @@ import {
   AuditAction,
   FormattedAuditEntry,
 } from '@/types/audit';
+import type { RowClickModifiers } from './auditSelection';
 
 const ROW_HEIGHT = 36;
 
@@ -28,8 +33,10 @@ export const VIRTUALIZATION_THRESHOLD = 100;
 
 export interface AuditLogListProps {
   entries: FormattedAuditEntry[];
-  selectedId?: string | null;
-  onSelect: (entry: FormattedAuditEntry) => void;
+  selectedIds: ReadonlySet<string>;
+  onRowClick: (entry: FormattedAuditEntry, modifiers: RowClickModifiers) => void;
+  onCheckboxToggle: (entry: FormattedAuditEntry) => void;
+  onEscape?: () => void;
   height: number;
   isLoading?: boolean;
   emptyState?: React.ReactNode;
@@ -48,10 +55,15 @@ function getActionBadgeVariant(action: AuditAction) {
   }
 }
 
+function modifiersFromEvent(e: React.MouseEvent | React.KeyboardEvent): RowClickModifiers {
+  return { ctrlOrMeta: e.ctrlKey || e.metaKey, shift: e.shiftKey };
+}
+
 interface RowProps {
   entry: FormattedAuditEntry;
   selected: boolean;
-  onClick: () => void;
+  onRowClick: (entry: FormattedAuditEntry, modifiers: RowClickModifiers) => void;
+  onCheckboxToggle: (entry: FormattedAuditEntry) => void;
   createdAtLabel: string;
   /** When false, omit listbox option role (parent virtual row owns `role="option"`). */
   rootRole?: 'option' | false;
@@ -59,18 +71,20 @@ interface RowProps {
 
 type AuditVirtualRowProps = {
   entries: FormattedAuditEntry[];
-  selectedId?: string | null;
+  selectedIds: ReadonlySet<string>;
   formatDateTime: (iso: string) => string;
-  onSelect: (entry: FormattedAuditEntry) => void;
+  onRowClick: (entry: FormattedAuditEntry, modifiers: RowClickModifiers) => void;
+  onCheckboxToggle: (entry: FormattedAuditEntry) => void;
 };
 
 function AuditVirtualRow({
   index,
   style,
   entries,
-  selectedId,
+  selectedIds,
   formatDateTime,
-  onSelect,
+  onRowClick,
+  onCheckboxToggle,
 }: RowComponentProps<AuditVirtualRowProps>) {
   const entry = entries[index];
   if (!entry) return null;
@@ -78,12 +92,13 @@ function AuditVirtualRow({
     <div
       style={style}
       role="option"
-      aria-selected={entry.id === selectedId}
+      aria-selected={selectedIds.has(entry.id)}
     >
       <AuditListRow
         entry={entry}
-        selected={entry.id === selectedId}
-        onClick={() => onSelect(entry)}
+        selected={selectedIds.has(entry.id)}
+        onRowClick={onRowClick}
+        onCheckboxToggle={onCheckboxToggle}
         createdAtLabel={formatDateTime(entry.created_at)}
         rootRole={false}
       />
@@ -94,24 +109,46 @@ function AuditVirtualRow({
 function AuditListRow({
   entry,
   selected,
-  onClick,
+  onRowClick,
+  onCheckboxToggle,
   createdAtLabel,
   rootRole = 'option',
 }: RowProps) {
+  const handleClick = (e: React.MouseEvent) => {
+    onRowClick(entry, modifiersFromEvent(e));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      e.stopPropagation();
+      onRowClick(entry, modifiersFromEvent(e));
+    }
+  };
+
   return (
     <div
       role={rootRole === false ? undefined : rootRole}
       aria-selected={rootRole === false ? undefined : selected}
       data-testid="audit-log-list-row"
-      onClick={onClick}
-      onKeyDown={(e) => handleKeyboardActivation(e, onClick)}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
       tabIndex={rootRole === 'option' ? 0 : undefined}
       className={cn(
-        'group flex items-center gap-3 h-9 px-3 cursor-pointer text-xs',
+        'group flex items-center gap-3 h-9 px-3 cursor-pointer text-xs select-none',
         'border-b border-border/40 last:border-b-0 transition-colors',
         selected ? 'bg-accent/60' : 'hover:bg-muted/40'
       )}
     >
+      <Checkbox
+        checked={selected}
+        onCheckedChange={() => onCheckboxToggle(entry)}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        aria-label={`Select audit entry for ${entry.entity_name ?? 'unknown entity'}`}
+        className="h-3.5 w-3.5 shrink-0"
+        data-testid="audit-log-row-checkbox"
+      />
       <span
         data-testid="audit-log-severity-stripe"
         className="block w-1 h-5 rounded-sm shrink-0"
@@ -152,18 +189,25 @@ function AuditListRow({
 
 export function AuditLogList({
   entries,
-  selectedId,
-  onSelect,
+  selectedIds,
+  onRowClick,
+  onCheckboxToggle,
+  onEscape,
   height,
   isLoading = false,
   emptyState,
 }: AuditLogListProps) {
   const { formatDateTime } = useFormatTimestamp();
 
+  const firstSelectedId = useMemo(() => {
+    const first = entries.find((e) => selectedIds.has(e.id));
+    return first?.id ?? null;
+  }, [entries, selectedIds]);
+
   const [activeIndex, setActiveIndex] = useState(() =>
     Math.max(
       0,
-      entries.findIndex((e) => e.id === selectedId)
+      entries.findIndex((e) => e.id === firstSelectedId)
     )
   );
 
@@ -183,20 +227,21 @@ export function AuditLogList({
   const auditRowProps: AuditVirtualRowProps = useMemo(
     () => ({
       entries,
-      selectedId,
+      selectedIds,
       formatDateTime,
-      onSelect,
+      onRowClick,
+      onCheckboxToggle,
     }),
-    [entries, selectedId, formatDateTime, onSelect]
+    [entries, selectedIds, formatDateTime, onRowClick, onCheckboxToggle]
   );
 
   useEffect(() => {
-    const idx = entries.findIndex((e) => e.id === selectedId);
+    const idx = entries.findIndex((e) => e.id === firstSelectedId);
     if (idx >= 0) {
       setActiveIndex(idx);
       scrollVirtualToIndex(idx);
     }
-  }, [selectedId, entries, scrollVirtualToIndex]);
+  }, [firstSelectedId, entries, scrollVirtualToIndex]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -209,22 +254,28 @@ export function AuditLogList({
   }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      onEscape?.();
+      return;
+    }
     if (entries.length === 0) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       const next = Math.min(entries.length - 1, activeIndex + 1);
       setActiveIndex(next);
-      onSelect(entries[next]);
+      onRowClick(entries[next], { ctrlOrMeta: false, shift: e.shiftKey });
       scrollVirtualToIndex(next);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       const prev = Math.max(0, activeIndex - 1);
       setActiveIndex(prev);
-      onSelect(entries[prev]);
+      onRowClick(entries[prev], { ctrlOrMeta: false, shift: e.shiftKey });
       scrollVirtualToIndex(prev);
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (entries[activeIndex]) onSelect(entries[activeIndex]);
+      if (entries[activeIndex]) {
+        onRowClick(entries[activeIndex], modifiersFromEvent(e));
+      }
     }
   };
 
@@ -258,6 +309,7 @@ export function AuditLogList({
         ref={containerRef}
         role="listbox"
         aria-label="Audit log entries"
+        aria-multiselectable="true"
         tabIndex={0}
         onKeyDown={handleKeyDown}
         data-testid="audit-log-list-static"
@@ -268,8 +320,9 @@ export function AuditLogList({
           <AuditListRow
             key={entry.id}
             entry={entry}
-            selected={entry.id === selectedId}
-            onClick={() => onSelect(entry)}
+            selected={selectedIds.has(entry.id)}
+            onRowClick={onRowClick}
+            onCheckboxToggle={onCheckboxToggle}
             createdAtLabel={formatDateTime(entry.created_at)}
           />
         ))}
@@ -282,6 +335,7 @@ export function AuditLogList({
       ref={containerRef}
       role="listbox"
       aria-label="Audit log entries"
+      aria-multiselectable="true"
       tabIndex={0}
       onKeyDown={handleKeyDown}
       data-testid="audit-log-list-virtual"
@@ -298,4 +352,3 @@ export function AuditLogList({
     </div>
   );
 }
-

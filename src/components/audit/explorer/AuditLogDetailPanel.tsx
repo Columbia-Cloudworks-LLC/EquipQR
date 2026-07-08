@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { Copy, Check, Inbox } from 'lucide-react';
+import { Copy, Check, Inbox, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -17,9 +17,12 @@ import { ChangesDiff } from '@/components/audit/ChangesDiff';
 import { FormattedAuditEntry, AuditAction } from '@/types/audit';
 import { cn } from '@/lib/utils';
 import { formatIsoZulu } from '@/utils/dateFormatter';
+import { formatAuditEntryMarkdown } from './auditEntryMarkdown';
 
 export interface AuditLogDetailPanelProps {
   entry: FormattedAuditEntry | null;
+  /** When provided, renders a close affordance that clears the selection. */
+  onClearSelection?: () => void;
 }
 
 function getActionBadgeVariant(action: AuditAction) {
@@ -33,6 +36,61 @@ function getActionBadgeVariant(action: AuditAction) {
     default:
       return 'outline' as const;
   }
+}
+
+/** Small labeled copy button with a transient "copied" state. */
+function CopyContentButton({
+  label,
+  getContent,
+  testId,
+}: {
+  label: string;
+  getContent: () => string;
+  testId?: string;
+}) {
+  const [copied, setCopied] = React.useState(false);
+  const copiedTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  React.useEffect(
+    () => () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    },
+    []
+  );
+
+  const handleCopy = () => {
+    if (!navigator.clipboard?.writeText) return;
+    navigator.clipboard
+      .writeText(getContent())
+      .then(() => {
+        setCopied(true);
+        if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+        copiedTimerRef.current = setTimeout(() => {
+          setCopied(false);
+          copiedTimerRef.current = null;
+        }, 1500);
+      })
+      .catch(() => {
+        // Silent fail when clipboard write is denied.
+      });
+  };
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="h-6 px-2 text-[11px]"
+      onClick={handleCopy}
+      data-testid={testId}
+    >
+      {copied ? (
+        <Check className="h-3 w-3 mr-1 text-success" />
+      ) : (
+        <Copy className="h-3 w-3 mr-1" />
+      )}
+      {copied ? 'Copied' : label}
+    </Button>
+  );
 }
 
 function CopyableValue({ value }: { value: string }) {
@@ -90,7 +148,7 @@ function PropertyRow({ label, children, className }: PropertyRowProps) {
   );
 }
 
-export function AuditLogDetailPanel({ entry }: AuditLogDetailPanelProps) {
+export function AuditLogDetailPanel({ entry, onClearSelection }: AuditLogDetailPanelProps) {
   if (!entry) {
     return (
       <div
@@ -112,9 +170,22 @@ export function AuditLogDetailPanel({ entry }: AuditLogDetailPanelProps) {
   return (
     <div className="h-full flex flex-col" data-testid="audit-detail-panel">
       <div className="px-5 pt-4 pb-3 border-b shrink-0">
-        <h2 className="text-sm font-semibold leading-tight truncate">
-          {entry.entity_name ?? 'Audit Entry'}
-        </h2>
+        <div className="flex items-start gap-2">
+          <h2 className="text-sm font-semibold leading-tight truncate flex-1 min-w-0">
+            {entry.entity_name ?? 'Audit Entry'}
+          </h2>
+          {onClearSelection && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 shrink-0 -mt-0.5 text-muted-foreground hover:text-foreground"
+              onClick={onClearSelection}
+              aria-label="Clear selection"
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
         <div className="flex items-center gap-2 mt-1.5">
           <Badge variant="outline" className="text-xs">
             {entry.entityTypeLabel}
@@ -125,6 +196,18 @@ export function AuditLogDetailPanel({ entry }: AuditLogDetailPanelProps) {
           <span className="text-xs text-muted-foreground ml-auto tabular-nums">
             {entry.relativeTime}
           </span>
+        </div>
+        <div className="flex items-center gap-1.5 mt-2">
+          <CopyContentButton
+            label="Copy Markdown"
+            getContent={() => formatAuditEntryMarkdown(entry)}
+            testId="audit-detail-copy-markdown"
+          />
+          <CopyContentButton
+            label="Copy JSON"
+            getContent={() => JSON.stringify(entry, null, 2)}
+            testId="audit-detail-copy-json"
+          />
         </div>
       </div>
 
