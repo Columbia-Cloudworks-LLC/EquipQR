@@ -170,10 +170,10 @@ function moveWidgetInLayout(
 
   return layout.map((item) => {
     if (item.i === current.i) {
-      return { ...item, y: other.y, x: other.x };
+      return { ...item, y: other.y };
     }
     if (item.i === other.i) {
-      return { ...item, y: current.y, x: current.x };
+      return { ...item, y: current.y };
     }
     return item;
   });
