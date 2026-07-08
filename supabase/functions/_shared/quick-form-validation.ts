@@ -56,6 +56,22 @@ export function parseQuickFormData(raw: unknown): QuickFormData {
   };
 }
 
+/** Strict gate for persisted snapshots — rejects non-objects and missing fields arrays. */
+export function assertQuickFormSnapshot(raw: unknown): QuickFormData {
+  if (typeof raw !== "object" || raw === null) {
+    throw new Error("Invalid quick form snapshot");
+  }
+  const obj = raw as Record<string, unknown>;
+  if (!Array.isArray(obj.fields)) {
+    throw new Error("Invalid quick form snapshot");
+  }
+  const parsed = parseQuickFormData(raw);
+  if (obj.fields.length > 0 && parsed.fields.length === 0) {
+    throw new Error("Invalid quick form snapshot");
+  }
+  return parsed;
+}
+
 function isValuePresent(value: unknown, inputType: QuickFormInputType): boolean {
   if (inputType === "checkbox") return typeof value === "boolean";
   if (inputType === "number") return typeof value === "number" && Number.isFinite(value);

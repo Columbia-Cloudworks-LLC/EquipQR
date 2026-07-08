@@ -8,7 +8,7 @@
 
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import { hashToken } from "./operator-checklist-validation.ts";
-import { parseQuickFormData } from "./quick-form-validation.ts";
+import { assertQuickFormSnapshot } from "./quick-form-validation.ts";
 
 export const MIN_PUBLIC_QUICK_FORM_TOKEN_LENGTH = 32;
 export const MAX_PUBLIC_QUICK_FORM_TOKEN_LENGTH = 128;
@@ -61,7 +61,11 @@ export async function requireQuickFormToken(
   }
 
   // Reject malformed snapshots early so downstream validation stays consistent.
-  parseQuickFormData(form.form_data);
+  try {
+    assertQuickFormSnapshot(form.form_data);
+  } catch {
+    return { ok: false, error: "Form is not available", status: 404 };
+  }
 
   return { ok: true, form, tokenHash };
 }

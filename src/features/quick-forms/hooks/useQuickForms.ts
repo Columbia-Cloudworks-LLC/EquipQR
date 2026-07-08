@@ -9,6 +9,13 @@ import {
 import type { QuickFormData } from '@/features/quick-forms/types/quickForm';
 import { quickFormKeys } from './quickFormKeys';
 
+function requireOrganizationId(organizationId: string | undefined): string {
+  if (!organizationId) {
+    throw new Error('organizationId is required');
+  }
+  return organizationId;
+}
+
 export function useQuickForms(organizationId: string | undefined) {
   return useQuery({
     queryKey: quickFormKeys.list(organizationId),
@@ -60,7 +67,8 @@ export function useDeleteQuickForm(organizationId: string | undefined) {
 export function useRotateQuickFormToken(organizationId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (formId: string) => rotateQuickFormToken(formId, organizationId!),
+    mutationFn: (formId: string) =>
+      rotateQuickFormToken(formId, requireOrganizationId(organizationId)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: quickFormKeys.list(organizationId) });
     },
