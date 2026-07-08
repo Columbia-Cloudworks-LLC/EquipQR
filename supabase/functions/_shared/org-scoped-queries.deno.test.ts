@@ -175,7 +175,7 @@ Deno.test("withOrgScope runs callback when member", async () => {
     async ({ organizationId }) => organizationId.toUpperCase(),
   );
   assert("ok" in result && result.ok);
-  if ("ok" in result && result.ok) {
+  if (result.ok) {
     assertEquals(result.data, ORG_ID.toUpperCase());
     assertEquals(result.role, "admin");
   }
@@ -193,7 +193,7 @@ Deno.test("withOrgScope blocks non-member before callback", async () => {
       return "should-not-run";
     },
   );
-  assert(!("ok" in result));
+  assertEquals(result.ok, false);
   assertEquals(callbackRan, false);
 });
 
@@ -205,8 +205,8 @@ Deno.test("withOrgAdminScope runs callback for admin", async () => {
     ORG_ID,
     async () => "done",
   );
-  assert("ok" in result && result.ok);
-  if ("ok" in result && result.ok) {
+  assert(result.ok);
+  if (result.ok) {
     assertEquals(result.data, "done");
   }
 });

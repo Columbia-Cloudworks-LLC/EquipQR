@@ -16,9 +16,9 @@ const MEMBERSHIP_QUERY_FAILED = "An unexpected error occurred" as const;
 // =============================================================================
 
 /** Canonical organization UUID used across org-scoped edge functions. */
-export const organizationIdSchema = z.string().uuid({
-  message: "Invalid organizationId",
-});
+export const organizationIdSchema = z
+  .string({ error: "organizationId is required" })
+  .uuid({ error: "Invalid organizationId" });
 
 /** Optional org context (e.g. current org hint on inventory scan). */
 export const optionalOrganizationIdSchema = organizationIdSchema.optional();
@@ -247,7 +247,7 @@ export async function requireOrgAdminAccess(
 
 export type OrgScopeResult<T> =
   | { ok: true; data: T; role?: string }
-  | OrgAccessError;
+  | { ok: false; error: string; status: number };
 
 /**
  * Run a callback after verifying org membership.
@@ -274,7 +274,7 @@ export async function withOrgScope<T>(
 ): Promise<OrgScopeResult<T>> {
   const access = await requireOrgMembership(supabase, userId, organizationId);
   if (isOrgAccessError(access)) {
-    return access;
+    return { ok: false, error: access.error, status: access.status };
   }
 
   const data = await fn(access);
@@ -283,7 +283,7 @@ export async function withOrgScope<T>(
 
 export type OrgAdminScopeResult<T> =
   | { ok: true; data: T }
-  | OrgAccessError;
+  | { ok: false; error: string; status: number };
 
 /**
  * Run a callback after verifying org admin/owner role.
@@ -307,7 +307,7 @@ export async function withOrgAdminScope<T>(
     forbiddenMessage,
   );
   if (isOrgAccessError(access)) {
-    return access;
+    return { ok: false, error: access.error, status: access.status };
   }
 
   const data = await fn();

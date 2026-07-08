@@ -2,6 +2,7 @@ import {
   createAdminSupabaseClient,
   requireAuthenticatedPost,
   createErrorResponse,
+  createJsonResponse,
   handleCorsPreflightIfNeeded,
 } from "../_shared/supabase-clients.ts";
 import {
@@ -10,7 +11,6 @@ import {
   setGoogleExportDestinationRequestSchema,
   withOrgAdminScope,
 } from "../_shared/org-scoped-queries.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
 import { getGoogleWorkspaceAccessToken, GoogleWorkspaceTokenError } from "../_shared/google-workspace-token.ts";
 import { validateGoogleDriveDestination } from "../_shared/google-drive-picker-validation.ts";
 
@@ -60,9 +60,10 @@ Deno.serve(async (req) => {
       tokenResult = await getGoogleWorkspaceAccessToken(adminClient, organizationId);
     } catch (tokenError) {
       if (tokenError instanceof GoogleWorkspaceTokenError) {
-        return new Response(
-          JSON.stringify({ error: tokenError.message, code: tokenError.code }),
-          { status: tokenError.code === "not_connected" ? 400 : 403, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
+        return createJsonResponse(
+          { error: tokenError.message, code: tokenError.code },
+          tokenError.code === "not_connected" ? 400 : 403,
+          corsOpts,
         );
       }
       throw tokenError;
@@ -76,16 +77,18 @@ Deno.serve(async (req) => {
       });
     } catch (validationError) {
       if (validationError instanceof GoogleWorkspaceTokenError) {
-        return new Response(
-          JSON.stringify({ error: validationError.message, code: validationError.code }),
-          { status: 403, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
+        return createJsonResponse(
+          { error: validationError.message, code: validationError.code },
+          403,
+          corsOpts,
         );
       }
 
       const message = validationError instanceof Error ? validationError.message : "Unable to validate selected destination";
-      return new Response(
-        JSON.stringify({ error: message, code: "invalid_destination" }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
+      return createJsonResponse(
+        { error: message, code: "invalid_destination" },
+        400,
+        corsOpts,
       );
     }
 
@@ -110,8 +113,8 @@ Deno.serve(async (req) => {
       supabase,
       user.id,
       organizationId,
-      () =>
-        supabase
+      async () =>
+        await supabase
           .from("organization_google_export_destinations")
           .upsert(upsertPayload, {
             onConflict: "organization_id,document_type",
@@ -132,10 +135,7 @@ Deno.serve(async (req) => {
       return createErrorResponse("An unexpected error occurred", 500, corsOpts);
     }
 
-    return new Response(
-      JSON.stringify({ destination: data }),
-      { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
-    );
+    return createJsonResponse({ destination: data }, 200, corsOpts);
   } catch (error) {
     console.error("[SET-GOOGLE-EXPORT-DESTINATION] Unexpected error:", error);
     return createErrorResponse("An unexpected error occurred", 500, corsOpts);
