@@ -19,7 +19,12 @@ export interface AssetQRCodeDisplayProps {
   formatSelectId?: string;
   imageLoading?: 'lazy';
   headerExtra?: React.ReactNode;
+  footerExtra?: React.ReactNode;
   suppressQrPanel?: boolean;
+  onInteractOutside?: (event: Event) => void;
+  preventClose?: boolean;
+  qrImageTestId?: string;
+  urlTestId?: string;
 }
 
 const AssetQRCodeDisplay: React.FC<AssetQRCodeDisplayProps> = ({
@@ -36,13 +41,27 @@ const AssetQRCodeDisplay: React.FC<AssetQRCodeDisplayProps> = ({
   formatSelectId = 'qr-code-download-format',
   imageLoading,
   headerExtra,
+  footerExtra,
   suppressQrPanel = false,
+  onInteractOutside,
+  preventClose = false,
+  qrImageTestId,
+  urlTestId,
 }) => {
   const isMobile = useIsMobile();
 
   return (
-    <Dialog open={open} onOpenChange={(dialogOpen) => !dialogOpen && onClose()}>
-      <DialogContent className={`max-w-md ${isMobile ? 'max-h-[calc(100dvh-2rem)] overflow-y-auto p-4' : ''}`}>
+    <Dialog
+      open={open}
+      onOpenChange={(dialogOpen) => {
+        if (!dialogOpen && preventClose) return;
+        if (!dialogOpen) onClose();
+      }}
+    >
+      <DialogContent
+        className={`max-w-md ${isMobile ? 'max-h-[calc(100dvh-2rem)] overflow-y-auto p-4' : ''}`}
+        onInteractOutside={onInteractOutside}
+      >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="sr-only">
@@ -64,8 +83,12 @@ const AssetQRCodeDisplay: React.FC<AssetQRCodeDisplayProps> = ({
             imageLoading={imageLoading}
             showCloseButton
             onClose={onClose}
+            qrImageTestId={qrImageTestId}
+            urlTestId={urlTestId}
           />
         )}
+
+        {footerExtra}
       </DialogContent>
     </Dialog>
   );

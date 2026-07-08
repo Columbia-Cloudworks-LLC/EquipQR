@@ -55,6 +55,8 @@ The following functions are explicitly authorized to use `createAdminSupabaseCli
 |----------|--------|--------|
 | `check-subscription` | Uses user-scoped for auth, admin for subscriber table upsert (self-referential update only) | `verify_jwt = true` |
 | `create-ticket` | Uses `requireUser()` for auth with a user-scoped client, and an admin client for ticket insert (to atomically set `github_issue_number`) | `verify_jwt = false` |
+| `operator-check-in` | Public QR token load via user-scoped anon RPC; `submit_operator_checkin_public` via service role after CAPTCHA + validation | `verify_jwt = false` |
+| `quick-form` | Public QR token load via user-scoped anon/authenticated RPC; `submit_quick_form_public` via service role after CAPTCHA + validation | `verify_jwt = false` |
 
 ## Functions Using User-Scoped Client (RLS Enforced)
 
@@ -94,6 +96,7 @@ These endpoints have `verify_jwt = false` and do NOT require authentication:
 |----------|--------|----------------|
 | `submit-privacy-request` | CCPA/CPRA DSR intake for anonymous submitters | `verify_jwt = false`. hCaptcha + per-email rate limits. Optional Bearer JWT links request to account. Admin client used only after input validation. |
 | `operator-check-in` | QR token-scoped daily operator check-in load/submit (#1091) | `verify_jwt = false`. `requireOperatorCheckinAssignmentToken()` validates the assignment token via anon RPC before any business logic; service-role RPC used only on submit after CAPTCHA. |
+| `quick-form` | QR token-scoped quick form load/submit (#1184) | `verify_jwt = false`. `requireQuickFormToken()` validates the form token via anon/authenticated RPC before any business logic; service-role RPC used only on submit after CAPTCHA. |
 | `verify-hcaptcha` | Validates captcha tokens during signup | Only calls hCaptcha API; secret loaded via `requireSecret("HCAPTCHA_SECRET_KEY")` |
 | `parts-search` | Deprecated; returns 410 Gone | No DB access |
 

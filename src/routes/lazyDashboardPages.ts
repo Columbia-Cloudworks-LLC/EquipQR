@@ -44,3 +44,7 @@ export const OperatorCheckInsPage = lazyWithRetry(
   () => import('@/features/operator-check-ins/pages/OperatorCheckInsPage'),
   'OperatorCheckInsPage',
 );
+export const QuickFormsPage = lazyWithRetry(
+  () => import('@/features/quick-forms/pages/QuickFormsPage'),
+  'QuickFormsPage',
+);

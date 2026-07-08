@@ -7,11 +7,23 @@
 import { format } from 'date-fns';
 
 /**
+ * Neutralize spreadsheet formula injection when a cell begins with =, +, -, or @.
+ * Prefixing with an apostrophe forces spreadsheet clients to treat the value as text.
+ */
+export function sanitizeSpreadsheetCell(value: string): string {
+  if (/^[=+\-@]/.test(value.trimStart())) {
+    return `'${value}`;
+  }
+  return value;
+}
+
+/**
  * Generate a CSV string from an array of header names and 2-D row data.
  * Cell values are quoted and internal quotes are escaped.
  */
 export function arrayToCsv(headers: string[], rows: string[][]): string {
-  const escapeCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
+  const escapeCell = (value: string) =>
+    `"${sanitizeSpreadsheetCell(value).replace(/"/g, '""')}"`;
   const headerRow = headers.map(escapeCell).join(',');
   const dataRows = rows.map((row) => row.map(escapeCell).join(','));
   return [headerRow, ...dataRows].join('\n');
@@ -53,4 +65,41 @@ export function downloadBlob(blob: Blob, filename: string): void {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+export interface LetterPdfWriter {
+  writeLine: (text: string, options?: { bold?: boolean; size?: number }) => void;
+  addGap: (points: number) => void;
+  doc: import('jspdf').jsPDF;
+}
+
+/** Letter-size jsPDF writer with wrapped lines and automatic page breaks. */
+export async function createLetterPdfWriter(): Promise<LetterPdfWriter> {
+  const { jsPDF } = await import('jspdf');
+  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+  const margin = 48;
+  const maxWidth = 520;
+  let y = margin;
+
+  const writeLine = (text: string, options?: { bold?: boolean; size?: number }) => {
+    doc.setFont('helvetica', options?.bold ? 'bold' : 'normal');
+    doc.setFontSize(options?.size ?? 10);
+    const wrapped = doc.splitTextToSize(text, maxWidth) as string[];
+    for (const line of wrapped) {
+      if (y > 720) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.text(line, margin, y);
+      y += (options?.size ?? 10) + 4;
+    }
+  };
+
+  return {
+    writeLine,
+    addGap: (points: number) => {
+      y += points;
+    },
+    doc,
+  };
 }

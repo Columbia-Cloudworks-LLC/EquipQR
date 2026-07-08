@@ -2,6 +2,8 @@
  * Operator daily check-in template and submission field model (#1091).
  */
 
+import { validateRequiredInputFields } from '@/features/public-forms/publicFormValidation';
+
 export type OperatorFieldSource = 'operator_input' | 'client_context' | 'equipment_snapshot';
 
 export type OperatorInputFieldType = 'text' | 'textarea' | 'number' | 'date' | 'checkbox';
@@ -169,29 +171,14 @@ export function validateOperatorChecklistAnswers(
   };
 }
 
-function isOperatorValuePresent(value: unknown, inputType: OperatorInputFieldType): boolean {
-  if (inputType === 'checkbox') return typeof value === 'boolean';
-  if (inputType === 'number') return typeof value === 'number' && Number.isFinite(value);
-  if (typeof value === 'string') return value.trim().length > 0;
-  return value !== null && value !== undefined;
-}
-
 export function validateOperatorInputFields(
   fields: OperatorChecklistDataField[],
   values: Record<string, unknown>,
 ): OperatorFieldValidationResult {
-  const errors: string[] = [];
-  const operatorFields = fields.filter((f) => f.source === 'operator_input');
-
-  for (const field of operatorFields) {
-    const inputType = field.inputType ?? 'text';
-    const value = values[field.id];
-    if (field.required && !isOperatorValuePresent(value, inputType)) {
-      errors.push(`"${field.label}" is required.`);
-    }
-  }
-
-  return { isComplete: errors.length === 0, errors };
+  const requiredFields = fields
+    .filter((f) => f.source === 'operator_input' && f.required === true)
+    .map((f) => ({ id: f.id, label: f.label, inputType: f.inputType ?? 'text' }));
+  return validateRequiredInputFields(requiredFields, values);
 }
 
 export function formatCapturedFieldValue(value: unknown): string {

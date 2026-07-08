@@ -219,6 +219,7 @@ Pushes to `main` run **Production Release Readiness** (`.github/workflows/produc
 2. Re-runs the schema drift script in **strict** mode so `schema_migrations` matches `supabase/migrations/` by name.
 3. Polls the Vercel API until the **READY** deployment for the same `github.sha` on `main` exists for the SPA project (`prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA`).
 4. Runs `vercel promote` for that deployment so **equipqr.app** serves the new build without a manual dashboard step.
+5. Deploys **all** Supabase Edge Functions to production (`supabase functions deploy`), including `verify_jwt` settings from `supabase/config.toml` — runs **after** promote so an earlier workflow failure cannot leave edge functions ahead of the live frontend.
 
 When this workflow is green, production traffic should already match the merged commit.
 

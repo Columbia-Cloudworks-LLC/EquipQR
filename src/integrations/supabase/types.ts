@@ -3181,6 +3181,194 @@ export type Database = {
         }
         Relationships: []
       }
+      quick_form_submissions: {
+        Row: {
+          client_context: Json
+          created_at: string
+          field_values: Json
+          form_snapshot: Json
+          id: string
+          organization_id: string
+          quick_form_id: string
+          request_fingerprint: string | null
+          submitted_at: string
+        }
+        Insert: {
+          client_context?: Json
+          created_at?: string
+          field_values?: Json
+          form_snapshot?: Json
+          id?: string
+          organization_id: string
+          quick_form_id: string
+          request_fingerprint?: string | null
+          submitted_at?: string
+        }
+        Update: {
+          client_context?: Json
+          created_at?: string
+          field_values?: Json
+          form_snapshot?: Json
+          id?: string
+          organization_id?: string
+          quick_form_id?: string
+          request_fingerprint?: string | null
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quick_form_submissions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quick_form_submissions_quick_form_id_fkey"
+            columns: ["quick_form_id"]
+            isOneToOne: false
+            referencedRelation: "quick_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quick_form_token_secrets: {
+        Row: {
+          created_at: string
+          organization_id: string
+          quick_form_id: string
+          raw_token: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          organization_id: string
+          quick_form_id: string
+          raw_token: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          organization_id?: string
+          quick_form_id?: string
+          raw_token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quick_form_token_secrets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quick_form_token_secrets_quick_form_id_fkey"
+            columns: ["quick_form_id"]
+            isOneToOne: true
+            referencedRelation: "quick_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quick_forms: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          form_data: Json
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          public_token_hash: string
+          token_rotated_at: string
+          token_rotated_by: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          form_data?: Json
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          public_token_hash: string
+          token_rotated_at?: string
+          token_rotated_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          form_data?: Json
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          public_token_hash?: string
+          token_rotated_at?: string
+          token_rotated_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quick_forms_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quick_forms_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "quick_forms_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quick_forms_token_rotated_by_fkey"
+            columns: ["token_rotated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quick_forms_token_rotated_by_fkey"
+            columns: ["token_rotated_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "quick_forms_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quick_forms_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       quickbooks_credentials: {
         Row: {
           access_token: string
@@ -4955,6 +5143,18 @@ export type Database = {
           settings_id: string
         }[]
       }
+      create_quick_form: {
+        Args: {
+          p_description: string
+          p_form_data: Json
+          p_name: string
+          p_organization_id: string
+        }
+        Returns: {
+          quick_form_id: string
+          raw_token: string
+        }[]
+      }
       create_quickbooks_oauth_session: {
         Args: {
           p_organization_id: string
@@ -5807,6 +6007,10 @@ export type Database = {
         Args: { p_token_hash: string }
         Returns: Json
       }
+      resolve_quick_form_by_token: {
+        Args: { p_token_hash: string }
+        Returns: Json
+      }
       respond_to_ownership_transfer: {
         Args: {
           p_accept: boolean
@@ -5834,6 +6038,13 @@ export type Database = {
       }
       rotate_operator_checkin_token: {
         Args: { p_settings_id: string }
+        Returns: {
+          raw_token: string
+          token_hash: string
+        }[]
+      }
+      rotate_quick_form_token: {
+        Args: { p_quick_form_id: string }
         Returns: {
           raw_token: string
           token_hash: string
@@ -5873,6 +6084,16 @@ export type Database = {
           p_request_fingerprint?: string
           p_required_item_count: number
           p_template_snapshot: Json
+          p_token_hash: string
+        }
+        Returns: Json
+      }
+      submit_quick_form_public: {
+        Args: {
+          p_client_context: Json
+          p_field_values: Json
+          p_form_snapshot: Json
+          p_request_fingerprint?: string
           p_token_hash: string
         }
         Returns: Json

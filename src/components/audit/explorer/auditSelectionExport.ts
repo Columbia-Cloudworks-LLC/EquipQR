@@ -5,7 +5,7 @@
  */
 
 import { FormattedAuditEntry } from '@/types/audit';
-import { downloadBlob, filenameWithDate } from '@/utils/exportUtils';
+import { downloadBlob, filenameWithDate, createLetterPdfWriter } from '@/utils/exportUtils';
 import { formatIsoZulu } from '@/utils/dateFormatter';
 import { formatAuditEntriesMarkdown } from './auditEntryMarkdown';
 
@@ -73,32 +73,14 @@ export async function downloadAuditEntriesExcel(entries: FormattedAuditEntry[]):
 }
 
 export async function downloadAuditEntriesPdf(entries: FormattedAuditEntry[]): Promise<void> {
-  const { jsPDF } = await import('jspdf');
-  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
-  const margin = 48;
-  const maxWidth = 520;
-  let y = margin;
-
-  const writeLine = (text: string, options?: { bold?: boolean; size?: number }) => {
-    doc.setFont('helvetica', options?.bold ? 'bold' : 'normal');
-    doc.setFontSize(options?.size ?? 10);
-    const wrapped = doc.splitTextToSize(text, maxWidth) as string[];
-    for (const line of wrapped) {
-      if (y > 720) {
-        doc.addPage();
-        y = margin;
-      }
-      doc.text(line, margin, y);
-      y += (options?.size ?? 10) + 4;
-    }
-  };
+  const { writeLine, addGap, doc } = await createLetterPdfWriter();
 
   writeLine('Audit Log Export', { bold: true, size: 16 });
-  y += 4;
+  addGap(4);
   writeLine(
     `${entries.length} entr${entries.length === 1 ? 'y' : 'ies'} — generated ${formatIsoZulu(new Date().toISOString())}`,
   );
-  y += 10;
+  addGap(10);
 
   for (const entry of entries) {
     writeLine(
@@ -122,7 +104,7 @@ export async function downloadAuditEntriesPdf(entries: FormattedAuditEntry[]): P
     } else {
       writeLine('No field changes recorded.');
     }
-    y += 10;
+    addGap(10);
   }
 
   downloadBlob(doc.output('blob'), filenameWithDate('audit-log-selection', 'pdf'));

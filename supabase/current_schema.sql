@@ -3904,6 +3904,67 @@ $$;
 ALTER FUNCTION "public"."create_operator_checkin_assignment"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_template_id" "uuid", "p_enabled" boolean) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."create_quick_form"("p_organization_id" "uuid", "p_name" "text", "p_description" "text", "p_form_data" "jsonb") RETURNS TABLE("quick_form_id" "uuid", "raw_token" "text")
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'extensions'
+    AS $$
+DECLARE
+  v_new_token text;
+  v_new_hash text;
+  v_form_id uuid;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required';
+  END IF;
+
+  IF NOT public.is_org_admin(auth.uid(), p_organization_id) THEN
+    RAISE EXCEPTION 'Forbidden';
+  END IF;
+
+  IF p_name IS NULL OR length(trim(p_name)) = 0 THEN
+    RAISE EXCEPTION 'Form name is required';
+  END IF;
+
+  v_new_token := encode(gen_random_bytes(32), 'hex');
+  v_new_hash := encode(digest(v_new_token, 'sha256'), 'hex');
+
+  INSERT INTO public.quick_forms (
+    organization_id,
+    name,
+    description,
+    form_data,
+    is_active,
+    public_token_hash,
+    token_rotated_at,
+    token_rotated_by,
+    created_by
+  )
+  VALUES (
+    p_organization_id,
+    trim(p_name),
+    NULLIF(trim(COALESCE(p_description, '')), ''),
+    COALESCE(p_form_data, '{"fields":[]}'::jsonb),
+    true,
+    v_new_hash,
+    now(),
+    auth.uid(),
+    auth.uid()
+  )
+  RETURNING id INTO v_form_id;
+
+  INSERT INTO public.quick_form_token_secrets (quick_form_id, organization_id, raw_token)
+  VALUES (v_form_id, p_organization_id, v_new_token);
+
+  quick_form_id := v_form_id;
+  raw_token := v_new_token;
+  RETURN NEXT;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."create_quick_form"("p_organization_id" "uuid", "p_name" "text", "p_description" "text", "p_form_data" "jsonb") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."create_quickbooks_oauth_session"("p_organization_id" "uuid", "p_redirect_url" "text" DEFAULT NULL::"text", "p_origin_url" "text" DEFAULT NULL::"text") RETURNS TABLE("session_token" "text", "nonce" "text", "expires_at" timestamp with time zone)
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public', 'extensions'
@@ -12022,6 +12083,52 @@ $$;
 ALTER FUNCTION "public"."resolve_operator_checkin_by_token"("p_token_hash" "text") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."resolve_quick_form_by_token"("p_token_hash" "text") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+DECLARE
+  v_row record;
+BEGIN
+  IF p_token_hash IS NULL OR length(trim(p_token_hash)) = 0 THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT
+    f.id,
+    f.organization_id,
+    f.name,
+    f.description,
+    f.form_data,
+    f.is_active,
+    o.name AS organization_name
+  INTO v_row
+  FROM public.quick_forms f
+  JOIN public.organizations o ON o.id = f.organization_id
+  WHERE f.public_token_hash = p_token_hash
+    AND f.is_active = true
+  LIMIT 1;
+
+  IF v_row IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'id', v_row.id,
+    'organization_id', v_row.organization_id,
+    'name', v_row.name,
+    'description', v_row.description,
+    'form_data', v_row.form_data,
+    'is_active', v_row.is_active,
+    'organization_name', v_row.organization_name
+  );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."resolve_quick_form_by_token"("p_token_hash" "text") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."respond_to_ownership_transfer"("p_transfer_id" "uuid", "p_accept" boolean, "p_departing_owner_role" "text" DEFAULT 'admin'::"text", "p_response_reason" "text" DEFAULT NULL::"text") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -12507,6 +12614,58 @@ $$;
 ALTER FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."rotate_quick_form_token"("p_quick_form_id" "uuid") RETURNS TABLE("raw_token" "text", "token_hash" "text")
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'extensions'
+    AS $$
+DECLARE
+  v_org_id uuid;
+  v_new_token text;
+  v_new_hash text;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required';
+  END IF;
+
+  SELECT organization_id INTO v_org_id
+  FROM public.quick_forms
+  WHERE id = p_quick_form_id;
+
+  IF v_org_id IS NULL THEN
+    RAISE EXCEPTION 'Quick form not found';
+  END IF;
+
+  IF NOT public.is_org_admin(auth.uid(), v_org_id) THEN
+    RAISE EXCEPTION 'Forbidden';
+  END IF;
+
+  v_new_token := encode(gen_random_bytes(32), 'hex');
+  v_new_hash := encode(digest(v_new_token, 'sha256'), 'hex');
+
+  UPDATE public.quick_forms
+  SET public_token_hash = v_new_hash,
+      token_rotated_at = now(),
+      token_rotated_by = auth.uid(),
+      updated_at = now()
+  WHERE id = p_quick_form_id;
+
+  INSERT INTO public.quick_form_token_secrets (quick_form_id, organization_id, raw_token)
+  VALUES (p_quick_form_id, v_org_id, v_new_token)
+  ON CONFLICT (quick_form_id) DO UPDATE
+    SET raw_token = EXCLUDED.raw_token,
+        organization_id = EXCLUDED.organization_id,
+        updated_at = now();
+
+  raw_token := v_new_token;
+  token_hash := v_new_hash;
+  RETURN NEXT;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."rotate_quick_form_token"("p_quick_form_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."select_google_workspace_members"("p_organization_id" "uuid", "p_emails" "text"[], "p_admin_emails" "text"[] DEFAULT '{}'::"text"[]) RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public', 'pg_temp'
@@ -12905,6 +13064,65 @@ $$;
 
 
 ALTER FUNCTION "public"."submit_operator_checkin_public"("p_token_hash" "text", "p_operator_field_values" "jsonb", "p_client_field_values" "jsonb", "p_equipment_field_values" "jsonb", "p_checklist_answers" "jsonb", "p_template_snapshot" "jsonb", "p_is_complete" boolean, "p_required_item_count" integer, "p_answered_required_count" integer, "p_request_fingerprint" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."submit_quick_form_public"("p_token_hash" "text", "p_field_values" "jsonb", "p_client_context" "jsonb", "p_form_snapshot" "jsonb", "p_request_fingerprint" "text" DEFAULT NULL::"text") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+DECLARE
+  v_form record;
+  v_submission_id uuid;
+  v_submitted_at timestamptz := now();
+  v_recent_count integer;
+BEGIN
+  SELECT f.id, f.organization_id, f.is_active
+  INTO v_form
+  FROM public.quick_forms f
+  WHERE f.public_token_hash = p_token_hash
+  LIMIT 1;
+
+  IF v_form IS NULL OR NOT v_form.is_active THEN
+    RAISE EXCEPTION 'Form is not available';
+  END IF;
+
+  SELECT count(*)::integer INTO v_recent_count
+  FROM public.quick_form_submissions sub
+  WHERE sub.quick_form_id = v_form.id
+    AND sub.submitted_at >= (now() - interval '1 hour');
+
+  IF v_recent_count >= 60 THEN
+    RAISE EXCEPTION 'Too many submissions. Please try again later.';
+  END IF;
+
+  INSERT INTO public.quick_form_submissions (
+    organization_id,
+    quick_form_id,
+    submitted_at,
+    form_snapshot,
+    field_values,
+    client_context,
+    request_fingerprint
+  ) VALUES (
+    v_form.organization_id,
+    v_form.id,
+    v_submitted_at,
+    COALESCE(p_form_snapshot, '{}'::jsonb),
+    COALESCE(p_field_values, '[]'::jsonb),
+    COALESCE(p_client_context, '{}'::jsonb),
+    left(COALESCE(p_request_fingerprint, ''), 128)
+  )
+  RETURNING id INTO v_submission_id;
+
+  RETURN jsonb_build_object(
+    'id', v_submission_id,
+    'submitted_at', v_submitted_at
+  );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."submit_quick_form_public"("p_token_hash" "text", "p_field_values" "jsonb", "p_client_context" "jsonb", "p_form_snapshot" "jsonb", "p_request_fingerprint" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."sync_equipment_customer_from_team"() RETURNS "trigger"
@@ -15557,6 +15775,90 @@ COMMENT ON COLUMN "public"."push_subscriptions"."auth" IS 'Shared authentication
 
 
 
+CREATE TABLE IF NOT EXISTS "public"."quick_form_submissions" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "organization_id" "uuid" NOT NULL,
+    "quick_form_id" "uuid" NOT NULL,
+    "submitted_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "form_snapshot" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "field_values" "jsonb" DEFAULT '[]'::"jsonb" NOT NULL,
+    "client_context" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "request_fingerprint" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."quick_form_submissions" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."quick_form_submissions" IS 'Append-only ledger of public quick form submissions. Inserts via service role edge function only; reads restricted to org owners/admins.';
+
+
+
+COMMENT ON COLUMN "public"."quick_form_submissions"."form_snapshot" IS 'Frozen copy of the form name/description/field definitions at submission time.';
+
+
+
+COMMENT ON COLUMN "public"."quick_form_submissions"."field_values" IS 'Array of { field_id, label, input_type, value } for user-entered fields.';
+
+
+
+COMMENT ON COLUMN "public"."quick_form_submissions"."client_context" IS 'Object with submitted_timestamp, browser_timezone, and optional gps fields.';
+
+
+
+CREATE TABLE IF NOT EXISTS "public"."quick_form_token_secrets" (
+    "quick_form_id" "uuid" NOT NULL,
+    "organization_id" "uuid" NOT NULL,
+    "raw_token" "text" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."quick_form_token_secrets" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."quick_form_token_secrets" IS 'Raw quick form QR tokens keyed by form. Admin-only read via RLS; written exclusively by SECURITY DEFINER create/rotate RPCs so QR links stay printable from any device.';
+
+
+
+COMMENT ON COLUMN "public"."quick_form_token_secrets"."raw_token" IS 'Raw public QR token for /qr/quick-form/{token}. SHA-256 of this value matches quick_forms.public_token_hash.';
+
+
+
+CREATE TABLE IF NOT EXISTS "public"."quick_forms" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "organization_id" "uuid" NOT NULL,
+    "name" "text" NOT NULL,
+    "description" "text",
+    "form_data" "jsonb" DEFAULT '{"fields": []}'::"jsonb" NOT NULL,
+    "is_active" boolean DEFAULT true NOT NULL,
+    "public_token_hash" "text" NOT NULL,
+    "token_rotated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "token_rotated_by" "uuid",
+    "created_by" "uuid" NOT NULL,
+    "updated_by" "uuid",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."quick_forms" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."quick_forms" IS 'Org-owned standalone public data-collection forms (#1184). Not tied to equipment or teams; accessed by unauthenticated users via rotating QR token.';
+
+
+
+COMMENT ON COLUMN "public"."quick_forms"."form_data" IS 'JSON object: fields (array of { id, label, inputType, required, helpText }) and optional collectLocation flag.';
+
+
+
+COMMENT ON COLUMN "public"."quick_forms"."public_token_hash" IS 'SHA-256 hex digest of the public QR token. Lookup key for edge function load/submit.';
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."quickbooks_credentials" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "organization_id" "uuid" NOT NULL,
@@ -16612,6 +16914,21 @@ ALTER TABLE ONLY "public"."push_subscriptions"
 
 
 
+ALTER TABLE ONLY "public"."quick_form_submissions"
+    ADD CONSTRAINT "quick_form_submissions_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."quick_form_token_secrets"
+    ADD CONSTRAINT "quick_form_token_secrets_pkey" PRIMARY KEY ("quick_form_id");
+
+
+
+ALTER TABLE ONLY "public"."quick_forms"
+    ADD CONSTRAINT "quick_forms_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."quickbooks_credentials"
     ADD CONSTRAINT "quickbooks_credentials_organization_id_realm_id_key" UNIQUE ("organization_id", "realm_id");
 
@@ -17377,6 +17694,26 @@ CREATE INDEX "idx_qbo_invoice_status_events_pending" ON "public"."quickbooks_inv
 
 
 CREATE INDEX "idx_qbo_invoice_status_events_stale_processing" ON "public"."quickbooks_invoice_status_events" USING "btree" ("updated_at") WHERE (("status" = 'processing'::"text") AND ("attempts" < 5));
+
+
+
+CREATE INDEX "idx_quick_form_submissions_form_submitted" ON "public"."quick_form_submissions" USING "btree" ("quick_form_id", "submitted_at" DESC);
+
+
+
+CREATE INDEX "idx_quick_form_submissions_org_submitted" ON "public"."quick_form_submissions" USING "btree" ("organization_id", "submitted_at" DESC);
+
+
+
+CREATE INDEX "idx_quick_form_token_secrets_org" ON "public"."quick_form_token_secrets" USING "btree" ("organization_id");
+
+
+
+CREATE INDEX "idx_quick_forms_org" ON "public"."quick_forms" USING "btree" ("organization_id");
+
+
+
+CREATE UNIQUE INDEX "idx_quick_forms_token_hash" ON "public"."quick_forms" USING "btree" ("public_token_hash");
 
 
 
@@ -18566,6 +18903,46 @@ ALTER TABLE ONLY "public"."profiles"
 
 ALTER TABLE ONLY "public"."push_subscriptions"
     ADD CONSTRAINT "push_subscriptions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."quick_form_submissions"
+    ADD CONSTRAINT "quick_form_submissions_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."quick_form_submissions"
+    ADD CONSTRAINT "quick_form_submissions_quick_form_id_fkey" FOREIGN KEY ("quick_form_id") REFERENCES "public"."quick_forms"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."quick_form_token_secrets"
+    ADD CONSTRAINT "quick_form_token_secrets_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."quick_form_token_secrets"
+    ADD CONSTRAINT "quick_form_token_secrets_quick_form_id_fkey" FOREIGN KEY ("quick_form_id") REFERENCES "public"."quick_forms"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."quick_forms"
+    ADD CONSTRAINT "quick_forms_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id");
+
+
+
+ALTER TABLE ONLY "public"."quick_forms"
+    ADD CONSTRAINT "quick_forms_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."quick_forms"
+    ADD CONSTRAINT "quick_forms_token_rotated_by_fkey" FOREIGN KEY ("token_rotated_by") REFERENCES "public"."profiles"("id");
+
+
+
+ALTER TABLE ONLY "public"."quick_forms"
+    ADD CONSTRAINT "quick_forms_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "public"."profiles"("id");
 
 
 
@@ -19927,6 +20304,35 @@ CREATE POLICY "profiles_update_optimized" ON "public"."profiles" FOR UPDATE USIN
 ALTER TABLE "public"."push_subscriptions" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."quick_form_submissions" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "quick_form_submissions_select_admin" ON "public"."quick_form_submissions" FOR SELECT USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+
+
+
+ALTER TABLE "public"."quick_form_token_secrets" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "quick_form_token_secrets_select_admin" ON "public"."quick_form_token_secrets" FOR SELECT USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+
+
+
+ALTER TABLE "public"."quick_forms" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "quick_forms_delete_admin" ON "public"."quick_forms" FOR DELETE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+
+
+
+CREATE POLICY "quick_forms_select_admin" ON "public"."quick_forms" FOR SELECT USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+
+
+
+CREATE POLICY "quick_forms_update_admin" ON "public"."quick_forms" FOR UPDATE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) WITH CHECK ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+
+
+
 ALTER TABLE "public"."quickbooks_credentials" ENABLE ROW LEVEL SECURITY;
 
 
@@ -20444,10 +20850,6 @@ ALTER TABLE "public"."workspace_personal_org_merge_requests" ENABLE ROW LEVEL SE
 
 
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
-
-
-
-
 
 
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."organization_members";
@@ -21244,6 +21646,12 @@ GRANT ALL ON FUNCTION "public"."create_operator_checkin_assignment"("p_organizat
 
 
 
+REVOKE ALL ON FUNCTION "public"."create_quick_form"("p_organization_id" "uuid", "p_name" "text", "p_description" "text", "p_form_data" "jsonb") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_quick_form"("p_organization_id" "uuid", "p_name" "text", "p_description" "text", "p_form_data" "jsonb") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_quick_form"("p_organization_id" "uuid", "p_name" "text", "p_description" "text", "p_form_data" "jsonb") TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."create_quickbooks_oauth_session"("p_organization_id" "uuid", "p_redirect_url" "text", "p_origin_url" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."create_quickbooks_oauth_session"("p_organization_id" "uuid", "p_redirect_url" "text", "p_origin_url" "text") TO "service_role";
 GRANT ALL ON FUNCTION "public"."create_quickbooks_oauth_session"("p_organization_id" "uuid", "p_redirect_url" "text", "p_origin_url" "text") TO "authenticated";
@@ -21934,6 +22342,13 @@ GRANT ALL ON FUNCTION "public"."resolve_operator_checkin_by_token"("p_token_hash
 
 
 
+REVOKE ALL ON FUNCTION "public"."resolve_quick_form_by_token"("p_token_hash" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."resolve_quick_form_by_token"("p_token_hash" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."resolve_quick_form_by_token"("p_token_hash" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."resolve_quick_form_by_token"("p_token_hash" "text") TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."respond_to_ownership_transfer"("p_transfer_id" "uuid", "p_accept" boolean, "p_departing_owner_role" "text", "p_response_reason" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."respond_to_ownership_transfer"("p_transfer_id" "uuid", "p_accept" boolean, "p_departing_owner_role" "text", "p_response_reason" "text") TO "service_role";
 GRANT ALL ON FUNCTION "public"."respond_to_ownership_transfer"("p_transfer_id" "uuid", "p_accept" boolean, "p_departing_owner_role" "text", "p_response_reason" "text") TO "authenticated";
@@ -21962,6 +22377,12 @@ REVOKE ALL ON FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" 
 GRANT ALL ON FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "uuid") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."rotate_quick_form_token"("p_quick_form_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."rotate_quick_form_token"("p_quick_form_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."rotate_quick_form_token"("p_quick_form_id" "uuid") TO "service_role";
 
 
 
@@ -22006,6 +22427,11 @@ REVOKE ALL ON FUNCTION "public"."submit_operator_checkin_public"("p_token_hash" 
 GRANT ALL ON FUNCTION "public"."submit_operator_checkin_public"("p_token_hash" "text", "p_operator_field_values" "jsonb", "p_client_field_values" "jsonb", "p_equipment_field_values" "jsonb", "p_checklist_answers" "jsonb", "p_template_snapshot" "jsonb", "p_is_complete" boolean, "p_required_item_count" integer, "p_answered_required_count" integer, "p_request_fingerprint" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."submit_operator_checkin_public"("p_token_hash" "text", "p_operator_field_values" "jsonb", "p_client_field_values" "jsonb", "p_equipment_field_values" "jsonb", "p_checklist_answers" "jsonb", "p_template_snapshot" "jsonb", "p_is_complete" boolean, "p_required_item_count" integer, "p_answered_required_count" integer, "p_request_fingerprint" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."submit_operator_checkin_public"("p_token_hash" "text", "p_operator_field_values" "jsonb", "p_client_field_values" "jsonb", "p_equipment_field_values" "jsonb", "p_checklist_answers" "jsonb", "p_template_snapshot" "jsonb", "p_is_complete" boolean, "p_required_item_count" integer, "p_answered_required_count" integer, "p_request_fingerprint" "text") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."submit_quick_form_public"("p_token_hash" "text", "p_field_values" "jsonb", "p_client_context" "jsonb", "p_form_snapshot" "jsonb", "p_request_fingerprint" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."submit_quick_form_public"("p_token_hash" "text", "p_field_values" "jsonb", "p_client_context" "jsonb", "p_form_snapshot" "jsonb", "p_request_fingerprint" "text") TO "service_role";
 
 
 
@@ -22528,6 +22954,21 @@ GRANT ALL ON TABLE "public"."profiles" TO "service_role";
 GRANT ALL ON TABLE "public"."push_subscriptions" TO "anon";
 GRANT ALL ON TABLE "public"."push_subscriptions" TO "authenticated";
 GRANT ALL ON TABLE "public"."push_subscriptions" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."quick_form_submissions" TO "authenticated";
+GRANT ALL ON TABLE "public"."quick_form_submissions" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."quick_form_token_secrets" TO "authenticated";
+GRANT ALL ON TABLE "public"."quick_form_token_secrets" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."quick_forms" TO "authenticated";
+GRANT ALL ON TABLE "public"."quick_forms" TO "service_role";
 
 
 
