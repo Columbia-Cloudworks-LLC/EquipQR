@@ -46,7 +46,7 @@ const ResizableHandle = React.forwardRef<
   <Separator
     elementRef={ref}
     className={cn(
-      "relative flex items-center justify-center bg-border focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-1",
+      "relative flex items-center justify-center bg-border transition-colors hover:bg-primary/40 data-[resize-separator-active]:bg-primary/60 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-1",
       "aria-[orientation=vertical]:h-full aria-[orientation=vertical]:w-px",
       "after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2",
       "aria-[orientation=horizontal]:h-px aria-[orientation=horizontal]:w-full",
@@ -57,8 +57,8 @@ const ResizableHandle = React.forwardRef<
     {...props}
   >
     {withHandle && (
-      <div className="z-10 flex h-4 w-3 items-center justify-center rounded-sm border bg-border">
-        <GripVertical className="h-2.5 w-2.5" />
+      <div className="z-10 flex h-8 w-3.5 items-center justify-center rounded-sm border bg-border shadow-sm">
+        <GripVertical className="h-3 w-3" />
       </div>
     )}
   </Separator>

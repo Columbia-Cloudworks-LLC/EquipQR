@@ -1,8 +1,13 @@
 /**
- * AuditExplorer — top-level shell for the new /audit-log experience
- * (issue #641). Composes the time-range picker, the timeline histogram,
- * and a resizable list / detail two-pane below it. Owns the explorer's
- * filters / preset / selection / pagination state.
+ * AuditExplorer — top-level shell for the /audit-log experience (issues
+ * #641, #1166). Composes the toolbar with time-range picker above a
+ * customizable dashboard grid (key metrics, timeline histogram, events).
+ * Owns the explorer's filters / preset / selection / pagination state.
+ *
+ * Selection model (#1166): the events table renders full-width until rows
+ * are selected. A single selection opens the detail inspector; a multi
+ * selection swaps it for the bulk-actions pane (export as Markdown, Excel,
+ * or PDF).
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -23,6 +28,7 @@ import {
 } from '@/hooks/useAuditLog';
 import { usePermissions } from '@/hooks/usePermissions';
 import AuditLogToolbar from '@/components/audit/AuditLogToolbar';
+import { AuditStatsCards } from '@/components/audit/AuditStatsCards';
 import {
   AuditLogFilters,
   AuditLogTimelineBucket,
@@ -35,6 +41,16 @@ import { runAuditExport } from './runAuditExport';
 import { AuditTimelineHistogram } from './AuditTimelineHistogram';
 import { AuditLogList } from './AuditLogList';
 import { AuditLogDetailPanel } from './AuditLogDetailPanel';
+import { AuditLogBulkActionsPanel } from './AuditLogBulkActionsPanel';
+import { AuditDashboardGrid, type AuditDashboardWidgetDef } from './AuditDashboardGrid';
+import {
+  applyRowClick,
+  pruneSelection,
+  toggleSelection,
+  EMPTY_AUDIT_SELECTION,
+  type AuditSelectionState,
+  type RowClickModifiers,
+} from './auditSelection';
 
 const PAGE_SIZE = 200;
 
@@ -118,9 +134,7 @@ export function AuditExplorer({ organizationId, initialFilters }: AuditExplorerP
     Omit<AuditLogFilters, 'dateFrom' | 'dateTo'>
   >(() => initialFilters ?? {});
   const [page, setPage] = useState(1);
-  const [selectedEntry, setSelectedEntry] = useState<FormattedAuditEntry | null>(
-    null
-  );
+  const [selection, setSelection] = useState<AuditSelectionState>(EMPTY_AUDIT_SELECTION);
 
   const filtersForQuery: AuditLogFilters = useMemo(
     () => ({
@@ -160,17 +174,30 @@ export function AuditExplorer({ organizationId, initialFilters }: AuditExplorerP
   );
   const { exportToCsv, exportToJson } = useAuditExport(organizationId);
 
-  // Reset selection when the underlying entry list changes shape so we never
-  // leave a now-orphaned entry highlighted in the detail panel.
+  // Drop selected ids that no longer exist when the entry list changes shape
+  // so we never leave now-orphaned entries highlighted in the panels.
   const lastEntriesKeyRef = useRef<string>('');
   useEffect(() => {
     const key = entries.map((e) => e.id).join(',');
     if (key === lastEntriesKeyRef.current) return;
     lastEntriesKeyRef.current = key;
-    if (selectedEntry && !entries.some((e) => e.id === selectedEntry.id)) {
-      setSelectedEntry(null);
-    }
-  }, [entries, selectedEntry]);
+    setSelection((prev) => pruneSelection(prev, entries));
+  }, [entries]);
+
+  const selectedEntries = useMemo(
+    () => entries.filter((e) => selection.ids.has(e.id)),
+    [entries, selection.ids]
+  );
+
+  const clearSelection = () => setSelection(EMPTY_AUDIT_SELECTION);
+
+  const handleRowClick = (entry: FormattedAuditEntry, modifiers: RowClickModifiers) => {
+    setSelection((prev) => applyRowClick(prev, entries, entry, modifiers));
+  };
+
+  const handleCheckboxToggle = (entry: FormattedAuditEntry) => {
+    setSelection((prev) => toggleSelection(prev, entry.id));
+  };
 
   const handlePresetChange = (
     nextPreset: AuditLogTimePreset,
@@ -179,7 +206,7 @@ export function AuditExplorer({ organizationId, initialFilters }: AuditExplorerP
   ) => {
     setPreset(nextPreset);
     setPage(1);
-    setSelectedEntry(null);
+    clearSelection();
     if (nextPreset === 'custom' && isoFrom && isoTo) {
       setRange({ dateFrom: isoFrom, dateTo: isoTo });
     } else if (nextPreset !== 'custom') {
@@ -198,7 +225,7 @@ export function AuditExplorer({ organizationId, initialFilters }: AuditExplorerP
       dateTo: bucketEnd.toISOString(),
     });
     setPage(1);
-    setSelectedEntry(null);
+    clearSelection();
   };
 
   const handleFilterChange = (next: AuditLogFilters) => {
@@ -212,13 +239,13 @@ export function AuditExplorer({ organizationId, initialFilters }: AuditExplorerP
       search: next.search,
     });
     setPage(1);
-    setSelectedEntry(null);
+    clearSelection();
   };
 
   const handleClearFilters = () => {
     setOtherFilters({});
     setPage(1);
-    setSelectedEntry(null);
+    clearSelection();
   };
 
   const handleExportCsv = async () => {
@@ -238,6 +265,147 @@ export function AuditExplorer({ organizationId, initialFilters }: AuditExplorerP
       setIsExporting,
     );
   };
+
+  const selectedCount = selection.ids.size;
+
+  const renderEventsWidget = (contentHeight: number) => {
+    const paginationHeight = totalPages > 1 ? 40 : 0;
+    const listHeight = Math.max(160, contentHeight - paginationHeight);
+
+    const list = (
+      <AuditLogList
+        entries={entries}
+        selectedIds={selection.ids}
+        onRowClick={handleRowClick}
+        onCheckboxToggle={handleCheckboxToggle}
+        onEscape={clearSelection}
+        height={listHeight}
+        isLoading={listQuery.isLoading}
+        emptyState={
+          <EmptyState
+            icon={History}
+            title="No audit entries found"
+            description="Try adjusting your filters or widening the time range."
+            className="border-0 bg-transparent"
+          />
+        }
+      />
+    );
+
+    return (
+      <div className="h-full flex flex-col" data-testid="audit-events-widget">
+        <div className="flex-1 min-h-0">
+          {selectedCount === 0 ? (
+            // Full-width table until events are selected (#1166).
+            <div style={{ height: listHeight }}>{list}</div>
+          ) : (
+            <ResizablePanelGroup
+              direction="horizontal"
+              style={{ height: listHeight }}
+              id={AUDIT_EXPLORER_LAYOUT_ID}
+              defaultLayout={explorerLayout.defaultLayout}
+              onLayoutChanged={explorerLayout.onLayoutChanged}
+              resizeTargetMinimumSize={{ coarse: 20, fine: 8 }}
+            >
+              <ResizablePanel id={AUDIT_EXPLORER_PANEL_IDS[0]} defaultSize={60} minSize={30}>
+                {list}
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel id={AUDIT_EXPLORER_PANEL_IDS[1]} defaultSize={40} minSize={25}>
+                {selectedCount === 1 ? (
+                  <AuditLogDetailPanel
+                    entry={selectedEntries[0] ?? null}
+                    onClearSelection={clearSelection}
+                  />
+                ) : (
+                  <AuditLogBulkActionsPanel
+                    entries={selectedEntries}
+                    onClearSelection={clearSelection}
+                    canExport={canExport}
+                  />
+                )}
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          )}
+        </div>
+
+        {totalPages > 1 && (
+          <div
+            className="flex items-center justify-between border-t px-3 shrink-0"
+            style={{ height: paginationHeight }}
+          >
+            <span className="text-xs text-muted-foreground">
+              Showing {((page - 1) * PAGE_SIZE) + 1}
+              {'\u2013'}
+              {Math.min(page * PAGE_SIZE, totalCount)} of {totalCount.toLocaleString()}{' '}
+              entries
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const widgets: AuditDashboardWidgetDef[] = [
+    {
+      id: 'metrics',
+      title: 'Key Metrics',
+      defaultH: 5,
+      minH: 4,
+      render: () => (
+        <div className="h-full overflow-y-auto p-3">
+          <AuditStatsCards organizationId={organizationId} />
+        </div>
+      ),
+    },
+    {
+      id: 'timeline',
+      title: 'Timeline',
+      defaultH: 5,
+      minH: 3,
+      render: (contentHeight) => (
+        <AuditTimelineHistogram
+          data={timelineQuery.data ?? []}
+          bucket={bucket}
+          dateFrom={range.dateFrom}
+          dateTo={range.dateTo}
+          isLoading={timelineQuery.isLoading}
+          onBucketClick={handleBucketClick}
+          height={Math.max(64, contentHeight)}
+        />
+      ),
+    },
+    {
+      id: 'events',
+      title: 'Events',
+      defaultH: 14,
+      minH: 8,
+      render: renderEventsWidget,
+    },
+  ];
 
   return (
     <div
@@ -260,83 +428,7 @@ export function AuditExplorer({ organizationId, initialFilters }: AuditExplorerP
         onTimeRangeChange={handlePresetChange}
       />
 
-      <div className="rounded-md border bg-card overflow-hidden">
-        <AuditTimelineHistogram
-          data={timelineQuery.data ?? []}
-          bucket={bucket}
-          dateFrom={range.dateFrom}
-          dateTo={range.dateTo}
-          isLoading={timelineQuery.isLoading}
-          onBucketClick={handleBucketClick}
-        />
-      </div>
-
-      <div className="rounded-md border overflow-hidden bg-card">
-        <ResizablePanelGroup
-          direction="horizontal"
-          className="h-[480px]"
-          id={AUDIT_EXPLORER_LAYOUT_ID}
-          defaultLayout={explorerLayout.defaultLayout}
-          onLayoutChanged={explorerLayout.onLayoutChanged}
-        >
-          <ResizablePanel id={AUDIT_EXPLORER_PANEL_IDS[0]} defaultSize={60} minSize={30}>
-            <AuditLogList
-              entries={entries}
-              selectedId={selectedEntry?.id ?? null}
-              onSelect={setSelectedEntry}
-              height={480}
-              isLoading={listQuery.isLoading}
-              emptyState={
-                <EmptyState
-                  icon={History}
-                  title="No audit entries found"
-                  description="Try adjusting your filters or widening the time range."
-                  className="border-0 bg-transparent"
-                />
-              }
-            />
-          </ResizablePanel>
-          <ResizableHandle withHandle />
-          <ResizablePanel id={AUDIT_EXPLORER_PANEL_IDS[1]} defaultSize={40} minSize={25}>
-            <AuditLogDetailPanel entry={selectedEntry} />
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      </div>
-
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">
-            Showing {((page - 1) * PAGE_SIZE) + 1}
-            {'\u2013'}
-            {Math.min(page * PAGE_SIZE, totalCount)} of {totalCount.toLocaleString()}{' '}
-            entries
-          </span>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              Previous
-            </Button>
-            <span className="text-xs text-muted-foreground">
-              Page {page} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
+      <AuditDashboardGrid widgets={widgets} />
     </div>
   );
 }
-

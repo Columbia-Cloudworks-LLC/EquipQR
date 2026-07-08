@@ -20,6 +20,15 @@ vi.mock('@/hooks/useAuditLog', () => ({
     useOrganizationAuditLogMock(orgId, filters, pagination),
   useAuditTimeline: (orgId: string, params: unknown) => useAuditTimelineMock(orgId, params),
   useAuditExport: () => ({ exportToCsv: exportToCsvMock, exportToJson: exportToJsonMock }),
+  useAuditStats: () => ({
+    data: {
+      totalEntries: 3,
+      byEntityType: {},
+      byAction: { INSERT: 1, UPDATE: 1, DELETE: 1 },
+      topActors: [],
+    },
+    isLoading: false,
+  }),
   deriveTimelineBucket: () => 'hour' as const,
 }));
 
@@ -105,6 +114,7 @@ beforeEach(() => {
   exportToCsvMock.mockReset();
   exportToJsonMock.mockReset();
   capturedOnBucketClick = undefined;
+  globalThis.localStorage?.clear();
 
   useOrganizationAuditLogMock.mockReturnValue({
     data: {
@@ -139,32 +149,73 @@ describe('AuditExplorer', () => {
     expect(spanDays).toBeLessThanOrEqual(30.5);
   });
 
-  it('renders histogram, toolbar, list, and detail panel inside resizable panels', () => {
+  it('renders the dashboard grid widgets (metrics, timeline, events)', () => {
     render(<AuditExplorer organizationId="org-1" />);
 
     expect(screen.getByTestId('audit-explorer')).toBeInTheDocument();
-    expect(screen.getByTestId('histogram-stub')).toBeInTheDocument();
     expect(screen.getByTestId('audit-log-toolbar')).toBeInTheDocument();
-    expect(screen.getByTestId('resizable-panel-group')).toBeInTheDocument();
-    expect(screen.getByTestId('resizable-panel-group')).toHaveAttribute(
-      'data-resizable-group-id',
-      'audit-explorer-split'
-    );
-    expect(screen.getAllByTestId('resizable-panel')).toHaveLength(2);
-    expect(screen.getByTestId('audit-detail-empty')).toBeInTheDocument();
+    expect(screen.getByTestId('audit-dashboard-grid')).toBeInTheDocument();
+    expect(screen.getByTestId('audit-widget-metrics')).toBeInTheDocument();
+    expect(screen.getByTestId('audit-widget-timeline')).toBeInTheDocument();
+    expect(screen.getByTestId('audit-widget-events')).toBeInTheDocument();
+    expect(screen.getByTestId('histogram-stub')).toBeInTheDocument();
+    expect(screen.getByTestId('audit-stats-cards')).toBeInTheDocument();
   });
 
-  it('shows the selected entry in the detail panel after a list-row click', () => {
+  it('shows the events table full width until a row is selected (#1166)', () => {
     render(<AuditExplorer organizationId="org-1" />);
 
-    expect(screen.getByTestId('audit-detail-empty')).toBeInTheDocument();
+    // No selection: no split panel, no detail pane.
+    expect(screen.queryByTestId('resizable-panel-group')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('audit-detail-panel')).not.toBeInTheDocument();
 
     const rows = screen.getAllByTestId('audit-log-list-row');
     fireEvent.click(rows[1]);
 
-    expect(screen.queryByTestId('audit-detail-empty')).not.toBeInTheDocument();
+    expect(screen.getByTestId('resizable-panel-group')).toBeInTheDocument();
     expect(screen.getByTestId('audit-detail-panel')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Forklift b/i })).toBeInTheDocument();
+  });
+
+  it('clicking the sole selected row again returns the table to full width', () => {
+    render(<AuditExplorer organizationId="org-1" />);
+
+    const rows = screen.getAllByTestId('audit-log-list-row');
+    fireEvent.click(rows[0]);
+    expect(screen.getByTestId('audit-detail-panel')).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByTestId('audit-log-list-row')[0]);
+    expect(screen.queryByTestId('audit-detail-panel')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('resizable-panel-group')).not.toBeInTheDocument();
+  });
+
+  it('shows the bulk actions pane when multiple rows are selected (#1166)', () => {
+    render(<AuditExplorer organizationId="org-1" />);
+
+    const rows = screen.getAllByTestId('audit-log-list-row');
+    fireEvent.click(rows[0]);
+    fireEvent.click(screen.getAllByTestId('audit-log-list-row')[2], { ctrlKey: true });
+
+    expect(screen.queryByTestId('audit-detail-panel')).not.toBeInTheDocument();
+    expect(screen.getByTestId('audit-bulk-actions-panel')).toBeInTheDocument();
+    expect(screen.getByText(/2 entries selected/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /markdown \(\.md\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /excel \(\.xlsx\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /pdf \(\.pdf\)/i })).toBeInTheDocument();
+
+    // Clearing returns to the full-width table.
+    fireEvent.click(screen.getByRole('button', { name: /clear/i }));
+    expect(screen.queryByTestId('audit-bulk-actions-panel')).not.toBeInTheDocument();
+  });
+
+  it('supports shift-click range selection', () => {
+    render(<AuditExplorer organizationId="org-1" />);
+
+    const rows = screen.getAllByTestId('audit-log-list-row');
+    fireEvent.click(rows[0]);
+    fireEvent.click(screen.getAllByTestId('audit-log-list-row')[2], { shiftKey: true });
+
+    expect(screen.getByText(/3 entries selected/i)).toBeInTheDocument();
   });
 
   it('narrows the time range when a histogram bar is clicked', async () => {
@@ -191,5 +242,26 @@ describe('AuditExplorer', () => {
       expect(updatedQueryArgs?.dateTo).toBe('2026-04-20T11:00:00.000Z');
       expect(updatedQueryArgs?.dateTo).not.toBe(initialDateTo);
     });
+  });
+
+  it('collapses and expands dashboard widgets', () => {
+    render(<AuditExplorer organizationId="org-1" />);
+
+    expect(screen.getByTestId('audit-stats-cards')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('audit-widget-collapse-metrics'));
+    expect(screen.queryByTestId('audit-stats-cards')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('audit-widget-collapse-metrics'));
+    expect(screen.getByTestId('audit-stats-cards')).toBeInTheDocument();
+  });
+
+  it('offers a reset-layout control and drag handles for each widget', () => {
+    render(<AuditExplorer organizationId="org-1" />);
+
+    expect(screen.getByTestId('audit-dashboard-reset-layout')).toBeInTheDocument();
+    expect(screen.getByTestId('audit-widget-drag-metrics')).toBeInTheDocument();
+    expect(screen.getByTestId('audit-widget-drag-timeline')).toBeInTheDocument();
+    expect(screen.getByTestId('audit-widget-drag-events')).toBeInTheDocument();
   });
 });
