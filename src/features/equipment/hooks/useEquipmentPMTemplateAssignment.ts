@@ -17,7 +17,7 @@ type Equipment = Tables<'equipment'>;
 export function invalidatePMScheduleQueries(
   queryClient: QueryClient,
   equipmentId: string,
-  organizationId: string,
+  organizationId?: string,
 ): void {
   queryClient.invalidateQueries({
     queryKey: queryKeys.pmIntervalPolicies.effectiveByEquipment(equipmentId),
@@ -25,9 +25,12 @@ export function invalidatePMScheduleQueries(
   queryClient.invalidateQueries({
     queryKey: queryKeys.pmStatus.byEquipment(equipmentId),
   });
-  queryClient.invalidateQueries({
-    queryKey: queryKeys.pmStatus.byOrg(organizationId),
-  });
+  // Never invalidate an empty-string org key; skip when org context is absent.
+  if (organizationId) {
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.pmStatus.byOrg(organizationId),
+    });
+  }
   queryClient.invalidateQueries({
     queryKey: queryKeys.equipment.pmStatus(equipmentId),
   });
@@ -51,9 +54,9 @@ export function useEquipmentPMTemplateAssignment(
   const { canEdit } = options;
   const queryClient = useQueryClient();
   // Multi-tenant scoping: org id must come from the trusted organization
-  // context, never from a record field.
+  // context, never from a record field. Kept undefined (not '') when absent.
   const { currentOrganization } = useOrganization();
-  const organizationId = currentOrganization?.id ?? '';
+  const organizationId = currentOrganization?.id;
   const { data: pmTemplates = [] } = usePMTemplates({
     enabled: canEdit || !!equipment.default_pm_template_id,
   });
@@ -76,6 +79,16 @@ export function useEquipmentPMTemplateAssignment(
   // Success/error toasts are owned by useUpdateEquipment; no extra toasts here.
   const handlePMTemplateAssignment = useCallback(
     async (templateId: string) => {
+      // Defense-in-depth: re-validate permission and org context at the
+      // mutation boundary, not only via UI gating.
+      if (!canEdit) {
+        logger.error('Blocked PM template assignment without edit permission');
+        throw new Error('You do not have permission to change the PM template.');
+      }
+      if (!organizationId) {
+        logger.error('Blocked PM template assignment without an active organization');
+        throw new Error('No active organization selected.');
+      }
       try {
         const templateValue = templateId === 'none' ? null : templateId;
         if (import.meta.env.DEV) {
@@ -91,7 +104,7 @@ export function useEquipmentPMTemplateAssignment(
         throw error;
       }
     },
-    [equipment.id, organizationId, queryClient, updateEquipmentMutation]
+    [canEdit, equipment.id, organizationId, queryClient, updateEquipmentMutation]
   );
 
   return {

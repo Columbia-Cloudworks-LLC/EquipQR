@@ -47,6 +47,8 @@ const EquipmentPMTemplateCard: React.FC<EquipmentPMTemplateCardProps> = ({ equip
     }
     try {
       await handlePMTemplateAssignment(templateId);
+    } catch {
+      // Errors are logged in the hook and toasted by the mutation layer.
     } finally {
       setIsUnlocked(false);
     }

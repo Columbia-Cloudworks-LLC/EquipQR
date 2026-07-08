@@ -23,7 +23,7 @@ export function useEquipmentDetailsTabActions({
 }: {
   equipment: Equipment;
   /** Org id from the trusted organization context (not the record field). */
-  organizationId: string;
+  organizationId: string | undefined;
   teams: EquipmentTeamSummary[];
   updateEquipmentMutation: UpdateEquipmentMutation;
 }) {
