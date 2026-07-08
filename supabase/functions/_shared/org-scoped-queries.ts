@@ -8,7 +8,8 @@
 
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@4.4.3";
-import { verifyOrgAdmin, verifyOrgMembership } from "./supabase-clients.ts";
+
+const MEMBERSHIP_QUERY_FAILED = "An unexpected error occurred" as const;
 
 // =============================================================================
 // Common validation schemas
@@ -16,7 +17,7 @@ import { verifyOrgAdmin, verifyOrgMembership } from "./supabase-clients.ts";
 
 /** Canonical organization UUID used across org-scoped edge functions. */
 export const organizationIdSchema = z.string().uuid({
-  message: "organizationId must be a valid UUID",
+  message: "Invalid organizationId",
 });
 
 /** Optional org context (e.g. current org hint on inventory scan). */
@@ -134,6 +135,24 @@ export function parseJsonBody<T>(
   };
 }
 
+/**
+ * Parse JSON from the request body, then validate with a Zod schema.
+ * Returns 400 for malformed JSON or validation failures.
+ */
+export async function parseRequestJson<T>(
+  req: Request,
+  schema: z.ZodType<T>,
+): Promise<ParseBodyResult<T>> {
+  let rawBody: unknown;
+  try {
+    rawBody = await req.json();
+  } catch {
+    return { success: false, error: "Invalid JSON body", status: 400 };
+  }
+
+  return parseJsonBody(schema, rawBody);
+}
+
 // =============================================================================
 // Org access helpers
 // =============================================================================
@@ -173,15 +192,27 @@ export async function requireOrgMembership(
   userId: string,
   organizationId: string,
 ): Promise<OrgMembershipResult> {
-  const membership = await verifyOrgMembership(supabase, userId, organizationId);
-  if (!membership.isMember) {
+  const { data, error } = await supabase
+    .from("organization_members")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("organization_id", organizationId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (error) {
+    console.error("[requireOrgMembership] query failed", { code: error.code });
+    return { error: MEMBERSHIP_QUERY_FAILED, status: 500 };
+  }
+
+  if (!data) {
     return {
       error: "You are not a member of this organization",
       status: 403,
     };
   }
 
-  return { organizationId, role: membership.role };
+  return { organizationId, role: data.role };
 }
 
 /**
@@ -193,10 +224,24 @@ export async function requireOrgAdminAccess(
   organizationId: string,
   forbiddenMessage = "Forbidden: Only owners and admins can perform this action",
 ): Promise<OrgAdminResult> {
-  const isAdmin = await verifyOrgAdmin(supabase, userId, organizationId);
-  if (!isAdmin) {
+  const { data, error } = await supabase
+    .from("organization_members")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("organization_id", organizationId)
+    .eq("status", "active")
+    .in("role", ["owner", "admin"])
+    .maybeSingle();
+
+  if (error) {
+    console.error("[requireOrgAdminAccess] query failed", { code: error.code });
+    return { error: MEMBERSHIP_QUERY_FAILED, status: 500 };
+  }
+
+  if (!data) {
     return { error: forbiddenMessage, status: 403 };
   }
+
   return { ok: true };
 }
 

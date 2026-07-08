@@ -21,7 +21,7 @@ type MembershipRow = { role: string } | null;
 
 function createMembershipMock(
   row: MembershipRow,
-  options?: { adminOnly?: boolean },
+  options?: { adminOnly?: boolean; queryError?: boolean },
 ): SupabaseClient {
   return {
     from: (table: string) => {
@@ -31,6 +31,9 @@ function createMembershipMock(
       chain.eq = () => chain;
       chain.in = () => chain;
       chain.maybeSingle = () => {
+        if (options?.queryError) {
+          return Promise.resolve({ data: null, error: { code: "XX000", message: "db error" } });
+        }
         if (options?.adminOnly && row && !["owner", "admin"].includes(row.role)) {
           return Promise.resolve({ data: null, error: null });
         }
@@ -134,6 +137,23 @@ Deno.test("requireOrgAdminAccess allows owner", async () => {
   const result = await requireOrgAdminAccess(supabase, USER_ID, ORG_ID);
   assert("ok" in result);
   assertEquals(result.ok, true);
+});
+Deno.test("requireOrgMembership returns 500 on query failure", async () => {
+  const supabase = createMembershipMock(null, { queryError: true });
+  const result = await requireOrgMembership(supabase, USER_ID, ORG_ID);
+  assert("error" in result);
+  if ("error" in result) {
+    assertEquals(result.status, 500);
+  }
+});
+
+Deno.test("requireOrgAdminAccess returns 500 on query failure", async () => {
+  const supabase = createMembershipMock({ role: "admin" }, { queryError: true });
+  const result = await requireOrgAdminAccess(supabase, USER_ID, ORG_ID);
+  assert("error" in result);
+  if ("error" in result) {
+    assertEquals(result.status, 500);
+  }
 });
 
 Deno.test("requireOrgAdminAccess rejects member", async () => {

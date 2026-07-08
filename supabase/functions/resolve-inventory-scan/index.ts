@@ -15,8 +15,8 @@ import {
 } from "../_shared/supabase-clients.ts";
 import {
   applyOrganizationScope,
-  parseJsonBody,
-  requireOrgMembership,
+  parseRequestJson,
+  withOrgScope,
   resolveInventoryScanRequestSchema,
 } from "../_shared/org-scoped-queries.ts";
 
@@ -26,8 +26,10 @@ const logStep = (step: string, details?: unknown) => {
 };
 Deno.serve(async (req) => {
   // Handle CORS preflight
-  const corsResponse = handleCorsPreflightIfNeeded(req);
+  const corsResponse = handleCorsPreflightIfNeeded(req, { useValidatedOrigin: true });
   if (corsResponse) return corsResponse;
+
+  const corsOpts = { req };
 
   try {
     logStep("Function started");
@@ -38,15 +40,15 @@ Deno.serve(async (req) => {
     // Validate user authentication
     const auth = await requireUser(req, supabase);
     if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status);
+      return createErrorResponse(auth.error, auth.status, corsOpts);
     }
 
     const { user } = auth;
     logStep("User authenticated", { userId: user.id });
 
-    const parsedBody = parseJsonBody(resolveInventoryScanRequestSchema, await req.json());
+    const parsedBody = await parseRequestJson(req, resolveInventoryScanRequestSchema);
     if (!parsedBody.success) {
-      return createErrorResponse(parsedBody.error, parsedBody.status);
+      return createErrorResponse(parsedBody.error, parsedBody.status, corsOpts);
     }
     const { scanned_value, current_organization_id } = parsedBody.data;
 
@@ -65,58 +67,60 @@ Deno.serve(async (req) => {
     if (current_organization_id) {
       logStep("Checking current organization", { orgId: current_organization_id });
 
-      // Verify user is a member of the organization via RLS-protected query
-      const orgAccess = await requireOrgMembership(
+      const currentOrgResult = await withOrgScope(
         supabase,
         user.id,
         current_organization_id,
+        async ({ organizationId }) => {
+          if (isUUID) {
+            const { data } = await applyOrganizationScope(
+              supabase
+                .from("inventory_items")
+                .select("id, name, organization_id"),
+              organizationId,
+            )
+              .eq("id", scanned_value)
+              .maybeSingle();
+            return data;
+          }
+
+          const { data: externalIdMatch } = await applyOrganizationScope(
+            supabase
+              .from("inventory_items")
+              .select("id, name, organization_id"),
+            organizationId,
+          )
+            .eq("external_id", scanned_value)
+            .maybeSingle();
+
+          const { data: skuMatch } = await applyOrganizationScope(
+            supabase
+              .from("inventory_items")
+              .select("id, name, organization_id"),
+            organizationId,
+          )
+            .eq("sku", scanned_value)
+            .maybeSingle();
+
+          return externalIdMatch || skuMatch;
+        },
       );
 
-      if ("error" in orgAccess) {
+      if (!currentOrgResult.ok) {
         logStep("User is not a member of the organization", {
           orgId: current_organization_id,
           userId: user.id,
         });
         return createErrorResponse(
-          "Forbidden: You are not a member of the specified organization",
-          403,
+          currentOrgResult.error === "You are not a member of this organization"
+            ? "Forbidden: You are not a member of the specified organization"
+            : currentOrgResult.error,
+          currentOrgResult.status,
+          corsOpts,
         );
       }
 
-      // Search for inventory item in current org (RLS will apply)
-      let currentOrgMatch = null;
-
-      if (isUUID) {
-        const { data } = await applyOrganizationScope(
-          supabase
-            .from("inventory_items")
-            .select("id, name, organization_id"),
-          current_organization_id,
-        )
-          .eq("id", scanned_value)
-          .maybeSingle();
-        currentOrgMatch = data;
-      } else {
-        const { data: externalIdMatch } = await applyOrganizationScope(
-          supabase
-            .from("inventory_items")
-            .select("id, name, organization_id"),
-          current_organization_id,
-        )
-          .eq("external_id", scanned_value)
-          .maybeSingle();
-
-        const { data: skuMatch } = await applyOrganizationScope(
-          supabase
-            .from("inventory_items")
-            .select("id, name, organization_id"),
-          current_organization_id,
-        )
-          .eq("sku", scanned_value)
-          .maybeSingle();
-
-        currentOrgMatch = externalIdMatch || skuMatch;
-      }
+      const currentOrgMatch = currentOrgResult.data;
 
       if (currentOrgMatch) {
         logStep("Found in current organization", { itemId: currentOrgMatch.id });
@@ -126,7 +130,7 @@ Deno.serve(async (req) => {
           orgId: current_organization_id,
           action: "view",
           name: currentOrgMatch.name,
-        });
+        }, 200, corsOpts);
       }
     }
 
@@ -153,7 +157,7 @@ Deno.serve(async (req) => {
       return createJsonResponse({
         type: "not_found",
         action: "equipment_fallback",
-      });
+      }, 200, corsOpts);
     }
 
     // Filter out current organization if provided
@@ -225,7 +229,7 @@ Deno.serve(async (req) => {
               (orgInfo?.organizations as { name: string })?.name || "Unknown",
             action: "switch_prompt",
             name: match.name,
-          });
+          }, 200, corsOpts);
         } else {
           // Multiple matches - return list for user to select
           const matches = otherOrgsMatches.map((match) => {
@@ -245,7 +249,7 @@ Deno.serve(async (req) => {
             type: "inventory",
             matches,
             action: "select_org_prompt",
-          });
+          }, 200, corsOpts);
         }
       }
     }
@@ -255,10 +259,10 @@ Deno.serve(async (req) => {
     return createJsonResponse({
       type: "not_found",
       action: "equipment_fallback",
-    });
+    }, 200, corsOpts);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
-    return createErrorResponse("An unexpected error occurred", 500);
+    return createErrorResponse("An unexpected error occurred", 500, corsOpts);
   }
 });

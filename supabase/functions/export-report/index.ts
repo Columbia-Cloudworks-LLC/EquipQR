@@ -14,7 +14,7 @@ import {
 } from "../_shared/supabase-clients.ts";
 import {
   exportReportRequestSchema,
-  parseJsonBody,
+  parseRequestJson,
 } from "../_shared/org-scoped-queries.ts";
 import { resolveWorkOrderExportAccess } from "../_shared/work-order-export-auth.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
@@ -41,14 +41,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
     const { supabase, user } = authContext;
 
-    let rawBody: unknown;
-    try {
-      rawBody = await req.json();
-    } catch {
-      return createErrorResponse("Invalid JSON body", 400, { req });
-    }
-
-    const parsedBody = parseJsonBody(exportReportRequestSchema, rawBody);
+    const parsedBody = await parseRequestJson(req, exportReportRequestSchema);
     if (!parsedBody.success) {
       return createErrorResponse(parsedBody.error, parsedBody.status, { req });
     }

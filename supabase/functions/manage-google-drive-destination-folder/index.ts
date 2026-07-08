@@ -9,7 +9,7 @@ import {
 } from "../_shared/supabase-clients.ts";
 import {
   manageGoogleDriveFolderRequestSchema,
-  parseJsonBody,
+  parseRequestJson,
   requireOrgAdminAccess,
 } from "../_shared/org-scoped-queries.ts";
 import {
@@ -51,14 +51,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       return createErrorResponse(auth.error, auth.status, { req });
     }
 
-    let rawBody: unknown;
-    try {
-      rawBody = await req.json();
-    } catch {
-      return createErrorResponse("Invalid JSON body", 400, { req });
-    }
-
-    const parsedBody = parseJsonBody(manageGoogleDriveFolderRequestSchema, rawBody);
+    const parsedBody = await parseRequestJson(req, manageGoogleDriveFolderRequestSchema);
     if (!parsedBody.success) {
       return createErrorResponse(parsedBody.error, parsedBody.status, { req });
     }

@@ -17,7 +17,7 @@ import {
 import {
   applyOrganizationScope,
   geocodeLocationRequestSchema,
-  parseJsonBody,
+  parseRequestJson,
   requireOrgMembership,
 } from "../_shared/org-scoped-queries.ts";
 import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
@@ -35,8 +35,10 @@ function normalizeAddress(raw: string): string {
 
 Deno.serve(withCorrelationId(async (req, ctx) => {
   // Handle CORS preflight
-  const corsResponse = handleCorsPreflightIfNeeded(req);
+  const corsResponse = handleCorsPreflightIfNeeded(req, { useValidatedOrigin: true });
   if (corsResponse) return corsResponse;
+
+  const corsOpts = { req };
 
   try {
     logStep("Function started", ctx.correlationId);
@@ -52,27 +54,27 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     // Validate user authentication
     const auth = await requireUser(req, supabase);
     if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status);
+      return createErrorResponse(auth.error, auth.status, corsOpts);
     }
 
     const { user } = auth;
     logStep("User authenticated", ctx.correlationId, { userId: user.id });
 
-    const parsedBody = parseJsonBody(geocodeLocationRequestSchema, await req.json());
+    const parsedBody = await parseRequestJson(req, geocodeLocationRequestSchema);
     if (!parsedBody.success) {
-      return createErrorResponse(parsedBody.error, parsedBody.status);
+      return createErrorResponse(parsedBody.error, parsedBody.status, corsOpts);
     }
     const { organizationId, input } = parsedBody.data;
 
     const orgAccess = await requireOrgMembership(supabase, user.id, organizationId);
     if ("error" in orgAccess) {
       logStep("Org membership denied", ctx.correlationId, { userId: user.id, orgId: organizationId });
-      return createErrorResponse(orgAccess.error, orgAccess.status);
+      return createErrorResponse(orgAccess.error, orgAccess.status, corsOpts);
     }
 
     const normalizedInput = normalizeAddress(input);
     if (!normalizedInput) {
-      return createJsonResponse({ lat: null, lng: null });
+      return createJsonResponse({ lat: null, lng: null }, 200, corsOpts);
     }
 
     // Rate limiting: max 30 geocode cache misses per organization per minute.
@@ -89,7 +91,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
 
     if (!rateLimitError && (recentCount ?? 0) >= 30) {
       logStep("Rate limit exceeded", ctx.correlationId, { userId: user.id, recentCount });
-      return createErrorResponse("Rate limit exceeded", 429);
+      return createErrorResponse("Rate limit exceeded", 429, corsOpts);
     }
 
     logStep("Checking cache", ctx.correlationId, { organizationId, normalizedInput });
@@ -112,7 +114,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
         lat: cached.latitude,
         lng: cached.longitude,
         formatted_address: cached.formatted_address,
-      });
+      }, 200, corsOpts);
     }
 
     logStep("Cache miss, calling Google API", ctx.correlationId);
@@ -130,7 +132,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       geocodeData.results.length === 0
     ) {
       logStep("Google API returned no results", ctx.correlationId, { status: geocodeData.status });
-      return createJsonResponse({ lat: null, lng: null });
+      return createJsonResponse({ lat: null, lng: null }, 200, corsOpts);
     }
 
     const result = geocodeData.results[0];
@@ -169,13 +171,13 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       lat,
       lng,
       formatted_address: formattedAddress,
-    });
+    }, 200, corsOpts);
   } catch (error) {
     if (error instanceof MissingSecretError) {
-      return createErrorResponse(error, 500);
+      return createErrorResponse(error, 500, corsOpts);
     }
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", ctx.correlationId, { message: errorMessage });
-    return createErrorResponse("An unexpected error occurred", 500);
+    return createErrorResponse("An unexpected error occurred", 500, corsOpts);
   }
 }));
