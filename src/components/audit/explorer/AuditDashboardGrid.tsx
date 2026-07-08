@@ -60,6 +60,41 @@ function defaultLayoutFor(widgets: AuditDashboardWidgetDef[]): Layout {
   });
 }
 
+function isBoundedInteger(value: unknown, min: number, max: number): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
+}
+
+/**
+ * Sanitize one stored layout item against the widget's defaults. Any invalid
+ * or out-of-bounds geometry falls back to the default item so corrupted
+ * localStorage can never produce a broken grid.
+ */
+function sanitizeLayoutItem(
+  stored: unknown,
+  defaultItem: LayoutItem,
+  collapsed: boolean,
+): LayoutItem | null {
+  if (!stored || typeof stored !== 'object') return null;
+  const item = stored as Partial<LayoutItem>;
+  if (item.i !== defaultItem.i) return null;
+  const maxRows = 200;
+  const valid =
+    isBoundedInteger(item.x, 0, GRID_COLS - 1) &&
+    isBoundedInteger(item.y, 0, maxRows) &&
+    isBoundedInteger(item.w, 1, GRID_COLS) &&
+    isBoundedInteger(item.h, 1, maxRows) &&
+    (item.x as number) + (item.w as number) <= GRID_COLS;
+  if (!valid) return null;
+  return {
+    ...defaultItem,
+    x: item.x as number,
+    y: item.y as number,
+    w: item.w as number,
+    h: item.h as number,
+    ...(collapsed ? { minH: COLLAPSED_H, isResizable: false } : {}),
+  };
+}
+
 function readPersistedState(widgets: AuditDashboardWidgetDef[]): PersistedGridState {
   const fallback: PersistedGridState = {
     layout: defaultLayoutFor(widgets),
@@ -74,19 +109,30 @@ function readPersistedState(widgets: AuditDashboardWidgetDef[]): PersistedGridSt
     if (!raw) return fallback;
     const parsed = JSON.parse(raw) as Partial<PersistedGridState>;
     if (!Array.isArray(parsed.layout)) return fallback;
-    const knownIds = new Set(widgets.map((w) => w.id));
-    const storedItems = parsed.layout.filter(
-      (item): item is LayoutItem =>
-        !!item && typeof item === 'object' && knownIds.has((item as LayoutItem).i),
-    );
-    const storedIds = new Set(storedItems.map((item) => item.i));
-    // Append any widget the stored layout does not know about yet.
-    const missing = defaultLayoutFor(widgets).filter((item) => !storedIds.has(item.i));
-    return {
-      layout: [...storedItems, ...missing],
-      collapsed: parsed.collapsed && typeof parsed.collapsed === 'object' ? parsed.collapsed : {},
-      expandedH: parsed.expandedH && typeof parsed.expandedH === 'object' ? parsed.expandedH : {},
-    };
+
+    const rawCollapsed =
+      parsed.collapsed && typeof parsed.collapsed === 'object' ? parsed.collapsed : {};
+    const rawExpandedH =
+      parsed.expandedH && typeof parsed.expandedH === 'object' ? parsed.expandedH : {};
+
+    const collapsed: Record<string, boolean> = {};
+    const expandedH: Record<string, number> = {};
+    const layout: Layout = [];
+
+    for (const defaultItem of defaultLayoutFor(widgets)) {
+      const widgetId = defaultItem.i;
+      collapsed[widgetId] = rawCollapsed[widgetId] === true;
+      const storedExpanded = rawExpandedH[widgetId];
+      if (isBoundedInteger(storedExpanded, 1, 200)) {
+        expandedH[widgetId] = storedExpanded;
+      }
+      const stored = parsed.layout.find(
+        (item) => !!item && typeof item === 'object' && (item as LayoutItem).i === widgetId,
+      );
+      layout.push(sanitizeLayoutItem(stored, defaultItem, collapsed[widgetId]) ?? defaultItem);
+    }
+
+    return { layout, collapsed, expandedH };
   } catch (error) {
     logger.error('Failed to read audit dashboard layout', error);
     return fallback;
@@ -115,38 +161,54 @@ export function AuditDashboardGrid({ widgets }: AuditDashboardGridProps) {
   const { width, containerRef } = useContainerWidth();
   const [state, setState] = useState<PersistedGridState>(() => readPersistedState(widgets));
 
-  // Persist on every state change (drag, resize, collapse, reset).
+  // Persist state changes debounced: drag/resize emit many layout updates and
+  // localStorage writes are synchronous, so coalesce them. Flush on unmount.
   const stateRef = useRef(state);
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     stateRef.current = state;
-    persistState(state);
+    if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    persistTimerRef.current = setTimeout(() => persistState(stateRef.current), 300);
   }, [state]);
+  useEffect(
+    () => () => {
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+      persistState(stateRef.current);
+    },
+    []
+  );
 
   const handleLayoutChange = useCallback((layout: Layout) => {
     setState((prev) => ({ ...prev, layout: [...layout] }));
   }, []);
 
-  const toggleCollapsed = useCallback((widgetId: string) => {
-    setState((prev) => {
-      const isCollapsed = !!prev.collapsed[widgetId];
-      const layout = prev.layout.map((item) => {
-        if (item.i !== widgetId) return item;
-        if (isCollapsed) {
-          const restoredH = prev.expandedH[widgetId] ?? item.h;
-          return { ...item, h: Math.max(restoredH, COLLAPSED_H), isResizable: undefined };
-        }
-        return { ...item, h: COLLAPSED_H, isResizable: false };
+  const toggleCollapsed = useCallback(
+    (widgetId: string) => {
+      const widgetDef = widgets.find((w) => w.id === widgetId);
+      const configuredMinH = widgetDef?.minH ?? 3;
+      setState((prev) => {
+        const isCollapsed = !!prev.collapsed[widgetId];
+        const layout = prev.layout.map((item) => {
+          if (item.i !== widgetId) return item;
+          if (isCollapsed) {
+            const restoredH = Math.max(prev.expandedH[widgetId] ?? item.h, configuredMinH);
+            return { ...item, h: restoredH, minH: configuredMinH, isResizable: undefined };
+          }
+          // Also relax minH so the grid can legally shrink to the header row.
+          return { ...item, h: COLLAPSED_H, minH: COLLAPSED_H, isResizable: false };
+        });
+        const current = prev.layout.find((item) => item.i === widgetId);
+        return {
+          layout,
+          collapsed: { ...prev.collapsed, [widgetId]: !isCollapsed },
+          expandedH: isCollapsed
+            ? prev.expandedH
+            : { ...prev.expandedH, [widgetId]: current?.h ?? configuredMinH },
+        };
       });
-      const current = prev.layout.find((item) => item.i === widgetId);
-      return {
-        layout,
-        collapsed: { ...prev.collapsed, [widgetId]: !isCollapsed },
-        expandedH: isCollapsed
-          ? prev.expandedH
-          : { ...prev.expandedH, [widgetId]: current?.h ?? COLLAPSED_H },
-      };
-    });
-  }, []);
+    },
+    [widgets]
+  );
 
   const resetLayout = useCallback(() => {
     setState({ layout: defaultLayoutFor(widgets), collapsed: {}, expandedH: {} });
@@ -192,14 +254,15 @@ export function AuditDashboardGrid({ widgets }: AuditDashboardGridProps) {
                     className="flex items-center gap-1.5 px-2 shrink-0 border-b bg-muted/30"
                     style={{ height: WIDGET_HEADER_PX }}
                   >
-                    <span
-                      className="audit-widget-drag-handle flex items-center justify-center h-6 w-6 rounded cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground hover:bg-muted"
+                    <button
+                      type="button"
+                      className="audit-widget-drag-handle flex items-center justify-center h-6 w-6 rounded cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       title="Drag to rearrange"
                       aria-label={`Drag to move the ${widget.title} section`}
                       data-testid={`audit-widget-drag-${widget.id}`}
                     >
                       <GripVertical className="h-3.5 w-3.5" />
-                    </span>
+                    </button>
                     <span className="text-xs font-semibold">{widget.title}</span>
                     <Button
                       variant="ghost"
