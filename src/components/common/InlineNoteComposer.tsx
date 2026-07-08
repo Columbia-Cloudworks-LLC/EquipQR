@@ -302,36 +302,36 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
           placeholder={placeholder}
           disabled={disabled || isSubmitting}
           rows={3}
-          className="min-h-[80px] resize-none border-0 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 pr-28"
+          className="min-h-[80px] resize-none border-0 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 pb-12"
           aria-label="Note content"
         />
         <VoiceInterimTranscript
           isListening={isListening}
           interimTranscript={interimTranscript}
-          className="bottom-10 left-2 right-24"
+          className="bottom-12 left-2 right-2"
         />
-        
-        {/* Attach Images and Voice Buttons */}
-        <div className="absolute bottom-2 right-2 flex items-center gap-0.5">
-          <VoiceInputButton
-            isListening={isListening}
-            onToggle={toggleListening}
-            canUseVoice={canUseVoice}
-            size="icon"
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleAttachClick}
-            disabled={disabled || isSubmitting || attachedImages.length >= maxImages}
-            className="h-8 w-8 p-0"
-            title="Attach images"
-            aria-label="Attach images"
-          >
-            <Image className="h-4 w-4" />
-          </Button>
-        </div>
+
+        {/* Voice button anchored bottom-left of the input it controls */}
+        <VoiceInputButton
+          isListening={isListening}
+          onToggle={toggleListening}
+          canUseVoice={canUseVoice}
+          className="absolute bottom-2 left-2"
+        />
+
+        {/* Attach Images Button */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={handleAttachClick}
+          disabled={disabled || isSubmitting || attachedImages.length >= maxImages}
+          className="absolute bottom-2 right-2 h-8 w-8 p-0"
+          title="Attach images"
+          aria-label="Attach images"
+        >
+          <Image className="h-4 w-4" />
+        </Button>
         
         <input
           ref={fileInputRef}

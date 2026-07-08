@@ -379,6 +379,7 @@ const EquipmentDetails = () => {
                   equipmentManufacturer={equipment.manufacturer}
                   equipmentModel={equipment.model}
                   equipmentSerialNumber={equipment.serial_number}
+                  equipment={equipment}
                 />
               </Suspense>
             )}

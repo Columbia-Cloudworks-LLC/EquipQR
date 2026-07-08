@@ -1,59 +1,26 @@
 import React from 'react';
-import { Timer, Wrench } from 'lucide-react';
+import { Timer } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
-import InlineEditField from './InlineEditField';
 import { InlineEditPMSchedule } from './InlineEditPMSchedule';
 import { mobileInlineEditIconRowClassName } from './inlineEditStyles';
 
 type Equipment = Tables<'equipment'>;
 
-type SelectOption = { value: string; label: string };
-
 export interface EquipmentPMConfigFieldsProps {
   equipment: Equipment;
   canEdit: boolean;
-  pmTemplateFieldId: string;
-  pmTemplateOptions: SelectOption[];
-  onPMTemplateAssignment: (templateId: string) => void | Promise<void>;
-  getCurrentPMTemplateDisplay: () => string;
   getCurrentTeamDisplay: () => string;
 }
 
+// The PM template selector moved to the top of the Work Orders tab (#1169);
+// this card keeps the schedule configuration only.
 export function EquipmentPMConfigFields({
   equipment,
   canEdit,
-  pmTemplateFieldId,
-  pmTemplateOptions,
-  onPMTemplateAssignment,
-  getCurrentPMTemplateDisplay,
   getCurrentTeamDisplay,
 }: EquipmentPMConfigFieldsProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label htmlFor={pmTemplateFieldId} className="text-sm font-medium text-muted-foreground">
-          PM Template
-        </label>
-        <div className={mobileInlineEditIconRowClassName}>
-          <Wrench className="h-4 w-4 shrink-0 text-muted-foreground" />
-          {canEdit ? (
-            <InlineEditField
-              value={equipment.default_pm_template_id || 'none'}
-              onSave={onPMTemplateAssignment}
-              canEdit={canEdit}
-              fieldId={pmTemplateFieldId}
-              type="select"
-              selectOptions={pmTemplateOptions}
-              placeholder="Select PM template"
-              className="min-w-0 flex-1 text-base"
-              editAriaLabel="Edit PM template"
-            />
-          ) : (
-            <span className="min-w-0 flex-1 text-base text-foreground">{getCurrentPMTemplateDisplay()}</span>
-          )}
-        </div>
-      </div>
-
+    <div className="grid grid-cols-1 gap-4">
       <div>
         <span className="text-sm font-medium text-muted-foreground">PM Schedule</span>
         <div className={mobileInlineEditIconRowClassName}>

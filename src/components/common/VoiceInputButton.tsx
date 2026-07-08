@@ -8,62 +8,39 @@ export interface VoiceInputButtonProps {
   onToggle: () => void;
   canUseVoice: boolean;
   className?: string;
-  size?: 'sm' | 'icon';
 }
 
+/**
+ * Consistent microphone toggle rendered inside the bottom-left corner of the
+ * text input it controls (pass positioning via className when the parent is
+ * not using the default overlay placement).
+ */
 const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
   isListening,
   onToggle,
   canUseVoice,
   className,
-  size = 'sm',
 }) => {
   // Keep the stop control visible during an active session even if the field becomes disabled.
   if (!canUseVoice && !isListening) {
     return null;
   }
 
-  if (size === 'icon') {
-    return (
-      <Button
-        type="button"
-        variant={isListening ? 'destructive' : 'ghost'}
-        size="sm"
-        onClick={onToggle}
-        aria-pressed={isListening}
-        aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
-        className={cn('h-8 w-8 p-0', className)}
-        title={isListening ? 'Stop voice input' : 'Start voice input'}
-      >
-        {isListening ? (
-          <MicOff className="h-4 w-4" />
-        ) : (
-          <Mic className="h-4 w-4" />
-        )}
-      </Button>
-    );
-  }
-
   return (
     <Button
       type="button"
-      variant={isListening ? 'destructive' : 'outline'}
+      variant={isListening ? 'destructive' : 'ghost'}
       size="sm"
       onClick={onToggle}
       aria-pressed={isListening}
       aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
-      className={cn('h-7 px-2 gap-1', className)}
+      className={cn('h-8 w-8 p-0', className)}
+      title={isListening ? 'Stop voice input' : 'Start voice input'}
     >
       {isListening ? (
-        <>
-          <MicOff className="h-3.5 w-3.5" />
-          <span className="text-xs">Stop</span>
-        </>
+        <MicOff className="h-4 w-4" />
       ) : (
-        <>
-          <Mic className="h-3.5 w-3.5" />
-          <span className="text-xs">Voice</span>
-        </>
+        <Mic className="h-4 w-4" />
       )}
     </Button>
   );

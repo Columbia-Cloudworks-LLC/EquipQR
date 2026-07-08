@@ -137,14 +137,7 @@ const QRWorkingHoursDialog: React.FC<QRWorkingHoursDialogProps> = ({
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="qr-hours-reason">Reason or note (optional)</Label>
-              <VoiceInputButton
-                isListening={isListening}
-                onToggle={toggleListening}
-                canUseVoice={canUseVoice}
-              />
-            </div>
+            <Label htmlFor="qr-hours-reason">Reason or note (optional)</Label>
             <div className="relative">
               <Textarea
                 id="qr-hours-reason"
@@ -153,10 +146,18 @@ const QRWorkingHoursDialog: React.FC<QRWorkingHoursDialogProps> = ({
                 placeholder="Meter reading, field service update, or correction reason"
                 rows={3}
                 disabled={isSubmitting}
+                className="pb-12"
               />
               <VoiceInterimTranscript
                 isListening={isListening}
                 interimTranscript={interimTranscript}
+                className="bottom-12 left-2 right-2"
+              />
+              <VoiceInputButton
+                isListening={isListening}
+                onToggle={toggleListening}
+                canUseVoice={canUseVoice}
+                className="absolute bottom-2 left-2"
               />
             </div>
             {speechError && (

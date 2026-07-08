@@ -296,14 +296,7 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="qr-work-order-description">Description</Label>
-              <VoiceInputButton
-                isListening={isListening}
-                onToggle={toggleListening}
-                canUseVoice={canUseVoice}
-              />
-            </div>
+            <Label htmlFor="qr-work-order-description">Description</Label>
             <div className="relative">
               <Textarea
                 id="qr-work-order-description"
@@ -312,10 +305,18 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
                 disabled={isSubmitting}
                 rows={4}
                 required
+                className="pb-12"
               />
               <VoiceInterimTranscript
                 isListening={isListening}
                 interimTranscript={interimTranscript}
+                className="bottom-12 left-2 right-2"
+              />
+              <VoiceInputButton
+                isListening={isListening}
+                onToggle={toggleListening}
+                canUseVoice={canUseVoice}
+                className="absolute bottom-2 left-2"
               />
             </div>
             {speechError && (
