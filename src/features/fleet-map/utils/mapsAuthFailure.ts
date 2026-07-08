@@ -34,8 +34,21 @@ export function isLikelyMapsAuthCrash(error: Error | undefined): boolean {
   const stack = error.stack ?? '';
   const isOpaqueMapsTypeError =
     /Cannot read properties of undefined \(reading '(keys|get)'\)/.test(message);
-  // Anchor on the full Maps JS bundle origin in the stack trace, not a bare
-  // substring, so lookalike hosts cannot satisfy the check.
-  const isFromMapsBundle = /https:\/\/maps\.googleapis\.com\//.test(stack);
-  return isOpaqueMapsTypeError && isFromMapsBundle;
+  return isOpaqueMapsTypeError && stackReferencesMapsBundle(stack);
+}
+
+/** True when a stack line references the canonical Maps JS bundle origin. */
+function stackReferencesMapsBundle(stack: string): boolean {
+  const marker = 'https://maps.googleapis.com/';
+  let searchFrom = 0;
+  while (searchFrom < stack.length) {
+    const idx = stack.indexOf(marker, searchFrom);
+    if (idx === -1) return false;
+    const prefix = idx === 0 ? '' : stack[idx - 1];
+    if (prefix === '' || /[\s('"(@]/.test(prefix)) {
+      return true;
+    }
+    searchFrom = idx + 1;
+  }
+  return false;
 }

@@ -48,11 +48,12 @@ const shot = async (label) => {
   console.log(`[shot] ${file} url=${page.url().slice(0, 110)}`);
 };
 
-const SIGNED_IN_HOSTS = new Set(['qbo.intuit.com', 'app.qbo.intuit.com']);
-
 const isSignedIn = (url) => {
   const parsed = new URL(url);
-  return SIGNED_IN_HOSTS.has(parsed.hostname) && !parsed.pathname.includes('sign-in');
+  const { hostname, pathname } = parsed;
+  const isQboUiHost =
+    hostname === 'qbo.intuit.com' || hostname.endsWith('.qbo.intuit.com');
+  return isQboUiHost && !pathname.includes('sign-in');
 };
 
 const isIntuitHost = (url) => {
