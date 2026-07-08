@@ -63,7 +63,8 @@ export async function requireQuickFormToken(
   // Reject malformed snapshots early so downstream validation stays consistent.
   try {
     assertQuickFormSnapshot(form.form_data);
-  } catch {
+  } catch (error) {
+    console.error("[QUICK-FORM] invalid form snapshot:", form.id, error);
     return { ok: false, error: "Form is not available", status: 404 };
   }
 

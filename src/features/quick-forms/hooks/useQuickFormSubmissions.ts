@@ -4,6 +4,7 @@ import {
   type QuickFormSubmissionFilters,
 } from '@/features/quick-forms/services/quickFormSubmissionsService';
 import { quickFormKeys } from './quickFormKeys';
+import { requireOrganizationId } from './requireOrganizationId';
 
 export function useQuickFormSubmissions(
   organizationId: string | undefined,
@@ -11,7 +12,7 @@ export function useQuickFormSubmissions(
 ) {
   return useQuery({
     queryKey: quickFormKeys.submissions(organizationId, filters),
-    queryFn: () => listQuickFormSubmissions(organizationId!, filters),
+    queryFn: () => listQuickFormSubmissions(requireOrganizationId(organizationId), filters),
     enabled: !!organizationId,
   });
 }

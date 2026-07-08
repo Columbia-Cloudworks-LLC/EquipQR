@@ -8,18 +8,12 @@ import {
 } from '@/features/quick-forms/services/quickFormsService';
 import type { QuickFormData } from '@/features/quick-forms/types/quickForm';
 import { quickFormKeys } from './quickFormKeys';
-
-function requireOrganizationId(organizationId: string | undefined): string {
-  if (!organizationId) {
-    throw new Error('organizationId is required');
-  }
-  return organizationId;
-}
+import { requireOrganizationId } from './requireOrganizationId';
 
 export function useQuickForms(organizationId: string | undefined) {
   return useQuery({
     queryKey: quickFormKeys.list(organizationId),
-    queryFn: () => listQuickForms(organizationId!),
+    queryFn: () => listQuickForms(requireOrganizationId(organizationId)),
     enabled: !!organizationId,
   });
 }
@@ -28,7 +22,7 @@ export function useCreateQuickForm(organizationId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: { name: string; description?: string | null; formData: QuickFormData }) =>
-      createQuickForm({ organizationId: organizationId!, ...input }),
+      createQuickForm({ organizationId: requireOrganizationId(organizationId), ...input }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: quickFormKeys.list(organizationId) });
     },
@@ -44,7 +38,7 @@ export function useUpdateQuickForm(organizationId: string | undefined) {
       description?: string | null;
       formData?: QuickFormData;
       isActive?: boolean;
-    }) => updateQuickForm({ organizationId: organizationId!, ...input }),
+    }) => updateQuickForm({ organizationId: requireOrganizationId(organizationId), ...input }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: quickFormKeys.list(organizationId) });
     },
@@ -54,7 +48,7 @@ export function useUpdateQuickForm(organizationId: string | undefined) {
 export function useDeleteQuickForm(organizationId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (formId: string) => deleteQuickForm(formId, organizationId!),
+    mutationFn: (formId: string) => deleteQuickForm(formId, requireOrganizationId(organizationId)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: quickFormKeys.list(organizationId) });
       queryClient.invalidateQueries({

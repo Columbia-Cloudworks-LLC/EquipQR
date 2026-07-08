@@ -66,7 +66,7 @@ export function assertQuickFormSnapshot(raw: unknown): QuickFormData {
     throw new Error("Invalid quick form snapshot");
   }
   const parsed = parseQuickFormData(raw);
-  if (obj.fields.length > 0 && parsed.fields.length === 0) {
+  if (parsed.fields.length !== obj.fields.length) {
     throw new Error("Invalid quick form snapshot");
   }
   return parsed;
