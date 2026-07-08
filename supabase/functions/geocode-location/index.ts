@@ -9,12 +9,17 @@
 import {
   createUserSupabaseClient,
   requireUser,
-  verifyOrgMembership,
   createErrorResponse,
   createJsonResponse,
   handleCorsPreflightIfNeeded,
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
+import {
+  applyOrganizationScope,
+  geocodeLocationRequestSchema,
+  parseJsonBody,
+  requireOrgMembership,
+} from "../_shared/org-scoped-queries.ts";
 import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
 import { createStructuredLogger } from "../_shared/structured-logger.ts";
 
@@ -26,11 +31,6 @@ const logStep = createStructuredLogger(FUNCTION_NAME);
 function normalizeAddress(raw: string): string {
   if (!raw || typeof raw !== "string") return "";
   return raw.toLowerCase().trim().replace(/\s+/g, " ");
-}
-
-interface GeocodeRequest {
-  organizationId: string;
-  input: string;
 }
 
 Deno.serve(withCorrelationId(async (req, ctx) => {
@@ -58,19 +58,16 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     const { user } = auth;
     logStep("User authenticated", ctx.correlationId, { userId: user.id });
 
-    // Parse request body
-    const body: GeocodeRequest = await req.json();
-    const { organizationId, input } = body;
-
-    if (!organizationId || !input) {
-      return createErrorResponse("organizationId and input are required", 400);
+    const parsedBody = parseJsonBody(geocodeLocationRequestSchema, await req.json());
+    if (!parsedBody.success) {
+      return createErrorResponse(parsedBody.error, parsedBody.status);
     }
+    const { organizationId, input } = parsedBody.data;
 
-    // Verify user is member of the organization (defense-in-depth; RLS also applies)
-    const membership = await verifyOrgMembership(supabase, user.id, organizationId);
-    if (!membership.isMember) {
+    const orgAccess = await requireOrgMembership(supabase, user.id, organizationId);
+    if ("error" in orgAccess) {
       logStep("Org membership denied", ctx.correlationId, { userId: user.id, orgId: organizationId });
-      return createErrorResponse("You are not a member of this organization", 403);
+      return createErrorResponse(orgAccess.error, orgAccess.status);
     }
 
     const normalizedInput = normalizeAddress(input);
@@ -82,10 +79,12 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     // We count recent inserts into geocoded_locations (which only happen on
     // cache misses that call the Google API). Cache hits are free.
     const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
-    const { count: recentCount, error: rateLimitError } = await supabase
-      .from("geocoded_locations")
-      .select("id", { count: "exact", head: true })
-      .eq("organization_id", organizationId)
+    const { count: recentCount, error: rateLimitError } = await applyOrganizationScope(
+      supabase
+        .from("geocoded_locations")
+        .select("id", { count: "exact", head: true }),
+      organizationId,
+    )
       .gte("created_at", oneMinuteAgo);
 
     if (!rateLimitError && (recentCount ?? 0) >= 30) {
@@ -96,10 +95,12 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     logStep("Checking cache", ctx.correlationId, { organizationId, normalizedInput });
 
     // Check cache first (RLS will restrict to user's orgs)
-    const { data: cached, error: cacheError } = await supabase
-      .from("geocoded_locations")
-      .select("latitude, longitude, formatted_address")
-      .eq("organization_id", organizationId)
+    const { data: cached, error: cacheError } = await applyOrganizationScope(
+      supabase
+        .from("geocoded_locations")
+        .select("latitude, longitude, formatted_address"),
+      organizationId,
+    )
       .eq("normalized_text", normalizedInput)
       .maybeSingle();
 

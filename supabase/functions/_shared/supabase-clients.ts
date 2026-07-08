@@ -5,6 +5,9 @@
  * - User-scoped clients (RLS enforced via JWT)
  * - Admin clients (service role, bypasses RLS - use sparingly)
  * - User extraction and validation
+ *
+ * Org-scoped query helpers and shared Zod request schemas live in
+ * `org-scoped-queries.ts` (compose with verifyOrgMembership / verifyOrgAdmin here).
  */
 
 import {

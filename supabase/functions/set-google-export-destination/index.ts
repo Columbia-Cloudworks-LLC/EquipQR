@@ -1,22 +1,20 @@
 import {
   createAdminSupabaseClient,
   requireAuthenticatedPost,
-  verifyOrgAdmin,
   createErrorResponse,
   handleCorsPreflightIfNeeded,
 } from "../_shared/supabase-clients.ts";
+import {
+  parseJsonBody,
+  setGoogleExportDestinationRequestSchema,
+  withOrgAdminScope,
+} from "../_shared/org-scoped-queries.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { getGoogleWorkspaceAccessToken, GoogleWorkspaceTokenError } from "../_shared/google-workspace-token.ts";
 import { validateGoogleDriveDestination } from "../_shared/google-drive-picker-validation.ts";
 
-interface SetDestinationRequest {
-  organizationId: string;
-  documentType?: "work-orders-internal-packet";
-  selectionKind: "folder" | "shared_drive";
-  parentId: string;
-  folderByTeam?: boolean;
-  folderByEquipment?: boolean;
-}
+const ADMIN_FORBIDDEN_MESSAGE =
+  "Forbidden: Only owners and admins can manage export destinations";
 
 Deno.serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -29,34 +27,36 @@ Deno.serve(async (req) => {
     }
     const { supabase, user } = authContext;
 
-    let body: SetDestinationRequest;
+    let rawBody: unknown;
     try {
-      body = await req.json();
+      rawBody = await req.json();
     } catch {
       return createErrorResponse("Invalid JSON body", 400);
     }
 
-    const organizationId = body.organizationId;
-    const documentType = body.documentType ?? "work-orders-internal-packet";
-    const selectionKind = body.selectionKind;
-    const parentId = body.parentId;
-
-    if (!organizationId || !selectionKind || !parentId) {
-      return createErrorResponse("Missing required fields for destination", 400);
+    const parsedBody = parseJsonBody(setGoogleExportDestinationRequestSchema, rawBody);
+    if (!parsedBody.success) {
+      return createErrorResponse(parsedBody.error, parsedBody.status);
     }
 
-    if (!["folder", "shared_drive"].includes(selectionKind)) {
-      return createErrorResponse("Invalid selectionKind value", 400);
-    }
+    const {
+      organizationId,
+      documentType,
+      selectionKind,
+      parentId,
+      folderByTeam,
+      folderByEquipment,
+    } = parsedBody.data;
 
-    const SUPPORTED_DOCUMENT_TYPES = ["work-orders-internal-packet"];
-    if (!SUPPORTED_DOCUMENT_TYPES.includes(documentType)) {
-      return createErrorResponse("Unsupported format", 400);
-    }
-
-    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
-    if (!isAdmin) {
-      return createErrorResponse("Forbidden: Only owners and admins can manage export destinations", 403);
+    const adminScope = await withOrgAdminScope(
+      supabase,
+      user.id,
+      organizationId,
+      async () => ({ ok: true as const }),
+      ADMIN_FORBIDDEN_MESSAGE,
+    );
+    if (!adminScope.ok) {
+      return createErrorResponse(adminScope.error, adminScope.status);
     }
 
     const adminClient = createAdminSupabaseClient();
@@ -104,11 +104,11 @@ Deno.serve(async (req) => {
       web_view_link: destination.webViewLink,
       configured_by: user.id,
     };
-    if (typeof body.folderByTeam === "boolean") {
-      upsertPayload.folder_by_team = body.folderByTeam;
+    if (typeof folderByTeam === "boolean") {
+      upsertPayload.folder_by_team = folderByTeam;
     }
-    if (typeof body.folderByEquipment === "boolean") {
-      upsertPayload.folder_by_equipment = body.folderByEquipment;
+    if (typeof folderByEquipment === "boolean") {
+      upsertPayload.folder_by_equipment = folderByEquipment;
     }
 
     const { data, error } = await supabase

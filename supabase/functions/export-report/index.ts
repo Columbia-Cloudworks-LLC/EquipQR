@@ -12,12 +12,15 @@ import {
   withCorrelationId,
   requireAuthenticatedPost,
 } from "../_shared/supabase-clients.ts";
+import {
+  exportReportRequestSchema,
+  parseJsonBody,
+} from "../_shared/org-scoped-queries.ts";
 import { resolveWorkOrderExportAccess } from "../_shared/work-order-export-auth.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   checkRateLimit,
   type ExportFilters,
-  type ReportType,
 } from "./rate-limit.ts";
 import { exportEquipment } from "./equipment-csv-export.ts";
 import { exportWorkOrders } from "./work-orders-csv-export.ts";
@@ -25,14 +28,6 @@ import { exportInventory } from "./inventory-csv-export.ts";
 import { exportScans } from "./scans-csv-export.ts";
 import { exportOperatorCheckins } from "./operator-checkins-csv-export.ts";
 import { exportAlternateGroups } from "./alternate-groups-csv-export.ts";
-
-interface ExportRequest {
-  reportType: ReportType;
-  organizationId: string;
-  filters: ExportFilters;
-  columns: string[];
-  format: "csv";
-}
 
 Deno.serve(withCorrelationId(async (req, _ctx) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -46,16 +41,19 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
     const { supabase, user } = authContext;
 
-    const body: ExportRequest = await req.json();
-    const { reportType, organizationId, filters, columns, format } = body;
-
-    if (!reportType || !organizationId || !columns || columns.length === 0) {
-      return createErrorResponse(
-        "Missing required fields: reportType, organizationId, and columns are required",
-        400,
-        { req },
-      );
+    let rawBody: unknown;
+    try {
+      rawBody = await req.json();
+    } catch {
+      return createErrorResponse("Invalid JSON body", 400, { req });
     }
+
+    const parsedBody = parseJsonBody(exportReportRequestSchema, rawBody);
+    if (!parsedBody.success) {
+      return createErrorResponse(parsedBody.error, parsedBody.status, { req });
+    }
+
+    const { reportType, organizationId, filters, columns, format } = parsedBody.data;
 
     if (format !== "csv") {
       return createErrorResponse("Unsupported format. Only CSV is currently supported.", 400, { req });

@@ -9,22 +9,21 @@
 import {
   createUserSupabaseClient,
   requireUser,
-  verifyOrgMembership,
   createErrorResponse,
   createJsonResponse,
   handleCorsPreflightIfNeeded,
 } from "../_shared/supabase-clients.ts";
+import {
+  applyOrganizationScope,
+  parseJsonBody,
+  requireOrgMembership,
+  resolveInventoryScanRequestSchema,
+} from "../_shared/org-scoped-queries.ts";
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
   console.log(`[RESOLVE-INVENTORY-SCAN] ${step}${detailsStr}`);
 };
-
-interface ScanRequest {
-  scanned_value: string;
-  current_organization_id?: string;
-}
-
 Deno.serve(async (req) => {
   // Handle CORS preflight
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -45,13 +44,11 @@ Deno.serve(async (req) => {
     const { user } = auth;
     logStep("User authenticated", { userId: user.id });
 
-    // Parse request body
-    const body: ScanRequest = await req.json();
-    const { scanned_value, current_organization_id } = body;
-
-    if (!scanned_value) {
-      return createErrorResponse("scanned_value is required", 400);
+    const parsedBody = parseJsonBody(resolveInventoryScanRequestSchema, await req.json());
+    if (!parsedBody.success) {
+      return createErrorResponse(parsedBody.error, parsedBody.status);
     }
+    const { scanned_value, current_organization_id } = parsedBody.data;
 
     logStep("Processing scan", {
       scanned_value: scanned_value.substring(0, 20) + "...",
@@ -69,20 +66,20 @@ Deno.serve(async (req) => {
       logStep("Checking current organization", { orgId: current_organization_id });
 
       // Verify user is a member of the organization via RLS-protected query
-      const membership = await verifyOrgMembership(
+      const orgAccess = await requireOrgMembership(
         supabase,
         user.id,
-        current_organization_id
+        current_organization_id,
       );
 
-      if (!membership.isMember) {
+      if ("error" in orgAccess) {
         logStep("User is not a member of the organization", {
           orgId: current_organization_id,
           userId: user.id,
         });
         return createErrorResponse(
           "Forbidden: You are not a member of the specified organization",
-          403
+          403,
         );
       }
 
@@ -90,26 +87,31 @@ Deno.serve(async (req) => {
       let currentOrgMatch = null;
 
       if (isUUID) {
-        const { data } = await supabase
-          .from("inventory_items")
-          .select("id, name, organization_id")
-          .eq("organization_id", current_organization_id)
+        const { data } = await applyOrganizationScope(
+          supabase
+            .from("inventory_items")
+            .select("id, name, organization_id"),
+          current_organization_id,
+        )
           .eq("id", scanned_value)
           .maybeSingle();
         currentOrgMatch = data;
       } else {
-        // Search by external_id or sku
-        const { data: externalIdMatch } = await supabase
-          .from("inventory_items")
-          .select("id, name, organization_id")
-          .eq("organization_id", current_organization_id)
+        const { data: externalIdMatch } = await applyOrganizationScope(
+          supabase
+            .from("inventory_items")
+            .select("id, name, organization_id"),
+          current_organization_id,
+        )
           .eq("external_id", scanned_value)
           .maybeSingle();
 
-        const { data: skuMatch } = await supabase
-          .from("inventory_items")
-          .select("id, name, organization_id")
-          .eq("organization_id", current_organization_id)
+        const { data: skuMatch } = await applyOrganizationScope(
+          supabase
+            .from("inventory_items")
+            .select("id, name, organization_id"),
+          current_organization_id,
+        )
           .eq("sku", scanned_value)
           .maybeSingle();
 
