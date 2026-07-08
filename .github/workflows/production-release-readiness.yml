@@ -27,6 +27,7 @@ jobs:
     timeout-minutes: 60
     env:
       OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+      SUPABASE_PROJECT_REF: ymxkzronkhwxzcdcbnwq
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
@@ -71,7 +72,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "::notice::Linking production Supabase project..."
-          supabase link --project-ref ymxkzronkhwxzcdcbnwq --password "$SUPABASE_DB_PASSWORD"
+          supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
           echo "::notice::Pushing migrations (include-all)..."
           supabase db push --include-all --yes
 
