@@ -313,14 +313,7 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
                   />
                 </div>
                 <div>
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="notes">Notes (Optional)</Label>
-                    <VoiceInputButton
-                      isListening={isListening}
-                      onToggle={toggleListening}
-                      canUseVoice={canUseVoice}
-                    />
-                  </div>
+                  <Label htmlFor="notes">Notes (Optional)</Label>
                   <div className="relative">
                     <Textarea
                       id="notes"
@@ -329,10 +322,18 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
                       placeholder="Add any notes about this update"
                       rows={isMobile ? 2 : 1}
                       disabled={updateHoursMutation.isPending}
+                      className="pb-12"
                     />
                     <VoiceInterimTranscript
                       isListening={isListening}
                       interimTranscript={interimTranscript}
+                      className="bottom-12 left-2 right-2"
+                    />
+                    <VoiceInputButton
+                      isListening={isListening}
+                      onToggle={toggleListening}
+                      canUseVoice={canUseVoice}
+                      className="absolute bottom-2 left-2"
                     />
                   </div>
                   {speechError && (

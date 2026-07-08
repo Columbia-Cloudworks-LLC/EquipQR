@@ -24,6 +24,7 @@ import {
   usePMIntervalPolicy,
 } from '@/features/pm-templates/hooks/usePMIntervalPolicies';
 import { queryKeys } from '@/lib/queryKeys';
+import { invalidatePMScheduleQueries } from '@/features/equipment/hooks/useEquipmentPMTemplateAssignment';
 import { toast } from 'sonner';
 
 type InlineEditPMScheduleProps = {
@@ -81,18 +82,7 @@ export function InlineEditPMSchedule({
       queryClient.invalidateQueries({
         queryKey: queryKeys.pmIntervalPolicies.byOrg(organizationId),
       });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.pmStatus.byEquipment(equipmentId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.pmStatus.byOrg(organizationId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.equipment.pmStatus(equipmentId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.pmIntervalPolicies.effectiveByEquipment(equipmentId),
-      });
+      invalidatePMScheduleQueries(queryClient, equipmentId, organizationId);
       setIsEditing(false);
     } catch {
       toast.error('Failed to update PM schedule');

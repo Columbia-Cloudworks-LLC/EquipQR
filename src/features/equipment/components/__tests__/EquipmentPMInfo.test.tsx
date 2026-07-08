@@ -14,10 +14,6 @@ const mockEquipment = {
 const defaultProps = {
   equipment: mockEquipment,
   canEdit: false,
-  pmTemplateFieldId: 'equipment-pm-template-eq-1',
-  pmTemplateOptions: [{ value: 'none', label: 'None' }],
-  onPMTemplateAssignment: vi.fn(),
-  getCurrentPMTemplateDisplay: () => 'None',
   getCurrentTeamDisplay: () => 'Unassigned',
 };
 

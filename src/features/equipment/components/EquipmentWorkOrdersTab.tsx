@@ -4,12 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Clock } from 'lucide-react';
+import { Tables } from '@/integrations/supabase/types';
 import { useEquipmentWorkOrders } from '@/features/equipment/hooks/useEquipment';
 import { useIsMobile } from '@/hooks/use-mobile';
 import WorkOrderForm from '@/features/work-orders/components/WorkOrderForm';
 import MobileWorkOrderCard from './MobileWorkOrderCard';
 import DesktopWorkOrderCard from '@/features/work-orders/components/DesktopWorkOrderCard';
 import { HistoricalWorkOrderBadge } from '@/features/work-orders/components/HistoricalWorkOrderBadge';
+import EquipmentPMTemplateCard from './EquipmentPMTemplateCard';
 
 interface EquipmentWorkOrdersTabProps {
   equipmentId: string;
@@ -18,6 +20,8 @@ interface EquipmentWorkOrdersTabProps {
   equipmentManufacturer?: string;
   equipmentModel?: string;
   equipmentSerialNumber?: string;
+  /** Full equipment record; enables the PM template selector at the top of the tab (#1169). */
+  equipment?: Tables<'equipment'>;
 }
 
 const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
@@ -27,6 +31,7 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
   equipmentManufacturer,
   equipmentModel,
   equipmentSerialNumber,
+  equipment,
 }) => {
   const navigate = useNavigate();
   const [showWorkOrderForm, setShowWorkOrderForm] = useState(false);
@@ -57,6 +62,9 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* PM template selector — PMs are always relevant to work orders (#1169) */}
+      {equipment && <EquipmentPMTemplateCard equipment={equipment} />}
+
       {/* Header */}
       <div className={`flex items-center justify-between ${isMobile ? 'flex-col gap-3' : ''}`}>
         <div className={isMobile ? 'text-center' : ''}>

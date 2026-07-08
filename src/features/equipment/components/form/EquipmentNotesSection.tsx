@@ -38,24 +38,24 @@ const EquipmentNotesSection: React.FC<EquipmentNotesSectionProps> = ({ form }) =
       name="notes"
       render={({ field }) => (
         <FormItem>
-          <div className="flex items-center justify-between">
-            <FormLabel>Description/Notes</FormLabel>
-            <VoiceInputButton
-              isListening={isListening}
-              onToggle={toggleListening}
-              canUseVoice={canUseVoice}
-            />
-          </div>
+          <FormLabel>Description/Notes</FormLabel>
           <FormControl>
             <div className="relative">
               <Textarea
                 placeholder="Additional information about the equipment..."
-                className="min-h-[100px]"
+                className="min-h-[100px] pb-12"
                 {...field}
               />
               <VoiceInterimTranscript
                 isListening={isListening}
                 interimTranscript={interimTranscript}
+                className="bottom-12 left-2 right-2"
+              />
+              <VoiceInputButton
+                isListening={isListening}
+                onToggle={toggleListening}
+                canUseVoice={canUseVoice}
+                className="absolute bottom-2 left-2"
               />
             </div>
           </FormControl>

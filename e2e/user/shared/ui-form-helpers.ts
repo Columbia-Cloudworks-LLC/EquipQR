@@ -250,18 +250,24 @@ export async function assignPmTemplateOnEquipmentDetail(
   page: Page,
   templateName: string | RegExp,
 ): Promise<void> {
-  await clickWithDemoCue(page.getByRole('button', { name: /edit pm template/i }), 'Edit PM template', {
+  // The PM template selector lives at the top of the Work Orders tab (#1169).
+  // Mobile renders the tab label as just "Orders".
+  await clickWithDemoCue(page.getByRole('tab', { name: /orders/i }), 'Open Work Orders tab', {
     force: true,
   });
 
-  const templateTrigger = page.getByLabel(/^PM Template$/i);
+  const templateTrigger = page.getByRole('combobox', { name: /^PM Template$/i });
   await expect(templateTrigger).toBeVisible({ timeout: 15_000 });
+
+  // Unlock the dropdown; picking an option saves immediately and re-locks it.
+  await clickWithDemoCue(page.getByRole('button', { name: /edit pm template/i }), 'Edit PM template', {
+    force: true,
+  });
+  await expect(templateTrigger).toBeEnabled({ timeout: 15_000 });
   await selectRadixOption(page, templateTrigger, templateName);
 
-  const pmRow = page.locator('label').filter({ hasText: /^PM Template$/ }).locator('..');
-  await clickWithDemoCue(pmRow.getByRole('button', { name: /^Save$/i }), 'Save PM template');
-
-  await expect(page.getByText(templateName).first()).toBeVisible({ timeout: 30_000 });
+  await expect(templateTrigger).toContainText(templateName, { timeout: 30_000 });
+  await expect(templateTrigger).toBeDisabled({ timeout: 30_000 });
 }
 
 export async function openWorkOrderCreateDialog(page: Page, gotoDashboard: (route: string) => Promise<void>): Promise<Locator> {
