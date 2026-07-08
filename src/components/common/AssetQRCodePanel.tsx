@@ -17,6 +17,8 @@ export interface AssetQRCodePanelProps {
   imageLoading?: 'lazy';
   showCloseButton?: boolean;
   onClose?: () => void;
+  qrImageTestId?: string;
+  urlTestId?: string;
 }
 
 function sanitizeFilename(name: string): string {
@@ -34,6 +36,8 @@ const AssetQRCodePanel: React.FC<AssetQRCodePanelProps> = ({
   imageLoading,
   showCloseButton = false,
   onClose,
+  qrImageTestId,
+  urlTestId,
 }) => {
   const [qrCodeDataUrl, setQrCodeDataUrl] = React.useState('');
   const [copied, setCopied] = React.useState(false);
@@ -105,6 +109,7 @@ const AssetQRCodePanel: React.FC<AssetQRCodePanelProps> = ({
               alt={qrImageAlt}
               loading={imageLoading}
               className={isMobile ? 'w-48 h-48' : 'w-64 h-64'}
+              data-testid={qrImageTestId}
             />
           </div>
         ) : (
@@ -119,7 +124,10 @@ const AssetQRCodePanel: React.FC<AssetQRCodePanelProps> = ({
       <div className="space-y-2">
         <span className="text-sm font-medium text-foreground">QR Code URL:</span>
         <div className="flex items-center gap-2">
-          <div className="flex-1 p-2 bg-muted rounded border text-sm font-mono break-all text-muted-foreground">
+          <div
+            className="flex-1 p-2 bg-muted rounded border text-sm font-mono break-all text-muted-foreground"
+            data-testid={urlTestId}
+          >
             {qrCodeUrl}
           </div>
           <div className="flex shrink-0 flex-col gap-2">

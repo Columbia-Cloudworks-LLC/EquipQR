@@ -270,6 +270,7 @@ REVOKE ALL ON FUNCTION public.rotate_quick_form_token(uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION public.rotate_quick_form_token(uuid) TO authenticated;
 
 -- rpc-anon-grant-allowed: resolve_quick_form_by_token
+-- rpc-authenticated-grant-allowed: resolve_quick_form_by_token
 CREATE OR REPLACE FUNCTION public.resolve_quick_form_by_token(p_token_hash text)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -314,9 +315,12 @@ BEGIN
 END;
 $$;
 
+-- Token-gated resolver must work for signed-out AND signed-in visitors
+-- (e.g. an admin scanning their own QR code), matching
+-- resolve_operator_checkin_by_token.
 REVOKE ALL ON FUNCTION public.resolve_quick_form_by_token(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.resolve_quick_form_by_token(text) FROM authenticated;
 GRANT EXECUTE ON FUNCTION public.resolve_quick_form_by_token(text) TO anon;
+GRANT EXECUTE ON FUNCTION public.resolve_quick_form_by_token(text) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.submit_quick_form_public(
   p_token_hash text,

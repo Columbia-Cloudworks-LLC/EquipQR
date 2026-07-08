@@ -21647,7 +21647,6 @@ GRANT ALL ON FUNCTION "public"."create_operator_checkin_assignment"("p_organizat
 
 
 REVOKE ALL ON FUNCTION "public"."create_quick_form"("p_organization_id" "uuid", "p_name" "text", "p_description" "text", "p_form_data" "jsonb") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_quick_form"("p_organization_id" "uuid", "p_name" "text", "p_description" "text", "p_form_data" "jsonb") TO "anon";
 GRANT ALL ON FUNCTION "public"."create_quick_form"("p_organization_id" "uuid", "p_name" "text", "p_description" "text", "p_form_data" "jsonb") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."create_quick_form"("p_organization_id" "uuid", "p_name" "text", "p_description" "text", "p_form_data" "jsonb") TO "service_role";
 
@@ -22382,7 +22381,6 @@ GRANT ALL ON FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "
 
 
 REVOKE ALL ON FUNCTION "public"."rotate_quick_form_token"("p_quick_form_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."rotate_quick_form_token"("p_quick_form_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."rotate_quick_form_token"("p_quick_form_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."rotate_quick_form_token"("p_quick_form_id" "uuid") TO "service_role";
 
@@ -22433,8 +22431,6 @@ GRANT ALL ON FUNCTION "public"."submit_operator_checkin_public"("p_token_hash" "
 
 
 REVOKE ALL ON FUNCTION "public"."submit_quick_form_public"("p_token_hash" "text", "p_field_values" "jsonb", "p_client_context" "jsonb", "p_form_snapshot" "jsonb", "p_request_fingerprint" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."submit_quick_form_public"("p_token_hash" "text", "p_field_values" "jsonb", "p_client_context" "jsonb", "p_form_snapshot" "jsonb", "p_request_fingerprint" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."submit_quick_form_public"("p_token_hash" "text", "p_field_values" "jsonb", "p_client_context" "jsonb", "p_form_snapshot" "jsonb", "p_request_fingerprint" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."submit_quick_form_public"("p_token_hash" "text", "p_field_values" "jsonb", "p_client_context" "jsonb", "p_form_snapshot" "jsonb", "p_request_fingerprint" "text") TO "service_role";
 
 
@@ -22961,19 +22957,16 @@ GRANT ALL ON TABLE "public"."push_subscriptions" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."quick_form_submissions" TO "anon";
 GRANT ALL ON TABLE "public"."quick_form_submissions" TO "authenticated";
 GRANT ALL ON TABLE "public"."quick_form_submissions" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."quick_form_token_secrets" TO "anon";
 GRANT ALL ON TABLE "public"."quick_form_token_secrets" TO "authenticated";
 GRANT ALL ON TABLE "public"."quick_form_token_secrets" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."quick_forms" TO "anon";
 GRANT ALL ON TABLE "public"."quick_forms" TO "authenticated";
 GRANT ALL ON TABLE "public"."quick_forms" TO "service_role";
 
