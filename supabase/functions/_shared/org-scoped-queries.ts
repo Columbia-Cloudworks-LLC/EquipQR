@@ -123,7 +123,14 @@ export function parseJsonBody<T>(
 
   const issues = result.error.issues
     .map((issue) => {
-      const path = issue.path.length > 0 ? `${issue.path.join(".")}: ` : "";
+      const field = issue.path.length > 0 ? issue.path.join(".") : "";
+      if (field === "organizationId" && issue.code === "invalid_format") {
+        return "Invalid organizationId";
+      }
+      if (field === "organizationId" && issue.code === "invalid_type") {
+        return "organizationId is required";
+      }
+      const path = field ? `${field}: ` : "";
       return `${path}${issue.message}`;
     })
     .join("; ");

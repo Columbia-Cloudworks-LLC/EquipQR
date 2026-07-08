@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      const message = validationError instanceof Error ? validationError.message : "Unable to validate selected destination";
+      const message = "Unable to validate selected destination";
       return createJsonResponse(
         { error: message, code: "invalid_destination" },
         400,

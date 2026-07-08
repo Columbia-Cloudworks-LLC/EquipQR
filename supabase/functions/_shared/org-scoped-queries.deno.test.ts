@@ -68,7 +68,7 @@ Deno.test("parseJsonBody rejects invalid organizationId", () => {
   assert(!parsed.success);
   if (!parsed.success) {
     assertEquals(parsed.status, 400);
-    assert(parsed.error.includes("Invalid request body"));
+    assert(parsed.error.includes("Invalid organizationId"));
   }
 });
 
